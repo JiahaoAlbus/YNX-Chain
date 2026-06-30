@@ -19,6 +19,22 @@ type Account struct {
 	Lots          map[string]int64 `json:"lots"`
 }
 
+type ExplorerSummary struct {
+	Network            NetworkConfig `json:"network"`
+	Height             uint64        `json:"height"`
+	LatestBlockHash    string        `json:"latestBlockHash"`
+	LatestBlockTime    time.Time     `json:"latestBlockTime"`
+	TotalBlocks        int           `json:"totalBlocks"`
+	TotalTransactions  int           `json:"totalTransactions"`
+	KnownAccounts      int           `json:"knownAccounts"`
+	ValidatorCount     int           `json:"validatorCount"`
+	PendingTxCount     int           `json:"pendingTxCount"`
+	PayIntentCount     int           `json:"payIntentCount"`
+	PersistenceEnabled bool          `json:"persistenceEnabled"`
+	PersistenceError   string        `json:"persistenceError,omitempty"`
+	TruthfulStatus     string        `json:"truthfulStatus"`
+}
+
 type ResourceUsage struct {
 	BandwidthUsed int64 `json:"bandwidthUsed"`
 	ComputeUsed   int64 `json:"computeUsed"`

@@ -54,6 +54,30 @@ func TestDevnetAPIFlow(t *testing.T) {
 	if len(lots) != 1 {
 		t.Fatalf("expected one inherited lot, got %v", trace)
 	}
+
+	var account map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx_bob", nil, http.StatusOK, &account)
+	if account["account"] == nil || account["resources"] == nil || account["trace"] == nil {
+		t.Fatalf("expected account, resources, and trace payload: %v", account)
+	}
+
+	var txs map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/txs?limit=5", nil, http.StatusOK, &txs)
+	if len(txs["transactions"].([]any)) != 2 {
+		t.Fatalf("expected two recent transactions, got %v", txs)
+	}
+
+	var summary map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/explorer/summary", nil, http.StatusOK, &summary)
+	if summary["totalTransactions"].(float64) != 2 {
+		t.Fatalf("expected explorer summary to count transactions, got %v", summary)
+	}
+
+	var validators map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/validators", nil, http.StatusOK, &validators)
+	if len(validators["validators"].([]any)) != 1 {
+		t.Fatalf("expected one validator, got %v", validators)
+	}
 }
 
 func TestAIStreamIsSessionScoped(t *testing.T) {

@@ -35,6 +35,7 @@ The current code provides a local devnet with:
 
 - genesis block
 - periodic block production
+- optional JSON state snapshots for local restart persistence
 - native YNX balances
 - faucet minting
 - native transfers
@@ -46,20 +47,20 @@ The current code provides a local devnet with:
 - Pay intent creation
 - AI SSE streaming with request-scoped sessions
 - IDE source preflight endpoint
+- Explorer summary, account, validator, and recent transaction read endpoints
 
 This is enough to start wiring explorer, website status, wallet demo, and public API contracts. It is not enough to claim production readiness.
 
 ## Next Required Slices
 
-1. Persistent state storage.
+1. Durable database storage beyond local JSON snapshots.
 2. Real consensus and validator networking.
 3. EVM-compatible execution or a clearly chosen execution engine.
 4. Signed transactions and account key management.
 5. Indexer database.
-6. Explorer frontend and API.
+6. Explorer frontend.
 7. Faucet abuse controls.
 8. Pinned Solidity compiler service.
 9. Production AI gateway provider isolation and audit logs.
 10. Trust report export in JSON and PDF.
 11. Systemd, nginx, monitoring, log rotation, backup, and deployment playbooks.
-

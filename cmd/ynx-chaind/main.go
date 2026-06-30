@@ -17,10 +17,14 @@ func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_HTTP_ADDR", "127.0.0.1:6420"), "HTTP listen address")
 	network := flag.String("network", envOrDefault("YNX_NETWORK", "devnet"), "network slug")
 	blockInterval := flag.Duration("block-interval", envDurationOrDefault("YNX_BLOCK_INTERVAL", 2*time.Second), "block production interval")
+	dataDir := flag.String("data-dir", envOrDefault("YNX_DATA_DIR", ""), "optional local devnet state directory")
 	flag.Parse()
 
 	cfg := chain.DefaultNetworkConfig(*network)
-	devnet := chain.NewDevnet(cfg)
+	devnet, err := chain.NewPersistentDevnet(cfg, *dataDir)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

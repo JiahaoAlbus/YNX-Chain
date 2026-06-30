@@ -6,14 +6,16 @@ Last updated: 2026-06-30
 
 - Local devnet node.
 - In-memory block production.
+- Optional local JSON state persistence with restart restore.
 - HTTP health, status, block, transaction, faucet, transfer, staking, resources, Trust trace, Pay intent, AI stream, and IDE preflight APIs.
+- Explorer-ready account, validator, recent transaction, and summary APIs.
 - Chain ID configuration for mainnet, testnet, and devnet.
 - Local verification script.
 
 ## Not Yet Implemented
 
 - Public node deployment.
-- Persistent storage.
+- Durable production database storage.
 - Real validator network.
 - Production consensus.
 - EVM execution.
@@ -34,6 +36,8 @@ Allowed today:
 
 - "YNX Chain has a local devnet foundation under active development."
 - "The repository includes local APIs for block status, faucet, transfer, staking/resource, Trust trace, Pay intent, AI stream, and IDE preflight."
+- "The local devnet can persist state across restarts when launched with `--data-dir`."
+- "Explorer-facing read APIs exist for local devnet account, validator, recent transaction, and summary data."
 
 Not allowed today:
 
@@ -42,4 +46,3 @@ Not allowed today:
 - "MetaMask users can connect to YNX Mainnet."
 - "Explorer shows production transactions."
 - "AI gateway is production-ready."
-

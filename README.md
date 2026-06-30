@@ -9,7 +9,9 @@ The website must live separately in `YNX-Chain-website`. Website dynamic data mu
 This repository currently contains the first local devnet foundation:
 
 - A Go devnet node with real in-memory block production.
+- Optional local state persistence with `--data-dir`.
 - HTTP APIs for health, status, blocks, faucet, transfer, staking, resource balances, Trust lot lineage, Pay intent creation, AI SSE streaming, and IDE source preflight.
+- Explorer-ready read APIs for accounts, validators, recent transactions, and chain summary.
 - Network configuration for YNX Mainnet, YNX Testnet, and YNX Devnet chain IDs.
 - Verification scripts and CI for the devnet.
 
@@ -28,7 +30,7 @@ Do not change or publish final chain IDs without rechecking EIP-155, ChainList, 
 ## Run A Local Devnet
 
 ```bash
-go run ./cmd/ynx-chaind --http 127.0.0.1:6420 --block-interval 1s
+go run ./cmd/ynx-chaind --http 127.0.0.1:6420 --block-interval 1s --data-dir ./tmp/devnet-state
 ```
 
 Useful endpoints:
@@ -36,9 +38,13 @@ Useful endpoints:
 ```bash
 curl http://127.0.0.1:6420/health
 curl http://127.0.0.1:6420/status
+curl http://127.0.0.1:6420/explorer/summary
 curl http://127.0.0.1:6420/blocks/latest
 curl -X POST http://127.0.0.1:6420/faucet -d '{"address":"ynx_demo","amount":1000}'
 curl -X POST http://127.0.0.1:6420/transfer -d '{"from":"ynx_demo","to":"ynx_receiver","amount":125}'
+curl http://127.0.0.1:6420/accounts/ynx_receiver
+curl http://127.0.0.1:6420/txs?limit=10
+curl http://127.0.0.1:6420/validators
 curl http://127.0.0.1:6420/resources/ynx_demo
 curl http://127.0.0.1:6420/trust/trace/ynx_receiver
 curl -N 'http://127.0.0.1:6420/ai/stream?session=demo&q=explain%20latest%20block'
@@ -57,4 +63,3 @@ bash scripts/verify/devnet.sh
 - Mainnet, testnet, and devnet claims must be backed by live endpoints, deployment logs, test commands, explorer data, or commit hashes.
 - AI actions that move value or grant permissions must require user confirmation, scoped permissions, limits, audit logs, and revocation.
 - Trust tracing defaults to trace, label, explain, and export evidence. Freezing or rejecting funds requires explicit legal, merchant, contract, governance, or institutional rules.
-

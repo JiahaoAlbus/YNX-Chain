@@ -27,7 +27,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /status", s.handleStatus)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlockByHeight)
+	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
+	s.mux.HandleFunc("GET /validators", s.handleValidators)
+	s.mux.HandleFunc("GET /txs", s.handleRecentTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
 	s.mux.HandleFunc("POST /transfer", s.handleTransfer)
 	s.mux.HandleFunc("POST /staking/stake", s.handleStake)
@@ -84,6 +88,42 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
+}
+
+func (s *Server) handleRecentTransactions(w http.ResponseWriter, r *http.Request) {
+	limit := 25
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": s.devnet.RecentTransactions(limit)})
+}
+
+func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
+	account, ok := s.devnet.Account(r.PathValue("address"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "account not found")
+		return
+	}
+	resources, _ := s.devnet.Resources(account.Address)
+	trace, _ := s.devnet.TrustTrace(account.Address)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"account":   account,
+		"resources": resources,
+		"trace":     trace,
+	})
+}
+
+func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"validators": s.devnet.Validators()})
+}
+
+func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.devnet.ExplorerSummary())
 }
 
 func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
