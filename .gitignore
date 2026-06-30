@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+bin/
+dist/
+coverage/
+node_modules/
+*.log
+tmp/
+

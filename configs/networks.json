@@ -1,0 +1,57 @@
+{
+  "networks": [
+    {
+      "name": "YNX Mainnet",
+      "slug": "mainnet",
+      "chainId": 6420,
+      "nativeCurrency": {
+        "name": "YNX",
+        "symbol": "YNX",
+        "decimals": 18
+      },
+      "status": "reserved",
+      "publicRpc": null,
+      "explorerUrl": null,
+      "notes": "Reserved after chainid.network check on 2026-06-30. Recheck EIP-155, ChainList, and chainid.network before production publication."
+    },
+    {
+      "name": "YNX Testnet",
+      "slug": "testnet",
+      "chainId": 6423,
+      "nativeCurrency": {
+        "name": "YNX",
+        "symbol": "YNX",
+        "decimals": 18
+      },
+      "status": "reserved",
+      "publicRpc": null,
+      "explorerUrl": null,
+      "notes": "Reserved after chainid.network check on 2026-06-30. Not deployed yet."
+    },
+    {
+      "name": "YNX Devnet",
+      "slug": "devnet",
+      "chainId": 6425,
+      "nativeCurrency": {
+        "name": "YNX",
+        "symbol": "YNX",
+        "decimals": 18
+      },
+      "status": "local",
+      "publicRpc": "http://127.0.0.1:6420",
+      "explorerUrl": null,
+      "notes": "Local development network only."
+    }
+  ],
+  "blockedCandidates": [
+    {
+      "chainId": 4203,
+      "reason": "Taken by Merlin Erigon Testnet in chainid.network check on 2026-06-30."
+    },
+    {
+      "chainId": 5042,
+      "reason": "Taken by Arc in chainid.network check on 2026-06-30."
+    }
+  ]
+}
+
