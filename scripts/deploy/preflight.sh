@@ -5,5 +5,5 @@ make env-check
 make no-placeholder-check
 make secret-scan
 go test ./...
+make deploy-dry-run
 echo "preflight passed for local devnet/testnet deployment package"
-

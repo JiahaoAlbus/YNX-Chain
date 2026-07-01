@@ -7,5 +7,30 @@ for f in "${templates[@]}"; do
 done
 grep -q '^CHAIN_ID=' .env.testnet.example
 grep -q '^NATIVE_SYMBOL=' .env.testnet.example
-echo "env templates present; real deployment env values must be supplied via ENV_INTAKE_FORM.md"
 
+if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
+  # shellcheck source=../deploy/lib.sh
+  source "$(dirname "$0")/../deploy/lib.sh"
+  ynx_load_env
+  required=(
+    TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
+    FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
+    SERVER_HOST SERVER_USER SSH_KEY_PATH DEPLOY_TARGET CHAIN_ID CHAIN_NAME
+    NATIVE_COIN_NAME NATIVE_SYMBOL GENESIS_VALIDATOR_NAME VALIDATOR_KEY_PATH
+    FAUCET_PRIVATE_KEY DEPLOYER_PRIVATE_KEY TREASURY_ADDRESS FOUNDATION_ADDRESS
+    TEAM_VESTING_ADDRESS POSTGRES_URL REDIS_URL WEBHOOK_SECRET JWT_SECRET
+    SESSION_SECRET RATE_LIMIT_SECRET PAY_MERCHANT_SECRET TRUST_REPORT_SIGNING_KEY
+    OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_BUCKET OBJECT_STORAGE_ACCESS_KEY OBJECT_STORAGE_SECRET_KEY
+    OPENAI_API_KEY AI_MODEL_NAME EMAIL_PROVIDER EMAIL_API_KEY MONITORING_ADMIN_PASSWORD
+    BACKUP_STORAGE_PATH SSL_EMAIL NGINX_SERVER_NAME GITHUB_REPO_TOKEN
+  )
+  ynx_require_env "${required[@]}"
+  ynx_reject_unsafe_env_values "${required[@]}"
+  [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
+  [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
+  [[ "$CHAIN_NAME" == "YNX Testnet" || "$CHAIN_NAME" == "YNX Devnet" || "$CHAIN_NAME" == "YNX Mainnet" ]] || { echo "CHAIN_NAME must be a YNX network name"; exit 1; }
+  [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
+  echo "real deployment env validation passed for ${ENV_FILE:-auto-detected env file}"
+else
+  echo "env templates present; real deployment env values must be supplied via ENV_INTAKE_FORM.md"
+fi

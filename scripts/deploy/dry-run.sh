@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+cat > "$tmp/deploy.env" <<EOF
+TESTNET_DOMAIN=ynx.test
+WEBSITE_DOMAIN=www.ynx.test
+EXPLORER_DOMAIN=explorer.ynx.test
+RPC_DOMAIN=rpc.ynx.test
+EVM_RPC_DOMAIN=evm-rpc.ynx.test
+FAUCET_DOMAIN=faucet.ynx.test
+API_DOMAIN=api.ynx.test
+AI_GATEWAY_DOMAIN=ai.ynx.test
+TRUST_API_DOMAIN=trust.ynx.test
+PAY_API_DOMAIN=pay.ynx.test
+IDE_DOMAIN=ide.ynx.test
+SERVER_HOST=127.0.0.1
+SERVER_USER=ynx
+SSH_KEY_PATH=$tmp/ynx_deploy_key
+DEPLOY_TARGET=testnet-dry-run
+CHAIN_ID=6423
+CHAIN_NAME='YNX Testnet'
+NATIVE_COIN_NAME=YNXT
+NATIVE_SYMBOL=YNXT
+GENESIS_VALIDATOR_NAME=ynx-validator-dry-run
+VALIDATOR_KEY_PATH=$tmp/validator_key
+FAUCET_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000642
+DEPLOYER_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000643
+TREASURY_ADDRESS=0x0000000000000000000000000000000000000642
+FOUNDATION_ADDRESS=0x0000000000000000000000000000000000000643
+TEAM_VESTING_ADDRESS=0x0000000000000000000000000000000000000645
+POSTGRES_URL=postgres://ynx:ynx@127.0.0.1:5432/ynx
+REDIS_URL=redis://127.0.0.1:6379/0
+OBJECT_STORAGE_ENDPOINT=https://storage.ynx.test
+OBJECT_STORAGE_BUCKET=ynx-testnet
+OBJECT_STORAGE_ACCESS_KEY=dry-run-access
+OBJECT_STORAGE_SECRET_KEY=dry-run-secret
+OPENAI_API_KEY=dry-run-openai-key
+AI_MODEL_NAME=gpt-4.1-mini
+EMAIL_PROVIDER=dry-run-mail
+EMAIL_API_KEY=dry-run-email-key
+WEBHOOK_SECRET=dry-run-webhook-secret
+JWT_SECRET=dry-run-jwt-secret
+SESSION_SECRET=dry-run-session-secret
+RATE_LIMIT_SECRET=dry-run-rate-limit-secret
+PAY_MERCHANT_SECRET=dry-run-pay-secret
+TRUST_REPORT_SIGNING_KEY=dry-run-trust-signing-key
+MONITORING_ADMIN_PASSWORD=dry-run-monitoring-password
+BACKUP_STORAGE_PATH=/var/backups/ynx-chain
+SSL_EMAIL=ops@ynx.test
+NGINX_SERVER_NAME=ynx.test
+GITHUB_REPO_TOKEN=dry-run-github-token
+EOF
+touch "$tmp/ynx_deploy_key" "$tmp/validator_key"
+
+ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 ./scripts/deploy/deploy-testnet.sh
