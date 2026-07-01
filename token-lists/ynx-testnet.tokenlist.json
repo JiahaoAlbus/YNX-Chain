@@ -1,0 +1,24 @@
+{
+  "name": "YNX Testnet Token List",
+  "timestamp": "2026-07-01T00:00:00+08:00",
+  "version": {
+    "major": 0,
+    "minor": 1,
+    "patch": 0
+  },
+  "keywords": ["ynx", "ynxt", "testnet"],
+  "tokens": [],
+  "extensions": {
+    "network": {
+      "name": "YNX Testnet",
+      "chainId": 6423,
+      "nativeCurrency": {
+        "name": "YNXT",
+        "symbol": "YNXT",
+        "decimals": 18
+      }
+    },
+    "status": "ERC-20 entries require real deployed contract addresses before public submission",
+    "requiredEnv": ["YNX_EVM_RPC_URL", "YNX_CONTRACT_VERIFIER_URL"]
+  }
+}

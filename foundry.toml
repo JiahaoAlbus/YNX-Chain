@@ -1,0 +1,14 @@
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+optimizer = true
+optimizer_runs = 200
+evm_version = "shanghai"
+
+[rpc_endpoints]
+ynx_testnet = "${YNX_EVM_RPC_URL}"
+
+[etherscan]
+ynx_testnet = { key = "${YNX_CONTRACT_VERIFIER_API_KEY}", url = "${YNX_CONTRACT_VERIFIER_URL}", chain = 6423 }

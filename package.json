@@ -1,0 +1,16 @@
+{
+  "name": "ynx-chain-contract-tooling",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "contracts:check": "bash ./scripts/verify/contract-tooling-check.sh",
+    "hardhat:build": "hardhat build",
+    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.13",
+    "ethers": "^6.17.0",
+    "hardhat": "^3.9.0",
+    "typescript": "^5.9.0"
+  }
+}

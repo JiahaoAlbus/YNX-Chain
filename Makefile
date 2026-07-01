@@ -1,4 +1,4 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test deploy-testnet deploy-dry-run verify-testnet status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check public-proof
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test deploy-testnet deploy-dry-run verify-testnet status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check public-proof
 
 setup:
 	go mod tidy
@@ -79,6 +79,9 @@ exchange-integration-check:
 
 developer-quickstart-check:
 	bash ./scripts/verify/developer-quickstart-check.sh
+
+contract-tooling-check:
+	bash ./scripts/verify/contract-tooling-check.sh
 
 public-proof:
 	bash ./scripts/package/public-proof.sh

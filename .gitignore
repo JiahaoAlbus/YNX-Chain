@@ -16,8 +16,9 @@
 bin/
 dist/
 coverage/
+artifacts/
+cache/
 node_modules/
 *.log
 tmp/
 .ynx-smoke/
-

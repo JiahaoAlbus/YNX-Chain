@@ -1,0 +1,43 @@
+{
+  "network": {
+    "name": "YNX Testnet",
+    "chainId": 6423,
+    "nativeCurrency": {
+      "name": "YNXT",
+      "symbol": "YNXT",
+      "decimals": 18
+    }
+  },
+  "rpc": {
+    "requiredEnv": "YNX_EVM_RPC_URL",
+    "status": "real public EVM RPC URL required before external DEX submission"
+  },
+  "deployments": {
+    "wrappedYNXT": {
+      "addressEnv": "WRAPPED_YNXT_ADDRESS",
+      "status": "required before liquidity pool launch"
+    },
+    "factory": {
+      "addressEnv": "DEX_FACTORY_ADDRESS",
+      "status": "required before DEX indexing"
+    },
+    "router": {
+      "addressEnv": "DEX_ROUTER_ADDRESS",
+      "status": "required before swap UI integration"
+    },
+    "multicall": {
+      "addressEnv": "MULTICALL_ADDRESS",
+      "status": "required before portfolio and analytics indexing"
+    }
+  },
+  "indexing": {
+    "eventCoverage": ["Transfer", "Approval", "PairCreated", "Swap", "Mint", "Burn", "Sync"],
+    "logSource": "YNX Testnet EVM JSON-RPC",
+    "startBlockEnv": "DEX_INDEXER_START_BLOCK"
+  },
+  "verification": {
+    "contractVerifierUrlEnv": "YNX_CONTRACT_VERIFIER_URL",
+    "compilerVersion": "0.8.24",
+    "command": "make contract-tooling-check"
+  }
+}
