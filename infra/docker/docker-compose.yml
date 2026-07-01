@@ -8,4 +8,26 @@ services:
       YNX_HTTP_ADDR: 0.0.0.0:6420
     ports:
       - "6420:6420"
-
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    depends_on:
+      - ynx-chaind
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/ynx-alerts.yml:/etc/prometheus/rules/ynx-alerts.yml:ro
+    ports:
+      - "9090:9090"
+  grafana:
+    image: grafana/grafana:11.5.2
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "${MONITORING_ADMIN_PASSWORD:?Missing required env: MONITORING_ADMIN_PASSWORD}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ../monitoring/grafana-dashboard.json:/var/lib/grafana/dashboards/ynx-chain-testnet.json:ro
+    ports:
+      - "3000:3000"

@@ -58,6 +58,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
+	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 }
 
 func (s *Server) withHeaders(next http.Handler) http.Handler {
@@ -444,6 +445,43 @@ func (s *Server) handleContractLookup(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMonitoring(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "height": s.devnet.LatestBlock().Height, "service": "ynx-monitoring-local"})
 }
+func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	cfg := s.devnet.Config()
+	summary := s.devnet.ExplorerSummary()
+	labels := fmt.Sprintf(`network="%s",chain_id="%d",native_symbol="%s"`, prometheusLabel(cfg.Slug), cfg.ChainID, prometheusLabel(cfg.NativeCurrencySymbol))
+	persistenceError := 0
+	if summary.PersistenceError != "" {
+		persistenceError = 1
+	}
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_height Latest indexed YNX Chain block height.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_height gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_height{%s} %d\n", labels, summary.Height)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_transactions_total Total transactions known to the local node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_transactions_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_transactions_total{%s} %d\n", labels, summary.TotalTransactions)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_validators Active validator records known to the local node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_validators gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_validators{%s} %d\n", labels, summary.ValidatorCount)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_pending_transactions Pending transaction count.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_pending_transactions gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_pending_transactions{%s} %d\n", labels, summary.PendingTxCount)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_known_accounts Known account count.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_known_accounts gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_known_accounts{%s} %d\n", labels, summary.KnownAccounts)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_pay_intents_total Pay intents recorded by the local node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_pay_intents_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_pay_intents_total{%s} %d\n", labels, summary.PayIntentCount)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_trust_evidence_total Trust evidence packets recorded by the local node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_trust_evidence_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_trust_evidence_total{%s} %d\n", labels, summary.TrustEvidenceCount)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_contracts_total Contracts recorded by the local node.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_contracts_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_contracts_total{%s} %d\n", labels, summary.ContractCount)
+	_, _ = fmt.Fprint(w, "# HELP ynx_chain_persistence_error Whether the node reports a persistence error.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_persistence_error gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_chain_persistence_error{%s} %d\n", labels, persistenceError)
+}
 
 type rpcRequest struct {
 	JSONRPC string `json:"jsonrpc"`
@@ -605,6 +643,13 @@ func writeError(w http.ResponseWriter, status int, message string) {
 func sanitizeSSE(value string) string {
 	value = strings.ReplaceAll(value, "\n", " ")
 	value = strings.ReplaceAll(value, "\r", " ")
+	return value
+}
+func prometheusLabel(value string) string {
+	value = strings.ReplaceAll(value, "\\", "\\\\")
+	value = strings.ReplaceAll(value, "\n", "")
+	value = strings.ReplaceAll(value, "\r", "")
+	value = strings.ReplaceAll(value, `"`, `\"`)
 	return value
 }
 

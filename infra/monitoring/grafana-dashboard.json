@@ -1,0 +1,52 @@
+{
+  "title": "YNX Chain Testnet",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Height",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "ynx_chain_height", "legendFormat": "height" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Block Progress",
+      "gridPos": { "x": 6, "y": 0, "w": 12, "h": 8 },
+      "targets": [{ "expr": "ynx_chain_height", "legendFormat": "{{network}}" }]
+    },
+    {
+      "type": "stat",
+      "title": "Transactions",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "targets": [{ "expr": "ynx_chain_transactions_total", "legendFormat": "tx" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pending Transactions",
+      "gridPos": { "x": 0, "y": 8, "w": 8, "h": 7 },
+      "targets": [{ "expr": "ynx_chain_pending_transactions", "legendFormat": "pending" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pay / Trust / Contracts",
+      "gridPos": { "x": 8, "y": 8, "w": 10, "h": 7 },
+      "targets": [
+        { "expr": "ynx_chain_pay_intents_total", "legendFormat": "pay intents" },
+        { "expr": "ynx_chain_trust_evidence_total", "legendFormat": "trust evidence" },
+        { "expr": "ynx_chain_contracts_total", "legendFormat": "contracts" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Persistence Error",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
+      "targets": [{ "expr": "ynx_chain_persistence_error", "legendFormat": "error" }]
+    }
+  ]
+}

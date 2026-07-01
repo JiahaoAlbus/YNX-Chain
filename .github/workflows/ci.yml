@@ -19,6 +19,7 @@ jobs:
       - run: make secret-scan
       - run: make test
       - run: make contract-tooling-check
+      - run: make monitoring-check
       - run: make deploy-dry-run
       - run: make smoke-test
       - run: make grant-package

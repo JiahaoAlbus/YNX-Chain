@@ -1,0 +1,27 @@
+groups:
+  - name: ynx-chain-testnet
+    rules:
+      - alert: YNXChainMetricsDown
+        expr: up{job="ynx-chaind"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Chain metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-chaind.
+      - alert: YNXChainNoBlockProgress
+        expr: increase(ynx_chain_height{job="ynx-chaind"}[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Chain block height is not advancing
+          description: Block height has not increased over the last five minutes.
+      - alert: YNXChainPersistenceError
+        expr: ynx_chain_persistence_error{job="ynx-chaind"} > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Chain persistence layer reports an error
+          description: Node metrics report a persistence error. Check journal logs and backup state before restart.

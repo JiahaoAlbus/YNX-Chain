@@ -66,6 +66,36 @@ func TestEVMRPCSubset(t *testing.T) {
 	}
 }
 
+func TestPrometheusMetrics(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_metrics", "amount": 1000}, http.StatusCreated, nil)
+	devnet.ProduceBlock()
+
+	resp, err := http.Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected metrics status 200, got %d", resp.StatusCode)
+	}
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(resp.Body)
+	body := buf.String()
+	for _, expected := range []string{
+		`ynx_chain_height{network="testnet",chain_id="6423",native_symbol="YNXT"} 1`,
+		"ynx_chain_transactions_total",
+		"ynx_chain_validators",
+		"ynx_chain_persistence_error",
+	} {
+		if !strings.Contains(body, expected) {
+			t.Fatalf("metrics missing %q in:\n%s", expected, body)
+		}
+	}
+}
+
 func TestPayResourceAndIDEFlow(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))

@@ -13,6 +13,9 @@ for i in {1..40}; do
 done
 echo "RPC health result:" && curl -fsS http://127.0.0.1:6420/health
 echo "EVM RPC chainId result:" && curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
+curl -fsS http://127.0.0.1:6420/metrics >"$work/metrics.txt"
+grep -q 'ynx_chain_height{network="testnet",chain_id="6423",native_symbol="YNXT"}' "$work/metrics.txt"
+echo "monitoring metrics result: /metrics exposes YNX Testnet Prometheus metrics"
 h1=$(curl -fsS http://127.0.0.1:6420/status | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).height')
 sleep 3
 h2=$(curl -fsS http://127.0.0.1:6420/status | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).height')
