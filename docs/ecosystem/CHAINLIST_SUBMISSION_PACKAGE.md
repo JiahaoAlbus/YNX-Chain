@@ -4,3 +4,10 @@ Prepared fields: chain name, chainId, native currency, RPC URLs, public RPC heal
 
 Submission is blocked until real public URLs and proof hashes are supplied.
 
+Generation command:
+
+```bash
+make chainlist-package
+```
+
+The generator validates `chain-metadata/ynx-testnet.json`, copies the testnet and mainnet draft metadata into `tmp/packages/chainlist`, and writes a manifest with file hashes and the current git commit. The package remains draft-ready until real public URLs and proof hashes are added.
