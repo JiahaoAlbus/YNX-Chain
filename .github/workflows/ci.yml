@@ -14,5 +14,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-      - run: go test ./...
+      - run: make env-check
+      - run: make no-placeholder-check
+      - run: make secret-scan
+      - run: make test
+      - run: make smoke-test
+      - run: make grant-package
+      - run: make ecosystem-package
+      - run: make exchange-package
+      - run: make mainnet-readiness
 

@@ -1,57 +1,23 @@
 {
-  "networks": [
-    {
-      "name": "YNX Mainnet",
-      "slug": "mainnet",
+  "networks": {
+    "mainnetDraft": {
+      "chainName": "YNX Mainnet",
       "chainId": 6420,
-      "nativeCurrency": {
-        "name": "YNX",
-        "symbol": "YNX",
-        "decimals": 18
-      },
-      "status": "reserved",
-      "publicRpc": null,
-      "explorerUrl": null,
-      "notes": "Reserved after chainid.network check on 2026-06-30. Recheck EIP-155, ChainList, and chainid.network before production publication."
+      "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
+      "status": "draft; not launched"
     },
-    {
-      "name": "YNX Testnet",
-      "slug": "testnet",
+    "testnet": {
+      "chainName": "YNX Testnet",
       "chainId": 6423,
-      "nativeCurrency": {
-        "name": "YNX",
-        "symbol": "YNX",
-        "decimals": 18
-      },
-      "status": "reserved",
-      "publicRpc": null,
-      "explorerUrl": null,
-      "notes": "Reserved after chainid.network check on 2026-06-30. Not deployed yet."
+      "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
+      "status": "configured for deployment after required real values are supplied"
     },
-    {
-      "name": "YNX Devnet",
-      "slug": "devnet",
+    "devnet": {
+      "chainName": "YNX Devnet",
       "chainId": 6425,
-      "nativeCurrency": {
-        "name": "YNX",
-        "symbol": "YNX",
-        "decimals": 18
-      },
-      "status": "local",
-      "publicRpc": "http://127.0.0.1:6420",
-      "explorerUrl": null,
-      "notes": "Local development network only."
+      "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
+      "status": "local"
     }
-  ],
-  "blockedCandidates": [
-    {
-      "chainId": 4203,
-      "reason": "Taken by Merlin Erigon Testnet in chainid.network check on 2026-06-30."
-    },
-    {
-      "chainId": 5042,
-      "reason": "Taken by Arc in chainid.network check on 2026-06-30."
-    }
-  ]
+  },
+  "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01; 6420, 6423, 6425 were not listed. Repeat the check before public mainnet submission."
 }
-

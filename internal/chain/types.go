@@ -3,11 +3,14 @@ package chain
 import "time"
 
 type NetworkConfig struct {
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	ChainID     int64  `json:"chainId"`
-	Currency    string `json:"currency"`
-	IsPublicNet bool   `json:"isPublicNet"`
+	Name                 string `json:"name"`
+	Slug                 string `json:"slug"`
+	ChainID              int64  `json:"chainId"`
+	NativeCoinName       string `json:"nativeCoinName"`
+	NativeCurrencySymbol string `json:"nativeCurrencySymbol"`
+	Decimals             int    `json:"decimals"`
+	IsPublicNet          bool   `json:"isPublicNet"`
+	ChainIDConflictCheck string `json:"chainIdConflictCheck"`
 }
 
 type Account struct {
@@ -76,6 +79,8 @@ type Transaction struct {
 	Amount    int64     `json:"amount,omitempty"`
 	Fee       int64     `json:"fee"`
 	Nonce     uint64    `json:"nonce"`
+	BlockHash string    `json:"blockHash,omitempty"`
+	BlockNum  uint64    `json:"blockNumber,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	LotFlows  []LotFlow `json:"lotFlows,omitempty"`
 	Memo      string    `json:"memo,omitempty"`

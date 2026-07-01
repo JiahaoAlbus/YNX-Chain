@@ -1,0 +1,11 @@
+services:
+  ynx-chaind:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-chaind.Dockerfile
+    environment:
+      YNX_NETWORK: devnet
+      YNX_HTTP_ADDR: 0.0.0.0:6420
+    ports:
+      - "6420:6420"
+

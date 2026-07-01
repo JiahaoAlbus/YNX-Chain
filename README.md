@@ -1,65 +1,12 @@
 # YNX Chain
 
-YNX Chain is a new L1 chain project. This repository is for the chain, node, RPC, staking, resource economy, contracts, indexer, explorer services, AI gateway, Trust tracing, Pay backend, IDE backend, infra, deployment, and monitoring.
+YNX Chain is a new Web4 L1 engineering workspace for a local devnet, public testnet deployment package, EVM-compatible RPC surface, resource economy, AI Gateway, Pay API, Trust tracing, developer tooling, and global ecosystem readiness materials.
 
-The website must live separately in `YNX-Chain-website`. Website dynamic data must come from real public APIs exposed by this repository or its deployments.
+Native coin name and symbol are both **YNXT**. YNX is the chain and brand name only.
 
-## Current Status
+This repository does not claim mainnet launch, exchange listing, stablecoin issuer support, wallet default support, or third-party partnerships. Those require independent review and live public evidence.
 
-This repository currently contains the first local devnet foundation:
+Run `make setup`, `make test`, and `make smoke-test` to verify the local chain/API loop. Run `make env-check`, `make no-placeholder-check`, `make secret-scan`, and `make preflight` before deployment.
 
-- A Go devnet node with real in-memory block production.
-- Optional local state persistence with `--data-dir`.
-- HTTP APIs for health, status, blocks, faucet, transfer, staking, resource balances, Trust lot lineage, Pay intent creation, AI SSE streaming, and IDE source preflight.
-- Explorer-ready read APIs for accounts, validators, recent transactions, and chain summary.
-- Network configuration for YNX Mainnet, YNX Testnet, and YNX Devnet chain IDs.
-- Verification scripts and CI for the devnet.
+Real deployment values are intentionally not committed. Fill `ENV_INTAKE_FORM.md`, create local `.env` files ignored by git, then run `make deploy-testnet` and `make verify-testnet`.
 
-It is not mainnet, not a deployed public testnet, and not production infrastructure yet. Do not market this code as a live mainnet.
-
-## Chain IDs
-
-The preferred IDs were checked against `chainid.network/chains.json` on 2026-06-30:
-
-- YNX Mainnet: `6420` - free in the checked source.
-- YNX Testnet: `6423` - free in the checked source.
-- YNX Devnet: `6425` - free in the checked source.
-
-Do not change or publish final chain IDs without rechecking EIP-155, ChainList, and chainid.network.
-
-## Run A Local Devnet
-
-```bash
-go run ./cmd/ynx-chaind --http 127.0.0.1:6420 --block-interval 1s --data-dir ./tmp/devnet-state
-```
-
-Useful endpoints:
-
-```bash
-curl http://127.0.0.1:6420/health
-curl http://127.0.0.1:6420/status
-curl http://127.0.0.1:6420/explorer/summary
-curl http://127.0.0.1:6420/blocks/latest
-curl -X POST http://127.0.0.1:6420/faucet -d '{"address":"ynx_demo","amount":1000}'
-curl -X POST http://127.0.0.1:6420/transfer -d '{"from":"ynx_demo","to":"ynx_receiver","amount":125}'
-curl http://127.0.0.1:6420/accounts/ynx_receiver
-curl http://127.0.0.1:6420/txs?limit=10
-curl http://127.0.0.1:6420/validators
-curl http://127.0.0.1:6420/resources/ynx_demo
-curl http://127.0.0.1:6420/trust/trace/ynx_receiver
-curl -N 'http://127.0.0.1:6420/ai/stream?session=demo&q=explain%20latest%20block'
-```
-
-## Verify
-
-```bash
-go test ./...
-bash scripts/verify/devnet.sh
-```
-
-## Safety Rules
-
-- No private keys, PEM files, RPC tokens, server passwords, or production secrets in code or docs.
-- Mainnet, testnet, and devnet claims must be backed by live endpoints, deployment logs, test commands, explorer data, or commit hashes.
-- AI actions that move value or grant permissions must require user confirmation, scoped permissions, limits, audit logs, and revocation.
-- Trust tracing defaults to trace, label, explain, and export evidence. Freezing or rejecting funds requires explicit legal, merchant, contract, governance, or institutional rules.

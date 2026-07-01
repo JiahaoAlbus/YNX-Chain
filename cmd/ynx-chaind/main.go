@@ -28,15 +28,9 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-
 	go devnet.Start(ctx, *blockInterval)
 
-	srv := &http.Server{
-		Addr:              *httpAddr,
-		Handler:           api.NewServer(devnet),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
+	srv := &http.Server{Addr: *httpAddr, Handler: api.NewServer(devnet), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -44,7 +38,7 @@ func main() {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("YNX Chain %s listening on http://%s", cfg.Name, *httpAddr)
+	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", cfg.Name, *httpAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

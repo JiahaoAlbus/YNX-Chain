@@ -2,10 +2,22 @@
 .env
 .env.*
 !.env.example
+!.env.testnet.example
+!.env.website.example
+!.env.ai.example
+!.env.pay.example
+!.env.trust.example
+!.env.indexer.example
+!.env.explorer.example
+!.env.faucet.example
+!.env.ide.example
+!.env.monitoring.example
+!.env.deploy.example
 bin/
 dist/
 coverage/
 node_modules/
 *.log
 tmp/
+.ynx-smoke/
 

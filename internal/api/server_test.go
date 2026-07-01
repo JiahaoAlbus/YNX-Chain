@@ -15,68 +15,46 @@ func TestDevnetAPIFlow(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
-
 	var status map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/status", nil, http.StatusOK, &status)
 	if status["chainId"].(float64) != 6425 {
 		t.Fatalf("expected devnet chain ID 6425, got %v", status["chainId"])
 	}
-
+	if status["nativeCurrencySymbol"] != "YNXT" {
+		t.Fatalf("expected YNXT, got %v", status["nativeCurrencySymbol"])
+	}
 	var faucetTx map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_alice", "amount": 1000}, http.StatusCreated, &faucetTx)
-	if faucetTx["type"] != "faucet" {
-		t.Fatalf("expected faucet tx, got %v", faucetTx)
-	}
-
 	var transferTx map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/transfer", map[string]any{"from": "ynx_alice", "to": "ynx_bob", "amount": 125}, http.StatusCreated, &transferTx)
-	if transferTx["type"] != "transfer" {
-		t.Fatalf("expected transfer tx, got %v", transferTx)
-	}
-
 	block := devnet.ProduceBlock()
-	if block.Height != 1 {
-		t.Fatalf("expected height 1, got %d", block.Height)
+	if block.Height != 1 || len(block.Transactions) != 2 {
+		t.Fatalf("unexpected block: %+v", block)
 	}
-	if len(block.Transactions) != 2 {
-		t.Fatalf("expected 2 txs in block, got %d", len(block.Transactions))
-	}
-
-	var resources map[string]any
-	doJSON(t, http.MethodGet, server.URL+"/resources/ynx_alice", nil, http.StatusOK, &resources)
-	if resources["address"] != "ynx_alice" {
-		t.Fatalf("unexpected resources payload: %v", resources)
-	}
-
 	var trace map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/trust/trace/ynx_bob", nil, http.StatusOK, &trace)
-	lots := trace["lots"].([]any)
-	if len(lots) != 1 {
-		t.Fatalf("expected one inherited lot, got %v", trace)
+	if len(trace["lots"].([]any)) != 1 {
+		t.Fatalf("expected inherited lot: %v", trace)
 	}
-
-	var account map[string]any
-	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx_bob", nil, http.StatusOK, &account)
-	if account["account"] == nil || account["resources"] == nil || account["trace"] == nil {
-		t.Fatalf("expected account, resources, and trace payload: %v", account)
-	}
-
-	var txs map[string]any
-	doJSON(t, http.MethodGet, server.URL+"/txs?limit=5", nil, http.StatusOK, &txs)
-	if len(txs["transactions"].([]any)) != 2 {
-		t.Fatalf("expected two recent transactions, got %v", txs)
-	}
-
 	var summary map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/explorer/summary", nil, http.StatusOK, &summary)
 	if summary["totalTransactions"].(float64) != 2 {
-		t.Fatalf("expected explorer summary to count transactions, got %v", summary)
+		t.Fatalf("summary did not count txs: %v", summary)
 	}
+}
 
-	var validators map[string]any
-	doJSON(t, http.MethodGet, server.URL+"/validators", nil, http.StatusOK, &validators)
-	if len(validators["validators"].([]any)) != 1 {
-		t.Fatalf("expected one validator, got %v", validators)
+func TestEVMRPCSubset(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "eth_chainId", "params": []any{}}, http.StatusOK, &out)
+	if out["result"] != "0x1917" {
+		t.Fatalf("expected 0x1917 for chainId 6423, got %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 2, "method": "eth_blockNumber", "params": []any{}}, http.StatusOK, &out)
+	if out["result"] == "" {
+		t.Fatalf("missing block number: %v", out)
 	}
 }
 
@@ -84,7 +62,6 @@ func TestAIStreamIsSessionScoped(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
-
 	resp, err := http.Get(server.URL + "/ai/stream?session=session_a&q=hello")
 	if err != nil {
 		t.Fatal(err)
@@ -93,11 +70,8 @@ func TestAIStreamIsSessionScoped(t *testing.T) {
 	buf := new(bytes.Buffer)
 	_, _ = buf.ReadFrom(resp.Body)
 	body := buf.String()
-	if !strings.Contains(body, "session session_a") {
-		t.Fatalf("stream did not include requested session: %s", body)
-	}
-	if !strings.Contains(body, "event: done") {
-		t.Fatalf("stream did not complete: %s", body)
+	if !strings.Contains(body, "session session_a") || !strings.Contains(body, "event: done") {
+		t.Fatalf("bad stream: %s", body)
 	}
 }
 

@@ -1,0 +1,11 @@
+{
+  "name": "YNX Mainnet",
+  "chain": "YNX",
+  "chainId": 6420,
+  "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
+  "rpc": [],
+  "faucets": [],
+  "explorers": [],
+  "status": "draft only; mainnet not launched by this repository",
+  "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01; final check required before launch"
+}

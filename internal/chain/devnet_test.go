@@ -11,10 +11,12 @@ func TestStakeIncreasesResources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, after, err := devnet.Stake("ynx_staker", 200); err != nil {
+	_, after, err := devnet.Stake("ynx_staker", 200)
+	if err != nil {
 		t.Fatal(err)
-	} else if after.BandwidthLimit <= before.BandwidthLimit {
-		t.Fatalf("expected bandwidth to increase, before=%d after=%d", before.BandwidthLimit, after.BandwidthLimit)
+	}
+	if after.BandwidthLimit <= before.BandwidthLimit {
+		t.Fatalf("expected bandwidth to increase")
 	}
 }
 
@@ -42,26 +44,25 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 	if block.Height == 0 {
 		t.Fatal("expected produced block")
 	}
-
 	restored, err := NewPersistentDevnet(cfg, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if restored.LatestBlock().Hash != block.Hash {
-		t.Fatalf("expected restored latest block %s, got %s", block.Hash, restored.LatestBlock().Hash)
+		t.Fatalf("expected restored latest block")
 	}
 	account, ok := restored.Account("ynx_persist_bob")
 	if !ok {
 		t.Fatal("expected restored account")
 	}
 	if account.Balance != 125 {
-		t.Fatalf("expected restored balance 125, got %d", account.Balance)
+		t.Fatalf("expected balance 125, got %d", account.Balance)
 	}
 	trace, err := restored.TrustTrace("ynx_persist_bob")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(trace.Lots) != 1 {
-		t.Fatalf("expected restored trace lot, got %v", trace.Lots)
+		t.Fatalf("expected restored trace lot")
 	}
 }

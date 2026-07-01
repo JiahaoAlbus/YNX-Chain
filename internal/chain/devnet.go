@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	faucetAddress    = "ynx_faucet"
-	validatorAddress = "ynx_validator_0"
+	FaucetAddress    = "ynx_faucet"
+	ValidatorAddress = "ynx_validator_0"
 )
 
 type Devnet struct {
@@ -46,14 +46,16 @@ type devnetSnapshot struct {
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
+	base := NetworkConfig{NativeCoinName: "YNXT", NativeCurrencySymbol: "YNXT", Decimals: 18, ChainIDConflictCheck: "chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch"}
 	switch strings.ToLower(slug) {
 	case "mainnet":
-		return NetworkConfig{Name: "YNX Mainnet", Slug: "mainnet", ChainID: 6420, Currency: "YNX", IsPublicNet: true}
+		base.Name, base.Slug, base.ChainID, base.IsPublicNet = "YNX Mainnet", "mainnet", 6420, true
 	case "testnet":
-		return NetworkConfig{Name: "YNX Testnet", Slug: "testnet", ChainID: 6423, Currency: "YNX", IsPublicNet: true}
+		base.Name, base.Slug, base.ChainID, base.IsPublicNet = "YNX Testnet", "testnet", 6423, true
 	default:
-		return NetworkConfig{Name: "YNX Devnet", Slug: "devnet", ChainID: 6425, Currency: "YNX", IsPublicNet: false}
+		base.Name, base.Slug, base.ChainID, base.IsPublicNet = "YNX Devnet", "devnet", 6425, false
 	}
+	return base
 }
 
 func NewDevnet(cfg NetworkConfig) *Devnet {
@@ -62,19 +64,13 @@ func NewDevnet(cfg NetworkConfig) *Devnet {
 		accounts:   map[string]*Account{},
 		lots:       map[string]TrustTraceLot{},
 		payIntents: map[string]PayIntent{},
-		validators: []Validator{{Address: validatorAddress, VotingPower: 1, Active: true}},
+		validators: []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
 	}
-	d.accounts[faucetAddress] = &Account{Address: faucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
-	d.accounts[validatorAddress] = &Account{Address: validatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
-	genesis := Block{
-		Height:       0,
-		Hash:         hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)),
-		ParentHash:   "",
-		Time:         time.Now().UTC(),
-		Validator:    validatorAddress,
-		Transactions: nil,
-	}
-	d.blocks = append(d.blocks, genesis)
+	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
+	d.accounts[ValidatorAddress] = &Account{Address: ValidatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
+	d.blocks = append(d.blocks, Block{
+		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: ValidatorAddress,
+	})
 	return d
 }
 
@@ -109,30 +105,21 @@ func (d *Devnet) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
-func (d *Devnet) Config() NetworkConfig {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.cfg
-}
+func (d *Devnet) Config() NetworkConfig { d.mu.RLock(); defer d.mu.RUnlock(); return d.cfg }
 
 func (d *Devnet) Status() map[string]any {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	latest := d.blocks[len(d.blocks)-1]
 	return map[string]any{
-		"network":          d.cfg.Name,
-		"slug":             d.cfg.Slug,
-		"chainId":          d.cfg.ChainID,
-		"currency":         d.cfg.Currency,
-		"publicNetwork":    d.cfg.IsPublicNet,
-		"height":           latest.Height,
-		"latestBlockHash":  latest.Hash,
-		"latestBlockTime":  latest.Time,
-		"validatorCount":   len(d.validators),
-		"pendingTxCount":   len(d.pending),
-		"persistence":      d.dataDir != "",
-		"persistenceError": d.lastPersistenceError,
-		"truthfulStatus":   "local-devnet",
+		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
+		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
+		"decimals": d.cfg.Decimals, "publicNetwork": d.cfg.IsPublicNet,
+		"height": latest.Height, "latestBlockHash": latest.Hash, "latestBlockTime": latest.Time,
+		"validatorCount": len(d.validators), "pendingTxCount": len(d.pending),
+		"persistence": d.dataDir != "", "persistenceError": d.lastPersistenceError,
+		"truthfulStatus": "local-devnet", "mainnetReady": false,
+		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
 }
 
@@ -144,21 +131,7 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 	for _, block := range d.blocks {
 		totalTxs += len(block.Transactions)
 	}
-	return ExplorerSummary{
-		Network:            d.cfg,
-		Height:             latest.Height,
-		LatestBlockHash:    latest.Hash,
-		LatestBlockTime:    latest.Time,
-		TotalBlocks:        len(d.blocks),
-		TotalTransactions:  totalTxs,
-		KnownAccounts:      len(d.accounts),
-		ValidatorCount:     len(d.validators),
-		PendingTxCount:     len(d.pending),
-		PayIntentCount:     len(d.payIntents),
-		PersistenceEnabled: d.dataDir != "",
-		PersistenceError:   d.lastPersistenceError,
-		TruthfulStatus:     "local-devnet",
-	}
+	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: "local-devnet"}
 }
 
 func (d *Devnet) LatestBlock() Block {
@@ -205,9 +178,8 @@ func (d *Devnet) RecentTransactions(limit int) []Transaction {
 		txs = append(txs, d.pending[i])
 	}
 	for i := len(d.blocks) - 1; i >= 0 && len(txs) < limit; i-- {
-		blockTxs := d.blocks[i].Transactions
-		for j := len(blockTxs) - 1; j >= 0 && len(txs) < limit; j-- {
-			txs = append(txs, blockTxs[j])
+		for j := len(d.blocks[i].Transactions) - 1; j >= 0 && len(txs) < limit; j-- {
+			txs = append(txs, d.blocks[i].Transactions[j])
 		}
 	}
 	return txs
@@ -229,9 +201,9 @@ func (d *Devnet) Account(address string) (Account, bool) {
 func (d *Devnet) Validators() []Validator {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	validators := make([]Validator, len(d.validators))
-	copy(validators, d.validators)
-	return validators
+	out := make([]Validator, len(d.validators))
+	copy(out, d.validators)
+	return out
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
@@ -243,9 +215,7 @@ func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-
-	account := d.account(address)
-	faucet := d.account(faucetAddress)
+	account, faucet := d.account(address), d.account(FaucetAddress)
 	if faucet.Balance < amount {
 		return Transaction{}, errors.New("faucet balance exhausted")
 	}
@@ -253,13 +223,8 @@ func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
 	faucet.Balance -= amount
 	account.Balance += amount
 	account.Lots[lotID] += amount
-	d.lots[lotID] = TrustTraceLot{
-		LotID:      lotID,
-		Amount:     amount,
-		Origin:     "devnet faucet mint",
-		RiskWeight: 0,
-	}
-	tx := d.newTxLocked("faucet", faucetAddress, address, amount, 0, []LotFlow{{LotID: lotID, Amount: amount, From: faucetAddress, To: address}}, "devnet faucet mint")
+	d.lots[lotID] = TrustTraceLot{LotID: lotID, Amount: amount, Origin: "devnet faucet mint", RiskWeight: 0}
+	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}, "devnet faucet mint")
 	d.pending = append(d.pending, tx)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
@@ -275,23 +240,20 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	sender := d.account(from)
-	receiver := d.account(to)
+	sender, receiver := d.account(from), d.account(to)
 	const fee int64 = 1
-	total := amount + fee
-	if sender.Balance < total {
+	if sender.Balance < amount+fee {
 		return Transaction{}, errors.New("insufficient balance")
 	}
 	flows, err := d.moveLotsLocked(sender, receiver, amount)
 	if err != nil {
 		return Transaction{}, err
 	}
-	sender.Balance -= total
+	sender.Balance -= amount + fee
 	sender.Nonce++
-	sender.ResourceUsage.BandwidthUsed += 1
+	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += amount
-	validator := d.account(validatorAddress)
-	validator.Balance += fee
+	d.account(ValidatorAddress).Balance += fee
 	tx := d.newTxLocked("transfer", from, to, amount, fee, flows, "native transfer")
 	d.pending = append(d.pending, tx)
 	err = d.persistSnapshotLocked()
@@ -314,7 +276,7 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	}
 	account.Balance -= amount
 	account.Staked += amount
-	account.ResourceUsage.ComputeUsed += 1
+	account.ResourceUsage.ComputeUsed++
 	tx := d.newTxLocked("stake", address, "ynx_staking", amount, 0, nil, "stake for resources and voting weight")
 	d.pending = append(d.pending, tx)
 	err := d.persistSnapshotLocked()
@@ -328,8 +290,7 @@ func (d *Devnet) Resources(address string) (ResourceBalance, error) {
 	}
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	account := d.accountReadOnly(address)
-	return resourceBalance(account), nil
+	return resourceBalance(d.accountReadOnly(address)), nil
 }
 
 func (d *Devnet) TrustTrace(address string) (TrustTrace, error) {
@@ -353,12 +314,7 @@ func (d *Devnet) TrustTrace(address string) (TrustTrace, error) {
 	if len(lots) == 0 {
 		labels = append(labels, "no-known-lots")
 	}
-	return TrustTrace{
-		Address: address,
-		Lots:    lots,
-		Labels:  labels,
-		Summary: "Trace uses lot lineage and pro-rata movement for local devnet balances. It does not freeze or restrict funds.",
-	}, nil
+	return TrustTrace{Address: address, Lots: lots, Labels: labels, Summary: "Trace uses lot lineage and pro-rata movement for local devnet balances. It records explainable risk lineage and does not freeze funds."}, nil
 }
 
 func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL string) (PayIntent, error) {
@@ -370,15 +326,7 @@ func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL stri
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	intent := PayIntent{
-		ID:          hashParts("pay", merchant, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
-		Merchant:    merchant,
-		Amount:      amount,
-		Currency:    d.cfg.Currency,
-		Status:      "created",
-		CreatedAt:   time.Now().UTC(),
-		CallbackURL: callbackURL,
-	}
+	intent := PayIntent{ID: hashParts("pay", merchant, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24], Merchant: merchant, Amount: amount, Currency: d.cfg.NativeCurrencySymbol, Status: "created", CreatedAt: time.Now().UTC(), CallbackURL: callbackURL}
 	d.payIntents[intent.ID] = intent
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
@@ -389,16 +337,12 @@ func (d *Devnet) ProduceBlock() Block {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	parent := d.blocks[len(d.blocks)-1]
-	height := parent.Height + 1
 	txs := append([]Transaction(nil), d.pending...)
 	d.pending = nil
-	block := Block{
-		Height:       height,
-		Hash:         hashParts("block", fmt.Sprint(height), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs))),
-		ParentHash:   parent.Hash,
-		Time:         time.Now().UTC(),
-		Validator:    validatorAddress,
-		Transactions: txs,
+	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs))), ParentHash: parent.Hash, Time: time.Now().UTC(), Validator: ValidatorAddress, Transactions: txs}
+	for i := range block.Transactions {
+		block.Transactions[i].BlockHash = block.Hash
+		block.Transactions[i].BlockNum = block.Height
 	}
 	d.blocks = append(d.blocks, block)
 	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
@@ -463,12 +407,7 @@ func (d *Devnet) loadSnapshot() error {
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
 	}
-	d.blocks = snapshot.Blocks
-	d.pending = snapshot.Pending
-	d.accounts = snapshot.Accounts
-	d.validators = snapshot.Validators
-	d.lots = snapshot.Lots
-	d.payIntents = snapshot.PayIntents
+	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
 	d.ensureStateDefaults()
 	return nil
 }
@@ -487,17 +426,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{
-		Version:    1,
-		SavedAt:    time.Now().UTC(),
-		Config:     d.cfg,
-		Blocks:     d.blocks,
-		Pending:    d.pending,
-		Accounts:   d.accounts,
-		Validators: d.validators,
-		Lots:       d.lots,
-		PayIntents: d.payIntents,
-	}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -522,64 +451,56 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.payIntents == nil {
 		d.payIntents = map[string]PayIntent{}
 	}
-	if d.validators == nil {
-		d.validators = []Validator{{Address: validatorAddress, VotingPower: 1, Active: true}}
+	if len(d.validators) == 0 {
+		d.validators = []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}}
 	}
-	for address, account := range d.accounts {
-		if account == nil {
-			d.accounts[address] = &Account{Address: address, Lots: map[string]int64{}}
-			continue
-		}
+	for _, account := range d.accounts {
 		if account.Lots == nil {
 			account.Lots = map[string]int64{}
 		}
 	}
-	if _, ok := d.accounts[faucetAddress]; !ok {
-		d.accounts[faucetAddress] = &Account{Address: faucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
-	}
-	if _, ok := d.accounts[validatorAddress]; !ok {
-		d.accounts[validatorAddress] = &Account{Address: validatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
-	}
 }
 
 func (d *Devnet) recordPersistenceErrorLocked(err error) {
-	if err == nil {
-		d.lastPersistenceError = ""
+	if err != nil {
+		d.lastPersistenceError = err.Error()
 		return
 	}
-	d.lastPersistenceError = err.Error()
+	d.lastPersistenceError = ""
 }
 
-func (d *Devnet) newTxLocked(txType, from, to string, amount, fee int64, flows []LotFlow, memo string) Transaction {
-	nonce := d.accounts[from].Nonce
-	timestamp := time.Now().UTC()
-	hash := hashParts(txType, from, to, fmt.Sprint(amount), fmt.Sprint(fee), fmt.Sprint(nonce), fmt.Sprint(timestamp.UnixNano()))
-	return Transaction{Hash: hash, Type: txType, From: from, To: to, Amount: amount, Fee: fee, Nonce: nonce, Timestamp: timestamp, LotFlows: flows, Memo: memo}
+func (d *Devnet) newTxLocked(kind, from, to string, amount, fee int64, lots []LotFlow, memo string) Transaction {
+	nonce := d.accountReadOnly(from).Nonce
+	return Transaction{Hash: "0x" + hashParts("tx", kind, from, to, fmt.Sprint(amount), fmt.Sprint(nonce), fmt.Sprint(time.Now().UnixNano())), Type: kind, From: from, To: to, Amount: amount, Fee: fee, Nonce: nonce, Timestamp: time.Now().UTC(), LotFlows: lots, Memo: memo}
 }
 
 func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotFlow, error) {
 	remaining := amount
-	lotIDs := make([]string, 0, len(sender.Lots))
-	for lotID, lotAmount := range sender.Lots {
-		if lotAmount > 0 {
-			lotIDs = append(lotIDs, lotID)
-		}
+	flows := []LotFlow{}
+	keys := make([]string, 0, len(sender.Lots))
+	for lotID := range sender.Lots {
+		keys = append(keys, lotID)
 	}
-	sort.Strings(lotIDs)
-	flows := make([]LotFlow, 0, len(lotIDs))
-	for _, lotID := range lotIDs {
+	sort.Strings(keys)
+	for _, lotID := range keys {
 		if remaining == 0 {
 			break
 		}
 		available := sender.Lots[lotID]
+		if available <= 0 {
+			continue
+		}
 		move := available
 		if move > remaining {
 			move = remaining
 		}
 		sender.Lots[lotID] -= move
 		receiver.Lots[lotID] += move
-		remaining -= move
+		lot := d.lots[lotID]
+		lot.LastInbound = receiver.Address
+		d.lots[lotID] = lot
 		flows = append(flows, LotFlow{LotID: lotID, Amount: move, From: sender.Address, To: receiver.Address})
+		remaining -= move
 	}
 	if remaining != 0 {
 		return nil, errors.New("insufficient traceable lot balance")
@@ -588,35 +509,11 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 }
 
 func resourceBalance(account *Account) ResourceBalance {
-	bandwidth := int64(1000) + account.Staked*10
-	compute := int64(100) + account.Staked*2
-	aiCredits := int64(20) + account.Staked/10
-	trust := int64(10) + account.Staked/20
-	return ResourceBalance{
-		Address:        account.Address,
-		BandwidthLimit: bandwidth,
-		BandwidthUsed:  account.ResourceUsage.BandwidthUsed,
-		BandwidthLeft:  maxInt64(0, bandwidth-account.ResourceUsage.BandwidthUsed),
-		ComputeLimit:   compute,
-		ComputeUsed:    account.ResourceUsage.ComputeUsed,
-		ComputeLeft:    maxInt64(0, compute-account.ResourceUsage.ComputeUsed),
-		AICreditsLimit: aiCredits,
-		AICreditsUsed:  account.ResourceUsage.AICreditsUsed,
-		AICreditsLeft:  maxInt64(0, aiCredits-account.ResourceUsage.AICreditsUsed),
-		TrustLimit:     trust,
-		TrustUsed:      account.ResourceUsage.TrustUsed,
-		TrustLeft:      maxInt64(0, trust-account.ResourceUsage.TrustUsed),
-		Staked:         account.Staked,
-	}
-}
-
-func hashParts(parts ...string) string {
-	h := sha256.New()
-	for _, part := range parts {
-		h.Write([]byte(part))
-		h.Write([]byte{0})
-	}
-	return hex.EncodeToString(h.Sum(nil))
+	bandwidth := int64(1000) + account.Staked/10
+	compute := int64(100) + account.Staked/100
+	ai := int64(25) + account.Staked/1000
+	trust := int64(25) + account.Staked/1000
+	return ResourceBalance{Address: account.Address, BandwidthLimit: bandwidth, BandwidthUsed: account.ResourceUsage.BandwidthUsed, BandwidthLeft: maxInt64(0, bandwidth-account.ResourceUsage.BandwidthUsed), ComputeLimit: compute, ComputeUsed: account.ResourceUsage.ComputeUsed, ComputeLeft: maxInt64(0, compute-account.ResourceUsage.ComputeUsed), AICreditsLimit: ai, AICreditsUsed: account.ResourceUsage.AICreditsUsed, AICreditsLeft: maxInt64(0, ai-account.ResourceUsage.AICreditsUsed), TrustLimit: trust, TrustUsed: account.ResourceUsage.TrustUsed, TrustLeft: maxInt64(0, trust-account.ResourceUsage.TrustUsed), Staked: account.Staked}
 }
 
 func maxInt64(a, b int64) int64 {
@@ -624,4 +521,13 @@ func maxInt64(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func hashParts(parts ...string) string {
+	h := sha256.New()
+	for _, part := range parts {
+		_, _ = h.Write([]byte(part))
+		_, _ = h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }

@@ -1,0 +1,15 @@
+[Unit]
+Description=YNX Chain node
+After=network-online.target
+
+[Service]
+User=ynx
+EnvironmentFile=/etc/ynx/ynx-chaind.env
+ExecStart=/usr/local/bin/ynx-chaind
+Restart=always
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
