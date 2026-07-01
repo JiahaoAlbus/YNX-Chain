@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -40,9 +41,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /staking/stake", s.handleStake)
 	s.mux.HandleFunc("GET /resources/{address}", s.handleResources)
 	s.mux.HandleFunc("GET /trust/trace/{address}", s.handleTrustTrace)
+	s.mux.HandleFunc("POST /trust/labels", s.handleTrustLabel)
+	s.mux.HandleFunc("POST /trust/evidence", s.handleEvidencePacket)
+	s.mux.HandleFunc("GET /trust/evidence/{id}", s.handleEvidenceLookup)
 	s.mux.HandleFunc("POST /pay/intents", s.handlePayIntent)
+	s.mux.HandleFunc("GET /pay/intents/{id}", s.handlePayIntentLookup)
+	s.mux.HandleFunc("POST /pay/invoices", s.handleInvoice)
+	s.mux.HandleFunc("GET /pay/invoices/{id}", s.handleInvoiceLookup)
+	s.mux.HandleFunc("POST /pay/refunds", s.handleRefund)
+	s.mux.HandleFunc("POST /pay/webhook-signatures", s.handleWebhookSignature)
+	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
+	s.mux.HandleFunc("POST /resource-market/rent", s.handleResourceRent)
 	s.mux.HandleFunc("GET /ai/stream", s.handleAIStream)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
+	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
+	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
+	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 }
 
@@ -173,6 +187,56 @@ func (s *Server) handleTrustTrace(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, trace)
 }
+func (s *Server) handleTrustLabel(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Subject       string `json:"subject"`
+		Label         string `json:"label"`
+		RiskWeightBps int64  `json:"riskWeightBps"`
+		Source        string `json:"source"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	label, err := s.devnet.AddRiskLabel(req.Subject, req.Label, req.RiskWeightBps, req.Source)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, label)
+}
+func (s *Server) handleEvidencePacket(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Subject string `json:"subject"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	packet, err := s.devnet.EvidencePacket(req.Subject)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, packet)
+}
+func (s *Server) handleEvidenceLookup(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	asPDF := strings.HasSuffix(id, ".pdf")
+	if asPDF {
+		id = strings.TrimSuffix(id, ".pdf")
+	}
+	packet, ok := s.devnet.StoredEvidencePacket(id)
+	if !ok {
+		writeError(w, http.StatusNotFound, "evidence packet not found")
+		return
+	}
+	if asPDF {
+		w.Header().Set("Content-Type", "application/pdf")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(minimalEvidencePDF(packet))
+		return
+	}
+	writeJSON(w, http.StatusOK, packet)
+}
 func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Merchant    string `json:"merchant"`
@@ -188,6 +252,115 @@ func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, intent)
+}
+func (s *Server) handlePayIntentLookup(w http.ResponseWriter, r *http.Request) {
+	intent, ok := s.devnet.PayIntent(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "payment intent not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, intent)
+}
+func (s *Server) handleInvoice(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IntentID   string `json:"intentId"`
+		DueInHours int64  `json:"dueInHours"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	invoice, err := s.devnet.CreateInvoice(req.IntentID, req.DueInHours)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, invoice)
+}
+func (s *Server) handleInvoiceLookup(w http.ResponseWriter, r *http.Request) {
+	invoice, ok := s.devnet.Invoice(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "invoice not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, invoice)
+}
+func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IntentID string `json:"intentId"`
+		Amount   int64  `json:"amount"`
+		Reason   string `json:"reason"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	refund, err := s.devnet.CreateRefund(req.IntentID, req.Amount, req.Reason)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, refund)
+}
+func (s *Server) handleWebhookSignature(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		IntentID   string `json:"intentId"`
+		EventType  string `json:"eventType"`
+		SigningKey string `json:"signingKey"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	signature, err := s.devnet.SignWebhook(req.IntentID, req.EventType, req.SigningKey)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, signature)
+}
+func (s *Server) handleResourceQuote(w http.ResponseWriter, r *http.Request) {
+	bandwidth, err := int64Query(r, "bandwidth")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	compute, err := int64Query(r, "compute")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	aiCredits, err := int64Query(r, "aiCredits")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	trustCredits, err := int64Query(r, "trustCredits")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	quote, err := s.devnet.ResourceQuote(r.URL.Query().Get("address"), bandwidth, compute, aiCredits, trustCredits)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, quote)
+}
+func (s *Server) handleResourceRent(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Address      string `json:"address"`
+		Bandwidth    int64  `json:"bandwidth"`
+		Compute      int64  `json:"compute"`
+		AICredits    int64  `json:"aiCredits"`
+		TrustCredits int64  `json:"trustCredits"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	rental, resources, err := s.devnet.RentResources(req.Address, req.Bandwidth, req.Compute, req.AICredits, req.TrustCredits)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"rental": rental, "resources": resources})
 }
 func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 	session, query := r.URL.Query().Get("session"), r.URL.Query().Get("q")
@@ -223,6 +396,50 @@ func (s *Server) handleIDECompile(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusBadRequest
 	}
 	writeJSON(w, status, result)
+}
+func (s *Server) handleIDEDeploy(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Deployer string `json:"deployer"`
+		Name     string `json:"name"`
+		Source   string `json:"source"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	result := preflightContract(req.Name, req.Source)
+	if !result.OK {
+		writeJSON(w, http.StatusBadRequest, result)
+		return
+	}
+	artifact, tx, err := s.devnet.DeployContract(req.Deployer, req.Name, req.Source)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"contract": artifact, "transaction": tx})
+}
+func (s *Server) handleIDEVerify(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Address string `json:"address"`
+		Source  string `json:"source"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	artifact, err := s.devnet.VerifyContract(req.Address, req.Source)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, artifact)
+}
+func (s *Server) handleContractLookup(w http.ResponseWriter, r *http.Request) {
+	artifact, ok := s.devnet.Contract(r.PathValue("address"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "contract not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, artifact)
 }
 func (s *Server) handleMonitoring(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "height": s.devnet.LatestBlock().Height, "service": "ynx-monitoring-local"})
@@ -389,4 +606,44 @@ func sanitizeSSE(value string) string {
 	value = strings.ReplaceAll(value, "\n", " ")
 	value = strings.ReplaceAll(value, "\r", " ")
 	return value
+}
+
+func int64Query(r *http.Request, key string) (int64, error) {
+	raw := r.URL.Query().Get(key)
+	if raw == "" {
+		return 0, nil
+	}
+	value, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s", key)
+	}
+	return value, nil
+}
+
+func minimalEvidencePDF(packet chain.EvidencePacket) []byte {
+	line := fmt.Sprintf("YNX Trust evidence packet %s subject %s json %s generated %s",
+		packet.ID, packet.Subject, packet.JSONHash, packet.GeneratedAt.Format(time.RFC3339))
+	line = strings.NewReplacer("\\", "\\\\", "(", "\\(", ")", "\\)").Replace(line)
+	stream := fmt.Sprintf("BT /F1 12 Tf 72 720 Td (%s) Tj ET", line)
+	objects := []string{
+		"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
+		"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
+		"3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n",
+		"4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
+		fmt.Sprintf("5 0 obj << /Length %d >> stream\n%s\nendstream endobj\n", len(stream), stream),
+	}
+	var buf bytes.Buffer
+	buf.WriteString("%PDF-1.4\n")
+	offsets := []int{0}
+	for _, obj := range objects {
+		offsets = append(offsets, buf.Len())
+		buf.WriteString(obj)
+	}
+	xrefOffset := buf.Len()
+	buf.WriteString(fmt.Sprintf("xref\n0 %d\n0000000000 65535 f \n", len(offsets)))
+	for i := 1; i < len(offsets); i++ {
+		buf.WriteString(fmt.Sprintf("%010d 00000 n \n", offsets[i]))
+	}
+	buf.WriteString(fmt.Sprintf("trailer << /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(offsets), xrefOffset))
+	return buf.Bytes()
 }

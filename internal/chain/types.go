@@ -33,6 +33,9 @@ type ExplorerSummary struct {
 	ValidatorCount     int           `json:"validatorCount"`
 	PendingTxCount     int           `json:"pendingTxCount"`
 	PayIntentCount     int           `json:"payIntentCount"`
+	InvoiceCount       int           `json:"invoiceCount"`
+	TrustEvidenceCount int           `json:"trustEvidenceCount"`
+	ContractCount      int           `json:"contractCount"`
 	PersistenceEnabled bool          `json:"persistenceEnabled"`
 	PersistenceError   string        `json:"persistenceError,omitempty"`
 	TruthfulStatus     string        `json:"truthfulStatus"`
@@ -122,4 +125,89 @@ type PayIntent struct {
 	Status      string    `json:"status"`
 	CreatedAt   time.Time `json:"createdAt"`
 	CallbackURL string    `json:"callbackUrl,omitempty"`
+}
+
+type Invoice struct {
+	ID          string    `json:"id"`
+	IntentID    string    `json:"intentId"`
+	Merchant    string    `json:"merchant"`
+	Amount      int64     `json:"amount"`
+	Currency    string    `json:"currency"`
+	Status      string    `json:"status"`
+	DueAt       time.Time `json:"dueAt"`
+	CreatedAt   time.Time `json:"createdAt"`
+	PaymentLink string    `json:"paymentLink,omitempty"`
+}
+
+type RefundRecord struct {
+	ID        string    `json:"id"`
+	IntentID  string    `json:"intentId"`
+	Amount    int64     `json:"amount"`
+	Currency  string    `json:"currency"`
+	Reason    string    `json:"reason,omitempty"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type WebhookSignature struct {
+	EventID   string    `json:"eventId"`
+	IntentID  string    `json:"intentId"`
+	Signature string    `json:"signature"`
+	SignedAt  time.Time `json:"signedAt"`
+	Algorithm string    `json:"algorithm"`
+}
+
+type RiskLabel struct {
+	Subject       string    `json:"subject"`
+	Label         string    `json:"label"`
+	RiskWeightBps int64     `json:"riskWeightBps"`
+	Source        string    `json:"source"`
+	CreatedAt     time.Time `json:"createdAt"`
+}
+
+type EvidencePacket struct {
+	ID          string        `json:"id"`
+	Subject     string        `json:"subject"`
+	Trace       TrustTrace    `json:"trace"`
+	Labels      []RiskLabel   `json:"riskLabels"`
+	RelatedTxs  []Transaction `json:"relatedTransactions"`
+	JSONHash    string        `json:"jsonHash"`
+	GeneratedAt time.Time     `json:"generatedAt"`
+	ExportNotes []string      `json:"exportNotes"`
+}
+
+type ResourceQuote struct {
+	ID            string    `json:"id"`
+	Address       string    `json:"address"`
+	Bandwidth     int64     `json:"bandwidth"`
+	Compute       int64     `json:"compute"`
+	AICredits     int64     `json:"aiCredits"`
+	TrustCredits  int64     `json:"trustCredits"`
+	PriceYNXT     int64     `json:"priceYnxt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+	TruthfulNotes []string  `json:"truthfulNotes"`
+}
+
+type ResourceRental struct {
+	ID           string    `json:"id"`
+	QuoteID      string    `json:"quoteId"`
+	Address      string    `json:"address"`
+	PriceYNXT    int64     `json:"priceYnxt"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+	Bandwidth    int64     `json:"bandwidth"`
+	Compute      int64     `json:"compute"`
+	AICredits    int64     `json:"aiCredits"`
+	TrustCredits int64     `json:"trustCredits"`
+}
+
+type ContractArtifact struct {
+	Address      string     `json:"address"`
+	Name         string     `json:"name"`
+	Deployer     string     `json:"deployer"`
+	SourceHash   string     `json:"sourceHash"`
+	BytecodeHash string     `json:"bytecodeHash"`
+	Verified     bool       `json:"verified"`
+	DeployedAt   time.Time  `json:"deployedAt"`
+	VerifiedAt   *time.Time `json:"verifiedAt,omitempty"`
 }

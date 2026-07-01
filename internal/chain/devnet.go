@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -29,20 +30,32 @@ type Devnet struct {
 	validators           []Validator
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
+	invoices             map[string]Invoice
+	refunds              map[string]RefundRecord
+	riskLabels           map[string][]RiskLabel
+	evidencePackets      map[string]EvidencePacket
+	resourceRentals      map[string]ResourceRental
+	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
 }
 
 type devnetSnapshot struct {
-	Version    int                      `json:"version"`
-	SavedAt    time.Time                `json:"savedAt"`
-	Config     NetworkConfig            `json:"config"`
-	Blocks     []Block                  `json:"blocks"`
-	Pending    []Transaction            `json:"pending"`
-	Accounts   map[string]*Account      `json:"accounts"`
-	Validators []Validator              `json:"validators"`
-	Lots       map[string]TrustTraceLot `json:"lots"`
-	PayIntents map[string]PayIntent     `json:"payIntents"`
+	Version    int                         `json:"version"`
+	SavedAt    time.Time                   `json:"savedAt"`
+	Config     NetworkConfig               `json:"config"`
+	Blocks     []Block                     `json:"blocks"`
+	Pending    []Transaction               `json:"pending"`
+	Accounts   map[string]*Account         `json:"accounts"`
+	Validators []Validator                 `json:"validators"`
+	Lots       map[string]TrustTraceLot    `json:"lots"`
+	PayIntents map[string]PayIntent        `json:"payIntents"`
+	Invoices   map[string]Invoice          `json:"invoices"`
+	Refunds    map[string]RefundRecord     `json:"refunds"`
+	RiskLabels map[string][]RiskLabel      `json:"riskLabels"`
+	Evidence   map[string]EvidencePacket   `json:"evidencePackets"`
+	Rentals    map[string]ResourceRental   `json:"resourceRentals"`
+	Contracts  map[string]ContractArtifact `json:"contracts"`
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
@@ -60,11 +73,17 @@ func DefaultNetworkConfig(slug string) NetworkConfig {
 
 func NewDevnet(cfg NetworkConfig) *Devnet {
 	d := &Devnet{
-		cfg:        cfg,
-		accounts:   map[string]*Account{},
-		lots:       map[string]TrustTraceLot{},
-		payIntents: map[string]PayIntent{},
-		validators: []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
+		cfg:             cfg,
+		accounts:        map[string]*Account{},
+		lots:            map[string]TrustTraceLot{},
+		payIntents:      map[string]PayIntent{},
+		invoices:        map[string]Invoice{},
+		refunds:         map[string]RefundRecord{},
+		riskLabels:      map[string][]RiskLabel{},
+		evidencePackets: map[string]EvidencePacket{},
+		resourceRentals: map[string]ResourceRental{},
+		contracts:       map[string]ContractArtifact{},
+		validators:      []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
 	}
 	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
 	d.accounts[ValidatorAddress] = &Account{Address: ValidatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
@@ -131,7 +150,7 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 	for _, block := range d.blocks {
 		totalTxs += len(block.Transactions)
 	}
-	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: "local-devnet"}
+	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), InvoiceCount: len(d.invoices), TrustEvidenceCount: len(d.evidencePackets), ContractCount: len(d.contracts), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: "local-devnet"}
 }
 
 func (d *Devnet) LatestBlock() Block {
@@ -333,6 +352,281 @@ func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL stri
 	return intent, err
 }
 
+func (d *Devnet) PayIntent(id string) (PayIntent, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	intent, ok := d.payIntents[id]
+	return intent, ok
+}
+
+func (d *Devnet) CreateInvoice(intentID string, dueInHours int64) (Invoice, error) {
+	if intentID == "" {
+		return Invoice{}, errors.New("intentId is required")
+	}
+	if dueInHours <= 0 {
+		dueInHours = 24
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	intent, ok := d.payIntents[intentID]
+	if !ok {
+		return Invoice{}, errors.New("payment intent not found")
+	}
+	invoice := Invoice{
+		ID:        hashParts("invoice", intent.ID, fmt.Sprint(time.Now().UnixNano()))[:24],
+		IntentID:  intent.ID,
+		Merchant:  intent.Merchant,
+		Amount:    intent.Amount,
+		Currency:  intent.Currency,
+		Status:    "issued",
+		DueAt:     time.Now().UTC().Add(time.Duration(dueInHours) * time.Hour),
+		CreatedAt: time.Now().UTC(),
+	}
+	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
+	d.invoices[invoice.ID] = invoice
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return invoice, err
+}
+
+func (d *Devnet) Invoice(id string) (Invoice, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	invoice, ok := d.invoices[id]
+	return invoice, ok
+}
+
+func (d *Devnet) CreateRefund(intentID string, amount int64, reason string) (RefundRecord, error) {
+	if intentID == "" {
+		return RefundRecord{}, errors.New("intentId is required")
+	}
+	if amount <= 0 {
+		return RefundRecord{}, errors.New("amount must be positive")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	intent, ok := d.payIntents[intentID]
+	if !ok {
+		return RefundRecord{}, errors.New("payment intent not found")
+	}
+	if amount > intent.Amount {
+		return RefundRecord{}, errors.New("refund exceeds payment intent amount")
+	}
+	refund := RefundRecord{
+		ID:        hashParts("refund", intentID, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
+		IntentID:  intentID,
+		Amount:    amount,
+		Currency:  intent.Currency,
+		Reason:    reason,
+		Status:    "recorded",
+		CreatedAt: time.Now().UTC(),
+	}
+	d.refunds[refund.ID] = refund
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return refund, err
+}
+
+func (d *Devnet) SignWebhook(intentID, eventType, signingKey string) (WebhookSignature, error) {
+	if intentID == "" || eventType == "" || signingKey == "" {
+		return WebhookSignature{}, errors.New("intentId, eventType, and signingKey are required")
+	}
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if _, ok := d.payIntents[intentID]; !ok {
+		return WebhookSignature{}, errors.New("payment intent not found")
+	}
+	signedAt := time.Now().UTC()
+	eventID := hashParts("event", intentID, eventType, fmt.Sprint(signedAt.UnixNano()))[:24]
+	payload := strings.Join([]string{eventID, intentID, eventType, signedAt.Format(time.RFC3339Nano)}, ".")
+	mac := hmac.New(sha256.New, []byte(signingKey))
+	_, _ = mac.Write([]byte(payload))
+	return WebhookSignature{EventID: eventID, IntentID: intentID, Signature: hex.EncodeToString(mac.Sum(nil)), SignedAt: signedAt, Algorithm: "hmac-sha256"}, nil
+}
+
+func (d *Devnet) AddRiskLabel(subject, label string, riskWeightBps int64, source string) (RiskLabel, error) {
+	if subject == "" || label == "" {
+		return RiskLabel{}, errors.New("subject and label are required")
+	}
+	if riskWeightBps < 0 || riskWeightBps > 10000 {
+		return RiskLabel{}, errors.New("riskWeightBps must be between 0 and 10000")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	risk := RiskLabel{Subject: subject, Label: label, RiskWeightBps: riskWeightBps, Source: source, CreatedAt: time.Now().UTC()}
+	d.riskLabels[subject] = append(d.riskLabels[subject], risk)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return risk, err
+}
+
+func (d *Devnet) EvidencePacket(subject string) (EvidencePacket, error) {
+	if subject == "" {
+		return EvidencePacket{}, errors.New("subject is required")
+	}
+	trace, err := d.TrustTrace(subject)
+	if err != nil {
+		return EvidencePacket{}, err
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	related := make([]Transaction, 0)
+	for _, block := range d.blocks {
+		for _, tx := range block.Transactions {
+			if tx.From == subject || tx.To == subject {
+				related = append(related, tx)
+			}
+		}
+	}
+	for _, tx := range d.pending {
+		if tx.From == subject || tx.To == subject {
+			related = append(related, tx)
+		}
+	}
+	labels := append([]RiskLabel(nil), d.riskLabels[subject]...)
+	packet := EvidencePacket{
+		ID:          hashParts("evidence", subject, fmt.Sprint(time.Now().UnixNano()))[:24],
+		Subject:     subject,
+		Trace:       trace,
+		Labels:      labels,
+		RelatedTxs:  related,
+		GeneratedAt: time.Now().UTC(),
+		ExportNotes: []string{"JSON evidence is generated from local devnet state.", "PDF export is a deterministic local evidence rendering for reviewer smoke tests."},
+	}
+	payload, _ := json.Marshal(packet)
+	packet.JSONHash = hashParts("evidence-json", string(payload))
+	d.evidencePackets[packet.ID] = packet
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return packet, err
+}
+
+func (d *Devnet) StoredEvidencePacket(id string) (EvidencePacket, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	packet, ok := d.evidencePackets[id]
+	return packet, ok
+}
+
+func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceQuote, error) {
+	if address == "" {
+		return ResourceQuote{}, errors.New("address is required")
+	}
+	if bandwidth < 0 || compute < 0 || aiCredits < 0 || trustCredits < 0 {
+		return ResourceQuote{}, errors.New("resource amounts cannot be negative")
+	}
+	price := bandwidth/100 + compute/10 + aiCredits*2 + trustCredits*2
+	if price <= 0 {
+		price = 1
+	}
+	return ResourceQuote{
+		ID:            hashParts("resource-quote", address, fmt.Sprint(bandwidth), fmt.Sprint(compute), fmt.Sprint(aiCredits), fmt.Sprint(trustCredits))[:24],
+		Address:       address,
+		Bandwidth:     bandwidth,
+		Compute:       compute,
+		AICredits:     aiCredits,
+		TrustCredits:  trustCredits,
+		PriceYNXT:     price,
+		ExpiresAt:     time.Now().UTC().Add(15 * time.Minute),
+		TruthfulNotes: []string{"Quote is computed from local devnet resource pricing.", "Public market pricing must be governed and configured before production use."},
+	}, nil
+}
+
+func (d *Devnet) RentResources(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceRental, ResourceBalance, error) {
+	quote, err := d.ResourceQuote(address, bandwidth, compute, aiCredits, trustCredits)
+	if err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	account := d.account(address)
+	if account.Balance < quote.PriceYNXT {
+		return ResourceRental{}, ResourceBalance{}, errors.New("insufficient balance for resource rental")
+	}
+	account.Balance -= quote.PriceYNXT
+	account.ResourceUsage.BandwidthUsed = maxInt64(0, account.ResourceUsage.BandwidthUsed-bandwidth)
+	account.ResourceUsage.ComputeUsed = maxInt64(0, account.ResourceUsage.ComputeUsed-compute)
+	account.ResourceUsage.AICreditsUsed = maxInt64(0, account.ResourceUsage.AICreditsUsed-aiCredits)
+	account.ResourceUsage.TrustUsed = maxInt64(0, account.ResourceUsage.TrustUsed-trustCredits)
+	rental := ResourceRental{
+		ID:           hashParts("resource-rental", quote.ID, fmt.Sprint(time.Now().UnixNano()))[:24],
+		QuoteID:      quote.ID,
+		Address:      address,
+		PriceYNXT:    quote.PriceYNXT,
+		Status:       "active",
+		CreatedAt:    time.Now().UTC(),
+		Bandwidth:    bandwidth,
+		Compute:      compute,
+		AICredits:    aiCredits,
+		TrustCredits: trustCredits,
+	}
+	d.resourceRentals[rental.ID] = rental
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return rental, resourceBalance(account), err
+}
+
+func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact, Transaction, error) {
+	if deployer == "" || name == "" || strings.TrimSpace(source) == "" {
+		return ContractArtifact{}, Transaction{}, errors.New("deployer, name, and source are required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	account := d.account(deployer)
+	const fee int64 = 10
+	if account.Balance < fee {
+		return ContractArtifact{}, Transaction{}, errors.New("insufficient balance for contract deployment fee")
+	}
+	account.Balance -= fee
+	account.Nonce++
+	account.ResourceUsage.ComputeUsed += 5
+	sourceHash := hashParts("source", source)
+	artifact := ContractArtifact{
+		Address:      "0x" + hashParts("contract", deployer, name, sourceHash, fmt.Sprint(time.Now().UnixNano()))[:40],
+		Name:         name,
+		Deployer:     deployer,
+		SourceHash:   sourceHash,
+		BytecodeHash: hashParts("bytecode", sourceHash),
+		Verified:     false,
+		DeployedAt:   time.Now().UTC(),
+	}
+	d.contracts[artifact.Address] = artifact
+	tx := d.newTxLocked("contract_deploy", deployer, artifact.Address, 0, fee, nil, "local devnet contract deployment")
+	d.pending = append(d.pending, tx)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return artifact, tx, err
+}
+
+func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error) {
+	if address == "" || strings.TrimSpace(source) == "" {
+		return ContractArtifact{}, errors.New("address and source are required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	artifact, ok := d.contracts[address]
+	if !ok {
+		return ContractArtifact{}, errors.New("contract not found")
+	}
+	if artifact.SourceHash != hashParts("source", source) {
+		return ContractArtifact{}, errors.New("source hash does not match deployed contract")
+	}
+	verifiedAt := time.Now().UTC()
+	artifact.Verified = true
+	artifact.VerifiedAt = &verifiedAt
+	d.contracts[address] = artifact
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return artifact, err
+}
+
+func (d *Devnet) Contract(address string) (ContractArtifact, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	artifact, ok := d.contracts[address]
+	return artifact, ok
+}
+
 func (d *Devnet) ProduceBlock() Block {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -408,6 +702,8 @@ func (d *Devnet) loadSnapshot() error {
 		return errors.New("devnet snapshot has no blocks")
 	}
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
+	d.invoices, d.refunds, d.riskLabels, d.evidencePackets = snapshot.Invoices, snapshot.Refunds, snapshot.RiskLabels, snapshot.Evidence
+	d.resourceRentals, d.contracts = snapshot.Rentals, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
 }
@@ -426,7 +722,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Rentals: d.resourceRentals, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -450,6 +746,24 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.payIntents == nil {
 		d.payIntents = map[string]PayIntent{}
+	}
+	if d.invoices == nil {
+		d.invoices = map[string]Invoice{}
+	}
+	if d.refunds == nil {
+		d.refunds = map[string]RefundRecord{}
+	}
+	if d.riskLabels == nil {
+		d.riskLabels = map[string][]RiskLabel{}
+	}
+	if d.evidencePackets == nil {
+		d.evidencePackets = map[string]EvidencePacket{}
+	}
+	if d.resourceRentals == nil {
+		d.resourceRentals = map[string]ResourceRental{}
+	}
+	if d.contracts == nil {
+		d.contracts = map[string]ContractArtifact{}
 	}
 	if len(d.validators) == 0 {
 		d.validators = []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}}

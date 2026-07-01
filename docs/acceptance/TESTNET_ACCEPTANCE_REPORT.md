@@ -2,5 +2,6 @@
 
 Before public deployment: local smoke test must pass.
 
-After public deployment: record real RPC health, EVM chainId, block height increase, faucet tx, transfer tx, explorer lookup, AI streaming, Trust trace, Pay intent, IDE compile/deploy, monitoring, backup, commit hash, and package generation output.
+Current local smoke coverage includes RPC health, EVM chainId, block height increase, faucet tx, transfer tx, explorer lookup, AI streaming, Trust trace, Trust label, Trust evidence JSON, Trust evidence PDF export, Pay intent, Pay invoice, Pay refund record, Pay webhook HMAC signature, resource quote, resource rental, IDE deploy, contract verification, monitoring, package generation output, and main readiness package file lists.
 
+After public deployment: record real public RPC health, EVM chainId, block height increase, faucet tx, transfer tx, explorer URL lookup, AI streaming proof, Trust evidence packet, Pay object, IDE deployment proof, monitoring status, backup result, commit hash, deployment timestamp, package generation output, and known limitations.

@@ -66,3 +66,56 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 		t.Fatalf("expected restored trace lot")
 	}
 }
+
+func TestPersistentDevnetRestoresProductState(t *testing.T) {
+	dir := t.TempDir()
+	cfg := DefaultNetworkConfig("devnet")
+	devnet, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_product", 1000); err != nil {
+		t.Fatal(err)
+	}
+	intent, err := devnet.CreatePayIntent("merchant_product", 75, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	invoice, err := devnet.CreateInvoice(intent.ID, 24)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.AddRiskLabel("ynx_product", "reviewed", 100, "unit"); err != nil {
+		t.Fatal(err)
+	}
+	evidence, err := devnet.EvidencePacket("ynx_product")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := "pragma solidity ^0.8.24; contract Persisted {}"
+	contract, _, err := devnet.DeployContract("ynx_product", "Persisted", source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.VerifyContract(contract.Address, source); err != nil {
+		t.Fatal(err)
+	}
+
+	restored, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := restored.Invoice(invoice.ID); !ok {
+		t.Fatal("expected restored invoice")
+	}
+	if _, ok := restored.StoredEvidencePacket(evidence.ID); !ok {
+		t.Fatal("expected restored evidence packet")
+	}
+	restoredContract, ok := restored.Contract(contract.Address)
+	if !ok {
+		t.Fatal("expected restored contract")
+	}
+	if !restoredContract.Verified {
+		t.Fatal("expected restored contract verification")
+	}
+}

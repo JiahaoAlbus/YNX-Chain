@@ -41,6 +41,14 @@ func TestDevnetAPIFlow(t *testing.T) {
 	if summary["totalTransactions"].(float64) != 2 {
 		t.Fatalf("summary did not count txs: %v", summary)
 	}
+	var label map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/labels", map[string]any{"subject": "ynx_bob", "label": "reviewed", "riskWeightBps": 250, "source": "unit-test"}, http.StatusCreated, &label)
+	var evidence map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/evidence", map[string]any{"subject": "ynx_bob"}, http.StatusCreated, &evidence)
+	if evidence["jsonHash"] == "" {
+		t.Fatalf("expected evidence hash: %v", evidence)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/trust/evidence/"+evidence["id"].(string), nil, http.StatusOK, &evidence)
 }
 
 func TestEVMRPCSubset(t *testing.T) {
@@ -56,6 +64,48 @@ func TestEVMRPCSubset(t *testing.T) {
 	if out["result"] == "" {
 		t.Fatalf("missing block number: %v", out)
 	}
+}
+
+func TestPayResourceAndIDEFlow(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_builder", "amount": 1000}, http.StatusCreated, nil)
+
+	var intent map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 50}, http.StatusCreated, &intent)
+	intentID := intent["id"].(string)
+	var invoice map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 12}, http.StatusCreated, &invoice)
+	doJSON(t, http.MethodGet, server.URL+"/pay/invoices/"+invoice["id"].(string), nil, http.StatusOK, &invoice)
+	var webhook map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/webhook-signatures", map[string]any{"intentId": intentID, "eventType": "payment_intent.created", "signingKey": "unit-test-key"}, http.StatusCreated, &webhook)
+	if webhook["algorithm"] != "hmac-sha256" {
+		t.Fatalf("unexpected webhook signature: %v", webhook)
+	}
+	var refund map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 10, "reason": "unit"}, http.StatusCreated, &refund)
+
+	var quote map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/resource-market/quote?address=ynx_builder&bandwidth=100&compute=5&aiCredits=2&trustCredits=1", nil, http.StatusOK, &quote)
+	if quote["priceYnxt"].(float64) <= 0 {
+		t.Fatalf("expected positive quote: %v", quote)
+	}
+	var rental map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/resource-market/rent", map[string]any{"address": "ynx_builder", "bandwidth": 100, "compute": 5, "aiCredits": 2, "trustCredits": 1}, http.StatusCreated, &rental)
+
+	source := "pragma solidity ^0.8.24; contract Demo { function ping() public pure returns (uint256) { return 1; } }"
+	var deployed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_builder", "name": "Demo", "source": source}, http.StatusCreated, &deployed)
+	contract := deployed["contract"].(map[string]any)
+	address := contract["address"].(string)
+	var verified map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": source}, http.StatusOK, &verified)
+	if verified["verified"] != true {
+		t.Fatalf("expected verified contract: %v", verified)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)
 }
 
 func TestAIStreamIsSessionScoped(t *testing.T) {
