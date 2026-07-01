@@ -1,4 +1,9 @@
-# blocks
+# Indexer Blocks
 
-This directory is part of the YNX Chain engineering surface. It is intentionally separated so runtime code, deployment assets, and review packages do not collapse into the website repository.
+`ynx-indexerd` indexes blocks from the chain RPC through `GET /blocks/{height}` and stores them in its local index database.
 
+Verification:
+
+```bash
+make indexer-check
+```

@@ -1,12 +1,13 @@
 [Unit]
-Description=YNX Chain node
-After=network-online.target
+Description=YNX Chain indexer
+After=network-online.target ynx-chaind.service
+Wants=network-online.target ynx-chaind.service
 
 [Service]
 User=ynx
 Group=ynx
 EnvironmentFile=/etc/ynx/ynx-chaind.env
-ExecStart=/usr/local/bin/ynx-chaind
+ExecStart=/usr/local/bin/ynx-indexerd
 Restart=always
 RestartSec=3
 LimitNOFILE=1048576

@@ -57,3 +57,7 @@ The engineering package is wired to fail fast when real deployment values are mi
 - DEX_ROUTER_ADDRESS
 - MULTICALL_ADDRESS
 - DEX_INDEXER_START_BLOCK
+- YNX_INDEXER_RPC_URL
+- YNX_INDEXER_HTTP_ADDR
+- YNX_INDEXER_DB_PATH
+- YNX_INDEXER_POLL_INTERVAL

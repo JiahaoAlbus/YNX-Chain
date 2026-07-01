@@ -4,8 +4,8 @@ YNX Chain exposes Prometheus metrics at `GET /metrics`.
 
 ## Files
 
-- `prometheus.yml`: scrapes `ynx-chaind:6420/metrics`.
-- `ynx-alerts.yml`: alerts on metrics outage, stalled block height, and persistence errors.
+- `prometheus.yml`: scrapes `ynx-chaind:6420/metrics` and `ynx-indexerd:6426/metrics`.
+- `ynx-alerts.yml`: alerts on metrics outage, stalled block height, persistence errors, indexer lag, and indexer sync errors.
 - `grafana-dashboard.json`: starter dashboard for height, transactions, pending transactions, Pay, Trust, contracts, and persistence state.
 
 ## Verification

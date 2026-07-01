@@ -14,3 +14,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-chaind
+  - job_name: ynx-indexerd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-indexerd:6426
+        labels:
+          network: ynx-testnet
+          service: ynx-indexerd

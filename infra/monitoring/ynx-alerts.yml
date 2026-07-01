@@ -25,3 +25,19 @@ groups:
         annotations:
           summary: YNX Chain persistence layer reports an error
           description: Node metrics report a persistence error. Check journal logs and backup state before restart.
+      - alert: YNXIndexerLagging
+        expr: ynx_indexer_sync_lag_blocks{job="ynx-indexerd"} > 3
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX indexer is behind the RPC source
+          description: Indexer sync lag is above three blocks for more than three minutes.
+      - alert: YNXIndexerErrors
+        expr: increase(ynx_indexer_sync_errors_total{job="ynx-indexerd"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX indexer reports sync errors
+          description: The indexer failed at least one sync cycle in the last five minutes.

@@ -60,6 +60,7 @@ contract_address=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(
 echo "IDE deployment result: $deploy"
 echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
 curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
+echo "Indexer sync result:" && go run ./cmd/ynx-indexerd -rpc http://127.0.0.1:6420 -db "$work/indexer-db.json" -once
 echo "website status API result: local website repo not deployed in this workspace; use /status contract for website integration"
 find docs/grants -type f | sort >"$work/grants.txt"
 find docs/ecosystem -type f | sort >"$work/ecosystem.txt"

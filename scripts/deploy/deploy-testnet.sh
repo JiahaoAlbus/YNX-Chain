@@ -33,6 +33,7 @@ mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/docs"
 
 echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-indexerd" ./cmd/ynx-indexerd
 
 ynx_write_kv_env "$work/config/ynx-chaind.env" \
   CHAIN_ID CHAIN_NAME NATIVE_COIN_NAME NATIVE_SYMBOL TESTNET_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN \
@@ -47,6 +48,10 @@ YNX_NETWORK=testnet
 YNX_HTTP_ADDR=127.0.0.1:6420
 YNX_DATA_DIR=/var/lib/ynx-chain/testnet
 YNX_BLOCK_INTERVAL=2s
+YNX_INDEXER_RPC_URL=http://127.0.0.1:6420
+YNX_INDEXER_HTTP_ADDR=127.0.0.1:6426
+YNX_INDEXER_DB_PATH=/var/lib/ynx-chain/indexer/indexer-db.json
+YNX_INDEXER_POLL_INTERVAL=2s
 EOF
 
 cat > "$work/systemd/ynx-chaind.service" <<'EOF'
@@ -73,6 +78,30 @@ ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
 WantedBy=multi-user.target
 EOF
 
+cat > "$work/systemd/ynx-indexerd.service" <<'EOF'
+[Unit]
+Description=YNX Chain testnet indexer
+After=network-online.target ynx-chaind.service
+Wants=network-online.target ynx-chaind.service
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-chaind.env
+ExecStart=/usr/local/bin/ynx-indexerd
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > "$work/nginx/ynx-chain.conf" <<EOF
 server {
   listen 80;
@@ -80,6 +109,15 @@ server {
   client_max_body_size 2m;
   location / {
     proxy_pass http://127.0.0.1:6420;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+  location /indexer/ {
+    rewrite ^/indexer/(.*)\$ /\$1 break;
+    proxy_pass http://127.0.0.1:6426;
     proxy_http_version 1.1;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -100,13 +138,16 @@ echo "release checksum: $(cat "${tarball}.sha256")"
 remote_release="/tmp/${release}.tar.gz"
 remote_dir="/opt/ynx-chain/releases/${release}"
 ynx_scp "$tarball" "$remote_release"
-ynx_ssh "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin /var/lib/ynx-chain/testnet /var/log/ynx-chain"
+ynx_ssh "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
+ynx_ssh "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/log/ynx-chain"
 ynx_ssh "sudo rm -rf '$remote_dir' && sudo mkdir -p '$remote_dir' && sudo tar -xzf '$remote_release' -C '$remote_dir'"
 ynx_ssh "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind"
+ynx_ssh "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd"
 ynx_ssh "sudo install -m 0600 '$remote_dir/config/ynx-chaind.env' /etc/ynx/ynx-chaind.env"
 ynx_ssh "sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
+ynx_ssh "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service"
 ynx_ssh "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
-ynx_ssh "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind && sudo systemctl restart ynx-chaind && sudo systemctl --no-pager --full status ynx-chaind"
+ynx_ssh "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd"
 
 echo "deployment command path completed for $release"
 echo "run make verify-testnet with YNX_PUBLIC_RPC_URL or against the deployed RPC domain after DNS/TLS is live"

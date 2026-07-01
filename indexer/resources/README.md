@@ -1,4 +1,3 @@
-# resources
+# Indexer Resources
 
-This directory is part of the YNX Chain engineering surface. It is intentionally separated so runtime code, deployment assets, and review packages do not collapse into the website repository.
-
+Resource analytics are available from the chain RPC and are monitored by `/metrics`. The indexer service is prepared to persist resource-related transactions and expose them to Explorer surfaces without inventing off-chain values.

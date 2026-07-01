@@ -29,6 +29,8 @@ done
 node -e 'JSON.parse(require("fs").readFileSync("infra/monitoring/grafana-dashboard.json","utf8")); console.log("grafana dashboard json ok")'
 grep -Fq "metrics_path: /metrics" infra/monitoring/prometheus.yml
 grep -Fq "YNXChainNoBlockProgress" infra/monitoring/ynx-alerts.yml
+grep -Fq "ynx-indexerd:6426" infra/monitoring/prometheus.yml
+grep -Fq "YNXIndexerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "prom/prometheus" infra/docker/docker-compose.yml
 grep -Fq "grafana/grafana" infra/docker/docker-compose.yml
 grep -Fq "MONITORING_ADMIN_PASSWORD" infra/docker/docker-compose.yml

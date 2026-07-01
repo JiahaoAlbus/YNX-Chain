@@ -8,10 +8,27 @@ services:
       YNX_HTTP_ADDR: 0.0.0.0:6420
     ports:
       - "6420:6420"
+
+  ynx-indexerd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-indexerd.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      YNX_INDEXER_RPC_URL: http://ynx-chaind:6420
+      YNX_INDEXER_HTTP_ADDR: 0.0.0.0:6426
+      YNX_INDEXER_DB_PATH: /var/lib/ynx-indexer/indexer-db.json
+    ports:
+      - "6426:6426"
+    volumes:
+      - ynx-indexer-data:/var/lib/ynx-indexer
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
       - ynx-chaind
+      - ynx-indexerd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -20,6 +37,7 @@ services:
       - ../monitoring/ynx-alerts.yml:/etc/prometheus/rules/ynx-alerts.yml:ro
     ports:
       - "9090:9090"
+
   grafana:
     image: grafana/grafana:11.5.2
     depends_on:
@@ -31,3 +49,6 @@ services:
       - ../monitoring/grafana-dashboard.json:/var/lib/grafana/dashboards/ynx-chain-testnet.json:ro
     ports:
       - "3000:3000"
+
+volumes:
+  ynx-indexer-data:
