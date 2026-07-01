@@ -41,3 +41,19 @@ groups:
         annotations:
           summary: YNX indexer reports sync errors
           description: The indexer failed at least one sync cycle in the last five minutes.
+      - alert: YNXExplorerDown
+        expr: up{job="ynx-explorerd"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX explorer metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-explorerd.
+      - alert: YNXExplorerLagging
+        expr: ynx_explorer_sync_lag_blocks{job="ynx-explorerd"} > 3
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX explorer is serving stale indexed data
+          description: Explorer sees an RPC-to-indexer lag above three blocks for more than three minutes.

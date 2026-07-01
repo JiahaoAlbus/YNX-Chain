@@ -6,6 +6,8 @@ EVM JSON-RPC: `POST /evm` supports `eth_chainId`, `net_version`, `eth_blockNumbe
 
 Indexer service: `ynx-indexerd` reads the chain RPC, persists indexed blocks and transactions, resumes from the last indexed height, and exposes `GET /health`, `GET /metrics`, `POST /sync`, `GET /blocks/latest`, `GET /blocks/{height}`, `GET /txs`, and `GET /txs/{hash}` on the indexer HTTP port.
 
+Explorer service: `ynx-explorerd` reads both RPC and indexer sources and serves the reviewer-facing Explorer web/API surface. It exposes `GET /health`, `GET /metrics`, `GET /api/summary`, `GET /api/blocks/latest`, `GET /api/blocks/{height}`, `GET /api/txs`, `GET /api/txs/{hash}`, `GET /api/accounts/{address}`, `GET /api/tokens/YNXT`, `GET /api/validators`, `GET /api/resources/{address}`, `GET /api/resource-market/analytics`, `GET /api/fees/{hash}`, and `GET /api/search?q=...`. The web UI uses the same `/api/*` endpoints and the wallet metadata reports native currency `YNXT`.
+
 Products:
 
 - `POST /faucet`
@@ -40,4 +42,4 @@ Verification:
 make smoke-test
 ```
 
-The smoke test exercises RPC health, EVM chainId, block growth, faucet, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, and package lists. It returns non-zero on failure.
+The smoke test exercises RPC health, EVM chainId, block growth, faucet, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, and package lists. It returns non-zero on failure.

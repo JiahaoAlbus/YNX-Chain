@@ -47,6 +47,18 @@
       "title": "Persistence Error",
       "gridPos": { "x": 18, "y": 8, "w": 6, "h": 4 },
       "targets": [{ "expr": "ynx_chain_persistence_error", "legendFormat": "error" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Explorer Sync Lag",
+      "gridPos": { "x": 0, "y": 15, "w": 12, "h": 7 },
+      "targets": [{ "expr": "ynx_explorer_sync_lag_blocks", "legendFormat": "explorer lag" }]
+    },
+    {
+      "type": "stat",
+      "title": "Explorer Visible Transactions",
+      "gridPos": { "x": 12, "y": 15, "w": 6, "h": 4 },
+      "targets": [{ "expr": "ynx_explorer_transactions_total", "legendFormat": "indexed tx" }]
     }
   ]
 }

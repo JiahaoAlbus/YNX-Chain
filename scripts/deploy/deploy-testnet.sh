@@ -34,6 +34,7 @@ mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/docs"
 echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-indexerd" ./cmd/ynx-indexerd
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-explorerd" ./cmd/ynx-explorerd
 
 ynx_write_kv_env "$work/config/ynx-chaind.env" \
   CHAIN_ID CHAIN_NAME NATIVE_COIN_NAME NATIVE_SYMBOL TESTNET_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN \
@@ -52,6 +53,11 @@ YNX_INDEXER_RPC_URL=http://127.0.0.1:6420
 YNX_INDEXER_HTTP_ADDR=127.0.0.1:6426
 YNX_INDEXER_DB_PATH=/var/lib/ynx-chain/indexer/indexer-db.json
 YNX_INDEXER_POLL_INTERVAL=2s
+YNX_EXPLORER_RPC_URL=http://127.0.0.1:6420
+YNX_EXPLORER_INDEXER_URL=http://127.0.0.1:6426
+YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6427
+YNX_EXPLORER_PUBLIC_RPC_URL=https://${RPC_DOMAIN}
+YNX_EXPLORER_PUBLIC_URL=https://${EXPLORER_DOMAIN}
 EOF
 
 cat > "$work/systemd/ynx-chaind.service" <<'EOF'
@@ -102,7 +108,45 @@ ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
 WantedBy=multi-user.target
 EOF
 
+cat > "$work/systemd/ynx-explorerd.service" <<'EOF'
+[Unit]
+Description=YNX Chain testnet explorer
+After=network-online.target ynx-chaind.service ynx-indexerd.service
+Wants=network-online.target ynx-chaind.service ynx-indexerd.service
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-chaind.env
+ExecStart=/usr/local/bin/ynx-explorerd
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-chain /var/log/ynx-chain
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 cat > "$work/nginx/ynx-chain.conf" <<EOF
+server {
+  listen 80;
+  server_name ${EXPLORER_DOMAIN};
+  client_max_body_size 2m;
+  location / {
+    proxy_pass http://127.0.0.1:6427;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+}
+
 server {
   listen 80;
   server_name ${NGINX_SERVER_NAME} ${RPC_DOMAIN} ${EVM_RPC_DOMAIN} ${API_DOMAIN} ${FAUCET_DOMAIN} ${AI_GATEWAY_DOMAIN} ${TRUST_API_DOMAIN} ${PAY_API_DOMAIN} ${IDE_DOMAIN};
@@ -118,6 +162,15 @@ server {
   location /indexer/ {
     rewrite ^/indexer/(.*)\$ /\$1 break;
     proxy_pass http://127.0.0.1:6426;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+  location /explorer/ {
+    rewrite ^/explorer/(.*)\$ /\$1 break;
+    proxy_pass http://127.0.0.1:6427;
     proxy_http_version 1.1;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -143,11 +196,13 @@ ynx_ssh "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/l
 ynx_ssh "sudo rm -rf '$remote_dir' && sudo mkdir -p '$remote_dir' && sudo tar -xzf '$remote_release' -C '$remote_dir'"
 ynx_ssh "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind"
 ynx_ssh "sudo install -m 0755 '$remote_dir/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd"
+ynx_ssh "sudo install -m 0755 '$remote_dir/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd"
 ynx_ssh "sudo install -m 0600 '$remote_dir/config/ynx-chaind.env' /etc/ynx/ynx-chaind.env"
 ynx_ssh "sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
 ynx_ssh "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service"
+ynx_ssh "sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service"
 ynx_ssh "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
-ynx_ssh "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd"
+ynx_ssh "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd && sudo systemctl --no-pager --full status ynx-explorerd"
 
 echo "deployment command path completed for $release"
 echo "run make verify-testnet with YNX_PUBLIC_RPC_URL or against the deployed RPC domain after DNS/TLS is live"

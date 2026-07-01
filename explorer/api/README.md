@@ -1,4 +1,9 @@
 # api
 
-This directory is part of the YNX Chain engineering surface. It is intentionally separated so runtime code, deployment assets, and review packages do not collapse into the website repository.
+`ynx-explorerd` is the real Explorer API service. It reads live chain state from RPC and indexed blocks/transactions from `ynx-indexerd`; it does not hardcode fake block, tx, validator, or TPS data.
 
+Verify locally:
+
+```bash
+make explorer-check
+```

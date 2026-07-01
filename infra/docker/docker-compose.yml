@@ -24,11 +24,28 @@ services:
     volumes:
       - ynx-indexer-data:/var/lib/ynx-indexer
 
+  ynx-explorerd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-explorerd.Dockerfile
+    depends_on:
+      - ynx-chaind
+      - ynx-indexerd
+    environment:
+      YNX_EXPLORER_RPC_URL: http://ynx-chaind:6420
+      YNX_EXPLORER_INDEXER_URL: http://ynx-indexerd:6426
+      YNX_EXPLORER_HTTP_ADDR: 0.0.0.0:6427
+      YNX_EXPLORER_PUBLIC_RPC_URL: http://127.0.0.1:6420
+      YNX_EXPLORER_PUBLIC_URL: http://127.0.0.1:6427
+    ports:
+      - "6427:6427"
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
       - ynx-chaind
       - ynx-indexerd
+      - ynx-explorerd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus

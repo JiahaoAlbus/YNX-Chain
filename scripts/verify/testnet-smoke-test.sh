@@ -61,6 +61,22 @@ echo "IDE deployment result: $deploy"
 echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
 curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
 echo "Indexer sync result:" && go run ./cmd/ynx-indexerd -rpc http://127.0.0.1:6420 -db "$work/indexer-db.json" -once
+YNX_INDEXER_RPC_URL=http://127.0.0.1:6420 YNX_INDEXER_DB_PATH="$work/indexer-db.json" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer-smoke.log" 2>&1 &
+indexer_smoke_pid=$!
+for i in {1..40}; do
+  curl -fsS http://127.0.0.1:6436/health >/dev/null 2>&1 && break
+  sleep 0.25
+done
+YNX_EXPLORER_RPC_URL=http://127.0.0.1:6420 YNX_EXPLORER_INDEXER_URL=http://127.0.0.1:6436 YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 go run ./cmd/ynx-explorerd >"$work/explorer-smoke.log" 2>&1 &
+explorer_smoke_pid=$!
+for i in {1..40}; do
+  curl -fsS http://127.0.0.1:6437/health >/dev/null 2>&1 && break
+  sleep 0.25
+done
+curl -fsS http://127.0.0.1:6437/health >/dev/null || { echo "Explorer smoke service did not become healthy"; sed -n '1,120p' "$work/explorer-smoke.log"; exit 1; }
+echo "Explorer API result:" && curl -fsS http://127.0.0.1:6437/api/summary
+kill "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
+wait "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
 echo "website status API result: local website repo not deployed in this workspace; use /status contract for website integration"
 find docs/grants -type f | sort >"$work/grants.txt"
 find docs/ecosystem -type f | sort >"$work/ecosystem.txt"
