@@ -1,15 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-case "ecosystem-package" in
-  grant-package) dir=docs/grants ;;
-  ecosystem-package|chainlist-package) dir=docs/ecosystem ;;
-  exchange-package) dir=docs/exchange-listing ;;
-  mainnet-readiness) dir=docs/mainnet-readiness ;;
-  public-proof) dir=docs/public-proof ;;
-  *) dir=docs ;;
-esac
-test -d "$dir" || { echo "missing $dir"; exit 1; }
-find "$dir" -type f | sort
-echo "ecosystem-package package check passed"
-
+cd "$(dirname "$0")/../.."
+node scripts/package/build-package.mjs ynx-global-ecosystem-package tmp/packages/ecosystem docs/ecosystem docs/custody docs/stablecoin docs/bridge docs/defi docs/developers chain-metadata
