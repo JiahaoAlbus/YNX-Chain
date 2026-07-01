@@ -20,6 +20,56 @@ func TestStakeIncreasesResources(t *testing.T) {
 	}
 }
 
+func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
+	dir := t.TempDir()
+	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_provider", 1000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_renter", 1000); err != nil {
+		t.Fatal(err)
+	}
+	delegation, tx, resources, err := devnet.DelegateResources("ynx_provider", "ynx_provider", 500)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if delegation.Status != "active" || tx.Type != "resource_delegate" {
+		t.Fatalf("unexpected delegation: %+v tx=%+v", delegation, tx)
+	}
+	if resources.BandwidthLimit <= 1000 {
+		t.Fatalf("expected delegated resources to increase provider capacity: %+v", resources)
+	}
+	rental, _, err := devnet.RentResources("ynx_renter", "ynx_provider", 100, 5, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rental.Provider != "ynx_provider" || rental.ProviderIncomeYNXT <= 0 || rental.ProtocolFeeYNXT <= 0 {
+		t.Fatalf("unexpected rental split: %+v", rental)
+	}
+	income := devnet.ResourceIncome("ynx_provider")
+	if len(income) != 1 || income[0].Amount != rental.ProviderIncomeYNXT {
+		t.Fatalf("expected provider income record: %+v", income)
+	}
+	analytics := devnet.ResourceAnalytics()
+	if analytics.ActiveDelegationCount != 1 || analytics.ResourceRentalCount != 1 || analytics.ProviderIncomeYNXT != rental.ProviderIncomeYNXT {
+		t.Fatalf("unexpected analytics: %+v", analytics)
+	}
+
+	restored, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.ResourceDelegations("ynx_provider")) != 1 {
+		t.Fatal("expected restored resource delegation")
+	}
+	if len(restored.ResourceIncome("ynx_provider")) != 1 {
+		t.Fatal("expected restored resource income")
+	}
+}
+
 func TestTransferRequiresTraceableLots(t *testing.T) {
 	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
 	if _, err := devnet.Transfer("ynx_empty", "ynx_receiver", 1); err == nil {

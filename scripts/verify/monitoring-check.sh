@@ -13,7 +13,8 @@ for required in \
   "ynx_chain_transactions_total" \
   "ynx_chain_validators" \
   "ynx_chain_pending_transactions" \
-  "ynx_chain_persistence_error"
+  "ynx_chain_persistence_error" \
+  "ynx_resource_delegated_ynxt"
 do
   if ! grep -Fq "$required" <<<"$metrics"; then
     echo "missing required metric: $required"

@@ -89,6 +89,7 @@ func TestPrometheusMetrics(t *testing.T) {
 		"ynx_chain_transactions_total",
 		"ynx_chain_validators",
 		"ynx_chain_persistence_error",
+		"ynx_resource_delegated_ynxt",
 	} {
 		if !strings.Contains(body, expected) {
 			t.Fatalf("metrics missing %q in:\n%s", expected, body)
@@ -122,8 +123,28 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	if quote["priceYnxt"].(float64) <= 0 {
 		t.Fatalf("expected positive quote: %v", quote)
 	}
+	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_provider", "amount": 1000}, http.StatusCreated, nil)
+	var delegation map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/resource-market/delegations", map[string]any{"provider": "ynx_provider", "beneficiary": "ynx_provider", "amount": 500}, http.StatusCreated, &delegation)
+	if delegation["delegation"].(map[string]any)["status"] != "active" {
+		t.Fatalf("expected active delegation: %v", delegation)
+	}
 	var rental map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/resource-market/rent", map[string]any{"address": "ynx_builder", "bandwidth": 100, "compute": 5, "aiCredits": 2, "trustCredits": 1}, http.StatusCreated, &rental)
+	doJSON(t, http.MethodPost, server.URL+"/resource-market/rent", map[string]any{"address": "ynx_builder", "provider": "ynx_provider", "bandwidth": 100, "compute": 5, "aiCredits": 2, "trustCredits": 1}, http.StatusCreated, &rental)
+	rentalObject := rental["rental"].(map[string]any)
+	if rentalObject["provider"] != "ynx_provider" || rentalObject["providerIncomeYnxt"].(float64) <= 0 {
+		t.Fatalf("expected provider income split: %v", rental)
+	}
+	var income map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/resource-market/income/ynx_provider", nil, http.StatusOK, &income)
+	if len(income["income"].([]any)) != 1 {
+		t.Fatalf("expected income record: %v", income)
+	}
+	var analytics map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/resource-market/analytics", nil, http.StatusOK, &analytics)
+	if analytics["activeDelegationCount"].(float64) != 1 || analytics["resourceRentalCount"].(float64) != 1 {
+		t.Fatalf("expected resource analytics: %v", analytics)
+	}
 
 	source := "pragma solidity ^0.8.24; contract Demo { function ping() public pure returns (uint256) { return 1; } }"
 	var deployed map[string]any

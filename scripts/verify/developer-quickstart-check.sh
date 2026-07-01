@@ -24,6 +24,11 @@ verified=$(printf '%s' "$verify_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/
 
 curl -fsS "$YNX_REST_URL/trust/trace/$developer" >/dev/null
 curl -fsS "$YNX_REST_URL/resource-market/quote?address=$developer&bandwidth=10&compute=1&aiCredits=1&trustCredits=1" >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_developer_provider","amount":1000}' >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/resource-market/delegations" -H 'content-type: application/json' -d '{"provider":"ynx_developer_provider","beneficiary":"ynx_developer_provider","amount":500}' >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/resource-market/rent" -H 'content-type: application/json' -d "{\"address\":\"$developer\",\"provider\":\"ynx_developer_provider\",\"bandwidth\":10,\"compute\":1,\"aiCredits\":1,\"trustCredits\":1}" >/dev/null
+curl -fsS "$YNX_REST_URL/resource-market/income/ynx_developer_provider" >/dev/null
+curl -fsS "$YNX_REST_URL/resource-market/analytics" >/dev/null
 curl -fsS -X POST "$YNX_REST_URL/pay/intents" -H 'content-type: application/json' -d '{"merchant":"developer_quickstart","amount":1}' >/dev/null
 
 node --input-type=module - <<'NODE'

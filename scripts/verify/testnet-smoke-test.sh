@@ -49,7 +49,11 @@ echo "Webhook signature result:" && curl -fsS -X POST http://127.0.0.1:6420/pay/
 echo "Refund record result:" && curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":5,\"reason\":\"smoke\"}"
 echo "Resource API test result:" && curl -fsS http://127.0.0.1:6420/resources/ynx_smoke_alice
 echo "Resource quote result:" && curl -fsS 'http://127.0.0.1:6420/resource-market/quote?address=ynx_smoke_alice&bandwidth=100&compute=5&aiCredits=2&trustCredits=1'
-echo "Resource rental result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}'
+curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -d '{"address":"ynx_resource_provider","amount":1000}' >/dev/null
+echo "Resource delegation result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/delegations -H 'content-type: application/json' -d '{"provider":"ynx_resource_provider","beneficiary":"ynx_resource_provider","amount":500}'
+echo "Resource rental result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","provider":"ynx_resource_provider","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}'
+echo "Resource income result:" && curl -fsS http://127.0.0.1:6420/resource-market/income/ynx_resource_provider
+echo "Resource analytics result:" && curl -fsS http://127.0.0.1:6420/resource-market/analytics
 source='pragma solidity ^0.8.24; contract Smoke { function ping() public pure returns (uint256) { return 1; } }'
 deploy=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_smoke_alice",name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/deploy -H 'content-type: application/json' -d @-)
 contract_address=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).contract.address')

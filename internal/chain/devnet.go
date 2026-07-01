@@ -17,8 +17,12 @@ import (
 )
 
 const (
-	FaucetAddress    = "ynx_faucet"
-	ValidatorAddress = "ynx_validator_0"
+	FaucetAddress            = "ynx_faucet"
+	ValidatorAddress         = "ynx_validator_0"
+	ProtocolResourceProvider = "ynx_protocol_resource_pool"
+	ProtocolResourceTreasury = "ynx_protocol_resource_treasury"
+	resourceProviderShareBps = 8000
+	resourceProtocolShareBps = 2000
 )
 
 type Devnet struct {
@@ -34,28 +38,32 @@ type Devnet struct {
 	refunds              map[string]RefundRecord
 	riskLabels           map[string][]RiskLabel
 	evidencePackets      map[string]EvidencePacket
+	resourceDelegations  map[string]ResourceDelegation
 	resourceRentals      map[string]ResourceRental
+	resourceIncome       map[string]ResourceIncomeRecord
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
 }
 
 type devnetSnapshot struct {
-	Version    int                         `json:"version"`
-	SavedAt    time.Time                   `json:"savedAt"`
-	Config     NetworkConfig               `json:"config"`
-	Blocks     []Block                     `json:"blocks"`
-	Pending    []Transaction               `json:"pending"`
-	Accounts   map[string]*Account         `json:"accounts"`
-	Validators []Validator                 `json:"validators"`
-	Lots       map[string]TrustTraceLot    `json:"lots"`
-	PayIntents map[string]PayIntent        `json:"payIntents"`
-	Invoices   map[string]Invoice          `json:"invoices"`
-	Refunds    map[string]RefundRecord     `json:"refunds"`
-	RiskLabels map[string][]RiskLabel      `json:"riskLabels"`
-	Evidence   map[string]EvidencePacket   `json:"evidencePackets"`
-	Rentals    map[string]ResourceRental   `json:"resourceRentals"`
-	Contracts  map[string]ContractArtifact `json:"contracts"`
+	Version    int                             `json:"version"`
+	SavedAt    time.Time                       `json:"savedAt"`
+	Config     NetworkConfig                   `json:"config"`
+	Blocks     []Block                         `json:"blocks"`
+	Pending    []Transaction                   `json:"pending"`
+	Accounts   map[string]*Account             `json:"accounts"`
+	Validators []Validator                     `json:"validators"`
+	Lots       map[string]TrustTraceLot        `json:"lots"`
+	PayIntents map[string]PayIntent            `json:"payIntents"`
+	Invoices   map[string]Invoice              `json:"invoices"`
+	Refunds    map[string]RefundRecord         `json:"refunds"`
+	RiskLabels map[string][]RiskLabel          `json:"riskLabels"`
+	Evidence   map[string]EvidencePacket       `json:"evidencePackets"`
+	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
+	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
+	Income     map[string]ResourceIncomeRecord `json:"resourceIncome"`
+	Contracts  map[string]ContractArtifact     `json:"contracts"`
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
@@ -73,20 +81,24 @@ func DefaultNetworkConfig(slug string) NetworkConfig {
 
 func NewDevnet(cfg NetworkConfig) *Devnet {
 	d := &Devnet{
-		cfg:             cfg,
-		accounts:        map[string]*Account{},
-		lots:            map[string]TrustTraceLot{},
-		payIntents:      map[string]PayIntent{},
-		invoices:        map[string]Invoice{},
-		refunds:         map[string]RefundRecord{},
-		riskLabels:      map[string][]RiskLabel{},
-		evidencePackets: map[string]EvidencePacket{},
-		resourceRentals: map[string]ResourceRental{},
-		contracts:       map[string]ContractArtifact{},
-		validators:      []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
+		cfg:                 cfg,
+		accounts:            map[string]*Account{},
+		lots:                map[string]TrustTraceLot{},
+		payIntents:          map[string]PayIntent{},
+		invoices:            map[string]Invoice{},
+		refunds:             map[string]RefundRecord{},
+		riskLabels:          map[string][]RiskLabel{},
+		evidencePackets:     map[string]EvidencePacket{},
+		resourceDelegations: map[string]ResourceDelegation{},
+		resourceRentals:     map[string]ResourceRental{},
+		resourceIncome:      map[string]ResourceIncomeRecord{},
+		contracts:           map[string]ContractArtifact{},
+		validators:          []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
 	}
 	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
 	d.accounts[ValidatorAddress] = &Account{Address: ValidatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
+	d.accounts[ProtocolResourceProvider] = &Account{Address: ProtocolResourceProvider, Balance: 0, Staked: 10_000_000, Lots: map[string]int64{}}
+	d.accounts[ProtocolResourceTreasury] = &Account{Address: ProtocolResourceTreasury, Balance: 0, Lots: map[string]int64{}}
 	d.blocks = append(d.blocks, Block{
 		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: ValidatorAddress,
 	})
@@ -532,38 +544,164 @@ func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, tr
 	}, nil
 }
 
-func (d *Devnet) RentResources(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceRental, ResourceBalance, error) {
+func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (ResourceDelegation, Transaction, ResourceBalance, error) {
+	if provider == "" {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, errors.New("provider is required")
+	}
+	if beneficiary == "" {
+		beneficiary = provider
+	}
+	if amount <= 0 {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, errors.New("amount must be positive")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	providerAccount := d.account(provider)
+	if providerAccount.Balance < amount {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, errors.New("insufficient balance for resource delegation")
+	}
+	beneficiaryAccount := d.account(beneficiary)
+	providerAccount.Balance -= amount
+	providerAccount.Nonce++
+	beneficiaryAccount.Staked += amount
+	delegation := ResourceDelegation{
+		ID:           hashParts("resource-delegation", provider, beneficiary, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
+		Provider:     provider,
+		Beneficiary:  beneficiary,
+		AmountYNXT:   amount,
+		Bandwidth:    amount / 10,
+		Compute:      amount / 100,
+		AICredits:    amount / 1000,
+		TrustCredits: amount / 1000,
+		Status:       "active",
+		CreatedAt:    time.Now().UTC(),
+	}
+	d.resourceDelegations[delegation.ID] = delegation
+	tx := d.newTxLocked("resource_delegate", provider, beneficiary, amount, 0, nil, "delegate YNXT into resource capacity")
+	d.pending = append(d.pending, tx)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return delegation, tx, resourceBalance(beneficiaryAccount), err
+}
+
+func (d *Devnet) ResourceDelegations(address string) []ResourceDelegation {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	delegations := make([]ResourceDelegation, 0)
+	for _, delegation := range d.resourceDelegations {
+		if address == "" || delegation.Provider == address || delegation.Beneficiary == address {
+			delegations = append(delegations, delegation)
+		}
+	}
+	sort.Slice(delegations, func(i, j int) bool { return delegations[i].CreatedAt.Before(delegations[j].CreatedAt) })
+	return delegations
+}
+
+func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceRental, ResourceBalance, error) {
 	quote, err := d.ResourceQuote(address, bandwidth, compute, aiCredits, trustCredits)
 	if err != nil {
 		return ResourceRental{}, ResourceBalance{}, err
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if provider == "" {
+		provider = ProtocolResourceProvider
+	}
+	if provider != ProtocolResourceProvider && d.activeDelegatedYNXTLocked(provider) <= 0 {
+		return ResourceRental{}, ResourceBalance{}, errors.New("provider has no active delegated resources")
+	}
 	account := d.account(address)
 	if account.Balance < quote.PriceYNXT {
 		return ResourceRental{}, ResourceBalance{}, errors.New("insufficient balance for resource rental")
 	}
+	providerIncome := int64(0)
+	if provider != ProtocolResourceProvider {
+		providerIncome = quote.PriceYNXT * resourceProviderShareBps / 10000
+	}
+	protocolFee := quote.PriceYNXT - providerIncome
 	account.Balance -= quote.PriceYNXT
+	d.account(provider).Balance += providerIncome
+	d.account(ProtocolResourceTreasury).Balance += protocolFee
 	account.ResourceUsage.BandwidthUsed = maxInt64(0, account.ResourceUsage.BandwidthUsed-bandwidth)
 	account.ResourceUsage.ComputeUsed = maxInt64(0, account.ResourceUsage.ComputeUsed-compute)
 	account.ResourceUsage.AICreditsUsed = maxInt64(0, account.ResourceUsage.AICreditsUsed-aiCredits)
 	account.ResourceUsage.TrustUsed = maxInt64(0, account.ResourceUsage.TrustUsed-trustCredits)
 	rental := ResourceRental{
-		ID:           hashParts("resource-rental", quote.ID, fmt.Sprint(time.Now().UnixNano()))[:24],
-		QuoteID:      quote.ID,
-		Address:      address,
-		PriceYNXT:    quote.PriceYNXT,
-		Status:       "active",
-		CreatedAt:    time.Now().UTC(),
-		Bandwidth:    bandwidth,
-		Compute:      compute,
-		AICredits:    aiCredits,
-		TrustCredits: trustCredits,
+		ID:                 hashParts("resource-rental", quote.ID, provider, fmt.Sprint(time.Now().UnixNano()))[:24],
+		QuoteID:            quote.ID,
+		Address:            address,
+		Provider:           provider,
+		PriceYNXT:          quote.PriceYNXT,
+		ProviderIncomeYNXT: providerIncome,
+		ProtocolFeeYNXT:    protocolFee,
+		Status:             "active",
+		CreatedAt:          time.Now().UTC(),
+		Bandwidth:          bandwidth,
+		Compute:            compute,
+		AICredits:          aiCredits,
+		TrustCredits:       trustCredits,
 	}
 	d.resourceRentals[rental.ID] = rental
+	if providerIncome > 0 {
+		income := ResourceIncomeRecord{
+			ID:        hashParts("resource-income", provider, rental.ID, fmt.Sprint(providerIncome))[:24],
+			Provider:  provider,
+			RentalID:  rental.ID,
+			Source:    "resource-rental",
+			Amount:    providerIncome,
+			Currency:  d.cfg.NativeCurrencySymbol,
+			CreatedAt: time.Now().UTC(),
+		}
+		d.resourceIncome[income.ID] = income
+	}
+	if protocolFee > 0 {
+		income := ResourceIncomeRecord{
+			ID:        hashParts("resource-income", ProtocolResourceTreasury, rental.ID, fmt.Sprint(protocolFee))[:24],
+			Provider:  ProtocolResourceTreasury,
+			RentalID:  rental.ID,
+			Source:    "protocol-resource-fee",
+			Amount:    protocolFee,
+			Currency:  d.cfg.NativeCurrencySymbol,
+			CreatedAt: time.Now().UTC(),
+		}
+		d.resourceIncome[income.ID] = income
+	}
 	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return rental, resourceBalance(account), err
+}
+
+func (d *Devnet) ResourceIncome(address string) []ResourceIncomeRecord {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	income := make([]ResourceIncomeRecord, 0)
+	for _, record := range d.resourceIncome {
+		if address == "" || record.Provider == address {
+			income = append(income, record)
+		}
+	}
+	sort.Slice(income, func(i, j int) bool { return income[i].CreatedAt.Before(income[j].CreatedAt) })
+	return income
+}
+
+func (d *Devnet) ResourceAnalytics() ResourceAnalytics {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	analytics := ResourceAnalytics{Network: d.cfg, TruthfulStatus: "local-devnet"}
+	for _, delegation := range d.resourceDelegations {
+		if delegation.Status == "active" {
+			analytics.ActiveDelegationCount++
+			analytics.DelegatedYNXT += delegation.AmountYNXT
+		}
+	}
+	for _, rental := range d.resourceRentals {
+		analytics.ResourceRentalCount++
+		analytics.RentalVolumeYNXT += rental.PriceYNXT
+		analytics.ProviderIncomeYNXT += rental.ProviderIncomeYNXT
+		analytics.ProtocolFeeYNXT += rental.ProtocolFeeYNXT
+	}
+	analytics.ResourceIncomeRecordCount = len(d.resourceIncome)
+	return analytics
 }
 
 func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact, Transaction, error) {
@@ -703,7 +841,7 @@ func (d *Devnet) loadSnapshot() error {
 	}
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.riskLabels, d.evidencePackets = snapshot.Invoices, snapshot.Refunds, snapshot.RiskLabels, snapshot.Evidence
-	d.resourceRentals, d.contracts = snapshot.Rentals, snapshot.Contracts
+	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
 }
@@ -722,7 +860,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Rentals: d.resourceRentals, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -759,8 +897,14 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.evidencePackets == nil {
 		d.evidencePackets = map[string]EvidencePacket{}
 	}
+	if d.resourceDelegations == nil {
+		d.resourceDelegations = map[string]ResourceDelegation{}
+	}
 	if d.resourceRentals == nil {
 		d.resourceRentals = map[string]ResourceRental{}
+	}
+	if d.resourceIncome == nil {
+		d.resourceIncome = map[string]ResourceIncomeRecord{}
 	}
 	if d.contracts == nil {
 		d.contracts = map[string]ContractArtifact{}
@@ -772,6 +916,12 @@ func (d *Devnet) ensureStateDefaults() {
 		if account.Lots == nil {
 			account.Lots = map[string]int64{}
 		}
+	}
+	if _, ok := d.accounts[ProtocolResourceProvider]; !ok {
+		d.accounts[ProtocolResourceProvider] = &Account{Address: ProtocolResourceProvider, Balance: 0, Staked: 10_000_000, Lots: map[string]int64{}}
+	}
+	if _, ok := d.accounts[ProtocolResourceTreasury]; !ok {
+		d.accounts[ProtocolResourceTreasury] = &Account{Address: ProtocolResourceTreasury, Balance: 0, Lots: map[string]int64{}}
 	}
 }
 
@@ -820,6 +970,16 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 		return nil, errors.New("insufficient traceable lot balance")
 	}
 	return flows, nil
+}
+
+func (d *Devnet) activeDelegatedYNXTLocked(provider string) int64 {
+	total := int64(0)
+	for _, delegation := range d.resourceDelegations {
+		if delegation.Provider == provider && delegation.Status == "active" {
+			total += delegation.AmountYNXT
+		}
+	}
+	return total
 }
 
 func resourceBalance(account *Account) ResourceBalance {

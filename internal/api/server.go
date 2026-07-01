@@ -51,7 +51,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /pay/refunds", s.handleRefund)
 	s.mux.HandleFunc("POST /pay/webhook-signatures", s.handleWebhookSignature)
 	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
+	s.mux.HandleFunc("GET /resource-market/analytics", s.handleResourceAnalytics)
+	s.mux.HandleFunc("POST /resource-market/delegations", s.handleResourceDelegation)
+	s.mux.HandleFunc("GET /resource-market/delegations/{address}", s.handleResourceDelegations)
 	s.mux.HandleFunc("POST /resource-market/rent", s.handleResourceRent)
+	s.mux.HandleFunc("GET /resource-market/income/{address}", s.handleResourceIncome)
 	s.mux.HandleFunc("GET /ai/stream", s.handleAIStream)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
@@ -345,9 +349,32 @@ func (s *Server) handleResourceQuote(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, quote)
 }
+func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.devnet.ResourceAnalytics())
+}
+func (s *Server) handleResourceDelegation(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Provider    string `json:"provider"`
+		Beneficiary string `json:"beneficiary"`
+		Amount      int64  `json:"amount"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	delegation, tx, resources, err := s.devnet.DelegateResources(req.Provider, req.Beneficiary, req.Amount)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"delegation": delegation, "transaction": tx, "resources": resources})
+}
+func (s *Server) handleResourceDelegations(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"delegations": s.devnet.ResourceDelegations(r.PathValue("address"))})
+}
 func (s *Server) handleResourceRent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Address      string `json:"address"`
+		Provider     string `json:"provider"`
 		Bandwidth    int64  `json:"bandwidth"`
 		Compute      int64  `json:"compute"`
 		AICredits    int64  `json:"aiCredits"`
@@ -356,12 +383,15 @@ func (s *Server) handleResourceRent(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	rental, resources, err := s.devnet.RentResources(req.Address, req.Bandwidth, req.Compute, req.AICredits, req.TrustCredits)
+	rental, resources, err := s.devnet.RentResources(req.Address, req.Provider, req.Bandwidth, req.Compute, req.AICredits, req.TrustCredits)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"rental": rental, "resources": resources})
+}
+func (s *Server) handleResourceIncome(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"income": s.devnet.ResourceIncome(r.PathValue("address"))})
 }
 func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 	session, query := r.URL.Query().Get("session"), r.URL.Query().Get("q")
@@ -448,6 +478,7 @@ func (s *Server) handleMonitoring(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	cfg := s.devnet.Config()
 	summary := s.devnet.ExplorerSummary()
+	resourceAnalytics := s.devnet.ResourceAnalytics()
 	labels := fmt.Sprintf(`network="%s",chain_id="%d",native_symbol="%s"`, prometheusLabel(cfg.Slug), cfg.ChainID, prometheusLabel(cfg.NativeCurrencySymbol))
 	persistenceError := 0
 	if summary.PersistenceError != "" {
@@ -481,6 +512,18 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprint(w, "# HELP ynx_chain_persistence_error Whether the node reports a persistence error.\n")
 	_, _ = fmt.Fprint(w, "# TYPE ynx_chain_persistence_error gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_chain_persistence_error{%s} %d\n", labels, persistenceError)
+	_, _ = fmt.Fprint(w, "# HELP ynx_resource_delegated_ynxt Total YNXT delegated into resource capacity.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_resource_delegated_ynxt gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_resource_delegated_ynxt{%s} %d\n", labels, resourceAnalytics.DelegatedYNXT)
+	_, _ = fmt.Fprint(w, "# HELP ynx_resource_rental_volume_ynxt Total YNXT paid for resource rentals.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_resource_rental_volume_ynxt counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_resource_rental_volume_ynxt{%s} %d\n", labels, resourceAnalytics.RentalVolumeYNXT)
+	_, _ = fmt.Fprint(w, "# HELP ynx_resource_provider_income_ynxt Total YNXT income paid to resource providers.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_resource_provider_income_ynxt counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_resource_provider_income_ynxt{%s} %d\n", labels, resourceAnalytics.ProviderIncomeYNXT)
+	_, _ = fmt.Fprint(w, "# HELP ynx_resource_protocol_fee_ynxt Total YNXT protocol fee from resource rentals.\n")
+	_, _ = fmt.Fprint(w, "# TYPE ynx_resource_protocol_fee_ynxt counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_resource_protocol_fee_ynxt{%s} %d\n", labels, resourceAnalytics.ProtocolFeeYNXT)
 }
 
 type rpcRequest struct {

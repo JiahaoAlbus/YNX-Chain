@@ -65,6 +65,19 @@ type ResourceBalance struct {
 	Staked         int64  `json:"staked"`
 }
 
+type ResourceDelegation struct {
+	ID           string    `json:"id"`
+	Provider     string    `json:"provider"`
+	Beneficiary  string    `json:"beneficiary"`
+	AmountYNXT   int64     `json:"amountYnxt"`
+	Bandwidth    int64     `json:"bandwidth"`
+	Compute      int64     `json:"compute"`
+	AICredits    int64     `json:"aiCredits"`
+	TrustCredits int64     `json:"trustCredits"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"createdAt"`
+}
+
 type Block struct {
 	Height       uint64        `json:"height"`
 	Hash         string        `json:"hash"`
@@ -189,16 +202,41 @@ type ResourceQuote struct {
 }
 
 type ResourceRental struct {
-	ID           string    `json:"id"`
-	QuoteID      string    `json:"quoteId"`
-	Address      string    `json:"address"`
-	PriceYNXT    int64     `json:"priceYnxt"`
-	Status       string    `json:"status"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Bandwidth    int64     `json:"bandwidth"`
-	Compute      int64     `json:"compute"`
-	AICredits    int64     `json:"aiCredits"`
-	TrustCredits int64     `json:"trustCredits"`
+	ID                 string    `json:"id"`
+	QuoteID            string    `json:"quoteId"`
+	Address            string    `json:"address"`
+	Provider           string    `json:"provider"`
+	PriceYNXT          int64     `json:"priceYnxt"`
+	ProviderIncomeYNXT int64     `json:"providerIncomeYnxt"`
+	ProtocolFeeYNXT    int64     `json:"protocolFeeYnxt"`
+	Status             string    `json:"status"`
+	CreatedAt          time.Time `json:"createdAt"`
+	Bandwidth          int64     `json:"bandwidth"`
+	Compute            int64     `json:"compute"`
+	AICredits          int64     `json:"aiCredits"`
+	TrustCredits       int64     `json:"trustCredits"`
+}
+
+type ResourceIncomeRecord struct {
+	ID        string    `json:"id"`
+	Provider  string    `json:"provider"`
+	RentalID  string    `json:"rentalId"`
+	Source    string    `json:"source"`
+	Amount    int64     `json:"amount"`
+	Currency  string    `json:"currency"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type ResourceAnalytics struct {
+	Network                   NetworkConfig `json:"network"`
+	ActiveDelegationCount     int           `json:"activeDelegationCount"`
+	ResourceRentalCount       int           `json:"resourceRentalCount"`
+	ResourceIncomeRecordCount int           `json:"resourceIncomeRecordCount"`
+	DelegatedYNXT             int64         `json:"delegatedYnxt"`
+	RentalVolumeYNXT          int64         `json:"rentalVolumeYnxt"`
+	ProviderIncomeYNXT        int64         `json:"providerIncomeYnxt"`
+	ProtocolFeeYNXT           int64         `json:"protocolFeeYnxt"`
+	TruthfulStatus            string        `json:"truthfulStatus"`
 }
 
 type ContractArtifact struct {

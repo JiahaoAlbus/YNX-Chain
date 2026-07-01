@@ -8,4 +8,4 @@ Reviewer quickstart:
 make developer-quickstart-check
 ```
 
-The check starts or reuses a local YNX Testnet endpoint, requests faucet YNXT, compiles a Solidity sample through the IDE API, deploys and verifies the contract, calls Trust, Resource Market and Pay sample APIs, and checks the JavaScript and Python SDK entrypoints.
+The check starts or reuses a local YNX Testnet endpoint, requests faucet YNXT, compiles a Solidity sample through the IDE API, deploys and verifies the contract, calls Trust, Resource Market quote/delegation/rental/income/analytics and Pay sample APIs, and checks the JavaScript and Python SDK entrypoints.

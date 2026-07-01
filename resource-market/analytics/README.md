@@ -1,4 +1,14 @@
-# analytics
+# Resource Market Analytics
 
-This directory is part of the YNX Chain engineering surface. It is intentionally separated so runtime code, deployment assets, and review packages do not collapse into the website repository.
+`GET /resource-market/analytics` exposes:
 
+- active delegation count,
+- resource rental count,
+- resource income record count,
+- delegated YNXT,
+- rental volume in YNXT,
+- provider income in YNXT,
+- protocol fees in YNXT,
+- truthful status for the local testnet environment.
+
+These fields give Explorer, operations, Grant reviewers, and future public dashboards a direct endpoint for resource-economy evidence without relying on narrative claims.

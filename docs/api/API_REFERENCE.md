@@ -10,7 +10,11 @@ Products:
 - `POST /staking/stake`
 - `GET /resources/{address}`
 - `GET /resource-market/quote`
+- `GET /resource-market/analytics`
+- `POST /resource-market/delegations`
+- `GET /resource-market/delegations/{address}`
 - `POST /resource-market/rent`
+- `GET /resource-market/income/{address}`
 - `GET /trust/trace/{address}`
 - `POST /trust/labels`
 - `POST /trust/evidence`
@@ -34,4 +38,4 @@ Verification:
 make smoke-test
 ```
 
-The smoke test exercises RPC health, EVM chainId, block growth, faucet, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/rental, IDE deploy, contract verification, monitoring, and package lists. It returns non-zero on failure.
+The smoke test exercises RPC health, EVM chainId, block growth, faucet, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, and package lists. It returns non-zero on failure.
