@@ -57,6 +57,8 @@ type Devnet struct {
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
 	refunds              map[string]RefundRecord
+	webhookSignatures    map[string]WebhookSignature
+	payEvents            map[string]PayEvent
 	riskLabels           map[string][]RiskLabel
 	evidencePackets      map[string]EvidencePacket
 	governanceRequests   map[string]GovernanceRequest
@@ -153,6 +155,8 @@ type devnetSnapshot struct {
 	PayIntents map[string]PayIntent            `json:"payIntents"`
 	Invoices   map[string]Invoice              `json:"invoices"`
 	Refunds    map[string]RefundRecord         `json:"refunds"`
+	Webhooks   map[string]WebhookSignature     `json:"webhookSignatures"`
+	PayEvents  map[string]PayEvent             `json:"payEvents"`
 	RiskLabels map[string][]RiskLabel          `json:"riskLabels"`
 	Evidence   map[string]EvidencePacket       `json:"evidencePackets"`
 	Governance map[string]GovernanceRequest    `json:"governanceRequests"`
@@ -205,6 +209,8 @@ func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet 
 		payIntents:          map[string]PayIntent{},
 		invoices:            map[string]Invoice{},
 		refunds:             map[string]RefundRecord{},
+		webhookSignatures:   map[string]WebhookSignature{},
+		payEvents:           map[string]PayEvent{},
 		riskLabels:          map[string][]RiskLabel{},
 		evidencePackets:     map[string]EvidencePacket{},
 		governanceRequests:  map[string]GovernanceRequest{},
@@ -486,6 +492,13 @@ func (d *Devnet) TrustTrace(address string) (TrustTrace, error) {
 }
 
 func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL string) (PayIntent, error) {
+	return d.CreatePayIntentWithIdempotency(merchant, amount, callbackURL, "")
+}
+
+func (d *Devnet) CreatePayIntentWithIdempotency(merchant string, amount int64, callbackURL, idempotencyKey string) (PayIntent, error) {
+	merchant = strings.TrimSpace(merchant)
+	callbackURL = strings.TrimSpace(callbackURL)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
 	if merchant == "" {
 		return PayIntent{}, errors.New("merchant is required")
 	}
@@ -494,8 +507,13 @@ func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL stri
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	intent := PayIntent{ID: hashParts("pay", merchant, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24], Merchant: merchant, Amount: amount, Currency: d.cfg.NativeCurrencySymbol, Status: "created", CreatedAt: time.Now().UTC(), CallbackURL: callbackURL}
+	if existing, ok := d.findPayIntentByIdempotencyLocked(merchant, idempotencyKey); ok {
+		return existing, nil
+	}
+	now := time.Now().UTC()
+	intent := PayIntent{ID: hashParts("pay", merchant, fmt.Sprint(amount), fmt.Sprint(now.UnixNano()))[:24], Merchant: merchant, Amount: amount, Currency: d.cfg.NativeCurrencySymbol, Status: "created", CreatedAt: now, CallbackURL: callbackURL, IdempotencyKey: idempotencyKey}
 	d.payIntents[intent.ID] = intent
+	d.recordPayEventLocked("payment_intent.created", intent.ID, intent.ID, intent.Merchant, intent.Amount, intent.Currency, intent.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return intent, err
@@ -509,6 +527,12 @@ func (d *Devnet) PayIntent(id string) (PayIntent, bool) {
 }
 
 func (d *Devnet) CreateInvoice(intentID string, dueInHours int64) (Invoice, error) {
+	return d.CreateInvoiceWithIdempotency(intentID, dueInHours, "")
+}
+
+func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64, idempotencyKey string) (Invoice, error) {
+	intentID = strings.TrimSpace(intentID)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
 	if intentID == "" {
 		return Invoice{}, errors.New("intentId is required")
 	}
@@ -521,18 +545,24 @@ func (d *Devnet) CreateInvoice(intentID string, dueInHours int64) (Invoice, erro
 	if !ok {
 		return Invoice{}, errors.New("payment intent not found")
 	}
+	if existing, ok := d.findInvoiceByIdempotencyLocked(intentID, idempotencyKey); ok {
+		return existing, nil
+	}
+	now := time.Now().UTC()
 	invoice := Invoice{
-		ID:        hashParts("invoice", intent.ID, fmt.Sprint(time.Now().UnixNano()))[:24],
-		IntentID:  intent.ID,
-		Merchant:  intent.Merchant,
-		Amount:    intent.Amount,
-		Currency:  intent.Currency,
-		Status:    "issued",
-		DueAt:     time.Now().UTC().Add(time.Duration(dueInHours) * time.Hour),
-		CreatedAt: time.Now().UTC(),
+		ID:             hashParts("invoice", intent.ID, fmt.Sprint(now.UnixNano()))[:24],
+		IntentID:       intent.ID,
+		Merchant:       intent.Merchant,
+		Amount:         intent.Amount,
+		Currency:       intent.Currency,
+		Status:         "issued",
+		DueAt:          now.Add(time.Duration(dueInHours) * time.Hour),
+		CreatedAt:      now,
+		IdempotencyKey: idempotencyKey,
 	}
 	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
 	d.invoices[invoice.ID] = invoice
+	d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return invoice, err
@@ -546,6 +576,13 @@ func (d *Devnet) Invoice(id string) (Invoice, bool) {
 }
 
 func (d *Devnet) CreateRefund(intentID string, amount int64, reason string) (RefundRecord, error) {
+	return d.CreateRefundWithIdempotency(intentID, amount, reason, "")
+}
+
+func (d *Devnet) CreateRefundWithIdempotency(intentID string, amount int64, reason, idempotencyKey string) (RefundRecord, error) {
+	intentID = strings.TrimSpace(intentID)
+	reason = strings.TrimSpace(reason)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
 	if intentID == "" {
 		return RefundRecord{}, errors.New("intentId is required")
 	}
@@ -561,36 +598,87 @@ func (d *Devnet) CreateRefund(intentID string, amount int64, reason string) (Ref
 	if amount > intent.Amount {
 		return RefundRecord{}, errors.New("refund exceeds payment intent amount")
 	}
+	if existing, ok := d.findRefundByIdempotencyLocked(intentID, idempotencyKey); ok {
+		return existing, nil
+	}
+	now := time.Now().UTC()
 	refund := RefundRecord{
-		ID:        hashParts("refund", intentID, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
-		IntentID:  intentID,
-		Amount:    amount,
-		Currency:  intent.Currency,
-		Reason:    reason,
-		Status:    "recorded",
-		CreatedAt: time.Now().UTC(),
+		ID:             hashParts("refund", intentID, fmt.Sprint(amount), fmt.Sprint(now.UnixNano()))[:24],
+		IntentID:       intentID,
+		Amount:         amount,
+		Currency:       intent.Currency,
+		Reason:         reason,
+		Status:         "recorded",
+		CreatedAt:      now,
+		IdempotencyKey: idempotencyKey,
 	}
 	d.refunds[refund.ID] = refund
+	d.recordPayEventLocked("refund.recorded", refund.IntentID, refund.ID, intent.Merchant, refund.Amount, refund.Currency, refund.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return refund, err
 }
 
 func (d *Devnet) SignWebhook(intentID, eventType, signingKey string) (WebhookSignature, error) {
+	return d.SignWebhookWithIdempotency(intentID, eventType, signingKey, "")
+}
+
+func (d *Devnet) SignWebhookWithIdempotency(intentID, eventType, signingKey, idempotencyKey string) (WebhookSignature, error) {
+	intentID = strings.TrimSpace(intentID)
+	eventType = strings.TrimSpace(eventType)
+	signingKey = strings.TrimSpace(signingKey)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
 	if intentID == "" || eventType == "" || signingKey == "" {
 		return WebhookSignature{}, errors.New("intentId, eventType, and signingKey are required")
 	}
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	if _, ok := d.payIntents[intentID]; !ok {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	intent, ok := d.payIntents[intentID]
+	if !ok {
 		return WebhookSignature{}, errors.New("payment intent not found")
+	}
+	if existing, ok := d.findWebhookByIdempotencyLocked(intentID, eventType, idempotencyKey); ok {
+		return existing, nil
 	}
 	signedAt := time.Now().UTC()
 	eventID := hashParts("event", intentID, eventType, fmt.Sprint(signedAt.UnixNano()))[:24]
 	payload := strings.Join([]string{eventID, intentID, eventType, signedAt.Format(time.RFC3339Nano)}, ".")
 	mac := hmac.New(sha256.New, []byte(signingKey))
 	_, _ = mac.Write([]byte(payload))
-	return WebhookSignature{EventID: eventID, IntentID: intentID, Signature: hex.EncodeToString(mac.Sum(nil)), SignedAt: signedAt, Algorithm: "hmac-sha256"}, nil
+	payloadHash := hashParts("webhook-payload", payload)
+	signature := WebhookSignature{EventID: eventID, IntentID: intentID, EventType: eventType, Signature: hex.EncodeToString(mac.Sum(nil)), PayloadHash: payloadHash, SignedAt: signedAt, Algorithm: "hmac-sha256", IdempotencyKey: idempotencyKey, ReplaySafe: idempotencyKey != ""}
+	d.webhookSignatures[eventID] = signature
+	d.recordPayEventLocked("webhook.signed", intentID, eventID, intent.Merchant, 0, intent.Currency, idempotencyKey, signedAt)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return signature, err
+}
+
+func (d *Devnet) WebhookSignature(eventID string) (WebhookSignature, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	signature, ok := d.webhookSignatures[eventID]
+	return signature, ok
+}
+
+func (d *Devnet) PayEvent(id string) (PayEvent, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	event, ok := d.payEvents[id]
+	return event, ok
+}
+
+func (d *Devnet) PayEvents(intentID string) []PayEvent {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	events := make([]PayEvent, 0)
+	for _, event := range d.payEvents {
+		if intentID == "" || event.IntentID == intentID {
+			events = append(events, event)
+		}
+	}
+	sort.Slice(events, func(i, j int) bool { return events[i].CreatedAt.Before(events[j].CreatedAt) })
+	return events
 }
 
 func (d *Devnet) AddRiskLabel(subject, label string, riskWeightBps int64, source string) (RiskLabel, error) {
@@ -1370,7 +1458,8 @@ func (d *Devnet) loadSnapshot() error {
 		return errors.New("devnet snapshot has no blocks")
 	}
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
-	d.invoices, d.refunds, d.riskLabels, d.evidencePackets = snapshot.Invoices, snapshot.Refunds, snapshot.RiskLabels, snapshot.Evidence
+	d.invoices, d.refunds, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.Webhooks, snapshot.PayEvents
+	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
 	d.governanceRequests, d.trustAppeals, d.trackingReviews, d.transparencyEntries = snapshot.Governance, snapshot.Appeals, snapshot.Tracking, snapshot.Transp
 	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
 	d.ensureStateDefaults()
@@ -1391,7 +1480,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -1421,6 +1510,12 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.refunds == nil {
 		d.refunds = map[string]RefundRecord{}
+	}
+	if d.webhookSignatures == nil {
+		d.webhookSignatures = map[string]WebhookSignature{}
+	}
+	if d.payEvents == nil {
+		d.payEvents = map[string]PayEvent{}
 	}
 	if d.riskLabels == nil {
 		d.riskLabels = map[string][]RiskLabel{}
@@ -1549,6 +1644,71 @@ func (d *Devnet) newTransparencyEntryLocked(entryType, requestID, appealID, subj
 	}
 	d.transparencyEntries[entry.ID] = entry
 	return entry
+}
+
+func (d *Devnet) findPayIntentByIdempotencyLocked(merchant, idempotencyKey string) (PayIntent, bool) {
+	if idempotencyKey == "" {
+		return PayIntent{}, false
+	}
+	for _, intent := range d.payIntents {
+		if intent.Merchant == merchant && intent.IdempotencyKey == idempotencyKey {
+			return intent, true
+		}
+	}
+	return PayIntent{}, false
+}
+
+func (d *Devnet) findInvoiceByIdempotencyLocked(intentID, idempotencyKey string) (Invoice, bool) {
+	if idempotencyKey == "" {
+		return Invoice{}, false
+	}
+	for _, invoice := range d.invoices {
+		if invoice.IntentID == intentID && invoice.IdempotencyKey == idempotencyKey {
+			return invoice, true
+		}
+	}
+	return Invoice{}, false
+}
+
+func (d *Devnet) findRefundByIdempotencyLocked(intentID, idempotencyKey string) (RefundRecord, bool) {
+	if idempotencyKey == "" {
+		return RefundRecord{}, false
+	}
+	for _, refund := range d.refunds {
+		if refund.IntentID == intentID && refund.IdempotencyKey == idempotencyKey {
+			return refund, true
+		}
+	}
+	return RefundRecord{}, false
+}
+
+func (d *Devnet) findWebhookByIdempotencyLocked(intentID, eventType, idempotencyKey string) (WebhookSignature, bool) {
+	if idempotencyKey == "" {
+		return WebhookSignature{}, false
+	}
+	for _, signature := range d.webhookSignatures {
+		if signature.IntentID == intentID && signature.EventType == eventType && signature.IdempotencyKey == idempotencyKey {
+			return signature, true
+		}
+	}
+	return WebhookSignature{}, false
+}
+
+func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant string, amount int64, currency, idempotencyKey string, createdAt time.Time) PayEvent {
+	event := PayEvent{
+		ID:             hashParts("pay-event", eventType, intentID, objectID, idempotencyKey, fmt.Sprint(createdAt.UnixNano()))[:24],
+		Type:           eventType,
+		IntentID:       intentID,
+		ObjectID:       objectID,
+		Merchant:       merchant,
+		Amount:         amount,
+		Currency:       currency,
+		IdempotencyKey: idempotencyKey,
+		CreatedAt:      createdAt,
+	}
+	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	d.payEvents[event.ID] = event
+	return event
 }
 
 func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {

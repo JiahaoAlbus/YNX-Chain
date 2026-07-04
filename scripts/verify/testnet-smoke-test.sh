@@ -73,12 +73,27 @@ transparency=$(curl -fsS http://127.0.0.1:6420/governance/transparency)
 transparency_entries=$(printf '%s' "$transparency" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).entryCount')
 [[ "$transparency_entries" -ge 5 ]] || { echo "transparency entries missing"; exit 1; }
 echo "Transparency report result: $transparency"
-pay_intent=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25}')
+pay_intent=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25,"idempotencyKey":"smoke-intent-key"}')
 intent_id=$(printf '%s' "$pay_intent" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
+pay_intent_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":99,"idempotencyKey":"smoke-intent-key"}')
+printf '%s\n%s' "$pay_intent" "$pay_intent_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id || second.amount !== 25) { console.error(`pay intent idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
 echo "Pay API result: $pay_intent"
-echo "Invoice result:" && curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12}"
-echo "Webhook signature result:" && curl -fsS -X POST http://127.0.0.1:6420/pay/webhook-signatures -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"eventType\":\"payment_intent.created\",\"signingKey\":\"smoke-signing-key\"}"
-echo "Refund record result:" && curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":5,\"reason\":\"smoke\"}"
+invoice=$(curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12,\"idempotencyKey\":\"smoke-invoice-key\"}")
+invoice_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":36,\"idempotencyKey\":\"smoke-invoice-key\"}")
+printf '%s\n%s' "$invoice" "$invoice_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id) { console.error(`invoice idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
+echo "Invoice result: $invoice"
+webhook=$(curl -fsS -X POST http://127.0.0.1:6420/pay/webhook-signatures -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"eventType\":\"payment_intent.created\",\"signingKey\":\"smoke-signing-key\",\"idempotencyKey\":\"smoke-webhook-key\"}")
+webhook_id=$(printf '%s' "$webhook" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).eventId')
+printf '%s' "$webhook" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.payloadHash || !data.replaySafe || data.idempotencyKey !== "smoke-webhook-key") { console.error(`webhook audit fields missing: ${JSON.stringify(data)}`); process.exit(1); }'
+curl -fsS "http://127.0.0.1:6420/pay/webhook-signatures/$webhook_id" >/dev/null
+echo "Webhook signature result: $webhook"
+refund=$(curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":5,\"reason\":\"smoke\",\"idempotencyKey\":\"smoke-refund-key\"}")
+refund_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":6,\"reason\":\"changed\",\"idempotencyKey\":\"smoke-refund-key\"}")
+printf '%s\n%s' "$refund" "$refund_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id || second.amount !== 5) { console.error(`refund idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
+echo "Refund record result: $refund"
+pay_events=$(curl -fsS "http://127.0.0.1:6420/pay/events?intentId=$intent_id")
+printf '%s' "$pay_events" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.events) || data.events.length !== 4 || data.events.some((event)=>!event.auditHash)) { console.error(`pay events audit failed: ${JSON.stringify(data)}`); process.exit(1); }'
+echo "Pay event audit result: $pay_events"
 echo "Resource API test result:" && curl -fsS http://127.0.0.1:6420/resources/ynx_smoke_alice
 echo "Resource quote result:" && curl -fsS 'http://127.0.0.1:6420/resource-market/quote?address=ynx_smoke_alice&bandwidth=100&compute=5&aiCredits=2&trustCredits=1'
 curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -d '{"address":"ynx_resource_provider","amount":1000}' >/dev/null

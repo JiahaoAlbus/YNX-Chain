@@ -61,6 +61,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /pay/invoices/{id}", s.handleInvoiceLookup)
 	s.mux.HandleFunc("POST /pay/refunds", s.handleRefund)
 	s.mux.HandleFunc("POST /pay/webhook-signatures", s.handleWebhookSignature)
+	s.mux.HandleFunc("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
+	s.mux.HandleFunc("GET /pay/events", s.handlePayEvents)
+	s.mux.HandleFunc("GET /pay/events/{id}", s.handlePayEventLookup)
 	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
 	s.mux.HandleFunc("GET /resource-market/analytics", s.handleResourceAnalytics)
 	s.mux.HandleFunc("POST /resource-market/delegations", s.handleResourceDelegation)
@@ -351,14 +354,15 @@ func (s *Server) handleTrackingPolicyReviewLookup(w http.ResponseWriter, r *http
 }
 func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Merchant    string `json:"merchant"`
-		Amount      int64  `json:"amount"`
-		CallbackURL string `json:"callbackUrl"`
+		Merchant       string `json:"merchant"`
+		Amount         int64  `json:"amount"`
+		CallbackURL    string `json:"callbackUrl"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	intent, err := s.devnet.CreatePayIntent(req.Merchant, req.Amount, req.CallbackURL)
+	intent, err := s.devnet.CreatePayIntentWithIdempotency(req.Merchant, req.Amount, req.CallbackURL, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -375,13 +379,14 @@ func (s *Server) handlePayIntentLookup(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleInvoice(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		IntentID   string `json:"intentId"`
-		DueInHours int64  `json:"dueInHours"`
+		IntentID       string `json:"intentId"`
+		DueInHours     int64  `json:"dueInHours"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	invoice, err := s.devnet.CreateInvoice(req.IntentID, req.DueInHours)
+	invoice, err := s.devnet.CreateInvoiceWithIdempotency(req.IntentID, req.DueInHours, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -398,14 +403,15 @@ func (s *Server) handleInvoiceLookup(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		IntentID string `json:"intentId"`
-		Amount   int64  `json:"amount"`
-		Reason   string `json:"reason"`
+		IntentID       string `json:"intentId"`
+		Amount         int64  `json:"amount"`
+		Reason         string `json:"reason"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	refund, err := s.devnet.CreateRefund(req.IntentID, req.Amount, req.Reason)
+	refund, err := s.devnet.CreateRefundWithIdempotency(req.IntentID, req.Amount, req.Reason, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -414,19 +420,39 @@ func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleWebhookSignature(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		IntentID   string `json:"intentId"`
-		EventType  string `json:"eventType"`
-		SigningKey string `json:"signingKey"`
+		IntentID       string `json:"intentId"`
+		EventType      string `json:"eventType"`
+		SigningKey     string `json:"signingKey"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	signature, err := s.devnet.SignWebhook(req.IntentID, req.EventType, req.SigningKey)
+	signature, err := s.devnet.SignWebhookWithIdempotency(req.IntentID, req.EventType, req.SigningKey, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	writeJSON(w, http.StatusCreated, signature)
+}
+func (s *Server) handleWebhookSignatureLookup(w http.ResponseWriter, r *http.Request) {
+	signature, ok := s.devnet.WebhookSignature(r.PathValue("eventId"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "webhook signature not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, signature)
+}
+func (s *Server) handlePayEvents(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"events": s.devnet.PayEvents(r.URL.Query().Get("intentId"))})
+}
+func (s *Server) handlePayEventLookup(w http.ResponseWriter, r *http.Request) {
+	event, ok := s.devnet.PayEvent(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "pay event not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
 }
 func (s *Server) handleResourceQuote(w http.ResponseWriter, r *http.Request) {
 	bandwidth, err := int64Query(r, "bandwidth")

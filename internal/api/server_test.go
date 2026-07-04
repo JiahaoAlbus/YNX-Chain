@@ -114,18 +114,50 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_builder", "amount": 1000}, http.StatusCreated, nil)
 
 	var intent map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 50}, http.StatusCreated, &intent)
+	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 50, "idempotencyKey": "intent-api-key"}, http.StatusCreated, &intent)
 	intentID := intent["id"].(string)
+	var duplicateIntent map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 999, "idempotencyKey": "intent-api-key"}, http.StatusCreated, &duplicateIntent)
+	if duplicateIntent["id"] != intentID || duplicateIntent["amount"].(float64) != 50 {
+		t.Fatalf("expected idempotent intent replay: %v original %v", duplicateIntent, intent)
+	}
 	var invoice map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 12}, http.StatusCreated, &invoice)
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 12, "idempotencyKey": "invoice-api-key"}, http.StatusCreated, &invoice)
+	var duplicateInvoice map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 99, "idempotencyKey": "invoice-api-key"}, http.StatusCreated, &duplicateInvoice)
+	if duplicateInvoice["id"] != invoice["id"] {
+		t.Fatalf("expected idempotent invoice replay: %v original %v", duplicateInvoice, invoice)
+	}
 	doJSON(t, http.MethodGet, server.URL+"/pay/invoices/"+invoice["id"].(string), nil, http.StatusOK, &invoice)
 	var webhook map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/webhook-signatures", map[string]any{"intentId": intentID, "eventType": "payment_intent.created", "signingKey": "unit-test-key"}, http.StatusCreated, &webhook)
-	if webhook["algorithm"] != "hmac-sha256" {
+	doJSON(t, http.MethodPost, server.URL+"/pay/webhook-signatures", map[string]any{"intentId": intentID, "eventType": "payment_intent.created", "signingKey": "unit-test-key", "idempotencyKey": "webhook-api-key"}, http.StatusCreated, &webhook)
+	if webhook["algorithm"] != "hmac-sha256" || webhook["payloadHash"] == "" || webhook["replaySafe"] != true {
 		t.Fatalf("unexpected webhook signature: %v", webhook)
 	}
+	var duplicateWebhook map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/webhook-signatures", map[string]any{"intentId": intentID, "eventType": "payment_intent.created", "signingKey": "other-key", "idempotencyKey": "webhook-api-key"}, http.StatusCreated, &duplicateWebhook)
+	if duplicateWebhook["eventId"] != webhook["eventId"] || duplicateWebhook["signature"] != webhook["signature"] {
+		t.Fatalf("expected idempotent webhook replay: %v original %v", duplicateWebhook, webhook)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/pay/webhook-signatures/"+webhook["eventId"].(string), nil, http.StatusOK, &webhook)
 	var refund map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 10, "reason": "unit"}, http.StatusCreated, &refund)
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 10, "reason": "unit", "idempotencyKey": "refund-api-key"}, http.StatusCreated, &refund)
+	var duplicateRefund map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 20, "reason": "changed", "idempotencyKey": "refund-api-key"}, http.StatusCreated, &duplicateRefund)
+	if duplicateRefund["id"] != refund["id"] || duplicateRefund["amount"].(float64) != 10 {
+		t.Fatalf("expected idempotent refund replay: %v original %v", duplicateRefund, refund)
+	}
+	var payEvents map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/pay/events?intentId="+intentID, nil, http.StatusOK, &payEvents)
+	events := payEvents["events"].([]any)
+	if len(events) != 4 {
+		t.Fatalf("expected four pay events, got %v", payEvents)
+	}
+	firstEvent := events[0].(map[string]any)
+	if firstEvent["auditHash"] == "" {
+		t.Fatalf("expected pay event audit hash: %v", firstEvent)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/pay/events/"+firstEvent["id"].(string), nil, http.StatusOK, &firstEvent)
 
 	var quote map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/resource-market/quote?address=ynx_builder&bandwidth=100&compute=5&aiCredits=2&trustCredits=1", nil, http.StatusOK, &quote)

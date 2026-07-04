@@ -138,43 +138,63 @@ type TrustTraceLot struct {
 }
 
 type PayIntent struct {
-	ID          string    `json:"id"`
-	Merchant    string    `json:"merchant"`
-	Amount      int64     `json:"amount"`
-	Currency    string    `json:"currency"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
-	CallbackURL string    `json:"callbackUrl,omitempty"`
+	ID             string    `json:"id"`
+	Merchant       string    `json:"merchant"`
+	Amount         int64     `json:"amount"`
+	Currency       string    `json:"currency"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"createdAt"`
+	CallbackURL    string    `json:"callbackUrl,omitempty"`
+	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
 }
 
 type Invoice struct {
-	ID          string    `json:"id"`
-	IntentID    string    `json:"intentId"`
-	Merchant    string    `json:"merchant"`
-	Amount      int64     `json:"amount"`
-	Currency    string    `json:"currency"`
-	Status      string    `json:"status"`
-	DueAt       time.Time `json:"dueAt"`
-	CreatedAt   time.Time `json:"createdAt"`
-	PaymentLink string    `json:"paymentLink,omitempty"`
+	ID             string    `json:"id"`
+	IntentID       string    `json:"intentId"`
+	Merchant       string    `json:"merchant"`
+	Amount         int64     `json:"amount"`
+	Currency       string    `json:"currency"`
+	Status         string    `json:"status"`
+	DueAt          time.Time `json:"dueAt"`
+	CreatedAt      time.Time `json:"createdAt"`
+	PaymentLink    string    `json:"paymentLink,omitempty"`
+	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
 }
 
 type RefundRecord struct {
-	ID        string    `json:"id"`
-	IntentID  string    `json:"intentId"`
-	Amount    int64     `json:"amount"`
-	Currency  string    `json:"currency"`
-	Reason    string    `json:"reason,omitempty"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID             string    `json:"id"`
+	IntentID       string    `json:"intentId"`
+	Amount         int64     `json:"amount"`
+	Currency       string    `json:"currency"`
+	Reason         string    `json:"reason,omitempty"`
+	Status         string    `json:"status"`
+	CreatedAt      time.Time `json:"createdAt"`
+	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
 }
 
 type WebhookSignature struct {
-	EventID   string    `json:"eventId"`
-	IntentID  string    `json:"intentId"`
-	Signature string    `json:"signature"`
-	SignedAt  time.Time `json:"signedAt"`
-	Algorithm string    `json:"algorithm"`
+	EventID        string    `json:"eventId"`
+	IntentID       string    `json:"intentId"`
+	EventType      string    `json:"eventType"`
+	Signature      string    `json:"signature"`
+	PayloadHash    string    `json:"payloadHash"`
+	SignedAt       time.Time `json:"signedAt"`
+	Algorithm      string    `json:"algorithm"`
+	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
+	ReplaySafe     bool      `json:"replaySafe"`
+}
+
+type PayEvent struct {
+	ID             string    `json:"id"`
+	Type           string    `json:"type"`
+	IntentID       string    `json:"intentId,omitempty"`
+	ObjectID       string    `json:"objectId,omitempty"`
+	Merchant       string    `json:"merchant,omitempty"`
+	Amount         int64     `json:"amount,omitempty"`
+	Currency       string    `json:"currency,omitempty"`
+	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
+	AuditHash      string    `json:"auditHash"`
+	CreatedAt      time.Time `json:"createdAt"`
 }
 
 type RiskLabel struct {

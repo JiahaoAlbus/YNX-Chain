@@ -194,6 +194,78 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	}
 }
 
+func TestPayIdempotencyEventsAndPersistence(t *testing.T) {
+	dir := t.TempDir()
+	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	intent, err := devnet.CreatePayIntentWithIdempotency("merchant_pay", 75, "https://merchant.example/callback", "intent-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateIntent, err := devnet.CreatePayIntentWithIdempotency("merchant_pay", 99, "", "intent-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if duplicateIntent.ID != intent.ID || duplicateIntent.Amount != 75 {
+		t.Fatalf("expected idempotent intent replay, got %+v original %+v", duplicateIntent, intent)
+	}
+	invoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 12, "invoice-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateInvoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 48, "invoice-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if duplicateInvoice.ID != invoice.ID || !duplicateInvoice.DueAt.Equal(invoice.DueAt) {
+		t.Fatalf("expected idempotent invoice replay, got %+v original %+v", duplicateInvoice, invoice)
+	}
+	refund, err := devnet.CreateRefundWithIdempotency(intent.ID, 10, "unit", "refund-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateRefund, err := devnet.CreateRefundWithIdempotency(intent.ID, 20, "changed", "refund-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if duplicateRefund.ID != refund.ID || duplicateRefund.Amount != 10 {
+		t.Fatalf("expected idempotent refund replay, got %+v original %+v", duplicateRefund, refund)
+	}
+	webhook, err := devnet.SignWebhookWithIdempotency(intent.ID, "payment_intent.created", "unit-signing-key", "webhook-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateWebhook, err := devnet.SignWebhookWithIdempotency(intent.ID, "payment_intent.created", "different-key", "webhook-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if duplicateWebhook.EventID != webhook.EventID || duplicateWebhook.Signature != webhook.Signature || !duplicateWebhook.ReplaySafe {
+		t.Fatalf("expected idempotent webhook replay, got %+v original %+v", duplicateWebhook, webhook)
+	}
+	events := devnet.PayEvents(intent.ID)
+	if len(events) != 4 {
+		t.Fatalf("expected four pay audit events, got %+v", events)
+	}
+	for _, event := range events {
+		if event.AuditHash == "" {
+			t.Fatalf("expected audit hash in event: %+v", event)
+		}
+	}
+
+	restored, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredWebhook, ok := restored.WebhookSignature(webhook.EventID); !ok || restoredWebhook.PayloadHash == "" {
+		t.Fatalf("expected restored webhook signature, got %+v ok=%v", restoredWebhook, ok)
+	}
+	if len(restored.PayEvents(intent.ID)) != 4 {
+		t.Fatalf("expected restored pay events")
+	}
+}
+
 func TestTrustEvidenceRiskSummaryExcludesLowConfidenceAndExpiredLabels(t *testing.T) {
 	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
 	if _, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "ynx_risk_subject", Label: "reviewed-risk", RiskWeightBps: 8000, ConfidenceBps: 8000, Source: "unit-active", EvidenceHash: "sha256:active", ExpiryHours: 24, ReviewRequired: true}); err != nil {

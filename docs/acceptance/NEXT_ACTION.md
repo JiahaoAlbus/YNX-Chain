@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: harden Pay merchant idempotency, event lookup, and webhook audit semantics.
+Current single action: add AI Gateway permission and audit model for sensitive actions.
 
 Why this action:
 
-- Trust evidence now exposes reviewer-facing advisory risk summaries with confidence, expiry, appeal path, and non-conclusive label handling.
-- Pay API currently supports intents, invoices, refunds, and webhook signatures, but merchant-grade idempotency and event/audit lookup are still thin.
-- Payment workflows are a core YNX product surface and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
+- Pay API now has merchant idempotency, webhook signature lookup, and payment event audit records.
+- AI Gateway currently streams session-scoped status, but it does not yet persist permissions, action proposals, or audit records for sensitive actions.
+- AI-native workflow safety is a core YNX product surface and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
 
 Files to touch:
 
@@ -33,11 +33,11 @@ Validation commands:
 
 Completion standard:
 
-- Pay intents, invoices, refunds, and webhook signatures accept and preserve merchant idempotency keys where appropriate.
-- Duplicate idempotency keys return the original object rather than creating conflicting merchant records.
-- Webhook signatures and payment events can be looked up for audit/replay evidence without exposing signing secrets.
+- AI sessions can request explicit scoped permissions before sensitive actions.
+- Sensitive AI action proposals are persisted with session, requester, scope, expiry, status, and audit hash.
+- AI actions that move value, affect Trust labels, or expose sensitive data cannot be marked executable without explicit approval.
 - New checks pass locally.
-- Tracker moves Pay API forward honestly without claiming remote proof.
+- Tracker moves AI Gateway forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

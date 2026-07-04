@@ -45,6 +45,9 @@ Products:
 - `GET /pay/invoices/{id}`
 - `POST /pay/refunds`
 - `POST /pay/webhook-signatures`
+- `GET /pay/webhook-signatures/{eventId}`
+- `GET /pay/events`
+- `GET /pay/events/{id}`
 - `GET /ai/stream`
 - `POST /ide/compile`
 - `POST /ide/deploy`
@@ -70,3 +73,10 @@ Governance and Trust request safety:
 - `POST /trust/appeals/{id}/resolve` records reviewer, decision, updated status, and resolution reason. Decisions include `UNDER_REVIEW`, `NEEDS_MORE_EVIDENCE`, `ACCEPTED`, `REJECTED`, `LABEL_REMOVED`, and `LABEL_REDUCED`; accepted/removal/reduction decisions add corrective Trust labels rather than freezing or moving funds.
 - `POST /trust/tracking-reviews` records purpose-limited tracking review metadata: requester, subject, purpose, query type, scope, evidence, institutional/sensitive flags, minimum-necessary status, confidence, expiry, classification, and appeal path. Overbroad, evidence-free, sensitive-inference, low-confidence punitive, or audit-bypass tracking requests are rejected or routed to review.
 - `GET /governance/transparency` returns the locally persisted transparency report entries and counts. Remote public proof must use the public endpoint, not localhost.
+
+Pay merchant safety:
+
+- `POST /pay/intents`, `POST /pay/invoices`, `POST /pay/refunds`, and `POST /pay/webhook-signatures` accept optional `idempotencyKey`. Reusing the same key in the same merchant/object scope returns the original object instead of creating a conflicting duplicate.
+- `POST /pay/webhook-signatures` stores replay-auditable metadata: `eventId`, `eventType`, `payloadHash`, `algorithm`, `signedAt`, optional `idempotencyKey`, and `replaySafe`. The signing key is never returned or stored in the response object.
+- `GET /pay/webhook-signatures/{eventId}` returns a stored signature for audit/replay verification.
+- `GET /pay/events?intentId=...` and `GET /pay/events/{id}` return persisted payment audit events with `auditHash`, object id, amount, currency, merchant, and idempotency key metadata.
