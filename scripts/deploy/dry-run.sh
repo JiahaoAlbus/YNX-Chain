@@ -76,3 +76,12 @@ EOF
 touch "$tmp/ynx_deploy_key" "$tmp/validator_key"
 
 ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 ./scripts/deploy/deploy-testnet.sh
+
+commit="$(git rev-parse --short=12 HEAD)"
+release_dir="tmp/deploy/ynx-chain-${commit}"
+grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-faucetd.env" || { echo "faucet env missing FAUCET_PRIVATE_KEY"; exit 1; }
+if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
+  echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
+  exit 1
+fi
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }

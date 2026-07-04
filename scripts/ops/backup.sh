@@ -12,7 +12,7 @@ backup_node() {
   local name="ynx-chain-testnet-${stamp}-${role}.tar.gz"
   local extra_paths="/var/lib/ynx-chain/testnet /var/log/ynx-chain /etc/ynx/ynx-chaind.env /etc/systemd/system/ynx-chaind.service"
   if [[ "$kind" == "full" ]]; then
-    extra_paths="$extra_paths /var/lib/ynx-chain/indexer /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile"
+    extra_paths="$extra_paths /var/lib/ynx-chain/indexer /etc/ynx/ynx-faucetd.env /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile"
   fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$name' $extra_paths 2>/dev/null && sudo ls -lh '$BACKUP_STORAGE_PATH/$name'"
 }
