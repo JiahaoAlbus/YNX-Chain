@@ -5,6 +5,7 @@ import path from "node:path";
 const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(verifyDir, "remote-evidence.json");
 const sshPath = path.join(verifyDir, "ssh-services.txt");
+const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
 
 function readText(file) {
@@ -35,6 +36,11 @@ const nodeFailures = ssh
   .map((block) => block.trim())
   .filter((block) => block.includes("FAIL"))
   .map((block) => block.split("\n").slice(0, 18).join("\n"));
+const legacyInventory = readText(legacyInventoryPath)
+  .split(/\n(?=== )/)
+  .map((block) => block.trim())
+  .filter(Boolean)
+  .map((block) => block.split("\n").slice(0, 80).join("\n"));
 
 const lines = [
   "# Remote Testnet Blockers",
@@ -66,6 +72,12 @@ const lines = [
     failedChecks.length
       ? failedChecks.map((check) => `- ${check.name}: ${check.detail}`).join("\n")
       : "No failed public endpoint checks were found."
+  ),
+  section(
+    "Legacy Inventory Snapshot",
+    legacyInventory.length
+      ? legacyInventory.map((block) => `\`\`\`text\n${block}\n\`\`\``).join("\n\n")
+      : `No legacy inventory report was found at ${legacyInventoryPath}.`
   ),
   section(
     "Required Next Actions",
