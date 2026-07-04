@@ -51,6 +51,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /governance/transparency", s.handleTransparencyReport)
 	s.mux.HandleFunc("POST /trust/appeals", s.handleTrustAppeal)
 	s.mux.HandleFunc("GET /trust/appeals/{id}", s.handleTrustAppealLookup)
+	s.mux.HandleFunc("POST /trust/appeals/{id}/resolve", s.handleTrustAppealResolve)
+	s.mux.HandleFunc("POST /trust/tracking-reviews", s.handleTrackingPolicyReview)
+	s.mux.HandleFunc("GET /trust/tracking-reviews/{id}", s.handleTrackingPolicyReviewLookup)
 	s.mux.HandleFunc("POST /pay/intents", s.handlePayIntent)
 	s.mux.HandleFunc("GET /pay/intents/{id}", s.handlePayIntentLookup)
 	s.mux.HandleFunc("POST /pay/invoices", s.handleInvoice)
@@ -314,6 +317,38 @@ func (s *Server) handleTrustAppealLookup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, http.StatusOK, appeal)
+}
+func (s *Server) handleTrustAppealResolve(w http.ResponseWriter, r *http.Request) {
+	var req chain.TrustAppealDecisionInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	appeal, err := s.devnet.ResolveTrustAppeal(r.PathValue("id"), req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, appeal)
+}
+func (s *Server) handleTrackingPolicyReview(w http.ResponseWriter, r *http.Request) {
+	var req chain.TrackingPolicyReviewInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	review, err := s.devnet.CreateTrackingPolicyReview(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, review)
+}
+func (s *Server) handleTrackingPolicyReviewLookup(w http.ResponseWriter, r *http.Request) {
+	review, ok := s.devnet.TrackingPolicyReview(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "tracking policy review not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, review)
 }
 func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {

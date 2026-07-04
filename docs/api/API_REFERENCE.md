@@ -35,6 +35,9 @@ Products:
 - `GET /governance/transparency`
 - `POST /trust/appeals`
 - `GET /trust/appeals/{id}`
+- `POST /trust/appeals/{id}/resolve`
+- `POST /trust/tracking-reviews`
+- `GET /trust/tracking-reviews/{id}`
 - `POST /pay/intents`
 - `GET /pay/intents/{id}`
 - `POST /pay/invoices`
@@ -60,4 +63,6 @@ Governance and Trust request safety:
 - `POST /governance/requests` stores a lawful-request intake record and classifies it as `VALID_UNDER_YNX_CHAIN_LAW`, `INSUFFICIENT_EVIDENCE`, `OUT_OF_SCOPE`, `OVERBROAD`, `ILLEGAL_OR_ABUSIVE`, `REQUIRES_GOVERNANCE_REVIEW`, `REQUIRES_USER_NOTICE`, or `REJECTED`.
 - Native `YNXT` requests cannot directly transfer, freeze, seize, blacklist, or bypass user signatures. Illegal, overbroad, or evidence-free requests are rejected and recorded in the transparency report.
 - `POST /trust/appeals` opens an appeal record for false-positive correction or dispute review and also creates a transparency entry.
+- `POST /trust/appeals/{id}/resolve` records reviewer, decision, updated status, and resolution reason. Decisions include `UNDER_REVIEW`, `NEEDS_MORE_EVIDENCE`, `ACCEPTED`, `REJECTED`, `LABEL_REMOVED`, and `LABEL_REDUCED`; accepted/removal/reduction decisions add corrective Trust labels rather than freezing or moving funds.
+- `POST /trust/tracking-reviews` records purpose-limited tracking review metadata: requester, subject, purpose, query type, scope, evidence, institutional/sensitive flags, minimum-necessary status, confidence, expiry, classification, and appeal path. Overbroad, evidence-free, sensitive-inference, low-confidence punitive, or audit-bypass tracking requests are rejected or routed to review.
 - `GET /governance/transparency` returns the locally persisted transparency report entries and counts. Remote public proof must use the public endpoint, not localhost.

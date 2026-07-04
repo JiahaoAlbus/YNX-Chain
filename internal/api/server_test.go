@@ -197,14 +197,31 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 
 	var appeal map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{"requestId": reviewID, "subject": "ynx_api_subject", "appellant": "ynx_api_subject", "reason": "false positive", "evidence": []string{"owner proof"}}, http.StatusCreated, &appeal)
-	if appeal["status"] != "open" {
+	if appeal["status"] != "SUBMITTED" {
 		t.Fatalf("expected open appeal: %v", appeal)
 	}
-	doJSON(t, http.MethodGet, server.URL+"/trust/appeals/"+appeal["id"].(string), nil, http.StatusOK, &appeal)
+	appealID := appeal["id"].(string)
+	doJSON(t, http.MethodGet, server.URL+"/trust/appeals/"+appealID, nil, http.StatusOK, &appeal)
+	doJSON(t, http.MethodPost, server.URL+"/trust/appeals/"+appealID+"/resolve", map[string]any{"reviewer": "api_reviewer", "decision": "LABEL_REDUCED", "resolutionReason": "evidence reduced the confidence of the prior label"}, http.StatusOK, &appeal)
+	if appeal["status"] != "LABEL_REDUCED" || appeal["reviewer"] != "api_reviewer" {
+		t.Fatalf("expected resolved appeal: %v", appeal)
+	}
+
+	var tracking map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/tracking-reviews", map[string]any{"requester": "merchant_api", "subject": "ynx_api_subject", "purpose": "single transaction screening", "queryType": "trace", "scope": "single transfer", "description": "purpose limited review", "evidence": []string{"case:api"}, "minimumNecessary": true, "confidenceBps": 7600, "expiryHours": 24}, http.StatusCreated, &tracking)
+	if tracking["classification"] != "VALID_UNDER_YNX_CHAIN_LAW" || tracking["appealPath"] == "" {
+		t.Fatalf("expected valid tracking review: %v", tracking)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/trust/tracking-reviews/"+tracking["id"].(string), nil, http.StatusOK, &tracking)
+	var blockedTracking map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/tracking-reviews", map[string]any{"requester": "merchant_api", "subject": "ynx_api_subject", "purpose": "bulk profile all wallets", "queryType": "batch", "scope": "all wallets", "description": "mass tracking", "evidence": []string{"case:api"}, "minimumNecessary": false}, http.StatusCreated, &blockedTracking)
+	if blockedTracking["classification"] != "OVERBROAD" || blockedTracking["status"] != "rejected" {
+		t.Fatalf("expected overbroad tracking rejection: %v", blockedTracking)
+	}
 
 	var report map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/governance/transparency", nil, http.StatusOK, &report)
-	if report["entryCount"].(float64) < 4 || report["rejectedCount"].(float64) < 1 || report["appealCount"].(float64) != 1 {
+	if report["entryCount"].(float64) < 7 || report["rejectedCount"].(float64) < 2 || report["appealCount"].(float64) != 1 {
 		t.Fatalf("expected transparency report counts: %v", report)
 	}
 }

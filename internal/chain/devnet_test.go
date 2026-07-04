@@ -238,8 +238,33 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	if appeal.Status != "open" || appeal.TransparencyEntryID == "" {
+	if appeal.Status != "SUBMITTED" || appeal.TransparencyEntryID == "" {
 		t.Fatalf("expected open appeal with transparency entry: %+v", appeal)
+	}
+	resolved, err := devnet.ResolveTrustAppeal(appeal.ID, TrustAppealDecisionInput{Reviewer: "reviewer_1", Decision: "LABEL_REMOVED", ResolutionReason: "evidence proved false positive"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.Status != "LABEL_REMOVED" || resolved.Reviewer != "reviewer_1" || resolved.ResolutionReason == "" {
+		t.Fatalf("expected resolved appeal: %+v", resolved)
+	}
+	labels := devnet.riskLabels["ynx_subject"]
+	if len(labels) == 0 || labels[len(labels)-1].Label != "false-positive-corrected" || labels[len(labels)-1].RiskWeightBps != 0 {
+		t.Fatalf("expected false-positive correction label: %+v", labels)
+	}
+	tracking, err := devnet.CreateTrackingPolicyReview(TrackingPolicyReviewInput{Requester: "merchant_risk", Subject: "ynx_subject", Purpose: "single transaction screening", QueryType: "trace", Scope: "single transfer", Description: "purpose limited check", Evidence: []string{"case:42"}, MinimumNecessary: true, ConfidenceBps: 7500, ExpiryHours: 24})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tracking.Classification != RequestValidUnderYNXChainLaw || tracking.Status != "logged" || tracking.LabelExpiresAt == nil || tracking.AppealPath == "" {
+		t.Fatalf("expected valid tracking review: %+v", tracking)
+	}
+	overbroad, err := devnet.CreateTrackingPolicyReview(TrackingPolicyReviewInput{Requester: "merchant_risk", Subject: "ynx_subject", Purpose: "bulk profile all wallets", QueryType: "batch", Scope: "all wallets", Description: "mass tracking", Evidence: []string{"case:bulk"}, MinimumNecessary: false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overbroad.Classification != RequestOverbroad || overbroad.Status != "rejected" {
+		t.Fatalf("expected overbroad tracking rejection: %+v", overbroad)
 	}
 
 	restored, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), dir)
@@ -251,6 +276,12 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	}
 	if _, ok := restored.TrustAppeal(appeal.ID); !ok {
 		t.Fatal("expected restored trust appeal")
+	}
+	if restoredAppeal, ok := restored.TrustAppeal(appeal.ID); !ok || restoredAppeal.Status != "LABEL_REMOVED" {
+		t.Fatalf("expected restored resolved appeal, got %+v ok=%v", restoredAppeal, ok)
+	}
+	if _, ok := restored.TrackingPolicyReview(tracking.ID); !ok {
+		t.Fatal("expected restored tracking review")
 	}
 	report = restored.TransparencyReport()
 	if report.AppealCount != 1 || report.ReviewCount == 0 {

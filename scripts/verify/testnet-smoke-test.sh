@@ -4,13 +4,17 @@ set -euo pipefail
 work=.ynx-smoke
 rm -rf "$work"
 mkdir -p "$work"
-YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$work/state" go run ./cmd/ynx-chaind >"$work/server.log" 2>&1 &
-pid=$!
-trap 'kill "$pid" >/dev/null 2>&1 || true' EXIT
-for i in {1..40}; do
-  curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1 && break
-  sleep 0.25
-done
+pid=""
+if ! curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1; then
+  YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$work/state" go run ./cmd/ynx-chaind >"$work/server.log" 2>&1 &
+  pid=$!
+  for i in {1..40}; do
+    curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1 && break
+    sleep 0.25
+  done
+fi
+trap 'if [[ -n "$pid" ]]; then kill "$pid" >/dev/null 2>&1 || true; fi' EXIT
+curl -fsS http://127.0.0.1:6420/health >/dev/null || { echo "local testnet did not become healthy"; sed -n '1,120p' "$work/server.log" 2>/dev/null || true; exit 1; }
 echo "RPC health result:" && curl -fsS http://127.0.0.1:6420/health
 echo "EVM RPC chainId result:" && curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
 curl -fsS http://127.0.0.1:6420/metrics >"$work/metrics.txt"
@@ -50,11 +54,20 @@ review_id=$(printf '%s' "$review_request" | node -pe 'JSON.parse(fs.readFileSync
 echo "Request validity result: $review_request"
 appeal=$(curl -fsS -X POST http://127.0.0.1:6420/trust/appeals -H 'content-type: application/json' -d "{\"requestId\":\"$review_id\",\"subject\":\"ynx_smoke_bob\",\"appellant\":\"ynx_smoke_bob\",\"reason\":\"false positive correction\",\"evidence\":[\"owner proof\"]}")
 appeal_status=$(printf '%s' "$appeal" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).status')
-[[ "$appeal_status" == "open" ]] || { echo "appeal status mismatch: $appeal_status"; exit 1; }
+[[ "$appeal_status" == "SUBMITTED" ]] || { echo "appeal status mismatch: $appeal_status"; exit 1; }
+appeal_id=$(printf '%s' "$appeal" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
 echo "Trust appeal result: $appeal"
+appeal_resolution=$(curl -fsS -X POST "http://127.0.0.1:6420/trust/appeals/$appeal_id/resolve" -H 'content-type: application/json' -d '{"reviewer":"smoke-reviewer","decision":"LABEL_REDUCED","resolutionReason":"smoke evidence reduced label confidence"}')
+appeal_resolution_status=$(printf '%s' "$appeal_resolution" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).status')
+[[ "$appeal_resolution_status" == "LABEL_REDUCED" ]] || { echo "appeal resolution mismatch: $appeal_resolution_status"; exit 1; }
+echo "Trust appeal resolution result: $appeal_resolution"
+tracking_review=$(curl -fsS -X POST http://127.0.0.1:6420/trust/tracking-reviews -H 'content-type: application/json' -d '{"requester":"smoke-merchant","subject":"ynx_smoke_bob","purpose":"single transaction screening","queryType":"trace","scope":"single transfer","description":"purpose limited review","evidence":["case:smoke","tx:0xsmoke"],"minimumNecessary":true,"confidenceBps":7600,"expiryHours":24}')
+tracking_class=$(printf '%s' "$tracking_review" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).classification')
+[[ "$tracking_class" == "VALID_UNDER_YNX_CHAIN_LAW" ]] || { echo "tracking review mismatch: $tracking_class"; exit 1; }
+echo "Anti-unreasonable tracking result: $tracking_review"
 transparency=$(curl -fsS http://127.0.0.1:6420/governance/transparency)
 transparency_entries=$(printf '%s' "$transparency" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).entryCount')
-[[ "$transparency_entries" -ge 3 ]] || { echo "transparency entries missing"; exit 1; }
+[[ "$transparency_entries" -ge 5 ]] || { echo "transparency entries missing"; exit 1; }
 echo "Transparency report result: $transparency"
 pay_intent=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25}')
 intent_id=$(printf '%s' "$pay_intent" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')

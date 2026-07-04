@@ -44,6 +44,7 @@ grep -q "Explicitly not doing" docs/acceptance/NEXT_ACTION.md
 
 grep -q "Module" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 grep -q "Anti-Illegal Request Engine" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
+grep -q "Anti-Unreasonable Tracking Policy" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 grep -q "Request Validity Standard" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 grep -q "Appeal / Dispute" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 grep -q "Transparency Report" docs/acceptance/FEATURE_COMPLETION_TRACKER.md

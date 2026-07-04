@@ -243,21 +243,72 @@ type GovernanceRequestInput struct {
 type TrustAppeal struct {
 	ID                  string    `json:"id"`
 	RequestID           string    `json:"requestId,omitempty"`
+	LabelID             string    `json:"labelId,omitempty"`
 	Subject             string    `json:"subject"`
 	Appellant           string    `json:"appellant"`
+	Claimant            string    `json:"claimant"`
 	Reason              string    `json:"reason"`
 	Evidence            []string  `json:"evidence"`
 	Status              string    `json:"status"`
+	Reviewer            string    `json:"reviewer,omitempty"`
+	Decision            string    `json:"decision,omitempty"`
 	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	ResolutionReason    string    `json:"resolutionReason,omitempty"`
 	TransparencyEntryID string    `json:"transparencyEntryId"`
 }
 
 type TrustAppealInput struct {
 	RequestID string   `json:"requestId"`
+	LabelID   string   `json:"labelId"`
 	Subject   string   `json:"subject"`
 	Appellant string   `json:"appellant"`
+	Claimant  string   `json:"claimant"`
 	Reason    string   `json:"reason"`
 	Evidence  []string `json:"evidence"`
+}
+
+type TrustAppealDecisionInput struct {
+	Reviewer         string `json:"reviewer"`
+	Decision         string `json:"decision"`
+	ResolutionReason string `json:"resolutionReason"`
+}
+
+type TrackingPolicyReview struct {
+	ID                  string                `json:"id"`
+	Requester           string                `json:"requester"`
+	Subject             string                `json:"subject"`
+	Purpose             string                `json:"purpose"`
+	QueryType           string                `json:"queryType"`
+	Scope               string                `json:"scope"`
+	Description         string                `json:"description"`
+	Evidence            []string              `json:"evidence"`
+	Institutional       bool                  `json:"institutional"`
+	Sensitive           bool                  `json:"sensitive"`
+	MinimumNecessary    bool                  `json:"minimumNecessary"`
+	Classification      RequestValidityStatus `json:"classification"`
+	Status              string                `json:"status"`
+	Reasons             []string              `json:"reasons"`
+	ConfidenceBps       int64                 `json:"confidenceBps"`
+	LabelExpiresAt      *time.Time            `json:"labelExpiresAt,omitempty"`
+	AppealPath          string                `json:"appealPath"`
+	CreatedAt           time.Time             `json:"createdAt"`
+	TransparencyEntryID string                `json:"transparencyEntryId"`
+}
+
+type TrackingPolicyReviewInput struct {
+	Requester        string   `json:"requester"`
+	Subject          string   `json:"subject"`
+	Purpose          string   `json:"purpose"`
+	QueryType        string   `json:"queryType"`
+	Scope            string   `json:"scope"`
+	Description      string   `json:"description"`
+	Evidence         []string `json:"evidence"`
+	Institutional    bool     `json:"institutional"`
+	Sensitive        bool     `json:"sensitive"`
+	MinimumNecessary bool     `json:"minimumNecessary"`
+	ConfidenceBps    int64    `json:"confidenceBps"`
+	ExpiryHours      int64    `json:"expiryHours"`
 }
 
 type TransparencyEntry struct {

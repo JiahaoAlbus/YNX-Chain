@@ -126,7 +126,7 @@ anti-illegal-request-check:
 	bash ./scripts/verify/anti-illegal-request-check.sh
 
 anti-unreasonable-tracking-check:
-	bash ./scripts/verify/request-validity-check.sh
+	bash ./scripts/verify/anti-unreasonable-tracking-check.sh
 
 request-validity-check:
 	bash ./scripts/verify/request-validity-check.sh
@@ -141,4 +141,4 @@ emergency-action-policy-check:
 	bash ./scripts/verify/anti-illegal-request-check.sh
 
 privacy-safety-check:
-	bash ./scripts/verify/request-validity-check.sh
+	bash ./scripts/verify/anti-unreasonable-tracking-check.sh

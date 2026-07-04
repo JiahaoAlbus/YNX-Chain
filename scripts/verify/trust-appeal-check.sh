@@ -10,9 +10,16 @@ request_id=$(printf '%s' "$request" | ynx_json_field '["id"]')
 appeal=$(curl -fsS -X POST "$YNX_REST_URL/trust/appeals" -H 'content-type: application/json' -d "{\"requestId\":\"$request_id\",\"subject\":\"ynx_appeal_subject\",\"appellant\":\"ynx_appeal_subject\",\"reason\":\"false positive correction\",\"evidence\":[\"owner proof\"]}")
 appeal_id=$(printf '%s' "$appeal" | ynx_json_field '["id"]')
 status=$(printf '%s' "$appeal" | ynx_json_field '["status"]')
-[[ "$status" == "open" ]] || { echo "expected open appeal, got $status"; exit 1; }
+[[ "$status" == "SUBMITTED" ]] || { echo "expected SUBMITTED appeal, got $status"; exit 1; }
 curl -fsS "$YNX_REST_URL/trust/appeals/$appeal_id" >/dev/null
+resolved=$(curl -fsS -X POST "$YNX_REST_URL/trust/appeals/$appeal_id/resolve" -H 'content-type: application/json' -d '{"reviewer":"appeal_reviewer","decision":"LABEL_REMOVED","resolutionReason":"evidence proved false positive"}')
+resolved_status=$(printf '%s' "$resolved" | ynx_json_field '["status"]')
+reviewer=$(printf '%s' "$resolved" | ynx_json_field '["reviewer"]')
+[[ "$resolved_status" == "LABEL_REMOVED" ]] || { echo "expected LABEL_REMOVED appeal, got $resolved_status"; exit 1; }
+[[ "$reviewer" == "appeal_reviewer" ]] || { echo "expected appeal reviewer"; exit 1; }
 report=$(curl -fsS "$YNX_REST_URL/governance/transparency")
 appeals=$(printf '%s' "$report" | ynx_json_field '["appealCount"]')
 [[ "$appeals" -ge 1 ]] || { echo "expected appealCount >= 1"; exit 1; }
-echo "trust-appeal-check passed: appeal persisted and transparency report counted it"
+entries=$(printf '%s' "$report" | ynx_json_field '["entryCount"]')
+[[ "$entries" -ge 3 ]] || { echo "expected transparency entries for appeal resolution"; exit 1; }
+echo "trust-appeal-check passed: appeal resolved with false-positive correction and transparency entries"

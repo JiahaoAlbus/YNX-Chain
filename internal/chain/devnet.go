@@ -40,6 +40,7 @@ type Devnet struct {
 	evidencePackets      map[string]EvidencePacket
 	governanceRequests   map[string]GovernanceRequest
 	trustAppeals         map[string]TrustAppeal
+	trackingReviews      map[string]TrackingPolicyReview
 	transparencyEntries  map[string]TransparencyEntry
 	resourceDelegations  map[string]ResourceDelegation
 	resourceRentals      map[string]ResourceRental
@@ -135,6 +136,7 @@ type devnetSnapshot struct {
 	Evidence   map[string]EvidencePacket       `json:"evidencePackets"`
 	Governance map[string]GovernanceRequest    `json:"governanceRequests"`
 	Appeals    map[string]TrustAppeal          `json:"trustAppeals"`
+	Tracking   map[string]TrackingPolicyReview `json:"trackingPolicyReviews"`
 	Transp     map[string]TransparencyEntry    `json:"transparencyEntries"`
 	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
 	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
@@ -186,6 +188,7 @@ func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet 
 		evidencePackets:     map[string]EvidencePacket{},
 		governanceRequests:  map[string]GovernanceRequest{},
 		trustAppeals:        map[string]TrustAppeal{},
+		trackingReviews:     map[string]TrackingPolicyReview{},
 		transparencyEntries: map[string]TransparencyEntry{},
 		resourceDelegations: map[string]ResourceDelegation{},
 		resourceRentals:     map[string]ResourceRental{},
@@ -723,7 +726,11 @@ func (d *Devnet) updateGovernanceRequestStatus(id, entryType string, classificat
 func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) {
 	input.Subject = strings.TrimSpace(input.Subject)
 	input.Appellant = strings.TrimSpace(input.Appellant)
+	input.Claimant = strings.TrimSpace(input.Claimant)
 	input.Reason = strings.TrimSpace(input.Reason)
+	if input.Claimant == "" {
+		input.Claimant = input.Appellant
+	}
 	if input.Subject == "" || input.Appellant == "" || input.Reason == "" {
 		return TrustAppeal{}, errors.New("subject, appellant, and reason are required")
 	}
@@ -731,12 +738,15 @@ func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) 
 	appeal := TrustAppeal{
 		ID:        hashParts("trust-appeal", input.Subject, input.Appellant, fmt.Sprint(now.UnixNano()))[:24],
 		RequestID: strings.TrimSpace(input.RequestID),
+		LabelID:   strings.TrimSpace(input.LabelID),
 		Subject:   input.Subject,
 		Appellant: input.Appellant,
+		Claimant:  input.Claimant,
 		Reason:    input.Reason,
 		Evidence:  cleanStrings(input.Evidence),
-		Status:    "open",
+		Status:    "SUBMITTED",
 		CreatedAt: now,
+		UpdatedAt: now,
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -748,11 +758,111 @@ func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) 
 	return appeal, err
 }
 
+func (d *Devnet) ResolveTrustAppeal(id string, input TrustAppealDecisionInput) (TrustAppeal, error) {
+	input.Reviewer = strings.TrimSpace(input.Reviewer)
+	input.Decision = strings.ToUpper(strings.TrimSpace(input.Decision))
+	input.ResolutionReason = strings.TrimSpace(input.ResolutionReason)
+	if id == "" || input.Reviewer == "" || input.Decision == "" || input.ResolutionReason == "" {
+		return TrustAppeal{}, errors.New("appeal id, reviewer, decision, and resolutionReason are required")
+	}
+	allowed := map[string]struct{}{
+		"UNDER_REVIEW":        {},
+		"NEEDS_MORE_EVIDENCE": {},
+		"ACCEPTED":            {},
+		"REJECTED":            {},
+		"LABEL_REMOVED":       {},
+		"LABEL_REDUCED":       {},
+	}
+	if _, ok := allowed[input.Decision]; !ok {
+		return TrustAppeal{}, errors.New("decision must be UNDER_REVIEW, NEEDS_MORE_EVIDENCE, ACCEPTED, REJECTED, LABEL_REMOVED, or LABEL_REDUCED")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	appeal, ok := d.trustAppeals[id]
+	if !ok {
+		return TrustAppeal{}, errors.New("trust appeal not found")
+	}
+	now := time.Now().UTC()
+	appeal.Status = input.Decision
+	appeal.Reviewer = input.Reviewer
+	appeal.Decision = input.Decision
+	appeal.ResolutionReason = input.ResolutionReason
+	appeal.UpdatedAt = now
+	if input.Decision == "LABEL_REMOVED" || input.Decision == "ACCEPTED" {
+		correction := RiskLabel{Subject: appeal.Subject, Label: "false-positive-corrected", RiskWeightBps: 0, Source: "appeal:" + appeal.ID, CreatedAt: now}
+		d.riskLabels[appeal.Subject] = append(d.riskLabels[appeal.Subject], correction)
+	}
+	if input.Decision == "LABEL_REDUCED" {
+		correction := RiskLabel{Subject: appeal.Subject, Label: "risk-reduced-after-appeal", RiskWeightBps: 100, Source: "appeal:" + appeal.ID, CreatedAt: now}
+		d.riskLabels[appeal.Subject] = append(d.riskLabels[appeal.Subject], correction)
+	}
+	entry := d.newTransparencyEntryLocked("appeal_resolution", appeal.RequestID, appeal.ID, appeal.Subject, "appeal_resolution", RequestRequiresReview, appeal.Status, []string{appeal.ResolutionReason})
+	appeal.TransparencyEntryID = entry.ID
+	d.trustAppeals[id] = appeal
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return appeal, err
+}
+
 func (d *Devnet) TrustAppeal(id string) (TrustAppeal, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	appeal, ok := d.trustAppeals[id]
 	return appeal, ok
+}
+
+func (d *Devnet) CreateTrackingPolicyReview(input TrackingPolicyReviewInput) (TrackingPolicyReview, error) {
+	input.Requester = strings.TrimSpace(input.Requester)
+	input.Subject = strings.TrimSpace(input.Subject)
+	input.Purpose = strings.TrimSpace(input.Purpose)
+	input.QueryType = strings.TrimSpace(input.QueryType)
+	input.Scope = strings.TrimSpace(input.Scope)
+	input.Description = strings.TrimSpace(input.Description)
+	if input.Requester == "" || input.Subject == "" || input.Purpose == "" || input.QueryType == "" {
+		return TrackingPolicyReview{}, errors.New("requester, subject, purpose, and queryType are required")
+	}
+	classification, status, reasons := classifyTrackingPolicyReview(input)
+	now := time.Now().UTC()
+	var expiresAt *time.Time
+	if input.ExpiryHours > 0 {
+		expiry := now.Add(time.Duration(input.ExpiryHours) * time.Hour)
+		expiresAt = &expiry
+	}
+	review := TrackingPolicyReview{
+		ID:               hashParts("tracking-review", input.Requester, input.Subject, input.Purpose, fmt.Sprint(now.UnixNano()))[:24],
+		Requester:        input.Requester,
+		Subject:          input.Subject,
+		Purpose:          input.Purpose,
+		QueryType:        input.QueryType,
+		Scope:            input.Scope,
+		Description:      input.Description,
+		Evidence:         cleanStrings(input.Evidence),
+		Institutional:    input.Institutional,
+		Sensitive:        input.Sensitive,
+		MinimumNecessary: input.MinimumNecessary,
+		Classification:   classification,
+		Status:           status,
+		Reasons:          reasons,
+		ConfidenceBps:    input.ConfidenceBps,
+		LabelExpiresAt:   expiresAt,
+		AppealPath:       "/trust/appeals",
+		CreatedAt:        now,
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	entry := d.newTransparencyEntryLocked("tracking_policy_review", review.ID, "", review.Subject, review.QueryType, review.Classification, review.Status, review.Reasons)
+	review.TransparencyEntryID = entry.ID
+	d.trackingReviews[review.ID] = review
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return review, err
+}
+
+func (d *Devnet) TrackingPolicyReview(id string) (TrackingPolicyReview, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	review, ok := d.trackingReviews[id]
+	return review, ok
 }
 
 func (d *Devnet) TransparencyReport() TransparencyReport {
@@ -1132,7 +1242,7 @@ func (d *Devnet) loadSnapshot() error {
 	}
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.riskLabels, d.evidencePackets = snapshot.Invoices, snapshot.Refunds, snapshot.RiskLabels, snapshot.Evidence
-	d.governanceRequests, d.trustAppeals, d.transparencyEntries = snapshot.Governance, snapshot.Appeals, snapshot.Transp
+	d.governanceRequests, d.trustAppeals, d.trackingReviews, d.transparencyEntries = snapshot.Governance, snapshot.Appeals, snapshot.Tracking, snapshot.Transp
 	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
@@ -1152,7 +1262,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -1194,6 +1304,9 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.trustAppeals == nil {
 		d.trustAppeals = map[string]TrustAppeal{}
+	}
+	if d.trackingReviews == nil {
+		d.trackingReviews = map[string]TrackingPolicyReview{}
 	}
 	if d.transparencyEntries == nil {
 		d.transparencyEntries = map[string]TransparencyEntry{}
@@ -1346,6 +1459,29 @@ func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValiditySta
 		return RequestOutOfScope, []string{"request is missing requester or subject"}, true
 	}
 	return RequestValidUnderYNXChainLaw, []string{"request is scoped, evidence-backed, and does not bypass user custody"}, notice
+}
+
+func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValidityStatus, string, []string) {
+	text := normalizeLower(strings.Join([]string{input.Purpose, input.QueryType, input.Scope, input.Description}, " "))
+	if len(cleanStrings(input.Evidence)) == 0 {
+		return RequestInsufficientEvidence, "rejected", []string{"tracking request has no evidence references"}
+	}
+	if !input.MinimumNecessary {
+		return RequestOverbroad, "rejected", []string{"tracking request does not satisfy minimum necessary data limits"}
+	}
+	if containsAny(text, "all users", "all wallets", "everyone", "bulk profile", "bulk profiling", "mass profile", "mass tracking") {
+		return RequestOverbroad, "rejected", []string{"tracking request is overbroad or asks for bulk user profiling"}
+	}
+	if containsAny(text, "guilt", "convict", "co-conspirator", "accomplice", "permanent taint", "permanently taint", "sensitive inference", "personal sensitive", "bypass audit") {
+		return RequestIllegalOrAbusive, "rejected", []string{"tracking request asks for unsupported conclusions, sensitive inference, permanent pollution, or audit bypass"}
+	}
+	if input.ConfidenceBps > 0 && input.ConfidenceBps < 5000 && containsAny(text, "punish", "block", "reject", "deny", "freeze") {
+		return RequestIllegalOrAbusive, "rejected", []string{"low-confidence taint cannot be used as punitive or conclusive action"}
+	}
+	if input.Institutional || input.Sensitive || containsAny(text, "risk list", "watchlist", "batch", "enterprise api", "institutional") {
+		return RequestRequiresReview, "pending_review", []string{"institutional, sensitive, or batch tracking requires audit and governance review"}
+	}
+	return RequestValidUnderYNXChainLaw, "logged", []string{"tracking request is purpose-limited, evidence-backed, scoped, and appealable"}
 }
 
 func isRejectedClassification(status RequestValidityStatus) bool {
