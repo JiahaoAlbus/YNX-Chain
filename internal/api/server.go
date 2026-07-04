@@ -44,6 +44,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /trust/labels", s.handleTrustLabel)
 	s.mux.HandleFunc("POST /trust/evidence", s.handleEvidencePacket)
 	s.mux.HandleFunc("GET /trust/evidence/{id}", s.handleEvidenceLookup)
+	s.mux.HandleFunc("POST /governance/requests", s.handleGovernanceRequest)
+	s.mux.HandleFunc("GET /governance/requests/{id}", s.handleGovernanceRequestLookup)
+	s.mux.HandleFunc("POST /governance/requests/{id}/review", s.handleGovernanceRequestReview)
+	s.mux.HandleFunc("POST /governance/requests/{id}/reject", s.handleGovernanceRequestReject)
+	s.mux.HandleFunc("GET /governance/transparency", s.handleTransparencyReport)
+	s.mux.HandleFunc("POST /trust/appeals", s.handleTrustAppeal)
+	s.mux.HandleFunc("GET /trust/appeals/{id}", s.handleTrustAppealLookup)
 	s.mux.HandleFunc("POST /pay/intents", s.handlePayIntent)
 	s.mux.HandleFunc("GET /pay/intents/{id}", s.handlePayIntentLookup)
 	s.mux.HandleFunc("POST /pay/invoices", s.handleInvoice)
@@ -242,6 +249,71 @@ func (s *Server) handleEvidenceLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, packet)
+}
+func (s *Server) handleGovernanceRequest(w http.ResponseWriter, r *http.Request) {
+	var req chain.GovernanceRequestInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	request, err := s.devnet.CreateGovernanceRequest(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, request)
+}
+func (s *Server) handleGovernanceRequestLookup(w http.ResponseWriter, r *http.Request) {
+	request, ok := s.devnet.GovernanceRequest(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "governance request not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, request)
+}
+func (s *Server) handleGovernanceRequestReview(w http.ResponseWriter, r *http.Request) {
+	request, err := s.devnet.ReviewGovernanceRequest(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, request)
+}
+func (s *Server) handleGovernanceRequestReject(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	request, err := s.devnet.RejectGovernanceRequest(r.PathValue("id"), req.Reason)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, request)
+}
+func (s *Server) handleTransparencyReport(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.devnet.TransparencyReport())
+}
+func (s *Server) handleTrustAppeal(w http.ResponseWriter, r *http.Request) {
+	var req chain.TrustAppealInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	appeal, err := s.devnet.CreateTrustAppeal(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, appeal)
+}
+func (s *Server) handleTrustAppealLookup(w http.ResponseWriter, r *http.Request) {
+	appeal, ok := s.devnet.TrustAppeal(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "trust appeal not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, appeal)
 }
 func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {

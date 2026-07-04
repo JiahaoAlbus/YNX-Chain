@@ -190,3 +190,70 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 		t.Fatal("expected restored contract verification")
 	}
 }
+
+func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *testing.T) {
+	dir := t.TempDir()
+	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	illegal, err := devnet.CreateGovernanceRequest(GovernanceRequestInput{
+		Requester:   "agency_case_1",
+		Subject:     "ynx_subject",
+		Action:      "freeze native YNXT without evidence",
+		AssetType:   "YNXT",
+		Scope:       "ynx_subject",
+		Description: "Freeze native YNXT directly from protocol controls.",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if illegal.Classification != RequestIllegalOrAbusive || illegal.Status != "rejected" {
+		t.Fatalf("expected illegal rejected request: %+v", illegal)
+	}
+	if !illegal.NativeYNXTProtected || illegal.TransparencyEntryID == "" {
+		t.Fatalf("expected native YNXT protection and transparency entry: %+v", illegal)
+	}
+	report := devnet.TransparencyReport()
+	if report.EntryCount != 1 || report.RejectedCount != 1 {
+		t.Fatalf("expected rejected transparency entry: %+v", report)
+	}
+
+	review, err := devnet.CreateGovernanceRequest(GovernanceRequestInput{
+		Requester:   "merchant_risk",
+		Subject:     "ynx_subject",
+		Action:      "risk label review",
+		AssetType:   "stablecoin",
+		Scope:       "single transfer",
+		Description: "Review a scoped risk label with attached case evidence.",
+		Evidence:    []string{"case:42", "tx:0xabc"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review.Classification != RequestRequiresReview || !review.RequiresUserNotice {
+		t.Fatalf("expected governance review classification: %+v", review)
+	}
+	appeal, err := devnet.CreateTrustAppeal(TrustAppealInput{RequestID: review.ID, Subject: "ynx_subject", Appellant: "ynx_subject", Reason: "label is a false positive", Evidence: []string{"wallet ownership proof"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if appeal.Status != "open" || appeal.TransparencyEntryID == "" {
+		t.Fatalf("expected open appeal with transparency entry: %+v", appeal)
+	}
+
+	restored, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := restored.GovernanceRequest(illegal.ID); !ok {
+		t.Fatal("expected restored governance request")
+	}
+	if _, ok := restored.TrustAppeal(appeal.ID); !ok {
+		t.Fatal("expected restored trust appeal")
+	}
+	report = restored.TransparencyReport()
+	if report.AppealCount != 1 || report.ReviewCount == 0 {
+		t.Fatalf("expected restored appeal and review counts: %+v", report)
+	}
+}

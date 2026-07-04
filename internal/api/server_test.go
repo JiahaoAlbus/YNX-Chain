@@ -159,6 +159,56 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)
 }
 
+func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	var illegal map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "agency_case_api",
+		"subject":     "ynx_api_subject",
+		"action":      "ask to directly transfer user native YNXT",
+		"assetType":   "YNXT",
+		"scope":       "ynx_api_subject",
+		"description": "transfer user native YNXT without user signature",
+	}, http.StatusCreated, &illegal)
+	if illegal["classification"] != "ILLEGAL_OR_ABUSIVE" || illegal["status"] != "rejected" {
+		t.Fatalf("expected illegal rejected request: %v", illegal)
+	}
+	requestID := illegal["id"].(string)
+	doJSON(t, http.MethodGet, server.URL+"/governance/requests/"+requestID, nil, http.StatusOK, &illegal)
+
+	var review map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "merchant_case_api",
+		"subject":     "ynx_api_subject",
+		"action":      "risk label review",
+		"assetType":   "stablecoin",
+		"scope":       "single transfer",
+		"description": "review scoped label",
+		"evidence":    []string{"case:api", "tx:0xabc"},
+	}, http.StatusCreated, &review)
+	if review["classification"] != "REQUIRES_GOVERNANCE_REVIEW" {
+		t.Fatalf("expected review classification: %v", review)
+	}
+	reviewID := review["id"].(string)
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+reviewID+"/review", nil, http.StatusOK, &review)
+
+	var appeal map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{"requestId": reviewID, "subject": "ynx_api_subject", "appellant": "ynx_api_subject", "reason": "false positive", "evidence": []string{"owner proof"}}, http.StatusCreated, &appeal)
+	if appeal["status"] != "open" {
+		t.Fatalf("expected open appeal: %v", appeal)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/trust/appeals/"+appeal["id"].(string), nil, http.StatusOK, &appeal)
+
+	var report map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/governance/transparency", nil, http.StatusOK, &report)
+	if report["entryCount"].(float64) < 4 || report["rejectedCount"].(float64) < 1 || report["appealCount"].(float64) != 1 {
+		t.Fatalf("expected transparency report counts: %v", report)
+	}
+}
+
 func TestAIStreamIsSessionScoped(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))

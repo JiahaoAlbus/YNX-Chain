@@ -35,6 +35,9 @@ type ExplorerSummary struct {
 	PayIntentCount     int           `json:"payIntentCount"`
 	InvoiceCount       int           `json:"invoiceCount"`
 	TrustEvidenceCount int           `json:"trustEvidenceCount"`
+	GovernanceRequests int           `json:"governanceRequestCount"`
+	AppealCount        int           `json:"appealCount"`
+	TransparencyCount  int           `json:"transparencyReportCount"`
 	ContractCount      int           `json:"contractCount"`
 	PersistenceEnabled bool          `json:"persistenceEnabled"`
 	PersistenceError   string        `json:"persistenceError,omitempty"`
@@ -191,6 +194,94 @@ type EvidencePacket struct {
 	JSONHash    string        `json:"jsonHash"`
 	GeneratedAt time.Time     `json:"generatedAt"`
 	ExportNotes []string      `json:"exportNotes"`
+}
+
+type RequestValidityStatus string
+
+const (
+	RequestValidUnderYNXChainLaw RequestValidityStatus = "VALID_UNDER_YNX_CHAIN_LAW"
+	RequestInsufficientEvidence  RequestValidityStatus = "INSUFFICIENT_EVIDENCE"
+	RequestOutOfScope            RequestValidityStatus = "OUT_OF_SCOPE"
+	RequestOverbroad             RequestValidityStatus = "OVERBROAD"
+	RequestIllegalOrAbusive      RequestValidityStatus = "ILLEGAL_OR_ABUSIVE"
+	RequestRequiresReview        RequestValidityStatus = "REQUIRES_GOVERNANCE_REVIEW"
+	RequestRequiresUserNotice    RequestValidityStatus = "REQUIRES_USER_NOTICE"
+	RequestRejected              RequestValidityStatus = "REJECTED"
+)
+
+type GovernanceRequest struct {
+	ID                  string                `json:"id"`
+	Requester           string                `json:"requester"`
+	Subject             string                `json:"subject"`
+	Action              string                `json:"action"`
+	AssetType           string                `json:"assetType"`
+	Scope               string                `json:"scope"`
+	Description         string                `json:"description"`
+	Evidence            []string              `json:"evidence"`
+	Classification      RequestValidityStatus `json:"classification"`
+	Status              string                `json:"status"`
+	Reasons             []string              `json:"reasons"`
+	RequiresAppeal      bool                  `json:"requiresAppeal"`
+	RequiresUserNotice  bool                  `json:"requiresUserNotice"`
+	NativeYNXTProtected bool                  `json:"nativeYnxtProtected"`
+	CreatedAt           time.Time             `json:"createdAt"`
+	ReviewedAt          *time.Time            `json:"reviewedAt,omitempty"`
+	RejectedAt          *time.Time            `json:"rejectedAt,omitempty"`
+	TransparencyEntryID string                `json:"transparencyEntryId,omitempty"`
+}
+
+type GovernanceRequestInput struct {
+	Requester   string   `json:"requester"`
+	Subject     string   `json:"subject"`
+	Action      string   `json:"action"`
+	AssetType   string   `json:"assetType"`
+	Scope       string   `json:"scope"`
+	Description string   `json:"description"`
+	Evidence    []string `json:"evidence"`
+}
+
+type TrustAppeal struct {
+	ID                  string    `json:"id"`
+	RequestID           string    `json:"requestId,omitempty"`
+	Subject             string    `json:"subject"`
+	Appellant           string    `json:"appellant"`
+	Reason              string    `json:"reason"`
+	Evidence            []string  `json:"evidence"`
+	Status              string    `json:"status"`
+	CreatedAt           time.Time `json:"createdAt"`
+	TransparencyEntryID string    `json:"transparencyEntryId"`
+}
+
+type TrustAppealInput struct {
+	RequestID string   `json:"requestId"`
+	Subject   string   `json:"subject"`
+	Appellant string   `json:"appellant"`
+	Reason    string   `json:"reason"`
+	Evidence  []string `json:"evidence"`
+}
+
+type TransparencyEntry struct {
+	ID             string                `json:"id"`
+	Type           string                `json:"type"`
+	RequestID      string                `json:"requestId,omitempty"`
+	AppealID       string                `json:"appealId,omitempty"`
+	Subject        string                `json:"subject,omitempty"`
+	Action         string                `json:"action,omitempty"`
+	Classification RequestValidityStatus `json:"classification,omitempty"`
+	Status         string                `json:"status"`
+	Reasons        []string              `json:"reasons"`
+	CreatedAt      time.Time             `json:"createdAt"`
+}
+
+type TransparencyReport struct {
+	Network        NetworkConfig       `json:"network"`
+	GeneratedAt    time.Time           `json:"generatedAt"`
+	EntryCount     int                 `json:"entryCount"`
+	RejectedCount  int                 `json:"rejectedCount"`
+	AppealCount    int                 `json:"appealCount"`
+	ReviewCount    int                 `json:"reviewCount"`
+	TruthfulStatus string              `json:"truthfulStatus"`
+	Entries        []TransparencyEntry `json:"entries"`
 }
 
 type ResourceQuote struct {

@@ -43,6 +43,10 @@ ynx_reject_unsafe_env_values "${required[@]}"
 [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
 
+if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
+  node scripts/verify/deploy-readiness-gate.mjs
+fi
+
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
 work="tmp/deploy/${release}"

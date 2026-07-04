@@ -28,6 +28,13 @@ Products:
 - `POST /trust/evidence`
 - `GET /trust/evidence/{id}`
 - `GET /trust/evidence/{id}.pdf`
+- `POST /governance/requests`
+- `GET /governance/requests/{id}`
+- `POST /governance/requests/{id}/review`
+- `POST /governance/requests/{id}/reject`
+- `GET /governance/transparency`
+- `POST /trust/appeals`
+- `GET /trust/appeals/{id}`
 - `POST /pay/intents`
 - `GET /pay/intents/{id}`
 - `POST /pay/invoices`
@@ -47,3 +54,10 @@ make smoke-test
 ```
 
 The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.
+
+Governance and Trust request safety:
+
+- `POST /governance/requests` stores a lawful-request intake record and classifies it as `VALID_UNDER_YNX_CHAIN_LAW`, `INSUFFICIENT_EVIDENCE`, `OUT_OF_SCOPE`, `OVERBROAD`, `ILLEGAL_OR_ABUSIVE`, `REQUIRES_GOVERNANCE_REVIEW`, `REQUIRES_USER_NOTICE`, or `REJECTED`.
+- Native `YNXT` requests cannot directly transfer, freeze, seize, blacklist, or bypass user signatures. Illegal, overbroad, or evidence-free requests are rejected and recorded in the transparency report.
+- `POST /trust/appeals` opens an appeal record for false-positive correction or dispute review and also creates a transparency entry.
+- `GET /governance/transparency` returns the locally persisted transparency report entries and counts. Remote public proof must use the public endpoint, not localhost.

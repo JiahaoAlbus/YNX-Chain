@@ -38,6 +38,9 @@ type Devnet struct {
 	refunds              map[string]RefundRecord
 	riskLabels           map[string][]RiskLabel
 	evidencePackets      map[string]EvidencePacket
+	governanceRequests   map[string]GovernanceRequest
+	trustAppeals         map[string]TrustAppeal
+	transparencyEntries  map[string]TransparencyEntry
 	resourceDelegations  map[string]ResourceDelegation
 	resourceRentals      map[string]ResourceRental
 	resourceIncome       map[string]ResourceIncomeRecord
@@ -130,6 +133,9 @@ type devnetSnapshot struct {
 	Refunds    map[string]RefundRecord         `json:"refunds"`
 	RiskLabels map[string][]RiskLabel          `json:"riskLabels"`
 	Evidence   map[string]EvidencePacket       `json:"evidencePackets"`
+	Governance map[string]GovernanceRequest    `json:"governanceRequests"`
+	Appeals    map[string]TrustAppeal          `json:"trustAppeals"`
+	Transp     map[string]TransparencyEntry    `json:"transparencyEntries"`
 	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
 	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
 	Income     map[string]ResourceIncomeRecord `json:"resourceIncome"`
@@ -178,6 +184,9 @@ func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet 
 		refunds:             map[string]RefundRecord{},
 		riskLabels:          map[string][]RiskLabel{},
 		evidencePackets:     map[string]EvidencePacket{},
+		governanceRequests:  map[string]GovernanceRequest{},
+		trustAppeals:        map[string]TrustAppeal{},
+		transparencyEntries: map[string]TransparencyEntry{},
 		resourceDelegations: map[string]ResourceDelegation{},
 		resourceRentals:     map[string]ResourceRental{},
 		resourceIncome:      map[string]ResourceIncomeRecord{},
@@ -263,7 +272,7 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 	for _, block := range d.blocks {
 		totalTxs += len(block.Transactions)
 	}
-	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), InvoiceCount: len(d.invoices), TrustEvidenceCount: len(d.evidencePackets), ContractCount: len(d.contracts), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: TruthfulStatus(d.cfg)}
+	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), InvoiceCount: len(d.invoices), TrustEvidenceCount: len(d.evidencePackets), GovernanceRequests: len(d.governanceRequests), AppealCount: len(d.trustAppeals), TransparencyCount: len(d.transparencyEntries), ContractCount: len(d.contracts), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: TruthfulStatus(d.cfg)}
 }
 
 func (d *Devnet) LatestBlock() Block {
@@ -621,6 +630,154 @@ func (d *Devnet) StoredEvidencePacket(id string) (EvidencePacket, bool) {
 	return packet, ok
 }
 
+func (d *Devnet) CreateGovernanceRequest(input GovernanceRequestInput) (GovernanceRequest, error) {
+	input.Requester = strings.TrimSpace(input.Requester)
+	input.Subject = strings.TrimSpace(input.Subject)
+	input.Action = strings.TrimSpace(input.Action)
+	input.AssetType = strings.TrimSpace(input.AssetType)
+	input.Scope = strings.TrimSpace(input.Scope)
+	input.Description = strings.TrimSpace(input.Description)
+	if input.Requester == "" || input.Subject == "" || input.Action == "" {
+		return GovernanceRequest{}, errors.New("requester, subject, and action are required")
+	}
+	classification, reasons, notice := classifyGovernanceRequest(input)
+	now := time.Now().UTC()
+	status := "pending_review"
+	if isRejectedClassification(classification) {
+		status = "rejected"
+	}
+	req := GovernanceRequest{
+		ID:                  hashParts("governance-request", input.Requester, input.Subject, input.Action, fmt.Sprint(now.UnixNano()))[:24],
+		Requester:           input.Requester,
+		Subject:             input.Subject,
+		Action:              input.Action,
+		AssetType:           normalizeLower(input.AssetType),
+		Scope:               input.Scope,
+		Description:         input.Description,
+		Evidence:            cleanStrings(input.Evidence),
+		Classification:      classification,
+		Status:              status,
+		Reasons:             reasons,
+		RequiresAppeal:      true,
+		RequiresUserNotice:  notice,
+		NativeYNXTProtected: isNativeYNXT(input.AssetType),
+		CreatedAt:           now,
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	entry := d.newTransparencyEntryLocked("governance_request", req.ID, "", req.Subject, req.Action, req.Classification, req.Status, req.Reasons)
+	req.TransparencyEntryID = entry.ID
+	d.governanceRequests[req.ID] = req
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return req, err
+}
+
+func (d *Devnet) GovernanceRequest(id string) (GovernanceRequest, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	req, ok := d.governanceRequests[id]
+	return req, ok
+}
+
+func (d *Devnet) ReviewGovernanceRequest(id string) (GovernanceRequest, error) {
+	return d.updateGovernanceRequestStatus(id, "governance_review", RequestRequiresReview, "reviewed", []string{"request requires governance review before any action can occur"})
+}
+
+func (d *Devnet) RejectGovernanceRequest(id string, reason string) (GovernanceRequest, error) {
+	reasons := []string{"request rejected under YNX Chain Law"}
+	if strings.TrimSpace(reason) != "" {
+		reasons = append(reasons, strings.TrimSpace(reason))
+	}
+	return d.updateGovernanceRequestStatus(id, "governance_rejection", RequestRejected, "rejected", reasons)
+}
+
+func (d *Devnet) updateGovernanceRequestStatus(id, entryType string, classification RequestValidityStatus, status string, reasons []string) (GovernanceRequest, error) {
+	if strings.TrimSpace(id) == "" {
+		return GovernanceRequest{}, errors.New("request id is required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	req, ok := d.governanceRequests[id]
+	if !ok {
+		return GovernanceRequest{}, errors.New("governance request not found")
+	}
+	now := time.Now().UTC()
+	req.Classification = classification
+	req.Status = status
+	req.Reasons = appendUnique(req.Reasons, reasons...)
+	if status == "reviewed" {
+		req.ReviewedAt = &now
+	}
+	if status == "rejected" {
+		req.RejectedAt = &now
+	}
+	entry := d.newTransparencyEntryLocked(entryType, req.ID, "", req.Subject, req.Action, req.Classification, req.Status, req.Reasons)
+	req.TransparencyEntryID = entry.ID
+	d.governanceRequests[id] = req
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return req, err
+}
+
+func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) {
+	input.Subject = strings.TrimSpace(input.Subject)
+	input.Appellant = strings.TrimSpace(input.Appellant)
+	input.Reason = strings.TrimSpace(input.Reason)
+	if input.Subject == "" || input.Appellant == "" || input.Reason == "" {
+		return TrustAppeal{}, errors.New("subject, appellant, and reason are required")
+	}
+	now := time.Now().UTC()
+	appeal := TrustAppeal{
+		ID:        hashParts("trust-appeal", input.Subject, input.Appellant, fmt.Sprint(now.UnixNano()))[:24],
+		RequestID: strings.TrimSpace(input.RequestID),
+		Subject:   input.Subject,
+		Appellant: input.Appellant,
+		Reason:    input.Reason,
+		Evidence:  cleanStrings(input.Evidence),
+		Status:    "open",
+		CreatedAt: now,
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	entry := d.newTransparencyEntryLocked("trust_appeal", appeal.RequestID, appeal.ID, appeal.Subject, "appeal", RequestRequiresReview, appeal.Status, []string{"appeal opened for human review and false-positive correction"})
+	appeal.TransparencyEntryID = entry.ID
+	d.trustAppeals[appeal.ID] = appeal
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return appeal, err
+}
+
+func (d *Devnet) TrustAppeal(id string) (TrustAppeal, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	appeal, ok := d.trustAppeals[id]
+	return appeal, ok
+}
+
+func (d *Devnet) TransparencyReport() TransparencyReport {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	entries := make([]TransparencyEntry, 0, len(d.transparencyEntries))
+	report := TransparencyReport{Network: d.cfg, GeneratedAt: time.Now().UTC(), TruthfulStatus: TruthfulStatus(d.cfg)}
+	for _, entry := range d.transparencyEntries {
+		entries = append(entries, entry)
+		if entry.Status == "rejected" {
+			report.RejectedCount++
+		}
+		if entry.Type == "trust_appeal" {
+			report.AppealCount++
+		}
+		if entry.Classification == RequestRequiresReview || entry.Status == "reviewed" {
+			report.ReviewCount++
+		}
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].CreatedAt.Before(entries[j].CreatedAt) })
+	report.Entries = entries
+	report.EntryCount = len(entries)
+	return report
+}
+
 func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceQuote, error) {
 	if address == "" {
 		return ResourceQuote{}, errors.New("address is required")
@@ -975,6 +1132,7 @@ func (d *Devnet) loadSnapshot() error {
 	}
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.riskLabels, d.evidencePackets = snapshot.Invoices, snapshot.Refunds, snapshot.RiskLabels, snapshot.Evidence
+	d.governanceRequests, d.trustAppeals, d.transparencyEntries = snapshot.Governance, snapshot.Appeals, snapshot.Transp
 	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
@@ -994,7 +1152,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -1030,6 +1188,15 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.evidencePackets == nil {
 		d.evidencePackets = map[string]EvidencePacket{}
+	}
+	if d.governanceRequests == nil {
+		d.governanceRequests = map[string]GovernanceRequest{}
+	}
+	if d.trustAppeals == nil {
+		d.trustAppeals = map[string]TrustAppeal{}
+	}
+	if d.transparencyEntries == nil {
+		d.transparencyEntries = map[string]TransparencyEntry{}
 	}
 	if d.resourceDelegations == nil {
 		d.resourceDelegations = map[string]ResourceDelegation{}
@@ -1123,6 +1290,126 @@ func (d *Devnet) activeDelegatedYNXTLocked(provider string) int64 {
 		}
 	}
 	return total
+}
+
+func (d *Devnet) newTransparencyEntryLocked(entryType, requestID, appealID, subject, action string, classification RequestValidityStatus, status string, reasons []string) TransparencyEntry {
+	entry := TransparencyEntry{
+		ID:             hashParts("transparency", entryType, requestID, appealID, subject, action, fmt.Sprint(time.Now().UnixNano()))[:24],
+		Type:           entryType,
+		RequestID:      requestID,
+		AppealID:       appealID,
+		Subject:        subject,
+		Action:         action,
+		Classification: classification,
+		Status:         status,
+		Reasons:        append([]string(nil), reasons...),
+		CreatedAt:      time.Now().UTC(),
+	}
+	d.transparencyEntries[entry.ID] = entry
+	return entry
+}
+
+func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool) {
+	text := normalizeLower(strings.Join([]string{input.Action, input.AssetType, input.Scope, input.Description}, " "))
+	reasons := []string{}
+	notice := false
+	if containsAny(text, "private key", "private keys", "seed phrase", "seed phrases", "mnemonic") {
+		return RequestIllegalOrAbusive, []string{"request asks for private keys or seed phrases"}, true
+	}
+	if containsAny(text, "bypass signature", "bypass user signature", "without signature", "skip signature") {
+		return RequestIllegalOrAbusive, []string{"request asks to bypass user signatures"}, true
+	}
+	if containsAny(text, "delete audit", "delete logs", "hide record", "hide request", "erase audit", "remove transparency") {
+		return RequestIllegalOrAbusive, []string{"request asks to delete audit logs or hide request records"}, true
+	}
+	if containsAny(text, "fake risk", "fabricate risk", "unsupported conclusion", "unsupported conclusions") {
+		return RequestIllegalOrAbusive, []string{"request asks for fake risk labels or unsupported Trust conclusions"}, true
+	}
+	if containsAny(text, "ai automatically punish", "auto punish", "automatic punish", "automatically punish") {
+		return RequestIllegalOrAbusive, []string{"request asks AI or Trust to automatically punish users"}, true
+	}
+	if containsAny(text, "all users", "all wallets", "entire chain", "bulk trace", "mass tracking", "everyone") {
+		return RequestOverbroad, []string{"request scope is overbroad and not targeted to a specific subject or evidence set"}, true
+	}
+	if isNativeYNXT(input.AssetType) && containsAny(text, "direct transfer", "transfer user", "confiscate", "seize", "freeze", "blacklist") {
+		return RequestIllegalOrAbusive, []string{"native YNXT cannot be directly transferred, frozen, seized, or blacklisted by request"}, true
+	}
+	if len(cleanStrings(input.Evidence)) == 0 {
+		return RequestInsufficientEvidence, []string{"request has no evidence references"}, true
+	}
+	if containsAny(text, "freeze", "blacklist", "seize", "punish", "risk label", "risk-label", "track", "trace") {
+		reasons = append(reasons, "request affects user rights and requires governance review")
+		notice = true
+		return RequestRequiresReview, reasons, notice
+	}
+	if input.Subject == "" || input.Requester == "" {
+		return RequestOutOfScope, []string{"request is missing requester or subject"}, true
+	}
+	return RequestValidUnderYNXChainLaw, []string{"request is scoped, evidence-backed, and does not bypass user custody"}, notice
+}
+
+func isRejectedClassification(status RequestValidityStatus) bool {
+	switch status {
+	case RequestInsufficientEvidence, RequestOutOfScope, RequestOverbroad, RequestIllegalOrAbusive, RequestRejected:
+		return true
+	default:
+		return false
+	}
+}
+
+func containsAny(text string, terms ...string) bool {
+	for _, term := range terms {
+		if strings.Contains(text, term) {
+			return true
+		}
+	}
+	return false
+}
+
+func isNativeYNXT(assetType string) bool {
+	asset := normalizeLower(assetType)
+	return asset == "" || asset == "ynxt" || asset == "native" || asset == "native ynxt" || asset == "native_ynxt"
+}
+
+func normalizeLower(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func cleanStrings(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func appendUnique(values []string, additions ...string) []string {
+	out := append([]string(nil), values...)
+	seen := map[string]struct{}{}
+	for _, value := range out {
+		seen[value] = struct{}{}
+	}
+	for _, value := range additions {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
 }
 
 func resourceBalance(account *Account) ResourceBalance {

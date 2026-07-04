@@ -8,6 +8,7 @@ const sshPath = path.join(verifyDir, "ssh-services.txt");
 const hostKeyAuditPath = process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt";
 const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
+const jsonOutPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
 
 function readText(file) {
   try {
@@ -152,12 +153,35 @@ const endpointFindings = failedChecks.map((check) => ({
 }));
 const nodeSummary = countBy(nodeFailures, (finding) => finding.classification);
 const endpointSummary = countBy(endpointFindings, (finding) => finding.classification);
+const deployBlockingNodeClasses = new Set([
+  "host-key-mismatch",
+  "ssh-auth-failed",
+  "ssh-connection-closed",
+  "ssh-failed",
+  "ssh-host-keyscan-no-keys",
+  "ssh-key-not-readable",
+  "ssh-network-unreachable",
+  "ssh-strict-ok-keyscan-no-keys",
+  "ssh-timeout",
+  "unknown",
+]);
+const deployBlockingEndpointClasses = new Set([
+  "failed",
+  "http-404",
+  "http-error",
+  "timeout-or-unreachable",
+]);
+const nodeDeployBlockers = nodeFailures.filter((finding) => deployBlockingNodeClasses.has(finding.classification));
+const endpointDeployBlockers = endpointFindings.filter((finding) => deployBlockingEndpointClasses.has(finding.classification));
+const deployReady = nodeDeployBlockers.length === 0 && endpointDeployBlockers.length === 0;
+const generatedAt = new Date().toISOString();
 
 const lines = [
   "# Remote Testnet Blockers",
   "",
-  `Generated at: ${new Date().toISOString()}`,
+  `Generated at: ${generatedAt}`,
   `Evidence status: ${evidence?.status || "missing"}`,
+  `Deploy gate: ${deployReady ? "ready-for-mutation" : "blocked"}`,
   "",
   "This report is diagnostic evidence. It is not public testnet proof and must not be presented as completed deployment.",
   "",
@@ -219,6 +243,9 @@ const lines = [
   section(
     "Required Next Actions",
     [
+      deployReady
+        ? "- Deploy gate is clear for mutation, but this is still not public proof. Run deployment, then verify-testnet and public-proof."
+        : "- Do not run `ENV_FILE=.env.deploy make deploy-testnet` until the deploy gate blockers in `remote-blockers.json` are cleared.",
       nodeFailures.some((finding) => finding.classification === "ssh-connection-closed" || finding.classification === "ssh-host-keyscan-no-keys" || finding.classification === "ssh-strict-ok-keyscan-no-keys" || finding.classification === "ssh-timeout" || finding.classification === "ssh-network-unreachable")
         ? "- Verify cloud instance state, firewall/security-group rules, sshd status, and host-key scanning behavior for nodes classified as SSH closed, keyscan no-keys, timeout, or network-unreachable before changing local known_hosts."
         : "- Independently verify changed SSH host fingerprints before updating local known_hosts.",
@@ -234,4 +261,28 @@ const lines = [
 
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, `${lines.join("\n")}\n`);
+fs.writeFileSync(jsonOutPath, `${JSON.stringify({
+  generatedAt,
+  evidenceStatus: evidence?.status || "missing",
+  deployReady,
+  source: {
+    evidencePath,
+    sshPath,
+    hostKeyAuditPath,
+    legacyInventoryPath,
+    reportPath: outPath,
+  },
+  expected: evidence?.expected || null,
+  nodeFindings,
+  endpointFindings,
+  deployBlockers: {
+    nodes: nodeDeployBlockers,
+    endpoints: endpointDeployBlockers,
+  },
+  summaries: {
+    nodes: Object.fromEntries(nodeSummary),
+    endpoints: Object.fromEntries(endpointSummary),
+  },
+}, null, 2)}\n`);
 console.log(`remote blocker report written: ${outPath}`);
+console.log(`remote blocker json written: ${jsonOutPath}`);

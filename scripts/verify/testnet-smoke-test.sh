@@ -41,6 +41,21 @@ echo "Trust evidence result: $evidence"
 curl -fsS "http://127.0.0.1:6420/trust/evidence/$evidence_id" >/dev/null
 curl -fsS "http://127.0.0.1:6420/trust/evidence/$evidence_id.pdf" >"$work/evidence.pdf"
 test -s "$work/evidence.pdf"
+illegal_request=$(curl -fsS -X POST http://127.0.0.1:6420/governance/requests -H 'content-type: application/json' -d '{"requester":"smoke-agency","subject":"ynx_smoke_bob","action":"freeze native YNXT without evidence","assetType":"YNXT","scope":"ynx_smoke_bob","description":"directly freeze user native YNXT"}')
+illegal_class=$(printf '%s' "$illegal_request" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).classification')
+[[ "$illegal_class" == "ILLEGAL_OR_ABUSIVE" ]] || { echo "anti-illegal request classification mismatch: $illegal_class"; exit 1; }
+echo "Anti-illegal request result: $illegal_request"
+review_request=$(curl -fsS -X POST http://127.0.0.1:6420/governance/requests -H 'content-type: application/json' -d '{"requester":"smoke-merchant","subject":"ynx_smoke_bob","action":"risk label review","assetType":"stablecoin","scope":"single transfer","description":"review scoped transfer evidence","evidence":["case:smoke","tx:0xsmoke"]}')
+review_id=$(printf '%s' "$review_request" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
+echo "Request validity result: $review_request"
+appeal=$(curl -fsS -X POST http://127.0.0.1:6420/trust/appeals -H 'content-type: application/json' -d "{\"requestId\":\"$review_id\",\"subject\":\"ynx_smoke_bob\",\"appellant\":\"ynx_smoke_bob\",\"reason\":\"false positive correction\",\"evidence\":[\"owner proof\"]}")
+appeal_status=$(printf '%s' "$appeal" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).status')
+[[ "$appeal_status" == "open" ]] || { echo "appeal status mismatch: $appeal_status"; exit 1; }
+echo "Trust appeal result: $appeal"
+transparency=$(curl -fsS http://127.0.0.1:6420/governance/transparency)
+transparency_entries=$(printf '%s' "$transparency" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).entryCount')
+[[ "$transparency_entries" -ge 3 ]] || { echo "transparency entries missing"; exit 1; }
+echo "Transparency report result: $transparency"
 pay_intent=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25}')
 intent_id=$(printf '%s' "$pay_intent" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
 echo "Pay API result: $pay_intent"

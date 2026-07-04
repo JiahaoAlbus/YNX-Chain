@@ -7,6 +7,7 @@ required=(
   docs/acceptance/GOAL_DIGEST.md
   docs/acceptance/PROJECT_STATE.md
   docs/acceptance/NEXT_ACTION.md
+  docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 )
 
 for file in "${required[@]}"; do
@@ -40,5 +41,11 @@ grep -q "Files to touch:" docs/acceptance/NEXT_ACTION.md
 grep -q "Validation commands:" docs/acceptance/NEXT_ACTION.md
 grep -q "Completion standard:" docs/acceptance/NEXT_ACTION.md
 grep -q "Explicitly not doing" docs/acceptance/NEXT_ACTION.md
+
+grep -q "Module" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
+grep -q "Anti-Illegal Request Engine" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
+grep -q "Request Validity Standard" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
+grep -q "Appeal / Dispute" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
+grep -q "Transparency Report" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 
 echo "objective state files passed"
