@@ -1,4 +1,4 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ops-check public-proof
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet host-key-audit remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ops-check public-proof
 
 setup:
 	go mod tidy
@@ -40,6 +40,12 @@ deploy-dry-run:
 
 verify-testnet:
 	bash ./scripts/verify/verify-testnet.sh
+
+host-key-audit:
+	bash ./scripts/ops/host-key-audit.sh
+
+remote-blocker-report:
+	node ./scripts/verify/remote-blocker-report.mjs
 
 status:
 	bash ./scripts/ops/status.sh
