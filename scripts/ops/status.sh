@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/../.."
-source scripts/deploy/lib.sh
-ynx_load_env
-ynx_require_env SERVER_HOST SERVER_USER SSH_KEY_PATH
-ynx_ssh "systemctl --no-pager --full status ynx-chaind || true; systemctl --no-pager --full status ynx-indexerd || true; systemctl --no-pager --full status ynx-explorerd || true; systemctl --no-pager --full status ynx-faucetd || true; curl -fsS http://127.0.0.1:6420/status; curl -fsS http://127.0.0.1:6426/health; curl -fsS http://127.0.0.1:6427/health; curl -fsS http://127.0.0.1:6428/health"
+
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+ynx_ops_init
+
+status_node() {
+  local role="$1" user="$2" host="$3" key="$4" kind="$5"
+  local services
+  services="$(ynx_ops_services_for_kind "$kind")"
+  local endpoints="curl -fsS http://127.0.0.1:6420/status || true"
+  if [[ "$kind" == "full" ]]; then
+    endpoints="$endpoints; curl -fsS http://127.0.0.1:6426/health || true; curl -fsS http://127.0.0.1:6427/health || true; curl -fsS http://127.0.0.1:6428/health || true"
+  fi
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "echo '== $role $host =='; for service in $services; do systemctl --no-pager --full status \"\$service\" || true; done; echo '--- local endpoints'; $endpoints"
+}
+
+ynx_ops_each_node status_node

@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/../.."
-source scripts/deploy/lib.sh
-ynx_load_env
-ynx_require_env SERVER_HOST SERVER_USER SSH_KEY_PATH
-ynx_ssh "sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && systemctl --no-pager --full status ynx-chaind && systemctl --no-pager --full status ynx-indexerd && systemctl --no-pager --full status ynx-explorerd && systemctl --no-pager --full status ynx-faucetd"
+
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+ynx_ops_init
+
+restart_node() {
+  local role="$1" user="$2" host="$3" key="$4" kind="$5"
+  local services
+  services="$(ynx_ops_services_for_kind "$kind")"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "echo '== $role $host =='; for service in $services; do sudo systemctl restart \"\$service\"; systemctl --no-pager --full status \"\$service\"; done"
+}
+
+ynx_ops_each_node restart_node

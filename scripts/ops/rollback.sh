@@ -1,9 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/../.."
-source scripts/deploy/lib.sh
-ynx_load_env
-ynx_require_env SERVER_HOST SERVER_USER SSH_KEY_PATH
+
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+ynx_ops_init
 release="${ROLLBACK_RELEASE:-}"
 [[ -n "$release" ]] || { echo "Missing required env: ROLLBACK_RELEASE"; exit 1; }
-ynx_ssh "test -x '/opt/ynx-chain/releases/$release/bin/ynx-chaind' && test -x '/opt/ynx-chain/releases/$release/bin/ynx-indexerd' && test -x '/opt/ynx-chain/releases/$release/bin/ynx-explorerd' && test -x '/opt/ynx-chain/releases/$release/bin/ynx-faucetd' && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-chaind' /usr/local/bin/ynx-chaind && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && systemctl --no-pager --full status ynx-chaind && systemctl --no-pager --full status ynx-indexerd && systemctl --no-pager --full status ynx-explorerd && systemctl --no-pager --full status ynx-faucetd"
+
+rollback_node() {
+  local role="$1" user="$2" host="$3" key="$4" kind="$5"
+  local services
+  services="$(ynx_ops_services_for_kind "$kind")"
+  local checks="test -x '/opt/ynx-chain/releases/$release/bin/ynx-chaind'"
+  local installs="sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-chaind' /usr/local/bin/ynx-chaind"
+  if [[ "$kind" == "full" ]]; then
+    checks="$checks && test -x '/opt/ynx-chain/releases/$release/bin/ynx-indexerd' && test -x '/opt/ynx-chain/releases/$release/bin/ynx-explorerd' && test -x '/opt/ynx-chain/releases/$release/bin/ynx-faucetd'"
+    installs="$installs && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-indexerd' /usr/local/bin/ynx-indexerd && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-explorerd' /usr/local/bin/ynx-explorerd && sudo install -m 0755 '/opt/ynx-chain/releases/$release/bin/ynx-faucetd' /usr/local/bin/ynx-faucetd"
+  fi
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "echo '== $role $host =='; $checks && { $installs; for service in $services; do sudo systemctl restart \"\$service\"; systemctl --no-pager --full status \"\$service\"; done; }"
+}
+
+ynx_ops_each_node rollback_node

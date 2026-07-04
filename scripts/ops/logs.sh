@@ -1,7 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/../.."
-source scripts/deploy/lib.sh
-ynx_load_env
-ynx_require_env SERVER_HOST SERVER_USER SSH_KEY_PATH
-ynx_ssh "journalctl -u ynx-chaind -n ${LINES:-200} --no-pager; journalctl -u ynx-indexerd -n ${LINES:-200} --no-pager; journalctl -u ynx-explorerd -n ${LINES:-200} --no-pager; journalctl -u ynx-faucetd -n ${LINES:-200} --no-pager"
+
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+ynx_ops_init
+
+logs_node() {
+  local role="$1" user="$2" host="$3" key="$4" kind="$5"
+  local services
+  services="$(ynx_ops_services_for_kind "$kind")"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "echo '== $role $host =='; for service in $services; do echo '---' \"\$service\"; journalctl -u \"\$service\" -n ${LINES:-200} --no-pager || true; done"
+}
+
+ynx_ops_each_node logs_node

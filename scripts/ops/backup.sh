@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
-cd "$(dirname "$0")/../.."
-source scripts/deploy/lib.sh
-ynx_load_env
-ynx_require_env SERVER_HOST SERVER_USER SSH_KEY_PATH BACKUP_STORAGE_PATH
+
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+ynx_ops_init
+ynx_require_env BACKUP_STORAGE_PATH
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-ynx_ssh "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar -czf '$BACKUP_STORAGE_PATH/ynx-chain-testnet-$stamp.tar.gz' /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/log/ynx-chain /etc/ynx/ynx-chaind.env /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service 2>/dev/null && sudo ls -lh '$BACKUP_STORAGE_PATH/ynx-chain-testnet-$stamp.tar.gz'"
+
+backup_node() {
+  local role="$1" user="$2" host="$3" key="$4" kind="$5"
+  local name="ynx-chain-testnet-${stamp}-${role}.tar.gz"
+  local extra_paths="/var/lib/ynx-chain/testnet /var/log/ynx-chain /etc/ynx/ynx-chaind.env /etc/systemd/system/ynx-chaind.service"
+  if [[ "$kind" == "full" ]]; then
+    extra_paths="$extra_paths /var/lib/ynx-chain/indexer /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile"
+  fi
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$name' $extra_paths 2>/dev/null && sudo ls -lh '$BACKUP_STORAGE_PATH/$name'"
+}
+
+ynx_ops_each_node backup_node
