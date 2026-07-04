@@ -2,9 +2,10 @@
 
 Local service: `make devnet`; health: `curl /health`; status: `curl /status`; metrics: `curl /metrics`; logs: process stdout.
 
-Remote service:
+Remote deployment and service management:
 
 ```bash
+ENV_FILE=.env.deploy make deploy-testnet
 ENV_FILE=.env.deploy make status
 ENV_FILE=.env.deploy make logs
 ENV_FILE=.env.deploy make restart
@@ -12,7 +13,9 @@ ENV_FILE=.env.deploy make backup
 ROLLBACK_RELEASE=ynx-chain-<commit> ENV_FILE=.env.deploy make rollback
 ```
 
-The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, `/var/lib/ynx-chain/testnet`, `/var/lib/ynx-chain/indexer`, and `/var/log/ynx-chain`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` when nginx is present.
+The deployment first SSH-prechecks the primary, Singapore, Silicon Valley, and Seoul nodes. If any host key, key path, user, or `systemctl` check fails, deployment stops before modifying any remote node. The primary node receives `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd`; Singapore, Silicon Valley, and Seoul receive validator-only `ynx-chaind` installs. Every node captures a pre-deploy status report under `/var/log/ynx-chain/deploy/` and writes a best-effort pre-deploy backup under `BACKUP_STORAGE_PATH` before release files are installed.
+
+The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/var/lib/ynx-chain/testnet`, and `/var/log/ynx-chain` on all nodes. On the primary node it also writes `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, and `/var/lib/ynx-chain/indexer`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` on the primary when nginx is present.
 
 Remote verification:
 
