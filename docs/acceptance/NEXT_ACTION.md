@@ -1,14 +1,12 @@
 # Next Action
 
-Current single action: tighten Trust evidence weighting, reviewer exports, and risk scoring semantics.
+Current single action: harden Pay merchant idempotency, event lookup, and webhook audit semantics.
 
 Why this action:
 
-- Structured Chain Law / Request Validity rules now exist locally and are inspectable through `GET /governance/request-validity-rules`.
-- Governance and tracking review responses now include `ruleIds`.
-- Trust labels now carry source, confidence, evidence hash, expiry, appealability, legal status, dispute status, and advisory-only asset effect metadata.
-- The next correctness gap is making evidence packets and Trust traces explain how label metadata and lot lineage combine into reviewer-facing risk scoring without treating low-confidence taint as fact.
-- This can continue locally while remote SSH/public ingress blockers prevent safe deployment.
+- Trust evidence now exposes reviewer-facing advisory risk summaries with confidence, expiry, appeal path, and non-conclusive label handling.
+- Pay API currently supports intents, invoices, refunds, and webhook signatures, but merchant-grade idempotency and event/audit lookup are still thin.
+- Payment workflows are a core YNX product surface and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
 
 Files to touch:
 
@@ -17,7 +15,6 @@ Files to touch:
 - `internal/api/server.go`
 - `internal/chain/devnet_test.go`
 - `internal/api/server_test.go`
-- `scripts/verify/trust-appeal-check.sh`
 - `scripts/verify/testnet-smoke-test.sh`
 - `docs/api/API_REFERENCE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
@@ -27,10 +24,6 @@ Files to touch:
 Validation commands:
 
 - `make test`
-- `make trust-appeal-check`
-- `make request-validity-check`
-- `make transparency-report-check`
-- `make anti-unreasonable-tracking-check`
 - `make smoke-test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -40,11 +33,11 @@ Validation commands:
 
 Completion standard:
 
-- Evidence packets expose reviewer-facing label metadata and risk scoring notes.
-- Trust trace / evidence output explains confidence, source, expiry, appeal path, and why advisory labels do not freeze or seize assets.
-- Low-confidence or expired labels cannot be presented as conclusive risk.
+- Pay intents, invoices, refunds, and webhook signatures accept and preserve merchant idempotency keys where appropriate.
+- Duplicate idempotency keys return the original object rather than creating conflicting merchant records.
+- Webhook signatures and payment events can be looked up for audit/replay evidence without exposing signing secrets.
 - New checks pass locally.
-- Tracker moves Trust evidence/risk semantics forward honestly without claiming remote proof.
+- Tracker moves Pay API forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

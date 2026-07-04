@@ -816,8 +816,8 @@ func int64Query(r *http.Request, key string) (int64, error) {
 }
 
 func minimalEvidencePDF(packet chain.EvidencePacket) []byte {
-	line := fmt.Sprintf("YNX Trust evidence packet %s subject %s json %s generated %s",
-		packet.ID, packet.Subject, packet.JSONHash, packet.GeneratedAt.Format(time.RFC3339))
+	line := fmt.Sprintf("YNX Trust evidence packet %s subject %s json %s generated %s conclusion %s effectiveRiskBps %d assetEffect %s",
+		packet.ID, packet.Subject, packet.JSONHash, packet.GeneratedAt.Format(time.RFC3339), packet.RiskSummary.Conclusion, packet.RiskSummary.EffectiveRiskWeightBps, packet.RiskSummary.AssetEffect)
 	line = strings.NewReplacer("\\", "\\\\", "(", "\\(", ")", "\\)").Replace(line)
 	stream := fmt.Sprintf("BT /F1 12 Tf 72 720 Td (%s) Tj ET", line)
 	objects := []string{

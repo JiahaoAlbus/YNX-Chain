@@ -3,8 +3,8 @@
 Updated: 2026-07-04
 
 - State snapshot baseline commit: `1a12cc3 Classify remote deployment blockers`
-- Last pushed commit known locally at snapshot time: `1a12cc3`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in structured Request Validity rules, Trust label metadata, check scripts, API docs, tracker, and state files.
+- Last pushed commit known locally before this update: `276235d Add request validity rules and trust label metadata`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in Trust evidence risk summary, reviewer-facing risk notes, check scripts, API docs, tracker, and state files.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
@@ -18,6 +18,7 @@ Completed modules in the chain repo:
 - Anti-Illegal Request Engine now has persistent request intake, classification, rejection, and transparency entries.
 - Request Validity Standard now classifies scoped review, insufficient evidence, overbroad tracking, illegal/abusive requests, governance review, user notice, and rejected states through named rule IDs exposed by `GET /governance/request-validity-rules`.
 - Trust labels now include label ID, address, type, severity, risk weight, confidence, source, evidence hash, update time, expiry, review and appeal metadata, dispute status, legal status, rejected-request reference, and an advisory-only asset effect that rejects freeze/seize/confiscation behavior.
+- Trust evidence packets now include reviewer-facing `riskSummary` with effective advisory risk weight, active/expired/low-confidence label counts, non-conclusive label IDs, active evidence hashes, appeal path, reviewer notes, and advisory-only asset effect. Expired labels and labels below 5000 confidence bps are excluded from active risk scoring.
 - Appeal / Transparency APIs now persist Trust appeals and expose transparency report counts and entries.
 - Appeals can now be resolved with reviewer, decision, updated status, resolution reason, transparency entries, and corrective labels for false-positive removal/reduction.
 - Anti-Unreasonable Tracking now has a dedicated persistent tracking review API with purpose logging, evidence checks, minimum necessary data, sensitive/institutional review, confidence, expiry, appeal path, and transparency entries.
@@ -49,4 +50,4 @@ Current blockers:
 
 Largest real gap that can still be advanced in-repo:
 
-- Tighten Trust evidence weighting, reviewer exports, and risk scoring semantics while remote deployment remains blocked.
+- Harden Pay merchant idempotency, event lookup, and webhook audit semantics while remote deployment remains blocked.

@@ -53,6 +53,10 @@ func TestDevnetAPIFlow(t *testing.T) {
 	if evidence["jsonHash"] == "" {
 		t.Fatalf("expected evidence hash: %v", evidence)
 	}
+	riskSummary := evidence["riskSummary"].(map[string]any)
+	if riskSummary["assetEffect"] != "none_advisory_only" || riskSummary["appealPath"] != "/trust/appeals" || riskSummary["effectiveRiskWeightBps"].(float64) <= 0 {
+		t.Fatalf("expected reviewer-facing risk summary: %v", riskSummary)
+	}
 	doJSON(t, http.MethodGet, server.URL+"/trust/evidence/"+evidence["id"].(string), nil, http.StatusOK, &evidence)
 }
 

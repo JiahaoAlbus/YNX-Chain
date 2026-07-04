@@ -17,9 +17,11 @@ resolved_status=$(printf '%s' "$resolved" | ynx_json_field '["status"]')
 reviewer=$(printf '%s' "$resolved" | ynx_json_field '["reviewer"]')
 [[ "$resolved_status" == "LABEL_REMOVED" ]] || { echo "expected LABEL_REMOVED appeal, got $resolved_status"; exit 1; }
 [[ "$reviewer" == "appeal_reviewer" ]] || { echo "expected appeal reviewer"; exit 1; }
+evidence=$(curl -fsS -X POST "$YNX_REST_URL/trust/evidence" -H 'content-type: application/json' -d '{"subject":"ynx_appeal_subject"}')
+printf '%s' "$evidence" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const summary=data.riskSummary; if (!summary || summary.correctionLabelCount < 1 || summary.assetEffect !== "none_advisory_only" || summary.appealPath !== "/trust/appeals" || !summary.reviewerNotes?.some((note)=>note.includes("Appeal correction"))) { console.error(`expected appeal correction in Trust evidence summary, got ${JSON.stringify(summary)}`); process.exit(1); }'
 report=$(curl -fsS "$YNX_REST_URL/governance/transparency")
 appeals=$(printf '%s' "$report" | ynx_json_field '["appealCount"]')
 [[ "$appeals" -ge 1 ]] || { echo "expected appealCount >= 1"; exit 1; }
 entries=$(printf '%s' "$report" | ynx_json_field '["entryCount"]')
 [[ "$entries" -ge 3 ]] || { echo "expected transparency entries for appeal resolution"; exit 1; }
-echo "trust-appeal-check passed: appeal resolved with false-positive correction and transparency entries"
+echo "trust-appeal-check passed: appeal resolved with false-positive correction, Trust evidence summary, and transparency entries"

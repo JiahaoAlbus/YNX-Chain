@@ -479,7 +479,10 @@ func (d *Devnet) TrustTrace(address string) (TrustTrace, error) {
 	if len(lots) == 0 {
 		labels = append(labels, "no-known-lots")
 	}
-	return TrustTrace{Address: address, Lots: lots, Labels: labels, Summary: "Trace uses lot lineage and pro-rata movement for local devnet balances. It records explainable risk lineage and does not freeze funds."}, nil
+	if len(d.riskLabels[address]) > 0 {
+		labels = append(labels, "advisory-risk-labels-present")
+	}
+	return TrustTrace{Address: address, Lots: lots, Labels: labels, Summary: "Trace uses lot lineage, pro-rata movement, and advisory Trust label metadata. Labels require source, evidence, confidence, expiry, and appealability; they do not freeze, seize, or transfer funds."}, nil
 }
 
 func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL string) (PayIntent, error) {
@@ -726,14 +729,21 @@ func (d *Devnet) EvidencePacket(subject string) (EvidencePacket, error) {
 		}
 	}
 	labels := append([]RiskLabel(nil), d.riskLabels[subject]...)
+	generatedAt := time.Now().UTC()
 	packet := EvidencePacket{
 		ID:          hashParts("evidence", subject, fmt.Sprint(time.Now().UnixNano()))[:24],
 		Subject:     subject,
 		Trace:       trace,
 		Labels:      labels,
+		RiskSummary: trustRiskSummary(subject, labels, generatedAt),
 		RelatedTxs:  related,
-		GeneratedAt: time.Now().UTC(),
-		ExportNotes: []string{"JSON evidence is generated from local devnet state.", "PDF export is a deterministic local evidence rendering for reviewer smoke tests."},
+		GeneratedAt: generatedAt,
+		ExportNotes: []string{
+			"JSON evidence is generated from local devnet state.",
+			"PDF export is a deterministic local evidence rendering for reviewer smoke tests.",
+			"Risk scoring is advisory-only and cannot freeze, seize, confiscate, transfer, or criminally classify assets or users.",
+			"Expired labels and labels below 5000 confidence bps are listed for reviewer context but are not treated as conclusive risk.",
+		},
 	}
 	payload, _ := json.Marshal(packet)
 	packet.JSONHash = hashParts("evidence-json", string(payload))
@@ -1654,6 +1664,76 @@ func newRiskLabelLocked(input RiskLabelInput, now time.Time) RiskLabel {
 	}
 }
 
+func trustRiskSummary(subject string, labels []RiskLabel, now time.Time) TrustRiskSummary {
+	summary := TrustRiskSummary{
+		Subject:     subject,
+		AppealPath:  "/trust/appeals",
+		AssetEffect: "none_advisory_only",
+		Conclusion:  "NO_ACTIVE_CONCLUSIVE_RISK",
+		GeneratedAt: now,
+		ReviewerNotes: []string{
+			"Trust labels are advisory metadata only and cannot freeze, seize, confiscate, transfer, or criminally classify users.",
+			"Reviewers must inspect source, evidence hash, confidence, expiry, and appeal status before relying on any label.",
+		},
+	}
+	for _, label := range labels {
+		if label.RiskWeightBps > summary.HighestLabelRiskWeightBps {
+			summary.HighestLabelRiskWeightBps = label.RiskWeightBps
+		}
+		if label.ConfidenceBps > summary.HighestConfidenceBps {
+			summary.HighestConfidenceBps = label.ConfidenceBps
+		}
+		if label.ExpiresAt != nil && !label.ExpiresAt.After(now) {
+			summary.ExpiredLabelCount++
+			summary.ExpiredLabelIDs = append(summary.ExpiredLabelIDs, label.ID)
+			summary.NonConclusiveLabelIDs = append(summary.NonConclusiveLabelIDs, label.ID)
+			continue
+		}
+		if strings.Contains(label.LabelType, "correction") || strings.Contains(label.Label, "false-positive") || strings.Contains(label.Label, "reduced") {
+			summary.CorrectionLabelCount++
+		}
+		if label.ReviewRequired || label.DisputeStatus == "disputed" || label.DisputeStatus == "under_review" {
+			summary.HasOpenReview = true
+		}
+		if label.ConfidenceBps < 5000 {
+			summary.LowConfidenceLabelCount++
+			summary.NonConclusiveLabelIDs = append(summary.NonConclusiveLabelIDs, label.ID)
+			continue
+		}
+		if label.EvidenceHash != "" && !containsStringValue(summary.ActiveEvidenceHashes, label.EvidenceHash) {
+			summary.ActiveEvidenceHashes = append(summary.ActiveEvidenceHashes, label.EvidenceHash)
+		}
+		summary.ActiveLabelCount++
+		weighted := label.RiskWeightBps * label.ConfidenceBps / 10000
+		if weighted > summary.EffectiveRiskWeightBps {
+			summary.EffectiveRiskWeightBps = weighted
+		}
+	}
+	if summary.ActiveLabelCount > 0 {
+		switch {
+		case summary.EffectiveRiskWeightBps >= 7500:
+			summary.Conclusion = "HIGH_ADVISORY_RISK_REQUIRES_HUMAN_REVIEW"
+		case summary.EffectiveRiskWeightBps >= 1000:
+			summary.Conclusion = "ADVISORY_RISK_REQUIRES_CONTEXT_REVIEW"
+		default:
+			summary.Conclusion = "LOW_ADVISORY_RISK_NOT_CONCLUSIVE"
+		}
+	}
+	if summary.ExpiredLabelCount > 0 {
+		summary.ReviewerNotes = append(summary.ReviewerNotes, "Expired labels are retained for audit history but excluded from active risk scoring.")
+	}
+	if summary.LowConfidenceLabelCount > 0 {
+		summary.ReviewerNotes = append(summary.ReviewerNotes, "Labels below 5000 confidence bps are non-conclusive and cannot be used for punitive decisions.")
+	}
+	if summary.CorrectionLabelCount > 0 {
+		summary.ReviewerNotes = append(summary.ReviewerNotes, "Appeal correction labels reduce or remove prior risk and must be shown to reviewers.")
+	}
+	if summary.HasOpenReview {
+		summary.ReviewerNotes = append(summary.ReviewerNotes, "At least one label requires review or is disputed; use the appeal path before any external action.")
+	}
+	return summary
+}
+
 func severityForRiskWeight(riskWeightBps int64) string {
 	switch {
 	case riskWeightBps >= 7500:
@@ -1667,6 +1747,15 @@ func severityForRiskWeight(riskWeightBps int64) string {
 	default:
 		return "none"
 	}
+}
+
+func containsStringValue(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func isRejectedClassification(status RequestValidityStatus) bool {

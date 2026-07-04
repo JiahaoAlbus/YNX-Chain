@@ -1,6 +1,9 @@
 package chain
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestValidatorSetConfigAndBlockRotation(t *testing.T) {
 	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
@@ -188,6 +191,43 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	}
 	if !restoredContract.Verified {
 		t.Fatal("expected restored contract verification")
+	}
+}
+
+func TestTrustEvidenceRiskSummaryExcludesLowConfidenceAndExpiredLabels(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
+	if _, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "ynx_risk_subject", Label: "reviewed-risk", RiskWeightBps: 8000, ConfidenceBps: 8000, Source: "unit-active", EvidenceHash: "sha256:active", ExpiryHours: 24, ReviewRequired: true}); err != nil {
+		t.Fatal(err)
+	}
+	low, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "ynx_risk_subject", Label: "low-confidence-risk", RiskWeightBps: 9000, ConfidenceBps: 3000, Source: "unit-low", EvidenceHash: "sha256:low", ExpiryHours: 24})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expiredAt := time.Now().UTC().Add(-time.Hour)
+	expired := RiskLabel{ID: "expired_label", Subject: "ynx_risk_subject", Address: "ynx_risk_subject", Label: "expired-risk", LabelType: "risk", Severity: "high", RiskWeightBps: 9000, ConfidenceBps: 9000, Source: "unit-expired", EvidenceHash: "sha256:expired", CreatedAt: expiredAt.Add(-time.Hour), UpdatedAt: expiredAt.Add(-time.Hour), ExpiresAt: &expiredAt, AppealAvailable: true, DisputeStatus: "not_disputed", LegalStatusUnderYNXChainLaw: "advisory_label_only_not_criminal_determination", AssetEffect: "none_advisory_only"}
+	devnet.mu.Lock()
+	devnet.riskLabels["ynx_risk_subject"] = append(devnet.riskLabels["ynx_risk_subject"], expired)
+	devnet.mu.Unlock()
+
+	packet, err := devnet.EvidencePacket("ynx_risk_subject")
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary := packet.RiskSummary
+	if summary.ActiveLabelCount != 1 || summary.LowConfidenceLabelCount != 1 || summary.ExpiredLabelCount != 1 {
+		t.Fatalf("expected active/low/expired counts, got %+v", summary)
+	}
+	if summary.EffectiveRiskWeightBps != 6400 || summary.Conclusion != "ADVISORY_RISK_REQUIRES_CONTEXT_REVIEW" {
+		t.Fatalf("expected weighted advisory risk summary, got %+v", summary)
+	}
+	if !containsString(summary.NonConclusiveLabelIDs, low.ID) || !containsString(summary.NonConclusiveLabelIDs, expired.ID) {
+		t.Fatalf("expected low-confidence and expired labels to be non-conclusive: %+v", summary)
+	}
+	if len(summary.ActiveEvidenceHashes) != 1 || summary.ActiveEvidenceHashes[0] != "sha256:active" {
+		t.Fatalf("expected only active evidence hash, got %+v", summary.ActiveEvidenceHashes)
+	}
+	if summary.AssetEffect != "none_advisory_only" || summary.AppealPath != "/trust/appeals" || !summary.HasOpenReview {
+		t.Fatalf("expected appealable advisory summary, got %+v", summary)
 	}
 }
 

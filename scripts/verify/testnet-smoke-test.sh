@@ -44,6 +44,7 @@ printf '%s\n' "$trust_label"
 printf '%s' "$trust_label" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.labelId || data.assetEffect !== "none_advisory_only" || data.appealAvailable !== true || data.evidenceHash !== "sha256:smoke-test-label") { console.error(`unexpected Trust label metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 evidence=$(curl -fsS -X POST http://127.0.0.1:6420/trust/evidence -H 'content-type: application/json' -d '{"subject":"ynx_smoke_bob"}')
 evidence_id=$(printf '%s' "$evidence" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
+printf '%s' "$evidence" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const summary=data.riskSummary; if (!summary || summary.assetEffect !== "none_advisory_only" || summary.appealPath !== "/trust/appeals" || summary.activeLabelCount < 1 || summary.effectiveRiskWeightBps <= 0 || !summary.reviewerNotes?.some((note)=>note.includes("advisory"))) { console.error(`unexpected Trust evidence risk summary: ${JSON.stringify(summary)}`); process.exit(1); }'
 echo "Trust evidence result: $evidence"
 curl -fsS "http://127.0.0.1:6420/trust/evidence/$evidence_id" >/dev/null
 curl -fsS "http://127.0.0.1:6420/trust/evidence/$evidence_id.pdf" >"$work/evidence.pdf"

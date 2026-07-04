@@ -219,14 +219,35 @@ type RiskLabelInput struct {
 }
 
 type EvidencePacket struct {
-	ID          string        `json:"id"`
-	Subject     string        `json:"subject"`
-	Trace       TrustTrace    `json:"trace"`
-	Labels      []RiskLabel   `json:"riskLabels"`
-	RelatedTxs  []Transaction `json:"relatedTransactions"`
-	JSONHash    string        `json:"jsonHash"`
-	GeneratedAt time.Time     `json:"generatedAt"`
-	ExportNotes []string      `json:"exportNotes"`
+	ID          string           `json:"id"`
+	Subject     string           `json:"subject"`
+	Trace       TrustTrace       `json:"trace"`
+	Labels      []RiskLabel      `json:"riskLabels"`
+	RiskSummary TrustRiskSummary `json:"riskSummary"`
+	RelatedTxs  []Transaction    `json:"relatedTransactions"`
+	JSONHash    string           `json:"jsonHash"`
+	GeneratedAt time.Time        `json:"generatedAt"`
+	ExportNotes []string         `json:"exportNotes"`
+}
+
+type TrustRiskSummary struct {
+	Subject                   string    `json:"subject"`
+	EffectiveRiskWeightBps    int64     `json:"effectiveRiskWeightBps"`
+	HighestLabelRiskWeightBps int64     `json:"highestLabelRiskWeightBps"`
+	HighestConfidenceBps      int64     `json:"highestConfidenceBps"`
+	ActiveLabelCount          int       `json:"activeLabelCount"`
+	ExpiredLabelCount         int       `json:"expiredLabelCount"`
+	LowConfidenceLabelCount   int       `json:"lowConfidenceLabelCount"`
+	CorrectionLabelCount      int       `json:"correctionLabelCount"`
+	HasOpenReview             bool      `json:"hasOpenReview"`
+	AppealPath                string    `json:"appealPath"`
+	AssetEffect               string    `json:"assetEffect"`
+	Conclusion                string    `json:"conclusion"`
+	GeneratedAt               time.Time `json:"generatedAt"`
+	ReviewerNotes             []string  `json:"reviewerNotes"`
+	NonConclusiveLabelIDs     []string  `json:"nonConclusiveLabelIds,omitempty"`
+	ExpiredLabelIDs           []string  `json:"expiredLabelIds,omitempty"`
+	ActiveEvidenceHashes      []string  `json:"activeEvidenceHashes,omitempty"`
 }
 
 type RequestValidityStatus string
