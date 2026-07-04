@@ -14,6 +14,16 @@ ROLLBACK_RELEASE=ynx-chain-<commit> ENV_FILE=.env.deploy make rollback
 
 The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, `/var/lib/ynx-chain/testnet`, `/var/lib/ynx-chain/indexer`, and `/var/log/ynx-chain`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` when nginx is present.
 
+Remote verification:
+
+```bash
+ENV_FILE=.env.deploy make remote-smoke-test
+ENV_FILE=.env.deploy make verify-testnet
+ENV_FILE=.env.deploy make public-proof
+```
+
+`remote-smoke-test` checks the public RPC, EVM RPC, REST, faucet, indexer, explorer, AI Gateway, and Web4 Hub endpoints. It refuses to run mutable proof calls such as faucet funding and Pay/IDE writes until the public endpoints prove they are the new YNX Testnet, not the old `ynx_9102-1` service. `verify-testnet` adds SSH and systemd checks for the primary, Singapore, Silicon Valley, and Seoul nodes and treats SSH host-key changes as blockers. `public-proof` creates a remote evidence package only; failed packages are diagnostics, not completed proof.
+
 Monitoring readiness:
 
 ```bash

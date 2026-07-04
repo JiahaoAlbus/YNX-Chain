@@ -8,5 +8,4 @@ This repository does not claim mainnet launch, exchange listing, stablecoin issu
 
 Run `make setup`, `make test`, and `make smoke-test` to verify the local chain/API loop. Run `make env-check`, `make no-placeholder-check`, `make secret-scan`, and `make preflight` before deployment.
 
-Real deployment values are intentionally not committed. Fill `ENV_INTAKE_FORM.md`, create local `.env` files ignored by git, then run `make deploy-testnet` and `make verify-testnet`.
-
+Real deployment values are intentionally not committed. Fill `ENV_INTAKE_FORM.md`, create local `.env` files ignored by git, then run `make deploy-testnet`, `make remote-smoke-test`, `make verify-testnet`, and `make public-proof`.

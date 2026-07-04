@@ -1,4 +1,4 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test deploy-testnet deploy-dry-run verify-testnet status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check public-proof
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check public-proof
 
 setup:
 	go mod tidy
@@ -29,6 +29,9 @@ integration-test:
 smoke-test:
 	bash ./scripts/verify/testnet-smoke-test.sh
 
+remote-smoke-test:
+	bash ./scripts/verify/remote-smoke-test.sh
+
 deploy-testnet:
 	bash ./scripts/deploy/deploy-testnet.sh
 
@@ -36,7 +39,7 @@ deploy-dry-run:
 	bash ./scripts/deploy/dry-run.sh
 
 verify-testnet:
-	bash ./scripts/verify/testnet-smoke-test.sh
+	bash ./scripts/verify/verify-testnet.sh
 
 status:
 	bash ./scripts/ops/status.sh
