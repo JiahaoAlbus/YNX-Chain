@@ -4,6 +4,7 @@ set -euo pipefail
 make env-check
 make no-placeholder-check
 make secret-scan
+make objective-state-check
 go test ./cmd/... ./internal/...
 make deploy-dry-run
 make ops-check
