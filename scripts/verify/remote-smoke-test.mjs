@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import net from "node:net";
+import tls from "node:tls";
 import { execFileSync } from "node:child_process";
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..");
@@ -18,6 +20,7 @@ const endpoints = {
   rpc: trimSlash(process.env.PUBLIC_RPC_URL || "https://rpc.ynxweb4.com"),
   evm: trimSlash(process.env.PUBLIC_EVM_RPC_URL || "https://evm.ynxweb4.com"),
   rest: trimSlash(process.env.PUBLIC_REST_URL || "https://rest.ynxweb4.com"),
+  grpcHost: String(process.env.PUBLIC_GRPC_HOST || "grpc.ynxweb4.com"),
   faucet: trimSlash(process.env.PUBLIC_FAUCET_URL || "https://faucet.ynxweb4.com"),
   indexer: trimSlash(process.env.PUBLIC_INDEXER_URL || "https://indexer.ynxweb4.com"),
   explorer: trimSlash(process.env.PUBLIC_EXPLORER_URL || "https://explorer.ynxweb4.com"),
@@ -212,6 +215,78 @@ function checkTruthfulServiceHealth(name, json) {
   return ok;
 }
 
+function parseGrpcTarget(value) {
+  const raw = String(value || "").trim();
+  const withScheme = /^[a-z]+:\/\//i.test(raw) ? raw : `grpcs://${raw}`;
+  const parsed = new URL(withScheme);
+  const port = Number(parsed.port || (parsed.protocol === "grpc:" ? 80 : 443));
+  return {
+    host: parsed.hostname,
+    port,
+    tls: parsed.protocol !== "grpc:",
+    raw,
+  };
+}
+
+async function checkGrpcEndpoint() {
+  let target;
+  try {
+    target = parseGrpcTarget(endpoints.grpcHost);
+  } catch (err) {
+    evidence.observed["grpc.endpoint"] = { target: endpoints.grpcHost, error: err.message };
+    record("grpc.endpoint", false, `invalid gRPC target: ${err.message}`, evidence.observed["grpc.endpoint"]);
+    return false;
+  }
+  const observed = {
+    target: target.raw,
+    host: target.host,
+    port: target.port,
+    tls: target.tls,
+  };
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let socket = null;
+    const done = (ok, detail, extra = {}) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (socket && !socket.destroyed) socket.destroy();
+      evidence.observed["grpc.endpoint"] = { ...observed, ...extra };
+      record("grpc.endpoint", ok, detail, evidence.observed["grpc.endpoint"]);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => done(false, `timeout after ${timeoutMs}ms`), timeoutMs);
+    const onError = (err) => done(false, err.message);
+
+    if (target.tls) {
+      socket = tls.connect({
+        host: target.host,
+        port: target.port,
+        servername: target.host,
+        ALPNProtocols: ["h2", "http/1.1"],
+      }, () => {
+        const alpn = socket.alpnProtocol || "";
+        const ok = socket.authorized && alpn === "h2";
+        const detail = ok
+          ? `TLS gRPC reachable with ALPN ${alpn}`
+          : `expected valid TLS with ALPN h2, got authorized=${socket.authorized} alpn=${alpn || "none"}`;
+        socket.end();
+        done(ok, detail, { authorized: socket.authorized, authorizationError: socket.authorizationError || "", alpn });
+      });
+      socket.setTimeout(timeoutMs, () => done(false, `timeout after ${timeoutMs}ms`));
+      socket.once("error", onError);
+    } else {
+      socket = net.connect({ host: target.host, port: target.port }, () => {
+        socket.end();
+        done(true, "plaintext gRPC TCP port reachable");
+      });
+      socket.setTimeout(timeoutMs, () => done(false, `timeout after ${timeoutMs}ms`));
+      socket.once("error", onError);
+    }
+  });
+}
+
 async function main() {
   fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
 
@@ -236,6 +311,7 @@ async function main() {
 
   const restStatus = await getJson("rest.status", `${endpoints.rest}/status`);
   const restChainOk = restStatus ? checkChain("rest.status.chain", restStatus) : false;
+  const grpcOk = await checkGrpcEndpoint();
 
   const faucetHealth = await getJson("faucet.health", `${endpoints.faucet}/health`);
   const faucetChainOk = faucetHealth ? checkChain("faucet.health.chain", faucetHealth) : false;
@@ -268,7 +344,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && evmChainOk && evmBlockOk && restChainOk && faucetChainOk && faucetNativeOk;
+  const publicChainReady = rpcChainOk && grew && validatorsOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE mutations because public endpoints are not verified as the new YNX Testnet", {});
   } else {

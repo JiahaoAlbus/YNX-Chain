@@ -9,6 +9,7 @@ ynx_load_env
 export PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://rpc.ynxweb4.com}"
 export PUBLIC_EVM_RPC_URL="${PUBLIC_EVM_RPC_URL:-https://evm.ynxweb4.com}"
 export PUBLIC_REST_URL="${PUBLIC_REST_URL:-https://rest.ynxweb4.com}"
+export PUBLIC_GRPC_HOST="${PUBLIC_GRPC_HOST:-grpc.ynxweb4.com}"
 export PUBLIC_FAUCET_URL="${PUBLIC_FAUCET_URL:-https://faucet.ynxweb4.com}"
 export PUBLIC_INDEXER_URL="${PUBLIC_INDEXER_URL:-https://indexer.ynxweb4.com}"
 export PUBLIC_EXPLORER_URL="${PUBLIC_EXPLORER_URL:-https://explorer.ynxweb4.com}"
