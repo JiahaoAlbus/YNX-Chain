@@ -34,5 +34,7 @@ for role in primary singapore silicon-valley seoul; do
 done
 grep -Fq "ynx-indexerd" "$out" || { echo "primary full-stack service not covered"; exit 1; }
 grep -Fq "ynx-chain-testnet-" "$out" || { echo "backup path not covered"; exit 1; }
+grep -Fq "/home/ubuntu/.ynx-v2" "$out" || { echo "legacy home data path not covered"; exit 1; }
+grep -Fq "ynx-v2-peer.service" "$out" || { echo "legacy peer service backup not covered"; exit 1; }
 grep -Fq "ynx-chain-test/bin/ynx-chaind" "$out" || { echo "rollback release path not covered"; exit 1; }
 echo "ops-check passed: multi-node status/logs/restart/backup/rollback dry-run paths are wired"

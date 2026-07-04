@@ -75,7 +75,8 @@ GITHUB_REPO_TOKEN=dry-run-github-token
 EOF
 touch "$tmp/ynx_deploy_key" "$tmp/validator_key"
 
-ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 ./scripts/deploy/deploy-testnet.sh
+dry_run_out="$tmp/deploy-dry-run.out"
+ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 ./scripts/deploy/deploy-testnet.sh | tee "$dry_run_out"
 
 commit="$(git rev-parse --short=12 HEAD)"
 release_dir="tmp/deploy/ynx-chain-${commit}"
@@ -85,3 +86,7 @@ if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   exit 1
 fi
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }
+grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || { echo "legacy home data path missing from predeploy backup"; exit 1; }
+grep -Fq "/root/.ynx-v2" "$dry_run_out" || { echo "legacy root data path missing from predeploy backup"; exit 1; }
+grep -Fq "ynx-v2-node.service" "$dry_run_out" || { echo "legacy primary service backup missing"; exit 1; }
+grep -Fq "ynx-v2-peer.service" "$dry_run_out" || { echo "legacy peer service backup missing"; exit 1; }

@@ -299,7 +299,7 @@ ynx_capture_predeploy_state() {
 ynx_backup_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local backup_name="ynx-chain-predeploy-${release}-${role}.tar.gz"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar -czf '$BACKUP_STORAGE_PATH/$backup_name' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile /var/lib/ynx-chain /var/log/ynx-chain 2>/dev/null || true; sudo test -f '$BACKUP_STORAGE_PATH/$backup_name' && sudo ls -lh '$BACKUP_STORAGE_PATH/$backup_name' || true"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$backup_name' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null || true; sudo test -f '$BACKUP_STORAGE_PATH/$backup_name' && sudo ls -lh '$BACKUP_STORAGE_PATH/$backup_name' || true"
 }
 
 ynx_precheck_node_access() {
