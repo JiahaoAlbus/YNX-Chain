@@ -1,17 +1,17 @@
 # Next Action
 
-Current single action: harden remote blocker diagnostics for the current remote failure mode.
+Current single action: turn the classified blocker report into a safe remote recovery checklist and deployment gate.
 
 Why this action:
 
-- Real deployment is blocked by remote SSH connection closures and public endpoint timeouts.
-- The next deploy attempt needs a report that clearly separates host-key mismatch from SSH daemon/network closure and public endpoint downtime.
-- This moves the real remote deployment path forward without weakening host-key safety or pretending public proof exists.
+- The blocker report now separates SSH closed, keyscan anomalies, legacy-chain responses, wrong chain id, endpoint timeouts, and 404s.
+- The next deploy attempt needs a concrete pre-deploy gate that refuses mutation until SSH and public ingress evidence are both coherent.
+- This moves toward real remote deployment without disabling host-key safety or presenting diagnostics as public proof.
 
 Files to touch:
 
 - `scripts/verify/remote-blocker-report.mjs`
-- `scripts/ops/host-key-audit.sh` if raw host-key evidence needs clearer machine-readable output
+- `scripts/verify/verify-testnet.sh` if the classified report exposes a missing pre-deploy gate
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/NEXT_ACTION.md`
 
@@ -24,9 +24,9 @@ Validation commands:
 
 Completion standard:
 
-- `tmp/verify-testnet/REMOTE_BLOCKERS.md` explicitly names whether each node is blocked by host-key mismatch, SSH connection closed/unreachable, or missing evidence.
-- Public endpoint failures are summarized as timeout/unreachable versus wrong legacy chain where evidence supports that distinction.
-- The report still refuses to treat diagnostics as public proof.
+- The next deploy gate clearly says which remote conditions must be fixed before `deploy-testnet` can mutate services.
+- `tmp/verify-testnet/REMOTE_BLOCKERS.md` remains classified and still refuses to treat diagnostics as public proof.
+- `PROJECT_STATE.md` records the latest blocker categories after the verification run.
 
 Explicitly not doing in this action:
 

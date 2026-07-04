@@ -2,10 +2,9 @@
 
 Updated: 2026-07-04
 
-- State snapshot baseline commit: `ef857ce Verify public gRPC endpoint in remote smoke`
-- Last pushed commit known locally at snapshot time: `ef857ce`
-- Latest `git ls-remote` attempt: failed with `LibreSSL SSL_connect: SSL_ERROR_SYSCALL`; local `origin/main` tracking still matches `HEAD`.
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, clean before this state update.
+- State snapshot baseline commit: `7416385 Add continuous objective state gate`
+- Last pushed commit known locally at snapshot time: `7416385`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update only in remote blocker diagnostics and this state file.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
@@ -14,6 +13,7 @@ Completed modules in the chain repo:
 - Deploy, dry-run, verify, ops, backup, rollback, host-key audit, legacy inventory, remote smoke, public proof, and package commands exist.
 - `remote-smoke-test` checks public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, and Web4 endpoints before mutable proof actions.
 - Legacy backup coverage is wired into deployment and ops checks.
+- `remote-blocker-report` classifies node failures and public endpoint failures instead of only pasting raw error blocks.
 
 Incomplete modules or requirements:
 
@@ -25,16 +25,17 @@ Incomplete modules or requirements:
 
 Remote deployment state:
 
-- `make host-key-audit` on 2026-07-04 failed for all four nodes: `ssh-keyscan returned no keys` and strict SSH closed the connection.
-- `remote-smoke-test` evidence generated at `2026-07-04T09:59:11.696Z` failed across public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, and Web4 checks due endpoint timeouts.
+- `make host-key-audit` on 2026-07-04 failed with classified node blockers: primary, Singapore, and Silicon Valley are `ssh-connection-closed`; Seoul is `ssh-strict-ok-keyscan-no-keys`.
+- `remote-smoke-test` evidence generated at `2026-07-04T10:41:00.479Z` failed with a mixed public state: legacy-chain evidence on indexer/Web4, wrong EVM chain id `0x238e`, empty validator set evidence, gRPC/faucet/REST/AI timeouts, and explorer 404s.
+- `remote-blocker-report` generated `tmp/verify-testnet/REMOTE_BLOCKERS.md` with classification summaries for these SSH and public endpoint blockers.
 - This is not public proof.
 
 Current blockers:
 
-- Remote SSH is not currently usable for the four deployment nodes from this machine.
-- Public service endpoints time out, so they cannot prove new-chain readiness.
+- Remote SSH is not currently deployable from this machine: three nodes close the SSH connection, and Seoul passes strict SSH but fails host-key scanning.
+- Public service endpoints still prove old-chain or broken state, not new `ynx_6423-1` readiness.
 - Real deploy env values and secrets are not available in a committed-safe form.
 
 Largest real gap that can still be advanced in-repo:
 
-- Make remote blocker diagnostics precise enough to distinguish host-key mismatch, SSH service unreachable/closed, and public endpoint timeout states, then keep `PROJECT_STATE.md` and `NEXT_ACTION.md` current after each verification run.
+- Restore or confirm remote SSH and public ingress availability, then run backup, deploy, verify-testnet, and public-proof with real `.env.deploy` outside git.
