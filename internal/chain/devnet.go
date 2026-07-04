@@ -64,6 +64,8 @@ type Devnet struct {
 	governanceRequests   map[string]GovernanceRequest
 	trustAppeals         map[string]TrustAppeal
 	trackingReviews      map[string]TrackingPolicyReview
+	aiPermissions        map[string]AIPermissionGrant
+	aiActions            map[string]AIActionProposal
 	transparencyEntries  map[string]TransparencyEntry
 	resourceDelegations  map[string]ResourceDelegation
 	resourceRentals      map[string]ResourceRental
@@ -162,6 +164,8 @@ type devnetSnapshot struct {
 	Governance map[string]GovernanceRequest    `json:"governanceRequests"`
 	Appeals    map[string]TrustAppeal          `json:"trustAppeals"`
 	Tracking   map[string]TrackingPolicyReview `json:"trackingPolicyReviews"`
+	AIPerms    map[string]AIPermissionGrant    `json:"aiPermissions"`
+	AIActions  map[string]AIActionProposal     `json:"aiActions"`
 	Transp     map[string]TransparencyEntry    `json:"transparencyEntries"`
 	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
 	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
@@ -216,6 +220,8 @@ func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet 
 		governanceRequests:  map[string]GovernanceRequest{},
 		trustAppeals:        map[string]TrustAppeal{},
 		trackingReviews:     map[string]TrackingPolicyReview{},
+		aiPermissions:       map[string]AIPermissionGrant{},
+		aiActions:           map[string]AIActionProposal{},
 		transparencyEntries: map[string]TransparencyEntry{},
 		resourceDelegations: map[string]ResourceDelegation{},
 		resourceRentals:     map[string]ResourceRental{},
@@ -1082,6 +1088,179 @@ func (d *Devnet) TrackingPolicyReview(id string) (TrackingPolicyReview, bool) {
 	return review, ok
 }
 
+func (d *Devnet) RequestAIPermission(input AIPermissionInput) (AIPermissionGrant, error) {
+	input.SessionID = strings.TrimSpace(input.SessionID)
+	input.Requester = strings.TrimSpace(input.Requester)
+	input.Scope = normalizeLower(input.Scope)
+	input.Purpose = strings.TrimSpace(input.Purpose)
+	if input.SessionID == "" || input.Requester == "" || input.Scope == "" || input.Purpose == "" {
+		return AIPermissionGrant{}, errors.New("sessionId, requester, scope, and purpose are required")
+	}
+	now := time.Now().UTC()
+	expiryHours := input.ExpiryHours
+	if expiryHours <= 0 {
+		expiryHours = 1
+	}
+	grant := AIPermissionGrant{
+		ID:        hashParts("ai-permission", input.SessionID, input.Requester, input.Scope, fmt.Sprint(now.UnixNano()))[:24],
+		SessionID: input.SessionID,
+		Requester: input.Requester,
+		Scope:     input.Scope,
+		Purpose:   input.Purpose,
+		Status:    "active",
+		CreatedAt: now,
+		ExpiresAt: now.Add(time.Duration(expiryHours) * time.Hour),
+	}
+	grant.AuditHash = hashParts("ai-permission-audit", grant.ID, grant.SessionID, grant.Requester, grant.Scope, grant.Purpose, grant.Status, grant.ExpiresAt.Format(time.RFC3339Nano))
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.aiPermissions[grant.ID] = grant
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return grant, err
+}
+
+func (d *Devnet) AIPermission(id string) (AIPermissionGrant, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	grant, ok := d.aiPermissions[id]
+	return grant, ok
+}
+
+func (d *Devnet) ProposeAIAction(input AIActionProposalInput) (AIActionProposal, error) {
+	input.SessionID = strings.TrimSpace(input.SessionID)
+	input.Requester = strings.TrimSpace(input.Requester)
+	input.Scope = normalizeLower(input.Scope)
+	input.ActionType = normalizeLower(input.ActionType)
+	input.Description = strings.TrimSpace(input.Description)
+	if input.SessionID == "" || input.Requester == "" || input.Scope == "" || input.ActionType == "" || input.Description == "" {
+		return AIActionProposal{}, errors.New("sessionId, requester, scope, actionType, and description are required")
+	}
+	now := time.Now().UTC()
+	expiryHours := input.ExpiryHours
+	if expiryHours <= 0 {
+		expiryHours = 1
+	}
+	sensitive, reasons := classifyAIActionSensitivity(input)
+	proposal := AIActionProposal{
+		ID:               hashParts("ai-action", input.SessionID, input.Requester, input.ActionType, fmt.Sprint(now.UnixNano()))[:24],
+		SessionID:        input.SessionID,
+		Requester:        input.Requester,
+		Scope:            input.Scope,
+		ActionType:       input.ActionType,
+		Description:      input.Description,
+		Status:           "pending_approval",
+		Executable:       false,
+		Sensitive:        sensitive,
+		RequiresApproval: sensitive,
+		Reasons:          reasons,
+		CreatedAt:        now,
+		ExpiresAt:        now.Add(time.Duration(expiryHours) * time.Hour),
+	}
+	if !sensitive {
+		proposal.Status = "logged"
+		proposal.Executable = true
+		proposal.Reasons = []string{"non-sensitive AI action is logged for audit"}
+	}
+	proposal.AuditHash = aiActionAuditHash(proposal)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	classification := RequestRequiresReview
+	if !proposal.RequiresApproval {
+		classification = RequestValidUnderYNXChainLaw
+	}
+	entry := d.newTransparencyEntryLocked("ai_action_proposal", proposal.ID, "", proposal.Requester, proposal.ActionType, classification, proposal.Status, proposal.Reasons)
+	proposal.TransparencyEntryID = entry.ID
+	d.aiActions[proposal.ID] = proposal
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return proposal, err
+}
+
+func (d *Devnet) ApproveAIAction(id string, input AIActionApprovalInput) (AIActionProposal, error) {
+	input.Approver = strings.TrimSpace(input.Approver)
+	input.PermissionID = strings.TrimSpace(input.PermissionID)
+	if strings.TrimSpace(id) == "" || input.Approver == "" || input.PermissionID == "" {
+		return AIActionProposal{}, errors.New("action id, approver, and permissionId are required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	proposal, ok := d.aiActions[id]
+	if !ok {
+		return AIActionProposal{}, errors.New("AI action proposal not found")
+	}
+	if proposal.Status == "approved" && proposal.Executable {
+		return proposal, nil
+	}
+	grant, ok := d.aiPermissions[input.PermissionID]
+	if !ok {
+		return AIActionProposal{}, errors.New("AI permission not found")
+	}
+	if !aiPermissionMatchesAction(grant, proposal, time.Now().UTC()) {
+		return AIActionProposal{}, errors.New("AI permission does not match this action or is expired")
+	}
+	now := time.Now().UTC()
+	proposal.PermissionID = grant.ID
+	proposal.Status = "approved"
+	proposal.Executable = true
+	proposal.ApprovedAt = &now
+	proposal.ApprovedBy = input.Approver
+	proposal.Reasons = appendUnique(proposal.Reasons, "explicit scoped permission approved this sensitive AI action")
+	proposal.AuditHash = aiActionAuditHash(proposal)
+	entry := d.newTransparencyEntryLocked("ai_action_approval", proposal.ID, "", proposal.Requester, proposal.ActionType, RequestRequiresReview, proposal.Status, proposal.Reasons)
+	proposal.TransparencyEntryID = entry.ID
+	d.aiActions[id] = proposal
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return proposal, err
+}
+
+func (d *Devnet) RejectAIAction(id string, input AIActionApprovalInput) (AIActionProposal, error) {
+	input.Approver = strings.TrimSpace(input.Approver)
+	if strings.TrimSpace(id) == "" || input.Approver == "" {
+		return AIActionProposal{}, errors.New("action id and approver are required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	proposal, ok := d.aiActions[id]
+	if !ok {
+		return AIActionProposal{}, errors.New("AI action proposal not found")
+	}
+	now := time.Now().UTC()
+	proposal.Status = "rejected"
+	proposal.Executable = false
+	proposal.RejectedAt = &now
+	proposal.RejectedBy = input.Approver
+	proposal.Reasons = appendUnique(proposal.Reasons, "AI action rejected by explicit reviewer decision")
+	proposal.AuditHash = aiActionAuditHash(proposal)
+	entry := d.newTransparencyEntryLocked("ai_action_rejection", proposal.ID, "", proposal.Requester, proposal.ActionType, RequestRejected, proposal.Status, proposal.Reasons)
+	proposal.TransparencyEntryID = entry.ID
+	d.aiActions[id] = proposal
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return proposal, err
+}
+
+func (d *Devnet) AIAction(id string) (AIActionProposal, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	proposal, ok := d.aiActions[id]
+	return proposal, ok
+}
+
+func (d *Devnet) AIActions(sessionID string) []AIActionProposal {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	actions := make([]AIActionProposal, 0)
+	for _, proposal := range d.aiActions {
+		if sessionID == "" || proposal.SessionID == sessionID {
+			actions = append(actions, proposal)
+		}
+	}
+	sort.Slice(actions, func(i, j int) bool { return actions[i].CreatedAt.Before(actions[j].CreatedAt) })
+	return actions
+}
+
 func (d *Devnet) TransparencyReport() TransparencyReport {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -1460,7 +1639,8 @@ func (d *Devnet) loadSnapshot() error {
 	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.Webhooks, snapshot.PayEvents
 	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
-	d.governanceRequests, d.trustAppeals, d.trackingReviews, d.transparencyEntries = snapshot.Governance, snapshot.Appeals, snapshot.Tracking, snapshot.Transp
+	d.governanceRequests, d.trustAppeals, d.trackingReviews = snapshot.Governance, snapshot.Appeals, snapshot.Tracking
+	d.aiPermissions, d.aiActions, d.transparencyEntries = snapshot.AIPerms, snapshot.AIActions, snapshot.Transp
 	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
@@ -1480,7 +1660,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -1531,6 +1711,12 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.trackingReviews == nil {
 		d.trackingReviews = map[string]TrackingPolicyReview{}
+	}
+	if d.aiPermissions == nil {
+		d.aiPermissions = map[string]AIPermissionGrant{}
+	}
+	if d.aiActions == nil {
+		d.aiActions = map[string]AIActionProposal{}
 	}
 	if d.transparencyEntries == nil {
 		d.transparencyEntries = map[string]TransparencyEntry{}
@@ -1771,6 +1957,46 @@ func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValid
 		return RequestRequiresReview, "pending_review", []string{"institutional, sensitive, or batch tracking requires audit and governance review"}, []string{"tracking-institutional-review"}
 	}
 	return RequestValidUnderYNXChainLaw, "logged", []string{"tracking request is purpose-limited, evidence-backed, scoped, and appealable"}, []string{"tracking-purpose-limited-valid"}
+}
+
+func classifyAIActionSensitivity(input AIActionProposalInput) (bool, []string) {
+	text := normalizeLower(strings.Join([]string{input.Scope, input.ActionType, input.Description}, " "))
+	reasons := []string{}
+	if containsAny(text, "transfer", "send funds", "move value", "withdraw", "refund", "pay", "payment", "settle", "faucet", "mint") {
+		reasons = append(reasons, "AI action may move value or change balances")
+	}
+	if containsAny(text, "trust label", "risk label", "label user", "taint", "appeal decision", "false positive", "tracking conclusion") {
+		reasons = append(reasons, "AI action may affect Trust labels or user risk state")
+	}
+	if containsAny(text, "private", "sensitive data", "personal data", "seed phrase", "private key", "pii", "export evidence", "case file") {
+		reasons = append(reasons, "AI action may expose sensitive data or protected evidence")
+	}
+	if len(reasons) == 0 {
+		return false, []string{"AI action is non-sensitive but remains audit logged"}
+	}
+	return true, append(reasons, "explicit scoped permission is required before execution")
+}
+
+func aiPermissionMatchesAction(grant AIPermissionGrant, proposal AIActionProposal, now time.Time) bool {
+	if grant.Status != "active" || !grant.ExpiresAt.After(now) {
+		return false
+	}
+	if grant.SessionID != proposal.SessionID || grant.Requester != proposal.Requester {
+		return false
+	}
+	return grant.Scope == proposal.Scope || grant.Scope == "all_sensitive_actions"
+}
+
+func aiActionAuditHash(proposal AIActionProposal) string {
+	approvedAt := ""
+	if proposal.ApprovedAt != nil {
+		approvedAt = proposal.ApprovedAt.Format(time.RFC3339Nano)
+	}
+	rejectedAt := ""
+	if proposal.RejectedAt != nil {
+		rejectedAt = proposal.RejectedAt.Format(time.RFC3339Nano)
+	}
+	return hashParts("ai-action-audit", proposal.ID, proposal.SessionID, proposal.Requester, proposal.Scope, proposal.ActionType, proposal.Status, fmt.Sprint(proposal.Executable), proposal.PermissionID, approvedAt, proposal.ApprovedBy, rejectedAt, proposal.RejectedBy, strings.Join(proposal.Reasons, "|"))
 }
 
 func newRiskLabelLocked(input RiskLabelInput, now time.Time) RiskLabel {

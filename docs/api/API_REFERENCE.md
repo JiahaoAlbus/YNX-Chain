@@ -49,6 +49,13 @@ Products:
 - `GET /pay/events`
 - `GET /pay/events/{id}`
 - `GET /ai/stream`
+- `POST /ai/permissions`
+- `GET /ai/permissions/{id}`
+- `POST /ai/actions`
+- `GET /ai/actions`
+- `GET /ai/actions/{id}`
+- `POST /ai/actions/{id}/approve`
+- `POST /ai/actions/{id}/reject`
 - `POST /ide/compile`
 - `POST /ide/deploy`
 - `POST /ide/verify`
@@ -80,3 +87,12 @@ Pay merchant safety:
 - `POST /pay/webhook-signatures` stores replay-auditable metadata: `eventId`, `eventType`, `payloadHash`, `algorithm`, `signedAt`, optional `idempotencyKey`, and `replaySafe`. The signing key is never returned or stored in the response object.
 - `GET /pay/webhook-signatures/{eventId}` returns a stored signature for audit/replay verification.
 - `GET /pay/events?intentId=...` and `GET /pay/events/{id}` return persisted payment audit events with `auditHash`, object id, amount, currency, merchant, and idempotency key metadata.
+
+AI Gateway permission and audit:
+
+- `GET /ai/stream?session=...&q=...` streams session-scoped status and guidance; it does not execute value-moving or Trust-affecting actions.
+- `POST /ai/permissions` creates an explicit scoped permission grant with `sessionId`, `requester`, `scope`, `purpose`, expiry, status, and `auditHash`.
+- `POST /ai/actions` stores an AI action proposal with `sessionId`, `requester`, `scope`, `actionType`, `description`, sensitivity metadata, executable status, reasons, `auditHash`, and transparency entry.
+- Sensitive AI actions include value movement, Trust label/risk-state changes, and sensitive-data or evidence export. They are persisted as `pending_approval` and `executable=false`.
+- `POST /ai/actions/{id}/approve` requires a matching active permission for the same session, requester, and scope before a sensitive action can become `approved` and `executable=true`.
+- `POST /ai/actions/{id}/reject`, `GET /ai/actions?sessionId=...`, and `GET /ai/actions/{id}` expose auditable review state without bypassing YNX Chain Law.

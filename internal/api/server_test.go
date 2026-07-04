@@ -299,6 +299,41 @@ func TestAIStreamIsSessionScoped(t *testing.T) {
 	}
 }
 
+func TestAIPermissionAndActionAuditFlow(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	var proposal map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ai/actions", map[string]any{"sessionId": "ai-api-session", "requester": "merchant_ops", "scope": "trust_label", "actionType": "risk label", "description": "Create a Trust label for a user"}, http.StatusCreated, &proposal)
+	actionID := proposal["id"].(string)
+	if proposal["executable"] != false || proposal["requiresApproval"] != true || proposal["auditHash"] == "" {
+		t.Fatalf("expected non-executable audited AI action: %v", proposal)
+	}
+	var approvalError map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ai/actions/"+actionID+"/approve", map[string]any{"approver": "reviewer_1", "permissionId": "missing"}, http.StatusBadRequest, &approvalError)
+	if approvalError["error"] == "" {
+		t.Fatalf("expected approval error: %v", approvalError)
+	}
+	var permission map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ai/permissions", map[string]any{"sessionId": "ai-api-session", "requester": "merchant_ops", "scope": "trust_label", "purpose": "review scoped label action", "expiryHours": 2}, http.StatusCreated, &permission)
+	if permission["auditHash"] == "" || permission["status"] != "active" {
+		t.Fatalf("expected active AI permission: %v", permission)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/ai/permissions/"+permission["id"].(string), nil, http.StatusOK, &permission)
+	var approved map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ai/actions/"+actionID+"/approve", map[string]any{"approver": "reviewer_1", "permissionId": permission["id"]}, http.StatusOK, &approved)
+	if approved["status"] != "approved" || approved["executable"] != true || approved["permissionId"] != permission["id"] {
+		t.Fatalf("expected approved executable AI action: %v", approved)
+	}
+	var actions map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/ai/actions?sessionId=ai-api-session", nil, http.StatusOK, &actions)
+	if len(actions["actions"].([]any)) != 1 {
+		t.Fatalf("expected one AI action: %v", actions)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/ai/actions/"+actionID, nil, http.StatusOK, &approved)
+}
+
 func TestIDEPreflightTruthfulFailure(t *testing.T) {
 	result := preflightContract("Bad", "function nope() public {}")
 	if result.OK {

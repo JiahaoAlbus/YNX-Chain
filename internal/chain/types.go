@@ -397,6 +397,63 @@ type TrackingPolicyReviewInput struct {
 	ExpiryHours      int64    `json:"expiryHours"`
 }
 
+type AIPermissionGrant struct {
+	ID        string    `json:"id"`
+	SessionID string    `json:"sessionId"`
+	Requester string    `json:"requester"`
+	Scope     string    `json:"scope"`
+	Purpose   string    `json:"purpose"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	AuditHash string    `json:"auditHash"`
+}
+
+type AIPermissionInput struct {
+	SessionID   string `json:"sessionId"`
+	Requester   string `json:"requester"`
+	Scope       string `json:"scope"`
+	Purpose     string `json:"purpose"`
+	ExpiryHours int64  `json:"expiryHours"`
+}
+
+type AIActionProposal struct {
+	ID                  string     `json:"id"`
+	SessionID           string     `json:"sessionId"`
+	Requester           string     `json:"requester"`
+	Scope               string     `json:"scope"`
+	ActionType          string     `json:"actionType"`
+	Description         string     `json:"description"`
+	PermissionID        string     `json:"permissionId,omitempty"`
+	Status              string     `json:"status"`
+	Executable          bool       `json:"executable"`
+	Sensitive           bool       `json:"sensitive"`
+	RequiresApproval    bool       `json:"requiresApproval"`
+	Reasons             []string   `json:"reasons"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	ExpiresAt           time.Time  `json:"expiresAt"`
+	ApprovedAt          *time.Time `json:"approvedAt,omitempty"`
+	ApprovedBy          string     `json:"approvedBy,omitempty"`
+	RejectedAt          *time.Time `json:"rejectedAt,omitempty"`
+	RejectedBy          string     `json:"rejectedBy,omitempty"`
+	AuditHash           string     `json:"auditHash"`
+	TransparencyEntryID string     `json:"transparencyEntryId,omitempty"`
+}
+
+type AIActionProposalInput struct {
+	SessionID   string `json:"sessionId"`
+	Requester   string `json:"requester"`
+	Scope       string `json:"scope"`
+	ActionType  string `json:"actionType"`
+	Description string `json:"description"`
+	ExpiryHours int64  `json:"expiryHours"`
+}
+
+type AIActionApprovalInput struct {
+	Approver     string `json:"approver"`
+	PermissionID string `json:"permissionId"`
+}
+
 type TransparencyEntry struct {
 	ID             string                `json:"id"`
 	Type           string                `json:"type"`

@@ -1,4 +1,4 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan objective-state-check deploy-readiness-gate preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet host-key-audit legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan objective-state-check deploy-readiness-gate preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet host-key-audit legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ai-gateway-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
 
 setup:
 	go mod tidy
@@ -112,6 +112,9 @@ explorer-check:
 
 faucet-check:
 	bash ./scripts/verify/faucet-check.sh
+
+ai-gateway-check:
+	bash ./scripts/verify/ai-gateway-check.sh
 
 ops-check:
 	bash ./scripts/verify/ops-check.sh

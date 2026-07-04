@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: add AI Gateway permission and audit model for sensitive actions.
+Current single action: implement persistent EVM logs/events model for transaction receipts and `eth_getLogs`.
 
 Why this action:
 
-- Pay API now has merchant idempotency, webhook signature lookup, and payment event audit records.
-- AI Gateway currently streams session-scoped status, but it does not yet persist permissions, action proposals, or audit records for sensitive actions.
-- AI-native workflow safety is a core YNX product surface and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
+- AI Gateway now has scoped permissions, sensitive action proposals, approval gating, audit hashes, and smoke coverage.
+- EVM RPC currently returns receipts, but logs are still an empty local subset and the tracker marks `Logs / events` as incomplete.
+- Event persistence is core chain/RPC behavior and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
 
 Files to touch:
 
@@ -24,6 +24,7 @@ Files to touch:
 Validation commands:
 
 - `make test`
+- `make ai-gateway-check`
 - `make smoke-test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -33,11 +34,11 @@ Validation commands:
 
 Completion standard:
 
-- AI sessions can request explicit scoped permissions before sensitive actions.
-- Sensitive AI action proposals are persisted with session, requester, scope, expiry, status, and audit hash.
-- AI actions that move value, affect Trust labels, or expose sensitive data cannot be marked executable without explicit approval.
+- Transactions can persist deterministic EVM-style log records with address, topics, data, block, transaction hash, and log index.
+- `eth_getTransactionReceipt` returns persisted logs for known transactions.
+- `eth_getLogs` filters persisted logs by block range, address, and topics.
 - New checks pass locally.
-- Tracker moves AI Gateway forward honestly without claiming remote proof.
+- Tracker moves Logs / events forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

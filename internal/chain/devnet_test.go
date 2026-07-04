@@ -266,6 +266,59 @@ func TestPayIdempotencyEventsAndPersistence(t *testing.T) {
 	}
 }
 
+func TestAIPermissionsSensitiveActionsAndPersistence(t *testing.T) {
+	dir := t.TempDir()
+	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proposal, err := devnet.ProposeAIAction(AIActionProposalInput{SessionID: "ai-session-1", Requester: "merchant_ops", Scope: "value_movement", ActionType: "transfer", Description: "Move value for a merchant settlement"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !proposal.Sensitive || !proposal.RequiresApproval || proposal.Executable || proposal.Status != "pending_approval" || proposal.AuditHash == "" || proposal.TransparencyEntryID == "" {
+		t.Fatalf("expected non-executable sensitive proposal with audit metadata: %+v", proposal)
+	}
+	if _, err := devnet.ApproveAIAction(proposal.ID, AIActionApprovalInput{Approver: "reviewer_1", PermissionID: "missing"}); err == nil {
+		t.Fatal("expected approval without matching permission to fail")
+	}
+	grant, err := devnet.RequestAIPermission(AIPermissionInput{SessionID: "ai-session-1", Requester: "merchant_ops", Scope: "value_movement", Purpose: "merchant settlement approval", ExpiryHours: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if grant.AuditHash == "" || !grant.ExpiresAt.After(grant.CreatedAt) || grant.Status != "active" {
+		t.Fatalf("expected active audited AI permission: %+v", grant)
+	}
+	approved, err := devnet.ApproveAIAction(proposal.ID, AIActionApprovalInput{Approver: "reviewer_1", PermissionID: grant.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if approved.Status != "approved" || !approved.Executable || approved.PermissionID != grant.ID || approved.ApprovedBy != "reviewer_1" || approved.AuditHash == proposal.AuditHash {
+		t.Fatalf("expected approved executable AI action with refreshed audit hash: %+v", approved)
+	}
+	nonSensitive, err := devnet.ProposeAIAction(AIActionProposalInput{SessionID: "ai-session-1", Requester: "merchant_ops", Scope: "status_read", ActionType: "summarize", Description: "Summarize public chain status"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if nonSensitive.Sensitive || !nonSensitive.Executable || nonSensitive.Status != "logged" {
+		t.Fatalf("expected non-sensitive action to be audit-logged and executable: %+v", nonSensitive)
+	}
+	if len(devnet.AIActions("ai-session-1")) != 2 {
+		t.Fatalf("expected two AI action records")
+	}
+
+	restored, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredGrant, ok := restored.AIPermission(grant.ID); !ok || restoredGrant.AuditHash == "" {
+		t.Fatalf("expected restored AI permission, got %+v ok=%v", restoredGrant, ok)
+	}
+	if restoredAction, ok := restored.AIAction(proposal.ID); !ok || !restoredAction.Executable || restoredAction.PermissionID != grant.ID {
+		t.Fatalf("expected restored approved AI action, got %+v ok=%v", restoredAction, ok)
+	}
+}
+
 func TestTrustEvidenceRiskSummaryExcludesLowConfidenceAndExpiredLabels(t *testing.T) {
 	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
 	if _, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "ynx_risk_subject", Label: "reviewed-risk", RiskWeightBps: 8000, ConfidenceBps: 8000, Source: "unit-active", EvidenceHash: "sha256:active", ExpiryHours: 24, ReviewRequired: true}); err != nil {

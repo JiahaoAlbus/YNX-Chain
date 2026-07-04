@@ -71,6 +71,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /resource-market/rent", s.handleResourceRent)
 	s.mux.HandleFunc("GET /resource-market/income/{address}", s.handleResourceIncome)
 	s.mux.HandleFunc("GET /ai/stream", s.handleAIStream)
+	s.mux.HandleFunc("POST /ai/permissions", s.handleAIPermission)
+	s.mux.HandleFunc("GET /ai/permissions/{id}", s.handleAIPermissionLookup)
+	s.mux.HandleFunc("POST /ai/actions", s.handleAIActionProposal)
+	s.mux.HandleFunc("GET /ai/actions", s.handleAIActions)
+	s.mux.HandleFunc("GET /ai/actions/{id}", s.handleAIActionLookup)
+	s.mux.HandleFunc("POST /ai/actions/{id}/approve", s.handleAIActionApprove)
+	s.mux.HandleFunc("POST /ai/actions/{id}/reject", s.handleAIActionReject)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
@@ -545,6 +552,73 @@ func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	_, _ = fmt.Fprint(w, "event: done\ndata: ok\n\n")
+}
+func (s *Server) handleAIPermission(w http.ResponseWriter, r *http.Request) {
+	var req chain.AIPermissionInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	grant, err := s.devnet.RequestAIPermission(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, grant)
+}
+func (s *Server) handleAIPermissionLookup(w http.ResponseWriter, r *http.Request) {
+	grant, ok := s.devnet.AIPermission(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "AI permission not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, grant)
+}
+func (s *Server) handleAIActionProposal(w http.ResponseWriter, r *http.Request) {
+	var req chain.AIActionProposalInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	proposal, err := s.devnet.ProposeAIAction(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, proposal)
+}
+func (s *Server) handleAIActions(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"actions": s.devnet.AIActions(r.URL.Query().Get("sessionId"))})
+}
+func (s *Server) handleAIActionLookup(w http.ResponseWriter, r *http.Request) {
+	proposal, ok := s.devnet.AIAction(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "AI action proposal not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, proposal)
+}
+func (s *Server) handleAIActionApprove(w http.ResponseWriter, r *http.Request) {
+	var req chain.AIActionApprovalInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	proposal, err := s.devnet.ApproveAIAction(r.PathValue("id"), req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, proposal)
+}
+func (s *Server) handleAIActionReject(w http.ResponseWriter, r *http.Request) {
+	var req chain.AIActionApprovalInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	proposal, err := s.devnet.RejectAIAction(r.PathValue("id"), req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, proposal)
 }
 func (s *Server) handleIDECompile(w http.ResponseWriter, r *http.Request) {
 	var req struct {

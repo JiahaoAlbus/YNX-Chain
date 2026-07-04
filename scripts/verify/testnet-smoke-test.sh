@@ -37,6 +37,16 @@ echo "AI streaming test result:" && curl -fsS 'http://127.0.0.1:6420/ai/stream?s
 curl -fsS 'http://127.0.0.1:6420/ai/stream?session=b&q=status' >"$work/ai-b.txt"
 grep -q 'session b' "$work/ai-b.txt"
 echo "concurrent AI session test result: session scoped"
+ai_action=$(curl -fsS -X POST http://127.0.0.1:6420/ai/actions -H 'content-type: application/json' -d '{"sessionId":"smoke-ai-session","requester":"smoke-merchant","scope":"value_movement","actionType":"transfer","description":"Move value for merchant settlement"}')
+ai_action_id=$(printf '%s' "$ai_action" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
+printf '%s' "$ai_action" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.sensitive || !data.requiresApproval || data.executable || !data.auditHash) { console.error(`AI action gate failed: ${JSON.stringify(data)}`); process.exit(1); }'
+ai_permission=$(curl -fsS -X POST http://127.0.0.1:6420/ai/permissions -H 'content-type: application/json' -d '{"sessionId":"smoke-ai-session","requester":"smoke-merchant","scope":"value_movement","purpose":"approve scoped merchant settlement action","expiryHours":2}')
+ai_permission_id=$(printf '%s' "$ai_permission" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
+printf '%s' "$ai_permission" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.status !== "active" || !data.auditHash) { console.error(`AI permission audit failed: ${JSON.stringify(data)}`); process.exit(1); }'
+ai_approved=$(curl -fsS -X POST "http://127.0.0.1:6420/ai/actions/$ai_action_id/approve" -H 'content-type: application/json' -d "{\"approver\":\"smoke-reviewer\",\"permissionId\":\"$ai_permission_id\"}")
+printf '%s' "$ai_approved" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.status !== "approved" || data.executable !== true || data.permissionId === "") { console.error(`AI approval failed: ${JSON.stringify(data)}`); process.exit(1); }'
+curl -fsS "http://127.0.0.1:6420/ai/actions?sessionId=smoke-ai-session" >/dev/null
+echo "AI permission audit result: $ai_approved"
 echo "Trust trace test result:" && curl -fsS http://127.0.0.1:6420/trust/trace/ynx_smoke_bob
 echo "Trust label result:"
 trust_label=$(curl -fsS -X POST http://127.0.0.1:6420/trust/labels -H 'content-type: application/json' -d '{"subject":"ynx_smoke_bob","label":"smoke-reviewed","labelType":"risk","riskWeightBps":125,"confidenceBps":8100,"source":"smoke-test","evidenceHash":"sha256:smoke-test-label","expiryHours":24,"reviewRequired":true}')
