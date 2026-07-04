@@ -214,6 +214,9 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if !illegal.NativeYNXTProtected || illegal.TransparencyEntryID == "" {
 		t.Fatalf("expected native YNXT protection and transparency entry: %+v", illegal)
 	}
+	if !containsString(illegal.RuleIDs, "native-ynxt-no-direct-freeze") {
+		t.Fatalf("expected native YNXT rule id: %+v", illegal)
+	}
 	report := devnet.TransparencyReport()
 	if report.EntryCount != 1 || report.RejectedCount != 1 {
 		t.Fatalf("expected rejected transparency entry: %+v", report)
@@ -234,6 +237,9 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if review.Classification != RequestRequiresReview || !review.RequiresUserNotice {
 		t.Fatalf("expected governance review classification: %+v", review)
 	}
+	if !containsString(review.RuleIDs, "governance-review-user-rights") {
+		t.Fatalf("expected governance review rule id: %+v", review)
+	}
 	appeal, err := devnet.CreateTrustAppeal(TrustAppealInput{RequestID: review.ID, Subject: "ynx_subject", Appellant: "ynx_subject", Reason: "label is a false positive", Evidence: []string{"wallet ownership proof"}})
 	if err != nil {
 		t.Fatal(err)
@@ -252,12 +258,19 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if len(labels) == 0 || labels[len(labels)-1].Label != "false-positive-corrected" || labels[len(labels)-1].RiskWeightBps != 0 {
 		t.Fatalf("expected false-positive correction label: %+v", labels)
 	}
+	correction := labels[len(labels)-1]
+	if correction.ID == "" || correction.Source != "appeal:"+appeal.ID || correction.EvidenceHash == "" || !correction.AppealAvailable || correction.AssetEffect != "none_advisory_only" || correction.LegalStatusUnderYNXChainLaw == "" {
+		t.Fatalf("expected rich correction label metadata: %+v", correction)
+	}
 	tracking, err := devnet.CreateTrackingPolicyReview(TrackingPolicyReviewInput{Requester: "merchant_risk", Subject: "ynx_subject", Purpose: "single transaction screening", QueryType: "trace", Scope: "single transfer", Description: "purpose limited check", Evidence: []string{"case:42"}, MinimumNecessary: true, ConfidenceBps: 7500, ExpiryHours: 24})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if tracking.Classification != RequestValidUnderYNXChainLaw || tracking.Status != "logged" || tracking.LabelExpiresAt == nil || tracking.AppealPath == "" {
 		t.Fatalf("expected valid tracking review: %+v", tracking)
+	}
+	if !containsString(tracking.RuleIDs, "tracking-purpose-limited-valid") {
+		t.Fatalf("expected tracking rule id: %+v", tracking)
 	}
 	overbroad, err := devnet.CreateTrackingPolicyReview(TrackingPolicyReviewInput{Requester: "merchant_risk", Subject: "ynx_subject", Purpose: "bulk profile all wallets", QueryType: "batch", Scope: "all wallets", Description: "mass tracking", Evidence: []string{"case:bulk"}, MinimumNecessary: false})
 	if err != nil {
@@ -287,4 +300,13 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if report.AppealCount != 1 || report.ReviewCount == 0 {
 		t.Fatalf("expected restored appeal and review counts: %+v", report)
 	}
+}
+
+func containsString(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }

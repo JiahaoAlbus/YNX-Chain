@@ -32,6 +32,7 @@ Products:
 - `GET /governance/requests/{id}`
 - `POST /governance/requests/{id}/review`
 - `POST /governance/requests/{id}/reject`
+- `GET /governance/request-validity-rules`
 - `GET /governance/transparency`
 - `POST /trust/appeals`
 - `GET /trust/appeals/{id}`
@@ -61,7 +62,9 @@ The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, 
 Governance and Trust request safety:
 
 - `POST /governance/requests` stores a lawful-request intake record and classifies it as `VALID_UNDER_YNX_CHAIN_LAW`, `INSUFFICIENT_EVIDENCE`, `OUT_OF_SCOPE`, `OVERBROAD`, `ILLEGAL_OR_ABUSIVE`, `REQUIRES_GOVERNANCE_REVIEW`, `REQUIRES_USER_NOTICE`, or `REJECTED`.
+- `GET /governance/request-validity-rules` returns the named Chain Law / Request Validity rules used by governance and tracking review classification. Request and tracking-review responses include `ruleIds` so a reviewer can inspect why a classification was reached.
 - Native `YNXT` requests cannot directly transfer, freeze, seize, blacklist, or bypass user signatures. Illegal, overbroad, or evidence-free requests are rejected and recorded in the transparency report.
+- `POST /trust/labels` records advisory-only Trust label metadata including `labelId`, `address`, `labelType`, `severity`, `riskWeightBps`, `confidenceBps`, `source`, `evidenceHash`, `expiresAt`, `reviewRequired`, `appealAvailable`, `disputeStatus`, `legalStatusUnderYnxChainLaw`, optional rejected-request reference, and `assetEffect`. `assetEffect` must remain `none_advisory_only`; labels do not freeze, seize, confiscate, transfer, or classify users as criminals.
 - `POST /trust/appeals` opens an appeal record for false-positive correction or dispute review and also creates a transparency entry.
 - `POST /trust/appeals/{id}/resolve` records reviewer, decision, updated status, and resolution reason. Decisions include `UNDER_REVIEW`, `NEEDS_MORE_EVIDENCE`, `ACCEPTED`, `REJECTED`, `LABEL_REMOVED`, and `LABEL_REDUCED`; accepted/removal/reduction decisions add corrective Trust labels rather than freezing or moving funds.
 - `POST /trust/tracking-reviews` records purpose-limited tracking review metadata: requester, subject, purpose, query type, scope, evidence, institutional/sensitive flags, minimum-necessary status, confidence, expiry, classification, and appeal path. Overbroad, evidence-free, sensitive-inference, low-confidence punitive, or audit-bypass tracking requests are rejected or routed to review.

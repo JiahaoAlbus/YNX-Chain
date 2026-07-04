@@ -42,7 +42,12 @@ func TestDevnetAPIFlow(t *testing.T) {
 		t.Fatalf("summary did not count txs: %v", summary)
 	}
 	var label map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/trust/labels", map[string]any{"subject": "ynx_bob", "label": "reviewed", "riskWeightBps": 250, "source": "unit-test"}, http.StatusCreated, &label)
+	doJSON(t, http.MethodPost, server.URL+"/trust/labels", map[string]any{"subject": "ynx_bob", "label": "reviewed", "labelType": "risk", "riskWeightBps": 250, "confidenceBps": 8200, "source": "unit-test", "evidenceHash": "sha256:unit-evidence", "expiryHours": 24, "reviewRequired": true}, http.StatusCreated, &label)
+	if label["labelId"] == "" || label["source"] != "unit-test" || label["evidenceHash"] != "sha256:unit-evidence" || label["assetEffect"] != "none_advisory_only" || label["appealAvailable"] != true {
+		t.Fatalf("expected rich advisory label metadata: %v", label)
+	}
+	var rejected map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/labels", map[string]any{"subject": "ynx_bob", "label": "freeze", "riskWeightBps": 9000, "source": "unit-test", "evidenceHash": "sha256:bad", "assetEffect": "freeze_native_ynxt"}, http.StatusBadRequest, &rejected)
 	var evidence map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/trust/evidence", map[string]any{"subject": "ynx_bob"}, http.StatusCreated, &evidence)
 	if evidence["jsonHash"] == "" {
@@ -176,8 +181,17 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 	if illegal["classification"] != "ILLEGAL_OR_ABUSIVE" || illegal["status"] != "rejected" {
 		t.Fatalf("expected illegal rejected request: %v", illegal)
 	}
+	if !stringSliceContains(illegal["ruleIds"].([]any), "protect-private-secrets") && !stringSliceContains(illegal["ruleIds"].([]any), "native-ynxt-no-direct-freeze") {
+		t.Fatalf("expected illegal request rule id: %v", illegal)
+	}
 	requestID := illegal["id"].(string)
 	doJSON(t, http.MethodGet, server.URL+"/governance/requests/"+requestID, nil, http.StatusOK, &illegal)
+
+	var rules map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/governance/request-validity-rules", nil, http.StatusOK, &rules)
+	if !rulesContain(rules["rules"].([]any), "native-ynxt-no-direct-freeze") || !rulesContain(rules["rules"].([]any), "governance-review-user-rights") {
+		t.Fatalf("expected inspectable request validity rules: %v", rules)
+	}
 
 	var review map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
@@ -191,6 +205,9 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 	}, http.StatusCreated, &review)
 	if review["classification"] != "REQUIRES_GOVERNANCE_REVIEW" {
 		t.Fatalf("expected review classification: %v", review)
+	}
+	if !stringSliceContains(review["ruleIds"].([]any), "governance-review-user-rights") {
+		t.Fatalf("expected governance review rule id: %v", review)
 	}
 	reviewID := review["id"].(string)
 	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+reviewID+"/review", nil, http.StatusOK, &review)
@@ -211,6 +228,9 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 	doJSON(t, http.MethodPost, server.URL+"/trust/tracking-reviews", map[string]any{"requester": "merchant_api", "subject": "ynx_api_subject", "purpose": "single transaction screening", "queryType": "trace", "scope": "single transfer", "description": "purpose limited review", "evidence": []string{"case:api"}, "minimumNecessary": true, "confidenceBps": 7600, "expiryHours": 24}, http.StatusCreated, &tracking)
 	if tracking["classification"] != "VALID_UNDER_YNX_CHAIN_LAW" || tracking["appealPath"] == "" {
 		t.Fatalf("expected valid tracking review: %v", tracking)
+	}
+	if !stringSliceContains(tracking["ruleIds"].([]any), "tracking-purpose-limited-valid") {
+		t.Fatalf("expected tracking rule id: %v", tracking)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/trust/tracking-reviews/"+tracking["id"].(string), nil, http.StatusOK, &tracking)
 	var blockedTracking map[string]any
@@ -283,4 +303,26 @@ func doJSON(t *testing.T, method, url string, body any, expected int, out any) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func stringSliceContains(values []any, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
+}
+
+func rulesContain(values []any, expectedID string) bool {
+	for _, value := range values {
+		rule, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		if rule["id"] == expectedID {
+			return true
+		}
+	}
+	return false
 }

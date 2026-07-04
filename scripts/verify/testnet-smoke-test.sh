@@ -38,7 +38,10 @@ curl -fsS 'http://127.0.0.1:6420/ai/stream?session=b&q=status' >"$work/ai-b.txt"
 grep -q 'session b' "$work/ai-b.txt"
 echo "concurrent AI session test result: session scoped"
 echo "Trust trace test result:" && curl -fsS http://127.0.0.1:6420/trust/trace/ynx_smoke_bob
-echo "Trust label result:" && curl -fsS -X POST http://127.0.0.1:6420/trust/labels -H 'content-type: application/json' -d '{"subject":"ynx_smoke_bob","label":"smoke-reviewed","riskWeightBps":125,"source":"smoke-test"}'
+echo "Trust label result:"
+trust_label=$(curl -fsS -X POST http://127.0.0.1:6420/trust/labels -H 'content-type: application/json' -d '{"subject":"ynx_smoke_bob","label":"smoke-reviewed","labelType":"risk","riskWeightBps":125,"confidenceBps":8100,"source":"smoke-test","evidenceHash":"sha256:smoke-test-label","expiryHours":24,"reviewRequired":true}')
+printf '%s\n' "$trust_label"
+printf '%s' "$trust_label" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.labelId || data.assetEffect !== "none_advisory_only" || data.appealAvailable !== true || data.evidenceHash !== "sha256:smoke-test-label") { console.error(`unexpected Trust label metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 evidence=$(curl -fsS -X POST http://127.0.0.1:6420/trust/evidence -H 'content-type: application/json' -d '{"subject":"ynx_smoke_bob"}')
 evidence_id=$(printf '%s' "$evidence" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
 echo "Trust evidence result: $evidence"

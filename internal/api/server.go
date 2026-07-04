@@ -48,6 +48,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /governance/requests/{id}", s.handleGovernanceRequestLookup)
 	s.mux.HandleFunc("POST /governance/requests/{id}/review", s.handleGovernanceRequestReview)
 	s.mux.HandleFunc("POST /governance/requests/{id}/reject", s.handleGovernanceRequestReject)
+	s.mux.HandleFunc("GET /governance/request-validity-rules", s.handleRequestValidityRules)
 	s.mux.HandleFunc("GET /governance/transparency", s.handleTransparencyReport)
 	s.mux.HandleFunc("POST /trust/appeals", s.handleTrustAppeal)
 	s.mux.HandleFunc("GET /trust/appeals/{id}", s.handleTrustAppealLookup)
@@ -204,16 +205,11 @@ func (s *Server) handleTrustTrace(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, trace)
 }
 func (s *Server) handleTrustLabel(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Subject       string `json:"subject"`
-		Label         string `json:"label"`
-		RiskWeightBps int64  `json:"riskWeightBps"`
-		Source        string `json:"source"`
-	}
+	var req chain.RiskLabelInput
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	label, err := s.devnet.AddRiskLabel(req.Subject, req.Label, req.RiskWeightBps, req.Source)
+	label, err := s.devnet.AddRiskLabelFromInput(req)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -297,6 +293,9 @@ func (s *Server) handleGovernanceRequestReject(w http.ResponseWriter, r *http.Re
 }
 func (s *Server) handleTransparencyReport(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.TransparencyReport())
+}
+func (s *Server) handleRequestValidityRules(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"rules": chain.RequestValidityRules()})
 }
 func (s *Server) handleTrustAppeal(w http.ResponseWriter, r *http.Request) {
 	var req chain.TrustAppealInput

@@ -4,7 +4,7 @@ Updated: 2026-07-04
 
 - State snapshot baseline commit: `1a12cc3 Classify remote deployment blockers`
 - Last pushed commit known locally at snapshot time: `1a12cc3`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in appeal resolution, false-positive correction, Anti-Unreasonable Tracking Policy, check scripts, API docs, package inputs, tracker, and state files.
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in structured Request Validity rules, Trust label metadata, check scripts, API docs, tracker, and state files.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
@@ -16,7 +16,8 @@ Completed modules in the chain repo:
 - `remote-blocker-report` classifies node failures and public endpoint failures instead of only pasting raw error blocks.
 - `deploy-readiness-gate` reads `tmp/verify-testnet/remote-blockers.json` and blocks real `deploy-testnet` mutation when SSH or public ingress evidence is unsafe. `DEPLOY_DRY_RUN=1` skips the gate for local dry-run validation only.
 - Anti-Illegal Request Engine now has persistent request intake, classification, rejection, and transparency entries.
-- Request Validity Standard now classifies scoped review, insufficient evidence, overbroad tracking, illegal/abusive requests, governance review, user notice, and rejected states.
+- Request Validity Standard now classifies scoped review, insufficient evidence, overbroad tracking, illegal/abusive requests, governance review, user notice, and rejected states through named rule IDs exposed by `GET /governance/request-validity-rules`.
+- Trust labels now include label ID, address, type, severity, risk weight, confidence, source, evidence hash, update time, expiry, review and appeal metadata, dispute status, legal status, rejected-request reference, and an advisory-only asset effect that rejects freeze/seize/confiscation behavior.
 - Appeal / Transparency APIs now persist Trust appeals and expose transparency report counts and entries.
 - Appeals can now be resolved with reviewer, decision, updated status, resolution reason, transparency entries, and corrective labels for false-positive removal/reduction.
 - Anti-Unreasonable Tracking now has a dedicated persistent tracking review API with purpose logging, evidence checks, minimum necessary data, sensitive/institutional review, confidence, expiry, appeal path, and transparency entries.
@@ -28,7 +29,7 @@ Incomplete modules or requirements:
 - Four-node remote validator set is not proven live.
 - Public endpoints are not proven to serve the new network.
 - Faucet, explorer, indexer, AI, Pay, Trust, Resource, IDE, governance, appeal, transparency, and website status are not proven against the new remote network.
-- Appeal resolution / false-positive correction is implemented locally but not remotely deployed or publicly proven.
+- Appeal resolution / false-positive correction is implemented locally and now writes rich corrective Trust label metadata, but is not remotely deployed or publicly proven.
 - Anti-unreasonable tracking policy is implemented locally but not remotely deployed or publicly proven.
 - Real `.env.deploy` is not present locally; only env templates are present.
 
@@ -48,4 +49,4 @@ Current blockers:
 
 Largest real gap that can still be advanced in-repo:
 
-- Implement a structured legal-rule registry for Request Validity / Chain Law and expand Trust label source/confidence/expiry schema while remote deployment remains blocked.
+- Tighten Trust evidence weighting, reviewer exports, and risk scoring semantics while remote deployment remains blocked.

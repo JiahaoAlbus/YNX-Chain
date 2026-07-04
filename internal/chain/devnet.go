@@ -25,6 +25,27 @@ const (
 	resourceProtocolShareBps = 2000
 )
 
+var requestValidityRules = []RequestValidityRule{
+	{ID: "protect-private-secrets", Name: "Protect private secrets", Classification: RequestIllegalOrAbusive, Description: "Requests for private keys, seed phrases, or mnemonics are illegal or abusive under YNX Chain Law.", RequiresUserNotice: true, Keywords: []string{"private key", "seed phrase", "mnemonic"}},
+	{ID: "no-signature-bypass", Name: "No signature bypass", Classification: RequestIllegalOrAbusive, Description: "Requests cannot bypass user signatures or custody authorization.", RequiresUserNotice: true, Keywords: []string{"bypass signature", "without signature", "skip signature"}},
+	{ID: "preserve-audit-transparency", Name: "Preserve audit transparency", Classification: RequestIllegalOrAbusive, Description: "Requests cannot delete audit logs, hide records, or erase transparency evidence.", RequiresUserNotice: true, Keywords: []string{"delete audit", "delete logs", "hide record", "remove transparency"}},
+	{ID: "no-evidence-free-risk", Name: "No evidence-free risk conclusions", Classification: RequestIllegalOrAbusive, Description: "Requests cannot fabricate risk labels or unsupported Trust conclusions.", RequiresUserNotice: true, Keywords: []string{"fake risk", "fabricate risk", "unsupported conclusion"}},
+	{ID: "no-ai-punishment", Name: "No AI punishment", Classification: RequestIllegalOrAbusive, Description: "AI or Trust systems cannot automatically punish users.", RequiresUserNotice: true, Keywords: []string{"ai automatically punish", "auto punish", "automatic punish", "automatically punish"}},
+	{ID: "targeted-scope-required", Name: "Targeted scope required", Classification: RequestOverbroad, Description: "Requests must be targeted to a specific subject and evidence set, not all users or all wallets.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"all users", "all wallets", "entire chain", "bulk trace", "mass tracking", "everyone"}},
+	{ID: "native-ynxt-no-direct-freeze", Name: "Native YNXT no direct freeze", Classification: RequestIllegalOrAbusive, Description: "Native YNXT cannot be directly transferred, frozen, seized, confiscated, or blacklisted by request.", RequiresUserNotice: true, Keywords: []string{"direct transfer", "transfer user", "confiscate", "seize", "freeze", "blacklist"}},
+	{ID: "evidence-required", Name: "Evidence required", Classification: RequestInsufficientEvidence, Description: "Requests need evidence references before review or action.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "governance-review-user-rights", Name: "Governance review for user rights", Classification: RequestRequiresReview, Description: "Requests affecting user rights require governance review and user notice.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"freeze", "blacklist", "seize", "punish", "risk label", "risk-label", "track", "trace"}},
+	{ID: "requester-subject-required", Name: "Requester and subject required", Classification: RequestOutOfScope, Description: "Requester and subject are required for a request to be in scope.", RequiresUserNotice: true},
+	{ID: "scoped-evidence-backed-valid", Name: "Scoped evidence-backed valid request", Classification: RequestValidUnderYNXChainLaw, Description: "Request is scoped, evidence-backed, and does not bypass custody or transparency.", RequiresEvidence: true},
+	{ID: "tracking-evidence-required", Name: "Tracking evidence required", Classification: RequestInsufficientEvidence, Description: "Tracking policy reviews need evidence references.", RequiresEvidence: true},
+	{ID: "tracking-minimum-necessary", Name: "Tracking minimum necessary", Classification: RequestOverbroad, Description: "Tracking policy reviews must use minimum necessary data.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "tracking-no-bulk-profiling", Name: "No bulk profiling", Classification: RequestOverbroad, Description: "Tracking cannot profile all users, all wallets, or everyone in bulk.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "tracking-no-unsupported-conclusions", Name: "No unsupported tracking conclusions", Classification: RequestIllegalOrAbusive, Description: "Tracking cannot infer guilt, permanent taint, sensitive personal facts, or bypass audit.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "tracking-low-confidence-not-punitive", Name: "Low confidence is not punitive", Classification: RequestIllegalOrAbusive, Description: "Low-confidence taint cannot be used as a punitive or conclusive action.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "tracking-institutional-review", Name: "Institutional tracking review", Classification: RequestRequiresReview, Description: "Institutional, sensitive, watchlist, or batch tracking requires audit and governance review.", RequiresEvidence: true, RequiresUserNotice: true},
+	{ID: "tracking-purpose-limited-valid", Name: "Purpose-limited valid tracking", Classification: RequestValidUnderYNXChainLaw, Description: "Tracking request is purpose-limited, evidence-backed, scoped, and appealable.", RequiresEvidence: true},
+}
+
 type Devnet struct {
 	mu                   sync.RWMutex
 	cfg                  NetworkConfig
@@ -570,19 +591,115 @@ func (d *Devnet) SignWebhook(intentID, eventType, signingKey string) (WebhookSig
 }
 
 func (d *Devnet) AddRiskLabel(subject, label string, riskWeightBps int64, source string) (RiskLabel, error) {
-	if subject == "" || label == "" {
-		return RiskLabel{}, errors.New("subject and label are required")
+	return d.AddRiskLabelFromInput(RiskLabelInput{
+		Subject:       subject,
+		Label:         label,
+		RiskWeightBps: riskWeightBps,
+		Source:        source,
+		EvidenceHash:  hashParts("legacy-risk-label", subject, label, source),
+	})
+}
+
+func (d *Devnet) AddRiskLabelFromInput(input RiskLabelInput) (RiskLabel, error) {
+	input.Subject = strings.TrimSpace(input.Subject)
+	input.Address = strings.TrimSpace(input.Address)
+	input.Label = strings.TrimSpace(input.Label)
+	input.LabelType = strings.TrimSpace(input.LabelType)
+	input.Severity = strings.TrimSpace(input.Severity)
+	input.Source = strings.TrimSpace(input.Source)
+	input.EvidenceHash = strings.TrimSpace(input.EvidenceHash)
+	input.DisputeStatus = strings.TrimSpace(input.DisputeStatus)
+	input.LegalStatusUnderYNXChainLaw = strings.TrimSpace(input.LegalStatusUnderYNXChainLaw)
+	input.RejectedExternalRequestReference = strings.TrimSpace(input.RejectedExternalRequestReference)
+	input.AssetEffect = strings.TrimSpace(input.AssetEffect)
+	if input.Subject == "" && input.Address != "" {
+		input.Subject = input.Address
 	}
-	if riskWeightBps < 0 || riskWeightBps > 10000 {
+	if input.Address == "" {
+		input.Address = input.Subject
+	}
+	if input.Subject == "" || input.Label == "" {
+		return RiskLabel{}, errors.New("subject/address and label are required")
+	}
+	if input.Source == "" {
+		return RiskLabel{}, errors.New("source is required")
+	}
+	if input.EvidenceHash == "" {
+		return RiskLabel{}, errors.New("evidenceHash is required")
+	}
+	if input.RiskWeightBps < 0 || input.RiskWeightBps > 10000 {
 		return RiskLabel{}, errors.New("riskWeightBps must be between 0 and 10000")
+	}
+	if input.ConfidenceBps < 0 || input.ConfidenceBps > 10000 {
+		return RiskLabel{}, errors.New("confidenceBps must be between 0 and 10000")
+	}
+	if input.ConfidenceBps == 0 {
+		input.ConfidenceBps = 5000
+	}
+	if input.LabelType == "" {
+		input.LabelType = "risk"
+	}
+	if input.Severity == "" {
+		input.Severity = severityForRiskWeight(input.RiskWeightBps)
+	}
+	if input.DisputeStatus == "" {
+		input.DisputeStatus = "not_disputed"
+	}
+	if input.LegalStatusUnderYNXChainLaw == "" {
+		input.LegalStatusUnderYNXChainLaw = "advisory_label_only_not_criminal_determination"
+	}
+	if input.AssetEffect == "" {
+		input.AssetEffect = "none_advisory_only"
+	}
+	if input.AssetEffect != "none_advisory_only" {
+		return RiskLabel{}, errors.New("risk labels cannot freeze, seize, confiscate, or transfer assets")
+	}
+	appealAvailable := true
+	if input.AppealAvailable != nil {
+		appealAvailable = *input.AppealAvailable
+	}
+	if !appealAvailable {
+		return RiskLabel{}, errors.New("appealAvailable must remain true for Trust risk labels")
+	}
+	now := time.Now().UTC()
+	var expiresAt *time.Time
+	if input.ExpiryHours > 0 {
+		expiry := now.Add(time.Duration(input.ExpiryHours) * time.Hour)
+		expiresAt = &expiry
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	risk := RiskLabel{Subject: subject, Label: label, RiskWeightBps: riskWeightBps, Source: source, CreatedAt: time.Now().UTC()}
-	d.riskLabels[subject] = append(d.riskLabels[subject], risk)
+	risk := RiskLabel{
+		ID:                               hashParts("risk-label", input.Subject, input.Label, input.Source, fmt.Sprint(now.UnixNano()))[:24],
+		Subject:                          input.Subject,
+		Address:                          input.Address,
+		Label:                            input.Label,
+		LabelType:                        input.LabelType,
+		Severity:                         input.Severity,
+		RiskWeightBps:                    input.RiskWeightBps,
+		ConfidenceBps:                    input.ConfidenceBps,
+		Source:                           input.Source,
+		EvidenceHash:                     input.EvidenceHash,
+		CreatedAt:                        now,
+		UpdatedAt:                        now,
+		ExpiresAt:                        expiresAt,
+		ReviewRequired:                   input.ReviewRequired,
+		AppealAvailable:                  appealAvailable,
+		DisputeStatus:                    input.DisputeStatus,
+		LegalStatusUnderYNXChainLaw:      input.LegalStatusUnderYNXChainLaw,
+		RejectedExternalRequestReference: input.RejectedExternalRequestReference,
+		AssetEffect:                      input.AssetEffect,
+	}
+	d.riskLabels[input.Subject] = append(d.riskLabels[input.Subject], risk)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return risk, err
+}
+
+func RequestValidityRules() []RequestValidityRule {
+	out := make([]RequestValidityRule, len(requestValidityRules))
+	copy(out, requestValidityRules)
+	return out
 }
 
 func (d *Devnet) EvidencePacket(subject string) (EvidencePacket, error) {
@@ -643,7 +760,7 @@ func (d *Devnet) CreateGovernanceRequest(input GovernanceRequestInput) (Governan
 	if input.Requester == "" || input.Subject == "" || input.Action == "" {
 		return GovernanceRequest{}, errors.New("requester, subject, and action are required")
 	}
-	classification, reasons, notice := classifyGovernanceRequest(input)
+	classification, reasons, notice, ruleIDs := classifyGovernanceRequest(input)
 	now := time.Now().UTC()
 	status := "pending_review"
 	if isRejectedClassification(classification) {
@@ -661,6 +778,7 @@ func (d *Devnet) CreateGovernanceRequest(input GovernanceRequestInput) (Governan
 		Classification:      classification,
 		Status:              status,
 		Reasons:             reasons,
+		RuleIDs:             ruleIDs,
 		RequiresAppeal:      true,
 		RequiresUserNotice:  notice,
 		NativeYNXTProtected: isNativeYNXT(input.AssetType),
@@ -789,11 +907,11 @@ func (d *Devnet) ResolveTrustAppeal(id string, input TrustAppealDecisionInput) (
 	appeal.ResolutionReason = input.ResolutionReason
 	appeal.UpdatedAt = now
 	if input.Decision == "LABEL_REMOVED" || input.Decision == "ACCEPTED" {
-		correction := RiskLabel{Subject: appeal.Subject, Label: "false-positive-corrected", RiskWeightBps: 0, Source: "appeal:" + appeal.ID, CreatedAt: now}
+		correction := newRiskLabelLocked(RiskLabelInput{Subject: appeal.Subject, Address: appeal.Subject, Label: "false-positive-corrected", LabelType: "appeal_correction", Severity: "none", RiskWeightBps: 0, ConfidenceBps: 10000, Source: "appeal:" + appeal.ID, EvidenceHash: hashParts("appeal-resolution", appeal.ID, appeal.ResolutionReason), ReviewRequired: false, DisputeStatus: "resolved", LegalStatusUnderYNXChainLaw: "false_positive_corrected_by_appeal", RejectedExternalRequestReference: appeal.RequestID, AssetEffect: "none_advisory_only"}, now)
 		d.riskLabels[appeal.Subject] = append(d.riskLabels[appeal.Subject], correction)
 	}
 	if input.Decision == "LABEL_REDUCED" {
-		correction := RiskLabel{Subject: appeal.Subject, Label: "risk-reduced-after-appeal", RiskWeightBps: 100, Source: "appeal:" + appeal.ID, CreatedAt: now}
+		correction := newRiskLabelLocked(RiskLabelInput{Subject: appeal.Subject, Address: appeal.Subject, Label: "risk-reduced-after-appeal", LabelType: "appeal_correction", Severity: "low", RiskWeightBps: 100, ConfidenceBps: 10000, Source: "appeal:" + appeal.ID, EvidenceHash: hashParts("appeal-resolution", appeal.ID, appeal.ResolutionReason), ReviewRequired: false, DisputeStatus: "resolved", LegalStatusUnderYNXChainLaw: "risk_reduced_by_appeal_not_criminal_determination", RejectedExternalRequestReference: appeal.RequestID, AssetEffect: "none_advisory_only"}, now)
 		d.riskLabels[appeal.Subject] = append(d.riskLabels[appeal.Subject], correction)
 	}
 	entry := d.newTransparencyEntryLocked("appeal_resolution", appeal.RequestID, appeal.ID, appeal.Subject, "appeal_resolution", RequestRequiresReview, appeal.Status, []string{appeal.ResolutionReason})
@@ -821,7 +939,7 @@ func (d *Devnet) CreateTrackingPolicyReview(input TrackingPolicyReviewInput) (Tr
 	if input.Requester == "" || input.Subject == "" || input.Purpose == "" || input.QueryType == "" {
 		return TrackingPolicyReview{}, errors.New("requester, subject, purpose, and queryType are required")
 	}
-	classification, status, reasons := classifyTrackingPolicyReview(input)
+	classification, status, reasons, ruleIDs := classifyTrackingPolicyReview(input)
 	now := time.Now().UTC()
 	var expiresAt *time.Time
 	if input.ExpiryHours > 0 {
@@ -843,6 +961,7 @@ func (d *Devnet) CreateTrackingPolicyReview(input TrackingPolicyReviewInput) (Tr
 		Classification:   classification,
 		Status:           status,
 		Reasons:          reasons,
+		RuleIDs:          ruleIDs,
 		ConfidenceBps:    input.ConfidenceBps,
 		LabelExpiresAt:   expiresAt,
 		AppealPath:       "/trust/appeals",
@@ -1422,66 +1541,132 @@ func (d *Devnet) newTransparencyEntryLocked(entryType, requestID, appealID, subj
 	return entry
 }
 
-func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool) {
+func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {
 	text := normalizeLower(strings.Join([]string{input.Action, input.AssetType, input.Scope, input.Description}, " "))
 	reasons := []string{}
 	notice := false
 	if containsAny(text, "private key", "private keys", "seed phrase", "seed phrases", "mnemonic") {
-		return RequestIllegalOrAbusive, []string{"request asks for private keys or seed phrases"}, true
+		return RequestIllegalOrAbusive, []string{"request asks for private keys or seed phrases"}, true, []string{"protect-private-secrets"}
 	}
 	if containsAny(text, "bypass signature", "bypass user signature", "without signature", "skip signature") {
-		return RequestIllegalOrAbusive, []string{"request asks to bypass user signatures"}, true
+		return RequestIllegalOrAbusive, []string{"request asks to bypass user signatures"}, true, []string{"no-signature-bypass"}
 	}
 	if containsAny(text, "delete audit", "delete logs", "hide record", "hide request", "erase audit", "remove transparency") {
-		return RequestIllegalOrAbusive, []string{"request asks to delete audit logs or hide request records"}, true
+		return RequestIllegalOrAbusive, []string{"request asks to delete audit logs or hide request records"}, true, []string{"preserve-audit-transparency"}
 	}
 	if containsAny(text, "fake risk", "fabricate risk", "unsupported conclusion", "unsupported conclusions") {
-		return RequestIllegalOrAbusive, []string{"request asks for fake risk labels or unsupported Trust conclusions"}, true
+		return RequestIllegalOrAbusive, []string{"request asks for fake risk labels or unsupported Trust conclusions"}, true, []string{"no-evidence-free-risk"}
 	}
 	if containsAny(text, "ai automatically punish", "auto punish", "automatic punish", "automatically punish") {
-		return RequestIllegalOrAbusive, []string{"request asks AI or Trust to automatically punish users"}, true
+		return RequestIllegalOrAbusive, []string{"request asks AI or Trust to automatically punish users"}, true, []string{"no-ai-punishment"}
 	}
 	if containsAny(text, "all users", "all wallets", "entire chain", "bulk trace", "mass tracking", "everyone") {
-		return RequestOverbroad, []string{"request scope is overbroad and not targeted to a specific subject or evidence set"}, true
+		return RequestOverbroad, []string{"request scope is overbroad and not targeted to a specific subject or evidence set"}, true, []string{"targeted-scope-required"}
 	}
 	if isNativeYNXT(input.AssetType) && containsAny(text, "direct transfer", "transfer user", "confiscate", "seize", "freeze", "blacklist") {
-		return RequestIllegalOrAbusive, []string{"native YNXT cannot be directly transferred, frozen, seized, or blacklisted by request"}, true
+		return RequestIllegalOrAbusive, []string{"native YNXT cannot be directly transferred, frozen, seized, or blacklisted by request"}, true, []string{"native-ynxt-no-direct-freeze"}
 	}
 	if len(cleanStrings(input.Evidence)) == 0 {
-		return RequestInsufficientEvidence, []string{"request has no evidence references"}, true
+		return RequestInsufficientEvidence, []string{"request has no evidence references"}, true, []string{"evidence-required"}
 	}
 	if containsAny(text, "freeze", "blacklist", "seize", "punish", "risk label", "risk-label", "track", "trace") {
 		reasons = append(reasons, "request affects user rights and requires governance review")
 		notice = true
-		return RequestRequiresReview, reasons, notice
+		return RequestRequiresReview, reasons, notice, []string{"governance-review-user-rights"}
 	}
 	if input.Subject == "" || input.Requester == "" {
-		return RequestOutOfScope, []string{"request is missing requester or subject"}, true
+		return RequestOutOfScope, []string{"request is missing requester or subject"}, true, []string{"requester-subject-required"}
 	}
-	return RequestValidUnderYNXChainLaw, []string{"request is scoped, evidence-backed, and does not bypass user custody"}, notice
+	return RequestValidUnderYNXChainLaw, []string{"request is scoped, evidence-backed, and does not bypass user custody"}, notice, []string{"scoped-evidence-backed-valid"}
 }
 
-func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValidityStatus, string, []string) {
+func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValidityStatus, string, []string, []string) {
 	text := normalizeLower(strings.Join([]string{input.Purpose, input.QueryType, input.Scope, input.Description}, " "))
 	if len(cleanStrings(input.Evidence)) == 0 {
-		return RequestInsufficientEvidence, "rejected", []string{"tracking request has no evidence references"}
+		return RequestInsufficientEvidence, "rejected", []string{"tracking request has no evidence references"}, []string{"tracking-evidence-required"}
 	}
 	if !input.MinimumNecessary {
-		return RequestOverbroad, "rejected", []string{"tracking request does not satisfy minimum necessary data limits"}
+		return RequestOverbroad, "rejected", []string{"tracking request does not satisfy minimum necessary data limits"}, []string{"tracking-minimum-necessary"}
 	}
 	if containsAny(text, "all users", "all wallets", "everyone", "bulk profile", "bulk profiling", "mass profile", "mass tracking") {
-		return RequestOverbroad, "rejected", []string{"tracking request is overbroad or asks for bulk user profiling"}
+		return RequestOverbroad, "rejected", []string{"tracking request is overbroad or asks for bulk user profiling"}, []string{"tracking-no-bulk-profiling"}
 	}
 	if containsAny(text, "guilt", "convict", "co-conspirator", "accomplice", "permanent taint", "permanently taint", "sensitive inference", "personal sensitive", "bypass audit") {
-		return RequestIllegalOrAbusive, "rejected", []string{"tracking request asks for unsupported conclusions, sensitive inference, permanent pollution, or audit bypass"}
+		return RequestIllegalOrAbusive, "rejected", []string{"tracking request asks for unsupported conclusions, sensitive inference, permanent pollution, or audit bypass"}, []string{"tracking-no-unsupported-conclusions"}
 	}
 	if input.ConfidenceBps > 0 && input.ConfidenceBps < 5000 && containsAny(text, "punish", "block", "reject", "deny", "freeze") {
-		return RequestIllegalOrAbusive, "rejected", []string{"low-confidence taint cannot be used as punitive or conclusive action"}
+		return RequestIllegalOrAbusive, "rejected", []string{"low-confidence taint cannot be used as punitive or conclusive action"}, []string{"tracking-low-confidence-not-punitive"}
 	}
 	if input.Institutional || input.Sensitive || containsAny(text, "risk list", "watchlist", "batch", "enterprise api", "institutional") {
-		return RequestRequiresReview, "pending_review", []string{"institutional, sensitive, or batch tracking requires audit and governance review"}
+		return RequestRequiresReview, "pending_review", []string{"institutional, sensitive, or batch tracking requires audit and governance review"}, []string{"tracking-institutional-review"}
 	}
-	return RequestValidUnderYNXChainLaw, "logged", []string{"tracking request is purpose-limited, evidence-backed, scoped, and appealable"}
+	return RequestValidUnderYNXChainLaw, "logged", []string{"tracking request is purpose-limited, evidence-backed, scoped, and appealable"}, []string{"tracking-purpose-limited-valid"}
+}
+
+func newRiskLabelLocked(input RiskLabelInput, now time.Time) RiskLabel {
+	appealAvailable := true
+	if input.AppealAvailable != nil {
+		appealAvailable = *input.AppealAvailable
+	}
+	var expiresAt *time.Time
+	if input.ExpiryHours > 0 {
+		expiry := now.Add(time.Duration(input.ExpiryHours) * time.Hour)
+		expiresAt = &expiry
+	}
+	if input.ConfidenceBps == 0 {
+		input.ConfidenceBps = 5000
+	}
+	if input.LabelType == "" {
+		input.LabelType = "risk"
+	}
+	if input.Severity == "" {
+		input.Severity = severityForRiskWeight(input.RiskWeightBps)
+	}
+	if input.DisputeStatus == "" {
+		input.DisputeStatus = "not_disputed"
+	}
+	if input.LegalStatusUnderYNXChainLaw == "" {
+		input.LegalStatusUnderYNXChainLaw = "advisory_label_only_not_criminal_determination"
+	}
+	if input.AssetEffect == "" {
+		input.AssetEffect = "none_advisory_only"
+	}
+	return RiskLabel{
+		ID:                               hashParts("risk-label", input.Subject, input.Label, input.Source, fmt.Sprint(now.UnixNano()))[:24],
+		Subject:                          input.Subject,
+		Address:                          input.Address,
+		Label:                            input.Label,
+		LabelType:                        input.LabelType,
+		Severity:                         input.Severity,
+		RiskWeightBps:                    input.RiskWeightBps,
+		ConfidenceBps:                    input.ConfidenceBps,
+		Source:                           input.Source,
+		EvidenceHash:                     input.EvidenceHash,
+		CreatedAt:                        now,
+		UpdatedAt:                        now,
+		ExpiresAt:                        expiresAt,
+		ReviewRequired:                   input.ReviewRequired,
+		AppealAvailable:                  appealAvailable,
+		DisputeStatus:                    input.DisputeStatus,
+		LegalStatusUnderYNXChainLaw:      input.LegalStatusUnderYNXChainLaw,
+		RejectedExternalRequestReference: input.RejectedExternalRequestReference,
+		AssetEffect:                      input.AssetEffect,
+	}
+}
+
+func severityForRiskWeight(riskWeightBps int64) string {
+	switch {
+	case riskWeightBps >= 7500:
+		return "critical"
+	case riskWeightBps >= 5000:
+		return "high"
+	case riskWeightBps >= 1000:
+		return "medium"
+	case riskWeightBps > 0:
+		return "low"
+	default:
+		return "none"
+	}
 }
 
 func isRejectedClassification(status RequestValidityStatus) bool {

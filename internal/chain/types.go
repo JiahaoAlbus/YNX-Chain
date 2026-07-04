@@ -178,11 +178,44 @@ type WebhookSignature struct {
 }
 
 type RiskLabel struct {
-	Subject       string    `json:"subject"`
-	Label         string    `json:"label"`
-	RiskWeightBps int64     `json:"riskWeightBps"`
-	Source        string    `json:"source"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID                               string     `json:"labelId"`
+	Subject                          string     `json:"subject"`
+	Address                          string     `json:"address"`
+	Label                            string     `json:"label"`
+	LabelType                        string     `json:"labelType"`
+	Severity                         string     `json:"severity"`
+	RiskWeightBps                    int64      `json:"riskWeightBps"`
+	ConfidenceBps                    int64      `json:"confidenceBps"`
+	Source                           string     `json:"source"`
+	EvidenceHash                     string     `json:"evidenceHash"`
+	CreatedAt                        time.Time  `json:"createdAt"`
+	UpdatedAt                        time.Time  `json:"updatedAt"`
+	ExpiresAt                        *time.Time `json:"expiresAt,omitempty"`
+	ReviewRequired                   bool       `json:"reviewRequired"`
+	AppealAvailable                  bool       `json:"appealAvailable"`
+	DisputeStatus                    string     `json:"disputeStatus"`
+	LegalStatusUnderYNXChainLaw      string     `json:"legalStatusUnderYnxChainLaw"`
+	RejectedExternalRequestReference string     `json:"rejectedExternalRequestReference,omitempty"`
+	AssetEffect                      string     `json:"assetEffect"`
+}
+
+type RiskLabelInput struct {
+	Subject                          string `json:"subject"`
+	Address                          string `json:"address"`
+	Label                            string `json:"label"`
+	LabelType                        string `json:"labelType"`
+	Severity                         string `json:"severity"`
+	RiskWeightBps                    int64  `json:"riskWeightBps"`
+	ConfidenceBps                    int64  `json:"confidenceBps"`
+	Source                           string `json:"source"`
+	EvidenceHash                     string `json:"evidenceHash"`
+	ExpiryHours                      int64  `json:"expiryHours"`
+	ReviewRequired                   bool   `json:"reviewRequired"`
+	AppealAvailable                  *bool  `json:"appealAvailable"`
+	DisputeStatus                    string `json:"disputeStatus"`
+	LegalStatusUnderYNXChainLaw      string `json:"legalStatusUnderYnxChainLaw"`
+	RejectedExternalRequestReference string `json:"rejectedExternalRequestReference"`
+	AssetEffect                      string `json:"assetEffect"`
 }
 
 type EvidencePacket struct {
@@ -209,6 +242,16 @@ const (
 	RequestRejected              RequestValidityStatus = "REJECTED"
 )
 
+type RequestValidityRule struct {
+	ID                 string                `json:"id"`
+	Name               string                `json:"name"`
+	Classification     RequestValidityStatus `json:"classification"`
+	Description        string                `json:"description"`
+	RequiresEvidence   bool                  `json:"requiresEvidence"`
+	RequiresUserNotice bool                  `json:"requiresUserNotice"`
+	Keywords           []string              `json:"keywords,omitempty"`
+}
+
 type GovernanceRequest struct {
 	ID                  string                `json:"id"`
 	Requester           string                `json:"requester"`
@@ -221,6 +264,7 @@ type GovernanceRequest struct {
 	Classification      RequestValidityStatus `json:"classification"`
 	Status              string                `json:"status"`
 	Reasons             []string              `json:"reasons"`
+	RuleIDs             []string              `json:"ruleIds"`
 	RequiresAppeal      bool                  `json:"requiresAppeal"`
 	RequiresUserNotice  bool                  `json:"requiresUserNotice"`
 	NativeYNXTProtected bool                  `json:"nativeYnxtProtected"`
@@ -289,6 +333,7 @@ type TrackingPolicyReview struct {
 	Classification      RequestValidityStatus `json:"classification"`
 	Status              string                `json:"status"`
 	Reasons             []string              `json:"reasons"`
+	RuleIDs             []string              `json:"ruleIds"`
 	ConfidenceBps       int64                 `json:"confidenceBps"`
 	LabelExpiresAt      *time.Time            `json:"labelExpiresAt,omitempty"`
 	AppealPath          string                `json:"appealPath"`
