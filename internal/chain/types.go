@@ -111,6 +111,10 @@ type LotFlow struct {
 
 type Validator struct {
 	Address     string `json:"address"`
+	Moniker     string `json:"moniker"`
+	Host        string `json:"host,omitempty"`
+	Role        string `json:"role,omitempty"`
+	PeerID      string `json:"peerId,omitempty"`
 	VotingPower int64  `json:"votingPower"`
 	Active      bool   `json:"active"`
 }

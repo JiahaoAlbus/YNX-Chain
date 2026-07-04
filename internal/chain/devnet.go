@@ -46,6 +46,76 @@ type Devnet struct {
 	lastPersistenceError string
 }
 
+func DefaultValidators() []Validator {
+	return []Validator{{Address: ValidatorAddress, Moniker: "ynx-local-validator-0", VotingPower: 1, Active: true}}
+}
+
+func ParseValidatorSet(raw string) ([]Validator, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	var validators []Validator
+	if strings.HasPrefix(raw, "[") {
+		if err := json.Unmarshal([]byte(raw), &validators); err != nil {
+			return nil, fmt.Errorf("parse YNX_VALIDATOR_SET JSON: %w", err)
+		}
+	} else {
+		for _, item := range strings.Split(raw, ";") {
+			item = strings.TrimSpace(item)
+			if item == "" {
+				continue
+			}
+			parts := strings.Split(item, "|")
+			if len(parts) < 2 {
+				return nil, fmt.Errorf("validator entry %q must use address|moniker|host|role|peerId", item)
+			}
+			validator := Validator{Address: strings.TrimSpace(parts[0]), Moniker: strings.TrimSpace(parts[1]), VotingPower: 1, Active: true}
+			if len(parts) > 2 {
+				validator.Host = strings.TrimSpace(parts[2])
+			}
+			if len(parts) > 3 {
+				validator.Role = strings.TrimSpace(parts[3])
+			}
+			if len(parts) > 4 {
+				validator.PeerID = strings.TrimSpace(parts[4])
+			}
+			validators = append(validators, validator)
+		}
+	}
+	return NormalizeValidators(validators)
+}
+
+func NormalizeValidators(validators []Validator) ([]Validator, error) {
+	if len(validators) == 0 {
+		return nil, nil
+	}
+	out := make([]Validator, 0, len(validators))
+	seen := map[string]struct{}{}
+	for i, validator := range validators {
+		validator.Address = strings.TrimSpace(validator.Address)
+		validator.Moniker = strings.TrimSpace(validator.Moniker)
+		validator.Host = strings.TrimSpace(validator.Host)
+		validator.Role = strings.TrimSpace(validator.Role)
+		validator.PeerID = strings.TrimSpace(validator.PeerID)
+		if validator.Address == "" {
+			return nil, fmt.Errorf("validator %d address is required", i)
+		}
+		if validator.Moniker == "" {
+			return nil, fmt.Errorf("validator %s moniker is required", validator.Address)
+		}
+		if _, ok := seen[validator.Address]; ok {
+			return nil, fmt.Errorf("duplicate validator address %s", validator.Address)
+		}
+		seen[validator.Address] = struct{}{}
+		if validator.VotingPower <= 0 {
+			validator.VotingPower = 1
+		}
+		out = append(out, validator)
+	}
+	return out, nil
+}
+
 type devnetSnapshot struct {
 	Version    int                             `json:"version"`
 	SavedAt    time.Time                       `json:"savedAt"`
@@ -79,7 +149,26 @@ func DefaultNetworkConfig(slug string) NetworkConfig {
 	return base
 }
 
+func TruthfulStatus(cfg NetworkConfig) string {
+	switch cfg.Slug {
+	case "mainnet":
+		return "ynx-mainnet-node"
+	case "testnet":
+		return "ynx-testnet-node"
+	default:
+		return "local-devnet"
+	}
+}
+
 func NewDevnet(cfg NetworkConfig) *Devnet {
+	return NewDevnetWithValidators(cfg, nil)
+}
+
+func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet {
+	normalized, err := NormalizeValidators(validators)
+	if err != nil || len(normalized) == 0 {
+		normalized = DefaultValidators()
+	}
 	d := &Devnet{
 		cfg:                 cfg,
 		accounts:            map[string]*Account{},
@@ -93,26 +182,38 @@ func NewDevnet(cfg NetworkConfig) *Devnet {
 		resourceRentals:     map[string]ResourceRental{},
 		resourceIncome:      map[string]ResourceIncomeRecord{},
 		contracts:           map[string]ContractArtifact{},
-		validators:          []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}},
+		validators:          normalized,
 	}
 	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
-	d.accounts[ValidatorAddress] = &Account{Address: ValidatorAddress, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
+	for _, validator := range normalized {
+		d.accounts[validator.Address] = &Account{Address: validator.Address, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
+	}
 	d.accounts[ProtocolResourceProvider] = &Account{Address: ProtocolResourceProvider, Balance: 0, Staked: 10_000_000, Lots: map[string]int64{}}
 	d.accounts[ProtocolResourceTreasury] = &Account{Address: ProtocolResourceTreasury, Balance: 0, Lots: map[string]int64{}}
 	d.blocks = append(d.blocks, Block{
-		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: ValidatorAddress,
+		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: normalized[0].Address,
 	})
 	return d
 }
 
 func NewPersistentDevnet(cfg NetworkConfig, dataDir string) (*Devnet, error) {
+	return NewPersistentDevnetWithValidators(cfg, dataDir, nil)
+}
+
+func NewPersistentDevnetWithValidators(cfg NetworkConfig, dataDir string, validators []Validator) (*Devnet, error) {
 	if strings.TrimSpace(dataDir) == "" {
-		return NewDevnet(cfg), nil
+		return NewDevnetWithValidators(cfg, validators), nil
 	}
-	d := NewDevnet(cfg)
+	d := NewDevnetWithValidators(cfg, validators)
 	d.dataDir = dataDir
 	if err := d.loadSnapshot(); err != nil {
 		return nil, err
+	}
+	if normalized, err := NormalizeValidators(validators); err != nil {
+		return nil, err
+	} else if len(normalized) > 0 {
+		d.validators = normalized
+		d.ensureValidatorAccountsLocked()
 	}
 	if err := d.persistSnapshot(); err != nil {
 		return nil, err
@@ -149,7 +250,7 @@ func (d *Devnet) Status() map[string]any {
 		"height": latest.Height, "latestBlockHash": latest.Hash, "latestBlockTime": latest.Time,
 		"validatorCount": len(d.validators), "pendingTxCount": len(d.pending),
 		"persistence": d.dataDir != "", "persistenceError": d.lastPersistenceError,
-		"truthfulStatus": "local-devnet", "mainnetReady": false,
+		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
 }
@@ -162,7 +263,7 @@ func (d *Devnet) ExplorerSummary() ExplorerSummary {
 	for _, block := range d.blocks {
 		totalTxs += len(block.Transactions)
 	}
-	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), InvoiceCount: len(d.invoices), TrustEvidenceCount: len(d.evidencePackets), ContractCount: len(d.contracts), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: "local-devnet"}
+	return ExplorerSummary{Network: d.cfg, Height: latest.Height, LatestBlockHash: latest.Hash, LatestBlockTime: latest.Time, TotalBlocks: len(d.blocks), TotalTransactions: totalTxs, KnownAccounts: len(d.accounts), ValidatorCount: len(d.validators), PendingTxCount: len(d.pending), PayIntentCount: len(d.payIntents), InvoiceCount: len(d.invoices), TrustEvidenceCount: len(d.evidencePackets), ContractCount: len(d.contracts), PersistenceEnabled: d.dataDir != "", PersistenceError: d.lastPersistenceError, TruthfulStatus: TruthfulStatus(d.cfg)}
 }
 
 func (d *Devnet) LatestBlock() Block {
@@ -284,7 +385,7 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	sender.Nonce++
 	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += amount
-	d.account(ValidatorAddress).Balance += fee
+	d.account(d.nextValidatorAddressLocked()).Balance += fee
 	tx := d.newTxLocked("transfer", from, to, amount, fee, flows, "native transfer")
 	d.pending = append(d.pending, tx)
 	err = d.persistSnapshotLocked()
@@ -771,7 +872,8 @@ func (d *Devnet) ProduceBlock() Block {
 	parent := d.blocks[len(d.blocks)-1]
 	txs := append([]Transaction(nil), d.pending...)
 	d.pending = nil
-	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs))), ParentHash: parent.Hash, Time: time.Now().UTC(), Validator: ValidatorAddress, Transactions: txs}
+	validator := d.nextValidatorAddressLocked()
+	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs)), validator), ParentHash: parent.Hash, Time: time.Now().UTC(), Validator: validator, Transactions: txs}
 	for i := range block.Transactions {
 		block.Transactions[i].BlockHash = block.Hash
 		block.Transactions[i].BlockNum = block.Height
@@ -788,6 +890,38 @@ func (d *Devnet) account(address string) *Account {
 		d.accounts[address] = account
 	}
 	return account
+}
+
+func (d *Devnet) nextValidatorAddressLocked() string {
+	if len(d.validators) == 0 {
+		return ValidatorAddress
+	}
+	active := make([]Validator, 0, len(d.validators))
+	for _, validator := range d.validators {
+		if validator.Active {
+			active = append(active, validator)
+		}
+	}
+	if len(active) == 0 {
+		return d.validators[0].Address
+	}
+	blockIndex := len(d.blocks) - 1
+	if blockIndex < 0 {
+		blockIndex = 0
+	}
+	return active[blockIndex%len(active)].Address
+}
+
+func (d *Devnet) ensureValidatorAccountsLocked() {
+	for _, validator := range d.validators {
+		account := d.account(validator.Address)
+		if account.Staked == 0 {
+			account.Staked = validator.VotingPower * 10_000_000
+		}
+		if account.Balance == 0 {
+			account.Balance = 10_000_000
+		}
+	}
 }
 
 func (d *Devnet) accountReadOnly(address string) *Account {
@@ -910,7 +1044,15 @@ func (d *Devnet) ensureStateDefaults() {
 		d.contracts = map[string]ContractArtifact{}
 	}
 	if len(d.validators) == 0 {
-		d.validators = []Validator{{Address: ValidatorAddress, VotingPower: 1, Active: true}}
+		d.validators = DefaultValidators()
+	}
+	for i := range d.validators {
+		if strings.TrimSpace(d.validators[i].Moniker) == "" {
+			d.validators[i].Moniker = fmt.Sprintf("ynx-validator-%d", i)
+		}
+		if d.validators[i].VotingPower <= 0 {
+			d.validators[i].VotingPower = 1
+		}
 	}
 	for _, account := range d.accounts {
 		if account.Lots == nil {
@@ -923,6 +1065,7 @@ func (d *Devnet) ensureStateDefaults() {
 	if _, ok := d.accounts[ProtocolResourceTreasury]; !ok {
 		d.accounts[ProtocolResourceTreasury] = &Account{Address: ProtocolResourceTreasury, Balance: 0, Lots: map[string]int64{}}
 	}
+	d.ensureValidatorAccountsLocked()
 }
 
 func (d *Devnet) recordPersistenceErrorLocked(err error) {

@@ -21,7 +21,11 @@ func main() {
 	flag.Parse()
 
 	cfg := chain.DefaultNetworkConfig(*network)
-	devnet, err := chain.NewPersistentDevnet(cfg, *dataDir)
+	validators, err := chain.ParseValidatorSet(os.Getenv("YNX_VALIDATOR_SET"))
+	if err != nil {
+		log.Fatalf("invalid YNX_VALIDATOR_SET: %v", err)
+	}
+	devnet, err := chain.NewPersistentDevnetWithValidators(cfg, *dataDir, validators)
 	if err != nil {
 		log.Fatal(err)
 	}

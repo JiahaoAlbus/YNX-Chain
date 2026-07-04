@@ -67,8 +67,9 @@ func (s *Server) routes() {
 
 func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-YNX-Network", s.devnet.Config().Slug)
-		w.Header().Set("X-YNX-Truthful-Status", "local-devnet")
+		cfg := s.devnet.Config()
+		w.Header().Set("X-YNX-Network", cfg.Slug)
+		w.Header().Set("X-YNX-Truthful-Status", chain.TruthfulStatus(cfg))
 		next.ServeHTTP(w, r)
 	})
 }

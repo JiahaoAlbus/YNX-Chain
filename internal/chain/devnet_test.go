@@ -2,6 +2,27 @@ package chain
 
 import "testing"
 
+func TestValidatorSetConfigAndBlockRotation(t *testing.T) {
+	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := NewDevnetWithValidators(DefaultNetworkConfig("testnet"), validators)
+	got := devnet.Validators()
+	if len(got) != 3 {
+		t.Fatalf("expected 3 validators, got %+v", got)
+	}
+	if got[0].Moniker != "primary" || got[0].Host != "43.153.202.237" || got[0].PeerID != "peer-primary" {
+		t.Fatalf("validator metadata not preserved: %+v", got[0])
+	}
+	first := devnet.ProduceBlock()
+	second := devnet.ProduceBlock()
+	third := devnet.ProduceBlock()
+	if first.Validator != "ynx_val_primary" || second.Validator != "ynx_val_sg" || third.Validator != "ynx_val_sv" {
+		t.Fatalf("expected validator rotation, got %s %s %s", first.Validator, second.Validator, third.Validator)
+	}
+}
+
 func TestStakeIncreasesResources(t *testing.T) {
 	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
 	if _, err := devnet.Faucet("ynx_staker", 500); err != nil {

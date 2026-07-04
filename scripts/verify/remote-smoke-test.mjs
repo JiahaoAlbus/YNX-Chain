@@ -185,7 +185,9 @@ function checkValidators(json) {
   );
   const hasAddresses = active.every((validator) => typeof validator.address === "string" && validator.address.length > 0);
   record("rpc.validators.addresses", hasAddresses, hasAddresses ? "all validators have addresses" : "one or more validators lack address", { validators });
-  return ok && hasAddresses;
+  const hasMonikers = active.length > 0 && active.every((validator) => typeof validator.moniker === "string" && validator.moniker.length > 0);
+  record("rpc.validators.monikers", hasMonikers, hasMonikers ? "all validators have monikers" : "one or more validators lack moniker", { validators });
+  return ok && hasAddresses && hasMonikers;
 }
 
 function checkEvmResult(name, json, expectedValue) {
