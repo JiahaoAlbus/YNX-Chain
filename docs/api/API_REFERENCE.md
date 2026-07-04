@@ -8,6 +8,8 @@ Indexer service: `ynx-indexerd` reads the chain RPC, persists indexed blocks and
 
 Explorer service: `ynx-explorerd` reads both RPC and indexer sources and serves the reviewer-facing Explorer web/API surface. It exposes `GET /health`, `GET /metrics`, `GET /api/summary`, `GET /api/blocks/latest`, `GET /api/blocks/{height}`, `GET /api/txs`, `GET /api/txs/{hash}`, `GET /api/accounts/{address}`, `GET /api/tokens/YNXT`, `GET /api/validators`, `GET /api/resources/{address}`, `GET /api/resource-market/analytics`, `GET /api/fees/{hash}`, and `GET /api/search?q=...`. The web UI uses the same `/api/*` endpoints and the wallet metadata reports native currency `YNXT`.
 
+Faucet service: `ynx-faucetd` is the public faucet backend. It requires `FAUCET_PRIVATE_KEY` from env, validates YNX/EVM addresses, enforces per IP/address rate limits, writes a JSONL request log, calls the chain RPC to fund YNXT, and exposes `GET /health`, `GET /metrics`, `POST /request`, and `POST /faucet`.
+
 Products:
 
 - `POST /faucet`
@@ -42,4 +44,4 @@ Verification:
 make smoke-test
 ```
 
-The smoke test exercises RPC health, EVM chainId, block growth, faucet, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, and package lists. It returns non-zero on failure.
+The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.

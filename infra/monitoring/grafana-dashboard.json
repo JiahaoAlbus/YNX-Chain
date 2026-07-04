@@ -59,6 +59,16 @@
       "title": "Explorer Visible Transactions",
       "gridPos": { "x": 12, "y": 15, "w": 6, "h": 4 },
       "targets": [{ "expr": "ynx_explorer_transactions_total", "legendFormat": "indexed tx" }]
+    },
+    {
+      "type": "timeseries",
+      "title": "Faucet Requests",
+      "gridPos": { "x": 18, "y": 15, "w": 6, "h": 7 },
+      "targets": [
+        { "expr": "ynx_faucet_requests_total", "legendFormat": "requests" },
+        { "expr": "ynx_faucet_success_total", "legendFormat": "success" },
+        { "expr": "ynx_faucet_denied_total", "legendFormat": "denied" }
+      ]
     }
   ]
 }

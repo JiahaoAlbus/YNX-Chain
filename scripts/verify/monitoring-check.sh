@@ -34,6 +34,9 @@ grep -Fq "ynx-indexerd:6426" infra/monitoring/prometheus.yml
 grep -Fq "YNXIndexerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-explorerd:6427" infra/monitoring/prometheus.yml
 grep -Fq "YNXExplorerLagging" infra/monitoring/ynx-alerts.yml
+grep -Fq "ynx-faucetd:6428" infra/monitoring/prometheus.yml
+grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml
+grep -Fq "ynx_faucet_requests_total" infra/monitoring/grafana-dashboard.json
 grep -Fq "prom/prometheus" infra/docker/docker-compose.yml
 grep -Fq "grafana/grafana" infra/docker/docker-compose.yml
 grep -Fq "MONITORING_ADMIN_PASSWORD" infra/docker/docker-compose.yml

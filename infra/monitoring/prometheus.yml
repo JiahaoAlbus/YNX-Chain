@@ -30,3 +30,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-explorerd
+  - job_name: ynx-faucetd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-faucetd:6428
+        labels:
+          network: ynx-testnet
+          service: ynx-faucetd

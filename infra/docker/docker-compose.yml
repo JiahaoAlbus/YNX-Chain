@@ -40,12 +40,33 @@ services:
     ports:
       - "6427:6427"
 
+  ynx-faucetd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-faucetd.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      FAUCET_PRIVATE_KEY: local-compose-faucet-key
+      YNX_FAUCET_RPC_URL: http://ynx-chaind:6420
+      YNX_FAUCET_HTTP_ADDR: 0.0.0.0:6428
+      YNX_FAUCET_REQUEST_LOG: /var/log/ynx-faucet/requests.jsonl
+      YNX_FAUCET_DEFAULT_AMOUNT: "100"
+      YNX_FAUCET_MAX_AMOUNT: "100"
+      YNX_FAUCET_RATE_LIMIT_WINDOW: 1h
+      YNX_FAUCET_RATE_LIMIT_MAX: "1"
+    ports:
+      - "6428:6428"
+    volumes:
+      - ynx-faucet-logs:/var/log/ynx-faucet
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
       - ynx-chaind
       - ynx-indexerd
       - ynx-explorerd
+      - ynx-faucetd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -69,3 +90,4 @@ services:
 
 volumes:
   ynx-indexer-data:
+  ynx-faucet-logs:

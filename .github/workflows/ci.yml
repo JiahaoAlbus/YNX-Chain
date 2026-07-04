@@ -22,6 +22,7 @@ jobs:
       - run: make monitoring-check
       - run: make indexer-check
       - run: make explorer-check
+      - run: make faucet-check
       - run: make deploy-dry-run
       - run: make smoke-test
       - run: make grant-package

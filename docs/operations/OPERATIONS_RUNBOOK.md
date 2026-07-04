@@ -12,7 +12,7 @@ ENV_FILE=.env.deploy make backup
 ROLLBACK_RELEASE=ynx-chain-<commit> ENV_FILE=.env.deploy make rollback
 ```
 
-The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/var/lib/ynx-chain/testnet`, `/var/lib/ynx-chain/indexer`, and `/var/log/ynx-chain`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` when nginx is present.
+The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, `/var/lib/ynx-chain/testnet`, `/var/lib/ynx-chain/indexer`, and `/var/log/ynx-chain`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` when nginx is present.
 
 Monitoring readiness:
 
@@ -37,5 +37,13 @@ make explorer-check
 ```
 
 `ynx-explorerd` reads RPC state plus indexed block/transaction data, serves the Explorer web UI and `/api/*` endpoints, exposes MetaMask network metadata with native currency `YNXT`, and reports health plus Prometheus metrics on `YNX_EXPLORER_HTTP_ADDR`.
+
+Faucet readiness:
+
+```bash
+make faucet-check
+```
+
+`ynx-faucetd` requires `FAUCET_PRIVATE_KEY` from env, validates request addresses, enforces rate limits, writes JSONL request logs, funds YNXT through the chain RPC, and exposes health plus Prometheus metrics on `YNX_FAUCET_HTTP_ADDR`.
 
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

@@ -5,7 +5,14 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=lib-local-testnet.sh
 source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
-trap '[[ -n "${INDEXER_PID:-}" ]] && kill "$INDEXER_PID" >/dev/null 2>&1 || true; ynx_stop_local_testnet' EXIT
+cleanup() {
+  if [[ -n "${INDEXER_PID:-}" ]]; then
+    kill "$INDEXER_PID" >/dev/null 2>&1 || true
+    wait "$INDEXER_PID" >/dev/null 2>&1 || true
+  fi
+  ynx_stop_local_testnet
+}
+trap cleanup EXIT
 
 work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/indexer-db.json"

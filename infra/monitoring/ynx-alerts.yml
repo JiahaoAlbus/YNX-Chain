@@ -57,3 +57,19 @@ groups:
         annotations:
           summary: YNX explorer is serving stale indexed data
           description: Explorer sees an RPC-to-indexer lag above three blocks for more than three minutes.
+      - alert: YNXFaucetDown
+        expr: up{job="ynx-faucetd"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX faucet metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-faucetd.
+      - alert: YNXFaucetHighDenials
+        expr: increase(ynx_faucet_denied_total{job="ynx-faucetd"}[10m]) > 20
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX faucet is rejecting many requests
+          description: Faucet denials or rate limits are elevated. Check request logs for abuse or misconfiguration.

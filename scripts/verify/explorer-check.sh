@@ -5,7 +5,18 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=lib-local-testnet.sh
 source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
-trap ynx_stop_local_testnet EXIT
+cleanup() {
+  if [[ -n "${explorer_pid:-}" ]]; then
+    kill "$explorer_pid" >/dev/null 2>&1 || true
+    wait "$explorer_pid" >/dev/null 2>&1 || true
+  fi
+  if [[ -n "${indexer_pid:-}" ]]; then
+    kill "$indexer_pid" >/dev/null 2>&1 || true
+    wait "$indexer_pid" >/dev/null 2>&1 || true
+  fi
+  ynx_stop_local_testnet
+}
+trap cleanup EXIT
 
 work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/explorer-indexer-db.json"
@@ -22,7 +33,6 @@ YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_A
 indexer_pid=$!
 YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
 explorer_pid=$!
-trap 'kill "$explorer_pid" "$indexer_pid" >/dev/null 2>&1 || true; ynx_stop_local_testnet' EXIT
 
 for _ in {1..80}; do
   curl -fsS "$explorer_url/health" >/dev/null 2>&1 && break

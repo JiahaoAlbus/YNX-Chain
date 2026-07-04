@@ -77,6 +77,17 @@ curl -fsS http://127.0.0.1:6437/health >/dev/null || { echo "Explorer smoke serv
 echo "Explorer API result:" && curl -fsS http://127.0.0.1:6437/api/summary
 kill "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
 wait "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
+FAUCET_PRIVATE_KEY=local-smoke-faucet-key YNX_FAUCET_RPC_URL=http://127.0.0.1:6420 YNX_FAUCET_HTTP_ADDR=127.0.0.1:6428 YNX_FAUCET_REQUEST_LOG="$work/faucet-requests.jsonl" YNX_FAUCET_DEFAULT_AMOUNT=88 YNX_FAUCET_MAX_AMOUNT=100 YNX_FAUCET_RATE_LIMIT_MAX=1 go run ./cmd/ynx-faucetd >"$work/faucet-smoke.log" 2>&1 &
+faucet_smoke_pid=$!
+for i in {1..40}; do
+  curl -fsS http://127.0.0.1:6428/health >/dev/null 2>&1 && break
+  sleep 0.25
+done
+curl -fsS http://127.0.0.1:6428/health >/dev/null || { echo "Faucet smoke service did not become healthy"; sed -n '1,120p' "$work/faucet-smoke.log"; exit 1; }
+echo "Faucet daemon result:" && curl -fsS -X POST http://127.0.0.1:6428/request -H 'content-type: application/json' -d '{"address":"ynx_smoke_faucet_daemon"}'
+grep -Fq '"status":"sent"' "$work/faucet-requests.jsonl"
+kill "$faucet_smoke_pid" >/dev/null 2>&1 || true
+wait "$faucet_smoke_pid" >/dev/null 2>&1 || true
 echo "website status API result: local website repo not deployed in this workspace; use /status contract for website integration"
 find docs/grants -type f | sort >"$work/grants.txt"
 find docs/ecosystem -type f | sort >"$work/ecosystem.txt"
