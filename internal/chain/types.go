@@ -567,6 +567,7 @@ type ContractArtifact struct {
 	ReproducibleBuild                bool                      `json:"reproducibleBuild"`
 	ReproducibilityStatus            string                    `json:"reproducibilityStatus"`
 	DeployedBytecodeComparisonStatus string                    `json:"deployedBytecodeComparisonStatus"`
+	RuntimeStorage                   map[string]string         `json:"runtimeStorage,omitempty"`
 	ABI                              []ContractABIEntry        `json:"abi,omitempty"`
 	Events                           []ContractEventABI        `json:"events,omitempty"`
 	Functions                        []ContractFunctionABI     `json:"functions,omitempty"`
@@ -684,6 +685,8 @@ type ContractCallResult struct {
 	RuntimeMode             string   `json:"runtimeMode"`
 	ArtifactKind            string   `json:"artifactKind"`
 	ExecutionStatus         string   `json:"executionStatus"`
+	ExecutionEngine         string   `json:"executionEngine,omitempty"`
+	OpcodeStepCount         int      `json:"opcodeStepCount,omitempty"`
 	BytecodeSelectorMatched bool     `json:"bytecodeSelectorMatched"`
 	Limitations             []string `json:"limitations,omitempty"`
 }

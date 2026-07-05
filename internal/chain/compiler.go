@@ -223,6 +223,22 @@ func hardhatSelectorMetadata(root, artifactPath string) (selectorArtifactMetadat
 	return artifact, true
 }
 
+func hardhatDeployedBytecode(artifactPath string) (string, bool) {
+	root, ok := repoRoot()
+	if !ok || artifactPath == "" {
+		return "", false
+	}
+	payload, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(artifactPath)))
+	if err != nil {
+		return "", false
+	}
+	var artifact hardhatArtifactFile
+	if err := json.Unmarshal(payload, &artifact); err != nil || artifact.DeployedBytecode == "" {
+		return "", false
+	}
+	return artifact.DeployedBytecode, true
+}
+
 func hardhatBuildInfoSource(root, buildInfoID, sourceName string) (string, bool) {
 	if buildInfoID == "" || sourceName == "" {
 		return "", false

@@ -343,8 +343,11 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	}
 	var callResult map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "decimals"}, http.StatusOK, &callResult)
-	if callResult["returnValue"] != "18" || callResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000012" || callResult["executionStatus"] != "hardhat_abi_selector_matched_deployed_bytecode_staticcall_subset" || callResult["bytecodeSelectorMatched"] != true {
-		t.Fatalf("expected artifact-backed bytecode selector staticcall subset result: %v", callResult)
+	if callResult["returnValue"] != "18" || callResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000012" || callResult["executionStatus"] != "evm_opcode_interpreter_staticcall_subset" || callResult["executionEngine"] != "local-bounded-evm-opcode-interpreter" || callResult["bytecodeSelectorMatched"] != true {
+		t.Fatalf("expected artifact-backed EVM opcode interpreter staticcall subset result: %v", callResult)
+	}
+	if callResult["opcodeStepCount"].(float64) <= 0 {
+		t.Fatalf("expected opcode interpreter step evidence: %v", callResult)
 	}
 	var out map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 31, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": decimalsSelector}, "latest"}}, http.StatusOK, &out)

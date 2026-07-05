@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1577,6 +1578,26 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 				if len(candidate.Inputs) > 0 {
 					return ContractCallResult{}, errors.New("artifact-backed local runtime only supports no-argument static calls")
 				}
+				if bytecode, ok := hardhatDeployedBytecode(artifact.CompilerArtifact.ArtifactPath); ok {
+					staticResult, err := runStaticEVMSubset(bytecode, candidate.Selector, artifact.RuntimeStorage)
+					if err == nil {
+						return ContractCallResult{
+							Address:                 artifact.Address,
+							Function:                candidate.Name,
+							Signature:               candidate.Signature,
+							Selector:                candidate.Selector,
+							ReturnValue:             decodeContractReturn(staticResult.EncodedResult, candidate.Outputs),
+							EncodedResult:           staticResult.EncodedResult,
+							RuntimeMode:             artifact.RuntimeMode,
+							ArtifactKind:            artifact.ArtifactKind,
+							ExecutionStatus:         "evm_opcode_interpreter_staticcall_subset",
+							ExecutionEngine:         "local-bounded-evm-opcode-interpreter",
+							OpcodeStepCount:         staticResult.StepCount,
+							BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
+							Limitations:             artifact.Limitations,
+						}, nil
+					}
+				}
 			}
 			executionStatus := "source_analyzer_literal_return"
 			if artifact.ArtifactKind == contractPinnedArtifactKind {
@@ -2046,6 +2067,7 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
+	runtimeStorage := extractRuntimeStorage(source)
 	if hasCompilerArtifact {
 		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
 	}
@@ -2090,12 +2112,12 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
 			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet does not interpret full EVM opcodes, state transitions, storage layout, or constructor arguments",
+			"local devnet interprets a bounded read-only EVM opcode subset for no-argument static calls; it does not support full EVM state transitions, storage layout, constructor arguments, or arbitrary calldata",
 		}, compiler.Limitations...)
 	}
 	runtimeMode := "deterministic-devnet-pure-view-runtime"
 	if hasCompilerArtifact {
-		runtimeMode = "hardhat-artifact-bytecode-selector-staticcall-subset"
+		runtimeMode = "hardhat-artifact-local-evm-opcode-staticcall-subset"
 	}
 	return ContractArtifact{
 		Address:                          address,
@@ -2116,6 +2138,7 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		ReproducibleBuild:                verified,
 		ReproducibilityStatus:            reproducibilityStatus,
 		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
+		RuntimeStorage:                   runtimeStorage,
 		ABI:                              abi,
 		Events:                           events,
 		Functions:                        functions,
@@ -2157,6 +2180,7 @@ func contractReturnValuesBySignature(sourceFunctions []ContractFunctionABI, sour
 }
 
 var publicGetterPattern = regexp.MustCompile(`(?m)\b(string|bool|uint(?:8|16|32|64|128|256)?)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?;`)
+var publicStateSlotPattern = regexp.MustCompile(`(?m)\b((?:mapping\s*\([^;]+?\))|string|bool|uint(?:8|16|32|64|128|256)?)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?;`)
 
 func extractPublicGetterReturnValues(source string) map[string]string {
 	values := map[string]string{}
@@ -2180,6 +2204,38 @@ func extractPublicGetterReturnValues(source string) map[string]string {
 		values[name+"()"] = strings.Trim(strings.TrimSpace(rawValue), `"`)
 	}
 	return values
+}
+
+func extractRuntimeStorage(source string) map[string]string {
+	storage := map[string]string{}
+	matches := publicStateSlotPattern.FindAllStringSubmatch(source, -1)
+	for slot, match := range matches {
+		if len(match) != 4 {
+			continue
+		}
+		kind := strings.TrimSpace(match[1])
+		rawValue := strings.Trim(strings.TrimSpace(match[3]), `"`)
+		switch {
+		case strings.HasPrefix(kind, "uint"):
+			if rawValue == "" {
+				rawValue = "0"
+			}
+			parsed, err := strconv.ParseUint(rawValue, 10, 64)
+			if err == nil {
+				storage[fmt.Sprint(slot)] = fmt.Sprintf("0x%064x", parsed)
+			}
+		case kind == "bool":
+			if strings.EqualFold(rawValue, "true") {
+				storage[fmt.Sprint(slot)] = "0x" + strings.Repeat("0", 63) + "1"
+			} else {
+				storage[fmt.Sprint(slot)] = "0x" + strings.Repeat("0", 64)
+			}
+		}
+	}
+	if len(storage) == 0 {
+		return nil
+	}
+	return storage
 }
 
 func contractVerificationEvidence(artifact ContractArtifact) ContractVerificationEvidence {
@@ -2337,6 +2393,25 @@ func encodeContractReturn(value string, outputs []string) string {
 		return "0x" + strings.Repeat("0", 64)
 	default:
 		return evmHexData(value)
+	}
+}
+
+func decodeContractReturn(encoded string, outputs []string) string {
+	if len(outputs) == 0 {
+		return ""
+	}
+	payload, err := hex.DecodeString(strings.TrimPrefix(encoded, "0x"))
+	if err != nil || len(payload) < 32 {
+		return ""
+	}
+	word := new(big.Int).SetBytes(payload[:32])
+	switch outputs[0] {
+	case "uint256", "uint", "uint64", "uint32", "uint16", "uint8":
+		return word.Text(10)
+	case "bool":
+		return strconv.FormatBool(word.Sign() != 0)
+	default:
+		return encoded
 	}
 }
 

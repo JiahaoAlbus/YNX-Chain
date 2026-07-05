@@ -65,6 +65,8 @@ for (const text of [
 assert(read("internal/chain/types.go").includes("DeployedBytecodeComparisonStatus"), "contract verifier must expose deployed bytecode comparison status");
 assert(read("internal/chain/types.go").includes("ContractVerificationEvidence"), "contract verifier evidence type missing");
 assert(read("internal/chain/types.go").includes("BytecodeSelectorMatched"), "contract runtime must expose bytecode selector match evidence");
+assert(read("internal/chain/types.go").includes("ExecutionEngine"), "contract runtime must expose execution engine evidence");
+assert(read("internal/chain/evm_static.go").includes("runStaticEVMSubset"), "bounded local EVM staticcall interpreter missing");
 assert(read("internal/api/server.go").includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
 
 const sampleArtifact = JSON.parse(read("artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"));
@@ -113,7 +115,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "bounded read-only local EVM opcode interpreter", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 
