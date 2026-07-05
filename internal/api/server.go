@@ -80,6 +80,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /ai/actions/{id}/reject", s.handleAIActionReject)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
+	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
@@ -671,6 +672,21 @@ func (s *Server) handleIDEVerify(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, artifact)
 }
+func (s *Server) handleIDECall(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Address  string `json:"address"`
+		Function string `json:"function"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	result, err := s.devnet.CallContract(req.Address, req.Function)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
 func (s *Server) handleContractLookup(w http.ResponseWriter, r *http.Request) {
 	artifact, ok := s.devnet.Contract(r.PathValue("address"))
 	if !ok {
@@ -819,6 +835,20 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 	case "eth_estimateGas":
 		return "0x5208", nil
 	case "eth_call":
+		if len(params) > 0 {
+			call, ok := params[0].(map[string]any)
+			if ok {
+				to := strings.TrimSpace(fmt.Sprint(call["to"]))
+				data := strings.TrimSpace(fmt.Sprint(call["data"]))
+				if to != "" && data != "" && data != "<nil>" {
+					result, err := s.devnet.CallContract(to, data)
+					if err != nil {
+						return nil, err
+					}
+					return result.EncodedResult, nil
+				}
+			}
+		}
 		return "0x", nil
 	case "eth_getLogs":
 		filter, err := parseEVMLogFilter(params, latest.Height)
@@ -966,16 +996,25 @@ func trim0x(v string) string {
 }
 
 type compileResult struct {
-	OK           bool     `json:"ok"`
-	Name         string   `json:"name"`
-	BytecodeHash string   `json:"bytecodeHash,omitempty"`
-	Warnings     []string `json:"warnings,omitempty"`
-	Errors       []string `json:"errors,omitempty"`
-	TruthfulNote string   `json:"truthfulNote"`
+	OK           bool                        `json:"ok"`
+	Name         string                      `json:"name"`
+	SourceHash   string                      `json:"sourceHash,omitempty"`
+	BytecodeHash string                      `json:"bytecodeHash,omitempty"`
+	ArtifactHash string                      `json:"artifactHash,omitempty"`
+	CompilerMode string                      `json:"compilerMode,omitempty"`
+	RuntimeMode  string                      `json:"runtimeMode,omitempty"`
+	VerifierMode string                      `json:"verifierMode,omitempty"`
+	ABI          []chain.ContractABIEntry    `json:"abi,omitempty"`
+	Events       []chain.ContractEventABI    `json:"events,omitempty"`
+	Functions    []chain.ContractFunctionABI `json:"functions,omitempty"`
+	Limitations  []string                    `json:"limitations,omitempty"`
+	Warnings     []string                    `json:"warnings,omitempty"`
+	Errors       []string                    `json:"errors,omitempty"`
+	TruthfulNote string                      `json:"truthfulNote"`
 }
 
 func preflightContract(name, source string) compileResult {
-	result := compileResult{Name: name, TruthfulNote: "Local devnet source preflight only. Production Solidity compilation must wire a pinned compiler."}
+	result := compileResult{Name: name, TruthfulNote: "Local devnet deterministic source preflight and artifact analysis only. Production Solidity compilation must wire a pinned compiler and verifier."}
 	trimmed := strings.TrimSpace(source)
 	if trimmed == "" {
 		result.Errors = append(result.Errors, "source is required")
@@ -988,8 +1027,18 @@ func preflightContract(name, source string) compileResult {
 	if !strings.Contains(trimmed, "pragma solidity") {
 		result.Warnings = append(result.Warnings, "missing pragma solidity declaration")
 	}
+	artifact := chain.AnalyzeContractSource(name, trimmed)
 	result.OK = true
-	result.BytecodeHash = fmt.Sprintf("devnet-preflight-%x", len(trimmed))
+	result.SourceHash = artifact.SourceHash
+	result.BytecodeHash = artifact.BytecodeHash
+	result.ArtifactHash = artifact.ArtifactHash
+	result.CompilerMode = artifact.CompilerMode
+	result.RuntimeMode = artifact.RuntimeMode
+	result.VerifierMode = artifact.VerifierMode
+	result.ABI = artifact.ABI
+	result.Events = artifact.Events
+	result.Functions = artifact.Functions
+	result.Limitations = artifact.Limitations
 	return result
 }
 func decodeJSON(w http.ResponseWriter, r *http.Request, dest any) bool {

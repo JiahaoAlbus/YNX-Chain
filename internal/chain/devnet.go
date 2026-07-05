@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1506,17 +1507,8 @@ func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact
 	account.Nonce++
 	account.ResourceUsage.ComputeUsed += 5
 	sourceHash := hashParts("source", source)
-	events := extractContractEvents(source)
-	artifact := ContractArtifact{
-		Address:      "0x" + hashParts("contract", deployer, name, sourceHash, fmt.Sprint(time.Now().UnixNano()))[:40],
-		Name:         name,
-		Deployer:     deployer,
-		SourceHash:   sourceHash,
-		BytecodeHash: hashParts("bytecode", sourceHash),
-		Events:       events,
-		Verified:     false,
-		DeployedAt:   time.Now().UTC(),
-	}
+	address := "0x" + hashParts("contract", deployer, name, sourceHash, fmt.Sprint(time.Now().UnixNano()))[:40]
+	artifact := buildContractArtifact(address, deployer, name, source, false, nil)
 	d.contracts[artifact.Address] = artifact
 	tx := d.newTxLocked("contract_deploy", deployer, artifact.Address, 0, fee, nil, "local devnet contract deployment")
 	d.pending = append(d.pending, tx)
@@ -1539,9 +1531,9 @@ func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error
 		return ContractArtifact{}, errors.New("source hash does not match deployed contract")
 	}
 	verifiedAt := time.Now().UTC()
-	artifact.Verified = true
-	artifact.VerifiedAt = &verifiedAt
-	artifact.Events = extractContractEvents(source)
+	deployedAt := artifact.DeployedAt
+	artifact = buildContractArtifact(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt)
+	artifact.DeployedAt = deployedAt
 	d.contracts[address] = artifact
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
@@ -1553,6 +1545,34 @@ func (d *Devnet) Contract(address string) (ContractArtifact, bool) {
 	defer d.mu.RUnlock()
 	artifact, ok := d.contracts[address]
 	return artifact, ok
+}
+
+func (d *Devnet) CallContract(address, function string) (ContractCallResult, error) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	artifact, ok := d.contracts[address]
+	if !ok {
+		return ContractCallResult{}, errors.New("contract not found")
+	}
+	function = strings.TrimSpace(function)
+	for _, candidate := range artifact.Functions {
+		if candidate.Name == function || candidate.Signature == function || candidate.Selector == strings.ToLower(function) {
+			if candidate.StateMutability != "pure" && candidate.StateMutability != "view" {
+				return ContractCallResult{}, errors.New("local devnet runtime only supports pure/view function calls")
+			}
+			return ContractCallResult{
+				Address:       artifact.Address,
+				Function:      candidate.Name,
+				Signature:     candidate.Signature,
+				Selector:      candidate.Selector,
+				ReturnValue:   candidate.ReturnValue,
+				EncodedResult: encodeContractReturn(candidate.ReturnValue, candidate.Outputs),
+				RuntimeMode:   artifact.RuntimeMode,
+				Limitations:   artifact.Limitations,
+			}, nil
+		}
+	}
+	return ContractCallResult{}, errors.New("function not found in local contract artifact")
 }
 
 func (d *Devnet) ProduceBlock() Block {
@@ -1993,6 +2013,52 @@ func contractEventLogs(tx Transaction, artifact ContractArtifact, txIndex, first
 }
 
 var contractEventPattern = regexp.MustCompile(`(?s)event\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*;`)
+var contractFunctionPattern = regexp.MustCompile(`(?s)function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*(public|external|internal|private)?\s*(pure|view|payable)?\s*(?:returns\s*\((.*?)\))?\s*\{(.*?)\}`)
+
+func buildContractArtifact(address, deployer, name, source string, verified bool, verifiedAt *time.Time) ContractArtifact {
+	sourceHash := hashParts("source", source)
+	events := extractContractEvents(source)
+	functions := extractContractFunctions(source)
+	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
+	for _, event := range events {
+		abi = append(abi, ContractABIEntry{Type: "event", Name: event.Name, Signature: event.Signature, Topic: event.Topic, Inputs: event.Inputs})
+	}
+	for _, function := range functions {
+		abi = append(abi, ContractABIEntry{Type: "function", Name: function.Name, Signature: function.Signature, Selector: function.Selector, Inputs: function.Inputs, Outputs: function.Outputs, StateMutability: function.StateMutability})
+	}
+	status := "unverified"
+	if verified {
+		status = "source_hash_matched_local_artifact"
+	}
+	limitations := []string{
+		"deterministic local source analyzer, not a pinned solc compiler",
+		"runtime supports simple pure/view return literals for devnet verification",
+		"production verification requires a configured compiler and verifier service",
+	}
+	return ContractArtifact{
+		Address:        address,
+		Name:           name,
+		Deployer:       deployer,
+		SourceHash:     sourceHash,
+		BytecodeHash:   hashParts("bytecode", sourceHash, strings.Join(contractFunctionSignatures(functions), "|")),
+		ArtifactHash:   hashParts("artifact", name, sourceHash, fmt.Sprint(len(abi))),
+		CompilerMode:   "deterministic-devnet-source-analyzer",
+		RuntimeMode:    "deterministic-devnet-pure-view-runtime",
+		VerifierMode:   "source-hash-local-verifier",
+		ABI:            abi,
+		Events:         events,
+		Functions:      functions,
+		Limitations:    limitations,
+		Verified:       verified,
+		VerifierStatus: status,
+		DeployedAt:     time.Now().UTC(),
+		VerifiedAt:     verifiedAt,
+	}
+}
+
+func AnalyzeContractSource(name, source string) ContractArtifact {
+	return buildContractArtifact("", "", name, source, false, nil)
+}
 
 func extractContractEvents(source string) []ContractEventABI {
 	matches := contractEventPattern.FindAllStringSubmatch(source, -1)
@@ -2037,6 +2103,93 @@ func parseContractEventInputs(raw string) []ContractEventInput {
 		inputs = append(inputs, input)
 	}
 	return inputs
+}
+
+func extractContractFunctions(source string) []ContractFunctionABI {
+	matches := contractFunctionPattern.FindAllStringSubmatch(source, -1)
+	functions := make([]ContractFunctionABI, 0, len(matches))
+	for _, match := range matches {
+		if len(match) != 7 {
+			continue
+		}
+		name := strings.TrimSpace(match[1])
+		inputs := parseContractEventInputs(match[2])
+		stateMutability := strings.TrimSpace(match[4])
+		if stateMutability == "" {
+			stateMutability = "nonpayable"
+		}
+		outputs := parseContractReturnTypes(match[5])
+		types := make([]string, 0, len(inputs))
+		for _, input := range inputs {
+			types = append(types, input.Type)
+		}
+		signature := fmt.Sprintf("%s(%s)", name, strings.Join(types, ","))
+		functions = append(functions, ContractFunctionABI{
+			Name:            name,
+			Signature:       signature,
+			Selector:        "0x" + hashParts("evm-selector", signature)[:8],
+			Inputs:          inputs,
+			Outputs:         outputs,
+			StateMutability: stateMutability,
+			ReturnValue:     extractSimpleReturnValue(match[6]),
+		})
+	}
+	return functions
+}
+
+func parseContractReturnTypes(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	outputs := make([]string, 0, len(parts))
+	for _, part := range parts {
+		tokens := strings.Fields(strings.TrimSpace(part))
+		if len(tokens) > 0 {
+			outputs = append(outputs, tokens[0])
+		}
+	}
+	return outputs
+}
+
+var simpleReturnPattern = regexp.MustCompile(`(?s)return\s+([^;]+)\s*;`)
+
+func extractSimpleReturnValue(body string) string {
+	match := simpleReturnPattern.FindStringSubmatch(body)
+	if len(match) != 2 {
+		return ""
+	}
+	return strings.Trim(strings.TrimSpace(match[1]), `"`)
+}
+
+func encodeContractReturn(value string, outputs []string) string {
+	if len(outputs) == 0 {
+		return "0x"
+	}
+	switch outputs[0] {
+	case "uint256", "uint", "uint64", "uint32", "uint8":
+		parsed, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return "0x" + strings.Repeat("0", 64)
+		}
+		return fmt.Sprintf("0x%064x", parsed)
+	case "bool":
+		if strings.EqualFold(value, "true") {
+			return "0x" + strings.Repeat("0", 63) + "1"
+		}
+		return "0x" + strings.Repeat("0", 64)
+	default:
+		return evmHexData(value)
+	}
+}
+
+func contractFunctionSignatures(functions []ContractFunctionABI) []string {
+	signatures := make([]string, 0, len(functions))
+	for _, function := range functions {
+		signatures = append(signatures, function.Signature)
+	}
+	return signatures
 }
 
 func evmLogMatchesFilter(log EVMLog, filter EVMLogFilter) bool {

@@ -265,6 +265,35 @@ func TestContractDeployEmitsContractSpecificLogs(t *testing.T) {
 	}
 }
 
+func TestContractArtifactRuntimeCall(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
+	if _, err := devnet.Faucet("ynx_contract_runtime", 100); err != nil {
+		t.Fatal(err)
+	}
+	source := "pragma solidity ^0.8.24; contract Runtime { function ping() public pure returns (uint256) { return 7; } function ok() public view returns (bool) { return true; } }"
+	contract, _, err := devnet.DeployContract("ynx_contract_runtime", "Runtime", source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if contract.CompilerMode == "" || contract.RuntimeMode == "" || contract.ArtifactHash == "" || len(contract.Functions) != 2 || len(contract.ABI) != 2 {
+		t.Fatalf("expected deterministic compile/runtime artifact, got %+v", contract)
+	}
+	result, err := devnet.CallContract(contract.Address, "ping")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ReturnValue != "7" || result.EncodedResult != "0x0000000000000000000000000000000000000000000000000000000000000007" {
+		t.Fatalf("unexpected ping result: %+v", result)
+	}
+	selectorResult, err := devnet.CallContract(contract.Address, contract.Functions[1].Selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selectorResult.ReturnValue != "true" || selectorResult.EncodedResult != "0x0000000000000000000000000000000000000000000000000000000000000001" {
+		t.Fatalf("unexpected bool result: %+v", selectorResult)
+	}
+}
+
 func TestPayIdempotencyEventsAndPersistence(t *testing.T) {
 	dir := t.TempDir()
 	devnet, err := NewPersistentDevnet(DefaultNetworkConfig("devnet"), dir)

@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: add real compiler/runtime integration depth for IDE contract compile, deploy, call, and verification.
+Current single action: add pinned Solidity compiler and verifier integration depth for IDE contracts.
 
 Why this action:
 
-- Contract records now expose deterministic event metadata, and local contract deployment receipts emit contract-address logs filterable by topic.
-- The remaining IDE/EVM gap is that compile/deploy/verify still use source preflight metadata rather than a pinned compiler, bytecode artifact, callable runtime, or production verifier.
-- This is core developer-platform work that can advance locally while remote SSH/public ingress blockers prevent safe deployment.
+- IDE compile/deploy/verify now exposes deterministic local artifact metadata and simple pure/view runtime calls.
+- The remaining IDE gap is production fidelity: a pinned compiler, actual bytecode artifact generation, deployable bytecode/runtime semantics, and verifier status that can be reproduced outside the local source analyzer.
+- This is core developer-platform work that can advance locally while remote SSH/public ingress blockers and GitHub push TLS failures are handled separately.
 
 Files to touch:
 
@@ -15,8 +15,8 @@ Files to touch:
 - `internal/api/server.go`
 - `internal/chain/devnet_test.go`
 - `internal/api/server_test.go`
-- `scripts/verify/testnet-smoke-test.sh`
 - `scripts/verify/developer-quickstart-check.sh`
+- `scripts/verify/contract-tooling-check.*`
 - `docs/api/API_REFERENCE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 - `docs/acceptance/PROJECT_STATE.md`
@@ -27,6 +27,7 @@ Validation commands:
 - `make test`
 - `make smoke-test`
 - `make developer-quickstart-check`
+- `make contract-tooling-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -35,11 +36,11 @@ Validation commands:
 
 Completion standard:
 
-- Compile output exposes a deterministic artifact with source hash, bytecode hash, ABI/events, compiler mode, and truthful limitations.
-- Deploy records link to that artifact and preserve enough runtime metadata for a local `eth_call` or IDE call endpoint to return deterministic results for simple pure functions.
-- Verification checks artifact/source consistency and exposes verifier status without pretending a production verifier exists.
-- Smoke or quickstart checks prove compile, deploy, verify, contract lookup, and simple call behavior.
-- Tracker moves IDE compiler/runtime fidelity forward honestly without claiming remote proof.
+- Compiler configuration is pinned and inspectable.
+- Compile output can distinguish deterministic source-analyzer artifacts from pinned compiler artifacts.
+- Verification records include compiler identity/version, source hash, bytecode hash, verifier mode, and reproducibility status.
+- Tests or checks prove the compiler/verifier path without claiming production remote verifier availability.
+- Tracker moves IDE compiler/verifier fidelity forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

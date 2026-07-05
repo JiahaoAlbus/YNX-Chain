@@ -126,13 +126,20 @@ echo "Resource rental result:" && curl -fsS -X POST http://127.0.0.1:6420/resour
 echo "Resource income result:" && curl -fsS http://127.0.0.1:6420/resource-market/income/ynx_resource_provider
 echo "Resource analytics result:" && curl -fsS http://127.0.0.1:6420/resource-market/analytics
 source='pragma solidity ^0.8.24; contract Smoke { event SmokePing(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }'
+compile=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/compile -H 'content-type: application/json' -d @-)
+printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.ok || !data.sourceHash || !data.artifactHash || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing IDE compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 deploy=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_smoke_alice",name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/deploy -H 'content-type: application/json' -d @-)
 contract_address=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).contract.address')
 contract_topic=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const event=data.contract.events?.[0]; if (!event || event.signature !== "SmokePing(address,uint256)" || !event.topic) throw new Error(`missing contract event metadata: ${JSON.stringify(data)}`); event.topic')
+contract_selector=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const fn=data.contract.functions?.[0]; if (!fn || fn.signature !== "ping()" || !fn.selector) throw new Error(`missing contract function metadata: ${JSON.stringify(data)}`); fn.selector')
 contract_tx=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).transaction.hash')
 echo "IDE deployment result: $deploy"
 echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
 curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
+contract_call=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address" | curl -fsS -X POST http://127.0.0.1:6420/ide/call -H 'content-type: application/json' -d @-)
+printf '%s' "$contract_call" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.returnValue !== "1" || data.encodedResult !== "0x0000000000000000000000000000000000000000000000000000000000000001") { console.error(`bad IDE call result: ${JSON.stringify(data)}`); process.exit(1); }'
+eth_call=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"eth_call\",\"params\":[{\"to\":\"$contract_address\",\"data\":\"$contract_selector\"},\"latest\"]}")
+printf '%s' "$eth_call" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.result !== "0x0000000000000000000000000000000000000000000000000000000000000001") { console.error(`bad eth_call result: ${JSON.stringify(data)}`); process.exit(1); }'
 sleep 2
 contract_receipt=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$contract_tx\"]}")
 printf '%s' "$contract_receipt" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result?.logs) || data.result.logs.length < 3) { console.error(`missing contract receipt logs: ${JSON.stringify(data)}`); process.exit(1); }'

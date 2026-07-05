@@ -549,15 +549,34 @@ type ResourceAnalytics struct {
 }
 
 type ContractArtifact struct {
-	Address      string             `json:"address"`
-	Name         string             `json:"name"`
-	Deployer     string             `json:"deployer"`
-	SourceHash   string             `json:"sourceHash"`
-	BytecodeHash string             `json:"bytecodeHash"`
-	Events       []ContractEventABI `json:"events,omitempty"`
-	Verified     bool               `json:"verified"`
-	DeployedAt   time.Time          `json:"deployedAt"`
-	VerifiedAt   *time.Time         `json:"verifiedAt,omitempty"`
+	Address        string                `json:"address"`
+	Name           string                `json:"name"`
+	Deployer       string                `json:"deployer"`
+	SourceHash     string                `json:"sourceHash"`
+	BytecodeHash   string                `json:"bytecodeHash"`
+	ArtifactHash   string                `json:"artifactHash"`
+	CompilerMode   string                `json:"compilerMode"`
+	RuntimeMode    string                `json:"runtimeMode"`
+	VerifierMode   string                `json:"verifierMode"`
+	ABI            []ContractABIEntry    `json:"abi,omitempty"`
+	Events         []ContractEventABI    `json:"events,omitempty"`
+	Functions      []ContractFunctionABI `json:"functions,omitempty"`
+	Limitations    []string              `json:"limitations,omitempty"`
+	Verified       bool                  `json:"verified"`
+	VerifierStatus string                `json:"verifierStatus"`
+	DeployedAt     time.Time             `json:"deployedAt"`
+	VerifiedAt     *time.Time            `json:"verifiedAt,omitempty"`
+}
+
+type ContractABIEntry struct {
+	Type            string               `json:"type"`
+	Name            string               `json:"name"`
+	Signature       string               `json:"signature"`
+	Topic           string               `json:"topic,omitempty"`
+	Selector        string               `json:"selector,omitempty"`
+	Inputs          []ContractEventInput `json:"inputs,omitempty"`
+	Outputs         []string             `json:"outputs,omitempty"`
+	StateMutability string               `json:"stateMutability,omitempty"`
 }
 
 type ContractEventABI struct {
@@ -572,4 +591,25 @@ type ContractEventInput struct {
 	Name    string `json:"name"`
 	Type    string `json:"type"`
 	Indexed bool   `json:"indexed"`
+}
+
+type ContractFunctionABI struct {
+	Name            string               `json:"name"`
+	Signature       string               `json:"signature"`
+	Selector        string               `json:"selector"`
+	Inputs          []ContractEventInput `json:"inputs,omitempty"`
+	Outputs         []string             `json:"outputs,omitempty"`
+	StateMutability string               `json:"stateMutability"`
+	ReturnValue     string               `json:"returnValue,omitempty"`
+}
+
+type ContractCallResult struct {
+	Address       string   `json:"address"`
+	Function      string   `json:"function"`
+	Signature     string   `json:"signature"`
+	Selector      string   `json:"selector"`
+	ReturnValue   string   `json:"returnValue"`
+	EncodedResult string   `json:"encodedResult"`
+	RuntimeMode   string   `json:"runtimeMode"`
+	Limitations   []string `json:"limitations,omitempty"`
 }

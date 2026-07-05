@@ -14,13 +14,20 @@ source='pragma solidity ^0.8.24; contract Quickstart { function ping() public pu
 compile_payload=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({name:"Quickstart",source}))' "$source")
 compile=$(printf '%s' "$compile_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/compile" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$compile" | ynx_json_field '["ok"]')" == "true" ]] || { echo "compile preflight failed"; exit 1; }
+printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.sourceHash || !data.artifactHash || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 
 deploy_payload=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_developer_quickstart",name:"Quickstart",source}))' "$source")
 deploy=$(printf '%s' "$deploy_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/deploy" -H 'content-type: application/json' -d @-)
 contract_address=$(printf '%s' "$deploy" | ynx_json_field '["contract"]["address"]')
+contract_selector=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const fn=data.contract.functions?.[0]; if (!fn?.selector) throw new Error(`missing function selector: ${JSON.stringify(data)}`); fn.selector')
 verify_payload=$(node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source")
 verified=$(printf '%s' "$verify_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/verify" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$verified" | ynx_json_field '["verified"]')" == "true" ]] || { echo "contract verification failed"; exit 1; }
+call_payload=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address")
+contract_call=$(printf '%s' "$call_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/call" -H 'content-type: application/json' -d @-)
+[[ "$(printf '%s' "$contract_call" | ynx_json_field '["encodedResult"]')" == "0x0000000000000000000000000000000000000000000000000000000000000001" ]] || { echo "contract call failed"; exit 1; }
+eth_call=$(ynx_jsonrpc eth_call "[{\"to\":\"$contract_address\",\"data\":\"$contract_selector\"},\"latest\"]")
+[[ "$(printf '%s' "$eth_call" | ynx_json_field '["result"]')" == "0x0000000000000000000000000000000000000000000000000000000000000001" ]] || { echo "eth_call failed"; exit 1; }
 
 curl -fsS "$YNX_REST_URL/trust/trace/$developer" >/dev/null
 curl -fsS "$YNX_REST_URL/resource-market/quote?address=$developer&bandwidth=10&compute=1&aiCredits=1&trustCredits=1" >/dev/null

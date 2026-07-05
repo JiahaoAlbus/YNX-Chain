@@ -58,10 +58,11 @@ Products:
 - `POST /ai/actions/{id}/reject`
 - `POST /ide/compile`
 - `POST /ide/deploy`
+- `POST /ide/call`
 - `POST /ide/verify`
 - `GET /contracts/{address}`
 
-`POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` expose deterministic local event metadata parsed from Solidity `event` declarations: event name, signature, topic, input types, indexed flags, and source marker. This is still devnet preflight metadata, not a production pinned Solidity compiler or verifier.
+`POST /ide/compile` returns deterministic local artifact metadata: source hash, bytecode hash, artifact hash, compiler mode, runtime mode, verifier mode, ABI, parsed events, parsed pure/view functions, and truthful limitations. `POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` preserve that metadata for developer tooling. `POST /ide/call` and EVM `eth_call` can execute simple local pure/view return literals from the stored artifact and return EVM-style encoded results. This is still devnet preflight/runtime metadata, not a production pinned Solidity compiler or verifier.
 
 Verification:
 
@@ -69,7 +70,7 @@ Verification:
 make smoke-test
 ```
 
-The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, EVM receipt/log filtering, contract event metadata and contract-address/topic log filtering, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.
+The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, EVM receipt/log filtering, contract artifact metadata, IDE and EVM pure/view call behavior, contract-address/topic log filtering, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.
 
 Governance and Trust request safety:
 

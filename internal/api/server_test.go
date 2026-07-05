@@ -215,6 +215,15 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	}
 
 	source := "pragma solidity ^0.8.24; contract Demo { event Pinged(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }"
+	var compiled map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/compile", map[string]any{"name": "Demo", "source": source}, http.StatusOK, &compiled)
+	if compiled["compilerMode"] == "" || compiled["runtimeMode"] == "" || compiled["artifactHash"] == "" {
+		t.Fatalf("expected deterministic compile artifact metadata: %v", compiled)
+	}
+	compiledFunctions := compiled["functions"].([]any)
+	if len(compiledFunctions) != 1 || compiledFunctions[0].(map[string]any)["signature"] != "ping()" {
+		t.Fatalf("expected compile function ABI: %v", compiled)
+	}
 	var deployed map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_builder", "name": "Demo", "source": source}, http.StatusCreated, &deployed)
 	contract := deployed["contract"].(map[string]any)
@@ -230,10 +239,24 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	if verified["verified"] != true {
 		t.Fatalf("expected verified contract: %v", verified)
 	}
+	if verified["verifierStatus"] != "source_hash_matched_local_artifact" {
+		t.Fatalf("expected local verifier status: %v", verified)
+	}
 	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)
+	verifiedFunctions := verified["functions"].([]any)
+	selector := verifiedFunctions[0].(map[string]any)["selector"].(string)
+	var callResult map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "ping"}, http.StatusOK, &callResult)
+	if callResult["returnValue"] != "1" || callResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000001" {
+		t.Fatalf("expected deterministic IDE call result: %v", callResult)
+	}
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 6, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": selector}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x0000000000000000000000000000000000000000000000000000000000000001" {
+		t.Fatalf("expected deterministic eth_call result: %v", out)
+	}
 	verifiedEvents := verified["events"].([]any)
 	topic := verifiedEvents[0].(map[string]any)["topic"].(string)
-	var out map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 7, "method": "eth_getTransactionReceipt", "params": []any{deployTx}}, http.StatusOK, &out)
 	receiptLogs := out["result"].(map[string]any)["logs"].([]any)
 	if len(receiptLogs) < 3 {
