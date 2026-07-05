@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: extend IDE/EVM from the current bounded read-only EVM opcode interpreter subset toward fuller bytecode execution semantics, or wire remote verifier/explorer-backed proof if remote safety is cleared first.
+Current single action: extend IDE/EVM from constructor-seeded static getters toward mapping/SHA3-backed calldata execution such as ERC20 `balanceOf(address)`, or wire remote verifier/explorer-backed proof if remote safety is cleared first.
 
 Why this action:
 
 - IDE compile/deploy/verify now distinguishes ad hoc `source-analyzer-artifact` output from repository `pinned-solc-bytecode-artifact` output backed by Hardhat artifacts, local deployed bytecode hash comparison, explicit `GET /ide/verifier/{address}` evidence, and `artifacts/ynx-selector-metadata.json` generated from Hardhat ABI through `ethers`.
-- Matched Hardhat artifacts now expose real Keccak selectors, selector source, `bytecodeSelectorMatched`, local runtime storage seed, `executionEngine`, and `opcodeStepCount`; local `POST /ide/call` and EVM `eth_call` can execute a bounded read-only EVM opcode subset for supported no-argument getters such as ERC20 `decimals()`.
-- The remaining IDE/EVM production gap is runtime/public-proof depth: local devnet still does not support full EVM opcode coverage, constructor args, complex storage layout, arbitrary calldata, state transitions, or remote explorer/verifier proof.
+- Matched Hardhat artifacts now expose real Keccak selectors, selector source, `bytecodeSelectorMatched`, local runtime storage seed, optional `constructorArgs`, `executionEngine`, and `opcodeStepCount`; local `POST /ide/call` and EVM `eth_call` can execute a bounded read-only EVM opcode subset for supported static getters such as ERC20 `decimals()` and constructor-seeded `totalSupply()`.
+- The remaining IDE/EVM production gap is runtime/public-proof depth: local devnet still does not support full EVM opcode coverage, mapping/SHA3 storage, write calls, state transitions, or remote explorer/verifier proof.
 - This is the next honest developer-platform gap that can advance locally while remote SSH/public ingress blockers are handled separately.
 
 Files to touch:
@@ -42,7 +42,7 @@ Validation commands:
 
 Completion standard:
 
-- EVM calls advance beyond the current no-argument getter interpreter by supporting a broader bytecode/storage/calldata subset or by using a real remote verifier/explorer response.
+- EVM calls advance beyond constructor-seeded static getters by supporting mapping/SHA3-backed calldata reads such as `balanceOf(address)`, a broader bytecode/storage/calldata subset, or a real remote verifier/explorer response.
 - Responses continue to separate `source-analyzer-artifact` from `pinned-solc-bytecode-artifact`.
 - Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, selector source, bytecode selector match status, execution engine, opcode step count where applicable, verifier mode, reproducibility status, service/runtime limitations, and remote proof status.
 - Tests/checks prove the new runtime or remote verifier path without claiming broader mainnet or third-party availability.

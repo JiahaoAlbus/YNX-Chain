@@ -310,9 +310,17 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 		t.Fatal(err)
 	}
 	var deployed map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_hardhat_builder", "name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes)}, http.StatusCreated, &deployed)
+	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_hardhat_builder", "name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes), "constructorArgs": []string{"1000000"}}, http.StatusCreated, &deployed)
 	contract := deployed["contract"].(map[string]any)
 	address := contract["address"].(string)
+	constructorArgs := contract["constructorArgs"].([]any)
+	if len(constructorArgs) != 1 || constructorArgs[0] != "1000000" {
+		t.Fatalf("expected constructor args to be preserved in contract metadata: %v", contract)
+	}
+	runtimeStorage := contract["runtimeStorage"].(map[string]any)
+	if runtimeStorage["3"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
+		t.Fatalf("expected totalSupply constructor arg to seed storage slot 3: %v", runtimeStorage)
+	}
 	var verified map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": string(sourceBytes)}, http.StatusOK, &verified)
 	if verified["verifierStatus"] != "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact" || verified["deployedBytecodeComparisonStatus"] != "matched_local_deployed_bytecode_hash" {
@@ -328,6 +336,8 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	}
 	functions := verified["functions"].([]any)
 	var decimalsSelector string
+	var totalSupplySelector string
+	var balanceOfSelector string
 	for _, entry := range functions {
 		fn := entry.(map[string]any)
 		if fn["signature"] == "decimals()" {
@@ -335,11 +345,28 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 			if decimalsSelector != "0x313ce567" || fn["bytecodeSelectorMatched"] != true || fn["selectorSource"] != "hardhat-ethers-keccak-selector-metadata" {
 				t.Fatalf("expected hardhat ERC20 decimals selector evidence: %v", fn)
 			}
-			break
+		}
+		if fn["signature"] == "totalSupply()" {
+			totalSupplySelector = fn["selector"].(string)
+			if totalSupplySelector != "0x18160ddd" || fn["bytecodeSelectorMatched"] != true || fn["selectorSource"] != "hardhat-ethers-keccak-selector-metadata" {
+				t.Fatalf("expected hardhat ERC20 totalSupply selector evidence: %v", fn)
+			}
+		}
+		if fn["signature"] == "balanceOf(address)" {
+			balanceOfSelector = fn["selector"].(string)
+			if balanceOfSelector != "0x70a08231" || fn["bytecodeSelectorMatched"] != true || fn["selectorSource"] != "hardhat-ethers-keccak-selector-metadata" {
+				t.Fatalf("expected hardhat ERC20 balanceOf selector evidence: %v", fn)
+			}
 		}
 	}
 	if decimalsSelector == "" {
 		t.Fatalf("expected decimals() ABI function in verified hardhat artifact: %v", verified)
+	}
+	if totalSupplySelector == "" {
+		t.Fatalf("expected totalSupply() ABI function in verified hardhat artifact: %v", verified)
+	}
+	if balanceOfSelector == "" {
+		t.Fatalf("expected balanceOf(address) ABI function in verified hardhat artifact: %v", verified)
 	}
 	var callResult map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "decimals"}, http.StatusOK, &callResult)
@@ -349,10 +376,23 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	if callResult["opcodeStepCount"].(float64) <= 0 {
 		t.Fatalf("expected opcode interpreter step evidence: %v", callResult)
 	}
+	var totalSupplyCall map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "totalSupply"}, http.StatusOK, &totalSupplyCall)
+	if totalSupplyCall["returnValue"] != "1000000" || totalSupplyCall["encodedResult"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" || totalSupplyCall["executionStatus"] != "evm_opcode_interpreter_staticcall_subset" || totalSupplyCall["executionEngine"] != "local-bounded-evm-opcode-interpreter" {
+		t.Fatalf("expected constructor-seeded totalSupply from EVM interpreter: %v", totalSupplyCall)
+	}
 	var out map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 31, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": decimalsSelector}, "latest"}}, http.StatusOK, &out)
 	if out["result"] != "0x0000000000000000000000000000000000000000000000000000000000000012" {
 		t.Fatalf("expected artifact-backed eth_call decimals result: %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 32, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": totalSupplySelector + strings.Repeat("0", 64)}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
+		t.Fatalf("expected artifact-backed eth_call totalSupply result from full calldata: %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 33, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": balanceOfSelector + strings.Repeat("0", 24) + "1111111111111111111111111111111111111111"}, "latest"}}, http.StatusOK, &out)
+	if out["error"] == nil || !strings.Contains(out["error"].(map[string]any)["message"].(string), "does not support this calldata/staticcall path") {
+		t.Fatalf("expected honest unsupported calldata error for balanceOf mapping path: %v", out)
 	}
 }
 

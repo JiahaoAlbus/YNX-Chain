@@ -643,9 +643,10 @@ func (s *Server) handleIDECompile(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleIDEDeploy(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Deployer string `json:"deployer"`
-		Name     string `json:"name"`
-		Source   string `json:"source"`
+		Deployer        string   `json:"deployer"`
+		Name            string   `json:"name"`
+		Source          string   `json:"source"`
+		ConstructorArgs []string `json:"constructorArgs"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -655,7 +656,7 @@ func (s *Server) handleIDEDeploy(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, result)
 		return
 	}
-	artifact, tx, err := s.devnet.DeployContract(req.Deployer, req.Name, req.Source)
+	artifact, tx, err := s.devnet.DeployContractWithArgs(req.Deployer, req.Name, req.Source, req.ConstructorArgs)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

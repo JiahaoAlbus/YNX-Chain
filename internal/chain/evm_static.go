@@ -13,17 +13,17 @@ type evmStaticResult struct {
 	StepCount     int
 }
 
-func runStaticEVMSubset(deployedBytecode, selector string, storage map[string]string) (evmStaticResult, error) {
+func runStaticEVMSubset(deployedBytecode, callDataHex string, storage map[string]string) (evmStaticResult, error) {
 	code, err := hex.DecodeString(strings.TrimPrefix(deployedBytecode, "0x"))
 	if err != nil {
 		return evmStaticResult{}, fmt.Errorf("decode deployed bytecode: %w", err)
 	}
-	callData, err := hex.DecodeString(strings.TrimPrefix(selector, "0x"))
+	callData, err := hex.DecodeString(strings.TrimPrefix(callDataHex, "0x"))
 	if err != nil {
-		return evmStaticResult{}, fmt.Errorf("decode calldata selector: %w", err)
+		return evmStaticResult{}, fmt.Errorf("decode calldata: %w", err)
 	}
-	if len(callData) != 4 {
-		return evmStaticResult{}, errors.New("local EVM subset only supports 4-byte no-argument staticcall selectors")
+	if len(callData) < 4 {
+		return evmStaticResult{}, errors.New("local EVM subset requires at least a 4-byte staticcall selector")
 	}
 	vm := evmSubsetVM{
 		code:     code,

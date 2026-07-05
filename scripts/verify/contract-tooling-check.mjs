@@ -80,6 +80,8 @@ const sampleSelectorMetadata = selectorMetadata.artifacts?.["artifacts/contracts
 assert(sampleSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-and-deployed-bytecode-presence", "sample ERC20 selector metadata mode mismatch");
 const decimalsSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "decimals()");
 assert(decimalsSelector?.selector === "0x313ce567" && decimalsSelector.bytecodeSelectorMatched === true, "sample ERC20 decimals selector must match deployed bytecode");
+const totalSupplySelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "totalSupply()");
+assert(totalSupplySelector?.selector === "0x18160ddd" && totalSupplySelector.bytecodeSelectorMatched === true, "sample ERC20 totalSupply selector must match deployed bytecode");
 
 const buildInfoFiles = fs.readdirSync(path.join(root, "artifacts/build-info")).filter((file) => file.endsWith(".json") && !file.endsWith(".output.json"));
 assert(buildInfoFiles.length > 0, "Hardhat build-info file missing after build");
@@ -115,7 +117,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "bounded read-only local EVM opcode interpreter", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "totalSupply()", "bounded read-only local EVM opcode interpreter", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

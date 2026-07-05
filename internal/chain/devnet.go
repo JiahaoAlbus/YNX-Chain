@@ -1494,6 +1494,10 @@ func (d *Devnet) ResourceAnalytics() ResourceAnalytics {
 }
 
 func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact, Transaction, error) {
+	return d.DeployContractWithArgs(deployer, name, source, nil)
+}
+
+func (d *Devnet) DeployContractWithArgs(deployer, name, source string, constructorArgs []string) (ContractArtifact, Transaction, error) {
 	if deployer == "" || name == "" || strings.TrimSpace(source) == "" {
 		return ContractArtifact{}, Transaction{}, errors.New("deployer, name, and source are required")
 	}
@@ -1509,7 +1513,7 @@ func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact
 	account.ResourceUsage.ComputeUsed += 5
 	sourceHash := hashParts("source", source)
 	address := "0x" + hashParts("contract", deployer, name, sourceHash, fmt.Sprint(time.Now().UnixNano()))[:40]
-	artifact := buildContractArtifact(address, deployer, name, source, false, nil)
+	artifact := buildContractArtifactWithArgs(address, deployer, name, source, false, nil, constructorArgs)
 	d.contracts[artifact.Address] = artifact
 	tx := d.newTxLocked("contract_deploy", deployer, artifact.Address, 0, fee, nil, "local devnet contract deployment")
 	d.pending = append(d.pending, tx)
@@ -1533,7 +1537,8 @@ func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error
 	}
 	verifiedAt := time.Now().UTC()
 	deployedAt := artifact.DeployedAt
-	artifact = buildContractArtifact(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt)
+	constructorArgs := append([]string(nil), artifact.ConstructorArgs...)
+	artifact = buildContractArtifactWithArgs(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt, constructorArgs)
 	artifact.DeployedAt = deployedAt
 	d.contracts[address] = artifact
 	err := d.persistSnapshotLocked()
@@ -1566,8 +1571,14 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 		return ContractCallResult{}, errors.New("contract not found")
 	}
 	function = strings.TrimSpace(function)
+	normalizedCallData := normalizeHex(function)
+	callSelector := ""
+	if len(normalizedCallData) >= 10 {
+		callSelector = normalizedCallData[:10]
+	}
 	for _, candidate := range artifact.Functions {
-		if candidate.Name == function || candidate.Signature == function || candidate.Selector == strings.ToLower(function) {
+		candidateSelector := strings.ToLower(candidate.Selector)
+		if candidate.Name == function || candidate.Signature == function || candidateSelector == strings.ToLower(function) || (callSelector != "" && candidateSelector == callSelector) {
 			if candidate.StateMutability != "pure" && candidate.StateMutability != "view" {
 				return ContractCallResult{}, errors.New("local devnet runtime only supports pure/view function calls")
 			}
@@ -1575,11 +1586,15 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 				if !candidate.BytecodeSelectorMatched {
 					return ContractCallResult{}, errors.New("compiled bytecode selector was not found in local deployed bytecode artifact")
 				}
-				if len(candidate.Inputs) > 0 {
-					return ContractCallResult{}, errors.New("artifact-backed local runtime only supports no-argument static calls")
+				if len(candidate.Inputs) > 0 && callSelector == "" {
+					return ContractCallResult{}, errors.New("artifact-backed local runtime requires ABI calldata for functions with inputs")
 				}
 				if bytecode, ok := hardhatDeployedBytecode(artifact.CompilerArtifact.ArtifactPath); ok {
-					staticResult, err := runStaticEVMSubset(bytecode, candidate.Selector, artifact.RuntimeStorage)
+					callData := candidate.Selector
+					if callSelector != "" {
+						callData = normalizedCallData
+					}
+					staticResult, err := runStaticEVMSubset(bytecode, callData, artifact.RuntimeStorage)
 					if err == nil {
 						return ContractCallResult{
 							Address:                 artifact.Address,
@@ -1596,6 +1611,9 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 							BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
 							Limitations:             artifact.Limitations,
 						}, nil
+					}
+					if callSelector != "" || len(candidate.Inputs) > 0 {
+						return ContractCallResult{}, fmt.Errorf("artifact-backed local EVM subset does not support this calldata/staticcall path: %w", err)
 					}
 				}
 			}
@@ -2062,12 +2080,16 @@ var contractEventPattern = regexp.MustCompile(`(?s)event\s+([A-Za-z_][A-Za-z0-9_
 var contractFunctionPattern = regexp.MustCompile(`(?s)function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*(public|external|internal|private)?\s*(pure|view|payable)?\s*(?:returns\s*\((.*?)\))?\s*\{(.*?)\}`)
 
 func buildContractArtifact(address, deployer, name, source string, verified bool, verifiedAt *time.Time) ContractArtifact {
+	return buildContractArtifactWithArgs(address, deployer, name, source, verified, verifiedAt, nil)
+}
+
+func buildContractArtifactWithArgs(address, deployer, name, source string, verified bool, verifiedAt *time.Time, constructorArgs []string) ContractArtifact {
 	sourceHash := hashParts("source", source)
 	compiler := SolidityCompilerConfig()
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
-	runtimeStorage := extractRuntimeStorage(source)
+	runtimeStorage := extractRuntimeStorage(source, constructorArgs)
 	if hasCompilerArtifact {
 		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
 	}
@@ -2112,7 +2134,7 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
 			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for no-argument static calls; it does not support full EVM state transitions, storage layout, constructor arguments, or arbitrary calldata",
+			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls and simple constructor-seeded storage; it does not support full EVM state transitions, mapping storage hashing, or arbitrary write calls",
 		}, compiler.Limitations...)
 	}
 	runtimeMode := "deterministic-devnet-pure-view-runtime"
@@ -2138,6 +2160,7 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		ReproducibleBuild:                verified,
 		ReproducibilityStatus:            reproducibilityStatus,
 		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
+		ConstructorArgs:                  cleanConstructorArgs(constructorArgs),
 		RuntimeStorage:                   runtimeStorage,
 		ABI:                              abi,
 		Events:                           events,
@@ -2206,14 +2229,23 @@ func extractPublicGetterReturnValues(source string) map[string]string {
 	return values
 }
 
-func extractRuntimeStorage(source string) map[string]string {
+func extractRuntimeStorage(source string, constructorArgs []string) map[string]string {
 	storage := map[string]string{}
+	stateSlots := map[string]struct {
+		Kind string
+		Slot int
+	}{}
 	matches := publicStateSlotPattern.FindAllStringSubmatch(source, -1)
 	for slot, match := range matches {
 		if len(match) != 4 {
 			continue
 		}
 		kind := strings.TrimSpace(match[1])
+		name := strings.TrimSpace(match[2])
+		stateSlots[name] = struct {
+			Kind string
+			Slot int
+		}{Kind: kind, Slot: slot}
 		rawValue := strings.Trim(strings.TrimSpace(match[3]), `"`)
 		switch {
 		case strings.HasPrefix(kind, "uint"):
@@ -2232,10 +2264,81 @@ func extractRuntimeStorage(source string) map[string]string {
 			}
 		}
 	}
+	applyConstructorArgsToRuntimeStorage(source, constructorArgs, stateSlots, storage)
 	if len(storage) == 0 {
 		return nil
 	}
 	return storage
+}
+
+var constructorPattern = regexp.MustCompile(`(?s)constructor\s*\((.*?)\)\s*\{(.*?)\}`)
+var constructorAssignmentPattern = regexp.MustCompile(`(?m)\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;`)
+
+func applyConstructorArgsToRuntimeStorage(source string, constructorArgs []string, stateSlots map[string]struct {
+	Kind string
+	Slot int
+}, storage map[string]string) {
+	if len(constructorArgs) == 0 {
+		return
+	}
+	match := constructorPattern.FindStringSubmatch(source)
+	if len(match) != 3 {
+		return
+	}
+	inputs := parseContractEventInputs(match[1])
+	argValues := map[string]string{}
+	for i, input := range inputs {
+		if i >= len(constructorArgs) {
+			break
+		}
+		argValues[input.Name] = strings.TrimSpace(constructorArgs[i])
+	}
+	for _, assignment := range constructorAssignmentPattern.FindAllStringSubmatch(match[2], -1) {
+		if len(assignment) != 3 {
+			continue
+		}
+		stateName := strings.TrimSpace(assignment[1])
+		argName := strings.TrimSpace(assignment[2])
+		slot, ok := stateSlots[stateName]
+		if !ok || !strings.HasPrefix(slot.Kind, "uint") {
+			continue
+		}
+		parsed, err := strconv.ParseUint(argValues[argName], 10, 64)
+		if err != nil {
+			continue
+		}
+		storage[fmt.Sprint(slot.Slot)] = fmt.Sprintf("0x%064x", parsed)
+	}
+}
+
+func cleanConstructorArgs(args []string) []string {
+	cleaned := make([]string, 0, len(args))
+	for _, arg := range args {
+		arg = strings.TrimSpace(arg)
+		if arg != "" {
+			cleaned = append(cleaned, arg)
+		}
+	}
+	if len(cleaned) == 0 {
+		return nil
+	}
+	return cleaned
+}
+
+func normalizeHex(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if value == "" {
+		return ""
+	}
+	if !strings.HasPrefix(value, "0x") {
+		value = "0x" + value
+	}
+	for _, char := range strings.TrimPrefix(value, "0x") {
+		if (char < '0' || char > '9') && (char < 'a' || char > 'f') {
+			return ""
+		}
+	}
+	return value
 }
 
 func contractVerificationEvidence(artifact ContractArtifact) ContractVerificationEvidence {

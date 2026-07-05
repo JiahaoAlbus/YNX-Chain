@@ -567,6 +567,7 @@ type ContractArtifact struct {
 	ReproducibleBuild                bool                      `json:"reproducibleBuild"`
 	ReproducibilityStatus            string                    `json:"reproducibilityStatus"`
 	DeployedBytecodeComparisonStatus string                    `json:"deployedBytecodeComparisonStatus"`
+	ConstructorArgs                  []string                  `json:"constructorArgs,omitempty"`
 	RuntimeStorage                   map[string]string         `json:"runtimeStorage,omitempty"`
 	ABI                              []ContractABIEntry        `json:"abi,omitempty"`
 	Events                           []ContractEventABI        `json:"events,omitempty"`
