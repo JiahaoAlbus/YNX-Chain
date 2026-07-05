@@ -83,6 +83,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
+	s.mux.HandleFunc("GET /ide/verifier/{address}", s.handleIDEVerifier)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
@@ -690,6 +691,14 @@ func (s *Server) handleIDECall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+func (s *Server) handleIDEVerifier(w http.ResponseWriter, r *http.Request) {
+	evidence, ok := s.devnet.ContractVerification(r.PathValue("address"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "contract not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, evidence)
 }
 func (s *Server) handleContractLookup(w http.ResponseWriter, r *http.Request) {
 	artifact, ok := s.devnet.Contract(r.PathValue("address"))

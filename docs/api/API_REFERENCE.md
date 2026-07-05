@@ -61,6 +61,7 @@ Products:
 - `POST /ide/deploy`
 - `POST /ide/call`
 - `POST /ide/verify`
+- `GET /ide/verifier/{address}`
 - `GET /contracts/{address}`
 
 `GET /ide/compiler` returns the pinned Solidity compiler configuration used by local IDE artifact and verifier metadata: Solidity `0.8.24`, wasm preference, optimizer settings, config hash, artifact kind, compiler mode, verifier mode, and current limitations.
@@ -68,6 +69,8 @@ Products:
 `POST /ide/compile` returns deterministic local artifact metadata: source hash, bytecode hash, deployed bytecode hash, artifact hash, artifact kind, compiler config hash, compiler execution status, compiler mode, runtime mode, verifier mode, reproducibility status, deployed bytecode comparison status, ABI, parsed events, parsed pure/view functions, and truthful limitations. `POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` preserve that metadata for developer tooling. `POST /ide/call` and EVM `eth_call` can execute simple local pure/view return literals from the stored artifact and return EVM-style encoded results.
 
 For ad hoc IDE snippets, artifact kind remains `source-analyzer-artifact`. If the submitted source exactly matches a repository contract that has a Hardhat artifact built with the pinned Solidity `0.8.24` config, artifact kind upgrades to `pinned-solc-bytecode-artifact` and includes real bytecode/deployedBytecode hashes. `POST /ide/verify` then records `deployedBytecodeComparisonStatus=matched_local_deployed_bytecode_hash`. This is still local devnet evidence, not remote public explorer proof.
+
+`GET /ide/verifier/{address}` returns explicit local verifier service evidence for a deployed contract: compiler identity, source hash, bytecode hash, deployed bytecode hash, compiler config hash, artifact kind, compiler execution status, verifier mode, reproducibility status, deployed bytecode comparison status, local service status, remote public proof status, and limitations. It deliberately reports `remotePublicProofStatus=not_remote_public_proof` until a real remote verifier or explorer-backed proof is available.
 
 Verification:
 

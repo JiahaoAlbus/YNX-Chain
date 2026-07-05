@@ -1,10 +1,14 @@
 # YNX Chain
 
-YNX Chain is a new Web4 L1 engineering workspace for a local devnet, public testnet deployment package, EVM-compatible RPC surface, resource economy, AI Gateway, Pay API, Trust tracing, developer tooling, and global ecosystem readiness materials.
+YNX Chain is a Web4 L1 blockchain ecosystem built around YNXT. The project is designed to grow from a verifiable local devnet and public testnet deployment package into a full-stack blockchain ecosystem with EVM-compatible RPC, multi-validator infrastructure, resource-based economics, AI-native services, Pay APIs, Trust tracing, developer tooling, wallet integration, explorer infrastructure, and global ecosystem readiness.
 
-Native coin name and symbol are both **YNXT**. YNX is the chain and brand name only.
+YNXT is the native coin and gas/resource asset of YNX Chain. YNX is the chain and brand name only.
 
-This repository does not claim mainnet launch, exchange listing, stablecoin issuer support, wallet default support, or third-party partnerships. Those require independent review and live public evidence.
+Current repository scope includes engineering implementation, local devnet verification, public testnet deployment tooling, remote deployment safeguards, RPC/EVM RPC surfaces, faucet, indexer, explorer, AI Gateway, Pay API, Trust tracing, resource economy, Chain Law / Anti-Illegal Request architecture, developer tooling, SDKs, and readiness packages for wallets, exchanges, custody providers, stablecoin issuers, bridges, grants, and mainnet review.
+
+This repository does not claim that YNX Chain has already launched mainnet, achieved exchange listing, obtained stablecoin issuer support, secured wallet default support, or formed third-party partnerships. Those require independent review, live public evidence, and external approval.
+
+The goal is full-ecosystem readiness without fake claims.
 
 Run `make setup`, `make test`, and `make smoke-test` to verify the local chain/API loop. Run `make env-check`, `make no-placeholder-check`, `make secret-scan`, and `make preflight` before deployment.
 

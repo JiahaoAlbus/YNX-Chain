@@ -41,6 +41,8 @@ The IDE compile and verify API is suitable for developer preflight and submissio
 
 For temporary IDE snippets, artifact kind remains `source-analyzer-artifact`. For repository contract sources that exactly match a Hardhat artifact built with the pinned Solidity `0.8.24` config, artifact kind becomes `pinned-solc-bytecode-artifact` and verification can record `deployedBytecodeComparisonStatus=matched_local_deployed_bytecode_hash`. Production public proof still requires deployed bytecode from YNX Testnet and the real explorer or verifier URL.
 
+`GET /ide/verifier/{address}` exposes the local verifier service evidence for a deployed contract. It reports compiler identity, source hash, bytecode hashes, compiler config hash, artifact kind, compiler execution status, deployed bytecode comparison status, and reproducibility status. It also returns `remotePublicProofStatus=not_remote_public_proof` until the same evidence is backed by a real public verifier or explorer endpoint.
+
 ## Repository Gate
 
 ```bash

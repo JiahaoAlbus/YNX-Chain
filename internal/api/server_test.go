@@ -252,6 +252,11 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	if verified["verifierStatus"] != "source_hash_and_pinned_compiler_config_matched_local_artifact" || verified["compilerConfigHash"] != compiler["configHash"] || verified["reproducibleBuild"] != true {
 		t.Fatalf("expected local verifier status: %v", verified)
 	}
+	var verifierEvidence map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/ide/verifier/"+address, nil, http.StatusOK, &verifierEvidence)
+	if verifierEvidence["localServiceStatus"] != "local-verifier-evidence" || verifierEvidence["remotePublicProofStatus"] != "not_remote_public_proof" || verifierEvidence["artifactKind"] != "source-analyzer-artifact" {
+		t.Fatalf("expected explicit local verifier evidence: %v", verifierEvidence)
+	}
 	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)
 	verifiedFunctions := verified["functions"].([]any)
 	selector := verifiedFunctions[0].(map[string]any)["selector"].(string)
@@ -312,6 +317,14 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": string(sourceBytes)}, http.StatusOK, &verified)
 	if verified["verifierStatus"] != "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact" || verified["deployedBytecodeComparisonStatus"] != "matched_local_deployed_bytecode_hash" {
 		t.Fatalf("expected deployed bytecode hash comparison status: %v", verified)
+	}
+	var evidence map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/ide/verifier/"+address, nil, http.StatusOK, &evidence)
+	if evidence["localServiceStatus"] != "local-hardhat-artifact-verifier-evidence" || evidence["remotePublicProofStatus"] != "not_remote_public_proof" || evidence["artifactKind"] != "pinned-solc-bytecode-artifact" {
+		t.Fatalf("expected hardhat verifier evidence endpoint: %v", evidence)
+	}
+	if evidence["deployedBytecodeComparisonStatus"] != "matched_local_deployed_bytecode_hash" || evidence["deployedBytecodeHash"] != verified["deployedBytecodeHash"] {
+		t.Fatalf("expected verifier evidence hashes to match verified contract: %v verified=%v", evidence, verified)
 	}
 }
 

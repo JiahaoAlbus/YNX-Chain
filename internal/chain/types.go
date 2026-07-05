@@ -609,6 +609,30 @@ type ContractCompilerArtifact struct {
 	Status               string `json:"status"`
 }
 
+type ContractVerificationEvidence struct {
+	Address                          string                    `json:"address"`
+	Name                             string                    `json:"name"`
+	Verified                         bool                      `json:"verified"`
+	VerifierStatus                   string                    `json:"verifierStatus"`
+	ArtifactKind                     string                    `json:"artifactKind"`
+	SourceHash                       string                    `json:"sourceHash"`
+	BytecodeHash                     string                    `json:"bytecodeHash"`
+	DeployedBytecodeHash             string                    `json:"deployedBytecodeHash"`
+	ArtifactHash                     string                    `json:"artifactHash"`
+	CompilerConfigHash               string                    `json:"compilerConfigHash"`
+	Compiler                         ContractCompilerConfig    `json:"compiler"`
+	CompilerArtifact                 *ContractCompilerArtifact `json:"compilerArtifact,omitempty"`
+	CompilerExecutionStatus          string                    `json:"compilerExecutionStatus"`
+	VerifierMode                     string                    `json:"verifierMode"`
+	ReproducibleBuild                bool                      `json:"reproducibleBuild"`
+	ReproducibilityStatus            string                    `json:"reproducibilityStatus"`
+	DeployedBytecodeComparisonStatus string                    `json:"deployedBytecodeComparisonStatus"`
+	LocalServiceStatus               string                    `json:"localServiceStatus"`
+	RemotePublicProofStatus          string                    `json:"remotePublicProofStatus"`
+	Limitations                      []string                  `json:"limitations,omitempty"`
+	GeneratedAt                      time.Time                 `json:"generatedAt"`
+}
+
 type ContractABIEntry struct {
 	Type            string               `json:"type"`
 	Name            string               `json:"name"`

@@ -135,6 +135,8 @@ contract_selector=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.r
 contract_tx=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).transaction.hash')
 echo "IDE deployment result: $deploy"
 echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
+verifier_evidence=$(curl -fsS "http://127.0.0.1:6420/ide/verifier/$contract_address")
+printf '%s' "$verifier_evidence" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.localServiceStatus !== "local-verifier-evidence" || data.remotePublicProofStatus !== "not_remote_public_proof" || data.artifactKind !== "source-analyzer-artifact" || data.verified !== true) { console.error(`bad verifier evidence: ${JSON.stringify(data)}`); process.exit(1); }'
 curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
 contract_call=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address" | curl -fsS -X POST http://127.0.0.1:6420/ide/call -H 'content-type: application/json' -d @-)
 printf '%s' "$contract_call" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.returnValue !== "1" || data.encodedResult !== "0x0000000000000000000000000000000000000000000000000000000000000001") { console.error(`bad IDE call result: ${JSON.stringify(data)}`); process.exit(1); }'

@@ -27,6 +27,8 @@ verify_payload=$(node -e 'const address=process.argv[1], source=process.argv[2];
 verified=$(printf '%s' "$verify_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/verify" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$verified" | ynx_json_field '["verified"]')" == "true" ]] || { echo "contract verification failed"; exit 1; }
 printf '%s' "$verified" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.verifierStatus !== "source_hash_and_pinned_compiler_config_matched_local_artifact" || data.reproducibleBuild !== true || data.compiler?.version !== "0.8.24") { console.error(`missing verifier compiler metadata: ${JSON.stringify(data)}`); process.exit(1); }'
+verifier=$(curl -fsS "$YNX_REST_URL/ide/verifier/$contract_address")
+printf '%s' "$verifier" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.localServiceStatus !== "local-verifier-evidence" || data.remotePublicProofStatus !== "not_remote_public_proof" || data.artifactKind !== "source-analyzer-artifact" || data.verified !== true || !data.deployedBytecodeHash) { console.error(`missing verifier service evidence: ${JSON.stringify(data)}`); process.exit(1); }'
 call_payload=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address")
 contract_call=$(printf '%s' "$call_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/call" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$contract_call" | ynx_json_field '["encodedResult"]')" == "0x0000000000000000000000000000000000000000000000000000000000000001" ]] || { echo "contract call failed"; exit 1; }

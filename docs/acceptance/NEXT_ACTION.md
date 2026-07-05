@@ -1,11 +1,11 @@
 # Next Action
 
-Current single action: add a deployable contract verifier service endpoint or real EVM bytecode execution semantics for IDE contracts.
+Current single action: add real EVM bytecode execution semantics for IDE contracts or wire remote verifier/explorer-backed proof.
 
 Why this action:
 
-- IDE compile/deploy/verify now distinguishes ad hoc `source-analyzer-artifact` output from repository `pinned-solc-bytecode-artifact` output backed by Hardhat artifacts and deployed bytecode hash comparison.
-- The remaining IDE/EVM production gap is runtime/verifier depth: local devnet still stores bytecode hashes and executes only simple parsed pure/view literals instead of EVM bytecode, and verifier evidence is not yet exposed as a deployable verifier service or remote explorer proof.
+- IDE compile/deploy/verify now distinguishes ad hoc `source-analyzer-artifact` output from repository `pinned-solc-bytecode-artifact` output backed by Hardhat artifacts, local deployed bytecode hash comparison, and explicit `GET /ide/verifier/{address}` evidence.
+- The remaining IDE/EVM production gap is runtime/public-proof depth: local devnet still executes only simple parsed pure/view literals instead of EVM bytecode, and verifier evidence is still local-only until remote explorer/verifier proof exists.
 - This is the next honest developer-platform gap that can advance locally while remote SSH/public ingress blockers and GitHub push TLS failures are handled separately.
 
 Files to touch:
@@ -38,11 +38,11 @@ Validation commands:
 
 Completion standard:
 
-- Verifier evidence can be queried through an explicit local service/API endpoint, or EVM calls can use real compiled bytecode semantics for at least a narrow supported subset.
+- EVM calls can use real compiled bytecode semantics for at least a narrow supported subset, or verifier evidence can be backed by a real remote verifier/explorer response.
 - Responses continue to separate `source-analyzer-artifact` from `pinned-solc-bytecode-artifact`.
-- Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, verifier mode, reproducibility status, and service/runtime limitations.
-- Tests/checks prove the new verifier service or bytecode execution path without claiming remote public verifier availability.
-- Tracker moves IDE/EVM fidelity forward honestly without claiming remote proof.
+- Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, verifier mode, reproducibility status, service/runtime limitations, and remote proof status.
+- Tests/checks prove the new runtime or remote verifier path without claiming broader mainnet or third-party availability.
+- Tracker moves IDE/EVM fidelity forward honestly without claiming remote proof unless live public evidence exists.
 
 Explicitly not doing in this action:
 

@@ -60,6 +60,8 @@ for (const text of [
   assert(compilerGo.includes(text), `Go compiler metadata missing ${text}`);
 }
 assert(read("internal/chain/types.go").includes("DeployedBytecodeComparisonStatus"), "contract verifier must expose deployed bytecode comparison status");
+assert(read("internal/chain/types.go").includes("ContractVerificationEvidence"), "contract verifier evidence type missing");
+assert(read("internal/api/server.go").includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
 
 const sampleArtifact = JSON.parse(read("artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"));
 assert(sampleArtifact.contractName === "SampleYNXTCompatibleERC20", "sample ERC20 artifact contract name mismatch");
@@ -101,7 +103,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

@@ -1547,6 +1547,16 @@ func (d *Devnet) Contract(address string) (ContractArtifact, bool) {
 	return artifact, ok
 }
 
+func (d *Devnet) ContractVerification(address string) (ContractVerificationEvidence, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	artifact, ok := d.contracts[address]
+	if !ok {
+		return ContractVerificationEvidence{}, false
+	}
+	return contractVerificationEvidence(artifact), true
+}
+
 func (d *Devnet) CallContract(address, function string) (ContractCallResult, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -2096,6 +2106,39 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 
 func AnalyzeContractSource(name, source string) ContractArtifact {
 	return buildContractArtifact("", "", name, source, false, nil)
+}
+
+func contractVerificationEvidence(artifact ContractArtifact) ContractVerificationEvidence {
+	localStatus := "local-verifier-evidence"
+	if artifact.CompilerArtifact != nil {
+		localStatus = "local-hardhat-artifact-verifier-evidence"
+	}
+	return ContractVerificationEvidence{
+		Address:                          artifact.Address,
+		Name:                             artifact.Name,
+		Verified:                         artifact.Verified,
+		VerifierStatus:                   artifact.VerifierStatus,
+		ArtifactKind:                     artifact.ArtifactKind,
+		SourceHash:                       artifact.SourceHash,
+		BytecodeHash:                     artifact.BytecodeHash,
+		DeployedBytecodeHash:             artifact.DeployedBytecodeHash,
+		ArtifactHash:                     artifact.ArtifactHash,
+		CompilerConfigHash:               artifact.CompilerConfigHash,
+		Compiler:                         artifact.Compiler,
+		CompilerArtifact:                 artifact.CompilerArtifact,
+		CompilerExecutionStatus:          artifact.CompilerExecutionStatus,
+		VerifierMode:                     artifact.VerifierMode,
+		ReproducibleBuild:                artifact.ReproducibleBuild,
+		ReproducibilityStatus:            artifact.ReproducibilityStatus,
+		DeployedBytecodeComparisonStatus: artifact.DeployedBytecodeComparisonStatus,
+		LocalServiceStatus:               localStatus,
+		RemotePublicProofStatus:          "not_remote_public_proof",
+		Limitations: append([]string{
+			"local verifier evidence only; public proof requires a deployed remote verifier or explorer-backed bytecode check",
+			"local devnet does not claim mainnet launch or third-party verification",
+		}, artifact.Limitations...),
+		GeneratedAt: time.Now().UTC(),
+	}
 }
 
 func extractContractEvents(source string) []ContractEventABI {
