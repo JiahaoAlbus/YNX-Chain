@@ -278,6 +278,16 @@ func TestContractArtifactRuntimeCall(t *testing.T) {
 	if contract.CompilerMode == "" || contract.RuntimeMode == "" || contract.ArtifactHash == "" || len(contract.Functions) != 2 || len(contract.ABI) != 2 {
 		t.Fatalf("expected deterministic compile/runtime artifact, got %+v", contract)
 	}
+	if contract.ArtifactKind != "source-analyzer-artifact" || contract.Compiler.Version != "0.8.24" || !contract.Compiler.Pinned || contract.CompilerConfigHash != contract.Compiler.ConfigHash || contract.ReproducibleBuild {
+		t.Fatalf("expected pinned compiler config and unverified analyzer artifact, got %+v", contract)
+	}
+	verified, err := devnet.VerifyContract(contract.Address, source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !verified.ReproducibleBuild || verified.VerifierStatus != "source_hash_and_pinned_compiler_config_matched_local_artifact" || verified.CompilerConfigHash != contract.CompilerConfigHash {
+		t.Fatalf("expected verifier to record source and compiler config match, got %+v", verified)
+	}
 	result, err := devnet.CallContract(contract.Address, "ping")
 	if err != nil {
 		t.Fatal(err)

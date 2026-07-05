@@ -44,7 +44,20 @@ assert(hardhatConfig.includes("configVariable(\"YNX_EVM_RPC_URL\")"), "Hardhat c
 assert(hardhatConfig.includes("configVariable(\"DEPLOYER_PRIVATE_KEY\")"), "Hardhat config must require DEPLOYER_PRIVATE_KEY");
 assert(hardhatConfig.includes("chainId: 6423"), "Hardhat config must use YNX Testnet chainId 6423");
 assert(hardhatConfig.includes("chainType: \"l1\""), "Hardhat config must declare L1 chain type");
+assert(hardhatConfig.includes("version: \"0.8.24\""), "Hardhat config must pin Solidity 0.8.24");
 assert(hardhatConfig.includes("preferWasm: true"), "Hardhat config must prefer wasm solc for reproducible builds");
+assert(hardhatConfig.includes("enabled: true"), "Hardhat optimizer must be enabled");
+assert(hardhatConfig.includes("runs: 200"), "Hardhat optimizer runs must stay pinned at 200");
+
+const compilerGo = read("internal/chain/compiler.go");
+for (const text of [
+  'contractCompilerVersion       = "0.8.24"',
+  'contractCompilerConfigPath    = "hardhat.config.ts"',
+  'contractArtifactKind          = "source-analyzer-artifact"',
+  "ProductionCompilerEnabled: false"
+]) {
+  assert(compilerGo.includes(text), `Go compiler metadata missing ${text}`);
+}
 
 const foundry = read("foundry.toml");
 assert(foundry.includes("ynx_testnet = \"${YNX_EVM_RPC_URL}\""), "Foundry config must use YNX_EVM_RPC_URL");
@@ -70,9 +83,10 @@ const docs = [
   read("docs/developers/QUICKSTART_HARDHAT.md"),
   read("docs/developers/QUICKSTART_FOUNDRY.md"),
   read("docs/developers/CONTRACT_VERIFICATION.md"),
-  read("docs/defi/DEFI_ECOSYSTEM_READINESS.md")
+  read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
+  read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "source-analyzer-artifact", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

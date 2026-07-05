@@ -1,22 +1,24 @@
 # Next Action
 
-Current single action: add pinned Solidity compiler and verifier integration depth for IDE contracts.
+Current single action: wire actual pinned Solidity compiler artifact generation and bytecode verifier comparison for IDE contracts.
 
 Why this action:
 
-- IDE compile/deploy/verify now exposes deterministic local artifact metadata and simple pure/view runtime calls.
-- The remaining IDE gap is production fidelity: a pinned compiler, actual bytecode artifact generation, deployable bytecode/runtime semantics, and verifier status that can be reproduced outside the local source analyzer.
-- This is core developer-platform work that can advance locally while remote SSH/public ingress blockers and GitHub push TLS failures are handled separately.
+- IDE compile/deploy/verify now exposes pinned Solidity `0.8.24` compiler configuration, config hash, deterministic source-analyzer artifact metadata, simple pure/view runtime calls, and verifier reproducibility status.
+- The remaining IDE gap is production fidelity: executing the pinned compiler, storing actual bytecode artifacts, and comparing deployed bytecode through a verifier path instead of only matching source hash plus config hash.
+- This is the next honest developer-platform gap that can advance locally while remote SSH/public ingress blockers and GitHub push TLS failures are handled separately.
 
 Files to touch:
 
 - `internal/chain/types.go`
+- `internal/chain/compiler.go`
 - `internal/chain/devnet.go`
 - `internal/api/server.go`
 - `internal/chain/devnet_test.go`
 - `internal/api/server_test.go`
 - `scripts/verify/developer-quickstart-check.sh`
 - `scripts/verify/contract-tooling-check.*`
+- `docs/developers/CONTRACT_VERIFICATION.md`
 - `docs/api/API_REFERENCE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 - `docs/acceptance/PROJECT_STATE.md`
@@ -36,10 +38,10 @@ Validation commands:
 
 Completion standard:
 
-- Compiler configuration is pinned and inspectable.
-- Compile output can distinguish deterministic source-analyzer artifacts from pinned compiler artifacts.
-- Verification records include compiler identity/version, source hash, bytecode hash, verifier mode, and reproducibility status.
-- Tests or checks prove the compiler/verifier path without claiming production remote verifier availability.
+- A local build path executes the pinned Solidity compiler or fails closed with a clear missing-tool status.
+- Compile output separates `source-analyzer-artifact` from real pinned compiler bytecode artifacts.
+- Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, verifier mode, and reproducibility status.
+- Tests/checks prove the bytecode artifact and verifier comparison path without claiming remote public verifier availability.
 - Tracker moves IDE compiler/verifier fidelity forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:

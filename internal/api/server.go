@@ -78,6 +78,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /ai/actions/{id}", s.handleAIActionLookup)
 	s.mux.HandleFunc("POST /ai/actions/{id}/approve", s.handleAIActionApprove)
 	s.mux.HandleFunc("POST /ai/actions/{id}/reject", s.handleAIActionReject)
+	s.mux.HandleFunc("GET /ide/compiler", s.handleIDECompiler)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
@@ -621,6 +622,9 @@ func (s *Server) handleAIActionReject(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, proposal)
 }
+func (s *Server) handleIDECompiler(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, chain.SolidityCompilerConfig())
+}
 func (s *Server) handleIDECompile(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Source string `json:"source"`
@@ -996,25 +1000,30 @@ func trim0x(v string) string {
 }
 
 type compileResult struct {
-	OK           bool                        `json:"ok"`
-	Name         string                      `json:"name"`
-	SourceHash   string                      `json:"sourceHash,omitempty"`
-	BytecodeHash string                      `json:"bytecodeHash,omitempty"`
-	ArtifactHash string                      `json:"artifactHash,omitempty"`
-	CompilerMode string                      `json:"compilerMode,omitempty"`
-	RuntimeMode  string                      `json:"runtimeMode,omitempty"`
-	VerifierMode string                      `json:"verifierMode,omitempty"`
-	ABI          []chain.ContractABIEntry    `json:"abi,omitempty"`
-	Events       []chain.ContractEventABI    `json:"events,omitempty"`
-	Functions    []chain.ContractFunctionABI `json:"functions,omitempty"`
-	Limitations  []string                    `json:"limitations,omitempty"`
-	Warnings     []string                    `json:"warnings,omitempty"`
-	Errors       []string                    `json:"errors,omitempty"`
-	TruthfulNote string                      `json:"truthfulNote"`
+	OK                    bool                         `json:"ok"`
+	Name                  string                       `json:"name"`
+	SourceHash            string                       `json:"sourceHash,omitempty"`
+	BytecodeHash          string                       `json:"bytecodeHash,omitempty"`
+	ArtifactHash          string                       `json:"artifactHash,omitempty"`
+	ArtifactKind          string                       `json:"artifactKind,omitempty"`
+	CompilerMode          string                       `json:"compilerMode,omitempty"`
+	CompilerConfigHash    string                       `json:"compilerConfigHash,omitempty"`
+	Compiler              chain.ContractCompilerConfig `json:"compiler,omitempty"`
+	RuntimeMode           string                       `json:"runtimeMode,omitempty"`
+	VerifierMode          string                       `json:"verifierMode,omitempty"`
+	ReproducibleBuild     bool                         `json:"reproducibleBuild"`
+	ReproducibilityStatus string                       `json:"reproducibilityStatus,omitempty"`
+	ABI                   []chain.ContractABIEntry     `json:"abi,omitempty"`
+	Events                []chain.ContractEventABI     `json:"events,omitempty"`
+	Functions             []chain.ContractFunctionABI  `json:"functions,omitempty"`
+	Limitations           []string                     `json:"limitations,omitempty"`
+	Warnings              []string                     `json:"warnings,omitempty"`
+	Errors                []string                     `json:"errors,omitempty"`
+	TruthfulNote          string                       `json:"truthfulNote"`
 }
 
 func preflightContract(name, source string) compileResult {
-	result := compileResult{Name: name, TruthfulNote: "Local devnet deterministic source preflight and artifact analysis only. Production Solidity compilation must wire a pinned compiler and verifier."}
+	result := compileResult{Name: name, Compiler: chain.SolidityCompilerConfig(), TruthfulNote: "Local devnet deterministic source preflight and artifact analysis with pinned Solidity compiler configuration. Bytecode is analyzer metadata until production solc execution and remote verifier are wired."}
 	trimmed := strings.TrimSpace(source)
 	if trimmed == "" {
 		result.Errors = append(result.Errors, "source is required")
@@ -1032,9 +1041,14 @@ func preflightContract(name, source string) compileResult {
 	result.SourceHash = artifact.SourceHash
 	result.BytecodeHash = artifact.BytecodeHash
 	result.ArtifactHash = artifact.ArtifactHash
+	result.ArtifactKind = artifact.ArtifactKind
 	result.CompilerMode = artifact.CompilerMode
+	result.CompilerConfigHash = artifact.CompilerConfigHash
+	result.Compiler = artifact.Compiler
 	result.RuntimeMode = artifact.RuntimeMode
 	result.VerifierMode = artifact.VerifierMode
+	result.ReproducibleBuild = artifact.ReproducibleBuild
+	result.ReproducibilityStatus = artifact.ReproducibilityStatus
 	result.ABI = artifact.ABI
 	result.Events = artifact.Events
 	result.Functions = artifact.Functions

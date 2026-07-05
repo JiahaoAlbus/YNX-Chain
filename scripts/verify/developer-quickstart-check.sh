@@ -10,11 +10,14 @@ trap ynx_stop_local_testnet EXIT
 developer="ynx_developer_quickstart"
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d "{\"address\":\"$developer\",\"amount\":1000}" >/dev/null
 
+compiler=$(curl -fsS "$YNX_REST_URL/ide/compiler")
+printf '%s' "$compiler" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.version !== "0.8.24" || data.pinned !== true || data.preferWasm !== true || !data.configHash || data.productionCompilerEnabled !== false) { console.error(`missing pinned compiler config: ${JSON.stringify(data)}`); process.exit(1); }'
+
 source='pragma solidity ^0.8.24; contract Quickstart { function ping() public pure returns (uint256) { return 1; } }'
 compile_payload=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({name:"Quickstart",source}))' "$source")
 compile=$(printf '%s' "$compile_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/compile" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$compile" | ynx_json_field '["ok"]')" == "true" ]] || { echo "compile preflight failed"; exit 1; }
-printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.sourceHash || !data.artifactHash || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.sourceHash || !data.artifactHash || data.artifactKind !== "source-analyzer-artifact" || !data.compilerConfigHash || data.compiler?.version !== "0.8.24" || data.reproducibleBuild !== false || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 
 deploy_payload=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_developer_quickstart",name:"Quickstart",source}))' "$source")
 deploy=$(printf '%s' "$deploy_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/deploy" -H 'content-type: application/json' -d @-)
@@ -23,6 +26,7 @@ contract_selector=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.r
 verify_payload=$(node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source")
 verified=$(printf '%s' "$verify_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/verify" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$verified" | ynx_json_field '["verified"]')" == "true" ]] || { echo "contract verification failed"; exit 1; }
+printf '%s' "$verified" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.verifierStatus !== "source_hash_and_pinned_compiler_config_matched_local_artifact" || data.reproducibleBuild !== true || data.compiler?.version !== "0.8.24") { console.error(`missing verifier compiler metadata: ${JSON.stringify(data)}`); process.exit(1); }'
 call_payload=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address")
 contract_call=$(printf '%s' "$call_payload" | curl -fsS -X POST "$YNX_REST_URL/ide/call" -H 'content-type: application/json' -d @-)
 [[ "$(printf '%s' "$contract_call" | ynx_json_field '["encodedResult"]')" == "0x0000000000000000000000000000000000000000000000000000000000000001" ]] || { echo "contract call failed"; exit 1; }

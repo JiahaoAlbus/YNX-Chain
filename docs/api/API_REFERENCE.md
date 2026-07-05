@@ -56,13 +56,16 @@ Products:
 - `GET /ai/actions/{id}`
 - `POST /ai/actions/{id}/approve`
 - `POST /ai/actions/{id}/reject`
+- `GET /ide/compiler`
 - `POST /ide/compile`
 - `POST /ide/deploy`
 - `POST /ide/call`
 - `POST /ide/verify`
 - `GET /contracts/{address}`
 
-`POST /ide/compile` returns deterministic local artifact metadata: source hash, bytecode hash, artifact hash, compiler mode, runtime mode, verifier mode, ABI, parsed events, parsed pure/view functions, and truthful limitations. `POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` preserve that metadata for developer tooling. `POST /ide/call` and EVM `eth_call` can execute simple local pure/view return literals from the stored artifact and return EVM-style encoded results. This is still devnet preflight/runtime metadata, not a production pinned Solidity compiler or verifier.
+`GET /ide/compiler` returns the pinned Solidity compiler configuration used by local IDE artifact and verifier metadata: Solidity `0.8.24`, wasm preference, optimizer settings, config hash, artifact kind, compiler mode, verifier mode, and current limitations.
+
+`POST /ide/compile` returns deterministic local artifact metadata: source hash, bytecode hash, artifact hash, artifact kind, compiler config hash, compiler mode, runtime mode, verifier mode, reproducibility status, ABI, parsed events, parsed pure/view functions, and truthful limitations. `POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` preserve that metadata for developer tooling. `POST /ide/call` and EVM `eth_call` can execute simple local pure/view return literals from the stored artifact and return EVM-style encoded results. This is still devnet preflight/runtime metadata: compiler settings are pinned and hashed, but bytecode remains `source-analyzer-artifact` until production solc execution and remote verifier comparison are wired.
 
 Verification:
 

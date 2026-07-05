@@ -215,10 +215,19 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	}
 
 	source := "pragma solidity ^0.8.24; contract Demo { event Pinged(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }"
+	var compiler map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/ide/compiler", nil, http.StatusOK, &compiler)
+	if compiler["version"] != "0.8.24" || compiler["pinned"] != true || compiler["configHash"] == "" || compiler["productionCompilerEnabled"] != false {
+		t.Fatalf("expected inspectable pinned compiler config: %v", compiler)
+	}
 	var compiled map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/compile", map[string]any{"name": "Demo", "source": source}, http.StatusOK, &compiled)
-	if compiled["compilerMode"] == "" || compiled["runtimeMode"] == "" || compiled["artifactHash"] == "" {
-		t.Fatalf("expected deterministic compile artifact metadata: %v", compiled)
+	if compiled["compilerMode"] == "" || compiled["runtimeMode"] == "" || compiled["artifactHash"] == "" || compiled["compilerConfigHash"] != compiler["configHash"] || compiled["artifactKind"] != "source-analyzer-artifact" {
+		t.Fatalf("expected deterministic compile artifact metadata with pinned compiler config: %v", compiled)
+	}
+	compiledCompiler := compiled["compiler"].(map[string]any)
+	if compiledCompiler["version"] != "0.8.24" || compiledCompiler["preferWasm"] != true || compiled["reproducibleBuild"] != false {
+		t.Fatalf("expected pinned compiler metadata on compile result: %v", compiled)
 	}
 	compiledFunctions := compiled["functions"].([]any)
 	if len(compiledFunctions) != 1 || compiledFunctions[0].(map[string]any)["signature"] != "ping()" {
@@ -239,7 +248,7 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	if verified["verified"] != true {
 		t.Fatalf("expected verified contract: %v", verified)
 	}
-	if verified["verifierStatus"] != "source_hash_matched_local_artifact" {
+	if verified["verifierStatus"] != "source_hash_and_pinned_compiler_config_matched_local_artifact" || verified["compilerConfigHash"] != compiler["configHash"] || verified["reproducibleBuild"] != true {
 		t.Fatalf("expected local verifier status: %v", verified)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)

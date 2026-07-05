@@ -549,23 +549,48 @@ type ResourceAnalytics struct {
 }
 
 type ContractArtifact struct {
-	Address        string                `json:"address"`
-	Name           string                `json:"name"`
-	Deployer       string                `json:"deployer"`
-	SourceHash     string                `json:"sourceHash"`
-	BytecodeHash   string                `json:"bytecodeHash"`
-	ArtifactHash   string                `json:"artifactHash"`
-	CompilerMode   string                `json:"compilerMode"`
-	RuntimeMode    string                `json:"runtimeMode"`
-	VerifierMode   string                `json:"verifierMode"`
-	ABI            []ContractABIEntry    `json:"abi,omitempty"`
-	Events         []ContractEventABI    `json:"events,omitempty"`
-	Functions      []ContractFunctionABI `json:"functions,omitempty"`
-	Limitations    []string              `json:"limitations,omitempty"`
-	Verified       bool                  `json:"verified"`
-	VerifierStatus string                `json:"verifierStatus"`
-	DeployedAt     time.Time             `json:"deployedAt"`
-	VerifiedAt     *time.Time            `json:"verifiedAt,omitempty"`
+	Address               string                 `json:"address"`
+	Name                  string                 `json:"name"`
+	Deployer              string                 `json:"deployer"`
+	SourceHash            string                 `json:"sourceHash"`
+	BytecodeHash          string                 `json:"bytecodeHash"`
+	ArtifactHash          string                 `json:"artifactHash"`
+	ArtifactKind          string                 `json:"artifactKind"`
+	CompilerMode          string                 `json:"compilerMode"`
+	CompilerConfigHash    string                 `json:"compilerConfigHash"`
+	Compiler              ContractCompilerConfig `json:"compiler"`
+	RuntimeMode           string                 `json:"runtimeMode"`
+	VerifierMode          string                 `json:"verifierMode"`
+	ReproducibleBuild     bool                   `json:"reproducibleBuild"`
+	ReproducibilityStatus string                 `json:"reproducibilityStatus"`
+	ABI                   []ContractABIEntry     `json:"abi,omitempty"`
+	Events                []ContractEventABI     `json:"events,omitempty"`
+	Functions             []ContractFunctionABI  `json:"functions,omitempty"`
+	Limitations           []string               `json:"limitations,omitempty"`
+	Verified              bool                   `json:"verified"`
+	VerifierStatus        string                 `json:"verifierStatus"`
+	DeployedAt            time.Time              `json:"deployedAt"`
+	VerifiedAt            *time.Time             `json:"verifiedAt,omitempty"`
+}
+
+type ContractCompilerConfig struct {
+	ID                        string   `json:"id"`
+	Language                  string   `json:"language"`
+	Version                   string   `json:"version"`
+	Package                   string   `json:"package"`
+	ConfigPath                string   `json:"configPath"`
+	Source                    string   `json:"source"`
+	PreferWasm                bool     `json:"preferWasm"`
+	OptimizerEnabled          bool     `json:"optimizerEnabled"`
+	OptimizerRuns             int      `json:"optimizerRuns"`
+	Pinned                    bool     `json:"pinned"`
+	ConfigHash                string   `json:"configHash"`
+	ArtifactKind              string   `json:"artifactKind"`
+	CompilerMode              string   `json:"compilerMode"`
+	VerifierMode              string   `json:"verifierMode"`
+	ProductionCompilerEnabled bool     `json:"productionCompilerEnabled"`
+	ReproducibilityStatus     string   `json:"reproducibilityStatus"`
+	Limitations               []string `json:"limitations,omitempty"`
 }
 
 type ContractABIEntry struct {

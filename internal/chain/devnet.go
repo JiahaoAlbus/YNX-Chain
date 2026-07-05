@@ -2017,6 +2017,7 @@ var contractFunctionPattern = regexp.MustCompile(`(?s)function\s+([A-Za-z_][A-Za
 
 func buildContractArtifact(address, deployer, name, source string, verified bool, verifiedAt *time.Time) ContractArtifact {
 	sourceHash := hashParts("source", source)
+	compiler := SolidityCompilerConfig()
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
 	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
@@ -2027,32 +2028,38 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		abi = append(abi, ContractABIEntry{Type: "function", Name: function.Name, Signature: function.Signature, Selector: function.Selector, Inputs: function.Inputs, Outputs: function.Outputs, StateMutability: function.StateMutability})
 	}
 	status := "unverified"
+	reproducibilityStatus := "unverified; pinned compiler config recorded but source match has not been checked"
 	if verified {
-		status = "source_hash_matched_local_artifact"
+		status = "source_hash_and_pinned_compiler_config_matched_local_artifact"
+		reproducibilityStatus = "source hash and pinned compiler config matched local deterministic artifact"
 	}
-	limitations := []string{
-		"deterministic local source analyzer, not a pinned solc compiler",
+	limitations := append([]string{
+		"compiler version/settings are pinned and hashed, but devnet bytecode is still deterministic analyzer output",
 		"runtime supports simple pure/view return literals for devnet verification",
-		"production verification requires a configured compiler and verifier service",
-	}
+	}, compiler.Limitations...)
 	return ContractArtifact{
-		Address:        address,
-		Name:           name,
-		Deployer:       deployer,
-		SourceHash:     sourceHash,
-		BytecodeHash:   hashParts("bytecode", sourceHash, strings.Join(contractFunctionSignatures(functions), "|")),
-		ArtifactHash:   hashParts("artifact", name, sourceHash, fmt.Sprint(len(abi))),
-		CompilerMode:   "deterministic-devnet-source-analyzer",
-		RuntimeMode:    "deterministic-devnet-pure-view-runtime",
-		VerifierMode:   "source-hash-local-verifier",
-		ABI:            abi,
-		Events:         events,
-		Functions:      functions,
-		Limitations:    limitations,
-		Verified:       verified,
-		VerifierStatus: status,
-		DeployedAt:     time.Now().UTC(),
-		VerifiedAt:     verifiedAt,
+		Address:               address,
+		Name:                  name,
+		Deployer:              deployer,
+		SourceHash:            sourceHash,
+		BytecodeHash:          hashParts("bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|")),
+		ArtifactHash:          hashParts("artifact", compiler.ConfigHash, contractArtifactKind, name, sourceHash, fmt.Sprint(len(abi))),
+		ArtifactKind:          contractArtifactKind,
+		CompilerMode:          compiler.CompilerMode,
+		CompilerConfigHash:    compiler.ConfigHash,
+		Compiler:              compiler,
+		RuntimeMode:           "deterministic-devnet-pure-view-runtime",
+		VerifierMode:          compiler.VerifierMode,
+		ReproducibleBuild:     verified,
+		ReproducibilityStatus: reproducibilityStatus,
+		ABI:                   abi,
+		Events:                events,
+		Functions:             functions,
+		Limitations:           limitations,
+		Verified:              verified,
+		VerifierStatus:        status,
+		DeployedAt:            time.Now().UTC(),
+		VerifiedAt:            verifiedAt,
 	}
 }
 

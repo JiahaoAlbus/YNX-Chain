@@ -35,7 +35,9 @@ forge verify-contract \
 
 ## IDE Path
 
-The IDE compile and verify API is suitable for developer preflight and submission workflow testing. Public proof still requires deployed bytecode from YNX Testnet and the real explorer or verifier URL.
+The IDE compile and verify API is suitable for developer preflight and submission workflow testing. `GET /ide/compiler` exposes the pinned local compiler contract used in artifact metadata: Solidity `0.8.24`, wasm preference, optimizer enabled with `200` runs, config hash, artifact kind, compiler mode, verifier mode, and current limitations.
+
+`POST /ide/compile`, `POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` include `artifactKind`, `compilerConfigHash`, compiler identity/version, source hash, bytecode hash, verifier mode, and reproducibility status. The current artifact kind is `source-analyzer-artifact`: settings are pinned and hashed, but production public proof still requires deployed bytecode from YNX Testnet and the real explorer or verifier URL.
 
 ## Repository Gate
 
