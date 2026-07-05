@@ -306,11 +306,12 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	if compilerArtifact["sourceName"] != "contracts/tokens/SampleYNXTCompatibleERC20.sol" || compilerArtifact["deployedBytecodeHash"] != compiled["deployedBytecodeHash"] {
 		t.Fatalf("expected compiler artifact hashes to be exposed: %v", compiled)
 	}
-	if _, err := devnet.Faucet("ynx_hardhat_builder", 100); err != nil {
+	deployer := "0x1111111111111111111111111111111111111111"
+	if _, err := devnet.Faucet(deployer, 100); err != nil {
 		t.Fatal(err)
 	}
 	var deployed map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_hardhat_builder", "name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes), "constructorArgs": []string{"1000000"}}, http.StatusCreated, &deployed)
+	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": deployer, "name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes), "constructorArgs": []string{"1000000"}}, http.StatusCreated, &deployed)
 	contract := deployed["contract"].(map[string]any)
 	address := contract["address"].(string)
 	constructorArgs := contract["constructorArgs"].([]any)
@@ -390,9 +391,9 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
 		t.Fatalf("expected artifact-backed eth_call totalSupply result from full calldata: %v", out)
 	}
-	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 33, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": balanceOfSelector + strings.Repeat("0", 24) + "1111111111111111111111111111111111111111"}, "latest"}}, http.StatusOK, &out)
-	if out["error"] == nil || !strings.Contains(out["error"].(map[string]any)["message"].(string), "does not support this calldata/staticcall path") {
-		t.Fatalf("expected honest unsupported calldata error for balanceOf mapping path: %v", out)
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 33, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": balanceOfSelector + strings.Repeat("0", 24) + strings.TrimPrefix(deployer, "0x")}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
+		t.Fatalf("expected artifact-backed eth_call balanceOf result from mapping/SHA3 storage: %v", out)
 	}
 }
 

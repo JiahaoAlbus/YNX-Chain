@@ -105,6 +105,12 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 				continue
 			}
 			vm.push(new(big.Int).Rsh(value, uint(shift.Uint64())))
+		case op == 0x20: // SHA3
+			offset, size, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			vm.push(new(big.Int).SetBytes(legacyKeccak256(vm.memSlice(offset, intFromBig(size)))))
 		case op == 0x34: // CALLVALUE
 			vm.push(big.NewInt(0))
 		case op == 0x35: // CALLDATALOAD
@@ -301,6 +307,9 @@ func storageValue(storage map[string]string, slot *big.Int) *big.Int {
 	raw, ok := storage[slot.Text(10)]
 	if !ok {
 		raw, ok = storage["0x"+slot.Text(16)]
+	}
+	if !ok {
+		raw, ok = storage[fmt.Sprintf("0x%064x", slot)]
 	}
 	decoded, err := hex.DecodeString(strings.TrimPrefix(raw, "0x"))
 	if !ok || err != nil {

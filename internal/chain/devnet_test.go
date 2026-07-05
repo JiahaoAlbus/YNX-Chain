@@ -1,9 +1,18 @@
 package chain
 
 import (
+	"encoding/hex"
 	"testing"
 	"time"
 )
+
+func TestLegacyKeccak256Vector(t *testing.T) {
+	got := hex.EncodeToString(legacyKeccak256(nil))
+	want := "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+	if got != want {
+		t.Fatalf("expected Ethereum legacy Keccak-256 empty hash %s, got %s", want, got)
+	}
+}
 
 func TestValidatorSetConfigAndBlockRotation(t *testing.T) {
 	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")

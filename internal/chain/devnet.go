@@ -2089,7 +2089,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
-	runtimeStorage := extractRuntimeStorage(source, constructorArgs)
+	runtimeStorage := extractRuntimeStorage(source, deployer, constructorArgs)
 	if hasCompilerArtifact {
 		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
 	}
@@ -2229,7 +2229,7 @@ func extractPublicGetterReturnValues(source string) map[string]string {
 	return values
 }
 
-func extractRuntimeStorage(source string, constructorArgs []string) map[string]string {
+func extractRuntimeStorage(source, deployer string, constructorArgs []string) map[string]string {
 	storage := map[string]string{}
 	stateSlots := map[string]struct {
 		Kind string
@@ -2264,7 +2264,7 @@ func extractRuntimeStorage(source string, constructorArgs []string) map[string]s
 			}
 		}
 	}
-	applyConstructorArgsToRuntimeStorage(source, constructorArgs, stateSlots, storage)
+	applyConstructorArgsToRuntimeStorage(source, deployer, constructorArgs, stateSlots, storage)
 	if len(storage) == 0 {
 		return nil
 	}
@@ -2273,8 +2273,9 @@ func extractRuntimeStorage(source string, constructorArgs []string) map[string]s
 
 var constructorPattern = regexp.MustCompile(`(?s)constructor\s*\((.*?)\)\s*\{(.*?)\}`)
 var constructorAssignmentPattern = regexp.MustCompile(`(?m)\b([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;`)
+var constructorMappingSenderAssignmentPattern = regexp.MustCompile(`(?m)\b([A-Za-z_][A-Za-z0-9_]*)\s*\[\s*msg\.sender\s*\]\s*=\s*([A-Za-z_][A-Za-z0-9_]*)\s*;`)
 
-func applyConstructorArgsToRuntimeStorage(source string, constructorArgs []string, stateSlots map[string]struct {
+func applyConstructorArgsToRuntimeStorage(source, deployer string, constructorArgs []string, stateSlots map[string]struct {
 	Kind string
 	Slot int
 }, storage map[string]string) {
@@ -2309,6 +2310,41 @@ func applyConstructorArgsToRuntimeStorage(source string, constructorArgs []strin
 		}
 		storage[fmt.Sprint(slot.Slot)] = fmt.Sprintf("0x%064x", parsed)
 	}
+	for _, assignment := range constructorMappingSenderAssignmentPattern.FindAllStringSubmatch(match[2], -1) {
+		if len(assignment) != 3 {
+			continue
+		}
+		stateName := strings.TrimSpace(assignment[1])
+		argName := strings.TrimSpace(assignment[2])
+		slot, ok := stateSlots[stateName]
+		if !ok || !strings.HasPrefix(slot.Kind, "mapping") || !strings.Contains(slot.Kind, "address") || !strings.Contains(slot.Kind, "uint") {
+			continue
+		}
+		parsed, err := strconv.ParseUint(argValues[argName], 10, 64)
+		if err != nil {
+			continue
+		}
+		key, ok := solidityMappingStorageKey(evmAddressForLog(deployer), slot.Slot)
+		if !ok {
+			continue
+		}
+		storage[key] = fmt.Sprintf("0x%064x", parsed)
+	}
+}
+
+func solidityMappingStorageKey(address string, slot int) (string, bool) {
+	address = strings.TrimPrefix(strings.ToLower(strings.TrimSpace(address)), "0x")
+	if len(address) != 40 {
+		return "", false
+	}
+	addressBytes, err := hex.DecodeString(address)
+	if err != nil {
+		return "", false
+	}
+	preimage := make([]byte, 64)
+	copy(preimage[32-len(addressBytes):32], addressBytes)
+	copy(preimage[32:64], intToBytes32(big.NewInt(int64(slot))))
+	return "0x" + hex.EncodeToString(legacyKeccak256(preimage)), true
 }
 
 func cleanConstructorArgs(args []string) []string {
