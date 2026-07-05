@@ -7,8 +7,7 @@ source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
 cleanup() {
   if [[ -n "${INDEXER_PID:-}" ]]; then
-    kill "$INDEXER_PID" >/dev/null 2>&1 || true
-    wait "$INDEXER_PID" >/dev/null 2>&1 || true
+    ynx_kill_tree "$INDEXER_PID"
   fi
   ynx_stop_local_testnet
 }

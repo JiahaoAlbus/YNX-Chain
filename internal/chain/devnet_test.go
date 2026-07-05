@@ -141,6 +141,43 @@ func TestPersistentDevnetRestoresBlocksAndAccounts(t *testing.T) {
 	}
 }
 
+func TestEVMLogsPersistAndFilter(t *testing.T) {
+	dir := t.TempDir()
+	cfg := DefaultNetworkConfig("devnet")
+	devnet, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet("ynx_log_alice", 1000); err != nil {
+		t.Fatal(err)
+	}
+	transfer, err := devnet.Transfer("ynx_log_alice", "ynx_log_bob", 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := devnet.ProduceBlock()
+	if len(block.Transactions) != 2 || len(block.Transactions[1].Logs) != 1 {
+		t.Fatalf("expected transfer log in block: %+v", block.Transactions)
+	}
+	log := block.Transactions[1].Logs[0]
+	if log.TransactionHash != transfer.Hash || log.BlockNumber != block.Height || log.Data == "" || len(log.Topics) != 3 {
+		t.Fatalf("unexpected EVM log: %+v", log)
+	}
+	filtered := devnet.EVMLogs(EVMLogFilter{FromBlock: &block.Height, ToBlock: &block.Height, Addresses: []string{log.Address}, Topics: [][]string{{log.Topics[0]}}})
+	if len(filtered) != 1 || filtered[0].TransactionHash != transfer.Hash {
+		t.Fatalf("expected filtered transfer log, got %+v", filtered)
+	}
+
+	restored, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restoredLogs := restored.EVMLogs(EVMLogFilter{Addresses: []string{log.Address}})
+	if len(restoredLogs) != 1 || restoredLogs[0].TransactionHash != transfer.Hash {
+		t.Fatalf("expected restored EVM log, got %+v", restoredLogs)
+	}
+}
+
 func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	dir := t.TempDir()
 	cfg := DefaultNetworkConfig("devnet")

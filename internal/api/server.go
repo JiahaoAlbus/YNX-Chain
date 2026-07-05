@@ -805,7 +805,7 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 		if !ok {
 			return nil, nil
 		}
-		return map[string]any{"transactionHash": tx.Hash, "status": "0x1", "blockHash": tx.BlockHash, "blockNumber": hexQuantity(tx.BlockNum), "gasUsed": "0x5208", "logs": []any{}}, nil
+		return map[string]any{"transactionHash": tx.Hash, "status": "0x1", "blockHash": tx.BlockHash, "blockNumber": hexQuantity(tx.BlockNum), "gasUsed": "0x5208", "logs": evmLogs(tx.Logs)}, nil
 	case "eth_sendRawTransaction":
 		if len(params) == 0 || fmt.Sprint(params[0]) == "" {
 			return nil, fmt.Errorf("raw transaction parameter is required")
@@ -821,7 +821,11 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 	case "eth_call":
 		return "0x", nil
 	case "eth_getLogs":
-		return []any{}, nil
+		filter, err := parseEVMLogFilter(params, latest.Height)
+		if err != nil {
+			return nil, err
+		}
+		return evmLogs(s.devnet.EVMLogs(filter)), nil
 	default:
 		return nil, fmt.Errorf("method %s is not implemented by the local YNX devnet RPC", method)
 	}
@@ -833,7 +837,123 @@ func evmBlock(block chain.Block, txCount int) map[string]any {
 func evmTx(tx chain.Transaction) map[string]any {
 	return map[string]any{"hash": tx.Hash, "from": tx.From, "to": tx.To, "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "blockHash": tx.BlockHash, "blockNumber": hexQuantity(tx.BlockNum), "gas": "0x5208", "gasPrice": "0x1"}
 }
+func evmLogs(logs []chain.EVMLog) []any {
+	out := make([]any, 0, len(logs))
+	for _, log := range logs {
+		out = append(out, map[string]any{
+			"address":          log.Address,
+			"topics":           log.Topics,
+			"data":             log.Data,
+			"blockHash":        log.BlockHash,
+			"blockNumber":      hexQuantity(log.BlockNumber),
+			"transactionHash":  log.TransactionHash,
+			"transactionIndex": hexQuantity(log.TransactionIndex),
+			"logIndex":         hexQuantity(log.LogIndex),
+			"removed":          log.Removed,
+		})
+	}
+	return out
+}
 func hexQuantity(v uint64) string { return "0x" + strconv.FormatUint(v, 16) }
+func parseEVMLogFilter(params []any, latestHeight uint64) (chain.EVMLogFilter, error) {
+	if len(params) == 0 || params[0] == nil {
+		return chain.EVMLogFilter{}, nil
+	}
+	raw, ok := params[0].(map[string]any)
+	if !ok {
+		return chain.EVMLogFilter{}, fmt.Errorf("eth_getLogs filter must be an object")
+	}
+	filter := chain.EVMLogFilter{}
+	if value, ok := raw["fromBlock"]; ok {
+		height, err := parseBlockTag(value, latestHeight)
+		if err != nil {
+			return filter, err
+		}
+		filter.FromBlock = &height
+	}
+	if value, ok := raw["toBlock"]; ok {
+		height, err := parseBlockTag(value, latestHeight)
+		if err != nil {
+			return filter, err
+		}
+		filter.ToBlock = &height
+	}
+	if value, ok := raw["address"]; ok {
+		switch typed := value.(type) {
+		case string:
+			if typed != "" {
+				filter.Addresses = []string{typed}
+			}
+		case []any:
+			for _, item := range typed {
+				if address := strings.TrimSpace(fmt.Sprint(item)); address != "" && address != "<nil>" {
+					filter.Addresses = append(filter.Addresses, address)
+				}
+			}
+		default:
+			return filter, fmt.Errorf("eth_getLogs address must be a string or array")
+		}
+	}
+	if value, ok := raw["topics"]; ok {
+		topics, ok := value.([]any)
+		if !ok {
+			return filter, fmt.Errorf("eth_getLogs topics must be an array")
+		}
+		filter.Topics = make([][]string, 0, len(topics))
+		for _, topic := range topics {
+			switch typed := topic.(type) {
+			case nil:
+				filter.Topics = append(filter.Topics, nil)
+			case string:
+				filter.Topics = append(filter.Topics, []string{strings.ToLower(typed)})
+			case []any:
+				accepted := make([]string, 0, len(typed))
+				for _, item := range typed {
+					if item == nil {
+						continue
+					}
+					accepted = append(accepted, strings.ToLower(fmt.Sprint(item)))
+				}
+				filter.Topics = append(filter.Topics, accepted)
+			default:
+				return filter, fmt.Errorf("eth_getLogs topic entries must be strings, null, or arrays")
+			}
+		}
+	}
+	return filter, nil
+}
+func parseBlockTag(value any, latestHeight uint64) (uint64, error) {
+	switch typed := value.(type) {
+	case string:
+		switch strings.ToLower(strings.TrimSpace(typed)) {
+		case "", "latest", "safe", "finalized":
+			return latestHeight, nil
+		case "earliest":
+			return 0, nil
+		case "pending":
+			return latestHeight + 1, nil
+		}
+		if strings.HasPrefix(typed, "0x") {
+			height, err := strconv.ParseUint(strings.TrimPrefix(typed, "0x"), 16, 64)
+			if err != nil {
+				return 0, fmt.Errorf("invalid block tag")
+			}
+			return height, nil
+		}
+		height, err := strconv.ParseUint(typed, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid block tag")
+		}
+		return height, nil
+	case float64:
+		if typed < 0 {
+			return 0, fmt.Errorf("invalid block tag")
+		}
+		return uint64(typed), nil
+	default:
+		return 0, fmt.Errorf("invalid block tag")
+	}
+}
 func trim0x(v string) string {
 	v = strings.TrimPrefix(v, "0x")
 	if v == "" {

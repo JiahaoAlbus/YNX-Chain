@@ -102,7 +102,27 @@ type Transaction struct {
 	BlockNum  uint64    `json:"blockNumber,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	LotFlows  []LotFlow `json:"lotFlows,omitempty"`
+	Logs      []EVMLog  `json:"logs,omitempty"`
 	Memo      string    `json:"memo,omitempty"`
+}
+
+type EVMLog struct {
+	Address          string   `json:"address"`
+	Topics           []string `json:"topics"`
+	Data             string   `json:"data"`
+	BlockHash        string   `json:"blockHash"`
+	BlockNumber      uint64   `json:"blockNumber"`
+	TransactionHash  string   `json:"transactionHash"`
+	TransactionIndex uint64   `json:"transactionIndex"`
+	LogIndex         uint64   `json:"logIndex"`
+	Removed          bool     `json:"removed"`
+}
+
+type EVMLogFilter struct {
+	FromBlock *uint64
+	ToBlock   *uint64
+	Addresses []string
+	Topics    [][]string
 }
 
 type LotFlow struct {

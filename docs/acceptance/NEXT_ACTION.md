@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: implement persistent EVM logs/events model for transaction receipts and `eth_getLogs`.
+Current single action: expand contract event fidelity beyond deterministic transaction logs.
 
 Why this action:
 
-- AI Gateway now has scoped permissions, sensitive action proposals, approval gating, audit hashes, and smoke coverage.
-- EVM RPC currently returns receipts, but logs are still an empty local subset and the tracker marks `Logs / events` as incomplete.
-- Event persistence is core chain/RPC behavior and can be advanced locally while remote SSH/public ingress blockers prevent safe deployment.
+- EVM receipts now include persisted transaction logs, and `eth_getLogs` filters by block range, address, and topics.
+- The remaining logs/events gap is contract-level fidelity: deployed contract records do not yet expose ABI-like event metadata or contract-specific emitted events.
+- This is core EVM compatibility work that can advance locally while remote SSH/public ingress blockers prevent safe deployment.
 
 Files to touch:
 
@@ -16,6 +16,7 @@ Files to touch:
 - `internal/chain/devnet_test.go`
 - `internal/api/server_test.go`
 - `scripts/verify/testnet-smoke-test.sh`
+- `scripts/verify/exchange-integration-check.sh`
 - `docs/api/API_REFERENCE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 - `docs/acceptance/PROJECT_STATE.md`
@@ -24,8 +25,8 @@ Files to touch:
 Validation commands:
 
 - `make test`
-- `make ai-gateway-check`
 - `make smoke-test`
+- `make exchange-integration-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -34,11 +35,11 @@ Validation commands:
 
 Completion standard:
 
-- Transactions can persist deterministic EVM-style log records with address, topics, data, block, transaction hash, and log index.
-- `eth_getTransactionReceipt` returns persisted logs for known transactions.
-- `eth_getLogs` filters persisted logs by block range, address, and topics.
+- Contract deploy/verify records expose deterministic event metadata for developer tooling.
+- Contract-related transactions emit contract-specific logs rather than only generic transaction logs.
+- EVM receipt and `eth_getLogs` checks prove contract-address and topic filtering.
 - New checks pass locally.
-- Tracker moves Logs / events forward honestly without claiming remote proof.
+- Tracker moves contract event fidelity forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

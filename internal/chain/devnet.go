@@ -344,6 +344,28 @@ func (d *Devnet) Transaction(hash string) (Transaction, bool) {
 	return Transaction{}, false
 }
 
+func (d *Devnet) EVMLogs(filter EVMLogFilter) []EVMLog {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	logs := make([]EVMLog, 0)
+	for _, block := range d.blocks {
+		if filter.FromBlock != nil && block.Height < *filter.FromBlock {
+			continue
+		}
+		if filter.ToBlock != nil && block.Height > *filter.ToBlock {
+			continue
+		}
+		for _, tx := range block.Transactions {
+			for _, log := range tx.Logs {
+				if evmLogMatchesFilter(log, filter) {
+					logs = append(logs, log)
+				}
+			}
+		}
+	}
+	return logs
+}
+
 func (d *Devnet) RecentTransactions(limit int) []Transaction {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -1537,9 +1559,12 @@ func (d *Devnet) ProduceBlock() Block {
 	d.pending = nil
 	validator := d.nextValidatorAddressLocked()
 	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs)), validator), ParentHash: parent.Hash, Time: time.Now().UTC(), Validator: validator, Transactions: txs}
+	logIndex := uint64(0)
 	for i := range block.Transactions {
 		block.Transactions[i].BlockHash = block.Hash
 		block.Transactions[i].BlockNum = block.Height
+		block.Transactions[i].Logs = evmLogsForTransaction(block.Transactions[i], uint64(i), logIndex)
+		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
 	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
@@ -1895,6 +1920,105 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func evmLogsForTransaction(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {
+	if tx.Hash == "" || tx.BlockHash == "" || tx.BlockNum == 0 {
+		return nil
+	}
+	log := EVMLog{
+		Address:          evmAddressForLog(tx.To),
+		Topics:           []string{evmTopic("ynx.tx." + tx.Type), evmTopic(tx.From), evmTopic(tx.To)},
+		Data:             evmLogData(tx.Amount),
+		BlockHash:        evmHash(tx.BlockHash),
+		BlockNumber:      tx.BlockNum,
+		TransactionHash:  tx.Hash,
+		TransactionIndex: txIndex,
+		LogIndex:         firstLogIndex,
+		Removed:          false,
+	}
+	if tx.Type == "faucet" {
+		log.Address = evmAddressForLog(FaucetAddress)
+	}
+	if tx.Type == "resource_delegate" || tx.Type == "resource_rent" {
+		log.Address = evmAddressForLog(ProtocolResourceProvider)
+	}
+	if strings.HasPrefix(tx.Type, "contract_") && strings.HasPrefix(tx.To, "0x") {
+		log.Address = evmAddressForLog(tx.To)
+	}
+	return []EVMLog{log}
+}
+
+func evmLogMatchesFilter(log EVMLog, filter EVMLogFilter) bool {
+	if len(filter.Addresses) > 0 {
+		matched := false
+		for _, address := range filter.Addresses {
+			if strings.EqualFold(log.Address, evmAddressForLog(address)) || strings.EqualFold(log.Address, address) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	for i, accepted := range filter.Topics {
+		if len(accepted) == 0 {
+			continue
+		}
+		if i >= len(log.Topics) {
+			return false
+		}
+		matched := false
+		for _, topic := range accepted {
+			if strings.EqualFold(log.Topics[i], topic) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
+func evmAddressForLog(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if strings.HasPrefix(value, "0x") && len(value) == 42 {
+		if _, err := hex.DecodeString(strings.TrimPrefix(value, "0x")); err == nil {
+			return value
+		}
+	}
+	return "0x" + hashParts("evm-address", value)[:40]
+}
+
+func evmTopic(value string) string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(value, "0x") && len(value) == 66 {
+		if _, err := hex.DecodeString(strings.TrimPrefix(value, "0x")); err == nil {
+			return strings.ToLower(value)
+		}
+	}
+	return "0x" + hashParts("evm-topic", value)
+}
+
+func evmHash(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	value = strings.TrimPrefix(value, "0x")
+	if len(value) == 64 {
+		if _, err := hex.DecodeString(value); err == nil {
+			return "0x" + value
+		}
+	}
+	return "0x" + hashParts("evm-hash", value)
+}
+
+func evmLogData(amount int64) string {
+	if amount < 0 {
+		amount = 0
+	}
+	return fmt.Sprintf("0x%064x", amount)
 }
 
 func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {

@@ -7,12 +7,10 @@ source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
 cleanup() {
   if [[ -n "${explorer_pid:-}" ]]; then
-    kill "$explorer_pid" >/dev/null 2>&1 || true
-    wait "$explorer_pid" >/dev/null 2>&1 || true
+    ynx_kill_tree "$explorer_pid"
   fi
   if [[ -n "${indexer_pid:-}" ]]; then
-    kill "$indexer_pid" >/dev/null 2>&1 || true
-    wait "$indexer_pid" >/dev/null 2>&1 || true
+    ynx_kill_tree "$indexer_pid"
   fi
   ynx_stop_local_testnet
 }

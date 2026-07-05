@@ -73,6 +73,33 @@ func TestEVMRPCSubset(t *testing.T) {
 	if out["result"] == "" {
 		t.Fatalf("missing block number: %v", out)
 	}
+	if _, err := devnet.Faucet("ynx_evm_alice", 1000); err != nil {
+		t.Fatal(err)
+	}
+	transfer, err := devnet.Transfer("ynx_evm_alice", "ynx_evm_bob", 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := devnet.ProduceBlock()
+	if block.Height == 0 {
+		t.Fatal("expected produced block")
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 3, "method": "eth_getTransactionReceipt", "params": []any{transfer.Hash}}, http.StatusOK, &out)
+	receipt := out["result"].(map[string]any)
+	logs := receipt["logs"].([]any)
+	if len(logs) != 1 {
+		t.Fatalf("expected receipt logs, got %v", receipt)
+	}
+	log := logs[0].(map[string]any)
+	if log["transactionHash"] != transfer.Hash || log["logIndex"] != "0x1" {
+		t.Fatalf("unexpected receipt log: %v", log)
+	}
+	topic := log["topics"].([]any)[0].(string)
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 4, "method": "eth_getLogs", "params": []any{map[string]any{"fromBlock": "0x1", "toBlock": "latest", "address": log["address"], "topics": []any{topic}}}}, http.StatusOK, &out)
+	filteredLogs := out["result"].([]any)
+	if len(filteredLogs) != 1 || filteredLogs[0].(map[string]any)["transactionHash"] != transfer.Hash {
+		t.Fatalf("expected filtered EVM log, got %v", out)
+	}
 }
 
 func TestPrometheusMetrics(t *testing.T) {

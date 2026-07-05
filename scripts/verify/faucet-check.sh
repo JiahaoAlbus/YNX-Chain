@@ -21,7 +21,7 @@ YNX_FAUCET_RATE_LIMIT_WINDOW=1h \
 YNX_FAUCET_RATE_LIMIT_MAX=1 \
 go run ./cmd/ynx-faucetd >"$work/faucet.log" 2>&1 &
 faucet_pid=$!
-trap 'kill "$faucet_pid" >/dev/null 2>&1 || true; wait "$faucet_pid" >/dev/null 2>&1 || true; ynx_stop_local_testnet' EXIT
+trap 'ynx_kill_tree "$faucet_pid"; ynx_stop_local_testnet' EXIT
 
 for _ in {1..80}; do
   curl -fsS "$faucet_url/health" >/dev/null 2>&1 && break

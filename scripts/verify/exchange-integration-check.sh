@@ -30,10 +30,12 @@ sleep 2
 curl -fsS "$YNX_REST_URL/txs/$withdrawal_hash" >/dev/null
 
 ynx_jsonrpc eth_getTransactionByHash "[\"$withdrawal_hash\"]" | ynx_json_field '["result"]["hash"]' >/dev/null
-receipt_status=$(ynx_jsonrpc eth_getTransactionReceipt "[\"$withdrawal_hash\"]" | ynx_json_field '["result"]["status"]')
+withdrawal_receipt=$(ynx_jsonrpc eth_getTransactionReceipt "[\"$withdrawal_hash\"]")
+receipt_status=$(printf '%s' "$withdrawal_receipt" | ynx_json_field '["result"]["status"]')
 [[ "$receipt_status" == "0x1" ]] || { echo "withdrawal receipt not successful"; exit 1; }
+printf '%s' "$withdrawal_receipt" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result.logs) || data.result.logs.length < 1) { console.error(`withdrawal receipt has no logs: ${JSON.stringify(data)}`); process.exit(1); }'
 
 ynx_jsonrpc eth_getBlockByNumber '["latest", false]' >/dev/null
-ynx_jsonrpc eth_getLogs '[]' >/dev/null
+ynx_jsonrpc eth_getLogs '[]' | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result) || data.result.length < 1) { console.error(`eth_getLogs returned no logs: ${JSON.stringify(data)}`); process.exit(1); }'
 
 echo "exchange-integration-check passed: deposit=$deposit_hash withdrawal=$withdrawal_hash height=$h2"

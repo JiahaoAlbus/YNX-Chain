@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ynx_kill_tree() {
+  local pid="${1:-}"
+  if [[ -z "$pid" ]]; then
+    return 0
+  fi
+  pkill -TERM -P "$pid" >/dev/null 2>&1 || true
+  kill "$pid" >/dev/null 2>&1 || true
+  wait "$pid" >/dev/null 2>&1 || true
+}
+
 ynx_start_local_testnet() {
   export YNX_VERIFY_WORK="${YNX_VERIFY_WORK:-$(mktemp -d)}"
   export YNX_REST_URL="${YNX_REST_URL:-http://127.0.0.1:6420}"
@@ -22,8 +32,7 @@ ynx_start_local_testnet() {
 
 ynx_stop_local_testnet() {
   if [[ -n "${YNX_STARTED_PID:-}" ]]; then
-    kill "$YNX_STARTED_PID" >/dev/null 2>&1 || true
-    wait "$YNX_STARTED_PID" >/dev/null 2>&1 || true
+    ynx_kill_tree "$YNX_STARTED_PID"
   fi
   if [[ -n "${YNX_VERIFY_WORK:-}" && "${YNX_KEEP_VERIFY_WORK:-0}" != "1" ]]; then
     rm -rf "$YNX_VERIFY_WORK"

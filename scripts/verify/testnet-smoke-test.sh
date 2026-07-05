@@ -5,6 +5,15 @@ work=.ynx-smoke
 rm -rf "$work"
 mkdir -p "$work"
 pid=""
+kill_tree() {
+  local target="${1:-}"
+  if [[ -z "$target" ]]; then
+    return 0
+  fi
+  pkill -TERM -P "$target" >/dev/null 2>&1 || true
+  kill "$target" >/dev/null 2>&1 || true
+  wait "$target" >/dev/null 2>&1 || true
+}
 if ! curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1; then
   YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$work/state" go run ./cmd/ynx-chaind >"$work/server.log" 2>&1 &
   pid=$!
@@ -13,7 +22,7 @@ if ! curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1; then
     sleep 0.25
   done
 fi
-trap 'if [[ -n "$pid" ]]; then kill "$pid" >/dev/null 2>&1 || true; fi' EXIT
+trap 'kill_tree "$pid"' EXIT
 curl -fsS http://127.0.0.1:6420/health >/dev/null || { echo "local testnet did not become healthy"; sed -n '1,120p' "$work/server.log" 2>/dev/null || true; exit 1; }
 echo "RPC health result:" && curl -fsS http://127.0.0.1:6420/health
 echo "EVM RPC chainId result:" && curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
@@ -33,6 +42,11 @@ echo "transfer tx hash: $txhash"
 sleep 2
 echo "explorer tx URL: http://127.0.0.1:6420/txs/$txhash"
 curl -fsS "http://127.0.0.1:6420/txs/$txhash" >/dev/null
+evm_receipt=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$txhash\"]}")
+evm_log_topic=$(printf '%s' "$evm_receipt" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const logs=data.result.logs; if (!Array.isArray(logs) || logs.length < 1 || !logs[0].topics?.[0]) { throw new Error(`missing receipt logs: ${JSON.stringify(data)}`); } logs[0].topics[0]')
+evm_logs=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"eth_getLogs\",\"params\":[{\"fromBlock\":\"0x1\",\"toBlock\":\"latest\",\"topics\":[\"$evm_log_topic\"]}]}")
+printf '%s' "$evm_logs" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result) || data.result.length < 1 || !data.result.some((log)=>log.transactionHash)) { console.error(`missing filtered EVM logs: ${JSON.stringify(data)}`); process.exit(1); }'
+echo "EVM receipt/log result: $evm_logs"
 echo "AI streaming test result:" && curl -fsS 'http://127.0.0.1:6420/ai/stream?session=a&q=status' | tail -n 2
 curl -fsS 'http://127.0.0.1:6420/ai/stream?session=b&q=status' >"$work/ai-b.txt"
 grep -q 'session b' "$work/ai-b.txt"
@@ -132,8 +146,8 @@ for i in {1..40}; do
 done
 curl -fsS http://127.0.0.1:6437/health >/dev/null || { echo "Explorer smoke service did not become healthy"; sed -n '1,120p' "$work/explorer-smoke.log"; exit 1; }
 echo "Explorer API result:" && curl -fsS http://127.0.0.1:6437/api/summary
-kill "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
-wait "$explorer_smoke_pid" "$indexer_smoke_pid" >/dev/null 2>&1 || true
+kill_tree "$explorer_smoke_pid"
+kill_tree "$indexer_smoke_pid"
 FAUCET_PRIVATE_KEY=local-smoke-faucet-key YNX_FAUCET_RPC_URL=http://127.0.0.1:6420 YNX_FAUCET_HTTP_ADDR=127.0.0.1:6428 YNX_FAUCET_REQUEST_LOG="$work/faucet-requests.jsonl" YNX_FAUCET_DEFAULT_AMOUNT=88 YNX_FAUCET_MAX_AMOUNT=100 YNX_FAUCET_RATE_LIMIT_MAX=1 go run ./cmd/ynx-faucetd >"$work/faucet-smoke.log" 2>&1 &
 faucet_smoke_pid=$!
 for i in {1..40}; do
@@ -143,8 +157,7 @@ done
 curl -fsS http://127.0.0.1:6428/health >/dev/null || { echo "Faucet smoke service did not become healthy"; sed -n '1,120p' "$work/faucet-smoke.log"; exit 1; }
 echo "Faucet daemon result:" && curl -fsS -X POST http://127.0.0.1:6428/request -H 'content-type: application/json' -d '{"address":"ynx_smoke_faucet_daemon"}'
 grep -Fq '"status":"sent"' "$work/faucet-requests.jsonl"
-kill "$faucet_smoke_pid" >/dev/null 2>&1 || true
-wait "$faucet_smoke_pid" >/dev/null 2>&1 || true
+kill_tree "$faucet_smoke_pid"
 echo "website status API result: local website repo not deployed in this workspace; use /status contract for website integration"
 find docs/grants -type f | sort >"$work/grants.txt"
 find docs/ecosystem -type f | sort >"$work/ecosystem.txt"
