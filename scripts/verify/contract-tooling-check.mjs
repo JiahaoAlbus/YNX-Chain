@@ -13,6 +13,7 @@ const requiredFiles = [
   "dex/ynx-testnet.integration.json",
   "token-lists/ynx-testnet.tokenlist.json",
   "scripts/contracts/deploy-samples-hardhat.js",
+  "scripts/contracts/generate-selector-metadata.mjs",
   "docs/developers/QUICKSTART_HARDHAT.md",
   "docs/developers/QUICKSTART_FOUNDRY.md",
   "docs/developers/CONTRACT_VERIFICATION.md"
@@ -36,8 +37,10 @@ const packageJson = JSON.parse(read("package.json"));
 assert(packageJson.private === true, "root package must remain private");
 assert(packageJson.type === "module", "root package must use ESM for Hardhat 3");
 assert(packageJson.scripts["contracts:check"] === "bash ./scripts/verify/contract-tooling-check.sh", "contracts:check script mismatch");
+assert(packageJson.scripts["contracts:selectors"] === "node ./scripts/contracts/generate-selector-metadata.mjs", "contracts:selectors script mismatch");
 assert(packageJson.scripts["hardhat:build"] === "hardhat build", "Hardhat 3 build script mismatch");
 assert(packageJson.devDependencies.hardhat.startsWith("^3."), "Hardhat dependency must track v3");
+assert(packageJson.devDependencies.ethers.startsWith("^6."), "ethers dependency must remain available for selector metadata");
 
 const hardhatConfig = read("hardhat.config.ts");
 assert(hardhatConfig.includes("configVariable(\"YNX_EVM_RPC_URL\")"), "Hardhat config must require YNX_EVM_RPC_URL");
@@ -61,6 +64,7 @@ for (const text of [
 }
 assert(read("internal/chain/types.go").includes("DeployedBytecodeComparisonStatus"), "contract verifier must expose deployed bytecode comparison status");
 assert(read("internal/chain/types.go").includes("ContractVerificationEvidence"), "contract verifier evidence type missing");
+assert(read("internal/chain/types.go").includes("BytecodeSelectorMatched"), "contract runtime must expose bytecode selector match evidence");
 assert(read("internal/api/server.go").includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
 
 const sampleArtifact = JSON.parse(read("artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"));
@@ -68,6 +72,12 @@ assert(sampleArtifact.contractName === "SampleYNXTCompatibleERC20", "sample ERC2
 assert(sampleArtifact.sourceName === "contracts/tokens/SampleYNXTCompatibleERC20.sol", "sample ERC20 artifact source mismatch");
 assert(/^0x[0-9a-fA-F]+$/.test(sampleArtifact.bytecode) && sampleArtifact.bytecode.length > 100, "sample ERC20 bytecode missing");
 assert(/^0x[0-9a-fA-F]+$/.test(sampleArtifact.deployedBytecode) && sampleArtifact.deployedBytecode.length > 100, "sample ERC20 deployed bytecode missing");
+
+const selectorMetadata = JSON.parse(read("artifacts/ynx-selector-metadata.json"));
+const sampleSelectorMetadata = selectorMetadata.artifacts?.["artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"];
+assert(sampleSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-and-deployed-bytecode-presence", "sample ERC20 selector metadata mode mismatch");
+const decimalsSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "decimals()");
+assert(decimalsSelector?.selector === "0x313ce567" && decimalsSelector.bytecodeSelectorMatched === true, "sample ERC20 decimals selector must match deployed bytecode");
 
 const buildInfoFiles = fs.readdirSync(path.join(root, "artifacts/build-info")).filter((file) => file.endsWith(".json") && !file.endsWith(".output.json"));
 assert(buildInfoFiles.length > 0, "Hardhat build-info file missing after build");
@@ -103,7 +113,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

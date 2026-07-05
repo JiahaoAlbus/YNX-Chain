@@ -1570,15 +1570,30 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 			if candidate.StateMutability != "pure" && candidate.StateMutability != "view" {
 				return ContractCallResult{}, errors.New("local devnet runtime only supports pure/view function calls")
 			}
+			if artifact.ArtifactKind == contractPinnedArtifactKind {
+				if !candidate.BytecodeSelectorMatched {
+					return ContractCallResult{}, errors.New("compiled bytecode selector was not found in local deployed bytecode artifact")
+				}
+				if len(candidate.Inputs) > 0 {
+					return ContractCallResult{}, errors.New("artifact-backed local runtime only supports no-argument static calls")
+				}
+			}
+			executionStatus := "source_analyzer_literal_return"
+			if artifact.ArtifactKind == contractPinnedArtifactKind {
+				executionStatus = "hardhat_abi_selector_matched_deployed_bytecode_staticcall_subset"
+			}
 			return ContractCallResult{
-				Address:       artifact.Address,
-				Function:      candidate.Name,
-				Signature:     candidate.Signature,
-				Selector:      candidate.Selector,
-				ReturnValue:   candidate.ReturnValue,
-				EncodedResult: encodeContractReturn(candidate.ReturnValue, candidate.Outputs),
-				RuntimeMode:   artifact.RuntimeMode,
-				Limitations:   artifact.Limitations,
+				Address:                 artifact.Address,
+				Function:                candidate.Name,
+				Signature:               candidate.Signature,
+				Selector:                candidate.Selector,
+				ReturnValue:             candidate.ReturnValue,
+				EncodedResult:           encodeContractReturn(candidate.ReturnValue, candidate.Outputs),
+				RuntimeMode:             artifact.RuntimeMode,
+				ArtifactKind:            artifact.ArtifactKind,
+				ExecutionStatus:         executionStatus,
+				BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
+				Limitations:             artifact.Limitations,
 			}, nil
 		}
 	}
@@ -2031,6 +2046,9 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
+	if hasCompilerArtifact {
+		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
+	}
 	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
 	for _, event := range events {
 		abi = append(abi, ContractABIEntry{Type: "event", Name: event.Name, Signature: event.Signature, Topic: event.Topic, Inputs: event.Inputs})
@@ -2071,8 +2089,13 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 	if hasCompilerArtifact {
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
-			"local devnet stores bytecode hashes and compares deployed-bytecode hash, but does not execute EVM bytecode",
+			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
+			"local devnet does not interpret full EVM opcodes, state transitions, storage layout, or constructor arguments",
 		}, compiler.Limitations...)
+	}
+	runtimeMode := "deterministic-devnet-pure-view-runtime"
+	if hasCompilerArtifact {
+		runtimeMode = "hardhat-artifact-bytecode-selector-staticcall-subset"
 	}
 	return ContractArtifact{
 		Address:                          address,
@@ -2088,7 +2111,7 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 		Compiler:                         compiler,
 		CompilerArtifact:                 compilerArtifact,
 		CompilerExecutionStatus:          compilerExecutionStatus,
-		RuntimeMode:                      "deterministic-devnet-pure-view-runtime",
+		RuntimeMode:                      runtimeMode,
 		VerifierMode:                     compiler.VerifierMode,
 		ReproducibleBuild:                verified,
 		ReproducibilityStatus:            reproducibilityStatus,
@@ -2106,6 +2129,57 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 
 func AnalyzeContractSource(name, source string) ContractArtifact {
 	return buildContractArtifact("", "", name, source, false, nil)
+}
+
+func mergeCompilerArtifactFunctions(abiFunctions, sourceFunctions []ContractFunctionABI, source string) []ContractFunctionABI {
+	returnValues := contractReturnValuesBySignature(sourceFunctions, source)
+	functions := make([]ContractFunctionABI, 0, len(abiFunctions))
+	for _, function := range abiFunctions {
+		if value, ok := returnValues[function.Signature]; ok {
+			function.ReturnValue = value
+		}
+		functions = append(functions, function)
+	}
+	return functions
+}
+
+func contractReturnValuesBySignature(sourceFunctions []ContractFunctionABI, source string) map[string]string {
+	values := map[string]string{}
+	for _, function := range sourceFunctions {
+		if function.ReturnValue != "" {
+			values[function.Signature] = function.ReturnValue
+		}
+	}
+	for signature, value := range extractPublicGetterReturnValues(source) {
+		values[signature] = value
+	}
+	return values
+}
+
+var publicGetterPattern = regexp.MustCompile(`(?m)\b(string|bool|uint(?:8|16|32|64|128|256)?)\s+public\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:=\s*([^;]+))?;`)
+
+func extractPublicGetterReturnValues(source string) map[string]string {
+	values := map[string]string{}
+	matches := publicGetterPattern.FindAllStringSubmatch(source, -1)
+	for _, match := range matches {
+		if len(match) != 4 {
+			continue
+		}
+		name := strings.TrimSpace(match[2])
+		rawValue := strings.TrimSpace(match[3])
+		if rawValue == "" {
+			switch match[1] {
+			case "string":
+				rawValue = ""
+			case "bool":
+				rawValue = "false"
+			default:
+				rawValue = "0"
+			}
+		}
+		values[name+"()"] = strings.Trim(strings.TrimSpace(rawValue), `"`)
+	}
+	return values
 }
 
 func contractVerificationEvidence(artifact ContractArtifact) ContractVerificationEvidence {
@@ -2209,6 +2283,7 @@ func extractContractFunctions(source string) []ContractFunctionABI {
 			Name:            name,
 			Signature:       signature,
 			Selector:        "0x" + hashParts("evm-selector", signature)[:8],
+			SelectorSource:  "local-deterministic-source-signature",
 			Inputs:          inputs,
 			Outputs:         outputs,
 			StateMutability: stateMutability,

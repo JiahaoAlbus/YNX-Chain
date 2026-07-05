@@ -598,15 +598,19 @@ type ContractCompilerConfig struct {
 }
 
 type ContractCompilerArtifact struct {
-	SourceName           string `json:"sourceName"`
-	ContractName         string `json:"contractName"`
-	BuildInfoID          string `json:"buildInfoId"`
-	ArtifactPath         string `json:"artifactPath"`
-	BytecodeHash         string `json:"bytecodeHash"`
-	DeployedBytecodeHash string `json:"deployedBytecodeHash"`
-	ABIHash              string `json:"abiHash"`
-	CompilerExecuted     bool   `json:"compilerExecuted"`
-	Status               string `json:"status"`
+	SourceName                      string                `json:"sourceName"`
+	ContractName                    string                `json:"contractName"`
+	BuildInfoID                     string                `json:"buildInfoId"`
+	ArtifactPath                    string                `json:"artifactPath"`
+	BytecodeHash                    string                `json:"bytecodeHash"`
+	DeployedBytecodeHash            string                `json:"deployedBytecodeHash"`
+	ABIHash                         string                `json:"abiHash"`
+	RuntimeSelectorMode             string                `json:"runtimeSelectorMode"`
+	RuntimeSelectors                []string              `json:"runtimeSelectors,omitempty"`
+	DeployedBytecodeSelectorMatches int                   `json:"deployedBytecodeSelectorMatches"`
+	ABIFunctions                    []ContractFunctionABI `json:"abiFunctions,omitempty"`
+	CompilerExecuted                bool                  `json:"compilerExecuted"`
+	Status                          string                `json:"status"`
 }
 
 type ContractVerificationEvidence struct {
@@ -659,22 +663,27 @@ type ContractEventInput struct {
 }
 
 type ContractFunctionABI struct {
-	Name            string               `json:"name"`
-	Signature       string               `json:"signature"`
-	Selector        string               `json:"selector"`
-	Inputs          []ContractEventInput `json:"inputs,omitempty"`
-	Outputs         []string             `json:"outputs,omitempty"`
-	StateMutability string               `json:"stateMutability"`
-	ReturnValue     string               `json:"returnValue,omitempty"`
+	Name                    string               `json:"name"`
+	Signature               string               `json:"signature"`
+	Selector                string               `json:"selector"`
+	SelectorSource          string               `json:"selectorSource,omitempty"`
+	BytecodeSelectorMatched bool                 `json:"bytecodeSelectorMatched,omitempty"`
+	Inputs                  []ContractEventInput `json:"inputs,omitempty"`
+	Outputs                 []string             `json:"outputs,omitempty"`
+	StateMutability         string               `json:"stateMutability"`
+	ReturnValue             string               `json:"returnValue,omitempty"`
 }
 
 type ContractCallResult struct {
-	Address       string   `json:"address"`
-	Function      string   `json:"function"`
-	Signature     string   `json:"signature"`
-	Selector      string   `json:"selector"`
-	ReturnValue   string   `json:"returnValue"`
-	EncodedResult string   `json:"encodedResult"`
-	RuntimeMode   string   `json:"runtimeMode"`
-	Limitations   []string `json:"limitations,omitempty"`
+	Address                 string   `json:"address"`
+	Function                string   `json:"function"`
+	Signature               string   `json:"signature"`
+	Selector                string   `json:"selector"`
+	ReturnValue             string   `json:"returnValue"`
+	EncodedResult           string   `json:"encodedResult"`
+	RuntimeMode             string   `json:"runtimeMode"`
+	ArtifactKind            string   `json:"artifactKind"`
+	ExecutionStatus         string   `json:"executionStatus"`
+	BytecodeSelectorMatched bool     `json:"bytecodeSelectorMatched"`
+	Limitations             []string `json:"limitations,omitempty"`
 }

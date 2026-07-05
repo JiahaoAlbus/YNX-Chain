@@ -326,6 +326,31 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	if evidence["deployedBytecodeComparisonStatus"] != "matched_local_deployed_bytecode_hash" || evidence["deployedBytecodeHash"] != verified["deployedBytecodeHash"] {
 		t.Fatalf("expected verifier evidence hashes to match verified contract: %v verified=%v", evidence, verified)
 	}
+	functions := verified["functions"].([]any)
+	var decimalsSelector string
+	for _, entry := range functions {
+		fn := entry.(map[string]any)
+		if fn["signature"] == "decimals()" {
+			decimalsSelector = fn["selector"].(string)
+			if decimalsSelector != "0x313ce567" || fn["bytecodeSelectorMatched"] != true || fn["selectorSource"] != "hardhat-ethers-keccak-selector-metadata" {
+				t.Fatalf("expected hardhat ERC20 decimals selector evidence: %v", fn)
+			}
+			break
+		}
+	}
+	if decimalsSelector == "" {
+		t.Fatalf("expected decimals() ABI function in verified hardhat artifact: %v", verified)
+	}
+	var callResult map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "decimals"}, http.StatusOK, &callResult)
+	if callResult["returnValue"] != "18" || callResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000012" || callResult["executionStatus"] != "hardhat_abi_selector_matched_deployed_bytecode_staticcall_subset" || callResult["bytecodeSelectorMatched"] != true {
+		t.Fatalf("expected artifact-backed bytecode selector staticcall subset result: %v", callResult)
+	}
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 31, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": decimalsSelector}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x0000000000000000000000000000000000000000000000000000000000000012" {
+		t.Fatalf("expected artifact-backed eth_call decimals result: %v", out)
+	}
 }
 
 func testRepoRoot(t *testing.T) string {

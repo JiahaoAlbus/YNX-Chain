@@ -2,6 +2,7 @@ package chain
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,6 +65,20 @@ type hardhatArtifactFile struct {
 	BuildInfoID      string          `json:"buildInfoId"`
 }
 
+type hardhatABIEntry struct {
+	Type            string `json:"type"`
+	Name            string `json:"name"`
+	StateMutability string `json:"stateMutability"`
+	Inputs          []struct {
+		Name    string `json:"name"`
+		Type    string `json:"type"`
+		Indexed bool   `json:"indexed"`
+	} `json:"inputs"`
+	Outputs []struct {
+		Type string `json:"type"`
+	} `json:"outputs"`
+}
+
 type hardhatBuildInfoFile struct {
 	SolcVersion string `json:"solcVersion"`
 	Input       struct {
@@ -71,6 +86,22 @@ type hardhatBuildInfoFile struct {
 			Content string `json:"content"`
 		} `json:"sources"`
 	} `json:"input"`
+}
+
+type selectorMetadataFile struct {
+	Artifacts map[string]selectorArtifactMetadata `json:"artifacts"`
+}
+
+type selectorArtifactMetadata struct {
+	RuntimeSelectorMode string                     `json:"runtimeSelectorMode"`
+	Functions           []selectorFunctionMetadata `json:"functions"`
+}
+
+type selectorFunctionMetadata struct {
+	Name                    string `json:"name"`
+	Signature               string `json:"signature"`
+	Selector                string `json:"selector"`
+	BytecodeSelectorMatched bool   `json:"bytecodeSelectorMatched"`
 }
 
 func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifact, bool) {
@@ -101,20 +132,95 @@ func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifa
 			return nil
 		}
 		relPath, _ := filepath.Rel(root, path)
+		relPath = filepath.ToSlash(relPath)
+		selectorMetadata, _ := hardhatSelectorMetadata(root, relPath)
+		abiFunctions := hardhatABIFunctions(artifact.ABI, selectorMetadata)
+		selectors := make([]string, 0, len(abiFunctions))
+		matches := 0
+		for _, function := range abiFunctions {
+			selectors = append(selectors, function.Selector)
+			if function.BytecodeSelectorMatched {
+				matches++
+			}
+		}
 		matched = &ContractCompilerArtifact{
-			SourceName:           artifact.SourceName,
-			ContractName:         artifact.ContractName,
-			BuildInfoID:          artifact.BuildInfoID,
-			ArtifactPath:         filepath.ToSlash(relPath),
-			BytecodeHash:         hashParts("solc-bytecode", artifact.Bytecode),
-			DeployedBytecodeHash: hashParts("solc-deployed-bytecode", artifact.DeployedBytecode),
-			ABIHash:              hashParts("solc-abi", string(artifact.ABI)),
-			CompilerExecuted:     true,
-			Status:               "matched_hardhat_artifact",
+			SourceName:                      artifact.SourceName,
+			ContractName:                    artifact.ContractName,
+			BuildInfoID:                     artifact.BuildInfoID,
+			ArtifactPath:                    relPath,
+			BytecodeHash:                    hashParts("solc-bytecode", artifact.Bytecode),
+			DeployedBytecodeHash:            hashParts("solc-deployed-bytecode", artifact.DeployedBytecode),
+			ABIHash:                         hashParts("solc-abi", string(artifact.ABI)),
+			RuntimeSelectorMode:             selectorMetadata.RuntimeSelectorMode,
+			RuntimeSelectors:                selectors,
+			DeployedBytecodeSelectorMatches: matches,
+			ABIFunctions:                    abiFunctions,
+			CompilerExecuted:                true,
+			Status:                          "matched_hardhat_artifact",
 		}
 		return nil
 	})
 	return matched, matched != nil
+}
+
+func hardhatABIFunctions(raw json.RawMessage, selectorMetadata selectorArtifactMetadata) []ContractFunctionABI {
+	var entries []hardhatABIEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		return nil
+	}
+	selectors := map[string]selectorFunctionMetadata{}
+	for _, function := range selectorMetadata.Functions {
+		selectors[function.Signature] = function
+	}
+	functions := make([]ContractFunctionABI, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Type != "function" || entry.Name == "" {
+			continue
+		}
+		inputs := make([]ContractEventInput, 0, len(entry.Inputs))
+		inputTypes := make([]string, 0, len(entry.Inputs))
+		for i, input := range entry.Inputs {
+			name := input.Name
+			if name == "" {
+				name = fmt.Sprintf("arg%d", i)
+			}
+			inputs = append(inputs, ContractEventInput{Name: name, Type: input.Type, Indexed: input.Indexed})
+			inputTypes = append(inputTypes, input.Type)
+		}
+		outputs := make([]string, 0, len(entry.Outputs))
+		for _, output := range entry.Outputs {
+			outputs = append(outputs, output.Type)
+		}
+		signature := entry.Name + "(" + strings.Join(inputTypes, ",") + ")"
+		selector := selectors[signature]
+		functions = append(functions, ContractFunctionABI{
+			Name:                    entry.Name,
+			Signature:               signature,
+			Selector:                selector.Selector,
+			SelectorSource:          "hardhat-ethers-keccak-selector-metadata",
+			BytecodeSelectorMatched: selector.BytecodeSelectorMatched,
+			Inputs:                  inputs,
+			Outputs:                 outputs,
+			StateMutability:         entry.StateMutability,
+		})
+	}
+	return functions
+}
+
+func hardhatSelectorMetadata(root, artifactPath string) (selectorArtifactMetadata, bool) {
+	payload, err := os.ReadFile(filepath.Join(root, "artifacts", "ynx-selector-metadata.json"))
+	if err != nil {
+		return selectorArtifactMetadata{RuntimeSelectorMode: "missing-hardhat-selector-metadata"}, false
+	}
+	var metadata selectorMetadataFile
+	if err := json.Unmarshal(payload, &metadata); err != nil {
+		return selectorArtifactMetadata{RuntimeSelectorMode: "invalid-hardhat-selector-metadata"}, false
+	}
+	artifact, ok := metadata.Artifacts[artifactPath]
+	if !ok {
+		return selectorArtifactMetadata{RuntimeSelectorMode: "missing-artifact-selector-metadata"}, false
+	}
+	return artifact, true
 }
 
 func hardhatBuildInfoSource(root, buildInfoID, sourceName string) (string, bool) {

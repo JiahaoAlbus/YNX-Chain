@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "contracts:check": "bash ./scripts/verify/contract-tooling-check.sh",
+    "contracts:selectors": "node ./scripts/contracts/generate-selector-metadata.mjs",
     "hardhat:build": "hardhat build",
     "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
   },
