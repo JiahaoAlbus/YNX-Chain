@@ -54,10 +54,25 @@ for (const text of [
   'contractCompilerVersion       = "0.8.24"',
   'contractCompilerConfigPath    = "hardhat.config.ts"',
   'contractArtifactKind          = "source-analyzer-artifact"',
+  'contractPinnedArtifactKind    = "pinned-solc-bytecode-artifact"',
   "ProductionCompilerEnabled: false"
 ]) {
   assert(compilerGo.includes(text), `Go compiler metadata missing ${text}`);
 }
+assert(read("internal/chain/types.go").includes("DeployedBytecodeComparisonStatus"), "contract verifier must expose deployed bytecode comparison status");
+
+const sampleArtifact = JSON.parse(read("artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"));
+assert(sampleArtifact.contractName === "SampleYNXTCompatibleERC20", "sample ERC20 artifact contract name mismatch");
+assert(sampleArtifact.sourceName === "contracts/tokens/SampleYNXTCompatibleERC20.sol", "sample ERC20 artifact source mismatch");
+assert(/^0x[0-9a-fA-F]+$/.test(sampleArtifact.bytecode) && sampleArtifact.bytecode.length > 100, "sample ERC20 bytecode missing");
+assert(/^0x[0-9a-fA-F]+$/.test(sampleArtifact.deployedBytecode) && sampleArtifact.deployedBytecode.length > 100, "sample ERC20 deployed bytecode missing");
+
+const buildInfoFiles = fs.readdirSync(path.join(root, "artifacts/build-info")).filter((file) => file.endsWith(".json") && !file.endsWith(".output.json"));
+assert(buildInfoFiles.length > 0, "Hardhat build-info file missing after build");
+const buildInfo = JSON.parse(read(`artifacts/build-info/${buildInfoFiles[0]}`));
+assert(buildInfo.solcVersion === "0.8.24", "Hardhat build-info solc version mismatch");
+assert(buildInfo.input?.settings?.optimizer?.enabled === true, "Hardhat build-info optimizer must be enabled");
+assert(buildInfo.input?.settings?.optimizer?.runs === 200, "Hardhat build-info optimizer runs mismatch");
 
 const foundry = read("foundry.toml");
 assert(foundry.includes("ynx_testnet = \"${YNX_EVM_RPC_URL}\""), "Foundry config must use YNX_EVM_RPC_URL");
@@ -86,7 +101,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "source-analyzer-artifact", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

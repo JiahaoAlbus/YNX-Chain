@@ -2018,6 +2018,7 @@ var contractFunctionPattern = regexp.MustCompile(`(?s)function\s+([A-Za-z_][A-Za
 func buildContractArtifact(address, deployer, name, source string, verified bool, verifiedAt *time.Time) ContractArtifact {
 	sourceHash := hashParts("source", source)
 	compiler := SolidityCompilerConfig()
+	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
 	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
@@ -2029,37 +2030,67 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 	}
 	status := "unverified"
 	reproducibilityStatus := "unverified; pinned compiler config recorded but source match has not been checked"
+	artifactKind := contractArtifactKind
+	compilerMode := compiler.CompilerMode
+	compilerExecutionStatus := "hardhat_artifact_not_found_for_submitted_source"
+	bytecodeHash := hashParts("bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
+	deployedBytecodeHash := hashParts("deployed-bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
+	deployedComparisonStatus := "not_checked_no_pinned_solc_artifact"
+	if hasCompilerArtifact {
+		artifactKind = contractPinnedArtifactKind
+		compilerMode = contractPinnedCompilerMode
+		compilerExecutionStatus = "matched_existing_hardhat_solc_0_8_24_artifact"
+		bytecodeHash = compilerArtifact.BytecodeHash
+		deployedBytecodeHash = compilerArtifact.DeployedBytecodeHash
+		deployedComparisonStatus = "not_checked_until_verify"
+		reproducibilityStatus = "pinned Hardhat artifact matched submitted source; deployed bytecode comparison not checked until verification"
+	}
 	if verified {
 		status = "source_hash_and_pinned_compiler_config_matched_local_artifact"
 		reproducibilityStatus = "source hash and pinned compiler config matched local deterministic artifact"
+		if hasCompilerArtifact {
+			status = "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact"
+			reproducibilityStatus = "source hash, pinned compiler config, artifact bytecode, and local deployed bytecode hash matched"
+			deployedComparisonStatus = "matched_local_deployed_bytecode_hash"
+		}
 	}
 	limitations := append([]string{
-		"compiler version/settings are pinned and hashed, but devnet bytecode is still deterministic analyzer output",
+		"compiler version/settings are pinned and hashed; arbitrary IDE snippets remain analyzer artifacts unless they match a Hardhat artifact",
 		"runtime supports simple pure/view return literals for devnet verification",
 	}, compiler.Limitations...)
+	if hasCompilerArtifact {
+		limitations = append([]string{
+			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
+			"local devnet stores bytecode hashes and compares deployed-bytecode hash, but does not execute EVM bytecode",
+		}, compiler.Limitations...)
+	}
 	return ContractArtifact{
-		Address:               address,
-		Name:                  name,
-		Deployer:              deployer,
-		SourceHash:            sourceHash,
-		BytecodeHash:          hashParts("bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|")),
-		ArtifactHash:          hashParts("artifact", compiler.ConfigHash, contractArtifactKind, name, sourceHash, fmt.Sprint(len(abi))),
-		ArtifactKind:          contractArtifactKind,
-		CompilerMode:          compiler.CompilerMode,
-		CompilerConfigHash:    compiler.ConfigHash,
-		Compiler:              compiler,
-		RuntimeMode:           "deterministic-devnet-pure-view-runtime",
-		VerifierMode:          compiler.VerifierMode,
-		ReproducibleBuild:     verified,
-		ReproducibilityStatus: reproducibilityStatus,
-		ABI:                   abi,
-		Events:                events,
-		Functions:             functions,
-		Limitations:           limitations,
-		Verified:              verified,
-		VerifierStatus:        status,
-		DeployedAt:            time.Now().UTC(),
-		VerifiedAt:            verifiedAt,
+		Address:                          address,
+		Name:                             name,
+		Deployer:                         deployer,
+		SourceHash:                       sourceHash,
+		BytecodeHash:                     bytecodeHash,
+		DeployedBytecodeHash:             deployedBytecodeHash,
+		ArtifactHash:                     hashParts("artifact", compiler.ConfigHash, artifactKind, name, sourceHash, bytecodeHash, deployedBytecodeHash, fmt.Sprint(len(abi))),
+		ArtifactKind:                     artifactKind,
+		CompilerMode:                     compilerMode,
+		CompilerConfigHash:               compiler.ConfigHash,
+		Compiler:                         compiler,
+		CompilerArtifact:                 compilerArtifact,
+		CompilerExecutionStatus:          compilerExecutionStatus,
+		RuntimeMode:                      "deterministic-devnet-pure-view-runtime",
+		VerifierMode:                     compiler.VerifierMode,
+		ReproducibleBuild:                verified,
+		ReproducibilityStatus:            reproducibilityStatus,
+		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
+		ABI:                              abi,
+		Events:                           events,
+		Functions:                        functions,
+		Limitations:                      limitations,
+		Verified:                         verified,
+		VerifierStatus:                   status,
+		DeployedAt:                       time.Now().UTC(),
+		VerifiedAt:                       verifiedAt,
 	}
 }
 

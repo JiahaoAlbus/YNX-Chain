@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -275,6 +276,60 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	filtered := out["result"].([]any)
 	if len(filtered) != 1 || filtered[0].(map[string]any)["address"] != address {
 		t.Fatalf("expected filtered contract event log, got %v", out)
+	}
+}
+
+func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
+	root := testRepoRoot(t)
+	if _, err := os.Stat(root + "/artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"); err != nil {
+		t.Skip("hardhat artifact not built")
+	}
+	sourceBytes, err := os.ReadFile(root + "/contracts/tokens/SampleYNXTCompatibleERC20.sol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	var compiled map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/compile", map[string]any{"name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes)}, http.StatusOK, &compiled)
+	if compiled["artifactKind"] != "pinned-solc-bytecode-artifact" || compiled["deployedBytecodeHash"] == "" || compiled["compilerExecutionStatus"] != "matched_existing_hardhat_solc_0_8_24_artifact" {
+		t.Fatalf("expected real hardhat compiler artifact metadata: %v", compiled)
+	}
+	compilerArtifact := compiled["compilerArtifact"].(map[string]any)
+	if compilerArtifact["sourceName"] != "contracts/tokens/SampleYNXTCompatibleERC20.sol" || compilerArtifact["deployedBytecodeHash"] != compiled["deployedBytecodeHash"] {
+		t.Fatalf("expected compiler artifact hashes to be exposed: %v", compiled)
+	}
+	if _, err := devnet.Faucet("ynx_hardhat_builder", 100); err != nil {
+		t.Fatal(err)
+	}
+	var deployed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_hardhat_builder", "name": "SampleYNXTCompatibleERC20", "source": string(sourceBytes)}, http.StatusCreated, &deployed)
+	contract := deployed["contract"].(map[string]any)
+	address := contract["address"].(string)
+	var verified map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": string(sourceBytes)}, http.StatusOK, &verified)
+	if verified["verifierStatus"] != "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact" || verified["deployedBytecodeComparisonStatus"] != "matched_local_deployed_bytecode_hash" {
+		t.Fatalf("expected deployed bytecode hash comparison status: %v", verified)
+	}
+}
+
+func testRepoRoot(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		if _, err := os.Stat(dir + "/hardhat.config.ts"); err == nil {
+			return dir
+		}
+		next := dir[:strings.LastIndex(dir, "/")]
+		if next == "" || next == dir {
+			t.Fatal("repo root not found")
+		}
+		dir = next
 	}
 }
 

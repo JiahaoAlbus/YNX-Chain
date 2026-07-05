@@ -1,11 +1,20 @@
 package chain
 
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
 const (
 	contractCompilerVersion       = "0.8.24"
 	contractCompilerPackage       = "hardhat/solc-wasm"
 	contractCompilerConfigPath    = "hardhat.config.ts"
 	contractArtifactKind          = "source-analyzer-artifact"
+	contractPinnedArtifactKind    = "pinned-solc-bytecode-artifact"
 	contractCompilerMode          = "deterministic-devnet-source-analyzer-with-pinned-solidity-config"
+	contractPinnedCompilerMode    = "pinned-solidity-hardhat-artifact"
 	contractVerifierMode          = "source-hash-and-pinned-config-local-verifier"
 	contractReproducibilityStatus = "pinned-solidity-config-recorded; bytecode is deterministic devnet analyzer output until production solc execution is wired"
 )
@@ -42,5 +51,105 @@ func SolidityCompilerConfig() ContractCompilerConfig {
 			"devnet artifact bytecode is deterministic analyzer metadata, not production solc bytecode",
 			"production verification requires executing the pinned compiler and comparing deployed bytecode",
 		},
+	}
+}
+
+type hardhatArtifactFile struct {
+	ContractName     string          `json:"contractName"`
+	SourceName       string          `json:"sourceName"`
+	ABI              json.RawMessage `json:"abi"`
+	Bytecode         string          `json:"bytecode"`
+	DeployedBytecode string          `json:"deployedBytecode"`
+	InputSourceName  string          `json:"inputSourceName"`
+	BuildInfoID      string          `json:"buildInfoId"`
+}
+
+type hardhatBuildInfoFile struct {
+	SolcVersion string `json:"solcVersion"`
+	Input       struct {
+		Sources map[string]struct {
+			Content string `json:"content"`
+		} `json:"sources"`
+	} `json:"input"`
+}
+
+func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifact, bool) {
+	root, ok := repoRoot()
+	if !ok {
+		return nil, false
+	}
+	sourceHash := hashParts("source", source)
+	artifactsRoot := filepath.Join(root, "artifacts", "contracts")
+	var matched *ContractCompilerArtifact
+	_ = filepath.WalkDir(artifactsRoot, func(path string, entry os.DirEntry, err error) error {
+		if err != nil || matched != nil || entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") || entry.Name() == "artifacts.d.ts" {
+			return nil
+		}
+		payload, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		var artifact hardhatArtifactFile
+		if err := json.Unmarshal(payload, &artifact); err != nil {
+			return nil
+		}
+		if artifact.ContractName != name || artifact.SourceName == "" || artifact.Bytecode == "" || artifact.DeployedBytecode == "" {
+			return nil
+		}
+		compiledSource, ok := hardhatBuildInfoSource(root, artifact.BuildInfoID, artifact.SourceName)
+		if !ok || (hashParts("source", compiledSource) != sourceHash && hashParts("source", strings.TrimSpace(compiledSource)) != sourceHash) {
+			return nil
+		}
+		relPath, _ := filepath.Rel(root, path)
+		matched = &ContractCompilerArtifact{
+			SourceName:           artifact.SourceName,
+			ContractName:         artifact.ContractName,
+			BuildInfoID:          artifact.BuildInfoID,
+			ArtifactPath:         filepath.ToSlash(relPath),
+			BytecodeHash:         hashParts("solc-bytecode", artifact.Bytecode),
+			DeployedBytecodeHash: hashParts("solc-deployed-bytecode", artifact.DeployedBytecode),
+			ABIHash:              hashParts("solc-abi", string(artifact.ABI)),
+			CompilerExecuted:     true,
+			Status:               "matched_hardhat_artifact",
+		}
+		return nil
+	})
+	return matched, matched != nil
+}
+
+func hardhatBuildInfoSource(root, buildInfoID, sourceName string) (string, bool) {
+	if buildInfoID == "" || sourceName == "" {
+		return "", false
+	}
+	payload, err := os.ReadFile(filepath.Join(root, "artifacts", "build-info", buildInfoID+".json"))
+	if err != nil {
+		return "", false
+	}
+	var buildInfo hardhatBuildInfoFile
+	if err := json.Unmarshal(payload, &buildInfo); err != nil || buildInfo.SolcVersion != contractCompilerVersion {
+		return "", false
+	}
+	for key, source := range buildInfo.Input.Sources {
+		if key == sourceName || strings.TrimPrefix(key, "project/") == sourceName {
+			return source.Content, source.Content != ""
+		}
+	}
+	return "", false
+}
+
+func repoRoot() (string, bool) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, contractCompilerConfigPath)); err == nil {
+			return dir, true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", false
+		}
+		dir = parent
 	}
 }

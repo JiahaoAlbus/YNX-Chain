@@ -281,6 +281,9 @@ func TestContractArtifactRuntimeCall(t *testing.T) {
 	if contract.ArtifactKind != "source-analyzer-artifact" || contract.Compiler.Version != "0.8.24" || !contract.Compiler.Pinned || contract.CompilerConfigHash != contract.Compiler.ConfigHash || contract.ReproducibleBuild {
 		t.Fatalf("expected pinned compiler config and unverified analyzer artifact, got %+v", contract)
 	}
+	if contract.CompilerExecutionStatus != "hardhat_artifact_not_found_for_submitted_source" || contract.DeployedBytecodeHash == "" || contract.DeployedBytecodeComparisonStatus != "not_checked_no_pinned_solc_artifact" {
+		t.Fatalf("expected analyzer bytecode status for ad hoc source, got %+v", contract)
+	}
 	verified, err := devnet.VerifyContract(contract.Address, source)
 	if err != nil {
 		t.Fatal(err)

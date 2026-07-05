@@ -1,11 +1,11 @@
 # Next Action
 
-Current single action: wire actual pinned Solidity compiler artifact generation and bytecode verifier comparison for IDE contracts.
+Current single action: add a deployable contract verifier service endpoint or real EVM bytecode execution semantics for IDE contracts.
 
 Why this action:
 
-- IDE compile/deploy/verify now exposes pinned Solidity `0.8.24` compiler configuration, config hash, deterministic source-analyzer artifact metadata, simple pure/view runtime calls, and verifier reproducibility status.
-- The remaining IDE gap is production fidelity: executing the pinned compiler, storing actual bytecode artifacts, and comparing deployed bytecode through a verifier path instead of only matching source hash plus config hash.
+- IDE compile/deploy/verify now distinguishes ad hoc `source-analyzer-artifact` output from repository `pinned-solc-bytecode-artifact` output backed by Hardhat artifacts and deployed bytecode hash comparison.
+- The remaining IDE/EVM production gap is runtime/verifier depth: local devnet still stores bytecode hashes and executes only simple parsed pure/view literals instead of EVM bytecode, and verifier evidence is not yet exposed as a deployable verifier service or remote explorer proof.
 - This is the next honest developer-platform gap that can advance locally while remote SSH/public ingress blockers and GitHub push TLS failures are handled separately.
 
 Files to touch:
@@ -38,11 +38,11 @@ Validation commands:
 
 Completion standard:
 
-- A local build path executes the pinned Solidity compiler or fails closed with a clear missing-tool status.
-- Compile output separates `source-analyzer-artifact` from real pinned compiler bytecode artifacts.
-- Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, verifier mode, and reproducibility status.
-- Tests/checks prove the bytecode artifact and verifier comparison path without claiming remote public verifier availability.
-- Tracker moves IDE compiler/verifier fidelity forward honestly without claiming remote proof.
+- Verifier evidence can be queried through an explicit local service/API endpoint, or EVM calls can use real compiled bytecode semantics for at least a narrow supported subset.
+- Responses continue to separate `source-analyzer-artifact` from `pinned-solc-bytecode-artifact`.
+- Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, verifier mode, reproducibility status, and service/runtime limitations.
+- Tests/checks prove the new verifier service or bytecode execution path without claiming remote public verifier availability.
+- Tracker moves IDE/EVM fidelity forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

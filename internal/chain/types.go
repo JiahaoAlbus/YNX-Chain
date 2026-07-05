@@ -549,28 +549,32 @@ type ResourceAnalytics struct {
 }
 
 type ContractArtifact struct {
-	Address               string                 `json:"address"`
-	Name                  string                 `json:"name"`
-	Deployer              string                 `json:"deployer"`
-	SourceHash            string                 `json:"sourceHash"`
-	BytecodeHash          string                 `json:"bytecodeHash"`
-	ArtifactHash          string                 `json:"artifactHash"`
-	ArtifactKind          string                 `json:"artifactKind"`
-	CompilerMode          string                 `json:"compilerMode"`
-	CompilerConfigHash    string                 `json:"compilerConfigHash"`
-	Compiler              ContractCompilerConfig `json:"compiler"`
-	RuntimeMode           string                 `json:"runtimeMode"`
-	VerifierMode          string                 `json:"verifierMode"`
-	ReproducibleBuild     bool                   `json:"reproducibleBuild"`
-	ReproducibilityStatus string                 `json:"reproducibilityStatus"`
-	ABI                   []ContractABIEntry     `json:"abi,omitempty"`
-	Events                []ContractEventABI     `json:"events,omitempty"`
-	Functions             []ContractFunctionABI  `json:"functions,omitempty"`
-	Limitations           []string               `json:"limitations,omitempty"`
-	Verified              bool                   `json:"verified"`
-	VerifierStatus        string                 `json:"verifierStatus"`
-	DeployedAt            time.Time              `json:"deployedAt"`
-	VerifiedAt            *time.Time             `json:"verifiedAt,omitempty"`
+	Address                          string                    `json:"address"`
+	Name                             string                    `json:"name"`
+	Deployer                         string                    `json:"deployer"`
+	SourceHash                       string                    `json:"sourceHash"`
+	BytecodeHash                     string                    `json:"bytecodeHash"`
+	DeployedBytecodeHash             string                    `json:"deployedBytecodeHash"`
+	ArtifactHash                     string                    `json:"artifactHash"`
+	ArtifactKind                     string                    `json:"artifactKind"`
+	CompilerMode                     string                    `json:"compilerMode"`
+	CompilerConfigHash               string                    `json:"compilerConfigHash"`
+	Compiler                         ContractCompilerConfig    `json:"compiler"`
+	CompilerArtifact                 *ContractCompilerArtifact `json:"compilerArtifact,omitempty"`
+	CompilerExecutionStatus          string                    `json:"compilerExecutionStatus"`
+	RuntimeMode                      string                    `json:"runtimeMode"`
+	VerifierMode                     string                    `json:"verifierMode"`
+	ReproducibleBuild                bool                      `json:"reproducibleBuild"`
+	ReproducibilityStatus            string                    `json:"reproducibilityStatus"`
+	DeployedBytecodeComparisonStatus string                    `json:"deployedBytecodeComparisonStatus"`
+	ABI                              []ContractABIEntry        `json:"abi,omitempty"`
+	Events                           []ContractEventABI        `json:"events,omitempty"`
+	Functions                        []ContractFunctionABI     `json:"functions,omitempty"`
+	Limitations                      []string                  `json:"limitations,omitempty"`
+	Verified                         bool                      `json:"verified"`
+	VerifierStatus                   string                    `json:"verifierStatus"`
+	DeployedAt                       time.Time                 `json:"deployedAt"`
+	VerifiedAt                       *time.Time                `json:"verifiedAt,omitempty"`
 }
 
 type ContractCompilerConfig struct {
@@ -591,6 +595,18 @@ type ContractCompilerConfig struct {
 	ProductionCompilerEnabled bool     `json:"productionCompilerEnabled"`
 	ReproducibilityStatus     string   `json:"reproducibilityStatus"`
 	Limitations               []string `json:"limitations,omitempty"`
+}
+
+type ContractCompilerArtifact struct {
+	SourceName           string `json:"sourceName"`
+	ContractName         string `json:"contractName"`
+	BuildInfoID          string `json:"buildInfoId"`
+	ArtifactPath         string `json:"artifactPath"`
+	BytecodeHash         string `json:"bytecodeHash"`
+	DeployedBytecodeHash string `json:"deployedBytecodeHash"`
+	ABIHash              string `json:"abiHash"`
+	CompilerExecuted     bool   `json:"compilerExecuted"`
+	Status               string `json:"status"`
 }
 
 type ContractABIEntry struct {

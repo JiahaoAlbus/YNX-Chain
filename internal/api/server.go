@@ -1000,26 +1000,30 @@ func trim0x(v string) string {
 }
 
 type compileResult struct {
-	OK                    bool                         `json:"ok"`
-	Name                  string                       `json:"name"`
-	SourceHash            string                       `json:"sourceHash,omitempty"`
-	BytecodeHash          string                       `json:"bytecodeHash,omitempty"`
-	ArtifactHash          string                       `json:"artifactHash,omitempty"`
-	ArtifactKind          string                       `json:"artifactKind,omitempty"`
-	CompilerMode          string                       `json:"compilerMode,omitempty"`
-	CompilerConfigHash    string                       `json:"compilerConfigHash,omitempty"`
-	Compiler              chain.ContractCompilerConfig `json:"compiler,omitempty"`
-	RuntimeMode           string                       `json:"runtimeMode,omitempty"`
-	VerifierMode          string                       `json:"verifierMode,omitempty"`
-	ReproducibleBuild     bool                         `json:"reproducibleBuild"`
-	ReproducibilityStatus string                       `json:"reproducibilityStatus,omitempty"`
-	ABI                   []chain.ContractABIEntry     `json:"abi,omitempty"`
-	Events                []chain.ContractEventABI     `json:"events,omitempty"`
-	Functions             []chain.ContractFunctionABI  `json:"functions,omitempty"`
-	Limitations           []string                     `json:"limitations,omitempty"`
-	Warnings              []string                     `json:"warnings,omitempty"`
-	Errors                []string                     `json:"errors,omitempty"`
-	TruthfulNote          string                       `json:"truthfulNote"`
+	OK                               bool                            `json:"ok"`
+	Name                             string                          `json:"name"`
+	SourceHash                       string                          `json:"sourceHash,omitempty"`
+	BytecodeHash                     string                          `json:"bytecodeHash,omitempty"`
+	DeployedBytecodeHash             string                          `json:"deployedBytecodeHash,omitempty"`
+	ArtifactHash                     string                          `json:"artifactHash,omitempty"`
+	ArtifactKind                     string                          `json:"artifactKind,omitempty"`
+	CompilerMode                     string                          `json:"compilerMode,omitempty"`
+	CompilerConfigHash               string                          `json:"compilerConfigHash,omitempty"`
+	Compiler                         chain.ContractCompilerConfig    `json:"compiler,omitempty"`
+	CompilerArtifact                 *chain.ContractCompilerArtifact `json:"compilerArtifact,omitempty"`
+	CompilerExecutionStatus          string                          `json:"compilerExecutionStatus,omitempty"`
+	RuntimeMode                      string                          `json:"runtimeMode,omitempty"`
+	VerifierMode                     string                          `json:"verifierMode,omitempty"`
+	ReproducibleBuild                bool                            `json:"reproducibleBuild"`
+	ReproducibilityStatus            string                          `json:"reproducibilityStatus,omitempty"`
+	DeployedBytecodeComparisonStatus string                          `json:"deployedBytecodeComparisonStatus,omitempty"`
+	ABI                              []chain.ContractABIEntry        `json:"abi,omitempty"`
+	Events                           []chain.ContractEventABI        `json:"events,omitempty"`
+	Functions                        []chain.ContractFunctionABI     `json:"functions,omitempty"`
+	Limitations                      []string                        `json:"limitations,omitempty"`
+	Warnings                         []string                        `json:"warnings,omitempty"`
+	Errors                           []string                        `json:"errors,omitempty"`
+	TruthfulNote                     string                          `json:"truthfulNote"`
 }
 
 func preflightContract(name, source string) compileResult {
@@ -1040,15 +1044,19 @@ func preflightContract(name, source string) compileResult {
 	result.OK = true
 	result.SourceHash = artifact.SourceHash
 	result.BytecodeHash = artifact.BytecodeHash
+	result.DeployedBytecodeHash = artifact.DeployedBytecodeHash
 	result.ArtifactHash = artifact.ArtifactHash
 	result.ArtifactKind = artifact.ArtifactKind
 	result.CompilerMode = artifact.CompilerMode
 	result.CompilerConfigHash = artifact.CompilerConfigHash
 	result.Compiler = artifact.Compiler
+	result.CompilerArtifact = artifact.CompilerArtifact
+	result.CompilerExecutionStatus = artifact.CompilerExecutionStatus
 	result.RuntimeMode = artifact.RuntimeMode
 	result.VerifierMode = artifact.VerifierMode
 	result.ReproducibleBuild = artifact.ReproducibleBuild
 	result.ReproducibilityStatus = artifact.ReproducibilityStatus
+	result.DeployedBytecodeComparisonStatus = artifact.DeployedBytecodeComparisonStatus
 	result.ABI = artifact.ABI
 	result.Events = artifact.Events
 	result.Functions = artifact.Functions
