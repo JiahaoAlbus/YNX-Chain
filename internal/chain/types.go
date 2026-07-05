@@ -549,12 +549,27 @@ type ResourceAnalytics struct {
 }
 
 type ContractArtifact struct {
-	Address      string     `json:"address"`
-	Name         string     `json:"name"`
-	Deployer     string     `json:"deployer"`
-	SourceHash   string     `json:"sourceHash"`
-	BytecodeHash string     `json:"bytecodeHash"`
-	Verified     bool       `json:"verified"`
-	DeployedAt   time.Time  `json:"deployedAt"`
-	VerifiedAt   *time.Time `json:"verifiedAt,omitempty"`
+	Address      string             `json:"address"`
+	Name         string             `json:"name"`
+	Deployer     string             `json:"deployer"`
+	SourceHash   string             `json:"sourceHash"`
+	BytecodeHash string             `json:"bytecodeHash"`
+	Events       []ContractEventABI `json:"events,omitempty"`
+	Verified     bool               `json:"verified"`
+	DeployedAt   time.Time          `json:"deployedAt"`
+	VerifiedAt   *time.Time         `json:"verifiedAt,omitempty"`
+}
+
+type ContractEventABI struct {
+	Name      string               `json:"name"`
+	Signature string               `json:"signature"`
+	Topic     string               `json:"topic"`
+	Inputs    []ContractEventInput `json:"inputs"`
+	Source    string               `json:"source"`
+}
+
+type ContractEventInput struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Indexed bool   `json:"indexed"`
 }

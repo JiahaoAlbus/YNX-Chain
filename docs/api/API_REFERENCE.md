@@ -4,7 +4,7 @@ Core: `GET /health`, `GET /status`, `GET /metrics`, `GET /blocks/latest`, `GET /
 
 `GET /validators` returns active validator records with `address`, `moniker`, optional `host`, optional `role`, optional `peerId`, `votingPower`, and `active`. Production/testnet nodes load this from `YNX_VALIDATOR_SET`; if it is missing, the node exposes only the local default validator and remote public proof must fail multi-validator checks.
 
-EVM JSON-RPC: `POST /evm` supports `eth_chainId`, `net_version`, `eth_blockNumber`, `eth_getBalance`, `eth_getTransactionByHash`, `eth_getTransactionReceipt`, `eth_sendRawTransaction`, `eth_estimateGas`, `eth_call`, `eth_getLogs`, `eth_getBlockByNumber`, and `eth_getBlockByHash` in local devnet form. Receipts include persisted EVM-style logs for known transactions, and `eth_getLogs` filters persisted logs by `fromBlock`, `toBlock`, `address`, and `topics`.
+EVM JSON-RPC: `POST /evm` supports `eth_chainId`, `net_version`, `eth_blockNumber`, `eth_getBalance`, `eth_getTransactionByHash`, `eth_getTransactionReceipt`, `eth_sendRawTransaction`, `eth_estimateGas`, `eth_call`, `eth_getLogs`, `eth_getBlockByNumber`, and `eth_getBlockByHash` in local devnet form. Receipts include persisted EVM-style logs for known transactions, including local contract deployment logs derived from stored contract event metadata, and `eth_getLogs` filters persisted logs by `fromBlock`, `toBlock`, `address`, and `topics`.
 
 Indexer service: `ynx-indexerd` reads the chain RPC, persists indexed blocks and transactions, resumes from the last indexed height, and exposes `GET /health`, `GET /metrics`, `POST /sync`, `GET /blocks/latest`, `GET /blocks/{height}`, `GET /txs`, and `GET /txs/{hash}` on the indexer HTTP port.
 
@@ -61,13 +61,15 @@ Products:
 - `POST /ide/verify`
 - `GET /contracts/{address}`
 
+`POST /ide/deploy`, `POST /ide/verify`, and `GET /contracts/{address}` expose deterministic local event metadata parsed from Solidity `event` declarations: event name, signature, topic, input types, indexed flags, and source marker. This is still devnet preflight metadata, not a production pinned Solidity compiler or verifier.
+
 Verification:
 
 ```bash
 make smoke-test
 ```
 
-The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, EVM receipt/log filtering, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.
+The smoke test exercises RPC health, EVM chainId, block growth, faucet funding, transfer lookup, EVM receipt/log filtering, contract event metadata and contract-address/topic log filtering, AI streaming, Trust label/evidence/PDF export, Pay intent/invoice/refund/webhook signature, resource quote/delegation/rental/income/analytics, IDE deploy, contract verification, monitoring, indexer sync, Explorer API summary, public faucet daemon funding, and package lists. It returns non-zero on failure.
 
 Governance and Trust request safety:
 

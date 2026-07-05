@@ -203,7 +203,7 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := "pragma solidity ^0.8.24; contract Persisted {}"
+	source := "pragma solidity ^0.8.24; contract Persisted { event PersistedEvent(address indexed actor, uint256 amount); }"
 	contract, _, err := devnet.DeployContract("ynx_product", "Persisted", source)
 	if err != nil {
 		t.Fatal(err)
@@ -228,6 +228,40 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	}
 	if !restoredContract.Verified {
 		t.Fatal("expected restored contract verification")
+	}
+	if len(restoredContract.Events) != 1 || restoredContract.Events[0].Signature != "PersistedEvent(address,uint256)" {
+		t.Fatalf("expected restored contract event metadata, got %+v", restoredContract.Events)
+	}
+}
+
+func TestContractDeployEmitsContractSpecificLogs(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
+	if _, err := devnet.Faucet("ynx_contract_builder", 100); err != nil {
+		t.Fatal(err)
+	}
+	source := "pragma solidity ^0.8.24; contract Events { event Transfer(address indexed from, address indexed to, uint256 value); event Audit(bytes32 indexed id); }"
+	contract, tx, err := devnet.DeployContract("ynx_contract_builder", "Events", source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(contract.Events) != 2 {
+		t.Fatalf("expected two contract events, got %+v", contract.Events)
+	}
+	block := devnet.ProduceBlock()
+	var deployed Transaction
+	for _, blockTx := range block.Transactions {
+		if blockTx.Hash == tx.Hash {
+			deployed = blockTx
+			break
+		}
+	}
+	if len(deployed.Logs) != 4 {
+		t.Fatalf("expected generic deploy log plus contract-specific logs, got %+v", deployed.Logs)
+	}
+	eventTopic := contract.Events[0].Topic
+	filtered := devnet.EVMLogs(EVMLogFilter{Addresses: []string{contract.Address}, Topics: [][]string{{eventTopic}}})
+	if len(filtered) != 1 || filtered[0].Address != contract.Address || filtered[0].Topics[0] != eventTopic {
+		t.Fatalf("expected contract event log by address/topic, got %+v", filtered)
 	}
 }
 

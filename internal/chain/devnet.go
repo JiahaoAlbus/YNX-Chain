@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -1505,12 +1506,14 @@ func (d *Devnet) DeployContract(deployer, name, source string) (ContractArtifact
 	account.Nonce++
 	account.ResourceUsage.ComputeUsed += 5
 	sourceHash := hashParts("source", source)
+	events := extractContractEvents(source)
 	artifact := ContractArtifact{
 		Address:      "0x" + hashParts("contract", deployer, name, sourceHash, fmt.Sprint(time.Now().UnixNano()))[:40],
 		Name:         name,
 		Deployer:     deployer,
 		SourceHash:   sourceHash,
 		BytecodeHash: hashParts("bytecode", sourceHash),
+		Events:       events,
 		Verified:     false,
 		DeployedAt:   time.Now().UTC(),
 	}
@@ -1538,6 +1541,7 @@ func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error
 	verifiedAt := time.Now().UTC()
 	artifact.Verified = true
 	artifact.VerifiedAt = &verifiedAt
+	artifact.Events = extractContractEvents(source)
 	d.contracts[address] = artifact
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
@@ -1563,7 +1567,7 @@ func (d *Devnet) ProduceBlock() Block {
 	for i := range block.Transactions {
 		block.Transactions[i].BlockHash = block.Hash
 		block.Transactions[i].BlockNum = block.Height
-		block.Transactions[i].Logs = evmLogsForTransaction(block.Transactions[i], uint64(i), logIndex)
+		block.Transactions[i].Logs = d.evmLogsForTransactionLocked(block.Transactions[i], uint64(i), logIndex)
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
@@ -1922,7 +1926,7 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 	return event
 }
 
-func evmLogsForTransaction(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {
+func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {
 	if tx.Hash == "" || tx.BlockHash == "" || tx.BlockNum == 0 {
 		return nil
 	}
@@ -1946,7 +1950,93 @@ func evmLogsForTransaction(tx Transaction, txIndex, firstLogIndex uint64) []EVML
 	if strings.HasPrefix(tx.Type, "contract_") && strings.HasPrefix(tx.To, "0x") {
 		log.Address = evmAddressForLog(tx.To)
 	}
-	return []EVMLog{log}
+	logs := []EVMLog{log}
+	if tx.Type == "contract_deploy" && strings.HasPrefix(tx.To, "0x") {
+		artifact, ok := d.contracts[tx.To]
+		if ok {
+			logs = append(logs, contractEventLogs(tx, artifact, txIndex, firstLogIndex+uint64(len(logs)))...)
+		}
+	}
+	return logs
+}
+
+func contractEventLogs(tx Transaction, artifact ContractArtifact, txIndex, firstLogIndex uint64) []EVMLog {
+	address := evmAddressForLog(artifact.Address)
+	logs := []EVMLog{{
+		Address:          address,
+		Topics:           []string{evmTopic("event:YNXContractDeployed(address,string)"), evmTopic(artifact.Deployer), evmTopic(artifact.Address)},
+		Data:             evmHexData(artifact.SourceHash),
+		BlockHash:        evmHash(tx.BlockHash),
+		BlockNumber:      tx.BlockNum,
+		TransactionHash:  tx.Hash,
+		TransactionIndex: txIndex,
+		LogIndex:         firstLogIndex,
+		Removed:          false,
+	}}
+	nextIndex := firstLogIndex + 1
+	for _, event := range artifact.Events {
+		topics := []string{event.Topic, evmTopic(artifact.Deployer), evmTopic(artifact.Address)}
+		logs = append(logs, EVMLog{
+			Address:          address,
+			Topics:           topics,
+			Data:             evmHexData(event.Signature),
+			BlockHash:        evmHash(tx.BlockHash),
+			BlockNumber:      tx.BlockNum,
+			TransactionHash:  tx.Hash,
+			TransactionIndex: txIndex,
+			LogIndex:         nextIndex,
+			Removed:          false,
+		})
+		nextIndex++
+	}
+	return logs
+}
+
+var contractEventPattern = regexp.MustCompile(`(?s)event\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*;`)
+
+func extractContractEvents(source string) []ContractEventABI {
+	matches := contractEventPattern.FindAllStringSubmatch(source, -1)
+	events := make([]ContractEventABI, 0, len(matches))
+	for _, match := range matches {
+		if len(match) != 3 {
+			continue
+		}
+		name := strings.TrimSpace(match[1])
+		inputs := parseContractEventInputs(match[2])
+		types := make([]string, 0, len(inputs))
+		for _, input := range inputs {
+			types = append(types, input.Type)
+		}
+		signature := fmt.Sprintf("%s(%s)", name, strings.Join(types, ","))
+		events = append(events, ContractEventABI{Name: name, Signature: signature, Topic: evmTopic("event:" + signature), Inputs: inputs, Source: "solidity-source"})
+	}
+	return events
+}
+
+func parseContractEventInputs(raw string) []ContractEventInput {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	inputs := make([]ContractEventInput, 0, len(parts))
+	for i, part := range parts {
+		tokens := strings.Fields(strings.TrimSpace(part))
+		if len(tokens) == 0 {
+			continue
+		}
+		input := ContractEventInput{Name: fmt.Sprintf("arg%d", i), Type: tokens[0]}
+		for _, token := range tokens[1:] {
+			switch token {
+			case "indexed":
+				input.Indexed = true
+			default:
+				input.Name = token
+			}
+		}
+		inputs = append(inputs, input)
+	}
+	return inputs
 }
 
 func evmLogMatchesFilter(log EVMLog, filter EVMLogFilter) bool {
@@ -2019,6 +2109,11 @@ func evmLogData(amount int64) string {
 		amount = 0
 	}
 	return fmt.Sprintf("0x%064x", amount)
+}
+
+func evmHexData(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return "0x" + hex.EncodeToString(sum[:])
 }
 
 func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {

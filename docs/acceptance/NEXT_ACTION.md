@@ -1,12 +1,12 @@
 # Next Action
 
-Current single action: expand contract event fidelity beyond deterministic transaction logs.
+Current single action: add real compiler/runtime integration depth for IDE contract compile, deploy, call, and verification.
 
 Why this action:
 
-- EVM receipts now include persisted transaction logs, and `eth_getLogs` filters by block range, address, and topics.
-- The remaining logs/events gap is contract-level fidelity: deployed contract records do not yet expose ABI-like event metadata or contract-specific emitted events.
-- This is core EVM compatibility work that can advance locally while remote SSH/public ingress blockers prevent safe deployment.
+- Contract records now expose deterministic event metadata, and local contract deployment receipts emit contract-address logs filterable by topic.
+- The remaining IDE/EVM gap is that compile/deploy/verify still use source preflight metadata rather than a pinned compiler, bytecode artifact, callable runtime, or production verifier.
+- This is core developer-platform work that can advance locally while remote SSH/public ingress blockers prevent safe deployment.
 
 Files to touch:
 
@@ -16,7 +16,7 @@ Files to touch:
 - `internal/chain/devnet_test.go`
 - `internal/api/server_test.go`
 - `scripts/verify/testnet-smoke-test.sh`
-- `scripts/verify/exchange-integration-check.sh`
+- `scripts/verify/developer-quickstart-check.sh`
 - `docs/api/API_REFERENCE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 - `docs/acceptance/PROJECT_STATE.md`
@@ -26,7 +26,7 @@ Validation commands:
 
 - `make test`
 - `make smoke-test`
-- `make exchange-integration-check`
+- `make developer-quickstart-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -35,11 +35,11 @@ Validation commands:
 
 Completion standard:
 
-- Contract deploy/verify records expose deterministic event metadata for developer tooling.
-- Contract-related transactions emit contract-specific logs rather than only generic transaction logs.
-- EVM receipt and `eth_getLogs` checks prove contract-address and topic filtering.
-- New checks pass locally.
-- Tracker moves contract event fidelity forward honestly without claiming remote proof.
+- Compile output exposes a deterministic artifact with source hash, bytecode hash, ABI/events, compiler mode, and truthful limitations.
+- Deploy records link to that artifact and preserve enough runtime metadata for a local `eth_call` or IDE call endpoint to return deterministic results for simple pure functions.
+- Verification checks artifact/source consistency and exposes verifier status without pretending a production verifier exists.
+- Smoke or quickstart checks prove compile, deploy, verify, contract lookup, and simple call behavior.
+- Tracker moves IDE compiler/runtime fidelity forward honestly without claiming remote proof.
 
 Explicitly not doing in this action:
 

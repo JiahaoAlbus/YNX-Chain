@@ -3,8 +3,8 @@
 Updated: 2026-07-05
 
 - State snapshot baseline commit: `1a12cc3 Classify remote deployment blockers`
-- Last pushed commit known locally before this update: `8b6a1b7 Add AI Gateway permission audit model`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in EVM-style transaction logs, receipt log output, `eth_getLogs` filtering, check scripts, API docs, tracker, and state files.
+- Last pushed commit known locally before this update: `0bab745 Add persistent EVM log filtering`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update in contract event metadata, contract deployment event logs, smoke checks, API docs, tracker, and state files.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
@@ -20,6 +20,7 @@ Completed modules in the chain repo:
 - Pay API now persists audit events with audit hashes and stores webhook signature metadata for lookup without storing or exposing signing secrets.
 - AI Gateway now persists scoped permission grants and sensitive action proposals with audit hashes; value-moving, Trust-label-affecting, and sensitive-data AI actions remain non-executable until a matching active permission is explicitly approved.
 - EVM RPC now returns persisted transaction logs in receipts and filters logs by block range, address, and topics through `eth_getLogs`.
+- Contract deploy and verify records now expose deterministic event metadata parsed from Solidity `event` declarations, and local contract deployment receipts emit contract-address logs filterable through `eth_getLogs`.
 - Request Validity Standard now classifies scoped review, insufficient evidence, overbroad tracking, illegal/abusive requests, governance review, user notice, and rejected states through named rule IDs exposed by `GET /governance/request-validity-rules`.
 - Trust labels now include label ID, address, type, severity, risk weight, confidence, source, evidence hash, update time, expiry, review and appeal metadata, dispute status, legal status, rejected-request reference, and an advisory-only asset effect that rejects freeze/seize/confiscation behavior.
 - Trust evidence packets now include reviewer-facing `riskSummary` with effective advisory risk weight, active/expired/low-confidence label counts, non-conclusive label IDs, active evidence hashes, appeal path, reviewer notes, and advisory-only asset effect. Expired labels and labels below 5000 confidence bps are excluded from active risk scoring.
@@ -54,4 +55,4 @@ Current blockers:
 
 Largest real gap that can still be advanced in-repo:
 
-- Expand contract event fidelity beyond deterministic transaction logs while remote deployment remains blocked.
+- Add real compiler/runtime integration depth for IDE contract compile, deploy, call, and verification while remote deployment remains blocked.

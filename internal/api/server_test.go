@@ -214,17 +214,36 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 		t.Fatalf("expected resource analytics: %v", analytics)
 	}
 
-	source := "pragma solidity ^0.8.24; contract Demo { function ping() public pure returns (uint256) { return 1; } }"
+	source := "pragma solidity ^0.8.24; contract Demo { event Pinged(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }"
 	var deployed map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": "ynx_builder", "name": "Demo", "source": source}, http.StatusCreated, &deployed)
 	contract := deployed["contract"].(map[string]any)
 	address := contract["address"].(string)
+	contractEvents := contract["events"].([]any)
+	if len(contractEvents) != 1 || contractEvents[0].(map[string]any)["signature"] != "Pinged(address,uint256)" {
+		t.Fatalf("expected contract event metadata: %v", contract)
+	}
+	deployTx := deployed["transaction"].(map[string]any)["hash"].(string)
+	devnet.ProduceBlock()
 	var verified map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": source}, http.StatusOK, &verified)
 	if verified["verified"] != true {
 		t.Fatalf("expected verified contract: %v", verified)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/contracts/"+address, nil, http.StatusOK, &verified)
+	verifiedEvents := verified["events"].([]any)
+	topic := verifiedEvents[0].(map[string]any)["topic"].(string)
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 7, "method": "eth_getTransactionReceipt", "params": []any{deployTx}}, http.StatusOK, &out)
+	receiptLogs := out["result"].(map[string]any)["logs"].([]any)
+	if len(receiptLogs) < 3 {
+		t.Fatalf("expected contract deploy receipt logs, got %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 8, "method": "eth_getLogs", "params": []any{map[string]any{"address": address, "topics": []any{topic}}}}, http.StatusOK, &out)
+	filtered := out["result"].([]any)
+	if len(filtered) != 1 || filtered[0].(map[string]any)["address"] != address {
+		t.Fatalf("expected filtered contract event log, got %v", out)
+	}
 }
 
 func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {

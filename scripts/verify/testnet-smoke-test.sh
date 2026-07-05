@@ -125,12 +125,20 @@ echo "Resource delegation result:" && curl -fsS -X POST http://127.0.0.1:6420/re
 echo "Resource rental result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","provider":"ynx_resource_provider","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}'
 echo "Resource income result:" && curl -fsS http://127.0.0.1:6420/resource-market/income/ynx_resource_provider
 echo "Resource analytics result:" && curl -fsS http://127.0.0.1:6420/resource-market/analytics
-source='pragma solidity ^0.8.24; contract Smoke { function ping() public pure returns (uint256) { return 1; } }'
+source='pragma solidity ^0.8.24; contract Smoke { event SmokePing(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }'
 deploy=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_smoke_alice",name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/deploy -H 'content-type: application/json' -d @-)
 contract_address=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).contract.address')
+contract_topic=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const event=data.contract.events?.[0]; if (!event || event.signature !== "SmokePing(address,uint256)" || !event.topic) throw new Error(`missing contract event metadata: ${JSON.stringify(data)}`); event.topic')
+contract_tx=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).transaction.hash')
 echo "IDE deployment result: $deploy"
 echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
 curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
+sleep 2
+contract_receipt=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$contract_tx\"]}")
+printf '%s' "$contract_receipt" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result?.logs) || data.result.logs.length < 3) { console.error(`missing contract receipt logs: ${JSON.stringify(data)}`); process.exit(1); }'
+contract_logs=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":32,\"method\":\"eth_getLogs\",\"params\":[{\"address\":\"$contract_address\",\"topics\":[\"$contract_topic\"]}]}")
+printf '%s' "$contract_logs" | node -e 'const address=process.argv[1]; const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result) || data.result.length !== 1 || data.result[0].address.toLowerCase() !== address.toLowerCase()) { console.error(`missing contract event log: ${JSON.stringify(data)}`); process.exit(1); }' "$contract_address"
+echo "Contract event log result: $contract_logs"
 echo "Indexer sync result:" && go run ./cmd/ynx-indexerd -rpc http://127.0.0.1:6420 -db "$work/indexer-db.json" -once
 YNX_INDEXER_RPC_URL=http://127.0.0.1:6420 YNX_INDEXER_DB_PATH="$work/indexer-db.json" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer-smoke.log" 2>&1 &
 indexer_smoke_pid=$!
