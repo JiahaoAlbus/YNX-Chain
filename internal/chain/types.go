@@ -678,19 +678,28 @@ type ContractFunctionABI struct {
 }
 
 type ContractCallResult struct {
-	Address                 string   `json:"address"`
-	Function                string   `json:"function"`
-	Signature               string   `json:"signature"`
-	Selector                string   `json:"selector"`
-	ReturnValue             string   `json:"returnValue"`
-	EncodedResult           string   `json:"encodedResult"`
-	RuntimeMode             string   `json:"runtimeMode"`
-	ArtifactKind            string   `json:"artifactKind"`
-	ExecutionStatus         string   `json:"executionStatus"`
-	ExecutionEngine         string   `json:"executionEngine,omitempty"`
-	OpcodeStepCount         int      `json:"opcodeStepCount,omitempty"`
-	TransactionHash         string   `json:"transactionHash,omitempty"`
-	StateTransition         string   `json:"stateTransition,omitempty"`
-	BytecodeSelectorMatched bool     `json:"bytecodeSelectorMatched"`
-	Limitations             []string `json:"limitations,omitempty"`
+	Address                 string         `json:"address"`
+	Function                string         `json:"function"`
+	Signature               string         `json:"signature"`
+	Selector                string         `json:"selector"`
+	ReturnValue             string         `json:"returnValue"`
+	EncodedResult           string         `json:"encodedResult"`
+	RuntimeMode             string         `json:"runtimeMode"`
+	ArtifactKind            string         `json:"artifactKind"`
+	ExecutionStatus         string         `json:"executionStatus"`
+	ExecutionEngine         string         `json:"executionEngine,omitempty"`
+	OpcodeStepCount         int            `json:"opcodeStepCount,omitempty"`
+	TransactionHash         string         `json:"transactionHash,omitempty"`
+	StateTransition         string         `json:"stateTransition,omitempty"`
+	StorageWrites           []StorageWrite `json:"storageWrites,omitempty"`
+	LogCount                int            `json:"logCount,omitempty"`
+	BytecodeSelectorMatched bool           `json:"bytecodeSelectorMatched"`
+	Limitations             []string       `json:"limitations,omitempty"`
+}
+
+type StorageWrite struct {
+	Opcode        string `json:"opcode"`
+	Slot          string `json:"slot"`
+	PreviousValue string `json:"previousValue"`
+	NewValue      string `json:"newValue"`
 }

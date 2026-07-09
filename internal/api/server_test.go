@@ -422,8 +422,20 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	var executed map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/execute", map[string]any{"caller": deployer, "address": address, "calldata": transferCalldata}, http.StatusOK, &executed)
 	executedResult := executed["result"].(map[string]any)
-	if executedResult["returnValue"] != "true" || executedResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000001" || executedResult["executionStatus"] != "bounded_local_evm_state_transition_subset" || executedResult["executionEngine"] != "local-bounded-evm-erc20-transfer-transition" {
-		t.Fatalf("expected bounded ERC20 transfer state transition evidence: %v", executed)
+	if executedResult["returnValue"] != "true" || executedResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000001" || executedResult["executionStatus"] != "bounded_local_evm_sstore_state_transition_subset" || executedResult["executionEngine"] != "local-bounded-evm-sstore-transition-interpreter" {
+		t.Fatalf("expected bounded ERC20 transfer SSTORE state transition evidence: %v", executed)
+	}
+	if executedResult["stateTransition"] != "bytecode-subset-sstore-updated-local-storage-and-pending-contract-call-created" || executedResult["opcodeStepCount"].(float64) <= 0 || executedResult["logCount"].(float64) != 1 {
+		t.Fatalf("expected bytecode subset state transition metadata: %v", executed)
+	}
+	storageWrites := executedResult["storageWrites"].([]any)
+	if len(storageWrites) != 2 {
+		t.Fatalf("expected two SSTORE writes for ERC20 transfer: %v", executed)
+	}
+	for _, write := range storageWrites {
+		if write.(map[string]any)["opcode"] != "SSTORE" {
+			t.Fatalf("expected SSTORE write evidence: %v", executed)
+		}
 	}
 	tx := executed["transaction"].(map[string]any)
 	if tx["hash"] == "" || tx["type"] != "contract_call" {

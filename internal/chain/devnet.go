@@ -1686,17 +1686,28 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 		if !ok {
 			return ContractCallResult{}, Transaction{}, errors.New("recipient is not a valid EVM address for balanceOf mapping storage")
 		}
-		fromBalance := storageValue(artifact.RuntimeStorage, new(big.Int).SetBytes(mustDecodeHexWord(fromKey)))
-		if fromBalance.Cmp(amount) < 0 {
-			return ContractCallResult{}, Transaction{}, errors.New("bounded local ERC20 transfer rejected: insufficient balance")
+		bytecode, ok := hardhatDeployedBytecode(artifact.CompilerArtifact.ArtifactPath)
+		if !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution requires deployed bytecode")
 		}
-		toBalance := storageValue(artifact.RuntimeStorage, new(big.Int).SetBytes(mustDecodeHexWord(toKey)))
-		if artifact.RuntimeStorage == nil {
-			artifact.RuntimeStorage = map[string]string{}
+		transition, err := runStatefulEVMSubset(bytecode, normalizedCallData, caller, artifact.RuntimeStorage)
+		if err != nil {
+			return ContractCallResult{}, Transaction{}, fmt.Errorf("bounded local EVM state-transition subset does not support this calldata/write path: %w", err)
 		}
-		artifact.RuntimeStorage[fromKey] = "0x" + hex.EncodeToString(intToBytes32(new(big.Int).Sub(fromBalance, amount)))
-		artifact.RuntimeStorage[toKey] = "0x" + hex.EncodeToString(intToBytes32(new(big.Int).Add(toBalance, amount)))
-		d.contracts[address] = artifact
+		if transition.EncodedResult != encodeContractReturn("true", candidate.Outputs) {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not return expected ERC20 transfer success")
+		}
+		if len(transition.StorageWrites) < 2 {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not record expected SSTORE writes")
+		}
+		if _, ok := transition.Storage[fromKey]; !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update caller balance storage")
+		}
+		if _, ok := transition.Storage[toKey]; !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update recipient balance storage")
+		}
+		artifact.RuntimeStorage = transition.Storage
+		d.contracts[artifact.Address] = artifact
 		tx := d.newTxLocked("contract_call", caller, artifact.Address, 0, 2, nil, contractCallMemo("erc20-transfer", caller, to, amount, transferEventTopic(artifact)))
 		d.pending = append(d.pending, tx)
 		err = d.persistSnapshotLocked()
@@ -1707,13 +1718,16 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 			Signature:               candidate.Signature,
 			Selector:                candidate.Selector,
 			ReturnValue:             "true",
-			EncodedResult:           encodeContractReturn("true", candidate.Outputs),
+			EncodedResult:           transition.EncodedResult,
 			RuntimeMode:             artifact.RuntimeMode,
 			ArtifactKind:            artifact.ArtifactKind,
-			ExecutionStatus:         "bounded_local_evm_state_transition_subset",
-			ExecutionEngine:         "local-bounded-evm-erc20-transfer-transition",
+			ExecutionStatus:         "bounded_local_evm_sstore_state_transition_subset",
+			ExecutionEngine:         "local-bounded-evm-sstore-transition-interpreter",
+			OpcodeStepCount:         transition.StepCount,
 			TransactionHash:         tx.Hash,
-			StateTransition:         "local-storage-updated-and-pending-contract-call-created",
+			StateTransition:         "bytecode-subset-sstore-updated-local-storage-and-pending-contract-call-created",
+			StorageWrites:           transition.StorageWrites,
+			LogCount:                transition.LogCount,
 			BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
 			Limitations:             artifact.Limitations,
 		}
@@ -2245,7 +2259,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
 			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a bounded pinned-artifact ERC20 transfer(address,uint256) state transition that updates local runtime storage and emits a local Transfer log, but it does not support full EVM bytecode state transitions, SSTORE execution, complex dynamic storage layouts, or arbitrary write calls",
+			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a bounded pinned-artifact ERC20 transfer(address,uint256) state transition through the local EVM subset with CALLER, SLOAD, SSTORE, LOG, and RETURN coverage, but it does not support full EVM bytecode state transitions, complex dynamic storage layouts, or arbitrary write calls",
 		}, compiler.Limitations...)
 	}
 	runtimeMode := "deterministic-devnet-pure-view-runtime"

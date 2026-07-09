@@ -13,6 +13,14 @@ type evmStaticResult struct {
 	StepCount     int
 }
 
+type evmStateTransitionResult struct {
+	EncodedResult string
+	StepCount     int
+	StorageWrites []StorageWrite
+	LogCount      int
+	Storage       map[string]string
+}
+
 func runStaticEVMSubset(deployedBytecode, callDataHex string, storage map[string]string) (evmStaticResult, error) {
 	code, err := hex.DecodeString(strings.TrimPrefix(deployedBytecode, "0x"))
 	if err != nil {
@@ -30,18 +38,57 @@ func runStaticEVMSubset(deployedBytecode, callDataHex string, storage map[string
 		calldata: callData,
 		storage:  storage,
 		memory:   make([]byte, 0, 256),
+		readOnly: true,
 	}
 	return vm.run()
 }
 
+func runStatefulEVMSubset(deployedBytecode, callDataHex, caller string, storage map[string]string) (evmStateTransitionResult, error) {
+	code, err := hex.DecodeString(strings.TrimPrefix(deployedBytecode, "0x"))
+	if err != nil {
+		return evmStateTransitionResult{}, fmt.Errorf("decode deployed bytecode: %w", err)
+	}
+	callData, err := hex.DecodeString(strings.TrimPrefix(callDataHex, "0x"))
+	if err != nil {
+		return evmStateTransitionResult{}, fmt.Errorf("decode calldata: %w", err)
+	}
+	if len(callData) < 4 {
+		return evmStateTransitionResult{}, errors.New("local EVM subset requires at least a 4-byte transaction selector")
+	}
+	workingStorage := copyRuntimeStorage(storage)
+	vm := evmSubsetVM{
+		code:     code,
+		calldata: callData,
+		storage:  workingStorage,
+		memory:   make([]byte, 0, 256),
+		caller:   evmAddressInt(caller),
+		readOnly: false,
+	}
+	result, err := vm.run()
+	if err != nil {
+		return evmStateTransitionResult{}, err
+	}
+	return evmStateTransitionResult{
+		EncodedResult: result.EncodedResult,
+		StepCount:     result.StepCount,
+		StorageWrites: vm.storageWrites,
+		LogCount:      vm.logCount,
+		Storage:       workingStorage,
+	}, nil
+}
+
 type evmSubsetVM struct {
-	code     []byte
-	calldata []byte
-	storage  map[string]string
-	memory   []byte
-	stack    []*big.Int
-	pc       int
-	steps    int
+	code          []byte
+	calldata      []byte
+	storage       map[string]string
+	memory        []byte
+	stack         []*big.Int
+	caller        *big.Int
+	pc            int
+	steps         int
+	readOnly      bool
+	storageWrites []StorageWrite
+	logCount      int
 }
 
 const maxEVMSubsetSteps = 2048
@@ -139,6 +186,8 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 				return evmStaticResult{}, err
 			}
 			vm.push(new(big.Int).SetBytes(legacyKeccak256(vm.memSlice(offset, intFromBig(size)))))
+		case op == 0x33: // CALLER
+			vm.push(vm.caller)
 		case op == 0x34: // CALLVALUE
 			vm.push(big.NewInt(0))
 		case op == 0x35: // CALLDATALOAD
@@ -171,6 +220,27 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 				return evmStaticResult{}, err
 			}
 			vm.push(storageValue(vm.storage, slot))
+		case op == 0x55: // SSTORE
+			if vm.readOnly {
+				return evmStaticResult{}, errors.New("SSTORE is not allowed in local staticcall subset")
+			}
+			slot, value, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			key := storageKey(slot)
+			previous := storageValue(vm.storage, slot)
+			next := u256(value)
+			if vm.storage == nil {
+				vm.storage = map[string]string{}
+			}
+			vm.storage[key] = hexWord(next)
+			vm.storageWrites = append(vm.storageWrites, StorageWrite{
+				Opcode:        "SSTORE",
+				Slot:          key,
+				PreviousValue: hexWord(previous),
+				NewValue:      hexWord(next),
+			})
 		case op == 0x56: // JUMP
 			dest, err := vm.pop()
 			if err != nil {
@@ -213,6 +283,10 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 			top := len(vm.stack) - 1
 			other := top - depth
 			vm.stack[top], vm.stack[other] = vm.stack[other], vm.stack[top]
+		case op >= 0xa0 && op <= 0xa4:
+			if err := vm.recordLog(int(op - 0xa0)); err != nil {
+				return evmStaticResult{}, err
+			}
 		case op == 0xf3: // RETURN
 			offset, size, err := vm.pop2()
 			if err != nil {
@@ -226,6 +300,14 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 		}
 	}
 	return evmStaticResult{}, errors.New("local EVM subset reached end of bytecode without RETURN")
+}
+
+func copyRuntimeStorage(storage map[string]string) map[string]string {
+	copied := make(map[string]string, len(storage))
+	for key, value := range storage {
+		copied[key] = value
+	}
+	return copied
 }
 
 func (vm *evmSubsetVM) push(value *big.Int) {
@@ -304,6 +386,24 @@ func (vm *evmSubsetVM) storeMemory(offset *big.Int, value []byte) {
 	copy(vm.memory[start:end], value)
 }
 
+func (vm *evmSubsetVM) recordLog(topicCount int) error {
+	offset, size, err := vm.pop2()
+	if err != nil {
+		return err
+	}
+	topics := make([]*big.Int, 0, topicCount)
+	for i := 0; i < topicCount; i++ {
+		topic, err := vm.pop()
+		if err != nil {
+			return err
+		}
+		topics = append(topics, topic)
+	}
+	_ = vm.memSlice(offset, intFromBig(size))
+	vm.logCount++
+	return nil
+}
+
 func u256(value *big.Int) *big.Int {
 	out := new(big.Int).Mod(value, uint256Mod)
 	if out.Sign() < 0 {
@@ -336,6 +436,14 @@ func intToBytes32(value *big.Int) []byte {
 	return out
 }
 
+func storageKey(slot *big.Int) string {
+	return fmt.Sprintf("0x%064x", u256(slot))
+}
+
+func hexWord(value *big.Int) string {
+	return "0x" + hex.EncodeToString(intToBytes32(value))
+}
+
 func storageValue(storage map[string]string, slot *big.Int) *big.Int {
 	if storage == nil {
 		return big.NewInt(0)
@@ -352,6 +460,15 @@ func storageValue(storage map[string]string, slot *big.Int) *big.Int {
 		return big.NewInt(0)
 	}
 	return bytes32ToInt(decoded)
+}
+
+func evmAddressInt(value string) *big.Int {
+	address := strings.TrimPrefix(evmAddressForLog(value), "0x")
+	decoded, err := hex.DecodeString(address)
+	if err != nil {
+		return big.NewInt(0)
+	}
+	return new(big.Int).SetBytes(decoded)
 }
 
 func intFromBig(value *big.Int) int {

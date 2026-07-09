@@ -67,7 +67,10 @@ assert(read("internal/chain/types.go").includes("ContractVerificationEvidence"),
 assert(read("internal/chain/types.go").includes("BytecodeSelectorMatched"), "contract runtime must expose bytecode selector match evidence");
 assert(read("internal/chain/types.go").includes("ExecutionEngine"), "contract runtime must expose execution engine evidence");
 assert(read("internal/chain/types.go").includes("RuntimeStorageSlots"), "contract runtime must expose local storage slot metadata");
+assert(read("internal/chain/types.go").includes("StorageWrites"), "contract runtime must expose storage write evidence");
 assert(read("internal/chain/evm_static.go").includes("runStaticEVMSubset"), "bounded local EVM staticcall interpreter missing");
+assert(read("internal/chain/evm_static.go").includes("runStatefulEVMSubset"), "bounded local EVM state transition interpreter missing");
+assert(read("internal/chain/evm_static.go").includes("SSTORE"), "bounded local EVM SSTORE support missing");
 const apiServer = read("internal/api/server.go");
 assert(apiServer.includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
 assert(apiServer.includes("POST /ide/execute"), "IDE bounded execute endpoint missing");
@@ -125,7 +128,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "/ide/execute", "eth_sendTransaction", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "runtime storage slot", "totalSupply()", "balanceOf(address)", "transfer(address,uint256)", "bounded read-only local EVM opcode interpreter", "bounded local write-call path", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "/ide/execute", "eth_sendTransaction", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "runtime storage slot", "storageWrites", "SSTORE", "totalSupply()", "balanceOf(address)", "transfer(address,uint256)", "bounded read-only local EVM opcode interpreter", "bounded local write-call path", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 
