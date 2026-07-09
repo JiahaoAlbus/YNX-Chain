@@ -1667,24 +1667,31 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 		if !candidate.BytecodeSelectorMatched {
 			return ContractCallResult{}, Transaction{}, errors.New("compiled bytecode selector was not found in local deployed bytecode artifact")
 		}
-		if candidate.Signature != "transfer(address,uint256)" {
-			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution currently supports only transfer(address,uint256)")
+		if candidate.StateMutability == "pure" || candidate.StateMutability == "view" {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution only supports write-call state transitions; use eth_call or /ide/call for pure/view functions")
 		}
-		to, amount, err := decodeERC20TransferCalldata(normalizedCallData)
-		if err != nil {
-			return ContractCallResult{}, Transaction{}, err
-		}
-		balanceSlot, ok := artifact.RuntimeStorageSlots["balanceOf"]
-		if !ok {
-			return ContractCallResult{}, Transaction{}, errors.New("balanceOf mapping storage slot is not recorded")
-		}
-		fromKey, ok := solidityMappingStorageKey(evmAddressForLog(caller), balanceSlot)
-		if !ok {
-			return ContractCallResult{}, Transaction{}, errors.New("caller is not a valid EVM address for balanceOf mapping storage")
-		}
-		toKey, ok := solidityMappingStorageKey(to, balanceSlot)
-		if !ok {
-			return ContractCallResult{}, Transaction{}, errors.New("recipient is not a valid EVM address for balanceOf mapping storage")
+		var transferTo string
+		var transferAmount *big.Int
+		var transferFromKey string
+		var transferToKey string
+		if candidate.Signature == "transfer(address,uint256)" {
+			var err error
+			transferTo, transferAmount, err = decodeERC20TransferCalldata(normalizedCallData)
+			if err != nil {
+				return ContractCallResult{}, Transaction{}, err
+			}
+			balanceSlot, ok := artifact.RuntimeStorageSlots["balanceOf"]
+			if !ok {
+				return ContractCallResult{}, Transaction{}, errors.New("balanceOf mapping storage slot is not recorded")
+			}
+			transferFromKey, ok = solidityMappingStorageKey(evmAddressForLog(caller), balanceSlot)
+			if !ok {
+				return ContractCallResult{}, Transaction{}, errors.New("caller is not a valid EVM address for balanceOf mapping storage")
+			}
+			transferToKey, ok = solidityMappingStorageKey(transferTo, balanceSlot)
+			if !ok {
+				return ContractCallResult{}, Transaction{}, errors.New("recipient is not a valid EVM address for balanceOf mapping storage")
+			}
 		}
 		bytecode, ok := hardhatDeployedBytecode(artifact.CompilerArtifact.ArtifactPath)
 		if !ok {
@@ -1694,21 +1701,30 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 		if err != nil {
 			return ContractCallResult{}, Transaction{}, fmt.Errorf("bounded local EVM state-transition subset does not support this calldata/write path: %w", err)
 		}
-		if transition.EncodedResult != encodeContractReturn("true", candidate.Outputs) {
+		if candidate.Signature == "transfer(address,uint256)" && transition.EncodedResult != encodeContractReturn("true", candidate.Outputs) {
 			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not return expected ERC20 transfer success")
 		}
-		if len(transition.StorageWrites) < 2 {
-			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not record expected SSTORE writes")
+		if len(transition.StorageWrites) == 0 && transition.LogCount == 0 {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not record storage writes or logs")
 		}
-		if _, ok := transition.Storage[fromKey]; !ok {
-			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update caller balance storage")
-		}
-		if _, ok := transition.Storage[toKey]; !ok {
-			return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update recipient balance storage")
+		if candidate.Signature == "transfer(address,uint256)" {
+			if len(transition.StorageWrites) < 2 {
+				return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not record expected SSTORE writes")
+			}
+			if _, ok := transition.Storage[transferFromKey]; !ok {
+				return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update caller balance storage")
+			}
+			if _, ok := transition.Storage[transferToKey]; !ok {
+				return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update recipient balance storage")
+			}
 		}
 		artifact.RuntimeStorage = transition.Storage
 		d.contracts[artifact.Address] = artifact
-		tx := d.newTxLocked("contract_call", caller, artifact.Address, 0, 2, nil, contractCallMemo("erc20-transfer", caller, to, amount, transferEventTopic(artifact)))
+		memo := boundedContractCallMemo(candidate.Signature)
+		if candidate.Signature == "transfer(address,uint256)" {
+			memo = contractCallMemo("erc20-transfer", caller, transferTo, transferAmount, transferEventTopic(artifact))
+		}
+		tx := d.newTxLocked("contract_call", caller, artifact.Address, 0, 2, nil, memo)
 		d.pending = append(d.pending, tx)
 		err = d.persistSnapshotLocked()
 		d.recordPersistenceErrorLocked(err)
@@ -1717,7 +1733,7 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 			Function:                candidate.Name,
 			Signature:               candidate.Signature,
 			Selector:                candidate.Selector,
-			ReturnValue:             "true",
+			ReturnValue:             decodeContractReturn(transition.EncodedResult, candidate.Outputs),
 			EncodedResult:           transition.EncodedResult,
 			RuntimeMode:             artifact.RuntimeMode,
 			ArtifactKind:            artifact.ArtifactKind,
@@ -2259,7 +2275,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
 			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a bounded pinned-artifact ERC20 transfer(address,uint256) state transition through the local EVM subset with CALLER, SLOAD, SSTORE, LOG, and RETURN coverage, but it does not support full EVM bytecode state transitions, complex dynamic storage layouts, or arbitrary write calls",
+			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a generic pinned-artifact write-call subset for supported nonpayable/payable calldata through the local EVM subset with CALLER, SLOAD, SSTORE, LOG, and RETURN coverage, but it does not support full EVM bytecode state transitions, arbitrary opcode coverage, complex dynamic storage layouts, or remote public proof",
 		}, compiler.Limitations...)
 	}
 	runtimeMode := "deterministic-devnet-pure-view-runtime"
@@ -2372,13 +2388,13 @@ func extractRuntimeStorage(source, deployer string, constructorArgs []string) ma
 			}
 			parsed, err := strconv.ParseUint(rawValue, 10, 64)
 			if err == nil {
-				storage[fmt.Sprint(slot)] = fmt.Sprintf("0x%064x", parsed)
+				storage[storageKey(big.NewInt(int64(slot)))] = fmt.Sprintf("0x%064x", parsed)
 			}
 		case kind == "bool":
 			if strings.EqualFold(rawValue, "true") {
-				storage[fmt.Sprint(slot)] = "0x" + strings.Repeat("0", 63) + "1"
+				storage[storageKey(big.NewInt(int64(slot)))] = "0x" + strings.Repeat("0", 63) + "1"
 			} else {
-				storage[fmt.Sprint(slot)] = "0x" + strings.Repeat("0", 64)
+				storage[storageKey(big.NewInt(int64(slot)))] = "0x" + strings.Repeat("0", 64)
 			}
 		}
 	}
@@ -2458,7 +2474,7 @@ func applyConstructorArgsToRuntimeStorage(source, deployer string, constructorAr
 		if err != nil {
 			continue
 		}
-		storage[fmt.Sprint(slot.Slot)] = fmt.Sprintf("0x%064x", parsed)
+		storage[storageKey(big.NewInt(int64(slot.Slot)))] = fmt.Sprintf("0x%064x", parsed)
 	}
 	for _, assignment := range constructorMappingSenderAssignmentPattern.FindAllStringSubmatch(match[2], -1) {
 		if len(assignment) != 3 {
@@ -2509,6 +2525,10 @@ func decodeERC20TransferCalldata(callData string) (string, *big.Int, error) {
 
 func contractCallMemo(kind, from, to string, amount *big.Int, eventTopic string) string {
 	return strings.Join([]string{kind, "v1", evmAddressForLog(from), evmAddressForLog(to), amount.Text(10), eventTopic}, ":")
+}
+
+func boundedContractCallMemo(signature string) string {
+	return strings.Join([]string{"bounded-evm-call", "v1", strings.ReplaceAll(signature, ":", "_")}, ":")
 }
 
 func transferEventTopic(artifact ContractArtifact) string {

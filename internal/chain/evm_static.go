@@ -448,7 +448,10 @@ func storageValue(storage map[string]string, slot *big.Int) *big.Int {
 	if storage == nil {
 		return big.NewInt(0)
 	}
-	raw, ok := storage[slot.Text(10)]
+	raw, ok := storage[storageKey(slot)]
+	if !ok {
+		raw, ok = storage[slot.Text(10)]
+	}
 	if !ok {
 		raw, ok = storage["0x"+slot.Text(16)]
 	}

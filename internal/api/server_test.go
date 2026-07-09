@@ -319,8 +319,8 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 		t.Fatalf("expected constructor args to be preserved in contract metadata: %v", contract)
 	}
 	runtimeStorage := contract["runtimeStorage"].(map[string]any)
-	if runtimeStorage["3"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
-		t.Fatalf("expected totalSupply constructor arg to seed storage slot 3: %v", runtimeStorage)
+	if runtimeStorage["0x0000000000000000000000000000000000000000000000000000000000000003"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
+		t.Fatalf("expected totalSupply constructor arg to seed canonical storage slot 3: %v", runtimeStorage)
 	}
 	var verified map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/verify", map[string]any{"address": address, "source": string(sourceBytes)}, http.StatusOK, &verified)
@@ -454,6 +454,78 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	logs := out["result"].([]any)
 	if len(logs) != 1 || logs[0].(map[string]any)["transactionHash"] != tx["hash"] {
 		t.Fatalf("expected filterable bounded transfer log: %v", out)
+	}
+}
+
+func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
+	root := testRepoRoot(t)
+	if _, err := os.Stat(root + "/artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"); err != nil {
+		t.Skip("hardhat artifact not built")
+	}
+	sourceBytes, err := os.ReadFile(root + "/contracts/devtools/SampleEVMWriteCounter.sol")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	deployer := "0x3333333333333333333333333333333333333333"
+	if _, err := devnet.Faucet(deployer, 100); err != nil {
+		t.Fatal(err)
+	}
+	var deployed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/deploy", map[string]any{"deployer": deployer, "name": "SampleEVMWriteCounter", "source": string(sourceBytes), "constructorArgs": []string{"7"}}, http.StatusCreated, &deployed)
+	contract := deployed["contract"].(map[string]any)
+	address := contract["address"].(string)
+	if contract["artifactKind"] != "pinned-solc-bytecode-artifact" {
+		t.Fatalf("expected pinned counter artifact: %v", contract)
+	}
+	var countSelector string
+	var incrementSelector string
+	for _, entry := range contract["functions"].([]any) {
+		fn := entry.(map[string]any)
+		switch fn["signature"] {
+		case "count()":
+			countSelector = fn["selector"].(string)
+		case "increment(uint256)":
+			incrementSelector = fn["selector"].(string)
+		}
+	}
+	if countSelector != "0x06661abd" || incrementSelector != "0x7cf5dab0" {
+		t.Fatalf("expected counter selectors from hardhat metadata: count=%s increment=%s contract=%v", countSelector, incrementSelector, contract)
+	}
+	var out map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 41, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": countSelector}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x0000000000000000000000000000000000000000000000000000000000000007" {
+		t.Fatalf("expected constructor-seeded counter value: %v", out)
+	}
+	incrementByFive := incrementSelector + strings.Repeat("0", 63) + "5"
+	var executed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/execute", map[string]any{"caller": deployer, "address": address, "calldata": incrementByFive}, http.StatusOK, &executed)
+	result := executed["result"].(map[string]any)
+	if result["signature"] != "increment(uint256)" || result["returnValue"] != "12" || result["encodedResult"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
+		t.Fatalf("expected generic increment return evidence: %v", executed)
+	}
+	if result["executionStatus"] != "bounded_local_evm_sstore_state_transition_subset" || result["executionEngine"] != "local-bounded-evm-sstore-transition-interpreter" || result["opcodeStepCount"].(float64) <= 0 || result["logCount"].(float64) != 1 {
+		t.Fatalf("expected generic bounded write-call state transition evidence: %v", executed)
+	}
+	writes := result["storageWrites"].([]any)
+	if len(writes) != 1 || writes[0].(map[string]any)["opcode"] != "SSTORE" || writes[0].(map[string]any)["newValue"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
+		t.Fatalf("expected one counter SSTORE write to 12: %v", executed)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 42, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": countSelector}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
+		t.Fatalf("expected counter value after /ide/execute: %v", out)
+	}
+	incrementByThree := incrementSelector + strings.Repeat("0", 63) + "3"
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 43, "method": "eth_sendTransaction", "params": []any{map[string]any{"from": deployer, "to": address, "data": incrementByThree}}}, http.StatusOK, &out)
+	if out["result"] == "" {
+		t.Fatalf("expected eth_sendTransaction tx hash for generic bounded write call: %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 44, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": countSelector}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x000000000000000000000000000000000000000000000000000000000000000f" {
+		t.Fatalf("expected counter value after eth_sendTransaction: %v", out)
 	}
 }
 
