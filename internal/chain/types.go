@@ -158,6 +158,32 @@ type ValidatorPeerHeartbeatInput struct {
 	Evidence     string `json:"evidence,omitempty"`
 }
 
+type ValidatorPeer struct {
+	Address      string     `json:"address"`
+	PeerID       string     `json:"peerId,omitempty"`
+	Host         string     `json:"host,omitempty"`
+	P2PAddress   string     `json:"p2pAddress,omitempty"`
+	Role         string     `json:"role,omitempty"`
+	Expected     bool       `json:"expected"`
+	Observed     bool       `json:"observed"`
+	Status       string     `json:"status"`
+	Source       string     `json:"source"`
+	LatestHeight uint64     `json:"latestHeight,omitempty"`
+	LastSeenAt   *time.Time `json:"lastSeenAt,omitempty"`
+	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+	Evidence     string     `json:"evidence,omitempty"`
+}
+
+type ValidatorPeerObservationInput struct {
+	Address      string `json:"address,omitempty"`
+	PeerID       string `json:"peerId,omitempty"`
+	Host         string `json:"host,omitempty"`
+	P2PAddress   string `json:"p2pAddress,omitempty"`
+	Status       string `json:"status,omitempty"`
+	LatestHeight uint64 `json:"latestHeight,omitempty"`
+	Evidence     string `json:"evidence,omitempty"`
+}
+
 type TrustTrace struct {
 	Address string          `json:"address"`
 	Lots    []TrustTraceLot `json:"lots"`

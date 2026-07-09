@@ -25,7 +25,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid YNX_VALIDATOR_SET: %v", err)
 	}
-	devnet, err := chain.NewPersistentDevnetWithValidators(cfg, *dataDir, validators)
+	peers, err := chain.ParseValidatorPeers(os.Getenv("YNX_BOOTSTRAP_PEERS"))
+	if err != nil {
+		log.Fatalf("invalid YNX_BOOTSTRAP_PEERS: %v", err)
+	}
+	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(cfg, *dataDir, validators, peers)
 	if err != nil {
 		log.Fatal(err)
 	}

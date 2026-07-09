@@ -58,6 +58,7 @@ type Devnet struct {
 	pending              []Transaction
 	accounts             map[string]*Account
 	validators           []Validator
+	validatorPeers       map[string]ValidatorPeer
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -120,6 +121,42 @@ func ParseValidatorSet(raw string) ([]Validator, error) {
 	return NormalizeValidators(validators)
 }
 
+func ParseValidatorPeers(raw string) ([]ValidatorPeer, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	var peers []ValidatorPeer
+	if strings.HasPrefix(raw, "[") {
+		if err := json.Unmarshal([]byte(raw), &peers); err != nil {
+			return nil, fmt.Errorf("parse YNX_BOOTSTRAP_PEERS JSON: %w", err)
+		}
+	} else {
+		for _, item := range strings.Split(raw, ";") {
+			item = strings.TrimSpace(item)
+			if item == "" {
+				continue
+			}
+			parts := strings.Split(item, "|")
+			if len(parts) < 2 {
+				return nil, fmt.Errorf("peer entry %q must use address|peerId|host|p2pAddress|role", item)
+			}
+			peer := ValidatorPeer{Address: strings.TrimSpace(parts[0]), PeerID: strings.TrimSpace(parts[1]), Expected: true, Status: "expected", Source: "bootstrap_config"}
+			if len(parts) > 2 {
+				peer.Host = strings.TrimSpace(parts[2])
+			}
+			if len(parts) > 3 {
+				peer.P2PAddress = strings.TrimSpace(parts[3])
+			}
+			if len(parts) > 4 {
+				peer.Role = strings.TrimSpace(parts[4])
+			}
+			peers = append(peers, peer)
+		}
+	}
+	return NormalizeValidatorPeers(peers)
+}
+
 func NormalizeValidators(validators []Validator) ([]Validator, error) {
 	if len(validators) == 0 {
 		return nil, nil
@@ -152,6 +189,49 @@ func NormalizeValidators(validators []Validator) ([]Validator, error) {
 	return out, nil
 }
 
+func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
+	if len(peers) == 0 {
+		return nil, nil
+	}
+	out := make([]ValidatorPeer, 0, len(peers))
+	seen := map[string]struct{}{}
+	for i, peer := range peers {
+		peer.Address = strings.TrimSpace(peer.Address)
+		peer.PeerID = strings.TrimSpace(peer.PeerID)
+		peer.Host = strings.TrimSpace(peer.Host)
+		peer.P2PAddress = strings.TrimSpace(peer.P2PAddress)
+		peer.Role = strings.TrimSpace(peer.Role)
+		peer.Status = strings.TrimSpace(peer.Status)
+		peer.Source = strings.TrimSpace(peer.Source)
+		peer.Evidence = strings.TrimSpace(peer.Evidence)
+		if peer.Address == "" {
+			return nil, fmt.Errorf("validator peer %d address is required", i)
+		}
+		if _, ok := seen[peer.Address]; ok {
+			return nil, fmt.Errorf("duplicate validator peer address %s", peer.Address)
+		}
+		seen[peer.Address] = struct{}{}
+		if peer.Status == "" {
+			if peer.Observed {
+				peer.Status = "observed"
+			} else {
+				peer.Status = "expected"
+			}
+		}
+		if peer.Source == "" {
+			peer.Source = "bootstrap_config"
+		}
+		if !peer.Expected && !peer.Observed {
+			peer.Expected = true
+		}
+		if peer.P2PAddress == "" {
+			peer.P2PAddress = defaultP2PAddress(peer.Host)
+		}
+		out = append(out, peer)
+	}
+	return out, nil
+}
+
 type devnetSnapshot struct {
 	Version    int                             `json:"version"`
 	SavedAt    time.Time                       `json:"savedAt"`
@@ -160,6 +240,7 @@ type devnetSnapshot struct {
 	Pending    []Transaction                   `json:"pending"`
 	Accounts   map[string]*Account             `json:"accounts"`
 	Validators []Validator                     `json:"validators"`
+	Peers      map[string]ValidatorPeer        `json:"validatorPeers"`
 	Lots       map[string]TrustTraceLot        `json:"lots"`
 	PayIntents map[string]PayIntent            `json:"payIntents"`
 	Invoices   map[string]Invoice              `json:"invoices"`
@@ -209,13 +290,22 @@ func NewDevnet(cfg NetworkConfig) *Devnet {
 }
 
 func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet {
+	return NewDevnetWithValidatorsAndPeers(cfg, validators, nil)
+}
+
+func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, peers []ValidatorPeer) *Devnet {
 	normalized, err := NormalizeValidators(validators)
 	if err != nil || len(normalized) == 0 {
 		normalized = DefaultValidators()
 	}
+	normalizedPeers, err := NormalizeValidatorPeers(peers)
+	if err != nil {
+		normalizedPeers = nil
+	}
 	d := &Devnet{
 		cfg:                 cfg,
 		accounts:            map[string]*Account{},
+		validatorPeers:      peersFromValidators(normalized),
 		lots:                map[string]TrustTraceLot{},
 		payIntents:          map[string]PayIntent{},
 		invoices:            map[string]Invoice{},
@@ -236,6 +326,7 @@ func NewDevnetWithValidators(cfg NetworkConfig, validators []Validator) *Devnet 
 		contracts:           map[string]ContractArtifact{},
 		validators:          normalized,
 	}
+	d.applyConfiguredPeersLocked(normalizedPeers)
 	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
 	for _, validator := range normalized {
 		d.accounts[validator.Address] = &Account{Address: validator.Address, Balance: 10_000_000, Staked: 10_000_000, Lots: map[string]int64{}}
@@ -253,10 +344,14 @@ func NewPersistentDevnet(cfg NetworkConfig, dataDir string) (*Devnet, error) {
 }
 
 func NewPersistentDevnetWithValidators(cfg NetworkConfig, dataDir string, validators []Validator) (*Devnet, error) {
+	return NewPersistentDevnetWithValidatorsAndPeers(cfg, dataDir, validators, nil)
+}
+
+func NewPersistentDevnetWithValidatorsAndPeers(cfg NetworkConfig, dataDir string, validators []Validator, peers []ValidatorPeer) (*Devnet, error) {
 	if strings.TrimSpace(dataDir) == "" {
-		return NewDevnetWithValidators(cfg, validators), nil
+		return NewDevnetWithValidatorsAndPeers(cfg, validators, peers), nil
 	}
-	d := NewDevnetWithValidators(cfg, validators)
+	d := NewDevnetWithValidatorsAndPeers(cfg, validators, peers)
 	d.dataDir = dataDir
 	if err := d.loadSnapshot(); err != nil {
 		return nil, err
@@ -265,6 +360,12 @@ func NewPersistentDevnetWithValidators(cfg NetworkConfig, dataDir string, valida
 		return nil, err
 	} else if len(normalized) > 0 {
 		d.validators = mergeValidatorRuntimeState(normalized, d.validators)
+		d.ensureStateDefaults()
+	}
+	if normalizedPeers, err := NormalizeValidatorPeers(peers); err != nil {
+		return nil, err
+	} else if len(normalizedPeers) > 0 {
+		d.applyConfiguredPeersLocked(normalizedPeers)
 		d.ensureStateDefaults()
 	}
 	if err := d.persistSnapshot(); err != nil {
@@ -296,6 +397,7 @@ func (d *Devnet) Status() map[string]any {
 	defer d.mu.RUnlock()
 	latest := d.blocks[len(d.blocks)-1]
 	readyCount := d.readyValidatorCountLocked()
+	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
 	return map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
@@ -303,6 +405,7 @@ func (d *Devnet) Status() map[string]any {
 		"height": latest.Height, "latestBlockHash": latest.Hash, "latestBlockTime": latest.Time,
 		"validatorCount": len(d.validators), "readyValidatorCount": readyCount, "pendingTxCount": len(d.pending),
 		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
+		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
 		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
@@ -414,6 +517,17 @@ func (d *Devnet) Validators() []Validator {
 	return out
 }
 
+func (d *Devnet) ValidatorPeers() []ValidatorPeer {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	peers := make([]ValidatorPeer, 0, len(d.validatorPeers))
+	for _, peer := range d.validatorPeers {
+		peers = append(peers, peer)
+	}
+	sort.Slice(peers, func(i, j int) bool { return peers[i].Address < peers[j].Address })
+	return peers
+}
+
 func (d *Devnet) UpdateValidatorPeerState(input ValidatorPeerHeartbeatInput) (Validator, error) {
 	input.Address = strings.TrimSpace(input.Address)
 	input.PeerID = strings.TrimSpace(input.PeerID)
@@ -454,12 +568,42 @@ func (d *Devnet) UpdateValidatorPeerState(input ValidatorPeerHeartbeatInput) (Va
 		d.validators[i].LastSeenAt = &now
 		d.validators[i].UpdatedAt = &now
 		d.validators[i].PeerEvidence = input.Evidence
+		d.updateValidatorPeerObservationLocked(ValidatorPeerObservationInput{
+			Address:      input.Address,
+			PeerID:       d.validators[i].PeerID,
+			Host:         d.validators[i].Host,
+			Status:       d.validators[i].PeerStatus,
+			LatestHeight: d.validators[i].LatestHeight,
+			Evidence:     input.Evidence,
+		}, now)
 		validator := d.validators[i]
 		err := d.persistSnapshotLocked()
 		d.recordPersistenceErrorLocked(err)
 		return validator, err
 	}
 	return Validator{}, fmt.Errorf("validator %s not found", input.Address)
+}
+
+func (d *Devnet) ObserveValidatorPeer(input ValidatorPeerObservationInput) (ValidatorPeer, error) {
+	input.Address = strings.TrimSpace(input.Address)
+	input.PeerID = strings.TrimSpace(input.PeerID)
+	input.Host = strings.TrimSpace(input.Host)
+	input.P2PAddress = strings.TrimSpace(input.P2PAddress)
+	input.Status = strings.TrimSpace(input.Status)
+	input.Evidence = strings.TrimSpace(input.Evidence)
+	if input.Address == "" {
+		return ValidatorPeer{}, errors.New("validator address is required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.validatorAddressExistsLocked(input.Address) {
+		return ValidatorPeer{}, fmt.Errorf("validator %s not found", input.Address)
+	}
+	now := time.Now().UTC()
+	peer := d.updateValidatorPeerObservationLocked(input, now)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return peer, err
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
@@ -1914,6 +2058,14 @@ func (d *Devnet) markValidatorProducedBlockLocked(address string, height uint64,
 		}
 		d.validators[i].LastSeenAt = &seenAt
 		d.validators[i].UpdatedAt = &seenAt
+		d.updateValidatorPeerObservationLocked(ValidatorPeerObservationInput{
+			Address:      d.validators[i].Address,
+			PeerID:       d.validators[i].PeerID,
+			Host:         d.validators[i].Host,
+			Status:       "produced_block",
+			LatestHeight: height,
+			Evidence:     "local-block-production",
+		}, seenAt)
 		return
 	}
 }
@@ -1926,6 +2078,100 @@ func (d *Devnet) readyValidatorCountLocked() int {
 		}
 	}
 	return count
+}
+
+func (d *Devnet) validatorPeerDiscoveryCountsLocked() (int, int) {
+	expected, observed := 0, 0
+	for _, peer := range d.validatorPeers {
+		if peer.Expected {
+			expected++
+		}
+		if peer.Observed {
+			observed++
+		}
+	}
+	return expected, observed
+}
+
+func (d *Devnet) validatorAddressExistsLocked(address string) bool {
+	for _, validator := range d.validators {
+		if validator.Address == address {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *Devnet) applyConfiguredPeersLocked(peers []ValidatorPeer) {
+	if d.validatorPeers == nil {
+		d.validatorPeers = map[string]ValidatorPeer{}
+	}
+	for _, peer := range peers {
+		if !d.validatorAddressExistsLocked(peer.Address) {
+			continue
+		}
+		existing := d.validatorPeers[peer.Address]
+		if existing.Observed {
+			peer.Observed = true
+			peer.Status = existing.Status
+			peer.LastSeenAt = existing.LastSeenAt
+			peer.UpdatedAt = existing.UpdatedAt
+			peer.LatestHeight = existing.LatestHeight
+			peer.Evidence = existing.Evidence
+		}
+		if peer.P2PAddress == "" {
+			peer.P2PAddress = defaultP2PAddress(peer.Host)
+		}
+		if peer.Status == "" {
+			peer.Status = "expected"
+		}
+		peer.Expected = true
+		d.validatorPeers[peer.Address] = peer
+	}
+}
+
+func (d *Devnet) updateValidatorPeerObservationLocked(input ValidatorPeerObservationInput, observedAt time.Time) ValidatorPeer {
+	if d.validatorPeers == nil {
+		d.validatorPeers = map[string]ValidatorPeer{}
+	}
+	peer := d.validatorPeers[input.Address]
+	if peer.Address == "" {
+		peer.Address = input.Address
+		peer.Expected = true
+		peer.Source = "observed_runtime"
+	}
+	if input.PeerID != "" {
+		peer.PeerID = input.PeerID
+	}
+	if input.Host != "" {
+		peer.Host = input.Host
+	}
+	if input.P2PAddress != "" {
+		peer.P2PAddress = input.P2PAddress
+	}
+	if peer.P2PAddress == "" {
+		peer.P2PAddress = defaultP2PAddress(peer.Host)
+	}
+	if input.Status != "" {
+		peer.Status = input.Status
+	} else {
+		peer.Status = "observed"
+	}
+	if input.LatestHeight > peer.LatestHeight {
+		peer.LatestHeight = input.LatestHeight
+	}
+	if input.Evidence != "" {
+		peer.Evidence = input.Evidence
+	}
+	if peer.Source == "" {
+		peer.Source = "validator_set"
+	}
+	seenAt := observedAt.UTC()
+	peer.Observed = true
+	peer.LastSeenAt = &seenAt
+	peer.UpdatedAt = &seenAt
+	d.validatorPeers[input.Address] = peer
+	return peer
 }
 
 func mergeValidatorRuntimeState(configured, existing []Validator) []Validator {
@@ -1946,6 +2192,43 @@ func mergeValidatorRuntimeState(configured, existing []Validator) []Validator {
 		out[i] = validator
 	}
 	return out
+}
+
+func peersFromValidators(validators []Validator) map[string]ValidatorPeer {
+	peers := make(map[string]ValidatorPeer, len(validators))
+	for _, validator := range validators {
+		peer := ValidatorPeer{
+			Address:    validator.Address,
+			PeerID:     validator.PeerID,
+			Host:       validator.Host,
+			P2PAddress: defaultP2PAddress(validator.Host),
+			Role:       validator.Role,
+			Expected:   true,
+			Observed:   validator.PeerReady,
+			Status:     "expected",
+			Source:     "validator_set",
+		}
+		if validator.PeerReady {
+			peer.Status = validator.PeerStatus
+			peer.LatestHeight = validator.LatestHeight
+			peer.LastSeenAt = validator.LastSeenAt
+			peer.UpdatedAt = validator.UpdatedAt
+			peer.Evidence = validator.PeerEvidence
+		}
+		peers[validator.Address] = peer
+	}
+	return peers
+}
+
+func defaultP2PAddress(host string) string {
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return ""
+	}
+	if strings.Contains(host, ":") {
+		return host
+	}
+	return host + ":26656"
 }
 
 func (d *Devnet) accountReadOnly(address string) *Account {
@@ -1997,7 +2280,7 @@ func (d *Devnet) loadSnapshot() error {
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
 	}
-	d.blocks, d.pending, d.accounts, d.validators, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Lots, snapshot.PayIntents
+	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.Webhooks, snapshot.PayEvents
 	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
 	d.governanceRequests, d.trustAppeals, d.trackingReviews = snapshot.Governance, snapshot.Appeals, snapshot.Tracking
@@ -2021,7 +2304,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -2097,6 +2380,9 @@ func (d *Devnet) ensureStateDefaults() {
 	if len(d.validators) == 0 {
 		d.validators = DefaultValidators()
 	}
+	if d.validatorPeers == nil {
+		d.validatorPeers = map[string]ValidatorPeer{}
+	}
 	for i := range d.validators {
 		if strings.TrimSpace(d.validators[i].Moniker) == "" {
 			d.validators[i].Moniker = fmt.Sprintf("ynx-validator-%d", i)
@@ -2110,6 +2396,35 @@ func (d *Devnet) ensureStateDefaults() {
 			} else {
 				d.validators[i].PeerStatus = "configured"
 			}
+		}
+		peer := d.validatorPeers[d.validators[i].Address]
+		if peer.Address == "" {
+			peer = peersFromValidators([]Validator{d.validators[i]})[d.validators[i].Address]
+		}
+		if peer.PeerID == "" {
+			peer.PeerID = d.validators[i].PeerID
+		}
+		if peer.Host == "" {
+			peer.Host = d.validators[i].Host
+		}
+		if peer.Role == "" {
+			peer.Role = d.validators[i].Role
+		}
+		if peer.P2PAddress == "" {
+			peer.P2PAddress = defaultP2PAddress(peer.Host)
+		}
+		if peer.Status == "" {
+			peer.Status = "expected"
+		}
+		if peer.Source == "" {
+			peer.Source = "validator_set"
+		}
+		peer.Expected = true
+		d.validatorPeers[d.validators[i].Address] = peer
+	}
+	for address := range d.validatorPeers {
+		if !d.validatorAddressExistsLocked(address) {
+			delete(d.validatorPeers, address)
 		}
 	}
 	for _, account := range d.accounts {

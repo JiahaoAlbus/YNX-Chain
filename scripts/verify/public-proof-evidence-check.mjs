@@ -11,6 +11,8 @@ const requiredChecks = [
   "rpc.validators.addresses",
   "rpc.validators.monikers",
   "rpc.validators.peerReadiness",
+  "rpc.validators.peers.expected",
+  "rpc.validators.peers.observed",
   "evm.eth_chainId.result",
   "evm.eth_blockNumber.result",
   "rest.status.chain",

@@ -78,6 +78,7 @@ The engineering package is wired to fail fast when real deployment values are mi
 - YNX_NATIVE_COIN_NAME
 - YNX_NATIVE_COIN_SYMBOL
 - YNX_VALIDATOR_SET
+- YNX_BOOTSTRAP_PEERS
 - YNX_EXPECTED_VALIDATOR_COUNT
 - YNX_EVM_RPC_URL
 - YNX_CONTRACT_VERIFIER_URL

@@ -47,9 +47,16 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devnet, err := NewPersistentDevnetWithValidators(DefaultNetworkConfig("testnet"), dir, validators)
+	peers, err := ParseValidatorPeers("ynx_val_primary|peer-primary|43.153.202.237|43.153.202.237:26656|primary validator;ynx_val_sg|peer-sg|43.134.23.58|43.134.23.58:26656|bonded validator;ynx_val_sv|peer-sv|43.162.100.54|43.162.100.54:26656|bonded validator")
 	if err != nil {
 		t.Fatal(err)
+	}
+	devnet, err := NewPersistentDevnetWithValidatorsAndPeers(DefaultNetworkConfig("testnet"), dir, validators, peers)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if peer := peerByAddress(devnet.ValidatorPeers(), "ynx_val_sg"); peer == nil || !peer.Expected || peer.Observed || peer.P2PAddress != "43.134.23.58:26656" || peer.Source != "bootstrap_config" {
+		t.Fatalf("expected bootstrap peer before observation, got %+v", peer)
 	}
 	ready := true
 	validator, err := devnet.UpdateValidatorPeerState(ValidatorPeerHeartbeatInput{
@@ -67,12 +74,16 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if !validator.PeerReady || validator.PeerStatus != "reachable" || validator.LatestHeight != 7 || validator.PeerID != "peer-sg-live" || validator.LastSeenAt == nil {
 		t.Fatalf("unexpected heartbeat validator state: %+v", validator)
 	}
+	observed := peerByAddress(devnet.ValidatorPeers(), "ynx_val_sg")
+	if observed == nil || !observed.Expected || !observed.Observed || observed.Status != "reachable" || observed.LatestHeight != 7 || observed.Evidence != "local-heartbeat-unit-test" {
+		t.Fatalf("expected heartbeat to update peer discovery state, got %+v", observed)
+	}
 
 	reconfigured, err := ParseValidatorSet("ynx_val_primary|primary-updated|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore-updated|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	restored, err := NewPersistentDevnetWithValidators(DefaultNetworkConfig("testnet"), dir, reconfigured)
+	restored, err := NewPersistentDevnetWithValidatorsAndPeers(DefaultNetworkConfig("testnet"), dir, reconfigured, peers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,9 +94,17 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if got.Moniker != "singapore-updated" || !got.PeerReady || got.PeerStatus != "reachable" || got.LatestHeight != 7 || got.PeerEvidence != "local-heartbeat-unit-test" {
 		t.Fatalf("expected config reload to preserve peer runtime state, got %+v", got)
 	}
+	restoredPeer := peerByAddress(restored.ValidatorPeers(), "ynx_val_sg")
+	if restoredPeer == nil || !restoredPeer.Observed || restoredPeer.Status != "reachable" || restoredPeer.LatestHeight != 7 || restoredPeer.Evidence != "local-heartbeat-unit-test" {
+		t.Fatalf("expected config reload to preserve peer discovery state, got %+v", restoredPeer)
+	}
 	status := restored.Status()
 	if status["readyValidatorCount"].(int) != 1 {
 		t.Fatalf("expected ready validator count 1, got %v", status)
+	}
+	discovery := status["validatorPeerDiscovery"].(map[string]any)
+	if discovery["expected"].(int) != 3 || discovery["observed"].(int) != 1 {
+		t.Fatalf("expected peer discovery counts, got %v", status)
 	}
 }
 
@@ -93,6 +112,15 @@ func validatorByAddress(validators []Validator, address string) *Validator {
 	for i := range validators {
 		if validators[i].Address == address {
 			return &validators[i]
+		}
+	}
+	return nil
+}
+
+func peerByAddress(peers []ValidatorPeer, address string) *ValidatorPeer {
+	for i := range peers {
+		if peers[i].Address == address {
+			return &peers[i]
 		}
 	}
 	return nil

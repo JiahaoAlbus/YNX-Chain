@@ -14,7 +14,13 @@ printf '%s' "$heartbeat" | node -e 'const data=JSON.parse(require("fs").readFile
 validators_after="$(curl -fsS "$YNX_REST_URL/validators")"
 printf '%s' "$validators_after" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const found=data.validators?.find((validator)=>validator.peerId==="local-peer-readiness-check"); if (!found?.peerReady || found.peerStatus !== "reachable" || found.latestHeight < 3) { console.error(`validator readiness not exposed: ${JSON.stringify(data)}`); process.exit(1); }'
 
+peers="$(curl -fsS "$YNX_REST_URL/validators/peers")"
+printf '%s' "$peers" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const found=data.peers?.find((peer)=>peer.address); if (!found?.expected || !found.p2pAddress?.endsWith(":26656")) { console.error(`validator peer bootstrap state not exposed: ${JSON.stringify(data)}`); process.exit(1); }'
+
+observed="$(curl -fsS -X POST "$YNX_REST_URL/validators/$validator_address/peers/observe" -H 'content-type: application/json' -d '{"peerId":"local-peer-observe-check","host":"127.0.0.1","p2pAddress":"127.0.0.1:26656","status":"reachable","latestHeight":4,"evidence":"validator-peer-observe-check"}')"
+printf '%s' "$observed" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.expected || !data.observed || data.peerId !== "local-peer-observe-check" || data.p2pAddress !== "127.0.0.1:26656" || data.latestHeight < 4 || data.evidence !== "validator-peer-observe-check") { console.error(`unexpected observed peer response: ${JSON.stringify(data)}`); process.exit(1); }'
+
 status="$(curl -fsS "$YNX_REST_URL/status")"
-printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.readyValidatorCount < 1 || data.validatorPeerReadiness?.ready < 1 || data.validatorPeerReadiness?.total < 1) { console.error(`validator readiness summary missing: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.readyValidatorCount < 1 || data.validatorPeerReadiness?.ready < 1 || data.validatorPeerReadiness?.total < 1 || data.validatorPeerDiscovery?.expected < 1 || data.validatorPeerDiscovery?.observed < 1) { console.error(`validator readiness/discovery summary missing: ${JSON.stringify(data)}`); process.exit(1); }'
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"

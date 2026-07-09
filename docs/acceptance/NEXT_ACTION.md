@@ -1,14 +1,13 @@
 # Next Action
 
-Current single action: implement persistent validator peer discovery / bootstrap identity readiness for the `ynx_6423-1` multi-validator testnet. Remote deployment remains blocked, so the next useful chain-construction work is to make the local node persist expected peers, observed peers, and bootstrap metadata that can be deployed unchanged once host-key/public-ingress blockers clear.
+Current single action: implement local cross-node peer handshake / sync semantics for the persisted `ynx_6423-1` validator topology. Remote deployment remains blocked, so the next useful chain-construction work is to make configured validators exchange or record height/status evidence through a runtime API that can later be wired to real remote node-to-node networking.
 
 Why this action:
 
-- Validator metadata, block rotation, local peer-readiness heartbeat, `/validators`, `/status` readiness summary, snapshot persistence, and public-proof readiness checks now exist.
-- The current validator peer-readiness implementation proves local state and API behavior, but it is not real remote peer networking and is not public proof.
+- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, `/validators`, `/validators/peers`, `/status` readiness/discovery summaries, snapshot persistence, and public-proof readiness checks now exist.
+- The current peer discovery implementation proves local expected/observed topology, but it is still not real cross-node peer sync.
 - Remote public deployment is still blocked by SSH/host-key and public endpoint evidence, so local code must continue moving toward deployable multi-validator runtime rather than only tuning blocker reports.
-- The user explicitly asked to start chain construction quickly.
-- Persistent peer discovery/bootstrap state is the next smallest real chain-runtime gap between local validator readiness and remote multi-validator network operation.
+- Persistent peer handshake/sync is the next smallest real chain-runtime gap between local peer discovery records and remote multi-validator network operation.
 
 Files to touch:
 
@@ -35,9 +34,9 @@ Validation commands:
 
 Completion standard:
 
-- Expected validator peers can be configured, persisted, and restored.
-- Observed peer state can be recorded through API/chain runtime without claiming remote proof.
-- `/validators` or a dedicated endpoint exposes enough peer discovery state for operators and future public proof.
+- A validator can submit peer handshake/sync evidence for another configured validator without fabricating remote public proof.
+- Sync evidence records source validator, target validator, source height, target height, lag, status, evidence, and timestamps.
+- Sync evidence persists across restart and is exposed through RPC/API.
 - Local tests prove persistence, restart recovery, API output, and config refresh behavior.
 - Feature tracker keeps remote deployed/public proof as `no` until real public endpoints pass.
 - Remote deployment is attempted only after deploy-readiness blockers clear.

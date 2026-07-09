@@ -66,7 +66,11 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devnet := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators)
+	peers, err := chain.ParseValidatorPeers("ynx_val_primary|peer-primary|43.153.202.237|43.153.202.237:26656|primary validator;ynx_val_sg|peer-sg|43.134.23.58|43.134.23.58:26656|bonded validator")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := chain.NewDevnetWithValidatorsAndPeers(chain.DefaultNetworkConfig("testnet"), validators, peers)
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 
@@ -99,9 +103,35 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	if status["readyValidatorCount"].(float64) != 1 {
 		t.Fatalf("expected ready validator count 1: %v", status)
 	}
+	discovery := status["validatorPeerDiscovery"].(map[string]any)
+	if discovery["expected"].(float64) != 2 || discovery["observed"].(float64) != 1 {
+		t.Fatalf("expected validator peer discovery summary: %v", status)
+	}
+
+	var peersOut map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/validators/peers", nil, http.StatusOK, &peersOut)
+	peerValues := peersOut["peers"].([]any)
+	sgPeer := validatorJSONByAddress(peerValues, "ynx_val_sg")
+	if sgPeer == nil || sgPeer["observed"] != true || sgPeer["p2pAddress"] != "43.134.23.58:26656" || sgPeer["evidence"] != "api-heartbeat-unit-test" {
+		t.Fatalf("expected readable peer discovery in peers response: %v", peersOut)
+	}
+
+	var observed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_val_primary/peers/observe", map[string]any{
+		"peerId":       "peer-primary-live",
+		"host":         "43.153.202.237",
+		"p2pAddress":   "43.153.202.237:26656",
+		"status":       "reachable",
+		"latestHeight": 14,
+		"evidence":     "api-peer-observe-unit-test",
+	}, http.StatusOK, &observed)
+	if observed["address"] != "ynx_val_primary" || observed["observed"] != true || observed["latestHeight"].(float64) != 14 || observed["evidence"] != "api-peer-observe-unit-test" {
+		t.Fatalf("unexpected observed peer response: %v", observed)
+	}
 
 	var bad map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/heartbeat", map[string]any{"ready": true}, http.StatusBadRequest, &bad)
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/peers/observe", map[string]any{"status": "reachable"}, http.StatusBadRequest, &bad)
 }
 
 func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {

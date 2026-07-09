@@ -291,6 +291,27 @@ function checkValidators(json) {
   return ok && hasAddresses && hasMonikers && peerReadinessOk;
 }
 
+function checkValidatorPeers(json) {
+  const peers = Array.isArray(json?.peers) ? json.peers : [];
+  const expectedPeers = peers.filter((peer) => peer?.expected === true);
+  const observedPeers = peers.filter((peer) => peer?.observed === true);
+  const expectedOk = expectedPeers.length >= expected.minValidators;
+  const observedOk = observedPeers.length >= expected.minValidators;
+  record(
+    "rpc.validators.peers.expected",
+    expectedOk,
+    expectedOk ? `${expectedPeers.length} expected peers` : `expected at least ${expected.minValidators} bootstrap peers, got ${expectedPeers.length}`,
+    { expectedPeerCount: expectedPeers.length, peers }
+  );
+  record(
+    "rpc.validators.peers.observed",
+    observedOk,
+    observedOk ? `${observedPeers.length} observed peers` : `expected at least ${expected.minValidators} observed peers, got ${observedPeers.length}`,
+    { observedPeerCount: observedPeers.length, peers }
+  );
+  return expectedOk && observedOk;
+}
+
 function checkEvmResult(name, json, expectedValue) {
   const result = String(json?.result ?? "").toLowerCase();
   const ok = result === expectedValue.toLowerCase();
@@ -401,6 +422,8 @@ async function main() {
 
   const validators = await getJson("rpc.validators", `${endpoints.rpc}/validators`);
   const validatorsOk = validators ? checkValidators(validators) : false;
+  const validatorPeers = await getJson("rpc.validators.peers", `${endpoints.rpc}/validators/peers`);
+  const validatorPeersOk = validatorPeers ? checkValidatorPeers(validatorPeers) : false;
 
   const evmChain = await postJson("evm.eth_chainId", endpoints.evm, { jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] });
   const evmChainOk = evmChain ? checkEvmResult("evm.eth_chainId.result", evmChain, expected.evmChainIdHex) : false;
@@ -447,7 +470,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = rpcChainOk && grew && validatorsOk && validatorPeersOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
