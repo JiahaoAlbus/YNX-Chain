@@ -10,6 +10,7 @@ function fail(message, details = []) {
   console.error(`deploy-readiness-gate failed: ${message}`);
   for (const detail of details) console.error(`- ${detail}`);
   console.error("Run: make host-key-audit");
+  console.error("Run: make host-key-repair-plan");
   console.error("Run: YNX_REMOTE_TIMEOUT_MS=5000 YNX_REMOTE_BLOCK_GROWTH_DELAY_MS=1000 YNX_REMOTE_EVIDENCE_PATH=tmp/verify-testnet/remote-evidence.json make remote-smoke-test");
   console.error("Run: make remote-blocker-report");
   process.exit(1);

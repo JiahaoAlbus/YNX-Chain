@@ -10,7 +10,7 @@ Updated: 2026-07-09
 Completed modules in the chain repo:
 
 - Local chain, faucet, indexer, explorer service code exists with Go tests.
-- Deploy, dry-run, verify, ops, backup, rollback, host-key audit, legacy inventory, remote smoke, public proof, and package commands exist.
+- Deploy, dry-run, verify, ops, backup, rollback, host-key audit, non-mutating host-key repair plan, legacy inventory, remote smoke, public proof, and package commands exist.
 - `remote-smoke-test` checks public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, Web4, Request Validity rules, and transparency endpoints before mutable proof actions. After the public chain is verified as the new YNX Testnet, it also checks faucet, Pay, Trust trace, Resource, IDE compile, Anti-Illegal Request rejection, governance review/reject, appeal resolution, anti-unreasonable tracking, and final transparency counts.
 - Legacy backup coverage is wired into deployment and ops checks.
 - `remote-blocker-report` classifies node failures and public endpoint failures instead of only pasting raw error blocks.
@@ -43,6 +43,7 @@ Incomplete modules or requirements:
 Remote deployment state:
 
 - `make host-key-audit` on 2026-07-09 still fails: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley remain `host-key-mismatch` and must not be mutated until manually verified.
+- `make host-key-repair-plan` now generates `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current known_hosts entries, presented fingerprints, strict SSH output, and exact post-verification commands for Singapore and Silicon Valley. It does not modify known_hosts and is not approval by itself.
 - `remote-smoke-test` evidence generated at `2026-07-09T13:12:48.228Z` failed with public endpoints still not proving the new chain: RPC/indexer/AI/Web4/faucet still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, block height did not grow, REST `/status` returns HTTP 501, governance request-validity and transparency endpoints return HTTP 501, faucet native symbol is `anyxt` instead of `YNXT`, and explorer health/summary return 404.
 - `remote-blocker-report` generated fresh `tmp/verify-testnet/REMOTE_BLOCKERS.md` and `tmp/verify-testnet/remote-blockers.json` at `2026-07-09T13:13:03.407Z` with deploy gate status `blocked`.
 - `make deploy-readiness-gate` currently fails, as intended, listing Singapore/Silicon Valley host-key mismatches and public ingress blockers including wrong chain IDs, REST/governance HTTP 501, faucet native-symbol mismatch, and explorer 404s.
@@ -50,10 +51,10 @@ Remote deployment state:
 
 Current blockers:
 
-- Remote mutation is unsafe until Singapore and Silicon Valley host-key mismatches are manually verified and corrected.
+- Remote mutation is unsafe until Singapore and Silicon Valley host-key mismatches are manually verified through a trusted out-of-band source and corrected; the generated repair plan is only the operator workflow for that verification step.
 - Public service endpoints still prove old-chain or broken state, not new `ynx_6423-1` readiness.
 - Real deploy env values and secrets are not available in a committed-safe form.
 
 Largest real gap that can still be advanced next:
 
-- Refresh remote blocker evidence, clear SSH/ingress blockers, and deploy/verify the new `ynx_6423-1` public testnet. Remote mutation remains unsafe until deploy-readiness gate passes; public proof remains incomplete until `remote-smoke-test`, `verify-testnet`, and `public-proof` pass against real public endpoints.
+- Use the generated host-key repair plan to verify and correct Singapore/Silicon Valley host keys, rerun `make host-key-audit`, `make remote-blocker-report`, and `make deploy-readiness-gate`, then clear public ingress blockers and deploy/verify the new `ynx_6423-1` public testnet. Public proof remains incomplete until `remote-smoke-test`, `verify-testnet`, and `public-proof` pass against real public endpoints.
