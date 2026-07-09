@@ -14,6 +14,7 @@ Why this action:
 - When host-key mismatches exist, `remote-blocker-report` and `deploy-readiness-gate` now also require fresh `host-key-approval-request` markdown and JSON artifacts, and the JSON rows must match the current scanned mismatch fingerprints so stale or touched fingerprint requests cannot be used for trusted approval.
 - Public endpoint evidence that proves the old chain, wrong EVM/Cosmos chain ID, empty validator set, missing validator metadata, missing block growth, or skipped mutable proof actions is now deploy-blocking even when the endpoint returns HTTP successfully.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
+- `public-proof` now has a second evidence-completeness validator and cannot mark `validPublicProof=true` unless all required remote endpoint, validator, Chain Law, Appeal, Transparency, anti-unreasonable tracking, resource, and IDE checks are present and passed.
 - EVM/IDE bounded execution is safely closed for now: keep existing tests green, but do not expand bounded opcode coverage, Counter samples, Hardhat artifacts, or IDE execution unless needed to preserve current tests.
 
 Files to touch:
@@ -38,6 +39,7 @@ Validation commands:
 - `make env-check`
 - `make preflight`
 - `make objective-state-check`
+- `make public-proof-evidence-check`
 - `make host-key-repair-plan`
 - `make host-key-approval-template`
 - `make host-key-approval-request`
@@ -69,7 +71,7 @@ Completion standard:
 - `remote-blocker-report` records freshness for the underlying remote-smoke, host-key-audit, and conditional host-key-approval-request evidence, compares approval-request JSON rows to current mismatch fingerprints, and `deploy-readiness-gate` refuses mutation if any required source is missing, stale, invalid, or inconsistent.
 - Remote smoke evidence includes public Request Validity rule checks and transparency checks before any mutable remote action.
 - Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.
-- `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints.
+- `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints and `public-proof-validation.json` confirms all required remote proof checks are present and passed.
 - `PROJECT_STATE.md` records current remote blocker evidence and does not claim public proof while endpoints are old-chain, timed out, or unverified.
 - Current refreshed evidence is `tmp/verify-testnet/remote-evidence.json` generated at `2026-07-09T14:08:00.836Z`, `tmp/verify-testnet/remote-blockers.json` generated at `2026-07-09T14:20:01.780Z`, `tmp/host-key-audit/host-key-audit.txt` modified at `2026-07-09T14:07:45.954Z`, `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` modified at `2026-07-09T14:13:01.277Z`, and `tmp/host-key-audit/host-key-approval-request.json` modified at `2026-07-09T14:13:01.278Z`.
 - `FEATURE_COMPLETION_TRACKER.md` keeps remote-deployed/public-proof columns as `no` until live public evidence proves otherwise.

@@ -12,10 +12,14 @@ proof_status="passed"
 if ! bash scripts/verify/remote-smoke-test.sh; then
   proof_status="failed"
 fi
+if ! node scripts/verify/public-proof-evidence-check.mjs "$YNX_REMOTE_EVIDENCE_PATH" --out "$out/public-proof-validation.json"; then
+  proof_status="failed"
+fi
 
 cp docs/public-proof/PUBLIC_TESTNET_PROOF.md "$out/final/PUBLIC_TESTNET_PROOF.md"
 cp docs/acceptance/TESTNET_ACCEPTANCE_REPORT.md "$out/final/TESTNET_ACCEPTANCE_REPORT.md"
 cp "$YNX_REMOTE_EVIDENCE_PATH" "$out/final/remote-public-evidence.json"
+cp "$out/public-proof-validation.json" "$out/final/public-proof-validation.json"
 
 node - "$out" "$proof_status" "$(git rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'NODE'
 const fs = require("fs");
@@ -24,15 +28,20 @@ const crypto = require("crypto");
 const [out, status, gitCommit, generatedAt] = process.argv.slice(2);
 const finalDir = path.join(out, "final");
 const evidencePath = path.join(finalDir, "remote-public-evidence.json");
+const validationPath = path.join(finalDir, "public-proof-validation.json");
 const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8"));
+const validation = JSON.parse(fs.readFileSync(validationPath, "utf8"));
 const failed = (evidence.checks || []).filter((check) => !check.ok).map((check) => check.name);
+const validPublicProof = status === "passed" && validation.validPublicProof === true;
 const summary = [
   "# Generated Public Testnet Proof",
   "",
   `- Status: ${status}`,
+  `- Valid public proof: ${validPublicProof ? "yes" : "no"}`,
   `- Generated at: ${generatedAt}`,
   `- Git commit: ${gitCommit}`,
   `- Evidence file: remote-public-evidence.json`,
+  `- Validation file: public-proof-validation.json`,
   `- Expected chain: ${evidence.expected?.cosmosChainId || ""} / ${evidence.expected?.evmChainIdHex || ""}`,
   `- Public RPC: ${evidence.endpoints?.rpc || ""}`,
   `- Public faucet: ${evidence.endpoints?.faucet || ""}`,
@@ -44,7 +53,7 @@ const summary = [
   "",
   "## Evidence Policy",
   "",
-  "This package is valid only when Status is passed. Failed packages are retained as diagnostics and must not be presented as completed public proof.",
+  "This package is valid only when Status is passed, Valid public proof is yes, and public-proof-validation.json shows every required remote Chain Law, appeal, transparency, validator, endpoint, and mutation proof check present and passed. Failed packages are retained as diagnostics and must not be presented as completed public proof.",
   "",
 ].join("\n");
 fs.writeFileSync(path.join(finalDir, "PUBLIC_TESTNET_PROOF.generated.md"), summary);
@@ -57,7 +66,8 @@ fs.writeFileSync(path.join(finalDir, "manifest.json"), JSON.stringify({
   generatedAt,
   gitCommit,
   status,
-  validPublicProof: status === "passed",
+  validPublicProof,
+  validation,
   failedChecks: failed,
   files,
 }, null, 2) + "\n");

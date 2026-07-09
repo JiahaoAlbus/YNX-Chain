@@ -6,6 +6,7 @@ make no-placeholder-check
 make secret-scan
 make objective-state-check
 make deploy-readiness-gate-check
+make public-proof-evidence-check
 make host-key-approval-check-test
 go test ./cmd/... ./internal/...
 make deploy-dry-run
