@@ -85,6 +85,25 @@ if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
 fi
+for role_validator in \
+  "primary:ynx_validator_primary" \
+  "singapore:ynx_validator_singapore" \
+  "silicon-valley:ynx_validator_silicon_valley" \
+  "seoul:ynx_validator_seoul"
+do
+  role="${role_validator%%:*}"
+  validator="${role_validator#*:}"
+  role_env="$release_dir/config/ynx-chaind-${role}.env"
+  [[ -r "$role_env" ]] || { echo "missing role env: $role_env"; exit 1; }
+  grep -Fq "YNX_LOCAL_VALIDATOR_ADDRESS=${validator}" "$role_env" || { echo "$role env missing local validator $validator"; exit 1; }
+  grep -Fq "YNX_PEER_RPC_URLS=" "$role_env" || { echo "$role env missing peer RPC urls"; exit 1; }
+  peer_line="$(grep -E '^YNX_PEER_RPC_URLS=' "$role_env" | tail -1)"
+  if [[ "$peer_line" == *"${validator}|"* ]]; then
+    echo "$role peer RPC urls must not include its own validator address"
+    exit 1
+  fi
+  grep -Fq "ynx-chaind-${role}.env" "$dry_run_out" || { echo "dry-run output missing install command for ynx-chaind-${role}.env"; exit 1; }
+done
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }
 grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || { echo "legacy home data path missing from predeploy backup"; exit 1; }
 grep -Fq "/root/.ynx-v2" "$dry_run_out" || { echo "legacy root data path missing from predeploy backup"; exit 1; }

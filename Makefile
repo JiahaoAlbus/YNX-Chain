@@ -1,4 +1,4 @@
-.PHONY: setup devnet dev env-check no-placeholder-check secret-scan objective-state-check readme-positioning-check deploy-readiness-gate deploy-readiness-gate-check public-proof-evidence-check preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet host-key-audit host-key-repair-plan host-key-approval-check host-key-approval-status host-key-approval-template host-key-approval-request host-key-approved-repair-dry-run host-key-approved-repair host-key-approval-check-test legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ai-gateway-check validator-peer-readiness-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
+.PHONY: setup devnet dev env-check no-placeholder-check secret-scan objective-state-check readme-positioning-check deploy-readiness-gate deploy-readiness-gate-check public-proof-evidence-check preflight test integration-test smoke-test remote-smoke-test deploy-testnet deploy-dry-run verify-testnet verify-testnet-check host-key-audit host-key-repair-plan host-key-approval-check host-key-approval-status host-key-approval-template host-key-approval-request host-key-approved-repair-dry-run host-key-approved-repair host-key-approval-check-test legacy-inventory remote-blocker-report status logs restart backup rollback docs grant-package ecosystem-package exchange-package mainnet-readiness wallet-integration-check chainlist-package exchange-integration-check developer-quickstart-check contract-tooling-check monitoring-check indexer-check explorer-check faucet-check ai-gateway-check validator-peer-readiness-check ops-check public-proof native-ynxt-no-hidden-freeze-check anti-illegal-request-check anti-unreasonable-tracking-check request-validity-check trust-appeal-check transparency-report-check emergency-action-policy-check privacy-safety-check
 
 setup:
 	go mod tidy
@@ -55,6 +55,9 @@ deploy-dry-run:
 
 verify-testnet:
 	bash ./scripts/verify/verify-testnet.sh
+
+verify-testnet-check:
+	bash ./scripts/verify/verify-testnet-check.sh
 
 host-key-audit:
 	bash ./scripts/ops/host-key-audit.sh

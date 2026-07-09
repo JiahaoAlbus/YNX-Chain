@@ -8,6 +8,7 @@ make objective-state-check
 make deploy-readiness-gate-check
 make public-proof-evidence-check
 make host-key-approval-check-test
+make verify-testnet-check
 go test ./cmd/... ./internal/...
 make deploy-dry-run
 make ops-check
