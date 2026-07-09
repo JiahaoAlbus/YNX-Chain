@@ -29,6 +29,14 @@ function readJson(file) {
   }
 }
 
+function tryReadJson(file) {
+  try {
+    return { exists: true, json: JSON.parse(fs.readFileSync(file, "utf8")), error: "" };
+  } catch (err) {
+    return { exists: fs.existsSync(file), json: null, error: err.message };
+  }
+}
+
 function fingerprintMap(scanFile) {
   const result = run("ssh-keygen", ["-lf", scanFile]);
   if (result.status !== 0) {
@@ -191,11 +199,12 @@ function strictOutputSuggestsRepair(auditOut, role, host) {
   return body.includes("REMOTE HOST IDENTIFICATION HAS CHANGED") || body.includes("Host key verification failed");
 }
 
-function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
+function collectRepairApprovalNodeResult(auditOut, { blankFingerprints }) {
   if (!fs.existsSync(auditOut)) {
-    fail(`missing host-key audit directory at ${auditOut}`, [
-      "Run make host-key-audit or make host-key-repair-plan before generating host-key approval artifacts.",
-    ]);
+    return {
+      nodes: [],
+      error: `missing host-key audit directory at ${auditOut}`,
+    };
   }
   const nodes = [];
   for (const entry of fs.readdirSync(auditOut).sort()) {
@@ -214,11 +223,23 @@ function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
     });
   }
   if (!nodes.length) {
-    fail("no host-key mismatch scan files found for host-key approval artifacts", [
-      "Run make host-key-audit and confirm there are strict SSH host-key mismatches first.",
+    return {
+      nodes,
+      error: "no host-key mismatch scan files found for host-key approval artifacts",
+    };
+  }
+  return { nodes, error: "" };
+}
+
+function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
+  const result = collectRepairApprovalNodeResult(auditOut, { blankFingerprints });
+  if (result.error) {
+    fail(result.error, [
+      "Run make host-key-audit or make host-key-repair-plan before generating host-key approval artifacts.",
+      "Confirm there are strict SSH host-key mismatches before requesting approval.",
     ]);
   }
-  return nodes;
+  return result.nodes;
 }
 
 function writeApprovalTemplate({ auditOut, templatePath }) {
@@ -311,6 +332,185 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
   }, null, 2)}\n`);
   console.log(`host-key approval request written: ${requestPath}`);
   console.log("request contains untrusted current-scan fingerprints only; it is not an approval file");
+}
+
+function compareApprovalWithoutExit({ approval, auditOut }) {
+  const approvedNodes = Array.isArray(approval?.nodes) ? approval.nodes : [];
+  const findings = [];
+
+  if (!approval?.source || !approval?.approvedAt) {
+    findings.push({
+      role: "approval-file",
+      host: "",
+      ok: false,
+      reason: "approval JSON must include source and approvedAt",
+    });
+  }
+  if (!approvedNodes.length) {
+    findings.push({
+      role: "approval-file",
+      host: "",
+      ok: false,
+      reason: "approval JSON must include at least one node",
+    });
+  }
+
+  for (const node of approvedNodes) {
+    const role = String(node.role || "");
+    const host = String(node.host || "");
+    const approved = node.fingerprints && typeof node.fingerprints === "object" ? node.fingerprints : {};
+    const scanFile = node.scanFile ? path.resolve(repoRoot, node.scanFile) : path.join(auditOut, `${role}-${host}.known_hosts`);
+
+    if (!role || !host) {
+      findings.push({ role, host, ok: false, reason: "node role and host are required" });
+      continue;
+    }
+    if (!Object.keys(approved).length) {
+      findings.push({ role, host, ok: false, reason: "node fingerprints are required" });
+      continue;
+    }
+    if (!fs.existsSync(scanFile)) {
+      findings.push({
+        role,
+        host,
+        ok: false,
+        reason: `scan file missing: ${path.relative(repoRoot, scanFile)}`,
+      });
+      continue;
+    }
+
+    let presented;
+    try {
+      presented = fingerprintMap(scanFile);
+    } catch (err) {
+      findings.push({ role, host, ok: false, reason: err.message });
+      continue;
+    }
+
+    for (const [type, fingerprint] of presented.entries()) {
+      const expected = approved[type] || approved[type.toLowerCase()];
+      findings.push({
+        role,
+        host,
+        keyType: type,
+        presented: fingerprint,
+        approved: expected || "",
+        ok: expected === fingerprint,
+        reason: expected ? "compared" : "presented key type is not approved",
+      });
+    }
+    for (const type of Object.keys(approved)) {
+      if (!presented.has(type.toUpperCase())) {
+        findings.push({
+          role,
+          host,
+          keyType: type.toUpperCase(),
+          presented: "",
+          approved: approved[type],
+          ok: false,
+          reason: "approved key type was not presented by current scan",
+        });
+      }
+    }
+  }
+
+  const ok = findings.length > 0 && findings.every((finding) => finding.ok);
+  return { ok, findings };
+}
+
+function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath }) {
+  const generatedAt = new Date().toISOString();
+  const mismatchResult = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: false });
+  const approvalRead = tryReadJson(approvalPath);
+  const requestRead = tryReadJson(requestJsonPath);
+  let status = "blocked";
+  let ok = false;
+  let findings = [];
+
+  if (mismatchResult.error && mismatchResult.nodes.length === 0) {
+    status = fs.existsSync(auditOut) ? "no-host-key-mismatch-requiring-approval" : "missing-host-key-audit";
+    ok = status === "no-host-key-mismatch-requiring-approval";
+  } else if (!approvalRead.json) {
+    status = "awaiting-trusted-approval";
+    findings = mismatchResult.nodes.flatMap((node) => Object.entries(node.fingerprints).map(([keyType, presented]) => ({
+      role: node.role,
+      host: node.host,
+      keyType,
+      presented,
+      approved: "",
+      ok: false,
+      reason: "trusted fingerprint not yet recorded in ignored .host-key-approvals.json",
+    })));
+  } else {
+    const comparison = compareApprovalWithoutExit({ approval: approvalRead.json, auditOut });
+    ok = comparison.ok;
+    findings = comparison.findings;
+    status = ok ? "approved-current-scan" : "approval-does-not-match-current-scan";
+  }
+
+  const requestRows = Array.isArray(requestRead.json?.rows) ? requestRead.json.rows : [];
+  const markdown = [
+    "# Host Key Approval Status",
+    "",
+    `Generated at: ${generatedAt}`,
+    `Status: ${status}`,
+    `Trusted approval file: ${approvalPath}`,
+    `Trusted approval file exists: ${approvalRead.exists ? "yes" : "no"}`,
+    `Trusted approval file readable: ${approvalRead.json ? "yes" : "no"}`,
+    `Approval request JSON: ${requestJsonPath}`,
+    `Approval request JSON readable: ${requestRead.json ? "yes" : "no"}`,
+    `Audit directory: ${auditOut}`,
+    "",
+    "This status report is non-mutating. It does not update `known_hosts`, does not trust current SSH scan output, and does not replace `make host-key-approval-check`.",
+    "",
+    "| Role | Host | Key Type | Presented | Approved | Status | Reason |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
+    ...(findings.length
+      ? findings.map((finding) => [
+        finding.role || "",
+        finding.host || "",
+        finding.keyType || "",
+        finding.presented || "",
+        finding.approved || "",
+        finding.ok ? "ok" : "blocked",
+        finding.reason || "",
+      ].map((cell) => String(cell).replace(/\|/g, "\\|")).join(" | ")).map((row) => `| ${row} |`)
+      : ["|  |  |  |  |  | ok | no mismatch rows requiring approval |"]),
+    "",
+    requestRows.length ? `Approval request rows: ${requestRows.length}` : "Approval request rows: unavailable",
+    "",
+    ok
+      ? "No approval blocker is present in this status report. Continue with `make host-key-approval-check` before any known_hosts repair."
+      : "Approval remains blocked. Confirm fingerprints through a trusted external channel, fill ignored `.host-key-approvals.json`, then run `make host-key-approval-check`.",
+    "",
+  ].join("\n");
+
+  const result = {
+    generatedAt,
+    ok,
+    status,
+    auditOut,
+    approvalPath,
+    approvalFileExists: approvalRead.exists,
+    approvalFileReadable: Boolean(approvalRead.json),
+    approvalFileError: approvalRead.json ? "" : approvalRead.error,
+    approvalRequestJsonPath: requestJsonPath,
+    approvalRequestJsonExists: requestRead.exists,
+    approvalRequestJsonReadable: Boolean(requestRead.json),
+    approvalRequestJsonError: requestRead.json ? "" : requestRead.error,
+    approvalRequestRowCount: requestRows.length,
+    mismatchNodeCount: mismatchResult.nodes.length,
+    mismatchNodes: mismatchResult.nodes,
+    findings,
+    note: "Non-mutating status only; not trusted approval and not known_hosts repair.",
+  };
+
+  fs.mkdirSync(path.dirname(reportPath), { recursive: true });
+  fs.writeFileSync(reportPath, markdown);
+  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
+  console.log(`host-key approval status written: ${reportPath}`);
+  console.log(`host-key approval status JSON written: ${jsonPath}`);
+  return result;
 }
 
 function timestampForPath() {
@@ -495,6 +695,20 @@ function selfTest() {
   const request = JSON.parse(fs.readFileSync(requestJsonPath, "utf8"));
   assert.equal(request.trustedApproval, false);
   assert.equal(request.rows.length, 1);
+  const missingStatus = run(process.execPath, [fileURLToPath(import.meta.url), "--status"], {
+    env: {
+      ...process.env,
+      YNX_HOST_KEY_AUDIT_OUT: auditOut,
+      YNX_HOST_KEY_APPROVALS: path.join(workDir, "missing-approvals.json"),
+      YNX_HOST_KEY_APPROVAL_REQUEST_JSON: requestJsonPath,
+      YNX_HOST_KEY_APPROVAL_STATUS_REPORT: path.join(workDir, "missing-status.md"),
+      YNX_HOST_KEY_APPROVAL_STATUS_JSON: path.join(workDir, "missing-status.json"),
+    },
+  });
+  assert.equal(missingStatus.status, 0, missingStatus.stderr || missingStatus.stdout);
+  const missingStatusJson = JSON.parse(fs.readFileSync(path.join(workDir, "missing-status.json"), "utf8"));
+  assert.equal(missingStatusJson.status, "awaiting-trusted-approval");
+  assert.equal(missingStatusJson.ok, false);
   fs.writeFileSync(approvalPath, JSON.stringify({
     source: "self-test trusted channel",
     approvedAt: new Date().toISOString(),
@@ -554,6 +768,13 @@ if (process.argv.includes("--self-test")) {
   const requestJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json");
   const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
   writeApprovalRequest({ auditOut, requestPath, jsonPath: requestJsonPath, templatePath });
+} else if (process.argv.includes("--status")) {
+  const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
+  const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
+  const requestJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json");
+  const reportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_STATUS_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md");
+  const jsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_STATUS_JSON || "tmp/host-key-audit/host-key-approval-status.json");
+  writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath });
 } else if (process.argv.includes("--repair-known-hosts")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");

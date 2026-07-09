@@ -45,6 +45,7 @@ Validation commands:
 - `make host-key-repair-plan`
 - `make host-key-approval-template`
 - `make host-key-approval-request`
+- `make host-key-approval-status`
 - `make host-key-approval-check-test`
 - `make host-key-approval-check`
 - `make host-key-approved-repair-dry-run`
@@ -63,6 +64,7 @@ Completion standard:
 - `make host-key-repair-plan` produces `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current local entries, presented fingerprints, strict SSH output, and commands that are clearly marked as requiring trusted out-of-band fingerprint confirmation first.
 - `make host-key-approval-template` produces `tmp/host-key-audit/host-key-approvals.template.json` with blank fingerprint values for mismatched hosts only; it must not create or imply a trusted approval.
 - `make host-key-approval-request` produces `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` and `tmp/host-key-audit/host-key-approval-request.json` for external fingerprint comparison; it must clearly mark current-scan fingerprints as untrusted and must not write `.host-key-approvals.json`.
+- `make host-key-approval-status` produces a non-mutating markdown/JSON status report showing whether ignored `.host-key-approvals.json` exists/readable and which current mismatch fingerprints still need trusted confirmation.
 - `make host-key-approval-check-test` proves the approval checker accepts matched fingerprints and rejects mismatched fingerprints.
 - `make host-key-approval-check` remains blocked until ignored `.host-key-approvals.json` contains exact fingerprints confirmed from a trusted external source.
 - `make host-key-approved-repair-dry-run` and `make host-key-approved-repair` must fail closed unless `make host-key-approval-check` would pass first. The apply target must back up `known_hosts`, replace only approved hosts from current scan files, and verify strict SSH after repair.
@@ -78,6 +80,7 @@ Completion standard:
 - `PROJECT_STATE.md` records current remote blocker evidence and does not claim public proof while endpoints are old-chain, timed out, or unverified.
 - `make readme-positioning-check` keeps README top positioning aligned with full-stack ecosystem scope while rejecting unsupported external-success claims.
 - Current refreshed evidence is `tmp/verify-testnet/remote-evidence.json` generated at `2026-07-09T14:36:26.183Z`, `tmp/verify-testnet/remote-blockers.json` generated at `2026-07-09T14:37:20.206Z`, `tmp/host-key-audit/host-key-audit.txt` modified at `2026-07-09T14:37:14Z`, `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` modified at `2026-07-09T14:37:20Z`, and `tmp/host-key-audit/host-key-approval-request.json` generated at `2026-07-09T14:37:20.140Z`.
+- Current host-key approval status evidence is `tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md` and `tmp/host-key-audit/host-key-approval-status.json` generated on 2026-07-10 with status `awaiting-trusted-approval`.
 - `FEATURE_COMPLETION_TRACKER.md` keeps remote-deployed/public-proof columns as `no` until live public evidence proves otherwise.
 
 Explicitly not doing:
