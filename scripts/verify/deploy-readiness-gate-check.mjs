@@ -92,6 +92,53 @@ assertGateFails("endpoint-blocker", {
   },
 }, /remote SSH or public ingress evidence is not safe for mutation/);
 
+const semanticRemoteEvidencePath = path.join(workDir, "semantic-remote-evidence.json");
+const semanticHostKeyAuditPath = path.join(workDir, "semantic-host-key-audit.txt");
+const semanticReportJsonPath = path.join(workDir, "remote-blockers-semantic-endpoints.json");
+writeJson(semanticRemoteEvidencePath, {
+  generatedAt: now,
+  status: "failed",
+  expected: { cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainIdHex: "0x1917", nativeSymbol: "YNXT", minValidators: 3 },
+  checks: [
+    { name: "rpc.status.chainId", ok: false, detail: "expected ynx_6423-1, got ynx_9102-1", observed: { chainId: "ynx_9102-1", url: "https://rpc.ynxweb4.com/status" } },
+    { name: "evm.chainId", ok: false, detail: "expected 0x1917, got 0x238e", observed: { result: "0x238e", url: "https://evm.ynxweb4.com" } },
+    { name: "rpc.validators.count", ok: false, detail: "expected at least 3 validators, got 0", observed: { count: 0, url: "https://rpc.ynxweb4.com/validators" } },
+    { name: "rpc.validators.monikers", ok: false, detail: "missing validator monikers", observed: { monikers: [], url: "https://rpc.ynxweb4.com/validators" } },
+    { name: "rpc.blockGrowth", ok: false, detail: "height did not grow", observed: { before: 10, after: 10, url: "https://rpc.ynxweb4.com/status" } },
+    { name: "mutable.remote.actions", ok: false, detail: "skipped because public chain readiness failed", observed: { reason: "publicChainReady=false" } },
+  ],
+});
+fs.writeFileSync(semanticHostKeyAuditPath, [
+  "== primary ynx@43.153.202.237 ==",
+  "OK strict ssh accepted current host key",
+  "",
+].join("\n"));
+const semanticReport = runNode(reportScript, {
+  YNX_VERIFY_TESTNET_OUT: workDir,
+  YNX_REMOTE_EVIDENCE_PATH: semanticRemoteEvidencePath,
+  YNX_HOST_KEY_AUDIT_REPORT: semanticHostKeyAuditPath,
+  YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
+  YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "SEMANTIC_REMOTE_BLOCKERS.md"),
+  YNX_REMOTE_BLOCKER_JSON: semanticReportJsonPath,
+  YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+});
+assert.equal(semanticReport.status, 0, `remote-blocker-report semantic endpoint run should write diagnostics: ${semanticReport.stderr}`);
+const semanticJson = JSON.parse(fs.readFileSync(semanticReportJsonPath, "utf8"));
+assert.equal(semanticJson.deployReady, false, "semantic public endpoint failures must block deploy readiness");
+for (const classification of [
+  "legacy-chain",
+  "wrong-chain-id",
+  "validator-set-empty",
+  "validator-metadata-missing",
+  "dependent-height-failure",
+  "gated-mutation-skipped",
+]) {
+  assert(
+    semanticJson.deployBlockers.endpoints.some((item) => item.classification === classification),
+    `expected ${classification} endpoint finding to be deploy-blocking`
+  );
+}
+
 const reportJsonPath = path.join(workDir, "remote-blockers-missing-sources.json");
 const report = runNode(reportScript, {
   YNX_VERIFY_TESTNET_OUT: workDir,

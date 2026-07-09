@@ -12,6 +12,7 @@ Why this action:
 - Fresh evidence from 2026-07-09 still shows `.host-key-approvals.json` absent, Singapore/Silicon Valley host-key mismatch, REST/governance HTTP 501, explorer 404, faucet native `anyxt`, and public RPC/indexer/AI/Web4/faucet responses tied to legacy `ynx_9102-1`.
 - `remote-blocker-report` and `deploy-readiness-gate` now also require fresh underlying host-key and remote-smoke evidence; a freshly regenerated blocker JSON alone is not enough.
 - When host-key mismatches exist, `remote-blocker-report` and `deploy-readiness-gate` now also require fresh `host-key-approval-request` markdown and JSON artifacts, and the JSON rows must match the current scanned mismatch fingerprints so stale or touched fingerprint requests cannot be used for trusted approval.
+- Public endpoint evidence that proves the old chain, wrong EVM/Cosmos chain ID, empty validator set, missing validator metadata, missing block growth, or skipped mutable proof actions is now deploy-blocking even when the endpoint returns HTTP successfully.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
 - EVM/IDE bounded execution is safely closed for now: keep existing tests green, but do not expand bounded opcode coverage, Counter samples, Hardhat artifacts, or IDE execution unless needed to preserve current tests.
 
@@ -64,6 +65,7 @@ Completion standard:
 - While `.host-key-approvals.json` is absent, `make host-key-approval-check` must fail closed and no known_hosts repair or deploy mutation is allowed.
 - The script does not modify `~/.ssh/known_hosts` or bypass strict SSH checks.
 - `make deploy-readiness-gate-check` proves the deploy gate rejects old-format blocker JSON, missing required source evidence, stale required source evidence, missing source files, and explicit endpoint blockers.
+- `make deploy-readiness-gate-check` proves semantic public endpoint failures such as legacy-chain, wrong-chain-id, validator-set-empty, validator-metadata-missing, dependent-height-failure, and gated-mutation-skipped are deploy-blocking.
 - `remote-blocker-report` records freshness for the underlying remote-smoke, host-key-audit, and conditional host-key-approval-request evidence, compares approval-request JSON rows to current mismatch fingerprints, and `deploy-readiness-gate` refuses mutation if any required source is missing, stale, invalid, or inconsistent.
 - Remote smoke evidence includes public Request Validity rule checks and transparency checks before any mutable remote action.
 - Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.

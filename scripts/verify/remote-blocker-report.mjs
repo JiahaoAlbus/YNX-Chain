@@ -293,10 +293,16 @@ const deployBlockingNodeClasses = new Set([
   "unknown",
 ]);
 const deployBlockingEndpointClasses = new Set([
+  "dependent-height-failure",
   "failed",
+  "gated-mutation-skipped",
   "http-404",
   "http-error",
+  "legacy-chain",
   "timeout-or-unreachable",
+  "validator-metadata-missing",
+  "validator-set-empty",
+  "wrong-chain-id",
 ]);
 const nodeDeployBlockers = nodeFailures.filter((finding) => deployBlockingNodeClasses.has(finding.classification));
 const endpointDeployBlockers = endpointFindings.filter((finding) => deployBlockingEndpointClasses.has(finding.classification));
