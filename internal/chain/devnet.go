@@ -1718,6 +1718,7 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 				return ContractCallResult{}, Transaction{}, errors.New("bounded local EVM state-transition subset did not update recipient balance storage")
 			}
 		}
+		executionLogs := contractExecutionLogs(artifact.Address, transition.Logs)
 		artifact.RuntimeStorage = transition.Storage
 		d.contracts[artifact.Address] = artifact
 		memo := boundedContractCallMemo(candidate.Signature)
@@ -1725,6 +1726,9 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 			memo = contractCallMemo("erc20-transfer", caller, transferTo, transferAmount, transferEventTopic(artifact))
 		}
 		tx := d.newTxLocked("contract_call", caller, artifact.Address, 0, 2, nil, memo)
+		if candidate.Signature != "transfer(address,uint256)" {
+			tx.Logs = evmLogsFromExecutionLogs(executionLogs)
+		}
 		d.pending = append(d.pending, tx)
 		err = d.persistSnapshotLocked()
 		d.recordPersistenceErrorLocked(err)
@@ -1743,6 +1747,7 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 			TransactionHash:         tx.Hash,
 			StateTransition:         "bytecode-subset-sstore-updated-local-storage-and-pending-contract-call-created",
 			StorageWrites:           transition.StorageWrites,
+			ExecutionLogs:           executionLogs,
 			LogCount:                transition.LogCount,
 			BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
 			Limitations:             artifact.Limitations,
@@ -2153,6 +2158,9 @@ func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIn
 			logs = append(logs, transferLog)
 		}
 	}
+	if tx.Type == "contract_call" && !strings.HasPrefix(tx.Memo, "erc20-transfer:") {
+		logs = append(logs, materializedExecutionLogs(tx, txIndex, firstLogIndex+uint64(len(logs)))...)
+	}
 	if tx.Type == "contract_deploy" && strings.HasPrefix(tx.To, "0x") {
 		artifact, ok := d.contracts[tx.To]
 		if ok {
@@ -2160,6 +2168,66 @@ func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIn
 		}
 	}
 	return logs
+}
+
+func contractExecutionLogs(address string, logs []ExecutionLog) []ExecutionLog {
+	if len(logs) == 0 {
+		return nil
+	}
+	out := make([]ExecutionLog, 0, len(logs))
+	for _, log := range logs {
+		log.Address = evmAddressForLog(address)
+		out = append(out, log)
+	}
+	return out
+}
+
+func evmLogsFromExecutionLogs(logs []ExecutionLog) []EVMLog {
+	if len(logs) == 0 {
+		return nil
+	}
+	out := make([]EVMLog, 0, len(logs))
+	for _, log := range logs {
+		out = append(out, EVMLog{
+			Address: evmAddressForLog(log.Address),
+			Topics:  append([]string(nil), log.Topics...),
+			Data:    normalizeLogData(log.Data),
+		})
+	}
+	return out
+}
+
+func materializedExecutionLogs(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {
+	if len(tx.Logs) == 0 {
+		return nil
+	}
+	logs := make([]EVMLog, 0, len(tx.Logs))
+	for i, log := range tx.Logs {
+		address := log.Address
+		if address == "" {
+			address = tx.To
+		}
+		logs = append(logs, EVMLog{
+			Address:          evmAddressForLog(address),
+			Topics:           append([]string(nil), log.Topics...),
+			Data:             normalizeLogData(log.Data),
+			BlockHash:        evmHash(tx.BlockHash),
+			BlockNumber:      tx.BlockNum,
+			TransactionHash:  tx.Hash,
+			TransactionIndex: txIndex,
+			LogIndex:         firstLogIndex + uint64(i),
+			Removed:          false,
+		})
+	}
+	return logs
+}
+
+func normalizeLogData(data string) string {
+	data = strings.TrimSpace(data)
+	if data == "" {
+		return "0x"
+	}
+	return normalizeHex(data)
 }
 
 func contractEventLogs(tx Transaction, artifact ContractArtifact, txIndex, firstLogIndex uint64) []EVMLog {
@@ -2232,6 +2300,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 	runtimeStorageSlots := extractRuntimeStorageSlots(source)
 	runtimeStorage := extractRuntimeStorage(source, deployer, constructorArgs)
 	if hasCompilerArtifact {
+		events = mergeCompilerArtifactEvents(compilerArtifact.ABIEvents, events)
 		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
 	}
 	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
@@ -2313,6 +2382,13 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 		DeployedAt:                       time.Now().UTC(),
 		VerifiedAt:                       verifiedAt,
 	}
+}
+
+func mergeCompilerArtifactEvents(abiEvents, sourceEvents []ContractEventABI) []ContractEventABI {
+	if len(abiEvents) > 0 {
+		return abiEvents
+	}
+	return sourceEvents
 }
 
 func AnalyzeContractSource(name, source string) ContractArtifact {

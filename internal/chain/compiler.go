@@ -95,6 +95,7 @@ type selectorMetadataFile struct {
 type selectorArtifactMetadata struct {
 	RuntimeSelectorMode string                     `json:"runtimeSelectorMode"`
 	Functions           []selectorFunctionMetadata `json:"functions"`
+	Events              []selectorEventMetadata    `json:"events"`
 }
 
 type selectorFunctionMetadata struct {
@@ -102,6 +103,12 @@ type selectorFunctionMetadata struct {
 	Signature               string `json:"signature"`
 	Selector                string `json:"selector"`
 	BytecodeSelectorMatched bool   `json:"bytecodeSelectorMatched"`
+}
+
+type selectorEventMetadata struct {
+	Name      string `json:"name"`
+	Signature string `json:"signature"`
+	Topic     string `json:"topic"`
 }
 
 func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifact, bool) {
@@ -134,6 +141,7 @@ func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifa
 		relPath, _ := filepath.Rel(root, path)
 		relPath = filepath.ToSlash(relPath)
 		selectorMetadata, _ := hardhatSelectorMetadata(root, relPath)
+		abiEvents := hardhatABIEvents(artifact.ABI, selectorMetadata)
 		abiFunctions := hardhatABIFunctions(artifact.ABI, selectorMetadata)
 		selectors := make([]string, 0, len(abiFunctions))
 		matches := 0
@@ -155,12 +163,53 @@ func resolvePinnedCompilerArtifact(name, source string) (*ContractCompilerArtifa
 			RuntimeSelectors:                selectors,
 			DeployedBytecodeSelectorMatches: matches,
 			ABIFunctions:                    abiFunctions,
+			ABIEvents:                       abiEvents,
 			CompilerExecuted:                true,
 			Status:                          "matched_hardhat_artifact",
 		}
 		return nil
 	})
 	return matched, matched != nil
+}
+
+func hardhatABIEvents(raw json.RawMessage, selectorMetadata selectorArtifactMetadata) []ContractEventABI {
+	var entries []hardhatABIEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		return nil
+	}
+	topics := map[string]selectorEventMetadata{}
+	for _, event := range selectorMetadata.Events {
+		topics[event.Signature] = event
+	}
+	events := make([]ContractEventABI, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Type != "event" || entry.Name == "" {
+			continue
+		}
+		inputs := make([]ContractEventInput, 0, len(entry.Inputs))
+		inputTypes := make([]string, 0, len(entry.Inputs))
+		for i, input := range entry.Inputs {
+			name := input.Name
+			if name == "" {
+				name = fmt.Sprintf("arg%d", i)
+			}
+			inputs = append(inputs, ContractEventInput{Name: name, Type: input.Type, Indexed: input.Indexed})
+			inputTypes = append(inputTypes, input.Type)
+		}
+		signature := entry.Name + "(" + strings.Join(inputTypes, ",") + ")"
+		topic := topics[signature].Topic
+		if topic == "" {
+			topic = evmTopic("event:" + signature)
+		}
+		events = append(events, ContractEventABI{
+			Name:      entry.Name,
+			Signature: signature,
+			Topic:     topic,
+			Inputs:    inputs,
+			Source:    "hardhat-ethers-event-topic-metadata",
+		})
+	}
+	return events
 }
 
 func hardhatABIFunctions(raw json.RawMessage, selectorMetadata selectorArtifactMetadata) []ContractFunctionABI {

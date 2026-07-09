@@ -612,6 +612,7 @@ type ContractCompilerArtifact struct {
 	RuntimeSelectors                []string              `json:"runtimeSelectors,omitempty"`
 	DeployedBytecodeSelectorMatches int                   `json:"deployedBytecodeSelectorMatches"`
 	ABIFunctions                    []ContractFunctionABI `json:"abiFunctions,omitempty"`
+	ABIEvents                       []ContractEventABI    `json:"abiEvents,omitempty"`
 	CompilerExecuted                bool                  `json:"compilerExecuted"`
 	Status                          string                `json:"status"`
 }
@@ -692,9 +693,17 @@ type ContractCallResult struct {
 	TransactionHash         string         `json:"transactionHash,omitempty"`
 	StateTransition         string         `json:"stateTransition,omitempty"`
 	StorageWrites           []StorageWrite `json:"storageWrites,omitempty"`
+	ExecutionLogs           []ExecutionLog `json:"executionLogs,omitempty"`
 	LogCount                int            `json:"logCount,omitempty"`
 	BytecodeSelectorMatched bool           `json:"bytecodeSelectorMatched"`
 	Limitations             []string       `json:"limitations,omitempty"`
+}
+
+type ExecutionLog struct {
+	Opcode  string   `json:"opcode"`
+	Address string   `json:"address"`
+	Topics  []string `json:"topics"`
+	Data    string   `json:"data"`
 }
 
 type StorageWrite struct {

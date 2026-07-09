@@ -85,7 +85,7 @@ assert(/^0x[0-9a-fA-F]+$/.test(sampleArtifact.deployedBytecode) && sampleArtifac
 
 const selectorMetadata = JSON.parse(read("artifacts/ynx-selector-metadata.json"));
 const sampleSelectorMetadata = selectorMetadata.artifacts?.["artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"];
-assert(sampleSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-and-deployed-bytecode-presence", "sample ERC20 selector metadata mode mismatch");
+assert(sampleSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-event-topic-and-deployed-bytecode-presence", "sample ERC20 selector metadata mode mismatch");
 const decimalsSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "decimals()");
 assert(decimalsSelector?.selector === "0x313ce567" && decimalsSelector.bytecodeSelectorMatched === true, "sample ERC20 decimals selector must match deployed bytecode");
 const totalSupplySelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "totalSupply()");
@@ -94,6 +94,8 @@ const balanceOfSelector = sampleSelectorMetadata.functions?.find((fn) => fn.sign
 assert(balanceOfSelector?.selector === "0x70a08231" && balanceOfSelector.bytecodeSelectorMatched === true, "sample ERC20 balanceOf selector must match deployed bytecode");
 const transferSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "transfer(address,uint256)");
 assert(transferSelector?.selector === "0xa9059cbb" && transferSelector.bytecodeSelectorMatched === true, "sample ERC20 transfer selector must match deployed bytecode");
+const transferEvent = sampleSelectorMetadata.events?.find((event) => event.signature === "Transfer(address,address,uint256)");
+assert(transferEvent?.topic === "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef", "sample ERC20 Transfer event topic mismatch");
 
 const counterArtifact = JSON.parse(read("artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"));
 assert(counterArtifact.contractName === "SampleEVMWriteCounter", "sample write-counter artifact contract name mismatch");
@@ -101,11 +103,13 @@ assert(counterArtifact.sourceName === "contracts/devtools/SampleEVMWriteCounter.
 assert(/^0x[0-9a-fA-F]+$/.test(counterArtifact.bytecode) && counterArtifact.bytecode.length > 100, "sample write-counter bytecode missing");
 assert(/^0x[0-9a-fA-F]+$/.test(counterArtifact.deployedBytecode) && counterArtifact.deployedBytecode.length > 100, "sample write-counter deployed bytecode missing");
 const counterSelectorMetadata = selectorMetadata.artifacts?.["artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"];
-assert(counterSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-and-deployed-bytecode-presence", "sample write-counter selector metadata mode mismatch");
+assert(counterSelectorMetadata?.runtimeSelectorMode === "hardhat-ethers-keccak-selector-event-topic-and-deployed-bytecode-presence", "sample write-counter selector metadata mode mismatch");
 const countSelector = counterSelectorMetadata.functions?.find((fn) => fn.signature === "count()");
 assert(countSelector?.selector === "0x06661abd" && countSelector.bytecodeSelectorMatched === true, "sample write-counter count selector must match deployed bytecode");
 const incrementSelector = counterSelectorMetadata.functions?.find((fn) => fn.signature === "increment(uint256)");
 assert(incrementSelector?.selector === "0x7cf5dab0" && incrementSelector.bytecodeSelectorMatched === true, "sample write-counter increment selector must match deployed bytecode");
+const countChangedEvent = counterSelectorMetadata.events?.find((event) => event.signature === "CountChanged(address,uint256)");
+assert(countChangedEvent?.topic === "0x0c6d57b2fe49e083a8ee35f4b7f612ae3ccd7a11b796295c7ee4fa376d166fef", "sample write-counter CountChanged event topic mismatch");
 
 const buildInfoFiles = fs.readdirSync(path.join(root, "artifacts/build-info")).filter((file) => file.endsWith(".json") && !file.endsWith(".output.json"));
 assert(buildInfoFiles.length > 0, "Hardhat build-info file missing after build");
@@ -141,7 +145,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "/ide/execute", "eth_sendTransaction", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "runtime storage slot", "storageWrites", "SSTORE", "totalSupply()", "balanceOf(address)", "transfer(address,uint256)", "SampleEVMWriteCounter", "increment(uint256)", "generic pinned-artifact write-call subset", "bounded read-only local EVM opcode interpreter", "bounded local write-call path", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "/ide/execute", "eth_sendTransaction", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "runtime storage slot", "storageWrites", "executionLogs", "SSTORE", "LOG", "totalSupply()", "balanceOf(address)", "transfer(address,uint256)", "CountChanged(address,uint256)", "SampleEVMWriteCounter", "increment(uint256)", "generic pinned-artifact write-call subset", "bounded read-only local EVM opcode interpreter", "bounded local write-call path", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

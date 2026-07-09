@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Recover the real remote deployment path and produce public proof for the new `ynx_6423-1` network.
+- Implement and verify Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs as real local code while remote deployment remains blocked.
 
 Forbidden:
 

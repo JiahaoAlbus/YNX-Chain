@@ -495,6 +495,17 @@ func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
 	if countSelector != "0x06661abd" || incrementSelector != "0x7cf5dab0" {
 		t.Fatalf("expected counter selectors from hardhat metadata: count=%s increment=%s contract=%v", countSelector, incrementSelector, contract)
 	}
+	var countChangedTopic string
+	for _, entry := range contract["events"].([]any) {
+		event := entry.(map[string]any)
+		if event["signature"] == "CountChanged(address,uint256)" {
+			countChangedTopic = event["topic"].(string)
+		}
+	}
+	if countChangedTopic == "" {
+		t.Fatalf("expected CountChanged event metadata: %v", contract)
+	}
+	callerTopic := "0x" + strings.Repeat("0", 24) + strings.TrimPrefix(deployer, "0x")
 	var out map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 41, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": countSelector}, "latest"}}, http.StatusOK, &out)
 	if out["result"] != "0x0000000000000000000000000000000000000000000000000000000000000007" {
@@ -510,6 +521,14 @@ func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
 	if result["executionStatus"] != "bounded_local_evm_sstore_state_transition_subset" || result["executionEngine"] != "local-bounded-evm-sstore-transition-interpreter" || result["opcodeStepCount"].(float64) <= 0 || result["logCount"].(float64) != 1 {
 		t.Fatalf("expected generic bounded write-call state transition evidence: %v", executed)
 	}
+	executionLogs := result["executionLogs"].([]any)
+	if len(executionLogs) != 1 || executionLogs[0].(map[string]any)["opcode"] != "LOG2" || executionLogs[0].(map[string]any)["address"] != address {
+		t.Fatalf("expected captured generic execution log: %v", executed)
+	}
+	logTopics := executionLogs[0].(map[string]any)["topics"].([]any)
+	if len(logTopics) != 2 || logTopics[0] != countChangedTopic || logTopics[1] != callerTopic || executionLogs[0].(map[string]any)["data"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
+		t.Fatalf("expected CountChanged execution log topics/data: %v", executed)
+	}
 	writes := result["storageWrites"].([]any)
 	if len(writes) != 1 || writes[0].(map[string]any)["opcode"] != "SSTORE" || writes[0].(map[string]any)["newValue"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
 		t.Fatalf("expected one counter SSTORE write to 12: %v", executed)
@@ -518,14 +537,35 @@ func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
 	if out["result"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
 		t.Fatalf("expected counter value after /ide/execute: %v", out)
 	}
+	tx := executed["transaction"].(map[string]any)
+	block := devnet.ProduceBlock()
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 43, "method": "eth_getLogs", "params": []any{map[string]any{"fromBlock": hexQuantityForTest(block.Height), "toBlock": "latest", "address": address, "topics": []any{countChangedTopic, callerTopic}}}}, http.StatusOK, &out)
+	logs := out["result"].([]any)
+	if len(logs) != 1 || logs[0].(map[string]any)["transactionHash"] != tx["hash"] || logs[0].(map[string]any)["data"] != "0x000000000000000000000000000000000000000000000000000000000000000c" {
+		t.Fatalf("expected filterable CountChanged log after /ide/execute block production: %v", out)
+	}
 	incrementByThree := incrementSelector + strings.Repeat("0", 63) + "3"
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 43, "method": "eth_sendTransaction", "params": []any{map[string]any{"from": deployer, "to": address, "data": incrementByThree}}}, http.StatusOK, &out)
 	if out["result"] == "" {
 		t.Fatalf("expected eth_sendTransaction tx hash for generic bounded write call: %v", out)
 	}
+	genericTxHash := out["result"].(string)
 	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 44, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": countSelector}, "latest"}}, http.StatusOK, &out)
 	if out["result"] != "0x000000000000000000000000000000000000000000000000000000000000000f" {
 		t.Fatalf("expected counter value after eth_sendTransaction: %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 45, "method": "eth_getTransactionReceipt", "params": []any{genericTxHash}}, http.StatusOK, &out)
+	receiptLogs := out["result"].(map[string]any)["logs"].([]any)
+	foundCountChanged := false
+	for _, entry := range receiptLogs {
+		log := entry.(map[string]any)
+		topics := log["topics"].([]any)
+		if len(topics) == 2 && topics[0] == countChangedTopic && topics[1] == callerTopic && log["data"] == "0x000000000000000000000000000000000000000000000000000000000000000f" {
+			foundCountChanged = true
+		}
+	}
+	if !foundCountChanged {
+		t.Fatalf("expected generic CountChanged log in eth_sendTransaction receipt: %v", out)
 	}
 }
 

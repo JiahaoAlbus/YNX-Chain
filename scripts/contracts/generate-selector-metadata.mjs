@@ -42,11 +42,20 @@ for (const artifactPath of walkJsonFiles(artifactsRoot)) {
       };
     })
     .sort((a, b) => a.signature.localeCompare(b.signature));
+  const events = iface.fragments
+    .filter((fragment) => fragment.type === "event")
+    .map((fragment) => ({
+      name: fragment.name,
+      signature: fragment.format("sighash"),
+      topic: fragment.topicHash.toLowerCase(),
+    }))
+    .sort((a, b) => a.signature.localeCompare(b.signature));
   artifacts[path.relative(repoRoot, artifactPath).split(path.sep).join("/")] = {
     contractName: artifact.contractName,
     sourceName: artifact.sourceName,
-    runtimeSelectorMode: "hardhat-ethers-keccak-selector-and-deployed-bytecode-presence",
+    runtimeSelectorMode: "hardhat-ethers-keccak-selector-event-topic-and-deployed-bytecode-presence",
     functions,
+    events,
   };
 }
 

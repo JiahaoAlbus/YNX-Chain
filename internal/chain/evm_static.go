@@ -17,6 +17,7 @@ type evmStateTransitionResult struct {
 	EncodedResult string
 	StepCount     int
 	StorageWrites []StorageWrite
+	Logs          []ExecutionLog
 	LogCount      int
 	Storage       map[string]string
 }
@@ -72,6 +73,7 @@ func runStatefulEVMSubset(deployedBytecode, callDataHex, caller string, storage 
 		EncodedResult: result.EncodedResult,
 		StepCount:     result.StepCount,
 		StorageWrites: vm.storageWrites,
+		Logs:          vm.executionLogs,
 		LogCount:      vm.logCount,
 		Storage:       workingStorage,
 	}, nil
@@ -88,6 +90,7 @@ type evmSubsetVM struct {
 	steps         int
 	readOnly      bool
 	storageWrites []StorageWrite
+	executionLogs []ExecutionLog
 	logCount      int
 }
 
@@ -391,15 +394,20 @@ func (vm *evmSubsetVM) recordLog(topicCount int) error {
 	if err != nil {
 		return err
 	}
-	topics := make([]*big.Int, 0, topicCount)
+	topics := make([]string, 0, topicCount)
 	for i := 0; i < topicCount; i++ {
 		topic, err := vm.pop()
 		if err != nil {
 			return err
 		}
-		topics = append(topics, topic)
+		topics = append(topics, hexWord(topic))
 	}
-	_ = vm.memSlice(offset, intFromBig(size))
+	data := "0x" + hex.EncodeToString(vm.memSlice(offset, intFromBig(size)))
+	vm.executionLogs = append(vm.executionLogs, ExecutionLog{
+		Opcode: fmt.Sprintf("LOG%d", topicCount),
+		Topics: topics,
+		Data:   data,
+	})
 	vm.logCount++
 	return nil
 }
