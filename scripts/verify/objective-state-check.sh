@@ -49,6 +49,8 @@ grep -q "Request Validity Standard" docs/acceptance/FEATURE_COMPLETION_TRACKER.m
 grep -q "Appeal / Dispute" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 grep -q "Transparency Report" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 
+node ./scripts/verify/readme-positioning-check.mjs
+
 if rg -n "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify --glob '!scripts/verify/objective-state-check.sh' >/tmp/ynx-strict-ssh-policy.txt; then
   cat /tmp/ynx-strict-ssh-policy.txt
   echo "strict ssh policy failed: deployment, ops, and verification scripts must not auto-accept new host keys"

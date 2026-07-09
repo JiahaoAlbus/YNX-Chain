@@ -40,6 +40,7 @@ Validation commands:
 - `make env-check`
 - `make preflight`
 - `make objective-state-check`
+- `make readme-positioning-check`
 - `make public-proof-evidence-check`
 - `make host-key-repair-plan`
 - `make host-key-approval-template`
@@ -75,6 +76,7 @@ Completion standard:
 - Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.
 - `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints and `public-proof-validation.json` confirms all required remote proof checks are present and passed.
 - `PROJECT_STATE.md` records current remote blocker evidence and does not claim public proof while endpoints are old-chain, timed out, or unverified.
+- `make readme-positioning-check` keeps README top positioning aligned with full-stack ecosystem scope while rejecting unsupported external-success claims.
 - Current refreshed evidence is `tmp/verify-testnet/remote-evidence.json` generated at `2026-07-09T14:36:26.183Z`, `tmp/verify-testnet/remote-blockers.json` generated at `2026-07-09T14:37:20.206Z`, `tmp/host-key-audit/host-key-audit.txt` modified at `2026-07-09T14:37:14Z`, `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` modified at `2026-07-09T14:37:20Z`, and `tmp/host-key-audit/host-key-approval-request.json` generated at `2026-07-09T14:37:20.140Z`.
 - `FEATURE_COMPLETION_TRACKER.md` keeps remote-deployed/public-proof columns as `no` until live public evidence proves otherwise.
 
