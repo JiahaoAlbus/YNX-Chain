@@ -280,7 +280,15 @@ function checkValidators(json) {
   record("rpc.validators.addresses", hasAddresses, hasAddresses ? "all validators have addresses" : "one or more validators lack address", { validators });
   const hasMonikers = active.length > 0 && active.every((validator) => typeof validator.moniker === "string" && validator.moniker.length > 0);
   record("rpc.validators.monikers", hasMonikers, hasMonikers ? "all validators have monikers" : "one or more validators lack moniker", { validators });
-  return ok && hasAddresses && hasMonikers;
+  const readyPeers = active.filter((validator) => validator.peerReady === true && typeof validator.peerStatus === "string" && validator.peerStatus.length > 0);
+  const peerReadinessOk = readyPeers.length >= expected.minValidators;
+  record(
+    "rpc.validators.peerReadiness",
+    peerReadinessOk,
+    peerReadinessOk ? `${readyPeers.length} validators have peer readiness evidence` : `expected at least ${expected.minValidators} validators with peer readiness evidence, got ${readyPeers.length}`,
+    { readyPeerCount: readyPeers.length, validators }
+  );
+  return ok && hasAddresses && hasMonikers && peerReadinessOk;
 }
 
 function checkEvmResult(name, json, expectedValue) {

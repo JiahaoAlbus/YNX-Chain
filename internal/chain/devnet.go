@@ -132,6 +132,8 @@ func NormalizeValidators(validators []Validator) ([]Validator, error) {
 		validator.Host = strings.TrimSpace(validator.Host)
 		validator.Role = strings.TrimSpace(validator.Role)
 		validator.PeerID = strings.TrimSpace(validator.PeerID)
+		validator.PeerStatus = strings.TrimSpace(validator.PeerStatus)
+		validator.PeerEvidence = strings.TrimSpace(validator.PeerEvidence)
 		if validator.Address == "" {
 			return nil, fmt.Errorf("validator %d address is required", i)
 		}
@@ -262,8 +264,8 @@ func NewPersistentDevnetWithValidators(cfg NetworkConfig, dataDir string, valida
 	if normalized, err := NormalizeValidators(validators); err != nil {
 		return nil, err
 	} else if len(normalized) > 0 {
-		d.validators = normalized
-		d.ensureValidatorAccountsLocked()
+		d.validators = mergeValidatorRuntimeState(normalized, d.validators)
+		d.ensureStateDefaults()
 	}
 	if err := d.persistSnapshot(); err != nil {
 		return nil, err
@@ -293,13 +295,15 @@ func (d *Devnet) Status() map[string]any {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	latest := d.blocks[len(d.blocks)-1]
+	readyCount := d.readyValidatorCountLocked()
 	return map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
 		"decimals": d.cfg.Decimals, "publicNetwork": d.cfg.IsPublicNet,
 		"height": latest.Height, "latestBlockHash": latest.Hash, "latestBlockTime": latest.Time,
-		"validatorCount": len(d.validators), "pendingTxCount": len(d.pending),
-		"persistence": d.dataDir != "", "persistenceError": d.lastPersistenceError,
+		"validatorCount": len(d.validators), "readyValidatorCount": readyCount, "pendingTxCount": len(d.pending),
+		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
+		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
@@ -408,6 +412,54 @@ func (d *Devnet) Validators() []Validator {
 	out := make([]Validator, len(d.validators))
 	copy(out, d.validators)
 	return out
+}
+
+func (d *Devnet) UpdateValidatorPeerState(input ValidatorPeerHeartbeatInput) (Validator, error) {
+	input.Address = strings.TrimSpace(input.Address)
+	input.PeerID = strings.TrimSpace(input.PeerID)
+	input.Host = strings.TrimSpace(input.Host)
+	input.Status = strings.TrimSpace(input.Status)
+	input.Evidence = strings.TrimSpace(input.Evidence)
+	if input.Address == "" {
+		return Validator{}, errors.New("validator address is required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for i := range d.validators {
+		if d.validators[i].Address != input.Address {
+			continue
+		}
+		now := time.Now().UTC()
+		if input.PeerID != "" {
+			d.validators[i].PeerID = input.PeerID
+		}
+		if input.Host != "" {
+			d.validators[i].Host = input.Host
+		}
+		if input.Ready == nil {
+			d.validators[i].PeerReady = true
+		} else {
+			d.validators[i].PeerReady = *input.Ready
+		}
+		if input.Status != "" {
+			d.validators[i].PeerStatus = input.Status
+		} else if d.validators[i].PeerReady {
+			d.validators[i].PeerStatus = "ready"
+		} else {
+			d.validators[i].PeerStatus = "not_ready"
+		}
+		if input.LatestHeight > d.validators[i].LatestHeight {
+			d.validators[i].LatestHeight = input.LatestHeight
+		}
+		d.validators[i].LastSeenAt = &now
+		d.validators[i].UpdatedAt = &now
+		d.validators[i].PeerEvidence = input.Evidence
+		validator := d.validators[i]
+		err := d.persistSnapshotLocked()
+		d.recordPersistenceErrorLocked(err)
+		return validator, err
+	}
+	return Validator{}, fmt.Errorf("validator %s not found", input.Address)
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
@@ -1803,6 +1855,7 @@ func (d *Devnet) ProduceBlock() Block {
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
+	d.markValidatorProducedBlockLocked(validator, block.Height, block.Time)
 	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
 	return block
 }
@@ -1846,6 +1899,53 @@ func (d *Devnet) ensureValidatorAccountsLocked() {
 			account.Balance = 10_000_000
 		}
 	}
+}
+
+func (d *Devnet) markValidatorProducedBlockLocked(address string, height uint64, at time.Time) {
+	for i := range d.validators {
+		if d.validators[i].Address != address {
+			continue
+		}
+		seenAt := at.UTC()
+		d.validators[i].PeerReady = true
+		d.validators[i].PeerStatus = "produced_block"
+		if height > d.validators[i].LatestHeight {
+			d.validators[i].LatestHeight = height
+		}
+		d.validators[i].LastSeenAt = &seenAt
+		d.validators[i].UpdatedAt = &seenAt
+		return
+	}
+}
+
+func (d *Devnet) readyValidatorCountLocked() int {
+	count := 0
+	for _, validator := range d.validators {
+		if validator.Active && validator.PeerReady {
+			count++
+		}
+	}
+	return count
+}
+
+func mergeValidatorRuntimeState(configured, existing []Validator) []Validator {
+	byAddress := make(map[string]Validator, len(existing))
+	for _, validator := range existing {
+		byAddress[validator.Address] = validator
+	}
+	out := make([]Validator, len(configured))
+	for i, validator := range configured {
+		if saved, ok := byAddress[validator.Address]; ok {
+			validator.PeerReady = saved.PeerReady
+			validator.PeerStatus = saved.PeerStatus
+			validator.LatestHeight = saved.LatestHeight
+			validator.LastSeenAt = saved.LastSeenAt
+			validator.UpdatedAt = saved.UpdatedAt
+			validator.PeerEvidence = saved.PeerEvidence
+		}
+		out[i] = validator
+	}
+	return out
 }
 
 func (d *Devnet) accountReadOnly(address string) *Account {
@@ -2003,6 +2103,13 @@ func (d *Devnet) ensureStateDefaults() {
 		}
 		if d.validators[i].VotingPower <= 0 {
 			d.validators[i].VotingPower = 1
+		}
+		if strings.TrimSpace(d.validators[i].PeerStatus) == "" {
+			if d.validators[i].PeerReady {
+				d.validators[i].PeerStatus = "ready"
+			} else {
+				d.validators[i].PeerStatus = "configured"
+			}
 		}
 	}
 	for _, account := range d.accounts {

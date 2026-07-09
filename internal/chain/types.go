@@ -133,13 +133,29 @@ type LotFlow struct {
 }
 
 type Validator struct {
-	Address     string `json:"address"`
-	Moniker     string `json:"moniker"`
-	Host        string `json:"host,omitempty"`
-	Role        string `json:"role,omitempty"`
-	PeerID      string `json:"peerId,omitempty"`
-	VotingPower int64  `json:"votingPower"`
-	Active      bool   `json:"active"`
+	Address      string     `json:"address"`
+	Moniker      string     `json:"moniker"`
+	Host         string     `json:"host,omitempty"`
+	Role         string     `json:"role,omitempty"`
+	PeerID       string     `json:"peerId,omitempty"`
+	VotingPower  int64      `json:"votingPower"`
+	Active       bool       `json:"active"`
+	PeerReady    bool       `json:"peerReady"`
+	PeerStatus   string     `json:"peerStatus,omitempty"`
+	LatestHeight uint64     `json:"latestHeight,omitempty"`
+	LastSeenAt   *time.Time `json:"lastSeenAt,omitempty"`
+	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+	PeerEvidence string     `json:"peerEvidence,omitempty"`
+}
+
+type ValidatorPeerHeartbeatInput struct {
+	Address      string `json:"address,omitempty"`
+	PeerID       string `json:"peerId,omitempty"`
+	Host         string `json:"host,omitempty"`
+	Ready        *bool  `json:"ready,omitempty"`
+	Status       string `json:"status,omitempty"`
+	LatestHeight uint64 `json:"latestHeight,omitempty"`
+	Evidence     string `json:"evidence,omitempty"`
 }
 
 type TrustTrace struct {

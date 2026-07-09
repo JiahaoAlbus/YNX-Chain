@@ -61,6 +61,49 @@ func TestDevnetAPIFlow(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/trust/evidence/"+evidence["id"].(string), nil, http.StatusOK, &evidence)
 }
 
+func TestValidatorPeerReadinessAPI(t *testing.T) {
+	validators, err := chain.ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators)
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	var heartbeat map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_val_sg/heartbeat", map[string]any{
+		"peerId":       "peer-sg-live",
+		"host":         "43.134.23.58:26656",
+		"ready":        true,
+		"status":       "reachable",
+		"latestHeight": 12,
+		"evidence":     "api-heartbeat-unit-test",
+	}, http.StatusOK, &heartbeat)
+	if heartbeat["address"] != "ynx_val_sg" || heartbeat["peerReady"] != true || heartbeat["peerStatus"] != "reachable" || heartbeat["latestHeight"].(float64) != 12 || heartbeat["peerId"] != "peer-sg-live" {
+		t.Fatalf("unexpected heartbeat response: %v", heartbeat)
+	}
+
+	var validatorsOut map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/validators", nil, http.StatusOK, &validatorsOut)
+	got := validatorsOut["validators"].([]any)
+	if len(got) != 2 {
+		t.Fatalf("expected two validators: %v", validatorsOut)
+	}
+	sg := validatorJSONByAddress(got, "ynx_val_sg")
+	if sg == nil || sg["peerReady"] != true || sg["peerStatus"] != "reachable" || sg["peerEvidence"] != "api-heartbeat-unit-test" {
+		t.Fatalf("expected readable peer readiness in validators response: %v", validatorsOut)
+	}
+
+	var status map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/status", nil, http.StatusOK, &status)
+	if status["readyValidatorCount"].(float64) != 1 {
+		t.Fatalf("expected ready validator count 1: %v", status)
+	}
+
+	var bad map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/heartbeat", map[string]any{"ready": true}, http.StatusBadRequest, &bad)
+}
+
 func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
@@ -996,6 +1039,16 @@ func rulesContain(values []any, expectedID string) bool {
 		}
 	}
 	return false
+}
+
+func validatorJSONByAddress(validators []any, address string) map[string]any {
+	for _, value := range validators {
+		validator, ok := value.(map[string]any)
+		if ok && validator["address"] == address {
+			return validator
+		}
+	}
+	return nil
 }
 
 func entriesContainTypeStatus(values []any, expectedType, expectedStatus string) bool {

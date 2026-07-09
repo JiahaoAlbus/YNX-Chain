@@ -33,6 +33,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlockByHeight)
 	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /validators", s.handleValidators)
+	s.mux.HandleFunc("POST /validators/{address}/heartbeat", s.handleValidatorHeartbeat)
 	s.mux.HandleFunc("GET /txs", s.handleRecentTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
@@ -153,6 +154,19 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"validators": s.devnet.Validators()})
+}
+func (s *Server) handleValidatorHeartbeat(w http.ResponseWriter, r *http.Request) {
+	var req chain.ValidatorPeerHeartbeatInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	req.Address = r.PathValue("address")
+	validator, err := s.devnet.UpdateValidatorPeerState(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, validator)
 }
 func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.ExplorerSummary())

@@ -331,6 +331,7 @@ function classifyEndpointFailure(check) {
   const haystack = `${detail}\n${observed}`.toLowerCase();
   if (check?.name === "rpc.validators.count") return "validator-set-empty";
   if (check?.name === "rpc.validators.monikers" || check?.name === "rpc.validators.addresses") return "validator-metadata-missing";
+  if (check?.name === "rpc.validators.peerReadiness") return "validator-peer-readiness-missing";
   if (haystack.includes("ynx_9102-1")) return "legacy-chain";
   if (haystack.includes("expected 0x1917") || haystack.includes("expected ynx_6423-1") || haystack.includes("expected 6423")) {
     return "wrong-chain-id";
