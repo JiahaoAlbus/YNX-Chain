@@ -2,8 +2,8 @@
 
 Updated: 2026-07-09
 
-- State snapshot baseline commit: `a6a359d Add host key approval template` before this approved-repair update
-- Last pushed commit known locally before this approved-repair update: `a6a359d Add host key approval template`
+- State snapshot baseline commit: `bc2a63c Add approved host key repair workflow` before this evidence refresh
+- Last pushed commit known locally before this evidence refresh: `bc2a63c Add approved host key repair workflow`
 - Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, currently focused on remote public proof readiness for the already-local Anti-Illegal Request / Request Validity / Appeal / Transparency implementation and the SSH host-key approval/repair workflow that safely gates remote mutation. `remote-smoke-test` treats Chain Law APIs as part of public proof readiness and will verify request validity rules, transparency reports, illegal native YNXT rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, and anti-unreasonable tracking review before `public-proof` can pass.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
@@ -49,14 +49,14 @@ Incomplete modules or requirements:
 
 Remote deployment state:
 
-- `make host-key-audit` on 2026-07-09 still fails: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley remain `host-key-mismatch` and must not be mutated until manually verified.
+- `make host-key-audit` on 2026-07-09 at `2026-07-09T14:07:45.954Z` still fails: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley remain `host-key-mismatch` and must not be mutated until manually verified.
 - `make host-key-repair-plan` now generates `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current known_hosts entries, presented fingerprints, strict SSH output, and exact post-verification commands for Singapore and Silicon Valley. It points operators to `make host-key-approval-template`, `make host-key-approval-check`, `make host-key-approved-repair-dry-run`, and `make host-key-approved-repair`. It does not modify known_hosts and is not approval by itself.
 - `make host-key-approval-template` on 2026-07-09 writes `tmp/host-key-audit/host-key-approvals.template.json` with blank fingerprint values for Singapore and Silicon Valley only. The template is not trusted approval and does not write `.host-key-approvals.json`.
 - `.host-key-approvals.json` is intentionally git-ignored. `make host-key-approval-check` will remain blocked until that local file contains exact fingerprints verified from a trusted external source.
 - `make host-key-approval-check` on 2026-07-09 still fails closed because ignored `.host-key-approvals.json` is absent; this is expected until fingerprints are confirmed through a trusted provider/cloud-console channel.
-- `remote-smoke-test` evidence generated at `2026-07-09T13:50:55.259Z` failed with public endpoints still not proving the new chain: RPC/indexer/AI/Web4/faucet still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, RPC height did not grow during the short check window (`2629227 -> 2629227`), REST `/status` returns HTTP 501, governance request-validity and transparency endpoints return HTTP 501, faucet native symbol is `anyxt` instead of `YNXT`, and explorer health/summary return 404.
-- `remote-blocker-report` generated fresh `tmp/verify-testnet/REMOTE_BLOCKERS.md` and `tmp/verify-testnet/remote-blockers.json` at `2026-07-09T13:51:06.577Z` with deploy gate status `blocked`. The JSON records `remoteEvidence` and `hostKeyAudit` as required fresh source evidence before evaluating deploy readiness.
-- `make deploy-readiness-gate` currently fails, as intended, after confirming required source evidence is present and fresh; blockers remain Singapore/Silicon Valley host-key mismatches and public ingress blockers including wrong chain IDs, REST/governance HTTP 501, faucet native-symbol mismatch, and explorer 404s.
+- `remote-smoke-test` evidence generated at `2026-07-09T14:08:00.836Z` failed with public endpoints still not proving the new chain: RPC/indexer/AI/Web4/faucet still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, REST `/status` returns HTTP 501, governance request-validity and transparency endpoints return HTTP 501, faucet native symbol is `anyxt` instead of `YNXT`, and explorer health/summary return 404. RPC block height grew during this short check window (`2629673 -> 2629674`), but it is legacy-chain growth, not new YNX Testnet proof.
+- `remote-blocker-report` generated fresh `tmp/verify-testnet/REMOTE_BLOCKERS.md` and `tmp/verify-testnet/remote-blockers.json` at `2026-07-09T14:08:20.093Z` with deploy gate status `blocked`. The JSON records `remoteEvidence` and `hostKeyAudit` as required fresh source evidence and both are fresh under the 120-minute deploy-gate window.
+- `make deploy-readiness-gate` currently fails, as intended, after confirming required source evidence is present and fresh; blockers remain Singapore/Silicon Valley host-key mismatches and public ingress blockers including REST/governance HTTP 501, faucet native-symbol mismatch, explorer 404s, and public services still proving old-chain state.
 - This is not public proof.
 
 Current blockers:
