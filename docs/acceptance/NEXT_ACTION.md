@@ -1,67 +1,56 @@
 # Next Action
 
-Current single action: finish validation, commit, and push the Anti-Illegal Request Engine + Request Validity Standard + Appeal / Transparency API local implementation; then move the next real gap to remote deployment/public proof once deploy-readiness blockers are cleared.
+Current single action: refresh remote blocker evidence and move toward safe remote deployment/public proof for the new `ynx_6423-1` YNX Testnet.
 
 Why this action:
 
-- The updated objective names Anti-Illegal Request / Request Validity / Appeal / Transparency as the current immediate implementation direction.
-- The local implementation now exists as real persisted chain state, API handlers, tests, smoke checks, and Makefile targets.
-- The remaining work for this slice is full required validation, commit, and push; remote deployment/public proof remains blocked by previously recorded SSH/public ingress blockers.
-- It turns Chain Law from documentation into executable request intake, validity classification, illegal-request rejection, manual rejection, appeal availability, user notice, and transparency records.
-- EVM/IDE bounded execution is safely recorded as local verified / not remote deployed and is paused for this higher-priority governance/trust gap.
+- The Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs are now implemented and locally verified.
+- The final objective now prioritizes public multi-validator testnet proof over more local feature expansion.
+- Remote mutation is still unsafe unless SSH host-key and public ingress evidence are current and the deploy-readiness gate passes.
+- `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
+- EVM/IDE bounded execution remains paused unless needed to preserve existing tests.
 
 Files to touch:
 
-These are the relevant closure files; in this update some handler/type files were verified without needing code edits.
-
-- `internal/chain/types.go`
-- `internal/chain/devnet.go`
-- `internal/api/server.go`
-- `internal/chain/devnet_test.go`
-- `internal/api/server_test.go`
-- `scripts/verify/*anti*request*`
-- `scripts/verify/*request-validity*`
-- `scripts/verify/*transparency*`
-- `scripts/verify/*trust-appeal*`
-- `Makefile`
-- `docs/api/API_REFERENCE.md`
-- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
+- `scripts/verify/remote-smoke-test.mjs`
+- `scripts/verify/remote-smoke-test.sh`
+- `scripts/verify/verify-testnet.sh`
+- `scripts/verify/remote-blocker-report.mjs`
+- `scripts/verify/deploy-readiness-gate.mjs`
+- `scripts/package/public-proof.sh`
+- `docs/public-proof/PUBLIC_TESTNET_PROOF.md`
+- `docs/acceptance/TESTNET_ACCEPTANCE_REPORT.md`
+- `docs/acceptance/GOAL_DIGEST.md`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/NEXT_ACTION.md`
+- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
 Validation commands:
 
-- `go test ./...`
-- `make anti-illegal-request-check`
-- `make request-validity-check`
-- `make transparency-report-check`
-- `make trust-appeal-check`
+- `node --check scripts/verify/remote-smoke-test.mjs`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
-- `make preflight`
 - `make objective-state-check`
+- `make preflight`
+- `YNX_REMOTE_TIMEOUT_MS=5000 YNX_REMOTE_BLOCK_GROWTH_DELAY_MS=1000 YNX_REMOTE_EVIDENCE_PATH=tmp/verify-testnet/remote-evidence.json make remote-smoke-test`
+- `make remote-blocker-report`
+- `make deploy-readiness-gate`
 
 Completion standard:
 
-- `POST /governance/requests`, `GET /governance/requests/:id`, `POST /governance/requests/:id/review`, `POST /governance/requests/:id/reject`, `GET /governance/transparency`, `POST /trust/appeals`, and `GET /trust/appeals/:id` are implemented as real handlers over persisted state.
-- Requests are classified as `VALID_UNDER_YNX_CHAIN_LAW`, `INSUFFICIENT_EVIDENCE`, `OUT_OF_SCOPE`, `OVERBROAD`, `ILLEGAL_OR_ABUSIVE`, `REQUIRES_GOVERNANCE_REVIEW`, `REQUIRES_USER_NOTICE`, or `REJECTED`.
-- Illegal requests, overbroad requests, evidence-free requests, out-of-scope asset-boundary requests, native YNXT direct freeze/transfer/seize requests, signature-bypass requests, fake-risk-label requests, hidden-log requests, unsupported Trust conclusions, and AI auto-punishment requests are rejected or routed to review/notice with rule IDs and transparency entries.
-- Appeals are persisted and retrievable, and transparency report entries/counts reflect request intake, rejection/review, manual rejection, appeal open, and appeal resolution activity.
-- Unit tests and smoke/check commands prove the behavior without claiming remote public proof.
-- API docs and tracker are updated only after code and checks exist.
+- Remote smoke evidence includes public Request Validity rule checks and transparency checks before any mutable remote action.
+- Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.
+- `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints.
+- `PROJECT_STATE.md` records current remote blocker evidence and does not claim public proof while endpoints are old-chain, timed out, or unverified.
+- `FEATURE_COMPLETION_TRACKER.md` keeps remote-deployed/public-proof columns as `no` until live public evidence proves otherwise.
 
-Next real gap after this local closure:
+Explicitly not doing:
 
-- Remote deployment/public proof for these governance and Trust endpoints is still not complete.
-- Do not claim public proof until the deploy-readiness gate clears, services are deployed, and real public endpoints are smoke-tested.
-
-Explicitly not doing in this action:
-
-- Do not expand bounded EVM opcode coverage or IDE execution further unless required to keep existing tests passing.
 - Do not edit the old `/Users/huangjiahao/Desktop/YNX` project.
-- Do not disable deploy-readiness-gate or SSH host-key protections.
-- Do not claim public proof for localhost results.
-- Do not deploy until real `.env.deploy`, verified SSH, backup, rollback, and deploy-readiness-gate are ready.
+- Do not deploy while `deploy-readiness-gate` is blocked.
+- Do not bypass SSH host-key protections.
+- Do not treat localhost smoke output as public proof.
+- Do not claim mainnet, exchange listing, wallet default support, stablecoin issuer support, or third-party partnership.
 - Do not claim the goal is complete.

@@ -176,6 +176,96 @@ function checkTxHash(name, json) {
   return ok;
 }
 
+function checkRequestValidityRules(json) {
+  const rules = Array.isArray(json?.rules) ? json.rules : [];
+  const ids = new Set(rules.map((rule) => rule?.id).filter(Boolean));
+  const required = [
+    "protect-private-secrets",
+    "no-signature-bypass",
+    "preserve-audit-transparency",
+    "no-evidence-free-risk",
+    "no-ai-punishment",
+    "targeted-scope-required",
+    "native-ynxt-no-direct-freeze",
+    "asset-type-boundary",
+    "evidence-required",
+    "governance-review-user-rights",
+    "user-notice-required",
+  ];
+  const missing = required.filter((id) => !ids.has(id));
+  const ok = missing.length === 0;
+  record(
+    "governance.requestValidityRules.required",
+    ok,
+    ok ? `${required.length} required rule IDs present` : `missing rule IDs: ${missing.join(", ")}`,
+    { ruleCount: rules.length, missing }
+  );
+  return ok;
+}
+
+function checkGovernanceRequest(name, json, classification, status, ruleId) {
+  const observedClassification = json?.classification ?? "";
+  const observedStatus = json?.status ?? "";
+  const ruleIds = Array.isArray(json?.ruleIds) ? json.ruleIds : [];
+  const ok = observedClassification === classification && observedStatus === status && (!ruleId || ruleIds.includes(ruleId));
+  record(
+    name,
+    ok,
+    ok ? `${classification}/${status}` : `expected ${classification}/${status}/${ruleId || "any-rule"}, got ${observedClassification}/${observedStatus}/${ruleIds.join("|")}`,
+    { id: json?.id, classification: observedClassification, status: observedStatus, ruleIds }
+  );
+  return ok;
+}
+
+function checkReadableID(name, json, expectedID) {
+  const ok = typeof expectedID === "string" && expectedID.length > 0 && json?.id === expectedID;
+  record(name, ok, ok ? `id ${expectedID}` : `expected id ${expectedID}, got ${json?.id}`, { expectedID, id: json?.id });
+  return ok;
+}
+
+function checkAppeal(name, json, status) {
+  const ok = json?.status === status && typeof json?.id === "string" && json.id.length > 0 && typeof json?.transparencyEntryId === "string" && json.transparencyEntryId.length > 0;
+  record(
+    name,
+    ok,
+    ok ? `${status} appeal ${json.id}` : `expected ${status} appeal with transparency entry, got ${clip(json)}`,
+    { id: json?.id, status: json?.status, transparencyEntryId: json?.transparencyEntryId }
+  );
+  return ok;
+}
+
+function checkTrackingReview(name, json, classification, status, ruleId) {
+  const ruleIds = Array.isArray(json?.ruleIds) ? json.ruleIds : [];
+  const ok = json?.classification === classification && json?.status === status && (!ruleId || ruleIds.includes(ruleId));
+  record(
+    name,
+    ok,
+    ok ? `${classification}/${status}` : `expected ${classification}/${status}/${ruleId || "any-rule"}, got ${json?.classification}/${json?.status}/${ruleIds.join("|")}`,
+    { id: json?.id, classification: json?.classification, status: json?.status, ruleIds, appealPath: json?.appealPath }
+  );
+  return ok;
+}
+
+function checkTransparencyReport(name, json, minimums = {}) {
+  const entryCount = Number(json?.entryCount);
+  const rejectedCount = Number(json?.rejectedCount);
+  const appealCount = Number(json?.appealCount);
+  const reviewCount = Number(json?.reviewCount);
+  const ok = Number.isFinite(entryCount) &&
+    entryCount >= Number(minimums.entryCount ?? 0) &&
+    (!("rejectedCount" in minimums) || (Number.isFinite(rejectedCount) && rejectedCount >= minimums.rejectedCount)) &&
+    (!("appealCount" in minimums) || (Number.isFinite(appealCount) && appealCount >= minimums.appealCount)) &&
+    (!("reviewCount" in minimums) || (Number.isFinite(reviewCount) && reviewCount >= minimums.reviewCount)) &&
+    Array.isArray(json?.entries);
+  record(
+    name,
+    ok,
+    ok ? `entries=${entryCount} rejected=${rejectedCount} appeals=${appealCount} reviews=${reviewCount}` : `unexpected transparency report ${clip(json)}`,
+    { entryCount, rejectedCount, appealCount, reviewCount }
+  );
+  return ok;
+}
+
 function checkValidators(json) {
   const validators = Array.isArray(json?.validators) ? json.validators : [];
   const active = validators.filter((validator) => validator?.active !== false);
@@ -313,6 +403,11 @@ async function main() {
   const restChainOk = restStatus ? checkChain("rest.status.chain", restStatus) : false;
   const grpcOk = await checkGrpcEndpoint();
 
+  const requestValidityRules = await getJson("governance.requestValidityRules", `${endpoints.rest}/governance/request-validity-rules`);
+  const requestValidityRulesOk = requestValidityRules ? checkRequestValidityRules(requestValidityRules) : false;
+  const transparencyInitial = await getJson("governance.transparency.initial", `${endpoints.rest}/governance/transparency`);
+  const transparencyInitialOk = transparencyInitial ? checkTransparencyReport("governance.transparency.initial.report", transparencyInitial) : false;
+
   const faucetHealth = await getJson("faucet.health", `${endpoints.faucet}/health`);
   const faucetChainOk = faucetHealth ? checkChain("faucet.health.chain", faucetHealth) : false;
   const faucetNativeOk = faucetHealth ? checkNative("faucet.health.native", faucetHealth) : false;
@@ -344,9 +439,9 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk;
+  const publicChainReady = rpcChainOk && grew && validatorsOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
-    record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE mutations because public endpoints are not verified as the new YNX Testnet", {});
+    record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
     const faucetTx = await postJson("faucet.request", `${endpoints.faucet}/request`, { address: sampleAddress, amount: 1 });
     if (faucetTx) checkTxHash("faucet.request.tx", faucetTx);
@@ -362,6 +457,120 @@ async function main() {
 
     const trust = await getJson("trust.trace", `${endpoints.rest}/trust/trace/${sampleAddress}`);
     record("trust.trace.address", trust?.address === sampleAddress, trust?.address ? `trace ${trust.address}` : "missing trust trace", trust);
+
+    const illegalRequest = await postJson("governance.request.illegal", `${endpoints.rest}/governance/requests`, {
+      requester: "remote_smoke_agency",
+      subject: sampleAddress,
+      action: "freeze native YNXT",
+      assetType: "YNXT",
+      scope: sampleAddress,
+      description: "directly freeze user native YNXT by protocol request",
+      evidence: ["case:remote-smoke"],
+    });
+    if (illegalRequest) {
+      checkGovernanceRequest("governance.request.illegal.classification", illegalRequest, "ILLEGAL_OR_ABUSIVE", "rejected", "native-ynxt-no-direct-freeze");
+      record("governance.request.illegal.nativeYnxtProtected", illegalRequest.nativeYnxtProtected === true, illegalRequest.nativeYnxtProtected === true ? "native YNXT protected" : "nativeYnxtProtected is not true", illegalRequest);
+    }
+
+    const reviewRequest = await postJson("governance.request.review", `${endpoints.rest}/governance/requests`, {
+      requester: "remote_smoke_merchant",
+      subject: sampleAddress,
+      action: "risk label review",
+      assetType: "stablecoin",
+      scope: "single transfer",
+      description: "review scoped transfer evidence for remote public proof",
+      evidence: ["case:remote-smoke", "tx:0xremote"],
+    });
+    if (reviewRequest) {
+      checkGovernanceRequest("governance.request.review.classification", reviewRequest, "REQUIRES_GOVERNANCE_REVIEW", "pending_review", "governance-review-user-rights");
+      if (reviewRequest.id) {
+        const readReview = await getJson("governance.request.review.lookup", `${endpoints.rest}/governance/requests/${encodeURIComponent(reviewRequest.id)}`);
+        if (readReview) checkReadableID("governance.request.review.lookup.id", readReview, reviewRequest.id);
+        const reviewed = await postJson("governance.request.review.markReviewed", `${endpoints.rest}/governance/requests/${encodeURIComponent(reviewRequest.id)}/review`, {});
+        record("governance.request.review.markReviewed.status", reviewed?.status === "reviewed" && Boolean(reviewed?.reviewedAt), reviewed?.status === "reviewed" ? "reviewed" : "review failed", reviewed);
+      }
+    }
+
+    const manualRequest = await postJson("governance.request.manualRejectSource", `${endpoints.rest}/governance/requests`, {
+      requester: "remote_smoke_reviewer",
+      subject: sampleAddress,
+      action: "metadata correction",
+      assetType: "evidence",
+      scope: "single evidence packet",
+      description: "correct one evidence packet with reviewer evidence",
+      evidence: ["case:remote-smoke"],
+    });
+    if (manualRequest?.id) {
+      const rejected = await postJson("governance.request.manualReject", `${endpoints.rest}/governance/requests/${encodeURIComponent(manualRequest.id)}/reject`, { reason: "remote smoke manual rejection proof" });
+      record("governance.request.manualReject.status", rejected?.classification === "REJECTED" && rejected?.status === "rejected" && Boolean(rejected?.rejectedAt), rejected?.status === "rejected" ? "manual rejection recorded" : "manual rejection failed", rejected);
+    }
+
+    const noticeRequest = await postJson("governance.request.notice", `${endpoints.rest}/governance/requests`, {
+      requester: "remote_smoke_reviewer",
+      subject: sampleAddress,
+      action: "notify user about appeal notice",
+      assetType: "trust_label",
+      scope: "single address",
+      description: "create user notice and transparency notice",
+      evidence: ["case:remote-smoke-notice"],
+    });
+    if (noticeRequest) {
+      checkGovernanceRequest("governance.request.notice.classification", noticeRequest, "REQUIRES_USER_NOTICE", "notice_required", "user-notice-required");
+    }
+
+    if (reviewRequest?.id) {
+      const appeal = await postJson("trust.appeal.open", `${endpoints.rest}/trust/appeals`, {
+        requestId: reviewRequest.id,
+        subject: sampleAddress,
+        appellant: sampleAddress,
+        reason: "remote public false positive correction proof",
+        evidence: ["owner proof"],
+      });
+      if (appeal) {
+        checkAppeal("trust.appeal.open.status", appeal, "SUBMITTED");
+        if (appeal.id) {
+          const appealRead = await getJson("trust.appeal.lookup", `${endpoints.rest}/trust/appeals/${encodeURIComponent(appeal.id)}`);
+          if (appealRead) checkReadableID("trust.appeal.lookup.id", appealRead, appeal.id);
+          const appealResolved = await postJson("trust.appeal.resolve", `${endpoints.rest}/trust/appeals/${encodeURIComponent(appeal.id)}/resolve`, {
+            reviewer: "remote_smoke_reviewer",
+            decision: "LABEL_REDUCED",
+            resolutionReason: "remote smoke evidence reduced label confidence",
+          });
+          record("trust.appeal.resolve.status", appealResolved?.status === "LABEL_REDUCED" && appealResolved?.reviewer === "remote_smoke_reviewer", appealResolved?.status === "LABEL_REDUCED" ? "appeal resolved" : "appeal resolution failed", appealResolved);
+        }
+      }
+    }
+
+    const trackingValid = await postJson("trust.trackingReview.valid", `${endpoints.rest}/trust/tracking-reviews`, {
+      requester: "remote_smoke_merchant",
+      subject: sampleAddress,
+      purpose: "single transaction screening",
+      queryType: "trace",
+      scope: "single transfer",
+      description: "purpose limited remote tracking proof",
+      evidence: ["case:remote-smoke"],
+      minimumNecessary: true,
+      confidenceBps: 7600,
+      expiryHours: 24,
+    });
+    if (trackingValid) checkTrackingReview("trust.trackingReview.valid.classification", trackingValid, "VALID_UNDER_YNX_CHAIN_LAW", "logged", "tracking-purpose-limited-valid");
+
+    const trackingBlocked = await postJson("trust.trackingReview.overbroad", `${endpoints.rest}/trust/tracking-reviews`, {
+      requester: "remote_smoke_merchant",
+      subject: sampleAddress,
+      purpose: "bulk profile all wallets",
+      queryType: "batch",
+      scope: "all wallets",
+      description: "mass tracking everyone",
+      evidence: ["case:remote-smoke"],
+      minimumNecessary: false,
+    });
+    if (trackingBlocked) checkTrackingReview("trust.trackingReview.overbroad.classification", trackingBlocked, "OVERBROAD", "rejected", "tracking-minimum-necessary");
+
+    const transparencyFinal = await getJson("governance.transparency.final", `${endpoints.rest}/governance/transparency`);
+    if (transparencyFinal) {
+      checkTransparencyReport("governance.transparency.final.report", transparencyFinal, { entryCount: 8, rejectedCount: 3, appealCount: 1, reviewCount: 1 });
+    }
 
     const quote = await getJson("resource.quote", `${endpoints.rest}/resource-market/quote?address=${encodeURIComponent(sampleAddress)}&bandwidth=1&compute=1&aiCredits=1&trustCredits=1`);
     record("resource.quote.available", Boolean(quote), quote ? "resource quote returned" : "resource quote missing", quote);

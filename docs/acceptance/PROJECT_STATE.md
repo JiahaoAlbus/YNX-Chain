@@ -2,16 +2,16 @@
 
 Updated: 2026-07-09
 
-- State snapshot baseline commit: `8aa70b1 Capture bounded EVM execution logs` before this update
-- Last pushed commit known locally before this update: `8aa70b1 Capture bounded EVM execution logs`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update to implement and verify the current Anti-Illegal Request / Request Validity / Appeal / Transparency gap with executable asset-boundary classification, user-notice classification, manual governance rejection, stronger API tests, and expanded local smoke/check commands. The prior EVM/IDE WIP remains safely recorded as local verified / not remote deployed and is not expanded in this update.
+- State snapshot baseline commit: `a95baa8 Implement governance request validity checks` before this update
+- Last pushed commit known locally before this update: `a95baa8 Implement governance request validity checks`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, changed in this update to move the remote public proof gate forward after the local Anti-Illegal Request / Request Validity / Appeal / Transparency implementation. `remote-smoke-test` now treats Chain Law APIs as part of public proof readiness and will verify request validity rules, transparency reports, illegal native YNXT rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, and anti-unreasonable tracking review before `public-proof` can pass.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
 
 - Local chain, faucet, indexer, explorer service code exists with Go tests.
 - Deploy, dry-run, verify, ops, backup, rollback, host-key audit, legacy inventory, remote smoke, public proof, and package commands exist.
-- `remote-smoke-test` checks public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, and Web4 endpoints before mutable proof actions.
+- `remote-smoke-test` checks public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, Web4, Request Validity rules, and transparency endpoints before mutable proof actions. After the public chain is verified as the new YNX Testnet, it also checks faucet, Pay, Trust trace, Resource, IDE compile, Anti-Illegal Request rejection, governance review/reject, appeal resolution, anti-unreasonable tracking, and final transparency counts.
 - Legacy backup coverage is wired into deployment and ops checks.
 - `remote-blocker-report` classifies node failures and public endpoint failures instead of only pasting raw error blocks.
 - `deploy-readiness-gate` reads `tmp/verify-testnet/remote-blockers.json` and blocks real `deploy-testnet` mutation when SSH or public ingress evidence is unsafe. `DEPLOY_DRY_RUN=1` skips the gate for local dry-run validation only.
@@ -42,10 +42,10 @@ Incomplete modules or requirements:
 
 Remote deployment state:
 
-- `make host-key-audit` on 2026-07-04 still fails, but the latest classification changed: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley are `host-key-mismatch` and must not be mutated until manually verified.
-- `remote-smoke-test` evidence generated at `2026-07-04T14:11:36.802Z` failed with a mixed public state: RPC/indexer/Web4 still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, block height did not grow during the check, REST/faucet/AI/EVM block calls timeout, and explorer health/summary return 404.
-- `remote-blocker-report` generated fresh `tmp/verify-testnet/REMOTE_BLOCKERS.md` and `tmp/verify-testnet/remote-blockers.json` with deploy gate status `blocked`.
-- `make deploy-readiness-gate` currently fails, as intended, listing Singapore/Silicon Valley host-key mismatches and public ingress blockers including timeouts and explorer 404s.
+- `make host-key-audit` on 2026-07-09 still fails: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley remain `host-key-mismatch` and must not be mutated until manually verified.
+- `remote-smoke-test` evidence generated at `2026-07-09T13:12:48.228Z` failed with public endpoints still not proving the new chain: RPC/indexer/AI/Web4/faucet still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, block height did not grow, REST `/status` returns HTTP 501, governance request-validity and transparency endpoints return HTTP 501, faucet native symbol is `anyxt` instead of `YNXT`, and explorer health/summary return 404.
+- `remote-blocker-report` generated fresh `tmp/verify-testnet/REMOTE_BLOCKERS.md` and `tmp/verify-testnet/remote-blockers.json` at `2026-07-09T13:13:03.407Z` with deploy gate status `blocked`.
+- `make deploy-readiness-gate` currently fails, as intended, listing Singapore/Silicon Valley host-key mismatches and public ingress blockers including wrong chain IDs, REST/governance HTTP 501, faucet native-symbol mismatch, and explorer 404s.
 - This is not public proof.
 
 Current blockers:
@@ -56,4 +56,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Finish the full required validation suite for the current Anti-Illegal Request / Request Validity / Appeal / Transparency closure, commit and push the verified local implementation, then address remote deployment/public proof blockers before claiming any public endpoint proof.
+- Refresh remote blocker evidence, clear SSH/ingress blockers, and deploy/verify the new `ynx_6423-1` public testnet. Remote mutation remains unsafe until deploy-readiness gate passes; public proof remains incomplete until `remote-smoke-test`, `verify-testnet`, and `public-proof` pass against real public endpoints.

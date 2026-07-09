@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Implement and verify Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs as real local code while remote deployment remains blocked.
+- Move from local governance/trust completion to remote public proof readiness: keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
 
 Forbidden:
 
