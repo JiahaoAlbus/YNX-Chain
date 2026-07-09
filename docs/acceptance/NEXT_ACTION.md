@@ -1,54 +1,53 @@
 # Next Action
 
-Current single action: independently verify the Singapore and Silicon Valley SSH host-key fingerprints, then correct `known_hosts` only if the trusted fingerprints match and rerun deploy-readiness evidence for the new `ynx_6423-1` YNX Testnet.
+Current single action: prove the Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs on real public endpoints for the new `ynx_6423-1` YNX Testnet. The immediate safe prerequisite is to independently verify the Singapore and Silicon Valley SSH host-key fingerprints, write the confirmed values to ignored `.host-key-approvals.json`, require `make host-key-approval-check` to pass, then correct `known_hosts` only if the trusted fingerprints match and rerun deploy-readiness evidence.
 
 Why this action:
 
-- The Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs are now implemented and locally verified.
-- The final objective now prioritizes public multi-validator testnet proof over more local feature expansion.
+- The Anti-Illegal Request Engine, Request Validity Standard, Appeal, and Transparency APIs are now implemented, covered by local devnet tests, covered by handler-level API tests, and wired into smoke/check commands.
+- The final objective now prioritizes public proof for these Chain Law / Appeal / Transparency surfaces over more local EVM/IDE feature expansion.
 - Remote mutation is still unsafe because Singapore and Silicon Valley host keys currently fail strict SSH verification.
 - The repo now needs a repeatable, non-mutating host-key repair plan so the operator can verify fingerprints out-of-band before any known_hosts update.
+- The repo now has a machine-checkable host-key approval step, but no trusted approval file is present yet.
 - `remote-blocker-report` and `deploy-readiness-gate` now also require fresh underlying host-key and remote-smoke evidence; a freshly regenerated blocker JSON alone is not enough.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
-- EVM/IDE bounded execution remains paused unless needed to preserve existing tests.
+- EVM/IDE bounded execution is safely closed for now: keep existing tests green, but do not expand bounded opcode coverage, Counter samples, Hardhat artifacts, or IDE execution unless needed to preserve current tests.
 
 Files to touch:
 
-- `scripts/verify/remote-smoke-test.mjs`
-- `scripts/verify/remote-smoke-test.sh`
-- `scripts/verify/verify-testnet.sh`
-- `scripts/ops/host-key-repair-plan.sh`
-- `scripts/ops/host-key-audit.sh`
-- `scripts/verify/deploy-readiness-gate-check.mjs`
-- `scripts/verify/remote-blocker-report.mjs`
-- `scripts/verify/deploy-readiness-gate.mjs`
-- `scripts/package/public-proof.sh`
-- `docs/public-proof/PUBLIC_TESTNET_PROOF.md`
-- `docs/acceptance/TESTNET_ACCEPTANCE_REPORT.md`
-- `docs/acceptance/GOAL_DIGEST.md`
-- `docs/acceptance/PROJECT_STATE.md`
-- `docs/acceptance/NEXT_ACTION.md`
-- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
+- For this local closeout, only touch API tests and state/docs needed to reflect true implementation status.
+- For the next remote proof step, touch deployment evidence, remote smoke/proof scripts, and public proof docs only after host-key approval and deploy-readiness evidence are safe.
 
 Validation commands:
 
-- `node --check scripts/verify/remote-smoke-test.mjs`
-- `make host-key-repair-plan`
-- `make host-key-audit`
-- `make deploy-readiness-gate-check`
+- `go test ./...`
+- `make anti-illegal-request-check`
+- `make request-validity-check`
+- `make transparency-report-check`
+- `make trust-appeal-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
-- `make objective-state-check`
 - `make preflight`
+- `make objective-state-check`
+- `make host-key-repair-plan`
+- `make host-key-approval-check-test`
+- `make host-key-approval-check`
+- `make host-key-audit`
+- `make deploy-readiness-gate-check`
 - `YNX_REMOTE_TIMEOUT_MS=5000 YNX_REMOTE_BLOCK_GROWTH_DELAY_MS=1000 YNX_REMOTE_EVIDENCE_PATH=tmp/verify-testnet/remote-evidence.json make remote-smoke-test`
 - `make remote-blocker-report`
 - `make deploy-readiness-gate`
 
 Completion standard:
 
+- Local code must expose and test `POST /governance/requests`, `GET /governance/requests/:id`, `POST /governance/requests/:id/review`, `POST /governance/requests/:id/reject`, `GET /governance/transparency`, `POST /trust/appeals`, and `GET /trust/appeals/:id`.
+- Local tests and smoke/check commands must prove request intake, validity classification, illegal rejection, overbroad detection, evidence checks, asset boundary checks, native YNXT direct-freeze protection, appeal intake, transparency records, and persistence.
+- `FEATURE_COMPLETION_TRACKER.md` must keep these modules as not remote deployed and not public proof until a real public endpoint passes.
 - `make host-key-repair-plan` produces `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current local entries, presented fingerprints, strict SSH output, and commands that are clearly marked as requiring trusted out-of-band fingerprint confirmation first.
+- `make host-key-approval-check-test` proves the approval checker accepts matched fingerprints and rejects mismatched fingerprints.
+- `make host-key-approval-check` remains blocked until ignored `.host-key-approvals.json` contains exact fingerprints confirmed from a trusted external source.
 - The script does not modify `~/.ssh/known_hosts` or bypass strict SSH checks.
 - `make deploy-readiness-gate-check` proves the deploy gate rejects old-format blocker JSON, missing required source evidence, stale required source evidence, missing source files, and explicit endpoint blockers.
 - `remote-blocker-report` records freshness for the underlying remote-smoke and host-key-audit evidence, and `deploy-readiness-gate` refuses mutation if either required source is missing or stale.
@@ -63,6 +62,7 @@ Explicitly not doing:
 - Do not edit the old `/Users/huangjiahao/Desktop/YNX` project.
 - Do not deploy while `deploy-readiness-gate` is blocked.
 - Do not bypass SSH host-key protections.
+- Do not commit `.host-key-approvals.json`; it is intentionally ignored.
 - Do not run the generated known_hosts repair commands unless the fingerprints are independently verified.
 - Do not treat localhost smoke output as public proof.
 - Do not claim mainnet, exchange listing, wallet default support, stablecoin issuer support, or third-party partnership.

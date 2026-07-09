@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Move from local governance/trust completion to remote public proof readiness: safely clear Singapore/Silicon Valley SSH host-key mismatches through an out-of-band verified repair plan, keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
+- Move from local governance/trust completion to remote public proof readiness: safely clear Singapore/Silicon Valley SSH host-key mismatches through an out-of-band verified repair plan plus ignored local approval check, keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
 
 Forbidden:
 

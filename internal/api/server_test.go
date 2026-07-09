@@ -61,6 +61,158 @@ func TestDevnetAPIFlow(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/trust/evidence/"+evidence["id"].(string), nil, http.StatusOK, &evidence)
 }
 
+func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	var rules map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/governance/request-validity-rules", nil, http.StatusOK, &rules)
+	for _, expected := range []string{
+		"governance-review-user-rights",
+		"targeted-scope-required",
+		"evidence-required",
+		"native-ynxt-no-direct-freeze",
+		"asset-type-boundary",
+		"user-notice-required",
+	} {
+		if !rulesContain(rules["rules"].([]any), expected) {
+			t.Fatalf("expected request validity rule %s in %v", expected, rules)
+		}
+	}
+
+	var reviewRequest map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "risk label review",
+		"assetType":   "stablecoin",
+		"scope":       "single transfer",
+		"description": "review a scoped transfer with evidence",
+		"evidence":    []string{"case:api", "tx:0xabc"},
+	}, http.StatusCreated, &reviewRequest)
+	if reviewRequest["classification"] != string(chain.RequestRequiresReview) || reviewRequest["status"] != "pending_review" || reviewRequest["transparencyEntryId"] == "" {
+		t.Fatalf("expected review-required governance request: %v", reviewRequest)
+	}
+	if !stringSliceContains(reviewRequest["ruleIds"].([]any), "governance-review-user-rights") || reviewRequest["requiresUserNotice"] != true {
+		t.Fatalf("expected review rule id and user notice: %v", reviewRequest)
+	}
+
+	requestID := reviewRequest["id"].(string)
+	var readRequest map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/governance/requests/"+requestID, nil, http.StatusOK, &readRequest)
+	if readRequest["id"] != requestID || readRequest["classification"] != string(chain.RequestRequiresReview) {
+		t.Fatalf("expected readable persisted governance request: %v", readRequest)
+	}
+
+	var reviewed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+requestID+"/review", nil, http.StatusOK, &reviewed)
+	if reviewed["status"] != "reviewed" || reviewed["reviewedAt"] == nil {
+		t.Fatalf("expected explicit governance review status: %v", reviewed)
+	}
+
+	var nativeRejected map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "freeze native YNXT",
+		"assetType":   "YNXT",
+		"scope":       "single account",
+		"description": "directly freeze user native YNXT by protocol request",
+		"evidence":    []string{"case:native"},
+	}, http.StatusCreated, &nativeRejected)
+	if nativeRejected["classification"] != string(chain.RequestIllegalOrAbusive) || nativeRejected["status"] != "rejected" || nativeRejected["nativeYnxtProtected"] != true {
+		t.Fatalf("expected native YNXT protection rejection: %v", nativeRejected)
+	}
+	if !stringSliceContains(nativeRejected["ruleIds"].([]any), "native-ynxt-no-direct-freeze") {
+		t.Fatalf("expected native YNXT rule id: %v", nativeRejected)
+	}
+
+	var overbroad map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "trace all wallets",
+		"assetType":   "stablecoin",
+		"scope":       "all wallets",
+		"description": "bulk trace everyone",
+		"evidence":    []string{"case:bulk"},
+	}, http.StatusCreated, &overbroad)
+	if overbroad["classification"] != string(chain.RequestOverbroad) || !stringSliceContains(overbroad["ruleIds"].([]any), "targeted-scope-required") {
+		t.Fatalf("expected overbroad request rejection: %v", overbroad)
+	}
+
+	var missingEvidence map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "risk label review",
+		"assetType":   "stablecoin",
+		"scope":       "single transfer",
+		"description": "review without evidence",
+	}, http.StatusCreated, &missingEvidence)
+	if missingEvidence["classification"] != string(chain.RequestInsufficientEvidence) || !stringSliceContains(missingEvidence["ruleIds"].([]any), "evidence-required") {
+		t.Fatalf("expected insufficient evidence classification: %v", missingEvidence)
+	}
+
+	var outOfScope map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "review off-chain bank account",
+		"assetType":   "bank_account",
+		"scope":       "single external account",
+		"description": "off-chain asset boundary check",
+		"evidence":    []string{"case:asset-boundary"},
+	}, http.StatusCreated, &outOfScope)
+	if outOfScope["classification"] != string(chain.RequestOutOfScope) || outOfScope["status"] != "rejected" || !stringSliceContains(outOfScope["ruleIds"].([]any), "asset-type-boundary") {
+		t.Fatalf("expected asset boundary rejection: %v", outOfScope)
+	}
+
+	var manual map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "unit_governance",
+		"subject":     "ynx_governance_subject",
+		"action":      "metadata correction",
+		"assetType":   "evidence",
+		"scope":       "single evidence packet",
+		"description": "correct one evidence packet with case evidence",
+		"evidence":    []string{"case:manual"},
+	}, http.StatusCreated, &manual)
+	var rejected map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+manual["id"].(string)+"/reject", map[string]any{"reason": "manual API rejection"}, http.StatusOK, &rejected)
+	if rejected["classification"] != string(chain.RequestRejected) || rejected["status"] != "rejected" || rejected["rejectedAt"] == nil || !stringSliceContains(rejected["reasons"].([]any), "manual API rejection") {
+		t.Fatalf("expected manual rejection metadata: %v", rejected)
+	}
+
+	var appeal map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{
+		"requestId": requestID,
+		"subject":   "ynx_governance_subject",
+		"appellant": "ynx_governance_subject",
+		"reason":    "false positive correction",
+		"evidence":  []string{"wallet ownership proof"},
+	}, http.StatusCreated, &appeal)
+	if appeal["status"] != "SUBMITTED" || appeal["transparencyEntryId"] == "" {
+		t.Fatalf("expected submitted appeal with transparency entry: %v", appeal)
+	}
+	var readAppeal map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/trust/appeals/"+appeal["id"].(string), nil, http.StatusOK, &readAppeal)
+	if readAppeal["id"] != appeal["id"] || readAppeal["requestId"] != requestID {
+		t.Fatalf("expected readable persisted appeal: %v", readAppeal)
+	}
+
+	var report map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/governance/transparency", nil, http.StatusOK, &report)
+	if report["entryCount"].(float64) < 8 || report["rejectedCount"].(float64) < 4 || report["appealCount"].(float64) < 1 || report["reviewCount"].(float64) < 1 {
+		t.Fatalf("expected transparency report counts for governance and appeal flow: %v", report)
+	}
+	entries := report["entries"].([]any)
+	if !entriesContainTypeStatus(entries, "governance_rejection", "rejected") || !entriesContainTypeStatus(entries, "trust_appeal", "SUBMITTED") {
+		t.Fatalf("expected rejection and appeal transparency entries: %v", report)
+	}
+}
+
 func TestEVMRPCSubset(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
@@ -830,6 +982,19 @@ func rulesContain(values []any, expectedID string) bool {
 			continue
 		}
 		if rule["id"] == expectedID {
+			return true
+		}
+	}
+	return false
+}
+
+func entriesContainTypeStatus(values []any, expectedType, expectedStatus string) bool {
+	for _, value := range values {
+		entry, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		if entry["type"] == expectedType && entry["status"] == expectedStatus {
 			return true
 		}
 	}

@@ -13,6 +13,7 @@
 !.env.ide.example
 !.env.monitoring.example
 !.env.deploy.example
+.host-key-approvals.json
 bin/
 dist/
 coverage/
