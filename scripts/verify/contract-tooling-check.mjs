@@ -66,8 +66,12 @@ assert(read("internal/chain/types.go").includes("DeployedBytecodeComparisonStatu
 assert(read("internal/chain/types.go").includes("ContractVerificationEvidence"), "contract verifier evidence type missing");
 assert(read("internal/chain/types.go").includes("BytecodeSelectorMatched"), "contract runtime must expose bytecode selector match evidence");
 assert(read("internal/chain/types.go").includes("ExecutionEngine"), "contract runtime must expose execution engine evidence");
+assert(read("internal/chain/types.go").includes("RuntimeStorageSlots"), "contract runtime must expose local storage slot metadata");
 assert(read("internal/chain/evm_static.go").includes("runStaticEVMSubset"), "bounded local EVM staticcall interpreter missing");
-assert(read("internal/api/server.go").includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
+const apiServer = read("internal/api/server.go");
+assert(apiServer.includes("GET /ide/verifier/{address}"), "IDE verifier evidence endpoint missing");
+assert(apiServer.includes("POST /ide/execute"), "IDE bounded execute endpoint missing");
+assert(apiServer.includes("eth_sendTransaction"), "bounded eth_sendTransaction path missing");
 
 const sampleArtifact = JSON.parse(read("artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"));
 assert(sampleArtifact.contractName === "SampleYNXTCompatibleERC20", "sample ERC20 artifact contract name mismatch");
@@ -84,6 +88,8 @@ const totalSupplySelector = sampleSelectorMetadata.functions?.find((fn) => fn.si
 assert(totalSupplySelector?.selector === "0x18160ddd" && totalSupplySelector.bytecodeSelectorMatched === true, "sample ERC20 totalSupply selector must match deployed bytecode");
 const balanceOfSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "balanceOf(address)");
 assert(balanceOfSelector?.selector === "0x70a08231" && balanceOfSelector.bytecodeSelectorMatched === true, "sample ERC20 balanceOf selector must match deployed bytecode");
+const transferSelector = sampleSelectorMetadata.functions?.find((fn) => fn.signature === "transfer(address,uint256)");
+assert(transferSelector?.selector === "0xa9059cbb" && transferSelector.bytecodeSelectorMatched === true, "sample ERC20 transfer selector must match deployed bytecode");
 
 const buildInfoFiles = fs.readdirSync(path.join(root, "artifacts/build-info")).filter((file) => file.endsWith(".json") && !file.endsWith(".output.json"));
 assert(buildInfoFiles.length > 0, "Hardhat build-info file missing after build");
@@ -119,7 +125,7 @@ const docs = [
   read("docs/defi/DEFI_ECOSYSTEM_READINESS.md"),
   read("docs/api/API_REFERENCE.md")
 ].join("\n");
-for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "totalSupply()", "balanceOf(address)", "bounded read-only local EVM opcode interpreter", "0.8.24"]) {
+for (const text of ["YNX Testnet", "6423", "YNXT", "YNX_EVM_RPC_URL", "make contract-tooling-check", "/ide/compiler", "/ide/verifier", "/ide/execute", "eth_sendTransaction", "source-analyzer-artifact", "pinned-solc-bytecode-artifact", "deployedBytecodeComparisonStatus", "remotePublicProofStatus", "bytecodeSelectorMatched", "executionEngine", "constructorArgs", "runtime storage slot", "totalSupply()", "balanceOf(address)", "transfer(address,uint256)", "bounded read-only local EVM opcode interpreter", "bounded local write-call path", "0.8.24"]) {
   assert(docs.includes(text), `developer docs missing ${text}`);
 }
 

@@ -1,12 +1,13 @@
 # Next Action
 
-Current single action: extend IDE/EVM from read-only static getters toward write-call/state-transition boundaries such as ERC20 `transfer(address,uint256)`, or wire remote verifier/explorer-backed proof if remote safety is cleared first.
+Current single action: extend the new bounded ERC20 `transfer(address,uint256)` local execution path toward fuller EVM bytecode state-transition semantics, especially `SSTORE`, arbitrary nonpayable function execution, richer storage layouts, and receipt/log fidelity; wire remote verifier/explorer-backed proof only if remote safety clears first.
 
 Why this action:
 
 - IDE compile/deploy/verify now distinguishes ad hoc `source-analyzer-artifact` output from repository `pinned-solc-bytecode-artifact` output backed by Hardhat artifacts, local deployed bytecode hash comparison, explicit `GET /ide/verifier/{address}` evidence, and `artifacts/ynx-selector-metadata.json` generated from Hardhat ABI through `ethers`.
-- Matched Hardhat artifacts now expose real Keccak selectors, selector source, `bytecodeSelectorMatched`, local runtime storage seed, optional `constructorArgs`, `executionEngine`, and `opcodeStepCount`; local `POST /ide/call` and EVM `eth_call` can execute a bounded read-only EVM opcode subset for supported static getters such as ERC20 `decimals()`, constructor-seeded `totalSupply()`, and mapping/SHA3-backed `balanceOf(address)`.
-- The remaining IDE/EVM production gap is runtime/public-proof depth: local devnet still does not support full EVM opcode coverage, write calls, state transitions, `SSTORE`, transfer execution, or remote explorer/verifier proof.
+- Matched Hardhat artifacts now expose real Keccak selectors, selector source, `bytecodeSelectorMatched`, local runtime storage seed, runtime storage-slot metadata, optional `constructorArgs`, `executionEngine`, and `opcodeStepCount`; local `POST /ide/call` and EVM `eth_call` can execute a bounded read-only EVM opcode subset for supported static getters such as ERC20 `decimals()`, constructor-seeded `totalSupply()`, and mapping/SHA3-backed `balanceOf(address)`.
+- `POST /ide/execute` and local EVM `eth_sendTransaction` now support a bounded pinned-artifact ERC20 `transfer(address,uint256)` path that updates local `balanceOf` runtime storage, creates a local `contract_call` transaction, and emits a filterable Transfer log after block production.
+- The remaining IDE/EVM production gap is runtime/public-proof depth: local devnet still does not support full EVM opcode coverage, bytecode-level `SSTORE`, arbitrary nonpayable functions, complex dynamic storage layouts, or remote explorer/verifier proof.
 - This is the next honest developer-platform gap that can advance locally while remote SSH/public ingress blockers are handled separately.
 
 Files to touch:
@@ -42,7 +43,7 @@ Validation commands:
 
 Completion standard:
 
-- EVM calls advance beyond read-only static getters by supporting a bounded state-transition/write-call path, a broader bytecode/storage/calldata subset, or a real remote verifier/explorer response.
+- EVM execution advances beyond the hardcoded bounded ERC20 transfer path by supporting a broader bytecode/storage/calldata state-transition subset, bytecode-level `SSTORE`, arbitrary nonpayable function execution, or a real remote verifier/explorer response.
 - Responses continue to separate `source-analyzer-artifact` from `pinned-solc-bytecode-artifact`.
 - Verification records include compiler identity/version, source hash, compiler config hash, bytecode hash, deployed bytecode comparison status, selector source, bytecode selector match status, execution engine, opcode step count where applicable, verifier mode, reproducibility status, service/runtime limitations, and remote proof status.
 - Tests/checks prove the new runtime or remote verifier path without claiming broader mainnet or third-party availability.

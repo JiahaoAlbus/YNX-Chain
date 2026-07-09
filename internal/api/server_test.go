@@ -339,6 +339,7 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	var decimalsSelector string
 	var totalSupplySelector string
 	var balanceOfSelector string
+	var transferSelector string
 	for _, entry := range functions {
 		fn := entry.(map[string]any)
 		if fn["signature"] == "decimals()" {
@@ -359,6 +360,12 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 				t.Fatalf("expected hardhat ERC20 balanceOf selector evidence: %v", fn)
 			}
 		}
+		if fn["signature"] == "transfer(address,uint256)" {
+			transferSelector = fn["selector"].(string)
+			if transferSelector != "0xa9059cbb" || fn["bytecodeSelectorMatched"] != true || fn["selectorSource"] != "hardhat-ethers-keccak-selector-metadata" {
+				t.Fatalf("expected hardhat ERC20 transfer selector evidence: %v", fn)
+			}
+		}
 	}
 	if decimalsSelector == "" {
 		t.Fatalf("expected decimals() ABI function in verified hardhat artifact: %v", verified)
@@ -368,6 +375,20 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	}
 	if balanceOfSelector == "" {
 		t.Fatalf("expected balanceOf(address) ABI function in verified hardhat artifact: %v", verified)
+	}
+	if transferSelector == "" {
+		t.Fatalf("expected transfer(address,uint256) ABI function in verified hardhat artifact: %v", verified)
+	}
+	events := verified["events"].([]any)
+	var transferTopic string
+	for _, entry := range events {
+		event := entry.(map[string]any)
+		if event["signature"] == "Transfer(address,address,uint256)" {
+			transferTopic = event["topic"].(string)
+		}
+	}
+	if transferTopic == "" {
+		t.Fatalf("expected Transfer event metadata in verified hardhat artifact: %v", verified)
 	}
 	var callResult map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/ide/call", map[string]any{"address": address, "function": "decimals"}, http.StatusOK, &callResult)
@@ -395,6 +416,46 @@ func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000f4240" {
 		t.Fatalf("expected artifact-backed eth_call balanceOf result from mapping/SHA3 storage: %v", out)
 	}
+	devnet.ProduceBlock()
+	recipient := "0x2222222222222222222222222222222222222222"
+	transferCalldata := transferSelector + strings.Repeat("0", 24) + strings.TrimPrefix(recipient, "0x") + strings.Repeat("0", 62) + "fa"
+	var executed map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/ide/execute", map[string]any{"caller": deployer, "address": address, "calldata": transferCalldata}, http.StatusOK, &executed)
+	executedResult := executed["result"].(map[string]any)
+	if executedResult["returnValue"] != "true" || executedResult["encodedResult"] != "0x0000000000000000000000000000000000000000000000000000000000000001" || executedResult["executionStatus"] != "bounded_local_evm_state_transition_subset" || executedResult["executionEngine"] != "local-bounded-evm-erc20-transfer-transition" {
+		t.Fatalf("expected bounded ERC20 transfer state transition evidence: %v", executed)
+	}
+	tx := executed["transaction"].(map[string]any)
+	if tx["hash"] == "" || tx["type"] != "contract_call" {
+		t.Fatalf("expected pending contract_call tx for transfer: %v", tx)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 34, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": balanceOfSelector + strings.Repeat("0", 24) + strings.TrimPrefix(deployer, "0x")}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000f4146" {
+		t.Fatalf("expected sender balance to decrease after bounded transfer: %v", out)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 35, "method": "eth_call", "params": []any{map[string]any{"to": address, "data": balanceOfSelector + strings.Repeat("0", 24) + strings.TrimPrefix(recipient, "0x")}, "latest"}}, http.StatusOK, &out)
+	if out["result"] != "0x00000000000000000000000000000000000000000000000000000000000000fa" {
+		t.Fatalf("expected recipient balance to increase after bounded transfer: %v", out)
+	}
+	block := devnet.ProduceBlock()
+	doJSON(t, http.MethodPost, server.URL+"/evm", map[string]any{"jsonrpc": "2.0", "id": 36, "method": "eth_getLogs", "params": []any{map[string]any{"fromBlock": hexQuantityForTest(block.Height), "toBlock": "latest", "address": address, "topics": []any{transferTopic}}}}, http.StatusOK, &out)
+	logs := out["result"].([]any)
+	if len(logs) != 1 || logs[0].(map[string]any)["transactionHash"] != tx["hash"] {
+		t.Fatalf("expected filterable bounded transfer log: %v", out)
+	}
+}
+
+func hexQuantityForTest(height uint64) string {
+	const digits = "0123456789abcdef"
+	if height == 0 {
+		return "0x0"
+	}
+	out := make([]byte, 0, 16)
+	for height > 0 {
+		out = append([]byte{digits[height&0xf]}, out...)
+		height >>= 4
+	}
+	return "0x" + string(out)
 }
 
 func testRepoRoot(t *testing.T) string {

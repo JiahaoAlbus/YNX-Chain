@@ -1639,6 +1639,89 @@ func (d *Devnet) CallContract(address, function string) (ContractCallResult, err
 	return ContractCallResult{}, errors.New("function not found in local contract artifact")
 }
 
+func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCallResult, Transaction, error) {
+	if strings.TrimSpace(caller) == "" || strings.TrimSpace(address) == "" || strings.TrimSpace(callData) == "" {
+		return ContractCallResult{}, Transaction{}, errors.New("caller, address, and calldata are required")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	artifact, ok := d.contracts[address]
+	if !ok {
+		artifact, ok = d.contracts[evmAddressForLog(address)]
+	}
+	if !ok {
+		return ContractCallResult{}, Transaction{}, errors.New("contract not found")
+	}
+	normalizedCallData := normalizeHex(callData)
+	if len(normalizedCallData) < 10 {
+		return ContractCallResult{}, Transaction{}, errors.New("contract execution requires ABI calldata")
+	}
+	callSelector := normalizedCallData[:10]
+	for _, candidate := range artifact.Functions {
+		if strings.ToLower(candidate.Selector) != callSelector {
+			continue
+		}
+		if artifact.ArtifactKind != contractPinnedArtifactKind {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution requires a pinned Hardhat artifact")
+		}
+		if !candidate.BytecodeSelectorMatched {
+			return ContractCallResult{}, Transaction{}, errors.New("compiled bytecode selector was not found in local deployed bytecode artifact")
+		}
+		if candidate.Signature != "transfer(address,uint256)" {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution currently supports only transfer(address,uint256)")
+		}
+		to, amount, err := decodeERC20TransferCalldata(normalizedCallData)
+		if err != nil {
+			return ContractCallResult{}, Transaction{}, err
+		}
+		balanceSlot, ok := artifact.RuntimeStorageSlots["balanceOf"]
+		if !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("balanceOf mapping storage slot is not recorded")
+		}
+		fromKey, ok := solidityMappingStorageKey(evmAddressForLog(caller), balanceSlot)
+		if !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("caller is not a valid EVM address for balanceOf mapping storage")
+		}
+		toKey, ok := solidityMappingStorageKey(to, balanceSlot)
+		if !ok {
+			return ContractCallResult{}, Transaction{}, errors.New("recipient is not a valid EVM address for balanceOf mapping storage")
+		}
+		fromBalance := storageValue(artifact.RuntimeStorage, new(big.Int).SetBytes(mustDecodeHexWord(fromKey)))
+		if fromBalance.Cmp(amount) < 0 {
+			return ContractCallResult{}, Transaction{}, errors.New("bounded local ERC20 transfer rejected: insufficient balance")
+		}
+		toBalance := storageValue(artifact.RuntimeStorage, new(big.Int).SetBytes(mustDecodeHexWord(toKey)))
+		if artifact.RuntimeStorage == nil {
+			artifact.RuntimeStorage = map[string]string{}
+		}
+		artifact.RuntimeStorage[fromKey] = "0x" + hex.EncodeToString(intToBytes32(new(big.Int).Sub(fromBalance, amount)))
+		artifact.RuntimeStorage[toKey] = "0x" + hex.EncodeToString(intToBytes32(new(big.Int).Add(toBalance, amount)))
+		d.contracts[address] = artifact
+		tx := d.newTxLocked("contract_call", caller, artifact.Address, 0, 2, nil, contractCallMemo("erc20-transfer", caller, to, amount, transferEventTopic(artifact)))
+		d.pending = append(d.pending, tx)
+		err = d.persistSnapshotLocked()
+		d.recordPersistenceErrorLocked(err)
+		result := ContractCallResult{
+			Address:                 artifact.Address,
+			Function:                candidate.Name,
+			Signature:               candidate.Signature,
+			Selector:                candidate.Selector,
+			ReturnValue:             "true",
+			EncodedResult:           encodeContractReturn("true", candidate.Outputs),
+			RuntimeMode:             artifact.RuntimeMode,
+			ArtifactKind:            artifact.ArtifactKind,
+			ExecutionStatus:         "bounded_local_evm_state_transition_subset",
+			ExecutionEngine:         "local-bounded-evm-erc20-transfer-transition",
+			TransactionHash:         tx.Hash,
+			StateTransition:         "local-storage-updated-and-pending-contract-call-created",
+			BytecodeSelectorMatched: candidate.BytecodeSelectorMatched,
+			Limitations:             artifact.Limitations,
+		}
+		return result, tx, err
+	}
+	return ContractCallResult{}, Transaction{}, errors.New("function selector not found in local contract artifact")
+}
+
 func (d *Devnet) ProduceBlock() Block {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -2035,6 +2118,11 @@ func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIn
 		log.Address = evmAddressForLog(tx.To)
 	}
 	logs := []EVMLog{log}
+	if tx.Type == "contract_call" && strings.HasPrefix(tx.Memo, "erc20-transfer:") {
+		if transferLog, ok := erc20TransferLogFromMemo(tx, txIndex, firstLogIndex+uint64(len(logs))); ok {
+			logs = append(logs, transferLog)
+		}
+	}
 	if tx.Type == "contract_deploy" && strings.HasPrefix(tx.To, "0x") {
 		artifact, ok := d.contracts[tx.To]
 		if ok {
@@ -2076,6 +2164,28 @@ func contractEventLogs(tx Transaction, artifact ContractArtifact, txIndex, first
 	return logs
 }
 
+func erc20TransferLogFromMemo(tx Transaction, txIndex, logIndex uint64) (EVMLog, bool) {
+	parts := strings.Split(tx.Memo, ":")
+	if len(parts) != 6 || parts[0] != "erc20-transfer" {
+		return EVMLog{}, false
+	}
+	amount, ok := new(big.Int).SetString(parts[4], 10)
+	if !ok {
+		return EVMLog{}, false
+	}
+	return EVMLog{
+		Address:          evmAddressForLog(tx.To),
+		Topics:           []string{parts[5], evmTopic(parts[2]), evmTopic(parts[3])},
+		Data:             "0x" + hex.EncodeToString(intToBytes32(amount)),
+		BlockHash:        evmHash(tx.BlockHash),
+		BlockNumber:      tx.BlockNum,
+		TransactionHash:  tx.Hash,
+		TransactionIndex: txIndex,
+		LogIndex:         logIndex,
+		Removed:          false,
+	}, true
+}
+
 var contractEventPattern = regexp.MustCompile(`(?s)event\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*;`)
 var contractFunctionPattern = regexp.MustCompile(`(?s)function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*(public|external|internal|private)?\s*(pure|view|payable)?\s*(?:returns\s*\((.*?)\))?\s*\{(.*?)\}`)
 
@@ -2089,6 +2199,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
 	events := extractContractEvents(source)
 	functions := extractContractFunctions(source)
+	runtimeStorageSlots := extractRuntimeStorageSlots(source)
 	runtimeStorage := extractRuntimeStorage(source, deployer, constructorArgs)
 	if hasCompilerArtifact {
 		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
@@ -2134,7 +2245,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 		limitations = append([]string{
 			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
 			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls and simple constructor-seeded storage; it does not support full EVM state transitions, mapping storage hashing, or arbitrary write calls",
+			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a bounded pinned-artifact ERC20 transfer(address,uint256) state transition that updates local runtime storage and emits a local Transfer log, but it does not support full EVM bytecode state transitions, SSTORE execution, complex dynamic storage layouts, or arbitrary write calls",
 		}, compiler.Limitations...)
 	}
 	runtimeMode := "deterministic-devnet-pure-view-runtime"
@@ -2162,6 +2273,7 @@ func buildContractArtifactWithArgs(address, deployer, name, source string, verif
 		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
 		ConstructorArgs:                  cleanConstructorArgs(constructorArgs),
 		RuntimeStorage:                   runtimeStorage,
+		RuntimeStorageSlots:              runtimeStorageSlots,
 		ABI:                              abi,
 		Events:                           events,
 		Functions:                        functions,
@@ -2231,21 +2343,13 @@ func extractPublicGetterReturnValues(source string) map[string]string {
 
 func extractRuntimeStorage(source, deployer string, constructorArgs []string) map[string]string {
 	storage := map[string]string{}
-	stateSlots := map[string]struct {
-		Kind string
-		Slot int
-	}{}
+	stateSlots := extractRuntimeStorageSlotMetadata(source)
 	matches := publicStateSlotPattern.FindAllStringSubmatch(source, -1)
 	for slot, match := range matches {
 		if len(match) != 4 {
 			continue
 		}
 		kind := strings.TrimSpace(match[1])
-		name := strings.TrimSpace(match[2])
-		stateSlots[name] = struct {
-			Kind string
-			Slot int
-		}{Kind: kind, Slot: slot}
 		rawValue := strings.Trim(strings.TrimSpace(match[3]), `"`)
 		switch {
 		case strings.HasPrefix(kind, "uint"):
@@ -2269,6 +2373,38 @@ func extractRuntimeStorage(source, deployer string, constructorArgs []string) ma
 		return nil
 	}
 	return storage
+}
+
+func extractRuntimeStorageSlots(source string) map[string]int {
+	slots := map[string]int{}
+	for name, slot := range extractRuntimeStorageSlotMetadata(source) {
+		slots[name] = slot.Slot
+	}
+	if len(slots) == 0 {
+		return nil
+	}
+	return slots
+}
+
+func extractRuntimeStorageSlotMetadata(source string) map[string]struct {
+	Kind string
+	Slot int
+} {
+	stateSlots := map[string]struct {
+		Kind string
+		Slot int
+	}{}
+	matches := publicStateSlotPattern.FindAllStringSubmatch(source, -1)
+	for slot, match := range matches {
+		if len(match) != 4 {
+			continue
+		}
+		stateSlots[strings.TrimSpace(match[2])] = struct {
+			Kind string
+			Slot int
+		}{Kind: strings.TrimSpace(match[1]), Slot: slot}
+	}
+	return stateSlots
 }
 
 var constructorPattern = regexp.MustCompile(`(?s)constructor\s*\((.*?)\)\s*\{(.*?)\}`)
@@ -2345,6 +2481,34 @@ func solidityMappingStorageKey(address string, slot int) (string, bool) {
 	copy(preimage[32-len(addressBytes):32], addressBytes)
 	copy(preimage[32:64], intToBytes32(big.NewInt(int64(slot))))
 	return "0x" + hex.EncodeToString(legacyKeccak256(preimage)), true
+}
+
+func decodeERC20TransferCalldata(callData string) (string, *big.Int, error) {
+	raw, err := hex.DecodeString(strings.TrimPrefix(callData, "0x"))
+	if err != nil || len(raw) != 68 {
+		return "", nil, errors.New("transfer(address,uint256) calldata must be selector plus two ABI words")
+	}
+	recipient := "0x" + hex.EncodeToString(raw[16:36])
+	amount := new(big.Int).SetBytes(raw[36:68])
+	return recipient, amount, nil
+}
+
+func contractCallMemo(kind, from, to string, amount *big.Int, eventTopic string) string {
+	return strings.Join([]string{kind, "v1", evmAddressForLog(from), evmAddressForLog(to), amount.Text(10), eventTopic}, ":")
+}
+
+func transferEventTopic(artifact ContractArtifact) string {
+	for _, event := range artifact.Events {
+		if event.Signature == "Transfer(address,address,uint256)" {
+			return event.Topic
+		}
+	}
+	return evmTopic("event:Transfer(address,address,uint256)")
+}
+
+func mustDecodeHexWord(value string) []byte {
+	decoded, _ := hex.DecodeString(strings.TrimPrefix(value, "0x"))
+	return decoded
 }
 
 func cleanConstructorArgs(args []string) []string {

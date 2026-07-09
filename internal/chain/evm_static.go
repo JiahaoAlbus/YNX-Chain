@@ -77,6 +77,24 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 				return evmStaticResult{}, err
 			}
 			vm.pushBool(a.Cmp(b) < 0)
+		case op == 0x11: // GT
+			a, b, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			vm.pushBool(a.Cmp(b) > 0)
+		case op == 0x12: // SLT
+			a, b, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			vm.pushBool(s256(a).Cmp(s256(b)) < 0)
+		case op == 0x13: // SGT
+			a, b, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			vm.pushBool(s256(a).Cmp(s256(b)) > 0)
 		case op == 0x14: // EQ
 			a, b, err := vm.pop2()
 			if err != nil {
@@ -95,6 +113,16 @@ func (vm *evmSubsetVM) run() (evmStaticResult, error) {
 				return evmStaticResult{}, err
 			}
 			vm.push(new(big.Int).And(a, b))
+		case op == 0x1b: // SHL
+			shift, value, err := vm.pop2()
+			if err != nil {
+				return evmStaticResult{}, err
+			}
+			if !shift.IsUint64() || shift.Uint64() >= 256 {
+				vm.push(big.NewInt(0))
+				continue
+			}
+			vm.push(u256(new(big.Int).Lsh(value, uint(shift.Uint64()))))
 		case op == 0x1c: // SHR
 			shift, value, err := vm.pop2()
 			if err != nil {
@@ -282,6 +310,14 @@ func u256(value *big.Int) *big.Int {
 		out.Add(out, uint256Mod)
 	}
 	return out
+}
+
+func s256(value *big.Int) *big.Int {
+	out := u256(value)
+	if out.Bit(255) == 0 {
+		return out
+	}
+	return new(big.Int).Sub(out, uint256Mod)
 }
 
 func bytes32ToInt(value []byte) *big.Int {

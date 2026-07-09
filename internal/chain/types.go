@@ -569,6 +569,7 @@ type ContractArtifact struct {
 	DeployedBytecodeComparisonStatus string                    `json:"deployedBytecodeComparisonStatus"`
 	ConstructorArgs                  []string                  `json:"constructorArgs,omitempty"`
 	RuntimeStorage                   map[string]string         `json:"runtimeStorage,omitempty"`
+	RuntimeStorageSlots              map[string]int            `json:"runtimeStorageSlots,omitempty"`
 	ABI                              []ContractABIEntry        `json:"abi,omitempty"`
 	Events                           []ContractEventABI        `json:"events,omitempty"`
 	Functions                        []ContractFunctionABI     `json:"functions,omitempty"`
@@ -688,6 +689,8 @@ type ContractCallResult struct {
 	ExecutionStatus         string   `json:"executionStatus"`
 	ExecutionEngine         string   `json:"executionEngine,omitempty"`
 	OpcodeStepCount         int      `json:"opcodeStepCount,omitempty"`
+	TransactionHash         string   `json:"transactionHash,omitempty"`
+	StateTransition         string   `json:"stateTransition,omitempty"`
 	BytecodeSelectorMatched bool     `json:"bytecodeSelectorMatched"`
 	Limitations             []string `json:"limitations,omitempty"`
 }

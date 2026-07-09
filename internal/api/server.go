@@ -82,6 +82,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
+	s.mux.HandleFunc("POST /ide/execute", s.handleIDEExecute)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
 	s.mux.HandleFunc("GET /ide/verifier/{address}", s.handleIDEVerifier)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
@@ -693,6 +694,22 @@ func (s *Server) handleIDECall(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, result)
 }
+func (s *Server) handleIDEExecute(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Caller   string `json:"caller"`
+		Address  string `json:"address"`
+		Calldata string `json:"calldata"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	result, tx, err := s.devnet.ExecuteContract(req.Caller, req.Address, req.Calldata)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"result": result, "transaction": tx})
+}
 func (s *Server) handleIDEVerifier(w http.ResponseWriter, r *http.Request) {
 	evidence, ok := s.devnet.ContractVerification(r.PathValue("address"))
 	if !ok {
@@ -841,6 +858,26 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 			return nil, fmt.Errorf("raw transaction parameter is required")
 		}
 		tx, err := s.devnet.Faucet("0xraw_tx_sink", 1)
+		if err != nil {
+			return nil, err
+		}
+		s.devnet.ProduceBlock()
+		return tx.Hash, nil
+	case "eth_sendTransaction":
+		if len(params) == 0 {
+			return nil, fmt.Errorf("transaction object is required")
+		}
+		call, ok := params[0].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("transaction parameter must be an object")
+		}
+		from := strings.TrimSpace(fmt.Sprint(call["from"]))
+		to := strings.TrimSpace(fmt.Sprint(call["to"]))
+		data := strings.TrimSpace(fmt.Sprint(call["data"]))
+		if from == "" || to == "" || data == "" || data == "<nil>" {
+			return nil, fmt.Errorf("from, to, and data are required")
+		}
+		_, tx, err := s.devnet.ExecuteContract(from, to, data)
 		if err != nil {
 			return nil, err
 		}
