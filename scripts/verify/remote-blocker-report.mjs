@@ -8,6 +8,7 @@ const sshPath = path.join(verifyDir, "ssh-services.txt");
 const hostKeyAuditPath = process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt";
 const hostKeyApprovalRequestPath = process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md";
 const hostKeyApprovalRequestJsonPath = process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json";
+const hostKeyApprovalStatusJsonPath = process.env.YNX_HOST_KEY_APPROVAL_STATUS_JSON || "tmp/host-key-audit/host-key-approval-status.json";
 const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
 const jsonOutPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
@@ -202,6 +203,92 @@ function approvalRequestJsonMetadata(file, { required, mismatchFindings }) {
   };
 }
 
+function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
+  const status = readJson(file);
+  const metadata = fileMetadata(file, { required, jsonGeneratedAt: status?.generatedAt });
+  if (!required || metadata.classification !== "fresh") return metadata;
+  if (!status) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "approval status JSON is unreadable",
+    };
+  }
+  if (status.note !== "Non-mutating status only; not trusted approval and not known_hosts repair.") {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "approval status JSON must identify itself as non-mutating status only",
+    };
+  }
+  if (status.status === "awaiting-trusted-approval") {
+    return {
+      ...metadata,
+      classification: "approval-awaiting-trusted-confirmation",
+      detail: "trusted approval file is absent or unreadable; external fingerprint confirmation is still required",
+    };
+  }
+  if (status.status === "approval-does-not-match-current-scan" || status.ok === false) {
+    return {
+      ...metadata,
+      classification: "approval-status-blocked",
+      detail: `approval status is ${status.status || "blocked"}`,
+    };
+  }
+  if (status.status !== "approved-current-scan" || status.ok !== true) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: `unexpected approval status ${status.status || "missing"}`,
+    };
+  }
+
+  const findings = Array.isArray(status.findings) ? status.findings : [];
+  const rowByKey = new Map();
+  for (const finding of findings) {
+    const key = `${finding.role || ""}|${finding.host || ""}|${String(finding.keyType || "").toUpperCase()}`;
+    rowByKey.set(key, {
+      presented: finding.presented || "",
+      ok: finding.ok === true,
+    });
+  }
+  const problems = [];
+  let expectedCount = 0;
+  for (const finding of mismatchFindings) {
+    for (const [keyType, fingerprint] of Object.entries(finding.fingerprints || {})) {
+      expectedCount += 1;
+      const key = `${finding.role}|${finding.host}|${keyType}`;
+      const observed = rowByKey.get(key);
+      if (!observed) {
+        problems.push(`missing ${key}`);
+      } else if (observed.presented !== fingerprint) {
+        problems.push(`fingerprint mismatch ${key}`);
+      } else if (!observed.ok) {
+        problems.push(`not approved ${key}`);
+      }
+    }
+  }
+  if (!expectedCount) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "current host-key mismatch evidence has no parsed presented fingerprints",
+    };
+  }
+  if (problems.length) {
+    return {
+      ...metadata,
+      classification: "approval-status-mismatch",
+      detail: `approval status JSON does not match current host-key audit: ${problems.slice(0, 4).join("; ")}`,
+    };
+  }
+  return {
+    ...metadata,
+    classification: "fresh",
+    detail: `approved status matches ${expectedCount} current host-key mismatch fingerprint(s)`,
+  };
+}
+
 function endpointOf(check) {
   return check?.observed?.url || check?.observed?.target || check?.observed?.host || "";
 }
@@ -261,6 +348,10 @@ const hostKeyMismatchPresent = nodeFailures.some((finding) => finding.classifica
 const hostKeyMismatchFindings = nodeFailures.filter((finding) => finding.classification === "host-key-mismatch");
 sourceEvidence.hostKeyApprovalRequest = fileMetadata(hostKeyApprovalRequestPath, { required: hostKeyMismatchPresent });
 sourceEvidence.hostKeyApprovalRequestJson = approvalRequestJsonMetadata(hostKeyApprovalRequestJsonPath, {
+  required: hostKeyMismatchPresent,
+  mismatchFindings: hostKeyMismatchFindings,
+});
+sourceEvidence.hostKeyApprovalStatusJson = approvalStatusJsonMetadata(hostKeyApprovalStatusJsonPath, {
   required: hostKeyMismatchPresent,
   mismatchFindings: hostKeyMismatchFindings,
 });
@@ -420,6 +511,7 @@ fs.writeFileSync(jsonOutPath, `${JSON.stringify({
     hostKeyAuditPath,
     hostKeyApprovalRequestPath,
     hostKeyApprovalRequestJsonPath,
+    hostKeyApprovalStatusJsonPath,
     legacyInventoryPath,
     reportPath: outPath,
   },

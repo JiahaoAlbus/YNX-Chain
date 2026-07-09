@@ -203,16 +203,29 @@ function collectRepairApprovalNodeResult(auditOut, { blankFingerprints }) {
   if (!fs.existsSync(auditOut)) {
     return {
       nodes: [],
+      warnings: [],
       error: `missing host-key audit directory at ${auditOut}`,
     };
   }
   const nodes = [];
+  const warnings = [];
   for (const entry of fs.readdirSync(auditOut).sort()) {
     if (!entry.endsWith(".known_hosts")) continue;
     const scanFile = path.join(auditOut, entry);
     const node = nodeFromScanFile(scanFile);
     if (!node || !strictOutputSuggestsRepair(auditOut, node.role, node.host)) continue;
-    const presented = fingerprintMap(scanFile);
+    let presented;
+    try {
+      presented = fingerprintMap(scanFile);
+    } catch (err) {
+      warnings.push({
+        role: node.role,
+        host: node.host,
+        scanFile: path.relative(repoRoot, scanFile),
+        reason: err.message,
+      });
+      continue;
+    }
     const fingerprints = {};
     for (const type of [...presented.keys()].sort()) fingerprints[type] = blankFingerprints ? "" : presented.get(type);
     nodes.push({
@@ -225,10 +238,13 @@ function collectRepairApprovalNodeResult(auditOut, { blankFingerprints }) {
   if (!nodes.length) {
     return {
       nodes,
-      error: "no host-key mismatch scan files found for host-key approval artifacts",
+      warnings,
+      error: warnings.length
+        ? "strict SSH failures exist, but no valid host-key scan fingerprints are available for approval artifacts"
+        : "no host-key mismatch scan files found for host-key approval artifacts",
     };
   }
-  return { nodes, error: "" };
+  return { nodes, warnings, error: "" };
 }
 
 function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
@@ -243,7 +259,14 @@ function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
 }
 
 function writeApprovalTemplate({ auditOut, templatePath }) {
-  const nodes = collectRepairApprovalNodes(auditOut, { blankFingerprints: true });
+  const result = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: true });
+  if (result.error) {
+    fail(result.error, [
+      "Run make host-key-audit or make host-key-repair-plan before generating host-key approval artifacts.",
+      "Confirm there are strict SSH host-key mismatches with scan fingerprints before requesting approval.",
+    ]);
+  }
+  const nodes = result.nodes;
 
   const template = {
     instructions: [
@@ -253,6 +276,7 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
     ],
     source: "",
     approvedAt: "",
+    skippedNodes: result.warnings,
     nodes,
   };
 
@@ -263,7 +287,14 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
 }
 
 function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath }) {
-  const nodes = collectRepairApprovalNodes(auditOut, { blankFingerprints: false });
+  const result = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: false });
+  if (result.error) {
+    fail(result.error, [
+      "Run make host-key-audit or make host-key-repair-plan before generating host-key approval artifacts.",
+      "Confirm there are strict SSH host-key mismatches with scan fingerprints before requesting approval.",
+    ]);
+  }
+  const nodes = result.nodes;
   const generatedAt = new Date().toISOString();
   const rows = [];
   for (const node of nodes) {
@@ -287,6 +318,9 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
     `Approval template: ${templatePath}`,
     "",
     "This request is not a trusted approval. It only lists host-key fingerprints currently presented by SSH scanning so an operator can compare them with a trusted cloud-console or provider channel.",
+    result.warnings.length
+      ? `\nSkipped nodes without valid scan fingerprints: ${result.warnings.map((item) => `${item.role}/${item.host}`).join(", ")}. These must be handled as SSH reachability/keyscan blockers, not approval rows.\n`
+      : "",
     "",
     "Rules:",
     "",
@@ -329,6 +363,7 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
     instructions: "Compare presentedFingerprint values against a trusted external source before filling .host-key-approvals.json.",
     rows,
     nodes,
+    skippedNodes: result.warnings,
   }, null, 2)}\n`);
   console.log(`host-key approval request written: ${requestPath}`);
   console.log("request contains untrusted current-scan fingerprints only; it is not an approval file");
@@ -501,6 +536,7 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
     approvalRequestRowCount: requestRows.length,
     mismatchNodeCount: mismatchResult.nodes.length,
     mismatchNodes: mismatchResult.nodes,
+    skippedMismatchNodes: mismatchResult.warnings || [],
     findings,
     note: "Non-mutating status only; not trusted approval and not known_hosts repair.",
   };

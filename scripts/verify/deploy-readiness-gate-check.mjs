@@ -161,6 +161,7 @@ const mismatchRemoteEvidencePath = path.join(workDir, "mismatch-remote-evidence.
 const mismatchHostKeyAuditPath = path.join(workDir, "mismatch-host-key-audit.txt");
 const missingApprovalRequestPath = path.join(workDir, "missing-approval-request.md");
 const missingApprovalRequestJsonPath = path.join(workDir, "missing-approval-request.json");
+const missingApprovalStatusJsonPath = path.join(workDir, "missing-approval-status.json");
 const mismatchReportJsonPath = path.join(workDir, "remote-blockers-missing-approval-request.json");
 writeJson(mismatchRemoteEvidencePath, {
   generatedAt: now,
@@ -183,6 +184,7 @@ const mismatchReport = runNode(reportScript, {
   YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
   YNX_HOST_KEY_APPROVAL_REQUEST: missingApprovalRequestPath,
   YNX_HOST_KEY_APPROVAL_REQUEST_JSON: missingApprovalRequestJsonPath,
+  YNX_HOST_KEY_APPROVAL_STATUS_JSON: missingApprovalStatusJsonPath,
   YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
   YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "MISMATCH_REMOTE_BLOCKERS.md"),
   YNX_REMOTE_BLOCKER_JSON: mismatchReportJsonPath,
@@ -194,8 +196,11 @@ assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequest.required, 
 assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequest.exists, false, "missing approval request must be recorded");
 assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequestJson.required, true, "approval request JSON must be required while host-key mismatch exists");
 assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequestJson.exists, false, "missing approval request JSON must be recorded");
+assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalStatusJson.required, true, "approval status JSON must be required while host-key mismatch exists");
+assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalStatusJson.exists, false, "missing approval status JSON must be recorded");
 assert(mismatchReportJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalRequest" && item.classification === "missing-required-evidence"));
 assert(mismatchReportJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalRequestJson" && item.classification === "missing-required-evidence"));
+assert(mismatchReportJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "missing-required-evidence"));
 assertGateFails("missing-dynamic-required-source", {
   ...baseReady,
   deployReady: false,
@@ -212,6 +217,7 @@ assertGateFails("missing-dynamic-required-source", {
 
 const badApprovalRequestPath = path.join(workDir, "bad-approval-request.md");
 const badApprovalRequestJsonPath = path.join(workDir, "bad-approval-request.json");
+const awaitingApprovalStatusJsonPath = path.join(workDir, "awaiting-approval-status.json");
 const mismatchBadJsonReportPath = path.join(workDir, "remote-blockers-bad-approval-request.json");
 fs.writeFileSync(badApprovalRequestPath, "# Host Key Approval Request\n");
 writeJson(badApprovalRequestJsonPath, {
@@ -226,12 +232,36 @@ writeJson(badApprovalRequestJsonPath, {
     status: "needs-out-of-band-confirmation",
   }],
 });
+writeJson(awaitingApprovalStatusJsonPath, {
+  generatedAt: now,
+  ok: false,
+  status: "awaiting-trusted-approval",
+  approvalPath: path.join(workDir, ".host-key-approvals.json"),
+  approvalFileExists: false,
+  approvalFileReadable: false,
+  approvalRequestJsonPath: badApprovalRequestJsonPath,
+  approvalRequestJsonExists: true,
+  approvalRequestJsonReadable: true,
+  approvalRequestRowCount: 1,
+  mismatchNodeCount: 1,
+  findings: [{
+    role: "singapore",
+    host: "43.134.23.58",
+    keyType: "ED25519",
+    presented: "SHA256:expected-singapore-ed25519",
+    approved: "",
+    ok: false,
+    reason: "trusted fingerprint not yet recorded in ignored .host-key-approvals.json",
+  }],
+  note: "Non-mutating status only; not trusted approval and not known_hosts repair.",
+});
 const mismatchBadJsonReport = runNode(reportScript, {
   YNX_VERIFY_TESTNET_OUT: workDir,
   YNX_REMOTE_EVIDENCE_PATH: mismatchRemoteEvidencePath,
   YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
   YNX_HOST_KEY_APPROVAL_REQUEST: badApprovalRequestPath,
   YNX_HOST_KEY_APPROVAL_REQUEST_JSON: badApprovalRequestJsonPath,
+  YNX_HOST_KEY_APPROVAL_STATUS_JSON: awaitingApprovalStatusJsonPath,
   YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
   YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "BAD_APPROVAL_REQUEST_BLOCKERS.md"),
   YNX_REMOTE_BLOCKER_JSON: mismatchBadJsonReportPath,
@@ -240,6 +270,8 @@ const mismatchBadJsonReport = runNode(reportScript, {
 assert.equal(mismatchBadJsonReport.status, 0, `remote-blocker-report bad approval request run should write diagnostics: ${mismatchBadJsonReport.stderr}`);
 const mismatchBadJson = JSON.parse(fs.readFileSync(mismatchBadJsonReportPath, "utf8"));
 assert.equal(mismatchBadJson.sourceEvidence.hostKeyApprovalRequestJson.classification, "approval-request-mismatch");
+assert.equal(mismatchBadJson.sourceEvidence.hostKeyApprovalStatusJson.classification, "approval-awaiting-trusted-confirmation");
 assert(mismatchBadJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalRequestJson" && item.classification === "approval-request-mismatch"));
+assert(mismatchBadJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "approval-awaiting-trusted-confirmation"));
 
 console.log("deploy-readiness-gate-check passed");
