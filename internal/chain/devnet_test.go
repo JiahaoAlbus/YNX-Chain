@@ -129,6 +129,70 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	}
 }
 
+func TestNodeIdentityAndPeerSyncFreshness(t *testing.T) {
+	validators, err := ParseValidatorSet("ynx_val_primary|primary|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := NewDevnetWithValidators(DefaultNetworkConfig("testnet"), validators)
+	devnet.SetNodeIdentityConfig(NodeIdentityConfig{
+		ValidatorAddress: "ynx_val_primary",
+		PeerSyncTargets: []ValidatorPeerSyncTarget{
+			{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"},
+			{Address: "ynx_val_sv", URL: "http://127.0.0.1:6422"},
+		},
+		PeerSyncInterval: 5 * time.Second,
+	})
+	_, err = devnet.RecordValidatorPeerSync(ValidatorPeerSyncInput{
+		Source:       "ynx_val_primary",
+		Target:       "ynx_val_sg",
+		SourceHeight: 9,
+		TargetHeight: 9,
+		Evidence:     "fresh-unit-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := devnet.NodeIdentity()
+	if !identity.Configured || identity.ValidatorAddress != "ynx_val_primary" || identity.ValidatorRole != "primary validator" || identity.ExpectedValidatorCount != 3 || identity.PeerSyncTargetCount != 2 {
+		t.Fatalf("unexpected node identity: %+v", identity)
+	}
+	if identity.PeerSyncFreshness.Status != "missing_peer_sync" || identity.PeerSyncFreshness.Synced != 1 || identity.PeerSyncFreshness.Missing != 1 || identity.PeerSyncFreshness.Fresh != 1 {
+		t.Fatalf("expected one fresh sync and one missing sync, got %+v", identity.PeerSyncFreshness)
+	}
+	status := devnet.Status()
+	statusIdentity := status["nodeIdentity"].(NodeIdentity)
+	if statusIdentity.ValidatorAddress != "ynx_val_primary" || statusIdentity.PeerSyncFreshness.Status != "missing_peer_sync" {
+		t.Fatalf("status missing node identity freshness: %+v", statusIdentity)
+	}
+}
+
+func TestNodeIdentityPeerSyncFreshnessStaleRecord(t *testing.T) {
+	validators, err := ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet := NewDevnetWithValidators(DefaultNetworkConfig("testnet"), validators)
+	devnet.SetNodeIdentityConfig(NodeIdentityConfig{
+		ValidatorAddress: "ynx_val_primary",
+		PeerSyncTargets:  []ValidatorPeerSyncTarget{{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"}},
+		PeerSyncInterval: 5 * time.Second,
+		StaleAfter:       time.Nanosecond,
+	})
+	if _, err := devnet.RecordValidatorPeerSync(ValidatorPeerSyncInput{Source: "ynx_val_primary", Target: "ynx_val_sg", SourceHeight: 10, TargetHeight: 1, Evidence: "stale-unit-test"}); err != nil {
+		t.Fatal(err)
+	}
+	devnet.mu.Lock()
+	sync := devnet.validatorPeerSyncs[validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")]
+	sync.UpdatedAt = time.Now().UTC().Add(-time.Minute)
+	devnet.validatorPeerSyncs[validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")] = sync
+	devnet.mu.Unlock()
+	identity := devnet.NodeIdentity()
+	if identity.PeerSyncFreshness.Status != "stale_peer_sync" || identity.PeerSyncFreshness.Stale != 1 || identity.PeerSyncFreshness.Lagging != 1 {
+		t.Fatalf("expected stale lagging peer sync, got %+v", identity.PeerSyncFreshness)
+	}
+}
+
 func validatorByAddress(validators []Validator, address string) *Validator {
 	for i := range validators {
 		if validators[i].Address == address {

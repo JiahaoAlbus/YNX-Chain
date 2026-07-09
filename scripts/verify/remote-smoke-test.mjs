@@ -325,6 +325,44 @@ function checkValidatorPeerSync(json) {
   return ok;
 }
 
+function checkNodeIdentity(json) {
+  const freshness = json?.peerSyncFreshness ?? {};
+  const targetCount = Number(json?.peerSyncTargetCount ?? 0);
+  const expectedCount = Number(json?.expectedValidatorCount ?? 0);
+  const configured = json?.configured === true && typeof json?.validatorAddress === "string" && json.validatorAddress.length > 0;
+  const targetCountOk = targetCount >= Math.max(1, expected.minValidators - 1);
+  const expectedCountOk = expectedCount >= expected.minValidators;
+  const freshnessOk = freshness?.status === "synced" &&
+    Number(freshness?.missing ?? 0) === 0 &&
+    Number(freshness?.stale ?? 0) === 0 &&
+    Number(freshness?.fresh ?? 0) >= Math.max(1, expected.minValidators - 1);
+  record(
+    "rpc.nodeIdentity.configured",
+    configured,
+    configured ? `validator ${json.validatorAddress}` : `missing configured validator identity: ${clip(json)}`,
+    { validatorAddress: json?.validatorAddress, configured: json?.configured }
+  );
+  record(
+    "rpc.nodeIdentity.expectedValidatorCount",
+    expectedCountOk,
+    expectedCountOk ? `expected validators ${expectedCount}` : `expected at least ${expected.minValidators} validators, got ${expectedCount}`,
+    { expectedValidatorCount: expectedCount }
+  );
+  record(
+    "rpc.nodeIdentity.peerSyncTargetCount",
+    targetCountOk,
+    targetCountOk ? `peer sync targets ${targetCount}` : `expected peer sync targets, got ${targetCount}`,
+    { peerSyncTargetCount: targetCount, peerSyncTargetAddresses: json?.peerSyncTargetAddresses }
+  );
+  record(
+    "rpc.nodeIdentity.peerSyncFreshness",
+    freshnessOk,
+    freshnessOk ? `freshness ${freshness.status}` : `expected fresh synced peer sync, got ${clip(freshness)}`,
+    freshness
+  );
+  return configured && expectedCountOk && targetCountOk && freshnessOk;
+}
+
 function checkEvmResult(name, json, expectedValue) {
   const result = String(json?.result ?? "").toLowerCase();
   const ok = result === expectedValue.toLowerCase();
@@ -435,6 +473,8 @@ async function main() {
 
   const validators = await getJson("rpc.validators", `${endpoints.rpc}/validators`);
   const validatorsOk = validators ? checkValidators(validators) : false;
+  const nodeIdentity = await getJson("rpc.nodeIdentity", `${endpoints.rpc}/node/identity`);
+  const nodeIdentityOk = nodeIdentity ? checkNodeIdentity(nodeIdentity) : false;
   const validatorPeers = await getJson("rpc.validators.peers", `${endpoints.rpc}/validators/peers`);
   const validatorPeersOk = validatorPeers ? checkValidatorPeers(validatorPeers) : false;
   const validatorPeerSync = await getJson("rpc.validators.peerSync", `${endpoints.rpc}/validators/peer-sync`);
@@ -485,7 +525,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = rpcChainOk && grew && validatorsOk && nodeIdentityOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {

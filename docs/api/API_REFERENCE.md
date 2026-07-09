@@ -1,8 +1,10 @@
 # API Reference
 
-Core: `GET /health`, `GET /status`, `GET /metrics`, `GET /blocks/latest`, `GET /txs/{hash}`, `GET /accounts/{address}`, `GET /validators`, `GET /validators/peers`, `GET /validators/peer-sync`, `POST /validators/{address}/heartbeat`, `POST /validators/{address}/peers/observe`, `POST /validators/{address}/peer-sync`.
+Core: `GET /health`, `GET /status`, `GET /node/identity`, `GET /metrics`, `GET /blocks/latest`, `GET /txs/{hash}`, `GET /accounts/{address}`, `GET /validators`, `GET /validators/peers`, `GET /validators/peer-sync`, `POST /validators/{address}/heartbeat`, `POST /validators/{address}/peers/observe`, `POST /validators/{address}/peer-sync`.
 
-`GET /status` includes `validatorCount`, `readyValidatorCount`, `validatorPeerReadiness`, `validatorPeerDiscovery`, and `validatorPeerSync` so node operators and public proof checks can distinguish configured validators, locally ready validators, expected bootstrap peers, observed peers, and recorded sync evidence.
+`GET /status` includes `validatorCount`, `readyValidatorCount`, `validatorPeerReadiness`, `validatorPeerDiscovery`, `validatorPeerSync`, and `nodeIdentity` so node operators and public proof checks can distinguish configured validators, locally ready validators, expected bootstrap peers, observed peers, recorded sync evidence, the configured local validator identity, and peer-sync freshness.
+
+`GET /node/identity` returns non-secret runtime identity evidence for the local node: `validatorAddress`, validator moniker/role/host/peer ID when configured, `expectedValidatorCount`, `peerSyncTargetCount`, target validator addresses, `peerSyncInterval`, and `peerSyncFreshness`. Freshness records classify each configured target as fresh, stale, missing, synced, or lagging using persisted `/validators/peer-sync` records. This endpoint is designed for post-deploy proof and does not expose private keys, secrets, or full env files.
 
 `GET /validators` returns active validator records with `address`, `moniker`, optional `host`, optional `role`, optional `peerId`, `votingPower`, `active`, `peerReady`, optional `peerStatus`, optional `latestHeight`, optional `lastSeenAt`, optional `updatedAt`, and optional `peerEvidence`. Production/testnet nodes load configured validator identity from `YNX_VALIDATOR_SET`; if it is missing, the node exposes only the local default validator and remote public proof must fail multi-validator checks. Runtime peer readiness is persisted in the local chain snapshot and survives restart for matching validator addresses.
 

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,6 +71,80 @@ func TestPeerSyncPollingRecordsDerivedHeightEvidence(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatalf("expected peer sync evidence, got %+v", devnet.ValidatorPeerSyncs())
+}
+
+func TestValidateNodeStartupConfig(t *testing.T) {
+	validators, err := chain.ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg;ynx_val_sv|silicon-valley|127.0.0.3|bonded validator|peer-sv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := chain.DefaultNetworkConfig("testnet")
+	validTargets := []peerSyncTarget{
+		{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"},
+		{Address: "ynx_val_sv", URL: "http://127.0.0.1:6422"},
+	}
+	if err := validateNodeStartupConfig(cfg, validators, "ynx_val_primary", validTargets); err != nil {
+		t.Fatalf("valid startup config rejected: %v", err)
+	}
+	cases := []struct {
+		name      string
+		local     string
+		targets   []peerSyncTarget
+		wantError string
+	}{
+		{
+			name:      "missing local validator",
+			local:     "",
+			targets:   validTargets,
+			wantError: "YNX_LOCAL_VALIDATOR_ADDRESS is required",
+		},
+		{
+			name:      "local validator outside set",
+			local:     "ynx_val_missing",
+			targets:   validTargets,
+			wantError: "not in YNX_VALIDATOR_SET",
+		},
+		{
+			name:  "incomplete targets",
+			local: "ynx_val_primary",
+			targets: []peerSyncTarget{
+				{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"},
+			},
+			wantError: "expected 2 peer RPC targets",
+		},
+		{
+			name:  "self target",
+			local: "ynx_val_primary",
+			targets: []peerSyncTarget{
+				{Address: "ynx_val_primary", URL: "http://127.0.0.1:6420"},
+				{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"},
+			},
+			wantError: "must not include local validator",
+		},
+		{
+			name:  "target outside set",
+			local: "ynx_val_primary",
+			targets: []peerSyncTarget{
+				{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"},
+				{Address: "ynx_val_missing", URL: "http://127.0.0.1:6429"},
+			},
+			wantError: "not in YNX_VALIDATOR_SET",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateNodeStartupConfig(cfg, validators, tc.local, tc.targets)
+			if err == nil || !strings.Contains(err.Error(), tc.wantError) {
+				t.Fatalf("expected %q error, got %v", tc.wantError, err)
+			}
+		})
+	}
+	if err := validateNodeStartupConfig(chain.DefaultNetworkConfig("devnet"), validators, "", nil); err != nil {
+		t.Fatalf("devnet should allow ad hoc local startup: %v", err)
+	}
+	if err := validateNodeStartupConfig(cfg, nil, "", nil); err != nil {
+		t.Fatalf("single-validator testnet smoke should allow local startup: %v", err)
+	}
 }
 
 func TestFetchPeerHeight(t *testing.T) {

@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
@@ -40,6 +42,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("invalid YNX_PEER_RPC_URLS: %v", err)
 	}
+	if err := validateNodeStartupConfig(cfg, validators, *localValidator, peerSyncTargets); err != nil {
+		log.Fatalf("unsafe validator startup config: %v", err)
+	}
+	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
+		ValidatorAddress: *localValidator,
+		PeerSyncTargets:  chainPeerSyncTargets(peerSyncTargets),
+		PeerSyncInterval: *peerSyncInterval,
+	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -60,6 +70,60 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func validateNodeStartupConfig(cfg chain.NetworkConfig, validators []chain.Validator, localValidator string, targets []peerSyncTarget) error {
+	normalized, err := chain.NormalizeValidators(validators)
+	if err != nil {
+		return err
+	}
+	if len(normalized) == 0 {
+		normalized = chain.DefaultValidators()
+	}
+	if cfg.Slug != "testnet" || len(normalized) <= 1 {
+		return nil
+	}
+	localValidator = strings.TrimSpace(localValidator)
+	if localValidator == "" {
+		return fmt.Errorf("YNX_LOCAL_VALIDATOR_ADDRESS is required for multi-validator testnet nodes")
+	}
+	validatorSet := map[string]bool{}
+	for _, validator := range normalized {
+		validatorSet[validator.Address] = true
+	}
+	if !validatorSet[localValidator] {
+		return fmt.Errorf("local validator %s is not in YNX_VALIDATOR_SET", localValidator)
+	}
+	if len(targets) != len(normalized)-1 {
+		return fmt.Errorf("expected %d peer RPC targets for validator %s, got %d", len(normalized)-1, localValidator, len(targets))
+	}
+	seen := map[string]bool{}
+	for _, target := range targets {
+		if target.Address == localValidator {
+			return fmt.Errorf("peer RPC targets must not include local validator %s", localValidator)
+		}
+		if !validatorSet[target.Address] {
+			return fmt.Errorf("peer RPC target %s is not in YNX_VALIDATOR_SET", target.Address)
+		}
+		if seen[target.Address] {
+			return fmt.Errorf("duplicate peer RPC target %s", target.Address)
+		}
+		seen[target.Address] = true
+	}
+	for _, validator := range normalized {
+		if validator.Address != localValidator && !seen[validator.Address] {
+			return fmt.Errorf("missing peer RPC target for validator %s", validator.Address)
+		}
+	}
+	return nil
+}
+
+func chainPeerSyncTargets(targets []peerSyncTarget) []chain.ValidatorPeerSyncTarget {
+	out := make([]chain.ValidatorPeerSyncTarget, 0, len(targets))
+	for _, target := range targets {
+		out = append(out, chain.ValidatorPeerSyncTarget{Address: target.Address, URL: target.URL})
+	}
+	return out
 }
 
 func envOrDefault(key, fallback string) string {

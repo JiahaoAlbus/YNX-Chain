@@ -95,14 +95,17 @@ if [ "${expected_count:-}" != "4" ]; then
   failed=1
 fi
 status_json="$(curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true)"
+identity_json="$(curl -fsS http://127.0.0.1:6420/node/identity 2>/dev/null || true)"
 validators_json="$(curl -fsS http://127.0.0.1:6420/validators 2>/dev/null || true)"
 peers_json="$(curl -fsS http://127.0.0.1:6420/validators/peers 2>/dev/null || true)"
 sync_json="$(curl -fsS http://127.0.0.1:6420/validators/peer-sync 2>/dev/null || true)"
 if [ -z "$status_json" ]; then echo "statusEndpoint=unreachable"; failed=1; else echo "statusEndpoint=ok"; fi
+if [ -z "$identity_json" ]; then echo "nodeIdentityEndpoint=unreachable"; failed=1; else echo "nodeIdentityEndpoint=ok"; fi
 if [ -z "$validators_json" ]; then echo "validatorsEndpoint=unreachable"; failed=1; else echo "validatorsEndpoint=ok"; fi
 if [ -z "$peers_json" ]; then echo "validatorPeersEndpoint=unreachable"; failed=1; else echo "validatorPeersEndpoint=ok"; fi
 if [ -z "$sync_json" ]; then echo "validatorPeerSyncEndpoint=unreachable"; failed=1; else echo "validatorPeerSyncEndpoint=ok"; fi
 status_compact="$(printf "%s" "$status_json" | compact_json)"
+identity_compact="$(printf "%s" "$identity_json" | compact_json)"
 validators_compact="$(printf "%s" "$validators_json" | compact_json)"
 peers_compact="$(printf "%s" "$peers_json" | compact_json)"
 sync_compact="$(printf "%s" "$sync_json" | compact_json)"
@@ -110,6 +113,12 @@ check_json_contains status.chainId "$status_compact" '"chainId":6423'
 check_json_contains status.validatorPeerReadiness "$status_compact" '"validatorPeerReadiness"'
 check_json_contains status.validatorPeerDiscovery "$status_compact" '"validatorPeerDiscovery"'
 check_json_contains status.validatorPeerSync "$status_compact" '"validatorPeerSync"'
+check_json_contains status.nodeIdentity "$status_compact" '"nodeIdentity"'
+check_json_contains nodeIdentity.localIdentity "$identity_compact" "\"validatorAddress\":\"$expected_validator\""
+check_json_contains nodeIdentity.expectedCount "$identity_compact" '"expectedValidatorCount":4'
+check_json_contains nodeIdentity.targetCount "$identity_compact" '"peerSyncTargetCount":3'
+check_json_contains nodeIdentity.freshness "$identity_compact" '"peerSyncFreshness"'
+check_json_contains nodeIdentity.freshnessStatus "$identity_compact" '"status":"synced"'
 check_json_contains validators.localIdentity "$validators_compact" "\"address\":\"$expected_validator\""
 check_json_contains validators.expectedCount "$validators_compact" '"expectedValidatorCount":4'
 check_json_contains validatorPeers.records "$peers_compact" '"peers"'

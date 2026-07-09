@@ -206,6 +206,57 @@ type ValidatorPeerSyncInput struct {
 	Evidence     string `json:"evidence,omitempty"`
 }
 
+type NodeIdentityConfig struct {
+	ValidatorAddress string                    `json:"validatorAddress"`
+	PeerSyncTargets  []ValidatorPeerSyncTarget `json:"peerSyncTargets,omitempty"`
+	PeerSyncInterval time.Duration             `json:"-"`
+	StaleAfter       time.Duration             `json:"-"`
+}
+
+type ValidatorPeerSyncTarget struct {
+	Address string `json:"address"`
+	URL     string `json:"url,omitempty"`
+}
+
+type NodeIdentity struct {
+	Configured              bool                       `json:"configured"`
+	ValidatorAddress        string                     `json:"validatorAddress,omitempty"`
+	ValidatorMoniker        string                     `json:"validatorMoniker,omitempty"`
+	ValidatorRole           string                     `json:"validatorRole,omitempty"`
+	ValidatorHost           string                     `json:"validatorHost,omitempty"`
+	ValidatorPeerID         string                     `json:"validatorPeerId,omitempty"`
+	ExpectedValidatorCount  int                        `json:"expectedValidatorCount"`
+	PeerSyncTargetCount     int                        `json:"peerSyncTargetCount"`
+	PeerSyncTargetAddresses []string                   `json:"peerSyncTargetAddresses,omitempty"`
+	PeerSyncInterval        string                     `json:"peerSyncInterval,omitempty"`
+	RuntimeEvidence         string                     `json:"runtimeEvidence"`
+	PeerSyncFreshness       ValidatorPeerSyncFreshness `json:"peerSyncFreshness"`
+}
+
+type ValidatorPeerSyncFreshness struct {
+	Status            string                            `json:"status"`
+	TargetCount       int                               `json:"targetCount"`
+	Synced            int                               `json:"synced"`
+	Lagging           int                               `json:"lagging"`
+	Missing           int                               `json:"missing"`
+	Stale             int                               `json:"stale"`
+	Fresh             int                               `json:"fresh"`
+	TotalRecords      int                               `json:"totalRecords"`
+	StaleAfterSeconds int64                             `json:"staleAfterSeconds"`
+	GeneratedAt       time.Time                         `json:"generatedAt"`
+	Records           []ValidatorPeerSyncFreshnessEntry `json:"records"`
+}
+
+type ValidatorPeerSyncFreshnessEntry struct {
+	Target     string     `json:"target"`
+	Status     string     `json:"status"`
+	LagBlocks  int64      `json:"lagBlocks,omitempty"`
+	UpdatedAt  *time.Time `json:"updatedAt,omitempty"`
+	AgeSeconds int64      `json:"ageSeconds,omitempty"`
+	Fresh      bool       `json:"fresh"`
+	Evidence   string     `json:"evidence,omitempty"`
+}
+
 type TrustTrace struct {
 	Address string          `json:"address"`
 	Lots    []TrustTraceLot `json:"lots"`

@@ -71,6 +71,10 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	devnet := chain.NewDevnetWithValidatorsAndPeers(chain.DefaultNetworkConfig("testnet"), validators, peers)
+	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
+		ValidatorAddress: "ynx_val_primary",
+		PeerSyncTargets:  []chain.ValidatorPeerSyncTarget{{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"}},
+	})
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 
@@ -145,6 +149,20 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	syncValues := syncsOut["syncs"].([]any)
 	if len(syncValues) != 1 || syncValues[0].(map[string]any)["target"] != "ynx_val_sg" {
 		t.Fatalf("expected readable peer sync records: %v", syncsOut)
+	}
+	var identity map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/node/identity", nil, http.StatusOK, &identity)
+	if identity["validatorAddress"] != "ynx_val_primary" || identity["validatorRole"] != "primary validator" || identity["expectedValidatorCount"].(float64) != 2 || identity["peerSyncTargetCount"].(float64) != 1 {
+		t.Fatalf("unexpected node identity: %v", identity)
+	}
+	freshness := identity["peerSyncFreshness"].(map[string]any)
+	if freshness["status"] != "fresh_with_lag" || freshness["lagging"].(float64) != 1 || freshness["fresh"].(float64) != 1 {
+		t.Fatalf("unexpected peer sync freshness: %v", freshness)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/status", nil, http.StatusOK, &status)
+	statusIdentity := status["nodeIdentity"].(map[string]any)
+	if statusIdentity["validatorAddress"] != "ynx_val_primary" || statusIdentity["peerSyncFreshness"].(map[string]any)["status"] != "fresh_with_lag" {
+		t.Fatalf("status missing node identity freshness: %v", status)
 	}
 
 	var bad map[string]any

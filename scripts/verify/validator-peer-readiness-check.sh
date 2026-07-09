@@ -19,6 +19,8 @@ YNX_NETWORK=testnet \
 YNX_HTTP_ADDR=127.0.0.1:6461 \
 YNX_DATA_DIR="$work/secondary-state" \
 YNX_LOCAL_VALIDATOR_ADDRESS=ynx_val_secondary \
+YNX_PEER_RPC_URLS="ynx_val_primary|http://127.0.0.1:6460" \
+YNX_PEER_SYNC_INTERVAL=250ms \
 go run ./cmd/ynx-chaind >"$work/secondary.log" 2>&1 &
 secondary_pid=$!
 for _ in {1..60}; do
@@ -67,6 +69,9 @@ syncs="$(curl -fsS "$YNX_REST_URL/validators/peer-sync")"
 printf '%s' "$syncs" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const sync=data.syncs?.find((item)=>item.source==="ynx_val_primary" && item.target==="ynx_val_secondary"); if (!sync || sync.targetHeight < 0 || !sync.evidence?.startsWith("peer-rpc-poll:")) { console.error(`automatic peer sync state not exposed: ${JSON.stringify(data)}`); process.exit(1); }'
 
 status="$(curl -fsS "$YNX_REST_URL/status")"
-printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.readyValidatorCount < 1 || data.validatorPeerReadiness?.ready < 1 || data.validatorPeerReadiness?.total < 2 || data.validatorPeerDiscovery?.expected < 2 || data.validatorPeerDiscovery?.observed < 1 || data.validatorPeerSync?.synced < 1 || data.validatorPeerSync?.total < 1) { console.error(`validator readiness/discovery/sync summary missing: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const sync=data.validatorPeerSync || {}; if (data.readyValidatorCount < 1 || data.validatorPeerReadiness?.ready < 1 || data.validatorPeerReadiness?.total < 2 || data.validatorPeerDiscovery?.expected < 2 || data.validatorPeerDiscovery?.observed < 1 || sync.total < 1 || (sync.synced + sync.lagging) < 1) { console.error(`validator readiness/discovery/sync summary missing: ${JSON.stringify(data)}`); process.exit(1); }'
+identity="$(curl -fsS "$YNX_REST_URL/node/identity")"
+printf '%s' "$identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const freshness=data.peerSyncFreshness || {}; if (data.validatorAddress !== "ynx_val_primary" || data.validatorRole !== "primary validator" || data.expectedValidatorCount !== 2 || data.peerSyncTargetCount !== 1 || !Array.isArray(data.peerSyncTargetAddresses) || data.peerSyncTargetAddresses[0] !== "ynx_val_secondary" || freshness.targetCount !== 1 || freshness.missing !== 0 || freshness.stale !== 0 || freshness.fresh < 1 || !["synced","fresh_with_lag"].includes(freshness.status)) { console.error(`node identity/freshness missing: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const identity=data.nodeIdentity || {}; if (identity.validatorAddress !== "ynx_val_primary" || identity.peerSyncFreshness?.missing !== 0 || identity.peerSyncFreshness?.stale !== 0) { console.error(`status node identity/freshness missing: ${JSON.stringify(data)}`); process.exit(1); }'
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"

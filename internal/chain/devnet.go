@@ -60,6 +60,7 @@ type Devnet struct {
 	validators           []Validator
 	validatorPeers       map[string]ValidatorPeer
 	validatorPeerSyncs   map[string]ValidatorPeerSync
+	nodeIdentity         NodeIdentityConfig
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -417,10 +418,31 @@ func (d *Devnet) Status() map[string]any {
 		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
 		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
 		"validatorPeerSync":      map[string]any{"synced": syncedPeers, "lagging": laggingPeers, "total": len(d.validatorPeerSyncs)},
+		"nodeIdentity":           d.nodeIdentityLocked(time.Now().UTC()),
 		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
 	}
+}
+
+func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
+	input.ValidatorAddress = strings.TrimSpace(input.ValidatorAddress)
+	input.PeerSyncTargets = normalizeNodePeerSyncTargets(input.PeerSyncTargets)
+	if input.PeerSyncInterval < 0 {
+		input.PeerSyncInterval = 0
+	}
+	if input.StaleAfter < 0 {
+		input.StaleAfter = 0
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.nodeIdentity = input
+}
+
+func (d *Devnet) NodeIdentity() NodeIdentity {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.nodeIdentityLocked(time.Now().UTC())
 }
 
 func (d *Devnet) ExplorerSummary() ExplorerSummary {
@@ -2191,6 +2213,125 @@ func (d *Devnet) validatorPeerSyncCountsLocked() (int, int) {
 		}
 	}
 	return synced, lagging
+}
+
+func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
+	cfg := d.nodeIdentity
+	targets := normalizeNodePeerSyncTargets(cfg.PeerSyncTargets)
+	targetAddresses := make([]string, 0, len(targets))
+	for _, target := range targets {
+		targetAddresses = append(targetAddresses, target.Address)
+	}
+	sort.Strings(targetAddresses)
+	identity := NodeIdentity{
+		Configured:              cfg.ValidatorAddress != "",
+		ValidatorAddress:        cfg.ValidatorAddress,
+		ExpectedValidatorCount:  len(d.validators),
+		PeerSyncTargetCount:     len(targets),
+		PeerSyncTargetAddresses: targetAddresses,
+		RuntimeEvidence:         "local-runtime-config",
+	}
+	if cfg.PeerSyncInterval > 0 {
+		identity.PeerSyncInterval = cfg.PeerSyncInterval.String()
+	}
+	if validator, ok := d.validatorByAddressLocked(cfg.ValidatorAddress); ok {
+		identity.ValidatorMoniker = validator.Moniker
+		identity.ValidatorRole = validator.Role
+		identity.ValidatorHost = validator.Host
+		identity.ValidatorPeerID = validator.PeerID
+	}
+	identity.PeerSyncFreshness = d.validatorPeerSyncFreshnessLocked(cfg.ValidatorAddress, targets, cfg.PeerSyncInterval, cfg.StaleAfter, now)
+	return identity
+}
+
+func (d *Devnet) validatorPeerSyncFreshnessLocked(source string, targets []ValidatorPeerSyncTarget, interval, staleAfter time.Duration, now time.Time) ValidatorPeerSyncFreshness {
+	if staleAfter <= 0 {
+		staleAfter = interval * 3
+	}
+	if staleAfter < 15*time.Second {
+		staleAfter = 15 * time.Second
+	}
+	freshness := ValidatorPeerSyncFreshness{
+		Status:            "no_local_validator_configured",
+		TargetCount:       len(targets),
+		TotalRecords:      len(d.validatorPeerSyncs),
+		StaleAfterSeconds: int64(staleAfter.Seconds()),
+		GeneratedAt:       now,
+		Records:           []ValidatorPeerSyncFreshnessEntry{},
+	}
+	if source == "" {
+		return freshness
+	}
+	if len(targets) == 0 {
+		freshness.Status = "no_peer_sync_targets"
+		return freshness
+	}
+	freshness.Status = "synced"
+	for _, target := range targets {
+		entry := ValidatorPeerSyncFreshnessEntry{Target: target.Address, Status: "missing"}
+		sync, ok := d.validatorPeerSyncs[validatorPeerSyncKey(source, target.Address)]
+		if !ok {
+			freshness.Missing++
+			freshness.Records = append(freshness.Records, entry)
+			continue
+		}
+		age := now.Sub(sync.UpdatedAt)
+		if age < 0 {
+			age = 0
+		}
+		updatedAt := sync.UpdatedAt
+		entry.Status = sync.Status
+		entry.LagBlocks = sync.LagBlocks
+		entry.UpdatedAt = &updatedAt
+		entry.AgeSeconds = int64(age.Seconds())
+		entry.Fresh = age <= staleAfter
+		entry.Evidence = sync.Evidence
+		if entry.Fresh {
+			freshness.Fresh++
+		} else {
+			freshness.Stale++
+		}
+		if sync.Status == "synced" {
+			freshness.Synced++
+		} else {
+			freshness.Lagging++
+		}
+		freshness.Records = append(freshness.Records, entry)
+	}
+	sort.Slice(freshness.Records, func(i, j int) bool { return freshness.Records[i].Target < freshness.Records[j].Target })
+	if freshness.Missing > 0 {
+		freshness.Status = "missing_peer_sync"
+	} else if freshness.Stale > 0 {
+		freshness.Status = "stale_peer_sync"
+	} else if freshness.Lagging > 0 {
+		freshness.Status = "fresh_with_lag"
+	}
+	return freshness
+}
+
+func (d *Devnet) validatorByAddressLocked(address string) (Validator, bool) {
+	for _, validator := range d.validators {
+		if validator.Address == address {
+			return validator, true
+		}
+	}
+	return Validator{}, false
+}
+
+func normalizeNodePeerSyncTargets(targets []ValidatorPeerSyncTarget) []ValidatorPeerSyncTarget {
+	out := make([]ValidatorPeerSyncTarget, 0, len(targets))
+	seen := map[string]bool{}
+	for _, target := range targets {
+		target.Address = strings.TrimSpace(target.Address)
+		target.URL = strings.TrimRight(strings.TrimSpace(target.URL), "/")
+		if target.Address == "" || seen[target.Address] {
+			continue
+		}
+		seen[target.Address] = true
+		out = append(out, target)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Address < out[j].Address })
+	return out
 }
 
 func (d *Devnet) validatorAddressExistsLocked(address string) bool {

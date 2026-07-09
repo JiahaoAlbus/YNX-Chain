@@ -27,6 +27,7 @@ func NewServer(devnet *chain.Devnet) http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /status", s.handleStatus)
+	s.mux.HandleFunc("GET /node/identity", s.handleNodeIdentity)
 	s.mux.HandleFunc("POST /evm", s.handleEVM)
 	s.mux.HandleFunc("POST /", s.handleEVM)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
@@ -109,6 +110,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.Status())
+}
+func (s *Server) handleNodeIdentity(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.devnet.NodeIdentity())
 }
 func (s *Server) handleLatestBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.LatestBlock())

@@ -25,6 +25,7 @@ fi
 trap 'kill_tree "$pid"' EXIT
 curl -fsS http://127.0.0.1:6420/health >/dev/null || { echo "local testnet did not become healthy"; sed -n '1,120p' "$work/server.log" 2>/dev/null || true; exit 1; }
 echo "RPC health result:" && curl -fsS http://127.0.0.1:6420/health
+curl -fsS http://127.0.0.1:6420/node/identity | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.peerSyncFreshness || typeof data.expectedValidatorCount !== "number" || typeof data.peerSyncTargetCount !== "number") { console.error(`missing node identity endpoint: ${JSON.stringify(data)}`); process.exit(1); }'
 echo "EVM RPC chainId result:" && curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}'
 curl -fsS http://127.0.0.1:6420/metrics >"$work/metrics.txt"
 grep -q 'ynx_chain_height{network="testnet",chain_id="6423",native_symbol="YNXT"}' "$work/metrics.txt"
