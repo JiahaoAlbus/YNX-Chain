@@ -5,6 +5,7 @@ make env-check
 make no-placeholder-check
 make secret-scan
 make objective-state-check
+make deploy-readiness-gate-check
 go test ./cmd/... ./internal/...
 make deploy-dry-run
 make ops-check

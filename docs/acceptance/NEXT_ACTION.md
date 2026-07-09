@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: clear the SSH host-key blocker safely, then rerun deploy-readiness evidence for the new `ynx_6423-1` YNX Testnet.
+Current single action: independently verify the Singapore and Silicon Valley SSH host-key fingerprints, then correct `known_hosts` only if the trusted fingerprints match and rerun deploy-readiness evidence for the new `ynx_6423-1` YNX Testnet.
 
 Why this action:
 
@@ -8,6 +8,7 @@ Why this action:
 - The final objective now prioritizes public multi-validator testnet proof over more local feature expansion.
 - Remote mutation is still unsafe because Singapore and Silicon Valley host keys currently fail strict SSH verification.
 - The repo now needs a repeatable, non-mutating host-key repair plan so the operator can verify fingerprints out-of-band before any known_hosts update.
+- `remote-blocker-report` and `deploy-readiness-gate` now also require fresh underlying host-key and remote-smoke evidence; a freshly regenerated blocker JSON alone is not enough.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
 - EVM/IDE bounded execution remains paused unless needed to preserve existing tests.
 
@@ -18,6 +19,7 @@ Files to touch:
 - `scripts/verify/verify-testnet.sh`
 - `scripts/ops/host-key-repair-plan.sh`
 - `scripts/ops/host-key-audit.sh`
+- `scripts/verify/deploy-readiness-gate-check.mjs`
 - `scripts/verify/remote-blocker-report.mjs`
 - `scripts/verify/deploy-readiness-gate.mjs`
 - `scripts/package/public-proof.sh`
@@ -33,6 +35,7 @@ Validation commands:
 - `node --check scripts/verify/remote-smoke-test.mjs`
 - `make host-key-repair-plan`
 - `make host-key-audit`
+- `make deploy-readiness-gate-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -47,6 +50,8 @@ Completion standard:
 
 - `make host-key-repair-plan` produces `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current local entries, presented fingerprints, strict SSH output, and commands that are clearly marked as requiring trusted out-of-band fingerprint confirmation first.
 - The script does not modify `~/.ssh/known_hosts` or bypass strict SSH checks.
+- `make deploy-readiness-gate-check` proves the deploy gate rejects old-format blocker JSON, missing required source evidence, stale required source evidence, missing source files, and explicit endpoint blockers.
+- `remote-blocker-report` records freshness for the underlying remote-smoke and host-key-audit evidence, and `deploy-readiness-gate` refuses mutation if either required source is missing or stale.
 - Remote smoke evidence includes public Request Validity rule checks and transparency checks before any mutable remote action.
 - Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.
 - `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints.

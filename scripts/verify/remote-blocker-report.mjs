@@ -9,6 +9,7 @@ const hostKeyAuditPath = process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-
 const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
 const jsonOutPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
+const maxAgeMinutes = Number(process.env.YNX_DEPLOY_GATE_MAX_AGE_MINUTES || 120);
 
 function readText(file) {
   try {
@@ -24,6 +25,36 @@ function readJson(file) {
   } catch {
     return null;
   }
+}
+
+function fileMetadata(file, { required = false, jsonGeneratedAt = null } = {}) {
+  let stat = null;
+  try {
+    stat = fs.statSync(file);
+  } catch {
+    return {
+      path: file,
+      required,
+      exists: false,
+      classification: required ? "missing-required-evidence" : "missing-optional-evidence",
+      detail: "file does not exist",
+    };
+  }
+  const parsedGeneratedAt = jsonGeneratedAt ? Date.parse(jsonGeneratedAt) : NaN;
+  const timestampMs = Number.isFinite(parsedGeneratedAt) ? parsedGeneratedAt : stat.mtimeMs;
+  const ageMinutes = (Date.now() - timestampMs) / 60000;
+  const stale = ageMinutes > maxAgeMinutes;
+  return {
+    path: file,
+    required,
+    exists: true,
+    timestamp: new Date(timestampMs).toISOString(),
+    timestampSource: Number.isFinite(parsedGeneratedAt) ? "json-generatedAt" : "file-mtime",
+    ageMinutes: Number(ageMinutes.toFixed(2)),
+    maxAgeMinutes,
+    classification: stale ? (required ? "stale-required-evidence" : "stale-optional-evidence") : "fresh",
+    detail: stale ? `evidence age ${ageMinutes.toFixed(1)} minutes exceeds ${maxAgeMinutes}` : "fresh enough for deploy gate",
+  };
 }
 
 function section(title, body) {
@@ -126,6 +157,15 @@ function countBy(items, selector) {
 const evidence = readJson(evidencePath);
 const ssh = readText(sshPath);
 const hostKeyAudit = readText(hostKeyAuditPath);
+const sourceEvidence = {
+  remoteEvidence: fileMetadata(evidencePath, { required: true, jsonGeneratedAt: evidence?.generatedAt }),
+  hostKeyAudit: fileMetadata(hostKeyAuditPath, { required: true }),
+  sshServices: fileMetadata(sshPath),
+  legacyInventory: fileMetadata(legacyInventoryPath),
+};
+const sourceFindings = Object.entries(sourceEvidence)
+  .map(([name, metadata]) => ({ name, ...metadata }))
+  .filter((item) => item.required && item.classification !== "fresh");
 const failedChecks = evidence?.checks?.filter((check) => !check.ok) || [];
 const sshBlocks = splitNodeBlocks(ssh);
 const hostKeyBlocks = splitNodeBlocks(hostKeyAudit);
@@ -173,7 +213,7 @@ const deployBlockingEndpointClasses = new Set([
 ]);
 const nodeDeployBlockers = nodeFailures.filter((finding) => deployBlockingNodeClasses.has(finding.classification));
 const endpointDeployBlockers = endpointFindings.filter((finding) => deployBlockingEndpointClasses.has(finding.classification));
-const deployReady = nodeDeployBlockers.length === 0 && endpointDeployBlockers.length === 0;
+const deployReady = sourceFindings.length === 0 && nodeDeployBlockers.length === 0 && endpointDeployBlockers.length === 0;
 const generatedAt = new Date().toISOString();
 
 const lines = [
@@ -195,6 +235,22 @@ const lines = [
           `- Minimum validators: ${evidence.expected?.minValidators || "unknown"}`,
         ].join("\n")
       : "Remote evidence JSON is missing."
+  ),
+  section(
+    "Source Evidence Freshness",
+    [
+      table(["Source", "Path", "Required", "Classification", "Age Minutes", "Detail"], Object.entries(sourceEvidence).map(([name, metadata]) => [
+        name,
+        metadata.path,
+        metadata.required ? "yes" : "no",
+        metadata.classification,
+        metadata.ageMinutes ?? "n/a",
+        metadata.detail,
+      ])),
+      sourceFindings.length
+        ? ["", "Deploy-blocking source evidence issues:", ...sourceFindings.map((finding) => `- ${finding.name}: ${finding.classification} (${finding.detail})`)].join("\n")
+        : "",
+    ].join("\n")
   ),
   section(
     "Node And SSH Blockers",
@@ -276,10 +332,13 @@ fs.writeFileSync(jsonOutPath, `${JSON.stringify({
   nodeFindings,
   endpointFindings,
   deployBlockers: {
+    sources: sourceFindings,
     nodes: nodeDeployBlockers,
     endpoints: endpointDeployBlockers,
   },
+  sourceEvidence,
   summaries: {
+    sources: Object.fromEntries(countBy(sourceFindings, (finding) => finding.classification)),
     nodes: Object.fromEntries(nodeSummary),
     endpoints: Object.fromEntries(endpointSummary),
   },

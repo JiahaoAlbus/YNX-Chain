@@ -44,10 +44,53 @@ if (ageMinutes > maxAgeMinutes) {
   ]);
 }
 
+const sourceEvidence = blocker.sourceEvidence || null;
+if (!sourceEvidence || typeof sourceEvidence !== "object") {
+  fail("required source evidence metadata is missing", [
+    `file: ${blockerJsonPath}`,
+    "rerun make host-key-audit, make remote-smoke-test, and make remote-blocker-report",
+  ]);
+}
+
+const requiredSources = [
+  ["remoteEvidence", "remote smoke evidence"],
+  ["hostKeyAudit", "host-key audit"],
+];
+const sourceProblems = [];
+for (const [key, label] of requiredSources) {
+  const source = sourceEvidence[key];
+  if (!source || !source.exists) {
+    sourceProblems.push(`${label}: missing (${source?.path || "unknown path"})`);
+    continue;
+  }
+  if (!source.path) {
+    sourceProblems.push(`${label}: missing source path`);
+    continue;
+  }
+  if (!fs.existsSync(source.path)) {
+    sourceProblems.push(`${label}: source path no longer exists (${source.path})`);
+    continue;
+  }
+  const sourceTimestamp = Date.parse(source.timestamp || "");
+  if (!Number.isFinite(sourceTimestamp)) {
+    sourceProblems.push(`${label}: missing valid timestamp (${source.path || "unknown path"})`);
+    continue;
+  }
+  const sourceAgeMinutes = (Date.now() - sourceTimestamp) / 60000;
+  if (sourceAgeMinutes > maxAgeMinutes) {
+    sourceProblems.push(`${label}: stale ${sourceAgeMinutes.toFixed(1)} minutes old, max ${maxAgeMinutes} (${source.path || "unknown path"})`);
+  }
+}
+if (sourceProblems.length) {
+  fail("required source evidence is missing or stale", sourceProblems);
+}
+
+const sourceBlockers = blocker.deployBlockers?.sources || [];
 const nodeBlockers = blocker.deployBlockers?.nodes || [];
 const endpointBlockers = blocker.deployBlockers?.endpoints || [];
-if (!blocker.deployReady || nodeBlockers.length || endpointBlockers.length) {
+if (!blocker.deployReady || sourceBlockers.length || nodeBlockers.length || endpointBlockers.length) {
   const details = [
+    ...sourceBlockers.map((item) => `${item.name || "source"} ${item.path || ""}: ${item.classification} (${item.detail || "no detail"})`),
     ...nodeBlockers.map((item) => `${item.role || "node"} ${item.login || ""} ${item.host || ""}: ${item.classification} (${item.detail || "no detail"})`),
     ...endpointBlockers.map((item) => `${item.name || "endpoint"} ${item.endpoint || ""}: ${item.classification} (${item.detail || "no detail"})`),
   ];
