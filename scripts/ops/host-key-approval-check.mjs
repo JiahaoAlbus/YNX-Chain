@@ -191,10 +191,10 @@ function strictOutputSuggestsRepair(auditOut, role, host) {
   return body.includes("REMOTE HOST IDENTIFICATION HAS CHANGED") || body.includes("Host key verification failed");
 }
 
-function writeApprovalTemplate({ auditOut, templatePath }) {
+function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
   if (!fs.existsSync(auditOut)) {
     fail(`missing host-key audit directory at ${auditOut}`, [
-      "Run make host-key-audit or make host-key-repair-plan before generating the approval template.",
+      "Run make host-key-audit or make host-key-repair-plan before generating host-key approval artifacts.",
     ]);
   }
   const nodes = [];
@@ -205,7 +205,7 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
     if (!node || !strictOutputSuggestsRepair(auditOut, node.role, node.host)) continue;
     const presented = fingerprintMap(scanFile);
     const fingerprints = {};
-    for (const type of [...presented.keys()].sort()) fingerprints[type] = "";
+    for (const type of [...presented.keys()].sort()) fingerprints[type] = blankFingerprints ? "" : presented.get(type);
     nodes.push({
       role: node.role,
       host: node.host,
@@ -214,10 +214,15 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
     });
   }
   if (!nodes.length) {
-    fail("no host-key mismatch scan files found for an approval template", [
+    fail("no host-key mismatch scan files found for host-key approval artifacts", [
       "Run make host-key-audit and confirm there are strict SSH host-key mismatches first.",
     ]);
   }
+  return nodes;
+}
+
+function writeApprovalTemplate({ auditOut, templatePath }) {
+  const nodes = collectRepairApprovalNodes(auditOut, { blankFingerprints: true });
 
   const template = {
     instructions: [
@@ -234,6 +239,78 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
   fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`);
   console.log(`host-key approval template written: ${templatePath}`);
   console.log("template contains blank fingerprints only; it is not an approval file");
+}
+
+function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath }) {
+  const nodes = collectRepairApprovalNodes(auditOut, { blankFingerprints: false });
+  const generatedAt = new Date().toISOString();
+  const rows = [];
+  for (const node of nodes) {
+    for (const [type, fingerprint] of Object.entries(node.fingerprints)) {
+      rows.push({
+        role: node.role,
+        host: node.host,
+        keyType: type,
+        presentedFingerprint: fingerprint,
+        trustedFingerprint: "",
+        status: "needs-out-of-band-confirmation",
+      });
+    }
+  }
+
+  const markdown = [
+    "# Host Key Approval Request",
+    "",
+    `Generated at: ${generatedAt}`,
+    `Audit directory: ${auditOut}`,
+    `Approval template: ${templatePath}`,
+    "",
+    "This request is not a trusted approval. It only lists host-key fingerprints currently presented by SSH scanning so an operator can compare them with a trusted cloud-console or provider channel.",
+    "",
+    "Rules:",
+    "",
+    "- Do not copy these presented fingerprints into `.host-key-approvals.json` unless they independently match a trusted external source.",
+    "- Leave `trustedFingerprint` blank in this request until the value is confirmed out-of-band.",
+    "- After external confirmation, fill the ignored `.host-key-approvals.json` file from the blank template and run `make host-key-approval-check`.",
+    "- Only after the approval check passes, run `make host-key-approved-repair-dry-run`, review the report, then run `make host-key-approved-repair`.",
+    "",
+    "| Role | Host | Key Type | Presented Fingerprint | Trusted Fingerprint | Status |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...rows.map((row) => [
+      row.role,
+      row.host,
+      row.keyType,
+      row.presentedFingerprint,
+      row.trustedFingerprint,
+      row.status,
+    ].map((cell) => String(cell || "").replace(/\|/g, "\\|")).join(" | ")).map((row) => `| ${row} |`),
+    "",
+    "Next commands after trusted external confirmation:",
+    "",
+    "```bash",
+    "make host-key-approval-check",
+    "make host-key-approved-repair-dry-run",
+    "make host-key-approved-repair",
+    "make host-key-audit",
+    "make remote-blocker-report",
+    "make deploy-readiness-gate",
+    "```",
+    "",
+  ].join("\n");
+
+  fs.mkdirSync(path.dirname(requestPath), { recursive: true });
+  fs.writeFileSync(requestPath, markdown);
+  fs.writeFileSync(jsonPath, `${JSON.stringify({
+    generatedAt,
+    auditOut,
+    templatePath,
+    trustedApproval: false,
+    instructions: "Compare presentedFingerprint values against a trusted external source before filling .host-key-approvals.json.",
+    rows,
+    nodes,
+  }, null, 2)}\n`);
+  console.log(`host-key approval request written: ${requestPath}`);
+  console.log("request contains untrusted current-scan fingerprints only; it is not an approval file");
 }
 
 function timestampForPath() {
@@ -408,6 +485,16 @@ function selfTest() {
   const approvalPath = path.join(workDir, "approvals.json");
   const reportPath = path.join(workDir, "status.md");
   const jsonPath = path.join(workDir, "status.json");
+  const strictPath = path.join(auditOut, "testnode-127.0.0.1.strict.out");
+  fs.writeFileSync(strictPath, "Host key verification failed.\n");
+  const templatePath = path.join(workDir, "template.json");
+  writeApprovalTemplate({ auditOut, templatePath });
+  const requestPath = path.join(workDir, "request.md");
+  const requestJsonPath = path.join(workDir, "request.json");
+  writeApprovalRequest({ auditOut, requestPath, jsonPath: requestJsonPath, templatePath });
+  const request = JSON.parse(fs.readFileSync(requestJsonPath, "utf8"));
+  assert.equal(request.trustedApproval, false);
+  assert.equal(request.rows.length, 1);
   fs.writeFileSync(approvalPath, JSON.stringify({
     source: "self-test trusted channel",
     approvedAt: new Date().toISOString(),
@@ -461,6 +548,12 @@ if (process.argv.includes("--self-test")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
   writeApprovalTemplate({ auditOut, templatePath });
+} else if (process.argv.includes("--write-approval-request")) {
+  const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
+  const requestPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md");
+  const requestJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json");
+  const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
+  writeApprovalRequest({ auditOut, requestPath, jsonPath: requestJsonPath, templatePath });
 } else if (process.argv.includes("--repair-known-hosts")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");

@@ -8,7 +8,7 @@ Why this action:
 - The final objective now prioritizes public proof for these Chain Law / Appeal / Transparency surfaces over more local EVM/IDE feature expansion.
 - Remote mutation is still unsafe because Singapore and Silicon Valley host keys currently fail strict SSH verification.
 - The repo now needs a repeatable, non-mutating host-key repair plan so the operator can verify fingerprints out-of-band before any known_hosts update.
-- The repo now has a machine-checkable host-key approval step, blank approval-template generator, and approval-gated known_hosts repair command, but no trusted approval file is present yet.
+- The repo now has a machine-checkable host-key approval step, blank approval-template generator, external approval-request generator, and approval-gated known_hosts repair command, but no trusted approval file is present yet.
 - Fresh evidence from 2026-07-09 still shows `.host-key-approvals.json` absent, Singapore/Silicon Valley host-key mismatch, REST/governance HTTP 501, explorer 404, faucet native `anyxt`, and public RPC/indexer/AI/Web4/faucet responses tied to legacy `ynx_9102-1`.
 - `remote-blocker-report` and `deploy-readiness-gate` now also require fresh underlying host-key and remote-smoke evidence; a freshly regenerated blocker JSON alone is not enough.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
@@ -38,6 +38,7 @@ Validation commands:
 - `make objective-state-check`
 - `make host-key-repair-plan`
 - `make host-key-approval-template`
+- `make host-key-approval-request`
 - `make host-key-approval-check-test`
 - `make host-key-approval-check`
 - `make host-key-approved-repair-dry-run`
@@ -55,6 +56,7 @@ Completion standard:
 - `FEATURE_COMPLETION_TRACKER.md` must keep these modules as not remote deployed and not public proof until a real public endpoint passes.
 - `make host-key-repair-plan` produces `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current local entries, presented fingerprints, strict SSH output, and commands that are clearly marked as requiring trusted out-of-band fingerprint confirmation first.
 - `make host-key-approval-template` produces `tmp/host-key-audit/host-key-approvals.template.json` with blank fingerprint values for mismatched hosts only; it must not create or imply a trusted approval.
+- `make host-key-approval-request` produces `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` and `tmp/host-key-audit/host-key-approval-request.json` for external fingerprint comparison; it must clearly mark current-scan fingerprints as untrusted and must not write `.host-key-approvals.json`.
 - `make host-key-approval-check-test` proves the approval checker accepts matched fingerprints and rejects mismatched fingerprints.
 - `make host-key-approval-check` remains blocked until ignored `.host-key-approvals.json` contains exact fingerprints confirmed from a trusted external source.
 - `make host-key-approved-repair-dry-run` and `make host-key-approved-repair` must fail closed unless `make host-key-approval-check` would pass first. The apply target must back up `known_hosts`, replace only approved hosts from current scan files, and verify strict SSH after repair.

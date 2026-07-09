@@ -11,6 +11,7 @@ function fail(message, details = []) {
   for (const detail of details) console.error(`- ${detail}`);
   console.error("Run: make host-key-audit");
   console.error("Run: make host-key-repair-plan");
+  console.error("Run for external fingerprint verification: make host-key-approval-request");
   console.error("Run after trusted fingerprint approval exists: make host-key-approval-check");
   console.error("Run after approval check passes: make host-key-approved-repair-dry-run");
   console.error("Run after dry-run review: make host-key-approved-repair");
