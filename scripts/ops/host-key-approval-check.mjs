@@ -174,6 +174,65 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
   console.log(`host-key approval check passed: ${reportPath}`);
 }
 
+function nodeFromScanFile(scanFile) {
+  const basename = path.basename(scanFile, ".known_hosts");
+  const match = basename.match(/^(.+)-(\d+\.\d+\.\d+\.\d+)$/);
+  if (!match) return null;
+  return { role: match[1], host: match[2] };
+}
+
+function strictOutputSuggestsRepair(auditOut, role, host) {
+  const strictPath = path.join(auditOut, `${role}-${host}.strict.out`);
+  if (!fs.existsSync(strictPath)) return false;
+  const body = fs.readFileSync(strictPath, "utf8");
+  return body.includes("REMOTE HOST IDENTIFICATION HAS CHANGED") || body.includes("Host key verification failed");
+}
+
+function writeApprovalTemplate({ auditOut, templatePath }) {
+  if (!fs.existsSync(auditOut)) {
+    fail(`missing host-key audit directory at ${auditOut}`, [
+      "Run make host-key-audit or make host-key-repair-plan before generating the approval template.",
+    ]);
+  }
+  const nodes = [];
+  for (const entry of fs.readdirSync(auditOut).sort()) {
+    if (!entry.endsWith(".known_hosts")) continue;
+    const scanFile = path.join(auditOut, entry);
+    const node = nodeFromScanFile(scanFile);
+    if (!node || !strictOutputSuggestsRepair(auditOut, node.role, node.host)) continue;
+    const presented = fingerprintMap(scanFile);
+    const fingerprints = {};
+    for (const type of [...presented.keys()].sort()) fingerprints[type] = "";
+    nodes.push({
+      role: node.role,
+      host: node.host,
+      scanFile: path.relative(repoRoot, scanFile),
+      fingerprints,
+    });
+  }
+  if (!nodes.length) {
+    fail("no host-key mismatch scan files found for an approval template", [
+      "Run make host-key-audit and confirm there are strict SSH host-key mismatches first.",
+    ]);
+  }
+
+  const template = {
+    instructions: [
+      "Do not rename this template to .host-key-approvals.json until every fingerprint is independently confirmed through a trusted cloud-console or provider channel.",
+      "Leave fingerprint values blank until confirmed out-of-band. Do not copy values from ssh-keyscan alone.",
+      "After filling source, approvedAt, and every fingerprint, save as .host-key-approvals.json and run make host-key-approval-check.",
+    ],
+    source: "",
+    approvedAt: "",
+    nodes,
+  };
+
+  fs.mkdirSync(path.dirname(templatePath), { recursive: true });
+  fs.writeFileSync(templatePath, `${JSON.stringify(template, null, 2)}\n`);
+  console.log(`host-key approval template written: ${templatePath}`);
+  console.log("template contains blank fingerprints only; it is not an approval file");
+}
+
 function selfTest() {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "ynx-host-key-approval-"));
   const keyPath = path.join(workDir, "host_ed25519");
@@ -227,6 +286,10 @@ function selfTest() {
 
 if (process.argv.includes("--self-test")) {
   selfTest();
+} else if (process.argv.includes("--write-template")) {
+  const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
+  const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
+  writeApprovalTemplate({ auditOut, templatePath });
 } else {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");

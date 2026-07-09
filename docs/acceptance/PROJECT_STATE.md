@@ -2,20 +2,21 @@
 
 Updated: 2026-07-09
 
-- State snapshot baseline commit: `5d2eddc Add governance API validation gate` before this evidence refresh
-- Last pushed commit known locally before this evidence refresh: `5d2eddc Add governance API validation gate`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, currently focused on remote public proof readiness for the already-local Anti-Illegal Request / Request Validity / Appeal / Transparency implementation. `remote-smoke-test` treats Chain Law APIs as part of public proof readiness and will verify request validity rules, transparency reports, illegal native YNXT rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, and anti-unreasonable tracking review before `public-proof` can pass.
+- State snapshot baseline commit: `ee39795 Refresh remote proof blocker state` before this approval-template update
+- Last pushed commit known locally before this approval-template update: `ee39795 Refresh remote proof blocker state`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, currently focused on remote public proof readiness for the already-local Anti-Illegal Request / Request Validity / Appeal / Transparency implementation and the SSH host-key approval workflow that safely gates remote mutation. `remote-smoke-test` treats Chain Law APIs as part of public proof readiness and will verify request validity rules, transparency reports, illegal native YNXT rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, and anti-unreasonable tracking review before `public-proof` can pass.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, latest observed commit `1ddc977 Harden website readiness and deployment`.
 
 Completed modules in the chain repo:
 
 - Local chain, faucet, indexer, explorer service code exists with Go tests.
-- Deploy, dry-run, verify, ops, backup, rollback, host-key audit, non-mutating host-key repair plan, host-key approval check, legacy inventory, remote smoke, public proof, and package commands exist.
+- Deploy, dry-run, verify, ops, backup, rollback, host-key audit, non-mutating host-key repair plan, blank host-key approval template generation, host-key approval check, legacy inventory, remote smoke, public proof, and package commands exist.
 - `remote-smoke-test` checks public RPC, EVM RPC, REST, gRPC, faucet, indexer, explorer, AI, Web4, Request Validity rules, and transparency endpoints before mutable proof actions. After the public chain is verified as the new YNX Testnet, it also checks faucet, Pay, Trust trace, Resource, IDE compile, Anti-Illegal Request rejection, governance review/reject, appeal resolution, anti-unreasonable tracking, and final transparency counts.
 - Legacy backup coverage is wired into deployment and ops checks.
 - `remote-blocker-report` classifies node failures, public endpoint failures, and freshness for underlying host-key-audit and remote-smoke evidence instead of only pasting raw error blocks.
 - `deploy-readiness-gate` reads `tmp/verify-testnet/remote-blockers.json` and blocks real `deploy-testnet` mutation when SSH/public ingress evidence is unsafe or when required underlying host-key-audit / remote-smoke source evidence is missing or stale. `DEPLOY_DRY_RUN=1` skips the gate for local dry-run validation only.
 - `make deploy-readiness-gate-check` verifies the gate rejects old-format blocker JSON, missing source evidence, stale source evidence, missing source files, and explicit endpoint blockers while accepting a fresh no-blocker fixture.
+- `make host-key-approval-template` generates `tmp/host-key-audit/host-key-approvals.template.json` with blank fingerprint fields for strict SSH mismatch hosts only. It is not trusted approval and does not write `.host-key-approvals.json`.
 - `make host-key-approval-check-test` verifies the host-key approval checker accepts exact matches and rejects mismatched approvals without touching `known_hosts`.
 - Anti-Illegal Request Engine now has persistent request intake, classification, rejection, and transparency entries for private-secret, signature-bypass, hidden-record, fake-risk, unsupported-Trust-conclusion, AI-auto-punishment, overbroad, and native YNXT direct-freeze/direct-transfer requests.
 - Pay API now records merchant idempotency keys for intents, invoices, refunds, and webhook signatures; duplicate idempotency requests return the original object instead of creating conflicting records.
@@ -48,7 +49,8 @@ Incomplete modules or requirements:
 Remote deployment state:
 
 - `make host-key-audit` on 2026-07-09 still fails: primary and Seoul strict SSH are accepted; Singapore and Silicon Valley remain `host-key-mismatch` and must not be mutated until manually verified.
-- `make host-key-repair-plan` now generates `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current known_hosts entries, presented fingerprints, strict SSH output, and exact post-verification commands for Singapore and Silicon Valley. It does not modify known_hosts and is not approval by itself.
+- `make host-key-repair-plan` now generates `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current known_hosts entries, presented fingerprints, strict SSH output, and exact post-verification commands for Singapore and Silicon Valley. It points operators to `make host-key-approval-template` first. It does not modify known_hosts and is not approval by itself.
+- `make host-key-approval-template` on 2026-07-09 writes `tmp/host-key-audit/host-key-approvals.template.json` with blank fingerprint values for Singapore and Silicon Valley only. The template is not trusted approval and does not write `.host-key-approvals.json`.
 - `.host-key-approvals.json` is intentionally git-ignored. `make host-key-approval-check` will remain blocked until that local file contains exact fingerprints verified from a trusted external source.
 - `make host-key-approval-check` on 2026-07-09 still fails closed because ignored `.host-key-approvals.json` is absent; this is expected until fingerprints are confirmed through a trusted provider/cloud-console channel.
 - `remote-smoke-test` evidence generated at `2026-07-09T13:50:55.259Z` failed with public endpoints still not proving the new chain: RPC/indexer/AI/Web4/faucet still show legacy `ynx_9102-1`, EVM chain id is `0x238e` instead of `0x1917`, validator set evidence is empty, RPC height did not grow during the short check window (`2629227 -> 2629227`), REST `/status` returns HTTP 501, governance request-validity and transparency endpoints return HTTP 501, faucet native symbol is `anyxt` instead of `YNXT`, and explorer health/summary return 404.
