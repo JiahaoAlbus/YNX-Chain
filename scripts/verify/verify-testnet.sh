@@ -49,7 +49,7 @@ check_node() {
         remote_script="$remote_script test -r '$observer_file' && head -c 1200 '$observer_file' || echo 'observer file unavailable: $observer_file';"
       fi
       remote_script="$remote_script exit \$failed;"
-      if ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 "$user@$host" "$remote_script"; then
+      if ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "$remote_script"; then
         echo "OK $name"
       else
         echo "FAIL $name ssh or service check failed"

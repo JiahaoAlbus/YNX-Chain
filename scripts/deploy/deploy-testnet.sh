@@ -280,7 +280,7 @@ ynx_node_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$remote" "$@"
+  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$remote" "$@"
 }
 
 ynx_node_scp() {
@@ -291,7 +291,7 @@ ynx_node_scp() {
     printf 'DRY RUN [%s] scp -i %q %q %q:%q\n' "$role" "$key" "$src" "$remote" "$dest"
     return 0
   fi
-  scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$src" "$remote:$dest"
+  scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$src" "$remote:$dest"
 }
 
 ynx_capture_predeploy_state() {

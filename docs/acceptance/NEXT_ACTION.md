@@ -15,6 +15,7 @@ Why this action:
 - Public endpoint evidence that proves the old chain, wrong EVM/Cosmos chain ID, empty validator set, missing validator metadata, missing block growth, or skipped mutable proof actions is now deploy-blocking even when the endpoint returns HTTP successfully.
 - `remote-smoke-test`, `verify-testnet`, and `public-proof` now need to prove Chain Law APIs too, not only RPC/faucet/pay/trust/resource/IDE basics.
 - `public-proof` now has a second evidence-completeness validator and cannot mark `validPublicProof=true` unless all required remote endpoint, validator, Chain Law, Appeal, Transparency, anti-unreasonable tracking, resource, and IDE checks are present and passed.
+- Deploy, ops, and verification SSH paths now require strict known_hosts matching and must not auto-accept new host keys.
 - EVM/IDE bounded execution is safely closed for now: keep existing tests green, but do not expand bounded opcode coverage, Counter samples, Hardhat artifacts, or IDE execution unless needed to preserve current tests.
 
 Files to touch:
@@ -66,6 +67,7 @@ Completion standard:
 - `make host-key-approved-repair-dry-run` and `make host-key-approved-repair` must fail closed unless `make host-key-approval-check` would pass first. The apply target must back up `known_hosts`, replace only approved hosts from current scan files, and verify strict SSH after repair.
 - While `.host-key-approvals.json` is absent, `make host-key-approval-check` must fail closed and no known_hosts repair or deploy mutation is allowed.
 - The script does not modify `~/.ssh/known_hosts` or bypass strict SSH checks.
+- Deploy, ops, and verify scripts must use `StrictHostKeyChecking=yes`; `make objective-state-check` must fail if `StrictHostKeyChecking=accept-new` is reintroduced under `scripts/deploy`, `scripts/ops`, or `scripts/verify`.
 - `make deploy-readiness-gate-check` proves the deploy gate rejects old-format blocker JSON, missing required source evidence, stale required source evidence, missing source files, and explicit endpoint blockers.
 - `make deploy-readiness-gate-check` proves semantic public endpoint failures such as legacy-chain, wrong-chain-id, validator-set-empty, validator-metadata-missing, dependent-height-failure, and gated-mutation-skipped are deploy-blocking.
 - `remote-blocker-report` records freshness for the underlying remote-smoke, host-key-audit, and conditional host-key-approval-request evidence, compares approval-request JSON rows to current mismatch fingerprints, and `deploy-readiness-gate` refuses mutation if any required source is missing, stale, invalid, or inconsistent.
@@ -73,7 +75,7 @@ Completion standard:
 - Mutable remote proof actions, once public endpoints are confirmed as the new chain, include Anti-Illegal Request rejection, governance request lookup/review/reject, Trust appeal lookup/resolution, anti-unreasonable tracking, and final transparency report counts.
 - `public-proof` remains invalid unless `remote-smoke-test` passes against public endpoints and `public-proof-validation.json` confirms all required remote proof checks are present and passed.
 - `PROJECT_STATE.md` records current remote blocker evidence and does not claim public proof while endpoints are old-chain, timed out, or unverified.
-- Current refreshed evidence is `tmp/verify-testnet/remote-evidence.json` generated at `2026-07-09T14:08:00.836Z`, `tmp/verify-testnet/remote-blockers.json` generated at `2026-07-09T14:20:01.780Z`, `tmp/host-key-audit/host-key-audit.txt` modified at `2026-07-09T14:07:45.954Z`, `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` modified at `2026-07-09T14:13:01.277Z`, and `tmp/host-key-audit/host-key-approval-request.json` modified at `2026-07-09T14:13:01.278Z`.
+- Current refreshed evidence is `tmp/verify-testnet/remote-evidence.json` generated at `2026-07-09T14:36:26.183Z`, `tmp/verify-testnet/remote-blockers.json` generated at `2026-07-09T14:37:20.206Z`, `tmp/host-key-audit/host-key-audit.txt` modified at `2026-07-09T14:37:14Z`, `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md` modified at `2026-07-09T14:37:20Z`, and `tmp/host-key-audit/host-key-approval-request.json` generated at `2026-07-09T14:37:20.140Z`.
 - `FEATURE_COMPLETION_TRACKER.md` keeps remote-deployed/public-proof columns as `no` until live public evidence proves otherwise.
 
 Explicitly not doing:

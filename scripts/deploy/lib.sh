@@ -60,7 +60,7 @@ ynx_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$remote" "$@"
+  ssh -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$remote" "$@"
 }
 
 ynx_scp() {
@@ -70,7 +70,7 @@ ynx_scp() {
     printf 'DRY RUN scp -i %q %q %q:%q\n' "${SSH_KEY_PATH:?}" "$src" "$remote" "$dest"
     return 0
   fi
-  scp -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$src" "$remote:$dest"
+  scp -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$src" "$remote:$dest"
 }
 
 ynx_write_kv_env() {

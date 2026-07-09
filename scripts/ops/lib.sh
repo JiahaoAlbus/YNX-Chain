@@ -39,7 +39,7 @@ ynx_ops_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new "$remote" "$@"
+  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$remote" "$@"
 }
 
 ynx_ops_services_for_kind() {
