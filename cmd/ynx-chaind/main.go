@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -23,42 +24,106 @@ func main() {
 	localValidator := flag.String("validator-address", envOrDefault("YNX_LOCAL_VALIDATOR_ADDRESS", ""), "local validator address for peer sync polling")
 	peerSyncRaw := flag.String("peer-rpc-urls", envOrDefault("YNX_PEER_RPC_URLS", ""), "semicolon-separated peer sync targets: address|url")
 	peerSyncInterval := flag.Duration("peer-sync-interval", envDurationOrDefault("YNX_PEER_SYNC_INTERVAL", 5*time.Second), "validator peer sync polling interval")
+	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
 	flag.Parse()
 
-	cfg := chain.DefaultNetworkConfig(*network)
+	cfg := nodeRuntimeConfig{
+		HTTPAddr:         *httpAddr,
+		Network:          *network,
+		BlockInterval:    *blockInterval,
+		DataDir:          *dataDir,
+		LocalValidator:   *localValidator,
+		PeerSyncRaw:      *peerSyncRaw,
+		PeerSyncInterval: *peerSyncInterval,
+		CheckConfig:      *checkConfig,
+	}
+	if err := runNode(cfg, os.Stdout); err != nil {
+		log.Fatal(err)
+	}
+}
+
+type nodeRuntimeConfig struct {
+	HTTPAddr         string
+	Network          string
+	BlockInterval    time.Duration
+	DataDir          string
+	LocalValidator   string
+	PeerSyncRaw      string
+	PeerSyncInterval time.Duration
+	CheckConfig      bool
+}
+
+type nodeStartupInputs struct {
+	NetworkConfig   chain.NetworkConfig
+	Validators      []chain.Validator
+	Peers           []chain.ValidatorPeer
+	PeerSyncTargets []peerSyncTarget
+}
+
+func loadNodeStartupInputs(cfg nodeRuntimeConfig) (nodeStartupInputs, error) {
+	networkConfig := chain.DefaultNetworkConfig(cfg.Network)
 	validators, err := chain.ParseValidatorSet(os.Getenv("YNX_VALIDATOR_SET"))
 	if err != nil {
-		log.Fatalf("invalid YNX_VALIDATOR_SET: %v", err)
+		return nodeStartupInputs{}, fmt.Errorf("invalid YNX_VALIDATOR_SET: %w", err)
 	}
 	peers, err := chain.ParseValidatorPeers(os.Getenv("YNX_BOOTSTRAP_PEERS"))
 	if err != nil {
-		log.Fatalf("invalid YNX_BOOTSTRAP_PEERS: %v", err)
+		return nodeStartupInputs{}, fmt.Errorf("invalid YNX_BOOTSTRAP_PEERS: %w", err)
 	}
-	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(cfg, *dataDir, validators, peers)
+	peerSyncTargets, err := parsePeerSyncTargets(cfg.PeerSyncRaw)
 	if err != nil {
-		log.Fatal(err)
+		return nodeStartupInputs{}, fmt.Errorf("invalid YNX_PEER_RPC_URLS: %w", err)
 	}
-	peerSyncTargets, err := parsePeerSyncTargets(*peerSyncRaw)
+	if err := validateNodeStartupConfig(networkConfig, validators, cfg.LocalValidator, peerSyncTargets); err != nil {
+		return nodeStartupInputs{}, fmt.Errorf("unsafe validator startup config: %w", err)
+	}
+	return nodeStartupInputs{
+		NetworkConfig:   networkConfig,
+		Validators:      validators,
+		Peers:           peers,
+		PeerSyncTargets: peerSyncTargets,
+	}, nil
+}
+
+func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
+	inputs, err := loadNodeStartupInputs(cfg)
 	if err != nil {
-		log.Fatalf("invalid YNX_PEER_RPC_URLS: %v", err)
+		return err
 	}
-	if err := validateNodeStartupConfig(cfg, validators, *localValidator, peerSyncTargets); err != nil {
-		log.Fatalf("unsafe validator startup config: %v", err)
+	expectedValidators := len(inputs.Validators)
+	if expectedValidators == 0 {
+		expectedValidators = len(chain.DefaultValidators())
+	}
+	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets))
+	return nil
+}
+
+func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
+	inputs, err := loadNodeStartupInputs(cfg)
+	if err != nil {
+		return err
+	}
+	if cfg.CheckConfig {
+		return checkNodeRuntimeConfig(cfg, out)
+	}
+	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(inputs.NetworkConfig, cfg.DataDir, inputs.Validators, inputs.Peers)
+	if err != nil {
+		return err
 	}
 	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
-		ValidatorAddress: *localValidator,
-		PeerSyncTargets:  chainPeerSyncTargets(peerSyncTargets),
-		PeerSyncInterval: *peerSyncInterval,
+		ValidatorAddress: cfg.LocalValidator,
+		PeerSyncTargets:  chainPeerSyncTargets(inputs.PeerSyncTargets),
+		PeerSyncInterval: cfg.PeerSyncInterval,
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	go devnet.Start(ctx, *blockInterval)
-	if *localValidator != "" && len(peerSyncTargets) > 0 {
-		startPeerSyncPolling(ctx, devnet, *localValidator, peerSyncTargets, *peerSyncInterval, nil)
+	go devnet.Start(ctx, cfg.BlockInterval)
+	if cfg.LocalValidator != "" && len(inputs.PeerSyncTargets) > 0 {
+		startPeerSyncPolling(ctx, devnet, cfg.LocalValidator, inputs.PeerSyncTargets, cfg.PeerSyncInterval, nil)
 	}
 
-	srv := &http.Server{Addr: *httpAddr, Handler: api.NewServer(devnet), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(devnet), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -66,10 +131,11 @@ func main() {
 		_ = srv.Shutdown(shutdownCtx)
 	}()
 
-	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", cfg.Name, *httpAddr)
+	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", inputs.NetworkConfig.Name, cfg.HTTPAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
 func validateNodeStartupConfig(cfg chain.NetworkConfig, validators []chain.Validator, localValidator string, targets []peerSyncTarget) error {
@@ -143,4 +209,12 @@ func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return parsed
+}
+
+func envBoolOrDefault(key string, fallback bool) bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if value == "" {
+		return fallback
+	}
+	return value == "1" || value == "true" || value == "yes" || value == "on"
 }

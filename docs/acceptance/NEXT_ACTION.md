@@ -1,18 +1,19 @@
 # Next Action
 
-Current single action: add a deploy-time config check mode for generated `ynx_6423-1` validator env packages. Remote deployment remains blocked, so the next useful chain-construction work is to prove each role-specific env file would pass the same chain binary startup guards before any remote restart or host mutation happens.
+Current single action: add release/build identity evidence to the `ynx_6423-1` node runtime and remote verification path. Remote deployment remains blocked, so the next useful chain-construction work is to make each running node prove which source commit/release it is serving, not only which validator env it loaded.
 
 Why this action:
 
-- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, persisted source/target peer sync records, automatic peer-sync polling from configured peer RPC `/status`, `/validators`, `/validators/peers`, `/validators/peer-sync`, `/status` readiness/discovery/sync summaries, `/node/identity` runtime identity/freshness evidence, snapshot persistence, role-specific deploy env files, startup configuration guards, remote verifier hardening, and public-proof readiness checks now exist.
-- The current peer sync implementation proves automated local polling, role-aware deploy packaging, strict remote verifier expectations, node identity/freshness evidence, and unsafe startup rejection, but the generated deploy env packages are not yet validated by the same binary guard before remote deployment.
-- Remote public deployment is still blocked by SSH/host-key and public endpoint evidence, so local code must continue moving toward deployable multi-validator runtime rather than only tuning blocker reports.
-- A binary-level config check mode is the next smallest runtime gap between role-aware deploy packaging and reliable remote multi-validator operation.
+- Validator metadata, peer readiness, peer discovery, peer sync records, automatic peer polling, `/node/identity`, `/status.nodeIdentity`, role-specific deploy env files, startup guards, and deploy-time `ynx-chaind --check-config` now exist and are locally verified.
+- `deploy-testnet` now validates installed role env files with the chain binary before restarting, but a future remote proof still cannot tie a live public node response to a specific release commit or deploy artifact.
+- Remote public deployment is still blocked by SSH/host-key and public endpoint evidence, so local code should keep improving proof quality without mutating remote hosts.
+- Release/build identity is the next smallest runtime gap between safe deployment packaging and credible public proof.
 
 Files to touch:
 
-- `internal/chain`
 - `cmd/ynx-chaind`
+- `internal/chain`
+- `internal/api`
 - `scripts/deploy`
 - `scripts/verify`
 - `docs/api/API_REFERENCE.md`
@@ -35,12 +36,12 @@ Validation commands:
 
 Completion standard:
 
-- `ynx-chaind` exposes a non-server config check mode, or equivalent safe command path, that loads the same environment fields used by remote validator nodes and runs the same startup guards without binding ports, writing state, or starting peer polling.
-- `make deploy-dry-run` validates every generated role-specific env package with that config check and fails if primary, Singapore, Silicon Valley, or Seoul env files have missing local identity, incomplete peer target coverage, duplicate targets, self targets, or targets outside `YNX_VALIDATOR_SET`.
-- Local unit tests cover valid primary/secondary role configs, invalid unsafe configs, and the safe check mode without mutating remote hosts.
-- Remote verification remains gated behind host-key/deploy-readiness blockers and fails honestly while public endpoints still show old-chain evidence.
-- Feature tracker keeps remote deployed/public proof as `no` until real public endpoints pass.
-- Remote deployment is attempted only after deploy-readiness blockers clear.
+- The built `ynx-chaind` binary receives a non-secret release identifier from the deploy build path, such as git commit, release name, or build time.
+- `/status` and/or `/node/identity` exposes release/build identity without exposing secrets.
+- `verify-testnet` and `remote-smoke-test` require live remote endpoints to expose expected release/build identity after deploy-readiness clears.
+- `make deploy-dry-run` proves the release/build identity is injected into the deploy artifact and visible to the config/runtime check path.
+- Local unit tests cover default/unknown release identity and explicitly injected release identity.
+- Remote deployed/public proof remains `no` until real public endpoints pass.
 
 Explicitly not doing:
 

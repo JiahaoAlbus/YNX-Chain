@@ -81,9 +81,11 @@ YNX_NETWORK=testnet
 YNX_HTTP_ADDR=127.0.0.1:6420
 YNX_DATA_DIR=/var/lib/ynx-chain/testnet
 YNX_BLOCK_INTERVAL=2s
-YNX_LOCAL_VALIDATOR_ADDRESS=${YNX_LOCAL_VALIDATOR_ADDRESS}
-YNX_PEER_RPC_URLS=${YNX_PEER_RPC_URLS}
-YNX_PEER_SYNC_INTERVAL=${YNX_PEER_SYNC_INTERVAL}
+EOF
+printf 'YNX_LOCAL_VALIDATOR_ADDRESS=%q\n' "$YNX_LOCAL_VALIDATOR_ADDRESS" >> "$work/config/ynx-chaind.env"
+printf 'YNX_PEER_RPC_URLS=%q\n' "$YNX_PEER_RPC_URLS" >> "$work/config/ynx-chaind.env"
+printf 'YNX_PEER_SYNC_INTERVAL=%q\n' "$YNX_PEER_SYNC_INTERVAL" >> "$work/config/ynx-chaind.env"
+cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_INDEXER_RPC_URL=http://127.0.0.1:6420
 YNX_INDEXER_HTTP_ADDR=127.0.0.1:6426
 YNX_INDEXER_DB_PATH=/var/lib/ynx-chain/indexer/indexer-db.json
@@ -127,11 +129,9 @@ ynx_write_node_env() {
   local role="$1" validator="$2" peer_urls
   peer_urls="$(ynx_peer_rpc_urls_for_role "$role")"
   cp "$work/config/ynx-chaind.env" "$work/config/ynx-chaind-${role}.env"
-  cat >> "$work/config/ynx-chaind-${role}.env" <<EOF
-YNX_LOCAL_VALIDATOR_ADDRESS=${validator}
-YNX_PEER_RPC_URLS=${peer_urls}
-YNX_PEER_SYNC_INTERVAL=${YNX_PEER_SYNC_INTERVAL}
-EOF
+  printf 'YNX_LOCAL_VALIDATOR_ADDRESS=%q\n' "$validator" >> "$work/config/ynx-chaind-${role}.env"
+  printf 'YNX_PEER_RPC_URLS=%q\n' "$peer_urls" >> "$work/config/ynx-chaind-${role}.env"
+  printf 'YNX_PEER_SYNC_INTERVAL=%q\n' "$YNX_PEER_SYNC_INTERVAL" >> "$work/config/ynx-chaind-${role}.env"
 }
 
 ynx_write_node_env primary ynx_validator_primary
@@ -366,6 +366,7 @@ ynx_prepare_release_on_node() {
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo rm -rf '$remote_dir' && sudo mkdir -p '$remote_dir' && sudo tar -xzf '$remote_release' -C '$remote_dir'"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind && sudo install -m 0600 '$remote_dir/config/ynx-chaind-${role}.env' /etc/ynx/ynx-chaind.env && sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; set +a; /usr/local/bin/ynx-chaind --check-config >/dev/null'"
 }
 
 ynx_install_primary_node() {

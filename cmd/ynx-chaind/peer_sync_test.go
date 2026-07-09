@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -144,6 +146,49 @@ func TestValidateNodeStartupConfig(t *testing.T) {
 	}
 	if err := validateNodeStartupConfig(cfg, nil, "", nil); err != nil {
 		t.Fatalf("single-validator testnet smoke should allow local startup: %v", err)
+	}
+}
+
+func TestCheckNodeRuntimeConfigDoesNotStartOrWriteState(t *testing.T) {
+	t.Setenv("YNX_VALIDATOR_SET", "ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	t.Setenv("YNX_BOOTSTRAP_PEERS", "ynx_val_primary|peer-primary|127.0.0.1|127.0.0.1:26656|primary validator;ynx_val_sg|peer-sg|127.0.0.2|127.0.0.2:26656|bonded validator")
+	dataDir := t.TempDir() + "/must-not-be-created"
+	var out bytes.Buffer
+	err := checkNodeRuntimeConfig(nodeRuntimeConfig{
+		Network:          "testnet",
+		DataDir:          dataDir,
+		LocalValidator:   "ynx_val_primary",
+		PeerSyncRaw:      "ynx_val_sg|http://127.0.0.1:6421",
+		PeerSyncInterval: time.Second,
+		CheckConfig:      true,
+	}, &out)
+	if err != nil {
+		t.Fatalf("check config rejected valid env: %v", err)
+	}
+	if !strings.Contains(out.String(), "ynx-chaind config check passed") || !strings.Contains(out.String(), "peerTargets=1") {
+		t.Fatalf("unexpected check output: %q", out.String())
+	}
+	if _, err := os.Stat(dataDir); !os.IsNotExist(err) {
+		t.Fatalf("check config should not create data dir, stat err=%v", err)
+	}
+}
+
+func TestCheckNodeRuntimeConfigRejectsUnsafeRoleEnv(t *testing.T) {
+	t.Setenv("YNX_VALIDATOR_SET", "ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	t.Setenv("YNX_BOOTSTRAP_PEERS", "")
+	var out bytes.Buffer
+	err := checkNodeRuntimeConfig(nodeRuntimeConfig{
+		Network:          "testnet",
+		LocalValidator:   "ynx_val_primary",
+		PeerSyncRaw:      "ynx_val_primary|http://127.0.0.1:6420",
+		PeerSyncInterval: time.Second,
+		CheckConfig:      true,
+	}, &out)
+	if err == nil || !strings.Contains(err.Error(), "must not include local validator") {
+		t.Fatalf("expected self-target rejection, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("failed config check should not print pass output: %q", out.String())
 	}
 }
 
