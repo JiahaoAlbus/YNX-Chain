@@ -625,7 +625,7 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 
 	var rules map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/governance/request-validity-rules", nil, http.StatusOK, &rules)
-	if !rulesContain(rules["rules"].([]any), "native-ynxt-no-direct-freeze") || !rulesContain(rules["rules"].([]any), "governance-review-user-rights") {
+	if !rulesContain(rules["rules"].([]any), "native-ynxt-no-direct-freeze") || !rulesContain(rules["rules"].([]any), "governance-review-user-rights") || !rulesContain(rules["rules"].([]any), "asset-type-boundary") || !rulesContain(rules["rules"].([]any), "user-notice-required") {
 		t.Fatalf("expected inspectable request validity rules: %v", rules)
 	}
 
@@ -647,6 +647,44 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 	}
 	reviewID := review["id"].(string)
 	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+reviewID+"/review", nil, http.StatusOK, &review)
+
+	var manualReject map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "merchant_case_api",
+		"subject":     "ynx_api_subject",
+		"action":      "metadata correction",
+		"assetType":   "evidence",
+		"scope":       "single evidence packet",
+		"description": "correct one evidence packet record with reviewer evidence",
+		"evidence":    []string{"case:reject", "packet:1"},
+	}, http.StatusCreated, &manualReject)
+	rejectID := manualReject["id"].(string)
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests/"+rejectID+"/reject", map[string]any{"reason": "reviewer found the request outside the approved case scope"}, http.StatusOK, &manualReject)
+	rejectedAt, ok := manualReject["rejectedAt"].(string)
+	if manualReject["classification"] != "REJECTED" || manualReject["status"] != "rejected" || !ok || rejectedAt == "" {
+		t.Fatalf("expected manual request rejection with rejectedAt: %v", manualReject)
+	}
+	if !stringSliceContains(manualReject["reasons"].([]any), "reviewer found the request outside the approved case scope") {
+		t.Fatalf("expected manual rejection reason: %v", manualReject)
+	}
+	doJSON(t, http.MethodGet, server.URL+"/governance/requests/"+rejectID, nil, http.StatusOK, &manualReject)
+
+	var notice map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/governance/requests", map[string]any{
+		"requester":   "merchant_case_api",
+		"subject":     "ynx_api_subject",
+		"action":      "notify user about appeal notice",
+		"assetType":   "trust_label",
+		"scope":       "single address",
+		"description": "create user notice and transparency notice",
+		"evidence":    []string{"case:notice"},
+	}, http.StatusCreated, &notice)
+	if notice["classification"] != "REQUIRES_USER_NOTICE" || notice["status"] != "notice_required" {
+		t.Fatalf("expected user notice classification: %v", notice)
+	}
+	if !stringSliceContains(notice["ruleIds"].([]any), "user-notice-required") {
+		t.Fatalf("expected user notice rule id: %v", notice)
+	}
 
 	var appeal map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{"requestId": reviewID, "subject": "ynx_api_subject", "appellant": "ynx_api_subject", "reason": "false positive", "evidence": []string{"owner proof"}}, http.StatusCreated, &appeal)
@@ -677,7 +715,7 @@ func TestGovernanceAppealAndTransparencyAPI(t *testing.T) {
 
 	var report map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/governance/transparency", nil, http.StatusOK, &report)
-	if report["entryCount"].(float64) < 7 || report["rejectedCount"].(float64) < 2 || report["appealCount"].(float64) != 1 {
+	if report["entryCount"].(float64) < 10 || report["rejectedCount"].(float64) < 3 || report["appealCount"].(float64) != 1 {
 		t.Fatalf("expected transparency report counts: %v", report)
 	}
 }

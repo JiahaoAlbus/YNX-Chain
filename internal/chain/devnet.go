@@ -36,9 +36,11 @@ var requestValidityRules = []RequestValidityRule{
 	{ID: "no-ai-punishment", Name: "No AI punishment", Classification: RequestIllegalOrAbusive, Description: "AI or Trust systems cannot automatically punish users.", RequiresUserNotice: true, Keywords: []string{"ai automatically punish", "auto punish", "automatic punish", "automatically punish"}},
 	{ID: "targeted-scope-required", Name: "Targeted scope required", Classification: RequestOverbroad, Description: "Requests must be targeted to a specific subject and evidence set, not all users or all wallets.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"all users", "all wallets", "entire chain", "bulk trace", "mass tracking", "everyone"}},
 	{ID: "native-ynxt-no-direct-freeze", Name: "Native YNXT no direct freeze", Classification: RequestIllegalOrAbusive, Description: "Native YNXT cannot be directly transferred, frozen, seized, confiscated, or blacklisted by request.", RequiresUserNotice: true, Keywords: []string{"direct transfer", "transfer user", "confiscate", "seize", "freeze", "blacklist"}},
+	{ID: "asset-type-boundary", Name: "Asset type boundary", Classification: RequestOutOfScope, Description: "Requests must stay inside supported YNX Chain asset, address, transaction, evidence, Pay, Resource, or Trust label boundaries.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"bank account", "passport", "personal data", "off-chain asset"}},
 	{ID: "evidence-required", Name: "Evidence required", Classification: RequestInsufficientEvidence, Description: "Requests need evidence references before review or action.", RequiresEvidence: true, RequiresUserNotice: true},
 	{ID: "governance-review-user-rights", Name: "Governance review for user rights", Classification: RequestRequiresReview, Description: "Requests affecting user rights require governance review and user notice.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"freeze", "blacklist", "seize", "punish", "risk label", "risk-label", "track", "trace"}},
 	{ID: "requester-subject-required", Name: "Requester and subject required", Classification: RequestOutOfScope, Description: "Requester and subject are required for a request to be in scope.", RequiresUserNotice: true},
+	{ID: "user-notice-required", Name: "User notice required", Classification: RequestRequiresUserNotice, Description: "Evidence-backed requests that only notify users or open transparency notice must not trigger asset action without user notice.", RequiresEvidence: true, RequiresUserNotice: true, Keywords: []string{"notify user", "user notice", "appeal notice", "transparency notice"}},
 	{ID: "scoped-evidence-backed-valid", Name: "Scoped evidence-backed valid request", Classification: RequestValidUnderYNXChainLaw, Description: "Request is scoped, evidence-backed, and does not bypass custody or transparency.", RequiresEvidence: true},
 	{ID: "tracking-evidence-required", Name: "Tracking evidence required", Classification: RequestInsufficientEvidence, Description: "Tracking policy reviews need evidence references.", RequiresEvidence: true},
 	{ID: "tracking-minimum-necessary", Name: "Tracking minimum necessary", Classification: RequestOverbroad, Description: "Tracking policy reviews must use minimum necessary data.", RequiresEvidence: true, RequiresUserNotice: true},
@@ -894,6 +896,8 @@ func (d *Devnet) CreateGovernanceRequest(input GovernanceRequestInput) (Governan
 	status := "pending_review"
 	if isRejectedClassification(classification) {
 		status = "rejected"
+	} else if classification == RequestRequiresUserNotice {
+		status = "notice_required"
 	}
 	req := GovernanceRequest{
 		ID:                  hashParts("governance-request", input.Requester, input.Subject, input.Action, fmt.Sprint(now.UnixNano()))[:24],
@@ -2938,8 +2942,14 @@ func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValiditySta
 	if isNativeYNXT(input.AssetType) && containsAny(text, "direct transfer", "transfer user", "confiscate", "seize", "freeze", "blacklist") {
 		return RequestIllegalOrAbusive, []string{"native YNXT cannot be directly transferred, frozen, seized, or blacklisted by request"}, true, []string{"native-ynxt-no-direct-freeze"}
 	}
+	if !isSupportedGovernanceAssetType(input.AssetType) {
+		return RequestOutOfScope, []string{"request asset type is outside supported YNX Chain governance, Trust, Pay, Resource, or evidence boundaries"}, true, []string{"asset-type-boundary"}
+	}
 	if len(cleanStrings(input.Evidence)) == 0 {
 		return RequestInsufficientEvidence, []string{"request has no evidence references"}, true, []string{"evidence-required"}
+	}
+	if containsAny(text, "notify user", "user notice", "appeal notice", "transparency notice") {
+		return RequestRequiresUserNotice, []string{"request requires user notice and transparency before any reviewer or downstream action"}, true, []string{"user-notice-required"}
 	}
 	if containsAny(text, "freeze", "blacklist", "seize", "punish", "risk label", "risk-label", "track", "trace") {
 		reasons = append(reasons, "request affects user rights and requires governance review")
@@ -3181,6 +3191,29 @@ func containsAny(text string, terms ...string) bool {
 func isNativeYNXT(assetType string) bool {
 	asset := normalizeLower(assetType)
 	return asset == "" || asset == "ynxt" || asset == "native" || asset == "native ynxt" || asset == "native_ynxt"
+}
+
+func isSupportedGovernanceAssetType(assetType string) bool {
+	asset := normalizeLower(assetType)
+	if isNativeYNXT(asset) {
+		return true
+	}
+	switch asset {
+	case "address", "account", "wallet", "transaction", "tx", "block":
+		return true
+	case "token", "erc20", "erc-20", "erc721", "erc-721", "erc1155", "erc-1155", "stablecoin", "stablecoins", "bridged asset", "bridge lot", "lot":
+		return true
+	case "contract", "smart contract", "system contract":
+		return true
+	case "trust label", "trust_label", "risk label", "risk_label", "evidence", "evidence packet", "tracking review":
+		return true
+	case "pay intent", "payment intent", "invoice", "merchant":
+		return true
+	case "resource", "resource credit", "bandwidth", "compute", "ai credits", "trust credits":
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeLower(value string) string {

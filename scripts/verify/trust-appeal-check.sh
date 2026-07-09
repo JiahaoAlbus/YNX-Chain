@@ -11,7 +11,9 @@ appeal=$(curl -fsS -X POST "$YNX_REST_URL/trust/appeals" -H 'content-type: appli
 appeal_id=$(printf '%s' "$appeal" | ynx_json_field '["id"]')
 status=$(printf '%s' "$appeal" | ynx_json_field '["status"]')
 [[ "$status" == "SUBMITTED" ]] || { echo "expected SUBMITTED appeal, got $status"; exit 1; }
-curl -fsS "$YNX_REST_URL/trust/appeals/$appeal_id" >/dev/null
+printf '%s' "$appeal" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.transparencyEntryId) { console.error(`expected appeal transparency entry id, got ${JSON.stringify(data)}`); process.exit(1); }'
+appeal_read=$(curl -fsS "$YNX_REST_URL/trust/appeals/$appeal_id")
+printf '%s' "$appeal_read" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.status !== "SUBMITTED" || !data.transparencyEntryId) { console.error(`expected readable appeal with transparency id, got ${JSON.stringify(data)}`); process.exit(1); }'
 resolved=$(curl -fsS -X POST "$YNX_REST_URL/trust/appeals/$appeal_id/resolve" -H 'content-type: application/json' -d '{"reviewer":"appeal_reviewer","decision":"LABEL_REMOVED","resolutionReason":"evidence proved false positive"}')
 resolved_status=$(printf '%s' "$resolved" | ynx_json_field '["status"]')
 reviewer=$(printf '%s' "$resolved" | ynx_json_field '["reviewer"]')

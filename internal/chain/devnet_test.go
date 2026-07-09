@@ -589,6 +589,197 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	}
 }
 
+func TestGovernanceRequestClassificationMatrix(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	cases := []struct {
+		name           string
+		input          GovernanceRequestInput
+		classification RequestValidityStatus
+		status         string
+		ruleID         string
+		notice         bool
+	}{
+		{
+			name: "seed phrase request",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "export seed phrase",
+				AssetType:   "wallet",
+				Scope:       "single wallet",
+				Description: "send seed phrase and mnemonic for custody bypass",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "protect-private-secrets",
+			notice:         true,
+		},
+		{
+			name: "signature bypass",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "bypass user signatures",
+				AssetType:   "token",
+				Scope:       "single transfer",
+				Description: "skip signature checks for a transfer",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "no-signature-bypass",
+			notice:         true,
+		},
+		{
+			name: "hide request records",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "hide request records",
+				AssetType:   "evidence",
+				Scope:       "single case",
+				Description: "delete audit logs and hide request records",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "preserve-audit-transparency",
+			notice:         true,
+		},
+		{
+			name: "fake risk label",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "create fake risk label",
+				AssetType:   "risk_label",
+				Scope:       "single address",
+				Description: "fabricate risk label without support",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "no-evidence-free-risk",
+			notice:         true,
+		},
+		{
+			name: "unsupported trust conclusion",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "ask Trust to output unsupported conclusions",
+				AssetType:   "trust_label",
+				Scope:       "single address",
+				Description: "unsupported conclusion that declares guilt",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "no-evidence-free-risk",
+			notice:         true,
+		},
+		{
+			name: "ai automatic punishment",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "ask AI to automatically punish users",
+				AssetType:   "trust_label",
+				Scope:       "single address",
+				Description: "AI automatically punish the account",
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "no-ai-punishment",
+			notice:         true,
+		},
+		{
+			name: "overbroad tracking",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "trace all wallets",
+				AssetType:   "stablecoin",
+				Scope:       "all wallets",
+				Description: "mass tracking everyone",
+				Evidence:    []string{"case:matrix"},
+			},
+			classification: RequestOverbroad,
+			status:         "rejected",
+			ruleID:         "targeted-scope-required",
+			notice:         true,
+		},
+		{
+			name: "native ynxt direct freeze",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "freeze native YNXT",
+				AssetType:   "YNXT",
+				Scope:       "single account",
+				Description: "directly freeze user native YNXT",
+				Evidence:    []string{"case:matrix"},
+			},
+			classification: RequestIllegalOrAbusive,
+			status:         "rejected",
+			ruleID:         "native-ynxt-no-direct-freeze",
+			notice:         true,
+		},
+		{
+			name: "unsupported asset boundary",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "review off-chain bank account",
+				AssetType:   "bank_account",
+				Scope:       "single external account",
+				Description: "off-chain asset request should stay outside YNX Chain asset controls",
+				Evidence:    []string{"case:matrix"},
+			},
+			classification: RequestOutOfScope,
+			status:         "rejected",
+			ruleID:         "asset-type-boundary",
+			notice:         true,
+		},
+		{
+			name: "user notice only",
+			input: GovernanceRequestInput{
+				Requester:   "matrix_agency",
+				Subject:     "ynx_matrix_subject",
+				Action:      "notify user about appeal notice",
+				AssetType:   "trust_label",
+				Scope:       "single address",
+				Description: "create transparency notice for a disputed label",
+				Evidence:    []string{"case:matrix"},
+			},
+			classification: RequestRequiresUserNotice,
+			status:         "notice_required",
+			ruleID:         "user-notice-required",
+			notice:         true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			request, err := devnet.CreateGovernanceRequest(tc.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if request.Classification != tc.classification || request.Status != tc.status {
+				t.Fatalf("expected %s/%s, got %+v", tc.classification, tc.status, request)
+			}
+			if !containsString(request.RuleIDs, tc.ruleID) {
+				t.Fatalf("expected rule id %s, got %+v", tc.ruleID, request.RuleIDs)
+			}
+			if request.RequiresUserNotice != tc.notice {
+				t.Fatalf("expected requiresUserNotice=%v, got %+v", tc.notice, request)
+			}
+			if request.TransparencyEntryID == "" {
+				t.Fatalf("expected transparency entry: %+v", request)
+			}
+		})
+	}
+	report := devnet.TransparencyReport()
+	if report.EntryCount != len(cases) || report.RejectedCount != len(cases)-1 {
+		t.Fatalf("expected transparency counts for matrix, got %+v", report)
+	}
+}
+
 func containsString(values []string, expected string) bool {
 	for _, value := range values {
 		if value == expected {
