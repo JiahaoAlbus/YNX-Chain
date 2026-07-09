@@ -395,6 +395,12 @@ func (d *Devnet) Start(ctx context.Context, interval time.Duration) {
 
 func (d *Devnet) Config() NetworkConfig { d.mu.RLock(); defer d.mu.RUnlock(); return d.cfg }
 
+func (d *Devnet) LatestHeight() uint64 {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.blocks[len(d.blocks)-1].Height
+}
+
 func (d *Devnet) Status() map[string]any {
 	d.mu.RLock()
 	defer d.mu.RUnlock()

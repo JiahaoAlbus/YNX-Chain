@@ -1,13 +1,13 @@
 # Next Action
 
-Current single action: implement automated validator peer-sync polling / transport wiring for the persisted `ynx_6423-1` validator topology. Remote deployment remains blocked, so the next useful chain-construction work is to move from manually submitted local source/target sync records toward derived height/status evidence from configured validator RPC peers.
+Current single action: harden role-specific remote validator deployment verification for the persisted `ynx_6423-1` validator topology. Remote deployment remains blocked, so the next useful chain-construction work is to make the deploy/verify path prove that each remote validator runs with the correct local validator identity and exposes peer-readiness/discovery/sync state after deploy-readiness clears.
 
 Why this action:
 
-- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, persisted source/target peer sync records, `/validators`, `/validators/peers`, `/validators/peer-sync`, `/status` readiness/discovery/sync summaries, snapshot persistence, and public-proof readiness checks now exist.
-- The current peer sync implementation proves persisted local source/target height evidence, but it is still not automated remote node-to-node sync.
+- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, persisted source/target peer sync records, automatic peer-sync polling from configured peer RPC `/status`, `/validators`, `/validators/peers`, `/validators/peer-sync`, `/status` readiness/discovery/sync summaries, snapshot persistence, role-specific deploy env files, and public-proof readiness checks now exist.
+- The current peer sync implementation proves automated local polling and role-aware deploy packaging, but it is still not remotely deployed or publicly proven.
 - Remote public deployment is still blocked by SSH/host-key and public endpoint evidence, so local code must continue moving toward deployable multi-validator runtime rather than only tuning blocker reports.
-- Automated peer-sync polling is the next smallest real chain-runtime gap between local sync evidence records and remote multi-validator network operation.
+- Role-specific deployment verification is the next smallest gap between deployable validator sync code and remote multi-validator network operation.
 
 Files to touch:
 
@@ -34,10 +34,10 @@ Validation commands:
 
 Completion standard:
 
-- A node can derive peer handshake/sync evidence from configured validator RPC peers without fabricating remote public proof.
-- Derived sync evidence records source validator, target validator, source height, target height, lag, status, evidence, and timestamps.
-- Derived sync evidence persists across restart and is exposed through RPC/API.
-- Local tests prove polling behavior, persistence, restart recovery, API output, and config refresh behavior.
+- `verify-testnet` or an equivalent remote-safe verifier can prove each remote node's local validator identity, validator count, peer readiness, peer discovery, and peer sync records without fabricating public proof.
+- The deployment package keeps role-specific env files for primary, Singapore, Silicon Valley, and Seoul validators.
+- Remote verification remains gated behind host-key/deploy-readiness blockers and fails honestly while public endpoints still show old-chain evidence.
+- Local tests prove the verifier logic and deployment package behavior without mutating remote hosts.
 - Feature tracker keeps remote deployed/public proof as `no` until real public endpoints pass.
 - Remote deployment is attempted only after deploy-readiness blockers clear.
 

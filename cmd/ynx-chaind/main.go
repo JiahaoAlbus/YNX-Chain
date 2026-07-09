@@ -18,6 +18,9 @@ func main() {
 	network := flag.String("network", envOrDefault("YNX_NETWORK", "devnet"), "network slug")
 	blockInterval := flag.Duration("block-interval", envDurationOrDefault("YNX_BLOCK_INTERVAL", 2*time.Second), "block production interval")
 	dataDir := flag.String("data-dir", envOrDefault("YNX_DATA_DIR", ""), "optional local devnet state directory")
+	localValidator := flag.String("validator-address", envOrDefault("YNX_LOCAL_VALIDATOR_ADDRESS", ""), "local validator address for peer sync polling")
+	peerSyncRaw := flag.String("peer-rpc-urls", envOrDefault("YNX_PEER_RPC_URLS", ""), "semicolon-separated peer sync targets: address|url")
+	peerSyncInterval := flag.Duration("peer-sync-interval", envDurationOrDefault("YNX_PEER_SYNC_INTERVAL", 5*time.Second), "validator peer sync polling interval")
 	flag.Parse()
 
 	cfg := chain.DefaultNetworkConfig(*network)
@@ -33,10 +36,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	peerSyncTargets, err := parsePeerSyncTargets(*peerSyncRaw)
+	if err != nil {
+		log.Fatalf("invalid YNX_PEER_RPC_URLS: %v", err)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	go devnet.Start(ctx, *blockInterval)
+	if *localValidator != "" && len(peerSyncTargets) > 0 {
+		startPeerSyncPolling(ctx, devnet, *localValidator, peerSyncTargets, *peerSyncInterval, nil)
+	}
 
 	srv := &http.Server{Addr: *httpAddr, Handler: api.NewServer(devnet), ReadHeaderTimeout: 5 * time.Second}
 	go func() {

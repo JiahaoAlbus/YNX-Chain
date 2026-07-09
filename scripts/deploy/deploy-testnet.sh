@@ -22,6 +22,9 @@ SEOUL_NODE_SSH_KEY="${SEOUL_NODE_SSH_KEY:-${PRIMARY_NODE_SSH_KEY:-}}"
 YNX_VALIDATOR_SET="${YNX_VALIDATOR_SET:-ynx_validator_primary|ynx-primary|${PRIMARY_NODE_HOST}|primary validator|primary-${PRIMARY_NODE_HOST};ynx_validator_singapore|ynx-singapore|${SG_NODE_HOST}|bonded validator / recovery node|sg-${SG_NODE_HOST};ynx_validator_silicon_valley|ynx-silicon-valley|${SILICON_VALLEY_NODE_HOST}|bonded validator|sv-${SILICON_VALLEY_NODE_HOST};ynx_validator_seoul|ynx-seoul|${SEOUL_NODE_HOST}|bonded validator / read replica candidate|seoul-${SEOUL_NODE_HOST}}"
 YNX_BOOTSTRAP_PEERS="${YNX_BOOTSTRAP_PEERS:-ynx_validator_primary|primary-${PRIMARY_NODE_HOST}|${PRIMARY_NODE_HOST}|${PRIMARY_NODE_HOST}:26656|primary validator;ynx_validator_singapore|sg-${SG_NODE_HOST}|${SG_NODE_HOST}|${SG_NODE_HOST}:26656|bonded validator / recovery node;ynx_validator_silicon_valley|sv-${SILICON_VALLEY_NODE_HOST}|${SILICON_VALLEY_NODE_HOST}|${SILICON_VALLEY_NODE_HOST}:26656|bonded validator;ynx_validator_seoul|seoul-${SEOUL_NODE_HOST}|${SEOUL_NODE_HOST}|${SEOUL_NODE_HOST}:26656|bonded validator / read replica candidate}"
 YNX_EXPECTED_VALIDATOR_COUNT="${YNX_EXPECTED_VALIDATOR_COUNT:-4}"
+YNX_LOCAL_VALIDATOR_ADDRESS="${YNX_LOCAL_VALIDATOR_ADDRESS:-ynx_validator_primary}"
+YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE_HOST}:6420;ynx_validator_silicon_valley|http://${SILICON_VALLEY_NODE_HOST}:6420;ynx_validator_seoul|http://${SEOUL_NODE_HOST}:6420}"
+YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
@@ -70,13 +73,17 @@ ynx_write_kv_env "$work/config/ynx-chaind.env" \
   EMAIL_PROVIDER EMAIL_API_KEY MONITORING_ADMIN_PASSWORD BACKUP_STORAGE_PATH GITHUB_REPO_TOKEN \
   PRIMARY_NODE_HOST PRIMARY_NODE_USER SG_NODE_HOST SG_NODE_USER \
   SILICON_VALLEY_NODE_HOST SILICON_VALLEY_NODE_USER SEOUL_NODE_HOST SEOUL_NODE_USER \
-  YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT
+  YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT \
+  YNX_LOCAL_VALIDATOR_ADDRESS YNX_PEER_RPC_URLS YNX_PEER_SYNC_INTERVAL
 ynx_write_kv_env "$work/config/ynx-faucetd.env" FAUCET_PRIVATE_KEY
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
 YNX_HTTP_ADDR=127.0.0.1:6420
 YNX_DATA_DIR=/var/lib/ynx-chain/testnet
 YNX_BLOCK_INTERVAL=2s
+YNX_LOCAL_VALIDATOR_ADDRESS=${YNX_LOCAL_VALIDATOR_ADDRESS}
+YNX_PEER_RPC_URLS=${YNX_PEER_RPC_URLS}
+YNX_PEER_SYNC_INTERVAL=${YNX_PEER_SYNC_INTERVAL}
 YNX_INDEXER_RPC_URL=http://127.0.0.1:6420
 YNX_INDEXER_HTTP_ADDR=127.0.0.1:6426
 YNX_INDEXER_DB_PATH=/var/lib/ynx-chain/indexer/indexer-db.json
@@ -94,6 +101,43 @@ YNX_FAUCET_MAX_AMOUNT=100
 YNX_FAUCET_RATE_LIMIT_WINDOW=1h
 YNX_FAUCET_RATE_LIMIT_MAX=1
 EOF
+
+ynx_peer_rpc_urls_for_role() {
+  local role="$1"
+  case "$role" in
+    primary)
+      printf 'ynx_validator_singapore|http://%s:6420;ynx_validator_silicon_valley|http://%s:6420;ynx_validator_seoul|http://%s:6420' "$SG_NODE_HOST" "$SILICON_VALLEY_NODE_HOST" "$SEOUL_NODE_HOST"
+      ;;
+    singapore)
+      printf 'ynx_validator_primary|http://%s:6420;ynx_validator_silicon_valley|http://%s:6420;ynx_validator_seoul|http://%s:6420' "$PRIMARY_NODE_HOST" "$SILICON_VALLEY_NODE_HOST" "$SEOUL_NODE_HOST"
+      ;;
+    silicon-valley)
+      printf 'ynx_validator_primary|http://%s:6420;ynx_validator_singapore|http://%s:6420;ynx_validator_seoul|http://%s:6420' "$PRIMARY_NODE_HOST" "$SG_NODE_HOST" "$SEOUL_NODE_HOST"
+      ;;
+    seoul)
+      printf 'ynx_validator_primary|http://%s:6420;ynx_validator_singapore|http://%s:6420;ynx_validator_silicon_valley|http://%s:6420' "$PRIMARY_NODE_HOST" "$SG_NODE_HOST" "$SILICON_VALLEY_NODE_HOST"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+ynx_write_node_env() {
+  local role="$1" validator="$2" peer_urls
+  peer_urls="$(ynx_peer_rpc_urls_for_role "$role")"
+  cp "$work/config/ynx-chaind.env" "$work/config/ynx-chaind-${role}.env"
+  cat >> "$work/config/ynx-chaind-${role}.env" <<EOF
+YNX_LOCAL_VALIDATOR_ADDRESS=${validator}
+YNX_PEER_RPC_URLS=${peer_urls}
+YNX_PEER_SYNC_INTERVAL=${YNX_PEER_SYNC_INTERVAL}
+EOF
+}
+
+ynx_write_node_env primary ynx_validator_primary
+ynx_write_node_env singapore ynx_validator_singapore
+ynx_write_node_env silicon-valley ynx_validator_silicon_valley
+ynx_write_node_env seoul ynx_validator_seoul
 
 cat > "$work/systemd/ynx-chaind.service" <<'EOF'
 [Unit]
@@ -321,7 +365,7 @@ ynx_prepare_release_on_node() {
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo rm -rf '$remote_dir' && sudo mkdir -p '$remote_dir' && sudo tar -xzf '$remote_release' -C '$remote_dir'"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind && sudo install -m 0600 '$remote_dir/config/ynx-chaind.env' /etc/ynx/ynx-chaind.env && sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind && sudo install -m 0600 '$remote_dir/config/ynx-chaind-${role}.env' /etc/ynx/ynx-chaind.env && sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
 }
 
 ynx_install_primary_node() {
