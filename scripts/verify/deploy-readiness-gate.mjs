@@ -12,6 +12,8 @@ function fail(message, details = []) {
   console.error("Run: make host-key-audit");
   console.error("Run: make host-key-repair-plan");
   console.error("Run after trusted fingerprint approval exists: make host-key-approval-check");
+  console.error("Run after approval check passes: make host-key-approved-repair-dry-run");
+  console.error("Run after dry-run review: make host-key-approved-repair");
   console.error("Run: YNX_REMOTE_TIMEOUT_MS=5000 YNX_REMOTE_BLOCK_GROWTH_DELAY_MS=1000 YNX_REMOTE_EVIDENCE_PATH=tmp/verify-testnet/remote-evidence.json make remote-smoke-test");
   console.error("Run: make remote-blocker-report");
   process.exit(1);

@@ -155,7 +155,7 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
 
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
   fs.writeFileSync(reportPath, markdown);
-  fs.writeFileSync(jsonPath, `${JSON.stringify({
+  const result = {
     generatedAt: new Date().toISOString(),
     ok,
     approvalPath,
@@ -163,7 +163,9 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     source: approval.source || "",
     approvedAt: approval.approvedAt || "",
     findings,
-  }, null, 2)}\n`);
+    approval,
+  };
+  fs.writeFileSync(jsonPath, `${JSON.stringify(result, null, 2)}\n`);
 
   if (!ok) {
     fail("approved fingerprints do not match current scan", [
@@ -172,6 +174,7 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     ]);
   }
   console.log(`host-key approval check passed: ${reportPath}`);
+  return result;
 }
 
 function nodeFromScanFile(scanFile) {
@@ -233,6 +236,161 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
   console.log("template contains blank fingerprints only; it is not an approval file");
 }
 
+function timestampForPath() {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+}
+
+function sshDefaultsForNode(role) {
+  const primaryKey = process.env.PRIMARY_NODE_SSH_KEY || process.env.SSH_KEY_PATH || "/Users/huangjiahao/Downloads/Huang.pem";
+  const defaults = {
+    primary: {
+      user: process.env.PRIMARY_NODE_USER || process.env.SERVER_USER || "ubuntu",
+      key: primaryKey,
+    },
+    singapore: {
+      user: process.env.SG_NODE_USER || "root",
+      key: process.env.SG_NODE_SSH_KEY || primaryKey,
+    },
+    "silicon-valley": {
+      user: process.env.SILICON_VALLEY_NODE_USER || "ubuntu",
+      key: process.env.SILICON_VALLEY_NODE_SSH_KEY || "/Users/huangjiahao/Downloads/Huang2.pem",
+    },
+    seoul: {
+      user: process.env.SEOUL_NODE_USER || "root",
+      key: process.env.SEOUL_NODE_SSH_KEY || "/Users/huangjiahao/Downloads/Huang3.pem",
+    },
+  };
+  return defaults[role] || { user: process.env.SERVER_USER || "ubuntu", key: primaryKey };
+}
+
+function repairApprovedKnownHosts({ approvalPath, auditOut, reportPath, jsonPath, knownHosts, repairReportPath, repairJsonPath, dryRun }) {
+  const approvalResult = compareApprovals({ approvalPath, auditOut, reportPath, jsonPath });
+  const actions = [];
+  const nodes = approvalResult.approval.nodes || [];
+  const backupPath = `${knownHosts}.bak.${timestampForPath()}`;
+
+  if (!dryRun) {
+    if (!fs.existsSync(knownHosts)) {
+      fail(`known_hosts file does not exist: ${knownHosts}`, [
+        "Create it or set KNOWN_HOSTS_FILE to the intended OpenSSH known_hosts path.",
+      ]);
+    }
+    fs.copyFileSync(knownHosts, backupPath);
+  }
+
+  for (const node of nodes) {
+    const role = String(node.role || "");
+    const host = String(node.host || "");
+    const scanFile = node.scanFile ? path.resolve(repoRoot, node.scanFile) : path.join(auditOut, `${role}-${host}.known_hosts`);
+    const sshDefaults = sshDefaultsForNode(role);
+    const login = `${sshDefaults.user}@${host}`;
+    const action = {
+      role,
+      host,
+      scanFile: path.relative(repoRoot, scanFile),
+      knownHosts,
+      backupPath,
+      login,
+      keyPath: sshDefaults.key,
+      dryRun,
+      removed: false,
+      appended: false,
+      strictVerified: false,
+      ok: false,
+      detail: "",
+    };
+
+    if (!role || !host) {
+      action.detail = "node role and host are required";
+      actions.push(action);
+      continue;
+    }
+    if (!fs.existsSync(scanFile)) {
+      action.detail = `scan file missing: ${action.scanFile}`;
+      actions.push(action);
+      continue;
+    }
+
+    if (dryRun) {
+      action.detail = "dry-run: approval matches current scan; known_hosts would be backed up, host entry replaced, and strict SSH verified";
+      action.ok = true;
+      actions.push(action);
+      continue;
+    }
+
+    const remove = run("ssh-keygen", ["-R", host, "-f", knownHosts]);
+    action.removed = remove.status === 0;
+    fs.appendFileSync(knownHosts, fs.readFileSync(scanFile, "utf8"));
+    action.appended = true;
+
+    const strict = run("ssh", [
+      "-i", sshDefaults.key,
+      "-o", "BatchMode=yes",
+      "-o", "IdentitiesOnly=yes",
+      "-o", "StrictHostKeyChecking=yes",
+      "-o", "ConnectTimeout=8",
+      login,
+      "hostname",
+    ]);
+    action.strictVerified = strict.status === 0;
+    action.ok = action.removed && action.appended && action.strictVerified;
+    action.detail = action.ok ? `strict SSH verified: ${strict.stdout.trim()}` : `${strict.stderr || strict.stdout}`.trim();
+    actions.push(action);
+  }
+
+  const ok = actions.length > 0 && actions.every((action) => action.ok);
+  const markdown = [
+    "# Host Key Approved Repair",
+    "",
+    `Generated at: ${new Date().toISOString()}`,
+    `Approval file: ${approvalPath}`,
+    `Known hosts: ${knownHosts}`,
+    `Backup path: ${dryRun ? "dry-run-not-created" : backupPath}`,
+    `Mode: ${dryRun ? "dry-run" : "apply"}`,
+    `Status: ${ok ? "ok" : "blocked"}`,
+    "",
+    "| Role | Host | Login | Scan File | Removed | Appended | Strict SSH | Status | Detail |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ...actions.map((action) => [
+      action.role,
+      action.host,
+      action.login,
+      action.scanFile,
+      action.removed ? "yes" : dryRun ? "dry-run" : "no",
+      action.appended ? "yes" : dryRun ? "dry-run" : "no",
+      action.strictVerified ? "yes" : dryRun ? "dry-run" : "no",
+      action.ok ? "ok" : "blocked",
+      action.detail,
+    ].map((cell) => String(cell || "").replace(/\|/g, "\\|")).join(" | ")).map((row) => `| ${row} |`),
+    "",
+    dryRun
+      ? "Dry-run only. No known_hosts changes were made."
+      : "known_hosts was changed only after approval matched the current scan. Rerun host-key audit, remote blocker report, and deploy-readiness gate.",
+    "",
+  ].join("\n");
+
+  fs.mkdirSync(path.dirname(repairReportPath), { recursive: true });
+  fs.writeFileSync(repairReportPath, markdown);
+  fs.writeFileSync(repairJsonPath, `${JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    ok,
+    dryRun,
+    approvalPath,
+    knownHosts,
+    backupPath: dryRun ? "" : backupPath,
+    actions,
+  }, null, 2)}\n`);
+
+  if (!ok) {
+    fail("approved known_hosts repair did not complete", [
+      `report: ${repairReportPath}`,
+      `json: ${repairJsonPath}`,
+      dryRun ? "dry-run did not modify known_hosts" : `known_hosts backup: ${backupPath}`,
+    ]);
+  }
+  console.log(`host-key approved repair ${dryRun ? "dry-run" : "applied"}: ${repairReportPath}`);
+}
+
 function selfTest() {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "ynx-host-key-approval-"));
   const keyPath = path.join(workDir, "host_ed25519");
@@ -260,6 +418,19 @@ function selfTest() {
     }],
   }, null, 2));
   compareApprovals({ approvalPath, auditOut, reportPath, jsonPath });
+  const dryRunRepair = run(process.execPath, [fileURLToPath(import.meta.url), "--repair-known-hosts", "--dry-run"], {
+    env: {
+      ...process.env,
+      YNX_HOST_KEY_APPROVALS: approvalPath,
+      YNX_HOST_KEY_AUDIT_OUT: auditOut,
+      YNX_HOST_KEY_APPROVAL_REPORT: reportPath,
+      YNX_HOST_KEY_APPROVAL_JSON: jsonPath,
+      KNOWN_HOSTS_FILE: path.join(workDir, "known_hosts"),
+      YNX_HOST_KEY_REPAIR_REPORT: path.join(workDir, "repair.md"),
+      YNX_HOST_KEY_REPAIR_JSON: path.join(workDir, "repair.json"),
+    },
+  });
+  assert.equal(dryRunRepair.status, 0, dryRunRepair.stderr || dryRunRepair.stdout);
 
   fs.writeFileSync(approvalPath, JSON.stringify({
     source: "self-test trusted channel",
@@ -290,6 +461,24 @@ if (process.argv.includes("--self-test")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
   writeApprovalTemplate({ auditOut, templatePath });
+} else if (process.argv.includes("--repair-known-hosts")) {
+  const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
+  const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
+  const reportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md");
+  const jsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_JSON || "tmp/host-key-audit/host-key-approval-status.json");
+  const knownHosts = path.resolve(process.env.KNOWN_HOSTS_FILE || path.join(os.homedir(), ".ssh/known_hosts"));
+  const repairReportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_REPAIR_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVED_REPAIR.md");
+  const repairJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_REPAIR_JSON || "tmp/host-key-audit/host-key-approved-repair.json");
+  repairApprovedKnownHosts({
+    approvalPath,
+    auditOut,
+    reportPath,
+    jsonPath,
+    knownHosts,
+    repairReportPath,
+    repairJsonPath,
+    dryRun: process.argv.includes("--dry-run"),
+  });
 } else {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
