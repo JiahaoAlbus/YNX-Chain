@@ -110,4 +110,50 @@ assert.equal(reportJson.sourceEvidence.hostKeyAudit.exists, false, "host-key aud
 assert(reportJson.deployBlockers.sources.some((item) => item.name === "remoteEvidence" && item.classification === "missing-required-evidence"));
 assert(reportJson.deployBlockers.sources.some((item) => item.name === "hostKeyAudit" && item.classification === "missing-required-evidence"));
 
+const mismatchRemoteEvidencePath = path.join(workDir, "mismatch-remote-evidence.json");
+const mismatchHostKeyAuditPath = path.join(workDir, "mismatch-host-key-audit.txt");
+const missingApprovalRequestPath = path.join(workDir, "missing-approval-request.md");
+const mismatchReportJsonPath = path.join(workDir, "remote-blockers-missing-approval-request.json");
+writeJson(mismatchRemoteEvidencePath, {
+  generatedAt: now,
+  status: "failed",
+  expected: { cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainIdHex: "0x1917", nativeSymbol: "YNXT", minValidators: 3 },
+  checks: [],
+});
+fs.writeFileSync(mismatchHostKeyAuditPath, [
+  "== singapore root@43.134.23.58 ==",
+  "-- strict ssh check",
+  "@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @",
+  "Host key verification failed.",
+  "",
+].join("\n"));
+const mismatchReport = runNode(reportScript, {
+  YNX_VERIFY_TESTNET_OUT: workDir,
+  YNX_REMOTE_EVIDENCE_PATH: mismatchRemoteEvidencePath,
+  YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
+  YNX_HOST_KEY_APPROVAL_REQUEST: missingApprovalRequestPath,
+  YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
+  YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "MISMATCH_REMOTE_BLOCKERS.md"),
+  YNX_REMOTE_BLOCKER_JSON: mismatchReportJsonPath,
+  YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+});
+assert.equal(mismatchReport.status, 0, `remote-blocker-report mismatch run should write diagnostics: ${mismatchReport.stderr}`);
+const mismatchReportJson = JSON.parse(fs.readFileSync(mismatchReportJsonPath, "utf8"));
+assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequest.required, true, "approval request must be required while host-key mismatch exists");
+assert.equal(mismatchReportJson.sourceEvidence.hostKeyApprovalRequest.exists, false, "missing approval request must be recorded");
+assert(mismatchReportJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalRequest" && item.classification === "missing-required-evidence"));
+assertGateFails("missing-dynamic-required-source", {
+  ...baseReady,
+  deployReady: false,
+  sourceEvidence: {
+    ...baseReady.sourceEvidence,
+    hostKeyApprovalRequest: { path: missingApprovalRequestPath, required: true, exists: false, classification: "missing-required-evidence" },
+  },
+  deployBlockers: {
+    sources: [{ name: "hostKeyApprovalRequest", path: missingApprovalRequestPath, required: true, exists: false, classification: "missing-required-evidence" }],
+    nodes: [],
+    endpoints: [],
+  },
+}, /required source evidence is missing or stale/);
+
 console.log("deploy-readiness-gate-check passed");

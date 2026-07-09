@@ -56,12 +56,17 @@ if (!sourceEvidence || typeof sourceEvidence !== "object") {
   ]);
 }
 
-const requiredSources = [
+const requiredSources = new Map([
   ["remoteEvidence", "remote smoke evidence"],
   ["hostKeyAudit", "host-key audit"],
-];
+]);
+for (const [key, source] of Object.entries(sourceEvidence)) {
+  if (source?.required) {
+    requiredSources.set(key, key);
+  }
+}
 const sourceProblems = [];
-for (const [key, label] of requiredSources) {
+for (const [key, label] of requiredSources.entries()) {
   const source = sourceEvidence[key];
   if (!source || !source.exists) {
     sourceProblems.push(`${label}: missing (${source?.path || "unknown path"})`);

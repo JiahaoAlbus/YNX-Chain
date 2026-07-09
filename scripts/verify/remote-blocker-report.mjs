@@ -6,6 +6,7 @@ const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(verifyDir, "remote-evidence.json");
 const sshPath = path.join(verifyDir, "ssh-services.txt");
 const hostKeyAuditPath = process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt";
+const hostKeyApprovalRequestPath = process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md";
 const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
 const jsonOutPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
@@ -163,9 +164,6 @@ const sourceEvidence = {
   sshServices: fileMetadata(sshPath),
   legacyInventory: fileMetadata(legacyInventoryPath),
 };
-const sourceFindings = Object.entries(sourceEvidence)
-  .map(([name, metadata]) => ({ name, ...metadata }))
-  .filter((item) => item.required && item.classification !== "fresh");
 const failedChecks = evidence?.checks?.filter((check) => !check.ok) || [];
 const sshBlocks = splitNodeBlocks(ssh);
 const hostKeyBlocks = splitNodeBlocks(hostKeyAudit);
@@ -180,6 +178,11 @@ const nodeFindings = nodeBlocks.map((block) => {
   };
 });
 const nodeFailures = nodeFindings.filter((finding) => finding.classification !== "ok");
+const hostKeyMismatchPresent = nodeFailures.some((finding) => finding.classification === "host-key-mismatch");
+sourceEvidence.hostKeyApprovalRequest = fileMetadata(hostKeyApprovalRequestPath, { required: hostKeyMismatchPresent });
+const sourceFindings = Object.entries(sourceEvidence)
+  .map(([name, metadata]) => ({ name, ...metadata }))
+  .filter((item) => item.required && item.classification !== "fresh");
 const legacyInventory = readText(legacyInventoryPath)
   .split(/\n(?=== )/)
   .map((block) => block.trim())
@@ -325,6 +328,7 @@ fs.writeFileSync(jsonOutPath, `${JSON.stringify({
     evidencePath,
     sshPath,
     hostKeyAuditPath,
+    hostKeyApprovalRequestPath,
     legacyInventoryPath,
     reportPath: outPath,
   },
