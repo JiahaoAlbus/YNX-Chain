@@ -15,8 +15,12 @@ Why this action:
 
 Files to touch:
 
-- For this local closeout, only touch API tests and state/docs needed to reflect true implementation status.
-- For the next remote proof step, touch deployment evidence, remote smoke/proof scripts, and public proof docs only after host-key approval and deploy-readiness evidence are safe.
+- `docs/acceptance/PROJECT_STATE.md`
+- `docs/acceptance/NEXT_ACTION.md`
+- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
+- `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` as generated evidence only
+- `tmp/verify-testnet/REMOTE_BLOCKERS.md` as generated evidence only
+- Deployment scripts, remote smoke/proof scripts, and public proof docs only after host-key approval and deploy-readiness evidence are safe.
 
 Validation commands:
 
@@ -48,6 +52,7 @@ Completion standard:
 - `make host-key-repair-plan` produces `tmp/host-key-audit/HOST_KEY_REPAIR_PLAN.md` with current local entries, presented fingerprints, strict SSH output, and commands that are clearly marked as requiring trusted out-of-band fingerprint confirmation first.
 - `make host-key-approval-check-test` proves the approval checker accepts matched fingerprints and rejects mismatched fingerprints.
 - `make host-key-approval-check` remains blocked until ignored `.host-key-approvals.json` contains exact fingerprints confirmed from a trusted external source.
+- While `.host-key-approvals.json` is absent, `make host-key-approval-check` must fail closed and no known_hosts repair or deploy mutation is allowed.
 - The script does not modify `~/.ssh/known_hosts` or bypass strict SSH checks.
 - `make deploy-readiness-gate-check` proves the deploy gate rejects old-format blocker JSON, missing required source evidence, stale required source evidence, missing source files, and explicit endpoint blockers.
 - `remote-blocker-report` records freshness for the underlying remote-smoke and host-key-audit evidence, and `deploy-readiness-gate` refuses mutation if either required source is missing or stale.
