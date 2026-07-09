@@ -6,6 +6,9 @@ import path from "node:path";
 
 const requiredChecks = [
   "rpc.status.chain",
+  "rpc.status.buildCommit",
+  "rpc.status.buildRelease",
+  "rpc.status.buildTime",
   "rpc.status.height.growth",
   "rpc.validators.count",
   "rpc.validators.addresses",
@@ -15,6 +18,9 @@ const requiredChecks = [
   "rpc.nodeIdentity.expectedValidatorCount",
   "rpc.nodeIdentity.peerSyncTargetCount",
   "rpc.nodeIdentity.peerSyncFreshness",
+  "rpc.nodeIdentity.buildCommit",
+  "rpc.nodeIdentity.buildRelease",
+  "rpc.nodeIdentity.buildTime",
   "rpc.validators.peers.expected",
   "rpc.validators.peers.observed",
   "rpc.validators.peerSync",

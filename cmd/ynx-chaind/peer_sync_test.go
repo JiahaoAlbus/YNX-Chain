@@ -150,6 +150,7 @@ func TestValidateNodeStartupConfig(t *testing.T) {
 }
 
 func TestCheckNodeRuntimeConfigDoesNotStartOrWriteState(t *testing.T) {
+	setBuildInfoForTest(t, "abc123", "ynx-chain-abc123", "2026-07-10T00:00:00Z")
 	t.Setenv("YNX_VALIDATOR_SET", "ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
 	t.Setenv("YNX_BOOTSTRAP_PEERS", "ynx_val_primary|peer-primary|127.0.0.1|127.0.0.1:26656|primary validator;ynx_val_sg|peer-sg|127.0.0.2|127.0.0.2:26656|bonded validator")
 	dataDir := t.TempDir() + "/must-not-be-created"
@@ -168,8 +169,19 @@ func TestCheckNodeRuntimeConfigDoesNotStartOrWriteState(t *testing.T) {
 	if !strings.Contains(out.String(), "ynx-chaind config check passed") || !strings.Contains(out.String(), "peerTargets=1") {
 		t.Fatalf("unexpected check output: %q", out.String())
 	}
+	if !strings.Contains(out.String(), "buildCommit=abc123") || !strings.Contains(out.String(), "release=ynx-chain-abc123") || !strings.Contains(out.String(), "buildTime=2026-07-10T00:00:00Z") {
+		t.Fatalf("check output missing build identity: %q", out.String())
+	}
 	if _, err := os.Stat(dataDir); !os.IsNotExist(err) {
 		t.Fatalf("check config should not create data dir, stat err=%v", err)
+	}
+}
+
+func TestCurrentBuildInfoDefaults(t *testing.T) {
+	setBuildInfoForTest(t, "", "", "")
+	info := currentBuildInfo()
+	if info.Commit != "unknown" || info.Release != "local" || info.BuildTime != "unknown" {
+		t.Fatalf("unexpected default build info: %+v", info)
 	}
 }
 
@@ -205,4 +217,13 @@ func TestFetchPeerHeight(t *testing.T) {
 	if height != 12 {
 		t.Fatalf("expected height 12, got %d", height)
 	}
+}
+
+func setBuildInfoForTest(t *testing.T, commit, release, builtAt string) {
+	t.Helper()
+	oldCommit, oldRelease, oldTime := buildCommit, buildRelease, buildTime
+	buildCommit, buildRelease, buildTime = commit, release, builtAt
+	t.Cleanup(func() {
+		buildCommit, buildRelease, buildTime = oldCommit, oldRelease, oldTime
+	})
 }

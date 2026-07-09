@@ -79,22 +79,32 @@ dry_run_out="$tmp/deploy-dry-run.out"
 ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 ./scripts/deploy/deploy-testnet.sh | tee "$dry_run_out"
 
 commit="$(git rev-parse --short=12 HEAD)"
-release_dir="tmp/deploy/ynx-chain-${commit}"
+release="ynx-chain-${commit}"
+release_dir="tmp/deploy/${release}"
+local_ldflags="-X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=dry-run-check"
 grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-faucetd.env" || { echo "faucet env missing FAUCET_PRIVATE_KEY"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
 fi
+grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { echo "release env missing commit"; exit 1; }
+grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
+grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
+grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
 
 ynx_check_role_env() {
   local role="$1" role_env="$2"
+  local check_output
   (
     set -a
     # shellcheck disable=SC1090
     source "$role_env"
     set +a
-    go run ./cmd/ynx-chaind --check-config >/dev/null
-  ) || { echo "ynx-chaind config check failed for $role env: $role_env"; exit 1; }
+    go run -ldflags "$local_ldflags" ./cmd/ynx-chaind --check-config
+  ) >"$tmp/check-${role}.out" || { echo "ynx-chaind config check failed for $role env: $role_env"; exit 1; }
+  check_output="$(cat "$tmp/check-${role}.out")"
+  printf '%s\n' "$check_output" | grep -Fq "buildCommit=${commit}" || { echo "$role config check missing build commit"; exit 1; }
+  printf '%s\n' "$check_output" | grep -Fq "release=${release}" || { echo "$role config check missing release name"; exit 1; }
   echo "ynx-chaind config check passed for $role env"
 }
 

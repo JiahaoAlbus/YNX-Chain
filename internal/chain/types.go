@@ -206,11 +206,18 @@ type ValidatorPeerSyncInput struct {
 	Evidence     string `json:"evidence,omitempty"`
 }
 
+type BuildInfo struct {
+	Commit    string `json:"commit"`
+	Release   string `json:"release"`
+	BuildTime string `json:"buildTime"`
+}
+
 type NodeIdentityConfig struct {
 	ValidatorAddress string                    `json:"validatorAddress"`
 	PeerSyncTargets  []ValidatorPeerSyncTarget `json:"peerSyncTargets,omitempty"`
 	PeerSyncInterval time.Duration             `json:"-"`
 	StaleAfter       time.Duration             `json:"-"`
+	Build            BuildInfo                 `json:"build"`
 }
 
 type ValidatorPeerSyncTarget struct {
@@ -230,6 +237,7 @@ type NodeIdentity struct {
 	PeerSyncTargetAddresses []string                   `json:"peerSyncTargetAddresses,omitempty"`
 	PeerSyncInterval        string                     `json:"peerSyncInterval,omitempty"`
 	RuntimeEvidence         string                     `json:"runtimeEvidence"`
+	Build                   BuildInfo                  `json:"build"`
 	PeerSyncFreshness       ValidatorPeerSyncFreshness `json:"peerSyncFreshness"`
 }
 

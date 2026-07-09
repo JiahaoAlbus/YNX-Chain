@@ -53,15 +53,22 @@ fi
 
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
+build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
 work="tmp/deploy/${release}"
 rm -rf "$work"
 mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/docs"
 
 echo "building YNX Chain binary for linux/amd64"
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-indexerd" ./cmd/ynx-indexerd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-explorerd" ./cmd/ynx-explorerd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$work/bin/ynx-faucetd" ./cmd/ynx-faucetd
+cat > "$work/config/release.env" <<EOF
+YNX_RELEASE_COMMIT=${commit}
+YNX_RELEASE_NAME=${release}
+YNX_RELEASE_BUILD_TIME=${build_time}
+EOF
 
 ynx_write_kv_env "$work/config/ynx-chaind.env" \
   CHAIN_ID CHAIN_NAME NATIVE_COIN_NAME NATIVE_SYMBOL TESTNET_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN \

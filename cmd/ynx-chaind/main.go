@@ -16,6 +16,12 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
+)
+
 func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_HTTP_ADDR", "127.0.0.1:6420"), "HTTP listen address")
 	network := flag.String("network", envOrDefault("YNX_NETWORK", "devnet"), "network slug")
@@ -94,7 +100,8 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 	if expectedValidators == 0 {
 		expectedValidators = len(chain.DefaultValidators())
 	}
-	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets))
+	build := currentBuildInfo()
+	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d buildCommit=%s release=%s buildTime=%s\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets), build.Commit, build.Release, build.BuildTime)
 	return nil
 }
 
@@ -114,6 +121,7 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		ValidatorAddress: cfg.LocalValidator,
 		PeerSyncTargets:  chainPeerSyncTargets(inputs.PeerSyncTargets),
 		PeerSyncInterval: cfg.PeerSyncInterval,
+		Build:            currentBuildInfo(),
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -190,6 +198,24 @@ func chainPeerSyncTargets(targets []peerSyncTarget) []chain.ValidatorPeerSyncTar
 		out = append(out, chain.ValidatorPeerSyncTarget{Address: target.Address, URL: target.URL})
 	}
 	return out
+}
+
+func currentBuildInfo() chain.BuildInfo {
+	info := chain.BuildInfo{
+		Commit:    strings.TrimSpace(buildCommit),
+		Release:   strings.TrimSpace(buildRelease),
+		BuildTime: strings.TrimSpace(buildTime),
+	}
+	if info.Commit == "" {
+		info.Commit = "unknown"
+	}
+	if info.Release == "" {
+		info.Release = "local"
+	}
+	if info.BuildTime == "" {
+		info.BuildTime = "unknown"
+	}
+	return info
 }
 
 func envOrDefault(key, fallback string) string {

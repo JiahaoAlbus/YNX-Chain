@@ -26,6 +26,14 @@ required_patterns=(
   "validatorPeerReadiness"
   "validatorPeerDiscovery"
   "validatorPeerSync"
+  "YNX_EXPECTED_RELEASE_COMMIT"
+  "YNX_EXPECTED_RELEASE_NAME"
+  "__EXPECTED_RELEASE_COMMIT__"
+  "__EXPECTED_RELEASE_NAME__"
+  "status.buildCommit"
+  "status.buildRelease"
+  "nodeIdentity.buildCommit"
+  "nodeIdentity.buildRelease"
 )
 
 for pattern in "${required_patterns[@]}"; do

@@ -9,12 +9,17 @@ const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
 const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
 const growthDelayMs = Number(process.env.YNX_REMOTE_BLOCK_GROWTH_DELAY_MS || 2500);
+const currentGitCommit = readGitCommit();
+const defaultShortCommit = currentGitCommit === "unknown" ? "unknown" : currentGitCommit.slice(0, 12);
+const expectedReleaseCommit = process.env.YNX_EXPECTED_RELEASE_COMMIT || defaultShortCommit;
 const expected = {
   cosmosChainId: process.env.YNX_COSMOS_CHAIN_ID || "ynx_6423-1",
   evmChainId: Number(process.env.YNX_EVM_CHAIN_ID || 6423),
   evmChainIdHex: String(process.env.YNX_EVM_CHAIN_ID_HEX || "0x1917").toLowerCase(),
   nativeSymbol: process.env.YNX_NATIVE_COIN_SYMBOL || "YNXT",
   minValidators: Number(process.env.YNX_EXPECTED_VALIDATOR_COUNT || 3),
+  releaseCommit: expectedReleaseCommit,
+  releaseName: process.env.YNX_EXPECTED_RELEASE_NAME || `ynx-chain-${expectedReleaseCommit}`,
 };
 const endpoints = {
   rpc: trimSlash(process.env.PUBLIC_RPC_URL || "https://rpc.ynxweb4.com"),
@@ -33,7 +38,7 @@ const checks = [];
 const evidence = {
   proofType: "remote-public-testnet-smoke",
   generatedAt: new Date().toISOString(),
-  gitCommit: readGitCommit(),
+  gitCommit: currentGitCommit,
   expected,
   endpoints,
   sampleAddress,
@@ -363,6 +368,35 @@ function checkNodeIdentity(json) {
   return configured && expectedCountOk && targetCountOk && freshnessOk;
 }
 
+function checkBuildIdentity(name, json) {
+  const build = json?.build ?? {};
+  const commit = String(build?.commit ?? "");
+  const release = String(build?.release ?? "");
+  const buildTime = String(build?.buildTime ?? "");
+  const commitOk = commit === expected.releaseCommit;
+  const releaseOk = release === expected.releaseName;
+  const buildTimeOk = buildTime.length > 0 && buildTime !== "unknown";
+  record(
+    `${name}.buildCommit`,
+    commitOk,
+    commitOk ? `commit ${commit}` : `expected ${expected.releaseCommit}, got ${commit || "missing"}`,
+    { commit, expected: expected.releaseCommit }
+  );
+  record(
+    `${name}.buildRelease`,
+    releaseOk,
+    releaseOk ? `release ${release}` : `expected ${expected.releaseName}, got ${release || "missing"}`,
+    { release, expected: expected.releaseName }
+  );
+  record(
+    `${name}.buildTime`,
+    buildTimeOk,
+    buildTimeOk ? `buildTime ${buildTime}` : `missing injected build time, got ${buildTime || "missing"}`,
+    { buildTime }
+  );
+  return commitOk && releaseOk && buildTimeOk;
+}
+
 function checkEvmResult(name, json, expectedValue) {
   const result = String(json?.result ?? "").toLowerCase();
   const ok = result === expectedValue.toLowerCase();
@@ -462,6 +496,7 @@ async function main() {
 
   const rpcStatus1 = await getJson("rpc.status.initial", `${endpoints.rpc}/status`);
   const rpcChainOk = rpcStatus1 ? checkChain("rpc.status.chain", rpcStatus1) : false;
+  const rpcBuildOk = rpcStatus1 ? checkBuildIdentity("rpc.status", rpcStatus1) : false;
   const height1 = rpcStatus1 ? heightOf(rpcStatus1) : null;
   record("rpc.status.height.initial", height1 !== null, height1 !== null ? `height ${height1}` : "missing latest height", { height: height1 });
 
@@ -475,6 +510,7 @@ async function main() {
   const validatorsOk = validators ? checkValidators(validators) : false;
   const nodeIdentity = await getJson("rpc.nodeIdentity", `${endpoints.rpc}/node/identity`);
   const nodeIdentityOk = nodeIdentity ? checkNodeIdentity(nodeIdentity) : false;
+  const nodeIdentityBuildOk = nodeIdentity ? checkBuildIdentity("rpc.nodeIdentity", nodeIdentity) : false;
   const validatorPeers = await getJson("rpc.validators.peers", `${endpoints.rpc}/validators/peers`);
   const validatorPeersOk = validatorPeers ? checkValidatorPeers(validatorPeers) : false;
   const validatorPeerSync = await getJson("rpc.validators.peerSync", `${endpoints.rpc}/validators/peer-sync`);
@@ -525,7 +561,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && nodeIdentityOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {

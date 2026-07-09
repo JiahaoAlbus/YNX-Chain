@@ -142,6 +142,7 @@ func TestNodeIdentityAndPeerSyncFreshness(t *testing.T) {
 			{Address: "ynx_val_sv", URL: "http://127.0.0.1:6422"},
 		},
 		PeerSyncInterval: 5 * time.Second,
+		Build:            BuildInfo{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"},
 	})
 	_, err = devnet.RecordValidatorPeerSync(ValidatorPeerSyncInput{
 		Source:       "ynx_val_primary",
@@ -160,10 +161,29 @@ func TestNodeIdentityAndPeerSyncFreshness(t *testing.T) {
 	if identity.PeerSyncFreshness.Status != "missing_peer_sync" || identity.PeerSyncFreshness.Synced != 1 || identity.PeerSyncFreshness.Missing != 1 || identity.PeerSyncFreshness.Fresh != 1 {
 		t.Fatalf("expected one fresh sync and one missing sync, got %+v", identity.PeerSyncFreshness)
 	}
+	if identity.Build.Commit != "abc123" || identity.Build.Release != "ynx-chain-abc123" || identity.Build.BuildTime != "2026-07-10T00:00:00Z" {
+		t.Fatalf("unexpected build identity: %+v", identity.Build)
+	}
 	status := devnet.Status()
 	statusIdentity := status["nodeIdentity"].(NodeIdentity)
 	if statusIdentity.ValidatorAddress != "ynx_val_primary" || statusIdentity.PeerSyncFreshness.Status != "missing_peer_sync" {
 		t.Fatalf("status missing node identity freshness: %+v", statusIdentity)
+	}
+	statusBuild := status["build"].(BuildInfo)
+	if statusBuild.Commit != "abc123" || statusBuild.Release != "ynx-chain-abc123" {
+		t.Fatalf("status missing build identity: %+v", statusBuild)
+	}
+}
+
+func TestNodeIdentityDefaultBuildInfo(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
+	identity := devnet.NodeIdentity()
+	if identity.Build.Commit != "unknown" || identity.Build.Release != "local" || identity.Build.BuildTime != "unknown" {
+		t.Fatalf("unexpected default build identity: %+v", identity.Build)
+	}
+	statusBuild := devnet.Status()["build"].(BuildInfo)
+	if statusBuild.Commit != "unknown" || statusBuild.Release != "local" || statusBuild.BuildTime != "unknown" {
+		t.Fatalf("unexpected default status build identity: %+v", statusBuild)
 	}
 }
 

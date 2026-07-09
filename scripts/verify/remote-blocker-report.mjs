@@ -332,6 +332,7 @@ function classifyEndpointFailure(check) {
   if (check?.name === "rpc.validators.count") return "validator-set-empty";
   if (check?.name === "rpc.validators.monikers" || check?.name === "rpc.validators.addresses") return "validator-metadata-missing";
   if (check?.name === "rpc.validators.peerReadiness") return "validator-peer-readiness-missing";
+  if (String(check?.name || "").includes(".build")) return "release-identity-missing";
   if (String(check?.name || "").startsWith("rpc.nodeIdentity.")) return "validator-node-identity-missing";
   if (check?.name === "rpc.validators.peers.expected" || check?.name === "rpc.validators.peers.observed") return "validator-peer-discovery-missing";
   if (check?.name === "rpc.validators.peerSync") return "validator-peer-sync-missing";

@@ -419,6 +419,7 @@ func (d *Devnet) Status() map[string]any {
 		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
 		"validatorPeerSync":      map[string]any{"synced": syncedPeers, "lagging": laggingPeers, "total": len(d.validatorPeerSyncs)},
 		"nodeIdentity":           d.nodeIdentityLocked(time.Now().UTC()),
+		"build":                  normalizeBuildInfo(d.nodeIdentity.Build),
 		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
@@ -434,9 +435,26 @@ func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
 	if input.StaleAfter < 0 {
 		input.StaleAfter = 0
 	}
+	input.Build = normalizeBuildInfo(input.Build)
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.nodeIdentity = input
+}
+
+func normalizeBuildInfo(input BuildInfo) BuildInfo {
+	input.Commit = strings.TrimSpace(input.Commit)
+	input.Release = strings.TrimSpace(input.Release)
+	input.BuildTime = strings.TrimSpace(input.BuildTime)
+	if input.Commit == "" {
+		input.Commit = "unknown"
+	}
+	if input.Release == "" {
+		input.Release = "local"
+	}
+	if input.BuildTime == "" {
+		input.BuildTime = "unknown"
+	}
+	return input
 }
 
 func (d *Devnet) NodeIdentity() NodeIdentity {
@@ -2230,6 +2248,7 @@ func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
 		PeerSyncTargetCount:     len(targets),
 		PeerSyncTargetAddresses: targetAddresses,
 		RuntimeEvidence:         "local-runtime-config",
+		Build:                   normalizeBuildInfo(cfg.Build),
 	}
 	if cfg.PeerSyncInterval > 0 {
 		identity.PeerSyncInterval = cfg.PeerSyncInterval.String()

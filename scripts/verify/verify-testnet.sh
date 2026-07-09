@@ -27,6 +27,8 @@ PRIMARY_VALIDATOR_ADDRESS="${PRIMARY_VALIDATOR_ADDRESS:-ynx_validator_primary}"
 SG_VALIDATOR_ADDRESS="${SG_VALIDATOR_ADDRESS:-ynx_validator_singapore}"
 SILICON_VALLEY_VALIDATOR_ADDRESS="${SILICON_VALLEY_VALIDATOR_ADDRESS:-ynx_validator_silicon_valley}"
 SEOUL_VALIDATOR_ADDRESS="${SEOUL_VALIDATOR_ADDRESS:-ynx_validator_seoul}"
+EXPECTED_RELEASE_COMMIT="${YNX_EXPECTED_RELEASE_COMMIT:-$(git rev-parse --short=12 HEAD)}"
+EXPECTED_RELEASE_NAME="${YNX_EXPECTED_RELEASE_NAME:-ynx-chain-${EXPECTED_RELEASE_COMMIT}}"
 
 out="${YNX_VERIFY_TESTNET_OUT:-tmp/verify-testnet}"
 mkdir -p "$out"
@@ -77,6 +79,8 @@ check_json_contains() {
 }
 local_validator="$(safe_env YNX_LOCAL_VALIDATOR_ADDRESS || true)"
 expected_validator="__EXPECTED_VALIDATOR__"
+expected_release_commit="__EXPECTED_RELEASE_COMMIT__"
+expected_release_name="__EXPECTED_RELEASE_NAME__"
 echo "localValidatorAddress=$local_validator"
 if [ "$local_validator" != "$expected_validator" ]; then
   echo "localValidatorAddressMismatch expected=$expected_validator observed=$local_validator"
@@ -114,11 +118,19 @@ check_json_contains status.validatorPeerReadiness "$status_compact" '"validatorP
 check_json_contains status.validatorPeerDiscovery "$status_compact" '"validatorPeerDiscovery"'
 check_json_contains status.validatorPeerSync "$status_compact" '"validatorPeerSync"'
 check_json_contains status.nodeIdentity "$status_compact" '"nodeIdentity"'
+check_json_contains status.build "$status_compact" '"build"'
+check_json_contains status.buildCommit "$status_compact" "\"commit\":\"$expected_release_commit\""
+check_json_contains status.buildRelease "$status_compact" "\"release\":\"$expected_release_name\""
+check_json_contains status.buildTime "$status_compact" '"buildTime"'
 check_json_contains nodeIdentity.localIdentity "$identity_compact" "\"validatorAddress\":\"$expected_validator\""
 check_json_contains nodeIdentity.expectedCount "$identity_compact" '"expectedValidatorCount":4'
 check_json_contains nodeIdentity.targetCount "$identity_compact" '"peerSyncTargetCount":3'
 check_json_contains nodeIdentity.freshness "$identity_compact" '"peerSyncFreshness"'
 check_json_contains nodeIdentity.freshnessStatus "$identity_compact" '"status":"synced"'
+check_json_contains nodeIdentity.build "$identity_compact" '"build"'
+check_json_contains nodeIdentity.buildCommit "$identity_compact" "\"commit\":\"$expected_release_commit\""
+check_json_contains nodeIdentity.buildRelease "$identity_compact" "\"release\":\"$expected_release_name\""
+check_json_contains nodeIdentity.buildTime "$identity_compact" '"buildTime"'
 check_json_contains validators.localIdentity "$validators_compact" "\"address\":\"$expected_validator\""
 check_json_contains validators.expectedCount "$validators_compact" '"expectedValidatorCount":4'
 check_json_contains validatorPeers.records "$peers_compact" '"peers"'
@@ -126,6 +138,8 @@ check_json_contains validatorPeerSync.records "$sync_compact" '"syncs"'
 REMOTE
 )
       remote_script="${remote_script/__EXPECTED_VALIDATOR__/$expected_validator}"
+      remote_script="${remote_script/__EXPECTED_RELEASE_COMMIT__/$EXPECTED_RELEASE_COMMIT}"
+      remote_script="${remote_script/__EXPECTED_RELEASE_NAME__/$EXPECTED_RELEASE_NAME}"
       for service in $services; do
         remote_script="${remote_script}"$'\n'"status=\$(systemctl is-active '$service' 2>/dev/null || true); echo '$service'=\$status; test \"\$status\" = active || failed=1;"
       done

@@ -74,6 +74,7 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
 		ValidatorAddress: "ynx_val_primary",
 		PeerSyncTargets:  []chain.ValidatorPeerSyncTarget{{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"}},
+		Build:            chain.BuildInfo{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"},
 	})
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
@@ -110,6 +111,17 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	discovery := status["validatorPeerDiscovery"].(map[string]any)
 	if discovery["expected"].(float64) != 2 || discovery["observed"].(float64) != 1 {
 		t.Fatalf("expected validator peer discovery summary: %v", status)
+	}
+	statusBuild := status["build"].(map[string]any)
+	if statusBuild["commit"] != "abc123" || statusBuild["release"] != "ynx-chain-abc123" {
+		t.Fatalf("status missing build identity: %v", status)
+	}
+
+	var nodeIdentityOut map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/node/identity", nil, http.StatusOK, &nodeIdentityOut)
+	identityBuild := nodeIdentityOut["build"].(map[string]any)
+	if identityBuild["commit"] != "abc123" || identityBuild["release"] != "ynx-chain-abc123" || identityBuild["buildTime"] != "2026-07-10T00:00:00Z" {
+		t.Fatalf("node identity missing build identity: %v", nodeIdentityOut)
 	}
 
 	var peersOut map[string]any
