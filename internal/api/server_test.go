@@ -129,9 +129,29 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 		t.Fatalf("unexpected observed peer response: %v", observed)
 	}
 
+	var sync map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_val_primary/peer-sync", map[string]any{
+		"target":       "ynx_val_sg",
+		"sourceHeight": 14,
+		"targetHeight": 12,
+		"evidence":     "api-peer-sync-unit-test",
+	}, http.StatusOK, &sync)
+	if sync["source"] != "ynx_val_primary" || sync["target"] != "ynx_val_sg" || sync["lagBlocks"].(float64) != 2 || sync["status"] != "lagging" || sync["evidence"] != "api-peer-sync-unit-test" {
+		t.Fatalf("unexpected peer sync response: %v", sync)
+	}
+
+	var syncsOut map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/validators/peer-sync", nil, http.StatusOK, &syncsOut)
+	syncValues := syncsOut["syncs"].([]any)
+	if len(syncValues) != 1 || syncValues[0].(map[string]any)["target"] != "ynx_val_sg" {
+		t.Fatalf("expected readable peer sync records: %v", syncsOut)
+	}
+
 	var bad map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/heartbeat", map[string]any{"ready": true}, http.StatusBadRequest, &bad)
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/peers/observe", map[string]any{"status": "reachable"}, http.StatusBadRequest, &bad)
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/peer-sync", map[string]any{"target": "ynx_val_sg"}, http.StatusBadRequest, &bad)
+	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_val_primary/peer-sync", map[string]any{"target": "ynx_val_primary"}, http.StatusBadRequest, &bad)
 }
 
 func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {

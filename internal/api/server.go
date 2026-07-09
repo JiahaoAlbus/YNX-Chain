@@ -34,8 +34,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /validators", s.handleValidators)
 	s.mux.HandleFunc("GET /validators/peers", s.handleValidatorPeers)
+	s.mux.HandleFunc("GET /validators/peer-sync", s.handleValidatorPeerSyncs)
 	s.mux.HandleFunc("POST /validators/{address}/heartbeat", s.handleValidatorHeartbeat)
 	s.mux.HandleFunc("POST /validators/{address}/peers/observe", s.handleValidatorPeerObserve)
+	s.mux.HandleFunc("POST /validators/{address}/peer-sync", s.handleValidatorPeerSync)
 	s.mux.HandleFunc("GET /txs", s.handleRecentTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
@@ -160,6 +162,9 @@ func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleValidatorPeers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"peers": s.devnet.ValidatorPeers()})
 }
+func (s *Server) handleValidatorPeerSyncs(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"syncs": s.devnet.ValidatorPeerSyncs()})
+}
 func (s *Server) handleValidatorHeartbeat(w http.ResponseWriter, r *http.Request) {
 	var req chain.ValidatorPeerHeartbeatInput
 	if !decodeJSON(w, r, &req) {
@@ -185,6 +190,19 @@ func (s *Server) handleValidatorPeerObserve(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusOK, peer)
+}
+func (s *Server) handleValidatorPeerSync(w http.ResponseWriter, r *http.Request) {
+	var req chain.ValidatorPeerSyncInput
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	req.Source = r.PathValue("address")
+	sync, err := s.devnet.RecordValidatorPeerSync(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, sync)
 }
 func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.ExplorerSummary())

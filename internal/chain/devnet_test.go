@@ -78,6 +78,19 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if observed == nil || !observed.Expected || !observed.Observed || observed.Status != "reachable" || observed.LatestHeight != 7 || observed.Evidence != "local-heartbeat-unit-test" {
 		t.Fatalf("expected heartbeat to update peer discovery state, got %+v", observed)
 	}
+	sync, err := devnet.RecordValidatorPeerSync(ValidatorPeerSyncInput{
+		Source:       "ynx_val_primary",
+		Target:       "ynx_val_sg",
+		SourceHeight: 8,
+		TargetHeight: 7,
+		Evidence:     "local-sync-unit-test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sync.Status != "synced" || sync.LagBlocks != 1 || sync.Source != "ynx_val_primary" || sync.Target != "ynx_val_sg" || sync.Evidence != "local-sync-unit-test" {
+		t.Fatalf("unexpected peer sync state: %+v", sync)
+	}
 
 	reconfigured, err := ParseValidatorSet("ynx_val_primary|primary-updated|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore-updated|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {
@@ -95,8 +108,12 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 		t.Fatalf("expected config reload to preserve peer runtime state, got %+v", got)
 	}
 	restoredPeer := peerByAddress(restored.ValidatorPeers(), "ynx_val_sg")
-	if restoredPeer == nil || !restoredPeer.Observed || restoredPeer.Status != "reachable" || restoredPeer.LatestHeight != 7 || restoredPeer.Evidence != "local-heartbeat-unit-test" {
+	if restoredPeer == nil || !restoredPeer.Observed || restoredPeer.Status != "synced" || restoredPeer.LatestHeight != 7 || restoredPeer.Evidence != "local-sync-unit-test" {
 		t.Fatalf("expected config reload to preserve peer discovery state, got %+v", restoredPeer)
+	}
+	restoredSyncs := restored.ValidatorPeerSyncs()
+	if len(restoredSyncs) != 1 || restoredSyncs[0].Status != "synced" || restoredSyncs[0].LagBlocks != 1 || restoredSyncs[0].Evidence != "local-sync-unit-test" {
+		t.Fatalf("expected config reload to preserve peer sync state, got %+v", restoredSyncs)
 	}
 	status := restored.Status()
 	if status["readyValidatorCount"].(int) != 1 {
@@ -105,6 +122,10 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	discovery := status["validatorPeerDiscovery"].(map[string]any)
 	if discovery["expected"].(int) != 3 || discovery["observed"].(int) != 1 {
 		t.Fatalf("expected peer discovery counts, got %v", status)
+	}
+	syncSummary := status["validatorPeerSync"].(map[string]any)
+	if syncSummary["synced"].(int) != 1 || syncSummary["total"].(int) != 1 {
+		t.Fatalf("expected peer sync counts, got %v", status)
 	}
 }
 

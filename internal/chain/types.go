@@ -184,6 +184,28 @@ type ValidatorPeerObservationInput struct {
 	Evidence     string `json:"evidence,omitempty"`
 }
 
+type ValidatorPeerSync struct {
+	ID           string    `json:"id"`
+	Source       string    `json:"source"`
+	Target       string    `json:"target"`
+	SourceHeight uint64    `json:"sourceHeight"`
+	TargetHeight uint64    `json:"targetHeight"`
+	LagBlocks    int64     `json:"lagBlocks"`
+	Status       string    `json:"status"`
+	Evidence     string    `json:"evidence,omitempty"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+type ValidatorPeerSyncInput struct {
+	Source       string `json:"source,omitempty"`
+	Target       string `json:"target"`
+	SourceHeight uint64 `json:"sourceHeight"`
+	TargetHeight uint64 `json:"targetHeight"`
+	Status       string `json:"status,omitempty"`
+	Evidence     string `json:"evidence,omitempty"`
+}
+
 type TrustTrace struct {
 	Address string          `json:"address"`
 	Lots    []TrustTraceLot `json:"lots"`

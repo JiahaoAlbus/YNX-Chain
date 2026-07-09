@@ -59,6 +59,7 @@ type Devnet struct {
 	accounts             map[string]*Account
 	validators           []Validator
 	validatorPeers       map[string]ValidatorPeer
+	validatorPeerSyncs   map[string]ValidatorPeerSync
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -241,6 +242,7 @@ type devnetSnapshot struct {
 	Accounts   map[string]*Account             `json:"accounts"`
 	Validators []Validator                     `json:"validators"`
 	Peers      map[string]ValidatorPeer        `json:"validatorPeers"`
+	PeerSyncs  map[string]ValidatorPeerSync    `json:"validatorPeerSyncs"`
 	Lots       map[string]TrustTraceLot        `json:"lots"`
 	PayIntents map[string]PayIntent            `json:"payIntents"`
 	Invoices   map[string]Invoice              `json:"invoices"`
@@ -306,6 +308,7 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		cfg:                 cfg,
 		accounts:            map[string]*Account{},
 		validatorPeers:      peersFromValidators(normalized),
+		validatorPeerSyncs:  map[string]ValidatorPeerSync{},
 		lots:                map[string]TrustTraceLot{},
 		payIntents:          map[string]PayIntent{},
 		invoices:            map[string]Invoice{},
@@ -398,6 +401,7 @@ func (d *Devnet) Status() map[string]any {
 	latest := d.blocks[len(d.blocks)-1]
 	readyCount := d.readyValidatorCountLocked()
 	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
+	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked()
 	return map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
@@ -406,6 +410,7 @@ func (d *Devnet) Status() map[string]any {
 		"validatorCount": len(d.validators), "readyValidatorCount": readyCount, "pendingTxCount": len(d.pending),
 		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
 		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
+		"validatorPeerSync":      map[string]any{"synced": syncedPeers, "lagging": laggingPeers, "total": len(d.validatorPeerSyncs)},
 		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
 		"chainIdConflictCheck": d.cfg.ChainIDConflictCheck,
@@ -528,6 +533,22 @@ func (d *Devnet) ValidatorPeers() []ValidatorPeer {
 	return peers
 }
 
+func (d *Devnet) ValidatorPeerSyncs() []ValidatorPeerSync {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	syncs := make([]ValidatorPeerSync, 0, len(d.validatorPeerSyncs))
+	for _, sync := range d.validatorPeerSyncs {
+		syncs = append(syncs, sync)
+	}
+	sort.Slice(syncs, func(i, j int) bool {
+		if syncs[i].Source == syncs[j].Source {
+			return syncs[i].Target < syncs[j].Target
+		}
+		return syncs[i].Source < syncs[j].Source
+	})
+	return syncs
+}
+
 func (d *Devnet) UpdateValidatorPeerState(input ValidatorPeerHeartbeatInput) (Validator, error) {
 	input.Address = strings.TrimSpace(input.Address)
 	input.PeerID = strings.TrimSpace(input.PeerID)
@@ -604,6 +625,67 @@ func (d *Devnet) ObserveValidatorPeer(input ValidatorPeerObservationInput) (Vali
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return peer, err
+}
+
+func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (ValidatorPeerSync, error) {
+	input.Source = strings.TrimSpace(input.Source)
+	input.Target = strings.TrimSpace(input.Target)
+	input.Status = strings.TrimSpace(input.Status)
+	input.Evidence = strings.TrimSpace(input.Evidence)
+	if input.Source == "" {
+		return ValidatorPeerSync{}, errors.New("source validator is required")
+	}
+	if input.Target == "" {
+		return ValidatorPeerSync{}, errors.New("target validator is required")
+	}
+	if input.Source == input.Target {
+		return ValidatorPeerSync{}, errors.New("source and target validators must differ")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if !d.validatorAddressExistsLocked(input.Source) {
+		return ValidatorPeerSync{}, fmt.Errorf("source validator %s not found", input.Source)
+	}
+	if !d.validatorAddressExistsLocked(input.Target) {
+		return ValidatorPeerSync{}, fmt.Errorf("target validator %s not found", input.Target)
+	}
+	now := time.Now().UTC()
+	key := validatorPeerSyncKey(input.Source, input.Target)
+	lag := int64(input.SourceHeight) - int64(input.TargetHeight)
+	status := input.Status
+	if status == "" {
+		if lag <= 1 && lag >= -1 {
+			status = "synced"
+		} else {
+			status = "lagging"
+		}
+	}
+	sync := d.validatorPeerSyncs[key]
+	if sync.ID == "" {
+		sync.ID = hashParts("validator-peer-sync", input.Source, input.Target)
+		sync.CreatedAt = now
+	}
+	sync.Source = input.Source
+	sync.Target = input.Target
+	sync.SourceHeight = input.SourceHeight
+	sync.TargetHeight = input.TargetHeight
+	sync.LagBlocks = lag
+	sync.Status = status
+	sync.Evidence = input.Evidence
+	sync.UpdatedAt = now
+	if d.validatorPeerSyncs == nil {
+		d.validatorPeerSyncs = map[string]ValidatorPeerSync{}
+	}
+	d.validatorPeerSyncs[key] = sync
+	d.updateValidatorPeerObservationLocked(ValidatorPeerObservationInput{
+		Address:      input.Target,
+		Status:       status,
+		LatestHeight: input.TargetHeight,
+		Evidence:     input.Evidence,
+	}, now)
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return sync, err
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
@@ -2093,6 +2175,18 @@ func (d *Devnet) validatorPeerDiscoveryCountsLocked() (int, int) {
 	return expected, observed
 }
 
+func (d *Devnet) validatorPeerSyncCountsLocked() (int, int) {
+	synced, lagging := 0, 0
+	for _, sync := range d.validatorPeerSyncs {
+		if sync.Status == "synced" {
+			synced++
+		} else {
+			lagging++
+		}
+	}
+	return synced, lagging
+}
+
 func (d *Devnet) validatorAddressExistsLocked(address string) bool {
 	for _, validator := range d.validators {
 		if validator.Address == address {
@@ -2100,6 +2194,10 @@ func (d *Devnet) validatorAddressExistsLocked(address string) bool {
 		}
 	}
 	return false
+}
+
+func validatorPeerSyncKey(source, target string) string {
+	return strings.TrimSpace(source) + "->" + strings.TrimSpace(target)
 }
 
 func (d *Devnet) applyConfiguredPeersLocked(peers []ValidatorPeer) {
@@ -2280,7 +2378,7 @@ func (d *Devnet) loadSnapshot() error {
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
 	}
-	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.Lots, snapshot.PayIntents
+	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.validatorPeerSyncs, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.PeerSyncs, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.Webhooks, snapshot.PayEvents
 	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
 	d.governanceRequests, d.trustAppeals, d.trackingReviews = snapshot.Governance, snapshot.Appeals, snapshot.Tracking
@@ -2304,7 +2402,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -2383,6 +2481,9 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.validatorPeers == nil {
 		d.validatorPeers = map[string]ValidatorPeer{}
 	}
+	if d.validatorPeerSyncs == nil {
+		d.validatorPeerSyncs = map[string]ValidatorPeerSync{}
+	}
 	for i := range d.validators {
 		if strings.TrimSpace(d.validators[i].Moniker) == "" {
 			d.validators[i].Moniker = fmt.Sprintf("ynx-validator-%d", i)
@@ -2425,6 +2526,11 @@ func (d *Devnet) ensureStateDefaults() {
 	for address := range d.validatorPeers {
 		if !d.validatorAddressExistsLocked(address) {
 			delete(d.validatorPeers, address)
+		}
+	}
+	for key, sync := range d.validatorPeerSyncs {
+		if !d.validatorAddressExistsLocked(sync.Source) || !d.validatorAddressExistsLocked(sync.Target) || sync.Source == sync.Target {
+			delete(d.validatorPeerSyncs, key)
 		}
 	}
 	for _, account := range d.accounts {

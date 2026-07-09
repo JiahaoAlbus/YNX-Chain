@@ -13,6 +13,7 @@ const requiredChecks = [
   "rpc.validators.peerReadiness",
   "rpc.validators.peers.expected",
   "rpc.validators.peers.observed",
+  "rpc.validators.peerSync",
   "evm.eth_chainId.result",
   "evm.eth_blockNumber.result",
   "rest.status.chain",

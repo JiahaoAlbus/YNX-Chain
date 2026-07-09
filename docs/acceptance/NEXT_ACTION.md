@@ -1,13 +1,13 @@
 # Next Action
 
-Current single action: implement local cross-node peer handshake / sync semantics for the persisted `ynx_6423-1` validator topology. Remote deployment remains blocked, so the next useful chain-construction work is to make configured validators exchange or record height/status evidence through a runtime API that can later be wired to real remote node-to-node networking.
+Current single action: implement automated validator peer-sync polling / transport wiring for the persisted `ynx_6423-1` validator topology. Remote deployment remains blocked, so the next useful chain-construction work is to move from manually submitted local source/target sync records toward derived height/status evidence from configured validator RPC peers.
 
 Why this action:
 
-- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, `/validators`, `/validators/peers`, `/status` readiness/discovery summaries, snapshot persistence, and public-proof readiness checks now exist.
-- The current peer discovery implementation proves local expected/observed topology, but it is still not real cross-node peer sync.
+- Validator metadata, block rotation, local peer-readiness heartbeat, expected bootstrap peer records, observed peer records, persisted source/target peer sync records, `/validators`, `/validators/peers`, `/validators/peer-sync`, `/status` readiness/discovery/sync summaries, snapshot persistence, and public-proof readiness checks now exist.
+- The current peer sync implementation proves persisted local source/target height evidence, but it is still not automated remote node-to-node sync.
 - Remote public deployment is still blocked by SSH/host-key and public endpoint evidence, so local code must continue moving toward deployable multi-validator runtime rather than only tuning blocker reports.
-- Persistent peer handshake/sync is the next smallest real chain-runtime gap between local peer discovery records and remote multi-validator network operation.
+- Automated peer-sync polling is the next smallest real chain-runtime gap between local sync evidence records and remote multi-validator network operation.
 
 Files to touch:
 
@@ -34,10 +34,10 @@ Validation commands:
 
 Completion standard:
 
-- A validator can submit peer handshake/sync evidence for another configured validator without fabricating remote public proof.
-- Sync evidence records source validator, target validator, source height, target height, lag, status, evidence, and timestamps.
-- Sync evidence persists across restart and is exposed through RPC/API.
-- Local tests prove persistence, restart recovery, API output, and config refresh behavior.
+- A node can derive peer handshake/sync evidence from configured validator RPC peers without fabricating remote public proof.
+- Derived sync evidence records source validator, target validator, source height, target height, lag, status, evidence, and timestamps.
+- Derived sync evidence persists across restart and is exposed through RPC/API.
+- Local tests prove polling behavior, persistence, restart recovery, API output, and config refresh behavior.
 - Feature tracker keeps remote deployed/public proof as `no` until real public endpoints pass.
 - Remote deployment is attempted only after deploy-readiness blockers clear.
 

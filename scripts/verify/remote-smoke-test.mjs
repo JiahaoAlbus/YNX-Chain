@@ -312,6 +312,19 @@ function checkValidatorPeers(json) {
   return expectedOk && observedOk;
 }
 
+function checkValidatorPeerSync(json) {
+  const syncs = Array.isArray(json?.syncs) ? json.syncs : [];
+  const healthy = syncs.filter((sync) => sync?.status === "synced" && typeof sync?.source === "string" && typeof sync?.target === "string" && sync.source !== sync.target);
+  const ok = healthy.length >= Math.max(1, expected.minValidators - 1);
+  record(
+    "rpc.validators.peerSync",
+    ok,
+    ok ? `${healthy.length} validator peer sync records` : `expected validator peer sync records, got ${healthy.length}`,
+    { syncCount: healthy.length, syncs }
+  );
+  return ok;
+}
+
 function checkEvmResult(name, json, expectedValue) {
   const result = String(json?.result ?? "").toLowerCase();
   const ok = result === expectedValue.toLowerCase();
@@ -424,6 +437,8 @@ async function main() {
   const validatorsOk = validators ? checkValidators(validators) : false;
   const validatorPeers = await getJson("rpc.validators.peers", `${endpoints.rpc}/validators/peers`);
   const validatorPeersOk = validatorPeers ? checkValidatorPeers(validatorPeers) : false;
+  const validatorPeerSync = await getJson("rpc.validators.peerSync", `${endpoints.rpc}/validators/peer-sync`);
+  const validatorPeerSyncOk = validatorPeerSync ? checkValidatorPeerSync(validatorPeerSync) : false;
 
   const evmChain = await postJson("evm.eth_chainId", endpoints.evm, { jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] });
   const evmChainOk = evmChain ? checkEvmResult("evm.eth_chainId.result", evmChain, expected.evmChainIdHex) : false;
@@ -470,7 +485,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && grew && validatorsOk && validatorPeersOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = rpcChainOk && grew && validatorsOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
