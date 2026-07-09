@@ -186,6 +186,16 @@ func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {
 	}
 
 	var appeal map[string]any
+	var badAppeal map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{
+		"requestId": "missing_request",
+		"subject":   "ynx_governance_subject",
+		"appellant": "ynx_governance_subject",
+		"reason":    "missing request should not open an appeal",
+	}, http.StatusBadRequest, &badAppeal)
+	if badAppeal["error"] == "" {
+		t.Fatalf("expected missing request appeal error: %v", badAppeal)
+	}
 	doJSON(t, http.MethodPost, server.URL+"/trust/appeals", map[string]any{
 		"requestId": requestID,
 		"subject":   "ynx_governance_subject",

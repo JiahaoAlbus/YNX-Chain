@@ -206,10 +206,20 @@ function approvalRequestJsonMetadata(file, { required, mismatchFindings }) {
 function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   const status = readJson(file);
   const metadata = fileMetadata(file, { required, jsonGeneratedAt: status?.generatedAt });
+  const statusContext = status
+    ? {
+        approvalStatus: status.status || "",
+        approvalOk: status.ok === true,
+        approvalRequestRowCount: status.approvalRequestRowCount ?? null,
+        mismatchNodeCount: status.mismatchNodeCount ?? null,
+        skippedMismatchNodes: Array.isArray(status.skippedMismatchNodes) ? status.skippedMismatchNodes : [],
+      }
+    : {};
   if (!required || metadata.classification !== "fresh") return metadata;
   if (!status) {
     return {
       ...metadata,
+      ...statusContext,
       classification: "invalid-required-evidence",
       detail: "approval status JSON is unreadable",
     };
@@ -217,6 +227,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (status.note !== "Non-mutating status only; not trusted approval and not known_hosts repair.") {
     return {
       ...metadata,
+      ...statusContext,
       classification: "invalid-required-evidence",
       detail: "approval status JSON must identify itself as non-mutating status only",
     };
@@ -224,6 +235,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (status.status === "awaiting-trusted-approval") {
     return {
       ...metadata,
+      ...statusContext,
       classification: "approval-awaiting-trusted-confirmation",
       detail: "trusted approval file is absent or unreadable; external fingerprint confirmation is still required",
     };
@@ -231,6 +243,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (status.status === "approval-does-not-match-current-scan" || status.ok === false) {
     return {
       ...metadata,
+      ...statusContext,
       classification: "approval-status-blocked",
       detail: `approval status is ${status.status || "blocked"}`,
     };
@@ -238,6 +251,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (status.status !== "approved-current-scan" || status.ok !== true) {
     return {
       ...metadata,
+      ...statusContext,
       classification: "invalid-required-evidence",
       detail: `unexpected approval status ${status.status || "missing"}`,
     };
@@ -271,6 +285,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (!expectedCount) {
     return {
       ...metadata,
+      ...statusContext,
       classification: "invalid-required-evidence",
       detail: "current host-key mismatch evidence has no parsed presented fingerprints",
     };
@@ -278,15 +293,32 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   if (problems.length) {
     return {
       ...metadata,
+      ...statusContext,
       classification: "approval-status-mismatch",
       detail: `approval status JSON does not match current host-key audit: ${problems.slice(0, 4).join("; ")}`,
     };
   }
   return {
     ...metadata,
+    ...statusContext,
     classification: "fresh",
     detail: `approved status matches ${expectedCount} current host-key mismatch fingerprint(s)`,
   };
+}
+
+function approvalStatusSkippedLines(metadata) {
+  const skipped = Array.isArray(metadata?.skippedMismatchNodes) ? metadata.skippedMismatchNodes : [];
+  if (!skipped.length) return [];
+  return [
+    "",
+    "Host-key approval status skipped mismatch nodes:",
+    ...skipped.map((item) => {
+      const role = item.role || "unknown";
+      const host = item.host || "unknown";
+      const reason = item.reason || "no valid scanned fingerprint available";
+      return `- ${role}/${host}: ${reason}`;
+    }),
+  ];
 }
 
 function endpointOf(check) {
@@ -434,6 +466,7 @@ const lines = [
       sourceFindings.length
         ? ["", "Deploy-blocking source evidence issues:", ...sourceFindings.map((finding) => `- ${finding.name}: ${finding.classification} (${finding.detail})`)].join("\n")
         : "",
+      ...approvalStatusSkippedLines(sourceEvidence.hostKeyApprovalStatusJson),
     ].join("\n")
   ),
   section(

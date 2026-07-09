@@ -975,6 +975,8 @@ func (d *Devnet) updateGovernanceRequestStatus(id, entryType string, classificat
 }
 
 func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) {
+	input.RequestID = strings.TrimSpace(input.RequestID)
+	input.LabelID = strings.TrimSpace(input.LabelID)
 	input.Subject = strings.TrimSpace(input.Subject)
 	input.Appellant = strings.TrimSpace(input.Appellant)
 	input.Claimant = strings.TrimSpace(input.Claimant)
@@ -985,11 +987,14 @@ func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) 
 	if input.Subject == "" || input.Appellant == "" || input.Reason == "" {
 		return TrustAppeal{}, errors.New("subject, appellant, and reason are required")
 	}
+	if input.RequestID == "" && input.LabelID == "" {
+		return TrustAppeal{}, errors.New("requestId or labelId is required")
+	}
 	now := time.Now().UTC()
 	appeal := TrustAppeal{
 		ID:        hashParts("trust-appeal", input.Subject, input.Appellant, fmt.Sprint(now.UnixNano()))[:24],
-		RequestID: strings.TrimSpace(input.RequestID),
-		LabelID:   strings.TrimSpace(input.LabelID),
+		RequestID: input.RequestID,
+		LabelID:   input.LabelID,
 		Subject:   input.Subject,
 		Appellant: input.Appellant,
 		Claimant:  input.Claimant,
@@ -1001,6 +1006,18 @@ func (d *Devnet) CreateTrustAppeal(input TrustAppealInput) (TrustAppeal, error) 
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if appeal.RequestID != "" {
+		req, ok := d.governanceRequests[appeal.RequestID]
+		if !ok {
+			return TrustAppeal{}, errors.New("governance request not found for appeal")
+		}
+		if req.Subject != "" && req.Subject != appeal.Subject {
+			return TrustAppeal{}, errors.New("appeal subject must match referenced governance request")
+		}
+	}
+	if appeal.LabelID != "" && !d.riskLabelExistsLocked(appeal.Subject, appeal.LabelID) {
+		return TrustAppeal{}, errors.New("trust label not found for appeal")
+	}
 	entry := d.newTransparencyEntryLocked("trust_appeal", appeal.RequestID, appeal.ID, appeal.Subject, "appeal", RequestRequiresReview, appeal.Status, []string{"appeal opened for human review and false-positive correction"})
 	appeal.TransparencyEntryID = entry.ID
 	d.trustAppeals[appeal.ID] = appeal
@@ -1060,6 +1077,15 @@ func (d *Devnet) TrustAppeal(id string) (TrustAppeal, bool) {
 	defer d.mu.RUnlock()
 	appeal, ok := d.trustAppeals[id]
 	return appeal, ok
+}
+
+func (d *Devnet) riskLabelExistsLocked(subject, labelID string) bool {
+	for _, label := range d.riskLabels[subject] {
+		if label.ID == labelID {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *Devnet) CreateTrackingPolicyReview(input TrackingPolicyReviewInput) (TrackingPolicyReview, error) {

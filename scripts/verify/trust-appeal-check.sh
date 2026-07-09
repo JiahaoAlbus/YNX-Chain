@@ -7,6 +7,8 @@ trap ynx_stop_local_testnet EXIT
 
 request=$(curl -fsS -X POST "$YNX_REST_URL/governance/requests" -H 'content-type: application/json' -d '{"requester":"appeal_check","subject":"ynx_appeal_subject","action":"risk label review","assetType":"stablecoin","scope":"single transfer","description":"review with evidence","evidence":["case:appeal","tx:0xdef"]}')
 request_id=$(printf '%s' "$request" | ynx_json_field '["id"]')
+missing_status=$(curl -sS -o /tmp/ynx-missing-appeal-response.json -w '%{http_code}' -X POST "$YNX_REST_URL/trust/appeals" -H 'content-type: application/json' -d '{"requestId":"missing_request","subject":"ynx_appeal_subject","appellant":"ynx_appeal_subject","reason":"missing request should not open an appeal"}')
+[[ "$missing_status" == "400" ]] || { echo "expected missing request appeal to return 400, got $missing_status"; cat /tmp/ynx-missing-appeal-response.json; exit 1; }
 appeal=$(curl -fsS -X POST "$YNX_REST_URL/trust/appeals" -H 'content-type: application/json' -d "{\"requestId\":\"$request_id\",\"subject\":\"ynx_appeal_subject\",\"appellant\":\"ynx_appeal_subject\",\"reason\":\"false positive correction\",\"evidence\":[\"owner proof\"]}")
 appeal_id=$(printf '%s' "$appeal" | ynx_json_field '["id"]')
 status=$(printf '%s' "$appeal" | ynx_json_field '["status"]')

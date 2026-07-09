@@ -527,6 +527,12 @@ func TestGovernanceRequestClassificationAppealTransparencyAndPersistence(t *test
 	if !containsString(review.RuleIDs, "governance-review-user-rights") {
 		t.Fatalf("expected governance review rule id: %+v", review)
 	}
+	if _, err := devnet.CreateTrustAppeal(TrustAppealInput{RequestID: "missing_request", Subject: "ynx_subject", Appellant: "ynx_subject", Reason: "missing request should not open appeal"}); err == nil {
+		t.Fatal("expected appeal with missing governance request to fail")
+	}
+	if _, err := devnet.CreateTrustAppeal(TrustAppealInput{LabelID: "missing_label", Subject: "ynx_subject", Appellant: "ynx_subject", Reason: "missing label should not open appeal"}); err == nil {
+		t.Fatal("expected appeal with missing Trust label to fail")
+	}
 	appeal, err := devnet.CreateTrustAppeal(TrustAppealInput{RequestID: review.ID, Subject: "ynx_subject", Appellant: "ynx_subject", Reason: "label is a false positive", Evidence: []string{"wallet ownership proof"}})
 	if err != nil {
 		t.Fatal(err)

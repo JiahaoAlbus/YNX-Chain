@@ -33,6 +33,7 @@ write_node_plan() {
   local scan_file="$out/${role}-${host}.known_hosts"
   local status="needs-review"
   local strict_output
+  local repairable_host_key_mismatch="no"
 
   ssh-keyscan -T 8 -t ed25519,ecdsa,rsa "$host" > "$scan_file" 2>/dev/null || true
   if [[ ! -s "$scan_file" ]]; then
@@ -41,6 +42,18 @@ write_node_plan() {
     status="strict-ok"
   else
     status="strict-failed"
+    if grep -Eq "REMOTE HOST IDENTIFICATION HAS CHANGED|Host key verification failed|Offending .*known_hosts" "$out/${role}-${host}.strict.out"; then
+      status="host-key-mismatch"
+      repairable_host_key_mismatch="yes"
+    elif grep -qi "Connection closed by" "$out/${role}-${host}.strict.out"; then
+      status="ssh-connection-closed"
+    elif grep -Eqi "operation timed out|connection timed out" "$out/${role}-${host}.strict.out"; then
+      status="ssh-timeout"
+    elif grep -Eqi "network is unreachable|no route to host" "$out/${role}-${host}.strict.out"; then
+      status="ssh-network-unreachable"
+    elif grep -qi "permission denied" "$out/${role}-${host}.strict.out"; then
+      status="ssh-auth-failed"
+    fi
   fi
   strict_output="$(sed -n '1,20p' "$out/${role}-${host}.strict.out" 2>/dev/null || true)"
 
@@ -77,8 +90,8 @@ write_node_plan() {
     fi
     if [[ "$status" == "strict-ok" ]]; then
       echo "No local host-key repair is required for this node."
-    elif [[ "$status" == "keyscan-failed" ]]; then
-      echo "Do not update known_hosts for this node yet. Confirm the instance is reachable and retry host-key audit."
+    elif [[ "$status" == "keyscan-failed" || "$repairable_host_key_mismatch" != "yes" ]]; then
+      echo "Do not update known_hosts for this node yet. This is not a confirmed host-key mismatch repair row; resolve the SSH reachability/auth/service blocker and rerun host-key audit first."
     else
       echo "Do not run these commands until the presented fingerprints above are confirmed from a trusted cloud-console or provider channel."
       echo
