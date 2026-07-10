@@ -615,8 +615,81 @@ async function main() {
       if (explorerTx) checkTxHash("explorer.faucetTx.hash", explorerTx?.transaction ?? explorerTx);
     }
 
-    const pay = await postJson("pay.intent", `${endpoints.rest}/pay/intents`, { merchant: "remote_smoke", amount: 1 });
+    const payIntentKey = `remote-smoke-intent-${sampleAddress}`;
+    const pay = await postJson("pay.intent", `${endpoints.rest}/pay/intents`, { merchant: "remote_smoke", amount: 1, idempotencyKey: payIntentKey });
     record("pay.intent.created", Boolean(pay?.id), pay?.id ? `intent ${pay.id}` : "missing pay intent id", pay);
+    const payReplay = await postJson("pay.intent.replay", `${endpoints.rest}/pay/intents`, { merchant: "remote_smoke", amount: 99, idempotencyKey: payIntentKey });
+    record(
+      "pay.intent.idempotency",
+      Boolean(pay?.id) && payReplay?.id === pay.id && payReplay?.amount === pay.amount && payReplay?.idempotencyKey === payIntentKey,
+      payReplay?.id === pay?.id ? "intent replay returned original object" : "intent replay created a conflicting object",
+      { original: pay, replay: payReplay },
+    );
+    if (pay?.id) {
+      const invoiceKey = `remote-smoke-invoice-${sampleAddress}`;
+      const invoice = await postJson("pay.invoice", `${endpoints.rest}/pay/invoices`, { intentId: pay.id, dueInHours: 12, idempotencyKey: invoiceKey });
+      const invoiceReplay = await postJson("pay.invoice.replay", `${endpoints.rest}/pay/invoices`, { intentId: pay.id, dueInHours: 36, idempotencyKey: invoiceKey });
+      record(
+        "pay.invoice.idempotency",
+        Boolean(invoice?.id) && invoiceReplay?.id === invoice.id && invoiceReplay?.intentId === pay.id && invoiceReplay?.idempotencyKey === invoiceKey,
+        invoiceReplay?.id === invoice?.id ? "invoice replay returned original object" : "invoice replay created a conflicting object",
+        { original: invoice, replay: invoiceReplay },
+      );
+
+      const webhookKey = `remote-smoke-webhook-${sampleAddress}`;
+      const webhook = await postJson("pay.webhook", `${endpoints.rest}/pay/webhook-signatures`, {
+        intentId: pay.id,
+        eventType: "payment_intent.created",
+        signingKey: "remote-smoke-test-signing-key",
+        idempotencyKey: webhookKey,
+      });
+      const webhookAuditOk = typeof webhook?.eventId === "string" && webhook.eventId.length > 0 &&
+        webhook?.algorithm === "hmac-sha256" &&
+        typeof webhook?.payloadHash === "string" && webhook.payloadHash.length > 0 &&
+        typeof webhook?.signature === "string" && webhook.signature.length > 0 &&
+        webhook?.replaySafe === true &&
+        webhook?.idempotencyKey === webhookKey;
+      record(
+        "pay.webhook.auditFields",
+        webhookAuditOk,
+        webhookAuditOk ? "webhook signature exposes replay-safe audit metadata" : "webhook signature missing replay-safe audit metadata",
+        webhook,
+      );
+      const webhookReplay = await postJson("pay.webhook.replay", `${endpoints.rest}/pay/webhook-signatures`, {
+        intentId: pay.id,
+        eventType: "payment_intent.created",
+        signingKey: "remote-smoke-test-different-key",
+        idempotencyKey: webhookKey,
+      });
+      record(
+        "pay.webhook.idempotency",
+        Boolean(webhook?.eventId) && webhookReplay?.eventId === webhook.eventId && webhookReplay?.signature === webhook.signature,
+        webhookReplay?.eventId === webhook?.eventId ? "webhook replay returned original signature" : "webhook replay created a conflicting signature",
+        { original: webhook, replay: webhookReplay },
+      );
+      if (webhook?.eventId) {
+        const webhookLookup = await getJson("pay.webhook.lookup", `${endpoints.rest}/pay/webhook-signatures/${encodeURIComponent(webhook.eventId)}`);
+        record(
+          "pay.webhook.lookup.id",
+          webhookLookup?.eventId === webhook.eventId && webhookLookup?.payloadHash === webhook.payloadHash,
+          webhookLookup?.eventId === webhook.eventId ? "webhook signature lookup matched event id" : "webhook signature lookup mismatch",
+          webhookLookup,
+        );
+      }
+
+      const payEvents = await getJson("pay.events", `${endpoints.rest}/pay/events?intentId=${encodeURIComponent(pay.id)}`);
+      const eventList = Array.isArray(payEvents?.events) ? payEvents.events : [];
+      const payEventsOk = eventList.length >= 2 &&
+        eventList.every((event) => typeof event?.auditHash === "string" && event.auditHash.length > 0) &&
+        eventList.some((event) => event?.type === "payment_intent.created" && event?.idempotencyKey === payIntentKey) &&
+        eventList.some((event) => event?.type === "webhook.signed" && event?.idempotencyKey === webhookKey);
+      record(
+        "pay.events.auditHash",
+        payEventsOk,
+        payEventsOk ? "pay events expose audit hashes and idempotency metadata" : "pay events missing audit hashes or idempotency metadata",
+        payEvents,
+      );
+    }
 
     const trust = await getJson("trust.trace", `${endpoints.rest}/trust/trace/${sampleAddress}`);
     record("trust.trace.address", trust?.address === sampleAddress, trust?.address ? `trace ${trust.address}` : "missing trust trace", trust);

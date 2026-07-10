@@ -52,6 +52,12 @@ const requiredChecks = [
   "ai.health.truthful",
   "web4.health.truthful",
   "pay.intent.created",
+  "pay.intent.idempotency",
+  "pay.invoice.idempotency",
+  "pay.webhook.auditFields",
+  "pay.webhook.idempotency",
+  "pay.webhook.lookup.id",
+  "pay.events.auditHash",
   "trust.trace.address",
   "governance.request.illegal.classification",
   "governance.request.illegal.nativeYnxtProtected",
@@ -273,6 +279,12 @@ function selfTest() {
   const missingCorrectionEvidence = validateEvidence(buildFixture({ omit: ["trust.appeal.correctionEvidence.summary"] }));
   assert.equal(missingCorrectionEvidence.validPublicProof, false, "missing appeal correction evidence proof must be invalid");
   assert(missingCorrectionEvidence.missingRequiredChecks.includes("trust.appeal.correctionEvidence.summary"));
+  const missingPayIdempotency = validateEvidence(buildFixture({ omit: ["pay.intent.idempotency"] }));
+  assert.equal(missingPayIdempotency.validPublicProof, false, "missing Pay idempotency proof must be invalid");
+  assert(missingPayIdempotency.missingRequiredChecks.includes("pay.intent.idempotency"));
+  const missingWebhookAudit = validateEvidence(buildFixture({ omit: ["pay.webhook.auditFields"] }));
+  assert.equal(missingWebhookAudit.validPublicProof, false, "missing Pay webhook audit proof must be invalid");
+  assert(missingWebhookAudit.missingRequiredChecks.includes("pay.webhook.auditFields"));
   const failed = validateEvidence(buildFixture({ fail: ["governance.request.illegal.nativeYnxtProtected"] }));
   assert.equal(failed.validPublicProof, false, "failed native YNXT protection proof must be invalid");
   assert(failed.failedRequiredChecks.includes("governance.request.illegal.nativeYnxtProtected"));

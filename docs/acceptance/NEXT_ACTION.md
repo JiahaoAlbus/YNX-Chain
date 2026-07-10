@@ -6,6 +6,7 @@ Why this action:
 
 - Chain Law / Anti-Illegal / Request Validity / Appeal / Transparency are now locally verified again through unit tests, dedicated smoke checks, and preflight, and remain wired into public-proof requirements.
 - Public proof now requires appeal resolution to be followed by Trust evidence false-positive correction summary (`trust.appeal.correctionEvidence.summary`), so a remote proof cannot pass by only changing appeal status without showing reviewer-facing correction evidence.
+- Public proof now also requires Pay intent/invoice idempotency replay, webhook replay-safe audit metadata, webhook lookup/replay, and Pay event audit hashes; a remote proof cannot pass with only a created Pay intent.
 - Resource Market production pricing/governance config is local verified and wired into public-proof requirements.
 - Release manifest evidence now captures observed per-node manifest commit/release/path and fails mismatched release identity locally; this still needs real remote node evidence after deployment.
 - Public-proof evidence validation now rejects checks-only evidence unless remote smoke metadata, expected YNX chain identity, release identity, non-local public endpoints, non-local gRPC host, and release-manifest evidence path are present.
@@ -79,6 +80,7 @@ Completion standard:
 - Release manifest evidence must include observed per-node manifest commit, release, `bin/ynx-chaind` path, manifest SHA-256, and binary SHA-256 matching the expected release before public proof can pass.
 - Public-proof validation must keep rejecting localhost, old-chain identity, wrong release identity, stale commit/release evidence, missing metadata, missing required checks, failed required checks, and skipped mutable actions.
 - Public-proof validation must keep rejecting remote evidence that lacks post-resolution Trust evidence correction summary for appeals.
+- Public-proof validation must keep rejecting remote evidence that lacks Pay idempotency, webhook audit, webhook replay, lookup, or event audit-hash proof.
 - Public-proof package validation must keep failed diagnostic packages marked invalid and must reject manifest/evidence/validation/hash mismatches.
 - Deploy dry-run must prove the release bundle includes `nginx/ynx-chain.conf`, `caddy/ynx-chain.caddy`, and `scripts/install-caddy-ingress.sh`, with REST/API, Indexer, Explorer, Faucet, RPC, and EVM public routes mapped to the correct local service ports. The Caddy path must preserve an existing `/etc/caddy/Caddyfile` through a managed import block, validate the candidate config before replacement, back up the previous Caddyfile, and have a local fixture that actually runs the generated installer instead of only grepping for command text.
 - Deploy dry-run must prove the release bundle includes `scripts/check-local-services.sh`, runs its self-test, and emits post-restart checker commands for the primary full-stack node plus Singapore, Silicon Valley, and Seoul validators using the expected commit, release name, numeric chain ID, and validator/full mode.

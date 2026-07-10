@@ -123,6 +123,7 @@ Pay merchant safety:
 - `POST /pay/webhook-signatures` stores replay-auditable metadata: `eventId`, `eventType`, `payloadHash`, `algorithm`, `signedAt`, optional `idempotencyKey`, and `replaySafe`. The signing key is never returned or stored in the response object.
 - `GET /pay/webhook-signatures/{eventId}` returns a stored signature for audit/replay verification.
 - `GET /pay/events?intentId=...` and `GET /pay/events/{id}` return persisted payment audit events with `auditHash`, object id, amount, currency, merchant, and idempotency key metadata.
+- Remote public proof must show Pay idempotency replay for intents and invoices, replay-safe webhook metadata, webhook lookup/replay behavior, and audit-hashed Pay events on public endpoints.
 
 AI Gateway permission and audit:
 
