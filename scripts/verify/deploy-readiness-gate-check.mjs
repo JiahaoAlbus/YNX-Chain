@@ -349,4 +349,58 @@ assert.equal(mismatchBadJson.sourceEvidence.hostKeyApprovalStatusJson.classifica
 assert(mismatchBadJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalRequestJson" && item.classification === "approval-request-mismatch"));
 assert(mismatchBadJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "approval-awaiting-trusted-confirmation"));
 
+const approvedApprovalRequestPath = path.join(workDir, "approved-approval-request.md");
+const approvedApprovalRequestJsonPath = path.join(workDir, "approved-approval-request.json");
+const oldApprovedStatusJsonPath = path.join(workDir, "old-approved-status.json");
+const oldApprovedStatusReportPath = path.join(workDir, "remote-blockers-old-approved-status.json");
+fs.writeFileSync(approvedApprovalRequestPath, "# Host Key Approval Request\n");
+writeJson(approvedApprovalRequestJsonPath, {
+  generatedAt: now,
+  trustedApproval: false,
+  rows: [{
+    role: "singapore",
+    host: "43.134.23.58",
+    keyType: "ED25519",
+    presentedFingerprint: "SHA256:expected-singapore-ed25519",
+    trustedFingerprint: "",
+    status: "needs-out-of-band-confirmation",
+  }],
+});
+writeJson(oldApprovedStatusJsonPath, {
+  generatedAt: now,
+  ok: true,
+  status: "approved-current-scan",
+  approvalRequestJsonPath: approvedApprovalRequestJsonPath,
+  approvalRequestJsonExists: true,
+  approvalRequestJsonReadable: true,
+  approvalRequestRowCount: 1,
+  mismatchNodeCount: 1,
+  findings: [{
+    role: "singapore",
+    host: "43.134.23.58",
+    keyType: "ED25519",
+    presented: "SHA256:expected-singapore-ed25519",
+    approved: "SHA256:expected-singapore-ed25519",
+    ok: true,
+    reason: "compared",
+  }],
+  note: "Non-mutating status only; not trusted approval and not known_hosts repair.",
+});
+const oldApprovedStatusReport = runNode(reportScript, {
+  YNX_VERIFY_TESTNET_OUT: workDir,
+  YNX_REMOTE_EVIDENCE_PATH: mismatchRemoteEvidencePath,
+  YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
+  YNX_HOST_KEY_APPROVAL_REQUEST: approvedApprovalRequestPath,
+  YNX_HOST_KEY_APPROVAL_REQUEST_JSON: approvedApprovalRequestJsonPath,
+  YNX_HOST_KEY_APPROVAL_STATUS_JSON: oldApprovedStatusJsonPath,
+  YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
+  YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "OLD_APPROVED_STATUS_BLOCKERS.md"),
+  YNX_REMOTE_BLOCKER_JSON: oldApprovedStatusReportPath,
+  YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+});
+assert.equal(oldApprovedStatusReport.status, 0, `remote-blocker-report old approved status run should write diagnostics: ${oldApprovedStatusReport.stderr}`);
+const oldApprovedStatusJson = JSON.parse(fs.readFileSync(oldApprovedStatusReportPath, "utf8"));
+assert.equal(oldApprovedStatusJson.sourceEvidence.hostKeyApprovalStatusJson.classification, "approval-status-missing-audit-metadata");
+assert(oldApprovedStatusJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "approval-status-missing-audit-metadata"));
+
 console.log("deploy-readiness-gate-check passed");

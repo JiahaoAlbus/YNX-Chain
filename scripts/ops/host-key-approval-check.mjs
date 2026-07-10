@@ -498,6 +498,19 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
   let status = "blocked";
   let ok = false;
   let findings = [];
+  const approvalMetadata = approvalRead.json ? {
+    source: approvalRead.json.source || "",
+    approvedAt: approvalRead.json.approvedAt || "",
+    approvedBy: approvalRead.json.approvedBy || "",
+    verificationChannel: approvalRead.json.verificationChannel || "",
+    evidence: approvalRead.json.evidence || "",
+  } : {
+    source: "",
+    approvedAt: "",
+    approvedBy: "",
+    verificationChannel: "",
+    evidence: "",
+  };
 
   if (mismatchResult.error && mismatchResult.nodes.length === 0) {
     status = fs.existsSync(auditOut) ? "no-host-key-mismatch-requiring-approval" : "missing-host-key-audit";
@@ -529,6 +542,11 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
     `Trusted approval file: ${approvalPath}`,
     `Trusted approval file exists: ${approvalRead.exists ? "yes" : "no"}`,
     `Trusted approval file readable: ${approvalRead.json ? "yes" : "no"}`,
+    `Approved source: ${approvalMetadata.source || "missing"}`,
+    `Approved at: ${approvalMetadata.approvedAt || "missing"}`,
+    `Approved by: ${approvalMetadata.approvedBy || "missing"}`,
+    `Verification channel: ${approvalMetadata.verificationChannel || "missing"}`,
+    `Approval evidence: ${approvalMetadata.evidence || "missing"}`,
     `Approval request JSON: ${requestJsonPath}`,
     `Approval request JSON readable: ${requestRead.json ? "yes" : "no"}`,
     `Audit directory: ${auditOut}`,
@@ -563,6 +581,7 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
     status,
     auditOut,
     approvalPath,
+    approvalMetadata,
     approvalFileExists: approvalRead.exists,
     approvalFileReadable: Boolean(approvalRead.json),
     approvalFileError: approvalRead.json ? "" : approvalRead.error,

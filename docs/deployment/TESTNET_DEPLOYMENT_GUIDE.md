@@ -27,6 +27,8 @@ ENV_FILE=.env.deploy make deploy-testnet
 
 The ignored `.host-key-approvals.json` file must include `source`, `approvedAt`, `approvedBy`, `verificationChannel`, `evidence`, and `nodes`. Each node entry must include `role`, `host`, `evidence`, and exact `fingerprints` keyed by presented key type such as `ED25519`, `ECDSA`, and `RSA`. The approval check compares every currently presented scanned key type against that file and fails closed on missing metadata, missing node evidence, extra key types, or mismatched values.
 
+`host-key-approval-status.json` also carries the trusted approval metadata. `remote-blocker-report` rejects an `approved-current-scan` status that lacks this metadata, so old status files generated before the auditable approval schema cannot unblock deployment.
+
 For remote operations after deployment:
 
 ```bash

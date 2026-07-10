@@ -331,6 +331,26 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
     };
   }
 
+  const approvalMetadata = status.approvalMetadata && typeof status.approvalMetadata === "object" ? status.approvalMetadata : {};
+  const requiredApprovalFields = ["source", "approvedAt", "approvedBy", "verificationChannel", "evidence"];
+  const missingApprovalFields = requiredApprovalFields.filter((field) => typeof approvalMetadata[field] !== "string" || approvalMetadata[field].trim() === "");
+  if (missingApprovalFields.length) {
+    return {
+      ...metadata,
+      ...statusContext,
+      classification: "approval-status-missing-audit-metadata",
+      detail: `approved status lacks trusted approval metadata: ${missingApprovalFields.join(", ")}`,
+    };
+  }
+  if (!Number.isFinite(Date.parse(approvalMetadata.approvedAt))) {
+    return {
+      ...metadata,
+      ...statusContext,
+      classification: "approval-status-missing-audit-metadata",
+      detail: "approved status approvedAt is not a valid timestamp",
+    };
+  }
+
   const findings = Array.isArray(status.findings) ? status.findings : [];
   const rowByKey = new Map();
   for (const finding of findings) {
@@ -375,6 +395,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   return {
     ...metadata,
     ...statusContext,
+    approvalMetadata,
     classification: "fresh",
     detail: `approved status matches ${expectedCount} current host-key mismatch fingerprint(s)`,
   };
