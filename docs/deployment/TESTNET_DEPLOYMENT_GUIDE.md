@@ -14,6 +14,7 @@ make host-key-audit
 make host-key-repair-plan
 make host-key-approval-template
 make host-key-approval-request
+make host-key-approval-packet
 make host-key-approval-check
 make host-key-approved-repair-dry-run
 make host-key-approved-repair
@@ -23,11 +24,13 @@ ENV_FILE=.env.deploy make deploy-readiness-gate
 ENV_FILE=.env.deploy make deploy-testnet
 ```
 
-`make deploy-testnet` builds Linux binaries for `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd`, creates a release tarball under `tmp/deploy`, renders `/etc/ynx/ynx-chaind.env`, systemd units, and nginx proxy config, then runs `deploy-readiness-gate` before any remote mutation. The gate reads `tmp/verify-testnet/remote-blockers.json` and refuses deployment when SSH evidence, public ingress evidence, or required source evidence freshness is not coherent. A newly generated blocker JSON is not enough; the underlying host-key audit and remote smoke evidence must also exist and be fresh. If host keys changed, run `make host-key-approval-request`, write independently confirmed fingerprints and trusted-verification metadata to ignored `.host-key-approvals.json`, require `make host-key-approval-check` to pass, run `make host-key-approved-repair-dry-run`, and only then run `make host-key-approved-repair`. After the gate passes, deployment SSH-prechecks the primary, Singapore, Silicon Valley, and Seoul nodes before modifying any server. The primary node receives the full RPC/indexer/explorer/faucet stack. Singapore, Silicon Valley, and Seoul receive validator-only `ynx-chaind` installs. Each node captures pre-deploy status and a best-effort backup before release files are installed.
+`make deploy-testnet` builds Linux binaries for `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd`, creates a release tarball under `tmp/deploy`, renders `/etc/ynx/ynx-chaind.env`, systemd units, and nginx proxy config, then runs `deploy-readiness-gate` before any remote mutation. The gate reads `tmp/verify-testnet/remote-blockers.json` and refuses deployment when SSH evidence, public ingress evidence, or required source evidence freshness is not coherent. A newly generated blocker JSON is not enough; the underlying host-key audit and remote smoke evidence must also exist and be fresh. If host keys changed, run `make host-key-approval-request` and `make host-key-approval-packet`, compare the presented fingerprints against an independently trusted cloud-console/provider source, write only confirmed fingerprints and trusted-verification metadata to ignored `.host-key-approvals.json`, require `make host-key-approval-check` to pass, run `make host-key-approved-repair-dry-run`, and only then run `make host-key-approved-repair`. After the gate passes, deployment SSH-prechecks the primary, Singapore, Silicon Valley, and Seoul nodes before modifying any server. The primary node receives the full RPC/indexer/explorer/faucet stack. Singapore, Silicon Valley, and Seoul receive validator-only `ynx-chaind` installs. Each node captures pre-deploy status and a best-effort backup before release files are installed.
 
 The ignored `.host-key-approvals.json` file must include `source`, `approvedAt`, `approvedBy`, `verificationChannel`, `evidence`, and `nodes`. Each node entry must include `role`, `host`, `evidence`, and exact `fingerprints` keyed by presented key type such as `ED25519`, `ECDSA`, and `RSA`. The approval check compares every currently presented scanned key type against that file and fails closed on missing metadata, missing node evidence, extra key types, or mismatched values.
 
 `host-key-approval-status.json` also carries the trusted approval metadata. `remote-blocker-report` rejects an `approved-current-scan` status that lacks this metadata, so old status files generated before the auditable approval schema cannot unblock deployment.
+
+`make host-key-approval-packet` writes `tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md` and JSON. The packet is designed for an external reviewer: it includes the untrusted current-scan fingerprints, a blank approval draft, required evidence fields, and the exact follow-up commands. It is not a trusted approval file and does not modify `known_hosts`.
 
 For remote operations after deployment:
 

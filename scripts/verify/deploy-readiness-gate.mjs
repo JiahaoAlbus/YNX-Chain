@@ -17,6 +17,7 @@ function fail(message, details = []) {
   console.error("Run: make host-key-audit");
   console.error("Run: make host-key-repair-plan");
   console.error("Run for external fingerprint verification: make host-key-approval-request");
+  console.error("Run for external reviewer packet: make host-key-approval-packet");
   console.error("Run to inspect current approval blocker state: make host-key-approval-status");
   console.error("Run after trusted fingerprint approval exists: make host-key-approval-check");
   console.error("Run after approval check passes: make host-key-approved-repair-dry-run");

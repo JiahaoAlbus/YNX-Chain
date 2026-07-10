@@ -27,7 +27,11 @@ Files to touch:
 - `.host-key-approvals.json` (ignored local file; only after trusted external confirmation)
 - `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md`
 - `tmp/host-key-audit/host-key-approval-request.json`
+- `tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md`
+- `tmp/host-key-audit/host-key-external-approval-packet.json`
 - `tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md`
+- `scripts/ops/host-key-approval-check.mjs`
+- `Makefile`
 - `tmp/verify-testnet/REMOTE_BLOCKERS.md`
 - `scripts/verify/verify-testnet.sh`
 - `scripts/verify/release-manifest-evidence.mjs`
@@ -50,6 +54,7 @@ Validation commands:
 - `make trust-appeal-check`
 - `make host-key-audit`
 - `make host-key-approval-request`
+- `make host-key-approval-packet`
 - `make host-key-approval-status`
 - `make host-key-approval-check`
 - `make host-key-approved-repair-dry-run`
