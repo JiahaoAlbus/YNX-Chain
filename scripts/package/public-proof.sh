@@ -91,6 +91,10 @@ fs.writeFileSync(path.join(finalDir, "manifest.json"), JSON.stringify({
 }, null, 2) + "\n");
 NODE
 
+if ! node scripts/verify/public-proof-package-check.mjs "$out/final"; then
+  proof_status="failed"
+fi
+
 find "$out" -type f | sort
 if [[ "$proof_status" != "passed" ]]; then
   echo "public-proof package generated diagnostics at $out, but remote public proof is not complete"
