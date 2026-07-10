@@ -20,13 +20,13 @@ case "$url" in
     printf '%s\n' '{"role":"primary","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6426/health)
-    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT"}'
+    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6427/health)
-    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT"}'
+    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6428/health)
-    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true}'
+    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   *)
     echo "unexpected URL: $url" >&2
@@ -90,14 +90,20 @@ check_full_stack_surface() {
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
+  require_contains "indexer health build commit" "$indexer" "$expected_commit"
+  require_contains "indexer health release" "$indexer" "$expected_release"
 
   explorer="$(fetch_with_retry "explorer health" "http://127.0.0.1:6427/health")"
   require_contains "explorer health" "$explorer" "$expected_chain_id"
   require_contains "explorer health" "$explorer" "YNXT"
+  require_contains "explorer health build commit" "$explorer" "$expected_commit"
+  require_contains "explorer health release" "$explorer" "$expected_release"
 
   faucet="$(fetch_with_retry "faucet health" "http://127.0.0.1:6428/health")"
   require_contains "faucet health" "$faucet" "$expected_chain_id"
   require_contains "faucet health" "$faucet" "YNXT"
+  require_contains "faucet health build commit" "$faucet" "$expected_commit"
+  require_contains "faucet health release" "$faucet" "$expected_release"
 }
 
 case "$mode" in

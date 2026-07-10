@@ -2,6 +2,7 @@ package explorer
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/indexer"
 )
@@ -41,7 +43,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(NewServer(svc).Handler())
+	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
 	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/search?q=" + tx.Hash, "/metrics"} {
@@ -77,5 +79,17 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 2 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
+	}
+	resp, err = http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var health Summary
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
+		t.Fatalf("health missing build identity: %+v", health.Build)
 	}
 }

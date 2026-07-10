@@ -2,6 +2,7 @@ package faucet
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -51,7 +53,7 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(NewServer(service).Handler())
+	server := httptest.NewServer(NewServerWithBuild(service, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 	for _, path := range []string{"/health", "/metrics"} {
 		resp, err := http.Get(server.URL + path)
@@ -71,6 +73,18 @@ func TestFaucetServerEndpoints(t *testing.T) {
 		t.Fatalf("request returned %d", resp.StatusCode)
 	}
 	_ = resp.Body.Close()
+	resp, err = http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var health Health
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
+		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
 	resp, err = http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"bad"}`))
 	if err != nil {
 		t.Fatal(err)

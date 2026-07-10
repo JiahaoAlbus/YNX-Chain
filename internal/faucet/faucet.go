@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -242,23 +243,24 @@ func (s *Service) recordDenied(reason string) {
 }
 
 type Health struct {
-	OK             bool   `json:"ok"`
-	Service        string `json:"service"`
-	RPCURL         string `json:"rpcUrl"`
-	UpstreamOK     bool   `json:"upstreamOk"`
-	ChainID        int64  `json:"chainId,omitempty"`
-	Height         uint64 `json:"height,omitempty"`
-	NativeSymbol   string `json:"nativeSymbol"`
-	DefaultAmount  int64  `json:"defaultAmount"`
-	MaxAmount      int64  `json:"maxAmount"`
-	RateLimit      string `json:"rateLimit"`
-	RequestLog     string `json:"requestLog"`
-	Requests       int64  `json:"requests"`
-	Successes      int64  `json:"successes"`
-	Denied         int64  `json:"denied"`
-	LastTxHash     string `json:"lastTxHash,omitempty"`
-	LastError      string `json:"lastError,omitempty"`
-	TruthfulStatus string `json:"truthfulStatus"`
+	OK             bool           `json:"ok"`
+	Service        string         `json:"service"`
+	RPCURL         string         `json:"rpcUrl"`
+	UpstreamOK     bool           `json:"upstreamOk"`
+	ChainID        int64          `json:"chainId,omitempty"`
+	Height         uint64         `json:"height,omitempty"`
+	NativeSymbol   string         `json:"nativeSymbol"`
+	DefaultAmount  int64          `json:"defaultAmount"`
+	MaxAmount      int64          `json:"maxAmount"`
+	RateLimit      string         `json:"rateLimit"`
+	RequestLog     string         `json:"requestLog"`
+	Requests       int64          `json:"requests"`
+	Successes      int64          `json:"successes"`
+	Denied         int64          `json:"denied"`
+	LastTxHash     string         `json:"lastTxHash,omitempty"`
+	LastError      string         `json:"lastError,omitempty"`
+	Build          buildinfo.Info `json:"build"`
+	TruthfulStatus string         `json:"truthfulStatus"`
 }
 
 func (s *Service) Health() Health {

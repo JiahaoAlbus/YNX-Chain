@@ -7,15 +7,22 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
+	build   buildinfo.Info
 }
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	return NewServerWithBuild(service, buildinfo.Info{})
+}
+
+func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	s := &Server{service: service, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
 	s.routes()
 	return s
 }
@@ -57,6 +64,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "service": "ynx-explorerd", "error": err.Error()})
 		return
 	}
+	summary.Build = s.build
 	writeJSON(w, http.StatusOK, summary)
 }
 
@@ -66,6 +74,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 		return
 	}
+	summary.Build = s.build
 	writeJSON(w, http.StatusOK, summary)
 }
 

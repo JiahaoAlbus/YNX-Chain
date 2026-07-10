@@ -12,6 +12,7 @@ Why this action:
 - Public-proof package validation now rejects package manifests whose status, `validPublicProof`, remote evidence, release-manifest evidence, generated proof summary, or file SHA-256s are inconsistent.
 - Deploy package dry-run now verifies both Nginx and Caddy ingress configs, including managed Caddy snippet packaging plus non-destructive Caddyfile import/candidate-validate/backup/reload command path and executable local installer fixture coverage for the currently observed Caddy-backed primary host shape.
 - Deploy package dry-run now verifies the post-restart local service checker is packaged, self-tested, and invoked for the primary full-stack node and every validator with the expected commit, release, chain ID, and mode. This closes a local deployment-package gap only; it is not remote public proof.
+- Primary full-stack deploy checks now require `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd` health responses to expose the same expected build commit and release, and dry-run verifies release strings in all four deployed binaries.
 - Deploy-readiness gate now rejects fresh remote-smoke evidence if its `gitCommit` / expected release identity is not bound to the current local HEAD.
 - Remote-blocker reports now surface stale/wrong remote-smoke evidence identity as a deploy-blocking source issue before deployment is attempted.
 - The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
@@ -78,6 +79,7 @@ Completion standard:
 - Public-proof package validation must keep failed diagnostic packages marked invalid and must reject manifest/evidence/validation/hash mismatches.
 - Deploy dry-run must prove the release bundle includes `nginx/ynx-chain.conf`, `caddy/ynx-chain.caddy`, and `scripts/install-caddy-ingress.sh`, with REST/API, Indexer, Explorer, Faucet, RPC, and EVM public routes mapped to the correct local service ports. The Caddy path must preserve an existing `/etc/caddy/Caddyfile` through a managed import block, validate the candidate config before replacement, back up the previous Caddyfile, and have a local fixture that actually runs the generated installer instead of only grepping for command text.
 - Deploy dry-run must prove the release bundle includes `scripts/check-local-services.sh`, runs its self-test, and emits post-restart checker commands for the primary full-stack node plus Singapore, Silicon Valley, and Seoul validators using the expected commit, release name, numeric chain ID, and validator/full mode.
+- Deploy dry-run must prove `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd` binaries all carry the current release commit/name, and the primary full-stack checker must reject stale auxiliary health build identity.
 - Deploy-readiness gate must reject remote evidence generated from an older local commit or mismatched expected release identity, even when the evidence file is fresh.
 - Remote-blocker reports must show remote evidence identity mismatch as a source blocker, not only as a later deploy-gate failure.
 

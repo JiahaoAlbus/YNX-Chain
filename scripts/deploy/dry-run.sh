@@ -93,6 +93,10 @@ grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { e
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
+for binary in ynx-indexerd ynx-explorerd ynx-faucetd; do
+  grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
+  grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
+done
 grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing REST_DOMAIN"; exit 1; }
 grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"

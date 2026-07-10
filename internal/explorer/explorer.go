@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -116,6 +117,7 @@ type Summary struct {
 	IndexerOK         bool                `json:"indexerOk"`
 	IndexerError      string              `json:"indexerError,omitempty"`
 	Wallet            WalletConfig        `json:"wallet"`
+	Build             buildinfo.Info      `json:"build"`
 	ResourceStatus    string              `json:"resourceStatus"`
 	FeeStatus         string              `json:"feeStatus"`
 	TruthfulStatus    string              `json:"truthfulStatus"`

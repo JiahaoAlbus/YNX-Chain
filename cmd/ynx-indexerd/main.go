@@ -8,9 +8,17 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/indexer"
+)
+
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
 )
 
 func main() {
@@ -25,7 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	server := indexer.NewServer(idx)
+	server := indexer.NewServerWithBuild(idx, currentBuildInfo())
 	if *once {
 		result, err := server.SyncOnce(context.Background())
 		if err != nil {
@@ -51,6 +59,14 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func currentBuildInfo() buildinfo.Info {
+	return buildinfo.Normalize(buildinfo.Info{
+		Commit:    strings.TrimSpace(buildCommit),
+		Release:   strings.TrimSpace(buildRelease),
+		BuildTime: strings.TrimSpace(buildTime),
+	})
 }
 
 func envOrDefault(key, fallback string) string {

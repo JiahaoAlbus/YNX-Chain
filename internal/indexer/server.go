@@ -9,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct {
@@ -19,10 +21,15 @@ type Server struct {
 	lastError    string
 	errorCount   int64
 	lastSyncedAt time.Time
+	build        buildinfo.Info
 }
 
 func NewServer(indexer *Indexer) *Server {
-	s := &Server{indexer: indexer, mux: http.NewServeMux()}
+	return NewServerWithBuild(indexer, buildinfo.Info{})
+}
+
+func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
 	s.routes()
 	return s
 }
@@ -95,6 +102,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"lastSyncedAt":      lastSyncedAt,
 		"lastError":         lastError,
 		"syncErrorCount":    errorCount,
+		"build":             s.build,
 		"truthfulStatus":    "local-indexer",
 	})
 }

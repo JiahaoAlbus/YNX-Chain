@@ -3,15 +3,22 @@ package faucet
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
+	build   buildinfo.Info
 }
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	return NewServerWithBuild(service, buildinfo.Info{})
+}
+
+func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	s := &Server{service: service, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
 	s.routes()
 	return s
 }
@@ -29,6 +36,7 @@ func (s *Server) routes() {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	health := s.service.CheckHealth(r.Context())
+	health.Build = s.build
 	status := http.StatusOK
 	if !health.OK {
 		status = http.StatusBadGateway

@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -70,7 +72,7 @@ func TestIndexerHTTPServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := NewServer(idx)
+	server := NewServerWithBuild(idx, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"})
 	if _, err := server.SyncOnce(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -98,5 +100,18 @@ func TestIndexerHTTPServer(t *testing.T) {
 	}
 	if !strings.Contains(string(body), "ynx_indexer_last_indexed_height") {
 		t.Fatalf("missing indexer metrics: %s", string(body))
+	}
+	resp, err = http.Get(httpServer.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var health map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	build := health["build"].(map[string]any)
+	if build["commit"] != "abc123" || build["release"] != "ynx-chain-abc123" || build["buildTime"] != "2026-07-10T00:00:00Z" {
+		t.Fatalf("health missing build identity: %+v", build)
 	}
 }
