@@ -57,7 +57,7 @@ build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
 work="tmp/deploy/${release}"
 rm -rf "$work"
-mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/caddy" "$work/docs"
+mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/caddy" "$work/scripts" "$work/docs"
 
 echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
@@ -333,7 +333,7 @@ server {
 }
 EOF
 
-cat > "$work/caddy/Caddyfile" <<EOF
+cat > "$work/caddy/ynx-chain.caddy" <<EOF
 ${EXPLORER_DOMAIN} {
   reverse_proxy 127.0.0.1:6427
 }
@@ -360,6 +360,46 @@ ${REST_DOMAIN}, ${API_DOMAIN}, ${AI_GATEWAY_DOMAIN}, ${TRUST_API_DOMAIN}, ${PAY_
   reverse_proxy 127.0.0.1:6420
 }
 EOF
+
+cat > "$work/scripts/install-caddy-ingress.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+src="${1:?missing source snippet path}"
+caddyfile="${2:-/etc/caddy/Caddyfile}"
+dest="${3:-/etc/caddy/ynx-chain.caddy}"
+release="${4:-unknown}"
+begin="# BEGIN YNX_CHAIN_MANAGED_INGRESS"
+end="# END YNX_CHAIN_MANAGED_INGRESS"
+import_line="import ${dest}"
+
+[[ -r "$src" ]] || { echo "missing readable Caddy ingress snippet: $src"; exit 1; }
+command -v caddy >/dev/null 2>&1 || { echo "caddy binary not found"; exit 1; }
+
+sudo install -d -m 0755 "$(dirname "$caddyfile")" "$(dirname "$dest")"
+sudo install -m 0644 "$src" "$dest"
+sudo touch "$caddyfile"
+
+candidate="$(mktemp)"
+trap 'rm -f "$candidate"' EXIT
+sudo awk -v begin="$begin" -v end="$end" '
+  $0 == begin { skip=1; next }
+  $0 == end { skip=0; next }
+  skip != 1 { print }
+' "$caddyfile" > "$candidate"
+
+{
+  printf '\n%s\n' "$begin"
+  printf '%s\n' "$import_line"
+  printf '%s\n' "$end"
+} >> "$candidate"
+
+sudo caddy validate --config "$candidate"
+sudo cp "$caddyfile" "${caddyfile}.pre-ynx-${release}"
+sudo install -m 0644 "$candidate" "$caddyfile"
+sudo systemctl reload caddy
+EOF
+chmod +x "$work/scripts/install-caddy-ingress.sh"
 
 cp README.md REQUIRED_INPUTS.md ENV_INTAKE_FORM.md "$work/docs/"
 node scripts/deploy/write-release-manifest.mjs "$work" "$release" "$commit" "$build_time" "$DEPLOY_TARGET" "$CHAIN_ID" "$CHAIN_NAME"
@@ -440,7 +480,7 @@ ynx_install_primary_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo install -d -m 0755 /etc/caddy && sudo install -m 0644 '$remote_dir/caddy/Caddyfile' /etc/caddy/Caddyfile && sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release'; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd && sudo systemctl --no-pager --full status ynx-explorerd && sudo systemctl --no-pager --full status ynx-faucetd"
 }
 
