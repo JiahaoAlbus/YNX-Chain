@@ -57,7 +57,7 @@ build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 chaind_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=${build_time}"
 work="tmp/deploy/${release}"
 rm -rf "$work"
-mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/docs"
+mkdir -p "$work/bin" "$work/config" "$work/systemd" "$work/nginx" "$work/caddy" "$work/docs"
 
 echo "building YNX Chain binary for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$chaind_ldflags" -o "$work/bin/ynx-chaind" ./cmd/ynx-chaind
@@ -333,6 +333,34 @@ server {
 }
 EOF
 
+cat > "$work/caddy/Caddyfile" <<EOF
+${EXPLORER_DOMAIN} {
+  reverse_proxy 127.0.0.1:6427
+}
+
+${FAUCET_DOMAIN} {
+  reverse_proxy 127.0.0.1:6428
+}
+
+${INDEXER_DOMAIN} {
+  reverse_proxy 127.0.0.1:6426
+}
+
+${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
+  reverse_proxy 127.0.0.1:6420
+}
+
+${REST_DOMAIN}, ${API_DOMAIN}, ${AI_GATEWAY_DOMAIN}, ${TRUST_API_DOMAIN}, ${PAY_API_DOMAIN}, ${IDE_DOMAIN} {
+  handle_path /indexer/* {
+    reverse_proxy 127.0.0.1:6426
+  }
+  handle_path /explorer/* {
+    reverse_proxy 127.0.0.1:6427
+  }
+  reverse_proxy 127.0.0.1:6420
+}
+EOF
+
 cp README.md REQUIRED_INPUTS.md ENV_INTAKE_FORM.md "$work/docs/"
 node scripts/deploy/write-release-manifest.mjs "$work" "$release" "$commit" "$build_time" "$DEPLOY_TARGET" "$CHAIN_ID" "$CHAIN_NAME"
 tarball="tmp/deploy/${release}.tar.gz"
@@ -412,6 +440,7 @@ ynx_install_primary_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo install -d -m 0755 /etc/caddy && sudo install -m 0644 '$remote_dir/caddy/Caddyfile' /etc/caddy/Caddyfile && sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd && sudo systemctl --no-pager --full status ynx-explorerd && sudo systemctl --no-pager --full status ynx-faucetd"
 }
 

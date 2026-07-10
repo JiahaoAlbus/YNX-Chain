@@ -97,6 +97,7 @@ grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { e
 grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./caddy/Caddyfile" || { echo "release tarball missing Caddyfile"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ai.ynx.test trust.ynx.test pay.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
@@ -105,6 +106,15 @@ grep -Fq "server_name ynx.test testnet.ynx.test rpc.ynx.test evm-rpc.ynx.test;" 
 grep -Fq "proxy_pass http://127.0.0.1:6426;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6427;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6428;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet proxy target"; exit 1; }
+grep -Fq "rest.ynx.test, api.ynx.test, ai.ynx.test, trust.ynx.test, pay.ynx.test, ide.ynx.test" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing REST/API domain block"; exit 1; }
+grep -Fq "indexer.ynx.test" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing indexer domain block"; exit 1; }
+grep -Fq "explorer.ynx.test" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing explorer domain block"; exit 1; }
+grep -Fq "faucet.ynx.test" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing faucet domain block"; exit 1; }
+grep -Fq "ynx.test, testnet.ynx.test, rpc.ynx.test, evm-rpc.ynx.test" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing RPC/EVM domain block"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6420" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing chain API proxy target"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6426" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing indexer proxy target"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6427" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing explorer proxy target"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6428" "$release_dir/caddy/Caddyfile" || { echo "Caddyfile missing faucet proxy target"; exit 1; }
 
 ynx_check_role_env() {
   local role="$1" role_env="$2"
@@ -148,6 +158,9 @@ if [[ "$check_config_count" -lt 4 ]]; then
   exit 1
 fi
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }
+grep -Fq "caddy/Caddyfile" "$dry_run_out" || { echo "dry-run output missing Caddyfile install command"; exit 1; }
+grep -Fq "caddy\\ validate\\ --config\\ /etc/caddy/Caddyfile" "$dry_run_out" || { echo "dry-run output missing Caddy validate command"; exit 1; }
+grep -Fq "systemctl\\ reload\\ caddy" "$dry_run_out" || { echo "dry-run output missing Caddy reload command"; exit 1; }
 grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || { echo "legacy home data path missing from predeploy backup"; exit 1; }
 grep -Fq "/root/.ynx-v2" "$dry_run_out" || { echo "legacy root data path missing from predeploy backup"; exit 1; }
 grep -Fq "ynx-v2-node.service" "$dry_run_out" || { echo "legacy primary service backup missing"; exit 1; }
