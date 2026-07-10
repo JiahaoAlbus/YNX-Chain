@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,6 +15,10 @@ const reportScript = path.join(repoRoot, "scripts/verify/remote-blocker-report.m
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function fileSha256(file) {
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
 function runNode(script, env = {}) {
@@ -255,6 +260,7 @@ fs.writeFileSync(mismatchHostKeyAuditPath, [
   "Host key verification failed.",
   "",
 ].join("\n"));
+const mismatchHostKeyAuditSha256 = fileSha256(mismatchHostKeyAuditPath);
 const mismatchReport = runNode(reportScript, {
   YNX_VERIFY_TESTNET_OUT: workDir,
   YNX_REMOTE_EVIDENCE_PATH: mismatchRemoteEvidencePath,
@@ -322,6 +328,8 @@ writeJson(badApprovalRequestJsonPath, {
 fs.writeFileSync(badApprovalPacketPath, "# Host Key External Approval Packet\n");
 writeJson(badApprovalPacketJsonPath, {
   generatedAt: now,
+  hostKeyAuditPath: mismatchHostKeyAuditPath,
+  hostKeyAuditSha256: mismatchHostKeyAuditSha256,
   trustedApproval: false,
   trustedSourceRequired: true,
   rows: [{
@@ -388,6 +396,8 @@ assert(mismatchBadJson.deployBlockers.sources.some((item) => item.name === "host
 
 const approvedApprovalRequestPath = path.join(workDir, "approved-approval-request.md");
 const approvedApprovalRequestJsonPath = path.join(workDir, "approved-approval-request.json");
+const approvedApprovalPacketPath = path.join(workDir, "approved-approval-packet.md");
+const approvedApprovalPacketJsonPath = path.join(workDir, "approved-approval-packet.json");
 const oldApprovedStatusJsonPath = path.join(workDir, "old-approved-status.json");
 const oldApprovedStatusReportPath = path.join(workDir, "remote-blockers-old-approved-status.json");
 fs.writeFileSync(approvedApprovalRequestPath, "# Host Key Approval Request\n");
@@ -402,6 +412,29 @@ writeJson(approvedApprovalRequestJsonPath, {
     trustedFingerprint: "",
     status: "needs-out-of-band-confirmation",
   }],
+});
+fs.writeFileSync(approvedApprovalPacketPath, "# Host Key External Approval Packet\n");
+writeJson(approvedApprovalPacketJsonPath, {
+  generatedAt: now,
+  hostKeyAuditPath: mismatchHostKeyAuditPath,
+  hostKeyAuditSha256: mismatchHostKeyAuditSha256,
+  trustedApproval: false,
+  trustedSourceRequired: true,
+  rows: [{
+    role: "singapore",
+    host: "43.134.23.58",
+    keyType: "ED25519",
+    presentedFingerprint: "SHA256:expected-singapore-ed25519",
+    trustedFingerprint: "",
+    operatorDecision: "",
+  }],
+  approvalDraft: {
+    nodes: [{
+      role: "singapore",
+      host: "43.134.23.58",
+      fingerprints: { ED25519: "" },
+    }],
+  },
 });
 writeJson(oldApprovedStatusJsonPath, {
   generatedAt: now,
@@ -429,6 +462,8 @@ const oldApprovedStatusReport = runNode(reportScript, {
   YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
   YNX_HOST_KEY_APPROVAL_REQUEST: approvedApprovalRequestPath,
   YNX_HOST_KEY_APPROVAL_REQUEST_JSON: approvedApprovalRequestJsonPath,
+  YNX_HOST_KEY_APPROVAL_PACKET: approvedApprovalPacketPath,
+  YNX_HOST_KEY_APPROVAL_PACKET_JSON: approvedApprovalPacketJsonPath,
   YNX_HOST_KEY_APPROVAL_STATUS_JSON: oldApprovedStatusJsonPath,
   YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
   YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "OLD_APPROVED_STATUS_BLOCKERS.md"),

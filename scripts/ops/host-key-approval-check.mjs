@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -35,6 +36,10 @@ function tryReadJson(file) {
   } catch (err) {
     return { exists: fs.existsSync(file), json: null, error: err.message };
   }
+}
+
+function fileSha256(file) {
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 }
 
 function fingerprintMap(scanFile) {
@@ -410,7 +415,7 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
   console.log("request contains untrusted current-scan fingerprints only; it is not an approval file");
 }
 
-function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath }) {
+function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath, hostKeyAuditPath }) {
   const result = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: false });
   if (result.error) {
     fail(result.error, [
@@ -418,8 +423,15 @@ function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePat
       "Confirm there are strict SSH host-key mismatches with scan fingerprints before requesting approval.",
     ]);
   }
+  if (!fs.existsSync(hostKeyAuditPath)) {
+    fail(`missing host-key audit report at ${hostKeyAuditPath}`, [
+      "Run make host-key-audit before generating the external approval packet.",
+      "The packet must bind to the exact host-key audit report that produced the mismatch evidence.",
+    ]);
+  }
 
   const generatedAt = new Date().toISOString();
+  const hostKeyAuditSha256 = fileSha256(hostKeyAuditPath);
   const nodes = result.nodes;
   const approvalDraft = {
     source: "",
@@ -449,6 +461,8 @@ function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePat
     "",
     `Generated at: ${generatedAt}`,
     `Audit directory: ${auditOut}`,
+    `Host-key audit report: ${hostKeyAuditPath}`,
+    `Host-key audit SHA-256: ${hostKeyAuditSha256}`,
     `Approval template: ${templatePath}`,
     `Approval request: ${requestPath}`,
     `Approval request JSON: ${requestJsonPath}`,
@@ -507,6 +521,8 @@ function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePat
   fs.writeFileSync(packetJsonPath, `${JSON.stringify({
     generatedAt,
     auditOut,
+    hostKeyAuditPath,
+    hostKeyAuditSha256,
     trustedApproval: false,
     purpose: "External reviewer packet only; not trusted approval and not known_hosts repair.",
     trustedSourceRequired: true,
@@ -908,13 +924,16 @@ function selfTest() {
   const request = JSON.parse(fs.readFileSync(requestJsonPath, "utf8"));
   assert.equal(request.trustedApproval, false);
   assert.equal(request.rows.length, 1);
+  const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
+  fs.writeFileSync(hostKeyAuditPath, "== testnode root@127.0.0.1 ==\nHost key verification failed.\n");
   const packetPath = path.join(workDir, "packet.md");
   const packetJsonPath = path.join(workDir, "packet.json");
-  writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath });
+  writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath, hostKeyAuditPath });
   const packet = JSON.parse(fs.readFileSync(packetJsonPath, "utf8"));
   assert.equal(packet.trustedApproval, false);
   assert.equal(packet.trustedSourceRequired, true);
   assert.equal(packet.rows.length, 1);
+  assert.equal(packet.hostKeyAuditSha256, fileSha256(hostKeyAuditPath));
   assert.equal(packet.approvalDraft.nodes[0].fingerprints.ED25519, "");
   const missingStatus = run(process.execPath, [fileURLToPath(import.meta.url), "--status"], {
     env: {
@@ -1021,10 +1040,11 @@ if (process.argv.includes("--self-test")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const packetPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_PACKET || "tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md");
   const packetJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_PACKET_JSON || "tmp/host-key-audit/host-key-external-approval-packet.json");
+  const hostKeyAuditPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt");
   const requestPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md");
   const requestJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json");
   const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
-  writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath });
+  writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath, hostKeyAuditPath });
 } else if (process.argv.includes("--status")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");

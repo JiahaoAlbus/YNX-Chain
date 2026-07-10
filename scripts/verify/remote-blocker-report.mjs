@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
@@ -42,6 +43,14 @@ function readJson(file) {
     return JSON.parse(fs.readFileSync(file, "utf8"));
   } catch {
     return null;
+  }
+}
+
+function fileSha256(file) {
+  try {
+    return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  } catch {
+    return "";
   }
 }
 
@@ -218,7 +227,7 @@ function approvalRequestJsonMetadata(file, { required, mismatchFindings }) {
   };
 }
 
-function approvalPacketJsonMetadata(file, { required, mismatchFindings }) {
+function approvalPacketJsonMetadata(file, { required, mismatchFindings, hostKeyAuditPath }) {
   const packet = readJson(file);
   const metadata = fileMetadata(file, { required, jsonGeneratedAt: packet?.generatedAt });
   if (!required || metadata.classification !== "fresh") return metadata;
@@ -234,6 +243,21 @@ function approvalPacketJsonMetadata(file, { required, mismatchFindings }) {
       ...metadata,
       classification: "invalid-required-evidence",
       detail: "approval packet JSON must be untrusted and require an external trusted source",
+    };
+  }
+  const expectedAuditSha256 = fileSha256(hostKeyAuditPath);
+  if (!expectedAuditSha256) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "current host-key audit report is missing or unreadable for packet hash validation",
+    };
+  }
+  if (packet.hostKeyAuditSha256 !== expectedAuditSha256) {
+    return {
+      ...metadata,
+      classification: "approval-packet-audit-mismatch",
+      detail: "approval packet host-key audit SHA-256 does not match the current host-key audit report",
     };
   }
   const rows = Array.isArray(packet.rows) ? packet.rows : [];
@@ -294,7 +318,7 @@ function approvalPacketJsonMetadata(file, { required, mismatchFindings }) {
   return {
     ...metadata,
     classification: "fresh",
-    detail: `fresh packet with ${expectedCount} untrusted fingerprint row(s) and blank trusted approval draft`,
+    detail: `fresh packet with ${expectedCount} untrusted fingerprint row(s), blank trusted approval draft, and current audit hash binding`,
   };
 }
 
@@ -570,6 +594,7 @@ sourceEvidence.hostKeyApprovalPacket = fileMetadata(hostKeyApprovalPacketPath, {
 sourceEvidence.hostKeyApprovalPacketJson = approvalPacketJsonMetadata(hostKeyApprovalPacketJsonPath, {
   required: hostKeyMismatchPresent,
   mismatchFindings: hostKeyMismatchFindings,
+  hostKeyAuditPath,
 });
 sourceEvidence.hostKeyApprovalStatusJson = approvalStatusJsonMetadata(hostKeyApprovalStatusJsonPath, {
   required: hostKeyMismatchPresent,

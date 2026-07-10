@@ -30,7 +30,7 @@ The ignored `.host-key-approvals.json` file must include `source`, `approvedAt`,
 
 `host-key-approval-status.json` also carries the trusted approval metadata. `remote-blocker-report` rejects an `approved-current-scan` status that lacks this metadata, so old status files generated before the auditable approval schema cannot unblock deployment.
 
-`make host-key-approval-packet` writes `tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md` and JSON. The packet is designed for an external reviewer: it includes the untrusted current-scan fingerprints, a blank approval draft, required evidence fields, and the exact follow-up commands. It is not a trusted approval file and does not modify `known_hosts`.
+`make host-key-approval-packet` writes `tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md` and JSON. The packet is designed for an external reviewer: it includes the untrusted current-scan fingerprints, the exact host-key audit report path and SHA-256, a blank approval draft, required evidence fields, and the exact follow-up commands. It is not a trusted approval file and does not modify `known_hosts`; the blocker report rejects packet JSON whose audit SHA-256 no longer matches the current host-key audit report.
 
 For remote operations after deployment:
 
