@@ -51,19 +51,46 @@ function fingerprintMap(scanFile) {
   return entries;
 }
 
-function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
-  const approval = readJson(approvalPath);
-  const approvedNodes = Array.isArray(approval.nodes) ? approval.nodes : [];
-  const findings = [];
+const requiredApprovalStringFields = [
+  ["source", "approval JSON must include source"],
+  ["approvedAt", "approval JSON must include approvedAt"],
+  ["approvedBy", "approval JSON must include approvedBy"],
+  ["verificationChannel", "approval JSON must include verificationChannel"],
+  ["evidence", "approval JSON must include evidence"],
+];
 
-  if (!approval.source || !approval.approvedAt) {
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function approvalMetadataFindings(approval) {
+  const findings = [];
+  for (const [field, reason] of requiredApprovalStringFields) {
+    if (!nonEmptyString(approval?.[field])) {
+      findings.push({
+        role: "approval-file",
+        host: "",
+        ok: false,
+        reason,
+      });
+    }
+  }
+  if (nonEmptyString(approval?.approvedAt) && !Number.isFinite(Date.parse(approval.approvedAt))) {
     findings.push({
       role: "approval-file",
       host: "",
       ok: false,
-      reason: "approval JSON must include source and approvedAt",
+      reason: "approvedAt must be an ISO timestamp",
     });
   }
+  return findings;
+}
+
+function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
+  const approval = readJson(approvalPath);
+  const approvedNodes = Array.isArray(approval.nodes) ? approval.nodes : [];
+  const findings = approvalMetadataFindings(approval);
+
   if (!approvedNodes.length) {
     findings.push({
       role: "approval-file",
@@ -81,6 +108,10 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
 
     if (!role || !host) {
       findings.push({ role, host, ok: false, reason: "node role and host are required" });
+      continue;
+    }
+    if (!nonEmptyString(node.evidence)) {
+      findings.push({ role, host, ok: false, reason: "node evidence is required for trusted approval" });
       continue;
     }
     if (!Object.keys(approved).length) {
@@ -141,6 +172,9 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     `Audit directory: ${auditOut}`,
     `Approved source: ${approval.source || "missing"}`,
     `Approved at: ${approval.approvedAt || "missing"}`,
+    `Approved by: ${approval.approvedBy || "missing"}`,
+    `Verification channel: ${approval.verificationChannel || "missing"}`,
+    `Approval evidence: ${approval.evidence || "missing"}`,
     `Status: ${ok ? "approved-current-scan" : "blocked"}`,
     "",
     "| Role | Host | Key Type | Presented | Approved | Status | Reason |",
@@ -170,6 +204,9 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     auditOut,
     source: approval.source || "",
     approvedAt: approval.approvedAt || "",
+    approvedBy: approval.approvedBy || "",
+    verificationChannel: approval.verificationChannel || "",
+    evidence: approval.evidence || "",
     findings,
     approval,
   };
@@ -272,12 +309,15 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
     instructions: [
       "Do not rename this template to .host-key-approvals.json until every fingerprint is independently confirmed through a trusted cloud-console or provider channel.",
       "Leave fingerprint values blank until confirmed out-of-band. Do not copy values from ssh-keyscan alone.",
-      "After filling source, approvedAt, and every fingerprint, save as .host-key-approvals.json and run make host-key-approval-check.",
+      "After filling source, approvedAt, approvedBy, verificationChannel, evidence, every node evidence field, and every fingerprint, save as .host-key-approvals.json and run make host-key-approval-check.",
     ],
     source: "",
     approvedAt: "",
+    approvedBy: "",
+    verificationChannel: "",
+    evidence: "",
     skippedNodes: result.warnings,
-    nodes,
+    nodes: nodes.map((node) => ({ ...node, evidence: "" })),
   };
 
   fs.mkdirSync(path.dirname(templatePath), { recursive: true });
@@ -326,6 +366,7 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
     "",
     "- Do not copy these presented fingerprints into `.host-key-approvals.json` unless they independently match a trusted external source.",
     "- Leave `trustedFingerprint` blank in this request until the value is confirmed out-of-band.",
+    "- Record `approvedBy`, `verificationChannel`, a top-level `evidence` summary, and per-node `evidence` in the ignored approval file.",
     "- After external confirmation, fill the ignored `.host-key-approvals.json` file from the blank template and run `make host-key-approval-check`.",
     "- Only after the approval check passes, run `make host-key-approved-repair-dry-run`, review the report, then run `make host-key-approved-repair`.",
     "",
@@ -371,16 +412,8 @@ function writeApprovalRequest({ auditOut, requestPath, jsonPath, templatePath })
 
 function compareApprovalWithoutExit({ approval, auditOut }) {
   const approvedNodes = Array.isArray(approval?.nodes) ? approval.nodes : [];
-  const findings = [];
+  const findings = approvalMetadataFindings(approval);
 
-  if (!approval?.source || !approval?.approvedAt) {
-    findings.push({
-      role: "approval-file",
-      host: "",
-      ok: false,
-      reason: "approval JSON must include source and approvedAt",
-    });
-  }
   if (!approvedNodes.length) {
     findings.push({
       role: "approval-file",
@@ -398,6 +431,10 @@ function compareApprovalWithoutExit({ approval, auditOut }) {
 
     if (!role || !host) {
       findings.push({ role, host, ok: false, reason: "node role and host are required" });
+      continue;
+    }
+    if (!nonEmptyString(node.evidence)) {
+      findings.push({ role, host, ok: false, reason: "node evidence is required for trusted approval" });
       continue;
     }
     if (!Object.keys(approved).length) {
@@ -746,11 +783,35 @@ function selfTest() {
   assert.equal(missingStatusJson.status, "awaiting-trusted-approval");
   assert.equal(missingStatusJson.ok, false);
   fs.writeFileSync(approvalPath, JSON.stringify({
-    source: "self-test trusted channel",
+    source: "self-test old schema",
     approvedAt: new Date().toISOString(),
     nodes: [{
       role: "testnode",
       host: "127.0.0.1",
+      fingerprints: { ED25519: ed25519 },
+    }],
+  }, null, 2));
+  const oldSchema = run(process.execPath, [fileURLToPath(import.meta.url)], {
+    env: {
+      ...process.env,
+      YNX_HOST_KEY_APPROVALS: approvalPath,
+      YNX_HOST_KEY_AUDIT_OUT: auditOut,
+      YNX_HOST_KEY_APPROVAL_REPORT: reportPath,
+      YNX_HOST_KEY_APPROVAL_JSON: jsonPath,
+    },
+  });
+  assert.notEqual(oldSchema.status, 0, "old unaudited approval schema should fail");
+  assert.match(`${oldSchema.stdout}\n${oldSchema.stderr}`, /approved fingerprints do not match current scan/);
+  fs.writeFileSync(approvalPath, JSON.stringify({
+    source: "self-test trusted channel",
+    approvedAt: new Date().toISOString(),
+    approvedBy: "self-test operator",
+    verificationChannel: "self-test fixture",
+    evidence: "self-test fixture compares generated host public key fingerprint",
+    nodes: [{
+      role: "testnode",
+      host: "127.0.0.1",
+      evidence: "self-test generated host_ed25519.pub fingerprint",
       fingerprints: { ED25519: ed25519 },
     }],
   }, null, 2));
@@ -772,9 +833,13 @@ function selfTest() {
   fs.writeFileSync(approvalPath, JSON.stringify({
     source: "self-test trusted channel",
     approvedAt: new Date().toISOString(),
+    approvedBy: "self-test operator",
+    verificationChannel: "self-test fixture",
+    evidence: "self-test mismatch fixture",
     nodes: [{
       role: "testnode",
       host: "127.0.0.1",
+      evidence: "self-test generated host_ed25519.pub fingerprint",
       fingerprints: { ED25519: "SHA256:mismatched-self-test-fingerprint" },
     }],
   }, null, 2));

@@ -116,7 +116,7 @@ write_node_plan() {
   echo "Rules:"
   echo
   echo "- Do not update any host key until the presented fingerprint is confirmed from a trusted out-of-band source."
-  echo "- Run \`make host-key-approval-template\` to create a blank approval template and \`make host-key-approval-request\` to create a concise external verification request. Fill confirmed fingerprints into ignored \`.host-key-approvals.json\`, require \`make host-key-approval-check\` to pass, then use \`make host-key-approved-repair-dry-run\` before \`make host-key-approved-repair\`."
+  echo "- Run \`make host-key-approval-template\` to create a blank approval template and \`make host-key-approval-request\` to create a concise external verification request. Fill confirmed fingerprints plus \`approvedBy\`, \`verificationChannel\`, top-level \`evidence\`, and per-node \`evidence\` into ignored \`.host-key-approvals.json\`, require \`make host-key-approval-check\` to pass, then use \`make host-key-approved-repair-dry-run\` before \`make host-key-approved-repair\`."
   echo "- Do not use this plan to bypass SSH host-key protection."
   echo "- After any approved host-key update, rerun \`make host-key-audit\`, \`make remote-blocker-report\`, and \`make deploy-readiness-gate\`."
   echo
