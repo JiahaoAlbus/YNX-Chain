@@ -91,10 +91,43 @@ function approvalMetadataFindings(approval) {
   return findings;
 }
 
-function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
+function appendApprovalAuditBindingFindings(findings, approval, hostKeyAuditPath) {
+  if (!nonEmptyString(approval?.hostKeyAuditSha256)) {
+    findings.push({
+      role: "approval-file",
+      host: "",
+      ok: false,
+      reason: "approval JSON must include hostKeyAuditSha256",
+    });
+    return;
+  }
+  if (!fs.existsSync(hostKeyAuditPath)) {
+    findings.push({
+      role: "approval-file",
+      host: "",
+      ok: false,
+      reason: `host-key audit report missing: ${path.relative(repoRoot, hostKeyAuditPath)}`,
+    });
+    return;
+  }
+  const currentAuditSha256 = fileSha256(hostKeyAuditPath);
+  if (approval.hostKeyAuditSha256 !== currentAuditSha256) {
+    findings.push({
+      role: "approval-file",
+      host: "",
+      ok: false,
+      reason: "hostKeyAuditSha256 does not match current host-key audit report",
+      presented: currentAuditSha256,
+      approved: approval.hostKeyAuditSha256,
+    });
+  }
+}
+
+function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath, hostKeyAuditPath }) {
   const approval = readJson(approvalPath);
   const approvedNodes = Array.isArray(approval.nodes) ? approval.nodes : [];
   const findings = approvalMetadataFindings(approval);
+  appendApprovalAuditBindingFindings(findings, approval, hostKeyAuditPath);
 
   if (!approvedNodes.length) {
     findings.push({
@@ -175,6 +208,9 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     `Generated at: ${new Date().toISOString()}`,
     `Approval file: ${approvalPath}`,
     `Audit directory: ${auditOut}`,
+    `Host-key audit report: ${hostKeyAuditPath}`,
+    `Host-key audit SHA-256: ${fs.existsSync(hostKeyAuditPath) ? fileSha256(hostKeyAuditPath) : "missing"}`,
+    `Approval host-key audit SHA-256: ${approval.hostKeyAuditSha256 || "missing"}`,
     `Approved source: ${approval.source || "missing"}`,
     `Approved at: ${approval.approvedAt || "missing"}`,
     `Approved by: ${approval.approvedBy || "missing"}`,
@@ -207,6 +243,9 @@ function compareApprovals({ approvalPath, auditOut, reportPath, jsonPath }) {
     ok,
     approvalPath,
     auditOut,
+    hostKeyAuditPath,
+    hostKeyAuditSha256: fs.existsSync(hostKeyAuditPath) ? fileSha256(hostKeyAuditPath) : "",
+    approvalHostKeyAuditSha256: approval.hostKeyAuditSha256 || "",
     source: approval.source || "",
     approvedAt: approval.approvedAt || "",
     approvedBy: approval.approvedBy || "",
@@ -300,7 +339,7 @@ function collectRepairApprovalNodes(auditOut, { blankFingerprints }) {
   return result.nodes;
 }
 
-function writeApprovalTemplate({ auditOut, templatePath }) {
+function writeApprovalTemplate({ auditOut, templatePath, hostKeyAuditPath }) {
   const result = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: true });
   if (result.error) {
     fail(result.error, [
@@ -309,13 +348,16 @@ function writeApprovalTemplate({ auditOut, templatePath }) {
     ]);
   }
   const nodes = result.nodes;
+  const hostKeyAuditSha256 = fs.existsSync(hostKeyAuditPath) ? fileSha256(hostKeyAuditPath) : "";
 
   const template = {
     instructions: [
       "Do not rename this template to .host-key-approvals.json until every fingerprint is independently confirmed through a trusted cloud-console or provider channel.",
       "Leave fingerprint values blank until confirmed out-of-band. Do not copy values from ssh-keyscan alone.",
-      "After filling source, approvedAt, approvedBy, verificationChannel, evidence, every node evidence field, and every fingerprint, save as .host-key-approvals.json and run make host-key-approval-check.",
+      "After filling source, approvedAt, approvedBy, verificationChannel, evidence, hostKeyAuditSha256, every node evidence field, and every fingerprint, save as .host-key-approvals.json and run make host-key-approval-check.",
     ],
+    hostKeyAuditPath,
+    hostKeyAuditSha256,
     source: "",
     approvedAt: "",
     approvedBy: "",
@@ -547,9 +589,10 @@ function writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePat
   console.log("packet contains untrusted current-scan fingerprints only; it is not an approval file");
 }
 
-function compareApprovalWithoutExit({ approval, auditOut }) {
+function compareApprovalWithoutExit({ approval, auditOut, hostKeyAuditPath }) {
   const approvedNodes = Array.isArray(approval?.nodes) ? approval.nodes : [];
   const findings = approvalMetadataFindings(approval);
+  appendApprovalAuditBindingFindings(findings, approval, hostKeyAuditPath);
 
   if (!approvedNodes.length) {
     findings.push({
@@ -627,7 +670,7 @@ function compareApprovalWithoutExit({ approval, auditOut }) {
   return { ok, findings };
 }
 
-function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath }) {
+function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath, hostKeyAuditPath }) {
   const generatedAt = new Date().toISOString();
   const mismatchResult = collectRepairApprovalNodeResult(auditOut, { blankFingerprints: false });
   const approvalRead = tryReadJson(approvalPath);
@@ -636,12 +679,14 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
   let ok = false;
   let findings = [];
   const approvalMetadata = approvalRead.json ? {
+    hostKeyAuditSha256: approvalRead.json.hostKeyAuditSha256 || "",
     source: approvalRead.json.source || "",
     approvedAt: approvalRead.json.approvedAt || "",
     approvedBy: approvalRead.json.approvedBy || "",
     verificationChannel: approvalRead.json.verificationChannel || "",
     evidence: approvalRead.json.evidence || "",
   } : {
+    hostKeyAuditSha256: "",
     source: "",
     approvedAt: "",
     approvedBy: "",
@@ -664,7 +709,7 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
       reason: "trusted fingerprint not yet recorded in ignored .host-key-approvals.json",
     })));
   } else {
-    const comparison = compareApprovalWithoutExit({ approval: approvalRead.json, auditOut });
+    const comparison = compareApprovalWithoutExit({ approval: approvalRead.json, auditOut, hostKeyAuditPath });
     ok = comparison.ok;
     findings = comparison.findings;
     status = ok ? "approved-current-scan" : "approval-does-not-match-current-scan";
@@ -677,6 +722,9 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
     `Generated at: ${generatedAt}`,
     `Status: ${status}`,
     `Trusted approval file: ${approvalPath}`,
+    `Host-key audit report: ${hostKeyAuditPath}`,
+    `Current host-key audit SHA-256: ${fs.existsSync(hostKeyAuditPath) ? fileSha256(hostKeyAuditPath) : "missing"}`,
+    `Approved host-key audit SHA-256: ${approvalMetadata.hostKeyAuditSha256 || "missing"}`,
     `Trusted approval file exists: ${approvalRead.exists ? "yes" : "no"}`,
     `Trusted approval file readable: ${approvalRead.json ? "yes" : "no"}`,
     `Approved source: ${approvalMetadata.source || "missing"}`,
@@ -718,6 +766,8 @@ function writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPa
     status,
     auditOut,
     approvalPath,
+    hostKeyAuditPath,
+    currentHostKeyAuditSha256: fs.existsSync(hostKeyAuditPath) ? fileSha256(hostKeyAuditPath) : "",
     approvalMetadata,
     approvalFileExists: approvalRead.exists,
     approvalFileReadable: Boolean(approvalRead.json),
@@ -769,8 +819,8 @@ function sshDefaultsForNode(role) {
   return defaults[role] || { user: process.env.SERVER_USER || "ubuntu", key: primaryKey };
 }
 
-function repairApprovedKnownHosts({ approvalPath, auditOut, reportPath, jsonPath, knownHosts, repairReportPath, repairJsonPath, dryRun }) {
-  const approvalResult = compareApprovals({ approvalPath, auditOut, reportPath, jsonPath });
+function repairApprovedKnownHosts({ approvalPath, auditOut, reportPath, jsonPath, knownHosts, repairReportPath, repairJsonPath, dryRun, hostKeyAuditPath }) {
+  const approvalResult = compareApprovals({ approvalPath, auditOut, reportPath, jsonPath, hostKeyAuditPath });
   const actions = [];
   const nodes = approvalResult.approval.nodes || [];
   const backupPath = `${knownHosts}.bak.${timestampForPath()}`;
@@ -916,16 +966,17 @@ function selfTest() {
   const jsonPath = path.join(workDir, "status.json");
   const strictPath = path.join(auditOut, "testnode-127.0.0.1.strict.out");
   fs.writeFileSync(strictPath, "Host key verification failed.\n");
+  const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
+  fs.writeFileSync(hostKeyAuditPath, "== testnode root@127.0.0.1 ==\nHost key verification failed.\n");
+  const hostKeyAuditSha256 = fileSha256(hostKeyAuditPath);
   const templatePath = path.join(workDir, "template.json");
-  writeApprovalTemplate({ auditOut, templatePath });
+  writeApprovalTemplate({ auditOut, templatePath, hostKeyAuditPath });
   const requestPath = path.join(workDir, "request.md");
   const requestJsonPath = path.join(workDir, "request.json");
   writeApprovalRequest({ auditOut, requestPath, jsonPath: requestJsonPath, templatePath });
   const request = JSON.parse(fs.readFileSync(requestJsonPath, "utf8"));
   assert.equal(request.trustedApproval, false);
   assert.equal(request.rows.length, 1);
-  const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
-  fs.writeFileSync(hostKeyAuditPath, "== testnode root@127.0.0.1 ==\nHost key verification failed.\n");
   const packetPath = path.join(workDir, "packet.md");
   const packetJsonPath = path.join(workDir, "packet.json");
   writeApprovalPacket({ auditOut, packetPath, packetJsonPath, templatePath, requestPath, requestJsonPath, hostKeyAuditPath });
@@ -970,6 +1021,7 @@ function selfTest() {
   assert.notEqual(oldSchema.status, 0, "old unaudited approval schema should fail");
   assert.match(`${oldSchema.stdout}\n${oldSchema.stderr}`, /approved fingerprints do not match current scan/);
   fs.writeFileSync(approvalPath, JSON.stringify({
+    hostKeyAuditSha256,
     source: "self-test trusted channel",
     approvedAt: new Date().toISOString(),
     approvedBy: "self-test operator",
@@ -982,12 +1034,13 @@ function selfTest() {
       fingerprints: { ED25519: ed25519 },
     }],
   }, null, 2));
-  compareApprovals({ approvalPath, auditOut, reportPath, jsonPath });
+  compareApprovals({ approvalPath, auditOut, reportPath, jsonPath, hostKeyAuditPath });
   const dryRunRepair = run(process.execPath, [fileURLToPath(import.meta.url), "--repair-known-hosts", "--dry-run"], {
     env: {
       ...process.env,
       YNX_HOST_KEY_APPROVALS: approvalPath,
       YNX_HOST_KEY_AUDIT_OUT: auditOut,
+      YNX_HOST_KEY_AUDIT_REPORT: hostKeyAuditPath,
       YNX_HOST_KEY_APPROVAL_REPORT: reportPath,
       YNX_HOST_KEY_APPROVAL_JSON: jsonPath,
       KNOWN_HOSTS_FILE: path.join(workDir, "known_hosts"),
@@ -998,6 +1051,7 @@ function selfTest() {
   assert.equal(dryRunRepair.status, 0, dryRunRepair.stderr || dryRunRepair.stdout);
 
   fs.writeFileSync(approvalPath, JSON.stringify({
+    hostKeyAuditSha256,
     source: "self-test trusted channel",
     approvedAt: new Date().toISOString(),
     approvedBy: "self-test operator",
@@ -1029,7 +1083,8 @@ if (process.argv.includes("--self-test")) {
 } else if (process.argv.includes("--write-template")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const templatePath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_TEMPLATE || "tmp/host-key-audit/host-key-approvals.template.json");
-  writeApprovalTemplate({ auditOut, templatePath });
+  const hostKeyAuditPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt");
+  writeApprovalTemplate({ auditOut, templatePath, hostKeyAuditPath });
 } else if (process.argv.includes("--write-approval-request")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const requestPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md");
@@ -1048,13 +1103,15 @@ if (process.argv.includes("--self-test")) {
 } else if (process.argv.includes("--status")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
+  const hostKeyAuditPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt");
   const requestJsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json");
   const reportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_STATUS_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md");
   const jsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_STATUS_JSON || "tmp/host-key-audit/host-key-approval-status.json");
-  writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath });
+  writeApprovalStatus({ auditOut, approvalPath, requestJsonPath, reportPath, jsonPath, hostKeyAuditPath });
 } else if (process.argv.includes("--repair-known-hosts")) {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
+  const hostKeyAuditPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt");
   const reportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md");
   const jsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_JSON || "tmp/host-key-audit/host-key-approval-status.json");
   const knownHosts = path.resolve(process.env.KNOWN_HOSTS_FILE || path.join(os.homedir(), ".ssh/known_hosts"));
@@ -1069,11 +1126,13 @@ if (process.argv.includes("--self-test")) {
     repairReportPath,
     repairJsonPath,
     dryRun: process.argv.includes("--dry-run"),
+    hostKeyAuditPath,
   });
 } else {
   const auditOut = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_OUT || "tmp/host-key-audit");
   const approvalPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVALS || ".host-key-approvals.json");
+  const hostKeyAuditPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt");
   const reportPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_REPORT || "tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md");
   const jsonPath = path.resolve(repoRoot, process.env.YNX_HOST_KEY_APPROVAL_JSON || "tmp/host-key-audit/host-key-approval-status.json");
-  compareApprovals({ approvalPath, auditOut, reportPath, jsonPath });
+  compareApprovals({ approvalPath, auditOut, reportPath, jsonPath, hostKeyAuditPath });
 }

@@ -77,7 +77,7 @@ Validation commands:
 
 Completion standard:
 
-- Trusted fingerprints are copied only from an external provider/cloud-console channel, not from `ssh-keyscan` alone, and ignored `.host-key-approvals.json` must include `approvedBy`, `verificationChannel`, top-level `evidence`, and per-node `evidence`.
+- Trusted fingerprints are copied only from an external provider/cloud-console channel, not from `ssh-keyscan` alone, and ignored `.host-key-approvals.json` must include the current `hostKeyAuditSha256`, `approvedBy`, `verificationChannel`, top-level `evidence`, and per-node `evidence`.
 - `make host-key-approval-check` passes.
 - `make host-key-approved-repair-dry-run` shows only approved Singapore and Silicon Valley known_hosts replacements.
 - `make host-key-approved-repair` is not run until the dry-run is reviewed.

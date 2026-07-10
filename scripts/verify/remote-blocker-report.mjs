@@ -383,7 +383,7 @@ function remoteEvidenceJsonMetadata(file, { required }) {
   };
 }
 
-function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
+function approvalStatusJsonMetadata(file, { required, mismatchFindings, hostKeyAuditPath }) {
   const status = readJson(file);
   const metadata = fileMetadata(file, { required, jsonGeneratedAt: status?.generatedAt });
   const statusContext = status
@@ -438,7 +438,7 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   }
 
   const approvalMetadata = status.approvalMetadata && typeof status.approvalMetadata === "object" ? status.approvalMetadata : {};
-  const requiredApprovalFields = ["source", "approvedAt", "approvedBy", "verificationChannel", "evidence"];
+  const requiredApprovalFields = ["hostKeyAuditSha256", "source", "approvedAt", "approvedBy", "verificationChannel", "evidence"];
   const missingApprovalFields = requiredApprovalFields.filter((field) => typeof approvalMetadata[field] !== "string" || approvalMetadata[field].trim() === "");
   if (missingApprovalFields.length) {
     return {
@@ -454,6 +454,15 @@ function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
       ...statusContext,
       classification: "approval-status-missing-audit-metadata",
       detail: "approved status approvedAt is not a valid timestamp",
+    };
+  }
+  const currentAuditSha256 = fileSha256(hostKeyAuditPath);
+  if (!currentAuditSha256 || approvalMetadata.hostKeyAuditSha256 !== currentAuditSha256 || status.currentHostKeyAuditSha256 !== currentAuditSha256) {
+    return {
+      ...metadata,
+      ...statusContext,
+      classification: "approval-status-audit-mismatch",
+      detail: "approved status host-key audit SHA-256 does not match the current host-key audit report",
     };
   }
 
@@ -599,6 +608,7 @@ sourceEvidence.hostKeyApprovalPacketJson = approvalPacketJsonMetadata(hostKeyApp
 sourceEvidence.hostKeyApprovalStatusJson = approvalStatusJsonMetadata(hostKeyApprovalStatusJsonPath, {
   required: hostKeyMismatchPresent,
   mismatchFindings: hostKeyMismatchFindings,
+  hostKeyAuditPath,
 });
 const sourceFindings = Object.entries(sourceEvidence)
   .map(([name, metadata]) => ({ name, ...metadata }))

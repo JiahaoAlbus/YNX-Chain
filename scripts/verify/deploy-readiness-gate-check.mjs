@@ -475,4 +475,54 @@ const oldApprovedStatusJson = JSON.parse(fs.readFileSync(oldApprovedStatusReport
 assert.equal(oldApprovedStatusJson.sourceEvidence.hostKeyApprovalStatusJson.classification, "approval-status-missing-audit-metadata");
 assert(oldApprovedStatusJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "approval-status-missing-audit-metadata"));
 
+const wrongAuditApprovedStatusJsonPath = path.join(workDir, "wrong-audit-approved-status.json");
+const wrongAuditApprovedStatusReportPath = path.join(workDir, "remote-blockers-wrong-audit-approved-status.json");
+writeJson(wrongAuditApprovedStatusJsonPath, {
+  generatedAt: now,
+  ok: true,
+  status: "approved-current-scan",
+  currentHostKeyAuditSha256: mismatchHostKeyAuditSha256,
+  approvalMetadata: {
+    hostKeyAuditSha256: "wrong-audit-sha256",
+    source: "cloud-console",
+    approvedAt: now,
+    approvedBy: "fixture approver",
+    verificationChannel: "fixture trusted channel",
+    evidence: "fixture evidence",
+  },
+  approvalRequestJsonPath: approvedApprovalRequestJsonPath,
+  approvalRequestJsonExists: true,
+  approvalRequestJsonReadable: true,
+  approvalRequestRowCount: 1,
+  mismatchNodeCount: 1,
+  findings: [{
+    role: "singapore",
+    host: "43.134.23.58",
+    keyType: "ED25519",
+    presented: "SHA256:expected-singapore-ed25519",
+    approved: "SHA256:expected-singapore-ed25519",
+    ok: true,
+    reason: "compared",
+  }],
+  note: "Non-mutating status only; not trusted approval and not known_hosts repair.",
+});
+const wrongAuditApprovedStatusReport = runNode(reportScript, {
+  YNX_VERIFY_TESTNET_OUT: workDir,
+  YNX_REMOTE_EVIDENCE_PATH: mismatchRemoteEvidencePath,
+  YNX_HOST_KEY_AUDIT_REPORT: mismatchHostKeyAuditPath,
+  YNX_HOST_KEY_APPROVAL_REQUEST: approvedApprovalRequestPath,
+  YNX_HOST_KEY_APPROVAL_REQUEST_JSON: approvedApprovalRequestJsonPath,
+  YNX_HOST_KEY_APPROVAL_PACKET: approvedApprovalPacketPath,
+  YNX_HOST_KEY_APPROVAL_PACKET_JSON: approvedApprovalPacketJsonPath,
+  YNX_HOST_KEY_APPROVAL_STATUS_JSON: wrongAuditApprovedStatusJsonPath,
+  YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
+  YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "WRONG_AUDIT_APPROVED_STATUS_BLOCKERS.md"),
+  YNX_REMOTE_BLOCKER_JSON: wrongAuditApprovedStatusReportPath,
+  YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+});
+assert.equal(wrongAuditApprovedStatusReport.status, 0, `remote-blocker-report wrong audit approved status run should write diagnostics: ${wrongAuditApprovedStatusReport.stderr}`);
+const wrongAuditApprovedStatusJson = JSON.parse(fs.readFileSync(wrongAuditApprovedStatusReportPath, "utf8"));
+assert.equal(wrongAuditApprovedStatusJson.sourceEvidence.hostKeyApprovalStatusJson.classification, "approval-status-audit-mismatch");
+assert(wrongAuditApprovedStatusJson.deployBlockers.sources.some((item) => item.name === "hostKeyApprovalStatusJson" && item.classification === "approval-status-audit-mismatch"));
+
 console.log("deploy-readiness-gate-check passed");
