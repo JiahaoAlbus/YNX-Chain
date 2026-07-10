@@ -423,12 +423,17 @@ function checkReleaseManifestEvidence() {
   const commitOk = manifestEvidence?.expected?.commit === expected.releaseCommit;
   const releaseOk = manifestEvidence?.expected?.release === expected.releaseName;
   const nodes = Array.isArray(manifestEvidence?.nodes) ? manifestEvidence.nodes : [];
-  const checksumOk = nodes.length >= expected.minValidators && nodes.every((node) => node?.checks?.["releaseManifest.chaindChecksum"] === true);
+  const sha256Pattern = /^[0-9a-f]{64}$/;
+  const checksumOk = nodes.length >= expected.minValidators && nodes.every((node) =>
+    node?.checks?.["releaseManifest.chaindChecksum"] === true &&
+    sha256Pattern.test(String(node?.observed?.chaindSha256 || "")) &&
+    sha256Pattern.test(String(node?.observed?.manifestSha256 || ""))
+  );
   record("release.manifest.evidence.present", statusOk, statusOk ? "release manifest evidence passed" : `release manifest evidence status ${manifestEvidence?.status || "missing"}`, { path: releaseManifestEvidencePath, status: manifestEvidence?.status });
   record("release.manifest.schema", schemaOk, schemaOk ? "release manifest evidence schema ok" : `unexpected schema ${manifestEvidence?.schema || "missing"}`, { schema: manifestEvidence?.schema });
   record("release.manifest.commit", commitOk, commitOk ? `manifest commit ${expected.releaseCommit}` : `expected ${expected.releaseCommit}, got ${manifestEvidence?.expected?.commit || "missing"}`, manifestEvidence?.expected || {});
   record("release.manifest.release", releaseOk, releaseOk ? `manifest release ${expected.releaseName}` : `expected ${expected.releaseName}, got ${manifestEvidence?.expected?.release || "missing"}`, manifestEvidence?.expected || {});
-  record("release.manifest.chaindChecksum", checksumOk, checksumOk ? `${nodes.length} node checksum proofs` : "missing per-node ynx-chaind checksum proof", { nodeCount: nodes.length, failedRoles: manifestEvidence?.failedRoles, missingRoles: manifestEvidence?.missingRoles });
+  record("release.manifest.chaindChecksum", checksumOk, checksumOk ? `${nodes.length} node checksum proofs with manifest and binary hashes` : "missing per-node ynx-chaind checksum or hash proof", { nodeCount: nodes.length, failedRoles: manifestEvidence?.failedRoles, missingRoles: manifestEvidence?.missingRoles });
   return schemaOk && statusOk && commitOk && releaseOk && checksumOk;
 }
 

@@ -112,6 +112,13 @@ if [ -z "$manifest_json" ]; then
 else
   echo "releaseManifest=ok"
 fi
+manifest_sha="$(if [ -r "$manifest_file" ]; then sha256sum "$manifest_file" 2>/dev/null | awk '{print $1}'; elif command -v sudo >/dev/null 2>&1 && sudo -n test -r "$manifest_file" 2>/dev/null; then sudo -n sha256sum "$manifest_file" 2>/dev/null | awk '{print $1}'; fi || true)"
+if [ -n "$manifest_sha" ]; then
+  echo "releaseManifest.manifestSha256=$manifest_sha"
+else
+  echo "releaseManifest.manifestSha256=missing"
+  failed=1
+fi
 status_json="$(curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true)"
 identity_json="$(curl -fsS http://127.0.0.1:6420/node/identity 2>/dev/null || true)"
 validators_json="$(curl -fsS http://127.0.0.1:6420/validators 2>/dev/null || true)"
@@ -133,6 +140,11 @@ check_json_contains releaseManifest.commit "$manifest_compact" "\"commit\":\"$ex
 check_json_contains releaseManifest.release "$manifest_compact" "\"release\":\"$expected_release_name\""
 check_json_contains releaseManifest.chaindPath "$manifest_compact" '"path":"bin/ynx-chaind"'
 chaind_sha="$(sha256sum /usr/local/bin/ynx-chaind 2>/dev/null | awk '{print $1}' || true)"
+if [ -n "$chaind_sha" ]; then
+  echo "releaseManifest.chaindSha256=$chaind_sha"
+else
+  echo "releaseManifest.chaindSha256=missing"
+fi
 if [ -n "$chaind_sha" ] && printf "%s" "$manifest_compact" | grep -Fq "\"sha256\":\"$chaind_sha\""; then
   echo "releaseManifest.chaindChecksum=ok"
 else

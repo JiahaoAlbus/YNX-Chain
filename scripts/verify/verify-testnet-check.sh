@@ -35,6 +35,8 @@ required_patterns=(
   "releaseManifest.commit"
   "releaseManifest.release"
   "releaseManifest.chaindPath"
+  "releaseManifest.manifestSha256"
+  "releaseManifest.chaindSha256"
   "releaseManifest.chaindChecksum"
   "sha256sum /usr/local/bin/ynx-chaind"
   "release-manifest-evidence.mjs"

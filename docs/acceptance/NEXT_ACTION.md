@@ -28,6 +28,7 @@ Validation commands:
 - `make host-key-approval-status`
 - `make host-key-approval-check`
 - `make host-key-approved-repair-dry-run`
+- `make release-manifest-evidence-check`
 - `make remote-smoke-test`
 - `make remote-blocker-report`
 - `make deploy-readiness-gate`

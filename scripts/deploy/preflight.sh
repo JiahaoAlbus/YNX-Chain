@@ -7,6 +7,7 @@ make secret-scan
 make objective-state-check
 make deploy-readiness-gate-check
 make public-proof-evidence-check
+make release-manifest-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
 go test ./cmd/... ./internal/...
