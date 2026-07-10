@@ -700,6 +700,21 @@ async function main() {
             resolutionReason: "remote smoke evidence reduced label confidence",
           });
           record("trust.appeal.resolve.status", appealResolved?.status === "LABEL_REDUCED" && appealResolved?.reviewer === "remote_smoke_reviewer", appealResolved?.status === "LABEL_REDUCED" ? "appeal resolved" : "appeal resolution failed", appealResolved);
+          const correctedEvidence = await postJson("trust.appeal.correctionEvidence", `${endpoints.rest}/trust/evidence`, {
+            subject: sampleAddress,
+          });
+          const correctionSummary = correctedEvidence?.riskSummary;
+          const correctionOk = Number(correctionSummary?.correctionLabelCount ?? 0) >= 1 &&
+            correctionSummary?.assetEffect === "none_advisory_only" &&
+            correctionSummary?.appealPath === "/trust/appeals" &&
+            Array.isArray(correctionSummary?.reviewerNotes) &&
+            correctionSummary.reviewerNotes.some((note) => String(note).includes("Appeal correction"));
+          record(
+            "trust.appeal.correctionEvidence.summary",
+            correctionOk,
+            correctionOk ? "appeal correction appears in Trust evidence risk summary" : "appeal correction missing from Trust evidence risk summary",
+            correctedEvidence,
+          );
         }
       }
     }

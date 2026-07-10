@@ -63,6 +63,7 @@ const requiredChecks = [
   "trust.appeal.open.status",
   "trust.appeal.lookup.id",
   "trust.appeal.resolve.status",
+  "trust.appeal.correctionEvidence.summary",
   "trust.trackingReview.valid.classification",
   "trust.trackingReview.overbroad.classification",
   "governance.transparency.final.report",
@@ -269,6 +270,9 @@ function selfTest() {
   const missing = validateEvidence(buildFixture({ omit: ["trust.appeal.resolve.status"] }));
   assert.equal(missing.validPublicProof, false, "missing appeal resolution proof must be invalid");
   assert(missing.missingRequiredChecks.includes("trust.appeal.resolve.status"));
+  const missingCorrectionEvidence = validateEvidence(buildFixture({ omit: ["trust.appeal.correctionEvidence.summary"] }));
+  assert.equal(missingCorrectionEvidence.validPublicProof, false, "missing appeal correction evidence proof must be invalid");
+  assert(missingCorrectionEvidence.missingRequiredChecks.includes("trust.appeal.correctionEvidence.summary"));
   const failed = validateEvidence(buildFixture({ fail: ["governance.request.illegal.nativeYnxtProtected"] }));
   assert.equal(failed.validPublicProof, false, "failed native YNXT protection proof must be invalid");
   assert(failed.failedRequiredChecks.includes("governance.request.illegal.nativeYnxtProtected"));
