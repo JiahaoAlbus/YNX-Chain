@@ -66,6 +66,11 @@ safe_env() {
 compact_json() {
   tr -d '[:space:]'
 }
+json_string_value() {
+  key="$1"
+  json="$2"
+  printf "%s" "$json" | sed -n "s/.*\"$key\":\"\\([^\"]*\\)\".*/\\1/p" | head -1
+}
 check_json_contains() {
   label="$1"
   json="$2"
@@ -135,6 +140,15 @@ manifest_compact="$(printf "%s" "$manifest_json" | compact_json)"
 validators_compact="$(printf "%s" "$validators_json" | compact_json)"
 peers_compact="$(printf "%s" "$peers_json" | compact_json)"
 sync_compact="$(printf "%s" "$sync_json" | compact_json)"
+manifest_commit="$(json_string_value commit "$manifest_compact")"
+manifest_release="$(json_string_value release "$manifest_compact")"
+echo "releaseManifest.commitValue=${manifest_commit:-missing}"
+echo "releaseManifest.releaseValue=${manifest_release:-missing}"
+if printf "%s" "$manifest_compact" | grep -Fq '"path":"bin/ynx-chaind"'; then
+  echo "releaseManifest.chaindPathValue=bin/ynx-chaind"
+else
+  echo "releaseManifest.chaindPathValue=missing"
+fi
 check_json_contains releaseManifest.schema "$manifest_compact" '"schema":"ynx-chain-release-manifest/v1"'
 check_json_contains releaseManifest.commit "$manifest_compact" "\"commit\":\"$expected_release_commit\""
 check_json_contains releaseManifest.release "$manifest_compact" "\"release\":\"$expected_release_name\""

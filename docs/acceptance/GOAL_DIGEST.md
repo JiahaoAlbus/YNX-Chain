@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Move from local governance/trust completion to remote public proof readiness: safely clear primary SSH connection-closed behavior, Singapore host-key mismatch, and Silicon Valley missing-scan mismatch evidence through out-of-band verified evidence plus ignored local approval check, keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
+- Move from local governance/trust completion to remote public proof readiness: safely clear Singapore and Silicon Valley host-key mismatch evidence through out-of-band verified fingerprints plus ignored local approval check, keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove release identity, manifest checksums, Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
 - Do not wait for every module to be locally complete before deploying. Deploy the core remote testnet first, then deploy and verify completed service modules incrementally on the real server environment.
 
 Forbidden:
