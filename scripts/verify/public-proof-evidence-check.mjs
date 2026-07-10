@@ -50,6 +50,11 @@ const requiredChecks = [
   "explorer.summary.validators",
   "explorer.faucetTx.hash",
   "ai.health.truthful",
+  "ai.action.proposal.audit",
+  "ai.permission.active",
+  "ai.action.approve.permissionGate",
+  "ai.action.lookup.audit",
+  "ai.action.list.session",
   "web4.health.truthful",
   "pay.intent.created",
   "pay.intent.idempotency",
@@ -285,6 +290,15 @@ function selfTest() {
   const missingWebhookAudit = validateEvidence(buildFixture({ omit: ["pay.webhook.auditFields"] }));
   assert.equal(missingWebhookAudit.validPublicProof, false, "missing Pay webhook audit proof must be invalid");
   assert(missingWebhookAudit.missingRequiredChecks.includes("pay.webhook.auditFields"));
+  const missingAIProposal = validateEvidence(buildFixture({ omit: ["ai.action.proposal.audit"] }));
+  assert.equal(missingAIProposal.validPublicProof, false, "missing AI sensitive action proposal proof must be invalid");
+  assert(missingAIProposal.missingRequiredChecks.includes("ai.action.proposal.audit"));
+  const missingAIPermission = validateEvidence(buildFixture({ omit: ["ai.permission.active"] }));
+  assert.equal(missingAIPermission.validPublicProof, false, "missing AI permission proof must be invalid");
+  assert(missingAIPermission.missingRequiredChecks.includes("ai.permission.active"));
+  const failedAIApproval = validateEvidence(buildFixture({ fail: ["ai.action.approve.permissionGate"] }));
+  assert.equal(failedAIApproval.validPublicProof, false, "failed AI permission-gated approval proof must be invalid");
+  assert(failedAIApproval.failedRequiredChecks.includes("ai.action.approve.permissionGate"));
   const failed = validateEvidence(buildFixture({ fail: ["governance.request.illegal.nativeYnxtProtected"] }));
   assert.equal(failed.validPublicProof, false, "failed native YNXT protection proof must be invalid");
   assert(failed.failedRequiredChecks.includes("governance.request.illegal.nativeYnxtProtected"));

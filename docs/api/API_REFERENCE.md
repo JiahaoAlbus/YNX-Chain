@@ -133,3 +133,4 @@ AI Gateway permission and audit:
 - Sensitive AI actions include value movement, Trust label/risk-state changes, and sensitive-data or evidence export. They are persisted as `pending_approval` and `executable=false`.
 - `POST /ai/actions/{id}/approve` requires a matching active permission for the same session, requester, and scope before a sensitive action can become `approved` and `executable=true`.
 - `POST /ai/actions/{id}/reject`, `GET /ai/actions?sessionId=...`, and `GET /ai/actions/{id}` expose auditable review state without bypassing YNX Chain Law.
+- Remote public proof must show a sensitive action proposal remains non-executable until a matching scoped permission approval, then show active permission audit, approved executable state, and audited action lookup/list on public endpoints.

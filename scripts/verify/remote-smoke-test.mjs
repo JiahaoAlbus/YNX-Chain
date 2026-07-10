@@ -459,6 +459,100 @@ function checkTruthfulServiceHealth(name, json) {
   return ok;
 }
 
+function checkAIActionProposal(json) {
+  const ok = typeof json?.id === "string" && json.id.length > 0 &&
+    json?.status === "pending_approval" &&
+    json?.sensitive === true &&
+    json?.requiresApproval === true &&
+    json?.executable === false &&
+    typeof json?.auditHash === "string" && json.auditHash.length > 0 &&
+    typeof json?.transparencyEntryId === "string" && json.transparencyEntryId.length > 0;
+  record(
+    "ai.action.proposal.audit",
+    ok,
+    ok ? `sensitive action ${json.id} pending approval` : `AI action proposal did not expose required pending/audit state: ${clip(json)}`,
+    {
+      id: json?.id,
+      status: json?.status,
+      sensitive: json?.sensitive,
+      requiresApproval: json?.requiresApproval,
+      executable: json?.executable,
+      auditHash: json?.auditHash,
+      transparencyEntryId: json?.transparencyEntryId,
+    }
+  );
+  return ok;
+}
+
+function checkAIPermission(json) {
+  const ok = typeof json?.id === "string" && json.id.length > 0 &&
+    json?.status === "active" &&
+    typeof json?.auditHash === "string" && json.auditHash.length > 0 &&
+    typeof json?.expiresAt === "string" && json.expiresAt.length > 0;
+  record(
+    "ai.permission.active",
+    ok,
+    ok ? `active permission ${json.id}` : `AI permission did not expose required active/audit state: ${clip(json)}`,
+    { id: json?.id, status: json?.status, auditHash: json?.auditHash, expiresAt: json?.expiresAt }
+  );
+  return ok;
+}
+
+function checkAIActionApproval(json, expectedPermissionID) {
+  const ok = json?.status === "approved" &&
+    json?.executable === true &&
+    json?.permissionId === expectedPermissionID &&
+    typeof json?.approvedAt === "string" && json.approvedAt.length > 0 &&
+    typeof json?.approvedBy === "string" && json.approvedBy.length > 0 &&
+    typeof json?.auditHash === "string" && json.auditHash.length > 0 &&
+    typeof json?.transparencyEntryId === "string" && json.transparencyEntryId.length > 0;
+  record(
+    "ai.action.approve.permissionGate",
+    ok,
+    ok ? "sensitive action became executable only after matching permission approval" : `AI approval did not expose required permission-gated state: ${clip(json)}`,
+    {
+      id: json?.id,
+      status: json?.status,
+      executable: json?.executable,
+      permissionId: json?.permissionId,
+      expectedPermissionID,
+      approvedAt: json?.approvedAt,
+      approvedBy: json?.approvedBy,
+      auditHash: json?.auditHash,
+      transparencyEntryId: json?.transparencyEntryId,
+    }
+  );
+  return ok;
+}
+
+function checkAIActionLookup(json, expectedID, expectedPermissionID) {
+  const ok = json?.id === expectedID &&
+    json?.status === "approved" &&
+    json?.executable === true &&
+    json?.permissionId === expectedPermissionID &&
+    typeof json?.auditHash === "string" && json.auditHash.length > 0;
+  record(
+    "ai.action.lookup.audit",
+    ok,
+    ok ? `AI action lookup matched ${expectedID}` : `AI action lookup missing approved/audit state: ${clip(json)}`,
+    { expectedID, id: json?.id, status: json?.status, executable: json?.executable, permissionId: json?.permissionId, auditHash: json?.auditHash }
+  );
+  return ok;
+}
+
+function checkAIActionList(json, expectedID) {
+  const actions = Array.isArray(json?.actions) ? json.actions : [];
+  const match = actions.find((action) => action?.id === expectedID);
+  const ok = Boolean(match) && typeof match?.auditHash === "string" && match.auditHash.length > 0;
+  record(
+    "ai.action.list.session",
+    ok,
+    ok ? `AI action list includes ${expectedID}` : `AI action list missing expected audited action ${expectedID}`,
+    { expectedID, actionCount: actions.length, match }
+  );
+  return ok;
+}
+
 function parseGrpcTarget(value) {
   const raw = String(value || "").trim();
   const withScheme = /^[a-z]+:\/\//i.test(raw) ? raw : `grpcs://${raw}`;
@@ -689,6 +783,48 @@ async function main() {
         payEventsOk ? "pay events expose audit hashes and idempotency metadata" : "pay events missing audit hashes or idempotency metadata",
         payEvents,
       );
+    }
+
+    const aiSession = `remote-smoke-ai-${sampleAddress}`;
+    const aiRequester = "remote_smoke_merchant";
+    const aiAction = await postJson("ai.action.proposal", `${endpoints.rest}/ai/actions`, {
+      sessionId: aiSession,
+      requester: aiRequester,
+      scope: "value_movement",
+      actionType: "transfer",
+      description: "Remote smoke sensitive merchant settlement action",
+    });
+    if (aiAction) {
+      checkAIActionProposal(aiAction);
+    } else {
+      record("ai.action.proposal.audit", false, "missing AI action proposal response", {});
+    }
+    const aiPermission = await postJson("ai.permission", `${endpoints.rest}/ai/permissions`, {
+      sessionId: aiSession,
+      requester: aiRequester,
+      scope: "value_movement",
+      purpose: "approve remote smoke scoped merchant settlement action",
+      expiryHours: 2,
+    });
+    if (aiPermission) {
+      checkAIPermission(aiPermission);
+    } else {
+      record("ai.permission.active", false, "missing AI permission response", {});
+    }
+    if (aiAction?.id && aiPermission?.id) {
+      const aiApproved = await postJson("ai.action.approve", `${endpoints.rest}/ai/actions/${encodeURIComponent(aiAction.id)}/approve`, {
+        approver: "remote_smoke_reviewer",
+        permissionId: aiPermission.id,
+      });
+      if (aiApproved) checkAIActionApproval(aiApproved, aiPermission.id);
+      const aiLookup = await getJson("ai.action.lookup", `${endpoints.rest}/ai/actions/${encodeURIComponent(aiAction.id)}`);
+      if (aiLookup) checkAIActionLookup(aiLookup, aiAction.id, aiPermission.id);
+      const aiList = await getJson("ai.action.list", `${endpoints.rest}/ai/actions?sessionId=${encodeURIComponent(aiSession)}`);
+      if (aiList) checkAIActionList(aiList, aiAction.id);
+    } else {
+      record("ai.action.approve.permissionGate", false, "skipped AI approval because proposal or permission id is missing", { actionId: aiAction?.id, permissionId: aiPermission?.id });
+      record("ai.action.lookup.audit", false, "skipped AI lookup because proposal or permission id is missing", { actionId: aiAction?.id, permissionId: aiPermission?.id });
+      record("ai.action.list.session", false, "skipped AI session list because proposal id is missing", { actionId: aiAction?.id });
     }
 
     const trust = await getJson("trust.trace", `${endpoints.rest}/trust/trace/${sampleAddress}`);
