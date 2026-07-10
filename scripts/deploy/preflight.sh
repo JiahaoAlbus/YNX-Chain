@@ -12,6 +12,6 @@ make release-manifest-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
 go test ./cmd/... ./internal/...
-make deploy-dry-run
+make caddy-ingress-check
 make ops-check
 echo "preflight passed for local devnet/testnet deployment package"

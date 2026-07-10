@@ -119,6 +119,58 @@ grep -Fq "reverse_proxy 127.0.0.1:6428" "$release_dir/caddy/ynx-chain.caddy" || 
 grep -Fq "BEGIN YNX_CHAIN_MANAGED_INGRESS" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed block marker"; exit 1; }
 grep -Fq "import \${dest}" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed import"; exit 1; }
 
+caddy_check_dir="$tmp/caddy-install-check"
+mkdir -p "$caddy_check_dir/bin" "$caddy_check_dir/etc"
+cat > "$caddy_check_dir/bin/sudo" <<'EOF'
+#!/usr/bin/env bash
+exec "$@"
+EOF
+cat > "$caddy_check_dir/bin/caddy" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${1:-}" == "validate" && "${2:-}" == "--config" && -n "${3:-}" ]] || { echo "unexpected caddy command: $*" >&2; exit 1; }
+grep -Fq "legacy.example" "$3" || { echo "candidate Caddyfile lost existing routes" >&2; exit 1; }
+grep -Fq "# BEGIN YNX_CHAIN_MANAGED_INGRESS" "$3" || { echo "candidate Caddyfile missing managed begin marker" >&2; exit 1; }
+grep -Fq "import " "$3" || { echo "candidate Caddyfile missing import" >&2; exit 1; }
+EOF
+cat > "$caddy_check_dir/bin/systemctl" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "\${1:-}" == "reload" && "\${2:-}" == "caddy" ]] || { echo "unexpected systemctl command: \$*" >&2; exit 1; }
+printf '%s\n' "\$*" >> "$caddy_check_dir/systemctl.log"
+EOF
+chmod +x "$caddy_check_dir/bin/sudo" "$caddy_check_dir/bin/caddy" "$caddy_check_dir/bin/systemctl"
+cat > "$caddy_check_dir/Caddyfile" <<'EOF'
+legacy.example {
+  reverse_proxy 127.0.0.1:9000
+}
+
+# BEGIN YNX_CHAIN_MANAGED_INGRESS
+import /tmp/old-ynx-chain.caddy
+# END YNX_CHAIN_MANAGED_INGRESS
+
+other.example {
+  reverse_proxy 127.0.0.1:9001
+}
+EOF
+PATH="$caddy_check_dir/bin:$PATH" bash "$release_dir/scripts/install-caddy-ingress.sh" \
+  "$release_dir/caddy/ynx-chain.caddy" \
+  "$caddy_check_dir/Caddyfile" \
+  "$caddy_check_dir/ynx-chain.caddy" \
+  "$release"
+grep -Fq "legacy.example" "$caddy_check_dir/Caddyfile" || { echo "Caddy installer removed existing route"; exit 1; }
+grep -Fq "other.example" "$caddy_check_dir/Caddyfile" || { echo "Caddy installer removed trailing existing route"; exit 1; }
+grep -Fq "import $caddy_check_dir/ynx-chain.caddy" "$caddy_check_dir/Caddyfile" || { echo "Caddy installer missing managed import"; exit 1; }
+if grep -Fq "old-ynx-chain.caddy" "$caddy_check_dir/Caddyfile"; then
+  echo "Caddy installer left stale managed import"
+  exit 1
+fi
+managed_count="$(grep -Fc "# BEGIN YNX_CHAIN_MANAGED_INGRESS" "$caddy_check_dir/Caddyfile")"
+[[ "$managed_count" == "1" ]] || { echo "Caddy installer wrote duplicate managed blocks"; exit 1; }
+cmp "$release_dir/caddy/ynx-chain.caddy" "$caddy_check_dir/ynx-chain.caddy" >/dev/null || { echo "Caddy installer wrote wrong snippet"; exit 1; }
+[[ -r "$caddy_check_dir/Caddyfile.pre-ynx-${release}" ]] || { echo "Caddy installer missing backup"; exit 1; }
+grep -Fq "reload caddy" "$caddy_check_dir/systemctl.log" || { echo "Caddy installer did not reload caddy"; exit 1; }
+
 ynx_check_role_env() {
   local role="$1" role_env="$2"
   local check_output
