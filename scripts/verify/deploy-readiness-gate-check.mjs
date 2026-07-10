@@ -58,6 +58,7 @@ writeJson(remoteEvidencePath, {
   proofType: "remote-public-testnet-smoke",
   generatedAt: new Date().toISOString(),
   gitCommit: headCommit,
+  status: "passed",
   expected: {
     cosmosChainId: "ynx_6423-1",
     evmChainId: 6423,
@@ -128,6 +129,29 @@ assertGateFails("stale-commit-remote-evidence", {
     remoteEvidence: { ...baseReady.sourceEvidence.remoteEvidence, path: staleCommitRemoteEvidencePath },
   },
 }, /does not match current HEAD/);
+
+const failedStatusRemoteEvidencePath = path.join(workDir, "remote-evidence-failed-status.json");
+writeJson(failedStatusRemoteEvidencePath, {
+  proofType: "remote-public-testnet-smoke",
+  generatedAt: now,
+  gitCommit: headCommit,
+  status: "failed",
+  expected: {
+    cosmosChainId: "ynx_6423-1",
+    evmChainId: 6423,
+    evmChainIdHex: "0x1917",
+    nativeSymbol: "YNXT",
+    releaseCommit,
+    releaseName: `ynx-chain-${releaseCommit}`,
+  },
+});
+assertGateFails("failed-status-remote-evidence", {
+  ...baseReady,
+  sourceEvidence: {
+    ...baseReady.sourceEvidence,
+    remoteEvidence: { ...baseReady.sourceEvidence.remoteEvidence, path: failedStatusRemoteEvidencePath },
+  },
+}, /status must be passed/);
 
 assertGateFails("endpoint-blocker", {
   ...baseReady,

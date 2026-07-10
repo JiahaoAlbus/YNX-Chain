@@ -116,6 +116,9 @@ for (const [key, label] of requiredSources.entries()) {
     if (remoteEvidence?.proofType !== "remote-public-testnet-smoke") {
       sourceProblems.push(`${label}: proofType must be remote-public-testnet-smoke (${source.path})`);
     }
+    if (remoteEvidence?.status !== "passed") {
+      sourceProblems.push(`${label}: status must be passed, got ${remoteEvidence?.status || "missing"} (${source.path})`);
+    }
     const evidenceCommit = String(remoteEvidence?.gitCommit || "");
     if (!/^[0-9a-f]{40}$/i.test(evidenceCommit)) {
       sourceProblems.push(`${label}: gitCommit must be a full 40-character SHA (${source.path})`);
