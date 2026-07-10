@@ -6,9 +6,11 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/deploy.env" <<EOF
-TESTNET_DOMAIN=ynx.test
+TESTNET_DOMAIN=testnet.ynx.test
 WEBSITE_DOMAIN=www.ynx.test
 EXPLORER_DOMAIN=explorer.ynx.test
+REST_DOMAIN=rest.ynx.test
+INDEXER_DOMAIN=indexer.ynx.test
 RPC_DOMAIN=rpc.ynx.test
 EVM_RPC_DOMAIN=evm-rpc.ynx.test
 FAUCET_DOMAIN=faucet.ynx.test
@@ -91,8 +93,18 @@ grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { e
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
+grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing REST_DOMAIN"; exit 1; }
+grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
+grep -Fq "server_name rest.ynx.test api.ynx.test ai.ynx.test trust.ynx.test pay.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
+grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
+grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
+grep -Fq "server_name faucet.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet domain server block"; exit 1; }
+grep -Fq "server_name ynx.test testnet.ynx.test rpc.ynx.test evm-rpc.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing RPC/EVM domain server block"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6426;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer proxy target"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6427;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer proxy target"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6428;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet proxy target"; exit 1; }
 
 ynx_check_role_env() {
   local role="$1" role_env="$2"

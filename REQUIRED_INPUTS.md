@@ -5,6 +5,8 @@ The engineering package is wired to fail fast when real deployment values are mi
 - TESTNET_DOMAIN
 - WEBSITE_DOMAIN
 - EXPLORER_DOMAIN
+- REST_DOMAIN
+- INDEXER_DOMAIN
 - RPC_DOMAIN
 - EVM_RPC_DOMAIN
 - FAUCET_DOMAIN

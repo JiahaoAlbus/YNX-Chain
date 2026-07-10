@@ -27,7 +27,7 @@ YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE
 YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
 
 required=(
-  TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
+  TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
   FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
   SERVER_HOST SERVER_USER SSH_KEY_PATH DEPLOY_TARGET CHAIN_ID CHAIN_NAME
   NATIVE_COIN_NAME NATIVE_SYMBOL GENESIS_VALIDATOR_NAME VALIDATOR_KEY_PATH
@@ -72,7 +72,7 @@ EOF
 
 ynx_write_kv_env "$work/config/ynx-chaind.env" \
   CHAIN_ID CHAIN_NAME NATIVE_COIN_NAME NATIVE_SYMBOL TESTNET_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN \
-  FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN \
+  REST_DOMAIN INDEXER_DOMAIN FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN \
   GENESIS_VALIDATOR_NAME TREASURY_ADDRESS FOUNDATION_ADDRESS TEAM_VESTING_ADDRESS \
   POSTGRES_URL REDIS_URL WEBHOOK_SECRET JWT_SECRET SESSION_SECRET RATE_LIMIT_SECRET \
   PAY_MERCHANT_SECRET TRUST_REPORT_SIGNING_KEY OBJECT_STORAGE_ENDPOINT OBJECT_STORAGE_BUCKET \
@@ -274,7 +274,35 @@ server {
 
 server {
   listen 80;
-  server_name ${NGINX_SERVER_NAME} ${RPC_DOMAIN} ${EVM_RPC_DOMAIN} ${API_DOMAIN} ${FAUCET_DOMAIN} ${AI_GATEWAY_DOMAIN} ${TRUST_API_DOMAIN} ${PAY_API_DOMAIN} ${IDE_DOMAIN};
+  server_name ${INDEXER_DOMAIN};
+  client_max_body_size 2m;
+  location / {
+    proxy_pass http://127.0.0.1:6426;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+}
+
+server {
+  listen 80;
+  server_name ${NGINX_SERVER_NAME} ${TESTNET_DOMAIN} ${RPC_DOMAIN} ${EVM_RPC_DOMAIN};
+  client_max_body_size 2m;
+  location / {
+    proxy_pass http://127.0.0.1:6420;
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+}
+
+server {
+  listen 80;
+  server_name ${REST_DOMAIN} ${API_DOMAIN} ${AI_GATEWAY_DOMAIN} ${TRUST_API_DOMAIN} ${PAY_API_DOMAIN} ${IDE_DOMAIN};
   client_max_body_size 2m;
   location / {
     proxy_pass http://127.0.0.1:6420;
