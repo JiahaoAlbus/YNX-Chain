@@ -99,6 +99,7 @@ node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$releas
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./caddy/ynx-chain.caddy" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/install-caddy-ingress.sh" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/check-local-services.sh" || { echo "release tarball missing local service check script"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ai.ynx.test trust.ynx.test pay.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
@@ -170,6 +171,7 @@ managed_count="$(grep -Fc "# BEGIN YNX_CHAIN_MANAGED_INGRESS" "$caddy_check_dir/
 cmp "$release_dir/caddy/ynx-chain.caddy" "$caddy_check_dir/ynx-chain.caddy" >/dev/null || { echo "Caddy installer wrote wrong snippet"; exit 1; }
 [[ -r "$caddy_check_dir/Caddyfile.pre-ynx-${release}" ]] || { echo "Caddy installer missing backup"; exit 1; }
 grep -Fq "reload caddy" "$caddy_check_dir/systemctl.log" || { echo "Caddy installer did not reload caddy"; exit 1; }
+bash "$release_dir/scripts/check-local-services.sh" --self-test
 
 ynx_check_role_env() {
   local role="$1" role_env="$2"
@@ -215,6 +217,11 @@ fi
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
+grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
+grep -Eq "check-local-services\\.sh.*primary.*${commit}.*${release}.*6423.*full" "$dry_run_out" || { echo "dry-run output missing primary full local service check"; exit 1; }
+grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
+grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
+grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }
 grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || { echo "legacy home data path missing from predeploy backup"; exit 1; }
 grep -Fq "/root/.ynx-v2" "$dry_run_out" || { echo "legacy root data path missing from predeploy backup"; exit 1; }
 grep -Fq "ynx-v2-node.service" "$dry_run_out" || { echo "legacy primary service backup missing"; exit 1; }

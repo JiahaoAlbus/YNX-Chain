@@ -400,6 +400,8 @@ sudo install -m 0644 "$candidate" "$caddyfile"
 sudo systemctl reload caddy
 EOF
 chmod +x "$work/scripts/install-caddy-ingress.sh"
+cp scripts/deploy/check-local-services.sh "$work/scripts/check-local-services.sh"
+chmod +x "$work/scripts/check-local-services.sh"
 
 cp README.md REQUIRED_INPUTS.md ENV_INTAKE_FORM.md "$work/docs/"
 node scripts/deploy/write-release-manifest.mjs "$work" "$release" "$commit" "$build_time" "$DEPLOY_TARGET" "$CHAIN_ID" "$CHAIN_NAME"
@@ -482,12 +484,14 @@ ynx_install_primary_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release'; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl --no-pager --full status ynx-chaind && sudo systemctl --no-pager --full status ynx-indexerd && sudo systemctl --no-pager --full status ynx-explorerd && sudo systemctl --no-pager --full status ynx-faucetd"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
 }
 
 ynx_install_validator_node() {
   local role="$1" user="$2" host="$3" key="$4"
   ynx_prepare_release_on_node "$role" "$user" "$host" "$key"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind && sudo systemctl restart ynx-chaind && sudo systemctl --no-pager --full status ynx-chaind"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' validator"
 }
 
 ynx_precheck_node_access "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY"
