@@ -6,6 +6,7 @@ Why this action:
 
 - Chain Law / Anti-Illegal / Request Validity / Appeal / Transparency are now locally verified again through unit tests, dedicated smoke checks, and preflight, and remain wired into public-proof requirements.
 - `make preflight` now runs the local Chain Law / Appeal / Transparency smoke gates directly, including anti-illegal request rejection, request-validity classification, transparency reporting, Trust appeal correction, and anti-unreasonable tracking.
+- `make preflight` now also runs `make native-ynxt-no-hidden-freeze-check`, so native YNXT direct freeze/transfer/seize/confiscate/blacklist rejection and the static hidden-freeze scan are part of the deploy-package gate.
 - Public proof now requires appeal resolution to be followed by Trust evidence false-positive correction summary (`trust.appeal.correctionEvidence.summary`), so a remote proof cannot pass by only changing appeal status without showing reviewer-facing correction evidence.
 - Public proof now requires AI sensitive action proposal audit, active scoped permission audit, permission-gated approval, and audited action lookup/list; a remote proof cannot pass with only AI health.
 - Public proof now also requires Pay intent/invoice idempotency replay, webhook replay-safe audit metadata, webhook lookup/replay, and Pay event audit hashes; a remote proof cannot pass with only a created Pay intent.
@@ -54,6 +55,7 @@ Validation commands:
 - `make request-validity-check`
 - `make transparency-report-check`
 - `make trust-appeal-check`
+- `make native-ynxt-no-hidden-freeze-check`
 - `make host-key-audit`
 - `make host-key-approval-request`
 - `make host-key-approval-packet`

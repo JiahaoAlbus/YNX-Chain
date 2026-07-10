@@ -17,6 +17,7 @@ make request-validity-check
 make transparency-report-check
 make trust-appeal-check
 make anti-unreasonable-tracking-check
+make native-ynxt-no-hidden-freeze-check
 make caddy-ingress-check
 make ops-check
 echo "preflight passed for local devnet/testnet deployment package"
