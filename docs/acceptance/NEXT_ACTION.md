@@ -17,6 +17,7 @@ Why this action:
 - Deploy package dry-run now verifies the post-restart local service checker is packaged, self-tested, and invoked for the primary full-stack node and every validator with the expected commit, release, chain ID, and mode. This closes a local deployment-package gap only; it is not remote public proof.
 - Primary full-stack deploy checks now require `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd` health responses to expose the same expected build commit and release, and dry-run verifies release strings in all four deployed binaries.
 - Deploy-readiness gate now rejects fresh remote-smoke evidence if its `gitCommit` / expected release identity is not bound to the current local HEAD.
+- Deploy-readiness gate now also rejects fresh, current-HEAD-bound remote-smoke evidence when its `status` is not `passed`; current public evidence is therefore intentionally blocked instead of deployable.
 - Remote-blocker reports now surface stale/wrong remote-smoke evidence identity as a deploy-blocking source issue before deployment is attempted.
 - The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
 - Singapore and Silicon Valley host keys still need trusted external confirmation before known_hosts repair or deploy mutation.
@@ -93,6 +94,7 @@ Completion standard:
 - Deploy dry-run must prove the release bundle includes `scripts/check-local-services.sh`, runs its self-test, and emits post-restart checker commands for the primary full-stack node plus Singapore, Silicon Valley, and Seoul validators using the expected commit, release name, numeric chain ID, and validator/full mode.
 - Deploy dry-run must prove `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd` binaries all carry the current release commit/name, and the primary full-stack checker must reject stale auxiliary health build identity.
 - Deploy-readiness gate must reject remote evidence generated from an older local commit or mismatched expected release identity, even when the evidence file is fresh.
+- Deploy-readiness gate must reject remote evidence whose status is `failed`, even when its commit and release identity match the current local checkout.
 - Remote-blocker reports must show remote evidence identity mismatch as a source blocker, not only as a later deploy-gate failure.
 
 Explicitly not doing:
