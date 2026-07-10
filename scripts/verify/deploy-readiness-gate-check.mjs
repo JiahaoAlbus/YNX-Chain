@@ -24,6 +24,12 @@ function runNode(script, env = {}) {
   });
 }
 
+function currentGitCommit() {
+  const result = spawnSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" });
+  assert.equal(result.status, 0, `git rev-parse HEAD should work: ${result.stderr}`);
+  return result.stdout.trim();
+}
+
 function runGate(name, blocker) {
   const blockerPath = path.join(workDir, `${name}.json`);
   writeJson(blockerPath, blocker);
@@ -41,7 +47,21 @@ function assertGateFails(name, blocker, expected) {
 
 const remoteEvidencePath = path.join(workDir, "remote-evidence.json");
 const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
-fs.writeFileSync(remoteEvidencePath, '{"generatedAt":"fresh"}\n');
+const headCommit = currentGitCommit();
+const releaseCommit = headCommit.slice(0, 12);
+writeJson(remoteEvidencePath, {
+  proofType: "remote-public-testnet-smoke",
+  generatedAt: new Date().toISOString(),
+  gitCommit: headCommit,
+  expected: {
+    cosmosChainId: "ynx_6423-1",
+    evmChainId: 6423,
+    evmChainIdHex: "0x1917",
+    nativeSymbol: "YNXT",
+    releaseCommit,
+    releaseName: `ynx-chain-${releaseCommit}`,
+  },
+});
 fs.writeFileSync(hostKeyAuditPath, "host-key audit fresh\n");
 
 const now = new Date().toISOString();
@@ -81,6 +101,28 @@ assertGateFails("missing-source-file", {
     hostKeyAudit: { ...baseReady.sourceEvidence.hostKeyAudit, path: path.join(workDir, "deleted-host-key-audit.txt") },
   },
 }, /source path no longer exists/);
+
+const staleCommitRemoteEvidencePath = path.join(workDir, "remote-evidence-stale-commit.json");
+writeJson(staleCommitRemoteEvidencePath, {
+  proofType: "remote-public-testnet-smoke",
+  generatedAt: now,
+  gitCommit: "1111111111111111111111111111111111111111",
+  expected: {
+    cosmosChainId: "ynx_6423-1",
+    evmChainId: 6423,
+    evmChainIdHex: "0x1917",
+    nativeSymbol: "YNXT",
+    releaseCommit: "111111111111",
+    releaseName: "ynx-chain-111111111111",
+  },
+});
+assertGateFails("stale-commit-remote-evidence", {
+  ...baseReady,
+  sourceEvidence: {
+    ...baseReady.sourceEvidence,
+    remoteEvidence: { ...baseReady.sourceEvidence.remoteEvidence, path: staleCommitRemoteEvidencePath },
+  },
+}, /does not match current HEAD/);
 
 assertGateFails("endpoint-blocker", {
   ...baseReady,

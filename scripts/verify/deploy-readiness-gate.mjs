@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
 const blockerJsonPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
 const maxAgeMinutes = Number(process.env.YNX_DEPLOY_GATE_MAX_AGE_MINUTES || 120);
+const expectedCosmosChainId = process.env.YNX_COSMOS_CHAIN_ID || "ynx_6423-1";
+const expectedEvmChainId = Number(process.env.YNX_EVM_CHAIN_ID || 6423);
+const expectedEvmChainIdHex = String(process.env.YNX_EVM_CHAIN_ID_HEX || "0x1917").toLowerCase();
+const expectedNativeSymbol = process.env.YNX_NATIVE_COIN_SYMBOL || "YNXT";
 
 function fail(message, details = []) {
   console.error(`deploy-readiness-gate failed: ${message}`);
@@ -26,6 +31,14 @@ function readJson(file) {
     return JSON.parse(fs.readFileSync(file, "utf8"));
   } catch (err) {
     fail(`missing or unreadable blocker JSON at ${file}`, [err.message]);
+  }
+}
+
+function currentGitCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
   }
 }
 
@@ -67,6 +80,7 @@ for (const [key, source] of Object.entries(sourceEvidence)) {
   }
 }
 const sourceProblems = [];
+const headCommit = currentGitCommit();
 for (const [key, label] of requiredSources.entries()) {
   const source = sourceEvidence[key];
   if (!source || !source.exists) {
@@ -89,6 +103,47 @@ for (const [key, label] of requiredSources.entries()) {
   const sourceAgeMinutes = (Date.now() - sourceTimestamp) / 60000;
   if (sourceAgeMinutes > maxAgeMinutes) {
     sourceProblems.push(`${label}: stale ${sourceAgeMinutes.toFixed(1)} minutes old, max ${maxAgeMinutes} (${source.path || "unknown path"})`);
+  }
+  if (key === "remoteEvidence") {
+    let remoteEvidence = null;
+    try {
+      remoteEvidence = JSON.parse(fs.readFileSync(source.path, "utf8"));
+    } catch (err) {
+      sourceProblems.push(`${label}: unreadable JSON (${source.path}): ${err.message}`);
+      continue;
+    }
+    if (remoteEvidence?.proofType !== "remote-public-testnet-smoke") {
+      sourceProblems.push(`${label}: proofType must be remote-public-testnet-smoke (${source.path})`);
+    }
+    const evidenceCommit = String(remoteEvidence?.gitCommit || "");
+    if (!/^[0-9a-f]{40}$/i.test(evidenceCommit)) {
+      sourceProblems.push(`${label}: gitCommit must be a full 40-character SHA (${source.path})`);
+    } else if (headCommit !== "unknown" && evidenceCommit !== headCommit) {
+      sourceProblems.push(`${label}: gitCommit ${evidenceCommit.slice(0, 12)} does not match current HEAD ${headCommit.slice(0, 12)} (${source.path})`);
+    }
+    const expected = remoteEvidence?.expected || {};
+    const releaseCommit = String(expected.releaseCommit || "");
+    const releaseName = String(expected.releaseName || "");
+    if (expected.cosmosChainId !== expectedCosmosChainId) {
+      sourceProblems.push(`${label}: expected.cosmosChainId must be ${expectedCosmosChainId} (${source.path})`);
+    }
+    if (Number(expected.evmChainId) !== expectedEvmChainId) {
+      sourceProblems.push(`${label}: expected.evmChainId must be ${expectedEvmChainId} (${source.path})`);
+    }
+    if (String(expected.evmChainIdHex || "").toLowerCase() !== expectedEvmChainIdHex) {
+      sourceProblems.push(`${label}: expected.evmChainIdHex must be ${expectedEvmChainIdHex} (${source.path})`);
+    }
+    if (expected.nativeSymbol !== expectedNativeSymbol) {
+      sourceProblems.push(`${label}: expected.nativeSymbol must be ${expectedNativeSymbol} (${source.path})`);
+    }
+    if (!/^[0-9a-f]{7,40}$/i.test(releaseCommit) || releaseCommit === "unknown") {
+      sourceProblems.push(`${label}: expected.releaseCommit must be a concrete git SHA prefix (${source.path})`);
+    } else if (headCommit !== "unknown" && !headCommit.startsWith(releaseCommit)) {
+      sourceProblems.push(`${label}: expected.releaseCommit ${releaseCommit} does not match current HEAD ${headCommit.slice(0, 12)} (${source.path})`);
+    }
+    if (releaseName !== `ynx-chain-${releaseCommit}`) {
+      sourceProblems.push(`${label}: expected.releaseName must match ynx-chain-<releaseCommit> (${source.path})`);
+    }
   }
 }
 if (sourceProblems.length) {
