@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const verifyDir = process.env.YNX_VERIFY_TESTNET_OUT || "tmp/verify-testnet";
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(verifyDir, "remote-evidence.json");
@@ -13,6 +14,18 @@ const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/lega
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
 const jsonOutPath = process.env.YNX_REMOTE_BLOCKER_JSON || path.join(verifyDir, "remote-blockers.json");
 const maxAgeMinutes = Number(process.env.YNX_DEPLOY_GATE_MAX_AGE_MINUTES || 120);
+const expectedCosmosChainId = process.env.YNX_COSMOS_CHAIN_ID || "ynx_6423-1";
+const expectedEvmChainId = Number(process.env.YNX_EVM_CHAIN_ID || 6423);
+const expectedEvmChainIdHex = String(process.env.YNX_EVM_CHAIN_ID_HEX || "0x1917").toLowerCase();
+const expectedNativeSymbol = process.env.YNX_NATIVE_COIN_SYMBOL || "YNXT";
+
+function currentGitCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+}
 
 function readText(file) {
   try {
@@ -203,6 +216,67 @@ function approvalRequestJsonMetadata(file, { required, mismatchFindings }) {
   };
 }
 
+function remoteEvidenceJsonMetadata(file, { required }) {
+  const evidence = readJson(file);
+  const metadata = fileMetadata(file, { required, jsonGeneratedAt: evidence?.generatedAt });
+  if (!required || metadata.classification !== "fresh") return metadata;
+  if (!evidence) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "remote evidence JSON is unreadable",
+    };
+  }
+
+  const problems = [];
+  const headCommit = currentGitCommit();
+  if (evidence.proofType !== "remote-public-testnet-smoke") {
+    problems.push("proofType must be remote-public-testnet-smoke");
+  }
+  const evidenceCommit = String(evidence.gitCommit || "");
+  if (!/^[0-9a-f]{40}$/i.test(evidenceCommit)) {
+    problems.push("gitCommit must be a full 40-character SHA");
+  } else if (headCommit !== "unknown" && evidenceCommit !== headCommit) {
+    problems.push(`gitCommit ${evidenceCommit.slice(0, 12)} does not match current HEAD ${headCommit.slice(0, 12)}`);
+  }
+  const expected = evidence.expected || {};
+  const releaseCommit = String(expected.releaseCommit || "");
+  const releaseName = String(expected.releaseName || "");
+  if (expected.cosmosChainId !== expectedCosmosChainId) {
+    problems.push(`expected.cosmosChainId must be ${expectedCosmosChainId}`);
+  }
+  if (Number(expected.evmChainId) !== expectedEvmChainId) {
+    problems.push(`expected.evmChainId must be ${expectedEvmChainId}`);
+  }
+  if (String(expected.evmChainIdHex || "").toLowerCase() !== expectedEvmChainIdHex) {
+    problems.push(`expected.evmChainIdHex must be ${expectedEvmChainIdHex}`);
+  }
+  if (expected.nativeSymbol !== expectedNativeSymbol) {
+    problems.push(`expected.nativeSymbol must be ${expectedNativeSymbol}`);
+  }
+  if (!/^[0-9a-f]{7,40}$/i.test(releaseCommit) || releaseCommit === "unknown") {
+    problems.push("expected.releaseCommit must be a concrete git SHA prefix");
+  } else if (headCommit !== "unknown" && !headCommit.startsWith(releaseCommit)) {
+    problems.push(`expected.releaseCommit ${releaseCommit} does not match current HEAD ${headCommit.slice(0, 12)}`);
+  }
+  if (releaseName !== `ynx-chain-${releaseCommit}`) {
+    problems.push("expected.releaseName must match ynx-chain-<releaseCommit>");
+  }
+
+  if (problems.length) {
+    return {
+      ...metadata,
+      classification: "remote-evidence-identity-mismatch",
+      detail: problems.slice(0, 4).join("; "),
+    };
+  }
+  return {
+    ...metadata,
+    classification: "fresh",
+    detail: `fresh and bound to current release ${releaseCommit}`,
+  };
+}
+
 function approvalStatusJsonMetadata(file, { required, mismatchFindings }) {
   const status = readJson(file);
   const metadata = fileMetadata(file, { required, jsonGeneratedAt: status?.generatedAt });
@@ -362,7 +436,7 @@ const evidence = readJson(evidencePath);
 const ssh = readText(sshPath);
 const hostKeyAudit = readText(hostKeyAuditPath);
 const sourceEvidence = {
-  remoteEvidence: fileMetadata(evidencePath, { required: true, jsonGeneratedAt: evidence?.generatedAt }),
+  remoteEvidence: remoteEvidenceJsonMetadata(evidencePath, { required: true }),
   hostKeyAudit: fileMetadata(hostKeyAuditPath, { required: true }),
   sshServices: fileMetadata(sshPath),
   legacyInventory: fileMetadata(legacyInventoryPath),

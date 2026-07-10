@@ -9,6 +9,7 @@ Why this action:
 - Release manifest evidence now captures observed per-node manifest commit/release/path and fails mismatched release identity locally; this still needs real remote node evidence after deployment.
 - Public-proof evidence validation now rejects checks-only evidence unless remote smoke metadata, expected YNX chain identity, release identity, non-local public endpoints, non-local gRPC host, and release-manifest evidence path are present.
 - Deploy-readiness gate now rejects fresh remote-smoke evidence if its `gitCommit` / expected release identity is not bound to the current local HEAD.
+- Remote-blocker reports now surface stale/wrong remote-smoke evidence identity as a deploy-blocking source issue before deployment is attempted.
 - The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
 - Singapore and Silicon Valley host keys still need trusted external confirmation before known_hosts repair or deploy mutation.
 - Deploy-readiness gate must remain fail-closed until approval and public endpoint evidence are safe.
@@ -24,6 +25,7 @@ Files to touch:
 - `scripts/verify/release-manifest-evidence.mjs`
 - `scripts/verify/public-proof-evidence-check.mjs`
 - `scripts/verify/deploy-readiness-gate.mjs`
+- `scripts/verify/remote-blocker-report.mjs`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
@@ -65,6 +67,7 @@ Completion standard:
 - Release manifest evidence must include observed per-node manifest commit, release, `bin/ynx-chaind` path, manifest SHA-256, and binary SHA-256 matching the expected release before public proof can pass.
 - Public-proof validation must keep rejecting localhost, old-chain identity, wrong release identity, missing metadata, missing required checks, failed required checks, and skipped mutable actions.
 - Deploy-readiness gate must reject remote evidence generated from an older local commit or mismatched expected release identity, even when the evidence file is fresh.
+- Remote-blocker reports must show remote evidence identity mismatch as a source blocker, not only as a later deploy-gate failure.
 
 Explicitly not doing:
 

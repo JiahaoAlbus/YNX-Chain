@@ -193,6 +193,27 @@ for (const classification of [
   );
 }
 
+const staleCommitReportJsonPath = path.join(workDir, "remote-blockers-stale-commit-source.json");
+const staleCommitHostKeyAuditPath = path.join(workDir, "stale-commit-host-key-audit.txt");
+fs.writeFileSync(staleCommitHostKeyAuditPath, [
+  "== primary ynx@43.153.202.237 ==",
+  "OK strict ssh accepted current host key",
+  "",
+].join("\n"));
+const staleCommitReport = runNode(reportScript, {
+  YNX_VERIFY_TESTNET_OUT: workDir,
+  YNX_REMOTE_EVIDENCE_PATH: staleCommitRemoteEvidencePath,
+  YNX_HOST_KEY_AUDIT_REPORT: staleCommitHostKeyAuditPath,
+  YNX_LEGACY_INVENTORY_REPORT: path.join(workDir, "missing-legacy-inventory.txt"),
+  YNX_REMOTE_BLOCKER_REPORT: path.join(workDir, "STALE_COMMIT_REMOTE_BLOCKERS.md"),
+  YNX_REMOTE_BLOCKER_JSON: staleCommitReportJsonPath,
+  YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+});
+assert.equal(staleCommitReport.status, 0, `remote-blocker-report stale commit run should write diagnostics: ${staleCommitReport.stderr}`);
+const staleCommitReportJson = JSON.parse(fs.readFileSync(staleCommitReportJsonPath, "utf8"));
+assert.equal(staleCommitReportJson.sourceEvidence.remoteEvidence.classification, "remote-evidence-identity-mismatch");
+assert(staleCommitReportJson.deployBlockers.sources.some((item) => item.name === "remoteEvidence" && item.classification === "remote-evidence-identity-mismatch"));
+
 const reportJsonPath = path.join(workDir, "remote-blockers-missing-sources.json");
 const report = runNode(reportScript, {
   YNX_VERIFY_TESTNET_OUT: workDir,
