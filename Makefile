@@ -165,7 +165,7 @@ public-proof:
 	bash ./scripts/package/public-proof.sh
 
 native-ynxt-no-hidden-freeze-check:
-	bash ./scripts/verify/anti-illegal-request-check.sh
+	bash ./scripts/verify/native-ynxt-no-hidden-freeze-check.sh
 
 anti-illegal-request-check:
 	bash ./scripts/verify/anti-illegal-request-check.sh

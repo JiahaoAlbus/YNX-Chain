@@ -1,21 +1,25 @@
 # Next Action
 
-Current single action: obtain trusted out-of-band confirmation for Singapore and Silicon Valley SSH host-key fingerprints, then run the existing approval check and approved known_hosts repair dry-run. Do not mutate remote hosts or repair known_hosts until those fingerprints are independently confirmed.
+Current single action: implement Resource Market production pricing and governance configuration while remote deployment remains blocked by untrusted host-key fingerprints. Do not mutate remote hosts or repair known_hosts until Singapore and Silicon Valley fingerprints are independently confirmed.
 
 Why this action:
 
-- Fresh host-key audit now shows primary and Seoul strict SSH accepted current host keys.
-- Singapore and Silicon Valley both present changed host keys with valid scanned fingerprints.
-- Approval request/status files now contain six untrusted fingerprint rows, three per mismatch node.
-- Deploy-readiness gate correctly fails closed until ignored `.host-key-approvals.json` contains trusted, externally confirmed fingerprints and approved repair is reviewed.
+- `FEATURE_COMPLETION_TRACKER.md` now has Native YNXT no-hidden-freeze static and behavioral coverage locally verified.
+- `Resource Market` remains local-only and its next implementation gap is production pricing/governance config.
+- Resource pricing config is a real chain capability that can be completed locally and later verified remotely without needing SSH host-key approval first.
+- Host-key approval is still required before real remote mutation; it remains a blocker, not the current locally actionable engineering slice.
 
 Files to touch:
 
-- `.host-key-approvals.json` (ignored local file; only after trusted external confirmation)
-- `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md`
-- `tmp/host-key-audit/host-key-approval-request.json`
-- `tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md`
-- `tmp/verify-testnet/REMOTE_BLOCKERS.md`
+- `internal/chain/types.go`
+- `internal/chain/devnet.go`
+- `internal/chain/devnet_test.go`
+- `internal/api/server.go`
+- `internal/api/server_test.go`
+- `scripts/verify/testnet-smoke-test.sh`
+- `scripts/verify/remote-smoke-test.mjs`
+- `scripts/verify/resource-market-check.sh` if a dedicated check is added
+- `Makefile`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
@@ -23,12 +27,13 @@ Validation commands:
 
 - `go test ./...`
 - `make test`
+- `make native-ynxt-no-hidden-freeze-check`
+- `make anti-illegal-request-check`
+- `make request-validity-check`
+- `make transparency-report-check`
+- `make trust-appeal-check`
 - `make smoke-test`
-- `make validator-peer-readiness-check`
-- `make deploy-dry-run`
-- `make release-manifest-check`
-- `make verify-testnet-check`
-- `make public-proof-evidence-check`
+- `make resource-market-check` if added
 - `make env-check`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -37,10 +42,10 @@ Validation commands:
 
 Completion standard:
 
-- Trusted fingerprints are copied only from an external provider/cloud-console channel, not from `ssh-keyscan` alone.
-- `make host-key-approval-check` passes.
-- `make host-key-approved-repair-dry-run` shows only the approved Singapore and Silicon Valley known_hosts replacements.
-- `make host-key-approved-repair` is not run until the dry-run is reviewed.
+- Resource Market exposes inspectable pricing/governance policy, not only hardcoded arithmetic.
+- Quote, delegation, rental, income, and analytics use the configured policy and report policy identity/version.
+- Invalid fee/share/price settings fail fast in tests or config validation.
+- Local tests and smoke/check commands pass.
 - Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
 
 Explicitly not doing:
@@ -49,3 +54,4 @@ Explicitly not doing:
 - Do not modify the website repo for this chain-runtime slice.
 - Do not expand bounded EVM/IDE execution unless needed to keep existing tests green.
 - Do not mutate remote hosts while deploy-readiness gate remains blocked.
+- Do not treat `ssh-keyscan` fingerprints as trusted approval.
