@@ -1,25 +1,21 @@
 # Next Action
 
-Current single action: implement Resource Market production pricing and governance configuration while remote deployment remains blocked by untrusted host-key fingerprints. Do not mutate remote hosts or repair known_hosts until Singapore and Silicon Valley fingerprints are independently confirmed.
+Current single action: return to remote core testnet deployment readiness by clearing the trusted host-key approval blocker for Singapore and Silicon Valley, then rerun deploy-readiness evidence. Do not mutate remote hosts or repair known_hosts until those fingerprints are independently confirmed.
 
 Why this action:
 
-- `FEATURE_COMPLETION_TRACKER.md` now has Native YNXT no-hidden-freeze static and behavioral coverage locally verified.
-- `Resource Market` remains local-only and its next implementation gap is production pricing/governance config.
-- Resource pricing config is a real chain capability that can be completed locally and later verified remotely without needing SSH host-key approval first.
-- Host-key approval is still required before real remote mutation; it remains a blocker, not the current locally actionable engineering slice.
+- Resource Market production pricing/governance config is now local verified and wired into public-proof requirements.
+- The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
+- Singapore and Silicon Valley host keys still need trusted external confirmation before known_hosts repair or deploy mutation.
+- Deploy-readiness gate must remain fail-closed until approval and public endpoint evidence are safe.
 
 Files to touch:
 
-- `internal/chain/types.go`
-- `internal/chain/devnet.go`
-- `internal/chain/devnet_test.go`
-- `internal/api/server.go`
-- `internal/api/server_test.go`
-- `scripts/verify/testnet-smoke-test.sh`
-- `scripts/verify/remote-smoke-test.mjs`
-- `scripts/verify/resource-market-check.sh` if a dedicated check is added
-- `Makefile`
+- `.host-key-approvals.json` (ignored local file; only after trusted external confirmation)
+- `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md`
+- `tmp/host-key-audit/host-key-approval-request.json`
+- `tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md`
+- `tmp/verify-testnet/REMOTE_BLOCKERS.md`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
@@ -27,13 +23,14 @@ Validation commands:
 
 - `go test ./...`
 - `make test`
-- `make native-ynxt-no-hidden-freeze-check`
-- `make anti-illegal-request-check`
-- `make request-validity-check`
-- `make transparency-report-check`
-- `make trust-appeal-check`
-- `make smoke-test`
-- `make resource-market-check` if added
+- `make host-key-audit`
+- `make host-key-approval-request`
+- `make host-key-approval-status`
+- `make host-key-approval-check`
+- `make host-key-approved-repair-dry-run`
+- `make remote-smoke-test`
+- `make remote-blocker-report`
+- `make deploy-readiness-gate`
 - `make env-check`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -42,10 +39,10 @@ Validation commands:
 
 Completion standard:
 
-- Resource Market exposes inspectable pricing/governance policy, not only hardcoded arithmetic.
-- Quote, delegation, rental, income, and analytics use the configured policy and report policy identity/version.
-- Invalid fee/share/price settings fail fast in tests or config validation.
-- Local tests and smoke/check commands pass.
+- Trusted fingerprints are copied only from an external provider/cloud-console channel, not from `ssh-keyscan` alone.
+- `make host-key-approval-check` passes.
+- `make host-key-approved-repair-dry-run` shows only approved Singapore and Silicon Valley known_hosts replacements.
+- `make host-key-approved-repair` is not run until the dry-run is reviewed.
 - Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
 
 Explicitly not doing:
@@ -55,3 +52,4 @@ Explicitly not doing:
 - Do not expand bounded EVM/IDE execution unless needed to keep existing tests green.
 - Do not mutate remote hosts while deploy-readiness gate remains blocked.
 - Do not treat `ssh-keyscan` fingerprints as trusted approval.
+- Do not add another local feature slice unless host-key approval remains externally unavailable and the next slice is a real tracker gap.

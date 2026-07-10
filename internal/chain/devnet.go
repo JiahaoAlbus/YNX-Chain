@@ -24,8 +24,6 @@ const (
 	ValidatorAddress         = "ynx_validator_0"
 	ProtocolResourceProvider = "ynx_protocol_resource_pool"
 	ProtocolResourceTreasury = "ynx_protocol_resource_treasury"
-	resourceProviderShareBps = 8000
-	resourceProtocolShareBps = 2000
 )
 
 var requestValidityRules = []RequestValidityRule{
@@ -78,6 +76,7 @@ type Devnet struct {
 	resourceDelegations  map[string]ResourceDelegation
 	resourceRentals      map[string]ResourceRental
 	resourceIncome       map[string]ResourceIncomeRecord
+	resourcePolicy       ResourceMarketPolicy
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
@@ -261,6 +260,7 @@ type devnetSnapshot struct {
 	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
 	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
 	Income     map[string]ResourceIncomeRecord `json:"resourceIncome"`
+	Policy     ResourceMarketPolicy            `json:"resourceMarketPolicy"`
 	Contracts  map[string]ContractArtifact     `json:"contracts"`
 }
 
@@ -286,6 +286,88 @@ func TruthfulStatus(cfg NetworkConfig) string {
 	default:
 		return "local-devnet"
 	}
+}
+
+func DefaultResourceMarketPolicy() ResourceMarketPolicy {
+	policy := ResourceMarketPolicy{
+		ID:                    "ynx-resource-market-default",
+		Version:               "2026-07-10.1",
+		GovernanceStatus:      "local-config-governed-awaiting-remote-proof",
+		Currency:              "YNXT",
+		BandwidthUnit:         100,
+		BandwidthUnitPrice:    1,
+		ComputeUnit:           10,
+		ComputeUnitPrice:      1,
+		AICreditUnitPrice:     2,
+		TrustCreditUnitPrice:  2,
+		MinimumQuoteYNXT:      1,
+		QuoteTTLSeconds:       900,
+		ProviderShareBps:      8000,
+		ProtocolFeeBps:        2000,
+		BaseBandwidth:         1000,
+		BaseCompute:           100,
+		BaseAICredits:         25,
+		BaseTrustCredits:      25,
+		BandwidthStakeDivisor: 10,
+		ComputeStakeDivisor:   100,
+		AICreditStakeDivisor:  1000,
+		TrustStakeDivisor:     1000,
+		Notes: []string{
+			"Resource pricing is configured by local policy and exposed for review.",
+			"Remote production governance must publish the same policy through public endpoints before public proof can pass.",
+		},
+	}
+	policy.PolicyHash = resourcePolicyHash(policy)
+	return policy
+}
+
+func (p ResourceMarketPolicy) Validate() error {
+	if strings.TrimSpace(p.ID) == "" {
+		return errors.New("resource policy id is required")
+	}
+	if strings.TrimSpace(p.Version) == "" {
+		return errors.New("resource policy version is required")
+	}
+	if p.Currency != "YNXT" {
+		return fmt.Errorf("resource policy currency must be YNXT, got %s", p.Currency)
+	}
+	if p.ProviderShareBps < 0 || p.ProtocolFeeBps < 0 || p.ProviderShareBps+p.ProtocolFeeBps != 10000 {
+		return errors.New("resource policy provider/protocol shares must be non-negative and sum to 10000 bps")
+	}
+	if p.BandwidthUnit <= 0 || p.ComputeUnit <= 0 {
+		return errors.New("resource policy bandwidth and compute units must be positive")
+	}
+	if p.BandwidthUnitPrice < 0 || p.ComputeUnitPrice < 0 || p.AICreditUnitPrice < 0 || p.TrustCreditUnitPrice < 0 {
+		return errors.New("resource policy unit prices cannot be negative")
+	}
+	if p.BandwidthUnitPrice+p.ComputeUnitPrice+p.AICreditUnitPrice+p.TrustCreditUnitPrice <= 0 {
+		return errors.New("resource policy must price at least one resource dimension")
+	}
+	if p.MinimumQuoteYNXT <= 0 || p.QuoteTTLSeconds <= 0 {
+		return errors.New("resource policy minimum quote and quote ttl must be positive")
+	}
+	if p.BaseBandwidth < 0 || p.BaseCompute < 0 || p.BaseAICredits < 0 || p.BaseTrustCredits < 0 {
+		return errors.New("resource policy base capacities cannot be negative")
+	}
+	if p.BandwidthStakeDivisor <= 0 || p.ComputeStakeDivisor <= 0 || p.AICreditStakeDivisor <= 0 || p.TrustStakeDivisor <= 0 {
+		return errors.New("resource policy stake divisors must be positive")
+	}
+	expectedHash := resourcePolicyHash(p)
+	if p.PolicyHash != "" && p.PolicyHash != expectedHash {
+		return errors.New("resource policy hash does not match policy fields")
+	}
+	return nil
+}
+
+func (p ResourceMarketPolicy) withCurrentHash() ResourceMarketPolicy {
+	p.PolicyHash = resourcePolicyHash(p)
+	return p
+}
+
+func resourcePolicyHash(policy ResourceMarketPolicy) string {
+	policy.PolicyHash = ""
+	payload, _ := json.Marshal(policy)
+	return hashParts("resource-market-policy", string(payload))
 }
 
 func NewDevnet(cfg NetworkConfig) *Devnet {
@@ -327,6 +409,7 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		resourceDelegations: map[string]ResourceDelegation{},
 		resourceRentals:     map[string]ResourceRental{},
 		resourceIncome:      map[string]ResourceIncomeRecord{},
+		resourcePolicy:      DefaultResourceMarketPolicy(),
 		contracts:           map[string]ContractArtifact{},
 		validators:          normalized,
 	}
@@ -809,7 +892,7 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	d.pending = append(d.pending, tx)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
-	return tx, resourceBalance(account), err
+	return tx, resourceBalance(account, d.resourcePolicy), err
 }
 
 func (d *Devnet) Resources(address string) (ResourceBalance, error) {
@@ -818,7 +901,7 @@ func (d *Devnet) Resources(address string) (ResourceBalance, error) {
 	}
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return resourceBalance(d.accountReadOnly(address)), nil
+	return resourceBalance(d.accountReadOnly(address), d.resourcePolicy), nil
 }
 
 func (d *Devnet) TrustTrace(address string) (TrustTrace, error) {
@@ -1663,6 +1746,12 @@ func (d *Devnet) TransparencyReport() TransparencyReport {
 	return report
 }
 
+func (d *Devnet) ResourceMarketPolicy() ResourceMarketPolicy {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.resourcePolicy.withCurrentHash()
+}
+
 func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceQuote, error) {
 	if address == "" {
 		return ResourceQuote{}, errors.New("address is required")
@@ -1670,20 +1759,40 @@ func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, tr
 	if bandwidth < 0 || compute < 0 || aiCredits < 0 || trustCredits < 0 {
 		return ResourceQuote{}, errors.New("resource amounts cannot be negative")
 	}
-	price := bandwidth/100 + compute/10 + aiCredits*2 + trustCredits*2
-	if price <= 0 {
-		price = 1
+	d.mu.RLock()
+	policy := d.resourcePolicy.withCurrentHash()
+	d.mu.RUnlock()
+	if err := policy.Validate(); err != nil {
+		return ResourceQuote{}, err
+	}
+	breakdown := []ResourcePriceComponent{
+		{Name: "bandwidth", Quantity: bandwidth, Unit: policy.BandwidthUnit, UnitPrice: policy.BandwidthUnitPrice, Amount: (bandwidth / policy.BandwidthUnit) * policy.BandwidthUnitPrice},
+		{Name: "compute", Quantity: compute, Unit: policy.ComputeUnit, UnitPrice: policy.ComputeUnitPrice, Amount: (compute / policy.ComputeUnit) * policy.ComputeUnitPrice},
+		{Name: "aiCredits", Quantity: aiCredits, Unit: 1, UnitPrice: policy.AICreditUnitPrice, Amount: aiCredits * policy.AICreditUnitPrice},
+		{Name: "trustCredits", Quantity: trustCredits, Unit: 1, UnitPrice: policy.TrustCreditUnitPrice, Amount: trustCredits * policy.TrustCreditUnitPrice},
+	}
+	price := int64(0)
+	for _, item := range breakdown {
+		price += item.Amount
+	}
+	if price < policy.MinimumQuoteYNXT {
+		price = policy.MinimumQuoteYNXT
 	}
 	return ResourceQuote{
-		ID:            hashParts("resource-quote", address, fmt.Sprint(bandwidth), fmt.Sprint(compute), fmt.Sprint(aiCredits), fmt.Sprint(trustCredits))[:24],
-		Address:       address,
-		Bandwidth:     bandwidth,
-		Compute:       compute,
-		AICredits:     aiCredits,
-		TrustCredits:  trustCredits,
-		PriceYNXT:     price,
-		ExpiresAt:     time.Now().UTC().Add(15 * time.Minute),
-		TruthfulNotes: []string{"Quote is computed from local devnet resource pricing.", "Public market pricing must be governed and configured before production use."},
+		ID:               hashParts("resource-quote", policy.PolicyHash, address, fmt.Sprint(bandwidth), fmt.Sprint(compute), fmt.Sprint(aiCredits), fmt.Sprint(trustCredits))[:24],
+		Address:          address,
+		Bandwidth:        bandwidth,
+		Compute:          compute,
+		AICredits:        aiCredits,
+		TrustCredits:     trustCredits,
+		PriceYNXT:        price,
+		PolicyID:         policy.ID,
+		PolicyVersion:    policy.Version,
+		PolicyHash:       policy.PolicyHash,
+		GovernanceStatus: policy.GovernanceStatus,
+		PricingBreakdown: breakdown,
+		ExpiresAt:        time.Now().UTC().Add(time.Duration(policy.QuoteTTLSeconds) * time.Second),
+		TruthfulNotes:    []string{"Quote is computed from inspectable Resource Market policy.", "Public market pricing must expose the same policy remotely before public proof can pass."},
 	}, nil
 }
 
@@ -1699,6 +1808,10 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	policy := d.resourcePolicy.withCurrentHash()
+	if err := policy.Validate(); err != nil {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
+	}
 	providerAccount := d.account(provider)
 	if providerAccount.Balance < amount {
 		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, errors.New("insufficient balance for resource delegation")
@@ -1708,23 +1821,26 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	providerAccount.Nonce++
 	beneficiaryAccount.Staked += amount
 	delegation := ResourceDelegation{
-		ID:           hashParts("resource-delegation", provider, beneficiary, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
-		Provider:     provider,
-		Beneficiary:  beneficiary,
-		AmountYNXT:   amount,
-		Bandwidth:    amount / 10,
-		Compute:      amount / 100,
-		AICredits:    amount / 1000,
-		TrustCredits: amount / 1000,
-		Status:       "active",
-		CreatedAt:    time.Now().UTC(),
+		ID:            hashParts("resource-delegation", provider, beneficiary, fmt.Sprint(amount), fmt.Sprint(time.Now().UnixNano()))[:24],
+		Provider:      provider,
+		Beneficiary:   beneficiary,
+		AmountYNXT:    amount,
+		Bandwidth:     amount / policy.BandwidthStakeDivisor,
+		Compute:       amount / policy.ComputeStakeDivisor,
+		AICredits:     amount / policy.AICreditStakeDivisor,
+		TrustCredits:  amount / policy.TrustStakeDivisor,
+		PolicyID:      policy.ID,
+		PolicyVersion: policy.Version,
+		PolicyHash:    policy.PolicyHash,
+		Status:        "active",
+		CreatedAt:     time.Now().UTC(),
 	}
 	d.resourceDelegations[delegation.ID] = delegation
 	tx := d.newTxLocked("resource_delegate", provider, beneficiary, amount, 0, nil, "delegate YNXT into resource capacity")
 	d.pending = append(d.pending, tx)
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
-	return delegation, tx, resourceBalance(beneficiaryAccount), err
+	return delegation, tx, resourceBalance(beneficiaryAccount, policy), err
 }
 
 func (d *Devnet) ResourceDelegations(address string) []ResourceDelegation {
@@ -1758,8 +1874,12 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		return ResourceRental{}, ResourceBalance{}, errors.New("insufficient balance for resource rental")
 	}
 	providerIncome := int64(0)
+	policy := d.resourcePolicy.withCurrentHash()
+	if err := policy.Validate(); err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
 	if provider != ProtocolResourceProvider {
-		providerIncome = quote.PriceYNXT * resourceProviderShareBps / 10000
+		providerIncome = quote.PriceYNXT * policy.ProviderShareBps / 10000
 	}
 	protocolFee := quote.PriceYNXT - providerIncome
 	account.Balance -= quote.PriceYNXT
@@ -1777,6 +1897,10 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		PriceYNXT:          quote.PriceYNXT,
 		ProviderIncomeYNXT: providerIncome,
 		ProtocolFeeYNXT:    protocolFee,
+		PolicyID:           policy.ID,
+		PolicyVersion:      policy.Version,
+		PolicyHash:         policy.PolicyHash,
+		GovernanceStatus:   policy.GovernanceStatus,
 		Status:             "active",
 		CreatedAt:          time.Now().UTC(),
 		Bandwidth:          bandwidth,
@@ -1787,31 +1911,37 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 	d.resourceRentals[rental.ID] = rental
 	if providerIncome > 0 {
 		income := ResourceIncomeRecord{
-			ID:        hashParts("resource-income", provider, rental.ID, fmt.Sprint(providerIncome))[:24],
-			Provider:  provider,
-			RentalID:  rental.ID,
-			Source:    "resource-rental",
-			Amount:    providerIncome,
-			Currency:  d.cfg.NativeCurrencySymbol,
-			CreatedAt: time.Now().UTC(),
+			ID:            hashParts("resource-income", provider, rental.ID, fmt.Sprint(providerIncome))[:24],
+			Provider:      provider,
+			RentalID:      rental.ID,
+			Source:        "resource-rental",
+			Amount:        providerIncome,
+			Currency:      d.cfg.NativeCurrencySymbol,
+			PolicyID:      policy.ID,
+			PolicyVersion: policy.Version,
+			PolicyHash:    policy.PolicyHash,
+			CreatedAt:     time.Now().UTC(),
 		}
 		d.resourceIncome[income.ID] = income
 	}
 	if protocolFee > 0 {
 		income := ResourceIncomeRecord{
-			ID:        hashParts("resource-income", ProtocolResourceTreasury, rental.ID, fmt.Sprint(protocolFee))[:24],
-			Provider:  ProtocolResourceTreasury,
-			RentalID:  rental.ID,
-			Source:    "protocol-resource-fee",
-			Amount:    protocolFee,
-			Currency:  d.cfg.NativeCurrencySymbol,
-			CreatedAt: time.Now().UTC(),
+			ID:            hashParts("resource-income", ProtocolResourceTreasury, rental.ID, fmt.Sprint(protocolFee))[:24],
+			Provider:      ProtocolResourceTreasury,
+			RentalID:      rental.ID,
+			Source:        "protocol-resource-fee",
+			Amount:        protocolFee,
+			Currency:      d.cfg.NativeCurrencySymbol,
+			PolicyID:      policy.ID,
+			PolicyVersion: policy.Version,
+			PolicyHash:    policy.PolicyHash,
+			CreatedAt:     time.Now().UTC(),
 		}
 		d.resourceIncome[income.ID] = income
 	}
 	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
-	return rental, resourceBalance(account), err
+	return rental, resourceBalance(account, policy), err
 }
 
 func (d *Devnet) ResourceIncome(address string) []ResourceIncomeRecord {
@@ -1830,7 +1960,8 @@ func (d *Devnet) ResourceIncome(address string) []ResourceIncomeRecord {
 func (d *Devnet) ResourceAnalytics() ResourceAnalytics {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	analytics := ResourceAnalytics{Network: d.cfg, TruthfulStatus: "local-devnet"}
+	policy := d.resourcePolicy.withCurrentHash()
+	analytics := ResourceAnalytics{Network: d.cfg, Policy: policy, PolicyID: policy.ID, PolicyVersion: policy.Version, PolicyHash: policy.PolicyHash, GovernanceStatus: policy.GovernanceStatus, TruthfulStatus: "local-devnet"}
 	for _, delegation := range d.resourceDelegations {
 		if delegation.Status == "active" {
 			analytics.ActiveDelegationCount++
@@ -2549,7 +2680,7 @@ func (d *Devnet) loadSnapshot() error {
 	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
 	d.governanceRequests, d.trustAppeals, d.trackingReviews = snapshot.Governance, snapshot.Appeals, snapshot.Tracking
 	d.aiPermissions, d.aiActions, d.transparencyEntries = snapshot.AIPerms, snapshot.AIActions, snapshot.Transp
-	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Contracts
+	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.resourcePolicy, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Policy, snapshot.Contracts
 	d.ensureStateDefaults()
 	return nil
 }
@@ -2568,7 +2699,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Contracts: d.contracts}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
@@ -2637,6 +2768,11 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.resourceIncome == nil {
 		d.resourceIncome = map[string]ResourceIncomeRecord{}
+	}
+	if err := d.resourcePolicy.Validate(); err != nil {
+		d.resourcePolicy = DefaultResourceMarketPolicy()
+	} else {
+		d.resourcePolicy = d.resourcePolicy.withCurrentHash()
 	}
 	if d.contracts == nil {
 		d.contracts = map[string]ContractArtifact{}
@@ -3977,11 +4113,14 @@ func appendUnique(values []string, additions ...string) []string {
 	return out
 }
 
-func resourceBalance(account *Account) ResourceBalance {
-	bandwidth := int64(1000) + account.Staked/10
-	compute := int64(100) + account.Staked/100
-	ai := int64(25) + account.Staked/1000
-	trust := int64(25) + account.Staked/1000
+func resourceBalance(account *Account, policy ResourceMarketPolicy) ResourceBalance {
+	if err := policy.Validate(); err != nil {
+		policy = DefaultResourceMarketPolicy()
+	}
+	bandwidth := policy.BaseBandwidth + account.Staked/policy.BandwidthStakeDivisor
+	compute := policy.BaseCompute + account.Staked/policy.ComputeStakeDivisor
+	ai := policy.BaseAICredits + account.Staked/policy.AICreditStakeDivisor
+	trust := policy.BaseTrustCredits + account.Staked/policy.TrustStakeDivisor
 	return ResourceBalance{Address: account.Address, BandwidthLimit: bandwidth, BandwidthUsed: account.ResourceUsage.BandwidthUsed, BandwidthLeft: maxInt64(0, bandwidth-account.ResourceUsage.BandwidthUsed), ComputeLimit: compute, ComputeUsed: account.ResourceUsage.ComputeUsed, ComputeLeft: maxInt64(0, compute-account.ResourceUsage.ComputeUsed), AICreditsLimit: ai, AICreditsUsed: account.ResourceUsage.AICreditsUsed, AICreditsLeft: maxInt64(0, ai-account.ResourceUsage.AICreditsUsed), TrustLimit: trust, TrustUsed: account.ResourceUsage.TrustUsed, TrustLeft: maxInt64(0, trust-account.ResourceUsage.TrustUsed), Staked: account.Staked}
 }
 

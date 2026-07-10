@@ -68,17 +68,55 @@ type ResourceBalance struct {
 	Staked         int64  `json:"staked"`
 }
 
+type ResourceMarketPolicy struct {
+	ID                    string   `json:"id"`
+	Version               string   `json:"version"`
+	GovernanceStatus      string   `json:"governanceStatus"`
+	Currency              string   `json:"currency"`
+	BandwidthUnit         int64    `json:"bandwidthUnit"`
+	BandwidthUnitPrice    int64    `json:"bandwidthUnitPrice"`
+	ComputeUnit           int64    `json:"computeUnit"`
+	ComputeUnitPrice      int64    `json:"computeUnitPrice"`
+	AICreditUnitPrice     int64    `json:"aiCreditUnitPrice"`
+	TrustCreditUnitPrice  int64    `json:"trustCreditUnitPrice"`
+	MinimumQuoteYNXT      int64    `json:"minimumQuoteYnxt"`
+	QuoteTTLSeconds       int64    `json:"quoteTtlSeconds"`
+	ProviderShareBps      int64    `json:"providerShareBps"`
+	ProtocolFeeBps        int64    `json:"protocolFeeBps"`
+	BaseBandwidth         int64    `json:"baseBandwidth"`
+	BaseCompute           int64    `json:"baseCompute"`
+	BaseAICredits         int64    `json:"baseAiCredits"`
+	BaseTrustCredits      int64    `json:"baseTrustCredits"`
+	BandwidthStakeDivisor int64    `json:"bandwidthStakeDivisor"`
+	ComputeStakeDivisor   int64    `json:"computeStakeDivisor"`
+	AICreditStakeDivisor  int64    `json:"aiCreditStakeDivisor"`
+	TrustStakeDivisor     int64    `json:"trustStakeDivisor"`
+	PolicyHash            string   `json:"policyHash"`
+	Notes                 []string `json:"notes"`
+}
+
+type ResourcePriceComponent struct {
+	Name      string `json:"name"`
+	Quantity  int64  `json:"quantity"`
+	Unit      int64  `json:"unit"`
+	UnitPrice int64  `json:"unitPrice"`
+	Amount    int64  `json:"amount"`
+}
+
 type ResourceDelegation struct {
-	ID           string    `json:"id"`
-	Provider     string    `json:"provider"`
-	Beneficiary  string    `json:"beneficiary"`
-	AmountYNXT   int64     `json:"amountYnxt"`
-	Bandwidth    int64     `json:"bandwidth"`
-	Compute      int64     `json:"compute"`
-	AICredits    int64     `json:"aiCredits"`
-	TrustCredits int64     `json:"trustCredits"`
-	Status       string    `json:"status"`
-	CreatedAt    time.Time `json:"createdAt"`
+	ID            string    `json:"id"`
+	Provider      string    `json:"provider"`
+	Beneficiary   string    `json:"beneficiary"`
+	AmountYNXT    int64     `json:"amountYnxt"`
+	Bandwidth     int64     `json:"bandwidth"`
+	Compute       int64     `json:"compute"`
+	AICredits     int64     `json:"aiCredits"`
+	TrustCredits  int64     `json:"trustCredits"`
+	PolicyID      string    `json:"policyId"`
+	PolicyVersion string    `json:"policyVersion"`
+	PolicyHash    string    `json:"policyHash"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type Block struct {
@@ -622,15 +660,20 @@ type TransparencyReport struct {
 }
 
 type ResourceQuote struct {
-	ID            string    `json:"id"`
-	Address       string    `json:"address"`
-	Bandwidth     int64     `json:"bandwidth"`
-	Compute       int64     `json:"compute"`
-	AICredits     int64     `json:"aiCredits"`
-	TrustCredits  int64     `json:"trustCredits"`
-	PriceYNXT     int64     `json:"priceYnxt"`
-	ExpiresAt     time.Time `json:"expiresAt"`
-	TruthfulNotes []string  `json:"truthfulNotes"`
+	ID               string                   `json:"id"`
+	Address          string                   `json:"address"`
+	Bandwidth        int64                    `json:"bandwidth"`
+	Compute          int64                    `json:"compute"`
+	AICredits        int64                    `json:"aiCredits"`
+	TrustCredits     int64                    `json:"trustCredits"`
+	PriceYNXT        int64                    `json:"priceYnxt"`
+	PolicyID         string                   `json:"policyId"`
+	PolicyVersion    string                   `json:"policyVersion"`
+	PolicyHash       string                   `json:"policyHash"`
+	GovernanceStatus string                   `json:"governanceStatus"`
+	PricingBreakdown []ResourcePriceComponent `json:"pricingBreakdown"`
+	ExpiresAt        time.Time                `json:"expiresAt"`
+	TruthfulNotes    []string                 `json:"truthfulNotes"`
 }
 
 type ResourceRental struct {
@@ -641,6 +684,10 @@ type ResourceRental struct {
 	PriceYNXT          int64     `json:"priceYnxt"`
 	ProviderIncomeYNXT int64     `json:"providerIncomeYnxt"`
 	ProtocolFeeYNXT    int64     `json:"protocolFeeYnxt"`
+	PolicyID           string    `json:"policyId"`
+	PolicyVersion      string    `json:"policyVersion"`
+	PolicyHash         string    `json:"policyHash"`
+	GovernanceStatus   string    `json:"governanceStatus"`
 	Status             string    `json:"status"`
 	CreatedAt          time.Time `json:"createdAt"`
 	Bandwidth          int64     `json:"bandwidth"`
@@ -650,25 +697,33 @@ type ResourceRental struct {
 }
 
 type ResourceIncomeRecord struct {
-	ID        string    `json:"id"`
-	Provider  string    `json:"provider"`
-	RentalID  string    `json:"rentalId"`
-	Source    string    `json:"source"`
-	Amount    int64     `json:"amount"`
-	Currency  string    `json:"currency"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID            string    `json:"id"`
+	Provider      string    `json:"provider"`
+	RentalID      string    `json:"rentalId"`
+	Source        string    `json:"source"`
+	Amount        int64     `json:"amount"`
+	Currency      string    `json:"currency"`
+	PolicyID      string    `json:"policyId"`
+	PolicyVersion string    `json:"policyVersion"`
+	PolicyHash    string    `json:"policyHash"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type ResourceAnalytics struct {
-	Network                   NetworkConfig `json:"network"`
-	ActiveDelegationCount     int           `json:"activeDelegationCount"`
-	ResourceRentalCount       int           `json:"resourceRentalCount"`
-	ResourceIncomeRecordCount int           `json:"resourceIncomeRecordCount"`
-	DelegatedYNXT             int64         `json:"delegatedYnxt"`
-	RentalVolumeYNXT          int64         `json:"rentalVolumeYnxt"`
-	ProviderIncomeYNXT        int64         `json:"providerIncomeYnxt"`
-	ProtocolFeeYNXT           int64         `json:"protocolFeeYnxt"`
-	TruthfulStatus            string        `json:"truthfulStatus"`
+	Network                   NetworkConfig        `json:"network"`
+	ActiveDelegationCount     int                  `json:"activeDelegationCount"`
+	ResourceRentalCount       int                  `json:"resourceRentalCount"`
+	ResourceIncomeRecordCount int                  `json:"resourceIncomeRecordCount"`
+	DelegatedYNXT             int64                `json:"delegatedYnxt"`
+	RentalVolumeYNXT          int64                `json:"rentalVolumeYnxt"`
+	ProviderIncomeYNXT        int64                `json:"providerIncomeYnxt"`
+	ProtocolFeeYNXT           int64                `json:"protocolFeeYnxt"`
+	Policy                    ResourceMarketPolicy `json:"policy"`
+	PolicyID                  string               `json:"policyId"`
+	PolicyVersion             string               `json:"policyVersion"`
+	PolicyHash                string               `json:"policyHash"`
+	GovernanceStatus          string               `json:"governanceStatus"`
+	TruthfulStatus            string               `json:"truthfulStatus"`
 }
 
 type ContractArtifact struct {

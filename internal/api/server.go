@@ -70,6 +70,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
 	s.mux.HandleFunc("GET /pay/events", s.handlePayEvents)
 	s.mux.HandleFunc("GET /pay/events/{id}", s.handlePayEventLookup)
+	s.mux.HandleFunc("GET /resource-market/policy", s.handleResourcePolicy)
 	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
 	s.mux.HandleFunc("GET /resource-market/analytics", s.handleResourceAnalytics)
 	s.mux.HandleFunc("POST /resource-market/delegations", s.handleResourceDelegation)
@@ -546,6 +547,9 @@ func (s *Server) handleResourceQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, quote)
+}
+func (s *Server) handleResourcePolicy(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, s.devnet.ResourceMarketPolicy())
 }
 func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.ResourceAnalytics())

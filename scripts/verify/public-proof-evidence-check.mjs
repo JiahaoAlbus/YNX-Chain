@@ -62,7 +62,8 @@ const requiredChecks = [
   "trust.trackingReview.valid.classification",
   "trust.trackingReview.overbroad.classification",
   "governance.transparency.final.report",
-  "resource.quote.available",
+  "resource.policy.inspectable",
+  "resource.quote.policyEvidence",
   "ide.compile.ok",
 ];
 

@@ -472,31 +472,39 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	}
 	doJSON(t, http.MethodGet, server.URL+"/pay/events/"+firstEvent["id"].(string), nil, http.StatusOK, &firstEvent)
 
+	var policy map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/resource-market/policy", nil, http.StatusOK, &policy)
+	if policy["currency"] != "YNXT" || policy["policyHash"] == "" || policy["governanceStatus"] == "" || policy["providerShareBps"].(float64)+policy["protocolFeeBps"].(float64) != 10000 {
+		t.Fatalf("expected inspectable resource policy: %v", policy)
+	}
+	policyHash := policy["policyHash"].(string)
 	var quote map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/resource-market/quote?address=ynx_builder&bandwidth=100&compute=5&aiCredits=2&trustCredits=1", nil, http.StatusOK, &quote)
-	if quote["priceYnxt"].(float64) <= 0 {
+	if quote["priceYnxt"].(float64) <= 0 || quote["policyHash"] != policyHash || len(quote["pricingBreakdown"].([]any)) != 4 {
 		t.Fatalf("expected positive quote: %v", quote)
 	}
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_provider", "amount": 1000}, http.StatusCreated, nil)
 	var delegation map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/resource-market/delegations", map[string]any{"provider": "ynx_provider", "beneficiary": "ynx_provider", "amount": 500}, http.StatusCreated, &delegation)
-	if delegation["delegation"].(map[string]any)["status"] != "active" {
+	delegationObject := delegation["delegation"].(map[string]any)
+	if delegationObject["status"] != "active" || delegationObject["policyHash"] != policyHash {
 		t.Fatalf("expected active delegation: %v", delegation)
 	}
 	var rental map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/resource-market/rent", map[string]any{"address": "ynx_builder", "provider": "ynx_provider", "bandwidth": 100, "compute": 5, "aiCredits": 2, "trustCredits": 1}, http.StatusCreated, &rental)
 	rentalObject := rental["rental"].(map[string]any)
-	if rentalObject["provider"] != "ynx_provider" || rentalObject["providerIncomeYnxt"].(float64) <= 0 {
+	if rentalObject["provider"] != "ynx_provider" || rentalObject["providerIncomeYnxt"].(float64) <= 0 || rentalObject["policyHash"] != policyHash {
 		t.Fatalf("expected provider income split: %v", rental)
 	}
 	var income map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/resource-market/income/ynx_provider", nil, http.StatusOK, &income)
-	if len(income["income"].([]any)) != 1 {
+	incomeRecords := income["income"].([]any)
+	if len(incomeRecords) != 1 || incomeRecords[0].(map[string]any)["policyHash"] != policyHash {
 		t.Fatalf("expected income record: %v", income)
 	}
 	var analytics map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/resource-market/analytics", nil, http.StatusOK, &analytics)
-	if analytics["activeDelegationCount"].(float64) != 1 || analytics["resourceRentalCount"].(float64) != 1 {
+	if analytics["activeDelegationCount"].(float64) != 1 || analytics["resourceRentalCount"].(float64) != 1 || analytics["policyHash"] != policyHash {
 		t.Fatalf("expected resource analytics: %v", analytics)
 	}
 

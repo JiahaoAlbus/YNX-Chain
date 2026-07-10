@@ -255,6 +255,18 @@ func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	policy := devnet.ResourceMarketPolicy()
+	if err := policy.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if policy.Currency != "YNXT" || policy.PolicyHash == "" || policy.ProviderShareBps+policy.ProtocolFeeBps != 10000 {
+		t.Fatalf("unexpected resource market policy: %+v", policy)
+	}
+	badPolicy := policy
+	badPolicy.ProtocolFeeBps = 999
+	if err := badPolicy.Validate(); err == nil {
+		t.Fatal("expected invalid resource market policy shares to fail")
+	}
 	if _, err := devnet.Faucet("ynx_provider", 1000); err != nil {
 		t.Fatal(err)
 	}
@@ -268,8 +280,18 @@ func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
 	if delegation.Status != "active" || tx.Type != "resource_delegate" {
 		t.Fatalf("unexpected delegation: %+v tx=%+v", delegation, tx)
 	}
+	if delegation.PolicyHash != policy.PolicyHash || delegation.PolicyVersion != policy.Version {
+		t.Fatalf("expected delegation policy evidence: %+v policy=%+v", delegation, policy)
+	}
 	if resources.BandwidthLimit <= 1000 {
 		t.Fatalf("expected delegated resources to increase provider capacity: %+v", resources)
+	}
+	quote, err := devnet.ResourceQuote("ynx_renter", 100, 5, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if quote.PriceYNXT != 7 || quote.PolicyHash != policy.PolicyHash || len(quote.PricingBreakdown) != 4 {
+		t.Fatalf("unexpected resource quote policy evidence: %+v", quote)
 	}
 	rental, _, err := devnet.RentResources("ynx_renter", "ynx_provider", 100, 5, 2, 1)
 	if err != nil {
@@ -278,12 +300,15 @@ func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
 	if rental.Provider != "ynx_provider" || rental.ProviderIncomeYNXT <= 0 || rental.ProtocolFeeYNXT <= 0 {
 		t.Fatalf("unexpected rental split: %+v", rental)
 	}
+	if rental.PolicyHash != policy.PolicyHash || rental.ProviderIncomeYNXT != 5 || rental.ProtocolFeeYNXT != 2 {
+		t.Fatalf("expected policy-bound rental split: %+v", rental)
+	}
 	income := devnet.ResourceIncome("ynx_provider")
-	if len(income) != 1 || income[0].Amount != rental.ProviderIncomeYNXT {
+	if len(income) != 1 || income[0].Amount != rental.ProviderIncomeYNXT || income[0].PolicyHash != policy.PolicyHash {
 		t.Fatalf("expected provider income record: %+v", income)
 	}
 	analytics := devnet.ResourceAnalytics()
-	if analytics.ActiveDelegationCount != 1 || analytics.ResourceRentalCount != 1 || analytics.ProviderIncomeYNXT != rental.ProviderIncomeYNXT {
+	if analytics.ActiveDelegationCount != 1 || analytics.ResourceRentalCount != 1 || analytics.ProviderIncomeYNXT != rental.ProviderIncomeYNXT || analytics.PolicyHash != policy.PolicyHash {
 		t.Fatalf("unexpected analytics: %+v", analytics)
 	}
 
@@ -296,6 +321,9 @@ func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
 	}
 	if len(restored.ResourceIncome("ynx_provider")) != 1 {
 		t.Fatal("expected restored resource income")
+	}
+	if restored.ResourceMarketPolicy().PolicyHash != policy.PolicyHash {
+		t.Fatalf("expected restored resource policy hash")
 	}
 }
 

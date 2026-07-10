@@ -730,8 +730,15 @@ async function main() {
       checkTransparencyReport("governance.transparency.final.report", transparencyFinal, { entryCount: 8, rejectedCount: 3, appealCount: 1, reviewCount: 1 });
     }
 
+    const resourcePolicy = await getJson("resource.policy", `${endpoints.rest}/resource-market/policy`);
+    const resourcePolicyOk = resourcePolicy?.currency === expected.nativeSymbol &&
+      typeof resourcePolicy?.policyHash === "string" && resourcePolicy.policyHash.length > 0 &&
+      Number(resourcePolicy?.providerShareBps ?? -1) + Number(resourcePolicy?.protocolFeeBps ?? -1) === 10000;
+    record("resource.policy.inspectable", resourcePolicyOk, resourcePolicyOk ? "resource policy is inspectable" : "resource policy missing or invalid", resourcePolicy);
+
     const quote = await getJson("resource.quote", `${endpoints.rest}/resource-market/quote?address=${encodeURIComponent(sampleAddress)}&bandwidth=1&compute=1&aiCredits=1&trustCredits=1`);
-    record("resource.quote.available", Boolean(quote), quote ? "resource quote returned" : "resource quote missing", quote);
+    const quotePolicyOk = Boolean(quote) && quote.policyHash === resourcePolicy?.policyHash && Array.isArray(quote.pricingBreakdown) && quote.pricingBreakdown.length === 4;
+    record("resource.quote.policyEvidence", quotePolicyOk, quotePolicyOk ? "resource quote returned with policy evidence" : "resource quote missing policy evidence", quote);
 
     const source = "pragma solidity ^0.8.24; contract RemoteSmoke { function ping() public pure returns (uint256) { return 1; } }";
     const compile = await postJson("ide.compile", `${endpoints.rest}/ide/compile`, { name: "RemoteSmoke", source });

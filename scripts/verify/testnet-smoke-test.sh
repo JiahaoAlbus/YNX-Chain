@@ -121,12 +121,21 @@ pay_events=$(curl -fsS "http://127.0.0.1:6420/pay/events?intentId=$intent_id")
 printf '%s' "$pay_events" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.events) || data.events.length !== 4 || data.events.some((event)=>!event.auditHash)) { console.error(`pay events audit failed: ${JSON.stringify(data)}`); process.exit(1); }'
 echo "Pay event audit result: $pay_events"
 echo "Resource API test result:" && curl -fsS http://127.0.0.1:6420/resources/ynx_smoke_alice
-echo "Resource quote result:" && curl -fsS 'http://127.0.0.1:6420/resource-market/quote?address=ynx_smoke_alice&bandwidth=100&compute=5&aiCredits=2&trustCredits=1'
+resource_policy=$(curl -fsS http://127.0.0.1:6420/resource-market/policy)
+resource_policy_hash=$(printf '%s' "$resource_policy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); if (data.currency !== "YNXT" || !data.policyHash || data.providerShareBps + data.protocolFeeBps !== 10000) throw new Error(`invalid resource policy: ${JSON.stringify(data)}`); data.policyHash')
+echo "Resource policy result: $resource_policy"
+resource_quote=$(curl -fsS 'http://127.0.0.1:6420/resource-market/quote?address=ynx_smoke_alice&bandwidth=100&compute=5&aiCredits=2&trustCredits=1')
+printf '%s' "$resource_quote" | POLICY_HASH="$resource_policy_hash" node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.policyHash !== process.env.POLICY_HASH || !Array.isArray(data.pricingBreakdown) || data.pricingBreakdown.length !== 4) { console.error(`resource quote missing policy evidence: ${JSON.stringify(data)}`); process.exit(1); }'
+echo "Resource quote result: $resource_quote"
 curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -d '{"address":"ynx_resource_provider","amount":1000}' >/dev/null
 echo "Resource delegation result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/delegations -H 'content-type: application/json' -d '{"provider":"ynx_resource_provider","beneficiary":"ynx_resource_provider","amount":500}'
-echo "Resource rental result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","provider":"ynx_resource_provider","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}'
+resource_rental=$(curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","provider":"ynx_resource_provider","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}')
+printf '%s' "$resource_rental" | POLICY_HASH="$resource_policy_hash" node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.rental?.policyHash !== process.env.POLICY_HASH || data.rental?.providerIncomeYnxt <= 0 || data.rental?.protocolFeeYnxt <= 0) { console.error(`resource rental missing policy evidence: ${JSON.stringify(data)}`); process.exit(1); }'
+echo "Resource rental result: $resource_rental"
 echo "Resource income result:" && curl -fsS http://127.0.0.1:6420/resource-market/income/ynx_resource_provider
-echo "Resource analytics result:" && curl -fsS http://127.0.0.1:6420/resource-market/analytics
+resource_analytics=$(curl -fsS http://127.0.0.1:6420/resource-market/analytics)
+printf '%s' "$resource_analytics" | POLICY_HASH="$resource_policy_hash" node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.policyHash !== process.env.POLICY_HASH || data.policy?.policyHash !== process.env.POLICY_HASH) { console.error(`resource analytics missing policy evidence: ${JSON.stringify(data)}`); process.exit(1); }'
+echo "Resource analytics result: $resource_analytics"
 source='pragma solidity ^0.8.24; contract Smoke { event SmokePing(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }'
 compile=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/compile -H 'content-type: application/json' -d @-)
 printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.ok || !data.sourceHash || !data.artifactHash || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing IDE compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
