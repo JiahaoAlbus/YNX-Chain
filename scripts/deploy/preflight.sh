@@ -12,6 +12,11 @@ make release-manifest-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
 go test ./cmd/... ./internal/...
+make anti-illegal-request-check
+make request-validity-check
+make transparency-report-check
+make trust-appeal-check
+make anti-unreasonable-tracking-check
 make caddy-ingress-check
 make ops-check
 echo "preflight passed for local devnet/testnet deployment package"
