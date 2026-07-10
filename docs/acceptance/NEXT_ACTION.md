@@ -4,7 +4,8 @@ Current single action: return to remote core testnet deployment readiness by cle
 
 Why this action:
 
-- Resource Market production pricing/governance config is now local verified and wired into public-proof requirements.
+- Chain Law / Anti-Illegal / Request Validity / Appeal / Transparency are now locally verified again through unit tests, dedicated smoke checks, and preflight, and remain wired into public-proof requirements.
+- Resource Market production pricing/governance config is local verified and wired into public-proof requirements.
 - The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
 - Singapore and Silicon Valley host keys still need trusted external confirmation before known_hosts repair or deploy mutation.
 - Deploy-readiness gate must remain fail-closed until approval and public endpoint evidence are safe.
@@ -23,6 +24,10 @@ Validation commands:
 
 - `go test ./...`
 - `make test`
+- `make anti-illegal-request-check`
+- `make request-validity-check`
+- `make transparency-report-check`
+- `make trust-appeal-check`
 - `make host-key-audit`
 - `make host-key-approval-request`
 - `make host-key-approval-status`
@@ -46,6 +51,7 @@ Completion standard:
 - `make host-key-approved-repair-dry-run` shows only approved Singapore and Silicon Valley known_hosts replacements.
 - `make host-key-approved-repair` is not run until the dry-run is reviewed.
 - Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
+- Chain Law local checks stay green, but they do not count as public proof until `remote-smoke-test`, `verify-testnet`, and `public-proof` pass against the deployed public endpoints.
 
 Explicitly not doing:
 
