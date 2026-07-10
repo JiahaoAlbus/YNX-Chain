@@ -81,6 +81,8 @@ local_validator="$(safe_env YNX_LOCAL_VALIDATOR_ADDRESS || true)"
 expected_validator="__EXPECTED_VALIDATOR__"
 expected_release_commit="__EXPECTED_RELEASE_COMMIT__"
 expected_release_name="__EXPECTED_RELEASE_NAME__"
+release_dir="/opt/ynx-chain/releases/$expected_release_name"
+manifest_file="$release_dir/config/release-manifest.json"
 echo "localValidatorAddress=$local_validator"
 if [ "$local_validator" != "$expected_validator" ]; then
   echo "localValidatorAddressMismatch expected=$expected_validator observed=$local_validator"
@@ -98,6 +100,18 @@ echo "expectedValidatorCount=${expected_count:-missing}"
 if [ "${expected_count:-}" != "4" ]; then
   failed=1
 fi
+manifest_json=""
+if [ -r "$manifest_file" ]; then
+  manifest_json="$(cat "$manifest_file")"
+elif command -v sudo >/dev/null 2>&1 && sudo -n test -r "$manifest_file" 2>/dev/null; then
+  manifest_json="$(sudo -n cat "$manifest_file")"
+fi
+if [ -z "$manifest_json" ]; then
+  echo "releaseManifest=missing:$manifest_file"
+  failed=1
+else
+  echo "releaseManifest=ok"
+fi
 status_json="$(curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true)"
 identity_json="$(curl -fsS http://127.0.0.1:6420/node/identity 2>/dev/null || true)"
 validators_json="$(curl -fsS http://127.0.0.1:6420/validators 2>/dev/null || true)"
@@ -110,9 +124,21 @@ if [ -z "$peers_json" ]; then echo "validatorPeersEndpoint=unreachable"; failed=
 if [ -z "$sync_json" ]; then echo "validatorPeerSyncEndpoint=unreachable"; failed=1; else echo "validatorPeerSyncEndpoint=ok"; fi
 status_compact="$(printf "%s" "$status_json" | compact_json)"
 identity_compact="$(printf "%s" "$identity_json" | compact_json)"
+manifest_compact="$(printf "%s" "$manifest_json" | compact_json)"
 validators_compact="$(printf "%s" "$validators_json" | compact_json)"
 peers_compact="$(printf "%s" "$peers_json" | compact_json)"
 sync_compact="$(printf "%s" "$sync_json" | compact_json)"
+check_json_contains releaseManifest.schema "$manifest_compact" '"schema":"ynx-chain-release-manifest/v1"'
+check_json_contains releaseManifest.commit "$manifest_compact" "\"commit\":\"$expected_release_commit\""
+check_json_contains releaseManifest.release "$manifest_compact" "\"release\":\"$expected_release_name\""
+check_json_contains releaseManifest.chaindPath "$manifest_compact" '"path":"bin/ynx-chaind"'
+chaind_sha="$(sha256sum /usr/local/bin/ynx-chaind 2>/dev/null | awk '{print $1}' || true)"
+if [ -n "$chaind_sha" ] && printf "%s" "$manifest_compact" | grep -Fq "\"sha256\":\"$chaind_sha\""; then
+  echo "releaseManifest.chaindChecksum=ok"
+else
+  echo "releaseManifest.chaindChecksum=missing:${chaind_sha:-unreadable}"
+  failed=1
+fi
 check_json_contains status.chainId "$status_compact" '"chainId":6423'
 check_json_contains status.validatorPeerReadiness "$status_compact" '"validatorPeerReadiness"'
 check_json_contains status.validatorPeerDiscovery "$status_compact" '"validatorPeerDiscovery"'

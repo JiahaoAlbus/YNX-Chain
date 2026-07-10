@@ -306,6 +306,7 @@ server {
 EOF
 
 cp README.md REQUIRED_INPUTS.md ENV_INTAKE_FORM.md "$work/docs/"
+node scripts/deploy/write-release-manifest.mjs "$work" "$release" "$commit" "$build_time" "$DEPLOY_TARGET" "$CHAIN_ID" "$CHAIN_NAME"
 tarball="tmp/deploy/${release}.tar.gz"
 tar -C "$work" -czf "$tarball" .
 sha256sum "$tarball" > "${tarball}.sha256" 2>/dev/null || shasum -a 256 "$tarball" > "${tarball}.sha256"

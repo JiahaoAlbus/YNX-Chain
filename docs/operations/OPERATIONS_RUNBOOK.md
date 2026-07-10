@@ -17,6 +17,8 @@ The deployment first SSH-prechecks the primary, Singapore, Silicon Valley, and S
 
 The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/var/lib/ynx-chain/testnet`, and `/var/log/ynx-chain` on all nodes. On the primary node it also writes `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, and `/var/lib/ynx-chain/indexer`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` on the primary when nginx is present.
 
+Each deploy bundle includes `config/release-manifest.json`. The manifest is non-secret and records the release name, git commit, build time, target chain, binary paths, role env paths, service config paths, file sizes, and SHA-256 checksums. `make deploy-dry-run` verifies that the manifest matches the generated bundle. `verify-testnet` checks the remote manifest under `/opt/ynx-chain/releases/<release>/config/release-manifest.json`, compares the installed `/usr/local/bin/ynx-chaind` SHA-256 against the manifest, and then requires live `/status.build` and `/node/identity.build` to report the same release commit/name. This binds runtime identity to the deployed artifact, but it is still not remote public proof unless public endpoint checks also pass.
+
 Remote verification:
 
 ```bash

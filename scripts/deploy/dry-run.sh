@@ -91,6 +91,8 @@ grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { e
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
+node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.json" || { echo "release tarball missing release manifest"; exit 1; }
 
 ynx_check_role_env() {
   local role="$1" role_env="$2"
