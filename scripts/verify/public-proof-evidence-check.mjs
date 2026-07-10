@@ -9,6 +9,11 @@ const requiredChecks = [
   "rpc.status.buildCommit",
   "rpc.status.buildRelease",
   "rpc.status.buildTime",
+  "release.manifest.evidence.present",
+  "release.manifest.schema",
+  "release.manifest.commit",
+  "release.manifest.release",
+  "release.manifest.chaindChecksum",
   "rpc.status.height.growth",
   "rpc.validators.count",
   "rpc.validators.addresses",
@@ -136,6 +141,9 @@ function selfTest() {
   const failed = validateEvidence(buildFixture({ fail: ["governance.request.illegal.nativeYnxtProtected"] }));
   assert.equal(failed.validPublicProof, false, "failed native YNXT protection proof must be invalid");
   assert(failed.failedRequiredChecks.includes("governance.request.illegal.nativeYnxtProtected"));
+  const missingManifest = validateEvidence(buildFixture({ omit: ["release.manifest.chaindChecksum"] }));
+  assert.equal(missingManifest.validPublicProof, false, "missing release manifest checksum proof must be invalid");
+  assert(missingManifest.missingRequiredChecks.includes("release.manifest.chaindChecksum"));
   const skipped = validateEvidence(buildFixture({ includeSkipped: true }));
   assert.equal(skipped.validPublicProof, false, "skipped mutable remote actions must be invalid");
   assert.equal(skipped.skippedMutableActions, true);

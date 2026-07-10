@@ -194,6 +194,14 @@ check_node "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" "ynx-c
 check_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" "ynx-chaind" "$SILICON_VALLEY_VALIDATOR_ADDRESS"
 check_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" "ynx-chaind" "$SEOUL_VALIDATOR_ADDRESS"
 
+export YNX_RELEASE_MANIFEST_EVIDENCE_PATH="$out/release-manifest-evidence.json"
+if node scripts/verify/release-manifest-evidence.mjs "$out" "$EXPECTED_RELEASE_COMMIT" "$EXPECTED_RELEASE_NAME"; then
+  echo "OK release-manifest-evidence" | tee -a "$report"
+else
+  echo "FAIL release-manifest-evidence" | tee -a "$report"
+  failures=$((failures + 1))
+fi
+
 export YNX_REMOTE_EVIDENCE_PATH="$out/remote-evidence.json"
 if bash scripts/verify/remote-smoke-test.sh; then
   echo "OK remote-smoke-test" | tee -a "$report"

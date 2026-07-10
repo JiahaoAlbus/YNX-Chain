@@ -4,9 +4,11 @@ import path from "node:path";
 import net from "node:net";
 import tls from "node:tls";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
+const releaseManifestEvidencePath = process.env.YNX_RELEASE_MANIFEST_EVIDENCE_PATH || path.join(repoRoot, "tmp/verify-testnet/release-manifest-evidence.json");
 const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
 const growthDelayMs = Number(process.env.YNX_REMOTE_BLOCK_GROWTH_DELAY_MS || 2500);
 const currentGitCommit = readGitCommit();
@@ -41,6 +43,7 @@ const evidence = {
   gitCommit: currentGitCommit,
   expected,
   endpoints,
+  releaseManifestEvidencePath,
   sampleAddress,
   observed: {},
   checks,
@@ -397,6 +400,34 @@ function checkBuildIdentity(name, json) {
   return commitOk && releaseOk && buildTimeOk;
 }
 
+function checkReleaseManifestEvidence() {
+  let manifestEvidence = null;
+  try {
+    manifestEvidence = JSON.parse(fs.readFileSync(releaseManifestEvidencePath, "utf8"));
+  } catch (err) {
+    evidence.observed["release.manifest.evidence"] = { path: releaseManifestEvidencePath, error: err.message };
+    record("release.manifest.evidence.present", false, `missing release manifest evidence: ${releaseManifestEvidencePath}`, evidence.observed["release.manifest.evidence"]);
+    record("release.manifest.schema", false, "missing release manifest evidence schema", {});
+    record("release.manifest.commit", false, "missing release manifest evidence commit", {});
+    record("release.manifest.release", false, "missing release manifest evidence release", {});
+    record("release.manifest.chaindChecksum", false, "missing release manifest checksum evidence", {});
+    return false;
+  }
+  evidence.observed["release.manifest.evidence"] = { path: releaseManifestEvidencePath, body: manifestEvidence };
+  const schemaOk = manifestEvidence?.schema === "ynx-release-manifest-evidence/v1";
+  const statusOk = manifestEvidence?.status === "passed";
+  const commitOk = manifestEvidence?.expected?.commit === expected.releaseCommit;
+  const releaseOk = manifestEvidence?.expected?.release === expected.releaseName;
+  const nodes = Array.isArray(manifestEvidence?.nodes) ? manifestEvidence.nodes : [];
+  const checksumOk = nodes.length >= expected.minValidators && nodes.every((node) => node?.checks?.["releaseManifest.chaindChecksum"] === true);
+  record("release.manifest.evidence.present", statusOk, statusOk ? "release manifest evidence passed" : `release manifest evidence status ${manifestEvidence?.status || "missing"}`, { path: releaseManifestEvidencePath, status: manifestEvidence?.status });
+  record("release.manifest.schema", schemaOk, schemaOk ? "release manifest evidence schema ok" : `unexpected schema ${manifestEvidence?.schema || "missing"}`, { schema: manifestEvidence?.schema });
+  record("release.manifest.commit", commitOk, commitOk ? `manifest commit ${expected.releaseCommit}` : `expected ${expected.releaseCommit}, got ${manifestEvidence?.expected?.commit || "missing"}`, manifestEvidence?.expected || {});
+  record("release.manifest.release", releaseOk, releaseOk ? `manifest release ${expected.releaseName}` : `expected ${expected.releaseName}, got ${manifestEvidence?.expected?.release || "missing"}`, manifestEvidence?.expected || {});
+  record("release.manifest.chaindChecksum", checksumOk, checksumOk ? `${nodes.length} node checksum proofs` : "missing per-node ynx-chaind checksum proof", { nodeCount: nodes.length, failedRoles: manifestEvidence?.failedRoles, missingRoles: manifestEvidence?.missingRoles });
+  return schemaOk && statusOk && commitOk && releaseOk && checksumOk;
+}
+
 function checkEvmResult(name, json, expectedValue) {
   const result = String(json?.result ?? "").toLowerCase();
   const ok = result === expectedValue.toLowerCase();
@@ -495,6 +526,7 @@ async function main() {
   fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
 
   const rpcStatus1 = await getJson("rpc.status.initial", `${endpoints.rpc}/status`);
+  const releaseManifestOk = checkReleaseManifestEvidence();
   const rpcChainOk = rpcStatus1 ? checkChain("rpc.status.chain", rpcStatus1) : false;
   const rpcBuildOk = rpcStatus1 ? checkBuildIdentity("rpc.status", rpcStatus1) : false;
   const height1 = rpcStatus1 ? heightOf(rpcStatus1) : null;
@@ -561,7 +593,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {

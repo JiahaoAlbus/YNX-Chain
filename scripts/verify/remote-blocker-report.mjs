@@ -330,6 +330,7 @@ function classifyEndpointFailure(check) {
   const observed = JSON.stringify(check?.observed || {});
   const haystack = `${detail}\n${observed}`.toLowerCase();
   if (check?.name === "rpc.validators.count") return "validator-set-empty";
+  if (String(check?.name || "").startsWith("release.manifest.")) return "release-manifest-missing";
   if (check?.name === "rpc.validators.monikers" || check?.name === "rpc.validators.addresses") return "validator-metadata-missing";
   if (check?.name === "rpc.validators.peerReadiness") return "validator-peer-readiness-missing";
   if (String(check?.name || "").includes(".build")) return "release-identity-missing";
@@ -427,6 +428,7 @@ const deployBlockingEndpointClasses = new Set([
   "http-404",
   "http-error",
   "legacy-chain",
+  "release-manifest-missing",
   "timeout-or-unreachable",
   "validator-metadata-missing",
   "validator-set-empty",

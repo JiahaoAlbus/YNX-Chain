@@ -20,6 +20,24 @@ cp docs/public-proof/PUBLIC_TESTNET_PROOF.md "$out/final/PUBLIC_TESTNET_PROOF.md
 cp docs/acceptance/TESTNET_ACCEPTANCE_REPORT.md "$out/final/TESTNET_ACCEPTANCE_REPORT.md"
 cp "$YNX_REMOTE_EVIDENCE_PATH" "$out/final/remote-public-evidence.json"
 cp "$out/public-proof-validation.json" "$out/final/public-proof-validation.json"
+release_manifest_evidence="${YNX_RELEASE_MANIFEST_EVIDENCE_PATH:-tmp/verify-testnet/release-manifest-evidence.json}"
+if [[ -f "$release_manifest_evidence" ]]; then
+  cp "$release_manifest_evidence" "$out/final/release-manifest-evidence.json"
+else
+  node - "$out/final/release-manifest-evidence.json" "$release_manifest_evidence" <<'NODE'
+const fs = require("fs");
+const [outPath, expectedPath] = process.argv.slice(2);
+fs.writeFileSync(outPath, `${JSON.stringify({
+  schema: "ynx-release-manifest-evidence/v1",
+  generatedAt: new Date().toISOString(),
+  source: "public-proof-package",
+  remotePublicProof: false,
+  status: "missing",
+  expectedPath,
+  note: "release manifest evidence was not available; public proof must remain invalid",
+}, null, 2)}\n`);
+NODE
+fi
 
 node - "$out" "$proof_status" "$(git rev-parse HEAD)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'NODE'
 const fs = require("fs");
@@ -53,7 +71,7 @@ const summary = [
   "",
   "## Evidence Policy",
   "",
-  "This package is valid only when Status is passed, Valid public proof is yes, and public-proof-validation.json shows every required remote Chain Law, appeal, transparency, validator, endpoint, and mutation proof check present and passed. Failed packages are retained as diagnostics and must not be presented as completed public proof.",
+  "This package is valid only when Status is passed, Valid public proof is yes, release-manifest-evidence.json proves the deployed release manifest checksum handoff, and public-proof-validation.json shows every required remote Chain Law, appeal, transparency, validator, release, endpoint, and mutation proof check present and passed. Failed packages are retained as diagnostics and must not be presented as completed public proof.",
   "",
 ].join("\n");
 fs.writeFileSync(path.join(finalDir, "PUBLIC_TESTNET_PROOF.generated.md"), summary);

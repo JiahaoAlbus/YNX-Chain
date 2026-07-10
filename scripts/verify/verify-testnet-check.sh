@@ -37,6 +37,8 @@ required_patterns=(
   "releaseManifest.chaindPath"
   "releaseManifest.chaindChecksum"
   "sha256sum /usr/local/bin/ynx-chaind"
+  "release-manifest-evidence.mjs"
+  "YNX_RELEASE_MANIFEST_EVIDENCE_PATH"
   "status.buildCommit"
   "status.buildRelease"
   "nodeIdentity.buildCommit"
@@ -46,6 +48,21 @@ required_patterns=(
 for pattern in "${required_patterns[@]}"; do
   grep -Fq "$pattern" scripts/verify/verify-testnet.sh || {
     echo "verify-testnet.sh missing required verifier pattern: $pattern"
+    exit 1
+  }
+done
+
+remote_smoke_patterns=(
+  "release.manifest.evidence.present"
+  "release.manifest.schema"
+  "release.manifest.commit"
+  "release.manifest.release"
+  "release.manifest.chaindChecksum"
+)
+
+for pattern in "${remote_smoke_patterns[@]}"; do
+  grep -Fq "$pattern" scripts/verify/remote-smoke-test.mjs || {
+    echo "remote-smoke-test.mjs missing required release manifest proof pattern: $pattern"
     exit 1
   }
 done

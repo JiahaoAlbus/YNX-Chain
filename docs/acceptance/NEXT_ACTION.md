@@ -1,21 +1,20 @@
 # Next Action
 
-Current single action: bind release manifest evidence into the public-proof package and validation report. Remote deployment remains blocked, so the next useful chain-construction work is to make future public proof packages carry the same artifact checksum/provenance context that `verify-testnet` now checks over SSH.
+Current single action: refresh deploy-readiness source evidence and prepare the next safe deploy gate pass without mutating remote hosts. The release manifest handoff into `public-proof` is now implemented locally; the remaining proof gap is real remote evidence.
 
 Why this action:
 
-- Deploy bundles now include `config/release-manifest.json` with non-secret artifact SHA-256 checksums.
-- `make deploy-dry-run` verifies the manifest against the generated release bundle.
-- `verify-testnet` has a safe remote path to compare installed `ynx-chaind` checksum against the manifest without printing env files.
-- `public-proof` still mainly packages remote-smoke evidence; it should also preserve release manifest provenance once remote deployment exists.
+- Deploy bundles include `config/release-manifest.json` and `verify-testnet` can emit `release-manifest-evidence.json`.
+- `remote-smoke-test` and `public-proof-evidence-check` now require release manifest evidence before `validPublicProof=true`.
+- `make public-proof` currently fails correctly because public endpoints still prove old-chain/broken state and no fresh remote release manifest evidence exists.
+- The next useful work is to refresh blockers and only proceed toward deploy when strict host-key and source-evidence gates are clean.
 
 Files to touch:
 
-- `scripts/package/public-proof.sh`
-- `scripts/verify/public-proof-evidence-check.mjs`
-- `scripts/verify/remote-smoke-test.mjs`
+- `scripts/verify/host-key-audit.sh`
+- `scripts/ops/host-key-approval-status.mjs`
+- `scripts/verify/deploy-readiness-gate.mjs`
 - `scripts/verify/remote-blocker-report.mjs`
-- `docs/public-proof`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
@@ -37,11 +36,10 @@ Validation commands:
 
 Completion standard:
 
-- Public-proof package logic has a field/file for release manifest evidence.
-- The public-proof validator rejects proof when required release manifest evidence is missing, failed, or inconsistent.
-- Remote-smoke or verify evidence has a documented handoff for manifest checksum fields.
-- Local fixtures prove missing manifest evidence keeps `validPublicProof=false`.
-- Remote deployed/public proof remains `no` until real public endpoints pass.
+- Host-key/source-evidence reports are fresh.
+- Deploy-readiness gate still fails closed if approval or endpoint proof is unsafe.
+- Any locally solvable stale-evidence or classification issue is fixed in code.
+- Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
 
 Explicitly not doing:
 
