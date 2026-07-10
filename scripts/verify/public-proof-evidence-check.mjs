@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const requiredChecks = [
   "rpc.status.chain",
@@ -92,6 +96,14 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
 
+function currentGitCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+}
+
 function validHttpsEndpoint(value) {
   try {
     const url = new URL(String(value || ""));
@@ -124,6 +136,10 @@ function validateMetadata(evidence) {
   if (!/^[0-9a-f]{40}$/i.test(gitCommit)) {
     problems.push("gitCommit must be a full 40-character git SHA");
   }
+  const headCommit = currentGitCommit();
+  if (/^[0-9a-f]{40}$/i.test(gitCommit) && headCommit !== "unknown" && gitCommit !== headCommit) {
+    problems.push(`gitCommit must match current HEAD ${headCommit.slice(0, 12)}`);
+  }
   const expected = evidence?.expected || {};
   if (expected.cosmosChainId !== "ynx_6423-1") {
     problems.push("expected.cosmosChainId must be ynx_6423-1");
@@ -144,6 +160,9 @@ function validateMetadata(evidence) {
   const releaseName = String(expected.releaseName || "");
   if (!/^[0-9a-f]{7,40}$/i.test(releaseCommit) || releaseCommit === "unknown") {
     problems.push("expected.releaseCommit must be a concrete git SHA prefix");
+  }
+  if (/^[0-9a-f]{7,40}$/i.test(releaseCommit) && headCommit !== "unknown" && !headCommit.startsWith(releaseCommit)) {
+    problems.push(`expected.releaseCommit must match current HEAD ${headCommit.slice(0, 12)}`);
   }
   if (!releaseName || releaseName !== `ynx-chain-${releaseCommit}`) {
     problems.push("expected.releaseName must match ynx-chain-<releaseCommit>");
@@ -205,6 +224,9 @@ function writeReport(file, report) {
 }
 
 function buildFixture({ status = "passed", omit = [], fail = [], includeSkipped = false } = {}) {
+  const headCommit = currentGitCommit();
+  const fixtureCommit = /^[0-9a-f]{40}$/i.test(headCommit) ? headCommit : "abc1234abc1234abc1234abc1234abc1234abc12";
+  const releaseCommit = fixtureCommit.slice(0, 12);
   const omitSet = new Set(omit);
   const failSet = new Set(fail);
   const checks = requiredChecks
@@ -214,15 +236,15 @@ function buildFixture({ status = "passed", omit = [], fail = [], includeSkipped 
   return {
     proofType: "remote-public-testnet-smoke",
     generatedAt: "2026-07-10T00:00:00.000Z",
-    gitCommit: "abc1234abc1234abc1234abc1234abc1234abc12",
+    gitCommit: fixtureCommit,
     expected: {
       cosmosChainId: "ynx_6423-1",
       evmChainId: 6423,
       evmChainIdHex: "0x1917",
       nativeSymbol: "YNXT",
       minValidators: 3,
-      releaseCommit: "abc1234abc12",
-      releaseName: "ynx-chain-abc1234abc12",
+      releaseCommit,
+      releaseName: `ynx-chain-${releaseCommit}`,
     },
     endpoints: {
       rpc: "https://rpc.ynxweb4.com",
@@ -256,6 +278,13 @@ function selfTest() {
   const skipped = validateEvidence(buildFixture({ includeSkipped: true }));
   assert.equal(skipped.validPublicProof, false, "skipped mutable remote actions must be invalid");
   assert.equal(skipped.skippedMutableActions, true);
+  const staleCommit = buildFixture();
+  staleCommit.gitCommit = "1111111111111111111111111111111111111111";
+  staleCommit.expected.releaseCommit = "111111111111";
+  staleCommit.expected.releaseName = "ynx-chain-111111111111";
+  const staleCommitReport = validateEvidence(staleCommit);
+  assert.equal(staleCommitReport.validPublicProof, false, "old commit evidence must not be valid public proof");
+  assert(staleCommitReport.metadataProblems.some((problem) => problem.includes("current HEAD")));
   const localEndpoint = buildFixture();
   localEndpoint.endpoints.rpc = "http://127.0.0.1:6420";
   const localEndpointReport = validateEvidence(localEndpoint);

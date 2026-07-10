@@ -8,6 +8,7 @@ Why this action:
 - Resource Market production pricing/governance config is local verified and wired into public-proof requirements.
 - Release manifest evidence now captures observed per-node manifest commit/release/path and fails mismatched release identity locally; this still needs real remote node evidence after deployment.
 - Public-proof evidence validation now rejects checks-only evidence unless remote smoke metadata, expected YNX chain identity, release identity, non-local public endpoints, non-local gRPC host, and release-manifest evidence path are present.
+- Public-proof evidence validation now also rejects stale evidence whose `gitCommit` or `expected.releaseCommit` does not match the current local HEAD.
 - Deploy-readiness gate now rejects fresh remote-smoke evidence if its `gitCommit` / expected release identity is not bound to the current local HEAD.
 - Remote-blocker reports now surface stale/wrong remote-smoke evidence identity as a deploy-blocking source issue before deployment is attempted.
 - The remaining highest-priority gap is no longer another local feature slice; it is getting the core remote testnet safely deployable and publicly provable.
@@ -65,7 +66,7 @@ Completion standard:
 - Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
 - Chain Law local checks stay green, but they do not count as public proof until `remote-smoke-test`, `verify-testnet`, and `public-proof` pass against the deployed public endpoints.
 - Release manifest evidence must include observed per-node manifest commit, release, `bin/ynx-chaind` path, manifest SHA-256, and binary SHA-256 matching the expected release before public proof can pass.
-- Public-proof validation must keep rejecting localhost, old-chain identity, wrong release identity, missing metadata, missing required checks, failed required checks, and skipped mutable actions.
+- Public-proof validation must keep rejecting localhost, old-chain identity, wrong release identity, stale commit/release evidence, missing metadata, missing required checks, failed required checks, and skipped mutable actions.
 - Deploy-readiness gate must reject remote evidence generated from an older local commit or mismatched expected release identity, even when the evidence file is fresh.
 - Remote-blocker reports must show remote evidence identity mismatch as a source blocker, not only as a later deploy-gate failure.
 
