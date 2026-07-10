@@ -100,10 +100,16 @@ writeJson(semanticRemoteEvidencePath, {
   status: "failed",
   expected: { cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainIdHex: "0x1917", nativeSymbol: "YNXT", minValidators: 3 },
   checks: [
+    { name: "release.manifest.evidence.present", ok: false, detail: "missing release manifest evidence", observed: {} },
+    { name: "rpc.status.buildCommit", ok: false, detail: "expected commit, got missing", observed: {} },
+    { name: "rpc.nodeIdentity.configured", ok: false, detail: "missing configured validator identity", observed: { url: "https://rpc.ynxweb4.com/node/identity" } },
     { name: "rpc.status.chainId", ok: false, detail: "expected ynx_6423-1, got ynx_9102-1", observed: { chainId: "ynx_9102-1", url: "https://rpc.ynxweb4.com/status" } },
     { name: "evm.chainId", ok: false, detail: "expected 0x1917, got 0x238e", observed: { result: "0x238e", url: "https://evm.ynxweb4.com" } },
     { name: "rpc.validators.count", ok: false, detail: "expected at least 3 validators, got 0", observed: { count: 0, url: "https://rpc.ynxweb4.com/validators" } },
     { name: "rpc.validators.monikers", ok: false, detail: "missing validator monikers", observed: { monikers: [], url: "https://rpc.ynxweb4.com/validators" } },
+    { name: "rpc.validators.peerReadiness", ok: false, detail: "missing validator peer readiness", observed: { url: "https://rpc.ynxweb4.com/validators" } },
+    { name: "rpc.validators.peers.expected", ok: false, detail: "missing expected validator peers", observed: { url: "https://rpc.ynxweb4.com/validators/peers" } },
+    { name: "rpc.validators.peerSync", ok: false, detail: "missing validator peer sync", observed: { url: "https://rpc.ynxweb4.com/validators/peer-sync" } },
     { name: "rpc.blockGrowth", ok: false, detail: "height did not grow", observed: { before: 10, after: 10, url: "https://rpc.ynxweb4.com/status" } },
     { name: "mutable.remote.actions", ok: false, detail: "skipped because public chain readiness failed", observed: { reason: "publicChainReady=false" } },
   ],
@@ -127,9 +133,15 @@ const semanticJson = JSON.parse(fs.readFileSync(semanticReportJsonPath, "utf8"))
 assert.equal(semanticJson.deployReady, false, "semantic public endpoint failures must block deploy readiness");
 for (const classification of [
   "legacy-chain",
+  "release-manifest-missing",
+  "release-identity-missing",
+  "validator-node-identity-missing",
   "wrong-chain-id",
   "validator-set-empty",
   "validator-metadata-missing",
+  "validator-peer-readiness-missing",
+  "validator-peer-discovery-missing",
+  "validator-peer-sync-missing",
   "dependent-height-failure",
   "gated-mutation-skipped",
 ]) {

@@ -429,8 +429,13 @@ const deployBlockingEndpointClasses = new Set([
   "http-error",
   "legacy-chain",
   "release-manifest-missing",
+  "release-identity-missing",
   "timeout-or-unreachable",
   "validator-metadata-missing",
+  "validator-node-identity-missing",
+  "validator-peer-discovery-missing",
+  "validator-peer-readiness-missing",
+  "validator-peer-sync-missing",
   "validator-set-empty",
   "wrong-chain-id",
 ]);

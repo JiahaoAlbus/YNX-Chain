@@ -20,6 +20,6 @@ export YNX_EVM_CHAIN_ID="${YNX_EVM_CHAIN_ID:-6423}"
 export YNX_EVM_CHAIN_ID_HEX="${YNX_EVM_CHAIN_ID_HEX:-0x1917}"
 export YNX_NATIVE_COIN_SYMBOL="${YNX_NATIVE_COIN_SYMBOL:-YNXT}"
 export YNX_EXPECTED_VALIDATOR_COUNT="${YNX_EXPECTED_VALIDATOR_COUNT:-3}"
-export YNX_REMOTE_EVIDENCE_PATH="${YNX_REMOTE_EVIDENCE_PATH:-tmp/remote-smoke-test/evidence.json}"
+export YNX_REMOTE_EVIDENCE_PATH="${YNX_REMOTE_EVIDENCE_PATH:-tmp/verify-testnet/remote-evidence.json}"
 
 node scripts/verify/remote-smoke-test.mjs

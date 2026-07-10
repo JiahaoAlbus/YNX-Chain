@@ -1,20 +1,21 @@
 # Next Action
 
-Current single action: refresh deploy-readiness source evidence and prepare the next safe deploy gate pass without mutating remote hosts. The release manifest handoff into `public-proof` is now implemented locally; the remaining proof gap is real remote evidence.
+Current single action: obtain trusted out-of-band confirmation for Singapore and Silicon Valley SSH host-key fingerprints, then run the existing approval check and approved known_hosts repair dry-run. Do not mutate remote hosts or repair known_hosts until those fingerprints are independently confirmed.
 
 Why this action:
 
-- Deploy bundles include `config/release-manifest.json` and `verify-testnet` can emit `release-manifest-evidence.json`.
-- `remote-smoke-test` and `public-proof-evidence-check` now require release manifest evidence before `validPublicProof=true`.
-- `make public-proof` currently fails correctly because public endpoints still prove old-chain/broken state and no fresh remote release manifest evidence exists.
-- The next useful work is to refresh blockers and only proceed toward deploy when strict host-key and source-evidence gates are clean.
+- Fresh host-key audit now shows primary and Seoul strict SSH accepted current host keys.
+- Singapore and Silicon Valley both present changed host keys with valid scanned fingerprints.
+- Approval request/status files now contain six untrusted fingerprint rows, three per mismatch node.
+- Deploy-readiness gate correctly fails closed until ignored `.host-key-approvals.json` contains trusted, externally confirmed fingerprints and approved repair is reviewed.
 
 Files to touch:
 
-- `scripts/verify/host-key-audit.sh`
-- `scripts/ops/host-key-approval-status.mjs`
-- `scripts/verify/deploy-readiness-gate.mjs`
-- `scripts/verify/remote-blocker-report.mjs`
+- `.host-key-approvals.json` (ignored local file; only after trusted external confirmation)
+- `tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md`
+- `tmp/host-key-audit/host-key-approval-request.json`
+- `tmp/host-key-audit/HOST_KEY_APPROVAL_STATUS.md`
+- `tmp/verify-testnet/REMOTE_BLOCKERS.md`
 - `docs/acceptance/PROJECT_STATE.md`
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`
 
@@ -36,9 +37,10 @@ Validation commands:
 
 Completion standard:
 
-- Host-key/source-evidence reports are fresh.
-- Deploy-readiness gate still fails closed if approval or endpoint proof is unsafe.
-- Any locally solvable stale-evidence or classification issue is fixed in code.
+- Trusted fingerprints are copied only from an external provider/cloud-console channel, not from `ssh-keyscan` alone.
+- `make host-key-approval-check` passes.
+- `make host-key-approved-repair-dry-run` shows only the approved Singapore and Silicon Valley known_hosts replacements.
+- `make host-key-approved-repair` is not run until the dry-run is reviewed.
 - Remote deployed/public proof remains `no` until real public endpoints and strict SSH checks pass.
 
 Explicitly not doing:

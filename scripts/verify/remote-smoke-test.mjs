@@ -105,7 +105,11 @@ async function request(name, url, options = {}) {
 }
 
 async function getJson(name, url) {
-  const res = await request(name, url);
+  let res = await request(name, url);
+  if (!res.ok && res.status === 0) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    res = await request(name, url);
+  }
   if (!res.ok) {
     record(name, false, res.error || "request failed", evidence.observed[name]);
     return null;
