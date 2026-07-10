@@ -9,6 +9,8 @@ const sshPath = path.join(verifyDir, "ssh-services.txt");
 const hostKeyAuditPath = process.env.YNX_HOST_KEY_AUDIT_REPORT || "tmp/host-key-audit/host-key-audit.txt";
 const hostKeyApprovalRequestPath = process.env.YNX_HOST_KEY_APPROVAL_REQUEST || "tmp/host-key-audit/HOST_KEY_APPROVAL_REQUEST.md";
 const hostKeyApprovalRequestJsonPath = process.env.YNX_HOST_KEY_APPROVAL_REQUEST_JSON || "tmp/host-key-audit/host-key-approval-request.json";
+const hostKeyApprovalPacketPath = process.env.YNX_HOST_KEY_APPROVAL_PACKET || "tmp/host-key-audit/HOST_KEY_EXTERNAL_APPROVAL_PACKET.md";
+const hostKeyApprovalPacketJsonPath = process.env.YNX_HOST_KEY_APPROVAL_PACKET_JSON || "tmp/host-key-audit/host-key-external-approval-packet.json";
 const hostKeyApprovalStatusJsonPath = process.env.YNX_HOST_KEY_APPROVAL_STATUS_JSON || "tmp/host-key-audit/host-key-approval-status.json";
 const legacyInventoryPath = process.env.YNX_LEGACY_INVENTORY_REPORT || "tmp/legacy-inventory/legacy-inventory.txt";
 const outPath = process.env.YNX_REMOTE_BLOCKER_REPORT || path.join(verifyDir, "REMOTE_BLOCKERS.md");
@@ -213,6 +215,86 @@ function approvalRequestJsonMetadata(file, { required, mismatchFindings }) {
     ...metadata,
     classification: "fresh",
     detail: `fresh and matches ${expectedCount} current host-key mismatch fingerprint(s)`,
+  };
+}
+
+function approvalPacketJsonMetadata(file, { required, mismatchFindings }) {
+  const packet = readJson(file);
+  const metadata = fileMetadata(file, { required, jsonGeneratedAt: packet?.generatedAt });
+  if (!required || metadata.classification !== "fresh") return metadata;
+  if (!packet) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "approval packet JSON is unreadable",
+    };
+  }
+  if (packet.trustedApproval !== false || packet.trustedSourceRequired !== true) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "approval packet JSON must be untrusted and require an external trusted source",
+    };
+  }
+  const rows = Array.isArray(packet.rows) ? packet.rows : [];
+  if (!rows.length) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "approval packet JSON has no rows",
+    };
+  }
+
+  const rowByKey = new Map();
+  for (const row of rows) {
+    const key = `${row.role || ""}|${row.host || ""}|${String(row.keyType || "").toUpperCase()}`;
+    rowByKey.set(key, row.presentedFingerprint || "");
+  }
+  const problems = [];
+  let expectedCount = 0;
+  for (const finding of mismatchFindings) {
+    for (const [keyType, fingerprint] of Object.entries(finding.fingerprints || {})) {
+      expectedCount += 1;
+      const key = `${finding.role}|${finding.host}|${keyType}`;
+      const observed = rowByKey.get(key);
+      if (!observed) {
+        problems.push(`missing ${key}`);
+      } else if (observed !== fingerprint) {
+        problems.push(`mismatch ${key}`);
+      }
+    }
+  }
+  if (!expectedCount) {
+    return {
+      ...metadata,
+      classification: "invalid-required-evidence",
+      detail: "current host-key mismatch evidence has no parsed presented fingerprints",
+    };
+  }
+
+  const draftNodes = Array.isArray(packet.approvalDraft?.nodes) ? packet.approvalDraft.nodes : [];
+  for (const node of draftNodes) {
+    for (const [keyType, value] of Object.entries(node.fingerprints || {})) {
+      if (String(value || "").trim() !== "") {
+        problems.push(`approval draft must keep ${node.role || ""}|${node.host || ""}|${keyType} blank`);
+      }
+    }
+  }
+  if (!draftNodes.length) {
+    problems.push("approval draft has no nodes");
+  }
+
+  if (problems.length) {
+    return {
+      ...metadata,
+      classification: "approval-packet-mismatch",
+      detail: `approval packet JSON does not match current host-key audit or blank-draft rules: ${problems.slice(0, 4).join("; ")}`,
+    };
+  }
+  return {
+    ...metadata,
+    classification: "fresh",
+    detail: `fresh packet with ${expectedCount} untrusted fingerprint row(s) and blank trusted approval draft`,
   };
 }
 
@@ -484,6 +566,11 @@ sourceEvidence.hostKeyApprovalRequestJson = approvalRequestJsonMetadata(hostKeyA
   required: hostKeyMismatchPresent,
   mismatchFindings: hostKeyMismatchFindings,
 });
+sourceEvidence.hostKeyApprovalPacket = fileMetadata(hostKeyApprovalPacketPath, { required: hostKeyMismatchPresent });
+sourceEvidence.hostKeyApprovalPacketJson = approvalPacketJsonMetadata(hostKeyApprovalPacketJsonPath, {
+  required: hostKeyMismatchPresent,
+  mismatchFindings: hostKeyMismatchFindings,
+});
 sourceEvidence.hostKeyApprovalStatusJson = approvalStatusJsonMetadata(hostKeyApprovalStatusJsonPath, {
   required: hostKeyMismatchPresent,
   mismatchFindings: hostKeyMismatchFindings,
@@ -651,6 +738,8 @@ fs.writeFileSync(jsonOutPath, `${JSON.stringify({
     hostKeyAuditPath,
     hostKeyApprovalRequestPath,
     hostKeyApprovalRequestJsonPath,
+    hostKeyApprovalPacketPath,
+    hostKeyApprovalPacketJsonPath,
     hostKeyApprovalStatusJsonPath,
     legacyInventoryPath,
     reportPath: outPath,
