@@ -66,13 +66,28 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
+	if !strings.Contains(resp.Header.Get("Cache-Control"), "no-store") {
+		t.Fatalf("explorer web response permits a stale application shell: cache-control=%q", resp.Header.Get("Cache-Control"))
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
 	html := string(body)
-	if !strings.Contains(html, "Add YNX Testnet to MetaMask") || !strings.Contains(html, "/api/summary") || !strings.Contains(html, "new EventSource('/api/stream')") || !strings.Contains(html, "Resource economy") {
-		t.Fatalf("explorer web did not include wallet/API wiring: %s", html)
+	for _, marker := range []string{
+		"Add YNX Testnet to MetaMask",
+		"/api/summary",
+		"new EventSource('/api/stream')",
+		"Network TPS",
+		"Latest transactions",
+		"id=\"txFilter\"",
+		"id=\"detailBackdrop\"",
+		"Resource economy",
+		"No event for ",
+	} {
+		if !strings.Contains(html, marker) {
+			t.Fatalf("explorer web is missing live interaction marker %q", marker)
+		}
 	}
 
 	summary, err := svc.Summary(context.Background())
@@ -106,6 +121,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if streamResp.StatusCode != http.StatusOK || !strings.HasPrefix(streamResp.Header.Get("Content-Type"), "text/event-stream") {
 		t.Fatalf("unexpected stream response: status=%d content-type=%s", streamResp.StatusCode, streamResp.Header.Get("Content-Type"))
+	}
+	if streamResp.Header.Get("X-Accel-Buffering") != "no" || !strings.Contains(streamResp.Header.Get("Cache-Control"), "no-cache") {
+		t.Fatalf("stream response permits proxy buffering or caching: headers=%v", streamResp.Header)
 	}
 	scanner := bufio.NewScanner(streamResp.Body)
 	streamData := ""

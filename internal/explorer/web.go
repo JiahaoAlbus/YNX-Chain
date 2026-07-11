@@ -23,7 +23,7 @@ const indexHTML = `<!doctype html>
     button { cursor:pointer; }
     a { color:inherit; text-decoration:none; }
     .mono { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:.92em; }
-    .shell { width:min(1180px,calc(100% - 40px)); margin:0 auto; }
+    .shell { width:min(1320px,calc(100% - 40px)); margin:0 auto; }
 
     .nav { position:sticky; top:0; z-index:20; height:54px; border-bottom:1px solid rgba(0,0,0,.08); background:rgba(250,250,252,.82); backdrop-filter:saturate(180%) blur(18px); -webkit-backdrop-filter:saturate(180%) blur(18px); }
     .nav-inner { height:100%; display:flex; align-items:center; gap:28px; }
@@ -34,10 +34,10 @@ const indexHTML = `<!doctype html>
     .network-pill { display:flex; align-items:center; gap:7px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.76); font-size:12px; color:#424245; }
     .pulse { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
 
-    .hero { padding:64px 0 48px; background:var(--surface); border-bottom:1px solid var(--line-soft); }
+    .hero { padding:38px 0 30px; background:var(--surface); border-bottom:1px solid var(--line-soft); }
     .eyebrow { margin:0 0 12px; color:var(--blue); font-size:14px; font-weight:650; }
-    h1 { max-width:760px; margin:0; font-size:clamp(38px,6vw,66px); line-height:1.02; font-weight:700; letter-spacing:0; }
-    .hero-copy { max-width:690px; margin:18px 0 28px; color:var(--muted); font-size:19px; line-height:1.48; }
+    h1 { max-width:760px; margin:0; font-size:34px; line-height:1.08; font-weight:700; letter-spacing:0; }
+    .hero-copy { max-width:760px; margin:10px 0 22px; color:var(--muted); font-size:15px; line-height:1.48; }
     .search { position:relative; max-width:820px; display:flex; align-items:center; gap:10px; }
     .search input { width:100%; height:54px; padding:0 128px 0 18px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:var(--surface); font-size:16px; outline:none; box-shadow:0 1px 2px rgba(0,0,0,.03); transition:border-color .2s,box-shadow .2s; }
     .search input:focus { border-color:var(--blue); box-shadow:0 0 0 4px rgba(0,113,227,.12); }
@@ -52,14 +52,15 @@ const indexHTML = `<!doctype html>
     .status-bar.warn .state { background:var(--amber-soft); color:var(--amber); }
     .status-bar .refresh { margin-left:auto; border:0; background:transparent; color:var(--blue); padding:7px 0; }
 
-    .metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:34px; }
-    .metric { min-height:126px; padding:20px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.02); }
+    .metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:20px; }
+    .metric { min-height:116px; padding:17px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.02); transition:border-color .2s,box-shadow .2s,transform .2s; }
+    .metric.changed { border-color:#9dccff; box-shadow:0 0 0 3px rgba(0,113,227,.08); transform:translateY(-1px); }
     .metric-label { color:var(--muted); font-size:13px; }
-    .metric-value { margin-top:11px; font-size:30px; line-height:1; font-weight:650; overflow-wrap:anywhere; }
+    .metric-value { margin-top:11px; font-size:26px; line-height:1; font-weight:650; overflow-wrap:anywhere; }
     .metric-foot { margin-top:13px; color:var(--faint); font-size:12px; }
     .metric-foot.good { color:var(--green); }
 
-    .overview { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr); gap:14px; margin-bottom:42px; }
+    .overview { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(280px,.8fr); gap:14px; margin-bottom:22px; }
     .panel { border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
     .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:22px 22px 18px; border-bottom:1px solid var(--line-soft); }
     .panel-head h2,.section-head h2 { margin:0; font-size:20px; line-height:1.2; font-weight:650; }
@@ -85,12 +86,57 @@ const indexHTML = `<!doctype html>
     th { color:var(--muted); background:var(--surface-alt); font-size:11px; font-weight:600; text-transform:uppercase; }
     tbody tr { transition:background .15s; }
     tbody tr:hover { background:#f7faff; }
+    tbody tr.new-row { animation:row-arrival .75s ease both; }
     .link { color:var(--blue); font-weight:550; cursor:pointer; }
     .hash { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .type-tag { display:inline-flex; padding:4px 8px; border-radius:6px; color:#424245; background:#f0f0f2; font-size:11px; font-weight:600; text-transform:capitalize; }
     .amount { font-weight:600; white-space:nowrap; }
     .muted { color:var(--muted); }
     .empty { padding:36px 20px; color:var(--muted); text-align:center; }
+
+    .live-board { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); gap:14px; margin-top:22px; }
+    .live-board .panel { min-width:0; box-shadow:none; }
+    .live-board .panel-head { padding:18px 18px 14px; }
+    .live-list { min-height:450px; }
+    .live-row { display:grid; width:100%; align-items:center; gap:12px; min-height:72px; padding:12px 18px; border:0; border-bottom:1px solid var(--line-soft); color:var(--ink); background:var(--surface); text-align:left; transition:background .15s; }
+    .live-row:last-child { border-bottom:0; }
+    .live-row:hover { background:#f7faff; }
+    .block-live-row { grid-template-columns:54px minmax(0,1fr) auto; }
+    .tx-live-row { grid-template-columns:44px minmax(0,1fr) auto; }
+    .row-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:8px; color:var(--blue); background:var(--blue-soft); font-size:12px; font-weight:700; }
+    .row-icon.tx { color:#6b45c6; background:#f1edff; }
+    .row-title { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:600; }
+    .row-subtitle { display:flex; gap:8px; margin-top:5px; min-width:0; color:var(--muted); font-size:12px; }
+    .row-side { text-align:right; font-size:12px; }
+    .row-side strong { display:block; font-size:13px; }
+    .row-side span { display:block; margin-top:5px; color:var(--muted); }
+    .stream-clock { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; }
+    .stream-clock.live { color:var(--green); }
+    .stream-clock.stale { color:var(--amber); }
+    .stream-dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .stream-clock.live .stream-dot { animation:live-pulse 1.8s ease-out infinite; }
+    .filter-control { display:flex; align-items:center; gap:8px; }
+    .filter-control select { height:32px; padding:0 28px 0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; }
+
+    .drawer-backdrop { position:fixed; inset:0; z-index:40; visibility:hidden; background:rgba(0,0,0,.2); opacity:0; transition:opacity .25s,visibility .25s; }
+    .drawer-backdrop.visible { visibility:visible; opacity:1; }
+    .drawer { position:absolute; top:0; right:0; width:min(620px,100%); height:100%; overflow:auto; background:rgba(255,255,255,.96); box-shadow:-24px 0 60px rgba(0,0,0,.16); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); transform:translateX(100%); transition:transform .32s cubic-bezier(.2,.8,.2,1); }
+    .drawer-backdrop.visible .drawer { transform:translateX(0); }
+    .drawer-head { position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:24px; border-bottom:1px solid var(--line-soft); background:rgba(255,255,255,.9); backdrop-filter:blur(18px); }
+    .drawer-head h2 { margin:3px 0 0; font-size:24px; }
+    .drawer-kicker { color:var(--blue); font-size:12px; font-weight:650; text-transform:uppercase; }
+    .icon-button { display:grid; place-items:center; width:36px; height:36px; flex:none; border:1px solid var(--line-soft); border-radius:50%; color:var(--ink); background:#f3f3f5; font-size:20px; line-height:1; }
+    .detail-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:var(--line-soft); border-bottom:1px solid var(--line-soft); }
+    .detail-stat { min-height:94px; padding:18px; background:var(--surface); }
+    .detail-stat span { display:block; color:var(--muted); font-size:11px; text-transform:uppercase; }
+    .detail-stat strong { display:block; margin-top:9px; font-size:16px; overflow-wrap:anywhere; }
+    .detail-body { padding:20px 24px 40px; }
+    .detail-row { display:grid; grid-template-columns:150px minmax(0,1fr) auto; gap:14px; align-items:start; padding:14px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
+    .detail-row dt { color:var(--muted); }
+    .detail-row dd { margin:0; overflow-wrap:anywhere; }
+    .copy-button { width:30px; height:30px; border:0; border-radius:6px; color:var(--blue); background:var(--blue-soft); font-size:11px; }
+    .toast { position:fixed; left:50%; bottom:24px; z-index:60; padding:10px 14px; border-radius:8px; color:#fff; background:rgba(29,29,31,.92); box-shadow:var(--shadow); font-size:13px; opacity:0; transform:translate(-50%,12px); pointer-events:none; transition:opacity .2s,transform .2s; }
+    .toast.visible { opacity:1; transform:translate(-50%,0); }
 
     .intelligence { margin:42px 0; }
     .segmented { display:grid; grid-template-columns:1fr 1fr; width:min(360px,100%); padding:3px; border:1px solid var(--line); border-radius:8px; background:#e9e9ed; }
@@ -127,10 +173,13 @@ const indexHTML = `<!doctype html>
     .skeleton { position:relative; overflow:hidden; color:transparent!important; background:#ededf0!important; border-radius:4px; }
     .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); animation:shimmer 1.4s infinite; }
     @keyframes shimmer { 100% { transform:translateX(100%); } }
+    @keyframes row-arrival { from { opacity:0; transform:translateY(-8px); background:var(--blue-soft); } to { opacity:1; transform:translateY(0); background:transparent; } }
+    @keyframes live-pulse { 0% { box-shadow:0 0 0 0 rgba(36,138,61,.35); } 70% { box-shadow:0 0 0 7px rgba(36,138,61,0); } 100% { box-shadow:0 0 0 0 rgba(36,138,61,0); } }
 
     @media (max-width:900px) {
-      .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
       .overview { grid-template-columns:1fr; }
+      .live-board { grid-template-columns:1fr; }
       .nav-links a { display:none; }
       .hero { padding-top:48px; }
     }
@@ -160,6 +209,8 @@ const indexHTML = `<!doctype html>
       .result-grid { grid-template-columns:112px minmax(0,1fr); }
       .resource-metrics { grid-template-columns:1fr 1fr; }
       .footer-inner { flex-direction:column; }
+      .detail-summary { grid-template-columns:1fr 1fr; }
+      .detail-row { grid-template-columns:100px minmax(0,1fr) auto; }
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } * { animation:none!important; transition:none!important; } }
   </style>
@@ -169,7 +220,7 @@ const indexHTML = `<!doctype html>
     <div class="shell nav-inner">
       <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><span class="brand-mark">YNX</span><span>Chain Explorer</span></a>
       <div class="nav-links">
-        <a href="#blocks">Blocks</a><a href="#transactions">Transactions</a><a href="#intelligence">Validators & Resources</a>
+        <a href="#network">Overview</a><a href="#live">Blockchain</a><a href="#intelligence">Validators</a><a href="#resourcesPanel">Resources</a>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
     </div>
@@ -178,13 +229,13 @@ const indexHTML = `<!doctype html>
   <header class="hero" id="top">
     <div class="shell">
       <p class="eyebrow">YNX Testnet</p>
-      <h1>See every block.<br>Verify every transaction.</h1>
-      <p class="hero-copy">A live, indexer-backed view of YNX Chain activity, validators, accounts, and native YNXT resource economics.</p>
+      <h1>YNX Chain network explorer</h1>
+      <p class="hero-copy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
       <form class="search" id="searchForm">
         <input id="searchInput" aria-label="Search the chain" placeholder="Search block, transaction, or address" autocomplete="off" spellcheck="false">
         <button type="submit">Search</button>
       </form>
-      <div class="hero-meta"><span><span class="pulse"></span>Live RPC data</span><span id="lastUpdated">Connecting to the network</span><span>Native asset: YNXT</span></div>
+      <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button">Close</button></div>
         <div id="resultBody"></div>
@@ -194,10 +245,12 @@ const indexHTML = `<!doctype html>
 
   <main>
     <div class="shell">
-      <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><button class="refresh" id="refreshButton" type="button">Refresh</button></div>
+      <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button">Refresh</button></div>
 
       <section class="metrics" aria-label="Network metrics">
         <article class="metric"><div class="metric-label">Latest block</div><div class="metric-value skeleton" id="rpcHeight">0000</div><div class="metric-foot" id="blockAge">Waiting for block data</div></article>
+        <article class="metric"><div class="metric-label">Network TPS</div><div class="metric-value skeleton" id="networkTps">0.00</div><div class="metric-foot">Latest indexed window</div></article>
+        <article class="metric"><div class="metric-label">Block time</div><div class="metric-value skeleton" id="blockTime">0.0s</div><div class="metric-foot">Observed average</div></article>
         <article class="metric"><div class="metric-label">Transactions indexed</div><div class="metric-value skeleton" id="txCount">0000</div><div class="metric-foot">Verified by the indexer</div></article>
         <article class="metric"><div class="metric-label">Validators</div><div class="metric-value skeleton" id="validatorCount">00</div><div class="metric-foot">Reported by chain RPC</div></article>
         <article class="metric"><div class="metric-label">Indexer sync</div><div class="metric-value skeleton" id="syncValue">0 blocks</div><div class="metric-foot" id="syncState">Checking consistency</div></article>
@@ -234,14 +287,15 @@ const indexHTML = `<!doctype html>
         </div>
       </section>
 
-      <section class="section" id="blocks">
-        <div class="section-head"><div><h2>Latest blocks</h2><p>Most recent blocks observed by the indexer</p></div><button class="section-link" type="button" data-refresh>Update</button></div>
-        <div class="table-shell"><table class="blocks-table"><thead><tr><th style="width:14%">Height</th><th style="width:42%">Block hash</th><th style="width:25%">Time</th><th style="width:19%">Transactions</th></tr></thead><tbody id="blocksBody"><tr><td colspan="4" class="empty">Loading blocks...</td></tr></tbody></table></div>
-      </section>
-
-      <section class="section" id="transactions">
-        <div class="section-head"><div><h2>Latest transactions</h2><p>Transfers and chain actions from indexed blocks</p></div><button class="section-link" type="button" data-refresh>Update</button></div>
-        <div class="table-shell"><table class="tx-table"><thead><tr><th style="width:27%">Transaction hash</th><th style="width:13%">Type</th><th style="width:20%">From</th><th style="width:20%">To</th><th style="width:12%">Amount</th><th style="width:8%">Fee</th></tr></thead><tbody id="txsBody"><tr><td colspan="6" class="empty">Loading transactions...</td></tr></tbody></table></div>
+      <section class="live-board" id="live">
+        <article class="panel" id="blocks">
+          <div class="panel-head"><div><h2>Latest blocks</h2><p>Finalized blocks arriving from the live indexer</p></div><button class="section-link" type="button" data-refresh>Refresh</button></div>
+          <div class="live-list" id="blocksBody"><div class="empty">Loading blocks...</div></div>
+        </article>
+        <article class="panel" id="transactions">
+          <div class="panel-head"><div><h2>Latest transactions</h2><p>Transfers and protocol actions on YNX Chain</p></div><div class="filter-control"><select id="txFilter" aria-label="Filter transaction type"><option value="all">All activity</option><option value="transfer">Transfers</option><option value="resource">Resources</option><option value="faucet">Faucet</option></select></div></div>
+          <div class="live-list" id="txsBody"><div class="empty">Loading transactions...</div></div>
+        </article>
       </section>
 
       <section class="wallet-band">
@@ -253,11 +307,24 @@ const indexHTML = `<!doctype html>
 
   <footer><div class="shell footer-inner"><span>YNX Chain Explorer</span><span>Live testnet data. Mainnet launch is not claimed.</span></div></footer>
 
+  <div class="drawer-backdrop" id="detailBackdrop" aria-hidden="true">
+    <aside class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="drawer-head"><div><div class="drawer-kicker" id="detailKicker">Chain detail</div><h2 id="detailTitle">Loading</h2></div><button class="icon-button" id="detailClose" type="button" aria-label="Close detail panel">&times;</button></div>
+      <div id="detailContent"><div class="empty">Loading live chain data...</div></div>
+    </aside>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
   <script>
     const api = '';
     let walletConfig = null;
     let refreshTimer = null;
     let eventSource = null;
+    let latestTransactions = [];
+    let previousHeight = 0;
+    let previousTxHash = '';
+    let lastStreamAt = 0;
+    let toastTimer = null;
     const $ = (id) => document.getElementById(id);
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
@@ -276,12 +343,28 @@ const indexHTML = `<!doctype html>
       return response.json();
     }
     function removeSkeletons() { document.querySelectorAll('.skeleton').forEach(node => node.classList.remove('skeleton')); }
-    function blockRow(block) {
+    function blockRow(block,index = 0) {
       const txs = (block.transactions || []).length;
-      return '<tr><td><button class="section-link mono" type="button" data-query="' + escapeHTML(block.height) + '">' + escapeHTML(number(block.height)) + '</button></td><td><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,16,10)) + '</span></td><td title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</td><td>' + txs + (txs === 1 ? ' transaction' : ' transactions') + '</td></tr>';
+      const isNew = index === 0 && previousHeight && Number(block.height) > previousHeight;
+      return '<button class="live-row block-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">Finalized</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (txs === 1 ? ' tx' : ' txs') + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
     }
-    function txRow(tx) {
-      return '<tr><td><button class="section-link mono hash" type="button" data-query="' + escapeHTML(tx.hash) + '" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,13,8)) + '</button></td><td><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></td><td><button class="section-link mono hash" type="button" data-query="' + escapeHTML(tx.from) + '" title="' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from)) + '</button></td><td><button class="section-link mono hash" type="button" data-query="' + escapeHTML(tx.to) + '" title="' + escapeHTML(tx.to) + '">' + escapeHTML(compact(tx.to)) + '</button></td><td class="amount">' + escapeHTML(number(tx.amount)) + ' YNXT</td><td class="mono">' + escapeHTML(number(tx.fee)) + '</td></tr>';
+    function txRow(tx,index = 0) {
+      const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
+      return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span><span>to</span><span class="mono hash" title="' + escapeHTML(tx.to) + '">' + escapeHTML(compact(tx.to,8,6)) + '</span></span></span><span class="row-side"><strong>' + escapeHTML(number(tx.amount)) + ' YNXT</strong><span>Fee ' + escapeHTML(number(tx.fee)) + '</span></span></button>';
+    }
+    function calculateWindow(blocks) {
+      if (blocks.length < 2) return {blockTime:0,tps:0};
+      const newest = new Date(blocks[0].time).getTime();
+      const oldest = new Date(blocks[blocks.length - 1].time).getTime();
+      const duration = Math.max(0,(newest - oldest) / 1000);
+      const txs = blocks.reduce((sum,block) => sum + (block.transactions || []).length,0);
+      return {blockTime:duration ? duration / (blocks.length - 1) : 0,tps:duration ? txs / duration : 0};
+    }
+    function renderTransactions() {
+      const filter = $('txFilter').value;
+      const filtered = latestTransactions.filter(tx => filter === 'all' || (filter === 'resource' ? String(tx.type).includes('resource') : tx.type === filter));
+      $('txsBody').innerHTML = filtered.length ? filtered.slice(0,6).map(txRow).join('') : '<div class="empty">No matching indexed transactions.</div>';
+      bindQueries();
     }
     function renderActivity(blocks) {
       const recent = blocks.slice().reverse();
@@ -316,9 +399,14 @@ const indexHTML = `<!doctype html>
     }
     function bindQueries() { document.querySelectorAll('[data-query]').forEach(button => button.onclick = () => search(button.dataset.query)); }
     function renderDashboard(summary, blocks, transactions, validatorData, resources, source = 'Live stream') {
+      const windowStats = calculateWindow(blocks);
+      const incomingHeight = Number(summary.rpcHeight || 0);
       walletConfig = summary.wallet;
+      latestTransactions = transactions;
       $('networkName').textContent = summary.network.name || 'YNX Testnet';
       $('rpcHeight').textContent = number(summary.rpcHeight);
+      $('networkTps').textContent = windowStats.tps.toFixed(2);
+      $('blockTime').textContent = windowStats.blockTime.toFixed(1) + 's';
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
       $('syncValue').textContent = number(summary.syncLagBlocks) + (summary.syncLagBlocks === 1 ? ' block' : ' blocks');
@@ -332,14 +420,24 @@ const indexHTML = `<!doctype html>
       $('latestHash').title = summary.latestBlockHash || '';
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
       $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      $('blocksBody').innerHTML = blocks.length ? blocks.map(blockRow).join('') : '<tr><td colspan="4" class="empty">No indexed blocks yet.</td></tr>';
-      $('txsBody').innerHTML = transactions.length ? transactions.map(txRow).join('') : '<tr><td colspan="6" class="empty">No indexed transactions yet.</td></tr>';
+      $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
+      document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
+      $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,6).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
+      renderTransactions();
       renderActivity(blocks);
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? 'Network operational' : 'Upstream degraded';
       $('statusDetail').textContent = summary.ok ? source + ' / RPC and indexer are responding' : (summary.indexerError || 'One or more upstream services are degraded');
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
+      if (incomingHeight > previousHeight) {
+        const metric = $('rpcHeight').closest('.metric');
+        metric.classList.remove('changed');
+        requestAnimationFrame(() => metric.classList.add('changed'));
+        window.setTimeout(() => metric.classList.remove('changed'),700);
+      }
+      previousHeight = incomingHeight;
+      previousTxHash = transactions[0]?.hash || previousTxHash;
       removeSkeletons();
       $('refreshButton').disabled = false;
     }
@@ -360,9 +458,14 @@ const indexHTML = `<!doctype html>
     function connectLiveStream() {
       if (!window.EventSource) { startFallbackPolling(); return; }
       eventSource = new EventSource('/api/stream');
+      eventSource.onopen = () => {
+        $('streamClock').className = 'stream-clock live';
+        $('streamClockText').textContent = 'Live stream connected';
+      };
       eventSource.addEventListener('dashboard', event => {
         try {
           const snapshot = JSON.parse(event.data);
+          lastStreamAt = Date.now();
           renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'Live SSE');
           stopFallbackPolling();
         } catch (error) { showLoadError(error); }
@@ -374,6 +477,8 @@ const indexHTML = `<!doctype html>
         $('statusText').textContent = 'Reconnecting live data';
         $('statusDetail').textContent = 'Using 10-second snapshot fallback';
         $('status').className = 'status-bar warn';
+        $('streamClock').className = 'stream-clock stale';
+        $('streamClockText').textContent = 'Stream reconnecting';
         startFallbackPolling();
       };
     }
@@ -383,29 +488,70 @@ const indexHTML = `<!doctype html>
       if (typeof value === 'object') { Object.entries(value).forEach(([key,item]) => flatten(item,prefix ? prefix + ' / ' + key : key,rows)); return rows; }
       rows.push([prefix,value]); return rows;
     }
+    function detailStats(type,detail) {
+      if (type === 'block') return [['Height','#' + number(detail.height)],['Transactions',(detail.transactions || []).length],['Validator',compact(detail.validator,10,7)]];
+      if (type === 'transaction') return [['Amount',number(detail.amount) + ' YNXT'],['Fee',number(detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)]];
+      if (type === 'account') return [['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)]];
+      return [];
+    }
+    function showDrawer(type,query,detail) {
+      const title = type.charAt(0).toUpperCase() + type.slice(1);
+      $('detailKicker').textContent = 'Live ' + type + ' detail';
+      $('detailTitle').textContent = title;
+      const stats = detailStats(type,detail);
+      const summary = stats.length ? '<div class="detail-summary">' + stats.map(([label,value]) => '<div class="detail-stat"><span>' + escapeHTML(label) + '</span><strong class="mono">' + escapeHTML(value) + '</strong></div>').join('') + '</div>' : '';
+      const rows = flatten(detail).map(([key,value]) => {
+        const text = String(value ?? '');
+        const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="Copy value">Copy</button>' : '';
+        return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
+      }).join('');
+      $('detailContent').innerHTML = summary + '<dl class="detail-body">' + rows + '</dl>';
+      $('detailBackdrop').classList.add('visible');
+      $('detailBackdrop').setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+      $('detailClose').focus();
+    }
+    function closeDrawer() {
+      $('detailBackdrop').classList.remove('visible');
+      $('detailBackdrop').setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+    }
+    function showToast(message) {
+      $('toast').textContent = message;
+      $('toast').classList.add('visible');
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => $('toast').classList.remove('visible'),1500);
+    }
     async function search(query) {
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
       $('searchInput').value = q;
-      $('resultPanel').classList.add('visible');
-      $('resultTitle').textContent = 'Searching the chain';
-      $('resultSubtitle').textContent = q;
-      $('resultBody').innerHTML = '<div class="empty">Resolving live indexer data...</div>';
-      $('resultPanel').scrollIntoView({behavior:'smooth',block:'nearest'});
+      $('detailKicker').textContent = 'Searching live chain data';
+      $('detailTitle').textContent = compact(q,18,10);
+      $('detailContent').innerHTML = '<div class="empty">Resolving RPC and indexer records...</div>';
+      $('detailBackdrop').classList.add('visible');
+      $('detailBackdrop').setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
       try {
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
         const detail = await get(resolved.path);
-        $('resultTitle').textContent = resolved.type.charAt(0).toUpperCase() + resolved.type.slice(1);
-        $('resultSubtitle').textContent = 'Resolved from live chain data';
-        $('resultBody').innerHTML = '<div class="result-grid">' + flatten(detail).map(([key,value]) => '<div class="result-key">' + escapeHTML(key) + '</div><div class="result-value mono">' + escapeHTML(value) + '</div>').join('') + '</div>';
+        showDrawer(resolved.type,q,detail);
       } catch (error) {
-        $('resultTitle').textContent = 'No result found';
-        $('resultSubtitle').textContent = q;
-        $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>';
+        $('detailKicker').textContent = 'Search result';
+        $('detailTitle').textContent = 'Not found';
+        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>';
       }
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
     $('resultClose').onclick = () => $('resultPanel').classList.remove('visible');
+    $('detailClose').onclick = closeDrawer;
+    $('detailBackdrop').onclick = event => { if (event.target === $('detailBackdrop')) closeDrawer(); };
+    $('detailContent').onclick = async event => {
+      const button = event.target.closest('[data-copy]');
+      if (!button) return;
+      try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast('Copied to clipboard'); }
+      catch (_) { showToast('Clipboard unavailable'); }
+    };
     function selectIntelligence(view) {
       const validatorsSelected = view === 'validators';
       $('validatorsTab').classList.toggle('active',validatorsSelected);
@@ -417,6 +563,7 @@ const indexHTML = `<!doctype html>
     }
     $('validatorsTab').onclick = () => selectIntelligence('validators');
     $('resourcesTab').onclick = () => selectIntelligence('resources');
+    $('txFilter').onchange = renderTransactions;
     $('refreshButton').onclick = () => load().catch(showLoadError);
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
@@ -430,6 +577,13 @@ const indexHTML = `<!doctype html>
     function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     load().catch(showLoadError);
     connectLiveStream();
+    window.setInterval(() => {
+      if (!lastStreamAt) return;
+      const age = Math.floor((Date.now() - lastStreamAt) / 1000);
+      $('streamClock').className = 'stream-clock ' + (age < 8 ? 'live' : 'stale');
+      $('streamClockText').textContent = age < 2 ? 'Updated now' : (age < 8 ? 'Updated ' + age + 's ago' : 'No event for ' + age + 's');
+    },1000);
+    document.addEventListener('keydown',event => { if (event.key === 'Escape') closeDrawer(); });
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
   </script>
 </body>
