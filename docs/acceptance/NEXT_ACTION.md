@@ -2,6 +2,8 @@
 
 Current single action: begin the real BFT consensus migration while preserving the remotely verified authoritative replication path as a rollback boundary.
 
+Intervening Explorer UI request closed locally: the RPC/indexer-backed Explorer now has a responsive Apple-inspired operational UI, and its unit, smoke, desktop, mobile, overflow, search, and console checks pass. The redesigned UI is not yet remotely deployed; this does not replace the consensus action below.
+
 Why this action:
 
 - Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
