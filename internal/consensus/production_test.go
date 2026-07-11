@@ -183,6 +183,45 @@ func TestProductionPackageRefusesExistingOutputAndUnhashedPrivateFile(t *testing
 	}
 }
 
+func TestProductionKeyCeremonyCreatesHostLocalKeysAndPublicRecord(t *testing.T) {
+	root := t.TempDir()
+	keyDir := filepath.Join(root, "keys")
+	publicRecordPath := filepath.Join(root, "public-record.json")
+	record, err := InitializeProductionKeyFiles("seoul", keyDir, publicRecordPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.Role != "seoul" || record.ValidatorAddress != "ynx_validator_seoul" || record.CustodyBoundary != "owner-controlled-host-local" || !productionNodeIDPattern.MatchString(record.NodeID) || len(record.ConsensusAddress) != 40 {
+		t.Fatalf("unexpected key ceremony public record: %+v", record)
+	}
+	for _, path := range []string{filepath.Join(keyDir, "priv_validator_key.json"), filepath.Join(keyDir, "priv_validator_state.json"), filepath.Join(keyDir, "node_key.json"), publicRecordPath} {
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm()&0o077 != 0 {
+			t.Fatalf("key ceremony file is missing or permissive: path=%s info=%v err=%v", path, info, err)
+		}
+	}
+	publicPayload, err := os.ReadFile(publicRecordPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.ToLower(string(publicPayload)), "priv_key") || strings.Contains(strings.ToLower(string(publicPayload)), "privatekey") || strings.Contains(strings.ToLower(string(publicPayload)), "mnemonic") {
+		t.Fatal("key ceremony public record contains private material")
+	}
+	inspected, err := ReadProductionKeyRecord("seoul", keyDir)
+	if err != nil || inspected != record {
+		t.Fatalf("existing host keys did not reproduce the same public record: record=%+v err=%v", inspected, err)
+	}
+	if _, err := InitializeProductionKeyFiles("seoul", keyDir, filepath.Join(root, "second.json")); err == nil {
+		t.Fatal("key ceremony overwrote an existing key directory")
+	}
+	if err := os.Chmod(filepath.Join(keyDir, "node_key.json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadProductionKeyRecord("seoul", keyDir); err == nil {
+		t.Fatal("key ceremony inspection accepted a permissive private key file")
+	}
+}
+
 func productionValidatorFixture(t *testing.T, migration chain.ConsensusMigrationState) (ProductionValidatorManifest, map[string][2]string) {
 	t.Helper()
 	manifest := ProductionValidatorManifest{Version: ProductionValidatorManifestVersion, Purpose: ProductionValidatorManifestPurpose, ChainID: "ynx_6423-1"}

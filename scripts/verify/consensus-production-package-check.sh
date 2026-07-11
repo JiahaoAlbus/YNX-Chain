@@ -4,8 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 go test ./internal/consensus -run 'Test(GenerateProductionCandidatePackageAndVerifyHostKeys|ProductionValidatorManifestRejectsUnsafeInputs|ProductionPackageRefusesExistingOutputAndUnhashedPrivateFile)' -count=1
-go test ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck
-bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
+go test ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-key-init
+bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -38,6 +38,10 @@ SEOUL_NODE_HOST=127.0.0.4
 SEOUL_NODE_USER=root
 SEOUL_NODE_SSH_KEY=$key
 EOF
+DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_KEY_WORK_ROOT="$tmp/key-work" \
+  bash scripts/ops/init-consensus-candidate-keys.sh >"$tmp/key-ceremony.out"
+grep -Fq "no keys were generated" "$tmp/key-ceremony.out" || { echo "candidate key ceremony dry-run boundary missing" >&2; exit 1; }
+
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" CONSENSUS_CANDIDATE_WORK_ROOT="$tmp/deploy-work" \
   bash scripts/deploy/deploy-consensus-candidate.sh >"$tmp/deploy.out"
 for role in primary singapore silicon-valley seoul; do

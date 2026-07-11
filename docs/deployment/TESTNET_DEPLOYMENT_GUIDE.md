@@ -61,6 +61,16 @@ The post-deploy ops commands are multi-node aware: primary operations cover `ynx
 
 The CometBFT candidate is a separate staged deployment and must not be confused with `make deploy-testnet`. First export and independently approve the authoritative migration state. Each server owner then generates its CometBFT validator and node keys offline or directly on the assigned server, retains the private files, and provides only the public key, derived consensus address, node ID, and RFC1918 P2P address in a manifest conforming to `chain/consensus/production-validator-manifest.schema.json`.
 
+The repository key ceremony command generates directly on each assigned host and retrieves only public records. It is approval gated, refuses existing key directories, and supports non-rotating inspect/resume after a partial network failure.
+
+```bash
+DEPLOY_DRY_RUN=1 ENV_FILE=.env.deploy make consensus-candidate-key-ceremony
+
+CONSENSUS_CANDIDATE_KEY_CEREMONY_APPROVED=yes \
+  ENV_FILE=.env.deploy \
+  make consensus-candidate-key-ceremony
+```
+
 Generate and verify the candidate package locally:
 
 ```bash
