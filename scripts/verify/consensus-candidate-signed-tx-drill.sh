@@ -19,7 +19,7 @@ nonce="${CONSENSUS_CANDIDATE_TX_NONCE:-}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 go run ./cmd/ynx-consensus-tx -key "$key_path" -chain-id 6423 -to "$recipient" -amount "$amount" -nonce "$nonce" >"$tmp/tx.json"
-sender="$(node -e 'const tx=JSON.parse(require("fs").readFileSync(process.argv[1])); if(!/^0x[0-9a-f]{40}$/.test(tx.sender)) process.exit(1); process.stdout.write(tx.sender)' "$tmp/tx.json")"
+sender="$(node -e 'const tx=JSON.parse(require("fs").readFileSync(process.argv[1])); if(!/^0x[0-9a-f]{40}$/.test(tx.from)) process.exit(1); process.stdout.write(tx.from)' "$tmp/tx.json")"
 [[ "$sender" != "$recipient" ]] || { echo "signed transaction sender and recipient must differ" >&2; exit 1; }
 
 query_accounts() {
