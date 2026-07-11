@@ -1,0 +1,21 @@
+[Unit]
+Description=YNX Chain CometBFT compatibility gateway candidate
+After=network-online.target ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service
+Wants=network-online.target
+Requires=ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-bft-gatewayd.env
+ExecStart=/usr/local/bin/ynx-bft-gatewayd
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
