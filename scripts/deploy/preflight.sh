@@ -12,6 +12,7 @@ make release-manifest-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
 go test ./cmd/... ./internal/...
+make validator-peer-readiness-check
 make anti-illegal-request-check
 make request-validity-check
 make transparency-report-check
