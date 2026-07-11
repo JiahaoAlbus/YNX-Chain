@@ -92,6 +92,22 @@ const indexHTML = `<!doctype html>
     .muted { color:var(--muted); }
     .empty { padding:36px 20px; color:var(--muted); text-align:center; }
 
+    .intelligence { margin:42px 0; }
+    .segmented { display:grid; grid-template-columns:1fr 1fr; width:min(360px,100%); padding:3px; border:1px solid var(--line); border-radius:8px; background:#e9e9ed; }
+    .segment { min-height:34px; border:0; border-radius:6px; color:var(--muted); background:transparent; font-size:13px; font-weight:600; }
+    .segment.active { color:var(--ink); background:var(--surface); box-shadow:0 1px 4px rgba(0,0,0,.12); }
+    .intelligence-panel { display:none; margin-top:14px; }
+    .intelligence-panel.active { display:block; }
+    .validator-state { display:inline-flex; align-items:center; gap:7px; color:var(--green); font-weight:600; }
+    .validator-state::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .validator-state.offline { color:var(--amber); }
+    .resource-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .resource-item { min-height:112px; padding:18px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); }
+    .resource-item strong { display:block; margin-top:10px; font-size:24px; font-weight:650; }
+    .resource-item small { color:var(--muted); }
+    .policy-line { display:flex; flex-wrap:wrap; gap:9px 22px; margin-top:10px; padding:16px 18px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); color:var(--muted); font-size:12px; }
+    .policy-line strong { color:var(--ink); font-weight:600; }
+
     .wallet-band { margin-top:44px; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:24px; border-radius:8px; color:#fff; background:#1d1d1f; }
     .wallet-band h2 { margin:0 0 7px; font-size:22px; }
     .wallet-band p { margin:0; color:#a1a1a6; font-size:14px; }
@@ -142,6 +158,7 @@ const indexHTML = `<!doctype html>
       .wallet-band { align-items:flex-start; flex-direction:column; padding:24px 20px; }
       .wallet-button { width:100%; }
       .result-grid { grid-template-columns:112px minmax(0,1fr); }
+      .resource-metrics { grid-template-columns:1fr 1fr; }
       .footer-inner { flex-direction:column; }
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } * { animation:none!important; transition:none!important; } }
@@ -152,7 +169,7 @@ const indexHTML = `<!doctype html>
     <div class="shell nav-inner">
       <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><span class="brand-mark">YNX</span><span>Chain Explorer</span></a>
       <div class="nav-links">
-        <a href="#blocks">Blocks</a><a href="#transactions">Transactions</a><a href="#network">Network</a>
+        <a href="#blocks">Blocks</a><a href="#transactions">Transactions</a><a href="#intelligence">Validators & Resources</a>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
     </div>
@@ -202,6 +219,21 @@ const indexHTML = `<!doctype html>
         </article>
       </section>
 
+      <section class="intelligence" id="intelligence">
+        <div class="section-head"><div><h2>Network intelligence</h2><p>Validator and resource-economy state from live chain APIs</p></div></div>
+        <div class="segmented" role="tablist" aria-label="Network intelligence views">
+          <button class="segment active" id="validatorsTab" type="button" role="tab" aria-selected="true" aria-controls="validatorsPanel">Validators</button>
+          <button class="segment" id="resourcesTab" type="button" role="tab" aria-selected="false" aria-controls="resourcesPanel">Resource economy</button>
+        </div>
+        <div class="intelligence-panel active" id="validatorsPanel" role="tabpanel" aria-labelledby="validatorsTab">
+          <div class="table-shell"><table class="blocks-table"><thead><tr><th style="width:24%">Validator</th><th style="width:22%">Role</th><th style="width:18%">Status</th><th style="width:18%">Voting power</th><th style="width:18%">Observed height</th></tr></thead><tbody id="validatorsBody"><tr><td colspan="5" class="empty">Loading validators...</td></tr></tbody></table></div>
+        </div>
+        <div class="intelligence-panel" id="resourcesPanel" role="tabpanel" aria-labelledby="resourcesTab">
+          <div class="resource-metrics" id="resourceMetrics"><article class="resource-item"><small>Loading resource market</small></article></div>
+          <div class="policy-line" id="resourcePolicy"></div>
+        </div>
+      </section>
+
       <section class="section" id="blocks">
         <div class="section-head"><div><h2>Latest blocks</h2><p>Most recent blocks observed by the indexer</p></div><button class="section-link" type="button" data-refresh>Update</button></div>
         <div class="table-shell"><table class="blocks-table"><thead><tr><th style="width:14%">Height</th><th style="width:42%">Block hash</th><th style="width:25%">Time</th><th style="width:19%">Transactions</th></tr></thead><tbody id="blocksBody"><tr><td colspan="4" class="empty">Loading blocks...</td></tr></tbody></table></div>
@@ -225,6 +257,7 @@ const indexHTML = `<!doctype html>
     const api = '';
     let walletConfig = null;
     let refreshTimer = null;
+    let eventSource = null;
     const $ = (id) => document.getElementById(id);
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
@@ -260,10 +293,25 @@ const indexHTML = `<!doctype html>
         return '<div class="bar-wrap" title="Block ' + escapeHTML(block.height) + ': ' + counts[index] + ' transactions"><div class="bar" style="height:' + height + '%"></div><span class="bar-label">' + escapeHTML(compact(block.height,4,2)) + '</span></div>';
       }).join('') || '<div class="empty">No indexed block activity yet.</div>';
     }
+    function renderIntelligence(validatorData, resources) {
+      const validators = Array.isArray(validatorData) ? validatorData : (validatorData?.validators || []);
+      $('validatorsBody').innerHTML = validators.length ? validators.map(validator => {
+        const ready = Boolean(validator.peerReady || validator.active);
+        const status = validator.peerStatus || (ready ? 'active' : 'not ready');
+        return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(validator.address) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
+      }).join('') : '<tr><td colspan="5" class="empty">No validator records available.</td></tr>';
+      if (!resources || typeof resources !== 'object') return;
+      const resourceItems = [
+        ['Delegated YNXT',resources.delegatedYnxt],
+        ['Rental volume',resources.rentalVolumeYnxt],
+        ['Provider income',resources.providerIncomeYnxt],
+        ['Protocol fees',resources.protocolFeeYnxt]
+      ];
+      $('resourceMetrics').innerHTML = resourceItems.map(([label,value]) => '<article class="resource-item"><small>' + escapeHTML(label) + '</small><strong>' + escapeHTML(number(value)) + '</strong><small>YNXT</small></article>').join('');
+      $('resourcePolicy').innerHTML = '<span>Policy <strong>' + escapeHTML(resources.policyVersion || '--') + '</strong></span><span>Active delegations <strong>' + escapeHTML(number(resources.activeDelegationCount)) + '</strong></span><span>Rentals <strong>' + escapeHTML(number(resources.resourceRentalCount)) + '</strong></span><span>Evidence <strong class="mono">' + escapeHTML(compact(resources.policyHash,10,7)) + '</strong></span>';
+    }
     function bindQueries() { document.querySelectorAll('[data-query]').forEach(button => button.onclick = () => search(button.dataset.query)); }
-    async function load() {
-      $('refreshButton').disabled = true;
-      const [summary, blockData, txData] = await Promise.all([get('/api/summary'),get('/api/blocks/latest?limit=12'),get('/api/txs?limit=12')]);
+    function renderDashboard(summary, blocks, transactions, validatorData, resources, source = 'Live stream') {
       walletConfig = summary.wallet;
       $('networkName').textContent = summary.network.name || 'YNX Testnet';
       $('rpcHeight').textContent = number(summary.rpcHeight);
@@ -274,21 +322,56 @@ const indexHTML = `<!doctype html>
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
       $('chainId').textContent = summary.network.chainId + ' / ' + summary.wallet.chainIdHex;
-		const nativeName = summary.network.nativeCoinName || 'YNX Token';
-		$('nativeCoin').textContent = nativeName === 'YNXT' ? 'YNXT' : nativeName + ' (YNXT)';
+      const nativeName = summary.network.nativeCoinName || 'YNX Token';
+      $('nativeCoin').textContent = nativeName === 'YNXT' ? 'YNXT' : nativeName + ' (YNXT)';
       $('latestHash').textContent = compact(summary.latestBlockHash,12,9);
       $('latestHash').title = summary.latestBlockHash || '';
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
       $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      $('blocksBody').innerHTML = blockData.blocks.length ? blockData.blocks.map(blockRow).join('') : '<tr><td colspan="4" class="empty">No indexed blocks yet.</td></tr>';
-      $('txsBody').innerHTML = txData.transactions.length ? txData.transactions.map(txRow).join('') : '<tr><td colspan="6" class="empty">No indexed transactions yet.</td></tr>';
-      renderActivity(blockData.blocks);
+      $('blocksBody').innerHTML = blocks.length ? blocks.map(blockRow).join('') : '<tr><td colspan="4" class="empty">No indexed blocks yet.</td></tr>';
+      $('txsBody').innerHTML = transactions.length ? transactions.map(txRow).join('') : '<tr><td colspan="6" class="empty">No indexed transactions yet.</td></tr>';
+      renderActivity(blocks);
+      renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? 'Network operational' : 'Upstream degraded';
-      $('statusDetail').textContent = summary.ok ? 'RPC and indexer are responding' : (summary.indexerError || 'One or more upstream services are degraded');
+      $('statusDetail').textContent = summary.ok ? source + ' / RPC and indexer are responding' : (summary.indexerError || 'One or more upstream services are degraded');
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       removeSkeletons();
       $('refreshButton').disabled = false;
+    }
+    async function load() {
+      $('refreshButton').disabled = true;
+      const [summary, blockData, txData, validators, resources] = await Promise.all([get('/api/summary'),get('/api/blocks/latest?limit=12'),get('/api/txs?limit=12'),get('/api/validators'),get('/api/resource-market/analytics')]);
+      renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
+    }
+    function startFallbackPolling() {
+      if (refreshTimer) return;
+      refreshTimer = window.setInterval(() => load().catch(showLoadError),10000);
+    }
+    function stopFallbackPolling() {
+      if (!refreshTimer) return;
+      window.clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+    function connectLiveStream() {
+      if (!window.EventSource) { startFallbackPolling(); return; }
+      eventSource = new EventSource('/api/stream');
+      eventSource.addEventListener('dashboard', event => {
+        try {
+          const snapshot = JSON.parse(event.data);
+          renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'Live SSE');
+          stopFallbackPolling();
+        } catch (error) { showLoadError(error); }
+      });
+      eventSource.addEventListener('upstream-error', event => {
+        try { showLoadError(new Error(JSON.parse(event.data).error || 'Live upstream error')); } catch (_) { showLoadError(new Error('Live upstream error')); }
+      });
+      eventSource.onerror = () => {
+        $('statusText').textContent = 'Reconnecting live data';
+        $('statusDetail').textContent = 'Using 10-second snapshot fallback';
+        $('status').className = 'status-bar warn';
+        startFallbackPolling();
+      };
     }
     function flatten(value, prefix = '', rows = []) {
       if (value === null || value === undefined) { rows.push([prefix || 'Value','unavailable']); return rows; }
@@ -319,6 +402,17 @@ const indexHTML = `<!doctype html>
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
     $('resultClose').onclick = () => $('resultPanel').classList.remove('visible');
+    function selectIntelligence(view) {
+      const validatorsSelected = view === 'validators';
+      $('validatorsTab').classList.toggle('active',validatorsSelected);
+      $('resourcesTab').classList.toggle('active',!validatorsSelected);
+      $('validatorsPanel').classList.toggle('active',validatorsSelected);
+      $('resourcesPanel').classList.toggle('active',!validatorsSelected);
+      $('validatorsTab').setAttribute('aria-selected',String(validatorsSelected));
+      $('resourcesTab').setAttribute('aria-selected',String(!validatorsSelected));
+    }
+    $('validatorsTab').onclick = () => selectIntelligence('validators');
+    $('resourcesTab').onclick = () => selectIntelligence('resources');
     $('refreshButton').onclick = () => load().catch(showLoadError);
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
@@ -331,7 +425,7 @@ const indexHTML = `<!doctype html>
     };
     function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     load().catch(showLoadError);
-    refreshTimer = window.setInterval(() => load().catch(showLoadError),30000);
+    connectLiveStream();
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
   </script>
 </body>

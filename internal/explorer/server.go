@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 type Server struct {
@@ -36,6 +38,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
+	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /api/txs", s.handleTransactions)
@@ -47,6 +50,86 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
 	s.mux.HandleFunc("GET /api/fees/{hash}", s.handleFee)
 	s.mux.HandleFunc("GET /api/search", s.handleSearch)
+}
+
+type dashboardSnapshot struct {
+	Summary      Summary             `json:"summary"`
+	Blocks       []chain.Block       `json:"blocks"`
+	Transactions []chain.Transaction `json:"transactions"`
+	Validators   map[string]any      `json:"validators"`
+	Resources    map[string]any      `json:"resources"`
+}
+
+func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, error) {
+	summary, err := s.service.Summary(ctx)
+	if err != nil {
+		return dashboardSnapshot{}, err
+	}
+	blocks, err := s.service.LatestBlocks(ctx, 12)
+	if err != nil {
+		return dashboardSnapshot{}, err
+	}
+	transactions, err := s.service.Transactions(ctx, 12)
+	if err != nil {
+		return dashboardSnapshot{}, err
+	}
+	validators, err := s.service.Validators(ctx)
+	if err != nil {
+		return dashboardSnapshot{}, err
+	}
+	resources, err := s.service.ResourceAnalytics(ctx)
+	if err != nil {
+		return dashboardSnapshot{}, err
+	}
+	summary.Build = s.build
+	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources}, nil
+}
+
+func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "streaming is unavailable"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache, no-transform")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	_, _ = fmt.Fprint(w, "retry: 2000\n\n")
+	flusher.Flush()
+
+	send := func() bool {
+		snapshot, err := s.dashboardSnapshot(r.Context())
+		if err != nil {
+			payload, _ := json.Marshal(map[string]string{"error": err.Error()})
+			_, _ = fmt.Fprintf(w, "event: upstream-error\ndata: %s\n\n", payload)
+			flusher.Flush()
+			return true
+		}
+		payload, err := json.Marshal(snapshot)
+		if err != nil {
+			return false
+		}
+		_, _ = fmt.Fprintf(w, "id: %d-%d-%d\nevent: dashboard\ndata: %s\n\n", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount, payload)
+		flusher.Flush()
+		return true
+	}
+
+	if !send() {
+		return
+	}
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			if !send() {
+				return
+			}
+		}
+	}
 }
 
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {

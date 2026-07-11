@@ -1,6 +1,7 @@
 package explorer
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"io"
@@ -69,7 +70,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := string(body)
-	if !strings.Contains(html, "Add YNX Testnet to MetaMask") || !strings.Contains(html, "/api/summary") {
+	if !strings.Contains(html, "Add YNX Testnet to MetaMask") || !strings.Contains(html, "/api/summary") || !strings.Contains(html, "new EventSource('/api/stream')") || !strings.Contains(html, "Resource economy") {
 		t.Fatalf("explorer web did not include wallet/API wiring: %s", html)
 	}
 
@@ -91,5 +92,32 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+
+	streamCtx, cancelStream := context.WithCancel(context.Background())
+	streamReq, err := http.NewRequestWithContext(streamCtx, http.MethodGet, server.URL+"/api/stream", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	streamResp, err := http.DefaultClient.Do(streamReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if streamResp.StatusCode != http.StatusOK || !strings.HasPrefix(streamResp.Header.Get("Content-Type"), "text/event-stream") {
+		t.Fatalf("unexpected stream response: status=%d content-type=%s", streamResp.StatusCode, streamResp.Header.Get("Content-Type"))
+	}
+	scanner := bufio.NewScanner(streamResp.Body)
+	streamData := ""
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "data: ") {
+			streamData = strings.TrimPrefix(line, "data: ")
+			break
+		}
+	}
+	cancelStream()
+	_ = streamResp.Body.Close()
+	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":2`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
+		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
 	}
 }
