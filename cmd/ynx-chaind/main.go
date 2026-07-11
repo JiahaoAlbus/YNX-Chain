@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -36,21 +37,23 @@ func main() {
 	replicationKey := flag.String("replication-key", envOrDefault("YNX_REPLICATION_KEY", ""), "shared key for authenticated replication snapshots")
 	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
+	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "export deterministic BFT migration state to a file and exit")
 	flag.Parse()
 
 	cfg := nodeRuntimeConfig{
-		HTTPAddr:            *httpAddr,
-		Network:             *network,
-		BlockInterval:       *blockInterval,
-		DataDir:             *dataDir,
-		LocalValidator:      *localValidator,
-		PeerSyncRaw:         *peerSyncRaw,
-		PeerSyncInterval:    *peerSyncInterval,
-		BlockProduction:     *blockProduction,
-		ReplicationSource:   strings.TrimSpace(*replicationSource),
-		ReplicationKey:      strings.TrimSpace(*replicationKey),
-		ReplicationInterval: *replicationInterval,
-		CheckConfig:         *checkConfig,
+		HTTPAddr:             *httpAddr,
+		Network:              *network,
+		BlockInterval:        *blockInterval,
+		DataDir:              *dataDir,
+		LocalValidator:       *localValidator,
+		PeerSyncRaw:          *peerSyncRaw,
+		PeerSyncInterval:     *peerSyncInterval,
+		BlockProduction:      *blockProduction,
+		ReplicationSource:    strings.TrimSpace(*replicationSource),
+		ReplicationKey:       strings.TrimSpace(*replicationKey),
+		ReplicationInterval:  *replicationInterval,
+		CheckConfig:          *checkConfig,
+		ExportConsensusState: strings.TrimSpace(*exportConsensusState),
 	}
 	if err := runNode(cfg, os.Stdout); err != nil {
 		log.Fatal(err)
@@ -58,18 +61,19 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
-	HTTPAddr            string
-	Network             string
-	BlockInterval       time.Duration
-	DataDir             string
-	LocalValidator      string
-	PeerSyncRaw         string
-	PeerSyncInterval    time.Duration
-	BlockProduction     bool
-	ReplicationSource   string
-	ReplicationKey      string
-	ReplicationInterval time.Duration
-	CheckConfig         bool
+	HTTPAddr             string
+	Network              string
+	BlockInterval        time.Duration
+	DataDir              string
+	LocalValidator       string
+	PeerSyncRaw          string
+	PeerSyncInterval     time.Duration
+	BlockProduction      bool
+	ReplicationSource    string
+	ReplicationKey       string
+	ReplicationInterval  time.Duration
+	CheckConfig          bool
+	ExportConsensusState string
 }
 
 type nodeStartupInputs struct {
@@ -133,6 +137,9 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	if cfg.ExportConsensusState != "" {
+		return exportConsensusState(devnet, cfg.ExportConsensusState, out)
+	}
 	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
 		ValidatorAddress:  cfg.LocalValidator,
 		PeerSyncTargets:   chainPeerSyncTargets(inputs.PeerSyncTargets),
@@ -174,6 +181,35 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}
+	return nil
+}
+
+func exportConsensusState(devnet *chain.Devnet, destination string, out io.Writer) error {
+	state, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		return fmt.Errorf("export consensus migration state: %w", err)
+	}
+	payload, err := state.CanonicalJSON()
+	if err != nil {
+		return fmt.Errorf("encode consensus migration state: %w", err)
+	}
+	if destination == "-" {
+		_, err = out.Write(append(payload, '\n'))
+		return err
+	}
+	destination = filepath.Clean(destination)
+	if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
+		return fmt.Errorf("create consensus export directory: %w", err)
+	}
+	temporary := destination + ".tmp"
+	if err := os.WriteFile(temporary, append(payload, '\n'), 0o600); err != nil {
+		return fmt.Errorf("write consensus migration state: %w", err)
+	}
+	if err := os.Rename(temporary, destination); err != nil {
+		_ = os.Remove(temporary)
+		return fmt.Errorf("commit consensus migration state: %w", err)
+	}
+	fmt.Fprintf(out, "consensus migration state exported: path=%s height=%d accounts=%d validators=%d stateHash=%s\n", destination, state.Height, len(state.Accounts), len(state.Validators), state.StateHash)
 	return nil
 }
 

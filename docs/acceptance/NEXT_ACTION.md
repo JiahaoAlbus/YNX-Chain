@@ -13,7 +13,7 @@ Why this action:
 
 Required engineering and verification work:
 
-- Define the consensus/application boundary against the existing persisted state and API runtime.
+- Completed first slice: define and verify the deterministic consensus/application migration boundary against existing persisted YNXT state with `make consensus-migration-check`.
 - Introduce a proven BFT engine path rather than extending the custom producer/follower protocol into a home-grown consensus algorithm.
 - Add a migration and rollback contract that preserves current YNXT state and the deployed public API during staged validator rollout.
 
@@ -26,6 +26,7 @@ Files to touch:
 Validation commands:
 
 - `go test ./...`
+- `make consensus-migration-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
