@@ -42,4 +42,8 @@ if ! CONSENSUS_OVERLAY_PACKAGE="$work/package" ENV_FILE="${ENV_FILE:-}" bash scr
   echo "overlay verification failed; candidate overlay stopped on all roles" >&2
   exit 1
 fi
-echo "consensus overlay deployed and privately reachable; authoritative ynx-chaind remained active"
+if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+  echo "consensus overlay deployment dry-run completed; no interface was created and no reachability is claimed"
+else
+  echo "consensus overlay deployed and privately reachable; authoritative ynx-chaind remained active"
+fi

@@ -56,7 +56,7 @@ node scripts/deploy/build-consensus-overlay-package.mjs "$tmp/overlay-records" "
 bash -n "$tmp"/overlay-package/roles/*/ynx-consensus-overlay-up
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_OVERLAY_PUBLIC_RECORDS="$tmp/overlay-records" CONSENSUS_OVERLAY_WORK_ROOT="$tmp/overlay-work" \
   bash scripts/deploy/deploy-consensus-overlay.sh >"$tmp/overlay-deploy.out"
-grep -Fq "privately reachable" "$tmp/overlay-deploy.out" || { echo "overlay deploy dry-run boundary missing" >&2; exit 1; }
+grep -Fq "no interface was created and no reachability is claimed" "$tmp/overlay-deploy.out" || { echo "overlay deploy dry-run boundary missing" >&2; exit 1; }
 
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" CONSENSUS_CANDIDATE_WORK_ROOT="$tmp/deploy-work" \
   bash scripts/deploy/deploy-consensus-candidate.sh >"$tmp/deploy.out"
