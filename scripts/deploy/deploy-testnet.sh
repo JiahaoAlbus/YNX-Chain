@@ -686,6 +686,11 @@ ynx_backup_node() {
   local backup_name="ynx-chain-predeploy-${release}-${role}.tar.gz"
   local backup_path="$BACKUP_STORAGE_PATH/$backup_name"
   local partial_path="$BACKUP_STORAGE_PATH/.${backup_name}.partial"
+  local offnode_evidence="/var/log/ynx-chain/deploy/offnode-backup-${release}-${role}.txt"
+  if [[ "${YNX_ALLOW_OFFNODE_BACKUP:-0}" == "1" ]] && ynx_node_ssh "$role" "$user" "$host" "$key" "sudo test -s '$offnode_evidence' && sudo grep -Fxq 'status=validated' '$offnode_evidence' && sudo grep -Fxq 'release=$release' '$offnode_evidence' && sudo grep -Fxq 'role=$role' '$offnode_evidence' && sudo grep -Eq '^sha256=[0-9a-f]{64}$' '$offnode_evidence'"; then
+    echo "using validated off-node backup evidence for $role: $offnode_evidence"
+    return 0
+  fi
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
 }
 
