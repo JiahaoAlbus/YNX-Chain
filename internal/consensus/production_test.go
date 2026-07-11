@@ -63,6 +63,10 @@ func TestGenerateProductionCandidatePackageAndVerifyHostKeys(t *testing.T) {
 		if !strings.Contains(string(servicePayload), ProductionCandidateRoot) || strings.Contains(string(servicePayload), "ynx-chaind") {
 			t.Fatalf("role %s service does not preserve authoritative runtime boundary", node.Role)
 		}
+		installPayload, err := os.ReadFile(filepath.Join(roleDir, "scripts", "install-candidate.sh"))
+		if err != nil || !strings.Contains(string(installPayload), "priv_validator_state.json") {
+			t.Fatalf("role %s installer does not initialize CometBFT double-sign state", node.Role)
+		}
 	}
 	first := validatorManifest.Validators[0]
 	if err := VerifyProductionKeyFiles(filepath.Join(root, "roles", first.Role, "role-manifest.json"), keyPaths[first.Role][0], keyPaths[first.Role][1]); err != nil {

@@ -624,6 +624,7 @@ test -s "$key_dir/priv_validator_key.json"
 test -s "$key_dir/node_key.json"
 ynx-consensus-keycheck -role-manifest "$role_dir/role-manifest.json" -private-validator-key "$key_dir/priv_validator_key.json" -node-key "$key_dir/node_key.json"
 install -d -m 0700 -o ynx -g ynx /var/lib/ynx-chain/consensus-candidate/config /var/lib/ynx-chain/consensus-candidate/data
+install -m 0600 -o ynx -g ynx "$key_dir/priv_validator_state.json" /var/lib/ynx-chain/consensus-candidate/data/priv_validator_state.json
 install -m 0600 -o ynx -g ynx "$role_dir/config/config.toml" /var/lib/ynx-chain/consensus-candidate/config/config.toml
 install -m 0600 -o ynx -g ynx "$role_dir/config/genesis.json" /var/lib/ynx-chain/consensus-candidate/config/genesis.json
 install -m 0600 -o ynx -g ynx "$role_dir/config/bound-migration.json" /var/lib/ynx-chain/consensus-candidate/config/bound-migration.json
