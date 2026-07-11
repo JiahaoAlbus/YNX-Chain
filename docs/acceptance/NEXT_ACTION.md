@@ -14,7 +14,8 @@ Why this action:
 Required engineering and verification work:
 
 - Completed first slice: define and verify the deterministic consensus/application migration boundary against existing persisted YNXT state with `make consensus-migration-check`.
-- Introduce a proven BFT engine path rather than extending the custom producer/follower protocol into a home-grown consensus algorithm.
+- Completed adapter slice: pin CometBFT `v0.38.23`, connect the YNXT migration state to ABCI 2.0, and verify direct plus Unix socket lifecycle behavior with `make consensus-abci-check`.
+- Next implementation slice: add validator consensus public-key mapping, cryptographic native account addresses, signed transaction envelopes, deterministic transfer execution, and persistent ABCI commit state before generating the four-validator CometBFT network.
 - Add a migration and rollback contract that preserves current YNXT state and the deployed public API during staged validator rollout.
 
 Files to touch:
@@ -27,6 +28,7 @@ Validation commands:
 
 - `go test ./...`
 - `make consensus-migration-check`
+- `make consensus-abci-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
