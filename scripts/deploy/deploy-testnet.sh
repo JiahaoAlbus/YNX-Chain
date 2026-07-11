@@ -558,6 +558,22 @@ ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
   }
   reverse_proxy 127.0.0.1:6420
 }
+
+bridge.${WEBSITE_DOMAIN} {
+  reverse_proxy 127.0.0.1:38083
+}
+
+web4.${WEBSITE_DOMAIN} {
+  reverse_proxy 127.0.0.1:38091
+}
+
+grpc.${WEBSITE_DOMAIN} {
+  reverse_proxy h2c://127.0.0.1:39090
+}
+
+evm-ws.${WEBSITE_DOMAIN} {
+  reverse_proxy 127.0.0.1:38546
+}
 EOF
 
 cat > "$work/scripts/install-caddy-ingress.sh" <<'EOF'
@@ -568,9 +584,18 @@ src="${1:?missing source snippet path}"
 caddyfile="${2:-/etc/caddy/Caddyfile}"
 dest="${3:-/etc/caddy/ynx-chain.caddy}"
 release="${4:-unknown}"
+legacy_conf="${5:-}"
 begin="# BEGIN YNX_CHAIN_MANAGED_INGRESS"
 end="# END YNX_CHAIN_MANAGED_INGRESS"
 import_line="import ${dest}"
+legacy_backup=""
+committed=0
+
+restore_legacy_on_error() {
+  if [[ "$committed" != "1" && -n "$legacy_backup" && -f "$legacy_backup" ]]; then
+    sudo mv "$legacy_backup" "$legacy_conf"
+  fi
+}
 
 [[ -r "$src" ]] || { echo "missing readable Caddy ingress snippet: $src"; exit 1; }
 command -v caddy >/dev/null 2>&1 || { echo "caddy binary not found"; exit 1; }
@@ -580,7 +605,12 @@ sudo install -m 0644 "$src" "$dest"
 sudo touch "$caddyfile"
 
 candidate="$(mktemp)"
-trap 'rm -f "$candidate"' EXIT
+trap 'restore_legacy_on_error; rm -f "$candidate"' EXIT
+if [[ -n "$legacy_conf" && -f "$legacy_conf" ]]; then
+  legacy_backup="${legacy_conf}.pre-${release}"
+  sudo rm -f "$legacy_backup"
+  sudo mv "$legacy_conf" "$legacy_backup"
+fi
 sudo awk -v begin="$begin" -v end="$end" '
   $0 == begin { skip=1; next }
   $0 == end { skip=0; next }
@@ -597,6 +627,7 @@ sudo caddy validate --config "$candidate"
 sudo cp "$caddyfile" "${caddyfile}.pre-ynx-${release}"
 sudo install -m 0644 "$candidate" "$caddyfile"
 sudo systemctl reload caddy
+committed=1
 EOF
 chmod +x "$work/scripts/install-caddy-ingress.sh"
 cp scripts/deploy/check-local-services.sh "$work/scripts/check-local-services.sh"
@@ -653,7 +684,7 @@ ynx_capture_predeploy_state() {
 ynx_backup_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local backup_name="ynx-chain-predeploy-${release}-${role}.tar.gz"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$backup_name' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy/Caddyfile /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null || true; sudo test -f '$BACKUP_STORAGE_PATH/$backup_name' && sudo ls -lh '$BACKUP_STORAGE_PATH/$backup_name' || true"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$backup_name' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null || true; sudo test -f '$BACKUP_STORAGE_PATH/$backup_name' && sudo ls -lh '$BACKUP_STORAGE_PATH/$backup_name' || true"
 }
 
 ynx_precheck_node_access() {
@@ -681,7 +712,7 @@ ynx_install_primary_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0644 '$remote_dir/systemd/ynx-indexerd.service' /etc/systemd/system/ynx-indexerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-explorerd.service' /etc/systemd/system/ynx-explorerd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-faucetd.service' /etc/systemd/system/ynx-faucetd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-ai-gatewayd.service' /etc/systemd/system/ynx-ai-gatewayd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-payd.service' /etc/systemd/system/ynx-payd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-trustd.service' /etc/systemd/system/ynx-trustd.service && sudo install -m 0644 '$remote_dir/systemd/ynx-resourced.service' /etc/systemd/system/ynx-resourced.service"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0600 '$remote_dir/config/ynx-faucetd.env' /etc/ynx/ynx-faucetd.env && sudo install -m 0600 '$remote_dir/config/ynx-ai-gatewayd.env' /etc/ynx/ynx-ai-gatewayd.env && sudo install -m 0600 '$remote_dir/config/ynx-payd.env' /etc/ynx/ynx-payd.env && sudo install -m 0600 '$remote_dir/config/ynx-trustd.env' /etc/ynx/ynx-trustd.env && sudo install -m 0600 '$remote_dir/config/ynx-resourced.env' /etc/ynx/ynx-resourced.env"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release'; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release' /etc/caddy/conf.d/ynx-v2-gateway.caddy; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
   ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
 }

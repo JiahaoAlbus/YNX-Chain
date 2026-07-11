@@ -207,6 +207,10 @@ grep -Fq "reverse_proxy 127.0.0.1:6420" "$release_dir/caddy/ynx-chain.caddy" || 
 grep -Fq "reverse_proxy 127.0.0.1:6426" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing indexer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6427" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6428" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing faucet proxy target"; exit 1; }
+grep -Fq "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve bridge route"; exit 1; }
+grep -Fq "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve Web4 route"; exit 1; }
+grep -Fq "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve gRPC route"; exit 1; }
+grep -Fq "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve EVM WebSocket route"; exit 1; }
 grep -Fq "BEGIN YNX_CHAIN_MANAGED_INGRESS" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed block marker"; exit 1; }
 grep -Fq "import \${dest}" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed import"; exit 1; }
 
