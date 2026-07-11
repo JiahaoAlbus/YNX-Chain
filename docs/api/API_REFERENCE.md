@@ -120,6 +120,13 @@ Governance and Trust request safety:
 - `POST /trust/tracking-reviews` records purpose-limited tracking review metadata: requester, subject, purpose, query type, scope, evidence, institutional/sensitive flags, minimum-necessary status, confidence, expiry, classification, and appeal path. Overbroad, evidence-free, sensitive-inference, low-confidence punitive, or audit-bypass tracking requests are rejected or routed to review.
 - `GET /governance/transparency` returns the locally persisted transparency report entries and counts. Remote public proof must use the public endpoint, not localhost.
 
+Resource Market API safety:
+
+- `ynx-resourced` is the independent public Resource Market API on port `6432`. Protected `/resource-market/*` routes require `X-YNX-Resource-Key` or `Authorization: Bearer <YNX_RESOURCE_API_KEY>` and return a unique `X-Request-ID`.
+- The gateway enforces a 1 MiB request-body limit, a 2 MiB response limit, per API-key/IP rate limits, and fail-closed pre-forward audit. Deployed `ynx-chaind` rejects direct Resource Market bypass without `YNX_RESOURCE_GATEWAY_UPSTREAM_KEY`.
+- Gateway JSONL audit stores request metadata, body hashes, status, outcome, and audit hashes, but not request bodies or credentials. Canonical policy, quote, delegation, rental, provider/protocol income, and analytics state remains in the persistent chain runtime.
+- `GET /resource-market/policy`, `GET /resource-market/quote`, `POST /resource-market/delegations`, `GET /resource-market/delegations/{address}`, `POST /resource-market/rent`, `GET /resource-market/income/{address}`, and `GET /resource-market/analytics` are the authenticated public Resource Market surface.
+
 Pay merchant safety:
 
 - `ynx-payd` is the independent public merchant API on port `6430`. Its protected `/pay/*` routes require `X-YNX-Pay-Key` or `Authorization: Bearer <YNX_PAY_API_KEY>` and return a unique `X-Request-ID`.

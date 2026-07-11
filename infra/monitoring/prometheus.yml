@@ -62,3 +62,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-trustd
+  - job_name: ynx-resourced
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-resourced:6432
+        labels:
+          network: ynx-testnet
+          service: ynx-resourced

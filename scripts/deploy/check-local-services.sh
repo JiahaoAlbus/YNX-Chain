@@ -37,6 +37,9 @@ case "$url" in
   http://127.0.0.1:6431/health)
     printf '%s\n' '{"ok":true,"service":"ynx-trustd","chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"bodyLimitBytes":1048576,"exportLimitBytes":2097152,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6432/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-resourced","chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"bodyLimitBytes":1048576,"responseLimitBytes":2097152,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -136,6 +139,14 @@ check_full_stack_surface() {
   require_contains "Trust Gateway health" "$trust_gateway" '"exportLimitBytes":2097152'
   require_contains "Trust Gateway health build commit" "$trust_gateway" "$expected_commit"
   require_contains "Trust Gateway health release" "$trust_gateway" "$expected_release"
+
+  resource_gateway="$(fetch_with_retry "Resource Gateway health" "http://127.0.0.1:6432/health")"
+  require_contains "Resource Gateway health" "$resource_gateway" "$expected_chain_id"
+  require_contains "Resource Gateway health" "$resource_gateway" "YNXT"
+  require_contains "Resource Gateway health" "$resource_gateway" '"bodyLimitBytes":1048576'
+  require_contains "Resource Gateway health" "$resource_gateway" '"responseLimitBytes":2097152'
+  require_contains "Resource Gateway health build commit" "$resource_gateway" "$expected_commit"
+  require_contains "Resource Gateway health release" "$resource_gateway" "$expected_release"
 }
 
 case "$mode" in

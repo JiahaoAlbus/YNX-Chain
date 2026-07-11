@@ -905,14 +905,14 @@ write("configs/networks.json", `{
 }`);
 
 const envKeys = [
-  "TESTNET_DOMAIN","WEBSITE_DOMAIN","EXPLORER_DOMAIN","RPC_DOMAIN","EVM_RPC_DOMAIN","FAUCET_DOMAIN","API_DOMAIN","AI_GATEWAY_DOMAIN","TRUST_API_DOMAIN","PAY_API_DOMAIN","IDE_DOMAIN","SERVER_HOST","SERVER_USER","SSH_KEY_PATH","DEPLOY_TARGET","CHAIN_ID","CHAIN_NAME","NATIVE_COIN_NAME","NATIVE_SYMBOL","GENESIS_VALIDATOR_NAME","VALIDATOR_KEY_PATH","FAUCET_PRIVATE_KEY","DEPLOYER_PRIVATE_KEY","TREASURY_ADDRESS","FOUNDATION_ADDRESS","TEAM_VESTING_ADDRESS","POSTGRES_URL","REDIS_URL","OBJECT_STORAGE_ENDPOINT","OBJECT_STORAGE_BUCKET","OBJECT_STORAGE_ACCESS_KEY","OBJECT_STORAGE_SECRET_KEY","OPENAI_API_KEY","AI_MODEL_NAME","YNX_AI_GATEWAY_API_KEY","YNX_AI_GATEWAY_UPSTREAM_KEY","YNX_AI_PROVIDER_URL","YNX_AI_GATEWAY_HTTP_ADDR","YNX_AI_GATEWAY_CHAIN_URL","YNX_AI_GATEWAY_AUDIT_LOG","YNX_AI_GATEWAY_RATE_LIMIT_WINDOW","YNX_AI_GATEWAY_RATE_LIMIT_MAX","YNX_PAY_MERCHANT_ID","YNX_PAY_API_KEY","YNX_PAY_GATEWAY_UPSTREAM_KEY","YNX_PAY_WEBHOOK_SIGNING_KEY","YNX_PAY_GATEWAY_HTTP_ADDR","YNX_PAY_GATEWAY_CHAIN_URL","YNX_PAY_GATEWAY_AUDIT_LOG","YNX_PAY_GATEWAY_RATE_LIMIT_WINDOW","YNX_PAY_GATEWAY_RATE_LIMIT_MAX","YNX_TRUST_API_KEY","YNX_TRUST_GATEWAY_UPSTREAM_KEY","YNX_TRUST_GATEWAY_HTTP_ADDR","YNX_TRUST_GATEWAY_CHAIN_URL","YNX_TRUST_GATEWAY_AUDIT_LOG","YNX_TRUST_GATEWAY_RATE_LIMIT_WINDOW","YNX_TRUST_GATEWAY_RATE_LIMIT_MAX","EMAIL_PROVIDER","EMAIL_API_KEY","WEBHOOK_SECRET","JWT_SECRET","SESSION_SECRET","RATE_LIMIT_SECRET","PAY_MERCHANT_SECRET","TRUST_REPORT_SIGNING_KEY","MONITORING_ADMIN_PASSWORD","BACKUP_STORAGE_PATH","SSL_EMAIL","NGINX_SERVER_NAME","GITHUB_REPO_TOKEN"
+  "TESTNET_DOMAIN","WEBSITE_DOMAIN","EXPLORER_DOMAIN","RPC_DOMAIN","EVM_RPC_DOMAIN","FAUCET_DOMAIN","API_DOMAIN","AI_GATEWAY_DOMAIN","TRUST_API_DOMAIN","RESOURCE_API_DOMAIN","PAY_API_DOMAIN","IDE_DOMAIN","SERVER_HOST","SERVER_USER","SSH_KEY_PATH","DEPLOY_TARGET","CHAIN_ID","CHAIN_NAME","NATIVE_COIN_NAME","NATIVE_SYMBOL","GENESIS_VALIDATOR_NAME","VALIDATOR_KEY_PATH","FAUCET_PRIVATE_KEY","DEPLOYER_PRIVATE_KEY","TREASURY_ADDRESS","FOUNDATION_ADDRESS","TEAM_VESTING_ADDRESS","POSTGRES_URL","REDIS_URL","OBJECT_STORAGE_ENDPOINT","OBJECT_STORAGE_BUCKET","OBJECT_STORAGE_ACCESS_KEY","OBJECT_STORAGE_SECRET_KEY","OPENAI_API_KEY","AI_MODEL_NAME","YNX_AI_GATEWAY_API_KEY","YNX_AI_GATEWAY_UPSTREAM_KEY","YNX_AI_PROVIDER_URL","YNX_AI_GATEWAY_HTTP_ADDR","YNX_AI_GATEWAY_CHAIN_URL","YNX_AI_GATEWAY_AUDIT_LOG","YNX_AI_GATEWAY_RATE_LIMIT_WINDOW","YNX_AI_GATEWAY_RATE_LIMIT_MAX","YNX_PAY_MERCHANT_ID","YNX_PAY_API_KEY","YNX_PAY_GATEWAY_UPSTREAM_KEY","YNX_PAY_WEBHOOK_SIGNING_KEY","YNX_PAY_GATEWAY_HTTP_ADDR","YNX_PAY_GATEWAY_CHAIN_URL","YNX_PAY_GATEWAY_AUDIT_LOG","YNX_PAY_GATEWAY_RATE_LIMIT_WINDOW","YNX_PAY_GATEWAY_RATE_LIMIT_MAX","YNX_TRUST_API_KEY","YNX_TRUST_GATEWAY_UPSTREAM_KEY","YNX_TRUST_GATEWAY_HTTP_ADDR","YNX_TRUST_GATEWAY_CHAIN_URL","YNX_TRUST_GATEWAY_AUDIT_LOG","YNX_TRUST_GATEWAY_RATE_LIMIT_WINDOW","YNX_TRUST_GATEWAY_RATE_LIMIT_MAX","YNX_RESOURCE_API_KEY","YNX_RESOURCE_GATEWAY_UPSTREAM_KEY","YNX_RESOURCE_GATEWAY_HTTP_ADDR","YNX_RESOURCE_GATEWAY_CHAIN_URL","YNX_RESOURCE_GATEWAY_AUDIT_LOG","YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW","YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX","EMAIL_PROVIDER","EMAIL_API_KEY","WEBHOOK_SECRET","JWT_SECRET","SESSION_SECRET","RATE_LIMIT_SECRET","PAY_MERCHANT_SECRET","TRUST_REPORT_SIGNING_KEY","MONITORING_ADMIN_PASSWORD","BACKUP_STORAGE_PATH","SSL_EMAIL","NGINX_SERVER_NAME","GITHUB_REPO_TOKEN"
 ];
 const envBody = (title, extra = []) => `# ${title}
 # Template only. Copy to the matching real .env file outside git before deployment.
 # Applications must fail fast when required deployment values are missing.
 ${[...envKeys, ...extra].map(k => `${k}=`).join("\n")}
 `;
-for (const file of [".env.example",".env.testnet.example",".env.website.example",".env.ai.example",".env.pay.example",".env.trust.example",".env.indexer.example",".env.explorer.example",".env.faucet.example",".env.ide.example",".env.monitoring.example",".env.deploy.example"]) {
+for (const file of [".env.example",".env.testnet.example",".env.website.example",".env.ai.example",".env.pay.example",".env.trust.example",".env.resource.example",".env.indexer.example",".env.explorer.example",".env.faucet.example",".env.ide.example",".env.monitoring.example",".env.deploy.example"]) {
   write(file, envBody(file));
 }
 
@@ -925,6 +925,7 @@ write(".gitignore", `.DS_Store
 !.env.ai.example
 !.env.pay.example
 !.env.trust.example
+!.env.resource.example
 !.env.indexer.example
 !.env.explorer.example
 !.env.faucet.example
@@ -1028,7 +1029,7 @@ set -euo pipefail
 ${body}`, 0o755);
 
 sh("scripts/validate/env-check.sh", `
-templates=(.env.example .env.testnet.example .env.website.example .env.ai.example .env.pay.example .env.trust.example .env.indexer.example .env.explorer.example .env.faucet.example .env.ide.example .env.monitoring.example .env.deploy.example)
+templates=(.env.example .env.testnet.example .env.website.example .env.ai.example .env.pay.example .env.trust.example .env.resource.example .env.indexer.example .env.explorer.example .env.faucet.example .env.ide.example .env.monitoring.example .env.deploy.example)
 for f in "\${templates[@]}"; do
   test -f "$f" || { echo "missing env template: $f"; exit 1; }
 done

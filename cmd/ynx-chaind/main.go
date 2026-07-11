@@ -132,9 +132,10 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	}
 
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServerWithConfig(devnet, api.ServerConfig{
-		AIGatewayUpstreamKey:    os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY"),
-		PayGatewayUpstreamKey:   os.Getenv("YNX_PAY_GATEWAY_UPSTREAM_KEY"),
-		TrustGatewayUpstreamKey: os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
+		AIGatewayUpstreamKey:       os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY"),
+		PayGatewayUpstreamKey:      os.Getenv("YNX_PAY_GATEWAY_UPSTREAM_KEY"),
+		TrustGatewayUpstreamKey:    os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
+		ResourceGatewayUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
 	}), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()

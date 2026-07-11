@@ -97,4 +97,12 @@ make trust-api-check
 
 `ynx-trustd` requires a client API key and separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics plus authenticated Trust and Chain Law routes on `YNX_TRUST_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB evidence/export limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The chain process keeps canonical lineage, labels, evidence, governance requests, appeals, tracking reviews, and transparency records, and rejects direct deployed `/trust/*` and related `/governance/*` access without the upstream key.
 
+Resource Gateway readiness:
+
+```bash
+make resource-api-check
+```
+
+`ynx-resourced` requires a client API key and separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics and authenticated Resource Market routes on `YNX_RESOURCE_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB response limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The chain process keeps canonical persistent policy, delegation, rental, income, and analytics records and rejects direct deployed `/resource-market/*` access without the upstream key.
+
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

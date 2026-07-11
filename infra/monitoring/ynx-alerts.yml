@@ -121,3 +121,19 @@ groups:
         annotations:
           summary: YNX Trust Gateway upstream or audit errors are elevated
           description: Check chain reachability and the protected Trust Gateway audit log.
+      - alert: YNXResourceGatewayDown
+        expr: up{job="ynx-resourced"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Resource Market Gateway metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-resourced.
+      - alert: YNXResourceGatewayErrors
+        expr: increase(ynx_resource_gateway_errors_total{job="ynx-resourced"}[10m]) > 5 or increase(ynx_resource_gateway_audit_errors_total{job="ynx-resourced"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Resource Market Gateway upstream or audit errors are elevated
+          description: Check chain reachability and the protected Resource Market audit log.

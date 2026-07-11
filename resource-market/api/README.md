@@ -1,5 +1,16 @@
 # Resource Market API
 
+`ynx-resourced` is the deployable authenticated public boundary for Resource Market policy, quotes, delegations, rentals, income, and analytics. Canonical state remains in `ynx-chaind`; a dedicated upstream key prevents direct deployed route bypass.
+
+Local verification:
+
+```bash
+make resource-api-check
+make resource-market-check
+```
+
+This is locally verified deployment-package evidence. It does not claim remote deployment or public proof.
+
 Runtime endpoints:
 
 - `GET /resources/{address}` returns bandwidth, compute, AI Credits, Trust Credits, usage, remaining capacity, and staked YNXT.

@@ -34,6 +34,7 @@ const endpoints = {
   ai: trimSlash(process.env.PUBLIC_AI_URL || "https://ai.ynxweb4.com"),
   pay: trimSlash(process.env.PUBLIC_PAY_URL || "https://pay.ynxweb4.com"),
   trust: trimSlash(process.env.PUBLIC_TRUST_URL || "https://trust.ynxweb4.com"),
+  resource: trimSlash(process.env.PUBLIC_RESOURCE_URL || "https://resource.ynxweb4.com"),
   web4: trimSlash(process.env.PUBLIC_WEB4_URL || "https://web4.ynxweb4.com"),
 };
 const sampleAddress = process.env.YNX_REMOTE_SMOKE_ADDRESS || `ynx_remote_smoke_${Date.now()}`;
@@ -41,6 +42,8 @@ const aiGatewayAPIKey = String(process.env.YNX_AI_GATEWAY_API_KEY || "");
 const payGatewayAPIKey = String(process.env.YNX_PAY_API_KEY || "");
 const trustGatewayAPIKey = String(process.env.YNX_TRUST_API_KEY || "");
 const trustHeaders = trustGatewayAPIKey ? { "x-ynx-trust-key": trustGatewayAPIKey } : {};
+const resourceGatewayAPIKey = String(process.env.YNX_RESOURCE_API_KEY || "");
+const resourceHeaders = resourceGatewayAPIKey ? { "x-ynx-resource-key": resourceGatewayAPIKey } : {};
 
 const checks = [];
 const evidence = {
@@ -739,17 +742,33 @@ async function main() {
     trustHealthOk = truthful && chain && serviceOk && build;
   }
   record("trust.auth.configured", Boolean(trustGatewayAPIKey), trustGatewayAPIKey ? "secure Trust API key is available to remote proof" : "YNX_TRUST_API_KEY is missing from the secure remote proof environment", {});
+  let resourceHealthOk = false;
+  const resourceHealth = await getJson("resource.health", `${endpoints.resource}/health`);
+  if (resourceHealth) {
+    const truthful = checkTruthfulServiceHealth("resource.health.truthful", resourceHealth);
+    const chain = checkChain("resource.health.chain", resourceHealth);
+    const serviceOk = resourceHealth?.service === "ynx-resourced" && resourceHealth?.upstreamOk === true && resourceHealth?.bodyLimitBytes === 1048576 && resourceHealth?.responseLimitBytes === 2097152;
+    record("resource.health.gateway", serviceOk, serviceOk ? "independent authenticated Resource Market Gateway is healthy" : `Resource Gateway service/upstream/limit evidence missing: ${clip(resourceHealth)}`, {
+      service: resourceHealth?.service,
+      upstreamOk: resourceHealth?.upstreamOk,
+      bodyLimitBytes: resourceHealth?.bodyLimitBytes,
+      responseLimitBytes: resourceHealth?.responseLimitBytes,
+    });
+    const build = checkBuildIdentity("resource.health", resourceHealth);
+    resourceHealthOk = truthful && chain && serviceOk && build;
+  }
+  record("resource.auth.configured", Boolean(resourceGatewayAPIKey), resourceGatewayAPIKey ? "secure Resource API key is available to remote proof" : "YNX_RESOURCE_API_KEY is missing from the secure remote proof environment", {});
   const web4Health = await getJson("web4.health", `${endpoints.web4}/health`);
   if (web4Health) {
     checkTruthfulServiceHealth("web4.health.truthful", web4Health);
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && resourceHealthOk && Boolean(resourceGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
-    const faucetTx = await postJson("faucet.request", `${endpoints.faucet}/request`, { address: sampleAddress, amount: 1 });
+    const faucetTx = await postJson("faucet.request", `${endpoints.faucet}/request`, { address: sampleAddress, amount: 100 });
     if (faucetTx) checkTxHash("faucet.request.tx", faucetTx);
 
     const txHash = txHashOf(faucetTx);
@@ -1019,15 +1038,24 @@ async function main() {
       checkTransparencyReport("governance.transparency.final.report", transparencyFinal, { entryCount: 8, rejectedCount: 3, appealCount: 1, reviewCount: 1 });
     }
 
-    const resourcePolicy = await getJson("resource.policy", `${endpoints.rest}/resource-market/policy`);
+    const resourcePolicy = await getJson("resource.policy", `${endpoints.resource}/resource-market/policy`, resourceHeaders);
     const resourcePolicyOk = resourcePolicy?.currency === expected.nativeSymbol &&
       typeof resourcePolicy?.policyHash === "string" && resourcePolicy.policyHash.length > 0 &&
       Number(resourcePolicy?.providerShareBps ?? -1) + Number(resourcePolicy?.protocolFeeBps ?? -1) === 10000;
     record("resource.policy.inspectable", resourcePolicyOk, resourcePolicyOk ? "resource policy is inspectable" : "resource policy missing or invalid", resourcePolicy);
 
-    const quote = await getJson("resource.quote", `${endpoints.rest}/resource-market/quote?address=${encodeURIComponent(sampleAddress)}&bandwidth=1&compute=1&aiCredits=1&trustCredits=1`);
+    const quote = await getJson("resource.quote", `${endpoints.resource}/resource-market/quote?address=${encodeURIComponent(sampleAddress)}&bandwidth=1&compute=1&aiCredits=1&trustCredits=1`, resourceHeaders);
     const quotePolicyOk = Boolean(quote) && quote.policyHash === resourcePolicy?.policyHash && Array.isArray(quote.pricingBreakdown) && quote.pricingBreakdown.length === 4;
     record("resource.quote.policyEvidence", quotePolicyOk, quotePolicyOk ? "resource quote returned with policy evidence" : "resource quote missing policy evidence", quote);
+
+    const delegation = await postJson("resource.delegation", `${endpoints.resource}/resource-market/delegations`, { provider: sampleAddress, beneficiary: sampleAddress, amount: 10 }, resourceHeaders);
+    record("resource.delegation.active", delegation?.delegation?.status === "active" && delegation?.delegation?.policyHash === resourcePolicy?.policyHash, delegation?.delegation?.status === "active" ? "resource delegation is active and policy-bound" : "resource delegation missing or invalid", delegation);
+    const rental = await postJson("resource.rental", `${endpoints.resource}/resource-market/rent`, { address: sampleAddress, provider: sampleAddress, bandwidth: 1, compute: 1, aiCredits: 1, trustCredits: 1 }, resourceHeaders);
+    record("resource.rental.settled", Boolean(rental?.rental?.id) && rental?.rental?.policyHash === resourcePolicy?.policyHash && Number(rental?.rental?.priceYnxt ?? 0) > 0, rental?.rental?.id ? "resource rental is settled and policy-bound" : "resource rental missing or invalid", rental);
+    const income = await getJson("resource.income", `${endpoints.resource}/resource-market/income/${encodeURIComponent(sampleAddress)}`, resourceHeaders);
+    record("resource.income.recorded", Array.isArray(income?.income) && income.income.length > 0 && income.income.every((entry) => entry.currency === expected.nativeSymbol), Array.isArray(income?.income) ? `resource income records ${income.income.length}` : "resource income missing", income);
+    const resourceAnalytics = await getJson("resource.analytics", `${endpoints.resource}/resource-market/analytics`, resourceHeaders);
+    record("resource.analytics.updated", Number(resourceAnalytics?.activeDelegationCount ?? 0) > 0 && Number(resourceAnalytics?.resourceRentalCount ?? 0) > 0 && resourceAnalytics?.policyHash === resourcePolicy?.policyHash, resourceAnalytics?.policyHash === resourcePolicy?.policyHash ? "resource analytics include delegation and rental" : "resource analytics missing or invalid", resourceAnalytics);
 
     const source = "pragma solidity ^0.8.24; contract RemoteSmoke { function ping() public pure returns (uint256) { return 1; } }";
     const compile = await postJson("ide.compile", `${endpoints.rest}/ide/compile`, { name: "RemoteSmoke", source });

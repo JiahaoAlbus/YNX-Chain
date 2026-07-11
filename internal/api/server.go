@@ -16,11 +16,12 @@ import (
 )
 
 type Server struct {
-	devnet                  *chain.Devnet
-	mux                     *http.ServeMux
-	aiGatewayUpstreamKey    string
-	payGatewayUpstreamKey   string
-	trustGatewayUpstreamKey string
+	devnet                     *chain.Devnet
+	mux                        *http.ServeMux
+	aiGatewayUpstreamKey       string
+	payGatewayUpstreamKey      string
+	trustGatewayUpstreamKey    string
+	resourceGatewayUpstreamKey string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -28,18 +29,20 @@ func NewServer(devnet *chain.Devnet) http.Handler {
 }
 
 type ServerConfig struct {
-	AIGatewayUpstreamKey    string
-	PayGatewayUpstreamKey   string
-	TrustGatewayUpstreamKey string
+	AIGatewayUpstreamKey       string
+	PayGatewayUpstreamKey      string
+	TrustGatewayUpstreamKey    string
+	ResourceGatewayUpstreamKey string
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
 	s := &Server{
-		devnet:                  devnet,
-		mux:                     http.NewServeMux(),
-		aiGatewayUpstreamKey:    strings.TrimSpace(cfg.AIGatewayUpstreamKey),
-		payGatewayUpstreamKey:   strings.TrimSpace(cfg.PayGatewayUpstreamKey),
-		trustGatewayUpstreamKey: strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
+		devnet:                     devnet,
+		mux:                        http.NewServeMux(),
+		aiGatewayUpstreamKey:       strings.TrimSpace(cfg.AIGatewayUpstreamKey),
+		payGatewayUpstreamKey:      strings.TrimSpace(cfg.PayGatewayUpstreamKey),
+		trustGatewayUpstreamKey:    strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
+		resourceGatewayUpstreamKey: strings.TrimSpace(cfg.ResourceGatewayUpstreamKey),
 	}
 	s.routes()
 	return s.withHeaders(s.mux)
@@ -91,13 +94,13 @@ func (s *Server) routes() {
 	s.payRoute("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
 	s.payRoute("GET /pay/events", s.handlePayEvents)
 	s.payRoute("GET /pay/events/{id}", s.handlePayEventLookup)
-	s.mux.HandleFunc("GET /resource-market/policy", s.handleResourcePolicy)
-	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
-	s.mux.HandleFunc("GET /resource-market/analytics", s.handleResourceAnalytics)
-	s.mux.HandleFunc("POST /resource-market/delegations", s.handleResourceDelegation)
-	s.mux.HandleFunc("GET /resource-market/delegations/{address}", s.handleResourceDelegations)
-	s.mux.HandleFunc("POST /resource-market/rent", s.handleResourceRent)
-	s.mux.HandleFunc("GET /resource-market/income/{address}", s.handleResourceIncome)
+	s.resourceRoute("GET /resource-market/policy", s.handleResourcePolicy)
+	s.resourceRoute("GET /resource-market/quote", s.handleResourceQuote)
+	s.resourceRoute("GET /resource-market/analytics", s.handleResourceAnalytics)
+	s.resourceRoute("POST /resource-market/delegations", s.handleResourceDelegation)
+	s.resourceRoute("GET /resource-market/delegations/{address}", s.handleResourceDelegations)
+	s.resourceRoute("POST /resource-market/rent", s.handleResourceRent)
+	s.resourceRoute("GET /resource-market/income/{address}", s.handleResourceIncome)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
 	s.aiRoute("GET /ai/permissions/{id}", s.handleAIPermissionLookup)
@@ -142,6 +145,16 @@ func (s *Server) trustRoute(pattern string, handler http.HandlerFunc) {
 	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if s.trustGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-Trust-Gateway-Upstream-Key"), s.trustGatewayUpstreamKey) {
 			writeError(w, http.StatusUnauthorized, "Trust and governance routes require the authenticated YNX Trust Gateway")
+			return
+		}
+		handler(w, r)
+	})
+}
+
+func (s *Server) resourceRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.resourceGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-Resource-Gateway-Upstream-Key"), s.resourceGatewayUpstreamKey) {
+			writeError(w, http.StatusUnauthorized, "Resource Market routes require the authenticated YNX Resource Gateway")
 			return
 		}
 		handler(w, r)

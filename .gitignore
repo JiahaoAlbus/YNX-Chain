@@ -7,6 +7,7 @@
 !.env.ai.example
 !.env.pay.example
 !.env.trust.example
+!.env.resource.example
 !.env.indexer.example
 !.env.explorer.example
 !.env.faucet.example

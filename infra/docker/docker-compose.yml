@@ -9,6 +9,7 @@ services:
       YNX_AI_GATEWAY_UPSTREAM_KEY: "${YNX_AI_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_AI_GATEWAY_UPSTREAM_KEY}"
       YNX_PAY_GATEWAY_UPSTREAM_KEY: "${YNX_PAY_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_PAY_GATEWAY_UPSTREAM_KEY}"
       YNX_TRUST_GATEWAY_UPSTREAM_KEY: "${YNX_TRUST_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_TRUST_GATEWAY_UPSTREAM_KEY}"
+      YNX_RESOURCE_GATEWAY_UPSTREAM_KEY: "${YNX_RESOURCE_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_RESOURCE_GATEWAY_UPSTREAM_KEY}"
     ports:
       - "6420:6420"
 
@@ -125,6 +126,25 @@ services:
     volumes:
       - ynx-trust-logs:/var/log/ynx-trust
 
+  ynx-resourced:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-resourced.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      YNX_RESOURCE_GATEWAY_CHAIN_URL: http://ynx-chaind:6420
+      YNX_RESOURCE_GATEWAY_HTTP_ADDR: 0.0.0.0:6432
+      YNX_RESOURCE_API_KEY: "${YNX_RESOURCE_API_KEY:?Missing required env: YNX_RESOURCE_API_KEY}"
+      YNX_RESOURCE_GATEWAY_UPSTREAM_KEY: "${YNX_RESOURCE_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_RESOURCE_GATEWAY_UPSTREAM_KEY}"
+      YNX_RESOURCE_GATEWAY_AUDIT_LOG: /var/log/ynx-resource/audit.jsonl
+      YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW: 1m
+      YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX: "60"
+    ports:
+      - "6432:6432"
+    volumes:
+      - ynx-resource-logs:/var/log/ynx-resource
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
@@ -135,6 +155,7 @@ services:
       - ynx-ai-gatewayd
       - ynx-payd
       - ynx-trustd
+      - ynx-resourced
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -162,3 +183,4 @@ volumes:
   ynx-ai-gateway-logs:
   ynx-pay-logs:
   ynx-trust-logs:
+  ynx-resource-logs:
