@@ -81,6 +81,16 @@ CONSENSUS_OVERLAY_KEY_CEREMONY_APPROVED=yes \
   make consensus-overlay-key-ceremony
 ```
 
+After the four public overlay records are reviewed, permit UDP 51820 only between the four validator public IPs at the cloud firewall. The overlay deploy command creates `ynxwg0`, assigns `10.77.42.1/32` through `10.77.42.4/32`, and installs only peer `/32` routes. It requires three current WireGuard handshakes and three successful peer pings per node; failure stops the overlay on all roles and leaves authoritative services active.
+
+```bash
+DEPLOY_DRY_RUN=1 ENV_FILE=.env.deploy make deploy-consensus-overlay
+
+CONSENSUS_OVERLAY_DEPLOY_APPROVED=yes \
+  ENV_FILE=.env.deploy \
+  make deploy-consensus-overlay
+```
+
 Generate and verify the candidate package locally:
 
 ```bash

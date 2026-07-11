@@ -35,7 +35,7 @@ preflight_overlay_role() {
   if [[ "$mode" == "create" ]]; then
     ynx_ops_ssh "$role" "$user" "$host" "$key" "modinfo wireguard >/dev/null && sudo test ! -e '$key_path' && systemctl is-active ynx-chaind >/dev/null"
   else
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "modinfo wireguard >/dev/null && sudo test -s '$key_path' && systemctl is-active ynx-chaind >/dev/null"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "modinfo wireguard >/dev/null && { sudo test ! -e '$key_path' || sudo test -s '$key_path'; } && systemctl is-active ynx-chaind >/dev/null"
   fi
 }
 ynx_ops_each_node preflight_overlay_role
@@ -46,12 +46,12 @@ initialize_overlay_role() {
   overlay_address="$(overlay_address_for_role "$role")"
   local install_tools="command -v wg >/dev/null || { sudo apt-get update >/dev/null && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y wireguard-tools >/dev/null; }"
   local create_key="sudo sh -c 'umask 077; wg genkey > \"$key_path\"'"
-  [[ "$mode" == "inspect" ]] && create_key=":"
+  [[ "$mode" == "inspect" ]] && create_key="sudo test -s '$key_path' || sudo sh -c 'umask 077; wg genkey > \"$key_path\"'"
   if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "$install_tools; $create_key; sudo test \"\$(stat -c %a '$key_path')\" = 600; sudo sh -c 'wg pubkey < \"$key_path\"'; systemctl is-active ynx-chaind >/dev/null"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "$install_tools; $create_key; test \"\$(sudo stat -c %a '$key_path')\" = 600; sudo sh -c 'wg pubkey < \"$key_path\"'; systemctl is-active ynx-chaind >/dev/null"
     return 0
   fi
-  public_key="$(ynx_ops_ssh "$role" "$user" "$host" "$key" "$install_tools; $create_key; sudo test \"\$(stat -c %a '$key_path')\" = 600; sudo sh -c 'wg pubkey < \"$key_path\"'; systemctl is-active ynx-chaind >/dev/null")"
+  public_key="$(ynx_ops_ssh "$role" "$user" "$host" "$key" "$install_tools; $create_key; test \"\$(sudo stat -c %a '$key_path')\" = 600; sudo sh -c 'wg pubkey < \"$key_path\"'; systemctl is-active ynx-chaind >/dev/null")"
   [[ "$public_key" =~ ^[A-Za-z0-9+/]{43}=$ ]] || { echo "invalid WireGuard public key returned for $role" >&2; return 1; }
   node -e 'const fs=require("fs"),[file,role,endpoint,address,key]=process.argv.slice(1); fs.writeFileSync(file, JSON.stringify({version:1,purpose:"ynx-consensus-private-overlay-public-keys-only",role,publicEndpoint:endpoint,overlayAddress:address,listenPort:51820,wireGuardPublicKey:key,custodyBoundary:"owner-controlled-host-local"},null,2)+"\n",{mode:0o600})' "$work/public/$role.json" "$role" "$host" "$overlay_address" "$public_key"
 }

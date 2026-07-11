@@ -5,7 +5,7 @@ cd "$(dirname "$0")/../.."
 
 go test ./internal/consensus -run 'Test(GenerateProductionCandidatePackageAndVerifyHostKeys|ProductionValidatorManifestRejectsUnsafeInputs|ProductionPackageRefusesExistingOutputAndUnhashedPrivateFile)' -count=1
 go test ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-key-init
-bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/init-consensus-overlay-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
+bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/deploy-consensus-overlay.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/init-consensus-overlay-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/verify-consensus-overlay.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -45,6 +45,18 @@ grep -Fq "no keys were generated" "$tmp/key-ceremony.out" || { echo "candidate k
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_OVERLAY_KEY_WORK_ROOT="$tmp/overlay-key-work" \
   bash scripts/ops/init-consensus-overlay-keys.sh >"$tmp/overlay-key-ceremony.out"
 grep -Fq "no packages or keys were installed" "$tmp/overlay-key-ceremony.out" || { echo "overlay key ceremony dry-run boundary missing" >&2; exit 1; }
+
+mkdir -p "$tmp/overlay-records"
+node - "$tmp/overlay-records" <<'NODE'
+const fs = require("fs"), path = require("path"), root = process.argv[2];
+const roles = ["primary", "singapore", "silicon-valley", "seoul"];
+roles.forEach((role, index) => fs.writeFileSync(path.join(root, `${role}.json`), JSON.stringify({version:1,purpose:"ynx-consensus-private-overlay-public-keys-only",role,publicEndpoint:`198.51.100.${index+1}`,overlayAddress:`10.77.42.${index+1}`,listenPort:51820,wireGuardPublicKey:Buffer.alloc(32,index+1).toString("base64"),custodyBoundary:"owner-controlled-host-local"},null,2)+"\n",{mode:0o600}));
+NODE
+node scripts/deploy/build-consensus-overlay-package.mjs "$tmp/overlay-records" "$tmp/overlay-package" >/dev/null
+bash -n "$tmp"/overlay-package/roles/*/ynx-consensus-overlay-up
+DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_OVERLAY_PUBLIC_RECORDS="$tmp/overlay-records" CONSENSUS_OVERLAY_WORK_ROOT="$tmp/overlay-work" \
+  bash scripts/deploy/deploy-consensus-overlay.sh >"$tmp/overlay-deploy.out"
+grep -Fq "privately reachable" "$tmp/overlay-deploy.out" || { echo "overlay deploy dry-run boundary missing" >&2; exit 1; }
 
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" CONSENSUS_CANDIDATE_WORK_ROOT="$tmp/deploy-work" \
   bash scripts/deploy/deploy-consensus-candidate.sh >"$tmp/deploy.out"
