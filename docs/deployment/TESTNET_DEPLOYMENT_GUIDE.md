@@ -56,3 +56,75 @@ ROLLBACK_RELEASE=ynx-chain-<commit> ENV_FILE=.env.deploy make rollback
 
 After deployment, run `make verify-testnet` and update `docs/public-proof/PUBLIC_TESTNET_PROOF.md` with real endpoint evidence.
 The post-deploy ops commands are multi-node aware: primary operations cover `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd`; validator node operations cover `ynx-chaind`.
+
+## Parallel CometBFT candidate
+
+The CometBFT candidate is a separate staged deployment and must not be confused with `make deploy-testnet`. First export and independently approve the authoritative migration state. Each server owner then generates its CometBFT validator and node keys offline or directly on the assigned server, retains the private files, and provides only the public key, derived consensus address, node ID, and RFC1918 P2P address in a manifest conforming to `chain/consensus/production-validator-manifest.schema.json`.
+
+Generate and verify the candidate package locally:
+
+```bash
+go run ./cmd/ynx-consensus-package \
+  -migration-state <exported-migration.json> \
+  -validator-manifest <approved-public-validator-manifest.json> \
+  -genesis-time <approved-UTC-RFC3339-time> \
+  -output <new-package-dir>
+go run ./cmd/ynx-consensus-package -verify-package <package-dir>
+make consensus-production-package-check
+```
+
+The candidate deployment is approval gated and uses strict SSH. It installs only `ynx-consensus-abci-candidate.service`, `ynx-consensus-comet-candidate.service`, `/var/lib/ynx-chain/consensus-candidate`, and candidate binaries/configuration. It verifies host-local private keys against the public role manifest before installation, backs up any prior candidate, and confirms that `ynx-chaind` remains active. It does not change DNS, Caddy/Nginx, Explorer, or public ingress.
+
+```bash
+DEPLOY_DRY_RUN=1 \
+  ENV_FILE=.env.deploy \
+  CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
+  make deploy-consensus-candidate
+
+CONSENSUS_CANDIDATE_APPROVED=yes \
+  ENV_FILE=.env.deploy \
+  CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
+  make deploy-consensus-candidate
+
+CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
+  ENV_FILE=.env.deploy \
+  make verify-consensus-candidate
+```
+
+The remote verifier reads only loopback CometBFT RPC through strict SSH and writes `tmp/consensus-candidate-evidence/consensus-candidate-evidence.json`. A pass requires a common height/hash, the exact approved validator set, a greater-than-two-thirds commit, and all three approved peers on every node. Its output explicitly keeps `publicCutoverAuthorized` false; it is candidate evidence, not public proof.
+
+The remote one-validator fault drill has a separate explicit approval. It stops only the chosen candidate CometBFT/ABCI pair, proves every remaining validator advanced, restarts the pair, waits for catch-up, then reruns the four-node verifier. A cleanup trap attempts the restart if an intermediate assertion fails, and every stop/start path also requires authoritative `ynx-chaind` to remain active.
+
+```bash
+CONSENSUS_CANDIDATE_FAULT_DRILL_APPROVED=yes \
+  CONSENSUS_CANDIDATE_FAULT_ROLE=seoul \
+  CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
+  ENV_FILE=.env.deploy \
+  make consensus-candidate-fault-drill
+```
+
+An owner-approved signed transaction drill requires a funded EVM-compatible address already present in the approved migration state. The raw 32-byte secp256k1 key remains in a mode-`0600` local file; only signed public transaction bytes are sent to candidate RPC. The drill compares pre/post sender and recipient accounts on all four nodes, requires the fixed one-YNXT fee and exact nonce transition, writes redacted machine-readable evidence, and reruns the common candidate verifier.
+
+```bash
+CONSENSUS_CANDIDATE_SIGNED_TX_APPROVED=yes \
+  CONSENSUS_CANDIDATE_TX_KEY=<owner-controlled-mode-0600-key-file> \
+  CONSENSUS_CANDIDATE_TX_TO=<approved-recipient-address> \
+  CONSENSUS_CANDIDATE_TX_AMOUNT=<positive-YNXT-amount> \
+  CONSENSUS_CANDIDATE_TX_NONCE=<exact-next-nonce> \
+  CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
+  ENV_FILE=.env.deploy \
+  make consensus-candidate-signed-tx-drill
+```
+
+For a first candidate install, rollback stops/disables and removes only candidate state and units. To restore a previous candidate snapshot, set its exact release name. Neither mode touches validator key files or authoritative services.
+
+```bash
+DEPLOY_DRY_RUN=1 ENV_FILE=.env.deploy make consensus-candidate-rollback
+
+CONSENSUS_CANDIDATE_ROLLBACK_APPROVED=yes \
+  CONSENSUS_CANDIDATE_BACKUP_RELEASE=ynx-consensus-candidate-<commit> \
+  ENV_FILE=.env.deploy \
+  make consensus-candidate-rollback
+```
+
+Do not perform public cutover until all four candidate nodes report the approved genesis/AppHash and validator set, commit with quorum, continue with one validator stopped, catch that validator up after restart, execute an owner-approved signed test transaction, and pass a documented rollback rehearsal. Until then, the public network remains authoritative replication and remote BFT remains unproven.

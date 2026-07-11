@@ -31,6 +31,7 @@ make consensus-migration-check
 make consensus-abci-check
 make consensus-signed-transfer-check
 make consensus-quorum-check
+make consensus-production-package-check
 make caddy-ingress-check
 make ops-check
 echo "preflight passed for local devnet/testnet deployment package and four-validator consensus lab"

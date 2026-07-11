@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/production-validator-manifest-v1.json",
+  "title": "YNX production BFT candidate public validator manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "purpose", "chainId", "validators"],
+  "properties": {
+    "version": { "const": 1 },
+    "purpose": { "const": "ynx-production-bft-candidate-public-keys-only" },
+    "chainId": { "const": "ynx_6423-1" },
+    "validators": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "validatorAddress",
+          "role",
+          "privateP2PHost",
+          "p2pPort",
+          "nodeId",
+          "consensusKeyType",
+          "consensusPubKey",
+          "consensusAddress"
+        ],
+        "properties": {
+          "validatorAddress": { "type": "string", "minLength": 1 },
+          "role": { "enum": ["primary", "singapore", "silicon-valley", "seoul"] },
+          "privateP2PHost": {
+            "type": "string",
+            "description": "RFC1918 IPv4 address reachable only between validator servers"
+          },
+          "p2pPort": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+          "nodeId": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "consensusKeyType": { "const": "tendermint/PubKeyEd25519" },
+          "consensusPubKey": {
+            "type": "string",
+            "description": "Canonical base64 encoding of the 32-byte CometBFT ed25519 public key"
+          },
+          "consensusAddress": { "type": "string", "pattern": "^[0-9A-F]{40}$" }
+        }
+      }
+    }
+  }
+}
