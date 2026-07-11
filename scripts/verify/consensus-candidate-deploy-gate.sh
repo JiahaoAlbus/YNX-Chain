@@ -15,6 +15,7 @@ go run ./cmd/ynx-consensus-package -verify-package "$package_root" >/dev/null
 preflight_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
   local key_dir="/etc/ynx/consensus-candidate/$role"
+  echo "candidate deploy gate checking $role"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "systemctl is-active ynx-chaind >/dev/null && systemctl is-active ynx-consensus-overlay.service >/dev/null && sudo test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate)\" = 750 && sudo test \"\$(sudo stat -c %a '$key_dir/priv_validator_key.json')\" = 600 && sudo test \"\$(sudo stat -c %a '$key_dir/priv_validator_state.json')\" = 600 && sudo test \"\$(sudo stat -c %a '$key_dir/node_key.json')\" = 600 && sudo test ! -e /var/lib/ynx-chain/consensus-candidate && ! systemctl is-active --quiet ynx-consensus-comet-candidate.service && ! systemctl is-active --quiet ynx-consensus-abci-candidate.service && ! ss -ltn | awk '{print \$4}' | grep -Eq ':(27656|27757|27858)$' && test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152"
 }
 ynx_ops_each_node preflight_candidate_role
