@@ -235,7 +235,7 @@ check_replication_convergence() {
   [[ "$target_height" =~ ^[0-9]+$ && -n "$target_hash" ]] || return 1
 
   check_replica() {
-    local role="$1" user="$2" host="$3" key="$4" block="" identity="" observed_hash=""
+    local role="$1" user="$2" host="$3" key="$4" block="" identity="" observed_hash="" write_code=""
     for _ in {1..20}; do
       block="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/blocks/$target_height" 2>/dev/null || true)"
       observed_hash="$(printf '%s' "$block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
@@ -245,7 +245,10 @@ check_replication_convergence() {
     [[ "$observed_hash" == "$target_hash" ]] || { echo "replicationConvergence.$role=failed target=$target_height/$target_hash observed=$observed_hash"; return 1; }
     identity="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/node/identity")" || return 1
     printf '%s' "$identity" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); if (x.blockProductionEnabled !== false || x.replicationMode !== "authoritative_follower" || !String(x.replicationSource||"").includes("'"$PRIMARY_NODE_HOST"':6420")) process.exit(1);' || return 1
+    write_code="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{\"address\":\"ynx_replica_write_probe\",\"amount\":1}' http://127.0.0.1:6420/faucet")" || return 1
+    [[ "$write_code" == "409" ]] || { echo "replicationReadOnly.$role=failed HTTP=$write_code"; return 1; }
     echo "replicationConvergence.$role=ok height=$target_height hash=$target_hash"
+    echo "replicationReadOnly.$role=ok HTTP=409"
   }
 
   check_replica singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" || return 1

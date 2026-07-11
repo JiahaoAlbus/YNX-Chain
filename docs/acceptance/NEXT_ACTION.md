@@ -1,23 +1,23 @@
 # Next Action
 
-Current single action: deploy and verify authenticated authoritative chain-state replication across all four validator-role nodes.
+Current single action: begin the real BFT consensus migration while preserving the remotely verified authoritative replication path as a rollback boundary.
 
 Why this action:
 
 - Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
 - Public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints are live.
 - Public Chain Law and resource/pay/AI-action mutable flows now pass. Immediate Explorer transaction lookup races index polling, the OpenAI provider account returns `429 insufficient_quota`, and Web4 still serves the legacy chain Hub.
-- The deployed nodes currently have independent local histories. The new local implementation disables follower production and replicates the producer's validated state, but only remote fixed-height/hash evidence can prove the deployment converged.
+- The four deployed nodes now share a remotely verified authoritative history, but one producer remains a single authority. The final multi-validator L1 objective requires validator voting, quorum commits, Byzantine fault handling, and deterministic application-state execution.
 
 Required engineering and verification work:
 
-- Deploy role-specific producer/follower env with the replication key kept outside git.
-- Verify followers reject writes and can return the producer's exact block hash at one fixed height.
-- Preserve the explicit boundary: this closes deterministic state convergence, not BFT consensus.
+- Define the consensus/application boundary against the existing persisted state and API runtime.
+- Introduce a proven BFT engine path rather than extending the custom producer/follower protocol into a home-grown consensus algorithm.
+- Add a migration and rollback contract that preserves current YNXT state and the deployed public API during staged validator rollout.
 
 Files to touch:
 
-- Chain replication, API, node startup, deployment, verifier, and acceptance-state files
+- Consensus adapter/runtime, state migration, validator config, deployment, verifier, and acceptance-state files
 - Existing ignored deployment env and generated `tmp/verify-testnet/` evidence
 - No committed secret files
 
@@ -38,8 +38,8 @@ Completion standard:
 
 - Strict SSH continues to succeed for all four nodes with independently approved host keys.
 - Remote evidence is fresh, current-HEAD/release-bound, and status `passed`.
-- All three followers have block production disabled, report authoritative follower mode, and serve the same producer block hash at a fixed verified height.
-- Restart persistence is covered locally and the remote convergence evidence is current-HEAD/release-bound.
+- A local multi-validator BFT network commits the same blocks through quorum voting and survives one validator stop/restart.
+- Existing YNXT application state has a deterministic migration/rollback path and current API tests remain green.
 - Public proof remains false until every required chain, validator, release manifest, AI, Pay, Trust, Resource, Chain Law, explorer, faucet, indexer, and mutable-flow check passes.
 
 Explicitly not doing:
