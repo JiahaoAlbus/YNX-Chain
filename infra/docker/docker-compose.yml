@@ -6,6 +6,7 @@ services:
     environment:
       YNX_NETWORK: devnet
       YNX_HTTP_ADDR: 0.0.0.0:6420
+      YNX_AI_GATEWAY_UPSTREAM_KEY: "${YNX_AI_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_AI_GATEWAY_UPSTREAM_KEY}"
     ports:
       - "6420:6420"
 
@@ -60,6 +61,28 @@ services:
     volumes:
       - ynx-faucet-logs:/var/log/ynx-faucet
 
+  ynx-ai-gatewayd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-ai-gatewayd.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      YNX_AI_GATEWAY_CHAIN_URL: http://ynx-chaind:6420
+      YNX_AI_GATEWAY_HTTP_ADDR: 0.0.0.0:6429
+      YNX_AI_PROVIDER_URL: ${YNX_AI_PROVIDER_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY: "${OPENAI_API_KEY:?Missing required env: OPENAI_API_KEY}"
+      AI_MODEL_NAME: "${AI_MODEL_NAME:?Missing required env: AI_MODEL_NAME}"
+      YNX_AI_GATEWAY_API_KEY: "${YNX_AI_GATEWAY_API_KEY:?Missing required env: YNX_AI_GATEWAY_API_KEY}"
+      YNX_AI_GATEWAY_UPSTREAM_KEY: "${YNX_AI_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_AI_GATEWAY_UPSTREAM_KEY}"
+      YNX_AI_GATEWAY_AUDIT_LOG: /var/log/ynx-ai-gateway/audit.jsonl
+      YNX_AI_GATEWAY_RATE_LIMIT_WINDOW: 1m
+      YNX_AI_GATEWAY_RATE_LIMIT_MAX: "30"
+    ports:
+      - "6429:6429"
+    volumes:
+      - ynx-ai-gateway-logs:/var/log/ynx-ai-gateway
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
@@ -67,6 +90,7 @@ services:
       - ynx-indexerd
       - ynx-explorerd
       - ynx-faucetd
+      - ynx-ai-gatewayd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -91,3 +115,4 @@ services:
 volumes:
   ynx-indexer-data:
   ynx-faucet-logs:
+  ynx-ai-gateway-logs:

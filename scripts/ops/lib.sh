@@ -45,7 +45,7 @@ ynx_ops_ssh() {
 ynx_ops_services_for_kind() {
   local kind="$1"
   if [[ "$kind" == "full" ]]; then
-    printf 'ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd'
+    printf 'ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd'
   else
     printf 'ynx-chaind'
   fi

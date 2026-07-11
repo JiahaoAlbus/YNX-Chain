@@ -13,9 +13,9 @@ ENV_FILE=.env.deploy make backup
 ROLLBACK_RELEASE=ynx-chain-<commit> ENV_FILE=.env.deploy make rollback
 ```
 
-The deployment first SSH-prechecks the primary, Singapore, Silicon Valley, and Seoul nodes. If any host key, key path, user, or `systemctl` check fails, deployment stops before modifying any remote node. The primary node receives `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, and `ynx-faucetd`; Singapore, Silicon Valley, and Seoul receive validator-only `ynx-chaind` installs. Every node captures a pre-deploy status report under `/var/log/ynx-chain/deploy/` and writes a best-effort pre-deploy backup under `BACKUP_STORAGE_PATH` before release files are installed. Backups include new YNX Chain paths plus legacy `ynx-v2-*` systemd units, Caddy ingress config, `.ynx-v2` data directories, and the Singapore observer path when present; these backups stay on the remote hosts and are not committed.
+The deployment first SSH-prechecks the primary, Singapore, Silicon Valley, and Seoul nodes. If any host key, key path, user, or `systemctl` check fails, deployment stops before modifying any remote node. The primary node receives `ynx-chaind`, `ynx-indexerd`, `ynx-explorerd`, `ynx-faucetd`, and `ynx-ai-gatewayd`; Singapore, Silicon Valley, and Seoul receive validator-only `ynx-chaind` installs. Every node captures a pre-deploy status report under `/var/log/ynx-chain/deploy/` and writes a best-effort pre-deploy backup under `BACKUP_STORAGE_PATH` before release files are installed. Backups include new YNX Chain paths plus legacy `ynx-v2-*` systemd units, Caddy ingress config, `.ynx-v2` data directories, and the Singapore observer path when present; these backups stay on the remote hosts and are not committed.
 
-The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/var/lib/ynx-chain/testnet`, and `/var/log/ynx-chain` on all nodes. On the primary node it also writes `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, and `/var/lib/ynx-chain/indexer`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` on the primary when nginx is present.
+The deployment writes `/etc/systemd/system/ynx-chaind.service`, `/etc/ynx/ynx-chaind.env`, `/usr/local/bin/ynx-chaind`, `/var/lib/ynx-chain/testnet`, and `/var/log/ynx-chain` on all nodes. On the primary node it also writes `/etc/systemd/system/ynx-indexerd.service`, `/etc/systemd/system/ynx-explorerd.service`, `/etc/systemd/system/ynx-faucetd.service`, `/etc/systemd/system/ynx-ai-gatewayd.service`, `/etc/ynx/ynx-ai-gatewayd.env` with mode `0600`, `/usr/local/bin/ynx-indexerd`, `/usr/local/bin/ynx-explorerd`, `/usr/local/bin/ynx-faucetd`, `/usr/local/bin/ynx-ai-gatewayd`, and `/var/lib/ynx-chain/indexer`. nginx config is installed to `/etc/nginx/conf.d/ynx-chain.conf` on the primary when nginx is present; the AI domain has a dedicated non-buffered proxy to port `6429`.
 
 Each deploy bundle includes `config/release-manifest.json`. The manifest is non-secret and records the release name, git commit, build time, target chain, binary paths, role env paths, service config paths, file sizes, and SHA-256 checksums. `make deploy-dry-run` verifies that the manifest matches the generated bundle. `verify-testnet` checks the remote manifest under `/opt/ynx-chain/releases/<release>/config/release-manifest.json`, compares the installed `/usr/local/bin/ynx-chaind` SHA-256 against the manifest, and then requires live `/status.build` and `/node/identity.build` to report the same release commit/name. This binds runtime identity to the deployed artifact, but it is still not remote public proof unless public endpoint checks also pass.
 
@@ -72,5 +72,13 @@ make faucet-check
 ```
 
 `ynx-faucetd` requires `FAUCET_PRIVATE_KEY` from env, validates request addresses, enforces rate limits, writes JSONL request logs, funds YNXT through the chain RPC, and exposes health plus Prometheus metrics on `YNX_FAUCET_HTTP_ADDR`.
+
+AI Gateway readiness:
+
+```bash
+make ai-gateway-check
+```
+
+`ynx-ai-gatewayd` requires provider, public access, and chain-upstream keys from env. It serves public health/metrics, authenticated provider-backed SSE, rate limiting, request IDs, redacted JSONL audit, and chain-backed permission/action proxy routes on `YNX_AI_GATEWAY_HTTP_ADDR`. Deployed chain AI routes require the upstream key, preventing clients from bypassing gateway authentication through the general REST domain.
 
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

@@ -127,10 +127,13 @@ Pay merchant safety:
 
 AI Gateway permission and audit:
 
-- `GET /ai/stream?session=...&q=...` streams session-scoped status and guidance; it does not execute value-moving or Trust-affecting actions.
+- `ynx-ai-gatewayd` is the independent public AI service on port `6429`. `GET /health` exposes chain identity, provider configuration state, model name, rate-limit policy, build identity, and `truthfulStatus=chain-context-and-provider-backed-ai-gateway`; `GET /metrics` exposes request, success, denial, error, and active-request counters.
+- Protected routes require `X-YNX-AI-Key` or `Authorization: Bearer <YNX_AI_GATEWAY_API_KEY>`. The provider key and access key are loaded only from the gateway's `0600` env file. A separate `YNX_AI_GATEWAY_UPSTREAM_KEY` authenticates gateway-to-chain proxy calls; deployed `ynx-chaind` rejects direct `/ai/*` bypass attempts without it.
+- `GET /ai/stream?session=...&q=...` calls the configured OpenAI-compatible provider with current YNX chain status context and streams isolated SSE `metadata`, `token`, and `done` events carrying a unique request ID. It does not execute value-moving or Trust-affecting actions.
+- Gateway JSONL audit entries contain request/session/path/status/outcome, prompt hash, and audit hash. Raw prompts, access keys, provider keys, private keys, and seed phrases are not written.
 - `POST /ai/permissions` creates an explicit scoped permission grant with `sessionId`, `requester`, `scope`, `purpose`, expiry, status, and `auditHash`.
 - `POST /ai/actions` stores an AI action proposal with `sessionId`, `requester`, `scope`, `actionType`, `description`, sensitivity metadata, executable status, reasons, `auditHash`, and transparency entry.
 - Sensitive AI actions include value movement, Trust label/risk-state changes, and sensitive-data or evidence export. They are persisted as `pending_approval` and `executable=false`.
 - `POST /ai/actions/{id}/approve` requires a matching active permission for the same session, requester, and scope before a sensitive action can become `approved` and `executable=true`.
 - `POST /ai/actions/{id}/reject`, `GET /ai/actions?sessionId=...`, and `GET /ai/actions/{id}` expose auditable review state without bypassing YNX Chain Law.
-- Remote public proof must show a sensitive action proposal remains non-executable until a matching scoped permission approval, then show active permission audit, approved executable state, and audited action lookup/list on public endpoints.
+- Remote public proof must show independent gateway health and release identity, authenticated SSE with request/session evidence, a sensitive action proposal remaining non-executable until a matching scoped permission approval, then active permission audit, approved executable state, and audited gateway lookup/list on public endpoints.

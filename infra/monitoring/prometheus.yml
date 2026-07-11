@@ -38,3 +38,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-faucetd
+  - job_name: ynx-ai-gatewayd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-ai-gatewayd:6429
+        labels:
+          network: ynx-testnet
+          service: ynx-ai-gatewayd

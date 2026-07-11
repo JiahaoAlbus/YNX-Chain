@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -14,12 +16,21 @@ import (
 )
 
 type Server struct {
-	devnet *chain.Devnet
-	mux    *http.ServeMux
+	devnet               *chain.Devnet
+	mux                  *http.ServeMux
+	aiGatewayUpstreamKey string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
-	s := &Server{devnet: devnet, mux: http.NewServeMux()}
+	return NewServerWithConfig(devnet, ServerConfig{})
+}
+
+type ServerConfig struct {
+	AIGatewayUpstreamKey string
+}
+
+func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
+	s := &Server{devnet: devnet, mux: http.NewServeMux(), aiGatewayUpstreamKey: strings.TrimSpace(cfg.AIGatewayUpstreamKey)}
 	s.routes()
 	return s.withHeaders(s.mux)
 }
@@ -77,14 +88,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /resource-market/delegations/{address}", s.handleResourceDelegations)
 	s.mux.HandleFunc("POST /resource-market/rent", s.handleResourceRent)
 	s.mux.HandleFunc("GET /resource-market/income/{address}", s.handleResourceIncome)
-	s.mux.HandleFunc("GET /ai/stream", s.handleAIStream)
-	s.mux.HandleFunc("POST /ai/permissions", s.handleAIPermission)
-	s.mux.HandleFunc("GET /ai/permissions/{id}", s.handleAIPermissionLookup)
-	s.mux.HandleFunc("POST /ai/actions", s.handleAIActionProposal)
-	s.mux.HandleFunc("GET /ai/actions", s.handleAIActions)
-	s.mux.HandleFunc("GET /ai/actions/{id}", s.handleAIActionLookup)
-	s.mux.HandleFunc("POST /ai/actions/{id}/approve", s.handleAIActionApprove)
-	s.mux.HandleFunc("POST /ai/actions/{id}/reject", s.handleAIActionReject)
+	s.aiRoute("GET /ai/stream", s.handleAIStream)
+	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
+	s.aiRoute("GET /ai/permissions/{id}", s.handleAIPermissionLookup)
+	s.aiRoute("POST /ai/actions", s.handleAIActionProposal)
+	s.aiRoute("GET /ai/actions", s.handleAIActions)
+	s.aiRoute("GET /ai/actions/{id}", s.handleAIActionLookup)
+	s.aiRoute("POST /ai/actions/{id}/approve", s.handleAIActionApprove)
+	s.aiRoute("POST /ai/actions/{id}/reject", s.handleAIActionReject)
 	s.mux.HandleFunc("GET /ide/compiler", s.handleIDECompiler)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
 	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
@@ -95,6 +106,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+func (s *Server) aiRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.aiGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-AI-Gateway-Upstream-Key"), s.aiGatewayUpstreamKey) {
+			writeError(w, http.StatusUnauthorized, "AI routes require the authenticated YNX AI Gateway")
+			return
+		}
+		handler(w, r)
+	})
+}
+
+func constantTimeEqual(a, b string) bool {
+	aHash := sha256.Sum256([]byte(a))
+	bHash := sha256.Sum256([]byte(b))
+	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
 }
 
 func (s *Server) withHeaders(next http.Handler) http.Handler {

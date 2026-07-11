@@ -50,6 +50,12 @@ const requiredChecks = [
   "explorer.summary.validators",
   "explorer.faucetTx.hash",
   "ai.health.truthful",
+  "ai.health.chain",
+  "ai.health.gateway",
+  "ai.health.buildCommit",
+  "ai.health.buildRelease",
+  "ai.health.buildTime",
+  "ai.stream.authenticatedSSE",
   "ai.action.proposal.audit",
   "ai.permission.active",
   "ai.action.approve.permissionGate",
@@ -293,6 +299,9 @@ function selfTest() {
   const missingAIProposal = validateEvidence(buildFixture({ omit: ["ai.action.proposal.audit"] }));
   assert.equal(missingAIProposal.validPublicProof, false, "missing AI sensitive action proposal proof must be invalid");
   assert(missingAIProposal.missingRequiredChecks.includes("ai.action.proposal.audit"));
+  const missingAIStream = validateEvidence(buildFixture({ omit: ["ai.stream.authenticatedSSE"] }));
+  assert.equal(missingAIStream.validPublicProof, false, "missing authenticated AI streaming proof must be invalid");
+  assert(missingAIStream.missingRequiredChecks.includes("ai.stream.authenticatedSSE"));
   const missingAIPermission = validateEvidence(buildFixture({ omit: ["ai.permission.active"] }));
   assert.equal(missingAIPermission.validPublicProof, false, "missing AI permission proof must be invalid");
   assert(missingAIPermission.missingRequiredChecks.includes("ai.permission.active"));

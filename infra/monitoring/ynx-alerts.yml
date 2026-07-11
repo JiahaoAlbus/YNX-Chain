@@ -73,3 +73,19 @@ groups:
         annotations:
           summary: YNX faucet is rejecting many requests
           description: Faucet denials or rate limits are elevated. Check request logs for abuse or misconfiguration.
+      - alert: YNXAIGatewayDown
+        expr: up{job="ynx-ai-gatewayd"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX AI Gateway metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-ai-gatewayd.
+      - alert: YNXAIGatewayErrors
+        expr: increase(ynx_ai_gateway_errors_total{job="ynx-ai-gatewayd"}[10m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX AI Gateway provider or chain errors are elevated
+          description: Check provider reachability, chain status, and the redacted AI Gateway audit log.

@@ -28,6 +28,9 @@ case "$url" in
   http://127.0.0.1:6428/health)
     printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6429/health)
+    printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"providerConfigured":true,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -86,7 +89,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet
+  local indexer explorer faucet ai_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -104,6 +107,13 @@ check_full_stack_surface() {
   require_contains "faucet health" "$faucet" "YNXT"
   require_contains "faucet health build commit" "$faucet" "$expected_commit"
   require_contains "faucet health release" "$faucet" "$expected_release"
+
+  ai_gateway="$(fetch_with_retry "AI Gateway health" "http://127.0.0.1:6429/health")"
+  require_contains "AI Gateway health" "$ai_gateway" "$expected_chain_id"
+  require_contains "AI Gateway health" "$ai_gateway" "YNXT"
+  require_contains "AI Gateway health" "$ai_gateway" '"providerConfigured":true'
+  require_contains "AI Gateway health build commit" "$ai_gateway" "$expected_commit"
+  require_contains "AI Gateway health release" "$ai_gateway" "$expected_release"
 }
 
 case "$mode" in

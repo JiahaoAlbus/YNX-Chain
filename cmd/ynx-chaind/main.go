@@ -131,7 +131,7 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		startPeerSyncPolling(ctx, devnet, cfg.LocalValidator, inputs.PeerSyncTargets, cfg.PeerSyncInterval, nil)
 	}
 
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServer(devnet), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServerWithConfig(devnet, api.ServerConfig{AIGatewayUpstreamKey: os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY")}), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

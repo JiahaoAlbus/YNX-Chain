@@ -35,6 +35,7 @@ const endpoints = {
   web4: trimSlash(process.env.PUBLIC_WEB4_URL || "https://web4.ynxweb4.com"),
 };
 const sampleAddress = process.env.YNX_REMOTE_SMOKE_ADDRESS || `ynx_remote_smoke_${Date.now()}`;
+const aiGatewayAPIKey = String(process.env.YNX_AI_GATEWAY_API_KEY || "");
 
 const checks = [];
 const evidence = {
@@ -93,22 +94,23 @@ async function request(name, url, options = {}) {
     } catch {
       // Keep the raw body for diagnostics.
     }
-    evidence.observed[name] = { url, status: res.status, ok: res.ok, body: json ?? clip(text) };
+    const requestId = res.headers.get("x-request-id") || "";
+    evidence.observed[name] = { url, status: res.status, ok: res.ok, requestId, body: json ?? clip(text) };
     if (!res.ok) {
-      return { ok: false, status: res.status, text, json, error: `HTTP ${res.status}` };
+      return { ok: false, status: res.status, text, json, requestId, error: `HTTP ${res.status}` };
     }
-    return { ok: true, status: res.status, text, json };
+    return { ok: true, status: res.status, text, json, requestId };
   } catch (err) {
     evidence.observed[name] = { url, ok: false, error: err.message };
     return { ok: false, status: 0, text: "", json: null, error: err.message };
   }
 }
 
-async function getJson(name, url) {
-  let res = await request(name, url);
+async function getJson(name, url, headers = {}) {
+  let res = await request(name, url, { headers });
   if (!res.ok && res.status === 0) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    res = await request(name, url);
+    res = await request(name, url, { headers });
   }
   if (!res.ok) {
     record(name, false, res.error || "request failed", evidence.observed[name]);
@@ -122,8 +124,8 @@ async function getJson(name, url) {
   return res.json;
 }
 
-async function postJson(name, url, body) {
-  const res = await request(name, url, { method: "POST", body });
+async function postJson(name, url, body, headers = {}) {
+  const res = await request(name, url, { method: "POST", body, headers });
   if (!res.ok) {
     record(name, false, res.error || "request failed", evidence.observed[name]);
     return null;
@@ -685,10 +687,20 @@ async function main() {
     record("explorer.summary.validators", count >= expected.minValidators, `validatorCount ${count}`, { validatorCount: count });
   }
 
+  let aiHealthOk = false;
   const aiHealth = await getJson("ai.health", `${endpoints.ai}/health`);
   if (aiHealth) {
-    checkTruthfulServiceHealth("ai.health.truthful", aiHealth);
-    if (chainIdOf(aiHealth) !== null) checkChain("ai.health.chain", aiHealth);
+    const truthful = checkTruthfulServiceHealth("ai.health.truthful", aiHealth);
+    const chain = checkChain("ai.health.chain", aiHealth);
+    const serviceOk = aiHealth?.service === "ynx-ai-gatewayd" && aiHealth?.providerConfigured === true && aiHealth?.upstreamOk === true;
+    record("ai.health.gateway", serviceOk, serviceOk ? "independent provider-backed AI Gateway is healthy" : `AI Gateway service/provider/upstream evidence missing: ${clip(aiHealth)}`, {
+      service: aiHealth?.service,
+      providerConfigured: aiHealth?.providerConfigured,
+      upstreamOk: aiHealth?.upstreamOk,
+      model: aiHealth?.model,
+    });
+    const build = checkBuildIdentity("ai.health", aiHealth);
+    aiHealthOk = truthful && chain && serviceOk && build;
   }
   const web4Health = await getJson("web4.health", `${endpoints.web4}/health`);
   if (web4Health) {
@@ -696,7 +708,7 @@ async function main() {
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
@@ -787,39 +799,51 @@ async function main() {
 
     const aiSession = `remote-smoke-ai-${sampleAddress}`;
     const aiRequester = "remote_smoke_merchant";
-    const aiAction = await postJson("ai.action.proposal", `${endpoints.rest}/ai/actions`, {
+    const aiHeaders = aiGatewayAPIKey ? { "x-ynx-ai-key": aiGatewayAPIKey } : {};
+    if (!aiGatewayAPIKey) {
+      record("ai.stream.authenticatedSSE", false, "YNX_AI_GATEWAY_API_KEY is missing from the secure remote proof environment", {});
+    } else {
+      const aiStream = await request("ai.stream", `${endpoints.ai}/ai/stream?session=${encodeURIComponent(aiSession)}&q=${encodeURIComponent("Explain current YNX Testnet status without executing actions")}`, { headers: aiHeaders });
+      const streamOK = aiStream.ok && aiStream.requestId && aiStream.text.includes("event: metadata") && aiStream.text.includes("event: token") && aiStream.text.includes("event: done") && aiStream.text.includes(aiSession);
+      record("ai.stream.authenticatedSSE", Boolean(streamOK), streamOK ? `authenticated session stream ${aiSession} request ${aiStream.requestId}` : `authenticated AI Gateway SSE failed: ${aiStream.error || clip(aiStream.text)}`, {
+        requestId: aiStream.requestId,
+        sessionId: aiSession,
+        status: aiStream.status,
+      });
+    }
+    const aiAction = await postJson("ai.action.proposal", `${endpoints.ai}/ai/actions`, {
       sessionId: aiSession,
       requester: aiRequester,
       scope: "value_movement",
       actionType: "transfer",
       description: "Remote smoke sensitive merchant settlement action",
-    });
+    }, aiHeaders);
     if (aiAction) {
       checkAIActionProposal(aiAction);
     } else {
       record("ai.action.proposal.audit", false, "missing AI action proposal response", {});
     }
-    const aiPermission = await postJson("ai.permission", `${endpoints.rest}/ai/permissions`, {
+    const aiPermission = await postJson("ai.permission", `${endpoints.ai}/ai/permissions`, {
       sessionId: aiSession,
       requester: aiRequester,
       scope: "value_movement",
       purpose: "approve remote smoke scoped merchant settlement action",
       expiryHours: 2,
-    });
+    }, aiHeaders);
     if (aiPermission) {
       checkAIPermission(aiPermission);
     } else {
       record("ai.permission.active", false, "missing AI permission response", {});
     }
     if (aiAction?.id && aiPermission?.id) {
-      const aiApproved = await postJson("ai.action.approve", `${endpoints.rest}/ai/actions/${encodeURIComponent(aiAction.id)}/approve`, {
+      const aiApproved = await postJson("ai.action.approve", `${endpoints.ai}/ai/actions/${encodeURIComponent(aiAction.id)}/approve`, {
         approver: "remote_smoke_reviewer",
         permissionId: aiPermission.id,
-      });
+      }, aiHeaders);
       if (aiApproved) checkAIActionApproval(aiApproved, aiPermission.id);
-      const aiLookup = await getJson("ai.action.lookup", `${endpoints.rest}/ai/actions/${encodeURIComponent(aiAction.id)}`);
+      const aiLookup = await getJson("ai.action.lookup", `${endpoints.ai}/ai/actions/${encodeURIComponent(aiAction.id)}`, aiHeaders);
       if (aiLookup) checkAIActionLookup(aiLookup, aiAction.id, aiPermission.id);
-      const aiList = await getJson("ai.action.list", `${endpoints.rest}/ai/actions?sessionId=${encodeURIComponent(aiSession)}`);
+      const aiList = await getJson("ai.action.list", `${endpoints.ai}/ai/actions?sessionId=${encodeURIComponent(aiSession)}`, aiHeaders);
       if (aiList) checkAIActionList(aiList, aiAction.id);
     } else {
       record("ai.action.approve.permissionGate", false, "skipped AI approval because proposal or permission id is missing", { actionId: aiAction?.id, permissionId: aiPermission?.id });
