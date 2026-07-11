@@ -661,7 +661,7 @@ ynx_node_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$remote" "$@"
+  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$remote" "$@"
 }
 
 ynx_node_scp() {
@@ -672,7 +672,7 @@ ynx_node_scp() {
     printf 'DRY RUN [%s] scp -i %q %q %q:%q\n' "$role" "$key" "$src" "$remote" "$dest"
     return 0
   fi
-  scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$src" "$remote:$dest"
+  scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$src" "$remote:$dest"
 }
 
 ynx_capture_predeploy_state() {
@@ -684,7 +684,9 @@ ynx_capture_predeploy_state() {
 ynx_backup_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local backup_name="ynx-chain-predeploy-${release}-${role}.tar.gz"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo tar --ignore-failed-read -czf '$BACKUP_STORAGE_PATH/$backup_name' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null || true; sudo test -f '$BACKUP_STORAGE_PATH/$backup_name' && sudo ls -lh '$BACKUP_STORAGE_PATH/$backup_name' || true"
+  local backup_path="$BACKUP_STORAGE_PATH/$backup_name"
+  local partial_path="$BACKUP_STORAGE_PATH/.${backup_name}.partial"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && sudo rm -f '$backup_path' '$partial_path' && sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-v2-node.service /etc/systemd/system/ynx-v2-indexer.service /etc/systemd/system/ynx-v2-explorer.service /etc/systemd/system/ynx-v2-faucet.service /etc/systemd/system/ynx-v2-ai-gateway.service /etc/systemd/system/ynx-v2-web4-hub.service /etc/systemd/system/ynx-v2-bridge-service.service /etc/systemd/system/ynx-v2-peer.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /home/ubuntu/.ynx-v2 /root/.ynx-v2 /var/lib/ynx-chain /var/log/ynx-chain /var/lib/ynx-ops-observer 2>/dev/null && sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'"
 }
 
 ynx_precheck_node_access() {
