@@ -36,8 +36,10 @@ const required = [
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",
+  "bin/ynx-trustd",
   "config/ynx-ai-gatewayd.env",
   "config/ynx-payd.env",
+  "config/ynx-trustd.env",
   "config/ynx-chaind-primary.env",
   "config/ynx-chaind-singapore.env",
   "config/ynx-chaind-silicon-valley.env",
@@ -45,6 +47,7 @@ const required = [
   "systemd/ynx-chaind.service",
   "systemd/ynx-ai-gatewayd.service",
   "systemd/ynx-payd.service",
+  "systemd/ynx-trustd.service",
   "nginx/ynx-chain.conf",
 ];
 

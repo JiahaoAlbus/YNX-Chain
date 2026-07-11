@@ -54,3 +54,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-payd
+  - job_name: ynx-trustd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-trustd:6431
+        labels:
+          network: ynx-testnet
+          service: ynx-trustd

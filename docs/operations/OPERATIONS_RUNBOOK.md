@@ -89,4 +89,12 @@ make pay-api-check
 
 `ynx-payd` requires merchant ID, public API key, webhook signing key, and a separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics and authenticated Pay routes on `YNX_PAY_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB body limit, required idempotency keys, merchant binding, rate limits, managed webhook signing, and redacted JSONL audit. The chain process keeps canonical persistent Pay records and rejects direct deployed `/pay/*` access without the upstream key.
 
+Trust Gateway readiness:
+
+```bash
+make trust-api-check
+```
+
+`ynx-trustd` requires a client API key and separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics plus authenticated Trust and Chain Law routes on `YNX_TRUST_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB evidence/export limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The chain process keeps canonical lineage, labels, evidence, governance requests, appeals, tracking reviews, and transparency records, and rejects direct deployed `/trust/*` and related `/governance/*` access without the upstream key.
+
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

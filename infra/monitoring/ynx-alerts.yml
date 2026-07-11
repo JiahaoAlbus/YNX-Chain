@@ -105,3 +105,19 @@ groups:
         annotations:
           summary: YNX Pay Gateway upstream or audit errors are elevated
           description: Check chain reachability and the protected Pay Gateway audit log.
+      - alert: YNXTrustGatewayDown
+        expr: up{job="ynx-trustd"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Trust Gateway metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-trustd.
+      - alert: YNXTrustGatewayErrors
+        expr: increase(ynx_trust_gateway_errors_total{job="ynx-trustd"}[10m]) > 5 or increase(ynx_trust_gateway_audit_errors_total{job="ynx-trustd"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Trust Gateway upstream or audit errors are elevated
+          description: Check chain reachability and the protected Trust Gateway audit log.

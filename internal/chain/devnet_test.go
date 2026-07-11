@@ -2,6 +2,7 @@ package chain
 
 import (
 	"encoding/hex"
+	"strings"
 	"testing"
 	"time"
 )
@@ -455,6 +456,9 @@ func TestPersistentDevnetRestoresProductState(t *testing.T) {
 	if _, ok := restored.StoredEvidencePacket(evidence.ID); !ok {
 		t.Fatal("expected restored evidence packet")
 	}
+	if labels := restored.riskLabels["ynx_product"]; len(labels) != 1 || labels[0].SubjectType != "address" {
+		t.Fatalf("expected restored address risk label subject type, got %+v", labels)
+	}
 	restoredContract, ok := restored.Contract(contract.Address)
 	if !ok {
 		t.Fatal("expected restored contract")
@@ -699,6 +703,34 @@ func TestTrustEvidenceRiskSummaryExcludesLowConfidenceAndExpiredLabels(t *testin
 	}
 	if summary.AssetEffect != "none_advisory_only" || summary.AppealPath != "/trust/appeals" || !summary.HasOpenReview {
 		t.Fatalf("expected appealable advisory summary, got %+v", summary)
+	}
+}
+
+func TestRiskLabelsDistinguishAddressAndKnownTransactionSubjects(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("devnet"))
+	addressLabel, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "ynx_risk_subject", Label: "address-review", RiskWeightBps: 100, Source: "unit-address", EvidenceHash: "sha256:address"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if addressLabel.SubjectType != "address" || addressLabel.Address != "ynx_risk_subject" {
+		t.Fatalf("expected default address subject: %+v", addressLabel)
+	}
+	tx, err := devnet.Faucet("ynx_tx_risk_subject", 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	txLabel, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: tx.Hash, SubjectType: "transaction", Label: "transaction-review", RiskWeightBps: 250, Source: "unit-transaction", EvidenceHash: "sha256:transaction"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if txLabel.SubjectType != "transaction" || txLabel.Subject != tx.Hash || txLabel.Address != "" {
+		t.Fatalf("expected transaction subject without address alias: %+v", txLabel)
+	}
+	if _, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "0x" + strings.Repeat("0", 64), SubjectType: "transaction", Label: "unknown-transaction", Source: "unit-transaction", EvidenceHash: "sha256:missing"}); err == nil || !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("expected unknown transaction to be rejected, got %v", err)
+	}
+	if _, err := devnet.AddRiskLabelFromInput(RiskLabelInput{Subject: "not-a-hash", SubjectType: "transaction", Label: "invalid-transaction", Source: "unit-transaction", EvidenceHash: "sha256:invalid"}); err == nil || !strings.Contains(err.Error(), "32-byte") {
+		t.Fatalf("expected malformed transaction hash to be rejected, got %v", err)
 	}
 }
 

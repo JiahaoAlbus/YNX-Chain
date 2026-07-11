@@ -1,28 +1,26 @@
 # Next Action
 
-Current single action: implement an independent deployable Trust API (`ynx-trustd`) while preserving `ynx-chaind` as the authoritative persistent Trust, lineage, appeal, and tracking-review state engine.
+Current single action: implement an independent deployable Resource Market API (`ynx-resourced`) while preserving `ynx-chaind` as the authoritative persistent resource policy, delegation, rental, and income engine.
 
 Why this action:
 
-- Chain Law, Trust labels/evidence, lot lineage, pro-rata tracking, appeals, and anti-unreasonable tracking exist and pass local checks, but public Trust routes still belong to the general chain API process.
-- Faucet, Indexer, Explorer, AI Gateway, and Pay Gateway now have independent daemon boundaries. Trust is the largest remaining service-boundary gap that can advance without unsafe remote mutation.
-- Remote deployment remains externally blocked by trusted host-key approval and old public endpoints.
+- Resource policy, quote, delegation, rental settlement, provider/protocol split, income, and analytics exist and pass local checks, but public routes still belong to the general chain API process.
+- Faucet, Indexer, Explorer, AI, Pay, and Trust now have independent daemon boundaries. Resource Market is the largest remaining service-boundary gap that can advance without unsafe remote mutation.
+- Remote deployment remains blocked by trusted host-key approval and old public endpoints.
 
 Files to touch:
 
-- `internal/trustgateway/`
-- `cmd/ynx-trustd/`
+- `internal/resourcegateway/`
+- `cmd/ynx-resourced/`
 - `internal/api/`
-- `scripts/verify/trust-api-check.sh`
+- `scripts/verify/resource-api-check.sh`
 - deployment, ops, monitoring, env, API/runbook, public-proof, and acceptance files
 
 Validation commands:
 
 - `go test ./...`
-- `make trust-api-check`
-- `make request-validity-check`
-- `make trust-appeal-check`
-- `make anti-unreasonable-tracking-check`
+- `make resource-api-check`
+- `make resource-market-check`
 - `make smoke-test`
 - `make deploy-dry-run`
 - `make monitoring-check`
@@ -36,10 +34,10 @@ Validation commands:
 
 Completion standard:
 
-- `ynx-trustd` is a real independent process with public health/metrics and build identity.
-- Public Trust endpoints enforce authentication, request IDs, rate limits, bounded bodies/exports, and redacted audit records.
-- Direct deployed chain Trust bypass is rejected; only authenticated `ynx-trustd` upstream calls reach canonical Trust handlers.
-- Existing Trust label, trace, evidence, appeal, false-positive correction, and tracking-review persistence remains authoritative and passes through the daemon.
+- `ynx-resourced` is a real independent process with public health/metrics and build identity.
+- Public Resource Market routes enforce authentication, request IDs, rate limits, bounded bodies, and redacted audit.
+- Direct deployed chain Resource Market bypass is rejected; only authenticated `ynx-resourced` upstream calls reach canonical handlers.
+- Existing policy, quote, delegation, rental, income, and analytics persistence remains authoritative and passes through the daemon.
 - Deployment, ingress, monitoring, operations, remote smoke, and public-proof gates are wired.
 - Remote deployed/public proof remain `no` until real endpoints pass.
 

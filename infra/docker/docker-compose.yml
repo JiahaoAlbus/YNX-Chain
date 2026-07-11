@@ -8,6 +8,7 @@ services:
       YNX_HTTP_ADDR: 0.0.0.0:6420
       YNX_AI_GATEWAY_UPSTREAM_KEY: "${YNX_AI_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_AI_GATEWAY_UPSTREAM_KEY}"
       YNX_PAY_GATEWAY_UPSTREAM_KEY: "${YNX_PAY_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_PAY_GATEWAY_UPSTREAM_KEY}"
+      YNX_TRUST_GATEWAY_UPSTREAM_KEY: "${YNX_TRUST_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_TRUST_GATEWAY_UPSTREAM_KEY}"
     ports:
       - "6420:6420"
 
@@ -105,6 +106,25 @@ services:
     volumes:
       - ynx-pay-logs:/var/log/ynx-pay
 
+  ynx-trustd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-trustd.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      YNX_TRUST_GATEWAY_CHAIN_URL: http://ynx-chaind:6420
+      YNX_TRUST_GATEWAY_HTTP_ADDR: 0.0.0.0:6431
+      YNX_TRUST_API_KEY: "${YNX_TRUST_API_KEY:?Missing required env: YNX_TRUST_API_KEY}"
+      YNX_TRUST_GATEWAY_UPSTREAM_KEY: "${YNX_TRUST_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_TRUST_GATEWAY_UPSTREAM_KEY}"
+      YNX_TRUST_GATEWAY_AUDIT_LOG: /var/log/ynx-trust/audit.jsonl
+      YNX_TRUST_GATEWAY_RATE_LIMIT_WINDOW: 1m
+      YNX_TRUST_GATEWAY_RATE_LIMIT_MAX: "60"
+    ports:
+      - "6431:6431"
+    volumes:
+      - ynx-trust-logs:/var/log/ynx-trust
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
@@ -114,6 +134,7 @@ services:
       - ynx-faucetd
       - ynx-ai-gatewayd
       - ynx-payd
+      - ynx-trustd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -140,3 +161,4 @@ volumes:
   ynx-faucet-logs:
   ynx-ai-gateway-logs:
   ynx-pay-logs:
+  ynx-trust-logs:

@@ -381,6 +381,7 @@ type PayEvent struct {
 type RiskLabel struct {
 	ID                               string     `json:"labelId"`
 	Subject                          string     `json:"subject"`
+	SubjectType                      string     `json:"subjectType"`
 	Address                          string     `json:"address"`
 	Label                            string     `json:"label"`
 	LabelType                        string     `json:"labelType"`
@@ -402,6 +403,7 @@ type RiskLabel struct {
 
 type RiskLabelInput struct {
 	Subject                          string `json:"subject"`
+	SubjectType                      string `json:"subjectType"`
 	Address                          string `json:"address"`
 	Label                            string `json:"label"`
 	LabelType                        string `json:"labelType"`

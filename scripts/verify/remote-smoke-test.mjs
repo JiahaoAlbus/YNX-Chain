@@ -33,11 +33,14 @@ const endpoints = {
   explorer: trimSlash(process.env.PUBLIC_EXPLORER_URL || "https://explorer.ynxweb4.com"),
   ai: trimSlash(process.env.PUBLIC_AI_URL || "https://ai.ynxweb4.com"),
   pay: trimSlash(process.env.PUBLIC_PAY_URL || "https://pay.ynxweb4.com"),
+  trust: trimSlash(process.env.PUBLIC_TRUST_URL || "https://trust.ynxweb4.com"),
   web4: trimSlash(process.env.PUBLIC_WEB4_URL || "https://web4.ynxweb4.com"),
 };
 const sampleAddress = process.env.YNX_REMOTE_SMOKE_ADDRESS || `ynx_remote_smoke_${Date.now()}`;
 const aiGatewayAPIKey = String(process.env.YNX_AI_GATEWAY_API_KEY || "");
 const payGatewayAPIKey = String(process.env.YNX_PAY_API_KEY || "");
+const trustGatewayAPIKey = String(process.env.YNX_TRUST_API_KEY || "");
+const trustHeaders = trustGatewayAPIKey ? { "x-ynx-trust-key": trustGatewayAPIKey } : {};
 
 const checks = [];
 const evidence = {
@@ -664,9 +667,9 @@ async function main() {
   const restChainOk = restStatus ? checkChain("rest.status.chain", restStatus) : false;
   const grpcOk = await checkGrpcEndpoint();
 
-  const requestValidityRules = await getJson("governance.requestValidityRules", `${endpoints.rest}/governance/request-validity-rules`);
+  const requestValidityRules = await getJson("governance.requestValidityRules", `${endpoints.trust}/governance/request-validity-rules`, trustHeaders);
   const requestValidityRulesOk = requestValidityRules ? checkRequestValidityRules(requestValidityRules) : false;
-  const transparencyInitial = await getJson("governance.transparency.initial", `${endpoints.rest}/governance/transparency`);
+  const transparencyInitial = await getJson("governance.transparency.initial", `${endpoints.trust}/governance/transparency`, trustHeaders);
   const transparencyInitialOk = transparencyInitial ? checkTransparencyReport("governance.transparency.initial.report", transparencyInitial) : false;
 
   const faucetHealth = await getJson("faucet.health", `${endpoints.faucet}/health`);
@@ -720,13 +723,29 @@ async function main() {
     payHealthOk = truthful && chain && serviceOk && build;
   }
   record("pay.auth.configured", Boolean(payGatewayAPIKey), payGatewayAPIKey ? "secure Pay API key is available to remote proof" : "YNX_PAY_API_KEY is missing from the secure remote proof environment", {});
+  let trustHealthOk = false;
+  const trustHealth = await getJson("trust.health", `${endpoints.trust}/health`);
+  if (trustHealth) {
+    const truthful = checkTruthfulServiceHealth("trust.health.truthful", trustHealth);
+    const chain = checkChain("trust.health.chain", trustHealth);
+    const serviceOk = trustHealth?.service === "ynx-trustd" && trustHealth?.upstreamOk === true && trustHealth?.bodyLimitBytes === 1048576 && trustHealth?.exportLimitBytes === 2097152;
+    record("trust.health.gateway", serviceOk, serviceOk ? "independent authenticated Trust and Chain Law Gateway is healthy" : `Trust Gateway service/upstream/limit evidence missing: ${clip(trustHealth)}`, {
+      service: trustHealth?.service,
+      upstreamOk: trustHealth?.upstreamOk,
+      bodyLimitBytes: trustHealth?.bodyLimitBytes,
+      exportLimitBytes: trustHealth?.exportLimitBytes,
+    });
+    const build = checkBuildIdentity("trust.health", trustHealth);
+    trustHealthOk = truthful && chain && serviceOk && build;
+  }
+  record("trust.auth.configured", Boolean(trustGatewayAPIKey), trustGatewayAPIKey ? "secure Trust API key is available to remote proof" : "YNX_TRUST_API_KEY is missing from the secure remote proof environment", {});
   const web4Health = await getJson("web4.health", `${endpoints.web4}/health`);
   if (web4Health) {
     checkTruthfulServiceHealth("web4.health.truthful", web4Health);
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
@@ -868,10 +887,10 @@ async function main() {
       record("ai.action.list.session", false, "skipped AI session list because proposal id is missing", { actionId: aiAction?.id });
     }
 
-    const trust = await getJson("trust.trace", `${endpoints.rest}/trust/trace/${sampleAddress}`);
+    const trust = await getJson("trust.trace", `${endpoints.trust}/trust/trace/${sampleAddress}`, trustHeaders);
     record("trust.trace.address", trust?.address === sampleAddress, trust?.address ? `trace ${trust.address}` : "missing trust trace", trust);
 
-    const illegalRequest = await postJson("governance.request.illegal", `${endpoints.rest}/governance/requests`, {
+    const illegalRequest = await postJson("governance.request.illegal", `${endpoints.trust}/governance/requests`, {
       requester: "remote_smoke_agency",
       subject: sampleAddress,
       action: "freeze native YNXT",
@@ -879,13 +898,13 @@ async function main() {
       scope: sampleAddress,
       description: "directly freeze user native YNXT by protocol request",
       evidence: ["case:remote-smoke"],
-    });
+    }, trustHeaders);
     if (illegalRequest) {
       checkGovernanceRequest("governance.request.illegal.classification", illegalRequest, "ILLEGAL_OR_ABUSIVE", "rejected", "native-ynxt-no-direct-freeze");
       record("governance.request.illegal.nativeYnxtProtected", illegalRequest.nativeYnxtProtected === true, illegalRequest.nativeYnxtProtected === true ? "native YNXT protected" : "nativeYnxtProtected is not true", illegalRequest);
     }
 
-    const reviewRequest = await postJson("governance.request.review", `${endpoints.rest}/governance/requests`, {
+    const reviewRequest = await postJson("governance.request.review", `${endpoints.trust}/governance/requests`, {
       requester: "remote_smoke_merchant",
       subject: sampleAddress,
       action: "risk label review",
@@ -893,18 +912,18 @@ async function main() {
       scope: "single transfer",
       description: "review scoped transfer evidence for remote public proof",
       evidence: ["case:remote-smoke", "tx:0xremote"],
-    });
+    }, trustHeaders);
     if (reviewRequest) {
       checkGovernanceRequest("governance.request.review.classification", reviewRequest, "REQUIRES_GOVERNANCE_REVIEW", "pending_review", "governance-review-user-rights");
       if (reviewRequest.id) {
-        const readReview = await getJson("governance.request.review.lookup", `${endpoints.rest}/governance/requests/${encodeURIComponent(reviewRequest.id)}`);
+        const readReview = await getJson("governance.request.review.lookup", `${endpoints.trust}/governance/requests/${encodeURIComponent(reviewRequest.id)}`, trustHeaders);
         if (readReview) checkReadableID("governance.request.review.lookup.id", readReview, reviewRequest.id);
-        const reviewed = await postJson("governance.request.review.markReviewed", `${endpoints.rest}/governance/requests/${encodeURIComponent(reviewRequest.id)}/review`, {});
+        const reviewed = await postJson("governance.request.review.markReviewed", `${endpoints.trust}/governance/requests/${encodeURIComponent(reviewRequest.id)}/review`, {}, trustHeaders);
         record("governance.request.review.markReviewed.status", reviewed?.status === "reviewed" && Boolean(reviewed?.reviewedAt), reviewed?.status === "reviewed" ? "reviewed" : "review failed", reviewed);
       }
     }
 
-    const manualRequest = await postJson("governance.request.manualRejectSource", `${endpoints.rest}/governance/requests`, {
+    const manualRequest = await postJson("governance.request.manualRejectSource", `${endpoints.trust}/governance/requests`, {
       requester: "remote_smoke_reviewer",
       subject: sampleAddress,
       action: "metadata correction",
@@ -912,13 +931,13 @@ async function main() {
       scope: "single evidence packet",
       description: "correct one evidence packet with reviewer evidence",
       evidence: ["case:remote-smoke"],
-    });
+    }, trustHeaders);
     if (manualRequest?.id) {
-      const rejected = await postJson("governance.request.manualReject", `${endpoints.rest}/governance/requests/${encodeURIComponent(manualRequest.id)}/reject`, { reason: "remote smoke manual rejection proof" });
+      const rejected = await postJson("governance.request.manualReject", `${endpoints.trust}/governance/requests/${encodeURIComponent(manualRequest.id)}/reject`, { reason: "remote smoke manual rejection proof" }, trustHeaders);
       record("governance.request.manualReject.status", rejected?.classification === "REJECTED" && rejected?.status === "rejected" && Boolean(rejected?.rejectedAt), rejected?.status === "rejected" ? "manual rejection recorded" : "manual rejection failed", rejected);
     }
 
-    const noticeRequest = await postJson("governance.request.notice", `${endpoints.rest}/governance/requests`, {
+    const noticeRequest = await postJson("governance.request.notice", `${endpoints.trust}/governance/requests`, {
       requester: "remote_smoke_reviewer",
       subject: sampleAddress,
       action: "notify user about appeal notice",
@@ -926,33 +945,33 @@ async function main() {
       scope: "single address",
       description: "create user notice and transparency notice",
       evidence: ["case:remote-smoke-notice"],
-    });
+    }, trustHeaders);
     if (noticeRequest) {
       checkGovernanceRequest("governance.request.notice.classification", noticeRequest, "REQUIRES_USER_NOTICE", "notice_required", "user-notice-required");
     }
 
     if (reviewRequest?.id) {
-      const appeal = await postJson("trust.appeal.open", `${endpoints.rest}/trust/appeals`, {
+      const appeal = await postJson("trust.appeal.open", `${endpoints.trust}/trust/appeals`, {
         requestId: reviewRequest.id,
         subject: sampleAddress,
         appellant: sampleAddress,
         reason: "remote public false positive correction proof",
         evidence: ["owner proof"],
-      });
+      }, trustHeaders);
       if (appeal) {
         checkAppeal("trust.appeal.open.status", appeal, "SUBMITTED");
         if (appeal.id) {
-          const appealRead = await getJson("trust.appeal.lookup", `${endpoints.rest}/trust/appeals/${encodeURIComponent(appeal.id)}`);
+          const appealRead = await getJson("trust.appeal.lookup", `${endpoints.trust}/trust/appeals/${encodeURIComponent(appeal.id)}`, trustHeaders);
           if (appealRead) checkReadableID("trust.appeal.lookup.id", appealRead, appeal.id);
-          const appealResolved = await postJson("trust.appeal.resolve", `${endpoints.rest}/trust/appeals/${encodeURIComponent(appeal.id)}/resolve`, {
+          const appealResolved = await postJson("trust.appeal.resolve", `${endpoints.trust}/trust/appeals/${encodeURIComponent(appeal.id)}/resolve`, {
             reviewer: "remote_smoke_reviewer",
             decision: "LABEL_REDUCED",
             resolutionReason: "remote smoke evidence reduced label confidence",
-          });
+          }, trustHeaders);
           record("trust.appeal.resolve.status", appealResolved?.status === "LABEL_REDUCED" && appealResolved?.reviewer === "remote_smoke_reviewer", appealResolved?.status === "LABEL_REDUCED" ? "appeal resolved" : "appeal resolution failed", appealResolved);
-          const correctedEvidence = await postJson("trust.appeal.correctionEvidence", `${endpoints.rest}/trust/evidence`, {
+          const correctedEvidence = await postJson("trust.appeal.correctionEvidence", `${endpoints.trust}/trust/evidence`, {
             subject: sampleAddress,
-          });
+          }, trustHeaders);
           const correctionSummary = correctedEvidence?.riskSummary;
           const correctionOk = Number(correctionSummary?.correctionLabelCount ?? 0) >= 1 &&
             correctionSummary?.assetEffect === "none_advisory_only" &&
@@ -969,7 +988,7 @@ async function main() {
       }
     }
 
-    const trackingValid = await postJson("trust.trackingReview.valid", `${endpoints.rest}/trust/tracking-reviews`, {
+    const trackingValid = await postJson("trust.trackingReview.valid", `${endpoints.trust}/trust/tracking-reviews`, {
       requester: "remote_smoke_merchant",
       subject: sampleAddress,
       purpose: "single transaction screening",
@@ -980,10 +999,10 @@ async function main() {
       minimumNecessary: true,
       confidenceBps: 7600,
       expiryHours: 24,
-    });
+    }, trustHeaders);
     if (trackingValid) checkTrackingReview("trust.trackingReview.valid.classification", trackingValid, "VALID_UNDER_YNX_CHAIN_LAW", "logged", "tracking-purpose-limited-valid");
 
-    const trackingBlocked = await postJson("trust.trackingReview.overbroad", `${endpoints.rest}/trust/tracking-reviews`, {
+    const trackingBlocked = await postJson("trust.trackingReview.overbroad", `${endpoints.trust}/trust/tracking-reviews`, {
       requester: "remote_smoke_merchant",
       subject: sampleAddress,
       purpose: "bulk profile all wallets",
@@ -992,10 +1011,10 @@ async function main() {
       description: "mass tracking everyone",
       evidence: ["case:remote-smoke"],
       minimumNecessary: false,
-    });
+    }, trustHeaders);
     if (trackingBlocked) checkTrackingReview("trust.trackingReview.overbroad.classification", trackingBlocked, "OVERBROAD", "rejected", "tracking-minimum-necessary");
 
-    const transparencyFinal = await getJson("governance.transparency.final", `${endpoints.rest}/governance/transparency`);
+    const transparencyFinal = await getJson("governance.transparency.final", `${endpoints.trust}/governance/transparency`, trustHeaders);
     if (transparencyFinal) {
       checkTransparencyReport("governance.transparency.final.report", transparencyFinal, { entryCount: 8, rejectedCount: 3, appealCount: 1, reviewCount: 1 });
     }

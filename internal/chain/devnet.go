@@ -26,6 +26,8 @@ const (
 	ProtocolResourceTreasury = "ynx_protocol_resource_treasury"
 )
 
+var transactionHashPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
+
 var requestValidityRules = []RequestValidityRule{
 	{ID: "protect-private-secrets", Name: "Protect private secrets", Classification: RequestIllegalOrAbusive, Description: "Requests for private keys, seed phrases, or mnemonics are illegal or abusive under YNX Chain Law.", RequiresUserNotice: true, Keywords: []string{"private key", "seed phrase", "mnemonic"}},
 	{ID: "no-signature-bypass", Name: "No signature bypass", Classification: RequestIllegalOrAbusive, Description: "Requests cannot bypass user signatures or custody authorization.", RequiresUserNotice: true, Keywords: []string{"bypass signature", "without signature", "skip signature"}},
@@ -1133,6 +1135,7 @@ func (d *Devnet) AddRiskLabel(subject, label string, riskWeightBps int64, source
 
 func (d *Devnet) AddRiskLabelFromInput(input RiskLabelInput) (RiskLabel, error) {
 	input.Subject = strings.TrimSpace(input.Subject)
+	input.SubjectType = strings.ToLower(strings.TrimSpace(input.SubjectType))
 	input.Address = strings.TrimSpace(input.Address)
 	input.Label = strings.TrimSpace(input.Label)
 	input.LabelType = strings.TrimSpace(input.LabelType)
@@ -1143,14 +1146,31 @@ func (d *Devnet) AddRiskLabelFromInput(input RiskLabelInput) (RiskLabel, error) 
 	input.LegalStatusUnderYNXChainLaw = strings.TrimSpace(input.LegalStatusUnderYNXChainLaw)
 	input.RejectedExternalRequestReference = strings.TrimSpace(input.RejectedExternalRequestReference)
 	input.AssetEffect = strings.TrimSpace(input.AssetEffect)
-	if input.Subject == "" && input.Address != "" {
+	if input.SubjectType == "" {
+		input.SubjectType = "address"
+	}
+	if input.SubjectType != "address" && input.SubjectType != "transaction" {
+		return RiskLabel{}, errors.New("subjectType must be address or transaction")
+	}
+	if input.Subject == "" && input.Address != "" && input.SubjectType == "address" {
 		input.Subject = input.Address
 	}
-	if input.Address == "" {
+	if input.Address == "" && input.SubjectType == "address" {
 		input.Address = input.Subject
 	}
 	if input.Subject == "" || input.Label == "" {
 		return RiskLabel{}, errors.New("subject/address and label are required")
+	}
+	if input.SubjectType == "transaction" {
+		if input.Address != "" {
+			return RiskLabel{}, errors.New("address must be empty for transaction risk labels")
+		}
+		if !transactionHashPattern.MatchString(input.Subject) {
+			return RiskLabel{}, errors.New("transaction risk label subject must be a 32-byte transaction hash")
+		}
+		if _, ok := d.Transaction(input.Subject); !ok {
+			return RiskLabel{}, errors.New("transaction risk label subject was not found on chain")
+		}
 	}
 	if input.Source == "" {
 		return RiskLabel{}, errors.New("source is required")
@@ -1203,6 +1223,7 @@ func (d *Devnet) AddRiskLabelFromInput(input RiskLabelInput) (RiskLabel, error) 
 	risk := RiskLabel{
 		ID:                               hashParts("risk-label", input.Subject, input.Label, input.Source, fmt.Sprint(now.UnixNano()))[:24],
 		Subject:                          input.Subject,
+		SubjectType:                      input.SubjectType,
 		Address:                          input.Address,
 		Label:                            input.Label,
 		LabelType:                        input.LabelType,
@@ -2739,8 +2760,24 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.riskLabels == nil {
 		d.riskLabels = map[string][]RiskLabel{}
 	}
+	for subject, labels := range d.riskLabels {
+		for i := range labels {
+			if labels[i].SubjectType == "" {
+				labels[i].SubjectType = "address"
+			}
+		}
+		d.riskLabels[subject] = labels
+	}
 	if d.evidencePackets == nil {
 		d.evidencePackets = map[string]EvidencePacket{}
+	}
+	for id, packet := range d.evidencePackets {
+		for i := range packet.Labels {
+			if packet.Labels[i].SubjectType == "" {
+				packet.Labels[i].SubjectType = "address"
+			}
+		}
+		d.evidencePackets[id] = packet
 	}
 	if d.governanceRequests == nil {
 		d.governanceRequests = map[string]GovernanceRequest{}
@@ -3897,6 +3934,9 @@ func newRiskLabelLocked(input RiskLabelInput, now time.Time) RiskLabel {
 	if input.LabelType == "" {
 		input.LabelType = "risk"
 	}
+	if input.SubjectType == "" {
+		input.SubjectType = "address"
+	}
 	if input.Severity == "" {
 		input.Severity = severityForRiskWeight(input.RiskWeightBps)
 	}
@@ -3912,6 +3952,7 @@ func newRiskLabelLocked(input RiskLabelInput, now time.Time) RiskLabel {
 	return RiskLabel{
 		ID:                               hashParts("risk-label", input.Subject, input.Label, input.Source, fmt.Sprint(now.UnixNano()))[:24],
 		Subject:                          input.Subject,
+		SubjectType:                      input.SubjectType,
 		Address:                          input.Address,
 		Label:                            input.Label,
 		LabelType:                        input.LabelType,

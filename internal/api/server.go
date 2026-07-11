@@ -16,10 +16,11 @@ import (
 )
 
 type Server struct {
-	devnet                *chain.Devnet
-	mux                   *http.ServeMux
-	aiGatewayUpstreamKey  string
-	payGatewayUpstreamKey string
+	devnet                  *chain.Devnet
+	mux                     *http.ServeMux
+	aiGatewayUpstreamKey    string
+	payGatewayUpstreamKey   string
+	trustGatewayUpstreamKey string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -27,16 +28,18 @@ func NewServer(devnet *chain.Devnet) http.Handler {
 }
 
 type ServerConfig struct {
-	AIGatewayUpstreamKey  string
-	PayGatewayUpstreamKey string
+	AIGatewayUpstreamKey    string
+	PayGatewayUpstreamKey   string
+	TrustGatewayUpstreamKey string
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
 	s := &Server{
-		devnet:                devnet,
-		mux:                   http.NewServeMux(),
-		aiGatewayUpstreamKey:  strings.TrimSpace(cfg.AIGatewayUpstreamKey),
-		payGatewayUpstreamKey: strings.TrimSpace(cfg.PayGatewayUpstreamKey),
+		devnet:                  devnet,
+		mux:                     http.NewServeMux(),
+		aiGatewayUpstreamKey:    strings.TrimSpace(cfg.AIGatewayUpstreamKey),
+		payGatewayUpstreamKey:   strings.TrimSpace(cfg.PayGatewayUpstreamKey),
+		trustGatewayUpstreamKey: strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
 	}
 	s.routes()
 	return s.withHeaders(s.mux)
@@ -64,21 +67,21 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transfer", s.handleTransfer)
 	s.mux.HandleFunc("POST /staking/stake", s.handleStake)
 	s.mux.HandleFunc("GET /resources/{address}", s.handleResources)
-	s.mux.HandleFunc("GET /trust/trace/{address}", s.handleTrustTrace)
-	s.mux.HandleFunc("POST /trust/labels", s.handleTrustLabel)
-	s.mux.HandleFunc("POST /trust/evidence", s.handleEvidencePacket)
-	s.mux.HandleFunc("GET /trust/evidence/{id}", s.handleEvidenceLookup)
-	s.mux.HandleFunc("POST /governance/requests", s.handleGovernanceRequest)
-	s.mux.HandleFunc("GET /governance/requests/{id}", s.handleGovernanceRequestLookup)
-	s.mux.HandleFunc("POST /governance/requests/{id}/review", s.handleGovernanceRequestReview)
-	s.mux.HandleFunc("POST /governance/requests/{id}/reject", s.handleGovernanceRequestReject)
-	s.mux.HandleFunc("GET /governance/request-validity-rules", s.handleRequestValidityRules)
-	s.mux.HandleFunc("GET /governance/transparency", s.handleTransparencyReport)
-	s.mux.HandleFunc("POST /trust/appeals", s.handleTrustAppeal)
-	s.mux.HandleFunc("GET /trust/appeals/{id}", s.handleTrustAppealLookup)
-	s.mux.HandleFunc("POST /trust/appeals/{id}/resolve", s.handleTrustAppealResolve)
-	s.mux.HandleFunc("POST /trust/tracking-reviews", s.handleTrackingPolicyReview)
-	s.mux.HandleFunc("GET /trust/tracking-reviews/{id}", s.handleTrackingPolicyReviewLookup)
+	s.trustRoute("GET /trust/trace/{address}", s.handleTrustTrace)
+	s.trustRoute("POST /trust/labels", s.handleTrustLabel)
+	s.trustRoute("POST /trust/evidence", s.handleEvidencePacket)
+	s.trustRoute("GET /trust/evidence/{id}", s.handleEvidenceLookup)
+	s.trustRoute("POST /governance/requests", s.handleGovernanceRequest)
+	s.trustRoute("GET /governance/requests/{id}", s.handleGovernanceRequestLookup)
+	s.trustRoute("POST /governance/requests/{id}/review", s.handleGovernanceRequestReview)
+	s.trustRoute("POST /governance/requests/{id}/reject", s.handleGovernanceRequestReject)
+	s.trustRoute("GET /governance/request-validity-rules", s.handleRequestValidityRules)
+	s.trustRoute("GET /governance/transparency", s.handleTransparencyReport)
+	s.trustRoute("POST /trust/appeals", s.handleTrustAppeal)
+	s.trustRoute("GET /trust/appeals/{id}", s.handleTrustAppealLookup)
+	s.trustRoute("POST /trust/appeals/{id}/resolve", s.handleTrustAppealResolve)
+	s.trustRoute("POST /trust/tracking-reviews", s.handleTrackingPolicyReview)
+	s.trustRoute("GET /trust/tracking-reviews/{id}", s.handleTrackingPolicyReviewLookup)
 	s.payRoute("POST /pay/intents", s.handlePayIntent)
 	s.payRoute("GET /pay/intents/{id}", s.handlePayIntentLookup)
 	s.payRoute("POST /pay/invoices", s.handleInvoice)
@@ -129,6 +132,16 @@ func (s *Server) payRoute(pattern string, handler http.HandlerFunc) {
 	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if s.payGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-Pay-Gateway-Upstream-Key"), s.payGatewayUpstreamKey) {
 			writeError(w, http.StatusUnauthorized, "Pay routes require the authenticated YNX Pay Gateway")
+			return
+		}
+		handler(w, r)
+	})
+}
+
+func (s *Server) trustRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.trustGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-Trust-Gateway-Upstream-Key"), s.trustGatewayUpstreamKey) {
+			writeError(w, http.StatusUnauthorized, "Trust and governance routes require the authenticated YNX Trust Gateway")
 			return
 		}
 		handler(w, r)

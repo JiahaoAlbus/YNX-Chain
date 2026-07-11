@@ -27,6 +27,7 @@ const binaries = [
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",
+  "bin/ynx-trustd",
 ].map((file) => fileEntry(file, "binary"));
 
 const roleEnvs = [
@@ -39,12 +40,14 @@ const roleEnvs = [
 const serviceFiles = [
   "config/ynx-ai-gatewayd.env",
   "config/ynx-payd.env",
+  "config/ynx-trustd.env",
   "systemd/ynx-chaind.service",
   "systemd/ynx-indexerd.service",
   "systemd/ynx-explorerd.service",
   "systemd/ynx-faucetd.service",
   "systemd/ynx-ai-gatewayd.service",
   "systemd/ynx-payd.service",
+  "systemd/ynx-trustd.service",
   "nginx/ynx-chain.conf",
 ].map((file) => fileEntry(file, "service-config"));
 

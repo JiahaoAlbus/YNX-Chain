@@ -51,17 +51,17 @@ echo "-- selected systemd units"
 systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -Ei "ynx|caddy|nginx|web4|ai|evm|geth|cosmos|tendermint|comet|node|pm2" || true
 
 echo "-- selected active statuses"
-for service in ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd caddy nginx; do
+for service in ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd caddy nginx; do
   status=$(systemctl is-active "$service" 2>/dev/null || true)
   enabled=$(systemctl is-enabled "$service" 2>/dev/null || true)
   echo "$service active=$status enabled=$enabled"
 done
 
 echo "-- listening ports"
-(ss -lntp 2>/dev/null || netstat -lntp 2>/dev/null || true) | grep -E "(:80|:443|:6420|:6426|:6427|:6428|:6429|:6430|:8545|:8546|:26657|:26656|:9090|:1317)\\b" || true
+(ss -lntp 2>/dev/null || netstat -lntp 2>/dev/null || true) | grep -E "(:80|:443|:6420|:6426|:6427|:6428|:6429|:6430|:6431|:8545|:8546|:26657|:26656|:9090|:1317)\\b" || true
 
 echo "-- config files present"
-for path in /etc/caddy/Caddyfile /etc/nginx/conf.d/ynx-chain.conf /etc/nginx/sites-enabled/default /etc/ynx/ynx-chaind.env /etc/ynx/ynx-faucetd.env /etc/ynx/ynx-ai-gatewayd.env /etc/ynx/ynx-payd.env; do
+for path in /etc/caddy/Caddyfile /etc/nginx/conf.d/ynx-chain.conf /etc/nginx/sites-enabled/default /etc/ynx/ynx-chaind.env /etc/ynx/ynx-faucetd.env /etc/ynx/ynx-ai-gatewayd.env /etc/ynx/ynx-payd.env /etc/ynx/ynx-trustd.env; do
   if sudo -n test -e "$path"; then
     size=$(sudo -n stat -c %s "$path" 2>/dev/null || stat -f %z "$path" 2>/dev/null || echo unknown)
     hash=$(sudo -n sha256sum "$path" 2>/dev/null | awk "{print \$1}" || shasum -a 256 "$path" 2>/dev/null | awk "{print \$1}" || echo unreadable)
