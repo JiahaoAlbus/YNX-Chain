@@ -58,6 +58,7 @@ type dashboardSnapshot struct {
 	Transactions []chain.Transaction `json:"transactions"`
 	Validators   map[string]any      `json:"validators"`
 	Resources    map[string]any      `json:"resources"`
+	Warnings     []string            `json:"warnings,omitempty"`
 }
 
 func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, error) {
@@ -73,16 +74,19 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 	if err != nil {
 		return dashboardSnapshot{}, err
 	}
+	warnings := []string{}
 	validators, err := s.service.Validators(ctx)
 	if err != nil {
-		return dashboardSnapshot{}, err
+		warnings = append(warnings, "validator state unavailable: "+err.Error())
+		validators = map[string]any{}
 	}
 	resources, err := s.service.ResourceAnalytics(ctx)
 	if err != nil {
-		return dashboardSnapshot{}, err
+		warnings = append(warnings, "resource analytics unavailable: "+err.Error())
+		resources = map[string]any{}
 	}
 	summary.Build = s.build
-	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources}, nil
+	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources, Warnings: warnings}, nil
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {

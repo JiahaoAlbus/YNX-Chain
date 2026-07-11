@@ -27,7 +27,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	devnet.ProduceBlock()
 
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	const resourceUpstreamKey = "explorer-resource-upstream-key"
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey}))
 	defer rpc.Close()
 	idx, err := indexer.New(indexer.Config{RPCURL: rpc.URL, StorePath: t.TempDir() + "/indexer-db.json"})
 	if err != nil {
@@ -40,7 +41,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	indexerHTTP := httptest.NewServer(indexerServer.Handler())
 	defer indexerHTTP.Close()
 
-	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL, PublicRPCURL: rpc.URL, PublicExplorerURL: "https://explorer.ynx.test"})
+	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL, PublicRPCURL: rpc.URL, PublicExplorerURL: "https://explorer.ynx.test", ResourceUpstreamKey: resourceUpstreamKey})
 	if err != nil {
 		t.Fatal(err)
 	}

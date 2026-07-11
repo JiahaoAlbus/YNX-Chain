@@ -300,7 +300,11 @@ const indexHTML = `<!doctype html>
         const status = validator.peerStatus || (ready ? 'active' : 'not ready');
         return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(validator.address) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">No validator records available.</td></tr>';
-      if (!resources || typeof resources !== 'object') return;
+      if (!resources || typeof resources !== 'object' || !Object.keys(resources).length) {
+        $('resourceMetrics').innerHTML = '<article class="resource-item"><small>Resource analytics temporarily unavailable</small></article>';
+        $('resourcePolicy').innerHTML = '';
+        return;
+      }
       const resourceItems = [
         ['Delegated YNXT',resources.delegatedYnxt],
         ['Rental volume',resources.rentalVolumeYnxt],

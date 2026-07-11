@@ -15,10 +15,11 @@ import (
 )
 
 type Config struct {
-	RPCURL            string
-	IndexerURL        string
-	PublicRPCURL      string
-	PublicExplorerURL string
+	RPCURL              string
+	IndexerURL          string
+	PublicRPCURL        string
+	PublicExplorerURL   string
+	ResourceUpstreamKey string
 }
 
 type Service struct {
@@ -53,9 +54,18 @@ func newClient(baseURL string) *client {
 }
 
 func (c *client) getJSON(ctx context.Context, path string, out any) error {
+	return c.getJSONWithHeaders(ctx, path, nil, out)
+}
+
+func (c *client) getJSONWithHeaders(ctx context.Context, path string, headers map[string]string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return err
+	}
+	for key, value := range headers {
+		if strings.TrimSpace(value) != "" {
+			req.Header.Set(key, value)
+		}
 	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -276,7 +286,8 @@ func (s *Service) Resources(ctx context.Context, address string) (chain.Resource
 
 func (s *Service) ResourceAnalytics(ctx context.Context) (map[string]any, error) {
 	var analytics map[string]any
-	if err := s.rpcClient.getJSON(ctx, "/resource-market/analytics", &analytics); err != nil {
+	headers := map[string]string{"X-YNX-Resource-Gateway-Upstream-Key": s.cfg.ResourceUpstreamKey}
+	if err := s.rpcClient.getJSONWithHeaders(ctx, "/resource-market/analytics", headers, &analytics); err != nil {
 		return nil, err
 	}
 	return analytics, nil

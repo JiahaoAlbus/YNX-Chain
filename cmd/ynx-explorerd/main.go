@@ -29,10 +29,11 @@ func main() {
 	flag.Parse()
 
 	service, err := explorer.New(explorer.Config{
-		RPCURL:            *rpcURL,
-		IndexerURL:        *indexerURL,
-		PublicRPCURL:      *publicRPCURL,
-		PublicExplorerURL: *publicExplorerURL,
+		RPCURL:              *rpcURL,
+		IndexerURL:          *indexerURL,
+		PublicRPCURL:        *publicRPCURL,
+		PublicExplorerURL:   *publicExplorerURL,
+		ResourceUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
 	})
 	if err != nil {
 		log.Fatal(err)
