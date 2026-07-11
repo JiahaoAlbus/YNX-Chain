@@ -623,7 +623,7 @@ sudo awk -v begin="$begin" -v end="$end" '
   printf '%s\n' "$end"
 } >> "$candidate"
 
-sudo caddy validate --config "$candidate"
+sudo caddy validate --config "$candidate" --adapter caddyfile
 sudo cp "$caddyfile" "${caddyfile}.pre-ynx-${release}"
 sudo install -m 0644 "$candidate" "$caddyfile"
 sudo systemctl reload caddy

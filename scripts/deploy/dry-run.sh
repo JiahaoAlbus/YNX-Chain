@@ -223,7 +223,7 @@ EOF
 cat > "$caddy_check_dir/bin/caddy" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "${1:-}" == "validate" && "${2:-}" == "--config" && -n "${3:-}" ]] || { echo "unexpected caddy command: $*" >&2; exit 1; }
+[[ "${1:-}" == "validate" && "${2:-}" == "--config" && -n "${3:-}" && "${4:-}" == "--adapter" && "${5:-}" == "caddyfile" ]] || { echo "unexpected caddy command: $*" >&2; exit 1; }
 grep -Fq "legacy.example" "$3" || { echo "candidate Caddyfile lost existing routes" >&2; exit 1; }
 grep -Fq "# BEGIN YNX_CHAIN_MANAGED_INGRESS" "$3" || { echo "candidate Caddyfile missing managed begin marker" >&2; exit 1; }
 grep -Fq "import " "$3" || { echo "candidate Caddyfile missing import" >&2; exit 1; }
