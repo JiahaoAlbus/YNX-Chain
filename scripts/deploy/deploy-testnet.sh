@@ -49,7 +49,7 @@ required=(
   PRIMARY_NODE_HOST PRIMARY_NODE_USER PRIMARY_NODE_SSH_KEY SG_NODE_HOST SG_NODE_USER SG_NODE_SSH_KEY
   SILICON_VALLEY_NODE_HOST SILICON_VALLEY_NODE_USER SILICON_VALLEY_NODE_SSH_KEY
   SEOUL_NODE_HOST SEOUL_NODE_USER SEOUL_NODE_SSH_KEY YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT
-  YNX_NODE_HTTP_ADDR
+  YNX_NODE_HTTP_ADDR YNX_REPLICATION_KEY YNX_REPLICATION_INTERVAL
 )
 ynx_require_env "${required[@]}"
 ynx_reject_unsafe_env_values "${required[@]}"
@@ -96,6 +96,7 @@ ynx_write_kv_env "$work/config/ynx-chaind.env" \
   PRIMARY_NODE_HOST PRIMARY_NODE_USER SG_NODE_HOST SG_NODE_USER \
   SILICON_VALLEY_NODE_HOST SILICON_VALLEY_NODE_USER SEOUL_NODE_HOST SEOUL_NODE_USER \
   YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT \
+  YNX_REPLICATION_KEY YNX_REPLICATION_INTERVAL \
   YNX_LOCAL_VALIDATOR_ADDRESS YNX_PEER_RPC_URLS YNX_PEER_SYNC_INTERVAL
 ynx_write_kv_env "$work/config/ynx-faucetd.env" FAUCET_PRIVATE_KEY
 ynx_write_kv_env "$work/config/ynx-ai-gatewayd.env" \
@@ -166,6 +167,13 @@ ynx_write_node_env() {
   printf 'YNX_LOCAL_VALIDATOR_ADDRESS=%q\n' "$validator" >> "$work/config/ynx-chaind-${role}.env"
   printf 'YNX_PEER_RPC_URLS=%q\n' "$peer_urls" >> "$work/config/ynx-chaind-${role}.env"
   printf 'YNX_PEER_SYNC_INTERVAL=%q\n' "$YNX_PEER_SYNC_INTERVAL" >> "$work/config/ynx-chaind-${role}.env"
+  if [[ "$role" == "primary" ]]; then
+    printf 'YNX_BLOCK_PRODUCTION_ENABLED=true\n' >> "$work/config/ynx-chaind-${role}.env"
+    printf 'YNX_REPLICATION_SOURCE_URL=\n' >> "$work/config/ynx-chaind-${role}.env"
+  else
+    printf 'YNX_BLOCK_PRODUCTION_ENABLED=false\n' >> "$work/config/ynx-chaind-${role}.env"
+    printf 'YNX_REPLICATION_SOURCE_URL=%q\n' "http://${PRIMARY_NODE_HOST}:6420" >> "$work/config/ynx-chaind-${role}.env"
+  fi
 }
 
 ynx_write_node_env primary ynx_validator_primary

@@ -513,6 +513,8 @@ func (d *Devnet) Status() map[string]any {
 
 func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
 	input.ValidatorAddress = strings.TrimSpace(input.ValidatorAddress)
+	input.ReplicationMode = strings.TrimSpace(input.ReplicationMode)
+	input.ReplicationSource = strings.TrimRight(strings.TrimSpace(input.ReplicationSource), "/")
 	input.PeerSyncTargets = normalizeNodePeerSyncTargets(input.PeerSyncTargets)
 	if input.PeerSyncInterval < 0 {
 		input.PeerSyncInterval = 0
@@ -2270,7 +2272,8 @@ func (d *Devnet) ProduceBlock() Block {
 	txs := append([]Transaction(nil), d.pending...)
 	d.pending = nil
 	validator := d.nextValidatorAddressLocked()
-	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(len(txs)), validator), ParentHash: parent.Hash, Time: time.Now().UTC(), Validator: validator, Transactions: txs}
+	blockTime := time.Now().UTC()
+	block := Block{Height: parent.Height + 1, Hash: hashParts("block", fmt.Sprint(parent.Height+1), parent.Hash, fmt.Sprint(blockTime.UnixNano()), fmt.Sprint(len(txs)), validator), ParentHash: parent.Hash, Time: blockTime, Validator: validator, Transactions: txs}
 	logIndex := uint64(0)
 	for i := range block.Transactions {
 		block.Transactions[i].BlockHash = block.Hash
@@ -2399,6 +2402,9 @@ func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
 		ExpectedValidatorCount:  len(d.validators),
 		PeerSyncTargetCount:     len(targets),
 		PeerSyncTargetAddresses: targetAddresses,
+		BlockProductionEnabled:  cfg.BlockProduction,
+		ReplicationMode:         strings.TrimSpace(cfg.ReplicationMode),
+		ReplicationSource:       strings.TrimSpace(cfg.ReplicationSource),
 		RuntimeEvidence:         "local-runtime-config",
 		Build:                   normalizeBuildInfo(cfg.Build),
 	}
@@ -2696,13 +2702,7 @@ func (d *Devnet) loadSnapshot() error {
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
 	}
-	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.validatorPeerSyncs, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.PeerSyncs, snapshot.Lots, snapshot.PayIntents
-	d.invoices, d.refunds, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.Webhooks, snapshot.PayEvents
-	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence
-	d.governanceRequests, d.trustAppeals, d.trackingReviews = snapshot.Governance, snapshot.Appeals, snapshot.Tracking
-	d.aiPermissions, d.aiActions, d.transparencyEntries = snapshot.AIPerms, snapshot.AIActions, snapshot.Transp
-	d.resourceDelegations, d.resourceRentals, d.resourceIncome, d.resourcePolicy, d.contracts = snapshot.Delegation, snapshot.Rentals, snapshot.Income, snapshot.Policy, snapshot.Contracts
-	d.ensureStateDefaults()
+	d.applySnapshotLocked(snapshot)
 	return nil
 }
 
@@ -2720,7 +2720,7 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Contracts: d.contracts}
+	snapshot := d.snapshotLocked()
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)

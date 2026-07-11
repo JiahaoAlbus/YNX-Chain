@@ -156,12 +156,15 @@ func TestCheckNodeRuntimeConfigDoesNotStartOrWriteState(t *testing.T) {
 	dataDir := t.TempDir() + "/must-not-be-created"
 	var out bytes.Buffer
 	err := checkNodeRuntimeConfig(nodeRuntimeConfig{
-		Network:          "testnet",
-		DataDir:          dataDir,
-		LocalValidator:   "ynx_val_primary",
-		PeerSyncRaw:      "ynx_val_sg|http://127.0.0.1:6421",
-		PeerSyncInterval: time.Second,
-		CheckConfig:      true,
+		Network:             "testnet",
+		DataDir:             dataDir,
+		LocalValidator:      "ynx_val_primary",
+		PeerSyncRaw:         "ynx_val_sg|http://127.0.0.1:6421",
+		PeerSyncInterval:    time.Second,
+		BlockProduction:     true,
+		ReplicationKey:      "0123456789abcdef0123456789abcdef",
+		ReplicationInterval: time.Second,
+		CheckConfig:         true,
 	}, &out)
 	if err != nil {
 		t.Fatalf("check config rejected valid env: %v", err)
@@ -174,6 +177,36 @@ func TestCheckNodeRuntimeConfigDoesNotStartOrWriteState(t *testing.T) {
 	}
 	if _, err := os.Stat(dataDir); !os.IsNotExist(err) {
 		t.Fatalf("check config should not create data dir, stat err=%v", err)
+	}
+}
+
+func TestValidateReplicationStartupConfig(t *testing.T) {
+	validators, err := chain.ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	network := chain.DefaultNetworkConfig("testnet")
+	key := "0123456789abcdef0123456789abcdef"
+	primary := nodeRuntimeConfig{LocalValidator: "ynx_val_primary", BlockProduction: true, ReplicationKey: key, ReplicationInterval: time.Second}
+	if err := validateReplicationStartupConfig(network, validators, primary); err != nil {
+		t.Fatalf("valid primary rejected: %v", err)
+	}
+	follower := nodeRuntimeConfig{LocalValidator: "ynx_val_sg", BlockProduction: false, ReplicationSource: "http://127.0.0.1:6420", ReplicationKey: key, ReplicationInterval: time.Second}
+	if err := validateReplicationStartupConfig(network, validators, follower); err != nil {
+		t.Fatalf("valid follower rejected: %v", err)
+	}
+	follower.BlockProduction = true
+	if err := validateReplicationStartupConfig(network, validators, follower); err == nil || !strings.Contains(err.Error(), "must disable") {
+		t.Fatalf("expected follower production rejection, got %v", err)
+	}
+	follower.BlockProduction = false
+	follower.ReplicationSource = ""
+	if err := validateReplicationStartupConfig(network, validators, follower); err == nil || !strings.Contains(err.Error(), "valid YNX_REPLICATION_SOURCE_URL") {
+		t.Fatalf("expected follower source rejection, got %v", err)
+	}
+	primary.ReplicationKey = "short"
+	if err := validateReplicationStartupConfig(network, validators, primary); err == nil || !strings.Contains(err.Error(), "at least 32") {
+		t.Fatalf("expected key length rejection, got %v", err)
 	}
 }
 

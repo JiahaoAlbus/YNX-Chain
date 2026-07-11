@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
@@ -22,6 +23,8 @@ type Server struct {
 	payGatewayUpstreamKey      string
 	trustGatewayUpstreamKey    string
 	resourceGatewayUpstreamKey string
+	replicationKey             string
+	readOnlyReplica            bool
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -33,6 +36,8 @@ type ServerConfig struct {
 	PayGatewayUpstreamKey      string
 	TrustGatewayUpstreamKey    string
 	ResourceGatewayUpstreamKey string
+	ReplicationKey             string
+	ReadOnlyReplica            bool
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
@@ -43,6 +48,8 @@ func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
 		payGatewayUpstreamKey:      strings.TrimSpace(cfg.PayGatewayUpstreamKey),
 		trustGatewayUpstreamKey:    strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
 		resourceGatewayUpstreamKey: strings.TrimSpace(cfg.ResourceGatewayUpstreamKey),
+		replicationKey:             strings.TrimSpace(cfg.ReplicationKey),
+		readOnlyReplica:            cfg.ReadOnlyReplica,
 	}
 	s.routes()
 	return s.withHeaders(s.mux)
@@ -52,6 +59,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /status", s.handleStatus)
 	s.mux.HandleFunc("GET /node/identity", s.handleNodeIdentity)
+	s.mux.HandleFunc("GET /internal/replication/snapshot", s.handleReplicationSnapshot)
 	s.mux.HandleFunc("POST /evm", s.handleEVM)
 	s.mux.HandleFunc("POST /", s.handleEVM)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlock)
@@ -172,6 +180,10 @@ func (s *Server) withHeaders(next http.Handler) http.Handler {
 		cfg := s.devnet.Config()
 		w.Header().Set("X-YNX-Network", cfg.Slug)
 		w.Header().Set("X-YNX-Truthful-Status", chain.TruthfulStatus(cfg))
+		if s.readOnlyReplica && r.Method != http.MethodGet && r.Method != http.MethodHead {
+			writeError(w, http.StatusConflict, "replicated follower is read-only; submit mutations to the authoritative producer")
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -184,6 +196,23 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleNodeIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.NodeIdentity())
+}
+func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Request) {
+	if s.replicationKey == "" || !constantTimeEqual(r.Header.Get("X-YNX-Replication-Key"), s.replicationKey) {
+		writeError(w, http.StatusUnauthorized, "replication snapshot requires node authentication")
+		return
+	}
+	payload, err := s.devnet.ReplicationSnapshotJSON()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "replication snapshot unavailable")
+		return
+	}
+	mac := hmac.New(sha256.New, []byte(s.replicationKey))
+	_, _ = mac.Write(payload)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-YNX-Replication-SHA256", hex.EncodeToString(mac.Sum(nil)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
 }
 func (s *Server) handleLatestBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.LatestBlock())

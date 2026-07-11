@@ -5,6 +5,8 @@ source ./scripts/verify/lib-local-testnet.sh
 export YNX_REST_URL="${YNX_REST_URL:-http://127.0.0.1:6460}"
 export YNX_VALIDATOR_SET="ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_secondary|secondary|127.0.0.2|bonded validator|peer-secondary"
 export YNX_BOOTSTRAP_PEERS="ynx_val_primary|peer-primary|127.0.0.1|127.0.0.1:26656|primary validator;ynx_val_secondary|peer-secondary|127.0.0.2|127.0.0.2:26656|bonded validator"
+export YNX_REPLICATION_KEY="validator-readiness-replication-key-0123456789"
+export YNX_REPLICATION_INTERVAL=250ms
 work="$(mktemp -d)"
 primary_pid=""
 secondary_pid=""
@@ -21,6 +23,8 @@ YNX_DATA_DIR="$work/secondary-state" \
 YNX_LOCAL_VALIDATOR_ADDRESS=ynx_val_secondary \
 YNX_PEER_RPC_URLS="ynx_val_primary|http://127.0.0.1:6460" \
 YNX_PEER_SYNC_INTERVAL=250ms \
+YNX_BLOCK_PRODUCTION_ENABLED=false \
+YNX_REPLICATION_SOURCE_URL=http://127.0.0.1:6460 \
 go run ./cmd/ynx-chaind >"$work/secondary.log" 2>&1 &
 secondary_pid=$!
 for _ in {1..60}; do
@@ -35,6 +39,8 @@ YNX_DATA_DIR="$work/primary-state" \
 YNX_LOCAL_VALIDATOR_ADDRESS=ynx_val_primary \
 YNX_PEER_RPC_URLS="ynx_val_secondary|http://127.0.0.1:6461" \
 YNX_PEER_SYNC_INTERVAL=250ms \
+YNX_BLOCK_PRODUCTION_ENABLED=true \
+YNX_REPLICATION_SOURCE_URL= \
 go run ./cmd/ynx-chaind >"$work/primary.log" 2>&1 &
 primary_pid=$!
 for _ in {1..60}; do
@@ -71,7 +77,19 @@ printf '%s' "$syncs" | node -e 'const data=JSON.parse(require("fs").readFileSync
 status="$(curl -fsS "$YNX_REST_URL/status")"
 printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const sync=data.validatorPeerSync || {}; if (data.readyValidatorCount < 1 || data.validatorPeerReadiness?.ready < 1 || data.validatorPeerReadiness?.total < 2 || data.validatorPeerDiscovery?.expected < 2 || data.validatorPeerDiscovery?.observed < 1 || sync.total < 1 || (sync.synced + sync.lagging) < 1) { console.error(`validator readiness/discovery/sync summary missing: ${JSON.stringify(data)}`); process.exit(1); }'
 identity="$(curl -fsS "$YNX_REST_URL/node/identity")"
-printf '%s' "$identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const freshness=data.peerSyncFreshness || {}; if (data.validatorAddress !== "ynx_val_primary" || data.validatorRole !== "primary validator" || data.expectedValidatorCount !== 2 || data.peerSyncTargetCount !== 1 || !Array.isArray(data.peerSyncTargetAddresses) || data.peerSyncTargetAddresses[0] !== "ynx_val_secondary" || freshness.targetCount !== 1 || freshness.missing !== 0 || freshness.stale !== 0 || freshness.fresh < 1 || !["synced","fresh_with_lag"].includes(freshness.status)) { console.error(`node identity/freshness missing: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const freshness=data.peerSyncFreshness || {}; if (data.validatorAddress !== "ynx_val_primary" || data.validatorRole !== "primary validator" || data.expectedValidatorCount !== 2 || data.peerSyncTargetCount !== 1 || !data.blockProductionEnabled || data.replicationMode !== "authoritative_producer" || !Array.isArray(data.peerSyncTargetAddresses) || data.peerSyncTargetAddresses[0] !== "ynx_val_secondary" || freshness.targetCount !== 1 || freshness.missing !== 0 || freshness.stale !== 0 || freshness.fresh < 1 || !["synced","fresh_with_lag"].includes(freshness.status)) { console.error(`node identity/freshness missing: ${JSON.stringify(data)}`); process.exit(1); }'
 printf '%s' "$status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const identity=data.nodeIdentity || {}; if (identity.validatorAddress !== "ynx_val_primary" || identity.peerSyncFreshness?.missing !== 0 || identity.peerSyncFreshness?.stale !== 0) { console.error(`status node identity/freshness missing: ${JSON.stringify(data)}`); process.exit(1); }'
+
+for _ in {1..40}; do
+  primary_status="$(curl -fsS http://127.0.0.1:6460/status)"
+  secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
+  if PRIMARY_STATUS="$primary_status" SECONDARY_STATUS="$secondary_status" node -e 'const p=JSON.parse(process.env.PRIMARY_STATUS); const s=JSON.parse(process.env.SECONDARY_STATUS); process.exit(p.height===s.height && p.latestBlockHash===s.latestBlockHash ? 0 : 1);' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.25
+done
+PRIMARY_STATUS="$primary_status" SECONDARY_STATUS="$secondary_status" node -e 'const p=JSON.parse(process.env.PRIMARY_STATUS); const s=JSON.parse(process.env.SECONDARY_STATUS); if (p.height!==s.height || p.latestBlockHash!==s.latestBlockHash) { console.error(`replication did not converge: primary=${p.height}/${p.latestBlockHash} secondary=${s.height}/${s.latestBlockHash}`); process.exit(1); }'
+secondary_identity="$(curl -fsS http://127.0.0.1:6461/node/identity)"
+printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460") { console.error(`follower identity missing replication mode: ${JSON.stringify(data)}`); process.exit(1); }'
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"

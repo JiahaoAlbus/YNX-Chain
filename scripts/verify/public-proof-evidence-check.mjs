@@ -24,6 +24,7 @@ const requiredChecks = [
   "rpc.validators.monikers",
   "rpc.validators.peerReadiness",
   "rpc.nodeIdentity.configured",
+  "rpc.nodeIdentity.authoritativeProducer",
   "rpc.nodeIdentity.expectedValidatorCount",
   "rpc.nodeIdentity.peerSyncTargetCount",
   "rpc.nodeIdentity.peerSyncFreshness",

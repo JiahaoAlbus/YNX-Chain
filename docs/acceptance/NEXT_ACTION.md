@@ -1,24 +1,23 @@
 # Next Action
 
-Current single action: close the two remaining external public-proof blockers without overstating validator consensus.
+Current single action: deploy and verify authenticated authoritative chain-state replication across all four validator-role nodes.
 
 Why this action:
 
 - Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
 - Public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints are live.
 - Public Chain Law and resource/pay/AI-action mutable flows now pass. Immediate Explorer transaction lookup races index polling, the OpenAI provider account returns `429 insufficient_quota`, and Web4 still serves the legacy chain Hub.
-- The nodes still produce independent local block histories. Fresh peer height observations prove connectivity, not consensus, block replication, or state convergence.
+- The deployed nodes currently have independent local histories. The new local implementation disables follower production and replicates the producer's validated state, but only remote fixed-height/hash evidence can prove the deployment converged.
 
 Required engineering and verification work:
 
-- Keep the verified bounded Explorer lookup polling in the current release.
-- Restore provider quota or supply another real compatible provider credential, then rerun authenticated AI SSE proof.
-- Implement and deploy a YNX `6423` Web4 service before moving `web4.ynxweb4.com`; do not relabel the legacy Hub or proxy chain health as Web4 proof.
-- Keep peer checks scoped to fresh reachability and height evidence. Implement a real consensus or deterministic block/state replication layer before claiming validator state convergence.
+- Deploy role-specific producer/follower env with the replication key kept outside git.
+- Verify followers reject writes and can return the producer's exact block hash at one fixed height.
+- Preserve the explicit boundary: this closes deterministic state convergence, not BFT consensus.
 
 Files to touch:
 
-- Current tracked API, Indexer, verifier, and acceptance-state files
+- Chain replication, API, node startup, deployment, verifier, and acceptance-state files
 - Existing ignored deployment env and generated `tmp/verify-testnet/` evidence
 - No committed secret files
 
@@ -39,7 +38,8 @@ Completion standard:
 
 - Strict SSH continues to succeed for all four nodes with independently approved host keys.
 - Remote evidence is fresh, current-HEAD/release-bound, and status `passed`.
-- The four-node YNX Testnet and independent services are verified through non-local HTTPS endpoints, described honestly as validator-role nodes until consensus/state convergence exists.
+- All three followers have block production disabled, report authoritative follower mode, and serve the same producer block hash at a fixed verified height.
+- Restart persistence is covered locally and the remote convergence evidence is current-HEAD/release-bound.
 - Public proof remains false until every required chain, validator, release manifest, AI, Pay, Trust, Resource, Chain Law, explorer, faucet, indexer, and mutable-flow check passes.
 
 Explicitly not doing:

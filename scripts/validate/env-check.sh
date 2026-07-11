@@ -37,6 +37,7 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
     PUBLIC_EVM_WS_URL PUBLIC_REST_URL PUBLIC_GRPC_HOST PUBLIC_FAUCET_URL PUBLIC_INDEXER_URL
     PUBLIC_EXPLORER_URL PUBLIC_AI_URL PUBLIC_PAY_URL PUBLIC_TRUST_URL PUBLIC_RESOURCE_URL PUBLIC_WEB4_URL YNX_COSMOS_CHAIN_ID YNX_EVM_CHAIN_ID
     YNX_EVM_CHAIN_ID_HEX YNX_NATIVE_COIN_NAME YNX_NATIVE_COIN_SYMBOL YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT YNX_NODE_HTTP_ADDR
+    YNX_REPLICATION_KEY YNX_REPLICATION_INTERVAL
   )
   ynx_require_env "${required[@]}"
   ynx_reject_unsafe_env_values "${required[@]}"
@@ -44,6 +45,8 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
   [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
   [[ "$CHAIN_NAME" == "YNX Testnet" || "$CHAIN_NAME" == "YNX Devnet" || "$CHAIN_NAME" == "YNX Mainnet" ]] || { echo "CHAIN_NAME must be a YNX network name"; exit 1; }
   [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
+  [[ "${#YNX_REPLICATION_KEY}" -ge 32 ]] || { echo "YNX_REPLICATION_KEY must contain at least 32 characters"; exit 1; }
+  [[ "$YNX_REPLICATION_INTERVAL" =~ ^[1-9][0-9]*(ms|s|m)$ ]] || { echo "YNX_REPLICATION_INTERVAL must be a positive duration"; exit 1; }
   echo "real deployment env validation passed for ${ENV_FILE:-auto-detected env file}"
 else
   echo "env templates present; real deployment env values must be supplied via ENV_INTAKE_FORM.md"

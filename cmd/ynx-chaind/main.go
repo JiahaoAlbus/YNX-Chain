@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -30,18 +31,26 @@ func main() {
 	localValidator := flag.String("validator-address", envOrDefault("YNX_LOCAL_VALIDATOR_ADDRESS", ""), "local validator address for peer sync polling")
 	peerSyncRaw := flag.String("peer-rpc-urls", envOrDefault("YNX_PEER_RPC_URLS", ""), "semicolon-separated peer sync targets: address|url")
 	peerSyncInterval := flag.Duration("peer-sync-interval", envDurationOrDefault("YNX_PEER_SYNC_INTERVAL", 5*time.Second), "validator peer sync polling interval")
+	blockProduction := flag.Bool("block-production", envBoolOrDefault("YNX_BLOCK_PRODUCTION_ENABLED", true), "enable authoritative block production")
+	replicationSource := flag.String("replication-source", envOrDefault("YNX_REPLICATION_SOURCE_URL", ""), "authoritative replication source URL for follower nodes")
+	replicationKey := flag.String("replication-key", envOrDefault("YNX_REPLICATION_KEY", ""), "shared key for authenticated replication snapshots")
+	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
 	flag.Parse()
 
 	cfg := nodeRuntimeConfig{
-		HTTPAddr:         *httpAddr,
-		Network:          *network,
-		BlockInterval:    *blockInterval,
-		DataDir:          *dataDir,
-		LocalValidator:   *localValidator,
-		PeerSyncRaw:      *peerSyncRaw,
-		PeerSyncInterval: *peerSyncInterval,
-		CheckConfig:      *checkConfig,
+		HTTPAddr:            *httpAddr,
+		Network:             *network,
+		BlockInterval:       *blockInterval,
+		DataDir:             *dataDir,
+		LocalValidator:      *localValidator,
+		PeerSyncRaw:         *peerSyncRaw,
+		PeerSyncInterval:    *peerSyncInterval,
+		BlockProduction:     *blockProduction,
+		ReplicationSource:   strings.TrimSpace(*replicationSource),
+		ReplicationKey:      strings.TrimSpace(*replicationKey),
+		ReplicationInterval: *replicationInterval,
+		CheckConfig:         *checkConfig,
 	}
 	if err := runNode(cfg, os.Stdout); err != nil {
 		log.Fatal(err)
@@ -49,14 +58,18 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
-	HTTPAddr         string
-	Network          string
-	BlockInterval    time.Duration
-	DataDir          string
-	LocalValidator   string
-	PeerSyncRaw      string
-	PeerSyncInterval time.Duration
-	CheckConfig      bool
+	HTTPAddr            string
+	Network             string
+	BlockInterval       time.Duration
+	DataDir             string
+	LocalValidator      string
+	PeerSyncRaw         string
+	PeerSyncInterval    time.Duration
+	BlockProduction     bool
+	ReplicationSource   string
+	ReplicationKey      string
+	ReplicationInterval time.Duration
+	CheckConfig         bool
 }
 
 type nodeStartupInputs struct {
@@ -83,6 +96,9 @@ func loadNodeStartupInputs(cfg nodeRuntimeConfig) (nodeStartupInputs, error) {
 	if err := validateNodeStartupConfig(networkConfig, validators, cfg.LocalValidator, peerSyncTargets); err != nil {
 		return nodeStartupInputs{}, fmt.Errorf("unsafe validator startup config: %w", err)
 	}
+	if err := validateReplicationStartupConfig(networkConfig, validators, cfg); err != nil {
+		return nodeStartupInputs{}, fmt.Errorf("unsafe replication startup config: %w", err)
+	}
 	return nodeStartupInputs{
 		NetworkConfig:   networkConfig,
 		Validators:      validators,
@@ -101,7 +117,7 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 		expectedValidators = len(chain.DefaultValidators())
 	}
 	build := currentBuildInfo()
-	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d buildCommit=%s release=%s buildTime=%s\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets), build.Commit, build.Release, build.BuildTime)
+	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d blockProduction=%t replicationSourceConfigured=%t buildCommit=%s release=%s buildTime=%s\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets), cfg.BlockProduction, cfg.ReplicationSource != "", build.Commit, build.Release, build.BuildTime)
 	return nil
 }
 
@@ -118,15 +134,23 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		return err
 	}
 	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
-		ValidatorAddress: cfg.LocalValidator,
-		PeerSyncTargets:  chainPeerSyncTargets(inputs.PeerSyncTargets),
-		PeerSyncInterval: cfg.PeerSyncInterval,
-		Build:            currentBuildInfo(),
+		ValidatorAddress:  cfg.LocalValidator,
+		PeerSyncTargets:   chainPeerSyncTargets(inputs.PeerSyncTargets),
+		PeerSyncInterval:  cfg.PeerSyncInterval,
+		BlockProduction:   cfg.BlockProduction,
+		ReplicationMode:   replicationMode(cfg),
+		ReplicationSource: cfg.ReplicationSource,
+		Build:             currentBuildInfo(),
 	})
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	go devnet.Start(ctx, cfg.BlockInterval)
+	if cfg.BlockProduction {
+		go devnet.Start(ctx, cfg.BlockInterval)
+	}
+	if cfg.ReplicationSource != "" {
+		startReplicationPolling(ctx, devnet, cfg.ReplicationSource, cfg.ReplicationKey, cfg.ReplicationInterval, nil)
+	}
 	if cfg.LocalValidator != "" && len(inputs.PeerSyncTargets) > 0 {
 		startPeerSyncPolling(ctx, devnet, cfg.LocalValidator, inputs.PeerSyncTargets, cfg.PeerSyncInterval, nil)
 	}
@@ -136,6 +160,8 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		PayGatewayUpstreamKey:      os.Getenv("YNX_PAY_GATEWAY_UPSTREAM_KEY"),
 		TrustGatewayUpstreamKey:    os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
 		ResourceGatewayUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
+		ReplicationKey:             cfg.ReplicationKey,
+		ReadOnlyReplica:            cfg.ReplicationSource != "",
 	}), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
@@ -147,6 +173,61 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", inputs.NetworkConfig.Name, cfg.HTTPAddr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
+	}
+	return nil
+}
+
+func replicationMode(cfg nodeRuntimeConfig) string {
+	if cfg.ReplicationSource != "" {
+		return "authoritative_follower"
+	}
+	if cfg.BlockProduction {
+		return "authoritative_producer"
+	}
+	return "disabled"
+}
+
+func validateReplicationStartupConfig(network chain.NetworkConfig, validators []chain.Validator, cfg nodeRuntimeConfig) error {
+	normalized, err := chain.NormalizeValidators(validators)
+	if err != nil {
+		return err
+	}
+	if network.Slug != "testnet" || len(normalized) <= 1 {
+		return nil
+	}
+	if len(cfg.ReplicationKey) < 32 {
+		return fmt.Errorf("YNX_REPLICATION_KEY must contain at least 32 characters")
+	}
+	var local chain.Validator
+	found := false
+	for _, validator := range normalized {
+		if validator.Address == strings.TrimSpace(cfg.LocalValidator) {
+			local, found = validator, true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("local validator is missing from the validator set")
+	}
+	isPrimary := strings.Contains(strings.ToLower(local.Role), "primary")
+	if isPrimary {
+		if !cfg.BlockProduction {
+			return fmt.Errorf("primary validator must enable YNX_BLOCK_PRODUCTION_ENABLED")
+		}
+		if cfg.ReplicationSource != "" {
+			return fmt.Errorf("primary validator must not configure YNX_REPLICATION_SOURCE_URL")
+		}
+		return nil
+	}
+	if cfg.BlockProduction {
+		return fmt.Errorf("follower validator must disable YNX_BLOCK_PRODUCTION_ENABLED")
+	}
+	parsed, err := url.Parse(cfg.ReplicationSource)
+	if err != nil || parsed.Scheme != "http" && parsed.Scheme != "https" || parsed.Host == "" {
+		return fmt.Errorf("follower validator requires a valid YNX_REPLICATION_SOURCE_URL")
+	}
+	if cfg.ReplicationInterval <= 0 {
+		return fmt.Errorf("YNX_REPLICATION_INTERVAL must be positive")
 	}
 	return nil
 }

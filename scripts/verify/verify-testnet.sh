@@ -227,6 +227,40 @@ check_node "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" "ynx-c
 check_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" "ynx-chaind" "$SILICON_VALLEY_VALIDATOR_ADDRESS"
 check_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" "ynx-chaind" "$SEOUL_VALIDATOR_ADDRESS"
 
+check_replication_convergence() {
+  local primary_status target_height target_hash
+  primary_status="$(ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "curl -fsS http://127.0.0.1:6420/status")" || return 1
+  target_height="$(printf '%s' "$primary_status" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(x.height ?? ""));')"
+  target_hash="$(printf '%s' "$primary_status" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(x.latestBlockHash ?? ""));')"
+  [[ "$target_height" =~ ^[0-9]+$ && -n "$target_hash" ]] || return 1
+
+  check_replica() {
+    local role="$1" user="$2" host="$3" key="$4" block="" identity="" observed_hash=""
+    for _ in {1..20}; do
+      block="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/blocks/$target_height" 2>/dev/null || true)"
+      observed_hash="$(printf '%s' "$block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
+      [[ "$observed_hash" == "$target_hash" ]] && break
+      sleep 1
+    done
+    [[ "$observed_hash" == "$target_hash" ]] || { echo "replicationConvergence.$role=failed target=$target_height/$target_hash observed=$observed_hash"; return 1; }
+    identity="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -fsS http://127.0.0.1:6420/node/identity")" || return 1
+    printf '%s' "$identity" | node -e 'const x=JSON.parse(require("fs").readFileSync(0,"utf8")); if (x.blockProductionEnabled !== false || x.replicationMode !== "authoritative_follower" || !String(x.replicationSource||"").includes("'"$PRIMARY_NODE_HOST"':6420")) process.exit(1);' || return 1
+    echo "replicationConvergence.$role=ok height=$target_height hash=$target_hash"
+  }
+
+  check_replica singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" || return 1
+  check_replica silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" || return 1
+  check_replica seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" || return 1
+  echo "replicationConvergence=passed height=$target_height hash=$target_hash"
+}
+
+if check_replication_convergence | tee -a "$report"; then
+  echo "OK replication-convergence" | tee -a "$report"
+else
+  echo "FAIL replication-convergence" | tee -a "$report"
+  failures=$((failures + 1))
+fi
+
 export YNX_RELEASE_MANIFEST_EVIDENCE_PATH="$out/release-manifest-evidence.json"
 if node scripts/verify/release-manifest-evidence.mjs "$out" "$EXPECTED_RELEASE_COMMIT" "$EXPECTED_RELEASE_NAME"; then
   echo "OK release-manifest-evidence" | tee -a "$report"

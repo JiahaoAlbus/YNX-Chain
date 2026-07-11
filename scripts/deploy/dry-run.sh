@@ -48,6 +48,8 @@ YNX_NATIVE_COIN_NAME=YNXT
 YNX_NATIVE_COIN_SYMBOL=YNXT
 YNX_EXPECTED_VALIDATOR_COUNT=4
 YNX_NODE_HTTP_ADDR=0.0.0.0:6420
+YNX_REPLICATION_KEY=dry-run-replication-key-0123456789abcdef
+YNX_REPLICATION_INTERVAL=2s
 GENESIS_VALIDATOR_NAME=ynx-validator-dry-run
 VALIDATOR_KEY_PATH=$tmp/validator_key
 FAUCET_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000642
@@ -118,6 +120,12 @@ release="ynx-chain-${commit}"
 release_dir="tmp/deploy/${release}"
 local_ldflags="-X main.buildCommit=${commit} -X main.buildRelease=${release} -X main.buildTime=dry-run-check"
 grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-faucetd.env" || { echo "faucet env missing FAUCET_PRIVATE_KEY"; exit 1; }
+grep -Fq "YNX_BLOCK_PRODUCTION_ENABLED=true" "$release_dir/config/ynx-chaind-primary.env" || { echo "primary env must enable block production"; exit 1; }
+grep -Fq "YNX_REPLICATION_SOURCE_URL=" "$release_dir/config/ynx-chaind-primary.env" || { echo "primary env missing empty replication source"; exit 1; }
+for role in singapore silicon-valley seoul; do
+  grep -Fq "YNX_BLOCK_PRODUCTION_ENABLED=false" "$release_dir/config/ynx-chaind-${role}.env" || { echo "$role env must disable block production"; exit 1; }
+  grep -Fq "YNX_REPLICATION_SOURCE_URL=http://127.0.0.1:6420" "$release_dir/config/ynx-chaind-${role}.env" || { echo "$role env missing authoritative replication source"; exit 1; }
+done
 grep -Fq "OPENAI_API_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "AI Gateway env missing provider key"; exit 1; }
 grep -Fq "YNX_AI_GATEWAY_API_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "AI Gateway env missing access key"; exit 1; }
 grep -Fq "YNX_AI_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "AI Gateway env missing upstream key"; exit 1; }

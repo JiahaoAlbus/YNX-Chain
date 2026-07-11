@@ -2,6 +2,9 @@ package api
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +14,45 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
+
+func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet.ProduceBlock()
+	server := httptest.NewServer(NewServerWithConfig(devnet, ServerConfig{ReplicationKey: "replication-test-key", ReadOnlyReplica: true}))
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/internal/replication/snapshot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected unauthorized snapshot response, got %d", resp.StatusCode)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, server.URL+"/internal/replication/snapshot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var raw bytes.Buffer
+	if _, err := raw.ReadFrom(resp.Body); err != nil {
+		t.Fatal(err)
+	}
+	mac := hmac.New(sha256.New, []byte("replication-test-key"))
+	_, _ = mac.Write(raw.Bytes())
+	if resp.StatusCode != http.StatusOK || resp.Header.Get("X-YNX-Replication-SHA256") != hex.EncodeToString(mac.Sum(nil)) {
+		t.Fatalf("snapshot response failed authentication: status=%d headers=%v", resp.StatusCode, resp.Header)
+	}
+
+	var blocked map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_replica_write", "amount": 1}, http.StatusConflict, &blocked)
+}
 
 func TestDevnetAPIFlow(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))

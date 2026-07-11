@@ -366,6 +366,7 @@ function checkNodeIdentity(json) {
   const targetCount = Number(json?.peerSyncTargetCount ?? 0);
   const expectedCount = Number(json?.expectedValidatorCount ?? 0);
   const configured = json?.configured === true && typeof json?.validatorAddress === "string" && json.validatorAddress.length > 0;
+  const authoritativeProducer = json?.blockProductionEnabled === true && json?.replicationMode === "authoritative_producer" && !json?.replicationSource;
   const targetCountOk = targetCount >= Math.max(1, expected.minValidators - 1);
   const expectedCountOk = expectedCount >= expected.minValidators;
   const freshnessOk = ["synced", "fresh_with_lag"].includes(freshness?.status) &&
@@ -377,6 +378,12 @@ function checkNodeIdentity(json) {
     configured,
     configured ? `validator ${json.validatorAddress}` : `missing configured validator identity: ${clip(json)}`,
     { validatorAddress: json?.validatorAddress, configured: json?.configured }
+  );
+  record(
+    "rpc.nodeIdentity.authoritativeProducer",
+    authoritativeProducer,
+    authoritativeProducer ? "public RPC is served by the configured authoritative producer" : `authoritative producer identity missing: ${clip(json)}`,
+    { blockProductionEnabled: json?.blockProductionEnabled, replicationMode: json?.replicationMode, replicationSource: json?.replicationSource }
   );
   record(
     "rpc.nodeIdentity.expectedValidatorCount",
@@ -396,7 +403,7 @@ function checkNodeIdentity(json) {
     freshnessOk ? `fresh peer height observations (${freshness.status})` : `expected fresh peer height observations, got ${clip(freshness)}`,
     freshness
   );
-  return configured && expectedCountOk && targetCountOk && freshnessOk;
+  return configured && authoritativeProducer && expectedCountOk && targetCountOk && freshnessOk;
 }
 
 function checkBuildIdentity(name, json) {

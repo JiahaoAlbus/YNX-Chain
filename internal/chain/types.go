@@ -251,11 +251,14 @@ type BuildInfo struct {
 }
 
 type NodeIdentityConfig struct {
-	ValidatorAddress string                    `json:"validatorAddress"`
-	PeerSyncTargets  []ValidatorPeerSyncTarget `json:"peerSyncTargets,omitempty"`
-	PeerSyncInterval time.Duration             `json:"-"`
-	StaleAfter       time.Duration             `json:"-"`
-	Build            BuildInfo                 `json:"build"`
+	ValidatorAddress  string                    `json:"validatorAddress"`
+	PeerSyncTargets   []ValidatorPeerSyncTarget `json:"peerSyncTargets,omitempty"`
+	PeerSyncInterval  time.Duration             `json:"-"`
+	StaleAfter        time.Duration             `json:"-"`
+	BlockProduction   bool                      `json:"blockProductionEnabled"`
+	ReplicationMode   string                    `json:"replicationMode,omitempty"`
+	ReplicationSource string                    `json:"replicationSource,omitempty"`
+	Build             BuildInfo                 `json:"build"`
 }
 
 type ValidatorPeerSyncTarget struct {
@@ -274,6 +277,9 @@ type NodeIdentity struct {
 	PeerSyncTargetCount     int                        `json:"peerSyncTargetCount"`
 	PeerSyncTargetAddresses []string                   `json:"peerSyncTargetAddresses,omitempty"`
 	PeerSyncInterval        string                     `json:"peerSyncInterval,omitempty"`
+	BlockProductionEnabled  bool                       `json:"blockProductionEnabled"`
+	ReplicationMode         string                     `json:"replicationMode,omitempty"`
+	ReplicationSource       string                     `json:"replicationSource,omitempty"`
 	RuntimeEvidence         string                     `json:"runtimeEvidence"`
 	Build                   BuildInfo                  `json:"build"`
 	PeerSyncFreshness       ValidatorPeerSyncFreshness `json:"peerSyncFreshness"`
