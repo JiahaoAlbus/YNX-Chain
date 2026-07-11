@@ -1,58 +1,52 @@
 # Next Action
 
-Current single action: implement and verify a dedicated approval-gated transition from the remotely proven parallel CometBFT candidate to the public YNX Testnet service boundary, with automatic rollback to the current authoritative network on any failed health or state check.
+Current single action: complete the native transaction surface of `ynx-bft-gatewayd` using real CometBFT RPC: signed transaction broadcast, transaction lookup, and paginated transaction history, with canonical YNX response mapping and fail-closed tests.
 
 Why this action:
 
-- Four owner-controlled host-local validator/node key pairs match the exact public manifest and remain mode restricted.
-- The encrypted four-server overlay has three reachable private peers per role.
-- Fresh authoritative state at height `16165` was packaged for `ynx_6423-1` with 14 accounts and four validators.
-- Remote candidate proof passed with four signers, owner-signed YNXT transaction convergence, 3-of-4 progress, stopped-node recovery, and clean rollback.
-- The candidate is intentionally absent after rollback; public ingress still serves authoritative replication and `publicCutoverAuthorized=false`.
+- The Gateway already maps real CometBFT status, blocks, accounts, four validators, node identity, `eth_chainId`, and `eth_blockNumber`.
+- Remote candidate verification passed, but `/health` correctly reports nine missing public-cutover capabilities.
+- Native HTTP broadcast and transaction history are the smallest core-chain gap that unlocks Faucet/Indexer/Explorer integration without pretending ecosystem state is already migrated.
+- Public cutover remains blocked and the candidate is currently rolled back.
 
 Required implementation work:
 
-- Add a separate cutover command; do not overload `deploy-consensus-candidate` or silently change public ingress.
-- Re-export a final authoritative state only inside a bounded maintenance transition, after recording height/hash/state hash and confirming follower convergence.
-- Build and verify a fresh package against the existing host-local public keys and private overlay.
-- Back up authoritative chain state, candidate state, service units, Caddy configuration, and current release identity before mutation.
-- Start and verify the four-node candidate on private/loopback ports before stopping any authoritative producer.
-- Define explicit gates for exact chain ID, genesis/AppHash, four-validator set, common height/hash, greater-than-two-thirds signatures, peer count, signed account query, RPC growth, indexer catch-up, Explorer health, and current public service health.
-- Switch only the primary local service boundary needed by RPC/indexer/explorer; keep DNS and TLS identity stable.
-- Automatically restore authoritative services and previous ingress if any gate fails within the bounded observation window.
-- Collect redacted cutover/rollback evidence with `publicCutoverAuthorized` remaining false until the actual approval variable is present.
-- Add self-tests, dry-run fixtures, Makefile targets, and documentation before any live public cutover.
+- Add an authenticated-size-bounded `POST /transactions/broadcast` accepting only canonical signed YNXT envelopes; submit through CometBFT `broadcast_tx_commit` and return committed height/hash/code.
+- Add `GET /txs/:hash` using CometBFT `tx` proof data and canonical signed envelope decoding.
+- Add bounded, paginated `GET /txs` using CometBFT `tx_search`, with deterministic newest-first ordering and no fabricated entries.
+- Preserve lowercase `0x` YNX transaction hashes while verifying the CometBFT hash refers to the exact submitted bytes.
+- Map failed CheckTx/DeliverTx results honestly and reject malformed, oversized, wrong-chain, or unsupported transactions before broadcast.
+- Add fake-Comet unit tests plus a daemon smoke check; then verify the routes against a temporary remote candidate and roll it back.
+- Mark only the two completed capability IDs as implemented; keep `publicCutoverReady=false` while any other capability remains missing.
 
 Files to touch:
 
-- New scoped cutover and rollback scripts under `scripts/deploy`, `scripts/ops`, and `scripts/verify`
-- Candidate/public service unit or proxy templates only where the transition requires them
-- Makefile targets and focused tests
-- Acceptance state files after real evidence
-- No private validator key, owner key, mnemonic, PEM content, real `.env`, or raw secret output
+- `internal/bftgateway`
+- `cmd/ynx-bft-gatewayd` only if daemon configuration changes
+- `scripts/verify/bft-gateway-check.sh` and focused fixtures
+- Acceptance state files after verified evidence
+- No validator key, owner private key, PEM content, mnemonic, real `.env`, or secret transaction material
 
 Validation commands:
 
+- `go test ./internal/bftgateway ./cmd/ynx-bft-gatewayd`
+- `make bft-gateway-check`
+- `make consensus-public-cutover-check`
 - `go test ./...`
-- `make consensus-quorum-check`
-- `make consensus-production-package-check`
-- new cutover self-test and dry-run targets
 - `make no-placeholder-check`
 - `make secret-scan`
-- `ENV_FILE=.env.deploy make env-check`
-- `make preflight`
 - `make objective-state-check`
 
 Completion standard:
 
-- Dry-run proves backup, candidate start, every pre-cutover gate, service transition, observation window, and rollback on injected failures.
-- The real command refuses mutation without an explicit approval variable, a current clean `main`, strict SSH, a verified package, live overlay, and current backups.
-- Public services cannot be labeled BFT until remote public RPC exposes the CometBFT-backed chain and cross-region evidence verifies block growth, validator signatures, indexer catch-up, Explorer data, and rollback readiness.
-- Failure at any point leaves the current authoritative public network active and verifiable.
+- A canonical owner-signed transaction broadcasts through the Gateway and commits through CometBFT.
+- Lookup and paginated history return the same transaction bytes/hash/height and reject unsupported envelopes.
+- Unit and remote candidate evidence pass without exposing the owner key.
+- Candidate and temporary Gateway are removed after proof; authoritative public services remain online.
+- Cutover gate remains blocked by the still-unimplemented EVM, Faucet, AI, Pay, Trust/Chain Law, Resource, and IDE capabilities.
 
 Explicitly not doing:
 
-- Do not relabel the current public authoritative network as BFT.
-- Do not reuse old migration height `16165` for a future public cutover; export a final fresh anchor.
-- Do not expose candidate RPC, ABCI, metrics, validator keys, or private overlay ports publicly.
-- Do not claim mainnet, exchange listing, stablecoin issuer support, wallet default support, partnerships, or full goal completion.
+- Do not route Caddy, DNS, Indexer, Explorer, Faucet, or public RPC to the Gateway yet.
+- Do not mark `publicCutoverReady=true` by editing metadata without real code and tests.
+- Do not claim public BFT, mainnet, listing, stablecoin issuer support, wallet default support, partnerships, or goal completion.

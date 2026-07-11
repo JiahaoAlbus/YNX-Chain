@@ -32,6 +32,8 @@ make consensus-abci-check
 make consensus-signed-transfer-check
 make consensus-quorum-check
 make consensus-production-package-check
+make bft-gateway-check
+make consensus-public-cutover-check
 make caddy-ingress-check
 make ops-check
-echo "preflight passed for local devnet/testnet deployment package, four-validator consensus lab, and production BFT candidate package"
+echo "preflight passed for local devnet/testnet deployment package, four-validator consensus lab, production BFT candidate package, and fail-closed BFT Gateway cutover boundary"
