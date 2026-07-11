@@ -10,6 +10,7 @@ const expectedCosmosChainId = process.env.YNX_COSMOS_CHAIN_ID || "ynx_6423-1";
 const expectedEvmChainId = Number(process.env.YNX_EVM_CHAIN_ID || 6423);
 const expectedEvmChainIdHex = String(process.env.YNX_EVM_CHAIN_ID_HEX || "0x1917").toLowerCase();
 const expectedNativeSymbol = process.env.YNX_NATIVE_COIN_SYMBOL || "YNXT";
+const bootstrapDeploy = process.env.YNX_BOOTSTRAP_DEPLOY === "1";
 
 function fail(message, details = []) {
   console.error(`deploy-readiness-gate failed: ${message}`);
@@ -75,6 +76,9 @@ const requiredSources = new Map([
   ["remoteEvidence", "remote smoke evidence"],
   ["hostKeyAudit", "host-key audit"],
 ]);
+if (bootstrapDeploy) {
+  requiredSources.set("legacyInventory", "legacy deployment inventory");
+}
 for (const [key, source] of Object.entries(sourceEvidence)) {
   if (source?.required) {
     requiredSources.set(key, key);
@@ -116,7 +120,7 @@ for (const [key, label] of requiredSources.entries()) {
     if (remoteEvidence?.proofType !== "remote-public-testnet-smoke") {
       sourceProblems.push(`${label}: proofType must be remote-public-testnet-smoke (${source.path})`);
     }
-    if (remoteEvidence?.status !== "passed") {
+    if (!bootstrapDeploy && remoteEvidence?.status !== "passed") {
       sourceProblems.push(`${label}: status must be passed, got ${remoteEvidence?.status || "missing"} (${source.path})`);
     }
     const evidenceCommit = String(remoteEvidence?.gitCommit || "");
@@ -157,6 +161,18 @@ if (sourceProblems.length) {
 const sourceBlockers = blocker.deployBlockers?.sources || [];
 const nodeBlockers = blocker.deployBlockers?.nodes || [];
 const endpointBlockers = blocker.deployBlockers?.endpoints || [];
+if (bootstrapDeploy) {
+  if (sourceBlockers.length || nodeBlockers.length) {
+    const details = [
+      ...sourceBlockers.map((item) => `${item.name || "source"} ${item.path || ""}: ${item.classification} (${item.detail || "no detail"})`),
+      ...nodeBlockers.map((item) => `${item.role || "node"} ${item.login || ""} ${item.host || ""}: ${item.classification} (${item.detail || "no detail"})`),
+    ];
+    fail("bootstrap deployment still has unsafe source or SSH evidence", details.slice(0, 24));
+  }
+  console.log(`deploy-readiness-gate passed in explicit bootstrap mode: ${blockerJsonPath}`);
+  console.log(`pre-deployment public endpoint blockers recorded: ${endpointBlockers.length}`);
+  process.exit(0);
+}
 if (!blocker.deployReady || sourceBlockers.length || nodeBlockers.length || endpointBlockers.length) {
   const details = [
     ...sourceBlockers.map((item) => `${item.name || "source"} ${item.path || ""}: ${item.classification} (${item.detail || "no detail"})`),

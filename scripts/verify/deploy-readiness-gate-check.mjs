@@ -35,12 +35,13 @@ function currentGitCommit() {
   return result.stdout.trim();
 }
 
-function runGate(name, blocker) {
+function runGate(name, blocker, env = {}) {
   const blockerPath = path.join(workDir, `${name}.json`);
   writeJson(blockerPath, blocker);
   return runNode(gateScript, {
     YNX_REMOTE_BLOCKER_JSON: blockerPath,
     YNX_DEPLOY_GATE_MAX_AGE_MINUTES: "120",
+    ...env,
   });
 }
 
@@ -52,6 +53,7 @@ function assertGateFails(name, blocker, expected) {
 
 const remoteEvidencePath = path.join(workDir, "remote-evidence.json");
 const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
+const legacyInventoryPath = path.join(workDir, "legacy-inventory.txt");
 const headCommit = currentGitCommit();
 const releaseCommit = headCommit.slice(0, 12);
 writeJson(remoteEvidencePath, {
@@ -69,6 +71,7 @@ writeJson(remoteEvidencePath, {
   },
 });
 fs.writeFileSync(hostKeyAuditPath, "host-key audit fresh\n");
+fs.writeFileSync(legacyInventoryPath, "legacy deployment inventory fresh\n");
 
 const now = new Date().toISOString();
 const stale = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
@@ -162,6 +165,46 @@ assertGateFails("endpoint-blocker", {
     endpoints: [{ name: "rest.status", endpoint: "https://rest.ynxweb4.com/status", classification: "http-error", detail: "HTTP 501" }],
   },
 }, /remote SSH or public ingress evidence is not safe for mutation/);
+
+const bootstrapReady = {
+  ...baseReady,
+  deployReady: false,
+  sourceEvidence: {
+    ...baseReady.sourceEvidence,
+    remoteEvidence: { ...baseReady.sourceEvidence.remoteEvidence, path: failedStatusRemoteEvidencePath },
+    legacyInventory: { path: legacyInventoryPath, required: false, exists: true, timestamp: now, classification: "fresh" },
+  },
+  deployBlockers: {
+    sources: [],
+    nodes: [],
+    endpoints: [{ name: "rpc.status.chain", endpoint: "https://rpc.ynxweb4.com/status", classification: "legacy-chain", detail: "old chain is still serving before bootstrap" }],
+  },
+};
+const bootstrapOk = runGate("explicit-bootstrap", bootstrapReady, { YNX_BOOTSTRAP_DEPLOY: "1" });
+assert.equal(bootstrapOk.status, 0, `explicit bootstrap should pass with fresh SSH and inventory evidence: ${bootstrapOk.stderr}`);
+assert.match(bootstrapOk.stdout, /passed in explicit bootstrap mode/);
+
+const bootstrapMissingInventory = {
+  ...bootstrapReady,
+  sourceEvidence: {
+    ...bootstrapReady.sourceEvidence,
+    legacyInventory: { ...bootstrapReady.sourceEvidence.legacyInventory, exists: false, path: path.join(workDir, "missing-legacy-inventory.txt") },
+  },
+};
+const missingInventoryResult = runGate("bootstrap-missing-inventory", bootstrapMissingInventory, { YNX_BOOTSTRAP_DEPLOY: "1" });
+assert.notEqual(missingInventoryResult.status, 0, "bootstrap must fail without a fresh legacy inventory");
+assert.match(`${missingInventoryResult.stdout}\n${missingInventoryResult.stderr}`, /legacy deployment inventory/);
+
+const bootstrapUnsafeNode = {
+  ...bootstrapReady,
+  deployBlockers: {
+    ...bootstrapReady.deployBlockers,
+    nodes: [{ role: "singapore", login: "root@43.134.23.58", host: "43.134.23.58", classification: "host-key-mismatch", detail: "strict SSH rejected" }],
+  },
+};
+const unsafeBootstrapResult = runGate("bootstrap-unsafe-node", bootstrapUnsafeNode, { YNX_BOOTSTRAP_DEPLOY: "1" });
+assert.notEqual(unsafeBootstrapResult.status, 0, "bootstrap must not bypass SSH blockers");
+assert.match(`${unsafeBootstrapResult.stdout}\n${unsafeBootstrapResult.stderr}`, /unsafe source or SSH evidence/);
 
 const semanticRemoteEvidencePath = path.join(workDir, "semantic-remote-evidence.json");
 const semanticHostKeyAuditPath = path.join(workDir, "semantic-host-key-audit.txt");
