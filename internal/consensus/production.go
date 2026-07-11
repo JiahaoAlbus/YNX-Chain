@@ -649,11 +649,15 @@ echo "candidate state snapshot created; validator private keys require separate 
 `,
 		"verify-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
-curl -fsS http://127.0.0.1:27757/status >/dev/null
-curl -fsS http://127.0.0.1:27757/net_info >/dev/null
-systemctl is-active --quiet ynx-consensus-abci-candidate.service
-systemctl is-active --quiet ynx-consensus-comet-candidate.service
-echo "candidate services are active on loopback RPC"
+for _attempt in $(seq 1 30); do
+  if systemctl is-active --quiet ynx-consensus-abci-candidate.service && systemctl is-active --quiet ynx-consensus-comet-candidate.service && curl -fsS http://127.0.0.1:27757/status >/dev/null && curl -fsS http://127.0.0.1:27757/net_info >/dev/null; then
+    echo "candidate services are active on loopback RPC"
+    exit 0
+  fi
+  sleep 2
+done
+systemctl --no-pager --full status ynx-consensus-abci-candidate.service ynx-consensus-comet-candidate.service >&2 || true
+exit 1
 `,
 		"stop-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
