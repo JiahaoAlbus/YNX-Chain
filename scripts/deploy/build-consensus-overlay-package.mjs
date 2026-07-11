@@ -55,8 +55,8 @@ trap cleanup ERR
 ip address add ${node.overlayAddress}/32 dev ynxwg0
 ip link set mtu 1420 dev ynxwg0
 wg set ynxwg0 listen-port ${node.listenPort} private-key '${keyPath}'
-${peerCommands}
 ip link set up dev ynxwg0
+${peerCommands}
 trap - ERR
 `;
     const service = `[Unit]
