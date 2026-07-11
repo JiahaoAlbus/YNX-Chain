@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Deterministic migration, ABCI 2.0, EVM-compatible secp256k1 native accounts, signed YNXT transfers, sequential proposal execution, and atomic committed-state restart recovery are locally verified. Next: map validator consensus public keys, generate four local CometBFT homes, prove quorum and one-validator stop/restart, then design the owner-controlled remote validator key ceremony and staged rollout.
+- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Commit `b1275c4` locally proves deterministic migration, ABCI 2.0, EVM-compatible secp256k1 native accounts, signed YNXT transfers, four validator identity-to-ed25519 key bindings, byte-identical genesis, quorum commits, continued progress with one validator offline, and stopped-node restart/catch-up. Next: implement the owner-controlled validator public-key intake and staged remote BFT deployment/rollback contract, then dry-run it before any public cutover.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:

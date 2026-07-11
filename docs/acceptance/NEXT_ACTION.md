@@ -1,29 +1,28 @@
 # Next Action
 
-Current single action: map validator consensus public keys and generate a four-validator local CometBFT network while preserving the remotely verified authoritative replication path as a rollback boundary.
-
-Intervening Explorer UI request is closed for this priority window: the RPC/indexer-backed Explorer now has a denser Apple-inspired network console with live height/TPS/block-time/index-lag metrics, live block and transaction feeds, transaction filtering, structured search, a detail drawer with copy actions, validator/resource views, explicit stream freshness, ten-second fallback, and a no-store HTML shell. Unit, full Go, project, smoke, desktop/mobile, SSE growth, filtering, detail interaction, overflow, console, and public endpoint checks pass. Scoped Explorer release `6cd65238c77b` is live and rollback-backed. Paginated history, contract/token analytics, charts, and richer account activity remain future real-indexer work; they are not claimed complete. Work now resumes on the consensus action below.
+Current single action: productionize the remote BFT deployment contract around the locally proven four-validator CometBFT quorum, without changing the current public authoritative network until a parallel rehearsal and rollback gate pass.
 
 Why this action:
 
-- Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
-- Public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints are live.
-- Public Chain Law and resource/pay/AI-action mutable flows now pass. Immediate Explorer transaction lookup races index polling, the OpenAI provider account returns `429 insufficient_quota`, and Web4 still serves the legacy chain Hub.
-- The four deployed nodes now share a remotely verified authoritative history, but one producer remains a single authority. The final multi-validator L1 objective requires validator voting, quorum commits, Byzantine fault handling, and deterministic application-state execution.
+- Commit `b1275c4` binds four active YNX validator identities to exact CometBFT ed25519 keys/addresses and generates four isolated homes, a byte-identical genesis, separate ABCI state, and full peer wiring.
+- `make consensus-quorum-check` proves common quorum commits, participation by all four genesis validators, a real signed YNXT RPC broadcast, deterministic balances/nonces, continued progress with one validator offline, and stopped-node restart/catch-up.
+- The generated validator and signer keys are disposable local fixtures only. They are mode restricted, absent from Git/logs/manifests, and must never be reused for remote testnet or custody.
+- The public network still uses remotely verified single-producer authoritative replication. It is a rollback boundary, not BFT consensus.
 
-Required engineering and verification work:
+Required implementation work:
 
-- Completed first slice: define and verify the deterministic consensus/application migration boundary against existing persisted YNXT state with `make consensus-migration-check`.
-- Completed adapter slice: pin CometBFT `v0.38.23`, connect the YNXT migration state to ABCI 2.0, and verify direct plus Unix socket lifecycle behavior with `make consensus-abci-check`.
-- Completed signed execution slice at `b9df248`: add EVM-compatible secp256k1 native accounts, canonical signed transfer envelopes, chain replay/tamper and nonce enforcement, deterministic transfer/fee/bandwidth/traceable-lot execution, proposal sequencing, transfer events, deterministic AppHash, atomic mode-`0600` state persistence, restart recovery, state-tamper rejection, and failed-commit no-advance behavior. `go test -race ./internal/consensus`, `make consensus-abci-check`, and `make consensus-signed-transfer-check` pass, including a real Unix socket signed transfer.
-- Next implementation slice: map each configured validator identity to a CometBFT consensus public key, generate four ephemeral local homes and separate ABCI state paths outside Git, connect peers/genesis/proxy applications, and prove quorum commits plus one-validator stop/restart.
-- Add a migration and rollback contract that preserves current YNXT state and the deployed public API during staged validator rollout.
+- Define a public-key-only production validator manifest that binds each approved YNX validator identity to its CometBFT consensus public key/address. Reject missing, duplicate, inactive, malformed, or mismatched entries. Never ingest, copy, print, or commit private keys.
+- Add production CometBFT configuration and systemd units for four independent validator/ABCI processes, persistent data paths, private P2P/RPC/ABCI listeners, firewall expectations, restart policy, logs, and health checks.
+- Add a staged migration package that exports and verifies the authoritative YNXT state anchor, builds one common production genesis, installs the candidate on parallel non-public ports, and leaves current public services untouched.
+- Add backup and rollback commands that restore the authoritative services and state if genesis, AppHash, validator set, quorum, catch-up, signed transaction, or ingress checks fail.
+- Add a dry-run verifier for package checksums, service/env identity, no-secret output, common genesis/AppHash, four validator addresses, peer coverage, quorum threshold, stop/restart recovery, and rollback readiness.
+- Update API/deployment documentation only after the real production package and checks exist.
 
 Files to touch:
 
-- Consensus validator-key mapping, local CometBFT harness, genesis/home generation, verifier, and acceptance-state files
-- Existing ignored deployment env and generated `tmp/verify-testnet/` evidence
-- No committed secret files
+- Consensus production manifest/config validation, deployment and systemd packaging, migration/rollback scripts, local dry-run verifier, and the four acceptance-state files
+- Ignored operator input/evidence paths only for public keys and generated non-secret reports
+- No private key, mnemonic, PEM content, real `.env`, or generated validator home in Git
 
 Validation commands:
 
@@ -31,7 +30,7 @@ Validation commands:
 - `make consensus-migration-check`
 - `make consensus-abci-check`
 - `make consensus-signed-transfer-check`
-- Add and run `make consensus-quorum-check`
+- `make consensus-quorum-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -39,21 +38,17 @@ Validation commands:
 - `make preflight`
 - `make objective-state-check`
 - `ENV_FILE=.env.deploy make deploy-dry-run`
-- `ENV_FILE=.env.deploy make verify-testnet`
-- `make public-proof`
 
 Completion standard:
 
-- Strict SSH continues to succeed for all four nodes with independently approved host keys.
-- Remote evidence is fresh, current-HEAD/release-bound, and status `passed`.
-- A local multi-validator BFT network commits the same blocks through quorum voting and survives one validator stop/restart.
-- Every local validator migration identity is bound to the exact public key/address in the generated CometBFT genesis, with private key files remaining ephemeral, mode restricted, Git-ignored, and absent from logs.
-- Existing YNXT application state has a deterministic migration/rollback path and current API tests remain green.
-- Public proof remains false until every required chain, validator, release manifest, AI, Pay, Trust, Resource, Chain Law, explorer, faucet, indexer, and mutable-flow check passes.
+- The owner performs the validator key ceremony outside Git and chat, retains every private key, and supplies only verified public keys/addresses to the deployment manifest.
+- All four server identities, SSH host keys, private network listeners, firewall rules, persistent paths, backups, and rollback commands are independently verified.
+- A parallel candidate network reproduces the approved migration AppHash, commits with four approved validators, survives one validator stop/restart, and executes an owner-approved signed test transaction.
+- Public ingress changes occur only after the candidate and rollback gates pass. Fresh remote evidence must then prove block growth, validator signatures, common hashes, catch-up, service build identity, and all required public APIs.
 
 Explicitly not doing:
 
-- Do not place secrets in git.
-- Do not reuse ephemeral local validator keys for remote testnet or owner custody.
-- Do not expand bounded EVM opcodes, Counter samples, Hardhat artifacts, or IDE execution during this priority window.
-- Do not claim mainnet, listing, issuer support, wallet default support, partnerships, consensus completion, or complete public proof before the corresponding evidence passes.
+- Do not reuse ephemeral lab keys or expose owner/validator secrets.
+- Do not label the current remote producer/follower deployment as BFT consensus.
+- Do not expand bounded EVM opcodes, Counter samples, Hardhat artifacts, IDE execution, or Explorer feature breadth during this priority window.
+- Do not claim remote BFT, mainnet launch, exchange listing, stablecoin issuer support, wallet default support, partnerships, or complete public proof before corresponding live evidence exists.
