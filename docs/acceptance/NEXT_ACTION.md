@@ -2,7 +2,7 @@
 
 Current single action: begin the real BFT consensus migration while preserving the remotely verified authoritative replication path as a rollback boundary.
 
-Intervening Explorer UI request is closed: the RPC/indexer-backed Explorer has a responsive Apple-inspired operational UI plus a two-second SSE dashboard stream, validator view, and resource-economy view. Unit, smoke, desktop/mobile, SSE growth, segmented interaction, overflow, console, and public endpoint checks pass. Scoped service hotfix `8a48bb3ed69e` is live and rollback-backed; full chain release convergence remains separate. Work now resumes on the consensus action below.
+Intervening Explorer UI request is closed for this priority window: the RPC/indexer-backed Explorer now has a denser Apple-inspired network console with live height/TPS/block-time/index-lag metrics, live block and transaction feeds, transaction filtering, structured search, a detail drawer with copy actions, validator/resource views, explicit stream freshness, ten-second fallback, and a no-store HTML shell. Unit, full Go, project, smoke, desktop/mobile, SSE growth, filtering, detail interaction, overflow, console, and public endpoint checks pass. Scoped Explorer release `6cd65238c77b` is live and rollback-backed. Paginated history, contract/token analytics, charts, and richer account activity remain future real-indexer work; they are not claimed complete. Work now resumes on the consensus action below.
 
 Why this action:
 
