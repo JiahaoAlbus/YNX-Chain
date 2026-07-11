@@ -22,6 +22,7 @@ SEOUL_NODE_SSH_KEY="${SEOUL_NODE_SSH_KEY:-${PRIMARY_NODE_SSH_KEY:-}}"
 YNX_VALIDATOR_SET="${YNX_VALIDATOR_SET:-ynx_validator_primary|ynx-primary|${PRIMARY_NODE_HOST}|primary validator|primary-${PRIMARY_NODE_HOST};ynx_validator_singapore|ynx-singapore|${SG_NODE_HOST}|bonded validator / recovery node|sg-${SG_NODE_HOST};ynx_validator_silicon_valley|ynx-silicon-valley|${SILICON_VALLEY_NODE_HOST}|bonded validator|sv-${SILICON_VALLEY_NODE_HOST};ynx_validator_seoul|ynx-seoul|${SEOUL_NODE_HOST}|bonded validator / read replica candidate|seoul-${SEOUL_NODE_HOST}}"
 YNX_BOOTSTRAP_PEERS="${YNX_BOOTSTRAP_PEERS:-ynx_validator_primary|primary-${PRIMARY_NODE_HOST}|${PRIMARY_NODE_HOST}|${PRIMARY_NODE_HOST}:26656|primary validator;ynx_validator_singapore|sg-${SG_NODE_HOST}|${SG_NODE_HOST}|${SG_NODE_HOST}:26656|bonded validator / recovery node;ynx_validator_silicon_valley|sv-${SILICON_VALLEY_NODE_HOST}|${SILICON_VALLEY_NODE_HOST}|${SILICON_VALLEY_NODE_HOST}:26656|bonded validator;ynx_validator_seoul|seoul-${SEOUL_NODE_HOST}|${SEOUL_NODE_HOST}|${SEOUL_NODE_HOST}:26656|bonded validator / read replica candidate}"
 YNX_EXPECTED_VALIDATOR_COUNT="${YNX_EXPECTED_VALIDATOR_COUNT:-4}"
+YNX_NODE_HTTP_ADDR="${YNX_NODE_HTTP_ADDR:-127.0.0.1:6420}"
 YNX_LOCAL_VALIDATOR_ADDRESS="${YNX_LOCAL_VALIDATOR_ADDRESS:-ynx_validator_primary}"
 YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE_HOST}:6420;ynx_validator_silicon_valley|http://${SILICON_VALLEY_NODE_HOST}:6420;ynx_validator_seoul|http://${SEOUL_NODE_HOST}:6420}"
 YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
@@ -48,6 +49,7 @@ required=(
   PRIMARY_NODE_HOST PRIMARY_NODE_USER PRIMARY_NODE_SSH_KEY SG_NODE_HOST SG_NODE_USER SG_NODE_SSH_KEY
   SILICON_VALLEY_NODE_HOST SILICON_VALLEY_NODE_USER SILICON_VALLEY_NODE_SSH_KEY
   SEOUL_NODE_HOST SEOUL_NODE_USER SEOUL_NODE_SSH_KEY YNX_VALIDATOR_SET YNX_BOOTSTRAP_PEERS YNX_EXPECTED_VALIDATOR_COUNT
+  YNX_NODE_HTTP_ADDR
 )
 ynx_require_env "${required[@]}"
 ynx_reject_unsafe_env_values "${required[@]}"
@@ -110,7 +112,7 @@ ynx_write_kv_env "$work/config/ynx-resourced.env" \
   YNX_RESOURCE_GATEWAY_AUDIT_LOG YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
-YNX_HTTP_ADDR=127.0.0.1:6420
+YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
 YNX_DATA_DIR=/var/lib/ynx-chain/testnet
 YNX_BLOCK_INTERVAL=2s
 EOF
