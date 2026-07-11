@@ -26,8 +26,8 @@ Legacy protection:
 
 Current highest priority:
 
-- Move from local governance/trust completion to remote public proof readiness: safely clear Singapore and Silicon Valley host-key mismatch evidence through out-of-band verified fingerprints plus ignored local approval check, keep deployment mutation blocked until SSH/ingress evidence is safe, and ensure `remote-smoke-test`, `verify-testnet`, and `public-proof` prove release identity, manifest checksums, Anti-Illegal Request, Request Validity, Appeal, Transparency, and anti-unreasonable tracking against real public endpoints after deployment.
-- Do not wait for every module to be locally complete before deploying. Deploy the core remote testnet first, then deploy and verify completed service modules incrementally on the real server environment.
+- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Deterministic migration, ABCI 2.0, EVM-compatible secp256k1 native accounts, signed YNXT transfers, sequential proposal execution, and atomic committed-state restart recovery are locally verified. Next: map validator consensus public keys, generate four local CometBFT homes, prove quorum and one-validator stop/restart, then design the owner-controlled remote validator key ceremony and staged rollout.
+- Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:
 
