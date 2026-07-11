@@ -1,18 +1,19 @@
 # Next Action
 
-Current single action: deploy the current verification-contract fix, rerun current-HEAD remote verification, and close the remaining public mutable-flow evidence without overstating validator consensus.
+Current single action: deploy the bounded Explorer index-lag verifier fix, then close the two remaining external public-proof blockers without overstating validator consensus.
 
 Why this action:
 
 - Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
 - Public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints are live.
-- The last remote run exposed two concrete contract defects fixed in the current worktree: missing `expectedValidatorCount` on `/validators` and missing Indexer `/ynx/overview`.
+- Public Chain Law and resource/pay/AI-action mutable flows now pass. Immediate Explorer transaction lookup races index polling, the OpenAI provider account returns `429 insufficient_quota`, and Web4 still serves the legacy chain Hub.
 - The nodes still produce independent local block histories. Fresh peer height observations prove connectivity, not consensus, block replication, or state convergence.
 
 Required engineering and verification work:
 
-- Commit and deploy the `/validators` metadata and Indexer overview fixes with the existing ignored deployment env and approved host-key evidence.
-- Run current-HEAD `make verify-testnet`; require public Chain Law request/review/reject, appeal, correction, transparency, AI, Pay, Trust, Resource, faucet, IDE, explorer, and indexer checks to execute rather than be skipped.
+- Commit and deploy the bounded Explorer lookup polling fix, then rerun current-HEAD verification.
+- Restore provider quota or supply another real compatible provider credential, then rerun authenticated AI SSE proof.
+- Implement and deploy a YNX `6423` Web4 service before moving `web4.ynxweb4.com`; do not relabel the legacy Hub or proxy chain health as Web4 proof.
 - Keep peer checks scoped to fresh reachability and height evidence. Implement a real consensus or deterministic block/state replication layer before claiming validator state convergence.
 
 Files to touch:

@@ -132,6 +132,20 @@ async function getJson(name, url, headers = {}) {
   return res.json;
 }
 
+async function getJsonEventually(name, url, headers = {}, attempts = 8, delayMs = 1000) {
+  let res = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    res = await request(name, url, { headers });
+    if (res.ok && res.json) {
+      record(name, true, `HTTP ${res.status} after ${attempt} attempt(s)`, evidence.observed[name]);
+      return res.json;
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  record(name, false, res?.error || (res?.ok ? "response is not JSON" : "request failed"), evidence.observed[name]);
+  return null;
+}
+
 async function postJson(name, url, body, headers = {}) {
   const res = await request(name, url, { method: "POST", body, headers });
   if (!res.ok) {
@@ -773,7 +787,7 @@ async function main() {
 
     const txHash = txHashOf(faucetTx);
     if (txHash) {
-      const explorerTx = await getJson("explorer.faucetTx", `${endpoints.explorer}/api/txs/${txHash}`);
+      const explorerTx = await getJsonEventually("explorer.faucetTx", `${endpoints.explorer}/api/txs/${txHash}`);
       if (explorerTx) checkTxHash("explorer.faucetTx.hash", explorerTx?.transaction ?? explorerTx);
     }
 
