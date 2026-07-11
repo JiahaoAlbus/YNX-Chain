@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -17,6 +18,16 @@ type Server struct {
 	service *Service
 	mux     *http.ServeMux
 	build   buildinfo.Info
+
+	streamMu      sync.Mutex
+	streamClients map[chan streamEvent]struct{}
+	streamRunning bool
+}
+
+type streamEvent struct {
+	id      string
+	event   string
+	payload []byte
 }
 
 func NewServer(service *Service) *Server {
@@ -24,7 +35,12 @@ func NewServer(service *Service) *Server {
 }
 
 func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
-	s := &Server{service: service, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
+	s := &Server{
+		service:       service,
+		mux:           http.NewServeMux(),
+		build:         buildinfo.Normalize(build),
+		streamClients: make(map[chan streamEvent]struct{}),
+	}
 	s.routes()
 	return s
 }
@@ -62,27 +78,38 @@ type dashboardSnapshot struct {
 }
 
 func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, error) {
-	summary, err := s.service.Summary(ctx)
-	if err != nil {
-		return dashboardSnapshot{}, err
+	var (
+		summary                             Summary
+		blocks                              []chain.Block
+		transactions                        []chain.Transaction
+		validators, resources               map[string]any
+		summaryErr, blocksErr, txErr        error
+		validatorsErr, resourceAnalyticsErr error
+		wg                                  sync.WaitGroup
+	)
+	wg.Add(5)
+	go func() { defer wg.Done(); summary, summaryErr = s.service.Summary(ctx) }()
+	go func() { defer wg.Done(); blocks, blocksErr = s.service.LatestBlocks(ctx, 12) }()
+	go func() { defer wg.Done(); transactions, txErr = s.service.Transactions(ctx, 12) }()
+	go func() { defer wg.Done(); validators, validatorsErr = s.service.Validators(ctx) }()
+	go func() { defer wg.Done(); resources, resourceAnalyticsErr = s.service.ResourceAnalytics(ctx) }()
+	wg.Wait()
+	if summaryErr != nil {
+		return dashboardSnapshot{}, summaryErr
 	}
-	blocks, err := s.service.LatestBlocks(ctx, 12)
-	if err != nil {
-		return dashboardSnapshot{}, err
+	if blocksErr != nil {
+		return dashboardSnapshot{}, blocksErr
 	}
-	transactions, err := s.service.Transactions(ctx, 12)
-	if err != nil {
-		return dashboardSnapshot{}, err
+	if txErr != nil {
+		return dashboardSnapshot{}, txErr
 	}
 	warnings := []string{}
-	validators, err := s.service.Validators(ctx)
-	if err != nil {
-		warnings = append(warnings, "validator state unavailable: "+err.Error())
+	if validatorsErr != nil {
+		warnings = append(warnings, "validator state unavailable: "+validatorsErr.Error())
 		validators = map[string]any{}
 	}
-	resources, err := s.service.ResourceAnalytics(ctx)
-	if err != nil {
-		warnings = append(warnings, "resource analytics unavailable: "+err.Error())
+	if resourceAnalyticsErr != nil {
+		warnings = append(warnings, "resource analytics unavailable: "+resourceAnalyticsErr.Error())
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
@@ -102,38 +129,86 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprint(w, "retry: 2000\n\n")
 	flusher.Flush()
 
-	send := func() bool {
-		snapshot, err := s.dashboardSnapshot(r.Context())
-		if err != nil {
-			payload, _ := json.Marshal(map[string]string{"error": err.Error()})
-			_, _ = fmt.Fprintf(w, "event: upstream-error\ndata: %s\n\n", payload)
-			flusher.Flush()
-			return true
-		}
-		payload, err := json.Marshal(snapshot)
-		if err != nil {
-			return false
-		}
-		_, _ = fmt.Fprintf(w, "id: %d-%d-%d\nevent: dashboard\ndata: %s\n\n", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount, payload)
-		flusher.Flush()
-		return true
-	}
-
-	if !send() {
-		return
-	}
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
+	client := s.subscribeStream()
+	defer s.unsubscribeStream(client)
+	heartbeat := time.NewTicker(15 * time.Second)
+	defer heartbeat.Stop()
 	for {
 		select {
 		case <-r.Context().Done():
 			return
-		case <-ticker.C:
-			if !send() {
+		case event := <-client:
+			if event.id != "" {
+				_, _ = fmt.Fprintf(w, "id: %s\n", event.id)
+			}
+			_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event.event, event.payload)
+			flusher.Flush()
+		case <-heartbeat.C:
+			if _, err := fmt.Fprint(w, ": keep-alive\n\n"); err != nil {
 				return
 			}
+			flusher.Flush()
 		}
 	}
+}
+
+func (s *Server) subscribeStream() chan streamEvent {
+	client := make(chan streamEvent, 1)
+	s.streamMu.Lock()
+	s.streamClients[client] = struct{}{}
+	if !s.streamRunning {
+		s.streamRunning = true
+		go s.runStream()
+	}
+	s.streamMu.Unlock()
+	return client
+}
+
+func (s *Server) unsubscribeStream(client chan streamEvent) {
+	s.streamMu.Lock()
+	delete(s.streamClients, client)
+	s.streamMu.Unlock()
+}
+
+func (s *Server) runStream() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		snapshot, err := s.dashboardSnapshot(context.Background())
+		event := streamEvent{event: "dashboard"}
+		if err != nil {
+			event.event = "upstream-error"
+			event.payload, _ = json.Marshal(map[string]string{"error": err.Error()})
+		} else {
+			event.id = fmt.Sprintf("%d-%d-%d", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount)
+			event.payload, err = json.Marshal(snapshot)
+			if err != nil {
+				event.event = "upstream-error"
+				event.payload, _ = json.Marshal(map[string]string{"error": "dashboard snapshot encoding failed"})
+			}
+		}
+
+		if !s.broadcastStream(event) {
+			return
+		}
+		<-ticker.C
+	}
+}
+
+func (s *Server) broadcastStream(event streamEvent) bool {
+	s.streamMu.Lock()
+	defer s.streamMu.Unlock()
+	if len(s.streamClients) == 0 {
+		s.streamRunning = false
+		return false
+	}
+	for client := range s.streamClients {
+		select {
+		case client <- event:
+		default:
+		}
+	}
+	return true
 }
 
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {

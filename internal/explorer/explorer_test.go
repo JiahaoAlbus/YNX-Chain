@@ -83,6 +83,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"id=\"txFilter\"",
 		"id=\"detailBackdrop\"",
 		"Resource economy",
+		"Live finalized block stream",
+		"id=\"blockTrack\"",
 		"No event for ",
 	} {
 		if !strings.Contains(html, marker) {

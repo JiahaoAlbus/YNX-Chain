@@ -52,6 +52,17 @@ const indexHTML = `<!doctype html>
     .status-bar.warn .state { background:var(--amber-soft); color:var(--amber); }
     .status-bar .refresh { margin-left:auto; border:0; background:transparent; color:var(--blue); padding:7px 0; }
 
+    .block-ribbon { display:grid; grid-template-columns:120px minmax(0,1fr); min-height:74px; margin:-8px 0 20px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); overflow:hidden; }
+    .ribbon-label { display:flex; flex-direction:column; justify-content:center; padding:14px 16px; border-right:1px solid var(--line-soft); color:var(--muted); font-size:11px; }
+    .ribbon-label strong { margin-top:5px; color:var(--ink); font-size:13px; }
+    .block-track { display:flex; align-items:stretch; min-width:0; overflow:hidden; }
+    .block-chip { flex:1 0 118px; min-width:0; padding:14px 15px; border:0; border-right:1px solid var(--line-soft); color:var(--ink); background:var(--surface); text-align:left; transition:background .18s,transform .35s cubic-bezier(.2,.8,.2,1); }
+    .block-chip:hover { background:#f7faff; }
+    .block-chip.new { animation:block-arrival .62s cubic-bezier(.2,.8,.2,1) both; background:var(--blue-soft); }
+    .block-chip strong,.block-chip span { display:block; }
+    .block-chip strong { font-size:13px; }
+    .block-chip span { margin-top:6px; color:var(--muted); font-size:11px; }
+
     .metrics { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; margin-bottom:20px; }
     .metric { min-height:116px; padding:17px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:0 1px 2px rgba(0,0,0,.02); transition:border-color .2s,box-shadow .2s,transform .2s; }
     .metric.changed { border-color:#9dccff; box-shadow:0 0 0 3px rgba(0,113,227,.08); transform:translateY(-1px); }
@@ -174,12 +185,14 @@ const indexHTML = `<!doctype html>
     .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); animation:shimmer 1.4s infinite; }
     @keyframes shimmer { 100% { transform:translateX(100%); } }
     @keyframes row-arrival { from { opacity:0; transform:translateY(-8px); background:var(--blue-soft); } to { opacity:1; transform:translateY(0); background:transparent; } }
+    @keyframes block-arrival { from { opacity:0; transform:translateX(-18px); } to { opacity:1; transform:translateX(0); } }
     @keyframes live-pulse { 0% { box-shadow:0 0 0 0 rgba(36,138,61,.35); } 70% { box-shadow:0 0 0 7px rgba(36,138,61,0); } 100% { box-shadow:0 0 0 0 rgba(36,138,61,0); } }
 
     @media (max-width:900px) {
       .metrics { grid-template-columns:repeat(3,minmax(0,1fr)); }
       .overview { grid-template-columns:1fr; }
       .live-board { grid-template-columns:1fr; }
+      .block-ribbon { grid-template-columns:104px minmax(0,1fr); }
       .nav-links a { display:none; }
       .hero { padding-top:48px; }
     }
@@ -194,6 +207,11 @@ const indexHTML = `<!doctype html>
       .search input { height:50px; padding-right:102px; font-size:14px; }
       .search button { height:38px; padding:0 15px; }
       main { padding-top:22px; }
+      .status-bar { flex-wrap:wrap; }
+      .status-bar .refresh { margin-left:0; }
+      .block-ribbon { grid-template-columns:88px minmax(0,1fr); }
+      .ribbon-label { padding:12px; }
+      .block-chip { flex-basis:108px; padding:13px 12px; }
       .metrics { grid-template-columns:1fr 1fr; gap:8px; }
       .metric { min-height:105px; padding:15px; }
       .metric-value { font-size:23px; }
@@ -246,6 +264,11 @@ const indexHTML = `<!doctype html>
   <main>
     <div class="shell">
       <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button">Refresh</button></div>
+
+      <section class="block-ribbon" aria-label="Live finalized block stream">
+        <div class="ribbon-label"><span>FINALITY</span><strong id="finalityState">Connecting</strong></div>
+        <div class="block-track" id="blockTrack"><div class="empty">Waiting for finalized blocks...</div></div>
+      </section>
 
       <section class="metrics" aria-label="Network metrics">
         <article class="metric"><div class="metric-label">Latest block</div><div class="metric-value skeleton" id="rpcHeight">0000</div><div class="metric-foot" id="blockAge">Waiting for block data</div></article>
@@ -376,6 +399,14 @@ const indexHTML = `<!doctype html>
         return '<div class="bar-wrap" title="Block ' + escapeHTML(block.height) + ': ' + counts[index] + ' transactions"><div class="bar" style="height:' + height + '%"></div><span class="bar-label">' + escapeHTML(compact(block.height,4,2)) + '</span></div>';
       }).join('') || '<div class="empty">No indexed block activity yet.</div>';
     }
+    function renderBlockTrack(blocks,incomingHeight) {
+      $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
+      $('blockTrack').innerHTML = blocks.slice(0,8).map((block,index) => {
+        const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
+        const txs = (block.transactions || []).length;
+        return '<button class="block-chip' + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + txs + (txs === 1 ? ' tx' : ' txs') + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
+      }).join('') || '<div class="empty">No finalized blocks yet.</div>';
+    }
     function renderIntelligence(validatorData, resources) {
       const validators = Array.isArray(validatorData) ? validatorData : (validatorData?.validators || []);
       $('validatorsBody').innerHTML = validators.length ? validators.map(validator => {
@@ -424,6 +455,7 @@ const indexHTML = `<!doctype html>
       document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
       $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,6).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
       renderTransactions();
+      renderBlockTrack(blocks,incomingHeight);
       renderActivity(blocks);
       renderIntelligence(validatorData, resources);
       bindQueries();
@@ -443,7 +475,13 @@ const indexHTML = `<!doctype html>
     }
     async function load() {
       $('refreshButton').disabled = true;
-      const [summary, blockData, txData, validators, resources] = await Promise.all([get('/api/summary'),get('/api/blocks/latest?limit=12'),get('/api/txs?limit=12'),get('/api/validators'),get('/api/resource-market/analytics')]);
+      const [summary, blockData, txData, validators, resources] = await Promise.all([
+        get('/api/summary'),
+        get('/api/blocks/latest?limit=12'),
+        get('/api/txs?limit=12'),
+        get('/api/validators').catch(() => ({})),
+        get('/api/resource-market/analytics').catch(() => ({}))
+      ]);
       renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
     }
     function startFallbackPolling() {
