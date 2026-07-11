@@ -43,9 +43,9 @@ deploy_overlay_role() {
   local archive_hash remote_archive="/tmp/ynx-consensus-overlay-${commit}-${role}.tar.gz"
   archive_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
   if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
-    printf 'DRY RUN [%s] scp -i %q %q %q:%q\n' "$role" "$key" "$archive" "$user@$host" "$remote_archive"
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   else
-    scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$archive" "$user@$host:$remote_archive"
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c - && sudo rm -rf '$remote_root' && sudo install -d -m 0700 '$remote_root' && sudo tar -xzf '$remote_archive' -C '$remote_root' && sudo install -m 0755 '$remote_root/ynx-consensus-overlay-up' /usr/local/sbin/ynx-consensus-overlay-up && sudo install -m 0644 '$remote_root/ynx-consensus-overlay.service' /etc/systemd/system/ynx-consensus-overlay.service && sudo systemctl daemon-reload && sudo systemctl enable --now ynx-consensus-overlay.service && systemctl is-active ynx-chaind >/dev/null"
 }
