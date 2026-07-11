@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Commit `b1275c4` proves the local four-validator quorum; commit `ec2f691` adds the public-key-only production package, private-network candidate services, host-local key matching, strict-SSH parallel deployment, common quorum evidence, approval-gated fault and signed-transaction drills, and candidate backup/rollback. Next: perform the owner-controlled key ceremony and private-network intake on the four real servers, generate an approved package from a fresh migration anchor, deploy it in parallel, and collect remote candidate evidence before any public cutover.
+- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. The four-server private overlay, owner-controlled host-local validator keys, fresh migration package, remote 4-of-4 quorum, 3-of-4 fault progress/recovery, owner-signed YNXT transaction convergence, and rollback are now remotely proven. The candidate is intentionally rolled back and public cutover remains unauthorized. Next: implement and dry-run a dedicated approval-gated public BFT cutover/rollback path that preserves the current authoritative state and public services, then perform a separately verified cutover only after all gates pass.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:

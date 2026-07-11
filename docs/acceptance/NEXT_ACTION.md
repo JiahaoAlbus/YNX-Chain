@@ -1,62 +1,58 @@
 # Next Action
 
-Current single action: perform the owner-controlled production validator key and private-network intake on the four real servers, then deploy the CometBFT candidate on parallel non-public ports and collect remote quorum evidence without changing public ingress.
+Current single action: implement and verify a dedicated approval-gated transition from the remotely proven parallel CometBFT candidate to the public YNX Testnet service boundary, with automatic rollback to the current authoritative network on any failed health or state check.
 
 Why this action:
 
-- Commit `b1275c4` proves real local four-validator quorum, signed YNXT execution, 3-of-4 progress, and restart/catch-up.
-- Commit `ec2f691` implements the production public-key manifest, semantic package verifier, candidate-only systemd/configuration, host-local private-key matching, strict-SSH deployment, common consensus evidence, approval-gated fault and signed-transaction drills, and candidate backup/rollback.
-- `make consensus-production-package-check` builds the Linux binaries and dry-runs all four deploy/verify/fault/rollback roles using disposable keys. Package hash, semantic tamper, unsafe network/key input, divergent consensus evidence, and divergent transaction-state tests pass.
-- No production validator key, real private P2P address, fresh remote migration anchor, or remote candidate currently exists. The public network remains authoritative replication, not BFT.
+- Four owner-controlled host-local validator/node key pairs match the exact public manifest and remain mode restricted.
+- The encrypted four-server overlay has three reachable private peers per role.
+- Fresh authoritative state at height `16165` was packaged for `ynx_6423-1` with 14 accounts and four validators.
+- Remote candidate proof passed with four signers, owner-signed YNXT transaction convergence, 3-of-4 progress, stopped-node recovery, and clean rollback.
+- The candidate is intentionally absent after rollback; public ingress still serves authoritative replication and `publicCutoverAuthorized=false`.
 
 Required implementation work:
 
-- Verify strict SSH identity and discover the actual RFC1918 interface/address on the primary, Singapore, Silicon Valley, and Seoul servers without printing secrets.
-- Generate one CometBFT validator key and one node key directly on each assigned server under `/etc/ynx/consensus-candidate/<role>/`, mode restricted and owned for the `ynx` candidate service. Never transmit private key content through chat, logs, Git, or the public manifest.
-- Extract only each derived consensus public key/address and node ID; bind them to the exact approved YNX role and private P2P endpoint in an ignored operator manifest.
-- Export a fresh authoritative migration anchor, independently record its height/hash/AppHash, choose an explicit future UTC genesis time, and generate/verify the production package from commit `ec2f691` or its current successor.
-- Verify private P2P firewall reachability only between the four validator servers, then run the approval-gated candidate deployment. Do not touch Caddy/Nginx/DNS or restart `ynx-chaind`.
-- Collect remote common-height/hash, exact validator-set, greater-than-two-thirds precommit, and three-peer evidence. Then run the separately approved one-validator fault/recovery drill.
-- Use an owner-controlled funded secp256k1 account for the signed transaction drill only after its address, backup, nonce, amount, and recipient are approved. Retain only redacted transaction/account evidence.
-- Execute candidate backup and rollback rehearsal, confirm authoritative services remained active, and update state files from real evidence. Public cutover remains a later separate action.
+- Add a separate cutover command; do not overload `deploy-consensus-candidate` or silently change public ingress.
+- Re-export a final authoritative state only inside a bounded maintenance transition, after recording height/hash/state hash and confirming follower convergence.
+- Build and verify a fresh package against the existing host-local public keys and private overlay.
+- Back up authoritative chain state, candidate state, service units, Caddy configuration, and current release identity before mutation.
+- Start and verify the four-node candidate on private/loopback ports before stopping any authoritative producer.
+- Define explicit gates for exact chain ID, genesis/AppHash, four-validator set, common height/hash, greater-than-two-thirds signatures, peer count, signed account query, RPC growth, indexer catch-up, Explorer health, and current public service health.
+- Switch only the primary local service boundary needed by RPC/indexer/explorer; keep DNS and TLS identity stable.
+- Automatically restore authoritative services and previous ingress if any gate fails within the bounded observation window.
+- Collect redacted cutover/rollback evidence with `publicCutoverAuthorized` remaining false until the actual approval variable is present.
+- Add self-tests, dry-run fixtures, Makefile targets, and documentation before any live public cutover.
 
 Files to touch:
 
-- Ignored production validator manifest and `tmp/consensus-candidate-*` evidence only after real server intake
-- Candidate deployment/evidence scripts only if a real remote incompatibility is found
-- `docs/acceptance/PROJECT_STATE.md`, `FEATURE_COMPLETION_TRACKER.md`, and `NEXT_ACTION.md` after remote proof
-- No validator/private transaction key, mnemonic, PEM content, real `.env`, or candidate key directory in Git
+- New scoped cutover and rollback scripts under `scripts/deploy`, `scripts/ops`, and `scripts/verify`
+- Candidate/public service unit or proxy templates only where the transition requires them
+- Makefile targets and focused tests
+- Acceptance state files after real evidence
+- No private validator key, owner key, mnemonic, PEM content, real `.env`, or raw secret output
 
 Validation commands:
 
 - `go test ./...`
 - `make consensus-quorum-check`
 - `make consensus-production-package-check`
-- `ENV_FILE=.env.deploy make env-check`
-- `make host-key-audit`
-- `CONSENSUS_CANDIDATE_PACKAGE=<package> DEPLOY_DRY_RUN=1 ENV_FILE=.env.deploy make deploy-consensus-candidate`
-- `CONSENSUS_CANDIDATE_APPROVED=yes CONSENSUS_CANDIDATE_PACKAGE=<package> ENV_FILE=.env.deploy make deploy-consensus-candidate`
-- `CONSENSUS_CANDIDATE_PACKAGE=<package> ENV_FILE=.env.deploy make verify-consensus-candidate`
-- `CONSENSUS_CANDIDATE_FAULT_DRILL_APPROVED=yes CONSENSUS_CANDIDATE_PACKAGE=<package> ENV_FILE=.env.deploy make consensus-candidate-fault-drill`
+- new cutover self-test and dry-run targets
 - `make no-placeholder-check`
 - `make secret-scan`
+- `ENV_FILE=.env.deploy make env-check`
 - `make preflight`
 - `make objective-state-check`
 
 Completion standard:
 
-- Four owner-controlled host-local validator/node key pairs match the exact public manifest, remain mode restricted, and are not exposed or copied into the repository.
-- All four approved RFC1918 P2P endpoints are mutually reachable only as intended; candidate RPC/ABCI/metrics remain loopback-only.
-- The candidate reproduces the approved migration AppHash and exact four-validator genesis, commits one common history with greater-than-two-thirds signatures, and shows all expected peers.
-- The remaining three validators advance while one candidate validator/ABCI pair is stopped; the stopped role restarts and catches up to the common chain.
-- An approved signed YNXT transaction commits and produces identical sender balance/nonce and recipient balance across all four applications without exposing the owner key.
-- Candidate backup/rollback is rehearsed and authoritative `ynx-chaind` plus all current public services remain online and unchanged.
-- Evidence stays scoped to `remote-parallel-consensus-candidate` with `publicCutoverAuthorized=false`; this action does not claim public BFT or completion.
+- Dry-run proves backup, candidate start, every pre-cutover gate, service transition, observation window, and rollback on injected failures.
+- The real command refuses mutation without an explicit approval variable, a current clean `main`, strict SSH, a verified package, live overlay, and current backups.
+- Public services cannot be labeled BFT until remote public RPC exposes the CometBFT-backed chain and cross-region evidence verifies block growth, validator signatures, indexer catch-up, Explorer data, and rollback readiness.
+- Failure at any point leaves the current authoritative public network active and verifiable.
 
 Explicitly not doing:
 
-- Do not generate production keys on the local lab or reuse disposable fixture keys.
-- Do not send private keys, mnemonics, PEM contents, or raw secret files through chat or Git.
-- Do not stop, replace, or relabel the current authoritative public network during candidate staging.
-- Do not alter public ingress, Explorer feature breadth, bounded EVM opcodes, IDE samples, or unrelated ecosystem modules in this priority window.
-- Do not claim remote BFT, mainnet, exchange listing, stablecoin support, wallet default support, partnerships, or full public proof before live evidence exists.
+- Do not relabel the current public authoritative network as BFT.
+- Do not reuse old migration height `16165` for a future public cutover; export a final fresh anchor.
+- Do not expose candidate RPC, ABCI, metrics, validator keys, or private overlay ports publicly.
+- Do not claim mainnet, exchange listing, stablecoin issuer support, wallet default support, partnerships, or full goal completion.
