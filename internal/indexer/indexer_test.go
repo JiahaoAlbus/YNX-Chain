@@ -79,7 +79,7 @@ func TestIndexerHTTPServer(t *testing.T) {
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 
-	for _, path := range []string{"/health", "/metrics", "/blocks/latest", "/txs"} {
+	for _, path := range []string{"/health", "/ynx/overview", "/metrics", "/blocks/latest", "/txs"} {
 		resp, err := http.Get(httpServer.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -113,5 +113,17 @@ func TestIndexerHTTPServer(t *testing.T) {
 	build := health["build"].(map[string]any)
 	if build["commit"] != "abc123" || build["release"] != "ynx-chain-abc123" || build["buildTime"] != "2026-07-10T00:00:00Z" {
 		t.Fatalf("health missing build identity: %+v", build)
+	}
+	resp, err = http.Get(httpServer.URL + "/ynx/overview")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var overview map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&overview); err != nil {
+		t.Fatal(err)
+	}
+	if overview["chainId"].(float64) != 6423 || overview["nativeCurrencySymbol"] != "YNXT" || overview["service"] != "ynx-indexerd" {
+		t.Fatalf("unexpected indexer overview: %+v", overview)
 	}
 }

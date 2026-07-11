@@ -95,7 +95,7 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	var validatorsOut map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/validators", nil, http.StatusOK, &validatorsOut)
 	got := validatorsOut["validators"].([]any)
-	if len(got) != 2 {
+	if len(got) != 2 || validatorsOut["expectedValidatorCount"].(float64) != 2 {
 		t.Fatalf("expected two validators: %v", validatorsOut)
 	}
 	sg := validatorJSONByAddress(got, "ynx_val_sg")
@@ -176,7 +176,6 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	if statusIdentity["validatorAddress"] != "ynx_val_primary" || statusIdentity["peerSyncFreshness"].(map[string]any)["status"] != "fresh_with_lag" {
 		t.Fatalf("status missing node identity freshness: %v", status)
 	}
-
 	var bad map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/heartbeat", map[string]any{"ready": true}, http.StatusBadRequest, &bad)
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/peers/observe", map[string]any{"status": "reachable"}, http.StatusBadRequest, &bad)

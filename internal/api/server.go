@@ -232,7 +232,11 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"account": account, "resources": resources, "trace": trace})
 }
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"validators": s.devnet.Validators()})
+	validators := s.devnet.Validators()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"validators":             validators,
+		"expectedValidatorCount": len(validators),
+	})
 }
 func (s *Server) handleValidatorPeers(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"peers": s.devnet.ValidatorPeers()})

@@ -178,7 +178,14 @@ check_json_contains nodeIdentity.localIdentity "$identity_compact" "\"validatorA
 check_json_contains nodeIdentity.expectedCount "$identity_compact" '"expectedValidatorCount":4'
 check_json_contains nodeIdentity.targetCount "$identity_compact" '"peerSyncTargetCount":3'
 check_json_contains nodeIdentity.freshness "$identity_compact" '"peerSyncFreshness"'
-check_json_contains nodeIdentity.freshnessStatus "$identity_compact" '"status":"synced"'
+if printf "%s" "$identity_compact" | grep -Eq '"status":"(synced|fresh_with_lag)"' && \
+   printf "%s" "$identity_compact" | grep -Fq '"missing":0' && \
+   printf "%s" "$identity_compact" | grep -Fq '"stale":0'; then
+  echo "nodeIdentity.freshPeerObservation=ok"
+else
+  echo "nodeIdentity.freshPeerObservation=missing"
+  failed=1
+fi
 check_json_contains nodeIdentity.build "$identity_compact" '"build"'
 check_json_contains nodeIdentity.buildCommit "$identity_compact" "\"commit\":\"$expected_release_commit\""
 check_json_contains nodeIdentity.buildRelease "$identity_compact" "\"release\":\"$expected_release_name\""

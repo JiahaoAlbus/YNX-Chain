@@ -2,6 +2,8 @@
 
 Statuses are intentionally strict: `complete` requires code, tests, remote deployment, and public proof.
 
+Current remote-state override (2026-07-11): release `ynx-chain-ba74d7c55e41` is deployed on four validator-role nodes, and the primary serves public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints. Strict SSH and release-manifest evidence pass. Read-only Chain Law rules/transparency and service health were observed publicly, but full mutable public proof did not run because readiness failed on two API-contract defects fixed after that release. Peer polling is fresh connectivity/height-observation evidence only; the nodes do not yet have consensus, block replication, or state convergence. Therefore no module is marked `complete`, and older row-level `not remote deployed` text below should be read as superseded by this override until each row is rewritten after the current fix is redeployed and verified.
+
 | Module | Required capability | Current status | Code path | Test command | Remote deployed? | Public proof? | Blocker | Next implementation gap |
 |---|---|---|---|---|---|---|---|---|
 | Chain runtime | Produce blocks, process native transfers, expose status, expose validator readiness, peer discovery, and peer sync summaries | local verified / preflight covered / not remote deployed | `internal/chain`, `cmd/ynx-chaind` | `make test`, `make smoke-test`, `make validator-peer-readiness-check`, `make preflight` | no | no | remote SSH/public ingress blockers | Remote deploy and verify block growth plus validator readiness/discovery/sync |

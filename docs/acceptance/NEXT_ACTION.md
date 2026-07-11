@@ -1,51 +1,48 @@
 # Next Action
 
-Current single action: obtain trusted out-of-band approval for the Singapore and Silicon Valley SSH host fingerprints, then pass the deployment gate for the current HEAD before any remote mutation.
+Current single action: deploy the current verification-contract fix, rerun current-HEAD remote verification, and close the remaining public mutable-flow evidence without overstating validator consensus.
 
 Why this action:
 
-- Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource Market now have independent deployable service boundaries with local tests, smoke checks, deployment wiring, monitoring, operations, and fail-closed public-proof requirements.
-- Public endpoints still prove the legacy `ynx_9102-1` / EVM `0x238e` network, while the target is `ynx_6423-1` / EVM `6423` (`0x1917`) with native `YNXT`.
-- Singapore and Silicon Valley strict SSH checks report host-key mismatches. Those fingerprints require independent cloud-console/provider confirmation; repository code and network scans cannot create trusted approval.
+- Four validator-role nodes are running the deployed YNX Testnet release with chain ID `6423`, native `YNXT`, strict SSH, current build identity, and fresh peer height observations.
+- Public RPC, EVM, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource endpoints are live.
+- The last remote run exposed two concrete contract defects fixed in the current worktree: missing `expectedValidatorCount` on `/validators` and missing Indexer `/ynx/overview`.
+- The nodes still produce independent local block histories. Fresh peer height observations prove connectivity, not consensus, block replication, or state convergence.
 
-Required operator evidence:
+Required engineering and verification work:
 
-- Run `make host-key-audit`, `make host-key-approval-request`, `make host-key-approval-packet`, and `make host-key-approval-status` to refresh non-mutating evidence.
-- Verify every presented Singapore and Silicon Valley fingerprint through a trusted out-of-band source.
-- Record only verified fingerprints plus the current `hostKeyAuditSha256`, approver, verification channel, and evidence in ignored `.host-key-approvals.json`.
-- Run `make host-key-approval-check` and review `make host-key-approved-repair-dry-run` before `make host-key-approved-repair`.
-- Supply real deployment env values and service secrets outside git, including AI, Pay, Trust, and Resource client/upstream keys.
-- Refresh current-HEAD `make verify-testnet`, `make remote-smoke-test`, `make remote-blocker-report`, and require `make deploy-readiness-gate` to pass before `make deploy-testnet`.
+- Commit and deploy the `/validators` metadata and Indexer overview fixes with the existing ignored deployment env and approved host-key evidence.
+- Run current-HEAD `make verify-testnet`; require public Chain Law request/review/reject, appeal, correction, transparency, AI, Pay, Trust, Resource, faucet, IDE, explorer, and indexer checks to execute rather than be skipped.
+- Keep peer checks scoped to fresh reachability and height evidence. Implement a real consensus or deterministic block/state replication layer before claiming validator state convergence.
 
 Files to touch:
 
-- Ignored `.host-key-approvals.json`, only after trusted out-of-band verification
-- Ignored real deployment env/secret-store values
-- Generated `tmp/host-key-audit/` and `tmp/verify-testnet/` evidence
-- No tracked implementation file unless verification exposes a concrete defect
+- Current tracked API, Indexer, verifier, and acceptance-state files
+- Existing ignored deployment env and generated `tmp/verify-testnet/` evidence
+- No committed secret files
 
 Validation commands:
 
-- `make host-key-approval-check`
-- `make host-key-approved-repair-dry-run`
-- `make verify-testnet`
-- `make remote-smoke-test`
-- `make remote-blocker-report`
-- `make deploy-readiness-gate`
-- `make deploy-testnet`
+- `go test ./...`
+- `make test`
+- `make no-placeholder-check`
+- `make secret-scan`
+- `ENV_FILE=.env.deploy make env-check`
+- `make preflight`
+- `make objective-state-check`
+- `ENV_FILE=.env.deploy make deploy-dry-run`
+- `ENV_FILE=.env.deploy make verify-testnet`
 - `make public-proof`
 
 Completion standard:
 
-- Strict SSH succeeds for all four nodes with independently approved host keys.
+- Strict SSH continues to succeed for all four nodes with independently approved host keys.
 - Remote evidence is fresh, current-HEAD/release-bound, and status `passed`.
-- The deploy gate has no blocker.
-- The new four-validator YNX Testnet and independent services are deployed and verified through non-local HTTPS endpoints.
+- The four-node YNX Testnet and independent services are verified through non-local HTTPS endpoints, described honestly as validator-role nodes until consensus/state convergence exists.
 - Public proof remains false until every required chain, validator, release manifest, AI, Pay, Trust, Resource, Chain Law, explorer, faucet, indexer, and mutable-flow check passes.
 
 Explicitly not doing:
 
-- Do not fabricate host-key approval or place secrets in git.
-- Do not mutate remote hosts while the deployment gate is blocked.
+- Do not place secrets in git.
 - Do not expand bounded EVM opcodes, Counter samples, Hardhat artifacts, or IDE execution during this priority window.
-- Do not claim mainnet, listing, issuer support, wallet default support, partnerships, remote deployment, or public proof.
+- Do not claim mainnet, listing, issuer support, wallet default support, partnerships, consensus completion, or complete public proof before the corresponding evidence passes.

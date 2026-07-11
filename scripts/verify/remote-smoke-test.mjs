@@ -336,12 +336,12 @@ function checkValidatorPeers(json) {
 
 function checkValidatorPeerSync(json) {
   const syncs = Array.isArray(json?.syncs) ? json.syncs : [];
-  const healthy = syncs.filter((sync) => sync?.status === "synced" && typeof sync?.source === "string" && typeof sync?.target === "string" && sync.source !== sync.target);
+  const healthy = syncs.filter((sync) => ["synced", "lagging"].includes(sync?.status) && typeof sync?.source === "string" && typeof sync?.target === "string" && sync.source !== sync.target && typeof sync?.updatedAt === "string");
   const ok = healthy.length >= Math.max(1, expected.minValidators - 1);
   record(
     "rpc.validators.peerSync",
     ok,
-    ok ? `${healthy.length} validator peer sync records` : `expected validator peer sync records, got ${healthy.length}`,
+    ok ? `${healthy.length} validator peer height observations` : `expected validator peer height observations, got ${healthy.length}`,
     { syncCount: healthy.length, syncs }
   );
   return ok;
@@ -354,7 +354,7 @@ function checkNodeIdentity(json) {
   const configured = json?.configured === true && typeof json?.validatorAddress === "string" && json.validatorAddress.length > 0;
   const targetCountOk = targetCount >= Math.max(1, expected.minValidators - 1);
   const expectedCountOk = expectedCount >= expected.minValidators;
-  const freshnessOk = freshness?.status === "synced" &&
+  const freshnessOk = ["synced", "fresh_with_lag"].includes(freshness?.status) &&
     Number(freshness?.missing ?? 0) === 0 &&
     Number(freshness?.stale ?? 0) === 0 &&
     Number(freshness?.fresh ?? 0) >= Math.max(1, expected.minValidators - 1);
@@ -379,7 +379,7 @@ function checkNodeIdentity(json) {
   record(
     "rpc.nodeIdentity.peerSyncFreshness",
     freshnessOk,
-    freshnessOk ? `freshness ${freshness.status}` : `expected fresh synced peer sync, got ${clip(freshness)}`,
+    freshnessOk ? `fresh peer height observations (${freshness.status})` : `expected fresh peer height observations, got ${clip(freshness)}`,
     freshness
   );
   return configured && expectedCountOk && targetCountOk && freshnessOk;

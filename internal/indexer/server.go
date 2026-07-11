@@ -72,12 +72,39 @@ func (s *Server) StartPolling(ctx context.Context, interval time.Duration) {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /ynx/overview", s.handleOverview)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /sync", s.handleSync)
 	s.mux.HandleFunc("GET /blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+}
+
+func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
+	db, err := s.indexer.Store().Load()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.mu.RLock()
+	lastError, lastSyncedAt := s.lastError, s.lastSyncedAt
+	s.mu.RUnlock()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":                   lastError == "",
+		"service":              "ynx-indexerd",
+		"network":              db.Network,
+		"chainId":              db.ChainID,
+		"nativeCurrencySymbol": db.NativeSymbol,
+		"lastIndexedHeight":    db.LastIndexedHeight,
+		"lastSourceHeight":     db.LastSourceHeight,
+		"indexedBlockCount":    len(db.Blocks),
+		"indexedTxCount":       len(db.Transactions),
+		"lastSyncedAt":         lastSyncedAt,
+		"lastError":            lastError,
+		"build":                s.build,
+		"truthfulStatus":       "local-indexer",
+	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
