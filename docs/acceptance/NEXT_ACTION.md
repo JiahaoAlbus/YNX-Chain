@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: deploy the bounded Explorer index-lag verifier fix, then close the two remaining external public-proof blockers without overstating validator consensus.
+Current single action: close the two remaining external public-proof blockers without overstating validator consensus.
 
 Why this action:
 
@@ -11,7 +11,7 @@ Why this action:
 
 Required engineering and verification work:
 
-- Commit and deploy the bounded Explorer lookup polling fix, then rerun current-HEAD verification.
+- Keep the verified bounded Explorer lookup polling in the current release.
 - Restore provider quota or supply another real compatible provider credential, then rerun authenticated AI SSE proof.
 - Implement and deploy a YNX `6423` Web4 service before moving `web4.ynxweb4.com`; do not relabel the legacy Hub or proxy chain health as Web4 proof.
 - Keep peer checks scoped to fresh reachability and height evidence. Implement a real consensus or deterministic block/state replication layer before claiming validator state convergence.
