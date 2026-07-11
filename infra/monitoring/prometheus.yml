@@ -46,3 +46,11 @@ scrape_configs:
         labels:
           network: ynx-testnet
           service: ynx-ai-gatewayd
+  - job_name: ynx-payd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - ynx-payd:6430
+        labels:
+          network: ynx-testnet
+          service: ynx-payd

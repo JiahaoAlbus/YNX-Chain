@@ -11,7 +11,7 @@ status_node() {
   services="$(ynx_ops_services_for_kind "$kind")"
   local endpoints="curl -fsS http://127.0.0.1:6420/status || true"
   if [[ "$kind" == "full" ]]; then
-    endpoints="$endpoints; curl -fsS http://127.0.0.1:6426/health || true; curl -fsS http://127.0.0.1:6427/health || true; curl -fsS http://127.0.0.1:6428/health || true; curl -fsS http://127.0.0.1:6429/health || true"
+    endpoints="$endpoints; curl -fsS http://127.0.0.1:6426/health || true; curl -fsS http://127.0.0.1:6427/health || true; curl -fsS http://127.0.0.1:6428/health || true; curl -fsS http://127.0.0.1:6429/health || true; curl -fsS http://127.0.0.1:6430/health || true"
   fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "echo '== $role $host =='; for service in $services; do systemctl --no-pager --full status \"\$service\" || true; done; echo '--- local endpoints'; $endpoints"
 }

@@ -89,3 +89,19 @@ groups:
         annotations:
           summary: YNX AI Gateway provider or chain errors are elevated
           description: Check provider reachability, chain status, and the redacted AI Gateway audit log.
+      - alert: YNXPayGatewayDown
+        expr: up{job="ynx-payd"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Pay Gateway metrics endpoint is unreachable
+          description: Prometheus cannot scrape /metrics from ynx-payd.
+      - alert: YNXPayGatewayErrors
+        expr: increase(ynx_pay_gateway_errors_total{job="ynx-payd"}[10m]) > 5 or increase(ynx_pay_gateway_audit_errors_total{job="ynx-payd"}[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Pay Gateway upstream or audit errors are elevated
+          description: Check chain reachability and the protected Pay Gateway audit log.

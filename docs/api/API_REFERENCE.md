@@ -119,10 +119,12 @@ Governance and Trust request safety:
 
 Pay merchant safety:
 
-- `POST /pay/intents`, `POST /pay/invoices`, `POST /pay/refunds`, and `POST /pay/webhook-signatures` accept optional `idempotencyKey`. Reusing the same key in the same merchant/object scope returns the original object instead of creating a conflicting duplicate.
-- `POST /pay/webhook-signatures` stores replay-auditable metadata: `eventId`, `eventType`, `payloadHash`, `algorithm`, `signedAt`, optional `idempotencyKey`, and `replaySafe`. The signing key is never returned or stored in the response object.
+- `ynx-payd` is the independent public merchant API on port `6430`. Its protected `/pay/*` routes require `X-YNX-Pay-Key` or `Authorization: Bearer <YNX_PAY_API_KEY>` and return a unique `X-Request-ID`.
+- `POST /pay/intents`, `POST /pay/invoices`, `POST /pay/refunds`, and `POST /pay/webhook-signatures` require `idempotencyKey` at the public gateway. Reusing the same key in the same merchant/object scope returns the original object instead of creating a conflicting duplicate. The authenticated merchant identity is injected from `YNX_PAY_MERCHANT_ID`; a conflicting client merchant is rejected.
+- `POST /pay/webhook-signatures` stores replay-auditable metadata: `eventId`, `eventType`, `payloadHash`, `algorithm`, `signedAt`, `idempotencyKey`, and `replaySafe`. The HMAC key is loaded from `YNX_PAY_WEBHOOK_SIGNING_KEY`; clients cannot supply it, and it is never returned or stored in response or audit objects.
 - `GET /pay/webhook-signatures/{eventId}` returns a stored signature for audit/replay verification.
 - `GET /pay/events?intentId=...` and `GET /pay/events/{id}` return persisted payment audit events with `auditHash`, object id, amount, currency, merchant, and idempotency key metadata.
+- `ynx-payd` enforces a 1 MiB request-body limit, per API-key/IP rate limits, fail-closed pre-forward access audit, and a dedicated upstream secret. Deployed `ynx-chaind` rejects direct `/pay/*` bypass attempts without `YNX_PAY_GATEWAY_UPSTREAM_KEY`. JSONL access audit contains only request metadata and body hashes, never bodies or credentials.
 - Remote public proof must show Pay idempotency replay for intents and invoices, replay-safe webhook metadata, webhook lookup/replay behavior, and audit-hashed Pay events on public endpoints.
 
 AI Gateway permission and audit:

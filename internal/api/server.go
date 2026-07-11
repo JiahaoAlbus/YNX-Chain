@@ -16,9 +16,10 @@ import (
 )
 
 type Server struct {
-	devnet               *chain.Devnet
-	mux                  *http.ServeMux
-	aiGatewayUpstreamKey string
+	devnet                *chain.Devnet
+	mux                   *http.ServeMux
+	aiGatewayUpstreamKey  string
+	payGatewayUpstreamKey string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -26,11 +27,17 @@ func NewServer(devnet *chain.Devnet) http.Handler {
 }
 
 type ServerConfig struct {
-	AIGatewayUpstreamKey string
+	AIGatewayUpstreamKey  string
+	PayGatewayUpstreamKey string
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
-	s := &Server{devnet: devnet, mux: http.NewServeMux(), aiGatewayUpstreamKey: strings.TrimSpace(cfg.AIGatewayUpstreamKey)}
+	s := &Server{
+		devnet:                devnet,
+		mux:                   http.NewServeMux(),
+		aiGatewayUpstreamKey:  strings.TrimSpace(cfg.AIGatewayUpstreamKey),
+		payGatewayUpstreamKey: strings.TrimSpace(cfg.PayGatewayUpstreamKey),
+	}
 	s.routes()
 	return s.withHeaders(s.mux)
 }
@@ -72,15 +79,15 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /trust/appeals/{id}/resolve", s.handleTrustAppealResolve)
 	s.mux.HandleFunc("POST /trust/tracking-reviews", s.handleTrackingPolicyReview)
 	s.mux.HandleFunc("GET /trust/tracking-reviews/{id}", s.handleTrackingPolicyReviewLookup)
-	s.mux.HandleFunc("POST /pay/intents", s.handlePayIntent)
-	s.mux.HandleFunc("GET /pay/intents/{id}", s.handlePayIntentLookup)
-	s.mux.HandleFunc("POST /pay/invoices", s.handleInvoice)
-	s.mux.HandleFunc("GET /pay/invoices/{id}", s.handleInvoiceLookup)
-	s.mux.HandleFunc("POST /pay/refunds", s.handleRefund)
-	s.mux.HandleFunc("POST /pay/webhook-signatures", s.handleWebhookSignature)
-	s.mux.HandleFunc("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
-	s.mux.HandleFunc("GET /pay/events", s.handlePayEvents)
-	s.mux.HandleFunc("GET /pay/events/{id}", s.handlePayEventLookup)
+	s.payRoute("POST /pay/intents", s.handlePayIntent)
+	s.payRoute("GET /pay/intents/{id}", s.handlePayIntentLookup)
+	s.payRoute("POST /pay/invoices", s.handleInvoice)
+	s.payRoute("GET /pay/invoices/{id}", s.handleInvoiceLookup)
+	s.payRoute("POST /pay/refunds", s.handleRefund)
+	s.payRoute("POST /pay/webhook-signatures", s.handleWebhookSignature)
+	s.payRoute("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
+	s.payRoute("GET /pay/events", s.handlePayEvents)
+	s.payRoute("GET /pay/events/{id}", s.handlePayEventLookup)
 	s.mux.HandleFunc("GET /resource-market/policy", s.handleResourcePolicy)
 	s.mux.HandleFunc("GET /resource-market/quote", s.handleResourceQuote)
 	s.mux.HandleFunc("GET /resource-market/analytics", s.handleResourceAnalytics)
@@ -112,6 +119,16 @@ func (s *Server) aiRoute(pattern string, handler http.HandlerFunc) {
 	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		if s.aiGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-AI-Gateway-Upstream-Key"), s.aiGatewayUpstreamKey) {
 			writeError(w, http.StatusUnauthorized, "AI routes require the authenticated YNX AI Gateway")
+			return
+		}
+		handler(w, r)
+	})
+}
+
+func (s *Server) payRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.payGatewayUpstreamKey != "" && !constantTimeEqual(r.Header.Get("X-YNX-Pay-Gateway-Upstream-Key"), s.payGatewayUpstreamKey) {
+			writeError(w, http.StatusUnauthorized, "Pay routes require the authenticated YNX Pay Gateway")
 			return
 		}
 		handler(w, r)

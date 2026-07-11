@@ -61,6 +61,13 @@ const requiredChecks = [
   "ai.action.approve.permissionGate",
   "ai.action.lookup.audit",
   "ai.action.list.session",
+  "pay.health.truthful",
+  "pay.health.chain",
+  "pay.health.gateway",
+  "pay.health.buildCommit",
+  "pay.health.buildRelease",
+  "pay.health.buildTime",
+  "pay.auth.configured",
   "web4.health.truthful",
   "pay.intent.created",
   "pay.intent.idempotency",
@@ -89,7 +96,7 @@ const requiredChecks = [
   "ide.compile.ok",
 ];
 
-const requiredEndpointKeys = ["rpc", "evm", "rest", "faucet", "indexer", "explorer", "ai", "web4"];
+const requiredEndpointKeys = ["rpc", "evm", "rest", "faucet", "indexer", "explorer", "ai", "pay", "web4"];
 const localHostPattern = /^(localhost|127\.|0\.0\.0\.0|\[?::1\]?)/i;
 
 function parseArgs(argv) {
@@ -273,6 +280,7 @@ function buildFixture({ status = "passed", omit = [], fail = [], includeSkipped 
       indexer: "https://indexer.ynxweb4.com",
       explorer: "https://explorer.ynxweb4.com",
       ai: "https://ai.ynxweb4.com",
+      pay: "https://pay.ynxweb4.com",
       web4: "https://web4.ynxweb4.com",
     },
     releaseManifestEvidencePath: "tmp/verify-testnet/release-manifest-evidence.json",

@@ -81,4 +81,12 @@ make ai-gateway-check
 
 `ynx-ai-gatewayd` requires provider, public access, and chain-upstream keys from env. It serves public health/metrics, authenticated provider-backed SSE, rate limiting, request IDs, redacted JSONL audit, and chain-backed permission/action proxy routes on `YNX_AI_GATEWAY_HTTP_ADDR`. Deployed chain AI routes require the upstream key, preventing clients from bypassing gateway authentication through the general REST domain.
 
+Pay Gateway readiness:
+
+```bash
+make pay-api-check
+```
+
+`ynx-payd` requires merchant ID, public API key, webhook signing key, and a separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics and authenticated Pay routes on `YNX_PAY_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB body limit, required idempotency keys, merchant binding, rate limits, managed webhook signing, and redacted JSONL audit. The chain process keeps canonical persistent Pay records and rejects direct deployed `/pay/*` access without the upstream key.
+
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

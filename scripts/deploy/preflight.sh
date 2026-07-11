@@ -16,6 +16,7 @@ make faucet-check
 make indexer-check
 make explorer-check
 make ai-gateway-check
+make pay-api-check
 make validator-peer-readiness-check
 make anti-illegal-request-check
 make request-validity-check

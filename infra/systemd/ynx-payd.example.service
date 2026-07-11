@@ -1,0 +1,22 @@
+[Unit]
+Description=YNX Chain Pay merchant gateway
+After=network-online.target ynx-chaind.service
+Wants=network-online.target ynx-chaind.service
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-chaind.env
+EnvironmentFile=/etc/ynx/ynx-payd.env
+ExecStart=/usr/local/bin/ynx-payd
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/log/ynx-chain
+
+[Install]
+WantedBy=multi-user.target

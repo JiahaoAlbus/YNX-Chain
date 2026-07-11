@@ -32,10 +32,12 @@ const endpoints = {
   indexer: trimSlash(process.env.PUBLIC_INDEXER_URL || "https://indexer.ynxweb4.com"),
   explorer: trimSlash(process.env.PUBLIC_EXPLORER_URL || "https://explorer.ynxweb4.com"),
   ai: trimSlash(process.env.PUBLIC_AI_URL || "https://ai.ynxweb4.com"),
+  pay: trimSlash(process.env.PUBLIC_PAY_URL || "https://pay.ynxweb4.com"),
   web4: trimSlash(process.env.PUBLIC_WEB4_URL || "https://web4.ynxweb4.com"),
 };
 const sampleAddress = process.env.YNX_REMOTE_SMOKE_ADDRESS || `ynx_remote_smoke_${Date.now()}`;
 const aiGatewayAPIKey = String(process.env.YNX_AI_GATEWAY_API_KEY || "");
+const payGatewayAPIKey = String(process.env.YNX_PAY_API_KEY || "");
 
 const checks = [];
 const evidence = {
@@ -702,13 +704,29 @@ async function main() {
     const build = checkBuildIdentity("ai.health", aiHealth);
     aiHealthOk = truthful && chain && serviceOk && build;
   }
+  let payHealthOk = false;
+  const payHealth = await getJson("pay.health", `${endpoints.pay}/health`);
+  if (payHealth) {
+    const truthful = checkTruthfulServiceHealth("pay.health.truthful", payHealth);
+    const chain = checkChain("pay.health.chain", payHealth);
+    const serviceOk = payHealth?.service === "ynx-payd" && payHealth?.merchantConfigured === true && payHealth?.signingConfigured === true && payHealth?.upstreamOk === true;
+    record("pay.health.gateway", serviceOk, serviceOk ? "independent authenticated Pay Gateway is healthy" : `Pay Gateway service/signing/upstream evidence missing: ${clip(payHealth)}`, {
+      service: payHealth?.service,
+      signingConfigured: payHealth?.signingConfigured,
+      upstreamOk: payHealth?.upstreamOk,
+      merchantConfigured: payHealth?.merchantConfigured,
+    });
+    const build = checkBuildIdentity("pay.health", payHealth);
+    payHealthOk = truthful && chain && serviceOk && build;
+  }
+  record("pay.auth.configured", Boolean(payGatewayAPIKey), payGatewayAPIKey ? "secure Pay API key is available to remote proof" : "YNX_PAY_API_KEY is missing from the secure remote proof environment", {});
   const web4Health = await getJson("web4.health", `${endpoints.web4}/health`);
   if (web4Health) {
     checkTruthfulServiceHealth("web4.health.truthful", web4Health);
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
   }
 
-  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {
@@ -722,9 +740,10 @@ async function main() {
     }
 
     const payIntentKey = `remote-smoke-intent-${sampleAddress}`;
-    const pay = await postJson("pay.intent", `${endpoints.rest}/pay/intents`, { merchant: "remote_smoke", amount: 1, idempotencyKey: payIntentKey });
+    const payHeaders = { "x-ynx-pay-key": payGatewayAPIKey };
+    const pay = await postJson("pay.intent", `${endpoints.pay}/pay/intents`, { amount: 1, idempotencyKey: payIntentKey }, payHeaders);
     record("pay.intent.created", Boolean(pay?.id), pay?.id ? `intent ${pay.id}` : "missing pay intent id", pay);
-    const payReplay = await postJson("pay.intent.replay", `${endpoints.rest}/pay/intents`, { merchant: "remote_smoke", amount: 99, idempotencyKey: payIntentKey });
+    const payReplay = await postJson("pay.intent.replay", `${endpoints.pay}/pay/intents`, { amount: 99, idempotencyKey: payIntentKey }, payHeaders);
     record(
       "pay.intent.idempotency",
       Boolean(pay?.id) && payReplay?.id === pay.id && payReplay?.amount === pay.amount && payReplay?.idempotencyKey === payIntentKey,
@@ -733,8 +752,8 @@ async function main() {
     );
     if (pay?.id) {
       const invoiceKey = `remote-smoke-invoice-${sampleAddress}`;
-      const invoice = await postJson("pay.invoice", `${endpoints.rest}/pay/invoices`, { intentId: pay.id, dueInHours: 12, idempotencyKey: invoiceKey });
-      const invoiceReplay = await postJson("pay.invoice.replay", `${endpoints.rest}/pay/invoices`, { intentId: pay.id, dueInHours: 36, idempotencyKey: invoiceKey });
+      const invoice = await postJson("pay.invoice", `${endpoints.pay}/pay/invoices`, { intentId: pay.id, dueInHours: 12, idempotencyKey: invoiceKey }, payHeaders);
+      const invoiceReplay = await postJson("pay.invoice.replay", `${endpoints.pay}/pay/invoices`, { intentId: pay.id, dueInHours: 36, idempotencyKey: invoiceKey }, payHeaders);
       record(
         "pay.invoice.idempotency",
         Boolean(invoice?.id) && invoiceReplay?.id === invoice.id && invoiceReplay?.intentId === pay.id && invoiceReplay?.idempotencyKey === invoiceKey,
@@ -743,12 +762,11 @@ async function main() {
       );
 
       const webhookKey = `remote-smoke-webhook-${sampleAddress}`;
-      const webhook = await postJson("pay.webhook", `${endpoints.rest}/pay/webhook-signatures`, {
+      const webhook = await postJson("pay.webhook", `${endpoints.pay}/pay/webhook-signatures`, {
         intentId: pay.id,
         eventType: "payment_intent.created",
-        signingKey: "remote-smoke-test-signing-key",
         idempotencyKey: webhookKey,
-      });
+      }, payHeaders);
       const webhookAuditOk = typeof webhook?.eventId === "string" && webhook.eventId.length > 0 &&
         webhook?.algorithm === "hmac-sha256" &&
         typeof webhook?.payloadHash === "string" && webhook.payloadHash.length > 0 &&
@@ -761,12 +779,11 @@ async function main() {
         webhookAuditOk ? "webhook signature exposes replay-safe audit metadata" : "webhook signature missing replay-safe audit metadata",
         webhook,
       );
-      const webhookReplay = await postJson("pay.webhook.replay", `${endpoints.rest}/pay/webhook-signatures`, {
+      const webhookReplay = await postJson("pay.webhook.replay", `${endpoints.pay}/pay/webhook-signatures`, {
         intentId: pay.id,
         eventType: "payment_intent.created",
-        signingKey: "remote-smoke-test-different-key",
         idempotencyKey: webhookKey,
-      });
+      }, payHeaders);
       record(
         "pay.webhook.idempotency",
         Boolean(webhook?.eventId) && webhookReplay?.eventId === webhook.eventId && webhookReplay?.signature === webhook.signature,
@@ -774,7 +791,7 @@ async function main() {
         { original: webhook, replay: webhookReplay },
       );
       if (webhook?.eventId) {
-        const webhookLookup = await getJson("pay.webhook.lookup", `${endpoints.rest}/pay/webhook-signatures/${encodeURIComponent(webhook.eventId)}`);
+        const webhookLookup = await getJson("pay.webhook.lookup", `${endpoints.pay}/pay/webhook-signatures/${encodeURIComponent(webhook.eventId)}`, payHeaders);
         record(
           "pay.webhook.lookup.id",
           webhookLookup?.eventId === webhook.eventId && webhookLookup?.payloadHash === webhook.payloadHash,
@@ -783,7 +800,7 @@ async function main() {
         );
       }
 
-      const payEvents = await getJson("pay.events", `${endpoints.rest}/pay/events?intentId=${encodeURIComponent(pay.id)}`);
+      const payEvents = await getJson("pay.events", `${endpoints.pay}/pay/events?intentId=${encodeURIComponent(pay.id)}`, payHeaders);
       const eventList = Array.isArray(payEvents?.events) ? payEvents.events : [];
       const payEventsOk = eventList.length >= 2 &&
         eventList.every((event) => typeof event?.auditHash === "string" && event.auditHash.length > 0) &&

@@ -39,11 +39,13 @@ grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx_faucet_requests_total" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx-ai-gatewayd:6429" infra/monitoring/prometheus.yml
 grep -Fq "YNXAIGatewayDown" infra/monitoring/ynx-alerts.yml
+grep -Fq "ynx-payd:6430" infra/monitoring/prometheus.yml
+grep -Fq "YNXPayGatewayDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "prom/prometheus" infra/docker/docker-compose.yml
 grep -Fq "grafana/grafana" infra/docker/docker-compose.yml
 grep -Fq "MONITORING_ADMIN_PASSWORD" infra/docker/docker-compose.yml
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  MONITORING_ADMIN_PASSWORD=local-monitoring-check OPENAI_API_KEY=local-provider-key AI_MODEL_NAME=local-model YNX_AI_GATEWAY_API_KEY=local-access-key YNX_AI_GATEWAY_UPSTREAM_KEY=local-upstream-key docker compose -f infra/docker/docker-compose.yml config >/dev/null
+  MONITORING_ADMIN_PASSWORD=local-monitoring-check OPENAI_API_KEY=local-provider-key AI_MODEL_NAME=local-model YNX_AI_GATEWAY_API_KEY=local-access-key YNX_AI_GATEWAY_UPSTREAM_KEY=local-ai-upstream-key YNX_PAY_MERCHANT_ID=local-merchant YNX_PAY_API_KEY=local-pay-key YNX_PAY_GATEWAY_UPSTREAM_KEY=local-pay-upstream-key YNX_PAY_WEBHOOK_SIGNING_KEY=local-webhook-key docker compose -f infra/docker/docker-compose.yml config >/dev/null
 fi
 
 echo "monitoring-check passed: /metrics, Prometheus config, alert rules, and Grafana dashboard are wired"

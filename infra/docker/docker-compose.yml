@@ -7,6 +7,7 @@ services:
       YNX_NETWORK: devnet
       YNX_HTTP_ADDR: 0.0.0.0:6420
       YNX_AI_GATEWAY_UPSTREAM_KEY: "${YNX_AI_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_AI_GATEWAY_UPSTREAM_KEY}"
+      YNX_PAY_GATEWAY_UPSTREAM_KEY: "${YNX_PAY_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_PAY_GATEWAY_UPSTREAM_KEY}"
     ports:
       - "6420:6420"
 
@@ -83,6 +84,27 @@ services:
     volumes:
       - ynx-ai-gateway-logs:/var/log/ynx-ai-gateway
 
+  ynx-payd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-payd.Dockerfile
+    depends_on:
+      - ynx-chaind
+    environment:
+      YNX_PAY_GATEWAY_CHAIN_URL: http://ynx-chaind:6420
+      YNX_PAY_GATEWAY_HTTP_ADDR: 0.0.0.0:6430
+      YNX_PAY_MERCHANT_ID: "${YNX_PAY_MERCHANT_ID:?Missing required env: YNX_PAY_MERCHANT_ID}"
+      YNX_PAY_API_KEY: "${YNX_PAY_API_KEY:?Missing required env: YNX_PAY_API_KEY}"
+      YNX_PAY_GATEWAY_UPSTREAM_KEY: "${YNX_PAY_GATEWAY_UPSTREAM_KEY:?Missing required env: YNX_PAY_GATEWAY_UPSTREAM_KEY}"
+      YNX_PAY_WEBHOOK_SIGNING_KEY: "${YNX_PAY_WEBHOOK_SIGNING_KEY:?Missing required env: YNX_PAY_WEBHOOK_SIGNING_KEY}"
+      YNX_PAY_GATEWAY_AUDIT_LOG: /var/log/ynx-pay/audit.jsonl
+      YNX_PAY_GATEWAY_RATE_LIMIT_WINDOW: 1m
+      YNX_PAY_GATEWAY_RATE_LIMIT_MAX: "60"
+    ports:
+      - "6430:6430"
+    volumes:
+      - ynx-pay-logs:/var/log/ynx-pay
+
   prometheus:
     image: prom/prometheus:v2.55.1
     depends_on:
@@ -91,6 +113,7 @@ services:
       - ynx-explorerd
       - ynx-faucetd
       - ynx-ai-gatewayd
+      - ynx-payd
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -116,3 +139,4 @@ volumes:
   ynx-indexer-data:
   ynx-faucet-logs:
   ynx-ai-gateway-logs:
+  ynx-pay-logs:

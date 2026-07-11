@@ -69,6 +69,15 @@ YNX_AI_GATEWAY_CHAIN_URL=http://127.0.0.1:6420
 YNX_AI_GATEWAY_AUDIT_LOG=/var/log/ynx-chain/ai-gateway-audit.jsonl
 YNX_AI_GATEWAY_RATE_LIMIT_WINDOW=1m
 YNX_AI_GATEWAY_RATE_LIMIT_MAX=30
+YNX_PAY_MERCHANT_ID=dry-run-merchant
+YNX_PAY_API_KEY=dry-run-pay-api-key
+YNX_PAY_GATEWAY_UPSTREAM_KEY=dry-run-pay-upstream-key
+YNX_PAY_WEBHOOK_SIGNING_KEY=dry-run-pay-webhook-key
+YNX_PAY_GATEWAY_HTTP_ADDR=127.0.0.1:6430
+YNX_PAY_GATEWAY_CHAIN_URL=http://127.0.0.1:6420
+YNX_PAY_GATEWAY_AUDIT_LOG=/var/log/ynx-chain/pay-gateway-audit.jsonl
+YNX_PAY_GATEWAY_RATE_LIMIT_WINDOW=1m
+YNX_PAY_GATEWAY_RATE_LIMIT_MAX=60
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
 WEBHOOK_SECRET=dry-run-webhook-secret
@@ -97,6 +106,10 @@ grep -Fq "OPENAI_API_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "
 grep -Fq "YNX_AI_GATEWAY_API_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "AI Gateway env missing access key"; exit 1; }
 grep -Fq "YNX_AI_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-ai-gatewayd.env" || { echo "AI Gateway env missing upstream key"; exit 1; }
 grep -Fq "YNX_AI_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing AI Gateway upstream key"; exit 1; }
+grep -Fq "YNX_PAY_API_KEY=" "$release_dir/config/ynx-payd.env" || { echo "Pay env missing API key"; exit 1; }
+grep -Fq "YNX_PAY_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-payd.env" || { echo "Pay env missing upstream key"; exit 1; }
+grep -Fq "YNX_PAY_WEBHOOK_SIGNING_KEY=" "$release_dir/config/ynx-payd.env" || { echo "Pay env missing webhook signing key"; exit 1; }
+grep -Fq "YNX_PAY_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing Pay Gateway upstream key"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
@@ -105,11 +118,15 @@ if grep -Eq '^(OPENAI_API_KEY|YNX_AI_GATEWAY_API_KEY)=' "$release_dir/config/ynx
   echo "shared chain env must not contain AI provider or gateway access keys"
   exit 1
 fi
+if grep -Eq '^(YNX_PAY_API_KEY|YNX_PAY_WEBHOOK_SIGNING_KEY)=' "$release_dir/config/ynx-chaind.env"; then
+  echo "shared chain env must not contain Pay merchant access or webhook signing keys"
+  exit 1
+fi
 grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { echo "release env missing commit"; exit 1; }
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd; do
+for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -122,8 +139,11 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/install-caddy-ingr
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/check-local-services.sh" || { echo "release tarball missing local service check script"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-ai-gatewayd" || { echo "release tarball missing AI Gateway binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-ai-gatewayd.env" || { echo "release tarball missing AI Gateway env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-payd" || { echo "release tarball missing Pay Gateway binary"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-payd.env" || { echo "release tarball missing Pay Gateway env"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
-grep -Fq "server_name rest.ynx.test api.ynx.test trust.ynx.test pay.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
+grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
+grep -Fq "server_name rest.ynx.test api.ynx.test trust.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
 grep -Fq "server_name faucet.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet domain server block"; exit 1; }
@@ -132,9 +152,12 @@ grep -Fq "proxy_pass http://127.0.0.1:6426;" "$release_dir/nginx/ynx-chain.conf"
 grep -Fq "proxy_pass http://127.0.0.1:6427;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6428;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6429;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing AI Gateway proxy target"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6430;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing Pay Gateway proxy target"; exit 1; }
 grep -Fq "ai.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing AI Gateway domain"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6429" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing AI Gateway proxy target"; exit 1; }
-grep -Fq "rest.ynx.test, api.ynx.test, trust.ynx.test, pay.ynx.test, ide.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing REST/API domain block"; exit 1; }
+grep -Fq "pay.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing Pay Gateway domain"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6430" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing Pay Gateway proxy target"; exit 1; }
+grep -Fq "rest.ynx.test, api.ynx.test, trust.ynx.test, ide.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing REST/API domain block"; exit 1; }
 grep -Fq "indexer.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing indexer domain block"; exit 1; }
 grep -Fq "explorer.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer domain block"; exit 1; }
 grep -Fq "faucet.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing faucet domain block"; exit 1; }
@@ -243,6 +266,8 @@ fi
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-faucetd.env" "$release_dir/systemd/ynx-faucetd.service" || { echo "faucet service missing secret env file"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-ai-gatewayd.env" "$release_dir/systemd/ynx-ai-gatewayd.service" || { echo "AI Gateway service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-ai-gatewayd" "$release_dir/systemd/ynx-ai-gatewayd.service" || { echo "AI Gateway service missing executable"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-payd.env" "$release_dir/systemd/ynx-payd.service" || { echo "Pay Gateway service missing secret env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-payd" "$release_dir/systemd/ynx-payd.service" || { echo "Pay Gateway service missing executable"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
