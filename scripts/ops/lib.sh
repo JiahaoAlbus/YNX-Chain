@@ -39,7 +39,18 @@ ynx_ops_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$remote" "$@"
+  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 "$remote" "$@"
+}
+
+ynx_ops_copy() {
+  local role="$1" user="$2" host="$3" key="$4" src="$5" dest="$6"
+  local remote="${user}@${host}"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf 'DRY RUN [%s] ssh-copy -i %q %q %q %q\n' "$role" "$key" "$src" "$remote" "$dest"
+    return 0
+  fi
+  test -f "$src"
+  ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 "$remote" "umask 077; cat > '$dest'" <"$src"
 }
 
 ynx_ops_services_for_kind() {

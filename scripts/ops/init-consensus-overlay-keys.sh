@@ -15,7 +15,11 @@ if [[ "${CONSENSUS_OVERLAY_KEY_CEREMONY_RESUME:-}" == "yes" ]]; then
   mode=inspect
 fi
 
-work="${CONSENSUS_OVERLAY_KEY_WORK_ROOT:-tmp/consensus-overlay-key-ceremony}"
+if [[ "${DEPLOY_DRY_RUN:-0}" == "1" && -z "${CONSENSUS_OVERLAY_KEY_WORK_ROOT:-}" ]]; then
+  work="$(mktemp -d)"
+else
+  work="${CONSENSUS_OVERLAY_KEY_WORK_ROOT:-tmp/consensus-overlay-key-ceremony}"
+fi
 rm -rf "$work"
 mkdir -p "$work/public"
 

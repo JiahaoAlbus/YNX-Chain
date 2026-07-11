@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 # shellcheck source=../ops/lib.sh
@@ -12,7 +12,7 @@ go run ./cmd/ynx-consensus-package -verify-package "$package_root"
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
   [[ "${CONSENSUS_CANDIDATE_APPROVED:-}" == "yes" ]] || { echo "CONSENSUS_CANDIDATE_APPROVED=yes is required" >&2; exit 1; }
-  node scripts/verify/deploy-readiness-gate.mjs
+  bash scripts/verify/consensus-candidate-deploy-gate.sh
 fi
 
 commit="$(git rev-parse --short=12 HEAD)"
@@ -26,6 +26,24 @@ echo "building production candidate binaries for linux/amd64"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-abci" ./cmd/ynx-abci
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-consensus-keycheck" ./cmd/ynx-consensus-keycheck
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/cometbft" github.com/cometbft/cometbft/cmd/cometbft
+
+candidate_mutation_started=0
+deployment_complete=0
+cleanup_candidate_role() {
+  local role="$1" user="$2" host="$3" key="$4" _kind="$5"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo systemctl disable --now ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service 2>/dev/null || true; sudo rm -rf /var/lib/ynx-chain/consensus-candidate; sudo rm -f /etc/systemd/system/ynx-consensus-comet-candidate.service /etc/systemd/system/ynx-consensus-abci-candidate.service; sudo systemctl daemon-reload; systemctl is-active ynx-chaind >/dev/null"
+}
+cleanup_failed_candidate_deploy() {
+  local status="$?"
+  trap - EXIT
+  if [[ "$status" != "0" && "$candidate_mutation_started" == "1" && "$deployment_complete" == "0" ]]; then
+    set +e
+    ynx_ops_each_node cleanup_candidate_role
+    echo "candidate deployment failed; parallel candidate services and state removed from all roles" >&2
+  fi
+  exit "$status"
+}
+trap cleanup_failed_candidate_deploy EXIT
 
 deploy_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
@@ -41,9 +59,9 @@ deploy_candidate_role() {
   archive_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
   local remote_archive="/tmp/${release}-${role}.tar.gz" remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
   if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
-    printf 'DRY RUN [%s] scp -i %q %q %q:%q\n' "$role" "$key" "$archive" "$user@$host" "$remote_archive"
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   else
-    scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$archive" "$user@$host:$remote_archive"
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c - && sudo rm -rf '$remote_dir' && sudo install -d -m 0700 '$remote_dir' && sudo tar -xzf '$remote_archive' -C '$remote_dir'"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-abci' /usr/local/bin/ynx-abci && sudo install -m 0755 '$remote_dir/bin/ynx-consensus-keycheck' /usr/local/bin/ynx-consensus-keycheck && sudo install -m 0755 '$remote_dir/bin/cometbft' /usr/local/bin/cometbft"
@@ -52,6 +70,7 @@ deploy_candidate_role() {
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/install-candidate.sh'"
 }
 
+[[ "${DEPLOY_DRY_RUN:-0}" == "1" ]] || candidate_mutation_started=1
 ynx_ops_each_node deploy_candidate_role
 
 verify_candidate_role() {
@@ -61,4 +80,5 @@ verify_candidate_role() {
 }
 
 ynx_ops_each_node verify_candidate_role
+deployment_complete=1
 echo "candidate deployment path completed for $release; public ingress and authoritative ynx-chaind remain unchanged"

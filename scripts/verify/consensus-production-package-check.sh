@@ -5,7 +5,7 @@ cd "$(dirname "$0")/../.."
 
 go test ./internal/consensus -run 'Test(GenerateProductionCandidatePackageAndVerifyHostKeys|ProductionValidatorManifestRejectsUnsafeInputs|ProductionPackageRefusesExistingOutputAndUnhashedPrivateFile)' -count=1
 go test ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-key-init
-bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/deploy-consensus-overlay.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/init-consensus-overlay-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/verify-consensus-overlay.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
+bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/deploy-consensus-overlay.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/init-consensus-overlay-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/consensus-candidate-deploy-gate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/verify-consensus-overlay.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -58,6 +58,14 @@ DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_OVERLAY_PUBLIC_RECORDS="$t
   bash scripts/deploy/deploy-consensus-overlay.sh >"$tmp/overlay-deploy.out"
 grep -Fq "no interface was created and no reachability is claimed" "$tmp/overlay-deploy.out" || { echo "overlay deploy dry-run boundary missing" >&2; exit 1; }
 
+mkdir -p "$tmp/validator-records"
+node - "$tmp/validator-manifest.json" "$tmp/validator-records" <<'NODE'
+const fs=require("fs"),path=require("path"),[input,output]=process.argv.slice(2),manifest=JSON.parse(fs.readFileSync(input));
+for(const validator of manifest.validators) fs.writeFileSync(path.join(output,`${validator.role}.json`),JSON.stringify({version:1,purpose:manifest.purpose,role:validator.role,validatorAddress:validator.validatorAddress,consensusKeyType:validator.consensusKeyType,consensusPubKey:validator.consensusPubKey,consensusAddress:validator.consensusAddress,nodeId:validator.nodeId,custodyBoundary:"owner-controlled-host-local"},null,2)+"\n",{mode:0o600});
+NODE
+node scripts/ops/build-production-validator-manifest.mjs "$tmp/validator-records" "$tmp/overlay-records" "$tmp/merged-validator-manifest.json" >/dev/null
+go run ./cmd/ynx-consensus-package -migration-state "$tmp/lab/bound-migration.json" -validator-manifest "$tmp/merged-validator-manifest.json" -genesis-time 2026-08-02T00:00:00Z -output "$tmp/merged-package" >/dev/null
+
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" CONSENSUS_CANDIDATE_WORK_ROOT="$tmp/deploy-work" \
   bash scripts/deploy/deploy-consensus-candidate.sh >"$tmp/deploy.out"
 for role in primary singapore silicon-valley seoul; do
@@ -79,7 +87,6 @@ for role in primary singapore silicon-valley seoul; do
 done
 
 for required in \
-  'StrictHostKeyChecking=yes' \
   'CONSENSUS_CANDIDATE_APPROVED=yes' \
   'ynx-consensus-keycheck' \
   'backup-candidate.sh' \
@@ -88,6 +95,7 @@ for required in \
   'public ingress and authoritative ynx-chaind remain unchanged'; do
   grep -Fq "$required" scripts/deploy/deploy-consensus-candidate.sh || { echo "candidate deploy path missing: $required" >&2; exit 1; }
 done
+grep -Fq 'StrictHostKeyChecking=yes' scripts/ops/lib.sh || { echo "candidate strict SSH helper is missing" >&2; exit 1; }
 
 unsafe_ssh_policy='StrictHostKeyChecking='
 unsafe_ssh_policy+='accept-new'
