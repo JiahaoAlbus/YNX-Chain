@@ -66,7 +66,13 @@ func TestApplicationInitializesFromYNXMigrationAndCommitsEmptyBlock(t *testing.T
 
 func TestApplicationServesCometBFTSocketProtocol(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	senderKey := deterministicPrivateKey(31)
+	sender := mustNativeAddress(t, senderKey)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(32))
 	if _, err := devnet.Faucet("ynx_socket_owner", 777); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(sender, 200); err != nil {
 		t.Fatal(err)
 	}
 	devnet.ProduceBlock()
@@ -106,6 +112,30 @@ func TestApplicationServesCometBFTSocketProtocol(t *testing.T) {
 	account, err := client.Query(ctx, &abcitypes.RequestQuery{Path: "/accounts/ynx_socket_owner"})
 	if err != nil || account.Code != abcitypes.CodeTypeOK || !bytes.Contains(account.Value, []byte(`"balance":777`)) {
 		t.Fatalf("socket Query failed: response=%+v err=%v", account, err)
+	}
+	tx, err := NewSignedTransfer(senderKey, state.Network.ChainID, recipient, 50, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	txPayload, err := EncodeSignedTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check, err := client.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: txPayload})
+	if err != nil || check.Code != abcitypes.CodeTypeOK {
+		t.Fatalf("socket CheckTx failed: response=%+v err=%v", check, err)
+	}
+	height := int64(state.Height) + 1
+	finalized, err := client.FinalizeBlock(ctx, &abcitypes.RequestFinalizeBlock{Height: height, Txs: [][]byte{txPayload}})
+	if err != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != abcitypes.CodeTypeOK {
+		t.Fatalf("socket FinalizeBlock failed: response=%+v err=%v", finalized, err)
+	}
+	if _, err := client.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	recipientAccount, err := client.Query(ctx, &abcitypes.RequestQuery{Path: "/accounts/" + recipient})
+	if err != nil || recipientAccount.Code != abcitypes.CodeTypeOK || !bytes.Contains(recipientAccount.Value, []byte(`"balance":50`)) {
+		t.Fatalf("socket committed account query failed: response=%+v err=%v", recipientAccount, err)
 	}
 }
 
