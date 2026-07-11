@@ -71,6 +71,16 @@ CONSENSUS_CANDIDATE_KEY_CEREMONY_APPROVED=yes \
   make consensus-candidate-key-ceremony
 ```
 
+Do not assume cloud-private addresses are routed across regions. If direct RFC1918 probes fail and provider VPC peering is not available, first run the separately approved WireGuard public-key ceremony. It installs `wireguard-tools` only when absent and generates host-local keys, but deliberately does not create interfaces, routes, or firewall rules.
+
+```bash
+DEPLOY_DRY_RUN=1 ENV_FILE=.env.deploy make consensus-overlay-key-ceremony
+
+CONSENSUS_OVERLAY_KEY_CEREMONY_APPROVED=yes \
+  ENV_FILE=.env.deploy \
+  make consensus-overlay-key-ceremony
+```
+
 Generate and verify the candidate package locally:
 
 ```bash
