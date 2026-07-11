@@ -14,4 +14,8 @@ The native transaction envelope is canonical JSON signed with secp256k1 ECDSA. I
 
 Run `make consensus-migration-check`, `make consensus-abci-check`, and `make consensus-signed-transfer-check` for local evidence.
 
-This is not four-validator quorum proof. Validator consensus public-key mapping, generated CometBFT homes, multi-node voting, validator stop/restart proof, remote deployment, and rollback drills remain incomplete.
+`make consensus-quorum-check` creates a new mode-restricted temporary network with four independent CometBFT homes, ed25519 validator keys, node keys, ABCI processes, persistent peers, byte-identical genesis, and separate durable application state. It verifies the YNX validator-to-consensus-key binding, four-validator set, cross-height signer participation, fixed-height block hash convergence, a secp256k1-signed YNXT transfer through CometBFT RPC, continued commits after one validator and its ABCI process stop, and the stopped validator's restart/catch-up. The official CometBFT CLI is pinned as a Go tool dependency.
+
+The lab command refuses to generate keys without `-ephemeral`, refuses an existing output directory, and marks generated material local-only. Validator and node private key files are mode `0600`, excluded from the public manifest, removed after the check, and must never be reused remotely.
+
+This is local quorum proof, not remote BFT deployment. Owner-controlled remote validator key ceremony, parallel remote staging, public ingress cutover, backup/rollback drills, and remote fault evidence remain incomplete.

@@ -44,7 +44,12 @@ func (e *transactionError) Error() string { return e.err.Error() }
 var _ abcitypes.Application = (*Application)(nil)
 
 func NewApplication(state chain.ConsensusMigrationState) (*Application, error) {
-	return NewPersistentApplication(state, "")
+	application, err := NewPersistentApplication(state, "")
+	if err != nil {
+		return nil, err
+	}
+	application.committed.Initialized = true
+	return application, nil
 }
 
 func NewPersistentApplication(state chain.ConsensusMigrationState, statePath string) (*Application, error) {
@@ -84,6 +89,13 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	if !a.committed.Initialized {
+		return &abcitypes.ResponseInfo{
+			Data:       ApplicationName,
+			Version:    "cometbft-v0.38",
+			AppVersion: ApplicationVersion,
+		}, nil
+	}
 	appHash, err := hex.DecodeString(a.committed.AppHash)
 	if err != nil {
 		return nil, fmt.Errorf("decode committed app hash: %w", err)

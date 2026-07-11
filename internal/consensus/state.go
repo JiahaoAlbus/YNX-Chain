@@ -24,6 +24,7 @@ type CommittedState struct {
 	Version            int                      `json:"version"`
 	ChainID            int64                    `json:"chainId"`
 	MigrationStateHash string                   `json:"migrationStateHash"`
+	Initialized        bool                     `json:"initialized"`
 	Height             int64                    `json:"height"`
 	Accounts           []chain.ConsensusAccount `json:"accounts"`
 	AppHash            string                   `json:"appHash"`
@@ -42,6 +43,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Version:            CommittedStateVersion,
 		ChainID:            migration.Network.ChainID,
 		MigrationStateHash: migration.StateHash,
+		Initialized:        false,
 		Height:             int64(migration.Height),
 		Accounts:           cloneAccounts(migration.Accounts),
 		AppHash:            migration.StateHash,
@@ -53,6 +55,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, a
 		Version:            CommittedStateVersion,
 		ChainID:            migration.Network.ChainID,
 		MigrationStateHash: migration.StateHash,
+		Initialized:        true,
 		Height:             height,
 		Accounts:           cloneAccounts(accounts),
 	}
@@ -83,6 +86,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	}
 	if s.Height < int64(migration.Height) {
 		return fmt.Errorf("committed height %d precedes migrated height %d", s.Height, migration.Height)
+	}
+	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
+		return errors.New("uninitialized committed state must exactly match the migration anchor")
 	}
 	if len(s.Accounts) == 0 {
 		return errors.New("committed state requires accounts")

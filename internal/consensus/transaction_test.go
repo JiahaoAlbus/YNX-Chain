@@ -91,6 +91,14 @@ func TestApplicationExecutesSignedTransferAndRestoresCommittedState(t *testing.T
 		t.Fatal(err)
 	}
 	ctx := context.Background()
+	freshInfo, err := app.Info(ctx, &abcitypes.RequestInfo{})
+	if err != nil || freshInfo.LastBlockHeight != 0 || len(freshInfo.LastBlockAppHash) != 0 {
+		t.Fatalf("fresh persistent ABCI app did not request InitChain: response=%+v err=%v", freshInfo, err)
+	}
+	initResponse, err := app.InitChain(ctx, &abcitypes.RequestInitChain{ChainId: "ynx_6423-1", InitialHeight: int64(migration.Height) + 1})
+	if err != nil || !bytes.Equal(initResponse.AppHash, mustHash(t, migration.StateHash)) {
+		t.Fatalf("persistent ABCI InitChain failed: response=%+v err=%v", initResponse, err)
+	}
 	check, err := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
 	if err != nil || check.Code != abcitypes.CodeTypeOK || len(check.Data) == 0 {
 		t.Fatalf("valid signed transfer failed CheckTx: response=%+v err=%v", check, err)
@@ -219,7 +227,7 @@ func TestApplicationDoesNotAdvanceWhenDurableCommitFails(t *testing.T) {
 		t.Fatal("ABCI commit advanced despite a durable-state write failure")
 	}
 	info, err := app.Info(context.Background(), &abcitypes.RequestInfo{})
-	if err != nil || info.LastBlockHeight != int64(migration.Height) {
+	if err != nil || info.LastBlockHeight != 0 || len(info.LastBlockAppHash) != 0 {
 		t.Fatalf("failed durable commit advanced in-memory state: response=%+v err=%v", info, err)
 	}
 }

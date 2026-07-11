@@ -2,6 +2,7 @@ package chain
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,8 @@ import (
 )
 
 const ConsensusMigrationVersion = 1
+
+const ConsensusPubKeyTypeEd25519 = "tendermint/PubKeyEd25519"
 
 // ConsensusMigrationState is the deterministic application-state boundary used
 // to move the current runtime into a BFT engine without hashing peer operations.
@@ -39,10 +42,20 @@ type ConsensusAccount struct {
 }
 
 type ConsensusValidator struct {
-	Address     string `json:"address"`
-	Moniker     string `json:"moniker"`
-	VotingPower int64  `json:"votingPower"`
-	Active      bool   `json:"active"`
+	Address          string `json:"address"`
+	Moniker          string `json:"moniker"`
+	VotingPower      int64  `json:"votingPower"`
+	Active           bool   `json:"active"`
+	ConsensusKeyType string `json:"consensusKeyType,omitempty"`
+	ConsensusPubKey  string `json:"consensusPubKey,omitempty"`
+	ConsensusAddress string `json:"consensusAddress,omitempty"`
+}
+
+type ConsensusValidatorKeyBinding struct {
+	ValidatorAddress string `json:"validatorAddress"`
+	KeyType          string `json:"keyType"`
+	PublicKey        string `json:"publicKey"`
+	ConsensusAddress string `json:"consensusAddress"`
 }
 
 func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error) {
@@ -179,7 +192,13 @@ func (s ConsensusMigrationState) Validate() error {
 			return fmt.Errorf("consensus migration validator %s has non-positive voting power", validator.Address)
 		}
 		if validator.Active {
+			if activeVotingPower > math.MaxInt64-validator.VotingPower {
+				return errors.New("consensus migration active voting power overflows int64")
+			}
 			activeVotingPower += validator.VotingPower
+		}
+		if err := validateConsensusValidatorKey(validator); err != nil {
+			return fmt.Errorf("consensus migration validator %s: %w", validator.Address, err)
 		}
 		previousAddress = validator.Address
 	}
@@ -195,6 +214,93 @@ func (s ConsensusMigrationState) Validate() error {
 	}
 	if !strings.EqualFold(s.StateHash, expectedHash) {
 		return fmt.Errorf("consensus migration state hash mismatch: expected %s", expectedHash)
+	}
+	return nil
+}
+
+func (s ConsensusMigrationState) BindConsensusValidatorKeys(bindings []ConsensusValidatorKeyBinding) (ConsensusMigrationState, error) {
+	if err := s.Validate(); err != nil {
+		return ConsensusMigrationState{}, err
+	}
+	s.Validators = append([]ConsensusValidator(nil), s.Validators...)
+	if len(bindings) != len(s.Validators) {
+		return ConsensusMigrationState{}, fmt.Errorf("consensus key bindings %d must match validators %d", len(bindings), len(s.Validators))
+	}
+	byAddress := make(map[string]ConsensusValidatorKeyBinding, len(bindings))
+	for _, binding := range bindings {
+		binding.ValidatorAddress = strings.TrimSpace(binding.ValidatorAddress)
+		binding.KeyType = strings.TrimSpace(binding.KeyType)
+		binding.PublicKey = strings.TrimSpace(binding.PublicKey)
+		binding.ConsensusAddress = strings.TrimSpace(binding.ConsensusAddress)
+		if binding.ValidatorAddress == "" {
+			return ConsensusMigrationState{}, errors.New("consensus key binding validator address is required")
+		}
+		if _, exists := byAddress[binding.ValidatorAddress]; exists {
+			return ConsensusMigrationState{}, fmt.Errorf("duplicate consensus key binding for %s", binding.ValidatorAddress)
+		}
+		byAddress[binding.ValidatorAddress] = binding
+	}
+	for index, validator := range s.Validators {
+		binding, ok := byAddress[validator.Address]
+		if !ok {
+			return ConsensusMigrationState{}, fmt.Errorf("missing consensus key binding for %s", validator.Address)
+		}
+		validator.ConsensusKeyType = binding.KeyType
+		validator.ConsensusPubKey = binding.PublicKey
+		validator.ConsensusAddress = binding.ConsensusAddress
+		if err := validateConsensusValidatorKey(validator); err != nil {
+			return ConsensusMigrationState{}, fmt.Errorf("bind consensus key for %s: %w", validator.Address, err)
+		}
+		s.Validators[index] = validator
+	}
+	hash, err := s.calculateHash()
+	if err != nil {
+		return ConsensusMigrationState{}, err
+	}
+	s.StateHash = hash
+	if err := s.ValidateConsensusValidatorKeys(); err != nil {
+		return ConsensusMigrationState{}, err
+	}
+	return s, nil
+}
+
+func (s ConsensusMigrationState) ValidateConsensusValidatorKeys() error {
+	if err := s.Validate(); err != nil {
+		return err
+	}
+	for _, validator := range s.Validators {
+		if validator.ConsensusKeyType == "" || validator.ConsensusPubKey == "" || validator.ConsensusAddress == "" {
+			return fmt.Errorf("consensus validator %s is not bound to a public key", validator.Address)
+		}
+	}
+	return nil
+}
+
+func validateConsensusValidatorKey(validator ConsensusValidator) error {
+	fields := []string{validator.ConsensusKeyType, validator.ConsensusPubKey, validator.ConsensusAddress}
+	nonEmpty := 0
+	for _, field := range fields {
+		if strings.TrimSpace(field) != "" {
+			nonEmpty++
+		}
+	}
+	if nonEmpty == 0 {
+		return nil
+	}
+	if nonEmpty != len(fields) {
+		return errors.New("consensus key type, public key, and address must be provided together")
+	}
+	if validator.ConsensusKeyType != ConsensusPubKeyTypeEd25519 {
+		return fmt.Errorf("unsupported consensus key type %q", validator.ConsensusKeyType)
+	}
+	publicKey, err := base64.StdEncoding.DecodeString(validator.ConsensusPubKey)
+	if err != nil || len(publicKey) != 32 || base64.StdEncoding.EncodeToString(publicKey) != validator.ConsensusPubKey {
+		return errors.New("consensus public key must be canonical base64 for 32-byte ed25519")
+	}
+	sum := sha256.Sum256(publicKey)
+	expectedAddress := strings.ToUpper(hex.EncodeToString(sum[:20]))
+	if validator.ConsensusAddress != expectedAddress {
+		return fmt.Errorf("consensus address %q does not match public key address %q", validator.ConsensusAddress, expectedAddress)
 	}
 	return nil
 }
