@@ -9,6 +9,7 @@ Why this action:
 - `make preflight` now also runs `make native-ynxt-no-hidden-freeze-check`, so native YNXT direct freeze/transfer/seize/confiscate/blacklist rejection and the static hidden-freeze scan are part of the deploy-package gate.
 - `make preflight` now also runs `make resource-market-check`, so Resource Market policy identity, quote breakdown, delegation, rental settlement, income records, and analytics evidence are part of the deploy-package gate.
 - `make preflight` now also runs `make validator-peer-readiness-check`, so local validator readiness, observed peer discovery, automatic peer-sync polling, and `/status` readiness/discovery/sync summaries are part of the deploy-package gate before any remote mutation can be considered.
+- `make preflight` now also runs `make faucet-check`, `make indexer-check`, and `make explorer-check` sequentially, so RPC-backed faucet funding and controls, persistent index/resume behavior, and real RPC/indexer-backed Explorer data are mandatory local deploy-package checks. This does not count as remote deployment or public proof.
 - Public proof now requires appeal resolution to be followed by Trust evidence false-positive correction summary (`trust.appeal.correctionEvidence.summary`), so a remote proof cannot pass by only changing appeal status without showing reviewer-facing correction evidence.
 - Public proof now requires AI sensitive action proposal audit, active scoped permission audit, permission-gated approval, and audited action lookup/list; a remote proof cannot pass with only AI health.
 - Public proof now also requires Pay intent/invoice idempotency replay, webhook replay-safe audit metadata, webhook lookup/replay, and Pay event audit hashes; a remote proof cannot pass with only a created Pay intent.
@@ -60,6 +61,9 @@ Validation commands:
 - `make native-ynxt-no-hidden-freeze-check`
 - `make resource-market-check`
 - `make validator-peer-readiness-check`
+- `make faucet-check`
+- `make indexer-check`
+- `make explorer-check`
 - `make host-key-audit`
 - `make host-key-approval-request`
 - `make host-key-approval-packet`
