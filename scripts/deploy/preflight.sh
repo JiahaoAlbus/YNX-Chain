@@ -6,6 +6,7 @@ make no-placeholder-check
 make secret-scan
 make objective-state-check
 make deploy-readiness-gate-check
+make deploy-connection-retry-check
 make public-proof-evidence-check
 make public-proof-package-check
 make release-manifest-evidence-check

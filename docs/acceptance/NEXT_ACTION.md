@@ -2,7 +2,7 @@
 
 Current single action: implement the production remote phase driver for the verified approval-gated public BFT cutover transaction, then run a current-topology rehearsal that stops before mutation and public ingress switching. Do not execute public routing changes until custody inputs, freeze/snapshot/candidate evidence, rollback rehearsal, and explicit live approval pass.
 
-Current authoritative baseline (verified 2026-07-12): release `ynx-chain-f18c63f9643d` is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `43758` and common hash `a35a1823f84cb8d6ee08c9236183e52a6fc1b9044dc356ca78f2ff9c326f249c`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
+Current authoritative baseline (verified 2026-07-12): the current repository release is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `44246` and common hash `48d6c3adec7496c878cd1f0128cba06b7cf371a3e0efd04ed2708b547266c6bf`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
 
 Public proof is still incomplete for two independent reasons: the configured AI provider returns HTTP 429 for authenticated SSE generation, and `web4.ynxweb4.com` still reports legacy chain `ynx_9102-1`. Record these honestly; do not weaken the proof gate or claim public BFT.
 

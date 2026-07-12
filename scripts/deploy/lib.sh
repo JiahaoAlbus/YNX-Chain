@@ -51,6 +51,28 @@ ynx_remote() {
   printf '%s@%s' "${SERVER_USER:?}" "${SERVER_HOST:?}"
 }
 
+ynx_connection_retry() {
+  local label="$1"
+  shift
+  local attempts="${YNX_DEPLOY_CONNECTION_ATTEMPTS:-3}"
+  local delay="${YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS:-3}"
+  [[ "$attempts" =~ ^[1-5]$ ]] || { echo "YNX_DEPLOY_CONNECTION_ATTEMPTS must be between 1 and 5"; return 2; }
+  [[ "$delay" =~ ^[0-9]+$ ]] && (( delay <= 30 )) || { echo "YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS must be between 0 and 30"; return 2; }
+  local attempt status
+  for ((attempt = 1; attempt <= attempts; attempt += 1)); do
+    if "$@"; then
+      return 0
+    else
+      status=$?
+    fi
+    if (( status != 255 || attempt == attempts )); then
+      return "$status"
+    fi
+    echo "$label connection closed; retrying attempt $((attempt + 1))/$attempts" >&2
+    sleep "$delay"
+  done
+}
+
 ynx_ssh() {
   local remote
   remote="$(ynx_remote)"
@@ -60,7 +82,7 @@ ynx_ssh() {
     printf '\n'
     return 0
   fi
-  ssh -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$remote" "$@"
+  ynx_connection_retry "ssh" ssh -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$remote" "$@"
 }
 
 ynx_scp() {
@@ -70,7 +92,7 @@ ynx_scp() {
     printf 'DRY RUN scp -i %q %q %q:%q\n' "${SSH_KEY_PATH:?}" "$src" "$remote" "$dest"
     return 0
   fi
-  scp -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$src" "$remote:$dest"
+  ynx_connection_retry "scp" scp -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$src" "$remote:$dest"
 }
 
 ynx_write_kv_env() {
