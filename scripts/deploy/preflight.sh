@@ -42,6 +42,7 @@ make bft-trust-action-check
 make bft-resource-action-check
 make consensus-public-cutover-check
 make public-bft-cutover-transaction-check
+make public-bft-production-rehearsal-check
 make mutation-freeze-check
 make replication-compression-check
 make caddy-ingress-check
