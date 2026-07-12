@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 3
+const CommittedStateVersion = 4
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -36,6 +36,10 @@ type CommittedState struct {
 	PayWebhooks        []BFTPayWebhook          `json:"payWebhooks"`
 	PayEvents          []BFTPayEvent            `json:"payEvents"`
 	PayIdempotency     []BFTPayIdempotency      `json:"payIdempotency"`
+	GovernanceRequests []BFTGovernanceRequest   `json:"governanceRequests"`
+	TrustAppeals       []BFTTrustAppeal         `json:"trustAppeals"`
+	TrustCorrections   []BFTTrustCorrection     `json:"trustCorrections"`
+	Transparency       []BFTTransparencyEntry   `json:"transparencyEntries"`
 	AppHash            string                   `json:"appHash"`
 }
 
@@ -54,6 +58,10 @@ type committedStateHashDocument struct {
 	PayWebhooks        []BFTPayWebhook          `json:"payWebhooks"`
 	PayEvents          []BFTPayEvent            `json:"payEvents"`
 	PayIdempotency     []BFTPayIdempotency      `json:"payIdempotency"`
+	GovernanceRequests []BFTGovernanceRequest   `json:"governanceRequests"`
+	TrustAppeals       []BFTTrustAppeal         `json:"trustAppeals"`
+	TrustCorrections   []BFTTrustCorrection     `json:"trustCorrections"`
+	Transparency       []BFTTransparencyEntry   `json:"transparencyEntries"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
@@ -73,6 +81,10 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		PayWebhooks:        []BFTPayWebhook{},
 		PayEvents:          []BFTPayEvent{},
 		PayIdempotency:     []BFTPayIdempotency{},
+		GovernanceRequests: []BFTGovernanceRequest{},
+		TrustAppeals:       []BFTTrustAppeal{},
+		TrustCorrections:   []BFTTrustCorrection{},
+		Transparency:       []BFTTransparencyEntry{},
 		AppHash:            migration.StateHash,
 	}
 }
@@ -94,6 +106,10 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		PayWebhooks:        append([]BFTPayWebhook(nil), execution.payWebhooks...),
 		PayEvents:          append([]BFTPayEvent(nil), execution.payEvents...),
 		PayIdempotency:     append([]BFTPayIdempotency(nil), execution.payIdempotency...),
+		GovernanceRequests: cloneGovernanceRequests(execution.governanceRequests),
+		TrustAppeals:       cloneTrustAppeals(execution.trustAppeals),
+		TrustCorrections:   append([]BFTTrustCorrection(nil), execution.trustCorrections...),
+		Transparency:       cloneTransparencyEntries(execution.transparency),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
@@ -180,6 +196,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validatePayCommittedState(s); err != nil {
 		return err
 	}
+	if err := validateTrustCommittedState(s); err != nil {
+		return err
+	}
 	if liquid != migration.LiquidSupplyYNXT || staked != migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid or staked YNXT supply")
 	}
@@ -199,7 +218,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:             "YNX_ABCI_STATE_V3",
+		Domain:             "YNX_ABCI_STATE_V4",
 		Version:            s.Version,
 		ChainID:            s.ChainID,
 		MigrationStateHash: s.MigrationStateHash,
@@ -213,6 +232,10 @@ func (s CommittedState) calculateHash() (string, error) {
 		PayWebhooks:        s.PayWebhooks,
 		PayEvents:          s.PayEvents,
 		PayIdempotency:     s.PayIdempotency,
+		GovernanceRequests: s.GovernanceRequests,
+		TrustAppeals:       s.TrustAppeals,
+		TrustCorrections:   s.TrustCorrections,
+		Transparency:       s.Transparency,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -223,7 +246,7 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency) != 0
+	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.Transparency) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {

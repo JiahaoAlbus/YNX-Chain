@@ -29,6 +29,11 @@ const (
 	ActionPayInvoiceCreate   = "pay_invoice_create"
 	ActionPayRefundCreate    = "pay_refund_create"
 	ActionPayWebhookRecord   = "pay_webhook_record"
+	ActionGovernanceCreate   = "governance_request_create"
+	ActionGovernanceReview   = "governance_request_review"
+	ActionGovernanceReject   = "governance_request_reject"
+	ActionTrustAppealCreate  = "trust_appeal_create"
+	ActionTrustAppealResolve = "trust_appeal_resolve"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -40,6 +45,11 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionPayInvoiceCreate:   {},
 	ActionPayRefundCreate:    {},
 	ActionPayWebhookRecord:   {},
+	ActionGovernanceCreate:   {},
+	ActionGovernanceReview:   {},
+	ActionGovernanceReject:   {},
+	ActionTrustAppealCreate:  {},
+	ActionTrustAppealResolve: {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -56,6 +66,7 @@ type SignedApplicationAction struct {
 	Fee         int64           `json:"fee"`
 	AIUnits     int64           `json:"aiUnits"`
 	PayUnits    int64           `json:"payUnits"`
+	TrustUnits  int64           `json:"trustUnits,omitempty"`
 	PublicKey   string          `json:"publicKey"`
 	Signature   string          `json:"signature"`
 }
@@ -73,6 +84,7 @@ type applicationActionSignDoc struct {
 	Fee         int64           `json:"fee"`
 	AIUnits     int64           `json:"aiUnits"`
 	PayUnits    int64           `json:"payUnits"`
+	TrustUnits  int64           `json:"trustUnits,omitempty"`
 	PublicKey   string          `json:"publicKey"`
 }
 
@@ -171,6 +183,8 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 	}
 	if isPayAction(action) {
 		tx.PayUnits = 1
+	} else if isTrustAction(action) {
+		tx.TrustUnits = 1
 	} else {
 		tx.AIUnits = 1
 	}
@@ -191,7 +205,7 @@ func (tx SignedApplicationAction) SignBytes() ([]byte, error) {
 		Domain: "YNX_APPLICATION_ACTION_V1", Version: tx.Version, ChainID: tx.ChainID,
 		Type: tx.Type, Signer: tx.Signer, Nonce: tx.Nonce, Action: tx.Action,
 		Payload: tx.Payload, PayloadHash: tx.PayloadHash, Fee: tx.Fee,
-		AIUnits: tx.AIUnits, PayUnits: tx.PayUnits, PublicKey: tx.PublicKey,
+		AIUnits: tx.AIUnits, PayUnits: tx.PayUnits, TrustUnits: tx.TrustUnits, PublicKey: tx.PublicKey,
 	})
 }
 
@@ -219,10 +233,14 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 		return errors.New("application action must charge exactly 1 YNXT")
 	}
 	if isPayAction(tx.Action) {
-		if tx.PayUnits != 1 || tx.AIUnits != 0 {
+		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
 			return errors.New("Pay application action must charge exactly 1 Pay unit")
 		}
-	} else if tx.AIUnits != 1 || tx.PayUnits != 0 {
+	} else if isTrustAction(tx.Action) {
+		if tx.TrustUnits != 1 || tx.AIUnits != 0 || tx.PayUnits != 0 {
+			return errors.New("Trust application action must charge exactly 1 Trust unit")
+		}
+	} else if tx.AIUnits != 1 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
 		return errors.New("AI application action must charge exactly 1 AI unit")
 	}
 	publicKey, err := hex.DecodeString(tx.PublicKey)
@@ -390,6 +408,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 	default:
 		if isPayAction(action) {
 			return canonicalPayActionPayload(action, raw)
+		}
+		if isTrustAction(action) {
+			return canonicalTrustActionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}

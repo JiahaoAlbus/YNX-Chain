@@ -19,7 +19,10 @@ grep -Fq 'POST /ai/permissions' internal/bftgateway/gateway.go
 grep -Fq 'GET /ai/audit' internal/bftgateway/gateway.go
 grep -Fq 'POST /pay/intents' internal/bftgateway/gateway.go
 grep -Fq 'GET /pay/events' internal/bftgateway/gateway.go
+grep -Fq 'POST /governance/requests' internal/bftgateway/gateway.go
+grep -Fq 'GET /governance/transparency' internal/bftgateway/gateway.go
+grep -Fq 'POST /trust/appeals' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 
-echo "bft-gateway-check passed: native and signed AI action compatibility handlers are implemented while unproven cutover capabilities remain fail-closed"
+echo "bft-gateway-check passed: native, AI, Pay, and partial governance/appeal compatibility handlers are implemented while unproven cutover capabilities remain fail-closed"

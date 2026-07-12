@@ -95,9 +95,10 @@ Trust Gateway readiness:
 
 ```bash
 make trust-api-check
+make bft-trust-action-check
 ```
 
-`ynx-trustd` requires a client API key and separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics plus authenticated Trust and Chain Law routes on `YNX_TRUST_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB evidence/export limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The chain process keeps canonical lineage, labels, evidence, governance requests, appeals, tracking reviews, and transparency records, and rejects direct deployed `/trust/*` and related `/governance/*` access without the upstream key.
+`ynx-trustd` requires a client API key from its dedicated `0600` env file. Keep `YNX_TRUST_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; this mode also requires the separate chain-upstream key and covers the full Trust surface. Candidate `bft` mode requires chain ID, a canonical signer address, and exactly one process-local raw key source, preferably a mode-`0600` key file. It currently signs only governance request/review/reject and Trust appeal/resolve mutations, serializes nonce selection, and verifies committed records; label, evidence, and tracking mutations fail closed until they are BFT-backed. `make bft-trust-action-check` covers this partial signed migration locally and does not authorize public routing or move the full Trust capability from missing.
 
 Resource Gateway readiness:
 

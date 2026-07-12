@@ -1342,7 +1342,7 @@ func (d *Devnet) CreateGovernanceRequest(input GovernanceRequestInput) (Governan
 	if input.Requester == "" || input.Subject == "" || input.Action == "" {
 		return GovernanceRequest{}, errors.New("requester, subject, and action are required")
 	}
-	classification, reasons, notice, ruleIDs := classifyGovernanceRequest(input)
+	classification, reasons, notice, ruleIDs := ClassifyGovernanceRequest(input)
 	now := time.Now().UTC()
 	status := "pending_review"
 	if isRejectedClassification(classification) {
@@ -3844,7 +3844,7 @@ func evmHexData(value string) string {
 	return "0x" + hex.EncodeToString(sum[:])
 }
 
-func classifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {
+func ClassifyGovernanceRequest(input GovernanceRequestInput) (RequestValidityStatus, []string, bool, []string) {
 	text := normalizeLower(strings.Join([]string{input.Action, input.AssetType, input.Scope, input.Description}, " "))
 	reasons := []string{}
 	notice := false

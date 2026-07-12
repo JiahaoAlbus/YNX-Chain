@@ -4,18 +4,22 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const (
@@ -34,6 +38,126 @@ func TestGatewayRequiresDedicatedKeys(t *testing.T) {
 	}
 	if _, err := New(Config{ChainURL: "http://ynx-chaind:6420", APIKey: testAPIKey, UpstreamKey: testUpstreamKey}); err != nil {
 		t.Fatalf("expected private service URL to work: %v", err)
+	}
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 111))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	unsafe := t.TempDir() + "/unsafe.key"
+	if err := os.WriteFile(unsafe, key.Serialize(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(Config{ChainURL: "http://127.0.0.1:6420", APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKeyPath: unsafe, SignerAddress: address}); err == nil || !strings.Contains(err.Error(), "mode-restricted") {
+		t.Fatalf("unsafe BFT Trust signer permissions accepted: %v", err)
+	}
+}
+
+func TestBFTTrustSerializesNonceBindsActorAndFailsClosed(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 112))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	var mu sync.Mutex
+	var nonce uint64
+	broadcasts := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/accounts/"+address:
+			mu.Lock()
+			n := nonce
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 100, Nonce: n})
+		case r.Method == http.MethodGet && r.URL.Path == "/status":
+			_ = json.NewEncoder(w).Encode(map[string]any{"chainId": 6423, "height": 10, "network": "YNX Testnet", "nativeCurrencySymbol": "YNXT"})
+		case r.Method == http.MethodPost && r.URL.Path == "/governance/requests":
+			raw, _ := io.ReadAll(r.Body)
+			var tx consensus.SignedApplicationAction
+			if json.Unmarshal(raw, &tx) != nil || tx.Verify(6423) != nil {
+				http.Error(w, "bad tx", 400)
+				return
+			}
+			var p consensus.GovernanceRequestPayload
+			_ = json.Unmarshal(tx.Payload, &p)
+			mu.Lock()
+			defer mu.Unlock()
+			if tx.Nonce != nonce+1 {
+				http.Error(w, "nonce", 422)
+				return
+			}
+			nonce = tx.Nonce
+			broadcasts++
+			hash := consensus.ApplicationActionHash(raw)
+			record := consensus.BFTGovernanceRequest{GovernanceRequest: chain.GovernanceRequest{ID: consensus.ApplicationActionRecordID("governance-request", hash), Requester: p.Requester, Subject: p.Subject, Action: p.Action, Status: "pending_review", CreatedAt: time.Now().UTC()}, Signer: address, BlockHeight: 1, TxHash: hash, AuditHash: strings.Repeat("a", 64)}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(record)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	service, err := New(Config{ChainURL: upstream.URL, APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 112), SignerAddress: address, ChainID: 6423})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const count = 8
+	var wg sync.WaitGroup
+	errs := make(chan error, count)
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			body := []byte(fmt.Sprintf(`{"requester":"spoofed","subject":"subject-%d","action":"review","assetType":"address","scope":"one","description":"bounded","evidence":["case:%d"]}`, i, i))
+			resp, err := service.Proxy(context.Background(), http.MethodPost, "/governance/requests", "", body, fmt.Sprintf("request-%d", i))
+			if err != nil {
+				errs <- err
+				return
+			}
+			if resp.Status != http.StatusCreated {
+				errs <- fmt.Errorf("status %d", resp.Status)
+				return
+			}
+			var record consensus.BFTGovernanceRequest
+			if json.Unmarshal(resp.Body, &record) != nil || record.Requester != address {
+				errs <- errors.New("signer binding mismatch")
+			}
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+	mu.Lock()
+	gotNonce, gotBroadcasts := nonce, broadcasts
+	mu.Unlock()
+	if gotNonce != count || gotBroadcasts != count {
+		t.Fatalf("concurrent Trust nonce mismatch: nonce=%d broadcasts=%d", gotNonce, gotBroadcasts)
+	}
+	if _, err := service.Proxy(context.Background(), http.MethodPost, "/trust/labels", "", []byte(`{"subject":"x"}`), "unsupported"); err == nil || !strings.Contains(err.Error(), "not BFT-backed") {
+		t.Fatalf("unsupported Trust mutation did not fail closed: %v", err)
+	}
+	if nonce != count {
+		t.Fatal("unsupported mutation consumed nonce")
+	}
+}
+
+func TestBFTTrustRejectsInconsistentCommittedResponse(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 113))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet {
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 10})
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(consensus.BFTGovernanceRequest{GovernanceRequest: chain.GovernanceRequest{ID: strings.Repeat("0", 24), Requester: address}, Signer: address, TxHash: "0x" + strings.Repeat("0", 64)})
+	}))
+	defer upstream.Close()
+	service, err := New(Config{ChainURL: upstream.URL, APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 113), SignerAddress: address})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := []byte(`{"subject":"x","action":"review","assetType":"address","scope":"one","description":"bounded","evidence":["case"]}`)
+	if _, err := service.Proxy(context.Background(), http.MethodPost, "/governance/requests", "", body, "mismatch"); err == nil {
+		t.Fatal("inconsistent committed Trust response accepted")
 	}
 }
 

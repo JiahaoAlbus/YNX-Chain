@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 4
+	ApplicationVersion   = 5
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -41,16 +41,20 @@ type transactionError struct {
 }
 
 type executionState struct {
-	accounts       []chain.ConsensusAccount
-	permissions    []BFTAIPermission
-	actions        []BFTAIAction
-	auditEvents    []BFTAIAuditEvent
-	payIntents     []BFTPayIntent
-	payInvoices    []BFTPayInvoice
-	payRefunds     []BFTPayRefund
-	payWebhooks    []BFTPayWebhook
-	payEvents      []BFTPayEvent
-	payIdempotency []BFTPayIdempotency
+	accounts           []chain.ConsensusAccount
+	permissions        []BFTAIPermission
+	actions            []BFTAIAction
+	auditEvents        []BFTAIAuditEvent
+	payIntents         []BFTPayIntent
+	payInvoices        []BFTPayInvoice
+	payRefunds         []BFTPayRefund
+	payWebhooks        []BFTPayWebhook
+	payEvents          []BFTPayEvent
+	payIdempotency     []BFTPayIdempotency
+	governanceRequests []BFTGovernanceRequest
+	trustAppeals       []BFTTrustAppeal
+	trustCorrections   []BFTTrustCorrection
+	transparency       []BFTTransparencyEntry
 }
 
 type transactionExecution struct {
@@ -233,9 +237,18 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/events/"), a.committed.PayEvents, func(v BFTPayEvent) string { return v.ID }, "Pay event")
 	case strings.HasPrefix(req.Path, "/pay/idempotency/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/idempotency/"), a.committed.PayIdempotency, func(v BFTPayIdempotency) string { return v.ID }, "Pay idempotency")
+	case strings.HasPrefix(req.Path, "/governance/requests/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/governance/requests/"), a.committed.GovernanceRequests, func(v BFTGovernanceRequest) string { return v.ID }, "governance request")
+	case strings.HasPrefix(req.Path, "/trust/appeals/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/appeals/"), a.committed.TrustAppeals, func(v BFTTrustAppeal) string { return v.ID }, "Trust appeal")
+	case strings.HasPrefix(req.Path, "/trust/corrections/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/corrections/"), a.committed.TrustCorrections, func(v BFTTrustCorrection) string { return v.ID }, "Trust correction")
+	case req.Path == "/governance/transparency":
+		response.Value, _ = json.Marshal(a.committed.Transparency)
+		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, AI records, and Pay intents/invoices/refunds/webhooks/events/idempotency"
+		response.Log = "supported query paths include migration, state, accounts, AI, Pay, governance requests, Trust appeals/corrections, and transparency"
 		return response, nil
 	}
 }
@@ -349,6 +362,7 @@ func (a *Application) cloneExecutionState() executionState {
 	return executionState{
 		accounts: cloneAccounts(a.committed.Accounts), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
+		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), transparency: cloneTransparencyEntries(a.committed.Transparency),
 	}
 }
 
@@ -423,6 +437,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isPayAction(tx.Action) {
 		return a.applyPayAction(state, payload, tx, height, blockTime, validationOnly)
+	}
+	if isTrustAction(tx.Action) {
+		return a.applyTrustAction(state, payload, tx, height, blockTime)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
@@ -531,7 +548,7 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	if signer.Balance < tx.Fee {
 		return invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for application action fee"))
 	}
-	if signer.ResourceUsage.AICreditsUsed > math.MaxInt64-tx.AIUnits || signer.ResourceUsage.PayCreditsUsed > math.MaxInt64-tx.PayUnits || signer.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+	if signer.ResourceUsage.AICreditsUsed > math.MaxInt64-tx.AIUnits || signer.ResourceUsage.PayCreditsUsed > math.MaxInt64-tx.PayUnits || signer.ResourceUsage.TrustUsed > math.MaxInt64-tx.TrustUnits || signer.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return invalidTransaction(CodeInvalidTx, errors.New("application action resource usage overflow"))
 	}
 	state.accounts, _ = ensureAccount(state.accounts, a.feeRecipient)
@@ -541,6 +558,7 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	state.accounts[signerIndex].Nonce++
 	state.accounts[signerIndex].ResourceUsage.AICreditsUsed += tx.AIUnits
 	state.accounts[signerIndex].ResourceUsage.PayCreditsUsed += tx.PayUnits
+	state.accounts[signerIndex].ResourceUsage.TrustUsed += tx.TrustUnits
 	state.accounts[signerIndex].ResourceUsage.BandwidthUsed++
 	state.accounts[feeIndex].Balance += tx.Fee
 	return nil
