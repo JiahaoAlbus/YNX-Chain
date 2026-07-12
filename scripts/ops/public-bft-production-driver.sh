@@ -7,15 +7,64 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
-[[ "$(git branch --show-current)" == "main" ]] || { echo "production rehearsal requires main branch" >&2; exit 1; }
-[[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production rehearsal requires no tracked worktree changes" >&2; exit 1; }
+[[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
+[[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
 
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
+
+backup_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_BACKUP_APPROVED:-}" == "yes" ]] || {
+    echo "PUBLIC_BFT_PRODUCTION_BACKUP_APPROVED=yes is required" >&2
+    exit 1
+  }
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || {
+    echo "backup commit does not match current HEAD" >&2
+    exit 1
+  }
+  local bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$bft_release" ]] || {
+    echo "backup BFT release does not match current HEAD" >&2
+    exit 1
+  }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$transaction_dir" && -d "$transaction_dir" ]] || {
+    echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2
+    exit 1
+  }
+  local transaction_id
+  transaction_id="$(basename "$transaction_dir")"
+  [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || {
+    echo "invalid public BFT cutover transaction id" >&2
+    exit 1
+  }
+  local evidence_dir="$transaction_dir/roles"
+  umask 077
+  mkdir -p "$evidence_dir"
+
+  backup_role() {
+    local role="$1" user="$2" host="$3" key="$4" kind="$5"
+    local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
+    local remote_helper="/tmp/ynx-public-bft-scoped-backup-${transaction_id}-${role}.sh"
+    local indexer_required=false
+    [[ "$kind" == "full" ]] && indexer_required=true
+    ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-scoped-backup.sh "$remote_helper"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$transaction_id' '$role' '$commit' '$release' '$bft_release' '$remote_root' '$indexer_required' /" >"$evidence_dir/${role}-backup.txt"
+  }
+  ynx_ops_each_node backup_role
+  echo "production BFT scoped backups passed: transaction=$transaction_id evidence=$evidence_dir"
+}
+
+if [[ "$action" == "backup" ]]; then
+  [[ -z "$(git status --short)" ]] || { echo "production backup requires a clean worktree" >&2; exit 1; }
+  backup_phase
+  exit 0
+fi
+
 run_id="${PUBLIC_BFT_PRODUCTION_REHEARSAL_ID:-rehearsal-${commit}-$(date -u +%Y%m%dT%H%M%SZ)}"
 [[ "$run_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid production rehearsal id" >&2; exit 1; }
 root="${PUBLIC_BFT_PRODUCTION_REHEARSAL_DIR:-tmp/public-bft-production-rehearsal}/${run_id}"

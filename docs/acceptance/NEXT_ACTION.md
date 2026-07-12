@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: verify the production driver's read-only current-topology rehearsal, then implement its transaction-bound backup and remote mutation-freeze phases. Stop before pausing authoritative production or changing public ingress. Do not execute later phases until custody inputs, freeze/snapshot/candidate evidence, rollback rehearsal, and explicit live approval pass.
+Current single action: implement and locally verify the production driver's transaction-bound remote mutation-freeze/unfreeze phases. The read-only current-topology rehearsal has passed remotely and the transaction-bound scoped backup phase is implemented and locally/dry-run verified, but the backup has not been executed on production hosts. Stop before pausing authoritative production or changing public ingress. Do not execute later phases until custody inputs, remote backup/freeze evidence, final snapshot/candidate evidence, rollback rehearsal, and explicit live approval pass.
 
 Current authoritative baseline (verified 2026-07-12): the current repository release is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `44246` and common hash `48d6c3adec7496c878cd1f0128cba06b7cf371a3e0efd04ed2708b547266c6bf`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
 
@@ -20,7 +20,7 @@ Required work:
 - Use restricted upgrade mode only for the reviewed old-release-to-current-release transition; it must not suppress chain, height, validator, EVM, service, governance, or SSH failures.
 - Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
 - Keep the implemented production preflight driver current: it must prebuild binaries and verify current HEAD/release identity, strict SSH host keys, overlay, production custody paths, disk, backup path, public role identity, candidate absence, freeze absence, and fixed-height convergence before any mutation.
-- Implement transaction-bound, checksum-verified scoped backups as the next idempotent driver phase; do not reuse the legacy broad backup that includes unrelated V2 state.
+- Preserve the implemented transaction-bound, checksum-verified scoped backup phase and its explicit approval/commit/release gates. It is locally and dry-run verified only; execute it remotely only inside an approved current-commit transaction. Do not reuse the legacy broad backup that includes unrelated V2 state.
 - Deploy and remotely verify the implemented shared marker-based mutation freeze; preserve supported read-only EVM/HTTP health, reject writes, and record freeze/unfreeze evidence.
 - Pause authoritative block production only after the freeze gate passes, export a final fresh migration, bind the approved validator manifest, deploy the candidate, and require four-signer/common-hash/four-application state evidence.
 - Start persistent BFT Gateway and dependent BFT-mode services on loopback, rebuild/resume Indexer from the retained candidate boundary, and verify Explorer/API continuity before changing ingress.
@@ -46,6 +46,7 @@ Validation commands:
 - `make consensus-public-cutover-check`
 - `make public-bft-cutover-transaction-check`
 - `make public-bft-production-rehearsal-check`
+- `make public-bft-production-driver-check`
 - `make public-bft-production-rehearsal`
 - `make no-placeholder-check`
 - `make secret-scan`
