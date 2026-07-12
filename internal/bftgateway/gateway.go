@@ -45,6 +45,7 @@ var missingCutoverCapabilities = []string{
 var (
 	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
+	aiRecordIDPattern      = regexp.MustCompile(`^[0-9a-f]{24}$`)
 )
 
 type Config struct {
@@ -253,6 +254,15 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
+	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
+	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
+	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)
+	g.mux.HandleFunc("POST /ai/actions", g.handleAIMutation)
+	g.mux.HandleFunc("GET /ai/actions", g.handleAIActions)
+	g.mux.HandleFunc("GET /ai/actions/{id}", g.handleAIAction)
+	g.mux.HandleFunc("POST /ai/actions/{id}/approve", g.handleAIMutation)
+	g.mux.HandleFunc("POST /ai/actions/{id}/reject", g.handleAIMutation)
+	g.mux.HandleFunc("GET /ai/audit", g.handleAIAudit)
 	g.mux.HandleFunc("GET /validators", g.handleValidators)
 	g.mux.HandleFunc("GET /node/identity", g.handleNodeIdentity)
 	g.mux.HandleFunc("POST /evm", g.handleEVM)
@@ -418,6 +428,21 @@ func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error)
 }
 
 func mappedTransaction(payload []byte, height uint64, blockHash string, blockTime time.Time) (chain.Transaction, error) {
+	kind, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return chain.Transaction{}, err
+	}
+	if kind == consensus.SignedActionType {
+		tx, err := consensus.DecodeSignedApplicationAction(payload)
+		if err != nil || tx.Verify(6423) != nil {
+			return chain.Transaction{}, errors.New("invalid signed application action")
+		}
+		return chain.Transaction{
+			Hash: consensus.ApplicationActionHash(payload), Type: tx.Action, From: tx.Signer,
+			Fee: tx.Fee, Nonce: tx.Nonce, BlockHash: strings.ToLower(blockHash), BlockNum: height,
+			Timestamp: blockTime, Memo: "signed BFT application action",
+		}, nil
+	}
 	tx, err := consensus.DecodeSignedTransaction(payload)
 	if err != nil {
 		return chain.Transaction{}, err
@@ -608,6 +633,217 @@ func cometError(upstream *cometRPCError) string {
 		message = "unspecified CometBFT RPC error"
 	}
 	return message
+}
+
+func (g *Gateway) handleAIMutation(w http.ResponseWriter, r *http.Request) {
+	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
+		writeJSON(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type application/json is required"})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, consensus.MaxSignedActionSize)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "signed application action exceeds maximum size"})
+		return
+	}
+	tx, err := consensus.DecodeSignedApplicationAction(payload)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	if err := tx.Verify(6423); err != nil {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+		return
+	}
+	expectedAction := ""
+	recordID := ""
+	status := http.StatusOK
+	switch {
+	case r.URL.Path == "/ai/permissions":
+		expectedAction, status = consensus.ActionAIPermissionCreate, http.StatusCreated
+		recordID = consensus.ApplicationActionRecordID("ai-permission", consensus.ApplicationActionHash(payload))
+	case r.URL.Path == "/ai/actions":
+		expectedAction, status = consensus.ActionAIProposalCreate, http.StatusCreated
+		recordID = consensus.ApplicationActionRecordID("ai-action", consensus.ApplicationActionHash(payload))
+	case strings.HasSuffix(r.URL.Path, "/approve"):
+		expectedAction = consensus.ActionAIProposalApprove
+	case strings.HasSuffix(r.URL.Path, "/reject"):
+		expectedAction = consensus.ActionAIProposalReject
+	}
+	if tx.Action != expectedAction {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "signed application action does not match the requested AI route"})
+		return
+	}
+	if expectedAction == consensus.ActionAIProposalApprove || expectedAction == consensus.ActionAIProposalReject {
+		var decision consensus.AIActionDecisionPayload
+		if err := json.Unmarshal(tx.Payload, &decision); err != nil || decision.ActionID != r.PathValue("id") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "signed AI decision actionId does not match its route"})
+			return
+		}
+		recordID = decision.ActionID
+	}
+	if _, err := g.broadcastApplicationAction(r.Context(), payload, tx); err != nil {
+		var txErr *gatewayTransactionError
+		if errors.As(err, &txErr) {
+			writeJSON(w, txErr.status, map[string]string{"error": txErr.Error()})
+		} else {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		}
+		return
+	}
+	if expectedAction == consensus.ActionAIPermissionCreate {
+		var record consensus.BFTAIPermission
+		if err := g.queryABCIJSON(r.Context(), "/ai/permissions/"+recordID, &record); err != nil || record.ID != recordID || record.Signer != tx.Signer || record.TxHash != consensus.ApplicationActionHash(payload) {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed AI permission evidence mismatch"})
+			return
+		}
+		writeJSON(w, status, record)
+		return
+	}
+	var record consensus.BFTAIAction
+	if err := g.queryABCIJSON(r.Context(), "/ai/actions/"+recordID, &record); err != nil || record.ID != recordID || record.Signer != tx.Signer || record.TxHash != consensus.ApplicationActionHash(payload) {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed AI action evidence mismatch"})
+		return
+	}
+	if (expectedAction == consensus.ActionAIProposalApprove && record.Status != "approved") || (expectedAction == consensus.ActionAIProposalReject && record.Status != "rejected") {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed AI action state mismatch"})
+		return
+	}
+	writeJSON(w, status, record)
+}
+
+type gatewayTransactionError struct {
+	status  int
+	message string
+}
+
+func (e *gatewayTransactionError) Error() string { return e.message }
+
+func (g *Gateway) broadcastApplicationAction(ctx context.Context, payload []byte, tx consensus.SignedApplicationAction) (chain.Transaction, error) {
+	hash := consensus.ApplicationActionHash(payload)
+	var upstream cometBroadcast
+	if err := g.client.get(ctx, "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
+		return chain.Transaction{}, err
+	}
+	if upstream.Error != nil {
+		return chain.Transaction{}, errors.New(cometError(upstream.Error))
+	}
+	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
+		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
+		return chain.Transaction{}, &gatewayTransactionError{status: http.StatusUnprocessableEntity, message: "CometBFT rejected signed application action: " + message}
+	}
+	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Result.Hash) {
+		return chain.Transaction{}, errors.New("CometBFT application action hash mismatch")
+	}
+	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
+	if err != nil || height == 0 {
+		return chain.Transaction{}, errors.New("CometBFT returned an invalid application action height")
+	}
+	mapped, err := g.transactionAtHeight(ctx, hash, height)
+	if err != nil {
+		return chain.Transaction{}, err
+	}
+	if mapped.Type != tx.Action || mapped.From != tx.Signer || mapped.Fee != tx.Fee || mapped.Nonce != tx.Nonce {
+		return chain.Transaction{}, errors.New("committed application action block evidence mismatch")
+	}
+	return mapped, nil
+}
+
+func (g *Gateway) queryABCIJSON(ctx context.Context, path string, out any) error {
+	var upstream cometABCIQuery
+	if err := g.client.get(ctx, "/abci_query", url.Values{"path": {fmt.Sprintf("%q", path)}}, &upstream); err != nil {
+		return err
+	}
+	if upstream.Result.Response.Code != 0 {
+		return errors.New(strings.TrimSpace(upstream.Result.Response.Log))
+	}
+	payload, err := base64.StdEncoding.DecodeString(upstream.Result.Response.Value)
+	if err != nil {
+		return errors.New("invalid ABCI query value encoding")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		return fmt.Errorf("decode ABCI %s response: %w", path, err)
+	}
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		return errors.New("ABCI query returned multiple JSON values")
+	}
+	return nil
+}
+
+func (g *Gateway) handleAIPermissions(w http.ResponseWriter, r *http.Request) {
+	var records []consensus.BFTAIPermission
+	if err := g.queryABCIJSON(r.Context(), "/ai/permissions", &records); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"permissions": records})
+}
+
+func (g *Gateway) handleAIPermission(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if !aiRecordIDPattern.MatchString(id) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical AI permission ID is required"})
+		return
+	}
+	var record consensus.BFTAIPermission
+	if err := g.queryABCIJSON(r.Context(), "/ai/permissions/"+id, &record); err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "AI permission not found"})
+		return
+	}
+	if record.ID != id {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "ABCI AI permission ID mismatch"})
+		return
+	}
+	writeJSON(w, http.StatusOK, record)
+}
+
+func (g *Gateway) handleAIActions(w http.ResponseWriter, r *http.Request) {
+	var records []consensus.BFTAIAction
+	if err := g.queryABCIJSON(r.Context(), "/ai/actions", &records); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	sessionID := strings.TrimSpace(r.URL.Query().Get("sessionId"))
+	if len(sessionID) > 128 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "sessionId exceeds limit"})
+		return
+	}
+	filtered := make([]consensus.BFTAIAction, 0, len(records))
+	for _, record := range records {
+		if sessionID == "" || record.SessionID == sessionID {
+			filtered = append(filtered, record)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"actions": filtered})
+}
+
+func (g *Gateway) handleAIAction(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if !aiRecordIDPattern.MatchString(id) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical AI action ID is required"})
+		return
+	}
+	var record consensus.BFTAIAction
+	if err := g.queryABCIJSON(r.Context(), "/ai/actions/"+id, &record); err != nil {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "AI action not found"})
+		return
+	}
+	if record.ID != id {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "ABCI AI action ID mismatch"})
+		return
+	}
+	writeJSON(w, http.StatusOK, record)
+}
+
+func (g *Gateway) handleAIAudit(w http.ResponseWriter, r *http.Request) {
+	var records []consensus.BFTAIAuditEvent
+	if err := g.queryABCIJSON(r.Context(), "/ai/audit", &records); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": records, "truthfulStatus": "cometbft-abci-backed-append-only-audit"})
 }
 
 func (g *Gateway) handleAccount(w http.ResponseWriter, r *http.Request) {

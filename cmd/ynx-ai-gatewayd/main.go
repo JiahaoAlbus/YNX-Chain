@@ -29,6 +29,8 @@ func main() {
 	auditLog := flag.String("audit-log", envOrDefault("YNX_AI_GATEWAY_AUDIT_LOG", "tmp/ai-gateway/audit.jsonl"), "AI Gateway JSONL audit log")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_AI_GATEWAY_RATE_LIMIT_WINDOW", time.Minute), "rate limit window")
 	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_AI_GATEWAY_RATE_LIMIT_MAX", 30), "maximum requests per API key/IP in window")
+	upstreamMode := flag.String("upstream-mode", envOrDefault("YNX_AI_GATEWAY_UPSTREAM_MODE", aigateway.UpstreamAuthoritative), "chain upstream mode: authoritative or bft")
+	chainID := flag.Int64("chain-id", envInt64OrDefault("YNX_CHAIN_ID", 6423), "YNX BFT chain ID")
 	flag.Parse()
 
 	service, err := aigateway.New(aigateway.Config{
@@ -41,6 +43,11 @@ func main() {
 		AuditLog:       *auditLog,
 		Window:         *window,
 		MaxRequests:    *maxRequests,
+		UpstreamMode:   *upstreamMode,
+		SignerKey:      os.Getenv("YNX_AI_GATEWAY_SIGNER_PRIVATE_KEY"),
+		SignerKeyPath:  os.Getenv("YNX_AI_GATEWAY_SIGNER_PRIVATE_KEY_FILE"),
+		SignerAddress:  os.Getenv("YNX_AI_GATEWAY_SIGNER_ADDRESS"),
+		ChainID:        *chainID,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -90,6 +97,18 @@ func envIntOrDefault(key string, fallback int) int {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envInt64OrDefault(key string, fallback int64) int64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return fallback
 	}

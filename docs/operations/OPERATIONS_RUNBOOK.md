@@ -77,9 +77,10 @@ AI Gateway readiness:
 
 ```bash
 make ai-gateway-check
+make bft-ai-action-check
 ```
 
-`ynx-ai-gatewayd` requires provider, public access, and chain-upstream keys from env. It serves public health/metrics, authenticated provider-backed SSE, rate limiting, request IDs, redacted JSONL audit, and chain-backed permission/action proxy routes on `YNX_AI_GATEWAY_HTTP_ADDR`. Deployed chain AI routes require the upstream key, preventing clients from bypassing gateway authentication through the general REST domain.
+`ynx-ai-gatewayd` requires provider and public access keys in both modes. Keep `YNX_AI_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; its chain routes require the separate upstream key. Candidate `bft` mode requires a canonical signer address and exactly one process-local raw key source, preferably a mode-`0600` key file. It serializes nonce query/sign/broadcast, never forwards key material, and rejects inconsistent commit or ABCI record evidence. `make bft-ai-action-check` covers the signed BFT mutation path locally; it does not authorize public routing.
 
 Pay Gateway readiness:
 

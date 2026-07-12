@@ -17,6 +17,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const testAccessKey = "local-ai-gateway-access-key"
@@ -34,6 +36,19 @@ func TestGatewayRequiresProviderAndAccessKeys(t *testing.T) {
 	_, err = New(Config{ChainURL: "http://127.0.0.1:6420", ProviderURL: "https://provider.example", ProviderAPIKey: "provider-key", Model: "test", AccessAPIKey: testAccessKey})
 	if err == nil || !strings.Contains(err.Error(), "YNX_AI_GATEWAY_UPSTREAM_KEY") {
 		t.Fatalf("expected upstream key error, got %v", err)
+	}
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 7))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	unsafePath := t.TempDir() + "/unsafe-ai-signer.key"
+	if err := os.WriteFile(unsafePath, key.Serialize(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(unsafePath, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err = New(Config{ChainURL: "http://127.0.0.1:6420", ProviderURL: "https://provider.example", ProviderAPIKey: "provider-key", Model: "test", AccessAPIKey: testAccessKey, UpstreamMode: UpstreamBFT, SignerKeyPath: unsafePath, SignerAddress: address})
+	if err == nil || !strings.Contains(err.Error(), "mode-restricted") {
+		t.Fatalf("unsafe signer key permissions were accepted: %v", err)
 	}
 }
 
@@ -173,6 +188,107 @@ func TestGatewayRateLimit(t *testing.T) {
 		if resp.StatusCode != expected {
 			t.Fatalf("request %d expected %d got %d", i, expected, resp.StatusCode)
 		}
+	}
+}
+
+func TestBFTGatewaySerializesSignerNonceAndRejectsResponseMismatch(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 71))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	var mu sync.Mutex
+	var nonce uint64
+	seen := make([]uint64, 0)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/accounts/"+address:
+			mu.Lock()
+			current := nonce
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 100, Nonce: current, Lots: map[string]int64{"lot": 100}})
+		case r.Method == http.MethodPost && r.URL.Path == "/ai/permissions":
+			var tx consensus.SignedApplicationAction
+			raw, _ := io.ReadAll(r.Body)
+			if err := json.Unmarshal(raw, &tx); err != nil || tx.Verify(6423) != nil {
+				http.Error(w, "invalid action", http.StatusBadRequest)
+				return
+			}
+			mu.Lock()
+			if tx.Nonce != nonce+1 {
+				mu.Unlock()
+				http.Error(w, "nonce collision", http.StatusUnprocessableEntity)
+				return
+			}
+			nonce = tx.Nonce
+			seen = append(seen, tx.Nonce)
+			mu.Unlock()
+			var input consensus.AIPermissionPayload
+			_ = json.Unmarshal(tx.Payload, &input)
+			txHash := consensus.ApplicationActionHash(raw)
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(consensus.BFTAIPermission{ID: consensus.ApplicationActionRecordID("ai-permission", txHash), Signer: address, SessionID: input.SessionID, Requester: input.Requester, Scope: input.Scope, Purpose: input.Purpose, Status: "active", CreatedAt: time.Now().UTC(), ExpiresAt: time.Now().UTC().Add(time.Hour), BlockHeight: int64(tx.Nonce), TxHash: txHash, AuditHash: strings.Repeat("a", 64)})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	service, err := New(Config{ChainURL: upstream.URL, ProviderURL: "https://provider.example", ProviderAPIKey: "provider-key", Model: "test", AccessAPIKey: testAccessKey, AuditLog: t.TempDir() + "/audit.jsonl", UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 71), SignerAddress: address, ChainID: 6423})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const count = 12
+	errs := make(chan error, count)
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		i := i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			body, _ := json.Marshal(chain.AIPermissionInput{SessionID: fmt.Sprintf("session-%02d", i), Requester: "merchant_ops", Scope: "trust_label", Purpose: "bounded review", ExpiryHours: 1})
+			resp, err := service.Proxy(context.Background(), http.MethodPost, "/ai/permissions", "", bytes.NewReader(body), fmt.Sprintf("request-%02d", i))
+			if err != nil {
+				errs <- err
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusCreated {
+				errs <- fmt.Errorf("unexpected status %d", resp.StatusCode)
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+	if nonce != count || len(seen) != count {
+		t.Fatalf("unexpected nonce evidence: nonce=%d seen=%v", nonce, seen)
+	}
+	for i, value := range seen {
+		if value != uint64(i+1) {
+			t.Fatalf("nonces were not serialized: %v", seen)
+		}
+	}
+
+	mismatch := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet {
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 10, Nonce: 0})
+			return
+		}
+		var tx consensus.SignedApplicationAction
+		raw, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(raw, &tx)
+		_ = json.NewEncoder(w).Encode(consensus.BFTAIPermission{ID: strings.Repeat("0", 24), Signer: address, Status: "active", TxHash: strings.Repeat("0", 66)})
+	}))
+	defer mismatch.Close()
+	badService, err := New(Config{ChainURL: mismatch.URL, ProviderURL: "https://provider.example", ProviderAPIKey: "provider-key", Model: "test", AccessAPIKey: testAccessKey, AuditLog: t.TempDir() + "/audit.jsonl", UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 71), SignerAddress: address, ChainID: 6423})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := json.Marshal(chain.AIPermissionInput{SessionID: "mismatch", Requester: "merchant_ops", Scope: "trust_label", Purpose: "bounded review", ExpiryHours: 1})
+	if _, err := badService.Proxy(context.Background(), http.MethodPost, "/ai/permissions", "", bytes.NewReader(body), "mismatch-request"); err == nil {
+		t.Fatal("inconsistent BFT AI response was accepted")
 	}
 }
 

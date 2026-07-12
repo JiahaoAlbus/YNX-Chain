@@ -8,8 +8,10 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,9 +22,16 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const maxBodyBytes = 2 << 20
+const (
+	UpstreamAuthoritative = "authoritative"
+	UpstreamBFT           = "bft"
+)
 
 type Config struct {
 	ChainURL       string
@@ -34,6 +43,11 @@ type Config struct {
 	AuditLog       string
 	Window         time.Duration
 	MaxRequests    int
+	UpstreamMode   string
+	SignerKey      string
+	SignerKeyPath  string
+	SignerAddress  string
+	ChainID        int64
 }
 
 func (c Config) normalized() (Config, error) {
@@ -57,8 +71,29 @@ func (c Config) normalized() (Config, error) {
 	if strings.TrimSpace(c.AccessAPIKey) == "" {
 		return Config{}, fmt.Errorf("YNX_AI_GATEWAY_API_KEY is required for ynx-ai-gatewayd")
 	}
-	if strings.TrimSpace(c.UpstreamKey) == "" {
+	c.UpstreamMode = strings.ToLower(strings.TrimSpace(c.UpstreamMode))
+	if c.UpstreamMode == "" {
+		c.UpstreamMode = UpstreamAuthoritative
+	}
+	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
+		return Config{}, fmt.Errorf("AI Gateway upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
+	}
+	if c.UpstreamMode == UpstreamAuthoritative && strings.TrimSpace(c.UpstreamKey) == "" {
 		return Config{}, fmt.Errorf("YNX_AI_GATEWAY_UPSTREAM_KEY is required for ynx-ai-gatewayd")
+	}
+	if c.UpstreamMode == UpstreamBFT {
+		if (strings.TrimSpace(c.SignerKey) == "") == (strings.TrimSpace(c.SignerKeyPath) == "") {
+			return Config{}, fmt.Errorf("BFT AI Gateway requires exactly one signer key source")
+		}
+		if !consensus.IsNativeAddress(strings.TrimSpace(c.SignerAddress)) {
+			return Config{}, fmt.Errorf("BFT AI Gateway requires canonical YNX_AI_GATEWAY_SIGNER_ADDRESS")
+		}
+		if c.ChainID == 0 {
+			c.ChainID = 6423
+		}
+		if c.ChainID != 6423 {
+			return Config{}, fmt.Errorf("BFT AI Gateway chain ID must equal 6423")
+		}
 	}
 	if strings.TrimSpace(c.Model) == "" {
 		return Config{}, fmt.Errorf("AI_MODEL_NAME is required for ynx-ai-gatewayd")
@@ -85,6 +120,9 @@ type Service struct {
 	denied     int64
 	errors     int64
 	active     int64
+	signer     *secp256k1.PrivateKey
+	signerAddr string
+	mutationMu sync.Mutex
 }
 
 func New(cfg Config) (*Service, error) {
@@ -92,11 +130,59 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{
+	service := &Service{
 		cfg:        normalized,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		seen:       map[string][]time.Time{},
-	}, nil
+	}
+	if normalized.UpstreamMode == UpstreamBFT {
+		signer, address, err := loadBFTSigner(normalized)
+		if err != nil {
+			return nil, err
+		}
+		service.signer, service.signerAddr = signer, address
+		service.cfg.SignerKey = ""
+	}
+	return service, nil
+}
+
+func loadBFTSigner(cfg Config) (*secp256k1.PrivateKey, string, error) {
+	var keyBytes []byte
+	if path := strings.TrimSpace(cfg.SignerKeyPath); path != "" {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, "", fmt.Errorf("stat BFT AI Gateway signer key: %w", err)
+		}
+		if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+			return nil, "", errors.New("BFT AI Gateway signer key file must be regular and mode-restricted")
+		}
+		keyBytes, err = os.ReadFile(path)
+		if err != nil {
+			return nil, "", fmt.Errorf("read BFT AI Gateway signer key: %w", err)
+		}
+	} else {
+		var err error
+		keyBytes, err = hex.DecodeString(strings.TrimPrefix(strings.TrimSpace(cfg.SignerKey), "0x"))
+		if err != nil {
+			return nil, "", errors.New("BFT AI Gateway signer key must be canonical hex")
+		}
+	}
+	defer clear(keyBytes)
+	if len(keyBytes) != 32 || bytes.Equal(keyBytes, make([]byte, 32)) {
+		return nil, "", errors.New("BFT AI Gateway signer key must be one non-zero 32-byte scalar")
+	}
+	privateKey := secp256k1.PrivKeyFromBytes(keyBytes)
+	if !bytes.Equal(privateKey.Serialize(), keyBytes) {
+		return nil, "", errors.New("BFT AI Gateway signer key scalar is outside the canonical range")
+	}
+	address, err := consensus.NativeAddress(privateKey.PubKey().SerializeCompressed())
+	if err != nil {
+		return nil, "", err
+	}
+	if address != strings.TrimSpace(cfg.SignerAddress) {
+		return nil, "", errors.New("BFT AI Gateway configured signer address does not match private key")
+	}
+	return privateKey, address, nil
 }
 
 type ChainStatus struct {
@@ -126,6 +212,8 @@ type Health struct {
 	Build              buildinfo.Info `json:"build"`
 	TruthfulStatus     string         `json:"truthfulStatus"`
 	Error              string         `json:"error,omitempty"`
+	UpstreamMode       string         `json:"upstreamMode"`
+	SignerAddress      string         `json:"signerAddress,omitempty"`
 }
 
 func (s *Service) Health(ctx context.Context, build buildinfo.Info) Health {
@@ -162,6 +250,10 @@ func (s *Service) Health(ctx context.Context, build buildinfo.Info) Health {
 func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	truthfulStatus := "chain-context-and-provider-backed-ai-gateway"
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		truthfulStatus = "signed-bft-application-action-and-provider-backed-ai-gateway"
+	}
 	return Health{
 		Service:            "ynx-ai-gatewayd",
 		NativeSymbol:       "YNXT",
@@ -175,7 +267,9 @@ func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 		Errors:             s.errors,
 		Active:             s.active,
 		Build:              buildinfo.Normalize(build),
-		TruthfulStatus:     "chain-context-and-provider-backed-ai-gateway",
+		TruthfulStatus:     truthfulStatus,
+		UpstreamMode:       s.cfg.UpstreamMode,
+		SignerAddress:      s.signerAddr,
 	}
 }
 
@@ -285,6 +379,9 @@ func (s *Service) chainStatus(ctx context.Context) (ChainStatus, error) {
 }
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body io.Reader, requestID string) (*http.Response, error) {
+	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
+		return s.proxyBFTMutation(ctx, path, body, requestID)
+	}
 	url := s.cfg.ChainURL + path
 	if rawQuery != "" {
 		url += "?" + rawQuery
@@ -295,8 +392,177 @@ func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-ID", requestID)
-	req.Header.Set("X-YNX-AI-Gateway-Upstream-Key", s.cfg.UpstreamKey)
+	if s.cfg.UpstreamMode == UpstreamAuthoritative {
+		req.Header.Set("X-YNX-AI-Gateway-Upstream-Key", s.cfg.UpstreamKey)
+	}
 	return s.httpClient.Do(req)
+}
+
+func (s *Service) proxyBFTMutation(ctx context.Context, path string, body io.Reader, requestID string) (*http.Response, error) {
+	s.mutationMu.Lock()
+	defer s.mutationMu.Unlock()
+	if s.signer == nil || s.signerAddr == "" {
+		return nil, errors.New("BFT AI Gateway signer is unavailable")
+	}
+	raw, err := io.ReadAll(io.LimitReader(body, maxBodyBytes+1))
+	if err != nil || len(raw) > maxBodyBytes {
+		return nil, errors.New("AI mutation request exceeds maximum size")
+	}
+	actionType, payload, err := signedActionInput(path, raw)
+	if err != nil {
+		return nil, err
+	}
+	account, err := s.bftSignerAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if account.Nonce == math.MaxUint64 {
+		return nil, errors.New("BFT AI Gateway signer nonce is exhausted")
+	}
+	signed, err := consensus.NewSignedApplicationAction(s.signer, s.cfg.ChainID, actionType, payload, account.Nonce+1)
+	if err != nil {
+		return nil, err
+	}
+	encoded, err := consensus.EncodeSignedApplicationAction(signed)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.ChainURL+path, bytes.NewReader(encoded))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Request-ID", requestID)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return resp, nil
+	}
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, maxBodyBytes+1))
+	_ = resp.Body.Close()
+	if err != nil || len(responseBody) > maxBodyBytes {
+		return nil, errors.New("BFT AI Gateway upstream response exceeds maximum size")
+	}
+	if err := verifyBFTMutationResponse(actionType, signed, responseBody); err != nil {
+		return nil, err
+	}
+	resp.Body = io.NopCloser(bytes.NewReader(responseBody))
+	resp.ContentLength = int64(len(responseBody))
+	return resp, nil
+}
+
+func (s *Service) bftSignerAccount(ctx context.Context) (chain.ConsensusAccount, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.ChainURL+"/accounts/"+s.signerAddr, nil)
+	if err != nil {
+		return chain.ConsensusAccount{}, err
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return chain.ConsensusAccount{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return chain.ConsensusAccount{}, fmt.Errorf("BFT AI signer account query returned %d", resp.StatusCode)
+	}
+	var account chain.ConsensusAccount
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxBodyBytes)).Decode(&account); err != nil {
+		return chain.ConsensusAccount{}, err
+	}
+	if account.Address != s.signerAddr {
+		return chain.ConsensusAccount{}, errors.New("BFT AI signer account response mismatch")
+	}
+	return account, nil
+}
+
+func signedActionInput(path string, raw []byte) (string, any, error) {
+	decode := func(out any) error {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(out); err != nil {
+			return err
+		}
+		if decoder.Decode(&struct{}{}) != io.EOF {
+			return errors.New("AI mutation must contain one JSON value")
+		}
+		return nil
+	}
+	switch {
+	case path == "/ai/permissions":
+		var input chain.AIPermissionInput
+		if err := decode(&input); err != nil {
+			return "", nil, err
+		}
+		if input.ExpiryHours <= 0 {
+			input.ExpiryHours = 1
+		}
+		return consensus.ActionAIPermissionCreate, consensus.AIPermissionPayload(input), nil
+	case path == "/ai/actions":
+		var input chain.AIActionProposalInput
+		if err := decode(&input); err != nil {
+			return "", nil, err
+		}
+		if input.ExpiryHours <= 0 {
+			input.ExpiryHours = 1
+		}
+		return consensus.ActionAIProposalCreate, consensus.AIActionProposalPayload(input), nil
+	case strings.HasPrefix(path, "/ai/actions/") && strings.HasSuffix(path, "/approve"):
+		var input chain.AIActionApprovalInput
+		if err := decode(&input); err != nil {
+			return "", nil, err
+		}
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "/ai/actions/"), "/approve")
+		return consensus.ActionAIProposalApprove, consensus.AIActionDecisionPayload{ActionID: id, Approver: input.Approver, PermissionID: input.PermissionID}, nil
+	case strings.HasPrefix(path, "/ai/actions/") && strings.HasSuffix(path, "/reject"):
+		var input chain.AIActionApprovalInput
+		if err := decode(&input); err != nil {
+			return "", nil, err
+		}
+		id := strings.TrimSuffix(strings.TrimPrefix(path, "/ai/actions/"), "/reject")
+		return consensus.ActionAIProposalReject, consensus.AIActionDecisionPayload{ActionID: id, Approver: input.Approver}, nil
+	default:
+		return "", nil, errors.New("unsupported BFT AI mutation route")
+	}
+}
+
+func verifyBFTMutationResponse(actionType string, signed consensus.SignedApplicationAction, raw []byte) error {
+	if actionType == consensus.ActionAIPermissionCreate {
+		var record consensus.BFTAIPermission
+		if err := json.Unmarshal(raw, &record); err != nil {
+			return err
+		}
+		expectedID := consensus.ApplicationActionRecordID("ai-permission", consensus.ApplicationActionHash(mustEncodeAction(signed)))
+		if record.ID != expectedID || record.Signer != signed.Signer || record.TxHash != consensus.ApplicationActionHash(mustEncodeAction(signed)) || record.Status != "active" {
+			return errors.New("BFT AI permission response mismatch")
+		}
+		return nil
+	}
+	var record consensus.BFTAIAction
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return err
+	}
+	if record.Signer != signed.Signer || record.TxHash != consensus.ApplicationActionHash(mustEncodeAction(signed)) {
+		return errors.New("BFT AI action response mismatch")
+	}
+	if actionType == consensus.ActionAIProposalCreate {
+		expectedID := consensus.ApplicationActionRecordID("ai-action", consensus.ApplicationActionHash(mustEncodeAction(signed)))
+		if record.ID != expectedID {
+			return errors.New("BFT AI proposal response ID mismatch")
+		}
+	}
+	if actionType == consensus.ActionAIProposalApprove && (record.Status != "approved" || !record.Executable) {
+		return errors.New("BFT AI approval response state mismatch")
+	}
+	if actionType == consensus.ActionAIProposalReject && (record.Status != "rejected" || record.Executable) {
+		return errors.New("BFT AI rejection response state mismatch")
+	}
+	return nil
+}
+
+func mustEncodeAction(tx consensus.SignedApplicationAction) []byte {
+	payload, _ := consensus.EncodeSignedApplicationAction(tx)
+	return payload
 }
 
 type AuditEntry struct {

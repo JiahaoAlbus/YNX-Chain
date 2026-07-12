@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 1
+const CommittedStateVersion = 2
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -27,6 +27,9 @@ type CommittedState struct {
 	Initialized        bool                     `json:"initialized"`
 	Height             int64                    `json:"height"`
 	Accounts           []chain.ConsensusAccount `json:"accounts"`
+	AIPermissions      []BFTAIPermission        `json:"aiPermissions"`
+	AIActions          []BFTAIAction            `json:"aiActions"`
+	AIAuditEvents      []BFTAIAuditEvent        `json:"aiAuditEvents"`
 	AppHash            string                   `json:"appHash"`
 }
 
@@ -36,6 +39,9 @@ type committedStateHashDocument struct {
 	ChainID            int64                    `json:"chainId"`
 	MigrationStateHash string                   `json:"migrationStateHash"`
 	Accounts           []chain.ConsensusAccount `json:"accounts"`
+	AIPermissions      []BFTAIPermission        `json:"aiPermissions"`
+	AIActions          []BFTAIAction            `json:"aiActions"`
+	AIAuditEvents      []BFTAIAuditEvent        `json:"aiAuditEvents"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
@@ -46,11 +52,14 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Initialized:        false,
 		Height:             int64(migration.Height),
 		Accounts:           cloneAccounts(migration.Accounts),
+		AIPermissions:      []BFTAIPermission{},
+		AIActions:          []BFTAIAction{},
+		AIAuditEvents:      []BFTAIAuditEvent{},
 		AppHash:            migration.StateHash,
 	}
 }
 
-func sealCommittedState(migration chain.ConsensusMigrationState, height int64, accounts []chain.ConsensusAccount) (CommittedState, error) {
+func sealCommittedState(migration chain.ConsensusMigrationState, height int64, accounts []chain.ConsensusAccount, permissions []BFTAIPermission, actions []BFTAIAction, auditEvents []BFTAIAuditEvent) (CommittedState, error) {
 	state := CommittedState{
 		Version:            CommittedStateVersion,
 		ChainID:            migration.Network.ChainID,
@@ -58,8 +67,11 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, a
 		Initialized:        true,
 		Height:             height,
 		Accounts:           cloneAccounts(accounts),
+		AIPermissions:      cloneAIPermissions(permissions),
+		AIActions:          cloneAIActions(actions),
+		AIAuditEvents:      append([]BFTAIAuditEvent(nil), auditEvents...),
 	}
-	if accountsEqual(state.Accounts, migration.Accounts) {
+	if accountsEqual(state.Accounts, migration.Accounts) && len(state.AIPermissions) == 0 && len(state.AIActions) == 0 && len(state.AIAuditEvents) == 0 {
 		state.AppHash = migration.StateHash
 	} else {
 		hash, err := state.calculateHash()
@@ -87,7 +99,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if s.Height < int64(migration.Height) {
 		return fmt.Errorf("committed height %d precedes migrated height %d", s.Height, migration.Height)
 	}
-	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
+	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || len(s.AIPermissions) != 0 || len(s.AIActions) != 0 || len(s.AIAuditEvents) != 0 || !strings.EqualFold(s.AppHash, migration.StateHash)) {
 		return errors.New("uninitialized committed state must exactly match the migration anchor")
 	}
 	if len(s.Accounts) == 0 {
@@ -117,11 +129,35 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		staked += account.Staked
 		previous = account.Address
 	}
+	previous = ""
+	for _, permission := range s.AIPermissions {
+		if permission.ID == "" || (previous != "" && permission.ID <= previous) || !IsNativeAddress(permission.Signer) || permission.SessionID == "" || permission.Requester == "" || permission.Scope == "" || permission.Purpose == "" || permission.Status != "active" || permission.CreatedAt.IsZero() || !permission.ExpiresAt.After(permission.CreatedAt) || permission.BlockHeight <= 0 || permission.TxHash == "" || permission.AuditHash == "" {
+			return errors.New("committed AI permissions must be complete and sorted by unique ID")
+		}
+		previous = permission.ID
+	}
+	previous = ""
+	for _, action := range s.AIActions {
+		if action.ID == "" || (previous != "" && action.ID <= previous) || !IsNativeAddress(action.Signer) || action.SessionID == "" || action.Requester == "" || action.Scope == "" || action.ActionType == "" || action.Description == "" || action.Status == "" || action.CreatedAt.IsZero() || !action.ExpiresAt.After(action.CreatedAt) || action.BlockHeight <= 0 || action.TxHash == "" || action.AuditHash == "" {
+			return errors.New("committed AI actions must be complete and sorted by unique ID")
+		}
+		previous = action.ID
+	}
+	seenAudit := make(map[string]struct{}, len(s.AIAuditEvents))
+	for _, event := range s.AIAuditEvents {
+		if event.ID == "" || event.RecordID == "" || event.Type == "" || !IsNativeAddress(event.Signer) || event.BlockHeight <= 0 || event.CreatedAt.IsZero() || event.TxHash == "" || event.AuditHash == "" {
+			return errors.New("committed AI audit event is incomplete")
+		}
+		if _, exists := seenAudit[event.ID]; exists {
+			return errors.New("committed AI audit event IDs must be unique")
+		}
+		seenAudit[event.ID] = struct{}{}
+	}
 	if liquid != migration.LiquidSupplyYNXT || staked != migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid or staked YNXT supply")
 	}
 	expected := migration.StateHash
-	if !accountsEqual(s.Accounts, migration.Accounts) {
+	if !accountsEqual(s.Accounts, migration.Accounts) || len(s.AIPermissions) != 0 || len(s.AIActions) != 0 || len(s.AIAuditEvents) != 0 {
 		var err error
 		expected, err = s.calculateHash()
 		if err != nil {
@@ -136,11 +172,14 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:             "YNX_ABCI_STATE_V1",
+		Domain:             "YNX_ABCI_STATE_V2",
 		Version:            s.Version,
 		ChainID:            s.ChainID,
 		MigrationStateHash: s.MigrationStateHash,
 		Accounts:           s.Accounts,
+		AIPermissions:      s.AIPermissions,
+		AIActions:          s.AIActions,
+		AIAuditEvents:      s.AIAuditEvents,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -236,6 +275,27 @@ func cloneAccounts(accounts []chain.ConsensusAccount) []chain.ConsensusAccount {
 		out[i].Lots = make(map[string]int64, len(account.Lots))
 		for lotID, amount := range account.Lots {
 			out[i].Lots[lotID] = amount
+		}
+	}
+	return out
+}
+
+func cloneAIPermissions(permissions []BFTAIPermission) []BFTAIPermission {
+	return append([]BFTAIPermission(nil), permissions...)
+}
+
+func cloneAIActions(actions []BFTAIAction) []BFTAIAction {
+	out := make([]BFTAIAction, len(actions))
+	for i, action := range actions {
+		out[i] = action
+		out[i].Reasons = append([]string(nil), action.Reasons...)
+		if action.ApprovedAt != nil {
+			approvedAt := *action.ApprovedAt
+			out[i].ApprovedAt = &approvedAt
+		}
+		if action.RejectedAt != nil {
+			rejectedAt := *action.RejectedAt
+			out[i].RejectedAt = &rejectedAt
 		}
 	}
 	return out
