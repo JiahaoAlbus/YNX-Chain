@@ -7,7 +7,7 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -59,9 +59,71 @@ backup_phase() {
   echo "production BFT scoped backups passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" ]]; then
-  [[ -z "$(git status --short)" ]] || { echo "production backup requires a clean worktree" >&2; exit 1; }
-  backup_phase
+mutation_freeze_phase() {
+  local operation="$1"
+  if [[ "$operation" == "freeze" ]]; then
+    [[ "${PUBLIC_BFT_PRODUCTION_FREEZE_APPROVED:-}" == "yes" ]] || {
+      echo "PUBLIC_BFT_PRODUCTION_FREEZE_APPROVED=yes is required" >&2
+      exit 1
+    }
+  fi
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || {
+    echo "mutation freeze commit does not match current HEAD" >&2
+    exit 1
+  }
+  local bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$bft_release" ]] || {
+    echo "mutation freeze BFT release does not match current HEAD" >&2
+    exit 1
+  }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$transaction_dir" && -d "$transaction_dir" ]] || {
+    echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2
+    exit 1
+  }
+  local transaction_id
+  transaction_id="$(basename "$transaction_dir")"
+  [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || {
+    echo "invalid public BFT cutover transaction id" >&2
+    exit 1
+  }
+  local evidence_dir="$transaction_dir/roles"
+  mkdir -p "$evidence_dir"
+  if [[ "$operation" == "freeze" ]]; then
+    local backup_evidence role
+    for role in primary singapore silicon-valley seoul; do
+      backup_evidence="$evidence_dir/${role}-backup.txt"
+      test -s "$backup_evidence"
+      grep -Fq "transactionId=$transaction_id" "$backup_evidence"
+      grep -Fq "role=$role" "$backup_evidence"
+      grep -Fq "commit=$commit" "$backup_evidence"
+      grep -Fq "bftRelease=$bft_release" "$backup_evidence"
+      grep -Fq 'validated=true' "$backup_evidence"
+    done
+  fi
+
+  mutate_role() {
+    local role="$1" user="$2" host="$3" key="$4" kind="$5"
+    local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
+    local remote_helper="/tmp/ynx-public-bft-mutation-freeze-${transaction_id}-${role}.sh"
+    local mutation_urls="http://127.0.0.1:6420"
+    if [[ "$kind" == "full" ]]; then
+      mutation_urls+=",http://127.0.0.1:6428,http://127.0.0.1:6429,http://127.0.0.1:6430,http://127.0.0.1:6431,http://127.0.0.1:6432"
+    fi
+    ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-mutation-freeze.sh "$remote_helper"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$role' '$commit' '$release' '$bft_release' /var/lib/ynx-chain/mutation-freeze.json '$remote_root' http://127.0.0.1:6420 '$mutation_urls' /" >"$evidence_dir/${role}-${operation}.txt"
+  }
+  ynx_ops_each_node mutate_role
+  echo "production BFT mutation $operation passed: transaction=$transaction_id evidence=$evidence_dir"
+}
+
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" ]]; then
+  [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
+  case "$action" in
+    backup) backup_phase ;;
+    freeze_mutations) mutation_freeze_phase freeze ;;
+    unfreeze_mutations) mutation_freeze_phase unfreeze ;;
+  esac
   exit 0
 fi
 
