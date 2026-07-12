@@ -37,6 +37,8 @@ const (
 	ActionTrustLabelCreate    = "trust_label_create"
 	ActionTrustEvidenceCreate = "trust_evidence_create"
 	ActionTrustTrackingCreate = "trust_tracking_review_create"
+	ActionResourceDelegate    = "resource_delegation_create"
+	ActionResourceRent        = "resource_rental_create"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -56,6 +58,8 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionTrustLabelCreate:    {},
 	ActionTrustEvidenceCreate: {},
 	ActionTrustTrackingCreate: {},
+	ActionResourceDelegate:    {},
+	ActionResourceRent:        {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -187,7 +191,10 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 		PayloadHash: actionPayloadHash(canonicalPayload), Fee: SignedActionFeeYNXT,
 		PublicKey: hex.EncodeToString(publicKey),
 	}
-	if isPayAction(action) {
+	if isResourceAction(action) {
+		// Resource actions charge YNXT and bandwidth through the shared envelope,
+		// but do not consume AI, Pay, or Trust credits.
+	} else if isPayAction(action) {
 		tx.PayUnits = 1
 	} else if isTrustAction(action) {
 		tx.TrustUnits = 1
@@ -238,7 +245,11 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != SignedActionFeeYNXT {
 		return errors.New("application action must charge exactly 1 YNXT")
 	}
-	if isPayAction(tx.Action) {
+	if isResourceAction(tx.Action) {
+		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
+			return errors.New("Resource application action must not charge AI, Pay, or Trust units")
+		}
+	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
 			return errors.New("Pay application action must charge exactly 1 Pay unit")
 		}
@@ -412,6 +423,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		return json.Marshal(payload)
 	default:
+		if isResourceAction(action) {
+			return canonicalResourceActionPayload(action, raw)
+		}
 		if isPayAction(action) {
 			return canonicalPayActionPayload(action, raw)
 		}

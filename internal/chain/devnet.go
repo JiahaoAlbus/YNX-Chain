@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -333,7 +334,7 @@ func (p ResourceMarketPolicy) Validate() error {
 	if p.Currency != "YNXT" {
 		return fmt.Errorf("resource policy currency must be YNXT, got %s", p.Currency)
 	}
-	if p.ProviderShareBps < 0 || p.ProtocolFeeBps < 0 || p.ProviderShareBps+p.ProtocolFeeBps != 10000 {
+	if p.ProviderShareBps < 0 || p.ProtocolFeeBps < 0 || p.ProviderShareBps > 10000 || p.ProtocolFeeBps > 10000 || p.ProviderShareBps+p.ProtocolFeeBps != 10000 {
 		return errors.New("resource policy provider/protocol shares must be non-negative and sum to 10000 bps")
 	}
 	if p.BandwidthUnit <= 0 || p.ComputeUnit <= 0 {
@@ -342,7 +343,7 @@ func (p ResourceMarketPolicy) Validate() error {
 	if p.BandwidthUnitPrice < 0 || p.ComputeUnitPrice < 0 || p.AICreditUnitPrice < 0 || p.TrustCreditUnitPrice < 0 {
 		return errors.New("resource policy unit prices cannot be negative")
 	}
-	if p.BandwidthUnitPrice+p.ComputeUnitPrice+p.AICreditUnitPrice+p.TrustCreditUnitPrice <= 0 {
+	if p.BandwidthUnitPrice == 0 && p.ComputeUnitPrice == 0 && p.AICreditUnitPrice == 0 && p.TrustCreditUnitPrice == 0 {
 		return errors.New("resource policy must price at least one resource dimension")
 	}
 	if p.MinimumQuoteYNXT <= 0 || p.QuoteTTLSeconds <= 0 {
@@ -1810,33 +1811,61 @@ func (d *Devnet) ResourceMarketPolicy() ResourceMarketPolicy {
 }
 
 func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, trustCredits int64) (ResourceQuote, error) {
+	d.mu.RLock()
+	policy := d.resourcePolicy.withCurrentHash()
+	d.mu.RUnlock()
+	return ResourceQuoteForPolicy(policy, address, bandwidth, compute, aiCredits, trustCredits, time.Now().UTC().Add(time.Duration(policy.QuoteTTLSeconds)*time.Second))
+}
+
+func ResourceQuoteForPolicy(policy ResourceMarketPolicy, address string, bandwidth, compute, aiCredits, trustCredits int64, expiresAt time.Time) (ResourceQuote, error) {
+	address = strings.TrimSpace(address)
 	if address == "" {
 		return ResourceQuote{}, errors.New("address is required")
 	}
 	if bandwidth < 0 || compute < 0 || aiCredits < 0 || trustCredits < 0 {
 		return ResourceQuote{}, errors.New("resource amounts cannot be negative")
 	}
-	d.mu.RLock()
-	policy := d.resourcePolicy.withCurrentHash()
-	d.mu.RUnlock()
+	policy = policy.withCurrentHash()
 	if err := policy.Validate(); err != nil {
 		return ResourceQuote{}, err
 	}
+	if expiresAt.IsZero() {
+		return ResourceQuote{}, errors.New("resource quote expiry is required")
+	}
+	bandwidthAmount, err := checkedResourcePrice(bandwidth/policy.BandwidthUnit, policy.BandwidthUnitPrice)
+	if err != nil {
+		return ResourceQuote{}, err
+	}
+	computeAmount, err := checkedResourcePrice(compute/policy.ComputeUnit, policy.ComputeUnitPrice)
+	if err != nil {
+		return ResourceQuote{}, err
+	}
+	aiAmount, err := checkedResourcePrice(aiCredits, policy.AICreditUnitPrice)
+	if err != nil {
+		return ResourceQuote{}, err
+	}
+	trustAmount, err := checkedResourcePrice(trustCredits, policy.TrustCreditUnitPrice)
+	if err != nil {
+		return ResourceQuote{}, err
+	}
 	breakdown := []ResourcePriceComponent{
-		{Name: "bandwidth", Quantity: bandwidth, Unit: policy.BandwidthUnit, UnitPrice: policy.BandwidthUnitPrice, Amount: (bandwidth / policy.BandwidthUnit) * policy.BandwidthUnitPrice},
-		{Name: "compute", Quantity: compute, Unit: policy.ComputeUnit, UnitPrice: policy.ComputeUnitPrice, Amount: (compute / policy.ComputeUnit) * policy.ComputeUnitPrice},
-		{Name: "aiCredits", Quantity: aiCredits, Unit: 1, UnitPrice: policy.AICreditUnitPrice, Amount: aiCredits * policy.AICreditUnitPrice},
-		{Name: "trustCredits", Quantity: trustCredits, Unit: 1, UnitPrice: policy.TrustCreditUnitPrice, Amount: trustCredits * policy.TrustCreditUnitPrice},
+		{Name: "bandwidth", Quantity: bandwidth, Unit: policy.BandwidthUnit, UnitPrice: policy.BandwidthUnitPrice, Amount: bandwidthAmount},
+		{Name: "compute", Quantity: compute, Unit: policy.ComputeUnit, UnitPrice: policy.ComputeUnitPrice, Amount: computeAmount},
+		{Name: "aiCredits", Quantity: aiCredits, Unit: 1, UnitPrice: policy.AICreditUnitPrice, Amount: aiAmount},
+		{Name: "trustCredits", Quantity: trustCredits, Unit: 1, UnitPrice: policy.TrustCreditUnitPrice, Amount: trustAmount},
 	}
 	price := int64(0)
 	for _, item := range breakdown {
+		if item.Amount > math.MaxInt64-price {
+			return ResourceQuote{}, errors.New("resource quote price overflow")
+		}
 		price += item.Amount
 	}
 	if price < policy.MinimumQuoteYNXT {
 		price = policy.MinimumQuoteYNXT
 	}
 	return ResourceQuote{
-		ID:               hashParts("resource-quote", policy.PolicyHash, address, fmt.Sprint(bandwidth), fmt.Sprint(compute), fmt.Sprint(aiCredits), fmt.Sprint(trustCredits))[:24],
+		ID:               hashParts("resource-quote", policy.PolicyHash, address, fmt.Sprint(bandwidth), fmt.Sprint(compute), fmt.Sprint(aiCredits), fmt.Sprint(trustCredits), expiresAt.UTC().Format(time.RFC3339Nano))[:24],
 		Address:          address,
 		Bandwidth:        bandwidth,
 		Compute:          compute,
@@ -1848,9 +1877,16 @@ func (d *Devnet) ResourceQuote(address string, bandwidth, compute, aiCredits, tr
 		PolicyHash:       policy.PolicyHash,
 		GovernanceStatus: policy.GovernanceStatus,
 		PricingBreakdown: breakdown,
-		ExpiresAt:        time.Now().UTC().Add(time.Duration(policy.QuoteTTLSeconds) * time.Second),
+		ExpiresAt:        expiresAt.UTC(),
 		TruthfulNotes:    []string{"Quote is computed from inspectable Resource Market policy.", "Public market pricing must expose the same policy remotely before public proof can pass."},
 	}, nil
+}
+
+func checkedResourcePrice(quantity, unitPrice int64) (int64, error) {
+	if quantity < 0 || unitPrice < 0 || quantity > 0 && unitPrice > math.MaxInt64/quantity {
+		return 0, errors.New("resource quote component overflow")
+	}
+	return quantity * unitPrice, nil
 }
 
 func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (ResourceDelegation, Transaction, ResourceBalance, error) {

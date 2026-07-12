@@ -110,6 +110,15 @@ func (f *abciCometFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer f.mu.Unlock()
 	w.Header().Set("Content-Type", "application/json")
 	switch r.URL.Path {
+	case "/status":
+		blockTime := time.Date(2026, 7, 12, 10, 0, 0, 0, time.UTC).Add(time.Duration(f.height) * time.Second)
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"node_info": map[string]any{"network": "ynx_6423-1"}, "sync_info": map[string]any{"earliest_block_hash": strings.Repeat("E", 64), "earliest_block_height": "1", "earliest_block_time": blockTime.Add(-time.Duration(f.height-1) * time.Second), "latest_block_hash": strings.Repeat("A", 64), "latest_block_height": strconv.FormatInt(f.height, 10), "latest_block_time": blockTime, "catching_up": false}}})
+	case "/validators":
+		validators := make([]map[string]any, 4)
+		for i := range validators {
+			validators[i] = map[string]any{"address": fmt.Sprintf("%040X", i+1), "voting_power": "10", "proposer_priority": "0", "pub_key": map[string]any{"type": "tendermint/PubKeyEd25519", "value": base64.StdEncoding.EncodeToString(make([]byte, 32))}}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_height": strconv.FormatInt(f.height, 10), "validators": validators}})
 	case "/broadcast_tx_commit":
 		raw, err := hex.DecodeString(strings.TrimPrefix(r.URL.Query().Get("tx"), "0x"))
 		if err != nil {

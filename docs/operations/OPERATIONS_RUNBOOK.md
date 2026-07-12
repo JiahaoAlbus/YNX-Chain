@@ -104,8 +104,9 @@ Resource Gateway readiness:
 
 ```bash
 make resource-api-check
+make bft-resource-action-check
 ```
 
-`ynx-resourced` requires a client API key and separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics and authenticated Resource Market routes on `YNX_RESOURCE_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB response limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The chain process keeps canonical persistent policy, delegation, rental, income, and analytics records and rejects direct deployed `/resource-market/*` access without the upstream key.
+`ynx-resourced` requires a client API key from its dedicated `0600` env file. Keep `YNX_RESOURCE_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; this mode also requires the separate chain-upstream key. Candidate `bft` mode requires chain ID `6423`, `YNX_RESOURCE_GATEWAY_SIGNER_ADDRESS`, and exactly one of `YNX_RESOURCE_GATEWAY_SIGNER_PRIVATE_KEY` or `YNX_RESOURCE_GATEWAY_SIGNER_PRIVATE_KEY_FILE`; use the mode-`0600` file option for candidate work and remove it after rollback. BFT mutations require `idempotencyKey`, inject the configured signer, serialize nonce selection, obtain the committed policy/quote, and verify committed response evidence. It serves health/metrics and authenticated Resource Market routes on `YNX_RESOURCE_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB response limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. Public routing remains authoritative until fresh remote candidate proof and a separate cutover decision.
 
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

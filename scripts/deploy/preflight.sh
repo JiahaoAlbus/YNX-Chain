@@ -36,6 +36,7 @@ make bft-gateway-check
 make bft-ai-action-check
 make bft-pay-action-check
 make bft-trust-action-check
+make bft-resource-action-check
 make consensus-public-cutover-check
 make caddy-ingress-check
 make ops-check

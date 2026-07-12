@@ -2,6 +2,7 @@ package chain
 
 import (
 	"encoding/hex"
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -325,6 +326,26 @@ func TestResourceDelegationRentalIncomeAndPersistence(t *testing.T) {
 	}
 	if restored.ResourceMarketPolicy().PolicyHash != policy.PolicyHash {
 		t.Fatalf("expected restored resource policy hash")
+	}
+}
+
+func TestResourceQuoteRejectsComponentAndTotalOverflow(t *testing.T) {
+	policy := DefaultResourceMarketPolicy()
+	expiresAt := time.Date(2026, 7, 12, 15, 0, 0, 0, time.UTC)
+	if _, err := ResourceQuoteForPolicy(policy, "ynx_quote", 0, 0, math.MaxInt64, 0, expiresAt); err == nil {
+		t.Fatal("Resource quote accepted component multiplication overflow")
+	}
+	policy.AICreditUnitPrice = math.MaxInt64
+	policy.TrustCreditUnitPrice = 1
+	policy.PolicyHash = resourcePolicyHash(policy)
+	if _, err := ResourceQuoteForPolicy(policy, "ynx_quote", 0, 0, 1, 1, expiresAt); err == nil {
+		t.Fatal("Resource quote accepted total price overflow")
+	}
+	policy.ProviderShareBps = math.MaxInt64
+	policy.ProtocolFeeBps = 10001
+	policy.PolicyHash = resourcePolicyHash(policy)
+	if err := policy.Validate(); err == nil {
+		t.Fatal("Resource policy accepted overflowing basis points")
 	}
 }
 
