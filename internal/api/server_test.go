@@ -2,10 +2,12 @@ package api
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -52,6 +54,44 @@ func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 
 	var blocked map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_replica_write", "amount": 1}, http.StatusConflict, &blocked)
+}
+
+func TestReplicationSnapshotGzipKeepsUncompressedSignature(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet.ProduceBlock()
+	server := httptest.NewServer(NewServerWithConfig(devnet, ServerConfig{ReplicationKey: "replication-test-key"}))
+	defer server.Close()
+	req, err := http.NewRequest(http.MethodGet, server.URL+"/internal/replication/snapshot", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+	req.Header.Set("Accept-Encoding", "gzip")
+	client := &http.Client{Transport: &http.Transport{DisableCompression: true}}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.Header.Get("Content-Encoding") != "gzip" || resp.Header.Get("Vary") != "Accept-Encoding" {
+		t.Fatalf("snapshot is missing gzip response headers: %v", resp.Header)
+	}
+	reader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	mac := hmac.New(sha256.New, []byte("replication-test-key"))
+	_, _ = mac.Write(payload)
+	if resp.Header.Get("X-YNX-Replication-SHA256") != hex.EncodeToString(mac.Sum(nil)) {
+		t.Fatal("gzip snapshot signature does not cover the uncompressed payload")
+	}
 }
 
 func TestDevnetAPIFlow(t *testing.T) {

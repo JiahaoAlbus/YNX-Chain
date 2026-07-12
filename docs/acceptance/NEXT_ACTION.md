@@ -4,6 +4,8 @@ Current single action: implement the production phase driver for the locally ver
 
 Current live blocker (read-only check at 2026-07-12 19:11 CST): primary and Singapore were at height `42260`, Silicon Valley at `41743`, and Seoul at `41161`. Silicon Valley and Seoul showed repeated authoritative replication timeouts. Restore follower connectivity/convergence before any cutover rehearsal; no remote mutation was made.
 
+The identified transport fix is implemented locally: authenticated snapshots negotiate gzip and follower request timeout defaults to a bounded 45 seconds. It reduced the current primary state file from about 14.1 MB to 2.5-2.7 MB in a read-only measurement. It is not deployed; do not treat the lag as resolved until all three followers converge under live evidence.
+
 Why this action:
 
 - All fifteen BFT Gateway compatibility capabilities now have local and private four-validator candidate proof, including bounded IDE contract state, receipts, real logs, direct Comet matching, four-application equality, cleanup, and rollback.
@@ -14,6 +16,7 @@ Why this action:
 Required work:
 
 - Keep the implemented Gateway runtime authorization default false; preserve its capability, release, commit, and UTC build identity gates.
+- Deploy the gzip replication fix through the normal rollback-safe release path, then require all followers to converge within the configured lag threshold before continuing cutover work.
 - Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
 - Extend the implemented transaction engine with a production driver that prebuilds binaries and verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
 - Deploy and remotely verify the implemented shared marker-based mutation freeze; preserve supported read-only EVM/HTTP health, reject writes, and record freeze/unfreeze evidence.

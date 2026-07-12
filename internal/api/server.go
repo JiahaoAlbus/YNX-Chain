@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -212,6 +213,18 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 	_, _ = mac.Write(payload)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-YNX-Replication-SHA256", hex.EncodeToString(mac.Sum(nil)))
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.WriteHeader(http.StatusOK)
+		compressed, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+		if err != nil {
+			return
+		}
+		_, _ = compressed.Write(payload)
+		_ = compressed.Close()
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(payload)
 }
