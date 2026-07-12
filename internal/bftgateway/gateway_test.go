@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -64,6 +65,13 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 					"data":   map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(txPayload)}},
 				},
 			}})
+		case "/block_results":
+			if r.URL.Query().Get("height") != "17" {
+				t.Errorf("unexpected block results query: %s", r.URL.RawQuery)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"height": "17", "txs_results": []map[string]any{{"code": 0, "log": "transfer", "gas_used": "1"}},
+			}})
 		case "/abci_query":
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString(accountPayload)}}})
 		case "/broadcast_tx_commit":
@@ -75,11 +83,15 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				"hash": cometTxHash, "height": "17",
 			}})
 		case "/tx":
-			if r.URL.Query().Get("hash") != txHash || r.URL.Query().Get("prove") != "true" {
+			if r.URL.Query().Get("prove") != "true" {
 				t.Errorf("unexpected tx lookup query: %s", r.URL.RawQuery)
 			}
+			if r.URL.Query().Get("hash") != txHash {
+				_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
+				return
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
-				"hash": cometTxHash, "height": "17", "index": 0, "tx_result": map[string]any{"code": 0, "log": ""},
+				"hash": cometTxHash, "height": "17", "index": 0, "tx_result": map[string]any{"code": 0, "log": "", "gas_used": "1"},
 				"tx": base64.StdEncoding.EncodeToString(txPayload),
 			}})
 		case "/tx_search":
@@ -170,6 +182,20 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`, "0x1917")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_blockNumber","params":[]}`, "0x11")
+	transaction := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getTransactionByHash","params":[%q]}`, txHash))
+	if transaction["hash"] != txHash || transaction["transactionIndex"] != "0x0" || transaction["blockNumber"] != "0x11" || transaction["input"] != "0x" {
+		t.Fatalf("unexpected committed EVM transaction: %+v", transaction)
+	}
+	receipt := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":4,"method":"eth_getTransactionReceipt","params":[%q]}`, txHash))
+	if receipt["transactionHash"] != txHash || receipt["gasUsed"] != "0x1" || receipt["status"] != "0x1" || len(receipt["logs"].([]any)) != 0 || len(receipt["logsBloom"].(string)) != 514 {
+		t.Fatalf("unexpected committed EVM receipt: %+v", receipt)
+	}
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":5,"method":"eth_getLogs","params":[{"fromBlock":"0xb","toBlock":"0x11"}]}`, []any{})
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":6,"method":"eth_getLogs","params":[{"address":"0x0000000000000000000000000000000000000001","topics":["0x0000000000000000000000000000000000000000000000000000000000000001"]}]}`, []any{})
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":7,"method":"eth_getTransactionReceipt","params":["0x0000000000000000000000000000000000000000000000000000000000000000"]}`, nil)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":8,"method":"eth_getLogs","params":[{"fromBlock":"0x11","toBlock":"0x10"}]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":9,"method":"eth_getLogs","params":[{"address":"0xBAD"}]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getTransactionReceipt","params":["0xBAD"]}`, -32602)
 	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getBalance","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
@@ -185,6 +211,41 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	if _, err := gateway.status(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func assertRPCObject(t *testing.T, endpoint, payload string) map[string]any {
+	t.Helper()
+	resp, err := http.Post(endpoint, "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	result, ok := out["result"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected JSON-RPC object result: %+v", out)
+	}
+	return result
+}
+
+func assertRPCError(t *testing.T, endpoint, payload string, code int) {
+	t.Helper()
+	resp, err := http.Post(endpoint, "application/json", strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var out map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	errorObject, ok := out["error"].(map[string]any)
+	if !ok || errorObject["code"] != float64(code) {
+		t.Fatalf("expected JSON-RPC error %d: %+v", code, out)
 	}
 }
 
@@ -235,7 +296,7 @@ func getJSON(t *testing.T, endpoint string, out any) {
 	}
 }
 
-func assertRPCResult(t *testing.T, endpoint, body, expected string) {
+func assertRPCResult(t *testing.T, endpoint, body string, expected any) {
 	t.Helper()
 	resp, err := http.Post(endpoint, "application/json", strings.NewReader(body))
 	if err != nil {
@@ -246,7 +307,7 @@ func assertRPCResult(t *testing.T, endpoint, body, expected string) {
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["result"] != expected {
+	if !reflect.DeepEqual(payload["result"], expected) {
 		t.Fatalf("unexpected JSON-RPC response: %+v", payload)
 	}
 }

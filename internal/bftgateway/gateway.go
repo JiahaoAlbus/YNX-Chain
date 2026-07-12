@@ -175,8 +175,9 @@ type cometRPCError struct {
 }
 
 type cometTxResult struct {
-	Code uint32 `json:"code"`
-	Log  string `json:"log"`
+	Code    uint32 `json:"code"`
+	Log     string `json:"log"`
+	GasUsed string `json:"gas_used"`
 }
 
 type cometBroadcast struct {
@@ -206,6 +207,14 @@ type cometTxSearch struct {
 	Result struct {
 		Txs        []cometTx `json:"txs"`
 		TotalCount string    `json:"total_count"`
+	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
+}
+
+type cometBlockResults struct {
+	Result struct {
+		Height     string          `json:"height"`
+		TxsResults []cometTxResult `json:"txs_results"`
 	} `json:"result"`
 	Error *cometRPCError `json:"error,omitempty"`
 }
@@ -972,7 +981,7 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"jsonrpc": "2.0", "id": nil, "error": map[string]any{"code": -32600, "message": "invalid JSON-RPC request"}})
 		return
 	}
-	var result string
+	var result any
 	switch request.Method {
 	case "eth_chainId":
 		result = "0x1917"
@@ -983,6 +992,13 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_getLogs":
+		var err error
+		result, err = g.evmCommittedResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
 	default:
 		writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32601, "message": "method not yet backed by CometBFT application state"}})
 		return
