@@ -1,10 +1,10 @@
 # Next Action
 
-Current single action: implement the production phase driver for the locally verified approval-gated public BFT cutover transaction, then run a current-topology remote rehearsal without switching public ingress. Do not execute public routing changes until custody inputs, phase evidence, rollback rehearsal, and explicit live approval pass.
+Current single action: implement the production remote phase driver for the verified approval-gated public BFT cutover transaction, then run a current-topology rehearsal that stops before mutation and public ingress switching. Do not execute public routing changes until custody inputs, freeze/snapshot/candidate evidence, rollback rehearsal, and explicit live approval pass.
 
-Current live blocker (read-only check at 2026-07-12 19:11 CST): primary and Singapore were at height `42260`, Silicon Valley at `41743`, and Seoul at `41161`. Silicon Valley and Seoul showed repeated authoritative replication timeouts. Restore follower connectivity/convergence before any cutover rehearsal; no remote mutation was made.
+Current authoritative baseline (verified 2026-07-12): release `ynx-chain-f18c63f9643d` is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `43758` and common hash `a35a1823f84cb8d6ee08c9236183e52a6fc1b9044dc356ca78f2ff9c326f249c`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
 
-The identified transport fix is implemented locally: authenticated snapshots negotiate gzip and follower request timeout defaults to a bounded 45 seconds. It reduced the current primary state file from about 14.1 MB to 2.5-2.7 MB in a read-only measurement. It is not deployed; do not treat the lag as resolved until all three followers converge under live evidence.
+Public proof is still incomplete for two independent reasons: the configured AI provider returns HTTP 429 for authenticated SSE generation, and `web4.ynxweb4.com` still reports legacy chain `ynx_9102-1`. Record these honestly; do not weaken the proof gate or claim public BFT.
 
 Why this action:
 
@@ -16,7 +16,7 @@ Why this action:
 Required work:
 
 - Keep the implemented Gateway runtime authorization default false; preserve its capability, release, commit, and UTC build identity gates.
-- Deploy the gzip replication fix through the normal rollback-safe release path, then require all followers to converge within the configured lag threshold before continuing cutover work.
+- Preserve the deployed gzip replication and bounded follower timeout, and require follower convergence within the configured lag threshold before every rehearsal or cutover phase.
 - Use restricted upgrade mode only for the reviewed old-release-to-current-release transition; it must not suppress chain, height, validator, EVM, service, governance, or SSH failures.
 - Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
 - Extend the implemented transaction engine with a production driver that prebuilds binaries and verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
@@ -49,6 +49,7 @@ Validation commands:
 - `make env-check`
 - `make objective-state-check`
 - `make preflight`
+- `make remote-smoke-test` (expected to remain failed until the external AI 429 and legacy Web4 service are resolved)
 
 Completion standard:
 

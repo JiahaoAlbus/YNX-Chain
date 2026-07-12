@@ -160,6 +160,19 @@ async function postJson(name, url, body, headers = {}) {
   return res.json;
 }
 
+async function postJsonExpectError(name, url, body, expectedStatus, messagePattern, headers = {}) {
+  const res = await request(name, url, { method: "POST", body, headers });
+  const message = String(res.json?.error || res.json?.message || res.text || "");
+  const ok = res.status === expectedStatus && messagePattern.test(message);
+  record(
+    name,
+    ok,
+    ok ? `HTTP ${res.status} rejected conflicting input` : `expected HTTP ${expectedStatus} matching ${messagePattern}, got HTTP ${res.status}: ${clip(message)}`,
+    evidence.observed[name],
+  );
+  return ok;
+}
+
 function chainIdOf(json) {
   return json?.chainId ?? json?.chain_id ?? json?.network?.chainId ?? json?.network?.chain_id ??
     json?.status?.chainId ?? json?.result?.node_info?.network ?? null;
@@ -802,22 +815,38 @@ async function main() {
     const payHeaders = { "x-ynx-pay-key": payGatewayAPIKey };
     const pay = await postJson("pay.intent", `${endpoints.pay}/pay/intents`, { amount: 1, idempotencyKey: payIntentKey }, payHeaders);
     record("pay.intent.created", Boolean(pay?.id), pay?.id ? `intent ${pay.id}` : "missing pay intent id", pay);
-    const payReplay = await postJson("pay.intent.replay", `${endpoints.pay}/pay/intents`, { amount: 99, idempotencyKey: payIntentKey }, payHeaders);
+    const payReplay = await postJson("pay.intent.replay", `${endpoints.pay}/pay/intents`, { amount: 1, idempotencyKey: payIntentKey }, payHeaders);
     record(
       "pay.intent.idempotency",
       Boolean(pay?.id) && payReplay?.id === pay.id && payReplay?.amount === pay.amount && payReplay?.idempotencyKey === payIntentKey,
       payReplay?.id === pay?.id ? "intent replay returned original object" : "intent replay created a conflicting object",
       { original: pay, replay: payReplay },
     );
+    await postJsonExpectError(
+      "pay.intent.idempotencyConflict",
+      `${endpoints.pay}/pay/intents`,
+      { amount: 99, idempotencyKey: payIntentKey },
+      400,
+      /idempotency.*different|already used.*different/i,
+      payHeaders,
+    );
     if (pay?.id) {
       const invoiceKey = `remote-smoke-invoice-${sampleAddress}`;
       const invoice = await postJson("pay.invoice", `${endpoints.pay}/pay/invoices`, { intentId: pay.id, dueInHours: 12, idempotencyKey: invoiceKey }, payHeaders);
-      const invoiceReplay = await postJson("pay.invoice.replay", `${endpoints.pay}/pay/invoices`, { intentId: pay.id, dueInHours: 36, idempotencyKey: invoiceKey }, payHeaders);
+      const invoiceReplay = await postJson("pay.invoice.replay", `${endpoints.pay}/pay/invoices`, { intentId: pay.id, dueInHours: 12, idempotencyKey: invoiceKey }, payHeaders);
       record(
         "pay.invoice.idempotency",
         Boolean(invoice?.id) && invoiceReplay?.id === invoice.id && invoiceReplay?.intentId === pay.id && invoiceReplay?.idempotencyKey === invoiceKey,
         invoiceReplay?.id === invoice?.id ? "invoice replay returned original object" : "invoice replay created a conflicting object",
         { original: invoice, replay: invoiceReplay },
+      );
+      await postJsonExpectError(
+        "pay.invoice.idempotencyConflict",
+        `${endpoints.pay}/pay/invoices`,
+        { intentId: pay.id, dueInHours: 36, idempotencyKey: invoiceKey },
+        400,
+        /idempotency.*different|already used.*different/i,
+        payHeaders,
       );
 
       const webhookKey = `remote-smoke-webhook-${sampleAddress}`;
