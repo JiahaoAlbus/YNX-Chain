@@ -489,7 +489,7 @@ func verifyBFTTrustResponse(action string, tx consensus.SignedApplicationAction,
 
 func trustTruthfulStatus(mode string) string {
 	if mode == UpstreamBFT {
-		return "signed-bft-full-trust-surface-local-implementation-awaiting-remote-proof"
+		return "signed-bft-full-trust-state-transition-gateway"
 	}
 	return "authenticated-chain-backed-trust-and-chain-law-gateway"
 }
