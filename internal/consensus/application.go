@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 7
+	ApplicationVersion   = 8
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -64,6 +64,10 @@ type executionState struct {
 	trustEvidence       []BFTTrustEvidence
 	trackingReviews     []BFTTrackingReview
 	transparency        []BFTTransparencyEntry
+	contracts           []BFTContract
+	evmReceipts         []BFTEVMReceipt
+	evmLogs             []BFTEVMLog
+	ideIdempotency      []BFTIDEIdempotency
 }
 
 type transactionExecution struct {
@@ -300,9 +304,47 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	case req.Path == "/governance/transparency":
 		response.Value, _ = json.Marshal(a.committed.Transparency)
 		return response, nil
+	case req.Path == "/ide/contracts":
+		response.Value, _ = json.Marshal(a.committed.Contracts)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/ide/contracts/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/ide/contracts/"), a.committed.Contracts, func(v BFTContract) string { return v.Address }, "IDE contract")
+	case strings.HasPrefix(req.Path, "/ide/verifier/"):
+		address := strings.TrimPrefix(req.Path, "/ide/verifier/")
+		index, ok := bftContractIndex(a.committed.Contracts, address)
+		if !ok {
+			response.Code, response.Log = 1, "IDE contract verifier evidence not found"
+			return response, nil
+		}
+		contract := a.committed.Contracts[index]
+		response.Value, _ = json.Marshal(map[string]any{"address": contract.Address, "name": contract.Name, "sourceHash": contract.SourceHash, "deployedBytecodeHash": contract.DeployedBytecodeHash, "runtimeMode": contract.RuntimeMode, "artifactStatus": "bounded_pinned_artifact_committed", "verificationStatus": "source_and_deployed_bytecode_identity_committed", "blockHeight": contract.BlockHeight, "transactionHash": contract.TxHash, "auditHash": contract.AuditHash, "remotePublicProofStatus": "not_claimed"})
+		return response, nil
+	case strings.HasPrefix(req.Path, "/ide/call/"):
+		parts := strings.SplitN(strings.TrimPrefix(req.Path, "/ide/call/"), "/", 2)
+		if len(parts) != 2 {
+			response.Code, response.Log = 1, "IDE call requires contract and calldata"
+			return response, nil
+		}
+		index, ok := bftContractIndex(a.committed.Contracts, parts[0])
+		if !ok {
+			response.Code, response.Log = 1, "IDE contract not found"
+			return response, nil
+		}
+		encoded, steps, err := chain.CallBoundedContract(a.committed.Contracts[index].DeployedBytecode, normalizeIDEQueryCalldata(parts[1]), a.committed.Contracts[index].RuntimeStorage)
+		if err != nil {
+			response.Code, response.Log = 1, "bounded IDE call failed: "+err.Error()
+			return response, nil
+		}
+		response.Value, _ = json.Marshal(map[string]any{"address": parts[0], "encodedResult": encoded, "opcodeStepCount": steps, "runtimeMode": chain.BoundedContractRuntimeMode})
+		return response, nil
+	case strings.HasPrefix(req.Path, "/evm/receipts/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/evm/receipts/"), a.committed.EVMReceipts, func(v BFTEVMReceipt) string { return v.TxHash }, "EVM receipt")
+	case req.Path == "/evm/logs":
+		response.Value, _ = json.Marshal(a.committed.EVMLogs)
+		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, AI, Pay, Resource Market, governance requests, Trust labels/evidence/appeals/corrections/tracking/trace, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }
@@ -418,6 +460,7 @@ func (a *Application) cloneExecutionState() executionState {
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
+		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
 	}
 }
 
@@ -498,6 +541,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isTrustAction(tx.Action) {
 		return a.applyTrustAction(state, payload, tx, height, blockTime)
+	}
+	if isIDEAction(tx.Action) {
+		return a.applyIDEAction(state, payload, tx, height, blockTime)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err

@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 6
+const CommittedStateVersion = 7
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -49,6 +49,10 @@ type CommittedState struct {
 	TrustEvidence       []BFTTrustEvidence       `json:"trustEvidence"`
 	TrackingReviews     []BFTTrackingReview      `json:"trackingReviews"`
 	Transparency        []BFTTransparencyEntry   `json:"transparencyEntries"`
+	Contracts           []BFTContract            `json:"contracts"`
+	EVMReceipts         []BFTEVMReceipt          `json:"evmReceipts"`
+	EVMLogs             []BFTEVMLog              `json:"evmLogs"`
+	IDEIdempotency      []BFTIDEIdempotency      `json:"ideIdempotency"`
 	AppHash             string                   `json:"appHash"`
 }
 
@@ -80,6 +84,10 @@ type committedStateHashDocument struct {
 	TrustEvidence       []BFTTrustEvidence       `json:"trustEvidence"`
 	TrackingReviews     []BFTTrackingReview      `json:"trackingReviews"`
 	Transparency        []BFTTransparencyEntry   `json:"transparencyEntries"`
+	Contracts           []BFTContract            `json:"contracts"`
+	EVMReceipts         []BFTEVMReceipt          `json:"evmReceipts"`
+	EVMLogs             []BFTEVMLog              `json:"evmLogs"`
+	IDEIdempotency      []BFTIDEIdempotency      `json:"ideIdempotency"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
@@ -112,6 +120,10 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		TrustEvidence:       []BFTTrustEvidence{},
 		TrackingReviews:     []BFTTrackingReview{},
 		Transparency:        []BFTTransparencyEntry{},
+		Contracts:           []BFTContract{},
+		EVMReceipts:         []BFTEVMReceipt{},
+		EVMLogs:             []BFTEVMLog{},
+		IDEIdempotency:      []BFTIDEIdempotency{},
 		AppHash:             migration.StateHash,
 	}
 }
@@ -146,6 +158,10 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		TrustEvidence:       cloneTrustEvidence(execution.trustEvidence),
 		TrackingReviews:     cloneTrackingReviews(execution.trackingReviews),
 		Transparency:        cloneTransparencyEntries(execution.transparency),
+		Contracts:           cloneBFTContracts(execution.contracts),
+		EVMReceipts:         cloneBFTEVMReceipts(execution.evmReceipts),
+		EVMLogs:             cloneBFTEVMLogs(execution.evmLogs),
+		IDEIdempotency:      append([]BFTIDEIdempotency(nil), execution.ideIdempotency...),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
@@ -238,6 +254,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateTrustCommittedState(s); err != nil {
 		return err
 	}
+	if err := validateIDECommittedState(s); err != nil {
+		return err
+	}
 	if liquid > math.MaxInt64-staked || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
@@ -260,7 +279,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:              "YNX_ABCI_STATE_V6",
+		Domain:              "YNX_ABCI_STATE_V7",
 		Version:             s.Version,
 		ChainID:             s.ChainID,
 		MigrationStateHash:  s.MigrationStateHash,
@@ -287,6 +306,10 @@ func (s CommittedState) calculateHash() (string, error) {
 		TrustEvidence:       s.TrustEvidence,
 		TrackingReviews:     s.TrackingReviews,
 		Transparency:        s.Transparency,
+		Contracts:           s.Contracts,
+		EVMReceipts:         s.EVMReceipts,
+		EVMLogs:             s.EVMLogs,
+		IDEIdempotency:      s.IDEIdempotency,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -297,7 +320,7 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency) != 0
+	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {

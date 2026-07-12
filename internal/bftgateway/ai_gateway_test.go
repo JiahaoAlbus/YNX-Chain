@@ -149,6 +149,23 @@ func (f *abciCometFixture) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_id": map[string]any{"hash": fmt.Sprintf("%064X", height)}, "block": map[string]any{"header": map[string]any{"height": strconv.FormatInt(height, 10), "time": f.times[height], "proposer_address": strings.Repeat("A", 40), "last_block_id": map[string]any{"hash": fmt.Sprintf("%064X", height-1)}}, "data": map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(raw)}}}}})
+	case "/tx":
+		hash := strings.ToLower(r.URL.Query().Get("hash"))
+		for height, raw := range f.blocks {
+			if consensus.SignedTransactionHash(raw) == hash {
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"hash": strings.ToUpper(strings.TrimPrefix(hash, "0x")), "height": strconv.FormatInt(height, 10), "index": 0, "tx_result": map[string]any{"code": 0, "log": "application_action", "gas_used": "1"}, "tx": base64.StdEncoding.EncodeToString(raw)}})
+				return
+			}
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
+	case "/block_results":
+		height, _ := strconv.ParseInt(r.URL.Query().Get("height"), 10, 64)
+		if _, ok := f.blocks[height]; !ok {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"height": strconv.FormatInt(height, 10), "txs_results": []map[string]any{{"code": 0, "log": "application_action", "gas_used": "1"}}}})
 	case "/abci_query":
 		path, err := strconv.Unquote(r.URL.Query().Get("path"))
 		if err != nil {

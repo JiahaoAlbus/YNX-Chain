@@ -1,37 +1,38 @@
 # Next Action
 
-Current single action: implement deterministic BFT IDE contract deploy/call state transitions for only the existing bounded execution subset. Do not expand opcode coverage, Counter examples, Hardhat artifacts, or general IDE execution.
+Current single action: prove the existing deterministic bounded BFT IDE deploy/call implementation on a fresh private four-validator candidate, then remove it and verify authoritative public services remain healthy. Do not expand opcode coverage, Counter behavior, Hardhat artifacts, samples, or general IDE execution.
 
 Why this action:
 
-- EVM transaction receipt/log compatibility passed fresh private four-validator proof, defect correction, four-app equality, four-signer recovery, cleanup, rollback, and post-rollback authoritative health.
-- Gateway health now has fourteen implemented capabilities and one missing capability with `publicCutoverReady=false`.
-- `ide-contract-state-transitions` is the final code capability gap, but the existing local IDE/Hardhat/opcode surface must not be broadened.
-- The correct scope is deterministic signed persistence and evidence for already-supported bounded deploy/call behavior, not a new EVM engine.
+- Canonical signed deploy/call actions, AppHash contract state, restart/tamper rejection, verifier evidence, receipts, real logs/bloom, filters, and four-application equality now pass locally.
+- `go test ./...` and `make bft-ide-contract-check` pass.
+- Remote deployment and four-validator execution have not been performed for this code, so `ide-contract-state-transitions` must remain missing and `publicCutoverReady=false`.
+- Earlier native, AI, Pay, Trust, Resource, Indexer/Explorer, and non-contract EVM candidate proofs do not substitute for a fresh contract-state proof.
 
-Required work:
+Required private-candidate proof:
 
-- Define canonical signed contract deploy and contract call action payloads with signer, chain ID, nonce, fee/resource units, artifact/source/bytecode hashes, calldata, value boundary, idempotency, and size limits.
-- Persist deterministic contract metadata, runtime storage, supported storage writes, real execution logs, transaction receipts, and audit/idempotency records in AppHash.
-- Reuse only existing pinned-artifact validation and bounded execution semantics; reject source-analyzer-only, unsupported opcode, unsupported ABI/storage, mismatched artifact, caller, state root, or output evidence.
-- Expose ABCI queries and BFT Gateway handlers for deploy, call, contract lookup, verifier evidence, receipt, and logs.
-- Make duplicate replay state/nonce/fee neutral and changed-input reuse fail closed.
-- Add restart, tamper, malformed, unsupported execution, concurrent nonce, supply/resource accounting, receipt/log filter, and four-application equality tests.
-- Keep `ide-contract-state-transitions` missing until local gates and a separate fresh private candidate proof/rollback pass.
+- Export a fresh authoritative migration and build a current-HEAD candidate package without changing public routes.
+- Pass the four-host absence/deploy gate and reach one common four-signer height/hash.
+- Keep the owner test signer key local and reach the loopback BFT Gateway only through strict SSH forwarding.
+- Commit one supported pinned bounded deployment and one supported bounded write call using canonical signed envelopes.
+- Verify deterministic contract address, source/deployed-bytecode hashes, constructor storage, post-call storage, SSTORE evidence, encoded output, real LOG topics/data, receipt address boundaries, Comet block/index/gas evidence, nonzero logs bloom, and filtered `eth_getLogs`.
+- Query all four ABCI applications and require byte-identical contract, receipt, log, account, nonce/resource, AppHash, and semantic digest evidence.
+- Prove exact signed-transaction replay and changed-input idempotency/nonce conflicts fail without a second contract mutation, fee, or supply drift.
+- Prove an unsupported call fails without state, nonce, fee, receipt, or log changes.
+- Stop temporary local services/tunnels, remove remote Gateway/candidate state and release artifacts, pass the four-host absence gate, and verify public authoritative RPC/Explorer height growth and truthful status.
 
 Files to touch:
 
-- `internal/consensus` for canonical actions, deterministic contract state, validation, AppHash, and queries.
-- `internal/bftgateway` for committed IDE/EVM translation and evidence checks.
-- `internal/chain` only to extract reusable pure helpers from the already-supported bounded execution path.
-- focused checks, API docs after handlers exist, and acceptance files after verified evidence.
-- No long-term goal-file rewrite and no new opcode/Counter/Hardhat/example coverage.
+- Candidate package/evidence output under ignored `tmp/` paths only; do not add new IDE/opcode/artifact implementation unless remote proof exposes a bounded-path defect.
+- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `PROJECT_STATE.md`, and `NEXT_ACTION.md` only after evidence exists.
+- `internal/chain`, `internal/consensus`, or `internal/bftgateway` only for a narrowly reproduced defect in the already-supported bounded path.
+- Do not modify or replace the long-term goal file.
 
 Validation commands:
 
 - `go test ./...`
 - `make test`
-- add and run a focused BFT IDE state-transition check
+- `make bft-ide-contract-check`
 - `make bft-gateway-check`
 - `make bft-evm-receipt-check`
 - `make consensus-abci-check`
@@ -45,13 +46,12 @@ Validation commands:
 
 Completion standard:
 
-- Supported existing bounded deploy/call paths commit deterministic state, receipts, and logs across restart and four applications without invented execution evidence.
-- Unsupported artifacts, opcodes, ABI/storage paths, caller/state/hash mismatches, malformed input, and replay conflicts fail closed without state, nonce, fee, or supply drift.
-- Existing native, AI, Pay, Trust, Resource, receipt/log, YNXT supply, and AppHash tests remain passing.
-- Capability remains unpromoted and public cutover remains false until separate candidate proof, cleanup, rollback, and authoritative health all pass.
+- Only after local gates and the separate private candidate proof, cleanup, rollback, four-host absence gate, and public authoritative health all pass may `ide-contract-state-transitions` move from missing to implemented.
+- Promotion does not authorize public BFT cutover, DNS/Caddy changes, persistent candidate services, mainnet claims, listing claims, partnership claims, or goal completion.
+- If remote proof exposes a defect, fix only the existing bounded IDE state/evidence path, rerun local gates, and repeat the private candidate proof. Do not broaden EVM scope.
 
 Explicitly not doing:
 
-- Do not add bounded EVM opcodes, Counter behavior, Hardhat artifacts, sample contracts, or broader IDE execution.
-- Do not route public RPC, DNS, Caddy, Explorer, website, or service traffic to a candidate.
-- Do not claim public BFT, mainnet, exchange listing, stablecoin issuer support, wallet default support, partnerships, or goal completion.
+- No new EVM opcodes, Counter behavior, Hardhat artifacts, sample contracts, source-analyzer execution, or arbitrary EVM claims.
+- No public RPC, DNS, Caddy, Explorer, website, or dependent-service cutover during the private candidate proof.
+- No mainnet, exchange-listing, stablecoin-issuer, wallet-default, partnership, public BFT, or goal-completion claim.

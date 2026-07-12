@@ -39,6 +39,8 @@ const (
 	ActionTrustTrackingCreate = "trust_tracking_review_create"
 	ActionResourceDelegate    = "resource_delegation_create"
 	ActionResourceRent        = "resource_rental_create"
+	ActionIDEContractDeploy   = "ide_contract_deploy"
+	ActionIDEContractCall     = "ide_contract_call"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -60,6 +62,8 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionTrustTrackingCreate: {},
 	ActionResourceDelegate:    {},
 	ActionResourceRent:        {},
+	ActionIDEContractDeploy:   {},
+	ActionIDEContractCall:     {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -191,7 +195,7 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 		PayloadHash: actionPayloadHash(canonicalPayload), Fee: SignedActionFeeYNXT,
 		PublicKey: hex.EncodeToString(publicKey),
 	}
-	if isResourceAction(action) {
+	if isResourceAction(action) || isIDEAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -245,9 +249,9 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != SignedActionFeeYNXT {
 		return errors.New("application action must charge exactly 1 YNXT")
 	}
-	if isResourceAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
-			return errors.New("Resource application action must not charge AI, Pay, or Trust units")
+			return errors.New("Resource and IDE application actions must not charge AI, Pay, or Trust units")
 		}
 	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
@@ -431,6 +435,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isTrustAction(action) {
 			return canonicalTrustActionPayload(action, raw)
+		}
+		if isIDEAction(action) {
+			return canonicalIDEActionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}

@@ -309,6 +309,11 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /trust/evidence/{id}", g.handleTrustEvidence)
 	g.mux.HandleFunc("POST /trust/tracking-reviews", g.handleTrustMutation)
 	g.mux.HandleFunc("GET /trust/tracking-reviews/{id}", g.handleTrackingReview)
+	g.mux.HandleFunc("POST /ide/deploy", g.handleIDEMutation)
+	g.mux.HandleFunc("POST /ide/execute", g.handleIDEMutation)
+	g.mux.HandleFunc("POST /ide/call", g.handleIDECall)
+	g.mux.HandleFunc("GET /ide/contracts/{address}", g.handleIDEContract)
+	g.mux.HandleFunc("GET /ide/verifier/{address}", g.handleIDEVerifier)
 	g.mux.HandleFunc("GET /validators", g.handleValidators)
 	g.mux.HandleFunc("GET /node/identity", g.handleNodeIdentity)
 	g.mux.HandleFunc("POST /evm", g.handleEVM)
@@ -491,11 +496,19 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 		if err != nil || tx.Verify(6423) != nil {
 			return chain.Transaction{}, errors.New("invalid signed application action")
 		}
-		return chain.Transaction{
+		mapped := chain.Transaction{
 			Hash: consensus.ApplicationActionHash(payload), Type: tx.Action, From: tx.Signer,
 			Fee: tx.Fee, Nonce: tx.Nonce, BlockHash: strings.ToLower(blockHash), BlockNum: height,
 			Timestamp: blockTime, Memo: "signed BFT application action",
-		}, nil
+		}
+		if tx.Action == consensus.ActionIDEContractCall {
+			var call consensus.IDEContractCallPayload
+			if json.Unmarshal(tx.Payload, &call) != nil {
+				return chain.Transaction{}, errors.New("invalid IDE contract call payload")
+			}
+			mapped.To = call.Address
+		}
+		return mapped, nil
 	}
 	tx, err := consensus.DecodeSignedTransaction(payload)
 	if err != nil {

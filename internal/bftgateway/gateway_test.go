@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -73,6 +74,15 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				"height": "17", "txs_results": []map[string]any{{"code": 0, "log": "transfer", "gas_used": "1"}},
 			}})
 		case "/abci_query":
+			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+			if path == "/evm/logs" {
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString([]byte("[]"))}}})
+				return
+			}
+			if strings.HasPrefix(path, "/evm/receipts/") {
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "log": "EVM receipt not found", "height": "17"}}})
+				return
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString(accountPayload)}}})
 		case "/broadcast_tx_commit":
 			if r.URL.Query().Get("tx") != fmt.Sprintf("0x%x", txPayload) {
