@@ -333,7 +333,8 @@ grep -Eq "check-local-services\\.sh.*primary.*${commit}.*${release}.*6423.*full"
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }
-grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || { echo "legacy home data path missing from predeploy backup"; exit 1; }
-grep -Fq "/root/.ynx-v2" "$dry_run_out" || { echo "legacy root data path missing from predeploy backup"; exit 1; }
-grep -Fq "ynx-v2-node.service" "$dry_run_out" || { echo "legacy primary service backup missing"; exit 1; }
-grep -Fq "ynx-v2-peer.service" "$dry_run_out" || { echo "legacy peer service backup missing"; exit 1; }
+if grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || grep -Fq "/root/.ynx-v2" "$dry_run_out" || grep -Fq "/var/lib/ynx-ops-observer" "$dry_run_out"; then
+  echo "scoped YNX Chain predeploy backup must not copy unrelated legacy runtime data"
+  exit 1
+fi
+grep -Fq "/var/lib/ynx-chain" "$dry_run_out" || { echo "YNX Chain state path missing from predeploy backup"; exit 1; }
