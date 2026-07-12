@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 func TestCommittedCumulativeGasUsesBlockResultEvidence(t *testing.T) {
@@ -63,5 +66,12 @@ func TestCommittedEVMFilterValidationHelpers(t *testing.T) {
 	}
 	if err := validateCommittedLogRange(1, 1001); err == nil {
 		t.Fatal("overbroad 1001-block range did not fail closed")
+	}
+}
+
+func TestCommittedApplicationActionUsesNullRecipient(t *testing.T) {
+	tx := evmCommittedTransaction(chain.Transaction{Hash: "0x" + strings.Repeat("1", 64), From: "0x" + strings.Repeat("2", 40), Nonce: 2, BlockHash: strings.Repeat("3", 64), BlockNum: 9}, 0)
+	if tx["to"] != nil || tx["value"] != "0x0" || tx["input"] != "0x" {
+		t.Fatalf("application action transaction fields are not Ethereum-compatible: %+v", tx)
 	}
 }

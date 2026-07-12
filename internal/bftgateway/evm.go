@@ -84,8 +84,12 @@ func (g *Gateway) committedTransaction(ctx context.Context, hash string) (cometT
 }
 
 func evmCommittedTransaction(t chain.Transaction, index uint32) map[string]any {
+	var to any = t.To
+	if t.To == "" {
+		to = nil
+	}
 	return map[string]any{
-		"hash": t.Hash, "from": t.From, "to": t.To,
+		"hash": t.Hash, "from": t.From, "to": to,
 		"value": hexEVMQuantity(uint64(t.Amount)), "nonce": hexEVMQuantity(t.Nonce),
 		"blockHash":   "0x" + strings.ToLower(strings.TrimPrefix(t.BlockHash, "0x")),
 		"blockNumber": hexEVMQuantity(t.BlockNum), "transactionIndex": hexEVMQuantity(uint64(index)),
