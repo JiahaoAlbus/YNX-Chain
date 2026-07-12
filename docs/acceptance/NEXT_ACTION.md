@@ -17,6 +17,7 @@ Required work:
 
 - Keep the implemented Gateway runtime authorization default false; preserve its capability, release, commit, and UTC build identity gates.
 - Deploy the gzip replication fix through the normal rollback-safe release path, then require all followers to converge within the configured lag threshold before continuing cutover work.
+- Use restricted upgrade mode only for the reviewed old-release-to-current-release transition; it must not suppress chain, height, validator, EVM, service, governance, or SSH failures.
 - Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
 - Extend the implemented transaction engine with a production driver that prebuilds binaries and verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
 - Deploy and remotely verify the implemented shared marker-based mutation freeze; preserve supported read-only EVM/HTTP health, reject writes, and record freeze/unfreeze evidence.

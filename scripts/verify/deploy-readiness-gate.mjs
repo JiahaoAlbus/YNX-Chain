@@ -11,6 +11,19 @@ const expectedEvmChainId = Number(process.env.YNX_EVM_CHAIN_ID || 6423);
 const expectedEvmChainIdHex = String(process.env.YNX_EVM_CHAIN_ID_HEX || "0x1917").toLowerCase();
 const expectedNativeSymbol = process.env.YNX_NATIVE_COIN_SYMBOL || "YNXT";
 const bootstrapDeploy = process.env.YNX_BOOTSTRAP_DEPLOY === "1";
+const upgradeDeploy = process.env.YNX_UPGRADE_DEPLOY === "1";
+
+const allowedUpgradeFailures = new Set([
+  "release.manifest.commit", "release.manifest.release",
+  "rpc.status.buildCommit", "rpc.status.buildRelease",
+  "rpc.nodeIdentity.buildCommit", "rpc.nodeIdentity.buildRelease",
+  "ai.health.buildCommit", "ai.health.buildRelease",
+  "pay.health.buildCommit", "pay.health.buildRelease",
+  "trust.health.buildCommit", "trust.health.buildRelease",
+  "resource.health.buildCommit", "resource.health.buildRelease",
+  "web4.health.truthful", "web4.health.chain",
+  "mutable.remote.actions",
+]);
 
 function fail(message, details = []) {
   console.error(`deploy-readiness-gate failed: ${message}`);
@@ -120,8 +133,15 @@ for (const [key, label] of requiredSources.entries()) {
     if (remoteEvidence?.proofType !== "remote-public-testnet-smoke") {
       sourceProblems.push(`${label}: proofType must be remote-public-testnet-smoke (${source.path})`);
     }
-    if (!bootstrapDeploy && remoteEvidence?.status !== "passed") {
+    if (!bootstrapDeploy && !upgradeDeploy && remoteEvidence?.status !== "passed") {
       sourceProblems.push(`${label}: status must be passed, got ${remoteEvidence?.status || "missing"} (${source.path})`);
+    }
+    if (upgradeDeploy) {
+      const failedChecks = Array.isArray(remoteEvidence?.checks) ? remoteEvidence.checks.filter((check) => check?.ok !== true) : [];
+      const unsafeFailures = failedChecks.filter((check) => !allowedUpgradeFailures.has(String(check?.name || "")));
+      if (!failedChecks.length || unsafeFailures.length) {
+        sourceProblems.push(`${label}: upgrade evidence has unsafe failures: ${unsafeFailures.map((check) => check?.name || "unknown").join(", ") || "missing expected source/target release differences"} (${source.path})`);
+      }
     }
     const evidenceCommit = String(remoteEvidence?.gitCommit || "");
     if (!/^[0-9a-f]{40}$/i.test(evidenceCommit)) {
@@ -171,6 +191,20 @@ if (bootstrapDeploy) {
   }
   console.log(`deploy-readiness-gate passed in explicit bootstrap mode: ${blockerJsonPath}`);
   console.log(`pre-deployment public endpoint blockers recorded: ${endpointBlockers.length}`);
+  process.exit(0);
+}
+if (upgradeDeploy) {
+  const unsafeEndpointBlockers = endpointBlockers.filter((item) => !allowedUpgradeFailures.has(String(item?.name || "")));
+  if (sourceBlockers.length || nodeBlockers.length || unsafeEndpointBlockers.length) {
+    const details = [
+      ...sourceBlockers.map((item) => `${item.name || "source"} ${item.path || ""}: ${item.classification} (${item.detail || "no detail"})`),
+      ...nodeBlockers.map((item) => `${item.role || "node"} ${item.login || ""} ${item.host || ""}: ${item.classification} (${item.detail || "no detail"})`),
+      ...unsafeEndpointBlockers.map((item) => `${item.name || "endpoint"} ${item.endpoint || ""}: ${item.classification} (${item.detail || "no detail"})`),
+    ];
+    fail("upgrade deployment has unsafe SSH, source, or endpoint evidence", details.slice(0, 24));
+  }
+  console.log(`deploy-readiness-gate passed in restricted upgrade mode: ${blockerJsonPath}`);
+  console.log(`allowed source-to-target release/Web4 blockers recorded: ${endpointBlockers.length}`);
   process.exit(0);
 }
 if (!blocker.deployReady || sourceBlockers.length || nodeBlockers.length || endpointBlockers.length) {

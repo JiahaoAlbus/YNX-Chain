@@ -156,6 +156,59 @@ assertGateFails("failed-status-remote-evidence", {
   },
 }, /status must be passed/);
 
+const upgradeRemoteEvidencePath = path.join(workDir, "remote-evidence-upgrade.json");
+writeJson(upgradeRemoteEvidencePath, {
+  proofType: "remote-public-testnet-smoke",
+  generatedAt: now,
+  gitCommit: headCommit,
+  status: "failed",
+  expected: {
+    cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainIdHex: "0x1917", nativeSymbol: "YNXT",
+    releaseCommit, releaseName: `ynx-chain-${releaseCommit}`,
+  },
+  checks: [
+    { name: "rpc.status.chain", ok: true },
+    { name: "rpc.status.height.growth", ok: true },
+    { name: "rpc.status.buildCommit", ok: false },
+    { name: "web4.health.chain", ok: false },
+    { name: "mutable.remote.actions", ok: false },
+  ],
+});
+const upgradeReady = {
+  ...baseReady,
+  deployReady: false,
+  sourceEvidence: {
+    ...baseReady.sourceEvidence,
+    remoteEvidence: { ...baseReady.sourceEvidence.remoteEvidence, path: upgradeRemoteEvidencePath },
+  },
+  deployBlockers: {
+    sources: [], nodes: [],
+    endpoints: [
+      { name: "rpc.status.buildCommit", classification: "release-identity-missing" },
+      { name: "web4.health.chain", classification: "legacy-chain" },
+      { name: "mutable.remote.actions", classification: "gated-mutation-skipped" },
+    ],
+  },
+};
+const upgradeOk = runGate("restricted-upgrade", upgradeReady, { YNX_UPGRADE_DEPLOY: "1" });
+assert.equal(upgradeOk.status, 0, `restricted upgrade should pass known source/target differences: ${upgradeOk.stderr}`);
+assert.match(upgradeOk.stdout, /restricted upgrade mode/);
+
+const unsafeUpgradeEvidencePath = path.join(workDir, "remote-evidence-unsafe-upgrade.json");
+writeJson(unsafeUpgradeEvidencePath, {
+  ...JSON.parse(fs.readFileSync(upgradeRemoteEvidencePath, "utf8")),
+  checks: [{ name: "rpc.status.height.growth", ok: false }],
+});
+const unsafeUpgrade = runGate("unsafe-upgrade", {
+  ...upgradeReady,
+  sourceEvidence: {
+    ...upgradeReady.sourceEvidence,
+    remoteEvidence: { ...upgradeReady.sourceEvidence.remoteEvidence, path: unsafeUpgradeEvidencePath },
+  },
+}, { YNX_UPGRADE_DEPLOY: "1" });
+assert.notEqual(unsafeUpgrade.status, 0, "upgrade mode must reject non-release failures");
+assert.match(`${unsafeUpgrade.stdout}\n${unsafeUpgrade.stderr}`, /unsafe failures/);
+
 assertGateFails("endpoint-blocker", {
   ...baseReady,
   deployReady: false,
