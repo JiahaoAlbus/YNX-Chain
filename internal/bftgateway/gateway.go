@@ -36,11 +36,10 @@ var implementedCapabilities = []string{
 	"trust-and-chain-law-state-transitions",
 	"resource-market-state-transitions",
 	"evm-transaction-receipts-and-logs",
-}
-
-var missingCutoverCapabilities = []string{
 	"ide-contract-state-transitions",
 }
+
+var missingCutoverCapabilities = []string{}
 
 var (
 	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)

@@ -22,7 +22,8 @@ grep -Fq 'GET /pay/events' internal/bftgateway/gateway.go
 grep -Fq 'POST /governance/requests' internal/bftgateway/gateway.go
 grep -Fq 'GET /governance/transparency' internal/bftgateway/gateway.go
 grep -Fq 'POST /trust/appeals' internal/bftgateway/gateway.go
+grep -Fq '"ide-contract-state-transitions"' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 
-echo "bft-gateway-check passed: native, AI, Pay, Trust, Resource, and EVM receipt/log compatibility handlers are implemented while the remaining IDE cutover capability stays fail-closed"
+echo "bft-gateway-check passed: all fifteen native, AI, Pay, Trust, Resource, EVM receipt/log, and bounded IDE compatibility capabilities are implemented while public cutover remains explicitly false"
