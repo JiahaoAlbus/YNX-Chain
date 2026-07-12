@@ -1,24 +1,24 @@
 # Next Action
 
-Current single action: safely commit the locally verified Trust/Chain Law governance and appeal BFT slice, prove it across the temporary four-validator candidate, roll it back, then continue with label/evidence/tracking BFT state.
+Current single action: implement deterministic label, evidence packet/export, lineage-affecting advisory label, and tracking-review BFT state so the remaining Trust/Chain Law capability can be tested as one complete surface.
 
 Why this action:
 
 - AI permission/action state is now remotely candidate-verified and safely rolled back.
 - Pay state transitions are locally verified and remotely candidate-proven across all four applications; the temporary candidate, Gateway, tunnel, and Pay process were removed and the authoritative rollback gate passed.
-- Governance request/review/reject, appeal/resolve, correction, and transparency state now pass local race/integration checks.
-- Remote four-application convergence and rollback remain required, and label/evidence/tracking must still be migrated before the full Trust capability can move from missing.
+- Governance request/review/reject, appeal/resolve, correction, and transparency state pass local race/integration checks and temporary remote four-validator proof.
+- Nine remote actions converged across all four ABCI applications, four-signer evidence passed, all temporary components were removed, and the post-rollback gate passed.
+- Label/evidence/tracking must still be migrated before the full Trust capability can move from missing.
 - Existing authoritative governance/appeal/transparency contracts define the required boundary without expanding bounded EVM/IDE work.
 - Public Trust, RPC, DNS, Caddy, and website routing must remain untouched.
 
 Required proof and follow-on work:
 
-- Commit and push the local governance/appeal implementation after full local gates.
-- Run a fresh temporary candidate plus loopback Gateway and local signer-held `ynx-trustd` through strict SSH forwarding.
-- Prove native YNXT rejection, review, manual rejection, appeal, correction, transparency, account fee/resource usage, four-application equality, and four-signer consensus.
-- Remove all temporary processes/tunnels/candidate state and rerun rollback/public-service gates.
-- Keep `trust-and-chain-law-state-transitions` missing after that proof because labels, evidence packets/exports, trace-affecting advisory label state, and tracking reviews remain authoritative-only.
-- Implement those remaining Trust actions and queries, repeat local and remote proof, and only then consider capability promotion.
+- Define canonical signed actions and deterministic ABCI persistence for Trust labels, bounded evidence metadata/exports, advisory lineage state, and tracking-review decisions without storing prohibited evidence bodies.
+- Preserve appeal linkage, expiration, confidence, purpose, minimum-necessary-data, reviewer, native YNXT no-freeze, and advisory-only asset-effect boundaries.
+- Add BFT Gateway handlers and enable the corresponding `ynx-trustd` BFT routes while retaining signer injection, serialized nonce selection, and committed-evidence verification.
+- Add restart, AppHash, authorization, replay, size-bound, expiry, correction, lineage, tracking, and race tests plus a focused check target.
+- Run complete local gates, then repeat fresh temporary four-application/four-signer remote proof and rollback before considering capability promotion.
 
 Files to touch:
 
@@ -48,9 +48,9 @@ Validation commands:
 
 Completion standard:
 
-- Signed governance, rejection, appeal, correction, and transparency mutations commit deterministically through four-validator CometBFT, survive restart, and agree across all four ABCI applications.
+- Signed label, evidence/export, lineage, and tracking-review mutations commit deterministically, survive restart, and agree across all ABCI applications while preserving the already-proven governance/appeal state.
 - Illegal, overbroad, evidence-free, wrong-asset, direct native YNXT freeze, reviewer impersonation, wrong chain, malformed payload, nonce collision, and inconsistent Gateway evidence paths fail closed.
-- Transparency and appeal state remains bounded and auditable without storing prohibited private evidence bodies.
+- Transparency, appeal, label, tracking, and evidence metadata remain bounded and auditable without storing prohibited private evidence bodies.
 - Temporary services/tunnels/candidate state are removed, authoritative public services remain online, and public BFT is not claimed.
 
 Explicitly not doing:
