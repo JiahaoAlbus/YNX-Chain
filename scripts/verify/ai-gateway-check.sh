@@ -81,6 +81,8 @@ approved="$(curl -fsS -X POST "$gateway_url/ai/actions/$action_id/approve" "${au
 printf '%s' "$approved" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.status !== "approved" || data.executable !== true || !data.permissionId || !data.auditHash) { console.error(`AI approval gate failed: ${JSON.stringify(data)}`); process.exit(1); }'
 
 curl -fsS "$gateway_url/ai/permissions/$permission_id" "${auth[@]}" >/dev/null
+permissions="$(curl -fsS "$gateway_url/ai/permissions?sessionId=ai-check-session" "${auth[@]}")"
+printf '%s' "$permissions" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.permissions) || data.permissions.length !== 1 || data.permissions[0].status !== "active") { console.error(`AI permission list audit failed: ${JSON.stringify(data)}`); process.exit(1); }'
 curl -fsS "$gateway_url/ai/actions/$action_id" "${auth[@]}" >/dev/null
 actions="$(curl -fsS "$gateway_url/ai/actions?sessionId=ai-check-session" "${auth[@]}")"
 printf '%s' "$actions" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.actions) || data.actions.length !== 1 || data.actions[0].status !== "approved") { console.error(`AI action list audit failed: ${JSON.stringify(data)}`); process.exit(1); }'

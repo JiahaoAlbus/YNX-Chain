@@ -34,6 +34,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /ai/stream", s.handleStream)
 	s.mux.HandleFunc("POST /ai/permissions", s.handleProxy)
+	s.mux.HandleFunc("GET /ai/permissions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/permissions/{id}", s.handleProxy)
 	s.mux.HandleFunc("POST /ai/actions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/actions", s.handleProxy)

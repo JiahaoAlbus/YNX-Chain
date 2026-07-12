@@ -1612,6 +1612,19 @@ func (d *Devnet) AIPermission(id string) (AIPermissionGrant, bool) {
 	return grant, ok
 }
 
+func (d *Devnet) AIPermissions(sessionID string) []AIPermissionGrant {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	permissions := make([]AIPermissionGrant, 0)
+	for _, grant := range d.aiPermissions {
+		if sessionID == "" || grant.SessionID == sessionID {
+			permissions = append(permissions, grant)
+		}
+	}
+	sort.Slice(permissions, func(i, j int) bool { return permissions[i].CreatedAt.Before(permissions[j].CreatedAt) })
+	return permissions
+}
+
 func (d *Devnet) ProposeAIAction(input AIActionProposalInput) (AIActionProposal, error) {
 	input.SessionID = strings.TrimSpace(input.SessionID)
 	input.Requester = strings.TrimSpace(input.Requester)

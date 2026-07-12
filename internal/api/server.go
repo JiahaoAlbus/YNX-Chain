@@ -111,6 +111,7 @@ func (s *Server) routes() {
 	s.resourceRoute("GET /resource-market/income/{address}", s.handleResourceIncome)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
+	s.aiRoute("GET /ai/permissions", s.handleAIPermissions)
 	s.aiRoute("GET /ai/permissions/{id}", s.handleAIPermissionLookup)
 	s.aiRoute("POST /ai/actions", s.handleAIActionProposal)
 	s.aiRoute("GET /ai/actions", s.handleAIActions)
@@ -737,6 +738,9 @@ func (s *Server) handleAIPermissionLookup(w http.ResponseWriter, r *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, grant)
+}
+func (s *Server) handleAIPermissions(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"permissions": s.devnet.AIPermissions(r.URL.Query().Get("sessionId"))})
 }
 func (s *Server) handleAIActionProposal(w http.ResponseWriter, r *http.Request) {
 	var req chain.AIActionProposalInput
