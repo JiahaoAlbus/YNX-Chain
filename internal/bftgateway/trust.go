@@ -3,6 +3,7 @@ package bftgateway
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -89,6 +90,33 @@ func (g *Gateway) handleTrustMutation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, status, record)
+	case consensus.ActionTrustLabelCreate:
+		status = http.StatusCreated
+		id := consensus.ApplicationActionRecordID("trust-label", txHash)
+		var record consensus.BFTTrustLabel
+		if err := g.queryABCIJSON(r.Context(), "/trust/labels/"+id, &record); err != nil || record.ID != id || record.Signer != tx.Signer || record.Issuer != tx.Signer || record.TxHash != txHash || record.AssetEffect != "none_advisory_only" || !record.AppealAvailable {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Trust label evidence mismatch"})
+			return
+		}
+		writeJSON(w, status, record)
+	case consensus.ActionTrustEvidenceCreate:
+		status = http.StatusCreated
+		id := consensus.ApplicationActionRecordID("trust-evidence", txHash)
+		var record consensus.BFTTrustEvidence
+		if err := g.queryABCIJSON(r.Context(), "/trust/evidence/"+id, &record); err != nil || record.ID != id || record.Signer != tx.Signer || record.Requester != tx.Signer || record.TxHash != txHash || record.JSONHash == "" || record.RiskSummary.AssetEffect != "none_advisory_only" {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Trust evidence mismatch"})
+			return
+		}
+		writeJSON(w, status, record)
+	case consensus.ActionTrustTrackingCreate:
+		status = http.StatusCreated
+		id := consensus.ApplicationActionRecordID("tracking-review", txHash)
+		var record consensus.BFTTrackingReview
+		if err := g.queryABCIJSON(r.Context(), "/trust/tracking-reviews/"+id, &record); err != nil || record.ID != id || record.Signer != tx.Signer || record.Requester != tx.Signer || record.TxHash != txHash || record.AppealPath != "/trust/appeals" {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Trust tracking review mismatch"})
+			return
+		}
+		writeJSON(w, status, record)
 	}
 }
 
@@ -115,6 +143,12 @@ func expectedTrustAction(r *http.Request) string {
 		return consensus.ActionGovernanceReject
 	case r.URL.Path == "/trust/appeals":
 		return consensus.ActionTrustAppealCreate
+	case r.URL.Path == "/trust/labels":
+		return consensus.ActionTrustLabelCreate
+	case r.URL.Path == "/trust/evidence":
+		return consensus.ActionTrustEvidenceCreate
+	case r.URL.Path == "/trust/tracking-reviews":
+		return consensus.ActionTrustTrackingCreate
 	case strings.HasSuffix(r.URL.Path, "/resolve"):
 		return consensus.ActionTrustAppealResolve
 	default:
@@ -129,6 +163,48 @@ func (g *Gateway) handleGovernanceRequest(w http.ResponseWriter, r *http.Request
 func (g *Gateway) handleTrustAppeal(w http.ResponseWriter, r *http.Request) {
 	var record consensus.BFTTrustAppeal
 	g.handleTrustLookup(w, r, r.PathValue("id"), "/trust/appeals/", &record, func() bool { return record.ID == r.PathValue("id") })
+}
+func (g *Gateway) handleTrustLabel(w http.ResponseWriter, r *http.Request) {
+	var record consensus.BFTTrustLabel
+	g.handleTrustLookup(w, r, r.PathValue("id"), "/trust/labels/", &record, func() bool { return record.ID == r.PathValue("id") })
+}
+func (g *Gateway) handleTrackingReview(w http.ResponseWriter, r *http.Request) {
+	var record consensus.BFTTrackingReview
+	g.handleTrustLookup(w, r, r.PathValue("id"), "/trust/tracking-reviews/", &record, func() bool { return record.ID == r.PathValue("id") })
+}
+func (g *Gateway) handleTrustTrace(w http.ResponseWriter, r *http.Request) {
+	subject := strings.TrimSpace(r.PathValue("address"))
+	if subject == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Trust trace subject is required"})
+		return
+	}
+	var trace chain.TrustTrace
+	if err := g.queryABCIJSON(r.Context(), "/trust/trace/"+subject, &trace); err != nil || trace.Address != subject {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed Trust trace evidence mismatch"})
+		return
+	}
+	writeJSON(w, http.StatusOK, trace)
+}
+func (g *Gateway) handleTrustEvidence(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	asPDF := strings.HasSuffix(id, ".pdf")
+	if asPDF {
+		id = strings.TrimSuffix(id, ".pdf")
+	}
+	var record consensus.BFTTrustEvidence
+	if !aiRecordIDPattern.MatchString(id) || g.queryABCIJSON(r.Context(), "/trust/evidence/"+id, &record) != nil || record.ID != id {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "Trust evidence not found"})
+		return
+	}
+	if asPDF {
+		payload := minimalBFTEvidencePDF(record.EvidencePacket)
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Length", fmt.Sprint(len(payload)))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(payload)
+		return
+	}
+	writeJSON(w, http.StatusOK, record)
 }
 func (g *Gateway) handleTrustLookup(w http.ResponseWriter, r *http.Request, id, prefix string, out any, matches func() bool) {
 	id = strings.TrimSpace(id)
@@ -185,4 +261,11 @@ func (g *Gateway) handleTransparencyReport(w http.ResponseWriter, r *http.Reques
 		report.GeneratedAt = time.Unix(0, 0).UTC()
 	}
 	writeJSON(w, http.StatusOK, report)
+}
+
+func minimalBFTEvidencePDF(packet chain.EvidencePacket) []byte {
+	line := fmt.Sprintf("YNX Trust BFT evidence %s subject %s json %s generated %s conclusion %s effectiveRiskBps %d assetEffect %s", packet.ID, packet.Subject, packet.JSONHash, packet.GeneratedAt.Format(time.RFC3339), packet.RiskSummary.Conclusion, packet.RiskSummary.EffectiveRiskWeightBps, packet.RiskSummary.AssetEffect)
+	line = strings.NewReplacer("\\", "\\\\", "(", "\\(", ")", "\\)").Replace(line)
+	stream := fmt.Sprintf("BT /F1 12 Tf 72 720 Td (%s) Tj ET", line)
+	return []byte(fmt.Sprintf("%%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n5 0 obj << /Length %d >> stream\n%s\nendstream endobj\ntrailer << /Root 1 0 R >>\n%%%%EOF\n", len(stream), stream))
 }

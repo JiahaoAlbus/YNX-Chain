@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 4
+const CommittedStateVersion = 5
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -39,6 +39,9 @@ type CommittedState struct {
 	GovernanceRequests []BFTGovernanceRequest   `json:"governanceRequests"`
 	TrustAppeals       []BFTTrustAppeal         `json:"trustAppeals"`
 	TrustCorrections   []BFTTrustCorrection     `json:"trustCorrections"`
+	TrustLabels        []BFTTrustLabel          `json:"trustLabels"`
+	TrustEvidence      []BFTTrustEvidence       `json:"trustEvidence"`
+	TrackingReviews    []BFTTrackingReview      `json:"trackingReviews"`
 	Transparency       []BFTTransparencyEntry   `json:"transparencyEntries"`
 	AppHash            string                   `json:"appHash"`
 }
@@ -61,6 +64,9 @@ type committedStateHashDocument struct {
 	GovernanceRequests []BFTGovernanceRequest   `json:"governanceRequests"`
 	TrustAppeals       []BFTTrustAppeal         `json:"trustAppeals"`
 	TrustCorrections   []BFTTrustCorrection     `json:"trustCorrections"`
+	TrustLabels        []BFTTrustLabel          `json:"trustLabels"`
+	TrustEvidence      []BFTTrustEvidence       `json:"trustEvidence"`
+	TrackingReviews    []BFTTrackingReview      `json:"trackingReviews"`
 	Transparency       []BFTTransparencyEntry   `json:"transparencyEntries"`
 }
 
@@ -84,6 +90,9 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		GovernanceRequests: []BFTGovernanceRequest{},
 		TrustAppeals:       []BFTTrustAppeal{},
 		TrustCorrections:   []BFTTrustCorrection{},
+		TrustLabels:        []BFTTrustLabel{},
+		TrustEvidence:      []BFTTrustEvidence{},
+		TrackingReviews:    []BFTTrackingReview{},
 		Transparency:       []BFTTransparencyEntry{},
 		AppHash:            migration.StateHash,
 	}
@@ -109,6 +118,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		GovernanceRequests: cloneGovernanceRequests(execution.governanceRequests),
 		TrustAppeals:       cloneTrustAppeals(execution.trustAppeals),
 		TrustCorrections:   append([]BFTTrustCorrection(nil), execution.trustCorrections...),
+		TrustLabels:        cloneTrustLabels(execution.trustLabels),
+		TrustEvidence:      cloneTrustEvidence(execution.trustEvidence),
+		TrackingReviews:    cloneTrackingReviews(execution.trackingReviews),
 		Transparency:       cloneTransparencyEntries(execution.transparency),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
@@ -218,7 +230,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:             "YNX_ABCI_STATE_V4",
+		Domain:             "YNX_ABCI_STATE_V5",
 		Version:            s.Version,
 		ChainID:            s.ChainID,
 		MigrationStateHash: s.MigrationStateHash,
@@ -235,6 +247,9 @@ func (s CommittedState) calculateHash() (string, error) {
 		GovernanceRequests: s.GovernanceRequests,
 		TrustAppeals:       s.TrustAppeals,
 		TrustCorrections:   s.TrustCorrections,
+		TrustLabels:        s.TrustLabels,
+		TrustEvidence:      s.TrustEvidence,
+		TrackingReviews:    s.TrackingReviews,
 		Transparency:       s.Transparency,
 	}
 	payload, err := json.Marshal(doc)
@@ -246,7 +261,7 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.Transparency) != 0
+	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {

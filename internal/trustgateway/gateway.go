@@ -391,6 +391,26 @@ func (s *Service) bftTrustPayload(path string, body []byte) (string, any, error)
 			return "", nil, err
 		}
 		return consensus.ActionTrustAppealCreate, consensus.TrustAppealPayload{RequestID: in.RequestID, LabelID: in.LabelID, Subject: in.Subject, Appellant: s.signerAddr, Claimant: s.signerAddr, Reason: in.Reason, Evidence: in.Evidence}, nil
+	case path == "/trust/labels":
+		var in chain.RiskLabelInput
+		if err := decode(&in); err != nil {
+			return "", nil, err
+		}
+		return consensus.ActionTrustLabelCreate, consensus.TrustLabelPayload{Issuer: s.signerAddr, Subject: in.Subject, SubjectType: in.SubjectType, Address: in.Address, Label: in.Label, LabelType: in.LabelType, Severity: in.Severity, RiskWeightBps: in.RiskWeightBps, ConfidenceBps: in.ConfidenceBps, Source: in.Source, EvidenceHash: in.EvidenceHash, ExpiryHours: in.ExpiryHours, ReviewRequired: in.ReviewRequired, AppealAvailable: true, DisputeStatus: in.DisputeStatus, LegalStatusUnderYNXChainLaw: in.LegalStatusUnderYNXChainLaw, RejectedExternalRequestReference: in.RejectedExternalRequestReference, AssetEffect: in.AssetEffect}, nil
+	case path == "/trust/evidence":
+		var in struct {
+			Subject string `json:"subject"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, err
+		}
+		return consensus.ActionTrustEvidenceCreate, consensus.TrustEvidencePayload{Requester: s.signerAddr, Subject: in.Subject}, nil
+	case path == "/trust/tracking-reviews":
+		var in chain.TrackingPolicyReviewInput
+		if err := decode(&in); err != nil {
+			return "", nil, err
+		}
+		return consensus.ActionTrustTrackingCreate, consensus.TrustTrackingPayload{Requester: s.signerAddr, Subject: in.Subject, Purpose: in.Purpose, QueryType: in.QueryType, Scope: in.Scope, Description: in.Description, Evidence: in.Evidence, Institutional: in.Institutional, Sensitive: in.Sensitive, MinimumNecessary: in.MinimumNecessary, ConfidenceBps: in.ConfidenceBps, ExpiryHours: in.ExpiryHours}, nil
 	case strings.HasPrefix(path, "/trust/appeals/") && strings.HasSuffix(path, "/resolve"):
 		id := strings.TrimSuffix(strings.TrimPrefix(path, "/trust/appeals/"), "/resolve")
 		var in chain.TrustAppealDecisionInput
@@ -446,6 +466,21 @@ func verifyBFTTrustResponse(action string, tx consensus.SignedApplicationAction,
 		if json.Unmarshal(response, &v) != nil || v.ReviewerSigner != tx.Signer || v.TxHash != txHash {
 			return errors.New("BFT Trust resolution response mismatch")
 		}
+	case consensus.ActionTrustLabelCreate:
+		var v consensus.BFTTrustLabel
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("trust-label", txHash) || v.Signer != tx.Signer || v.Issuer != tx.Signer || v.TxHash != txHash || v.AssetEffect != "none_advisory_only" || !v.AppealAvailable {
+			return errors.New("BFT Trust label response mismatch")
+		}
+	case consensus.ActionTrustEvidenceCreate:
+		var v consensus.BFTTrustEvidence
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("trust-evidence", txHash) || v.Signer != tx.Signer || v.Requester != tx.Signer || v.TxHash != txHash || v.JSONHash == "" {
+			return errors.New("BFT Trust evidence response mismatch")
+		}
+	case consensus.ActionTrustTrackingCreate:
+		var v consensus.BFTTrackingReview
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("tracking-review", txHash) || v.Signer != tx.Signer || v.Requester != tx.Signer || v.TxHash != txHash || v.AppealPath != "/trust/appeals" {
+			return errors.New("BFT Trust tracking response mismatch")
+		}
 	default:
 		return errors.New("unsupported BFT Trust response")
 	}
@@ -454,7 +489,7 @@ func verifyBFTTrustResponse(action string, tx consensus.SignedApplicationAction,
 
 func trustTruthfulStatus(mode string) string {
 	if mode == UpstreamBFT {
-		return "signed-bft-governance-and-appeal-gateway-partial-trust-migration"
+		return "signed-bft-full-trust-surface-local-implementation-awaiting-remote-proof"
 	}
 	return "authenticated-chain-backed-trust-and-chain-law-gateway"
 }

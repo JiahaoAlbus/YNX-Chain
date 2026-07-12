@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -129,15 +130,117 @@ func TestApplicationPersistsGovernanceAppealAndTransparencyWorkflow(t *testing.T
 	}
 }
 
-func TestTrustPayloadRejectsOverlongEvidenceAndLabelOnlyAppeal(t *testing.T) {
+func TestTrustPayloadRejectsOverlongEvidenceAndAppealWithoutTarget(t *testing.T) {
 	key := deterministicPrivateKey(93)
 	signer := mustNativeAddress(t, key)
 	long := string(bytes.Repeat([]byte("x"), 257))
 	if _, err := NewSignedApplicationAction(key, 6423, ActionGovernanceCreate, GovernanceRequestPayload{Requester: signer, Subject: "x", Action: "review", Evidence: []string{long}}, 1); err == nil {
 		t.Fatal("overlong evidence accepted")
 	}
-	if _, err := NewSignedApplicationAction(key, 6423, ActionTrustAppealCreate, TrustAppealPayload{LabelID: "1234567890abcdef12345678", Subject: "x", Appellant: signer, Claimant: signer, Reason: "appeal"}, 1); err == nil {
-		t.Fatal("label-only BFT appeal accepted without label state")
+	if _, err := NewSignedApplicationAction(key, 6423, ActionTrustAppealCreate, TrustAppealPayload{Subject: "x", Appellant: signer, Claimant: signer, Reason: "appeal"}, 1); err == nil {
+		t.Fatal("BFT appeal accepted without a request or label target")
+	}
+	if _, err := NewSignedApplicationAction(key, 6423, ActionTrustLabelCreate, TrustLabelPayload{Issuer: signer, Subject: "not-a-transaction", SubjectType: "transaction", Label: "risk", Source: "case", EvidenceHash: strings.Repeat("a", 64), AppealAvailable: true}, 1); err == nil {
+		t.Fatal("transaction Trust label accepted a non-transaction subject")
+	}
+	if _, err := NewSignedApplicationAction(key, 6423, ActionTrustLabelCreate, TrustLabelPayload{Issuer: signer, Subject: signer, Label: "risk", Source: "case", EvidenceHash: strings.Repeat("a", 64), AppealAvailable: true, LegalStatusUnderYNXChainLaw: "criminal"}, 1); err == nil {
+		t.Fatal("Trust label accepted a criminal conclusion")
+	}
+}
+
+func TestApplicationPersistsLabelEvidenceAndTrackingWorkflow(t *testing.T) {
+	ctx := context.Background()
+	key := deterministicPrivateKey(95)
+	signer := mustNativeAddress(t, key)
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(signer, 100); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	statePath := filepath.Join(t.TempDir(), "complete-trust-state.json")
+	app, err := NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blockTime := time.Date(2026, 7, 12, 16, 0, 0, 0, time.UTC)
+
+	labelRaw := mustTrustAction(t, key, ActionTrustLabelCreate, TrustLabelPayload{Issuer: signer, Subject: signer, SubjectType: "address", Address: signer, Label: "reviewed-risk", RiskWeightBps: 2500, ConfidenceBps: 8000, Source: "case:label", EvidenceHash: strings.Repeat("a", 64), ExpiryHours: 24, ReviewRequired: true, AppealAvailable: true}, 1)
+	labelID := ApplicationActionRecordID("trust-label", ApplicationActionHash(labelRaw))
+	appealRaw := mustTrustAction(t, key, ActionTrustAppealCreate, TrustAppealPayload{LabelID: labelID, Subject: signer, Appellant: signer, Claimant: signer, Reason: "label is a false positive", Evidence: []string{"owner-proof-hash"}}, 2)
+	appealID := ApplicationActionRecordID("trust-appeal", ApplicationActionHash(appealRaw))
+	resolveRaw := mustTrustAction(t, key, ActionTrustAppealResolve, TrustAppealDecisionPayload{AppealID: appealID, Reviewer: signer, Decision: "LABEL_REMOVED", ResolutionReason: "independent review cleared the evidence"}, 3)
+	evidenceRaw := mustTrustAction(t, key, ActionTrustEvidenceCreate, TrustEvidencePayload{Requester: signer, Subject: signer}, 4)
+	evidenceID := ApplicationActionRecordID("trust-evidence", ApplicationActionHash(evidenceRaw))
+	trackingRaw := mustTrustAction(t, key, ActionTrustTrackingCreate, TrustTrackingPayload{Requester: signer, Subject: signer, Purpose: "single transfer screening", QueryType: "trace", Scope: "one transfer", Description: "minimum necessary review", Evidence: []string{"case:tracking"}, MinimumNecessary: true, ConfidenceBps: 7600, ExpiryHours: 24}, 5)
+	trackingID := ApplicationActionRecordID("tracking-review", ApplicationActionHash(trackingRaw))
+	overbroadRaw := mustTrustAction(t, key, ActionTrustTrackingCreate, TrustTrackingPayload{Requester: signer, Subject: signer, Purpose: "mass tracking all wallets", QueryType: "bulk profile", Scope: "entire chain", Evidence: []string{"case:bulk"}, MinimumNecessary: false, ConfidenceBps: 7000}, 6)
+	overbroadID := ApplicationActionRecordID("tracking-review", ApplicationActionHash(overbroadRaw))
+	txs := [][]byte{labelRaw, appealRaw, resolveRaw, evidenceRaw, trackingRaw, overbroadRaw}
+	height := int64(migration.Height) + 1
+	proposal, err := app.ProcessProposal(ctx, &abcitypes.RequestProcessProposal{Height: height, Time: blockTime, Txs: txs})
+	if err != nil || proposal.Status != abcitypes.ResponseProcessProposal_ACCEPT {
+		t.Fatalf("complete Trust proposal failed: %+v %v", proposal, err)
+	}
+	finalized, err := app.FinalizeBlock(ctx, &abcitypes.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: txs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, result := range finalized.TxResults {
+		if result.Code != 0 {
+			t.Fatalf("Trust action failed: %+v", result)
+		}
+	}
+	if _, err := app.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+
+	var label BFTTrustLabel
+	queryJSON(t, app, "/trust/labels/"+labelID, &label)
+	if label.RiskWeightBps != 0 || label.LabelType != "appeal_correction" || label.DisputeStatus != "resolved_after_appeal" || label.AssetEffect != "none_advisory_only" || !label.AppealAvailable {
+		t.Fatalf("label correction mismatch: %+v", label)
+	}
+	var evidence BFTTrustEvidence
+	queryJSON(t, app, "/trust/evidence/"+evidenceID, &evidence)
+	if evidence.JSONHash == "" || len(evidence.Labels) != 1 || evidence.RiskSummary.AssetEffect != "none_advisory_only" || evidence.RiskSummary.CorrectionLabelCount != 1 {
+		t.Fatalf("evidence mismatch: %+v", evidence)
+	}
+	var tracking, overbroad BFTTrackingReview
+	queryJSON(t, app, "/trust/tracking-reviews/"+trackingID, &tracking)
+	queryJSON(t, app, "/trust/tracking-reviews/"+overbroadID, &overbroad)
+	if tracking.Status != "logged" || tracking.Classification != chain.RequestValidUnderYNXChainLaw || tracking.AppealPath != "/trust/appeals" {
+		t.Fatalf("tracking mismatch: %+v", tracking)
+	}
+	if overbroad.Status != "rejected" || overbroad.Classification != chain.RequestOverbroad {
+		t.Fatalf("overbroad tracking accepted: %+v", overbroad)
+	}
+	var trace chain.TrustTrace
+	queryJSON(t, app, "/trust/trace/"+signer, &trace)
+	if trace.Address != signer || len(trace.Lots) == 0 || !containsString(trace.Labels, "advisory-risk-labels-present") {
+		t.Fatalf("trace mismatch: %+v", trace)
+	}
+	assertConsensusAccount(t, app, signer, 94, 6)
+	trackingAppeal := mustTrustAction(t, key, ActionTrustAppealCreate, TrustAppealPayload{RequestID: trackingID, Subject: signer, Appellant: signer, Claimant: signer, Reason: "tracking scope dispute", Evidence: []string{"appeal-evidence-hash"}}, 7)
+	check, _ := app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: trackingAppeal})
+	if check.Code != 0 {
+		t.Fatalf("tracking review appeal was not accepted: %+v", check)
+	}
+	unknownEvidence := mustTrustAction(t, key, ActionTrustEvidenceCreate, TrustEvidencePayload{Requester: signer, Subject: "unknown-subject"}, 7)
+	check, _ = app.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: unknownEvidence})
+	if check.Code == 0 {
+		t.Fatal("empty Trust evidence packet accepted for unknown subject")
+	}
+	restarted, err := NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var restored BFTTrustEvidence
+	queryJSON(t, restarted, "/trust/evidence/"+evidenceID, &restored)
+	if !bytes.Equal(mustJSON(t, evidence), mustJSON(t, restored)) {
+		t.Fatal("complete Trust state changed after restart")
 	}
 }
 

@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: implement deterministic label, evidence packet/export, lineage-affecting advisory label, and tracking-review BFT state so the remaining Trust/Chain Law capability can be tested as one complete surface.
+Current single action: commit the locally complete Trust/Chain Law BFT surface, prove label/evidence/tracking plus linked appeals across a fresh temporary four-validator candidate, then remove every temporary component and verify authoritative public services.
 
 Why this action:
 
@@ -8,17 +8,18 @@ Why this action:
 - Pay state transitions are locally verified and remotely candidate-proven across all four applications; the temporary candidate, Gateway, tunnel, and Pay process were removed and the authoritative rollback gate passed.
 - Governance request/review/reject, appeal/resolve, correction, and transparency state pass local race/integration checks and temporary remote four-validator proof.
 - Nine remote actions converged across all four ABCI applications, four-signer evidence passed, all temporary components were removed, and the post-rollback gate passed.
-- Label/evidence/tracking must still be migrated before the full Trust capability can move from missing.
+- Label/evidence/tracking are now implemented locally with deterministic persistence, AppHash, signed Gateway routes, and focused tests, but have not yet received remote candidate proof.
 - Existing authoritative governance/appeal/transparency contracts define the required boundary without expanding bounded EVM/IDE work.
 - Public Trust, RPC, DNS, Caddy, and website routing must remain untouched.
 
 Required proof and follow-on work:
 
-- Define canonical signed actions and deterministic ABCI persistence for Trust labels, bounded evidence metadata/exports, advisory lineage state, and tracking-review decisions without storing prohibited evidence bodies.
-- Preserve appeal linkage, expiration, confidence, purpose, minimum-necessary-data, reviewer, native YNXT no-freeze, and advisory-only asset-effect boundaries.
-- Add BFT Gateway handlers and enable the corresponding `ynx-trustd` BFT routes while retaining signer injection, serialized nonce selection, and committed-evidence verification.
-- Add restart, AppHash, authorization, replay, size-bound, expiry, correction, lineage, tracking, and race tests plus a focused check target.
-- Run complete local gates, then repeat fresh temporary four-application/four-signer remote proof and rollback before considering capability promotion.
+- Commit and push the locally verified complete Trust implementation after all local gates pass.
+- Generate a fresh authoritative migration and deploy the candidate only on private loopback/overlay paths.
+- Prove advisory label creation, label-linked appeal/correction, evidence JSON/PDF, purpose-limited tracking, rejected overbroad tracking, transparency, fee/resource accounting, signer injection, and unknown-subject fail-closed behavior.
+- Compare labels, evidence, tracking, appeals, corrections, transparency, and signer account state across all four ABCI applications and obtain four-signer evidence.
+- Remove the local Trust process, SSH tunnel, runtime key environment, remote Gateway, and candidate; rerun the four-host rollback gate and public RPC/Explorer health checks.
+- Promote `trust-and-chain-law-state-transitions` only if the complete remote proof passes; otherwise keep it missing and record the exact failure.
 
 Files to touch:
 

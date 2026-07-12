@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 5
+	ApplicationVersion   = 6
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -54,6 +54,9 @@ type executionState struct {
 	governanceRequests []BFTGovernanceRequest
 	trustAppeals       []BFTTrustAppeal
 	trustCorrections   []BFTTrustCorrection
+	trustLabels        []BFTTrustLabel
+	trustEvidence      []BFTTrustEvidence
+	trackingReviews    []BFTTrackingReview
 	transparency       []BFTTransparencyEntry
 }
 
@@ -243,12 +246,26 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/appeals/"), a.committed.TrustAppeals, func(v BFTTrustAppeal) string { return v.ID }, "Trust appeal")
 	case strings.HasPrefix(req.Path, "/trust/corrections/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/corrections/"), a.committed.TrustCorrections, func(v BFTTrustCorrection) string { return v.ID }, "Trust correction")
+	case strings.HasPrefix(req.Path, "/trust/labels/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/labels/"), a.committed.TrustLabels, func(v BFTTrustLabel) string { return v.ID }, "Trust label")
+	case strings.HasPrefix(req.Path, "/trust/evidence/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/evidence/"), a.committed.TrustEvidence, func(v BFTTrustEvidence) string { return v.ID }, "Trust evidence")
+	case strings.HasPrefix(req.Path, "/trust/tracking-reviews/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/trust/tracking-reviews/"), a.committed.TrackingReviews, func(v BFTTrackingReview) string { return v.ID }, "Trust tracking review")
+	case strings.HasPrefix(req.Path, "/trust/trace/"):
+		subject := strings.TrimSpace(strings.TrimPrefix(req.Path, "/trust/trace/"))
+		if subject == "" {
+			response.Code, response.Log = 1, "Trust trace subject is required"
+			return response, nil
+		}
+		response.Value, _ = json.Marshal(buildBFTTrustTrace(a.committed, subject))
+		return response, nil
 	case req.Path == "/governance/transparency":
 		response.Value, _ = json.Marshal(a.committed.Transparency)
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, AI, Pay, governance requests, Trust appeals/corrections, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, AI, Pay, governance requests, Trust labels/evidence/appeals/corrections/tracking/trace, and transparency"
 		return response, nil
 	}
 }
@@ -362,7 +379,7 @@ func (a *Application) cloneExecutionState() executionState {
 	return executionState{
 		accounts: cloneAccounts(a.committed.Accounts), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
-		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), transparency: cloneTransparencyEntries(a.committed.Transparency),
+		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
 	}
 }
 

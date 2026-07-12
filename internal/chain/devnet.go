@@ -1549,7 +1549,7 @@ func (d *Devnet) CreateTrackingPolicyReview(input TrackingPolicyReviewInput) (Tr
 	if input.Requester == "" || input.Subject == "" || input.Purpose == "" || input.QueryType == "" {
 		return TrackingPolicyReview{}, errors.New("requester, subject, purpose, and queryType are required")
 	}
-	classification, status, reasons, ruleIDs := classifyTrackingPolicyReview(input)
+	classification, status, reasons, ruleIDs := ClassifyTrackingPolicyReview(input)
 	now := time.Now().UTC()
 	var expiresAt *time.Time
 	if input.ExpiryHours > 0 {
@@ -3889,7 +3889,7 @@ func ClassifyGovernanceRequest(input GovernanceRequestInput) (RequestValiditySta
 	return RequestValidUnderYNXChainLaw, []string{"request is scoped, evidence-backed, and does not bypass user custody"}, notice, []string{"scoped-evidence-backed-valid"}
 }
 
-func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValidityStatus, string, []string, []string) {
+func ClassifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValidityStatus, string, []string, []string) {
 	text := normalizeLower(strings.Join([]string{input.Purpose, input.QueryType, input.Scope, input.Description}, " "))
 	if len(cleanStrings(input.Evidence)) == 0 {
 		return RequestInsufficientEvidence, "rejected", []string{"tracking request has no evidence references"}, []string{"tracking-evidence-required"}
@@ -3910,6 +3910,14 @@ func classifyTrackingPolicyReview(input TrackingPolicyReviewInput) (RequestValid
 		return RequestRequiresReview, "pending_review", []string{"institutional, sensitive, or batch tracking requires audit and governance review"}, []string{"tracking-institutional-review"}
 	}
 	return RequestValidUnderYNXChainLaw, "logged", []string{"tracking request is purpose-limited, evidence-backed, scoped, and appealable"}, []string{"tracking-purpose-limited-valid"}
+}
+
+func TrustRiskSummaryForLabels(subject string, labels []RiskLabel, now time.Time) TrustRiskSummary {
+	return trustRiskSummary(subject, labels, now)
+}
+
+func SeverityForRiskWeight(riskWeightBps int64) string {
+	return severityForRiskWeight(riskWeightBps)
 }
 
 func classifyAIActionSensitivity(input AIActionProposalInput) (bool, []string) {

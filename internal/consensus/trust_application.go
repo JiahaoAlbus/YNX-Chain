@@ -75,12 +75,22 @@ func (a *Application) applyTrustAction(state executionState, raw []byte, tx Sign
 		if input.Appellant != tx.Signer || input.Claimant != tx.Signer {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("appeal appellant and claimant must equal transaction signer"))
 		}
-		_, request, ok := findTrustRecord(state.governanceRequests, input.RequestID, func(v BFTGovernanceRequest) string { return v.ID })
-		if !ok || request.Subject != input.Subject {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("appeal governance request is missing or subject does not match"))
+		if input.RequestID != "" {
+			_, request, ok := findTrustRecord(state.governanceRequests, input.RequestID, func(v BFTGovernanceRequest) string { return v.ID })
+			if !ok || request.Subject != input.Subject {
+				_, tracking, trackingOK := findTrustRecord(state.trackingReviews, input.RequestID, func(v BFTTrackingReview) string { return v.ID })
+				if !trackingOK || tracking.Subject != input.Subject {
+					return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("appeal governance or tracking request is missing or subject does not match"))
+				}
+			}
+		} else {
+			_, label, ok := findTrustRecord(state.trustLabels, input.LabelID, func(v BFTTrustLabel) string { return v.ID })
+			if !ok || label.Subject != input.Subject || !label.AppealAvailable {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("appeal Trust label is missing, unavailable, or subject does not match"))
+			}
 		}
 		recordID = ApplicationActionRecordID("trust-appeal", txHash)
-		appeal := BFTTrustAppeal{TrustAppeal: chain.TrustAppeal{ID: recordID, RequestID: input.RequestID, Subject: input.Subject, Appellant: input.Appellant, Claimant: input.Claimant, Reason: input.Reason, Evidence: append([]string(nil), input.Evidence...), Status: "SUBMITTED", CreatedAt: blockTime, UpdatedAt: blockTime}, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
+		appeal := BFTTrustAppeal{TrustAppeal: chain.TrustAppeal{ID: recordID, RequestID: input.RequestID, LabelID: input.LabelID, Subject: input.Subject, Appellant: input.Appellant, Claimant: input.Claimant, Reason: input.Reason, Evidence: append([]string(nil), input.Evidence...), Status: "SUBMITTED", CreatedAt: blockTime, UpdatedAt: blockTime}, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
 		entry = newBFTTransparency(tx, txHash, height, blockTime, "trust_appeal", appeal.RequestID, appeal.ID, appeal.Subject, "appeal", chain.RequestRequiresReview, appeal.Status, []string{"appeal opened for human review and false-positive correction"})
 		appeal.TransparencyEntryID, appeal.AuditHash = entry.ID, ""
 		appeal.AuditHash = trustAppealAuditHash(appeal)
@@ -107,7 +117,79 @@ func (a *Application) applyTrustAction(state executionState, raw []byte, tx Sign
 			correction := BFTTrustCorrection{ID: ApplicationActionRecordID("trust-correction", txHash), AppealID: appeal.ID, RequestID: appeal.RequestID, Subject: appeal.Subject, Decision: input.Decision, EvidenceHash: trustEvidenceHash(appeal.Evidence, input.ResolutionReason), AssetEffect: "none_advisory_only", AppealAvailable: true, Signer: tx.Signer, BlockHeight: height, TxHash: txHash, CreatedAt: blockTime}
 			correction.AuditHash = trustCorrectionAuditHash(correction)
 			state.trustCorrections = insertTrustRecord(state.trustCorrections, correction, func(v BFTTrustCorrection) string { return v.ID })
+			if appeal.LabelID != "" {
+				labelIndex, label, ok := findTrustRecord(state.trustLabels, appeal.LabelID, func(v BFTTrustLabel) string { return v.ID })
+				if !ok {
+					return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("appealed Trust label disappeared"))
+				}
+				label.UpdatedAt, label.DisputeStatus = blockTime, "resolved_after_appeal"
+				if input.Decision == "LABEL_REMOVED" || input.Decision == "ACCEPTED" {
+					label.RiskWeightBps, label.LabelType, label.Severity = 0, "appeal_correction", "none"
+				} else if input.Decision == "LABEL_REDUCED" && label.RiskWeightBps > 100 {
+					label.RiskWeightBps, label.LabelType, label.Severity = 100, "appeal_correction", "low"
+				}
+				label.BlockHeight, label.TxHash, label.AuditHash = height, txHash, ""
+				label.AuditHash = trustLabelAuditHash(label)
+				state.trustLabels[labelIndex] = label
+			}
 		}
+	case ActionTrustLabelCreate:
+		var input TrustLabelPayload
+		_ = json.Unmarshal(tx.Payload, &input)
+		if input.Issuer != tx.Signer {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust label issuer must equal transaction signer"))
+		}
+		if input.RejectedExternalRequestReference != "" {
+			_, request, ok := findTrustRecord(state.governanceRequests, input.RejectedExternalRequestReference, func(v BFTGovernanceRequest) string { return v.ID })
+			if !ok || request.Status != "rejected" {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust label rejected request reference must identify a rejected governance request"))
+			}
+		}
+		recordID = ApplicationActionRecordID("trust-label", txHash)
+		var expiresAt *time.Time
+		if input.ExpiryHours > 0 {
+			expires := blockTime.Add(time.Duration(input.ExpiryHours) * time.Hour)
+			expiresAt = &expires
+		}
+		label := BFTTrustLabel{RiskLabel: chain.RiskLabel{ID: recordID, Subject: input.Subject, SubjectType: input.SubjectType, Address: input.Address, Label: input.Label, LabelType: input.LabelType, Severity: input.Severity, RiskWeightBps: input.RiskWeightBps, ConfidenceBps: input.ConfidenceBps, Source: input.Source, EvidenceHash: input.EvidenceHash, CreatedAt: blockTime, UpdatedAt: blockTime, ExpiresAt: expiresAt, ReviewRequired: input.ReviewRequired, AppealAvailable: true, DisputeStatus: input.DisputeStatus, LegalStatusUnderYNXChainLaw: input.LegalStatusUnderYNXChainLaw, RejectedExternalRequestReference: input.RejectedExternalRequestReference, AssetEffect: "none_advisory_only"}, Issuer: tx.Signer, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
+		label.AuditHash = trustLabelAuditHash(label)
+		state.trustLabels = insertTrustRecord(state.trustLabels, label, func(v BFTTrustLabel) string { return v.ID })
+		entry = newBFTTransparency(tx, txHash, height, blockTime, "trust_label", label.ID, "", label.Subject, label.Label, chain.RequestRequiresReview, label.DisputeStatus, []string{"advisory-only Trust label recorded with evidence hash and appeal path"})
+	case ActionTrustEvidenceCreate:
+		var input TrustEvidencePayload
+		_ = json.Unmarshal(tx.Payload, &input)
+		if input.Requester != tx.Signer {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust evidence requester must equal transaction signer"))
+		}
+		recordID = ApplicationActionRecordID("trust-evidence", txHash)
+		labels := chainLabelsForSubject(state.trustLabels, input.Subject)
+		if _, accountExists := accountIndex(state.accounts, input.Subject); !accountExists && len(labels) == 0 {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust evidence subject has no committed account or label state"))
+		}
+		packet := chain.EvidencePacket{ID: recordID, Subject: input.Subject, Trace: buildExecutionTrustTrace(state, input.Subject), Labels: labels, RiskSummary: chain.TrustRiskSummaryForLabels(input.Subject, labels, blockTime), RelatedTxs: []chain.Transaction{}, GeneratedAt: blockTime, ExportNotes: []string{"Evidence is generated from committed BFT application state.", "Related transaction bodies are not copied into consensus evidence packets; reviewers use referenced hashes and public transaction lookup.", "Risk scoring is advisory-only and cannot freeze, seize, confiscate, transfer, or criminally classify assets or users."}}
+		packet.JSONHash = trustPacketJSONHash(packet)
+		evidence := BFTTrustEvidence{EvidencePacket: packet, Requester: tx.Signer, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
+		evidence.AuditHash = trustEvidenceAuditHash(evidence)
+		state.trustEvidence = insertTrustRecord(state.trustEvidence, evidence, func(v BFTTrustEvidence) string { return v.ID })
+		entry = newBFTTransparency(tx, txHash, height, blockTime, "trust_evidence", evidence.ID, "", evidence.Subject, "evidence_export", chain.RequestValidUnderYNXChainLaw, "generated", []string{"bounded evidence metadata generated from committed state"})
+	case ActionTrustTrackingCreate:
+		var input TrustTrackingPayload
+		_ = json.Unmarshal(tx.Payload, &input)
+		if input.Requester != tx.Signer {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("tracking requester must equal transaction signer"))
+		}
+		recordID = ApplicationActionRecordID("tracking-review", txHash)
+		classification, status, reasons, ruleIDs := chain.ClassifyTrackingPolicyReview(chain.TrackingPolicyReviewInput{Requester: input.Requester, Subject: input.Subject, Purpose: input.Purpose, QueryType: input.QueryType, Scope: input.Scope, Description: input.Description, Evidence: input.Evidence, Institutional: input.Institutional, Sensitive: input.Sensitive, MinimumNecessary: input.MinimumNecessary, ConfidenceBps: input.ConfidenceBps, ExpiryHours: input.ExpiryHours})
+		var expiresAt *time.Time
+		if input.ExpiryHours > 0 {
+			expires := blockTime.Add(time.Duration(input.ExpiryHours) * time.Hour)
+			expiresAt = &expires
+		}
+		review := BFTTrackingReview{TrackingPolicyReview: chain.TrackingPolicyReview{ID: recordID, Requester: input.Requester, Subject: input.Subject, Purpose: input.Purpose, QueryType: input.QueryType, Scope: input.Scope, Description: input.Description, Evidence: append([]string(nil), input.Evidence...), Institutional: input.Institutional, Sensitive: input.Sensitive, MinimumNecessary: input.MinimumNecessary, Classification: classification, Status: status, Reasons: append([]string(nil), reasons...), RuleIDs: append([]string(nil), ruleIDs...), ConfidenceBps: input.ConfidenceBps, LabelExpiresAt: expiresAt, AppealPath: "/trust/appeals", CreatedAt: blockTime}, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
+		entry = newBFTTransparency(tx, txHash, height, blockTime, "tracking_policy_review", review.ID, "", review.Subject, review.QueryType, review.Classification, review.Status, review.Reasons)
+		review.TransparencyEntryID = entry.ID
+		review.AuditHash = trustTrackingAuditHash(review)
+		state.trackingReviews = insertTrustRecord(state.trackingReviews, review, func(v BFTTrackingReview) string { return v.ID })
 	default:
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported Trust application action"))
 	}
@@ -195,7 +277,82 @@ func trustCorrectionAuditHash(v BFTTrustCorrection) string {
 	v.AuditHash = ""
 	return recordAuditHash("YNX_TRUST_CORRECTION_AUDIT_V1", v)
 }
+func trustLabelAuditHash(v BFTTrustLabel) string {
+	v.AuditHash = ""
+	return recordAuditHash("YNX_TRUST_LABEL_AUDIT_V1", v)
+}
+func trustEvidenceAuditHash(v BFTTrustEvidence) string {
+	v.AuditHash = ""
+	v.EvidencePacket = normalizeEvidencePacket(v.EvidencePacket)
+	return recordAuditHash("YNX_TRUST_EVIDENCE_AUDIT_V1", v)
+}
+func trustTrackingAuditHash(v BFTTrackingReview) string {
+	v.AuditHash = ""
+	return recordAuditHash("YNX_TRUST_TRACKING_AUDIT_V1", v)
+}
 func transparencyAuditHash(v BFTTransparencyEntry) string {
 	v.AuditHash = ""
 	return recordAuditHash("YNX_TRANSPARENCY_AUDIT_V1", v)
+}
+
+func chainLabelsForSubject(values []BFTTrustLabel, subject string) []chain.RiskLabel {
+	out := make([]chain.RiskLabel, 0)
+	for _, value := range values {
+		if value.Subject == subject {
+			out = append(out, value.RiskLabel)
+		}
+	}
+	return out
+}
+
+func buildExecutionTrustTrace(state executionState, subject string) chain.TrustTrace {
+	lots := make([]chain.TrustTraceLot, 0)
+	if index, ok := accountIndex(state.accounts, subject); ok {
+		ids := make([]string, 0, len(state.accounts[index].Lots))
+		for id := range state.accounts[index].Lots {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			lots = append(lots, chain.TrustTraceLot{LotID: id, Amount: state.accounts[index].Lots[id], Origin: "committed-chain-lineage"})
+		}
+	}
+	labels := chainLabelsForSubject(state.trustLabels, subject)
+	labelNames := []string{"bft-committed-lot-lineage"}
+	if len(lots) == 0 {
+		labelNames = append(labelNames, "no-known-lots")
+	}
+	if len(labels) > 0 {
+		labelNames = append(labelNames, "advisory-risk-labels-present")
+	}
+	return chain.TrustTrace{Address: subject, Lots: lots, Labels: labelNames, Summary: "Trace uses committed lot lineage and advisory Trust label metadata. Labels require evidence, confidence, expiry, and appealability and cannot freeze, seize, or transfer funds."}
+}
+
+func buildBFTTrustTrace(state CommittedState, subject string) chain.TrustTrace {
+	return buildExecutionTrustTrace(executionState{accounts: state.Accounts, trustLabels: state.TrustLabels}, subject)
+}
+
+func trustPacketJSONHash(packet chain.EvidencePacket) string {
+	packet.JSONHash = ""
+	packet = normalizeEvidencePacket(packet)
+	return recordAuditHash("YNX_TRUST_EVIDENCE_PACKET_JSON_V1", packet)
+}
+
+func normalizeEvidencePacket(packet chain.EvidencePacket) chain.EvidencePacket {
+	if packet.Labels == nil {
+		packet.Labels = []chain.RiskLabel{}
+	}
+	if packet.RelatedTxs == nil {
+		packet.RelatedTxs = []chain.Transaction{}
+	}
+	if packet.Trace.Lots == nil {
+		packet.Trace.Lots = []chain.TrustTraceLot{}
+	}
+	if packet.Trace.Labels == nil {
+		packet.Trace.Labels = []string{}
+	}
+	if packet.ExportNotes == nil {
+		packet.ExportNotes = []string{}
+	}
+	return packet
 }

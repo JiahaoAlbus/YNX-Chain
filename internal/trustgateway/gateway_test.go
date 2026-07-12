@@ -130,7 +130,7 @@ func TestBFTTrustSerializesNonceBindsActorAndFailsClosed(t *testing.T) {
 	if gotNonce != count || gotBroadcasts != count {
 		t.Fatalf("concurrent Trust nonce mismatch: nonce=%d broadcasts=%d", gotNonce, gotBroadcasts)
 	}
-	if _, err := service.Proxy(context.Background(), http.MethodPost, "/trust/labels", "", []byte(`{"subject":"x"}`), "unsupported"); err == nil || !strings.Contains(err.Error(), "not BFT-backed") {
+	if _, err := service.Proxy(context.Background(), http.MethodPost, "/trust/unknown-mutation", "", []byte(`{"subject":"x"}`), "unsupported"); err == nil || !strings.Contains(err.Error(), "not BFT-backed") {
 		t.Fatalf("unsupported Trust mutation did not fail closed: %v", err)
 	}
 	if nonce != count {
@@ -158,6 +158,30 @@ func TestBFTTrustRejectsInconsistentCommittedResponse(t *testing.T) {
 	body := []byte(`{"subject":"x","action":"review","assetType":"address","scope":"one","description":"bounded","evidence":["case"]}`)
 	if _, err := service.Proxy(context.Background(), http.MethodPost, "/governance/requests", "", body, "mismatch"); err == nil {
 		t.Fatal("inconsistent committed Trust response accepted")
+	}
+}
+
+func TestBFTTrustInjectsSignerForLabelEvidenceAndTracking(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 114))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	service, err := New(Config{ChainURL: "http://127.0.0.1:6420", APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 114), SignerAddress: address})
+	if err != nil {
+		t.Fatal(err)
+	}
+	action, payload, err := service.bftTrustPayload("/trust/labels", []byte(`{"subject":"subject","label":"risk","source":"case","evidenceHash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","appealAvailable":false}`))
+	label, ok := payload.(consensus.TrustLabelPayload)
+	if err != nil || !ok || action != consensus.ActionTrustLabelCreate || label.Issuer != address || !label.AppealAvailable {
+		t.Fatalf("label signer injection failed: action=%s payload=%+v err=%v", action, payload, err)
+	}
+	action, payload, err = service.bftTrustPayload("/trust/evidence", []byte(`{"subject":"subject"}`))
+	evidence, ok := payload.(consensus.TrustEvidencePayload)
+	if err != nil || !ok || action != consensus.ActionTrustEvidenceCreate || evidence.Requester != address {
+		t.Fatalf("evidence signer injection failed: action=%s payload=%+v err=%v", action, payload, err)
+	}
+	action, payload, err = service.bftTrustPayload("/trust/tracking-reviews", []byte(`{"requester":"spoofed","subject":"subject","purpose":"single transfer","queryType":"trace","evidence":["case"],"minimumNecessary":true}`))
+	tracking, ok := payload.(consensus.TrustTrackingPayload)
+	if err != nil || !ok || action != consensus.ActionTrustTrackingCreate || tracking.Requester != address {
+		t.Fatalf("tracking signer injection failed: action=%s payload=%+v err=%v", action, payload, err)
 	}
 }
 

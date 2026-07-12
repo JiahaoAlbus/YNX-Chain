@@ -21,35 +21,41 @@ const (
 	SignedActionFeeYNXT = int64(1)
 	MaxSignedActionSize = 16 * 1024
 
-	ActionAIPermissionCreate = "ai_permission_create"
-	ActionAIProposalCreate   = "ai_action_propose"
-	ActionAIProposalApprove  = "ai_action_approve"
-	ActionAIProposalReject   = "ai_action_reject"
-	ActionPayIntentCreate    = "pay_intent_create"
-	ActionPayInvoiceCreate   = "pay_invoice_create"
-	ActionPayRefundCreate    = "pay_refund_create"
-	ActionPayWebhookRecord   = "pay_webhook_record"
-	ActionGovernanceCreate   = "governance_request_create"
-	ActionGovernanceReview   = "governance_request_review"
-	ActionGovernanceReject   = "governance_request_reject"
-	ActionTrustAppealCreate  = "trust_appeal_create"
-	ActionTrustAppealResolve = "trust_appeal_resolve"
+	ActionAIPermissionCreate  = "ai_permission_create"
+	ActionAIProposalCreate    = "ai_action_propose"
+	ActionAIProposalApprove   = "ai_action_approve"
+	ActionAIProposalReject    = "ai_action_reject"
+	ActionPayIntentCreate     = "pay_intent_create"
+	ActionPayInvoiceCreate    = "pay_invoice_create"
+	ActionPayRefundCreate     = "pay_refund_create"
+	ActionPayWebhookRecord    = "pay_webhook_record"
+	ActionGovernanceCreate    = "governance_request_create"
+	ActionGovernanceReview    = "governance_request_review"
+	ActionGovernanceReject    = "governance_request_reject"
+	ActionTrustAppealCreate   = "trust_appeal_create"
+	ActionTrustAppealResolve  = "trust_appeal_resolve"
+	ActionTrustLabelCreate    = "trust_label_create"
+	ActionTrustEvidenceCreate = "trust_evidence_create"
+	ActionTrustTrackingCreate = "trust_tracking_review_create"
 )
 
 var supportedApplicationActions = map[string]struct{}{
-	ActionAIPermissionCreate: {},
-	ActionAIProposalCreate:   {},
-	ActionAIProposalApprove:  {},
-	ActionAIProposalReject:   {},
-	ActionPayIntentCreate:    {},
-	ActionPayInvoiceCreate:   {},
-	ActionPayRefundCreate:    {},
-	ActionPayWebhookRecord:   {},
-	ActionGovernanceCreate:   {},
-	ActionGovernanceReview:   {},
-	ActionGovernanceReject:   {},
-	ActionTrustAppealCreate:  {},
-	ActionTrustAppealResolve: {},
+	ActionAIPermissionCreate:  {},
+	ActionAIProposalCreate:    {},
+	ActionAIProposalApprove:   {},
+	ActionAIProposalReject:    {},
+	ActionPayIntentCreate:     {},
+	ActionPayInvoiceCreate:    {},
+	ActionPayRefundCreate:     {},
+	ActionPayWebhookRecord:    {},
+	ActionGovernanceCreate:    {},
+	ActionGovernanceReview:    {},
+	ActionGovernanceReject:    {},
+	ActionTrustAppealCreate:   {},
+	ActionTrustAppealResolve:  {},
+	ActionTrustLabelCreate:    {},
+	ActionTrustEvidenceCreate: {},
+	ActionTrustTrackingCreate: {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer

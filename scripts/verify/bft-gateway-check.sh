@@ -25,4 +25,4 @@ grep -Fq 'POST /trust/appeals' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 
-echo "bft-gateway-check passed: native, AI, Pay, and partial governance/appeal compatibility handlers are implemented while unproven cutover capabilities remain fail-closed"
+echo "bft-gateway-check passed: native, AI, Pay, and full Trust compatibility handlers are implemented while unproven cutover capabilities remain fail-closed"
