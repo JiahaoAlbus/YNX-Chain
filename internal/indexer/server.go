@@ -98,6 +98,9 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		"nativeCurrencySymbol": db.NativeSymbol,
 		"lastIndexedHeight":    db.LastIndexedHeight,
 		"lastSourceHeight":     db.LastSourceHeight,
+		"sourceEarliestHeight": db.SourceEarliestHeight,
+		"sourceEarliestHash":   db.SourceEarliestHash,
+		"sourceEarliestTime":   db.SourceEarliestTime,
 		"indexedBlockCount":    len(db.Blocks),
 		"indexedTxCount":       len(db.Transactions),
 		"lastSyncedAt":         lastSyncedAt,
@@ -117,20 +120,22 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	lastError, lastSyncedAt, errorCount := s.lastError, s.lastSyncedAt, s.errorCount
 	s.mu.RUnlock()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                lastError == "",
-		"service":           "ynx-indexerd",
-		"network":           db.Network,
-		"chainId":           db.ChainID,
-		"nativeSymbol":      db.NativeSymbol,
-		"lastIndexedHeight": db.LastIndexedHeight,
-		"lastSourceHeight":  db.LastSourceHeight,
-		"indexedBlockCount": len(db.Blocks),
-		"indexedTxCount":    len(db.Transactions),
-		"lastSyncedAt":      lastSyncedAt,
-		"lastError":         lastError,
-		"syncErrorCount":    errorCount,
-		"build":             s.build,
-		"truthfulStatus":    "local-indexer",
+		"ok":                   lastError == "",
+		"service":              "ynx-indexerd",
+		"network":              db.Network,
+		"chainId":              db.ChainID,
+		"nativeSymbol":         db.NativeSymbol,
+		"lastIndexedHeight":    db.LastIndexedHeight,
+		"lastSourceHeight":     db.LastSourceHeight,
+		"sourceEarliestHeight": db.SourceEarliestHeight,
+		"sourceEarliestHash":   db.SourceEarliestHash,
+		"indexedBlockCount":    len(db.Blocks),
+		"indexedTxCount":       len(db.Transactions),
+		"lastSyncedAt":         lastSyncedAt,
+		"lastError":            lastError,
+		"syncErrorCount":       errorCount,
+		"build":                s.build,
+		"truthfulStatus":       "local-indexer",
 	})
 }
 
@@ -155,6 +160,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_source_height Last source chain height observed by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_source_height gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_indexer_source_height{%s} %d\n", labels, db.LastSourceHeight)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_source_earliest_height Earliest retained source block height observed by ynx-indexerd.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_source_earliest_height gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_source_earliest_height{%s} %d\n", labels, db.SourceEarliestHeight)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_sync_lag_blocks Source height minus indexed height.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_sync_lag_blocks gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_indexer_sync_lag_blocks{%s} %d\n", labels, lag)

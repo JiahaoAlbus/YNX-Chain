@@ -73,6 +73,9 @@ type Status struct {
 	Height               uint64    `json:"height"`
 	LatestBlockHash      string    `json:"latestBlockHash"`
 	LatestBlockTime      time.Time `json:"latestBlockTime"`
+	EarliestBlockHeight  uint64    `json:"earliestBlockHeight"`
+	EarliestBlockHash    string    `json:"earliestBlockHash"`
+	EarliestBlockTime    time.Time `json:"earliestBlockTime"`
 	ValidatorCount       int       `json:"validatorCount"`
 	PendingTxCount       int       `json:"pendingTxCount"`
 	TruthfulStatus       string    `json:"truthfulStatus"`
@@ -88,17 +91,20 @@ func NewStore(path string) *Store {
 }
 
 type Database struct {
-	Version           int                          `json:"version"`
-	SourceRPCURL      string                       `json:"sourceRpcUrl"`
-	Network           string                       `json:"network"`
-	ChainID           int64                        `json:"chainId"`
-	NativeSymbol      string                       `json:"nativeSymbol"`
-	LastIndexedHeight uint64                       `json:"lastIndexedHeight"`
-	LastSourceHeight  uint64                       `json:"lastSourceHeight"`
-	LastBlockHash     string                       `json:"lastBlockHash"`
-	LastSyncAt        time.Time                    `json:"lastSyncAt"`
-	Blocks            map[string]chain.Block       `json:"blocks"`
-	Transactions      map[string]chain.Transaction `json:"transactions"`
+	Version              int                          `json:"version"`
+	SourceRPCURL         string                       `json:"sourceRpcUrl"`
+	Network              string                       `json:"network"`
+	ChainID              int64                        `json:"chainId"`
+	NativeSymbol         string                       `json:"nativeSymbol"`
+	LastIndexedHeight    uint64                       `json:"lastIndexedHeight"`
+	LastSourceHeight     uint64                       `json:"lastSourceHeight"`
+	SourceEarliestHeight uint64                       `json:"sourceEarliestHeight"`
+	SourceEarliestHash   string                       `json:"sourceEarliestHash,omitempty"`
+	SourceEarliestTime   time.Time                    `json:"sourceEarliestTime,omitempty"`
+	LastBlockHash        string                       `json:"lastBlockHash"`
+	LastSyncAt           time.Time                    `json:"lastSyncAt"`
+	Blocks               map[string]chain.Block       `json:"blocks"`
+	Transactions         map[string]chain.Transaction `json:"transactions"`
 }
 
 func (s *Store) Load() (Database, error) {
@@ -126,12 +132,7 @@ func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) 
 	if db.Transactions == nil {
 		db.Transactions = map[string]chain.Transaction{}
 	}
-	db.Version = 1
-	db.SourceRPCURL = sourceURL
-	db.Network = status.Network
-	db.ChainID = status.ChainID
-	db.NativeSymbol = status.NativeCurrencySymbol
-	db.LastSourceHeight = status.Height
+	applySourceStatus(&db, sourceURL, status)
 	db.Blocks[strconv.FormatUint(block.Height, 10)] = block
 	db.LastIndexedHeight = block.Height
 	db.LastBlockHash = block.Hash
@@ -145,8 +146,34 @@ func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) 
 	return db, nil
 }
 
+func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	db, err := s.loadLocked()
+	if err != nil {
+		return Database{}, err
+	}
+	applySourceStatus(&db, sourceURL, status)
+	if err := s.saveLocked(db); err != nil {
+		return Database{}, err
+	}
+	return db, nil
+}
+
+func applySourceStatus(db *Database, sourceURL string, status Status) {
+	db.Version = 2
+	db.SourceRPCURL = sourceURL
+	db.Network = status.Network
+	db.ChainID = status.ChainID
+	db.NativeSymbol = status.NativeCurrencySymbol
+	db.LastSourceHeight = status.Height
+	db.SourceEarliestHeight = status.EarliestBlockHeight
+	db.SourceEarliestHash = status.EarliestBlockHash
+	db.SourceEarliestTime = status.EarliestBlockTime
+}
+
 func (s *Store) loadLocked() (Database, error) {
-	db := Database{Version: 1, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}
+	db := Database{Version: 2, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}
 	if strings.TrimSpace(s.path) == "" {
 		return db, nil
 	}
@@ -208,14 +235,15 @@ func (i *Indexer) Store() *Store {
 }
 
 type SyncResult struct {
-	SourceHeight      uint64 `json:"sourceHeight"`
-	LastIndexedHeight uint64 `json:"lastIndexedHeight"`
-	IndexedBlockCount int    `json:"indexedBlockCount"`
-	IndexedTxCount    int    `json:"indexedTxCount"`
-	NewBlocksThisRun  int    `json:"newBlocksThisRun"`
-	ResumeFromHeight  uint64 `json:"resumeFromHeight"`
-	NativeSymbol      string `json:"nativeSymbol"`
-	TruthfulStatus    string `json:"truthfulStatus"`
+	SourceHeight         uint64 `json:"sourceHeight"`
+	SourceEarliestHeight uint64 `json:"sourceEarliestHeight"`
+	LastIndexedHeight    uint64 `json:"lastIndexedHeight"`
+	IndexedBlockCount    int    `json:"indexedBlockCount"`
+	IndexedTxCount       int    `json:"indexedTxCount"`
+	NewBlocksThisRun     int    `json:"newBlocksThisRun"`
+	ResumeFromHeight     uint64 `json:"resumeFromHeight"`
+	NativeSymbol         string `json:"nativeSymbol"`
+	TruthfulStatus       string `json:"truthfulStatus"`
 }
 
 func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
@@ -230,27 +258,67 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	if err != nil {
 		return SyncResult{}, err
 	}
-	start := uint64(0)
+	if status.EarliestBlockHeight > status.Height {
+		return SyncResult{}, fmt.Errorf("source earliest retained height %d exceeds latest height %d", status.EarliestBlockHeight, status.Height)
+	}
+	if db.ChainID != 0 && db.ChainID != status.ChainID {
+		return SyncResult{}, fmt.Errorf("source chain identity changed from %d to %d; indexer rebuild required", db.ChainID, status.ChainID)
+	}
+	start := status.EarliestBlockHeight
 	if len(db.Blocks) > 0 {
+		lastBlock, ok := db.Blocks[strconv.FormatUint(db.LastIndexedHeight, 10)]
+		if !ok || lastBlock.Hash == "" || lastBlock.Hash != db.LastBlockHash {
+			return SyncResult{}, fmt.Errorf("stored index tip is inconsistent; indexer rebuild required")
+		}
+		if db.LastIndexedHeight == ^uint64(0) {
+			return SyncResult{}, fmt.Errorf("stored index height is exhausted; indexer rebuild required")
+		}
 		start = db.LastIndexedHeight + 1
 	}
-	result := SyncResult{SourceHeight: status.Height, ResumeFromHeight: start, NativeSymbol: status.NativeCurrencySymbol, TruthfulStatus: "local-indexer"}
+	if db.LastIndexedHeight > status.Height && len(db.Blocks) > 0 {
+		return SyncResult{}, fmt.Errorf("source height %d is below indexed tip %d; indexer rebuild required", status.Height, db.LastIndexedHeight)
+	}
+	db, err = i.store.RecordSourceStatus(i.cfg.RPCURL, status)
+	if err != nil {
+		return SyncResult{}, err
+	}
+	if status.EarliestBlockHeight > 0 && start < status.EarliestBlockHeight {
+		return SyncResult{}, fmt.Errorf("resume height %d is below source earliest retained height %d; indexer rebuild required", start, status.EarliestBlockHeight)
+	}
+	result := SyncResult{SourceHeight: status.Height, SourceEarliestHeight: status.EarliestBlockHeight, ResumeFromHeight: start, NativeSymbol: status.NativeCurrencySymbol, TruthfulStatus: "local-indexer"}
 	if start > status.Height {
 		result.LastIndexedHeight = db.LastIndexedHeight
 		result.IndexedBlockCount = len(db.Blocks)
 		result.IndexedTxCount = len(db.Transactions)
 		return result, nil
 	}
+	expectedParent := ""
+	if len(db.Blocks) > 0 {
+		expectedParent = db.LastBlockHash
+	}
 	for height := start; height <= status.Height; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
 			return SyncResult{}, err
+		}
+		if block.Height != height || block.Hash == "" {
+			return SyncResult{}, fmt.Errorf("source returned invalid block for requested height %d", height)
+		}
+		if height == status.EarliestBlockHeight && status.EarliestBlockHash != "" && block.Hash != status.EarliestBlockHash {
+			return SyncResult{}, fmt.Errorf("source earliest block hash mismatch at height %d; indexer rebuild required", height)
+		}
+		if height == status.Height && status.LatestBlockHash != "" && block.Hash != status.LatestBlockHash {
+			return SyncResult{}, fmt.Errorf("source latest block hash mismatch at height %d; indexer rebuild required", height)
+		}
+		if expectedParent != "" && block.ParentHash != expectedParent {
+			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
 		}
 		db, err = i.store.UpsertBlock(i.cfg.RPCURL, status, block)
 		if err != nil {
 			return SyncResult{}, err
 		}
 		result.NewBlocksThisRun++
+		expectedParent = block.Hash
 	}
 	result.LastIndexedHeight = db.LastIndexedHeight
 	result.IndexedBlockCount = len(db.Blocks)

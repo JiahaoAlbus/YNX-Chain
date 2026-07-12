@@ -4,6 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=lib-local-testnet.sh
 source scripts/verify/lib-local-testnet.sh
+go test ./internal/indexer ./cmd/ynx-indexerd
+grep -Fq 'sourceEarliestHeight' internal/indexer/indexer.go
+grep -Fq 'indexer rebuild required' internal/indexer/indexer.go
 ynx_start_local_testnet
 cleanup() {
   if [[ -n "${INDEXER_PID:-}" ]]; then
@@ -46,6 +49,7 @@ txs="$(curl -fsS http://127.0.0.1:6426/txs)"
 node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.transactions) || data.transactions.length < 2) throw new Error("expected indexed transactions");' <<<"$txs"
 metrics="$(curl -fsS http://127.0.0.1:6426/metrics)"
 grep -Fq "ynx_indexer_last_indexed_height" <<<"$metrics"
+grep -Fq "ynx_indexer_source_earliest_height" <<<"$metrics"
 grep -Fq 'native_symbol="YNXT"' <<<"$metrics"
 
 echo "indexer-check passed: db=$db height=$second_height resumeFrom=$resume_from"

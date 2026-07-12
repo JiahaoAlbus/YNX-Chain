@@ -42,7 +42,10 @@ var missingCutoverCapabilities = []string{
 	"ide-contract-state-transitions",
 }
 
-var transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
+var (
+	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
+	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
+)
 
 type Config struct {
 	CometRPCURL string
@@ -89,6 +92,9 @@ type Status struct {
 	Height               uint64    `json:"height"`
 	LatestBlockHash      string    `json:"latestBlockHash"`
 	LatestBlockTime      time.Time `json:"latestBlockTime"`
+	EarliestBlockHeight  uint64    `json:"earliestBlockHeight"`
+	EarliestBlockHash    string    `json:"earliestBlockHash"`
+	EarliestBlockTime    time.Time `json:"earliestBlockTime"`
 	ValidatorCount       int       `json:"validatorCount"`
 	PendingTxCount       int       `json:"pendingTxCount"`
 	TruthfulStatus       string    `json:"truthfulStatus"`
@@ -103,10 +109,13 @@ type cometStatus struct {
 			Network string `json:"network"`
 		} `json:"node_info"`
 		SyncInfo struct {
-			LatestBlockHash   string    `json:"latest_block_hash"`
-			LatestBlockHeight string    `json:"latest_block_height"`
-			LatestBlockTime   time.Time `json:"latest_block_time"`
-			CatchingUp        bool      `json:"catching_up"`
+			EarliestBlockHash   string    `json:"earliest_block_hash"`
+			EarliestBlockHeight string    `json:"earliest_block_height"`
+			EarliestBlockTime   time.Time `json:"earliest_block_time"`
+			LatestBlockHash     string    `json:"latest_block_hash"`
+			LatestBlockHeight   string    `json:"latest_block_height"`
+			LatestBlockTime     time.Time `json:"latest_block_time"`
+			CatchingUp          bool      `json:"catching_up"`
 		} `json:"sync_info"`
 	} `json:"result"`
 }
@@ -285,6 +294,16 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 	if err != nil || height == 0 {
 		return Status{}, fmt.Errorf("invalid CometBFT height %q", upstream.Result.SyncInfo.LatestBlockHeight)
 	}
+	earliestHeight, err := strconv.ParseUint(upstream.Result.SyncInfo.EarliestBlockHeight, 10, 64)
+	if err != nil || earliestHeight == 0 || earliestHeight > height {
+		return Status{}, fmt.Errorf("invalid CometBFT earliest height %q", upstream.Result.SyncInfo.EarliestBlockHeight)
+	}
+	if !blockHashPattern.MatchString(upstream.Result.SyncInfo.EarliestBlockHash) || !blockHashPattern.MatchString(upstream.Result.SyncInfo.LatestBlockHash) {
+		return Status{}, fmt.Errorf("invalid CometBFT earliest/latest block hash")
+	}
+	if upstream.Result.SyncInfo.EarliestBlockTime.IsZero() || upstream.Result.SyncInfo.LatestBlockTime.IsZero() || upstream.Result.SyncInfo.EarliestBlockTime.After(upstream.Result.SyncInfo.LatestBlockTime) {
+		return Status{}, fmt.Errorf("invalid CometBFT earliest/latest block time")
+	}
 	validators, err := g.validators(ctx)
 	if err != nil {
 		return Status{}, err
@@ -300,6 +319,9 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		Height:               height,
 		LatestBlockHash:      strings.ToLower(upstream.Result.SyncInfo.LatestBlockHash),
 		LatestBlockTime:      upstream.Result.SyncInfo.LatestBlockTime,
+		EarliestBlockHeight:  earliestHeight,
+		EarliestBlockHash:    strings.ToLower(upstream.Result.SyncInfo.EarliestBlockHash),
+		EarliestBlockTime:    upstream.Result.SyncInfo.EarliestBlockTime,
 		ValidatorCount:       len(validators.Result.Validators),
 		PendingTxCount:       0,
 		TruthfulStatus:       "cometbft-rpc-and-abci-backed",

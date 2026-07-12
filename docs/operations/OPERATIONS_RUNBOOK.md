@@ -55,7 +55,7 @@ Indexer readiness:
 make indexer-check
 ```
 
-`ynx-indexerd` syncs from the YNX Chain RPC, persists indexed blocks and transactions, resumes from the last indexed height, and exposes health and Prometheus metrics on `YNX_INDEXER_HTTP_ADDR`.
+`ynx-indexerd` syncs from the YNX Chain RPC, persists indexed blocks and transactions, bootstraps from the reported earliest retained height, resumes only when the next parent hash matches the stored tip, and exposes the source earliest boundary through health/overview/Prometheus metrics on `YNX_INDEXER_HTTP_ADDR`. A `rebuild required` error means the stored resume point was pruned, source identity/height regressed, or canonical hash continuity failed; preserve the database for evidence before rebuilding from the currently reported earliest boundary.
 
 Explorer readiness:
 

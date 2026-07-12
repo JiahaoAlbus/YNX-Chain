@@ -45,7 +45,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 		case "/status":
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
 				"node_info": map[string]any{"network": "ynx_6423-1"},
-				"sync_info": map[string]any{"latest_block_hash": strings.Repeat("A", 64), "latest_block_height": "17", "latest_block_time": blockTime, "catching_up": false},
+				"sync_info": map[string]any{"earliest_block_hash": strings.Repeat("E", 64), "earliest_block_height": "11", "earliest_block_time": blockTime.Add(-6 * time.Second), "latest_block_hash": strings.Repeat("A", 64), "latest_block_height": "17", "latest_block_time": blockTime, "catching_up": false},
 			}})
 		case "/validators":
 			validators := make([]map[string]any, 4)
@@ -110,7 +110,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	}
 	var status Status
 	getJSON(t, server.URL+"/status", &status)
-	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.PublicCutoverReady {
+	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.EarliestBlockHeight != 11 || status.EarliestBlockHash != strings.Repeat("e", 64) || status.PublicCutoverReady {
 		t.Fatalf("unexpected status: %+v", status)
 	}
 	var block chain.Block
