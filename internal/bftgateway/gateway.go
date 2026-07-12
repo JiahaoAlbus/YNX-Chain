@@ -31,11 +31,11 @@ var implementedCapabilities = []string{
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
+	"ai-permission-and-action-state-transitions",
 }
 
 var missingCutoverCapabilities = []string{
 	"evm-transaction-receipts-and-logs",
-	"ai-permission-and-action-state-transitions",
 	"pay-state-transitions",
 	"trust-and-chain-law-state-transitions",
 	"resource-market-state-transitions",
