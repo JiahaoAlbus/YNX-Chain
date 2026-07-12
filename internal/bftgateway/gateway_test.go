@@ -87,6 +87,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				t.Errorf("unexpected tx lookup query: %s", r.URL.RawQuery)
 			}
 			if r.URL.Query().Get("hash") != txHash {
+				w.WriteHeader(http.StatusInternalServerError)
 				_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
 				return
 			}

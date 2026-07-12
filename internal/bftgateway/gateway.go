@@ -328,11 +328,19 @@ func (c *client) get(ctx context.Context, path string, query url.Values, out any
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("CometBFT %s returned HTTP %d", path, resp.StatusCode)
+	payload, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	if err != nil {
+		return fmt.Errorf("read CometBFT %s: %w", path, err)
 	}
-	decoder := json.NewDecoder(io.LimitReader(resp.Body, 4<<20))
-	if err := decoder.Decode(out); err != nil {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var envelope struct {
+			Error *cometRPCError `json:"error"`
+		}
+		if json.Unmarshal(payload, &envelope) != nil || envelope.Error == nil {
+			return fmt.Errorf("CometBFT %s returned HTTP %d", path, resp.StatusCode)
+		}
+	}
+	if err := json.Unmarshal(payload, out); err != nil {
 		return fmt.Errorf("decode CometBFT %s: %w", path, err)
 	}
 	return nil
