@@ -1,43 +1,43 @@
 # Next Action
 
-Current single action: migrate `ynx-faucetd` funding to the proven BFT Gateway native transaction surface without changing the current public Faucet or exposing custody material.
+Current single action: make `ynx-indexerd` bootstrap and resume truthfully from a CometBFT candidate's migration/earliest retained height, then prove the BFT Faucet transaction appears through the real Indexer and Explorer stack.
 
 Why this action:
 
-- Native Gateway broadcast, lookup, and paginated history are locally tested and remotely verified against the four-node candidate.
-- The current Faucet still depends on the authoritative runtime's privileged `POST /faucet` mutation, so it cannot fund accounts after a CometBFT cutover.
-- Faucet is the smallest user-facing state transition unlocked by canonical signed Gateway transactions and is required before Indexer/Explorer can be tested against live BFT-funded activity.
-- The candidate is rolled back, authoritative public services remain active, and `/health` correctly reports seven missing cutover capabilities.
+- Gateway native transactions and BFT Faucet funding are now locally tested and remotely candidate-verified.
+- A candidate starts after the migrated authoritative height, but an empty Indexer currently assumes height `1`; it therefore requests pruned/nonexistent history and cannot become usable after cutover.
+- Indexer/Explorer are the next chain infrastructure layer needed to make candidate block and transaction activity continuously visible without synthetic data.
+- Public services remain on the authoritative rollback model; the candidate and all temporary services are currently absent.
 
 Required implementation work:
 
-- Add an explicit BFT upstream mode to `ynx-faucetd`; preserve the existing authoritative mode for rollback compatibility.
-- Keep the Faucet private key process-local and environment/file supplied; never send, log, persist, or return it.
-- Derive and verify the configured Faucet address from the key at startup.
-- Query the Faucet account through `GET /accounts/:address`, compute the exact next nonce, create a canonical chain-`6423` signed YNXT transfer locally, and submit it through `POST /transactions/broadcast`.
-- Verify the committed response hash, sender, recipient, amount, fee, nonce, and block height before recording success.
-- Serialize or safely retry concurrent requests so two recipients cannot reuse the same nonce; fail closed on stale nonce, insufficient YNXT, malformed Gateway data, or custody mismatch.
-- Preserve existing address/IP rate limits, request log redaction, metrics, body bounds, and health/build identity.
-- Add fake-Gateway unit tests for success, concurrent nonce safety, wrong sender/hash/amount/nonce, upstream rejection, and restart-safe request logging.
-- Update the focused Faucet smoke/check path, but do not mark `faucet-state-transition` implemented until the end-to-end candidate proof passes.
-- Temporarily deploy candidate, Gateway, and BFT-mode Faucet on loopback-only ports; prove a real Faucet request commits and appears in Gateway lookup/history, then remove all temporary services and rerun rollback gates.
+- Extend Gateway status with CometBFT's real earliest retained block height/hash/time and validate their relationship to latest height.
+- Extend Indexer source status decoding with the earliest retained boundary.
+- On an empty database, begin at the exact earliest retained height instead of assuming genesis height `1`; never fabricate skipped blocks.
+- Persist the source earliest boundary and expose it in Indexer health/summary evidence.
+- On resume, require the next block's parent hash to match the last indexed hash; fail closed on source-chain divergence rather than silently mixing histories.
+- Detect a stored database whose last indexed height is below a newer pruned boundary and report a deterministic rebuild-required error.
+- Add fake-RPC tests for migration-height bootstrap, normal resume, parent mismatch, pruned resume, restart persistence, and the indexed Faucet transaction.
+- Preserve authoritative height-`1` behavior and existing public Indexer/Explorer rollback path.
+- Temporarily deploy candidate and Gateway, create one BFT Faucet transaction, run a temporary Indexer from an empty store, and prove block/transaction lookup plus restart resume.
+- Run a temporary Explorer over the candidate Gateway and Indexer, verify real height/transaction rendering and SSE growth on desktop/mobile loopback, then remove all temporary services and rerun rollback gates.
 
 Files to touch:
 
-- `internal/faucet`
-- `cmd/ynx-faucetd` only for explicit mode/custody configuration
-- `.env.faucet.example`, systemd/Docker examples only if the contract changes
-- `scripts/verify/faucet-check.sh` and focused fixtures
-- `internal/bftgateway` capability metadata only after real code, tests, and candidate proof
+- `internal/bftgateway`
+- `internal/indexer`
+- `cmd/ynx-indexerd` only if configuration/health changes
+- `internal/explorer` only for real compatibility defects discovered by the candidate proof
+- `scripts/verify/indexer-check.sh`, `scripts/verify/explorer-check.sh`, and focused fixtures
 - Acceptance state files after verified evidence
-- No private key, PEM content, mnemonic, real `.env`, or signed transaction fixture containing reusable secret material
+- No private key, PEM content, mnemonic, real `.env`, or fabricated index data
 
 Validation commands:
 
-- `go test ./internal/faucet ./cmd/ynx-faucetd`
-- `make faucet-check`
+- `go test ./internal/bftgateway ./internal/indexer ./internal/explorer`
 - `make bft-gateway-check`
-- `make consensus-public-cutover-check`
+- `make indexer-check`
+- `make explorer-check`
 - `go test ./...`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -45,14 +45,15 @@ Validation commands:
 
 Completion standard:
 
-- A real candidate Faucet request is signed locally and commits through the Gateway with exact recipient/amount/nonce/hash evidence.
-- Concurrent requests cannot reuse a nonce, and all malformed/inconsistent upstream responses fail closed.
-- The private key remains local and absent from logs, evidence, Git, and remote transport outside its intended Faucet process custody.
-- Candidate, temporary Gateway, and temporary Faucet are removed after proof; authoritative public services remain online.
-- Cutover gate remains blocked by the still-unimplemented EVM, AI, Pay, Trust/Chain Law, Resource, and IDE capabilities.
+- An empty Indexer starts at the exact real candidate earliest retained height and reaches the current source height.
+- The BFT Faucet transaction is persisted and returned by Indexer transaction lookup/list APIs with the exact Gateway hash/height.
+- Restart resumes without duplicate/missing blocks, while parent mismatch or pruned resume fails closed with explicit rebuild guidance.
+- Temporary Explorer shows real candidate/indexed height, transaction activity, and SSE growth without synthetic data.
+- Candidate, Gateway, Indexer, Explorer, Faucet, and tunnels are removed after proof; authoritative public services remain online.
+- Public cutover remains blocked by the six unimplemented EVM, AI, Pay, Trust/Chain Law, Resource, and IDE capability groups.
 
 Explicitly not doing:
 
-- Do not route Caddy, DNS, public Faucet, Indexer, Explorer, or public RPC to the candidate yet.
-- Do not remove the authoritative Faucet rollback path before public cutover approval.
-- Do not mark `publicCutoverReady=true` or claim public BFT, mainnet, listing, stablecoin issuer support, wallet default support, partnerships, or goal completion.
+- Do not route Caddy, DNS, public Indexer, Explorer, Faucet, or RPC to the candidate yet.
+- Do not expand bounded EVM opcode, Counter, Hardhat artifact, or IDE execution work in this slice.
+- Do not claim public BFT, mainnet, listing, stablecoin issuer support, wallet default support, partnerships, or goal completion.
