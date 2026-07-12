@@ -105,7 +105,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 8 || len(health.Missing) != 7 || health.Build.Commit != "abc123" {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 9 || len(health.Missing) != 6 || health.Build.Commit != "abc123" {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status

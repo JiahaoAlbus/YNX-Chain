@@ -30,11 +30,11 @@ var implementedCapabilities = []string{
 	"evm-block-number",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
+	"faucet-state-transition",
 }
 
 var missingCutoverCapabilities = []string{
 	"evm-transaction-receipts-and-logs",
-	"faucet-state-transition",
 	"ai-permission-and-action-state-transitions",
 	"pay-state-transitions",
 	"trust-and-chain-law-state-transitions",

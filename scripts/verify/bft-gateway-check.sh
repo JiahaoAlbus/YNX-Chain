@@ -13,6 +13,7 @@ grep -Fq 'GET /txs/{hash}' internal/bftgateway/gateway.go
 grep -Fq 'GET /txs' internal/bftgateway/gateway.go
 grep -Fq 'broadcast_tx_commit' internal/bftgateway/gateway.go
 grep -Fq 'tx_search' internal/bftgateway/gateway.go
+grep -Fq '"faucet-state-transition"' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 
