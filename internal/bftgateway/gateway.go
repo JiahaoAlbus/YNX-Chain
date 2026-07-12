@@ -521,7 +521,7 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var upstream cometTxSearch
-	query := url.Values{"query": {"tx.height>0"}, "prove": {"true"}, "page": {strconv.Itoa(page)}, "per_page": {strconv.Itoa(limit)}, "order_by": {"desc"}}
+	query := url.Values{"query": {`"tx.height > 0"`}, "prove": {"true"}, "page": {strconv.Itoa(page)}, "per_page": {strconv.Itoa(limit)}, "order_by": {`"desc"`}}
 	if err := g.client.get(r.Context(), "/tx_search", query, &upstream); err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return

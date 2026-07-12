@@ -83,7 +83,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				"tx": base64.StdEncoding.EncodeToString(txPayload),
 			}})
 		case "/tx_search":
-			if r.URL.Query().Get("query") != "tx.height>0" || r.URL.Query().Get("page") != "1" || r.URL.Query().Get("per_page") != "2" || r.URL.Query().Get("order_by") != "desc" {
+			if r.URL.Query().Get("query") != `"tx.height > 0"` || r.URL.Query().Get("page") != "1" || r.URL.Query().Get("per_page") != "2" || r.URL.Query().Get("order_by") != `"desc"` {
 				t.Errorf("unexpected tx search query: %s", r.URL.RawQuery)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
