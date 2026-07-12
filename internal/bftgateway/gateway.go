@@ -793,7 +793,11 @@ func (g *Gateway) broadcastApplicationAction(ctx context.Context, payload []byte
 		return chain.Transaction{}, err
 	}
 	if upstream.Error != nil {
-		return chain.Transaction{}, errors.New(cometError(upstream.Error))
+		message := cometError(upstream.Error)
+		if strings.Contains(strings.ToLower(message), "tx already exists in cache") {
+			return chain.Transaction{}, &gatewayTransactionError{status: http.StatusUnprocessableEntity, message: "CometBFT rejected duplicate signed application action: " + message}
+		}
+		return chain.Transaction{}, errors.New(message)
 	}
 	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
 		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)

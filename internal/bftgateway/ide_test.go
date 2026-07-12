@@ -2,6 +2,7 @@ package bftgateway
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -86,6 +87,31 @@ func TestGatewayCommitsBoundedIDEAndReturnsEVMLogs(t *testing.T) {
 	}
 }
 
+func TestGatewayMapsCometDuplicateApplicationActionToUnprocessable(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 72))
+	signer, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	input := consensus.IDEContractCallPayload{Address: signer, Calldata: "0xffffffff", IdempotencyKey: "duplicate-action"}
+	input.RequestHash = consensus.IDECallRequestHash(input.Address, input.Calldata, input.IdempotencyKey)
+	raw := signedIDEFixture(t, key, consensus.ActionIDEContractCall, input, 1)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/broadcast_tx_commit" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "Internal error", "data": "tx already exists in cache"}})
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = gateway.broadcastApplicationAction(t.Context(), raw, mustDecodeIDEAction(t, raw))
+	var txErr *gatewayTransactionError
+	if !errors.As(err, &txErr) || txErr.status != http.StatusUnprocessableEntity {
+		t.Fatalf("duplicate Comet action mapping mismatch: %T %v", err, err)
+	}
+}
+
 func gatewayBoundedFixture(t *testing.T) (string, string) {
 	t.Helper()
 	source, err := os.ReadFile(filepath.Join("..", "..", "contracts", "devtools", "SampleEVMWriteCounter.sol"))
@@ -116,6 +142,15 @@ func signedIDEFixture(t *testing.T, key *secp256k1.PrivateKey, action string, pa
 		t.Fatal(err)
 	}
 	return raw
+}
+
+func mustDecodeIDEAction(t *testing.T, raw []byte) consensus.SignedApplicationAction {
+	t.Helper()
+	tx, err := consensus.DecodeSignedApplicationAction(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tx
 }
 
 func postJSON(t *testing.T, endpoint string, input, out any) {
