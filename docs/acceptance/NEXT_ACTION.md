@@ -1,41 +1,42 @@
 # Next Action
 
-Current single action: prove the locally implemented signed BFT Pay path against the temporary four-validator candidate, compare all four applications, and roll it back without changing public routing.
+Current single action: extend canonical signed BFT application actions to Trust and Chain Law governance requests, review/rejection, appeals, and transparency records.
 
 Why this action:
 
 - AI permission/action state is now remotely candidate-verified and safely rolled back.
-- Pay intent/invoice/refund/webhook actions, ABCI persistence, Gateway handlers, and `ynx-payd` BFT mode now pass local race/integration checks.
-- Remote four-application convergence, four-signer evidence, cleanup, and authoritative rollback are the remaining acceptance boundary before Pay can move from missing to implemented.
+- Pay state transitions are locally verified and remotely candidate-proven across all four applications; the temporary candidate is being rolled back.
+- Trust and Chain Law is the next policy-sensitive public service still outside the BFT application state.
+- Existing authoritative governance/appeal/transparency contracts define the required boundary without expanding bounded EVM/IDE work.
 - Public Pay, RPC, DNS, Caddy, and website routing must remain untouched.
 
-Required proof work:
+Required implementation work:
 
-- Commit and push the locally verified Pay implementation before deploying candidate binaries.
-- Start the existing candidate package and loopback BFT Gateway through the strict deployment boundary.
-- Keep the owner signer key and webhook signing key process-local; connect local `ynx-payd` only through strict SSH forwarding.
-- Commit one intent, identical replay, changed-input conflict, invoice, bounded refund, and webhook metadata record; query objects, idempotency, events, account nonce/resource usage, and transaction evidence.
-- Compare the same final Pay/account state across all four ABCI applications and collect four-signer evidence.
-- Only after remote four-application proof move `pay-state-transitions` from missing to implemented; keep cutover false for EVM receipts/logs, Trust/Chain Law, Resource, and IDE.
-- Remove local Pay/tunnel and remote Gateway/candidate state, rerun rollback/read-only/public-service gates, then update acceptance records.
+- Add canonical typed actions for governance request creation, review, rejection, Trust appeal creation/resolution, and transparency recording.
+- Preserve Anti-Illegal Request classification, evidence requirements, overbroad detection, asset boundaries, and the rule that native YNXT cannot be directly frozen.
+- Persist deterministic request, review, appeal, correction, and append-only transparency state in ABCI/AppHash using consensus block time.
+- Bind mutations to signer/requester/reviewer roles and reject unauthorized or inconsistent transitions before proposal inclusion.
+- Add ABCI queries, BFT Gateway handlers, and explicit rollback-compatible BFT mode for `ynx-trustd` with process-local signer custody and committed evidence verification.
+- Add race/unit/integration tests for restart persistence, replay, invalid transitions, native YNXT protection, false-positive correction, nonce safety, and upstream mismatch.
+- Only after remote four-application proof move `trust-and-chain-law-state-transitions` from missing to implemented; keep cutover false for EVM receipts/logs, Resource, and IDE.
 
 Files to touch:
 
 - `internal/consensus` action types, state, execution, hashing, and queries
 - `internal/bftgateway`
-- `internal/paygateway` and `cmd/ynx-payd`
+- `internal/trustgateway`, `cmd/ynx-trustd`, `internal/chain`, and `internal/api`
 - focused env examples, checks, and API docs after handlers exist
 - acceptance files only after verified evidence
-- no merchant key, webhook key, signer key, PEM, mnemonic, real `.env`, raw webhook body, or customer secret in Git/evidence/logs
+- no signer key, PEM, mnemonic, real `.env`, private evidence body, or customer secret in Git/evidence/logs
 
 Validation commands:
 
-- `go test -race ./internal/consensus ./internal/bftgateway ./internal/paygateway`
+- `go test -race ./internal/consensus ./internal/bftgateway ./internal/trustgateway`
 - `make consensus-abci-check`
 - `make consensus-signed-transfer-check`
-- `make pay-api-check`
+- `make trust-api-check`
 - `make bft-gateway-check`
-- add and run `make bft-pay-action-check`
+- add and run `make bft-trust-action-check`
 - `make consensus-public-cutover-check`
 - `go test ./...`
 - `make test`
@@ -47,14 +48,14 @@ Validation commands:
 
 Completion standard:
 
-- Signed Pay mutations commit deterministically through four-validator CometBFT, survive restart, and agree across all four ABCI applications.
-- Idempotency replay, changed-input key reuse, unauthorized merchant/refund, wrong chain, malformed payload, nonce collision, and inconsistent Gateway evidence fail closed.
-- Webhook signing remains process-local; chain state contains only bounded replay-safe signature metadata and hashes.
+- Signed governance, rejection, appeal, correction, and transparency mutations commit deterministically through four-validator CometBFT, survive restart, and agree across all four ABCI applications.
+- Illegal, overbroad, evidence-free, wrong-asset, direct native YNXT freeze, unauthorized review, wrong chain, malformed payload, nonce collision, and inconsistent Gateway evidence paths fail closed.
+- Transparency and appeal state remains bounded and auditable without storing prohibited private evidence bodies.
 - Temporary services/tunnels/candidate state are removed, authoritative public services remain online, and public BFT is not claimed.
 
 Explicitly not doing:
 
-- Do not route public Pay, RPC, DNS, Caddy, or website traffic to the candidate.
+- Do not route public Trust, RPC, DNS, Caddy, or website traffic to the candidate.
 - Do not expand EVM opcode, Counter, Hardhat artifact, or IDE execution coverage in this slice.
-- Do not weaken merchant authentication, idempotency, webhook secrecy, native YNXT protections, or Chain Law boundaries.
+- Do not weaken Trust authentication, evidence limits, appeal rights, native YNXT protections, or Chain Law boundaries.
 - Do not claim mainnet, exchange listing, stablecoin issuer support, wallet default support, partnerships, public BFT, or goal completion.
