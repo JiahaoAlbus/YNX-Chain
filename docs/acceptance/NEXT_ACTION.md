@@ -2,6 +2,8 @@
 
 Current single action: implement the production phase driver for the locally verified approval-gated public BFT cutover transaction, then run a current-topology remote rehearsal without switching public ingress. Do not execute public routing changes until custody inputs, phase evidence, rollback rehearsal, and explicit live approval pass.
 
+Current live blocker (read-only check at 2026-07-12 19:11 CST): primary and Singapore were at height `42260`, Silicon Valley at `41743`, and Seoul at `41161`. Silicon Valley and Seoul showed repeated authoritative replication timeouts. Restore follower connectivity/convergence before any cutover rehearsal; no remote mutation was made.
+
 Why this action:
 
 - All fifteen BFT Gateway compatibility capabilities now have local and private four-validator candidate proof, including bounded IDE contract state, receipts, real logs, direct Comet matching, four-application equality, cleanup, and rollback.
@@ -14,7 +16,7 @@ Required work:
 - Keep the implemented Gateway runtime authorization default false; preserve its capability, release, commit, and UTC build identity gates.
 - Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
 - Extend the implemented transaction engine with a production driver that prebuilds binaries and verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
-- Install a reversible ingress mutation freeze that preserves read health, reject new public mutations during the final snapshot window, and record the freeze evidence.
+- Deploy and remotely verify the implemented shared marker-based mutation freeze; preserve supported read-only EVM/HTTP health, reject writes, and record freeze/unfreeze evidence.
 - Pause authoritative block production only after the freeze gate passes, export a final fresh migration, bind the approved validator manifest, deploy the candidate, and require four-signer/common-hash/four-application state evidence.
 - Start persistent BFT Gateway and dependent BFT-mode services on loopback, rebuild/resume Indexer from the retained candidate boundary, and verify Explorer/API continuity before changing ingress.
 - Atomically switch ingress with a checksummed backup, then require public chain identity, no height regression, height growth, four validators, EVM receipt/log behavior, Faucet/AI/Pay/Trust/Resource/IDE checks, Indexer lag, Explorer SSE, release identity, and cross-region health.

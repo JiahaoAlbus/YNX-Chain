@@ -116,6 +116,7 @@ YNX_NETWORK=testnet
 YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
 YNX_DATA_DIR=/var/lib/ynx-chain/testnet
 YNX_BLOCK_INTERVAL=2s
+YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
 printf 'YNX_LOCAL_VALIDATOR_ADDRESS=%q\n' "$YNX_LOCAL_VALIDATOR_ADDRESS" >> "$work/config/ynx-chaind.env"
 printf 'YNX_PEER_RPC_URLS=%q\n' "$YNX_PEER_RPC_URLS" >> "$work/config/ynx-chaind.env"

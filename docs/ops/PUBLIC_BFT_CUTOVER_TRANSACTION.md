@@ -10,6 +10,7 @@ YNX Chain public BFT cutover is an approval-gated transaction. The transaction e
 - Approval must explicitly set both `publicCutoverAuthorized` and `automaticRollbackRequired` to `true`.
 - Gateway readiness remains false unless its separate runtime authorization, complete capabilities, release identity, and UTC build identity all pass.
 - Evidence is written with a restrictive umask to a transaction-specific directory.
+- The authoritative API, BFT Gateway, Faucet, AI, Pay, Trust, and Resource services share `YNX_MUTATION_FREEZE_FILE`. An atomic marker enables the freeze without a restart. GET/HEAD/OPTIONS, supported read-only EVM JSON-RPC calls, and AI chat remain available; state-changing requests return HTTP `503` with retry headers.
 
 ## Driver contract
 
@@ -37,6 +38,7 @@ After mutation freeze begins, any failure invokes all reverse operations: `rollb
 ```bash
 make public-bft-cutover-plan
 make public-bft-cutover-transaction-check
+make mutation-freeze-check
 ```
 
 The second command uses a clean temporary Git repository and a local state driver. It verifies a successful transition and injects failures after ten mutating or post-mutation phases, requiring the exact authoritative baseline and a passed rollback journal each time.

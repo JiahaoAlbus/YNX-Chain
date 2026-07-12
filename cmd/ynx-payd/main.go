@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/paygateway"
 )
 
@@ -43,7 +44,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	srv := &http.Server{Addr: *httpAddr, Handler: paygateway.NewServerWithBuild(service, currentBuildInfo()).Handler(), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(paygateway.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

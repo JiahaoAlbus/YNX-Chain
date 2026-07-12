@@ -16,6 +16,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
 )
 
 var (
@@ -162,14 +163,15 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		startPeerSyncPolling(ctx, devnet, cfg.LocalValidator, inputs.PeerSyncTargets, cfg.PeerSyncInterval, nil)
 	}
 
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: api.NewServerWithConfig(devnet, api.ServerConfig{
+	handler := api.NewServerWithConfig(devnet, api.ServerConfig{
 		AIGatewayUpstreamKey:       os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY"),
 		PayGatewayUpstreamKey:      os.Getenv("YNX_PAY_GATEWAY_UPSTREAM_KEY"),
 		TrustGatewayUpstreamKey:    os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
 		ResourceGatewayUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
 		ReplicationKey:             cfg.ReplicationKey,
 		ReadOnlyReplica:            cfg.ReplicationSource != "",
-	}), ReadHeaderTimeout: 5 * time.Second}
+	})
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: mutationfreeze.FromEnv(handler), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
