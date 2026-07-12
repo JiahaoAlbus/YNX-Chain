@@ -2,10 +2,13 @@ package faucet
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
+
+const MaxRequestBodyBytes = 16 * 1024
 
 type Server struct {
 	service *Service
@@ -50,8 +53,15 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestBodyBytes)
 	var req Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json"})
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json"})
 		return
 	}

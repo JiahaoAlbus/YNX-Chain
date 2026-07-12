@@ -4,6 +4,9 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=lib-local-testnet.sh
 source scripts/verify/lib-local-testnet.sh
+go test ./internal/faucet ./cmd/ynx-faucetd
+grep -Fq 'bft-gateway-signed-faucet' internal/faucet/faucet.go
+grep -Fq 'YNX_FAUCET_PRIVATE_KEY_FILE' cmd/ynx-faucetd/main.go
 ynx_start_local_testnet
 trap ynx_stop_local_testnet EXIT
 
@@ -14,6 +17,7 @@ request_log="$work/faucet-requests.jsonl"
 FAUCET_PRIVATE_KEY=local-test-faucet-key \
 YNX_FAUCET_RPC_URL="$YNX_REST_URL" \
 YNX_FAUCET_HTTP_ADDR=127.0.0.1:6428 \
+YNX_FAUCET_UPSTREAM_MODE=authoritative \
 YNX_FAUCET_REQUEST_LOG="$request_log" \
 YNX_FAUCET_DEFAULT_AMOUNT=77 \
 YNX_FAUCET_MAX_AMOUNT=100 \

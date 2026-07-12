@@ -24,6 +24,7 @@ var (
 func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_FAUCET_HTTP_ADDR", "127.0.0.1:6428"), "faucet HTTP listen address")
 	rpcURL := flag.String("rpc", envOrDefault("YNX_FAUCET_RPC_URL", "http://127.0.0.1:6420"), "YNX Chain RPC URL")
+	upstreamMode := flag.String("upstream-mode", envOrDefault("YNX_FAUCET_UPSTREAM_MODE", faucet.UpstreamAuthoritative), "faucet upstream mode: authoritative or bft")
 	requestLog := flag.String("request-log", envOrDefault("YNX_FAUCET_REQUEST_LOG", "tmp/faucet/requests.jsonl"), "JSONL request log path")
 	defaultAmount := flag.Int64("default-amount", envInt64OrDefault("YNX_FAUCET_DEFAULT_AMOUNT", 100), "default faucet amount")
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
@@ -34,7 +35,11 @@ func main() {
 	service, err := faucet.New(faucet.Config{
 		RPCURL:        *rpcURL,
 		HTTPAddr:      *httpAddr,
+		UpstreamMode:  *upstreamMode,
 		FaucetKey:     os.Getenv("FAUCET_PRIVATE_KEY"),
+		FaucetKeyPath: os.Getenv("YNX_FAUCET_PRIVATE_KEY_FILE"),
+		FaucetAddress: os.Getenv("YNX_FAUCET_ADDRESS"),
+		ChainID:       envInt64OrDefault("YNX_FAUCET_CHAIN_ID", 6423),
 		DefaultAmount: *defaultAmount,
 		MaxAmount:     *maxAmount,
 		Window:        *window,
@@ -54,7 +59,7 @@ func main() {
 		defer cancel()
 		_ = srv.Shutdown(shutdownCtx)
 	}()
-	log.Printf("YNX Faucet listening on http://%s and funding via %s", *httpAddr, *rpcURL)
+	log.Printf("YNX Faucet listening on http://%s and funding via %s mode=%s", *httpAddr, *rpcURL, *upstreamMode)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

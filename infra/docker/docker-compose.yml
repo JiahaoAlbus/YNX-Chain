@@ -54,6 +54,8 @@ services:
       FAUCET_PRIVATE_KEY: local-compose-faucet-key
       YNX_FAUCET_RPC_URL: http://ynx-chaind:6420
       YNX_FAUCET_HTTP_ADDR: 0.0.0.0:6428
+      YNX_FAUCET_UPSTREAM_MODE: authoritative
+      YNX_FAUCET_CHAIN_ID: "6423"
       YNX_FAUCET_REQUEST_LOG: /var/log/ynx-faucet/requests.jsonl
       YNX_FAUCET_DEFAULT_AMOUNT: "100"
       YNX_FAUCET_MAX_AMOUNT: "100"

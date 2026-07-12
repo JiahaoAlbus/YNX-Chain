@@ -71,7 +71,7 @@ Faucet readiness:
 make faucet-check
 ```
 
-`ynx-faucetd` requires `FAUCET_PRIVATE_KEY` from env, validates request addresses, enforces rate limits, writes JSONL request logs, funds YNXT through the chain RPC, and exposes health plus Prometheus metrics on `YNX_FAUCET_HTTP_ADDR`.
+`ynx-faucetd` validates request addresses, enforces rate limits, writes JSONL request logs, and exposes health plus Prometheus metrics on `YNX_FAUCET_HTTP_ADDR`. Keep `YNX_FAUCET_UPSTREAM_MODE=authoritative` while the public network uses the rollback-compatible runtime. BFT mode requires chain ID `6423`, a configured Faucet address matching exactly one process-local key source, and a loopback BFT Gateway URL; it queries nonce/balance, signs locally, broadcasts only the signed envelope, and fails closed on inconsistent commit evidence. A raw key file must be regular, mode-restricted, and readable by the Faucet service account.
 
 AI Gateway readiness:
 
