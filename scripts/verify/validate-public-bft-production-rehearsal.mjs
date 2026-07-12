@@ -32,7 +32,7 @@ function validate(root, commit, release) {
     const status = readJSON(path.join(roleDir, "status.json"));
     const block = readJSON(path.join(roleDir, "block.json"));
     const checks = fs.readFileSync(path.join(roleDir, "preflight.txt"), "utf8");
-    const expectedMode = role === "primary" ? "authoritative_producer" : "authenticated_follower";
+    const expectedMode = role === "primary" ? "authoritative_producer" : "authoritative_follower";
     const expectedProduction = role === "primary";
     if (Number(status.chainId) !== 6423 || status.nativeCurrencySymbol !== "YNXT") fail(`${role} chain identity mismatch`);
     if (status.build?.commit !== commit || status.build?.release !== release) fail(`${role} release mismatch`);
@@ -61,7 +61,7 @@ function selfTest() {
   for (const role of roles) {
     const roleDir = path.join(root, "roles", role);
     fs.mkdirSync(roleDir);
-    fs.writeFileSync(path.join(roleDir, "status.json"), JSON.stringify({ chainId: 6423, nativeCurrencySymbol: "YNXT", build: { commit, release }, nodeIdentity: { validatorAddress: validators[role], replicationMode: role === "primary" ? "authoritative_producer" : "authenticated_follower", blockProductionEnabled: role === "primary" } }));
+    fs.writeFileSync(path.join(roleDir, "status.json"), JSON.stringify({ chainId: 6423, nativeCurrencySymbol: "YNXT", build: { commit, release }, nodeIdentity: { validatorAddress: validators[role], replicationMode: role === "primary" ? "authoritative_producer" : "authoritative_follower", blockProductionEnabled: role === "primary" } }));
     fs.writeFileSync(path.join(roleDir, "block.json"), JSON.stringify({ height: 42, hash: "2".repeat(64) }));
     fs.writeFileSync(path.join(roleDir, "preflight.txt"), [`role=${role}`, `validator=${validators[role]}`, `release=${release}`, "services=active", "overlay=active", "keys=restricted", "candidate=absent", "freeze=absent", "ports=free", "disk=ready", "backup=present", `manifest_sha256=${"3".repeat(64)}`].join("\n"));
   }
