@@ -1,27 +1,23 @@
 # Next Action
 
-Current single action: extend canonical signed BFT application actions to Pay intents, invoices, refunds, webhook metadata, and payment events with merchant binding and idempotency.
+Current single action: prove the locally implemented signed BFT Pay path against the temporary four-validator candidate, compare all four applications, and roll it back without changing public routing.
 
 Why this action:
 
 - AI permission/action state is now remotely candidate-verified and safely rolled back.
-- Pay is the next value-sensitive service still backed only by authoritative HTTP persistence.
-- Its existing intent, invoice, refund, webhook, event, merchant, idempotency, and audit contracts provide a concrete state-transition boundary for the reusable signed action substrate.
-- Moving Pay on-chain closes one of the five remaining cutover capabilities without expanding bounded EVM/IDE work.
+- Pay intent/invoice/refund/webhook actions, ABCI persistence, Gateway handlers, and `ynx-payd` BFT mode now pass local race/integration checks.
+- Remote four-application convergence, four-signer evidence, cleanup, and authoritative rollback are the remaining acceptance boundary before Pay can move from missing to implemented.
+- Public Pay, RPC, DNS, Caddy, and website routing must remain untouched.
 
-Required implementation work:
+Required proof work:
 
-- Add canonical typed actions for Pay intent create, invoice create, refund create, and webhook-signature metadata record; reject unknown fields, unsupported currencies, unsafe amounts, malformed hashes, wrong merchant binding, replay, and wrong chain before proposal inclusion.
-- Persist deterministic Pay records, idempotency keys, append-only Pay events, and block-time audit metadata in ABCI state and AppHash; never persist webhook signing keys or raw webhook bodies.
-- Bind every mutation to the BFT signer plus configured merchant identity and enforce object ownership and amount/currency/refund limits.
-- Preserve required idempotency semantics: identical replay returns the committed object; key reuse with changed input fails closed without nonce or fee consumption.
-- Charge explicit YNXT/resource usage through the shared account nonce and fee path.
-- Add ABCI queries and BFT Gateway handlers matching current Pay API lookup/list/event contracts, with committed transaction and record evidence verification.
-- Add explicit BFT mode to `ynx-payd`; keep authoritative mode as rollback compatibility. The process-local signer and webhook key must remain separate custody inputs.
-- Serialize nonce selection and verify committed hash/action/signer/merchant/object/idempotency/event evidence before returning success.
-- Add race/unit/integration tests for restart persistence, concurrent idempotency, replay, amount overflow, unauthorized refund, webhook metadata redaction, nonce safety, and upstream mismatch.
+- Commit and push the locally verified Pay implementation before deploying candidate binaries.
+- Start the existing candidate package and loopback BFT Gateway through the strict deployment boundary.
+- Keep the owner signer key and webhook signing key process-local; connect local `ynx-payd` only through strict SSH forwarding.
+- Commit one intent, identical replay, changed-input conflict, invoice, bounded refund, and webhook metadata record; query objects, idempotency, events, account nonce/resource usage, and transaction evidence.
+- Compare the same final Pay/account state across all four ABCI applications and collect four-signer evidence.
 - Only after remote four-application proof move `pay-state-transitions` from missing to implemented; keep cutover false for EVM receipts/logs, Trust/Chain Law, Resource, and IDE.
-- Deploy only temporary candidate/Gateway/Pay components through strict SSH forwarding, prove intent/invoice/refund/webhook/event/query/list behavior, then remove them and rerun rollback/public-service gates.
+- Remove local Pay/tunnel and remote Gateway/candidate state, rerun rollback/read-only/public-service gates, then update acceptance records.
 
 Files to touch:
 

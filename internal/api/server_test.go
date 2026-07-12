@@ -471,14 +471,14 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 50, "idempotencyKey": "intent-api-key"}, http.StatusCreated, &intent)
 	intentID := intent["id"].(string)
 	var duplicateIntent map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 999, "idempotencyKey": "intent-api-key"}, http.StatusCreated, &duplicateIntent)
+	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_unit", "amount": 50, "idempotencyKey": "intent-api-key"}, http.StatusCreated, &duplicateIntent)
 	if duplicateIntent["id"] != intentID || duplicateIntent["amount"].(float64) != 50 {
 		t.Fatalf("expected idempotent intent replay: %v original %v", duplicateIntent, intent)
 	}
 	var invoice map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 12, "idempotencyKey": "invoice-api-key"}, http.StatusCreated, &invoice)
 	var duplicateInvoice map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 99, "idempotencyKey": "invoice-api-key"}, http.StatusCreated, &duplicateInvoice)
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intentID, "dueInHours": 12, "idempotencyKey": "invoice-api-key"}, http.StatusCreated, &duplicateInvoice)
 	if duplicateInvoice["id"] != invoice["id"] {
 		t.Fatalf("expected idempotent invoice replay: %v original %v", duplicateInvoice, invoice)
 	}
@@ -497,7 +497,7 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	var refund map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 10, "reason": "unit", "idempotencyKey": "refund-api-key"}, http.StatusCreated, &refund)
 	var duplicateRefund map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 20, "reason": "changed", "idempotencyKey": "refund-api-key"}, http.StatusCreated, &duplicateRefund)
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intentID, "amount": 10, "reason": "unit", "idempotencyKey": "refund-api-key"}, http.StatusCreated, &duplicateRefund)
 	if duplicateRefund["id"] != refund["id"] || duplicateRefund["amount"].(float64) != 10 {
 		t.Fatalf("expected idempotent refund replay: %v original %v", duplicateRefund, refund)
 	}

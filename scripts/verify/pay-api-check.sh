@@ -54,8 +54,10 @@ status="$(curl -s -o "$YNX_VERIFY_WORK/pay-merchant-mismatch.json" -w '%{http_co
 intent="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":25,"callbackUrl":"https://merchant.example/callback","idempotencyKey":"pay-check-intent"}')"
 intent_id="$(printf '%s' "$intent" | ynx_json_field '["id"]')"
 printf '%s' "$intent" | MERCHANT_ID="$merchant_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); if (d.merchant !== process.env.MERCHANT_ID || d.currency !== "YNXT" || !d.id) throw new Error(`bad Pay intent: ${JSON.stringify(d)}`);'
-intent_replay="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":999,"idempotencyKey":"pay-check-intent"}')"
+intent_replay="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":25,"callbackUrl":"https://merchant.example/callback","idempotencyKey":"pay-check-intent"}')"
 [[ "$(printf '%s' "$intent_replay" | ynx_json_field '["id"]')" == "$intent_id" ]]
+status="$(curl -s -o "$YNX_VERIFY_WORK/pay-idempotency-conflict.json" -w '%{http_code}' -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":999,"idempotencyKey":"pay-check-intent"}')"
+[[ "$status" == "400" ]] || { echo "expected changed-input idempotency conflict, got $status"; exit 1; }
 
 invoice="$(curl -fsS -X POST "$pay_url/pay/invoices" "${auth[@]}" -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12,\"idempotencyKey\":\"pay-check-invoice\"}")"
 invoice_id="$(printf '%s' "$invoice" | ynx_json_field '["id"]')"

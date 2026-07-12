@@ -3,19 +3,26 @@ package paygateway
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const (
@@ -46,6 +53,16 @@ func TestGatewayRequiresDedicatedSecrets(t *testing.T) {
 	base.ChainURL = "http://ynx-chaind:6420"
 	if _, err := New(base); err != nil {
 		t.Fatalf("expected private service DNS URL to be accepted, got %v", err)
+	}
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 7))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	unsafePath := t.TempDir() + "/unsafe-pay.key"
+	if err := os.WriteFile(unsafePath, key.Serialize(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.Chmod(unsafePath, 0o644)
+	if _, err := New(Config{ChainURL: "http://127.0.0.1:6420", MerchantID: testMerchantID, APIKey: testAPIKey, WebhookSigningKey: testWebhookKey, UpstreamMode: UpstreamBFT, SignerKeyPath: unsafePath, SignerAddress: address}); err == nil || !strings.Contains(err.Error(), "mode-restricted") {
+		t.Fatalf("unsafe BFT Pay signer permissions accepted: %v", err)
 	}
 }
 
@@ -85,7 +102,7 @@ func TestGatewayHealthAuthPayFlowAndRedactedAudit(t *testing.T) {
 	}
 	intentID := intent["id"].(string)
 	var replay map[string]any
-	doPayJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"amount": 999, "idempotencyKey": "intent-key-1"}, http.StatusCreated, &replay)
+	doPayJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"amount": 50, "callbackUrl": "https://merchant.example/callback", "idempotencyKey": "intent-key-1"}, http.StatusCreated, &replay)
 	if replay["id"] != intentID || replay["amount"] != intent["amount"] {
 		t.Fatalf("idempotency replay changed intent: %v original %v", replay, intent)
 	}
@@ -164,6 +181,186 @@ func TestGatewayRateLimitAndBodyLimit(t *testing.T) {
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusRequestEntityTooLarge {
 		t.Fatalf("expected 413, got %d", resp.StatusCode)
+	}
+}
+
+func TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 101))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	merchant := "merchant_bft_gateway"
+	var mu sync.Mutex
+	var nonce uint64
+	broadcasts := 0
+	idem := map[string]consensus.BFTPayIdempotency{}
+	objects := map[string]consensus.BFTPayIntent{}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/accounts/"+address:
+			mu.Lock()
+			n := nonce
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 100, Nonce: n})
+		case r.Method == http.MethodGet && r.URL.Path == "/pay/idempotency":
+			mu.Lock()
+			v, ok := idem[r.URL.Query().Get("key")]
+			mu.Unlock()
+			if !ok {
+				http.Error(w, "missing", http.StatusNotFound)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(v)
+		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/pay/intents/"):
+			mu.Lock()
+			v, ok := objects[strings.TrimPrefix(r.URL.Path, "/pay/intents/")]
+			mu.Unlock()
+			if !ok {
+				http.NotFound(w, r)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(v)
+		case r.Method == http.MethodPost && r.URL.Path == "/pay/intents":
+			raw, _ := io.ReadAll(r.Body)
+			var tx consensus.SignedApplicationAction
+			if json.Unmarshal(raw, &tx) != nil || tx.Verify(6423) != nil {
+				http.Error(w, "bad tx", 400)
+				return
+			}
+			var p consensus.PayIntentPayload
+			_ = json.Unmarshal(tx.Payload, &p)
+			mu.Lock()
+			defer mu.Unlock()
+			if tx.Nonce != nonce+1 {
+				http.Error(w, "nonce", 422)
+				return
+			}
+			nonce = tx.Nonce
+			broadcasts++
+			hash := consensus.ApplicationActionHash(raw)
+			id := consensus.ApplicationActionRecordID("pay-intent", hash)
+			record := consensus.BFTPayIntent{ID: id, Signer: address, Merchant: merchant, Amount: p.Amount, Currency: "YNXT", Status: "created", CreatedAt: time.Now().UTC(), IdempotencyKey: p.IdempotencyKey, RequestHash: p.RequestHash, BlockHeight: 1, TxHash: hash, AuditHash: strings.Repeat("a", 64)}
+			objects[id] = record
+			idem[p.IdempotencyKey] = consensus.BFTPayIdempotency{ID: consensus.PayIdempotencyID(merchant, p.IdempotencyKey), Signer: address, Merchant: merchant, IdempotencyKey: p.IdempotencyKey, Action: consensus.ActionPayIntentCreate, RequestHash: p.RequestHash, ObjectType: "intent", ObjectID: id, TxHash: hash}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(record)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	service, err := New(Config{ChainURL: upstream.URL, MerchantID: merchant, APIKey: testAPIKey, WebhookSigningKey: testWebhookKey, AuditLog: t.TempDir() + "/audit.jsonl", UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 101), SignerAddress: address, ChainID: 6423})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := service.PrepareBody("/pay/intents", []byte(`{"amount":50,"idempotencyKey":"same-key"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const count = 12
+	var wg sync.WaitGroup
+	errs := make(chan error, count)
+	ids := make(chan string, count)
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			resp, err := service.Proxy(context.Background(), http.MethodPost, "/pay/intents", "", body, fmt.Sprintf("request-%d", i))
+			if err != nil {
+				errs <- err
+				return
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != http.StatusCreated {
+				errs <- fmt.Errorf("status %d", resp.StatusCode)
+				return
+			}
+			var record consensus.BFTPayIntent
+			if json.NewDecoder(resp.Body).Decode(&record) != nil {
+				errs <- errors.New("decode replay")
+				return
+			}
+			ids <- record.ID
+		}(i)
+	}
+	wg.Wait()
+	close(errs)
+	close(ids)
+	for err := range errs {
+		t.Error(err)
+	}
+	first := ""
+	for id := range ids {
+		if first == "" {
+			first = id
+		} else if id != first {
+			t.Fatalf("idempotent replay IDs differ")
+		}
+	}
+	mu.Lock()
+	gotNonce, gotBroadcasts := nonce, broadcasts
+	mu.Unlock()
+	if gotNonce != 1 || gotBroadcasts != 1 {
+		t.Fatalf("idempotent replay consumed nonce/fee: nonce=%d broadcasts=%d", gotNonce, gotBroadcasts)
+	}
+	changed, _ := service.PrepareBody("/pay/intents", []byte(`{"amount":51,"idempotencyKey":"same-key"}`))
+	resp, err := service.Proxy(context.Background(), http.MethodPost, "/pay/intents", "", changed, "changed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusConflict {
+		t.Fatalf("changed-input idempotency expected 409 got %d", resp.StatusCode)
+	}
+	if nonce != 1 || broadcasts != 1 {
+		t.Fatal("changed-input conflict consumed nonce")
+	}
+
+	webhookBody, _ := service.PrepareBody("/pay/webhook-signatures", []byte(`{"intentId":"`+first+`","eventType":"payment_intent.created","idempotencyKey":"webhook-key"}`))
+	action, payload, _, _, err := service.bftPayPayload("/pay/webhook-signatures", webhookBody)
+	if err != nil || action != consensus.ActionPayWebhookRecord {
+		t.Fatal(err)
+	}
+	webhook := payload.(consensus.PayWebhookPayload)
+	_, _, material := consensus.PayWebhookMaterial(merchant, first, webhook.EventType, webhook.IdempotencyKey, webhook.SignedAt)
+	mac := hmac.New(sha256.New, []byte(testWebhookKey))
+	_, _ = mac.Write(material)
+	if webhook.Signature != hex.EncodeToString(mac.Sum(nil)) {
+		t.Fatal("webhook was not signed process-locally")
+	}
+	encoded, _ := json.Marshal(webhook)
+	if bytes.Contains(encoded, []byte(testWebhookKey)) {
+		t.Fatal("webhook key entered chain payload")
+	}
+}
+
+func TestBFTPayRejectsInconsistentCommittedResponse(t *testing.T) {
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 102))
+	address, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	merchant := "merchant_bft_mismatch"
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/pay/idempotency" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodGet {
+			_ = json.NewEncoder(w).Encode(chain.ConsensusAccount{Address: address, Balance: 10})
+			return
+		}
+		raw, _ := io.ReadAll(r.Body)
+		var tx consensus.SignedApplicationAction
+		_ = json.Unmarshal(raw, &tx)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(consensus.BFTPayIntent{ID: strings.Repeat("0", 24), Signer: address, Merchant: merchant, Status: "created", TxHash: "0x" + strings.Repeat("0", 64)})
+	}))
+	defer upstream.Close()
+	service, err := New(Config{ChainURL: upstream.URL, MerchantID: merchant, APIKey: testAPIKey, WebhookSigningKey: testWebhookKey, UpstreamMode: UpstreamBFT, SignerKey: fmt.Sprintf("%064x", 102), SignerAddress: address})
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := service.PrepareBody("/pay/intents", []byte(`{"amount":1,"idempotencyKey":"mismatch"}`))
+	if _, err := service.Proxy(context.Background(), http.MethodPost, "/pay/intents", "", body, "mismatch"); err == nil {
+		t.Fatal("inconsistent committed Pay response accepted")
 	}
 }
 

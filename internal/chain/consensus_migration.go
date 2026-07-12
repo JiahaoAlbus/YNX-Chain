@@ -160,7 +160,7 @@ func (s ConsensusMigrationState) Validate() error {
 		if account.Balance < 0 || account.Staked < 0 {
 			return fmt.Errorf("consensus migration account %s has a negative YNXT amount", account.Address)
 		}
-		if account.ResourceUsage.BandwidthUsed < 0 || account.ResourceUsage.ComputeUsed < 0 || account.ResourceUsage.AICreditsUsed < 0 || account.ResourceUsage.TrustUsed < 0 {
+		if account.ResourceUsage.BandwidthUsed < 0 || account.ResourceUsage.ComputeUsed < 0 || account.ResourceUsage.AICreditsUsed < 0 || account.ResourceUsage.TrustUsed < 0 || account.ResourceUsage.PayCreditsUsed < 0 {
 			return fmt.Errorf("consensus migration account %s has negative resource usage", account.Address)
 		}
 		for lotID, amount := range account.Lots {

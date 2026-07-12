@@ -952,6 +952,9 @@ func (d *Devnet) CreatePayIntentWithIdempotency(merchant string, amount int64, c
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if existing, ok := d.findPayIntentByIdempotencyLocked(merchant, idempotencyKey); ok {
+		if existing.Amount != amount || existing.CallbackURL != callbackURL {
+			return PayIntent{}, errors.New("idempotencyKey was already used with different payment intent input")
+		}
 		return existing, nil
 	}
 	now := time.Now().UTC()
@@ -990,6 +993,9 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 		return Invoice{}, errors.New("payment intent not found")
 	}
 	if existing, ok := d.findInvoiceByIdempotencyLocked(intentID, idempotencyKey); ok {
+		if int64(existing.DueAt.Sub(existing.CreatedAt)/time.Hour) != dueInHours {
+			return Invoice{}, errors.New("idempotencyKey was already used with different invoice input")
+		}
 		return existing, nil
 	}
 	now := time.Now().UTC()
@@ -1043,7 +1049,22 @@ func (d *Devnet) CreateRefundWithIdempotency(intentID string, amount int64, reas
 		return RefundRecord{}, errors.New("refund exceeds payment intent amount")
 	}
 	if existing, ok := d.findRefundByIdempotencyLocked(intentID, idempotencyKey); ok {
+		if existing.Amount != amount || existing.Reason != reason {
+			return RefundRecord{}, errors.New("idempotencyKey was already used with different refund input")
+		}
 		return existing, nil
+	}
+	var refunded int64
+	for _, existing := range d.refunds {
+		if existing.IntentID == intentID {
+			if existing.Amount > intent.Amount-refunded {
+				return RefundRecord{}, errors.New("stored refunds exceed payment intent amount")
+			}
+			refunded += existing.Amount
+		}
+	}
+	if amount > intent.Amount-refunded {
+		return RefundRecord{}, errors.New("refund exceeds remaining payment intent amount")
 	}
 	now := time.Now().UTC()
 	refund := RefundRecord{
@@ -4175,7 +4196,7 @@ func resourceBalance(account *Account, policy ResourceMarketPolicy) ResourceBala
 	compute := policy.BaseCompute + account.Staked/policy.ComputeStakeDivisor
 	ai := policy.BaseAICredits + account.Staked/policy.AICreditStakeDivisor
 	trust := policy.BaseTrustCredits + account.Staked/policy.TrustStakeDivisor
-	return ResourceBalance{Address: account.Address, BandwidthLimit: bandwidth, BandwidthUsed: account.ResourceUsage.BandwidthUsed, BandwidthLeft: maxInt64(0, bandwidth-account.ResourceUsage.BandwidthUsed), ComputeLimit: compute, ComputeUsed: account.ResourceUsage.ComputeUsed, ComputeLeft: maxInt64(0, compute-account.ResourceUsage.ComputeUsed), AICreditsLimit: ai, AICreditsUsed: account.ResourceUsage.AICreditsUsed, AICreditsLeft: maxInt64(0, ai-account.ResourceUsage.AICreditsUsed), TrustLimit: trust, TrustUsed: account.ResourceUsage.TrustUsed, TrustLeft: maxInt64(0, trust-account.ResourceUsage.TrustUsed), Staked: account.Staked}
+	return ResourceBalance{Address: account.Address, BandwidthLimit: bandwidth, BandwidthUsed: account.ResourceUsage.BandwidthUsed, BandwidthLeft: maxInt64(0, bandwidth-account.ResourceUsage.BandwidthUsed), ComputeLimit: compute, ComputeUsed: account.ResourceUsage.ComputeUsed, ComputeLeft: maxInt64(0, compute-account.ResourceUsage.ComputeUsed), AICreditsLimit: ai, AICreditsUsed: account.ResourceUsage.AICreditsUsed, AICreditsLeft: maxInt64(0, ai-account.ResourceUsage.AICreditsUsed), TrustLimit: trust, TrustUsed: account.ResourceUsage.TrustUsed, TrustLeft: maxInt64(0, trust-account.ResourceUsage.TrustUsed), PayCreditsUsed: account.ResourceUsage.PayCreditsUsed, Staked: account.Staked}
 }
 
 func maxInt64(a, b int64) int64 {

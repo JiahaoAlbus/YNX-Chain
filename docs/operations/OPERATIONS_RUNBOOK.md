@@ -86,9 +86,10 @@ Pay Gateway readiness:
 
 ```bash
 make pay-api-check
+make bft-pay-action-check
 ```
 
-`ynx-payd` requires merchant ID, public API key, webhook signing key, and a separate chain-upstream key from its dedicated `0600` env file. It serves public health/metrics and authenticated Pay routes on `YNX_PAY_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB body limit, required idempotency keys, merchant binding, rate limits, managed webhook signing, and redacted JSONL audit. The chain process keeps canonical persistent Pay records and rejects direct deployed `/pay/*` access without the upstream key.
+`ynx-payd` requires merchant ID, public API key, and webhook signing key from its dedicated `0600` env file. Keep `YNX_PAY_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; this mode also requires the separate chain-upstream key. Candidate `bft` mode requires chain ID, the canonical signer address, and exactly one process-local raw key source, preferably a mode-`0600` key file. It serializes idempotency query, nonce selection, signing, and broadcast; computes webhook HMAC locally with the separate webhook key; and rejects inconsistent commit or Pay record evidence. `make bft-pay-action-check` covers the signed BFT mutation path locally; it does not authorize public routing.
 
 Trust Gateway readiness:
 

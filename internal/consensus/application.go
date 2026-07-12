@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 3
+	ApplicationVersion   = 4
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -41,10 +41,16 @@ type transactionError struct {
 }
 
 type executionState struct {
-	accounts    []chain.ConsensusAccount
-	permissions []BFTAIPermission
-	actions     []BFTAIAction
-	auditEvents []BFTAIAuditEvent
+	accounts       []chain.ConsensusAccount
+	permissions    []BFTAIPermission
+	actions        []BFTAIAction
+	auditEvents    []BFTAIAuditEvent
+	payIntents     []BFTPayIntent
+	payInvoices    []BFTPayInvoice
+	payRefunds     []BFTPayRefund
+	payWebhooks    []BFTPayWebhook
+	payEvents      []BFTPayEvent
+	payIdempotency []BFTPayIdempotency
 }
 
 type transactionExecution struct {
@@ -212,9 +218,24 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	case req.Path == "/ai/audit":
 		response.Value, _ = json.Marshal(a.committed.AIAuditEvents)
 		return response, nil
+	case strings.HasPrefix(req.Path, "/pay/intents/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/intents/"), a.committed.PayIntents, func(v BFTPayIntent) string { return v.ID }, "Pay intent")
+	case strings.HasPrefix(req.Path, "/pay/invoices/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/invoices/"), a.committed.PayInvoices, func(v BFTPayInvoice) string { return v.ID }, "Pay invoice")
+	case strings.HasPrefix(req.Path, "/pay/refunds/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/refunds/"), a.committed.PayRefunds, func(v BFTPayRefund) string { return v.ID }, "Pay refund")
+	case strings.HasPrefix(req.Path, "/pay/webhooks/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/webhooks/"), a.committed.PayWebhooks, func(v BFTPayWebhook) string { return v.EventID }, "Pay webhook")
+	case req.Path == "/pay/events":
+		response.Value, _ = json.Marshal(a.committed.PayEvents)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/pay/events/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/events/"), a.committed.PayEvents, func(v BFTPayEvent) string { return v.ID }, "Pay event")
+	case strings.HasPrefix(req.Path, "/pay/idempotency/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/pay/idempotency/"), a.committed.PayIdempotency, func(v BFTPayIdempotency) string { return v.ID }, "Pay idempotency")
 	default:
 		response.Code = 1
-		response.Log = "supported query paths: /migration, /state, /accounts/{address}, /ai/permissions, /ai/permissions/{id}, /ai/actions, /ai/actions/{id}, /ai/audit"
+		response.Log = "supported query paths include migration, state, accounts, AI records, and Pay intents/invoices/refunds/webhooks/events/idempotency"
 		return response, nil
 	}
 }
@@ -298,7 +319,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 			Events:  events,
 		}
 	}
-	pending, err := sealCommittedState(a.migration, req.Height, state.accounts, state.permissions, state.actions, state.auditEvents)
+	pending, err := sealCommittedState(a.migration, req.Height, state)
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
@@ -327,6 +348,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
 		accounts: cloneAccounts(a.committed.Accounts), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 	}
 }
 
@@ -398,6 +420,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 		height = 1
 	} else {
 		blockTime = blockTime.UTC()
+	}
+	if isPayAction(tx.Action) {
+		return a.applyPayAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
@@ -506,7 +531,7 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	if signer.Balance < tx.Fee {
 		return invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for application action fee"))
 	}
-	if signer.ResourceUsage.AICreditsUsed > math.MaxInt64-tx.AIUnits || signer.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+	if signer.ResourceUsage.AICreditsUsed > math.MaxInt64-tx.AIUnits || signer.ResourceUsage.PayCreditsUsed > math.MaxInt64-tx.PayUnits || signer.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return invalidTransaction(CodeInvalidTx, errors.New("application action resource usage overflow"))
 	}
 	state.accounts, _ = ensureAccount(state.accounts, a.feeRecipient)
@@ -515,6 +540,7 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	state.accounts[signerIndex].Balance -= tx.Fee
 	state.accounts[signerIndex].Nonce++
 	state.accounts[signerIndex].ResourceUsage.AICreditsUsed += tx.AIUnits
+	state.accounts[signerIndex].ResourceUsage.PayCreditsUsed += tx.PayUnits
 	state.accounts[signerIndex].ResourceUsage.BandwidthUsed++
 	state.accounts[feeIndex].Balance += tx.Fee
 	return nil
@@ -566,6 +592,22 @@ func appendUniqueString(values []string, value string) []string {
 		}
 	}
 	return append(values, value)
+}
+
+func queryPayRecord[T any](response *abcitypes.ResponseQuery, id string, values []T, idOf func(T) string, label string) (*abcitypes.ResponseQuery, error) {
+	id = strings.TrimSpace(id)
+	for _, value := range values {
+		if idOf(value) == id {
+			payload, err := json.Marshal(value)
+			if err != nil {
+				return nil, err
+			}
+			response.Key, response.Value = []byte(id), payload
+			return response, nil
+		}
+	}
+	response.Code, response.Log = 1, label+" not found"
+	return response, nil
 }
 
 func moveTraceableLots(sender, receiver *chain.ConsensusAccount, amount int64) error {

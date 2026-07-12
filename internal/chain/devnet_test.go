@@ -554,34 +554,43 @@ func TestPayIdempotencyEventsAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	duplicateIntent, err := devnet.CreatePayIntentWithIdempotency("merchant_pay", 99, "", "intent-key-1")
+	duplicateIntent, err := devnet.CreatePayIntentWithIdempotency("merchant_pay", 75, "https://merchant.example/callback", "intent-key-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if duplicateIntent.ID != intent.ID || duplicateIntent.Amount != 75 {
 		t.Fatalf("expected idempotent intent replay, got %+v original %+v", duplicateIntent, intent)
 	}
+	if _, err := devnet.CreatePayIntentWithIdempotency("merchant_pay", 99, "", "intent-key-1"); err == nil {
+		t.Fatal("expected changed payment intent input to conflict")
+	}
 	invoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 12, "invoice-key-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	duplicateInvoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 48, "invoice-key-1")
+	duplicateInvoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 12, "invoice-key-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if duplicateInvoice.ID != invoice.ID || !duplicateInvoice.DueAt.Equal(invoice.DueAt) {
 		t.Fatalf("expected idempotent invoice replay, got %+v original %+v", duplicateInvoice, invoice)
 	}
+	if _, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 48, "invoice-key-1"); err == nil {
+		t.Fatal("expected changed invoice input to conflict")
+	}
 	refund, err := devnet.CreateRefundWithIdempotency(intent.ID, 10, "unit", "refund-key-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	duplicateRefund, err := devnet.CreateRefundWithIdempotency(intent.ID, 20, "changed", "refund-key-1")
+	duplicateRefund, err := devnet.CreateRefundWithIdempotency(intent.ID, 10, "unit", "refund-key-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if duplicateRefund.ID != refund.ID || duplicateRefund.Amount != 10 {
 		t.Fatalf("expected idempotent refund replay, got %+v original %+v", duplicateRefund, refund)
+	}
+	if _, err := devnet.CreateRefundWithIdempotency(intent.ID, 20, "changed", "refund-key-1"); err == nil {
+		t.Fatal("expected changed refund input to conflict")
 	}
 	webhook, err := devnet.SignWebhookWithIdempotency(intent.ID, "payment_intent.created", "unit-signing-key", "webhook-key-1")
 	if err != nil {

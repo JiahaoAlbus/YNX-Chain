@@ -17,6 +17,8 @@ grep -Fq '"faucet-state-transition"' internal/bftgateway/gateway.go
 grep -Fq 'earliest_block_height' internal/bftgateway/gateway.go
 grep -Fq 'POST /ai/permissions' internal/bftgateway/gateway.go
 grep -Fq 'GET /ai/audit' internal/bftgateway/gateway.go
+grep -Fq 'POST /pay/intents' internal/bftgateway/gateway.go
+grep -Fq 'GET /pay/events' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 

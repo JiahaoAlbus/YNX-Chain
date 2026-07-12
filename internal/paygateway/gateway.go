@@ -3,13 +3,16 @@ package paygateway
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,9 +23,16 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 const MaxBodyBytes = 1 << 20
+const (
+	UpstreamAuthoritative = "authoritative"
+	UpstreamBFT           = "bft"
+)
 
 type Config struct {
 	ChainURL          string
@@ -33,6 +43,11 @@ type Config struct {
 	AuditLog          string
 	Window            time.Duration
 	MaxRequests       int
+	UpstreamMode      string
+	SignerKey         string
+	SignerKeyPath     string
+	SignerAddress     string
+	ChainID           int64
 }
 
 func (c Config) normalized() (Config, error) {
@@ -47,8 +62,29 @@ func (c Config) normalized() (Config, error) {
 	if strings.TrimSpace(c.APIKey) == "" {
 		return Config{}, fmt.Errorf("YNX_PAY_API_KEY is required for ynx-payd")
 	}
-	if strings.TrimSpace(c.UpstreamKey) == "" {
+	c.UpstreamMode = strings.ToLower(strings.TrimSpace(c.UpstreamMode))
+	if c.UpstreamMode == "" {
+		c.UpstreamMode = UpstreamAuthoritative
+	}
+	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
+		return Config{}, fmt.Errorf("Pay Gateway upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
+	}
+	if c.UpstreamMode == UpstreamAuthoritative && strings.TrimSpace(c.UpstreamKey) == "" {
 		return Config{}, fmt.Errorf("YNX_PAY_GATEWAY_UPSTREAM_KEY is required for ynx-payd")
+	}
+	if c.UpstreamMode == UpstreamBFT {
+		if (strings.TrimSpace(c.SignerKey) == "") == (strings.TrimSpace(c.SignerKeyPath) == "") {
+			return Config{}, errors.New("BFT Pay Gateway requires exactly one signer key source")
+		}
+		if !consensus.IsNativeAddress(strings.TrimSpace(c.SignerAddress)) {
+			return Config{}, errors.New("BFT Pay Gateway requires canonical signer address")
+		}
+		if c.ChainID == 0 {
+			c.ChainID = 6423
+		}
+		if c.ChainID != 6423 {
+			return Config{}, errors.New("BFT Pay Gateway chain ID must equal 6423")
+		}
 	}
 	if strings.TrimSpace(c.WebhookSigningKey) == "" {
 		return Config{}, fmt.Errorf("YNX_PAY_WEBHOOK_SIGNING_KEY is required for ynx-payd")
@@ -76,6 +112,9 @@ type Service struct {
 	errors      int64
 	active      int64
 	auditErrors int64
+	signer      *secp256k1.PrivateKey
+	signerAddr  string
+	mutationMu  sync.Mutex
 }
 
 func New(cfg Config) (*Service, error) {
@@ -83,11 +122,59 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{
+	service := &Service{
 		cfg:        normalized,
 		httpClient: &http.Client{Timeout: 30 * time.Second},
 		seen:       map[string][]time.Time{},
-	}, nil
+	}
+	if normalized.UpstreamMode == UpstreamBFT {
+		signer, address, err := loadBFTSigner(normalized)
+		if err != nil {
+			return nil, err
+		}
+		service.signer, service.signerAddr = signer, address
+		service.cfg.SignerKey = ""
+	}
+	return service, nil
+}
+
+func loadBFTSigner(cfg Config) (*secp256k1.PrivateKey, string, error) {
+	var keyBytes []byte
+	if path := strings.TrimSpace(cfg.SignerKeyPath); path != "" {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, "", fmt.Errorf("stat BFT Pay signer key: %w", err)
+		}
+		if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+			return nil, "", errors.New("BFT Pay signer key file must be regular and mode-restricted")
+		}
+		keyBytes, err = os.ReadFile(path)
+		if err != nil {
+			return nil, "", fmt.Errorf("read BFT Pay signer key: %w", err)
+		}
+	} else {
+		var err error
+		keyBytes, err = hex.DecodeString(strings.TrimPrefix(strings.TrimSpace(cfg.SignerKey), "0x"))
+		if err != nil {
+			return nil, "", errors.New("BFT Pay signer key must be canonical hex")
+		}
+	}
+	defer clear(keyBytes)
+	if len(keyBytes) != 32 || bytes.Equal(keyBytes, make([]byte, 32)) {
+		return nil, "", errors.New("BFT Pay signer key must be one non-zero 32-byte scalar")
+	}
+	privateKey := secp256k1.PrivKeyFromBytes(keyBytes)
+	if !bytes.Equal(privateKey.Serialize(), keyBytes) {
+		return nil, "", errors.New("BFT Pay signer key scalar is outside canonical range")
+	}
+	address, err := consensus.NativeAddress(privateKey.PubKey().SerializeCompressed())
+	if err != nil {
+		return nil, "", err
+	}
+	if address != strings.TrimSpace(cfg.SignerAddress) {
+		return nil, "", errors.New("BFT Pay signer address does not match private key")
+	}
+	return privateKey, address, nil
 }
 
 type chainStatus struct {
@@ -118,6 +205,8 @@ type Health struct {
 	Build              buildinfo.Info `json:"build"`
 	TruthfulStatus     string         `json:"truthfulStatus"`
 	Error              string         `json:"error,omitempty"`
+	UpstreamMode       string         `json:"upstreamMode"`
+	SignerAddress      string         `json:"signerAddress,omitempty"`
 }
 
 func (s *Service) Health(ctx context.Context, build buildinfo.Info) Health {
@@ -154,13 +243,17 @@ func (s *Service) Health(ctx context.Context, build buildinfo.Info) Health {
 func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	truthfulStatus := "authenticated-chain-backed-pay-merchant-gateway"
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		truthfulStatus = "signed-bft-pay-merchant-gateway"
+	}
 	return Health{
 		Service: "ynx-payd", NativeSymbol: "YNXT", MerchantConfigured: s.cfg.MerchantID != "",
 		SigningConfigured: s.cfg.WebhookSigningKey != "",
 		RateLimit:         fmt.Sprintf("%d per %s per api-key/ip", s.cfg.MaxRequests, s.cfg.Window),
 		AuditLog:          s.cfg.AuditLog, Requests: s.requests, Successes: s.successes,
 		Denied: s.denied, Errors: s.errors, Active: s.active, AuditErrors: s.auditErrors,
-		Build: buildinfo.Normalize(build), TruthfulStatus: "authenticated-chain-backed-pay-merchant-gateway",
+		Build: buildinfo.Normalize(build), TruthfulStatus: truthfulStatus, UpstreamMode: s.cfg.UpstreamMode, SignerAddress: s.signerAddr,
 	}
 }
 
@@ -214,12 +307,19 @@ func (s *Service) PrepareBody(path string, body []byte) ([]byte, error) {
 		if supplied, _ := payload["signingKey"].(string); strings.TrimSpace(supplied) != "" {
 			return nil, fmt.Errorf("signingKey is managed by ynx-payd and must not be supplied")
 		}
-		payload["signingKey"] = s.cfg.WebhookSigningKey
+		if s.cfg.UpstreamMode == UpstreamAuthoritative {
+			payload["signingKey"] = s.cfg.WebhookSigningKey
+		} else {
+			delete(payload, "signingKey")
+		}
 	}
 	return json.Marshal(payload)
 }
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (*http.Response, error) {
+	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
+		return s.proxyBFTMutation(ctx, path, body, requestID)
+	}
 	target := s.cfg.ChainURL + path
 	if rawQuery != "" {
 		target += "?" + rawQuery
@@ -234,8 +334,259 @@ func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-ID", requestID)
-	req.Header.Set("X-YNX-Pay-Gateway-Upstream-Key", s.cfg.UpstreamKey)
+	if s.cfg.UpstreamMode == UpstreamAuthoritative {
+		req.Header.Set("X-YNX-Pay-Gateway-Upstream-Key", s.cfg.UpstreamKey)
+	}
 	return s.httpClient.Do(req)
+}
+
+func (s *Service) proxyBFTMutation(ctx context.Context, path string, body []byte, requestID string) (*http.Response, error) {
+	s.mutationMu.Lock()
+	defer s.mutationMu.Unlock()
+	if s.signer == nil {
+		return nil, errors.New("BFT Pay signer is unavailable")
+	}
+	action, payload, key, requestHash, err := s.bftPayPayload(path, body)
+	if err != nil {
+		return nil, err
+	}
+	if replay, found, err := s.bftIdempotencyReplay(ctx, action, key, requestHash); err != nil {
+		return nil, err
+	} else if found {
+		return replay, nil
+	}
+	account, err := s.bftSignerAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if account.Nonce == math.MaxUint64 {
+		return nil, errors.New("BFT Pay signer nonce exhausted")
+	}
+	tx, err := consensus.NewSignedApplicationAction(s.signer, s.cfg.ChainID, action, payload, account.Nonce+1)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := consensus.EncodeSignedApplicationAction(tx)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.ChainURL+path, bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Request-ID", requestID)
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return resp, nil
+	}
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*MaxBodyBytes+1))
+	_ = resp.Body.Close()
+	if err != nil || len(responseBody) > 2*MaxBodyBytes {
+		return nil, errors.New("BFT Pay response exceeds limit")
+	}
+	if err := verifyBFTPayResponse(action, tx, raw, responseBody, s.cfg.MerchantID); err != nil {
+		return nil, err
+	}
+	resp.Body, resp.ContentLength = io.NopCloser(bytes.NewReader(responseBody)), int64(len(responseBody))
+	return resp, nil
+}
+
+func (s *Service) bftPayPayload(path string, body []byte) (string, any, string, string, error) {
+	decode := func(out any) error {
+		decoder := json.NewDecoder(bytes.NewReader(body))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(out); err != nil {
+			return err
+		}
+		if decoder.Decode(&struct{}{}) != io.EOF {
+			return errors.New("Pay mutation must contain one JSON value")
+		}
+		return nil
+	}
+	switch path {
+	case "/pay/intents":
+		var in struct {
+			Merchant       string `json:"merchant"`
+			Amount         int64  `json:"amount"`
+			CallbackURL    string `json:"callbackUrl"`
+			IdempotencyKey string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		if in.Merchant != s.cfg.MerchantID {
+			return "", nil, "", "", errors.New("Pay merchant binding mismatch")
+		}
+		p := consensus.PayIntentPayload{Merchant: in.Merchant, Amount: in.Amount, Currency: "YNXT", CallbackURL: in.CallbackURL, IdempotencyKey: in.IdempotencyKey}
+		p.RequestHash = consensus.PayIntentRequestHash(p.Merchant, p.Amount, p.Currency, p.CallbackURL, p.IdempotencyKey)
+		return consensus.ActionPayIntentCreate, p, p.IdempotencyKey, p.RequestHash, nil
+	case "/pay/invoices":
+		var in struct {
+			IntentID       string `json:"intentId"`
+			DueInHours     int64  `json:"dueInHours"`
+			IdempotencyKey string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		if in.DueInHours <= 0 {
+			in.DueInHours = 24
+		}
+		p := consensus.PayInvoicePayload{Merchant: s.cfg.MerchantID, IntentID: in.IntentID, DueInHours: in.DueInHours, IdempotencyKey: in.IdempotencyKey}
+		p.RequestHash = consensus.PayInvoiceRequestHash(p.Merchant, p.IntentID, p.DueInHours, p.IdempotencyKey)
+		return consensus.ActionPayInvoiceCreate, p, p.IdempotencyKey, p.RequestHash, nil
+	case "/pay/refunds":
+		var in struct {
+			IntentID       string `json:"intentId"`
+			Amount         int64  `json:"amount"`
+			Reason         string `json:"reason"`
+			IdempotencyKey string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		p := consensus.PayRefundPayload{Merchant: s.cfg.MerchantID, IntentID: in.IntentID, Amount: in.Amount, Reason: in.Reason, IdempotencyKey: in.IdempotencyKey}
+		p.RequestHash = consensus.PayRefundRequestHash(p.Merchant, p.IntentID, p.Amount, p.Reason, p.IdempotencyKey)
+		return consensus.ActionPayRefundCreate, p, p.IdempotencyKey, p.RequestHash, nil
+	case "/pay/webhook-signatures":
+		var in struct {
+			IntentID       string `json:"intentId"`
+			EventType      string `json:"eventType"`
+			IdempotencyKey string `json:"idempotencyKey"`
+		}
+		if err := decode(&in); err != nil {
+			return "", nil, "", "", err
+		}
+		requestHash := consensus.PayWebhookRequestHash(s.cfg.MerchantID, in.IntentID, in.EventType, in.IdempotencyKey)
+		signedAt := time.Now().UTC()
+		eventID, payloadHash, message := consensus.PayWebhookMaterial(s.cfg.MerchantID, in.IntentID, in.EventType, in.IdempotencyKey, signedAt)
+		mac := hmac.New(sha256.New, []byte(s.cfg.WebhookSigningKey))
+		_, _ = mac.Write(message)
+		p := consensus.PayWebhookPayload{Merchant: s.cfg.MerchantID, IntentID: in.IntentID, EventType: in.EventType, IdempotencyKey: in.IdempotencyKey, EventID: eventID, PayloadHash: payloadHash, Signature: hex.EncodeToString(mac.Sum(nil)), SignedAt: signedAt, Algorithm: "hmac-sha256", RequestHash: requestHash}
+		return consensus.ActionPayWebhookRecord, p, p.IdempotencyKey, p.RequestHash, nil
+	default:
+		return "", nil, "", "", errors.New("unsupported BFT Pay mutation route")
+	}
+}
+
+func (s *Service) bftIdempotencyReplay(ctx context.Context, action, key, requestHash string) (*http.Response, bool, error) {
+	endpoint := s.cfg.ChainURL + "/pay/idempotency?" + url.Values{"merchant": {s.cfg.MerchantID}, "key": {key}}.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, false, err
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, false, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, false, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, false, fmt.Errorf("BFT Pay idempotency query returned %d", resp.StatusCode)
+	}
+	var record consensus.BFTPayIdempotency
+	if err := json.NewDecoder(io.LimitReader(resp.Body, MaxBodyBytes)).Decode(&record); err != nil {
+		return nil, false, err
+	}
+	if record.Merchant != s.cfg.MerchantID || record.Signer != s.signerAddr || record.IdempotencyKey != key {
+		return nil, false, errors.New("BFT Pay idempotency response mismatch")
+	}
+	if record.Action != action || record.RequestHash != requestHash {
+		return jsonResponse(http.StatusConflict, map[string]string{"error": "idempotencyKey was already used with different Pay input"}), true, nil
+	}
+	objectPath := ""
+	switch record.ObjectType {
+	case "intent":
+		objectPath = "/pay/intents/" + record.ObjectID
+	case "invoice":
+		objectPath = "/pay/invoices/" + record.ObjectID
+	case "refund":
+		objectPath = "/pay/refunds/" + record.ObjectID
+	case "webhook":
+		objectPath = "/pay/webhook-signatures/" + record.ObjectID
+	default:
+		return nil, false, errors.New("BFT Pay idempotency object type mismatch")
+	}
+	objectReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.ChainURL+objectPath, nil)
+	objectResp, err := s.httpClient.Do(objectReq)
+	if err != nil {
+		return nil, false, err
+	}
+	defer objectResp.Body.Close()
+	if objectResp.StatusCode != http.StatusOK {
+		return nil, false, errors.New("BFT Pay replay object is unavailable")
+	}
+	raw, err := io.ReadAll(io.LimitReader(objectResp.Body, 2*MaxBodyBytes))
+	if err != nil {
+		return nil, false, err
+	}
+	return rawJSONResponse(http.StatusCreated, raw), true, nil
+}
+
+func (s *Service) bftSignerAccount(ctx context.Context) (chain.ConsensusAccount, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.ChainURL+"/accounts/"+s.signerAddr, nil)
+	if err != nil {
+		return chain.ConsensusAccount{}, err
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return chain.ConsensusAccount{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return chain.ConsensusAccount{}, fmt.Errorf("BFT Pay signer account query returned %d", resp.StatusCode)
+	}
+	var account chain.ConsensusAccount
+	if err := json.NewDecoder(io.LimitReader(resp.Body, MaxBodyBytes)).Decode(&account); err != nil {
+		return account, err
+	}
+	if account.Address != s.signerAddr {
+		return account, errors.New("BFT Pay signer account mismatch")
+	}
+	return account, nil
+}
+
+func verifyBFTPayResponse(action string, tx consensus.SignedApplicationAction, raw, response []byte, merchant string) error {
+	hash := consensus.ApplicationActionHash(raw)
+	switch action {
+	case consensus.ActionPayIntentCreate:
+		var v consensus.BFTPayIntent
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-intent", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash {
+			return errors.New("BFT Pay intent response mismatch")
+		}
+	case consensus.ActionPayInvoiceCreate:
+		var v consensus.BFTPayInvoice
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-invoice", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash {
+			return errors.New("BFT Pay invoice response mismatch")
+		}
+	case consensus.ActionPayRefundCreate:
+		var v consensus.BFTPayRefund
+		if json.Unmarshal(response, &v) != nil || v.ID != consensus.ApplicationActionRecordID("pay-refund", hash) || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash {
+			return errors.New("BFT Pay refund response mismatch")
+		}
+	case consensus.ActionPayWebhookRecord:
+		var p consensus.PayWebhookPayload
+		_ = json.Unmarshal(tx.Payload, &p)
+		var v consensus.BFTPayWebhook
+		if json.Unmarshal(response, &v) != nil || v.EventID != p.EventID || v.Signer != tx.Signer || v.Merchant != merchant || v.TxHash != hash || v.Signature != p.Signature {
+			return errors.New("BFT Pay webhook response mismatch")
+		}
+	}
+	return nil
+}
+
+func jsonResponse(status int, value any) *http.Response {
+	raw, _ := json.Marshal(value)
+	return rawJSONResponse(status, append(raw, '\n'))
+}
+func rawJSONResponse(status int, raw []byte) *http.Response {
+	return &http.Response{StatusCode: status, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(bytes.NewReader(raw)), ContentLength: int64(len(raw))}
 }
 
 type AuditEntry struct {

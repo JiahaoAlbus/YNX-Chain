@@ -45,10 +45,11 @@ type ExplorerSummary struct {
 }
 
 type ResourceUsage struct {
-	BandwidthUsed int64 `json:"bandwidthUsed"`
-	ComputeUsed   int64 `json:"computeUsed"`
-	AICreditsUsed int64 `json:"aiCreditsUsed"`
-	TrustUsed     int64 `json:"trustUsed"`
+	BandwidthUsed  int64 `json:"bandwidthUsed"`
+	ComputeUsed    int64 `json:"computeUsed"`
+	AICreditsUsed  int64 `json:"aiCreditsUsed"`
+	TrustUsed      int64 `json:"trustUsed"`
+	PayCreditsUsed int64 `json:"payCreditsUsed"`
 }
 
 type ResourceBalance struct {
@@ -65,6 +66,7 @@ type ResourceBalance struct {
 	TrustLimit     int64  `json:"trustLimit"`
 	TrustUsed      int64  `json:"trustUsed"`
 	TrustLeft      int64  `json:"trustLeft"`
+	PayCreditsUsed int64  `json:"payCreditsUsed"`
 	Staked         int64  `json:"staked"`
 }
 
