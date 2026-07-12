@@ -34,11 +34,11 @@ var implementedCapabilities = []string{
 	"ai-permission-and-action-state-transitions",
 	"pay-state-transitions",
 	"trust-and-chain-law-state-transitions",
+	"resource-market-state-transitions",
 }
 
 var missingCutoverCapabilities = []string{
 	"evm-transaction-receipts-and-logs",
-	"resource-market-state-transitions",
 	"ide-contract-state-transitions",
 }
 
