@@ -5,7 +5,7 @@ Current single action: extend canonical signed BFT application actions to Trust 
 Why this action:
 
 - AI permission/action state is now remotely candidate-verified and safely rolled back.
-- Pay state transitions are locally verified and remotely candidate-proven across all four applications; the temporary candidate is being rolled back.
+- Pay state transitions are locally verified and remotely candidate-proven across all four applications; the temporary candidate, Gateway, tunnel, and Pay process were removed and the authoritative rollback gate passed.
 - Trust and Chain Law is the next policy-sensitive public service still outside the BFT application state.
 - Existing authoritative governance/appeal/transparency contracts define the required boundary without expanding bounded EVM/IDE work.
 - Public Pay, RPC, DNS, Caddy, and website routing must remain untouched.
