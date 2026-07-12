@@ -7,6 +7,9 @@ go test ./internal/bftgateway ./cmd/ynx-bft-gatewayd
 mkdir -p tmp/verify-bft-gateway
 go build -o tmp/verify-bft-gateway/ynx-bft-gatewayd ./cmd/ynx-bft-gatewayd
 grep -Fq 'publicCutoverReady' internal/bftgateway/gateway.go
+grep -Fq 'PublicCutoverAuthorized' internal/bftgateway/gateway.go
+grep -Fq 'YNX_BFT_GATEWAY_PUBLIC_CUTOVER_AUTHORIZED' cmd/ynx-bft-gatewayd/main.go
+grep -Fq 'YNX_BFT_GATEWAY_PUBLIC_CUTOVER_AUTHORIZED=false' .env.bft-gateway.example
 grep -Fq '"trust-and-chain-law-state-transitions"' internal/bftgateway/gateway.go
 grep -Fq 'POST /transactions/broadcast' internal/bftgateway/gateway.go
 grep -Fq 'GET /txs/{hash}' internal/bftgateway/gateway.go
@@ -26,4 +29,4 @@ grep -Fq '"ide-contract-state-transitions"' internal/bftgateway/gateway.go
 grep -Fq '127.0.0.1:27620' .env.bft-gateway.example
 grep -Fq '127.0.0.1:27757' .env.bft-gateway.example
 
-echo "bft-gateway-check passed: all fifteen native, AI, Pay, Trust, Resource, EVM receipt/log, and bounded IDE compatibility capabilities are implemented while public cutover remains explicitly false"
+echo "bft-gateway-check passed: all fifteen compatibility capabilities are implemented and public cutover readiness remains default-false behind explicit authorization and release-identity gates"

@@ -225,6 +225,44 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	}
 }
 
+func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T) {
+	validBuild := buildinfo.Info{
+		Commit:    "abcdef123456",
+		Release:   "ynx-bft-gateway-abcdef123456",
+		BuildTime: "2026-07-12T04:00:00Z",
+	}
+	tests := []struct {
+		name       string
+		authorized bool
+		build      buildinfo.Info
+		want       bool
+	}{
+		{name: "authorized release", authorized: true, build: validBuild, want: true},
+		{name: "authorization defaults closed", build: validBuild},
+		{name: "unknown build", authorized: true, build: buildinfo.Info{}},
+		{name: "short commit", authorized: true, build: buildinfo.Info{Commit: "abcdef", Release: "ynx-bft-gateway-abcdef", BuildTime: validBuild.BuildTime}},
+		{name: "uppercase commit", authorized: true, build: buildinfo.Info{Commit: "ABCDEF123456", Release: "ynx-bft-gateway-ABCDEF123456", BuildTime: validBuild.BuildTime}},
+		{name: "release mismatch", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: "ynx-bft-gateway-other", BuildTime: validBuild.BuildTime}},
+		{name: "invalid build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "unknown"}},
+		{name: "non UTC build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "2026-07-12T12:00:00+08:00"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gateway, err := New(Config{
+				CometRPCURL:             "http://127.0.0.1:27757",
+				Build:                   tt.build,
+				PublicCutoverAuthorized: tt.authorized,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := gateway.publicCutoverReady(); got != tt.want {
+				t.Fatalf("publicCutoverReady() = %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
 func assertRPCObject(t *testing.T, endpoint, payload string) map[string]any {
 	t.Helper()
 	resp, err := http.Post(endpoint, "application/json", strings.NewReader(payload))

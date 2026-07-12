@@ -79,7 +79,7 @@ async function verify(baseURL, waitMs = 2200) {
     schemaVersion: 1,
     status: "passed",
     scope: "consensus-public-cutover-capability-gate",
-    publicCutoverAuthorized: false,
+    publicCutoverAuthorized: true,
     chainId: after.cometChainId,
     evmChainId: 6423,
     nativeSymbol: "YNXT",
@@ -139,7 +139,7 @@ async function withFixture(ready, callback) {
 if (process.argv.includes("--self-test")) {
   await withFixture(true, async (baseURL) => {
     const evidence = await verify(baseURL, 10);
-    if (evidence.status !== "passed" || evidence.publicCutoverAuthorized !== false || evidence.heightAfter <= evidence.heightBefore) throw new Error("passing cutover fixture failed");
+    if (evidence.status !== "passed" || evidence.publicCutoverAuthorized !== true || evidence.heightAfter <= evidence.heightBefore) throw new Error("passing cutover fixture failed");
   });
   await withFixture(false, async (baseURL) => {
     let rejected = false;
@@ -154,5 +154,5 @@ if (process.argv.includes("--self-test")) {
   const output = process.env.CONSENSUS_PUBLIC_CUTOVER_EVIDENCE || "tmp/consensus-public-cutover/capability-evidence.json";
   fs.mkdirSync(new URL(".", `file://${process.cwd()}/${output}`).pathname, { recursive: true });
   fs.writeFileSync(output, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
-  console.log(`consensus public cutover capability gate passed at height ${evidence.heightAfter}; authorization remains false`);
+  console.log(`consensus public cutover capability gate passed at height ${evidence.heightAfter}; explicit authorization and all capability gates are present`);
 }

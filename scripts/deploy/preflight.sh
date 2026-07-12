@@ -40,6 +40,7 @@ make bft-pay-action-check
 make bft-trust-action-check
 make bft-resource-action-check
 make consensus-public-cutover-check
+make public-bft-cutover-transaction-check
 make caddy-ingress-check
 make ops-check
 echo "preflight passed for local devnet/testnet deployment package, four-validator consensus lab, production BFT candidate package, and fail-closed BFT Gateway cutover boundary"

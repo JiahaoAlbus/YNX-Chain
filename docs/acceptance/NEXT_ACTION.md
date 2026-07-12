@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: implement and locally/dry-run verify one approval-gated fresh-anchor public BFT cutover transaction with automatic rollback. Do not execute public routing changes until the explicit cutover gate, production custody inputs, and rollback rehearsal pass.
+Current single action: implement the production phase driver for the locally verified approval-gated public BFT cutover transaction, then run a current-topology remote rehearsal without switching public ingress. Do not execute public routing changes until custody inputs, phase evidence, rollback rehearsal, and explicit live approval pass.
 
 Why this action:
 
@@ -11,19 +11,19 @@ Why this action:
 
 Required work:
 
-- Add an explicit runtime cutover authorization input to `ynx-bft-gatewayd`; default false and fail closed. It may report ready only when authorization is present and all fifteen capabilities are implemented.
-- Build a cutover orchestrator that prebuilds binaries, verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
+- Keep the implemented Gateway runtime authorization default false; preserve its capability, release, commit, and UTC build identity gates.
+- Map every implemented transaction phase to reviewed Tencent operations using the current verified host/key/role inventory. The production driver must be idempotent and write evidence for every remote action.
+- Extend the implemented transaction engine with a production driver that prebuilds binaries and verifies current HEAD/release identity, host keys, overlay, production custody paths, disk, backups, public endpoint identity, and candidate absence before any mutation.
 - Install a reversible ingress mutation freeze that preserves read health, reject new public mutations during the final snapshot window, and record the freeze evidence.
 - Pause authoritative block production only after the freeze gate passes, export a final fresh migration, bind the approved validator manifest, deploy the candidate, and require four-signer/common-hash/four-application state evidence.
 - Start persistent BFT Gateway and dependent BFT-mode services on loopback, rebuild/resume Indexer from the retained candidate boundary, and verify Explorer/API continuity before changing ingress.
 - Atomically switch ingress with a checksummed backup, then require public chain identity, no height regression, height growth, four validators, EVM receipt/log behavior, Faucet/AI/Pay/Trust/Resource/IDE checks, Indexer lag, Explorer SSE, release identity, and cross-region health.
 - Define automatic rollback thresholds for any service failure, identity mismatch, height stall/regression, signer loss, index lag, or evidence mismatch. Rollback must restore ingress, authoritative producer/followers, mutation routes, and public health from the backup point.
-- Keep a dry-run/self-test mode that proves every command, ordering constraint, cleanup path, and failure injection without touching public services.
+- Keep the non-mutating plan and clean temporary-repository self-test proving ordering, cleanup, and failure injection without touching public services.
 
 Files to touch:
 
-- `internal/bftgateway` and `cmd/ynx-bft-gatewayd` for explicit default-false runtime authorization and tests.
-- `scripts/deploy`, `scripts/ops`, and `scripts/verify` for freeze, final snapshot, cutover, continuity gates, failure injection, and automatic rollback.
+- production driver and service templates under `scripts/deploy`, `scripts/ops`, and `scripts/verify` for real freeze, final snapshot, continuity gates, ingress, and remote automatic rollback.
 - service/env examples and operations/API docs only after real flags and handlers exist.
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `PROJECT_STATE.md`, and `NEXT_ACTION.md` after verified local/dry-run evidence.
 - Do not modify or replace the long-term goal file.
@@ -37,7 +37,7 @@ Validation commands:
 - `make bft-evm-receipt-check`
 - `make consensus-production-package-check`
 - `make consensus-public-cutover-check`
-- add and run a cutover transaction self-test/failure-injection check
+- `make public-bft-cutover-transaction-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`

@@ -45,18 +45,21 @@ var (
 	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
 	aiRecordIDPattern      = regexp.MustCompile(`^[0-9a-f]{24}$`)
+	buildCommitPattern     = regexp.MustCompile(`^[0-9a-f]{12}$`)
 )
 
 type Config struct {
-	CometRPCURL string
-	HTTPClient  *http.Client
-	Build       buildinfo.Info
+	CometRPCURL             string
+	HTTPClient              *http.Client
+	Build                   buildinfo.Info
+	PublicCutoverAuthorized bool
 }
 
 type Gateway struct {
-	client *client
-	build  buildinfo.Info
-	mux    *http.ServeMux
+	client                  *client
+	build                   buildinfo.Info
+	publicCutoverAuthorized bool
+	mux                     *http.ServeMux
 }
 
 type client struct {
@@ -244,9 +247,10 @@ func New(cfg Config) (*Gateway, error) {
 		cfg.HTTPClient = &http.Client{Timeout: 8 * time.Second}
 	}
 	g := &Gateway{
-		client: &client{baseURL: baseURL, httpClient: cfg.HTTPClient},
-		build:  buildinfo.Normalize(cfg.Build),
-		mux:    http.NewServeMux(),
+		client:                  &client{baseURL: baseURL, httpClient: cfg.HTTPClient},
+		build:                   buildinfo.Normalize(cfg.Build),
+		publicCutoverAuthorized: cfg.PublicCutoverAuthorized,
+		mux:                     http.NewServeMux(),
 	}
 	g.routes()
 	return g, nil
@@ -395,7 +399,7 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		TruthfulStatus:       "cometbft-rpc-and-abci-backed",
 		ConsensusEngine:      "cometbft",
 		CometChainID:         upstream.Result.NodeInfo.Network,
-		PublicCutoverReady:   false,
+		PublicCutoverReady:   g.publicCutoverReady(),
 	}, nil
 }
 
@@ -426,13 +430,28 @@ func (g *Gateway) handleHealth(w http.ResponseWriter, r *http.Request) {
 		CometChainID:       status.CometChainID,
 		Height:             status.Height,
 		ValidatorCount:     status.ValidatorCount,
-		PublicCutoverReady: false,
+		PublicCutoverReady: g.publicCutoverReady(),
 		Implemented:        implementedCapabilities,
 		Missing:            missingCutoverCapabilities,
 		TruthfulStatus:     status.TruthfulStatus,
 		Build:              g.build,
 		LastCheckedAt:      time.Now().UTC(),
 	})
+}
+
+func (g *Gateway) publicCutoverReady() bool {
+	if !g.publicCutoverAuthorized || len(missingCutoverCapabilities) != 0 || !buildCommitPattern.MatchString(g.build.Commit) {
+		return false
+	}
+	if g.build.Release != "ynx-bft-gateway-"+g.build.Commit {
+		return false
+	}
+	parsed, err := time.Parse(time.RFC3339, g.build.BuildTime)
+	if err != nil {
+		return false
+	}
+	_, offset := parsed.Zone()
+	return offset == 0
 }
 
 func (g *Gateway) handleStatus(w http.ResponseWriter, r *http.Request) {
