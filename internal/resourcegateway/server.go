@@ -35,6 +35,16 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /resource-market/delegations/{address}", s.handleProxy)
 	s.mux.HandleFunc("POST /resource-market/rent", s.handleProxy)
 	s.mux.HandleFunc("GET /resource-market/income/{address}", s.handleProxy)
+	s.mux.HandleFunc("POST /resource-market/pools", s.handleProxy)
+	s.mux.HandleFunc("GET /resource-market/pools", s.handleProxy)
+	s.mux.HandleFunc("GET /resource-market/pools/{id}", s.handleProxy)
+	s.mux.HandleFunc("POST /resource-market/pools/{id}/fund", s.handleProxy)
+	s.mux.HandleFunc("POST /resource-market/pools/{id}/policy", s.handleProxy)
+	s.mux.HandleFunc("POST /resource-market/pools/{id}/status", s.handleProxy)
+	s.mux.HandleFunc("POST /resource-market/sponsorships", s.handleProxy)
+	s.mux.HandleFunc("GET /resource-market/sponsorships", s.handleProxy)
+	s.mux.HandleFunc("GET /resource-market/sponsorships/{id}", s.handleProxy)
+	s.mux.HandleFunc("GET /resource-market/sponsor-audit", s.handleProxy)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

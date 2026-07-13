@@ -362,28 +362,41 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 }
 
 type FeeDetail struct {
-	Hash            string           `json:"hash"`
-	Type            string           `json:"type"`
-	FeeYNXT         int64            `json:"feeYnxt"`
-	Payer           string           `json:"payer"`
-	Sponsor         string           `json:"sponsor,omitempty"`
-	ResourceSource  string           `json:"resourceSource"`
-	ResourceSignals []chain.LotFlow  `json:"resourceSignals,omitempty"`
-	Distribution    map[string]int64 `json:"distribution"`
-	TruthfulStatus  string           `json:"truthfulStatus"`
+	Hash             string           `json:"hash"`
+	Type             string           `json:"type"`
+	FeeYNXT          int64            `json:"feeYnxt"`
+	Payer            string           `json:"payer"`
+	Sponsor          string           `json:"sponsor,omitempty"`
+	SponsorPoolID    string           `json:"sponsorPoolId,omitempty"`
+	ResourceSource   string           `json:"resourceSource"`
+	ResourceType     string           `json:"resourceType,omitempty"`
+	ResourceConsumed int64            `json:"resourceConsumed,omitempty"`
+	ActionReference  string           `json:"actionReference,omitempty"`
+	ResourceSignals  []chain.LotFlow  `json:"resourceSignals,omitempty"`
+	Distribution     map[string]int64 `json:"distribution"`
+	TruthfulStatus   string           `json:"truthfulStatus"`
 }
 
 func FeeDetailFromTx(tx chain.Transaction) FeeDetail {
 	distribution := map[string]int64{"validator_or_protocol_fee": tx.Fee}
+	resourceSource := tx.ResourceSource
+	if resourceSource == "" {
+		resourceSource = "direct-ynxt-fee-or-resource-endpoint"
+	}
 	return FeeDetail{
-		Hash:            tx.Hash,
-		Type:            tx.Type,
-		FeeYNXT:         tx.Fee,
-		Payer:           tx.From,
-		ResourceSource:  "direct-ynxt-fee-or-resource-endpoint",
-		ResourceSignals: tx.LotFlows,
-		Distribution:    distribution,
-		TruthfulStatus:  "derived-from-indexed-transaction",
+		Hash:             tx.Hash,
+		Type:             tx.Type,
+		FeeYNXT:          tx.Fee,
+		Payer:            tx.From,
+		Sponsor:          tx.Sponsor,
+		SponsorPoolID:    tx.SponsorPoolID,
+		ResourceSource:   resourceSource,
+		ResourceType:     tx.ResourceType,
+		ResourceConsumed: tx.ResourceConsumed,
+		ActionReference:  tx.ActionReference,
+		ResourceSignals:  tx.LotFlows,
+		Distribution:     distribution,
+		TruthfulStatus:   "derived-from-indexed-transaction",
 	}
 }
 

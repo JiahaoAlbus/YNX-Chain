@@ -32,6 +32,7 @@ make trust-appeal-check
 make anti-unreasonable-tracking-check
 make native-ynxt-no-hidden-freeze-check
 make resource-market-check
+make resource-sponsor-check
 make consensus-migration-check
 make consensus-abci-check
 make consensus-signed-transfer-check

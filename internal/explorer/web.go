@@ -373,7 +373,10 @@ const indexHTML = `<!doctype html>
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
-      return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span><span>to</span><span class="mono hash" title="' + escapeHTML(tx.to) + '">' + escapeHTML(compact(tx.to,8,6)) + '</span></span></span><span class="row-side"><strong>' + escapeHTML(number(tx.amount)) + ' YNXT</strong><span>Fee ' + escapeHTML(number(tx.fee)) + '</span></span></button>';
+      const route = tx.sponsor ? '<span>uses</span><span class="mono hash" title="' + escapeHTML(tx.sponsor) + '">' + escapeHTML(compact(tx.sponsor,8,6)) + ' sponsor</span>' : '<span>to</span><span class="mono hash" title="' + escapeHTML(tx.to) + '">' + escapeHTML(compact(tx.to,8,6)) + '</span>';
+      const value = tx.resourceConsumed ? escapeHTML(number(tx.resourceConsumed)) + ' ' + escapeHTML(String(tx.resourceType || 'resource').replaceAll('_',' ')) : escapeHTML(number(tx.amount)) + ' YNXT';
+      const cost = tx.sponsor ? 'Pool ' + escapeHTML(compact(tx.sponsorPoolId,8,5)) : 'Fee ' + escapeHTML(number(tx.fee));
+      return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span>' + route + '</span></span><span class="row-side"><strong>' + value + '</strong><span>' + cost + '</span></span></button>';
     }
     function calculateWindow(blocks) {
       if (blocks.length < 2) return {blockTime:0,tps:0};
@@ -528,6 +531,7 @@ const indexHTML = `<!doctype html>
     }
     function detailStats(type,detail) {
       if (type === 'block') return [['Height','#' + number(detail.height)],['Transactions',(detail.transactions || []).length],['Validator',compact(detail.validator,10,7)]];
+      if (type === 'transaction' && detail.sponsor) return [['Resource',number(detail.resourceConsumed) + ' ' + String(detail.resourceType || 'units').replaceAll('_',' ')],['Sponsor',compact(detail.sponsor,10,7)],['Pool',compact(detail.sponsorPoolId,10,7)]];
       if (type === 'transaction') return [['Amount',number(detail.amount) + ' YNXT'],['Fee',number(detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)]];
       if (type === 'account') return [['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)],['YNX address',compact(detail.addressFormats?.ynxAddress || detail.account?.address,12,9)]];
       return [];

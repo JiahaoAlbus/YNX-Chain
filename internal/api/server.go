@@ -111,6 +111,16 @@ func (s *Server) routes() {
 	s.resourceRoute("GET /resource-market/delegations/{address}", s.handleResourceDelegations)
 	s.resourceRoute("POST /resource-market/rent", s.handleResourceRent)
 	s.resourceRoute("GET /resource-market/income/{address}", s.handleResourceIncome)
+	s.resourceRoute("POST /resource-market/pools", s.handleResourcePoolCreate)
+	s.resourceRoute("GET /resource-market/pools", s.handleResourcePools)
+	s.resourceRoute("GET /resource-market/pools/{id}", s.handleResourcePoolLookup)
+	s.resourceRoute("POST /resource-market/pools/{id}/fund", s.handleResourcePoolFund)
+	s.resourceRoute("POST /resource-market/pools/{id}/policy", s.handleResourcePoolPolicy)
+	s.resourceRoute("POST /resource-market/pools/{id}/status", s.handleResourcePoolStatus)
+	s.resourceRoute("POST /resource-market/sponsorships", s.handleResourceSponsorshipCreate)
+	s.resourceRoute("GET /resource-market/sponsorships", s.handleResourceSponsorships)
+	s.resourceRoute("GET /resource-market/sponsorships/{id}", s.handleResourceSponsorshipLookup)
+	s.resourceRoute("GET /resource-market/sponsor-audit", s.handleResourceSponsorAudit)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
 	s.aiRoute("GET /ai/permissions", s.handleAIPermissions)
@@ -756,6 +766,129 @@ func (s *Server) handleResourceRent(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleResourceIncome(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"income": s.devnet.ResourceIncome(r.PathValue("address"))})
+}
+
+func (s *Server) handleResourcePoolCreate(w http.ResponseWriter, r *http.Request) {
+	var input chain.ResourcePoolCreateInput
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	pool, tx, err := s.devnet.CreateResourcePool(input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"pool": pool, "transaction": tx})
+}
+
+func (s *Server) handleResourcePools(w http.ResponseWriter, r *http.Request) {
+	owner := strings.TrimSpace(r.URL.Query().Get("owner"))
+	if owner != "" {
+		var err error
+		owner, err = accountaddress.Normalize(owner)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "owner must be a canonical or ynx1 account")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"pools": s.devnet.ResourcePools(owner, strings.ToLower(strings.TrimSpace(r.URL.Query().Get("type"))), strings.ToLower(strings.TrimSpace(r.URL.Query().Get("status"))))})
+}
+
+func (s *Server) handleResourcePoolLookup(w http.ResponseWriter, r *http.Request) {
+	pool, ok := s.devnet.ResourcePool(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "resource pool not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, pool)
+}
+
+func (s *Server) handleResourcePoolFund(w http.ResponseWriter, r *http.Request) {
+	var input chain.ResourcePoolFundInput
+	if !decodeJSON(w, r, &input) || !bindResourcePoolPath(w, r.PathValue("id"), &input.PoolID) {
+		return
+	}
+	pool, tx, err := s.devnet.FundResourcePool(input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"pool": pool, "transaction": tx})
+}
+
+func (s *Server) handleResourcePoolPolicy(w http.ResponseWriter, r *http.Request) {
+	var input chain.ResourcePoolPolicyInput
+	if !decodeJSON(w, r, &input) || !bindResourcePoolPath(w, r.PathValue("id"), &input.PoolID) {
+		return
+	}
+	pool, tx, err := s.devnet.UpdateResourcePoolPolicy(input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"pool": pool, "transaction": tx})
+}
+
+func (s *Server) handleResourcePoolStatus(w http.ResponseWriter, r *http.Request) {
+	var input chain.ResourcePoolStatusInput
+	if !decodeJSON(w, r, &input) || !bindResourcePoolPath(w, r.PathValue("id"), &input.PoolID) {
+		return
+	}
+	pool, tx, err := s.devnet.UpdateResourcePoolStatus(input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"pool": pool, "transaction": tx})
+}
+
+func (s *Server) handleResourceSponsorshipCreate(w http.ResponseWriter, r *http.Request) {
+	var input chain.ResourceSponsorshipInput
+	if !decodeJSON(w, r, &input) {
+		return
+	}
+	sponsorship, tx, err := s.devnet.SponsorResource(input)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"sponsorship": sponsorship, "transaction": tx})
+}
+
+func (s *Server) handleResourceSponsorships(w http.ResponseWriter, r *http.Request) {
+	beneficiary := strings.TrimSpace(r.URL.Query().Get("beneficiary"))
+	if beneficiary != "" {
+		var err error
+		beneficiary, err = accountaddress.Normalize(beneficiary)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "beneficiary must be a canonical or ynx1 account")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sponsorships": s.devnet.ResourceSponsorships(strings.TrimSpace(r.URL.Query().Get("poolId")), beneficiary)})
+}
+
+func (s *Server) handleResourceSponsorshipLookup(w http.ResponseWriter, r *http.Request) {
+	value, ok := s.devnet.ResourceSponsorship(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "resource sponsorship not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+
+func (s *Server) handleResourceSponsorAudit(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"events": s.devnet.ResourceSponsorAudit()})
+}
+
+func bindResourcePoolPath(w http.ResponseWriter, pathID string, inputID *string) bool {
+	pathID = strings.TrimSpace(pathID)
+	if pathID == "" || strings.TrimSpace(*inputID) != "" && strings.TrimSpace(*inputID) != pathID {
+		writeError(w, http.StatusBadRequest, "resource pool path and body identifiers must match")
+		return false
+	}
+	*inputID = pathID
+	return true
 }
 func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 	session, query := r.URL.Query().Get("session"), r.URL.Query().Get("q")

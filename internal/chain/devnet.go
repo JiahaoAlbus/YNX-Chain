@@ -80,6 +80,11 @@ type Devnet struct {
 	resourceRentals      map[string]ResourceRental
 	resourceIncome       map[string]ResourceIncomeRecord
 	resourcePolicy       ResourceMarketPolicy
+	resourcePools        map[string]ResourcePool
+	resourceSponsorships map[string]ResourceSponsorship
+	resourceSponsorIdem  map[string]ResourceSponsorIdempotency
+	resourceActionRefs   map[string]string
+	resourceSponsorAudit []ResourceSponsorAuditEvent
 	contracts            map[string]ContractArtifact
 	dataDir              string
 	lastPersistenceError string
@@ -237,34 +242,40 @@ func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
 }
 
 type devnetSnapshot struct {
-	Version    int                             `json:"version"`
-	SavedAt    time.Time                       `json:"savedAt"`
-	Config     NetworkConfig                   `json:"config"`
-	Blocks     []Block                         `json:"blocks"`
-	Pending    []Transaction                   `json:"pending"`
-	Accounts   map[string]*Account             `json:"accounts"`
-	Validators []Validator                     `json:"validators"`
-	Peers      map[string]ValidatorPeer        `json:"validatorPeers"`
-	PeerSyncs  map[string]ValidatorPeerSync    `json:"validatorPeerSyncs"`
-	Lots       map[string]TrustTraceLot        `json:"lots"`
-	PayIntents map[string]PayIntent            `json:"payIntents"`
-	Invoices   map[string]Invoice              `json:"invoices"`
-	Refunds    map[string]RefundRecord         `json:"refunds"`
-	Webhooks   map[string]WebhookSignature     `json:"webhookSignatures"`
-	PayEvents  map[string]PayEvent             `json:"payEvents"`
-	RiskLabels map[string][]RiskLabel          `json:"riskLabels"`
-	Evidence   map[string]EvidencePacket       `json:"evidencePackets"`
-	Governance map[string]GovernanceRequest    `json:"governanceRequests"`
-	Appeals    map[string]TrustAppeal          `json:"trustAppeals"`
-	Tracking   map[string]TrackingPolicyReview `json:"trackingPolicyReviews"`
-	AIPerms    map[string]AIPermissionGrant    `json:"aiPermissions"`
-	AIActions  map[string]AIActionProposal     `json:"aiActions"`
-	Transp     map[string]TransparencyEntry    `json:"transparencyEntries"`
-	Delegation map[string]ResourceDelegation   `json:"resourceDelegations"`
-	Rentals    map[string]ResourceRental       `json:"resourceRentals"`
-	Income     map[string]ResourceIncomeRecord `json:"resourceIncome"`
-	Policy     ResourceMarketPolicy            `json:"resourceMarketPolicy"`
-	Contracts  map[string]ContractArtifact     `json:"contracts"`
+	Version          int                                   `json:"version"`
+	SavedAt          time.Time                             `json:"savedAt"`
+	Config           NetworkConfig                         `json:"config"`
+	Blocks           []Block                               `json:"blocks"`
+	Pending          []Transaction                         `json:"pending"`
+	Accounts         map[string]*Account                   `json:"accounts"`
+	Validators       []Validator                           `json:"validators"`
+	Peers            map[string]ValidatorPeer              `json:"validatorPeers"`
+	PeerSyncs        map[string]ValidatorPeerSync          `json:"validatorPeerSyncs"`
+	Lots             map[string]TrustTraceLot              `json:"lots"`
+	PayIntents       map[string]PayIntent                  `json:"payIntents"`
+	Invoices         map[string]Invoice                    `json:"invoices"`
+	Refunds          map[string]RefundRecord               `json:"refunds"`
+	Webhooks         map[string]WebhookSignature           `json:"webhookSignatures"`
+	PayEvents        map[string]PayEvent                   `json:"payEvents"`
+	RiskLabels       map[string][]RiskLabel                `json:"riskLabels"`
+	Evidence         map[string]EvidencePacket             `json:"evidencePackets"`
+	Governance       map[string]GovernanceRequest          `json:"governanceRequests"`
+	Appeals          map[string]TrustAppeal                `json:"trustAppeals"`
+	Tracking         map[string]TrackingPolicyReview       `json:"trackingPolicyReviews"`
+	AIPerms          map[string]AIPermissionGrant          `json:"aiPermissions"`
+	AIActions        map[string]AIActionProposal           `json:"aiActions"`
+	Transp           map[string]TransparencyEntry          `json:"transparencyEntries"`
+	Delegation       map[string]ResourceDelegation         `json:"resourceDelegations"`
+	Rentals          map[string]ResourceRental             `json:"resourceRentals"`
+	Income           map[string]ResourceIncomeRecord       `json:"resourceIncome"`
+	Policy           ResourceMarketPolicy                  `json:"resourceMarketPolicy"`
+	Pools            map[string]ResourcePool               `json:"resourcePools,omitempty"`
+	Sponsors         map[string]ResourceSponsorship        `json:"resourceSponsorships,omitempty"`
+	SponsorIDs       map[string]ResourceSponsorIdempotency `json:"resourceSponsorIdempotency,omitempty"`
+	ActionRefs       map[string]string                     `json:"resourceSponsorActionRefs,omitempty"`
+	SponsorLog       []ResourceSponsorAuditEvent           `json:"resourceSponsorAudit,omitempty"`
+	SponsorIntegrity string                                `json:"resourceSponsorIntegrity,omitempty"`
+	Contracts        map[string]ContractArtifact           `json:"contracts"`
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
@@ -391,30 +402,34 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		normalizedPeers = nil
 	}
 	d := &Devnet{
-		cfg:                 cfg,
-		accounts:            map[string]*Account{},
-		validatorPeers:      peersFromValidators(normalized),
-		validatorPeerSyncs:  map[string]ValidatorPeerSync{},
-		lots:                map[string]TrustTraceLot{},
-		payIntents:          map[string]PayIntent{},
-		invoices:            map[string]Invoice{},
-		refunds:             map[string]RefundRecord{},
-		webhookSignatures:   map[string]WebhookSignature{},
-		payEvents:           map[string]PayEvent{},
-		riskLabels:          map[string][]RiskLabel{},
-		evidencePackets:     map[string]EvidencePacket{},
-		governanceRequests:  map[string]GovernanceRequest{},
-		trustAppeals:        map[string]TrustAppeal{},
-		trackingReviews:     map[string]TrackingPolicyReview{},
-		aiPermissions:       map[string]AIPermissionGrant{},
-		aiActions:           map[string]AIActionProposal{},
-		transparencyEntries: map[string]TransparencyEntry{},
-		resourceDelegations: map[string]ResourceDelegation{},
-		resourceRentals:     map[string]ResourceRental{},
-		resourceIncome:      map[string]ResourceIncomeRecord{},
-		resourcePolicy:      DefaultResourceMarketPolicy(),
-		contracts:           map[string]ContractArtifact{},
-		validators:          normalized,
+		cfg:                  cfg,
+		accounts:             map[string]*Account{},
+		validatorPeers:       peersFromValidators(normalized),
+		validatorPeerSyncs:   map[string]ValidatorPeerSync{},
+		lots:                 map[string]TrustTraceLot{},
+		payIntents:           map[string]PayIntent{},
+		invoices:             map[string]Invoice{},
+		refunds:              map[string]RefundRecord{},
+		webhookSignatures:    map[string]WebhookSignature{},
+		payEvents:            map[string]PayEvent{},
+		riskLabels:           map[string][]RiskLabel{},
+		evidencePackets:      map[string]EvidencePacket{},
+		governanceRequests:   map[string]GovernanceRequest{},
+		trustAppeals:         map[string]TrustAppeal{},
+		trackingReviews:      map[string]TrackingPolicyReview{},
+		aiPermissions:        map[string]AIPermissionGrant{},
+		aiActions:            map[string]AIActionProposal{},
+		transparencyEntries:  map[string]TransparencyEntry{},
+		resourceDelegations:  map[string]ResourceDelegation{},
+		resourceRentals:      map[string]ResourceRental{},
+		resourceIncome:       map[string]ResourceIncomeRecord{},
+		resourcePolicy:       DefaultResourceMarketPolicy(),
+		resourcePools:        map[string]ResourcePool{},
+		resourceSponsorships: map[string]ResourceSponsorship{},
+		resourceSponsorIdem:  map[string]ResourceSponsorIdempotency{},
+		resourceActionRefs:   map[string]string{},
+		contracts:            map[string]ContractArtifact{},
+		validators:           normalized,
 	}
 	d.applyConfiguredPeersLocked(normalizedPeers)
 	d.accounts[FaucetAddress] = &Account{Address: FaucetAddress, Balance: 1_000_000_000, Lots: map[string]int64{}}
@@ -2074,6 +2089,20 @@ func (d *Devnet) ResourceAnalytics() ResourceAnalytics {
 		analytics.ProviderIncomeYNXT += rental.ProviderIncomeYNXT
 		analytics.ProtocolFeeYNXT += rental.ProtocolFeeYNXT
 	}
+	for _, pool := range d.resourcePools {
+		if pool.PoolType == "merchant" {
+			analytics.MerchantPoolCount++
+		} else if pool.PoolType == "dapp" {
+			analytics.DAppPoolCount++
+		}
+		if pool.Status == "active" {
+			analytics.ActiveSponsorPoolCount++
+		}
+	}
+	for _, sponsorship := range d.resourceSponsorships {
+		analytics.SponsorshipCount++
+		analytics.SponsoredResources, _ = consumeResourceType(analytics.SponsoredResources, sponsorship.ResourceType, sponsorship.Amount)
+	}
 	analytics.ResourceIncomeRecordCount = len(d.resourceIncome)
 	return analytics
 }
@@ -2779,6 +2808,9 @@ func (d *Devnet) loadSnapshot() error {
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
 	}
+	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
+		return fmt.Errorf("validate Resource sponsor snapshot: %w", err)
+	}
 	d.applySnapshotLocked(snapshot)
 	return nil
 }
@@ -2882,6 +2914,18 @@ func (d *Devnet) ensureStateDefaults() {
 	}
 	if d.resourceIncome == nil {
 		d.resourceIncome = map[string]ResourceIncomeRecord{}
+	}
+	if d.resourcePools == nil {
+		d.resourcePools = map[string]ResourcePool{}
+	}
+	if d.resourceSponsorships == nil {
+		d.resourceSponsorships = map[string]ResourceSponsorship{}
+	}
+	if d.resourceSponsorIdem == nil {
+		d.resourceSponsorIdem = map[string]ResourceSponsorIdempotency{}
+	}
+	if d.resourceActionRefs == nil {
+		d.resourceActionRefs = map[string]string{}
 	}
 	if err := d.resourcePolicy.Validate(); err != nil {
 		d.resourcePolicy = DefaultResourceMarketPolicy()

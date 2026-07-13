@@ -131,19 +131,25 @@ type Block struct {
 }
 
 type Transaction struct {
-	Hash      string    `json:"hash"`
-	Type      string    `json:"type"`
-	From      string    `json:"from,omitempty"`
-	To        string    `json:"to,omitempty"`
-	Amount    int64     `json:"amount,omitempty"`
-	Fee       int64     `json:"fee"`
-	Nonce     uint64    `json:"nonce"`
-	BlockHash string    `json:"blockHash,omitempty"`
-	BlockNum  uint64    `json:"blockNumber,omitempty"`
-	Timestamp time.Time `json:"timestamp"`
-	LotFlows  []LotFlow `json:"lotFlows,omitempty"`
-	Logs      []EVMLog  `json:"logs,omitempty"`
-	Memo      string    `json:"memo,omitempty"`
+	Hash             string    `json:"hash"`
+	Type             string    `json:"type"`
+	From             string    `json:"from,omitempty"`
+	To               string    `json:"to,omitempty"`
+	Amount           int64     `json:"amount,omitempty"`
+	Fee              int64     `json:"fee"`
+	Nonce            uint64    `json:"nonce"`
+	BlockHash        string    `json:"blockHash,omitempty"`
+	BlockNum         uint64    `json:"blockNumber,omitempty"`
+	Timestamp        time.Time `json:"timestamp"`
+	LotFlows         []LotFlow `json:"lotFlows,omitempty"`
+	Logs             []EVMLog  `json:"logs,omitempty"`
+	Memo             string    `json:"memo,omitempty"`
+	Sponsor          string    `json:"sponsor,omitempty"`
+	SponsorPoolID    string    `json:"sponsorPoolId,omitempty"`
+	ResourceSource   string    `json:"resourceSource,omitempty"`
+	ResourceType     string    `json:"resourceType,omitempty"`
+	ResourceConsumed int64     `json:"resourceConsumed,omitempty"`
+	ActionReference  string    `json:"actionReference,omitempty"`
 }
 
 type EVMLog struct {
@@ -728,12 +734,151 @@ type ResourceAnalytics struct {
 	RentalVolumeYNXT          int64                `json:"rentalVolumeYnxt"`
 	ProviderIncomeYNXT        int64                `json:"providerIncomeYnxt"`
 	ProtocolFeeYNXT           int64                `json:"protocolFeeYnxt"`
+	MerchantPoolCount         int                  `json:"merchantPoolCount"`
+	DAppPoolCount             int                  `json:"dappPoolCount"`
+	ActiveSponsorPoolCount    int                  `json:"activeSponsorPoolCount"`
+	SponsorshipCount          int                  `json:"sponsorshipCount"`
+	SponsoredResources        ResourceUnits        `json:"sponsoredResources"`
 	Policy                    ResourceMarketPolicy `json:"policy"`
 	PolicyID                  string               `json:"policyId"`
 	PolicyVersion             string               `json:"policyVersion"`
 	PolicyHash                string               `json:"policyHash"`
 	GovernanceStatus          string               `json:"governanceStatus"`
 	TruthfulStatus            string               `json:"truthfulStatus"`
+}
+
+type ResourceUnits struct {
+	Bandwidth    int64 `json:"bandwidth"`
+	Compute      int64 `json:"compute"`
+	AICredits    int64 `json:"aiCredits"`
+	TrustCredits int64 `json:"trustCredits"`
+}
+
+type ResourceAuthorization struct {
+	Version     int    `json:"version"`
+	ChainID     int64  `json:"chainId"`
+	Action      string `json:"action"`
+	Signer      string `json:"signer"`
+	Nonce       uint64 `json:"nonce"`
+	PayloadHash string `json:"payloadHash"`
+	PublicKey   string `json:"publicKey"`
+	Signature   string `json:"signature"`
+}
+
+type ResourcePool struct {
+	ID                   string        `json:"id"`
+	PoolType             string        `json:"poolType"`
+	Name                 string        `json:"name"`
+	Owner                string        `json:"owner"`
+	Public               bool          `json:"public"`
+	AllowedBeneficiaries []string      `json:"allowedBeneficiaries,omitempty"`
+	AllowedScopes        []string      `json:"allowedScopes"`
+	AllowedResourceTypes []string      `json:"allowedResourceTypes"`
+	PerActionLimit       ResourceUnits `json:"perActionLimit"`
+	CumulativeAllowance  ResourceUnits `json:"cumulativeAllowance"`
+	Consumed             ResourceUnits `json:"consumed"`
+	ExpiresAt            time.Time     `json:"expiresAt"`
+	Status               string        `json:"status"`
+	PolicyHash           string        `json:"policyHash"`
+	CreatedAt            time.Time     `json:"createdAt"`
+	UpdatedAt            time.Time     `json:"updatedAt"`
+}
+
+type ResourcePoolCreateInput struct {
+	PoolType             string                `json:"poolType"`
+	Name                 string                `json:"name"`
+	Public               bool                  `json:"public"`
+	AllowedBeneficiaries []string              `json:"allowedBeneficiaries,omitempty"`
+	AllowedScopes        []string              `json:"allowedScopes"`
+	AllowedResourceTypes []string              `json:"allowedResourceTypes"`
+	PerActionLimit       ResourceUnits         `json:"perActionLimit"`
+	CumulativeAllowance  ResourceUnits         `json:"cumulativeAllowance"`
+	ExpiresAt            time.Time             `json:"expiresAt"`
+	IdempotencyKey       string                `json:"idempotencyKey"`
+	Authorization        ResourceAuthorization `json:"authorization"`
+}
+
+type ResourcePoolFundInput struct {
+	PoolID             string                `json:"poolId"`
+	Additional         ResourceUnits         `json:"additional"`
+	ExpectedPolicyHash string                `json:"expectedPolicyHash"`
+	IdempotencyKey     string                `json:"idempotencyKey"`
+	Authorization      ResourceAuthorization `json:"authorization"`
+}
+
+type ResourcePoolPolicyInput struct {
+	PoolID               string                `json:"poolId"`
+	Public               bool                  `json:"public"`
+	AllowedBeneficiaries []string              `json:"allowedBeneficiaries,omitempty"`
+	AllowedScopes        []string              `json:"allowedScopes"`
+	AllowedResourceTypes []string              `json:"allowedResourceTypes"`
+	PerActionLimit       ResourceUnits         `json:"perActionLimit"`
+	ExpiresAt            time.Time             `json:"expiresAt"`
+	ExpectedPolicyHash   string                `json:"expectedPolicyHash"`
+	IdempotencyKey       string                `json:"idempotencyKey"`
+	Authorization        ResourceAuthorization `json:"authorization"`
+}
+
+type ResourcePoolStatusInput struct {
+	PoolID             string                `json:"poolId"`
+	Status             string                `json:"status"`
+	ExpectedPolicyHash string                `json:"expectedPolicyHash"`
+	IdempotencyKey     string                `json:"idempotencyKey"`
+	Authorization      ResourceAuthorization `json:"authorization"`
+}
+
+type ResourceSponsorshipInput struct {
+	PoolID          string                `json:"poolId,omitempty"`
+	Beneficiary     string                `json:"beneficiary"`
+	Scope           string                `json:"scope"`
+	ResourceType    string                `json:"resourceType"`
+	Amount          int64                 `json:"amount"`
+	ActionReference string                `json:"actionReference"`
+	IdempotencyKey  string                `json:"idempotencyKey"`
+	Authorization   ResourceAuthorization `json:"authorization"`
+}
+
+type ResourceSponsorship struct {
+	ID              string    `json:"id"`
+	PoolID          string    `json:"poolId"`
+	PoolType        string    `json:"poolType"`
+	Payer           string    `json:"payer"`
+	Sponsor         string    `json:"sponsor"`
+	Beneficiary     string    `json:"beneficiary"`
+	Scope           string    `json:"scope"`
+	ResourceType    string    `json:"resourceType"`
+	ResourceSource  string    `json:"resourceSource"`
+	Amount          int64     `json:"amount"`
+	PolicyHash      string    `json:"policyHash"`
+	ActionReference string    `json:"actionReference"`
+	IdempotencyKey  string    `json:"idempotencyKey"`
+	TransactionHash string    `json:"transactionHash"`
+	CreatedAt       time.Time `json:"createdAt"`
+}
+
+type ResourceSponsorIdempotency struct {
+	ID              string        `json:"id"`
+	Signer          string        `json:"signer"`
+	Key             string        `json:"key"`
+	Action          string        `json:"action"`
+	RequestHash     string        `json:"requestHash"`
+	ObjectType      string        `json:"objectType"`
+	ObjectID        string        `json:"objectId"`
+	TransactionHash string        `json:"transactionHash,omitempty"`
+	PoolSnapshot    *ResourcePool `json:"poolSnapshot,omitempty"`
+}
+
+type ResourceSponsorAuditEvent struct {
+	ID           string    `json:"id"`
+	Sequence     uint64    `json:"sequence"`
+	Action       string    `json:"action"`
+	Signer       string    `json:"signer"`
+	PoolID       string    `json:"poolId,omitempty"`
+	ObjectID     string    `json:"objectId"`
+	RequestHash  string    `json:"requestHash"`
+	PreviousHash string    `json:"previousHash,omitempty"`
+	AuditHash    string    `json:"auditHash"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
 
 type ContractArtifact struct {

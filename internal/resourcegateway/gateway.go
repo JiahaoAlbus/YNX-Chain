@@ -268,6 +268,10 @@ type ProxyResponse struct {
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (ProxyResponse, error) {
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
+		if strings.HasPrefix(path, "/resource-market/pools") || path == "/resource-market/sponsorships" {
+			payload, _ := json.Marshal(map[string]string{"error": "resource sponsor pools are implemented only on the authoritative runtime; BFT promotion remains unclaimed", "requestId": requestID})
+			return ProxyResponse{Status: http.StatusNotImplemented, ContentType: "application/json", Body: payload}, nil
+		}
 		return s.proxyBFTResourceMutation(ctx, path, body, requestID)
 	}
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodGet {

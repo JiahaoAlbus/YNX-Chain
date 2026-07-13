@@ -63,6 +63,16 @@ Products:
 - `GET /resource-market/delegations/{address}`
 - `POST /resource-market/rent`
 - `GET /resource-market/income/{address}`
+- `POST /resource-market/pools`
+- `GET /resource-market/pools`
+- `GET /resource-market/pools/{id}`
+- `POST /resource-market/pools/{id}/fund`
+- `POST /resource-market/pools/{id}/policy`
+- `POST /resource-market/pools/{id}/status`
+- `POST /resource-market/sponsorships`
+- `GET /resource-market/sponsorships`
+- `GET /resource-market/sponsorships/{id}`
+- `GET /resource-market/sponsor-audit`
 - `GET /trust/trace/{address}`
 - `POST /trust/labels`
 - `POST /trust/evidence`
@@ -146,11 +156,16 @@ Resource Market API safety:
 
 - `ynx-resourced` is the independent public Resource Market API on port `6432`. Protected `/resource-market/*` routes require `X-YNX-Resource-Key` or `Authorization: Bearer <YNX_RESOURCE_API_KEY>` and return a unique `X-Request-ID`.
 - The gateway enforces a 1 MiB request-body limit, a 2 MiB response limit, per API-key/IP rate limits, and fail-closed pre-forward audit. Deployed `ynx-chaind` rejects direct Resource Market bypass without `YNX_RESOURCE_GATEWAY_UPSTREAM_KEY`.
-- Gateway JSONL audit stores request metadata, body hashes, status, outcome, and audit hashes, but not request bodies or credentials. Canonical policy, quote, delegation, rental, provider/protocol income, and analytics state remains in the persistent chain runtime.
-- `GET /resource-market/policy`, `GET /resource-market/quote`, `POST /resource-market/delegations`, `GET /resource-market/delegations/{address}`, `POST /resource-market/rent`, `GET /resource-market/income/{address}`, and `GET /resource-market/analytics` are the authenticated public Resource Market surface.
+- Gateway JSONL audit stores request metadata, body hashes, status, outcome, and audit hashes, but not request bodies or credentials. Canonical policy, quote, delegation, rental, provider/protocol income, merchant/dApp pool, sponsorship, idempotency, and append-only sponsor-audit state remains in the persistent chain runtime.
+- `POST /resource-market/pools` creates a `merchant` or `dapp` pool. `fund`, `policy`, and `status` mutations require a versioned domain-separated secp256k1 authorization from the canonical pool owner, bind the chain ID, action, request hash, and next account nonce, and support exact idempotent replay. Status transitions accept `active`, `paused`, or irreversible `revoked`; revocation releases only unused reserved resources.
+- A pool policy binds public or allowlisted beneficiaries, operation scopes, resource types, per-action limits, funded cumulative allowance, expiry, and policy hash. Funding reserves the owner's existing Bandwidth, Compute, AI Credits, or Trust Credits; it does not transfer YNXT or user assets.
+- `POST /resource-market/sponsorships` requires the beneficiary's own signature and next nonce. It deterministically selects the lexicographically first eligible pool when `poolId` is omitted, atomically consumes allowance, and records payer, sponsor, pool, resource type/source, amount, policy hash, action reference, transaction hash, and idempotency key. It never changes the sender, signs for a user, moves token balances, or creates an admin debit.
+- Pool/sponsorship state, action-reference uniqueness, exact replay records, and the hash-chained audit log survive restart and are covered by a sponsor-state integrity digest. Changed replay, stale nonce/policy, wrong owner, expired/paused/revoked pool, disallowed beneficiary/scope/type, per-action overflow, exhausted allowance, duplicate action reference, and concurrent overspend fail closed.
+- The authenticated public Resource Market surface includes policy, quote, delegation, rental, income, analytics, pool lifecycle/read APIs, sponsorship create/read APIs, and sponsor audit. Explorer fee detail reads sponsorship fields from indexed transactions rather than inserting a narrative sponsor.
 - `YNX_RESOURCE_GATEWAY_UPSTREAM_MODE=authoritative` preserves the current rollback-compatible proxy. Candidate `bft` mode requires chain ID `6423`, a canonical signer address, and exactly one process-local raw private-key source, preferably a mode-`0600` file. Mutations require `idempotencyKey`; the daemon injects the signer as delegation provider or rental address, reads the committed policy and quote, serializes nonce allocation, signs a canonical action locally, verifies the committed delegation/rental response, and returns the existing public response shape. Exact replay returns the original committed object without another nonce or fee; changed-input reuse returns `409`.
 - BFT delegation converts signer liquid YNXT to beneficiary staked YNXT. BFT rental transfers the policy quote from renter to provider and protocol treasury, persists the quote commitment, rental, income, event, and idempotency records in AppHash, and reduces only already-used resource counters. The fixed action fee is `1 YNXT`; Resource actions do not consume AI, Pay, or Trust units. Total liquid plus staked YNXT must remain equal to the migration anchor.
 - These BFT Resource paths passed a fresh private four-validator candidate, complete four-application Resource/account/AppHash equality, four-signer evidence, capability promotion, cleanup, and rollback. They are still not persistently deployed or enabled on public routing; this is candidate compatibility evidence, not public BFT proof.
+- Sponsor pools and sponsored resource actions are currently authoritative-runtime only. Candidate BFT mode returns `501` for their mutations and does not claim AppHash or public-BFT support for this new slice.
 
 Bridge coordinator API safety:
 

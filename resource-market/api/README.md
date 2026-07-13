@@ -1,12 +1,13 @@
 # Resource Market API
 
-`ynx-resourced` is the deployable authenticated public boundary for Resource Market policy, quotes, delegations, rentals, income, and analytics. Canonical state remains in `ynx-chaind`; a dedicated upstream key prevents direct deployed route bypass.
+`ynx-resourced` is the deployable authenticated public boundary for Resource Market policy, quotes, delegations, rentals, income, analytics, merchant/dApp pools, and sponsored resource actions. Canonical state remains in `ynx-chaind`; a dedicated upstream key prevents direct deployed route bypass.
 
 Local verification:
 
 ```bash
 make resource-api-check
 make resource-market-check
+make resource-sponsor-check
 ```
 
 This is locally verified deployment-package evidence. It does not claim remote deployment or public proof.
@@ -20,5 +21,9 @@ Runtime endpoints:
 - `POST /resource-market/rent` rents bandwidth, compute, AI Credits, and Trust Credits from a provider or the protocol pool.
 - `GET /resource-market/income/{address}` returns provider or protocol resource income records.
 - `GET /resource-market/analytics` returns delegated YNXT, rental volume, provider income, protocol fees, and record counts.
+- `POST /resource-market/pools` creates a signed owner-controlled merchant or dApp resource pool; `GET /resource-market/pools` and `GET /resource-market/pools/{id}` expose its policy and accounting.
+- `POST /resource-market/pools/{id}/fund`, `/policy`, and `/status` require a domain-separated secp256k1 owner authorization and next account nonce.
+- `POST /resource-market/sponsorships` requires the beneficiary's own signature, consumes only approved pool resources, and returns an indexed fee-`0` resource transaction with explicit payer, sponsor, pool, source, type, amount, and action reference.
+- `GET /resource-market/sponsorships`, `GET /resource-market/sponsorships/{id}`, and `GET /resource-market/sponsor-audit` expose persistent sponsorship and hash-chained audit evidence.
 
-The API stores records in the local devnet snapshot and returns explicit errors for missing address, insufficient balance, or providers with no active delegated resources.
+The API stores records in the local devnet snapshot and returns explicit errors for missing address, insufficient balance/resources, bad signatures/nonces, stale policy, unauthorized lifecycle changes, policy violations, exhausted allowance, duplicate action references, and changed idempotency reuse. Pool funding reserves resources only; it does not move YNXT. This slice is not yet remotely deployed or promoted to BFT state.

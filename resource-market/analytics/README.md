@@ -9,6 +9,9 @@
 - rental volume in YNXT,
 - provider income in YNXT,
 - protocol fees in YNXT,
+- merchant and dApp pool counts,
+- active sponsor-pool and sponsorship counts,
+- sponsored Bandwidth, Compute, AI Credits, and Trust Credits totals,
 - truthful status for the local testnet environment.
 
 These fields give Explorer, operations, Grant reviewers, and future public dashboards a direct endpoint for resource-economy evidence without relying on narrative claims.
