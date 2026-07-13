@@ -1,50 +1,44 @@
 # Next Action
 
-Current single action: publish and remotely verify the completed dual-address implementation through the ordinary authoritative deployment path.
+Current single action: expose the now-deployed dual-address feature on the production website without changing its chain-first truth boundaries.
 
 Why this action:
 
-- Go, JavaScript, Python, REST, signed CLI, account-key output, and Explorer support now pass local shared-vector and smoke tests.
-- The public network still runs authoritative release `c9324fbfc464`, so it would be false to claim public `ynx1...` support now.
-- An ordinary authoritative deployment can ship this bounded compatibility feature without performing the externally gated BFT mutation transaction.
+- Release `97ed0c645bd2` is deployed on all four authoritative roles with exact checksum and convergence evidence.
+- Public RPC and Explorer prove one `ynx1...` alias and its `0x...` representation resolve to the same account through an operator-controlled Singapore route.
+- The user requires completed ecosystem capabilities to appear on the website, and this capability now has real code and public deployment evidence.
 
 Required behavior:
 
-- Commit and push only after all local gates remain green.
-- Build and deploy an exact checksummed release through existing scoped backup, rollback, strict SSH, health, convergence, and release-identity safeguards.
-- Do not start or route the CometBFT candidate and do not execute freeze, pause, final snapshot, signer install, or ingress mutation phases.
-- Verify public chain identity and growth remain correct after deployment.
-- Create or identify a non-secret public test account, derive its `ynx1...` alias locally, and prove public REST and Explorer lookups resolve to the same canonical `0x...` account without exposing private material.
-- Preserve MetaMask/EVM behavior on `0x...` and report any failed public alias check honestly.
+- Add a focused address converter to the existing website developer/wallet surface using the same tested Bech32 algorithm and shared fixture values.
+- Accept either `0x...` or `ynx1...`, show both equivalent forms, expose copy actions, and provide a direct Explorer lookup.
+- State clearly that MetaMask/EVM JSON-RPC use `0x...`; do not claim wallet-default `ynx1...` support.
+- Preserve the Apple-inspired Klein-blue/white visual system, CSS/DOM interaction, current route structure, real network data, mobile layout, and error boundaries.
+- Add deterministic frontend tests for valid vectors and invalid checksum/case/length inputs.
+- Deploy only from `JiahaoAlbus/YNX-Chain-website` `main` through Vercel project `ynx-web4-website-new`, then verify the production route and interaction.
 
 Files to touch:
 
-- Current chain source and acceptance files only if verification finds a real issue.
-- Existing deployment, rollback, release-manifest, and remote verification scripts.
-- Non-secret evidence under the existing ignored evidence paths; never commit env, PEM, signer keys, tokens, or raw private material.
+- `/Users/huangjiahao/Desktop/YNX-Chain-website` frontend, tests, and route metadata.
+- Chain acceptance files only after production website proof; do not duplicate website runtime into the chain repository.
 
 Validation commands:
 
-- `go test ./...`
-- `make address-codec-check`
-- `make sdk-check`
-- `make explorer-check`
-- `make test`
-- `make no-placeholder-check`
-- `make secret-scan`
-- `make objective-state-check`
-- existing deploy dry-run/readiness and post-deploy verification commands required by the deployment tooling
+- website repository test and production build commands
+- Vercel production build and deployment verification
+- desktop and 390px mobile browser checks
+- production converter vector, invalid-input, copy, Explorer-link, route, overflow, and console checks
+- chain `make no-placeholder-check`, `make secret-scan`, and `make objective-state-check` after recording production evidence
 
 Completion standard:
 
-- The exact pushed commit is the exact deployed release on all authoritative roles.
-- Existing chain ID, native symbol, height growth, convergence, service health, backups, and rollback evidence remain valid.
-- Public REST and Explorer accept a valid `ynx1...` alias and return the same canonical account as its `0x...` form.
-- Public EVM JSON-RPC still reports `0x1917` and accepts canonical EVM addresses.
-- If any remote proof fails, retain the previous release or roll back and record the feature as local-only.
+- Production website converts the shared known vectors byte-for-byte in both directions.
+- Invalid input never produces a plausible address or Explorer link.
+- The UI explains one account/two representations and the MetaMask `0x...` boundary without unsupported claims.
+- The intended Git commit is the source of a READY Vercel production deployment and the live route is browser verified.
 
 Explicitly not doing:
 
-- No new address features, EVM opcodes, Counter/Hardhat expansion, arbitrary IDE execution, or unrelated Explorer redesign until deployment proof closes.
+- No new chain address features, EVM opcodes, Counter/Hardhat expansion, arbitrary IDE execution, or unrelated Explorer redesign during this website slice.
 - No signer upload, freeze, pause, ingress switch, or BFT cutover without independent custody approval.
 - Do not modify or replace the long-term goal file.
