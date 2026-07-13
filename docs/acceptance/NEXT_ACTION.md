@@ -1,36 +1,37 @@
 # Next Action
 
-Current single action: implement the first real persistent YNX Bridge coordinator and API runtime.
+Current single action: implement the first real persistent Stablecoin Issuer Control Plane without claiming issuer support.
 
 Why this action:
 
-- Public BFT engineering gates are complete locally, but execution is correctly blocked by an external offline-recovery and four-role owner ceremony.
-- Provider-backed AI proof is externally blocked by quota.
-- Bridge readiness is part of the full ecosystem target, but the repository currently has no Bridge daemon, persistence, API, or tests.
+- Public BFT engineering gates remain externally blocked by offline recovery, owner handover, rotation evidence, independent custody review, and transaction approval.
+- Provider-backed AI proof remains externally blocked by quota.
+- Bridge coordinator code and deployment packaging are now locally verified at `44870de94b1b`, but external submission, relayer custody, remote deployment, and public proof remain absent.
+- Stablecoin issuer readiness is still documentation-only: there is no issuer registry, asset authorization, supply policy, governance decision record, mint/burn intent state, API, or tests.
 
 Required behavior:
 
-- Add a standalone `ynx-bridged` service with persistent restart-safe state and bounded JSON APIs.
-- Create transfer intents bound to source chain, source transaction/event identity, source/destination asset, amount, sender, recipient, and minimum finality policy.
-- Enforce global source-event uniqueness and exact idempotent replay; reject changed-input reuse.
-- Accept attestations only from an explicit relayer allowlist, one vote per relayer, with canonical payload/signature verification and configurable threshold.
-- Finalize only after source finality and threshold attestations; prevent double-finalize, amount overflow, unsupported assets, wrong destination, and native YNXT direct-freeze/seizure semantics.
-- Persist append-only audit events and expose transfer lookup/list plus health/metrics without leaking secrets.
-- Keep external-chain submission disabled: local completion must not be described as a live bridge or third-party integration.
+- Add a standalone persistent issuer-control service and bounded authenticated JSON APIs.
+- Register issuer review requests and represented/canonical asset profiles only through explicit governance decision records.
+- Bind each asset to issuer identity, chain/contract reference, decimals, supply ceiling, mint/burn policy, evidence hashes, legal/review status, and revocation state.
+- Reject native `YNXT`, gas/resource balances, validator stake, and protocol treasury state from every issuer mint, burn, freeze, seize, or blacklist action.
+- Record mint/burn intents only for approved non-native assets, with exact idempotency, amount/supply bounds, issuer authorization, evidence requirements, and append-only audit.
+- Keep execution disabled: intent approval must not mint/burn tokens, submit an external transaction, or imply stablecoin issuer support.
+- Expose truthful health/metrics and persistent lookup/list/audit surfaces without secrets or unsupported partnership claims.
 
 Files to touch:
 
-- `internal/bridgegateway`
-- `cmd/ynx-bridged`
-- Bridge service config/systemd/deployment wiring only after runtime tests pass
-- `scripts/verify/bridge-api-check.sh`
+- a new bounded issuer-control package under `internal/`
+- a standalone daemon under `cmd/`
+- an issuer-control smoke/check script under `scripts/verify/`
 - `Makefile`
-- API/custody/acceptance documentation only after real code exists
+- deployment-package wiring only after runtime tests pass
+- API/stablecoin/acceptance documentation only after real code exists
 
 Validation commands:
 
-- focused Bridge unit, restart, idempotency, signature, quorum, overflow, and tamper tests
-- `make bridge-api-check`
+- focused issuer/asset authorization, restart, idempotency, supply-bound, native-YNXT rejection, revocation, audit, HTTP auth, and tamper tests
+- a dedicated stablecoin issuer-control Make target
 - `go test ./...`
 - `make test`
 - `make no-placeholder-check`
@@ -41,13 +42,14 @@ Validation commands:
 
 Completion standard:
 
-- The Bridge service has real persistent code, API handlers, fail-closed policy, tests, smoke target, and deployment package wiring.
-- Duplicate source events, unauthorized/duplicate relayers, insufficient finality/quorum, replay conflicts, and unsafe native YNXT actions fail without state corruption.
-- Status remains local/not deployed until a real external-chain test and public endpoint are independently verified.
+- The issuer-control service has real persistent code, API handlers, fail-closed policy, tests, smoke target, and deployment package wiring.
+- Unauthorized issuers/assets, missing governance/evidence, supply overflow, changed idempotency reuse, revoked assets, and every native YNXT issuer action fail without state corruption.
+- Status remains local/not deployed; no issuer, external-chain, mint/burn, or partnership claim is added without separate live evidence and external approval.
 
 Explicitly not doing:
 
-- No live mint/burn, external-chain transaction, asset funding, relayer key creation, or public bridge claim.
+- No live mint/burn, external-chain transaction, asset funding, issuer key creation, stablecoin support claim, or partnership claim.
+- No Bridge external adapter, relayer key ceremony, remote Bridge deployment, or public Bridge claim in this slice.
 - No freeze, pause, signer install, ingress switch, BFT candidate start, or public cutover.
 - No expansion of bounded EVM opcodes, Counter/Hardhat artifacts, or IDE execution.
 - Do not modify or replace the long-term goal file.
