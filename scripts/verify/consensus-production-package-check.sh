@@ -95,7 +95,9 @@ for required in \
   'public ingress and authoritative ynx-chaind remain unchanged'; do
   grep -Fq "$required" scripts/deploy/deploy-consensus-candidate.sh || { echo "candidate deploy path missing: $required" >&2; exit 1; }
 done
-grep -Fq 'StrictHostKeyChecking=yes' scripts/ops/lib.sh || { echo "candidate strict SSH helper is missing" >&2; exit 1; }
+grep -Fq 'ynx_transport_ssh' scripts/ops/lib.sh || { echo "candidate ops helper does not use shared SSH transport" >&2; exit 1; }
+grep -Fq 'StrictHostKeyChecking=yes' scripts/deploy/lib.sh || { echo "shared strict SSH transport is missing host-key enforcement" >&2; exit 1; }
+grep -Fq 'ControlMaster=auto' scripts/deploy/lib.sh || { echo "shared SSH transport is missing bounded multiplexing" >&2; exit 1; }
 
 unsafe_ssh_policy='StrictHostKeyChecking='
 unsafe_ssh_policy+='accept-new'

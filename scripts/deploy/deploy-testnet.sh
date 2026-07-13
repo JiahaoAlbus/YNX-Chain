@@ -675,7 +675,7 @@ ynx_node_ssh() {
     printf '\n'
     return 0
   fi
-  ynx_connection_retry "$role ssh" ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$remote" "$@"
+  ynx_transport_ssh "$role ssh" "$key" "$remote" "$@"
 }
 
 ynx_node_scp() {
@@ -686,7 +686,7 @@ ynx_node_scp() {
     printf 'DRY RUN [%s] scp -i %q %q %q:%q\n' "$role" "$key" "$src" "$remote" "$dest"
     return 0
   fi
-  ynx_connection_retry "$role scp" scp -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$src" "$remote:$dest"
+  ynx_transport_scp "$role scp" "$key" "$src" "$remote" "$dest"
 }
 
 ynx_capture_predeploy_state() {

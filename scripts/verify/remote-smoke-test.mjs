@@ -5,12 +5,15 @@ import net from "node:net";
 import tls from "node:tls";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { createRemoteSmokeDispatcher, parseRemoteSmokeTransport, remoteSocketTarget } from "./lib/remote-smoke-transport.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
 const releaseManifestEvidencePath = process.env.YNX_RELEASE_MANIFEST_EVIDENCE_PATH || path.join(repoRoot, "tmp/verify-testnet/release-manifest-evidence.json");
 const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
 const growthDelayMs = Number(process.env.YNX_REMOTE_BLOCK_GROWTH_DELAY_MS || 2500);
+const remoteTransport = parseRemoteSmokeTransport();
+const remoteDispatcher = createRemoteSmokeDispatcher(remoteTransport, timeoutMs);
 const currentGitCommit = readGitCommit();
 const defaultShortCommit = currentGitCommit === "unknown" ? "unknown" : currentGitCommit.slice(0, 12);
 const expectedReleaseCommit = process.env.YNX_EXPECTED_RELEASE_COMMIT || defaultShortCommit;
@@ -54,6 +57,17 @@ const evidence = {
   endpoints,
   releaseManifestEvidencePath,
   sampleAddress,
+  transport: remoteTransport ? {
+    mode: "explicit-connect-override",
+    route: remoteTransport.route,
+    logicalTlsNamesPreserved: true,
+    operatorControlled: true,
+    independentThirdPartyProof: false,
+  } : {
+    mode: "direct",
+    operatorControlled: true,
+    independentThirdPartyProof: false,
+  },
   observed: {},
   checks,
 };
@@ -94,6 +108,7 @@ async function request(name, url, options = {}) {
       headers,
       body,
       signal: AbortSignal.timeout(timeoutMs),
+      ...(remoteDispatcher ? { dispatcher: remoteDispatcher } : {}),
     });
     const text = await res.text();
     let json = null;
@@ -642,9 +657,10 @@ async function checkGrpcEndpoint() {
     const onError = (err) => done(false, err.message);
 
     if (target.tls) {
+      const connectTarget = remoteSocketTarget(target.host, target.port, remoteTransport);
       socket = tls.connect({
-        host: target.host,
-        port: target.port,
+        host: connectTarget.host,
+        port: connectTarget.port,
         servername: target.host,
         ALPNProtocols: ["h2", "http/1.1"],
       }, () => {
@@ -659,7 +675,8 @@ async function checkGrpcEndpoint() {
       socket.setTimeout(timeoutMs, () => done(false, `timeout after ${timeoutMs}ms`));
       socket.once("error", onError);
     } else {
-      socket = net.connect({ host: target.host, port: target.port }, () => {
+      const connectTarget = remoteSocketTarget(target.host, target.port, remoteTransport);
+      socket = net.connect({ host: connectTarget.host, port: connectTarget.port }, () => {
         socket.end();
         done(true, "plaintext gRPC TCP port reachable");
       });

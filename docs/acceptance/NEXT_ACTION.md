@@ -1,8 +1,8 @@
 # Next Action
 
-Current single action: after the bounded freeze-rehearsal control plane is committed and pushed, establish an exact-current-control-plane authoritative baseline through the reviewed restricted deployment path and rerun the read-only four-role rehearsal. Only after that evidence passes may an operator generate the deliberately unapproved packet with `make public-bft-freeze-rehearsal-approval-template` for independent review. Backup, freeze/unfreeze, and recovery verification are implemented and locally/dry-run verified, but none has been executed on production hosts. Do not create the public marker without a separately completed mode-`0600` approval that is bound to the exact transaction. Stop before pausing authoritative production or changing public ingress.
+Current single action: commit and push the strict multiplexed SSH transport and operator-controlled Singapore cross-region proof route, then establish an exact-current-control-plane authoritative baseline through the reviewed restricted deployment path and rerun the read-only four-role rehearsal. Only after that evidence passes may an operator generate the deliberately unapproved packet with `make public-bft-freeze-rehearsal-approval-template` for independent review. Backup, freeze/unfreeze, and recovery verification are implemented and locally/dry-run verified, but none has been executed on production hosts. Do not create the public marker without a separately completed mode-`0600` approval that is bound to the exact transaction. Stop before pausing authoritative production or changing public ingress.
 
-Current authoritative baseline (verified 2026-07-12): the current repository release is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `44246` and common hash `48d6c3adec7496c878cd1f0128cba06b7cf371a3e0efd04ed2708b547266c6bf`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
+Current authoritative baseline (verified 2026-07-13): deployed runtime release `e9c75c52abab` is live on all four roles, while repository HEAD is newer and not yet deployed. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. The latest operator-controlled Singapore cross-region smoke passed RPC, EVM, REST, gRPC, governance reads, Faucet, Indexer, Explorer, AI, Pay, Trust, and Resource health; restricted upgrade readiness passed with only the reviewed release mismatch, legacy Web4, and fail-closed mutable-action skip. This route is not independent third-party proof. The previous replication-lag blocker remains resolved.
 
 Public proof is still incomplete for two independent reasons: the configured AI provider returns HTTP 429 for authenticated SSE generation, and `web4.ynxweb4.com` still reports legacy chain `ynx_9102-1`. Record these honestly; do not weaken the proof gate or claim public BFT.
 
@@ -59,6 +59,8 @@ Validation commands:
 - `make objective-state-check`
 - `make preflight`
 - `make remote-smoke-test` (expected to remain failed until the external AI 429 and legacy Web4 service are resolved)
+- `make remote-smoke-transport-check`
+- `ENV_FILE=.env.deploy make remote-smoke-test-via-sg` (operator-controlled cross-region evidence; not independent third-party proof)
 
 Completion standard:
 

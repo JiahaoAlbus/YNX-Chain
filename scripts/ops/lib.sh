@@ -39,7 +39,7 @@ ynx_ops_ssh() {
     printf '\n'
     return 0
   fi
-  ynx_connection_retry "$role ops ssh" ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 "$remote" "$@"
+  ynx_transport_ssh "$role ops ssh" "$key" "$remote" "$@"
 }
 
 ynx_ops_copy() {
@@ -50,7 +50,7 @@ ynx_ops_copy() {
     return 0
   fi
   test -f "$src"
-  ynx_connection_retry "$role ops copy" ssh -i "$key" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 "$remote" "umask 077; cat > '$dest'" <"$src"
+  ynx_transport_ssh "$role ops copy" "$key" "$remote" "umask 077; cat > '$dest'" <"$src"
 }
 
 ynx_ops_services_for_kind() {

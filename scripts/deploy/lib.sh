@@ -58,19 +58,68 @@ ynx_connection_retry() {
   local delay="${YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS:-3}"
   [[ "$attempts" =~ ^[1-5]$ ]] || { echo "YNX_DEPLOY_CONNECTION_ATTEMPTS must be between 1 and 5"; return 2; }
   [[ "$delay" =~ ^[0-9]+$ ]] && (( delay <= 30 )) || { echo "YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS must be between 0 and 30"; return 2; }
-  local attempt status
+  local attempt command_status
   for ((attempt = 1; attempt <= attempts; attempt += 1)); do
     if "$@"; then
       return 0
     else
-      status=$?
+      command_status=$?
     fi
-    if (( status != 255 || attempt == attempts )); then
-      return "$status"
+    if (( command_status != 255 || attempt == attempts )); then
+      return "$command_status"
     fi
     echo "$label connection closed; retrying attempt $((attempt + 1))/$attempts" >&2
     sleep "$delay"
   done
+}
+
+ynx_ssh_control_path() {
+  local control_dir="${YNX_SSH_CONTROL_DIR:-/tmp/ynx-chain-ssh-$(id -u)-$$}"
+  local persist="${YNX_SSH_CONTROL_PERSIST_SECONDS:-60}"
+  local connect_timeout="${YNX_SSH_CONNECT_TIMEOUT_SECONDS:-10}"
+  [[ "$persist" =~ ^[0-9]+$ ]] && (( persist >= 5 && persist <= 300 )) || {
+    echo "YNX_SSH_CONTROL_PERSIST_SECONDS must be between 5 and 300" >&2
+    return 2
+  }
+  [[ "$connect_timeout" =~ ^[0-9]+$ ]] && (( connect_timeout >= 5 && connect_timeout <= 60 )) || {
+    echo "YNX_SSH_CONNECT_TIMEOUT_SECONDS must be between 5 and 60" >&2
+    return 2
+  }
+  [[ ! -L "$control_dir" ]] || {
+    echo "SSH control directory must not be a symlink: $control_dir" >&2
+    return 2
+  }
+  umask 077
+  mkdir -p "$control_dir"
+  chmod 0700 "$control_dir"
+  printf '%s/ynx-%%C' "$control_dir"
+}
+
+ynx_transport_ssh() {
+  local label="$1" key="$2" remote="$3"
+  shift 3
+  local control_path persist connect_timeout
+  control_path="$(ynx_ssh_control_path)" || return
+  persist="${YNX_SSH_CONTROL_PERSIST_SECONDS:-60}"
+  connect_timeout="${YNX_SSH_CONNECT_TIMEOUT_SECONDS:-10}"
+  ynx_connection_retry "$label" ssh -i "$key" \
+    -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+    -o "ConnectTimeout=$connect_timeout" -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+    -o ControlMaster=auto -o "ControlPersist=${persist}s" -o "ControlPath=$control_path" \
+    "$remote" "$@"
+}
+
+ynx_transport_scp() {
+  local label="$1" key="$2" src="$3" remote="$4" dest="$5"
+  local control_path persist connect_timeout
+  control_path="$(ynx_ssh_control_path)" || return
+  persist="${YNX_SSH_CONTROL_PERSIST_SECONDS:-60}"
+  connect_timeout="${YNX_SSH_CONNECT_TIMEOUT_SECONDS:-10}"
+  ynx_connection_retry "$label" scp -i "$key" \
+    -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+    -o "ConnectTimeout=$connect_timeout" -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+    -o ControlMaster=auto -o "ControlPersist=${persist}s" -o "ControlPath=$control_path" \
+    "$src" "$remote:$dest"
 }
 
 ynx_ssh() {
@@ -82,7 +131,7 @@ ynx_ssh() {
     printf '\n'
     return 0
   fi
-  ynx_connection_retry "ssh" ssh -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$remote" "$@"
+  ynx_transport_ssh "ssh" "${SSH_KEY_PATH:?}" "$remote" "$@"
 }
 
 ynx_scp() {
@@ -92,7 +141,7 @@ ynx_scp() {
     printf 'DRY RUN scp -i %q %q %q:%q\n' "${SSH_KEY_PATH:?}" "$src" "$remote" "$dest"
     return 0
   fi
-  ynx_connection_retry "scp" scp -i "${SSH_KEY_PATH:?}" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=12 "$src" "$remote:$dest"
+  ynx_transport_scp "scp" "${SSH_KEY_PATH:?}" "$src" "$remote" "$dest"
 }
 
 ynx_write_kv_env() {
