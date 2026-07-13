@@ -65,6 +65,7 @@ for(const validator of manifest.validators) fs.writeFileSync(path.join(output,`$
 NODE
 node scripts/ops/build-production-validator-manifest.mjs "$tmp/validator-records" "$tmp/overlay-records" "$tmp/merged-validator-manifest.json" >/dev/null
 go run ./cmd/ynx-consensus-package -migration-state "$tmp/lab/bound-migration.json" -validator-manifest "$tmp/merged-validator-manifest.json" -genesis-time 2026-08-02T00:00:00Z -output "$tmp/merged-package" >/dev/null
+go run ./cmd/ynx-consensus-package -verify-migration-state "$tmp/lab/bound-migration.json" >/dev/null
 
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" CONSENSUS_CANDIDATE_WORK_ROOT="$tmp/deploy-work" \
   bash scripts/deploy/deploy-consensus-candidate.sh >"$tmp/deploy.out"
@@ -101,6 +102,10 @@ grep -Fq 'ControlMaster=auto' scripts/deploy/lib.sh || { echo "shared SSH transp
 grep -Fq 'chmod 0600 "$tarball"' scripts/deploy/deploy-testnet.sh || { echo "release bundle is not mode restricted before transport" >&2; exit 1; }
 grep -Fq "stat -c '%a'" scripts/deploy/deploy-testnet.sh || { echo "remote release bundle mode is not verified" >&2; exit 1; }
 grep -Fq 'sha256sum -c -' scripts/deploy/deploy-testnet.sh || { echo "remote release bundle checksum is not verified" >&2; exit 1; }
+grep -Fq 'YNX_BLOCK_PRODUCTION_PAUSE_FILE=/var/lib/ynx-chain/block-production-pause.json' scripts/deploy/deploy-testnet.sh || { echo "authoritative production pause marker is not deployed" >&2; exit 1; }
+grep -Fq 'StartWithPause' cmd/ynx-chaind/main.go || { echo "authoritative runtime does not preserve reads during bounded production pause" >&2; exit 1; }
+grep -Fq 'public-bft-authoritative-pause.sh' scripts/ops/public-bft-production-driver.sh || { echo "production driver does not implement authoritative pause/resume" >&2; exit 1; }
+grep -Fq 'public-bft-final-snapshot.sh' scripts/ops/public-bft-production-driver.sh || { echo "production driver does not implement final snapshot export" >&2; exit 1; }
 
 unsafe_ssh_policy='StrictHostKeyChecking='
 unsafe_ssh_policy+='accept-new'

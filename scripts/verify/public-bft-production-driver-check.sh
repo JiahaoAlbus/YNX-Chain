@@ -10,6 +10,8 @@ mkdir -p "$repo/scripts/ops/remote" "$repo/scripts/deploy" "$repo/scripts/verify
 cp scripts/ops/public-bft-production-driver.sh scripts/ops/lib.sh "$repo/scripts/ops/"
 cp scripts/ops/remote/public-bft-scoped-backup.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-mutation-freeze.sh "$repo/scripts/ops/remote/"
+cp scripts/ops/remote/public-bft-authoritative-pause.sh "$repo/scripts/ops/remote/"
+cp scripts/ops/remote/public-bft-final-snapshot.sh "$repo/scripts/ops/remote/"
 cp scripts/deploy/lib.sh "$repo/scripts/deploy/"
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
@@ -144,7 +146,68 @@ for role in primary singapore silicon-valley seoul; do
   grep -Fq "DRY RUN [$role]" "$transaction/recovery/roles/${role}-before-status.json"
 done
 
+run_authoritative_dry_run() {
+  local phase="$1" approval="${2:-yes}"
+  (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
+    PUBLIC_BFT_PRODUCTION_PAUSE_APPROVED="$approval" \
+    PUBLIC_BFT_PRODUCTION_PAUSE_OBSERVATION_SECONDS=1 \
+    PUBLIC_BFT_CUTOVER_COMMIT="$commit" \
+    PUBLIC_BFT_CUTOVER_RELEASE="$release" \
+    PUBLIC_BFT_CUTOVER_TRANSACTION_DIR="$transaction" \
+    bash scripts/ops/public-bft-production-driver.sh "$phase")
+}
+
+for role in primary singapore silicon-valley seoul; do
+  cat >"$transaction/roles/${role}-freeze.txt" <<EOF
+transactionId=$(basename "$transaction")
+role=$role
+commit=$commit
+bftRelease=$release
+mutationStateVerified=true
+EOF
+done
+run_authoritative_dry_run pause_authoritative >/dev/null
+run_authoritative_dry_run resume_authoritative >/dev/null
+grep -Fq 'block-production-pause.json' "$transaction/roles/primary-pause-authoritative.txt"
+grep -Fq "$commit" "$transaction/roles/primary-pause-authoritative.txt"
+grep -Fq "pause" "$transaction/roles/primary-pause-authoritative.txt"
+grep -Fq "resume" "$transaction/roles/primary-resume-authoritative.txt"
+if run_authoritative_dry_run pause_authoritative no >/dev/null 2>&1; then
+  echo "authoritative production pause unexpectedly passed without explicit approval" >&2
+  exit 1
+fi
+rm "$transaction/roles/seoul-freeze.txt"
+if run_authoritative_dry_run pause_authoritative yes >/dev/null 2>&1; then
+  echo "authoritative production pause unexpectedly passed without four-role freeze evidence" >&2
+  exit 1
+fi
+cat >"$transaction/roles/primary-pause-authoritative.txt" <<EOF
+transactionId=$(basename "$transaction")
+commit=$commit
+bftRelease=$release
+productionStateVerified=true
+EOF
+run_snapshot_dry_run() {
+  local approval="${1:-yes}"
+  (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
+    PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED="$approval" \
+    PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS=1 \
+    PUBLIC_BFT_CUTOVER_COMMIT="$commit" \
+    PUBLIC_BFT_CUTOVER_RELEASE="$release" \
+    PUBLIC_BFT_CUTOVER_TRANSACTION_DIR="$transaction" \
+    bash scripts/ops/public-bft-production-driver.sh export_final_snapshot)
+}
+run_snapshot_dry_run >/dev/null
+test -s "$transaction/final-snapshot/dry-run.txt"
+grep -Fq 'public-bft-final-snapshot' "$transaction/roles/primary-export-final-snapshot.txt"
+grep -Fq '/usr/local/bin/ynx-chaind' "$transaction/roles/primary-export-final-snapshot.txt"
+if run_snapshot_dry_run no >/dev/null 2>&1; then
+  echo "final snapshot unexpectedly passed without explicit approval" >&2
+  exit 1
+fi
+
 marker="$tmp/mutation-freeze.json"
+block_pause_marker="$tmp/block-production-pause.json"
 freeze_evidence="$tmp/freeze-evidence"
 freeze_config="$tmp/freeze-config"
 port_file="$tmp/probe-port"
@@ -161,11 +224,16 @@ printf '{"transactionId":"%s","role":"primary","commit":"%s","bftRelease":"%s","
 cat >"$tmp/probe-server.mjs" <<'EOF'
 import fs from "node:fs";
 import http from "node:http";
-const [marker, portFile] = process.argv.slice(2);
+const [marker, pauseMarker, portFile] = process.argv.slice(2);
+let height = 100;
+const latestBlockHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+setInterval(() => {
+  if (!fs.existsSync(pauseMarker)) height += 1;
+}, 100).unref();
 const server = http.createServer((request, response) => {
   if (request.method === "GET" && request.url === "/status") {
     response.writeHead(200, { "content-type": "application/json" });
-    return response.end('{"status":"ok"}');
+    return response.end(JSON.stringify({ status: "ok", height, latestBlockHash }));
   }
   if (request.method === "POST" && request.url === "/evm") {
     response.writeHead(200, { "content-type": "application/json" });
@@ -180,7 +248,7 @@ const server = http.createServer((request, response) => {
 });
 server.listen(0, "127.0.0.1", () => fs.writeFileSync(portFile, String(server.address().port)));
 EOF
-node "$tmp/probe-server.mjs" "$marker" "$port_file" &
+node "$tmp/probe-server.mjs" "$marker" "$block_pause_marker" "$port_file" &
 probe_pid=$!
 trap 'kill "${probe_pid:-}" 2>/dev/null || true; rm -rf "$tmp"' EXIT
 for _ in {1..50}; do
@@ -210,6 +278,54 @@ test -s "$marker"
 test -s "$freeze_evidence/primary-freeze.json"
 freeze_second="$($freeze_helper freeze "$(basename "$transaction")" primary "$commit" "ynx-chain-${commit}" "$release" "$marker" "$freeze_evidence" "$probe_url" "$probe_url" "$freeze_config")"
 grep -Fq 'reused=true' <<<"$freeze_second"
+printf 'YNX_BLOCK_PRODUCTION_PAUSE_FILE=%s\n' "$block_pause_marker" >>"$freeze_config/etc/ynx/ynx-chaind.env"
+pause_helper="$repo/scripts/ops/remote/public-bft-authoritative-pause.sh"
+pause_first="$($pause_helper pause "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1)"
+grep -Fq 'productionStateVerified=true' <<<"$pause_first"
+grep -Fq 'reused=false' <<<"$pause_first"
+test -s "$block_pause_marker"
+test -s "$freeze_evidence/primary-pause-authoritative.json"
+pause_second="$($pause_helper pause "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1)"
+grep -Fq 'reused=true' <<<"$pause_second"
+fake_chaind="$tmp/fake-ynx-chaind"
+cat >"$fake_chaind" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ "${1:-}" == "--export-consensus-state" && -n "${2:-}" ]]
+status="$(curl -fsS "${FIXTURE_CHAIN_URL:?}/status")"
+height="$(printf '%s' "$status" | sed -n 's/.*"height":\([0-9][0-9]*\).*/\1/p')"
+hash="$(printf '%s' "$status" | sed -n 's/.*"latestBlockHash":"\([^"]*\)".*/\1/p')"
+printf '{"version":1,"sourceFormat":"ynx-devnet-state-v1","network":{"name":"YNX Testnet","slug":"testnet","chainId":6423,"nativeCoinName":"YNXT","nativeCurrencySymbol":"YNXT","decimals":18},"height":%s,"lastBlockHash":"%s","accounts":[],"validators":[],"resourcePolicy":{},"liquidSupplyYnxt":0,"stakedSupplyYnxt":0,"stateHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}\n' "$height" "$hash" >"$2"
+EOF
+chmod 0700 "$fake_chaind"
+printf 'FIXTURE_CHAIN_URL=%s\n' "$probe_url" >>"$freeze_config/etc/ynx/ynx-chaind.env"
+snapshot_helper="$repo/scripts/ops/remote/public-bft-final-snapshot.sh"
+snapshot_first="$($snapshot_helper "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1)"
+grep -Fq 'validated=true' <<<"$snapshot_first"
+grep -Fq 'reused=false' <<<"$snapshot_first"
+test -s "$freeze_evidence/final-migration-state.json"
+test -s "$freeze_evidence/final-migration-state.evidence.json"
+snapshot_second="$($snapshot_helper "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1)"
+grep -Fq 'reused=true' <<<"$snapshot_second"
+cp "$freeze_evidence/final-migration-state.json" "$freeze_evidence/final-migration-state.json.valid"
+printf 'tamper' >>"$freeze_evidence/final-migration-state.json"
+if "$snapshot_helper" "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1 >/dev/null 2>&1; then
+  echo "final snapshot unexpectedly accepted checksum-mismatched reuse" >&2
+  exit 1
+fi
+mv "$freeze_evidence/final-migration-state.json.valid" "$freeze_evidence/final-migration-state.json"
+cp "$block_pause_marker" "$block_pause_marker.valid"
+printf '{"transactionId":"another-transaction","commit":"%s","bftRelease":"%s"}\n' "$commit" "$release" >"$block_pause_marker"
+if "$pause_helper" resume "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1 >/dev/null 2>&1; then
+  echo "authoritative resume unexpectedly removed another transaction's marker" >&2
+  exit 1
+fi
+mv "$block_pause_marker.valid" "$block_pause_marker"
+resume_first="$($pause_helper resume "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1)"
+grep -Fq 'productionStateVerified=true' <<<"$resume_first"
+test ! -e "$block_pause_marker"
+resume_second="$($pause_helper resume "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1)"
+grep -Fq 'reused=true' <<<"$resume_second"
 cp "$marker" "$marker.valid"
 printf '{"transactionId":"another-transaction","commit":"%s","bftRelease":"%s"}\n' "$commit" "$release" >"$marker"
 if "$freeze_helper" unfreeze "$(basename "$transaction")" primary "$commit" "ynx-chain-${commit}" "$release" "$marker" "$freeze_evidence" "$probe_url" "$probe_url" "$freeze_config" >/dev/null 2>&1; then
@@ -248,4 +364,4 @@ if (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
   exit 1
 fi
 
-echo "public-bft-production-driver-check passed: scoped backup and mutation freeze/unfreeze are transaction-bound, approval/four-role-backup gated, fixture-tested, idempotent, and reject mismatched evidence"
+echo "public-bft-production-driver-check passed: scoped backup, mutation freeze/unfreeze, read-preserving authoritative pause/resume, and final snapshot export are transaction-bound, separately approved, fixture-tested, idempotent, and reject mismatched evidence"

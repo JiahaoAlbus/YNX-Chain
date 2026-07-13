@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -34,6 +35,7 @@ func main() {
 	peerSyncRaw := flag.String("peer-rpc-urls", envOrDefault("YNX_PEER_RPC_URLS", ""), "semicolon-separated peer sync targets: address|url")
 	peerSyncInterval := flag.Duration("peer-sync-interval", envDurationOrDefault("YNX_PEER_SYNC_INTERVAL", 5*time.Second), "validator peer sync polling interval")
 	blockProduction := flag.Bool("block-production", envBoolOrDefault("YNX_BLOCK_PRODUCTION_ENABLED", true), "enable authoritative block production")
+	blockProductionPauseFile := flag.String("block-production-pause-file", envOrDefault("YNX_BLOCK_PRODUCTION_PAUSE_FILE", ""), "optional marker that pauses block production while keeping reads online")
 	replicationSource := flag.String("replication-source", envOrDefault("YNX_REPLICATION_SOURCE_URL", ""), "authoritative replication source URL for follower nodes")
 	replicationKey := flag.String("replication-key", envOrDefault("YNX_REPLICATION_KEY", ""), "shared key for authenticated replication snapshots")
 	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
@@ -42,19 +44,20 @@ func main() {
 	flag.Parse()
 
 	cfg := nodeRuntimeConfig{
-		HTTPAddr:             *httpAddr,
-		Network:              *network,
-		BlockInterval:        *blockInterval,
-		DataDir:              *dataDir,
-		LocalValidator:       *localValidator,
-		PeerSyncRaw:          *peerSyncRaw,
-		PeerSyncInterval:     *peerSyncInterval,
-		BlockProduction:      *blockProduction,
-		ReplicationSource:    strings.TrimSpace(*replicationSource),
-		ReplicationKey:       strings.TrimSpace(*replicationKey),
-		ReplicationInterval:  *replicationInterval,
-		CheckConfig:          *checkConfig,
-		ExportConsensusState: strings.TrimSpace(*exportConsensusState),
+		HTTPAddr:                 *httpAddr,
+		Network:                  *network,
+		BlockInterval:            *blockInterval,
+		DataDir:                  *dataDir,
+		LocalValidator:           *localValidator,
+		PeerSyncRaw:              *peerSyncRaw,
+		PeerSyncInterval:         *peerSyncInterval,
+		BlockProduction:          *blockProduction,
+		BlockProductionPauseFile: strings.TrimSpace(*blockProductionPauseFile),
+		ReplicationSource:        strings.TrimSpace(*replicationSource),
+		ReplicationKey:           strings.TrimSpace(*replicationKey),
+		ReplicationInterval:      *replicationInterval,
+		CheckConfig:              *checkConfig,
+		ExportConsensusState:     strings.TrimSpace(*exportConsensusState),
 	}
 	if err := runNode(cfg, os.Stdout); err != nil {
 		log.Fatal(err)
@@ -62,19 +65,20 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
-	HTTPAddr             string
-	Network              string
-	BlockInterval        time.Duration
-	DataDir              string
-	LocalValidator       string
-	PeerSyncRaw          string
-	PeerSyncInterval     time.Duration
-	BlockProduction      bool
-	ReplicationSource    string
-	ReplicationKey       string
-	ReplicationInterval  time.Duration
-	CheckConfig          bool
-	ExportConsensusState string
+	HTTPAddr                 string
+	Network                  string
+	BlockInterval            time.Duration
+	DataDir                  string
+	LocalValidator           string
+	PeerSyncRaw              string
+	PeerSyncInterval         time.Duration
+	BlockProduction          bool
+	BlockProductionPauseFile string
+	ReplicationSource        string
+	ReplicationKey           string
+	ReplicationInterval      time.Duration
+	CheckConfig              bool
+	ExportConsensusState     string
 }
 
 type nodeStartupInputs struct {
@@ -122,7 +126,7 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 		expectedValidators = len(chain.DefaultValidators())
 	}
 	build := currentBuildInfo()
-	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d blockProduction=%t replicationSourceConfigured=%t buildCommit=%s release=%s buildTime=%s\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets), cfg.BlockProduction, cfg.ReplicationSource != "", build.Commit, build.Release, build.BuildTime)
+	fmt.Fprintf(out, "ynx-chaind config check passed: network=%s localValidator=%s expectedValidators=%d peerTargets=%d blockProduction=%t blockProductionPauseFileConfigured=%t replicationSourceConfigured=%t buildCommit=%s release=%s buildTime=%s\n", inputs.NetworkConfig.Slug, strings.TrimSpace(cfg.LocalValidator), expectedValidators, len(inputs.PeerSyncTargets), cfg.BlockProduction, cfg.BlockProductionPauseFile != "", cfg.ReplicationSource != "", build.Commit, build.Release, build.BuildTime)
 	return nil
 }
 
@@ -154,7 +158,9 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	if cfg.BlockProduction {
-		go devnet.Start(ctx, cfg.BlockInterval)
+		go devnet.StartWithPause(ctx, cfg.BlockInterval, func() bool {
+			return blockProductionPaused(cfg.BlockProductionPauseFile)
+		})
 	}
 	if cfg.ReplicationSource != "" {
 		startReplicationPolling(ctx, devnet, cfg.ReplicationSource, cfg.ReplicationKey, cfg.ReplicationInterval, nil)
@@ -184,6 +190,17 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		return err
 	}
 	return nil
+}
+
+func blockProductionPaused(marker string) bool {
+	if marker == "" {
+		return false
+	}
+	_, err := os.Stat(marker)
+	if err == nil {
+		return true
+	}
+	return !errors.Is(err, os.ErrNotExist)
 }
 
 func exportConsensusState(devnet *chain.Devnet, destination string, out io.Writer) error {
@@ -226,6 +243,12 @@ func replicationMode(cfg nodeRuntimeConfig) string {
 }
 
 func validateReplicationStartupConfig(network chain.NetworkConfig, validators []chain.Validator, cfg nodeRuntimeConfig) error {
+	if cfg.BlockProductionPauseFile != "" {
+		cleaned := filepath.Clean(cfg.BlockProductionPauseFile)
+		if !filepath.IsAbs(cleaned) || cleaned != cfg.BlockProductionPauseFile {
+			return fmt.Errorf("YNX_BLOCK_PRODUCTION_PAUSE_FILE must be a clean absolute path")
+		}
+	}
 	normalized, err := chain.NormalizeValidators(validators)
 	if err != nil {
 		return err

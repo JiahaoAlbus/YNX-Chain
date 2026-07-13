@@ -465,6 +465,10 @@ func NewPersistentDevnetWithValidatorsAndPeers(cfg NetworkConfig, dataDir string
 }
 
 func (d *Devnet) Start(ctx context.Context, interval time.Duration) {
+	d.StartWithPause(ctx, interval, nil)
+}
+
+func (d *Devnet) StartWithPause(ctx context.Context, interval time.Duration, paused func() bool) {
 	if interval <= 0 {
 		interval = 2 * time.Second
 	}
@@ -475,6 +479,9 @@ func (d *Devnet) Start(ctx context.Context, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if paused != nil && paused() {
+				continue
+			}
 			d.ProduceBlock()
 		}
 	}

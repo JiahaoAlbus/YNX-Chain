@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -15,13 +16,27 @@ import (
 
 func main() {
 	verifyPackage := flag.String("verify-package", "", "verify an existing production candidate package and exit")
+	verifyMigration := flag.String("verify-migration-state", "", "verify one unbound YNX migration state and exit")
 	migrationPath := flag.String("migration-state", "", "validated unbound YNX migration state")
 	validatorManifestPath := flag.String("validator-manifest", "", "public-key-only production validator manifest")
 	genesisTime := flag.String("genesis-time", "", "explicit whole-second UTC genesis time in RFC3339 format")
 	output := flag.String("output", "", "new output directory for the production candidate package")
 	flag.Parse()
+	if strings.TrimSpace(*verifyMigration) != "" {
+		if strings.TrimSpace(*verifyPackage) != "" || strings.TrimSpace(*migrationPath) != "" || strings.TrimSpace(*validatorManifestPath) != "" || strings.TrimSpace(*genesisTime) != "" || strings.TrimSpace(*output) != "" {
+			fmt.Fprintln(os.Stderr, "-verify-migration-state cannot be combined with other modes")
+			os.Exit(1)
+		}
+		migration, err := verifyMigrationState(*verifyMigration)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("consensus migration state passed: height=%d lastBlockHash=%s stateHash=%s accounts=%d validators=%d\n", migration.Height, migration.LastBlockHash, migration.StateHash, len(migration.Accounts), len(migration.Validators))
+		return
+	}
 	if strings.TrimSpace(*verifyPackage) != "" {
-		if strings.TrimSpace(*migrationPath) != "" || strings.TrimSpace(*validatorManifestPath) != "" || strings.TrimSpace(*genesisTime) != "" || strings.TrimSpace(*output) != "" {
+		if strings.TrimSpace(*verifyMigration) != "" || strings.TrimSpace(*migrationPath) != "" || strings.TrimSpace(*validatorManifestPath) != "" || strings.TrimSpace(*genesisTime) != "" || strings.TrimSpace(*output) != "" {
 			fmt.Fprintln(os.Stderr, "-verify-package cannot be combined with package generation flags")
 			os.Exit(1)
 		}
@@ -36,6 +51,27 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func verifyMigrationState(path string) (chain.ConsensusMigrationState, error) {
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		return chain.ConsensusMigrationState{}, fmt.Errorf("read migration state: %w", err)
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(payload)))
+	decoder.DisallowUnknownFields()
+	var migration chain.ConsensusMigrationState
+	if err := decoder.Decode(&migration); err != nil {
+		return chain.ConsensusMigrationState{}, fmt.Errorf("decode migration state: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		return chain.ConsensusMigrationState{}, errors.New("migration state contains trailing JSON data")
+	}
+	if err := migration.Validate(); err != nil {
+		return chain.ConsensusMigrationState{}, fmt.Errorf("validate migration state: %w", err)
+	}
+	return migration, nil
 }
 
 func run(migrationPath, validatorManifestPath, genesisTimeValue, output string) error {

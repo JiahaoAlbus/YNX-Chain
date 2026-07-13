@@ -7,9 +7,119 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "verify_recovery" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
+}
+
+authoritative_production_phase() {
+  local operation="$1"
+  if [[ "$operation" == "pause" ]]; then
+    [[ "${PUBLIC_BFT_PRODUCTION_PAUSE_APPROVED:-}" == "yes" ]] || {
+      echo "PUBLIC_BFT_PRODUCTION_PAUSE_APPROVED=yes is required" >&2
+      exit 1
+    }
+  fi
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || {
+    echo "authoritative production commit does not match current HEAD" >&2
+    exit 1
+  }
+  local bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$bft_release" ]] || {
+    echo "authoritative production BFT release does not match current HEAD" >&2
+    exit 1
+  }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$transaction_dir" && -d "$transaction_dir" ]] || {
+    echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2
+    exit 1
+  }
+  local transaction_id evidence_dir observation
+  transaction_id="$(basename "$transaction_dir")"
+  [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || {
+    echo "invalid authoritative production transaction id" >&2
+    exit 1
+  }
+  evidence_dir="$transaction_dir/roles"
+  mkdir -p "$evidence_dir"
+  if [[ "$operation" == "pause" ]]; then
+    local role freeze_evidence
+    for role in primary singapore silicon-valley seoul; do
+      freeze_evidence="$evidence_dir/${role}-freeze.txt"
+      test -s "$freeze_evidence"
+      grep -Fq "transactionId=$transaction_id" "$freeze_evidence"
+      grep -Fq "role=$role" "$freeze_evidence"
+      grep -Fq "commit=$commit" "$freeze_evidence"
+      grep -Fq "bftRelease=$bft_release" "$freeze_evidence"
+      grep -Fq 'mutationStateVerified=true' "$freeze_evidence"
+    done
+  fi
+  observation="${PUBLIC_BFT_PRODUCTION_PAUSE_OBSERVATION_SECONDS:-4}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && (( observation >= 1 && observation <= 15 )) || {
+    echo "PUBLIC_BFT_PRODUCTION_PAUSE_OBSERVATION_SECONDS must be between 1 and 15" >&2
+    exit 1
+  }
+  local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
+  local remote_helper="/tmp/ynx-public-bft-authoritative-pause-${transaction_id}.sh"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-authoritative-pause.sh "$remote_helper"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$commit' '$release' '$bft_release' /var/lib/ynx-chain/block-production-pause.json /var/lib/ynx-chain/mutation-freeze.json '$remote_root' http://127.0.0.1:6420 / '$observation'" >"$evidence_dir/primary-${operation}-authoritative.txt"
+  echo "production BFT authoritative $operation passed: transaction=$transaction_id evidence=$evidence_dir"
+}
+
+final_snapshot_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:-}" == "yes" ]] || {
+    echo "PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED=yes is required" >&2
+    exit 1
+  }
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || {
+    echo "final snapshot commit does not match current HEAD" >&2
+    exit 1
+  }
+  local bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$bft_release" ]] || {
+    echo "final snapshot BFT release does not match current HEAD" >&2
+    exit 1
+  }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$transaction_dir" && -d "$transaction_dir" ]] || {
+    echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2
+    exit 1
+  }
+  local transaction_id evidence_dir pause_evidence observation remote_root remote_helper
+  transaction_id="$(basename "$transaction_dir")"
+  [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid final snapshot transaction id" >&2; exit 1; }
+  evidence_dir="$transaction_dir/roles"
+  pause_evidence="$evidence_dir/primary-pause-authoritative.txt"
+  test -s "$pause_evidence"
+  grep -Fq "transactionId=$transaction_id" "$pause_evidence"
+  grep -Fq "commit=$commit" "$pause_evidence"
+  grep -Fq "bftRelease=$bft_release" "$pause_evidence"
+  grep -Fq 'productionStateVerified=true' "$pause_evidence"
+  observation="${PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS:-2}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && (( observation >= 1 && observation <= 15 )) || {
+    echo "PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS must be between 1 and 15" >&2
+    exit 1
+  }
+  remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
+  remote_helper="/tmp/ynx-public-bft-final-snapshot-${transaction_id}.sh"
+  mkdir -p "$transaction_dir/final-snapshot"
+  chmod 0700 "$transaction_dir/final-snapshot"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-final-snapshot.sh "$remote_helper"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$transaction_id' '$commit' '$release' '$bft_release' /var/lib/ynx-chain/block-production-pause.json /var/lib/ynx-chain/mutation-freeze.json '$remote_root' http://127.0.0.1:6420 / /usr/local/bin/ynx-chaind '$observation'" >"$evidence_dir/primary-export-final-snapshot.txt"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf 'transactionId=%s\ncommit=%s\nrelease=%s\ndryRun=true\n' "$transaction_id" "$commit" "$release" >"$transaction_dir/final-snapshot/dry-run.txt"
+    echo "production BFT final snapshot dry-run passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
+    return
+  fi
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" >"$transaction_dir/final-snapshot/migration.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.evidence.json'" >"$transaction_dir/final-snapshot/remote-evidence.json"
+  chmod 0600 "$transaction_dir/final-snapshot/migration.json" "$transaction_dir/final-snapshot/remote-evidence.json"
+  local expected_sha actual_sha
+  expected_sha="$(sed -n 's/^sha256=\([0-9a-f]\{64\}\)$/\1/p' "$evidence_dir/primary-export-final-snapshot.txt")"
+  actual_sha="$(shasum -a 256 "$transaction_dir/final-snapshot/migration.json" | awk '{print $1}')"
+  [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
+  go run ./cmd/ynx-consensus-package -verify-migration-state "$transaction_dir/final-snapshot/migration.json" >"$transaction_dir/final-snapshot/local-validation.txt"
+  echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
 }
 [[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
@@ -191,12 +301,15 @@ recovery_phase() {
   echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "verify_recovery" ]]; then
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
     freeze_mutations) mutation_freeze_phase freeze ;;
     unfreeze_mutations) mutation_freeze_phase unfreeze ;;
+    pause_authoritative) authoritative_production_phase pause ;;
+    resume_authoritative) authoritative_production_phase resume ;;
+    export_final_snapshot) final_snapshot_phase ;;
     verify_recovery) recovery_phase ;;
   esac
   exit 0
