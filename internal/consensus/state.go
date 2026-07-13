@@ -21,147 +21,167 @@ const CommittedStateVersion = 7
 // for restart recovery but excluded from AppHash because empty blocks do not
 // change application state.
 type CommittedState struct {
-	Version             int                      `json:"version"`
-	ChainID             int64                    `json:"chainId"`
-	MigrationStateHash  string                   `json:"migrationStateHash"`
-	Initialized         bool                     `json:"initialized"`
-	Height              int64                    `json:"height"`
-	Accounts            []chain.ConsensusAccount `json:"accounts"`
-	AIPermissions       []BFTAIPermission        `json:"aiPermissions"`
-	AIActions           []BFTAIAction            `json:"aiActions"`
-	AIAuditEvents       []BFTAIAuditEvent        `json:"aiAuditEvents"`
-	PayIntents          []BFTPayIntent           `json:"payIntents"`
-	PayInvoices         []BFTPayInvoice          `json:"payInvoices"`
-	PayRefunds          []BFTPayRefund           `json:"payRefunds"`
-	PayWebhooks         []BFTPayWebhook          `json:"payWebhooks"`
-	PayEvents           []BFTPayEvent            `json:"payEvents"`
-	PayIdempotency      []BFTPayIdempotency      `json:"payIdempotency"`
-	ResourceQuotes      []BFTResourceQuote       `json:"resourceQuotes"`
-	ResourceDelegations []BFTResourceDelegation  `json:"resourceDelegations"`
-	ResourceRentals     []BFTResourceRental      `json:"resourceRentals"`
-	ResourceIncome      []BFTResourceIncome      `json:"resourceIncome"`
-	ResourceEvents      []BFTResourceEvent       `json:"resourceEvents"`
-	ResourceIdempotency []BFTResourceIdempotency `json:"resourceIdempotency"`
-	GovernanceRequests  []BFTGovernanceRequest   `json:"governanceRequests"`
-	TrustAppeals        []BFTTrustAppeal         `json:"trustAppeals"`
-	TrustCorrections    []BFTTrustCorrection     `json:"trustCorrections"`
-	TrustLabels         []BFTTrustLabel          `json:"trustLabels"`
-	TrustEvidence       []BFTTrustEvidence       `json:"trustEvidence"`
-	TrackingReviews     []BFTTrackingReview      `json:"trackingReviews"`
-	Transparency        []BFTTransparencyEntry   `json:"transparencyEntries"`
-	Contracts           []BFTContract            `json:"contracts"`
-	EVMReceipts         []BFTEVMReceipt          `json:"evmReceipts"`
-	EVMLogs             []BFTEVMLog              `json:"evmLogs"`
-	IDEIdempotency      []BFTIDEIdempotency      `json:"ideIdempotency"`
-	AppHash             string                   `json:"appHash"`
+	Version                    int                             `json:"version"`
+	ChainID                    int64                           `json:"chainId"`
+	MigrationStateHash         string                          `json:"migrationStateHash"`
+	Initialized                bool                            `json:"initialized"`
+	Height                     int64                           `json:"height"`
+	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
+	AIActions                  []BFTAIAction                   `json:"aiActions"`
+	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
+	PayIntents                 []BFTPayIntent                  `json:"payIntents"`
+	PayInvoices                []BFTPayInvoice                 `json:"payInvoices"`
+	PayRefunds                 []BFTPayRefund                  `json:"payRefunds"`
+	PayWebhooks                []BFTPayWebhook                 `json:"payWebhooks"`
+	PayEvents                  []BFTPayEvent                   `json:"payEvents"`
+	PayIdempotency             []BFTPayIdempotency             `json:"payIdempotency"`
+	ResourceQuotes             []BFTResourceQuote              `json:"resourceQuotes"`
+	ResourceDelegations        []BFTResourceDelegation         `json:"resourceDelegations"`
+	ResourceRentals            []BFTResourceRental             `json:"resourceRentals"`
+	ResourceIncome             []BFTResourceIncome             `json:"resourceIncome"`
+	ResourceEvents             []BFTResourceEvent              `json:"resourceEvents"`
+	ResourceIdempotency        []BFTResourceIdempotency        `json:"resourceIdempotency"`
+	ResourcePools              []BFTResourcePool               `json:"resourcePools,omitempty"`
+	ResourceSponsorships       []BFTResourceSponsorship        `json:"resourceSponsorships,omitempty"`
+	ResourceSponsorIdempotency []BFTResourceSponsorIdempotency `json:"resourceSponsorIdempotency,omitempty"`
+	ResourceSponsorActionRefs  []BFTResourceSponsorActionRef   `json:"resourceSponsorActionRefs,omitempty"`
+	ResourceSponsorAudit       []BFTResourceSponsorAudit       `json:"resourceSponsorAudit,omitempty"`
+	GovernanceRequests         []BFTGovernanceRequest          `json:"governanceRequests"`
+	TrustAppeals               []BFTTrustAppeal                `json:"trustAppeals"`
+	TrustCorrections           []BFTTrustCorrection            `json:"trustCorrections"`
+	TrustLabels                []BFTTrustLabel                 `json:"trustLabels"`
+	TrustEvidence              []BFTTrustEvidence              `json:"trustEvidence"`
+	TrackingReviews            []BFTTrackingReview             `json:"trackingReviews"`
+	Transparency               []BFTTransparencyEntry          `json:"transparencyEntries"`
+	Contracts                  []BFTContract                   `json:"contracts"`
+	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
+	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
+	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
+	AppHash                    string                          `json:"appHash"`
 }
 
 type committedStateHashDocument struct {
-	Domain              string                   `json:"domain"`
-	Version             int                      `json:"version"`
-	ChainID             int64                    `json:"chainId"`
-	MigrationStateHash  string                   `json:"migrationStateHash"`
-	Accounts            []chain.ConsensusAccount `json:"accounts"`
-	AIPermissions       []BFTAIPermission        `json:"aiPermissions"`
-	AIActions           []BFTAIAction            `json:"aiActions"`
-	AIAuditEvents       []BFTAIAuditEvent        `json:"aiAuditEvents"`
-	PayIntents          []BFTPayIntent           `json:"payIntents"`
-	PayInvoices         []BFTPayInvoice          `json:"payInvoices"`
-	PayRefunds          []BFTPayRefund           `json:"payRefunds"`
-	PayWebhooks         []BFTPayWebhook          `json:"payWebhooks"`
-	PayEvents           []BFTPayEvent            `json:"payEvents"`
-	PayIdempotency      []BFTPayIdempotency      `json:"payIdempotency"`
-	ResourceQuotes      []BFTResourceQuote       `json:"resourceQuotes"`
-	ResourceDelegations []BFTResourceDelegation  `json:"resourceDelegations"`
-	ResourceRentals     []BFTResourceRental      `json:"resourceRentals"`
-	ResourceIncome      []BFTResourceIncome      `json:"resourceIncome"`
-	ResourceEvents      []BFTResourceEvent       `json:"resourceEvents"`
-	ResourceIdempotency []BFTResourceIdempotency `json:"resourceIdempotency"`
-	GovernanceRequests  []BFTGovernanceRequest   `json:"governanceRequests"`
-	TrustAppeals        []BFTTrustAppeal         `json:"trustAppeals"`
-	TrustCorrections    []BFTTrustCorrection     `json:"trustCorrections"`
-	TrustLabels         []BFTTrustLabel          `json:"trustLabels"`
-	TrustEvidence       []BFTTrustEvidence       `json:"trustEvidence"`
-	TrackingReviews     []BFTTrackingReview      `json:"trackingReviews"`
-	Transparency        []BFTTransparencyEntry   `json:"transparencyEntries"`
-	Contracts           []BFTContract            `json:"contracts"`
-	EVMReceipts         []BFTEVMReceipt          `json:"evmReceipts"`
-	EVMLogs             []BFTEVMLog              `json:"evmLogs"`
-	IDEIdempotency      []BFTIDEIdempotency      `json:"ideIdempotency"`
+	Domain                     string                          `json:"domain"`
+	Version                    int                             `json:"version"`
+	ChainID                    int64                           `json:"chainId"`
+	MigrationStateHash         string                          `json:"migrationStateHash"`
+	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
+	AIActions                  []BFTAIAction                   `json:"aiActions"`
+	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
+	PayIntents                 []BFTPayIntent                  `json:"payIntents"`
+	PayInvoices                []BFTPayInvoice                 `json:"payInvoices"`
+	PayRefunds                 []BFTPayRefund                  `json:"payRefunds"`
+	PayWebhooks                []BFTPayWebhook                 `json:"payWebhooks"`
+	PayEvents                  []BFTPayEvent                   `json:"payEvents"`
+	PayIdempotency             []BFTPayIdempotency             `json:"payIdempotency"`
+	ResourceQuotes             []BFTResourceQuote              `json:"resourceQuotes"`
+	ResourceDelegations        []BFTResourceDelegation         `json:"resourceDelegations"`
+	ResourceRentals            []BFTResourceRental             `json:"resourceRentals"`
+	ResourceIncome             []BFTResourceIncome             `json:"resourceIncome"`
+	ResourceEvents             []BFTResourceEvent              `json:"resourceEvents"`
+	ResourceIdempotency        []BFTResourceIdempotency        `json:"resourceIdempotency"`
+	ResourcePools              []BFTResourcePool               `json:"resourcePools,omitempty"`
+	ResourceSponsorships       []BFTResourceSponsorship        `json:"resourceSponsorships,omitempty"`
+	ResourceSponsorIdempotency []BFTResourceSponsorIdempotency `json:"resourceSponsorIdempotency,omitempty"`
+	ResourceSponsorActionRefs  []BFTResourceSponsorActionRef   `json:"resourceSponsorActionRefs,omitempty"`
+	ResourceSponsorAudit       []BFTResourceSponsorAudit       `json:"resourceSponsorAudit,omitempty"`
+	GovernanceRequests         []BFTGovernanceRequest          `json:"governanceRequests"`
+	TrustAppeals               []BFTTrustAppeal                `json:"trustAppeals"`
+	TrustCorrections           []BFTTrustCorrection            `json:"trustCorrections"`
+	TrustLabels                []BFTTrustLabel                 `json:"trustLabels"`
+	TrustEvidence              []BFTTrustEvidence              `json:"trustEvidence"`
+	TrackingReviews            []BFTTrackingReview             `json:"trackingReviews"`
+	Transparency               []BFTTransparencyEntry          `json:"transparencyEntries"`
+	Contracts                  []BFTContract                   `json:"contracts"`
+	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
+	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
+	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
 }
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
 	return CommittedState{
-		Version:             CommittedStateVersion,
-		ChainID:             migration.Network.ChainID,
-		MigrationStateHash:  migration.StateHash,
-		Initialized:         false,
-		Height:              int64(migration.Height),
-		Accounts:            cloneAccounts(migration.Accounts),
-		AIPermissions:       []BFTAIPermission{},
-		AIActions:           []BFTAIAction{},
-		AIAuditEvents:       []BFTAIAuditEvent{},
-		PayIntents:          []BFTPayIntent{},
-		PayInvoices:         []BFTPayInvoice{},
-		PayRefunds:          []BFTPayRefund{},
-		PayWebhooks:         []BFTPayWebhook{},
-		PayEvents:           []BFTPayEvent{},
-		PayIdempotency:      []BFTPayIdempotency{},
-		ResourceQuotes:      []BFTResourceQuote{},
-		ResourceDelegations: []BFTResourceDelegation{},
-		ResourceRentals:     []BFTResourceRental{},
-		ResourceIncome:      []BFTResourceIncome{},
-		ResourceEvents:      []BFTResourceEvent{},
-		ResourceIdempotency: []BFTResourceIdempotency{},
-		GovernanceRequests:  []BFTGovernanceRequest{},
-		TrustAppeals:        []BFTTrustAppeal{},
-		TrustCorrections:    []BFTTrustCorrection{},
-		TrustLabels:         []BFTTrustLabel{},
-		TrustEvidence:       []BFTTrustEvidence{},
-		TrackingReviews:     []BFTTrackingReview{},
-		Transparency:        []BFTTransparencyEntry{},
-		Contracts:           []BFTContract{},
-		EVMReceipts:         []BFTEVMReceipt{},
-		EVMLogs:             []BFTEVMLog{},
-		IDEIdempotency:      []BFTIDEIdempotency{},
-		AppHash:             migration.StateHash,
+		Version:                    CommittedStateVersion,
+		ChainID:                    migration.Network.ChainID,
+		MigrationStateHash:         migration.StateHash,
+		Initialized:                false,
+		Height:                     int64(migration.Height),
+		Accounts:                   cloneAccounts(migration.Accounts),
+		AIPermissions:              []BFTAIPermission{},
+		AIActions:                  []BFTAIAction{},
+		AIAuditEvents:              []BFTAIAuditEvent{},
+		PayIntents:                 []BFTPayIntent{},
+		PayInvoices:                []BFTPayInvoice{},
+		PayRefunds:                 []BFTPayRefund{},
+		PayWebhooks:                []BFTPayWebhook{},
+		PayEvents:                  []BFTPayEvent{},
+		PayIdempotency:             []BFTPayIdempotency{},
+		ResourceQuotes:             []BFTResourceQuote{},
+		ResourceDelegations:        []BFTResourceDelegation{},
+		ResourceRentals:            []BFTResourceRental{},
+		ResourceIncome:             []BFTResourceIncome{},
+		ResourceEvents:             []BFTResourceEvent{},
+		ResourceIdempotency:        []BFTResourceIdempotency{},
+		ResourcePools:              []BFTResourcePool{},
+		ResourceSponsorships:       []BFTResourceSponsorship{},
+		ResourceSponsorIdempotency: []BFTResourceSponsorIdempotency{},
+		ResourceSponsorActionRefs:  []BFTResourceSponsorActionRef{},
+		ResourceSponsorAudit:       []BFTResourceSponsorAudit{},
+		GovernanceRequests:         []BFTGovernanceRequest{},
+		TrustAppeals:               []BFTTrustAppeal{},
+		TrustCorrections:           []BFTTrustCorrection{},
+		TrustLabels:                []BFTTrustLabel{},
+		TrustEvidence:              []BFTTrustEvidence{},
+		TrackingReviews:            []BFTTrackingReview{},
+		Transparency:               []BFTTransparencyEntry{},
+		Contracts:                  []BFTContract{},
+		EVMReceipts:                []BFTEVMReceipt{},
+		EVMLogs:                    []BFTEVMLog{},
+		IDEIdempotency:             []BFTIDEIdempotency{},
+		AppHash:                    migration.StateHash,
 	}
 }
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
 	state := CommittedState{
-		Version:             CommittedStateVersion,
-		ChainID:             migration.Network.ChainID,
-		MigrationStateHash:  migration.StateHash,
-		Initialized:         true,
-		Height:              height,
-		Accounts:            cloneAccounts(execution.accounts),
-		AIPermissions:       cloneAIPermissions(execution.permissions),
-		AIActions:           cloneAIActions(execution.actions),
-		AIAuditEvents:       append([]BFTAIAuditEvent(nil), execution.auditEvents...),
-		PayIntents:          append([]BFTPayIntent(nil), execution.payIntents...),
-		PayInvoices:         append([]BFTPayInvoice(nil), execution.payInvoices...),
-		PayRefunds:          append([]BFTPayRefund(nil), execution.payRefunds...),
-		PayWebhooks:         append([]BFTPayWebhook(nil), execution.payWebhooks...),
-		PayEvents:           append([]BFTPayEvent(nil), execution.payEvents...),
-		PayIdempotency:      append([]BFTPayIdempotency(nil), execution.payIdempotency...),
-		ResourceQuotes:      append([]BFTResourceQuote(nil), execution.resourceQuotes...),
-		ResourceDelegations: append([]BFTResourceDelegation(nil), execution.resourceDelegations...),
-		ResourceRentals:     append([]BFTResourceRental(nil), execution.resourceRentals...),
-		ResourceIncome:      append([]BFTResourceIncome(nil), execution.resourceIncome...),
-		ResourceEvents:      append([]BFTResourceEvent(nil), execution.resourceEvents...),
-		ResourceIdempotency: append([]BFTResourceIdempotency(nil), execution.resourceIdempotency...),
-		GovernanceRequests:  cloneGovernanceRequests(execution.governanceRequests),
-		TrustAppeals:        cloneTrustAppeals(execution.trustAppeals),
-		TrustCorrections:    append([]BFTTrustCorrection(nil), execution.trustCorrections...),
-		TrustLabels:         cloneTrustLabels(execution.trustLabels),
-		TrustEvidence:       cloneTrustEvidence(execution.trustEvidence),
-		TrackingReviews:     cloneTrackingReviews(execution.trackingReviews),
-		Transparency:        cloneTransparencyEntries(execution.transparency),
-		Contracts:           cloneBFTContracts(execution.contracts),
-		EVMReceipts:         cloneBFTEVMReceipts(execution.evmReceipts),
-		EVMLogs:             cloneBFTEVMLogs(execution.evmLogs),
-		IDEIdempotency:      append([]BFTIDEIdempotency(nil), execution.ideIdempotency...),
+		Version:                    CommittedStateVersion,
+		ChainID:                    migration.Network.ChainID,
+		MigrationStateHash:         migration.StateHash,
+		Initialized:                true,
+		Height:                     height,
+		Accounts:                   cloneAccounts(execution.accounts),
+		AIPermissions:              cloneAIPermissions(execution.permissions),
+		AIActions:                  cloneAIActions(execution.actions),
+		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
+		PayIntents:                 append([]BFTPayIntent(nil), execution.payIntents...),
+		PayInvoices:                append([]BFTPayInvoice(nil), execution.payInvoices...),
+		PayRefunds:                 append([]BFTPayRefund(nil), execution.payRefunds...),
+		PayWebhooks:                append([]BFTPayWebhook(nil), execution.payWebhooks...),
+		PayEvents:                  append([]BFTPayEvent(nil), execution.payEvents...),
+		PayIdempotency:             append([]BFTPayIdempotency(nil), execution.payIdempotency...),
+		ResourceQuotes:             append([]BFTResourceQuote(nil), execution.resourceQuotes...),
+		ResourceDelegations:        append([]BFTResourceDelegation(nil), execution.resourceDelegations...),
+		ResourceRentals:            append([]BFTResourceRental(nil), execution.resourceRentals...),
+		ResourceIncome:             append([]BFTResourceIncome(nil), execution.resourceIncome...),
+		ResourceEvents:             append([]BFTResourceEvent(nil), execution.resourceEvents...),
+		ResourceIdempotency:        append([]BFTResourceIdempotency(nil), execution.resourceIdempotency...),
+		ResourcePools:              cloneBFTResourcePools(execution.resourcePools),
+		ResourceSponsorships:       append([]BFTResourceSponsorship(nil), execution.resourceSponsorships...),
+		ResourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(execution.resourceSponsorIdempotency),
+		ResourceSponsorActionRefs:  append([]BFTResourceSponsorActionRef(nil), execution.resourceSponsorActionRefs...),
+		ResourceSponsorAudit:       append([]BFTResourceSponsorAudit(nil), execution.resourceSponsorAudit...),
+		GovernanceRequests:         cloneGovernanceRequests(execution.governanceRequests),
+		TrustAppeals:               cloneTrustAppeals(execution.trustAppeals),
+		TrustCorrections:           append([]BFTTrustCorrection(nil), execution.trustCorrections...),
+		TrustLabels:                cloneTrustLabels(execution.trustLabels),
+		TrustEvidence:              cloneTrustEvidence(execution.trustEvidence),
+		TrackingReviews:            cloneTrackingReviews(execution.trackingReviews),
+		Transparency:               cloneTransparencyEntries(execution.transparency),
+		Contracts:                  cloneBFTContracts(execution.contracts),
+		EVMReceipts:                cloneBFTEVMReceipts(execution.evmReceipts),
+		EVMLogs:                    cloneBFTEVMLogs(execution.evmLogs),
+		IDEIdempotency:             append([]BFTIDEIdempotency(nil), execution.ideIdempotency...),
 	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
@@ -251,6 +271,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateResourceCommittedState(s, migration); err != nil {
 		return err
 	}
+	if err := validateResourceSponsorCommittedState(s); err != nil {
+		return err
+	}
 	if err := validateTrustCommittedState(s); err != nil {
 		return err
 	}
@@ -279,37 +302,42 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 func (s CommittedState) calculateHash() (string, error) {
 	doc := committedStateHashDocument{
-		Domain:              "YNX_ABCI_STATE_V7",
-		Version:             s.Version,
-		ChainID:             s.ChainID,
-		MigrationStateHash:  s.MigrationStateHash,
-		Accounts:            s.Accounts,
-		AIPermissions:       s.AIPermissions,
-		AIActions:           s.AIActions,
-		AIAuditEvents:       s.AIAuditEvents,
-		PayIntents:          s.PayIntents,
-		PayInvoices:         s.PayInvoices,
-		PayRefunds:          s.PayRefunds,
-		PayWebhooks:         s.PayWebhooks,
-		PayEvents:           s.PayEvents,
-		PayIdempotency:      s.PayIdempotency,
-		ResourceQuotes:      s.ResourceQuotes,
-		ResourceDelegations: s.ResourceDelegations,
-		ResourceRentals:     s.ResourceRentals,
-		ResourceIncome:      s.ResourceIncome,
-		ResourceEvents:      s.ResourceEvents,
-		ResourceIdempotency: s.ResourceIdempotency,
-		GovernanceRequests:  s.GovernanceRequests,
-		TrustAppeals:        s.TrustAppeals,
-		TrustCorrections:    s.TrustCorrections,
-		TrustLabels:         s.TrustLabels,
-		TrustEvidence:       s.TrustEvidence,
-		TrackingReviews:     s.TrackingReviews,
-		Transparency:        s.Transparency,
-		Contracts:           s.Contracts,
-		EVMReceipts:         s.EVMReceipts,
-		EVMLogs:             s.EVMLogs,
-		IDEIdempotency:      s.IDEIdempotency,
+		Domain:                     "YNX_ABCI_STATE_V7",
+		Version:                    s.Version,
+		ChainID:                    s.ChainID,
+		MigrationStateHash:         s.MigrationStateHash,
+		Accounts:                   s.Accounts,
+		AIPermissions:              s.AIPermissions,
+		AIActions:                  s.AIActions,
+		AIAuditEvents:              s.AIAuditEvents,
+		PayIntents:                 s.PayIntents,
+		PayInvoices:                s.PayInvoices,
+		PayRefunds:                 s.PayRefunds,
+		PayWebhooks:                s.PayWebhooks,
+		PayEvents:                  s.PayEvents,
+		PayIdempotency:             s.PayIdempotency,
+		ResourceQuotes:             s.ResourceQuotes,
+		ResourceDelegations:        s.ResourceDelegations,
+		ResourceRentals:            s.ResourceRentals,
+		ResourceIncome:             s.ResourceIncome,
+		ResourceEvents:             s.ResourceEvents,
+		ResourceIdempotency:        s.ResourceIdempotency,
+		ResourcePools:              s.ResourcePools,
+		ResourceSponsorships:       s.ResourceSponsorships,
+		ResourceSponsorIdempotency: s.ResourceSponsorIdempotency,
+		ResourceSponsorActionRefs:  s.ResourceSponsorActionRefs,
+		ResourceSponsorAudit:       s.ResourceSponsorAudit,
+		GovernanceRequests:         s.GovernanceRequests,
+		TrustAppeals:               s.TrustAppeals,
+		TrustCorrections:           s.TrustCorrections,
+		TrustLabels:                s.TrustLabels,
+		TrustEvidence:              s.TrustEvidence,
+		TrackingReviews:            s.TrackingReviews,
+		Transparency:               s.Transparency,
+		Contracts:                  s.Contracts,
+		EVMReceipts:                s.EVMReceipts,
+		EVMLogs:                    s.EVMLogs,
+		IDEIdempotency:             s.IDEIdempotency,
 	}
 	payload, err := json.Marshal(doc)
 	if err != nil {
@@ -320,7 +348,7 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
 }
 
 func validatePayCommittedState(s CommittedState) error {

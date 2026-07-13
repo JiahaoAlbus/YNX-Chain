@@ -18,7 +18,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 8
+	ApplicationVersion   = 9
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -41,33 +41,38 @@ type transactionError struct {
 }
 
 type executionState struct {
-	accounts            []chain.ConsensusAccount
-	permissions         []BFTAIPermission
-	actions             []BFTAIAction
-	auditEvents         []BFTAIAuditEvent
-	payIntents          []BFTPayIntent
-	payInvoices         []BFTPayInvoice
-	payRefunds          []BFTPayRefund
-	payWebhooks         []BFTPayWebhook
-	payEvents           []BFTPayEvent
-	payIdempotency      []BFTPayIdempotency
-	resourceQuotes      []BFTResourceQuote
-	resourceDelegations []BFTResourceDelegation
-	resourceRentals     []BFTResourceRental
-	resourceIncome      []BFTResourceIncome
-	resourceEvents      []BFTResourceEvent
-	resourceIdempotency []BFTResourceIdempotency
-	governanceRequests  []BFTGovernanceRequest
-	trustAppeals        []BFTTrustAppeal
-	trustCorrections    []BFTTrustCorrection
-	trustLabels         []BFTTrustLabel
-	trustEvidence       []BFTTrustEvidence
-	trackingReviews     []BFTTrackingReview
-	transparency        []BFTTransparencyEntry
-	contracts           []BFTContract
-	evmReceipts         []BFTEVMReceipt
-	evmLogs             []BFTEVMLog
-	ideIdempotency      []BFTIDEIdempotency
+	accounts                   []chain.ConsensusAccount
+	permissions                []BFTAIPermission
+	actions                    []BFTAIAction
+	auditEvents                []BFTAIAuditEvent
+	payIntents                 []BFTPayIntent
+	payInvoices                []BFTPayInvoice
+	payRefunds                 []BFTPayRefund
+	payWebhooks                []BFTPayWebhook
+	payEvents                  []BFTPayEvent
+	payIdempotency             []BFTPayIdempotency
+	resourceQuotes             []BFTResourceQuote
+	resourceDelegations        []BFTResourceDelegation
+	resourceRentals            []BFTResourceRental
+	resourceIncome             []BFTResourceIncome
+	resourceEvents             []BFTResourceEvent
+	resourceIdempotency        []BFTResourceIdempotency
+	resourcePools              []BFTResourcePool
+	resourceSponsorships       []BFTResourceSponsorship
+	resourceSponsorIdempotency []BFTResourceSponsorIdempotency
+	resourceSponsorActionRefs  []BFTResourceSponsorActionRef
+	resourceSponsorAudit       []BFTResourceSponsorAudit
+	governanceRequests         []BFTGovernanceRequest
+	trustAppeals               []BFTTrustAppeal
+	trustCorrections           []BFTTrustCorrection
+	trustLabels                []BFTTrustLabel
+	trustEvidence              []BFTTrustEvidence
+	trackingReviews            []BFTTrackingReview
+	transparency               []BFTTransparencyEntry
+	contracts                  []BFTContract
+	evmReceipts                []BFTEVMReceipt
+	evmLogs                    []BFTEVMLog
+	ideIdempotency             []BFTIDEIdempotency
 }
 
 type transactionExecution struct {
@@ -270,6 +275,24 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	case strings.HasPrefix(req.Path, "/resource/idempotency/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/idempotency/"), a.committed.ResourceIdempotency, func(v BFTResourceIdempotency) string { return v.ID }, "Resource idempotency")
+	case req.Path == "/resource/pools":
+		response.Value, _ = json.Marshal(a.committed.ResourcePools)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/resource/pools/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/pools/"), a.committed.ResourcePools, func(v BFTResourcePool) string { return v.ID }, "Resource pool")
+	case req.Path == "/resource/sponsorships":
+		response.Value, _ = json.Marshal(a.committed.ResourceSponsorships)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/resource/sponsorships/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/sponsorships/"), a.committed.ResourceSponsorships, func(v BFTResourceSponsorship) string { return v.ID }, "Resource sponsorship")
+	case strings.HasPrefix(req.Path, "/resource/sponsor-idempotency/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/sponsor-idempotency/"), a.committed.ResourceSponsorIdempotency, func(v BFTResourceSponsorIdempotency) string { return v.ID }, "Resource sponsor idempotency")
+	case req.Path == "/resource/sponsor-audit":
+		response.Value, _ = json.Marshal(a.committed.ResourceSponsorAudit)
+		return response, nil
+	case req.Path == "/resource/sponsor-action-refs":
+		response.Value, _ = json.Marshal(a.committed.ResourceSponsorActionRefs)
+		return response, nil
 	case req.Path == "/resource/analytics":
 		response.Value, _ = json.Marshal(buildBFTResourceAnalytics(a.migration, a.committed))
 		return response, nil
@@ -459,6 +482,7 @@ func (a *Application) cloneExecutionState() executionState {
 		accounts: cloneAccounts(a.committed.Accounts), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
+		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
 		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
 	}
@@ -537,6 +561,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 		return a.applyPayAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if isResourceAction(tx.Action) {
+		if isResourceSponsorAction(tx.Action) {
+			return a.applyResourceSponsorAction(state, payload, tx, height, blockTime, validationOnly)
+		}
 		return a.applyResourceAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if isTrustAction(tx.Action) {

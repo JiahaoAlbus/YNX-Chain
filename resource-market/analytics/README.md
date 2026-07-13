@@ -11,6 +11,7 @@
 - protocol fees in YNXT,
 - merchant and dApp pool counts,
 - active sponsor-pool and sponsorship counts,
+- committed BFT merchant/dApp pool counts and sponsored resource totals,
 - sponsored Bandwidth, Compute, AI Credits, and Trust Credits totals,
 - truthful status for the local testnet environment.
 

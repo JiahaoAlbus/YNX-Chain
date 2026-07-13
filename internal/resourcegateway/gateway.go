@@ -269,12 +269,14 @@ type ProxyResponse struct {
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (ProxyResponse, error) {
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
 		if strings.HasPrefix(path, "/resource-market/pools") || path == "/resource-market/sponsorships" {
-			payload, _ := json.Marshal(map[string]string{"error": "resource sponsor pools are implemented only on the authoritative runtime; BFT promotion remains unclaimed", "requestId": requestID})
-			return ProxyResponse{Status: http.StatusNotImplemented, ContentType: "application/json", Body: payload}, nil
+			return s.proxyBFTSignedSponsorMutation(ctx, path, body, requestID)
 		}
 		return s.proxyBFTResourceMutation(ctx, path, body, requestID)
 	}
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodGet {
+		if strings.HasPrefix(path, "/resource-market/pools") || strings.HasPrefix(path, "/resource-market/sponsorships") || path == "/resource-market/sponsor-audit" {
+			return s.proxyBFTSignedSponsorRead(ctx, path, rawQuery, requestID)
+		}
 		if strings.HasPrefix(path, "/resource-market/delegations/") || strings.HasPrefix(path, "/resource-market/income/") {
 			return s.proxyBFTResourceRead(ctx, path, rawQuery, requestID)
 		}
@@ -309,6 +311,76 @@ func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body
 		return ProxyResponse{}, fmt.Errorf("Resource Market response exceeds %d bytes", MaxResponseBytes)
 	}
 	return ProxyResponse{Status: resp.StatusCode, ContentType: resp.Header.Get("Content-Type"), Body: payload}, nil
+}
+
+func (s *Service) proxyBFTSignedSponsorMutation(ctx context.Context, path string, body []byte, requestID string) (ProxyResponse, error) {
+	tx, err := consensus.DecodeSignedApplicationAction(body)
+	if err != nil || tx.Verify(s.cfg.ChainID) != nil {
+		return ProxyResponse{}, errors.New("BFT Resource sponsor mutation requires one valid client-signed action")
+	}
+	if !resourceSponsorPathMatchesAction(path, tx) {
+		return ProxyResponse{}, errors.New("client-signed Resource sponsor action does not match requested route")
+	}
+	resp, responseBody, err := s.doBFTRequest(ctx, http.MethodPost, path, "", body, requestID)
+	if err != nil {
+		return ProxyResponse{}, err
+	}
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		if err := verifyBFTSponsorGatewayResponse(tx, body, responseBody); err != nil {
+			return ProxyResponse{}, err
+		}
+	}
+	return ProxyResponse{Status: resp.StatusCode, ContentType: "application/json", Body: responseBody}, nil
+}
+
+func (s *Service) proxyBFTSignedSponsorRead(ctx context.Context, path, rawQuery, requestID string) (ProxyResponse, error) {
+	resp, body, err := s.doBFTRequest(ctx, http.MethodGet, path, rawQuery, nil, requestID)
+	if err != nil {
+		return ProxyResponse{}, err
+	}
+	return ProxyResponse{Status: resp.StatusCode, ContentType: "application/json", Body: body}, nil
+}
+
+func resourceSponsorPathMatchesAction(path string, tx consensus.SignedApplicationAction) bool {
+	switch tx.Action {
+	case consensus.ActionResourcePoolCreate:
+		return path == "/resource-market/pools"
+	case consensus.ActionResourcePoolFund:
+		var p consensus.ResourcePoolFundPayload
+		return json.Unmarshal(tx.Payload, &p) == nil && path == "/resource-market/pools/"+p.PoolID+"/fund"
+	case consensus.ActionResourcePoolPolicy:
+		var p consensus.ResourcePoolPolicyPayload
+		return json.Unmarshal(tx.Payload, &p) == nil && path == "/resource-market/pools/"+p.PoolID+"/policy"
+	case consensus.ActionResourcePoolStatus:
+		var p consensus.ResourcePoolStatusPayload
+		return json.Unmarshal(tx.Payload, &p) == nil && path == "/resource-market/pools/"+p.PoolID+"/status"
+	case consensus.ActionResourceSponsor:
+		return path == "/resource-market/sponsorships"
+	default:
+		return false
+	}
+}
+
+func verifyBFTSponsorGatewayResponse(tx consensus.SignedApplicationAction, raw, response []byte) error {
+	txHash := consensus.ApplicationActionHash(raw)
+	var envelope struct {
+		Pool        *consensus.BFTResourcePool        `json:"pool"`
+		Sponsorship *consensus.BFTResourceSponsorship `json:"sponsorship"`
+		Transaction chain.Transaction                 `json:"transaction"`
+	}
+	if json.Unmarshal(response, &envelope) != nil || envelope.Transaction.Hash != txHash || envelope.Transaction.From != tx.Signer || envelope.Transaction.Type != tx.Action || envelope.Transaction.Fee != 0 {
+		return errors.New("BFT Resource sponsor response transaction evidence mismatch")
+	}
+	if tx.Action == consensus.ActionResourceSponsor {
+		if envelope.Sponsorship == nil || envelope.Pool != nil || envelope.Sponsorship.TxHash != txHash || envelope.Sponsorship.Beneficiary != tx.Signer {
+			return errors.New("BFT Resource sponsorship response mismatch")
+		}
+		return nil
+	}
+	if envelope.Pool == nil || envelope.Sponsorship != nil || envelope.Pool.Owner != tx.Signer || envelope.Pool.TxHash != txHash || envelope.Pool.LastAction != tx.Action {
+		return errors.New("BFT Resource pool response mismatch")
+	}
+	return nil
 }
 
 func (s *Service) proxyBFTResourceRead(ctx context.Context, path, rawQuery, requestID string) (ProxyResponse, error) {

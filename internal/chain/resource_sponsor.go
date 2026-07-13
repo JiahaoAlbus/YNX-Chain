@@ -637,6 +637,10 @@ func resourcePoolPolicyHash(pool ResourcePool) string {
 	return resourceSponsorRequestHash("resource_pool_policy_v1", doc)
 }
 
+// ResourcePoolPolicyHash returns the canonical policy commitment shared by
+// authoritative and CometBFT runtimes.
+func ResourcePoolPolicyHash(pool ResourcePool) string { return resourcePoolPolicyHash(pool) }
+
 func resourceSponsorRequestHash(action string, payload any) string {
 	raw, _ := json.Marshal(struct {
 		Domain  string `json:"domain"`

@@ -228,5 +228,28 @@ func buildBFTResourceAnalytics(migration chain.ConsensusMigrationState, state Co
 		result.ProviderIncomeYNXT += value.ProviderIncomeYNXT
 		result.ProtocolFeeYNXT += value.ProtocolFeeYNXT
 	}
+	for _, pool := range state.ResourcePools {
+		if pool.PoolType == "merchant" {
+			result.MerchantPoolCount++
+		} else if pool.PoolType == "dapp" {
+			result.DAppPoolCount++
+		}
+		if pool.Status == "active" {
+			result.ActiveSponsorPoolCount++
+		}
+	}
+	result.SponsorshipCount = len(state.ResourceSponsorships)
+	for _, value := range state.ResourceSponsorships {
+		switch value.ResourceType {
+		case "bandwidth":
+			result.SponsoredResources.Bandwidth += value.Amount
+		case "compute":
+			result.SponsoredResources.Compute += value.Amount
+		case "ai_credits":
+			result.SponsoredResources.AICredits += value.Amount
+		case "trust_credits":
+			result.SponsoredResources.TrustCredits += value.Amount
+		}
+	}
 	return result
 }

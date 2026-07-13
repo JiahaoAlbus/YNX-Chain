@@ -312,6 +312,16 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /resource-market/rentals/{id}", g.handleResourceRental)
 	g.mux.HandleFunc("GET /resource-market/income/{address}", g.handleResourceIncome)
 	g.mux.HandleFunc("GET /resource-market/idempotency", g.handleResourceIdempotency)
+	g.mux.HandleFunc("POST /resource-market/pools", g.handleResourceSponsorMutation)
+	g.mux.HandleFunc("GET /resource-market/pools", g.handleResourcePools)
+	g.mux.HandleFunc("GET /resource-market/pools/{id}", g.handleResourcePool)
+	g.mux.HandleFunc("POST /resource-market/pools/{id}/fund", g.handleResourceSponsorMutation)
+	g.mux.HandleFunc("POST /resource-market/pools/{id}/policy", g.handleResourceSponsorMutation)
+	g.mux.HandleFunc("POST /resource-market/pools/{id}/status", g.handleResourceSponsorMutation)
+	g.mux.HandleFunc("POST /resource-market/sponsorships", g.handleResourceSponsorMutation)
+	g.mux.HandleFunc("GET /resource-market/sponsorships", g.handleResourceSponsorships)
+	g.mux.HandleFunc("GET /resource-market/sponsorships/{id}", g.handleResourceSponsorship)
+	g.mux.HandleFunc("GET /resource-market/sponsor-audit", g.handleResourceSponsorAudit)
 	g.mux.HandleFunc("GET /resources/{address}", g.handleResourceBalance)
 	g.mux.HandleFunc("POST /governance/requests", g.handleTrustMutation)
 	g.mux.HandleFunc("GET /governance/requests/{id}", g.handleGovernanceRequest)
@@ -514,6 +524,15 @@ func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error)
 		if err != nil {
 			return chain.Block{}, errors.New("block contains an unsupported transaction envelope")
 		}
+		if tx.Type == consensus.ActionResourceSponsor {
+			id := "rss_" + consensus.ApplicationActionRecordID("resource-sponsorship", tx.Hash)
+			var record consensus.BFTResourceSponsorship
+			if err := g.queryABCIJSON(ctx, "/resource/sponsorships/"+id, &record); err != nil || record.TxHash != tx.Hash || record.Beneficiary != tx.From {
+				return chain.Block{}, errors.New("committed Resource sponsorship evidence mismatch")
+			}
+			tx.Sponsor, tx.SponsorPoolID, tx.ResourceSource = record.Sponsor, record.PoolID, record.ResourceSource
+			tx.ResourceType, tx.ResourceConsumed, tx.ActionReference = record.ResourceType, record.Amount, record.ActionReference
+		}
 		transactions = append(transactions, tx)
 	}
 	parentHash := strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash)
@@ -554,6 +573,13 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 				return chain.Transaction{}, errors.New("invalid IDE contract call payload")
 			}
 			mapped.To = call.Address
+		}
+		if tx.Action == consensus.ActionResourceSponsor {
+			var sponsor consensus.ResourceSponsorshipPayload
+			if json.Unmarshal(tx.Payload, &sponsor) != nil {
+				return chain.Transaction{}, errors.New("invalid Resource sponsorship payload")
+			}
+			mapped.SponsorPoolID, mapped.ResourceType, mapped.ResourceConsumed, mapped.ActionReference = sponsor.PoolID, sponsor.ResourceType, sponsor.Amount, sponsor.ActionReference
 		}
 		return mapped, nil
 	}

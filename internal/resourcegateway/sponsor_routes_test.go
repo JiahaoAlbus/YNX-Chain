@@ -9,12 +9,14 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-func TestResourceSponsorRoutesProxyAuthoritativeAndStayUnclaimedInBFT(t *testing.T) {
+func TestResourceSponsorRoutesProxyAuthoritativeAndRelayClientSignedBFT(t *testing.T) {
 	var mu sync.Mutex
 	seen := map[string]int{}
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +25,20 @@ func TestResourceSponsorRoutesProxyAuthoritativeAndStayUnclaimedInBFT(t *testing
 			return
 		}
 		if r.Header.Get("X-YNX-Resource-Gateway-Upstream-Key") != testUpstreamKey {
+			if r.Method == http.MethodPost && r.URL.Path == "/resource-market/pools" {
+				var tx consensus.SignedApplicationAction
+				if err := json.NewDecoder(r.Body).Decode(&tx); err != nil || tx.Verify(6423) != nil {
+					http.Error(w, "invalid signed action", http.StatusBadRequest)
+					return
+				}
+				raw, _ := consensus.EncodeSignedApplicationAction(tx)
+				txHash := consensus.ApplicationActionHash(raw)
+				pool := consensus.BFTResourcePool{ResourcePool: chain.ResourcePool{ID: "rsp_" + consensus.ApplicationActionRecordID("resource-pool", txHash), Owner: tx.Signer}, LastAction: tx.Action, LastSigner: tx.Signer, TxHash: txHash}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusCreated)
+				_ = json.NewEncoder(w).Encode(map[string]any{"pool": pool, "transaction": chain.Transaction{Hash: txHash, Type: tx.Action, From: tx.Signer, Fee: tx.Fee}})
+				return
+			}
 			http.Error(w, "missing upstream key", http.StatusUnauthorized)
 			return
 		}
@@ -64,14 +80,19 @@ func TestResourceSponsorRoutesProxyAuthoritativeAndStayUnclaimedInBFT(t *testing
 	}
 	mu.Unlock()
 
-	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 99))
-	signer, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
-	bft, err := New(Config{ChainURL: upstream.URL, APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKey: hex.EncodeToString(key.Serialize()), SignerAddress: signer, ChainID: 6423, AuditLog: t.TempDir() + "/bft-audit.jsonl"})
+	serviceKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 99))
+	serviceSigner, _ := consensus.NativeAddress(serviceKey.PubKey().SerializeCompressed())
+	bft, err := New(Config{ChainURL: upstream.URL, APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKey: hex.EncodeToString(serviceKey.Serialize()), SignerAddress: serviceSigner, ChainID: 6423, AuditLog: t.TempDir() + "/bft-audit.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := bft.Proxy(context.Background(), http.MethodPost, "/resource-market/pools", "", []byte(`{}`), "bft-unclaimed")
-	if err != nil || result.Status != http.StatusNotImplemented || !strings.Contains(string(result.Body), "remains unclaimed") {
-		t.Fatalf("BFT sponsor capability was not truthfully bounded: %+v %v", result, err)
+	userKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 100))
+	user, _ := consensus.NativeAddress(userKey.PubKey().SerializeCompressed())
+	payload := consensus.ResourcePoolCreatePayload{PoolType: "merchant", Name: "Client signed", Public: true, AllowedScopes: []string{"pay_api"}, AllowedResourceTypes: []string{"bandwidth"}, PerActionLimit: chain.ResourceUnits{Bandwidth: 1}, CumulativeAllowance: chain.ResourceUnits{Bandwidth: 2}, ExpiresAt: time.Now().UTC().Add(time.Hour), IdempotencyKey: "client-signed-pool"}
+	tx, _ := consensus.NewSignedApplicationAction(userKey, 6423, consensus.ActionResourcePoolCreate, payload, 1)
+	raw, _ := consensus.EncodeSignedApplicationAction(tx)
+	result, err := bft.Proxy(context.Background(), http.MethodPost, "/resource-market/pools", "", raw, "bft-client-signed")
+	if err != nil || result.Status != http.StatusCreated || !strings.Contains(string(result.Body), user) || strings.Contains(string(result.Body), serviceSigner) {
+		t.Fatalf("BFT sponsor action was not relayed with the client signer: %+v %v", result, err)
 	}
 }

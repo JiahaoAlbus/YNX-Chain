@@ -14,4 +14,4 @@ The local testnet engine models the YNX Chain resource economy without pretendin
 
 The current local split is 80 percent provider income and 20 percent protocol fee. Mainnet parameters require governance and public disclosure before launch.
 
-Sponsor pools are locally verified authoritative-runtime functionality. BFT promotion, remote deployment, and public proof are not claimed.
+Sponsor pools are locally verified in both the authoritative runtime and deterministic CometBFT/AppHash state. BFT actions require direct owner/beneficiary signatures and preserve fee-`0` resource-only accounting. Remote deployment and public proof are not claimed.

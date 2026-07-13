@@ -39,6 +39,11 @@ const (
 	ActionTrustTrackingCreate = "trust_tracking_review_create"
 	ActionResourceDelegate    = "resource_delegation_create"
 	ActionResourceRent        = "resource_rental_create"
+	ActionResourcePoolCreate  = "resource_pool_create"
+	ActionResourcePoolFund    = "resource_pool_fund"
+	ActionResourcePoolPolicy  = "resource_pool_policy_update"
+	ActionResourcePoolStatus  = "resource_pool_status_update"
+	ActionResourceSponsor     = "resource_sponsorship_consume"
 	ActionIDEContractDeploy   = "ide_contract_deploy"
 	ActionIDEContractCall     = "ide_contract_call"
 )
@@ -62,6 +67,11 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionTrustTrackingCreate: {},
 	ActionResourceDelegate:    {},
 	ActionResourceRent:        {},
+	ActionResourcePoolCreate:  {},
+	ActionResourcePoolFund:    {},
+	ActionResourcePoolPolicy:  {},
+	ActionResourcePoolStatus:  {},
+	ActionResourceSponsor:     {},
 	ActionIDEContractDeploy:   {},
 	ActionIDEContractCall:     {},
 }
@@ -195,6 +205,9 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 		PayloadHash: actionPayloadHash(canonicalPayload), Fee: SignedActionFeeYNXT,
 		PublicKey: hex.EncodeToString(publicKey),
 	}
+	if isResourceSponsorAction(action) {
+		tx.Fee = 0
+	}
 	if isResourceAction(action) || isIDEAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
@@ -246,8 +259,12 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.PayloadHash != actionPayloadHash(tx.Payload) {
 		return errors.New("application action payload hash mismatch")
 	}
-	if tx.Fee != SignedActionFeeYNXT {
-		return errors.New("application action must charge exactly 1 YNXT")
+	expectedFee := SignedActionFeeYNXT
+	if isResourceSponsorAction(tx.Action) {
+		expectedFee = 0
+	}
+	if tx.Fee != expectedFee {
+		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
 	if isResourceAction(tx.Action) || isIDEAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
