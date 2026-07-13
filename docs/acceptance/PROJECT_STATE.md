@@ -1,8 +1,8 @@
 # Project State
 
-- State snapshot baseline commit: `01f05fc Record deployed dual-address public proof`
-- Last pushed commit: `01f05fc Record deployed dual-address public proof`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; code commit is pushed and the only current changes are this post-deployment acceptance update.
+- State snapshot baseline commit: `4c3af99 Add owner custody handover inventory`
+- Last pushed commit: `4c3af99 Add owner custody handover inventory`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; owner-handover code commit `4c3af99a39c2` is pushed and the only current changes are this acceptance update.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `752ea31 Add dual-format YNX address converter`.
 - Vercel project `ynx-web4-website-new` (`prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa`) is now Git-connected to `JiahaoAlbus/YNX-Chain-website`, production branch `main`; the previous `ynx-web4-website-new` repository is no longer the automatic source.
 - Latest verified Vercel Git deployment: `dpl_HzXdQozR45aHva8VjAY6c4xZmgXM`, source repository `JiahaoAlbus/YNX-Chain-website`, branch `main`, exact commit `752ea31e509478be199c5ce2a6596a54df0b3398`, state `READY` and promoted to `www.ynxweb4.com`.
@@ -32,11 +32,13 @@ Completed modules:
 - Chain runtime, authoritative replication, RPC/EVM RPC, Faucet, Indexer, Explorer, monitoring, deployment, backup, rollback, AI action governance, Pay, Trust/Chain Law, Anti-Illegal Request, Request Validity, native YNXT protection, Appeal/Correction, Transparency, Resource Market, bounded IDE, and JS/Python SDK slices have real code and local tests. The authoritative public release provides operator-controlled public proof for the documented deployed subset.
 - Website repository selection, Vercel Git binding, production deployment, real API aggregation, responsive CSS chain interaction, truthful disclosure routes, SPA deep links, and the dual-format account converter are implemented and production verified.
 - Dual-format account addressing is implemented and remotely deployed: one canonical 20-byte account has lowercase EVM `0x...` and checksummed Bech32 `ynx1...` representations. Go/JS/Python shared vectors, signed-transfer canonicalization, REST boundary normalization, account-key public output, Explorer alias search/detail, dedicated Makefile checks, and operator-controlled public proof pass. EVM JSON-RPC and MetaMask remain on `0x...`.
+- Owner-handover tooling now classifies four validator identities, five future BFT service signers, the authoritative Faucet runtime account, the funded public proof account, and ephemeral smoke identities without reading secret values. `make owner-handover-check` is part of `make preflight` and fail-closes on tampering, stale commits, self-review, duplicate signers, unknown funded ownership, or incomplete recovery/handover assertions.
+- A real mode-`0600` unreviewed packet was generated at `/Volumes/Data/Users/huangjiahao/.ynx-chain-custody/owner-handover-packets/owner-handover-4c3af99a39c2-20260713T184628Z`, bound to inventory digest `sha256:1674f8d80b6a8e4f09150a1f004486e33890dbd3cceb0e0fad062ddfbd9adb30`. It contains 12 public identity/status records, 9 handover-required identities, zero unknown ownership records, and no secret material.
 
 Incomplete modules or requirements:
 
 - Public CometBFT voting and BFT service routing are not active. No production BFT mutation phase has run.
-- Offline recovery, owner handover, signer rotation evidence, remote signer installation, and independent custody review remain incomplete.
+- The owner packet is deliberately unacknowledged. Offline recovery, actual owner handover, signer rotation evidence, remote signer installation, and independent custody review remain incomplete; validation correctly rejects its default-false receipt.
 - Provider-backed AI generation proof is incomplete because upstream quota returns HTTP `429`.
 - Independent public-vantage evidence is absent.
 - SDK registry publication, signed versioning, independent consumer proof, mainnet audit/legal/custody, exchange listing, stablecoin issuer support, wallet default support, production bridge readiness, and third-party partnerships remain incomplete and are not claimed.
@@ -50,4 +52,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Build and verify an owner-facing custody handover inventory and offline recovery receipt for every chain-controlled validator/service signer and operational wallet, without exposing secret material or mutating the public network. This is the next locally actionable prerequisite to independent custody review and any later public BFT transaction.
+- Bind the production custody review to an exact, independently validated owner-handover receipt and inventory digest. The current review gate can validate its own recovery assertions but does not yet require the separate 12-record owner inventory/receipt evidence chain.

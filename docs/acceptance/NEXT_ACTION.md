@@ -1,33 +1,37 @@
 # Next Action
 
-Current single action: produce a verifiable, non-secret owner custody handover inventory and offline recovery receipt for every chain-controlled validator key, service signer, faucet/operator signer, and explicitly documented test/development wallet.
+Current single action: bind production custody review to the exact validated owner-handover receipt and inventory digest.
 
 Why this action:
 
-- The dual-format chain feature and production website converter are now deployed and verified.
-- Public BFT remains blocked by incomplete offline recovery, owner handover, rotation evidence, remote service-signer readiness, and independent custody review.
-- The user explicitly requires ownership of development-team-controlled wallets and signers to be handed over at final delivery.
+- The public identity inventory and mode-`0600` default-false owner packet now exist and are locally verified.
+- The current production custody review independently repeats recovery/handover assertions but does not require the owner receipt, so the evidence chain is not yet end-to-end.
+- Public BFT must remain impossible until the owner receipt, independent custody review, and transaction approval all bind the same commit and signer identities.
 
 Required behavior:
 
-- Discover key and wallet roles from source, deployment manifests, server inventories, and existing custody ceremony metadata without reading or printing secret values.
-- Classify each role as production validator, service signer, faucet/operator signer, funded test account, deterministic smoke-only account, or external/unknown ownership.
-- Record only public identity, role, environment, custody location class, recovery status, rotation status, remote-install status, and handover receipt state.
-- Generate an owner-local mode-`0600` handover receipt template that binds the exact public inventory digest and requires explicit owner acknowledgement.
-- Verify an offline recovery copy by public-identity derivation or checksum binding without committing, uploading, or displaying private keys, mnemonics, PEM contents, or secret paths that expose credentials.
-- Fail closed on duplicate public identities, missing role ownership, unclassified funded accounts, stale manifests, incomplete recovery evidence, or a receipt signed by the same person acting as independent reviewer.
-- Keep the authoritative public network online and unchanged throughout this slice.
+- Extend the production custody review packet with owner-handover inventory digest, inventory file SHA-256, receipt SHA-256, owner identity, and independent owner-handover reviewer identity.
+- Invoke `validate-owner-handover-receipt.mjs` from the production custody validator and compare its commit, five service signers, recovery/handover/rotation assertions, and exact hashes.
+- Require the production custody reviewer to differ from both the owner and owner-handover reviewer.
+- Reject missing, unacknowledged, stale, expired, self-reviewed, tampered, mismatched-manifest, or free-form owner evidence.
+- Propagate the exact owner evidence hashes into custody validation output so later freeze/cutover approval cannot substitute another packet.
+- Keep the real packet unacknowledged until external owner and independent-review procedures actually occur.
 
 Files to touch:
 
-- Custody and acceptance tooling in the chain repository.
-- Owner-local ignored custody artifacts only under the existing protected custody root.
-- No website changes unless a later verified public, non-secret custody/readiness status needs truthful publication.
+- `scripts/ops/write-production-custody-review-packet.mjs`
+- `scripts/verify/validate-production-custody-review.mjs`
+- `scripts/verify/production-custody-review-check.sh`
+- Transaction fixture/check files that construct production custody reviews
+- Custody and acceptance documentation
 
 Validation commands:
 
-- focused unit and fixture tests for inventory classification, digest binding, receipt validation, and failure cases
-- existing custody review and production driver checks
+- `make owner-handover-check`
+- `make production-custody-review-check`
+- `make public-bft-freeze-rehearsal-transaction-check`
+- `make public-bft-cutover-transaction-check`
+- `make public-bft-production-driver-check`
 - `go test ./...`
 - `make test`
 - `make no-placeholder-check`
@@ -38,13 +42,14 @@ Validation commands:
 
 Completion standard:
 
-- Every discovered chain-controlled identity has a unique role and explicit ownership/recovery/handover state.
-- The owner receipt is cryptographically bound to the public inventory while secret material remains outside Git and command output.
-- Incomplete or ambiguous custody remains visibly false; no public BFT readiness claim is made.
+- No production custody review validates without an exact valid owner receipt and inventory.
+- Owner, owner-handover reviewer, custody reviewer, and transaction approver separation is enforced at the appropriate gates.
+- Exact hashes and commit identity propagate through owner receipt, custody review, and transaction approval evidence.
+- Incomplete real-world handover remains visibly false; no signer install, network mutation, or public BFT claim occurs.
 
 Explicitly not doing:
 
 - No private key, mnemonic, PEM, token, or secret environment value may be printed, committed, uploaded, or placed on the website.
-- No remote signer installation, account funding, freeze, pause, ingress switch, BFT candidate start, or public cutover without the separate recovery and independent-approval gates.
+- No remote signer installation, account funding, freeze, pause, ingress switch, BFT candidate start, or public cutover.
 - No expansion of bounded EVM opcodes, Counter/Hardhat artifacts, or IDE execution.
 - Do not modify or replace the long-term goal file.
