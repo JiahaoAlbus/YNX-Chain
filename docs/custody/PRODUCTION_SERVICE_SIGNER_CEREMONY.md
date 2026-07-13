@@ -6,7 +6,7 @@ YNX Chain uses five distinct secp256k1 signer roles for the future BFT-mode Fauc
 
 `make production-service-signer-ceremony-check` uses disposable keys to prove distinct addresses, restrictive modes, recovery-copy equality, non-overwrite behavior, and tamper rejection. It does not install or fund a key.
 
-The owner-local ceremony at `/Users/huangjiahao/.ynx-chain-custody/production-service-signers/service-signers-20260713T091747Z` created five distinct signer identities. Its public manifest SHA-256 is `274583cc4a6984d795b9e6284a9f2f201b3279f81dface4ba1e4c7d5b6a297bf`. The `recovery-staging` directory is on the same machine and is not claimed as an offline backup. Remote install, offline recovery, owner handover, rotation, and independent review remain false.
+The first ceremony was generated on a non-FileVault startup volume, never uploaded or funded, then abandoned and deleted. Its identities are forbidden for production use. The active owner-local ceremony was regenerated directly on the separate FileVault-protected volume at `/Volumes/Data/Users/huangjiahao/.ynx-chain-custody/production-service-signers/service-signers-20260713T101647Z`. Its public manifest SHA-256 is `89ea82399b1c9907d5ed4a61132dceb068d0fbe136c1e7780b2e88b654d69ae3`. The `recovery-staging` directory is encrypted at rest but remains on the same volume and is not claimed as an offline backup. Remote install, offline recovery, owner handover, rotation, and independent review remain false.
 
 Before remote installation:
 
