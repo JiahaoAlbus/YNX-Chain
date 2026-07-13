@@ -21,6 +21,7 @@ make ai-gateway-check
 make pay-api-check
 make trust-api-check
 make resource-api-check
+make sdk-check
 make validator-peer-readiness-check
 make anti-illegal-request-check
 make request-validity-check

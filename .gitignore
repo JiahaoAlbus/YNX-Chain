@@ -21,6 +21,8 @@ coverage/
 artifacts/
 cache/
 node_modules/
+__pycache__/
+*.pyc
 *.log
 tmp/
 .ynx-smoke/

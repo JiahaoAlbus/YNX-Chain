@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ynx-chain-sdk"
+version = "0.1.0"
+description = "Dependency-free Python client for YNX Chain status and EVM JSON-RPC"
+readme = "README.md"
+requires-python = ">=3.9"
+
+[tool.setuptools]
+py-modules = ["ynx_client"]

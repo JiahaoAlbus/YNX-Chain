@@ -6,6 +6,7 @@ cd "$(dirname "$0")/../.."
 source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
 trap ynx_stop_local_testnet EXIT
+export YNX_EVM_URL="$YNX_EVM_RPC_URL"
 
 developer="ynx_developer_quickstart"
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d "{\"address\":\"$developer\",\"amount\":1000}" >/dev/null
@@ -45,17 +46,21 @@ curl -fsS "$YNX_REST_URL/resource-market/analytics" >/dev/null
 curl -fsS -X POST "$YNX_REST_URL/pay/intents" -H 'content-type: application/json' -d '{"merchant":"developer_quickstart","amount":1}' >/dev/null
 
 node --input-type=module - <<'NODE'
-import {ynxTestnet} from "./sdk/js/index.js";
+import {YNXClient, assertYNXTestnetSnapshot, ynxTestnet} from "./sdk/js/index.js";
 if (ynxTestnet.chainId !== "0x1917") throw new Error("SDK chainId mismatch");
 if (ynxTestnet.nativeCurrency.symbol !== "YNXT") throw new Error("SDK native symbol mismatch");
-console.log("js sdk metadata ok");
+const snapshot = assertYNXTestnetSnapshot(await new YNXClient({restUrl: process.env.YNX_REST_URL, evmUrl: process.env.YNX_EVM_URL}).getChainSnapshot());
+if (snapshot.status.height !== snapshot.evmBlockNumber) throw new Error("local SDK heights differ");
+console.log("js sdk local request path ok");
 NODE
 
-python3 - <<'PY'
-from pathlib import Path
-source = Path("sdk/python/ynx_client.py").read_text()
-assert "def get_status" in source
-print("python sdk source ok")
+PYTHONPATH=sdk/python python3 - <<'PY'
+import os
+from ynx_client import YNXClient, assert_ynx_testnet_snapshot
+
+snapshot = assert_ynx_testnet_snapshot(YNXClient(os.environ["YNX_REST_URL"], os.environ["YNX_EVM_URL"]).get_chain_snapshot())
+assert snapshot["status"]["height"] == snapshot["evmBlockNumber"]
+print("python sdk local request path ok")
 PY
 
 echo "developer-quickstart-check passed: contract=$contract_address"
