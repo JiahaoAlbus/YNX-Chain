@@ -6,10 +6,12 @@ cd "$(dirname "$0")/../.."
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
-mkdir -p "$repo/scripts/ops" "$repo/scripts/verify"
+mkdir -p "$repo/scripts/ops" "$repo/scripts/verify/lib"
 cp scripts/ops/public-bft-freeze-rehearsal-transaction.sh "$repo/scripts/ops/"
 cp scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-production-custody-review.mjs "$repo/scripts/verify/"
+cp scripts/verify/validate-owner-handover-receipt.mjs "$repo/scripts/verify/"
+cp scripts/verify/lib/owner-handover.mjs "$repo/scripts/verify/lib/"
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
 git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'freeze rehearsal fixture'
@@ -18,10 +20,16 @@ release="ynx-bft-gateway-${commit}"
 future="$(date -u -v+1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"
 reviewed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 service_signer_manifest_sha="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+owner_binding="$(node scripts/verify/write-owner-handover-fixture.mjs "$tmp" "$commit")"
 custody_review="$tmp/custody-review.json"
 cat >"$custody_review" <<EOF
 {"schemaVersion":1,"action":"ynx-production-custody-review","reviewId":"review-${commit}","reviewer":"custody self test","reviewed":true,"commit":"${commit}","publicManifestSha256":"${service_signer_manifest_sha}","sourceCeremonyStatusSha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","signerCount":5,"records":[{"role":"faucet","purpose":"ynx-production-faucet-signer","address":"0x1111111111111111111111111111111111111111"},{"role":"ai","purpose":"ynx-production-ai-signer","address":"0x2222222222222222222222222222222222222222"},{"role":"pay","purpose":"ynx-production-pay-signer","address":"0x3333333333333333333333333333333333333333"},{"role":"trust","purpose":"ynx-production-trust-signer","address":"0x4444444444444444444444444444444444444444"},{"role":"resource","purpose":"ynx-production-resource-signer","address":"0x5555555555555555555555555555555555555555"}],"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"validatorRecoveryEvidence":"offline:validator-restore-001","serviceSignerRecoveryEvidence":"offline:service-restore-001","ownerHandoverEvidence":"handover:owner-ack-001","rotationProcedureEvidence":"rotation:review-001","reviewedAt":"${reviewed_at}","expiresAt":"${future}"}
 EOF
+node - "$custody_review" "$owner_binding" <<'NODE'
+const fs=require("fs"),[file,binding]=process.argv.slice(2),review=JSON.parse(fs.readFileSync(file));
+Object.assign(review,JSON.parse(binding));
+fs.writeFileSync(file,`${JSON.stringify(review)}\n`,{mode:0o600});
+NODE
 chmod 600 "$custody_review"
 custody_evidence="sha256:$(shasum -a 256 "$custody_review" | awk '{print $1}')"
 
@@ -124,6 +132,12 @@ write_approval rejected-self-review "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.custodyReviewer=a.approver; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
 if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review "$custody_review") >/dev/null 2>&1; then
   echo "self-reviewed custody approval unexpectedly passed" >&2
+  exit 1
+fi
+write_approval rejected-owner-approver "$approval"
+node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p));a.approver="owner fixture";fs.writeFileSync(p,JSON.stringify(a));' "$approval"
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-owner-approver "$custody_review") >/dev/null 2>&1; then
+  echo "owner acting as freeze approver unexpectedly passed" >&2
   exit 1
 fi
 chmod 644 "$approval"

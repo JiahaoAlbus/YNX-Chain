@@ -21,6 +21,9 @@ if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover"
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "") || typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approval evidence attribution is invalid");
 if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3 || approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("approval evidence independent custody attribution is invalid");
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("approval evidence custody review hash is invalid");
+const participants = [approval.approver, approval.custodyReviewer, approval.owner, approval.ownerHandoverReviewer].map((value) => String(value || "").trim().toLowerCase());
+if (participants.some((value) => value.length < 3) || new Set(participants).size !== participants.length) fail("approval evidence role separation is invalid");
+if (!/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverInventoryDigest || "") || !/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverInventoryEvidence || "") || !/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverReceiptEvidence || "")) fail("approval owner handover evidence is invalid");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("automatic rollback is not authorized");
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
 if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
@@ -35,6 +38,11 @@ process.stdout.write(`${JSON.stringify({
   approver: approval.approver.trim(),
   custodyReviewer: approval.custodyReviewer.trim(),
   custodyEvidence: approval.custodyEvidence.trim(),
+  owner: approval.owner.trim(),
+  ownerHandoverReviewer: approval.ownerHandoverReviewer.trim(),
+  ownerHandoverInventoryDigest: approval.ownerHandoverInventoryDigest,
+  ownerHandoverInventoryEvidence: approval.ownerHandoverInventoryEvidence,
+  ownerHandoverReceiptEvidence: approval.ownerHandoverReceiptEvidence,
   commit: expectedCommit,
   release: expectedRelease,
   publicCutoverAuthorized: true,

@@ -52,6 +52,8 @@ try {
   fail(`custody review validation failed: ${error.stderr?.toString().trim() || error.message}`);
 }
 if (custodyReview.reviewer.toLowerCase() !== approval.custodyReviewer.trim().toLowerCase() || custodyReview.custodyEvidence !== approval.custodyEvidence.trim()) fail("custody review attribution or exact file hash differs from approval");
+const participants = [approval.approver, custodyReview.reviewer, custodyReview.owner, custodyReview.ownerHandoverReviewer].map((value) => String(value || "").trim().toLowerCase());
+if (participants.some((value) => value.length < 3) || new Set(participants).size !== participants.length) fail("transaction approver, custody reviewer, owner, and owner handover reviewer must be distinct");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
 }
@@ -72,6 +74,11 @@ process.stdout.write(JSON.stringify({
   approver: approval.approver.trim(),
   custodyReviewer: approval.custodyReviewer.trim(),
   custodyEvidence: approval.custodyEvidence.trim(),
+  owner: custodyReview.owner,
+  ownerHandoverReviewer: custodyReview.ownerHandoverReviewer,
+  ownerHandoverInventoryDigest: custodyReview.ownerHandoverInventoryDigest,
+  ownerHandoverInventoryEvidence: custodyReview.ownerHandoverInventoryEvidence,
+  ownerHandoverReceiptEvidence: custodyReview.ownerHandoverReceiptEvidence,
   commit: expectedCommit,
   release: expectedRelease,
   publicCutoverAuthorized: true,
