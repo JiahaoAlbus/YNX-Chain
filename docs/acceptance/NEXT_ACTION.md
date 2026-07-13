@@ -1,42 +1,40 @@
 # Next Action
 
-Current single action: promote sponsored resource pools into deterministic CometBFT state without taking custody of owner or user keys.
+Current single action: make the JavaScript and Python SDK release process reproducible and independently verifiable without publishing unapproved packages.
 
 Why this action:
 
-- Commit `6571cf34afac` completes the persistent authoritative merchant/dApp pool and sponsored-resource slice locally.
-- The largest remaining implementation boundary for this feature is consensus: pool and sponsorship state is not in AppHash and BFT mode truthfully returns `501`.
-- Public BFT cutover remains externally gated, but local deterministic consensus code, signed clients, ABCI queries, and four-application equality tests can advance without remote secrets or approvals.
+- Commit `563fe1f36918` completes the local deterministic BFT boundary for sponsored resource pools and passes the full preflight suite.
+- Remote BFT promotion is correctly blocked on external owner handover, offline recovery, independent custody review, and exact transaction approval; those facts cannot be manufactured in code.
+- The SDKs have tested local clients and live read-only compatibility, but still lack a canonical release manifest, signed versioning, registry publication, and independent clean-consumer evidence.
+- Reproducible artifacts and detached-signature verification can be implemented and tested locally without registry credentials or private signing keys.
 
 Required behavior:
 
-- Add canonical signed application actions for pool create, fund, policy update, pause/resume/revoke, and sponsorship consumption.
-- Require the actual pool owner to sign lifecycle actions and the actual beneficiary to sign sponsored actions; never let `ynx-resourced` or another service signer impersonate them.
-- Bind chain ID, action, canonical typed payload, policy hash, next account nonce, idempotency key, and action reference in the signed envelope.
-- Commit pools, allowance/consumption, exact replay snapshots, action-reference uniqueness, audit events, and sponsorship records into deterministic AppHash state.
-- Preserve resource-only accounting: no YNXT transfer, hidden fee payer, sender replacement, arbitrary third-party signing, auto-debit, or admin seizure.
-- Reject stale nonce/policy, wrong owner/beneficiary, invalid signature, expired/paused/revoked pool, disallowed scope/beneficiary/type, per-action/cumulative exhaustion, overflow, changed replay, duplicate action reference, and concurrent/deterministic ordering conflicts.
-- Expose ABCI queries and bounded BFT Gateway/Resource Gateway routes for pool, sponsorship, audit, analytics, transaction, and Explorer source evidence.
-- Keep authoritative rollback mode compatible and fail closed when BFT sponsor capability is absent.
-- Add unit/race/AppHash/four-application/restart/query/Gateway/Explorer tests, a dedicated check target, package wiring, and truthful docs only after code exists.
+- Define one canonical SDK release manifest binding chain IDs, native symbol, package names, semantic versions, source commit, shared address-vector digest, artifact filenames, artifact SHA-256 values, and build commands.
+- Produce deterministic JavaScript and Python source/package archives from a clean tracked-file set with normalized ordering, timestamps, ownership, and permissions.
+- Verify that manifest metadata matches both package definitions and that artifacts unpack to the expected bounded files without path traversal, extra files, symlinks, or generated secret material.
+- Add detached-signature support that accepts an owner-provided public key and signature file, verifies the exact manifest bytes, and never generates, reads, or stores an owner private key.
+- Add clean temporary-environment consumer tests that install only the produced artifacts, import both SDKs, verify chain metadata and shared address vectors, and exercise mocked REST/EVM error and timeout behavior.
+- Keep npm/PyPI publication as a separate owner-approved operation. Local package generation must never be labeled registry publication.
+- Wire focused checks into `make test` or `make preflight`, package/readiness outputs, and API/developer documentation only after the implementation exists.
 
 Files to touch:
 
-- `internal/consensus` action, application, state, query, digest, and migration models
-- `internal/bftgateway` and `internal/resourcegateway`
-- `internal/explorer` and relevant indexer transaction evidence
-- verification/package scripts and acceptance/API docs after implementation
+- `sdk/js` and `sdk/python`
+- `testdata/address-vectors.json`
+- `scripts/package` and `scripts/verify`
+- `Makefile`
+- SDK/developer and acceptance documentation after real code and tests exist
 
 Validation commands:
 
-- focused signed-action, deterministic-state, replay, policy, accounting, query, and four-application equality tests
-- a dedicated BFT sponsor/resource-pool Make target
+- focused deterministic build, tamper, traversal, metadata-mismatch, detached-signature, and clean-consumer tests
+- a dedicated SDK release-integrity Make target
+- `make sdk-check`
+- `make address-codec-check`
 - `go test ./...`
 - `make test`
-- `make resource-sponsor-check`
-- `make bft-resource-action-check`
-- `make resource-api-check`
-- `make explorer-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -45,14 +43,15 @@ Validation commands:
 
 Completion standard:
 
-- Direct owner/beneficiary-signed pool and sponsorship actions produce identical committed state/AppHash across independent applications, survive restart/query, preserve resource and asset invariants, and expose real indexed sponsor evidence.
-- BFT mode no longer returns `501` only after all deterministic state, signed relay, query, idempotency, and Explorer tests pass.
-- Status remains local/not remotely proven until an exact approved release is deployed and public transaction/Explorer evidence is independently verified.
+- Two clean builds from the same tracked source produce byte-identical JavaScript and Python artifacts and an exact canonical manifest.
+- Any changed artifact, metadata field, vector, signature, unexpected archive entry, or package content fails closed.
+- A clean consumer installs both local artifacts and passes bounded SDK/address/metadata tests without importing source directly from the repository.
+- Status remains package-ready/local-only until owner-approved npm/PyPI publication and independent registry-consumer proof actually occur.
 
 Explicitly not doing:
 
-- No Gateway-owned key may sign pool-owner or beneficiary actions.
+- No npm/PyPI login, publication, namespace claim, package overwrite, or owner-signing-key generation without explicit owner approval.
+- No claim of registry publication, wallet default support, exchange listing, stablecoin issuer support, partnership, mainnet launch, or public BFT completion.
 - No public BFT freeze, signer install, ingress switch, or cutover without the existing custody, recovery, independent-review, and transaction approvals.
-- No arbitrary account abstraction, sponsored token transfer, hidden balance movement, Stablecoin execution, Bridge external adapter, or mainnet/exchange/wallet-default/partnership claim.
 - No expansion of bounded EVM opcodes, Counter/Hardhat artifacts, or IDE execution.
 - Do not modify or replace the long-term goal file.
