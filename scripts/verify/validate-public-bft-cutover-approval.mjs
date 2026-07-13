@@ -34,16 +34,29 @@ if (approval.commit !== expectedCommit || approval.release !== expectedRelease) 
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
   fail("explicit cutover authorization and automatic rollback consent are required");
 }
+if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
+  fail("validatorManifestSha256 is required");
+}
+if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "") || !Number.isFinite(Date.parse(approval.candidateGenesisTime))) {
+  fail("candidateGenesisTime must be whole-second UTC RFC3339");
+}
 const expiresAt = Date.parse(approval.expiresAt || "");
 if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() || expiresAt > Date.now() + 24 * 60 * 60 * 1000) {
   fail("expiresAt must be in the future and no more than 24 hours away");
 }
+if (Date.parse(approval.candidateGenesisTime) > expiresAt) fail("candidateGenesisTime must not exceed approval expiry");
 
 process.stdout.write(JSON.stringify({
   schemaVersion: 1,
+  action: "ynx-public-bft-cutover",
+  approved: true,
   approvalId: approval.approvalId,
   approver: approval.approver.trim(),
   commit: expectedCommit,
   release: expectedRelease,
-  expiresAt: new Date(expiresAt).toISOString(),
+  publicCutoverAuthorized: true,
+  automaticRollbackRequired: true,
+  validatorManifestSha256: approval.validatorManifestSha256,
+  candidateGenesisTime: approval.candidateGenesisTime,
+  expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),
 }) + "\n");

@@ -158,6 +158,7 @@ public-bft-production-recovery-check:
 
 public-bft-production-driver-check:
 	bash ./scripts/verify/public-bft-production-driver-check.sh
+	bash ./scripts/verify/public-bft-production-candidate-check.sh
 
 mutation-freeze-check:
 	bash ./scripts/verify/mutation-freeze-check.sh

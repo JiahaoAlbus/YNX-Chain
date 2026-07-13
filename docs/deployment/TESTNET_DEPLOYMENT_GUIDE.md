@@ -123,6 +123,8 @@ CONSENSUS_CANDIDATE_PACKAGE=<package-dir> \
 
 The remote verifier reads only loopback CometBFT RPC through strict SSH and writes `tmp/consensus-candidate-evidence/consensus-candidate-evidence.json`. A pass requires a common height/hash, the exact approved validator set, a greater-than-two-thirds commit, and all three approved peers on every node. Its output explicitly keeps `publicCutoverAuthorized` false; it is candidate evidence, not public proof.
 
+Inside the full production transaction, do not prebuild an unrelated candidate package. `deploy_candidate` requires the transaction-local final snapshot plus a cutover approval that binds the exact public validator-manifest SHA-256 and candidate genesis time. It generates and verifies the package under the mode-restricted transaction evidence directory, writes `candidate/binding.json`, then invokes the same four-role candidate deploy path. Forward candidate deployment has a separate `PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED=yes` gate. `rollback_candidate` requires transaction-local evidence that `automaticRollbackRequired=true`; rollback permission intentionally survives approval expiry for an already-started transaction. `make public-bft-production-driver-check` verifies these paths without contacting the servers.
+
 The remote one-validator fault drill has a separate explicit approval. It stops only the chosen candidate CometBFT/ABCI pair, proves every remaining validator advanced, restarts the pair, waits for catch-up, then reruns the four-node verifier. A cleanup trap attempts the restart if an intermediate assertion fails, and every stop/start path also requires authoritative `ynx-chaind` to remain active.
 
 ```bash

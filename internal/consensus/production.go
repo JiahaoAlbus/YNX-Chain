@@ -566,7 +566,7 @@ Wants=network-online.target
 Type=simple
 User=ynx
 Group=ynx
-ExecStart=/usr/local/bin/ynx-abci -listen tcp://127.0.0.1:27858 -transport socket -migration-state /var/lib/ynx-chain/consensus-candidate/config/bound-migration.json -state /var/lib/ynx-chain/consensus-candidate/data/ynx-abci-state.json
+ExecStart=/var/lib/ynx-chain/consensus-candidate/bin/ynx-abci -listen tcp://127.0.0.1:27858 -transport socket -migration-state /var/lib/ynx-chain/consensus-candidate/config/bound-migration.json -state /var/lib/ynx-chain/consensus-candidate/data/ynx-abci-state.json
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -590,7 +590,7 @@ Requires=ynx-consensus-abci-candidate.service
 Type=simple
 User=ynx
 Group=ynx
-ExecStart=/usr/local/bin/cometbft start --home /var/lib/ynx-chain/consensus-candidate
+ExecStart=/var/lib/ynx-chain/consensus-candidate/bin/cometbft start --home /var/lib/ynx-chain/consensus-candidate
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true
@@ -616,13 +616,18 @@ func writeProductionRoleScripts(roleDir, role string) error {
 set -euo pipefail
 test "$(id -u)" = 0 || { echo "candidate install requires root" >&2; exit 1; }
 role_dir="$(cd "$(dirname "$0")/.." && pwd)"
+binary_dir="$(cd "$role_dir/../bin" && pwd)"
 key_dir=/etc/ynx/consensus-candidate/%s
-command -v ynx-abci >/dev/null
-command -v ynx-consensus-keycheck >/dev/null
-command -v cometbft >/dev/null
+test -x "$binary_dir/ynx-abci"
+test -x "$binary_dir/ynx-consensus-keycheck"
+test -x "$binary_dir/cometbft"
 test -s "$key_dir/priv_validator_key.json"
 test -s "$key_dir/node_key.json"
-ynx-consensus-keycheck -role-manifest "$role_dir/role-manifest.json" -private-validator-key "$key_dir/priv_validator_key.json" -node-key "$key_dir/node_key.json"
+"$binary_dir/ynx-consensus-keycheck" -role-manifest "$role_dir/role-manifest.json" -private-validator-key "$key_dir/priv_validator_key.json" -node-key "$key_dir/node_key.json"
+install -d -m 0755 -o root -g root /var/lib/ynx-chain/consensus-candidate/bin
+install -m 0755 -o root -g root "$binary_dir/ynx-abci" /var/lib/ynx-chain/consensus-candidate/bin/ynx-abci
+install -m 0755 -o root -g root "$binary_dir/ynx-consensus-keycheck" /var/lib/ynx-chain/consensus-candidate/bin/ynx-consensus-keycheck
+install -m 0755 -o root -g root "$binary_dir/cometbft" /var/lib/ynx-chain/consensus-candidate/bin/cometbft
 install -d -m 0700 -o ynx -g ynx /var/lib/ynx-chain/consensus-candidate/config /var/lib/ynx-chain/consensus-candidate/data
 install -m 0600 -o ynx -g ynx "$key_dir/priv_validator_state.json" /var/lib/ynx-chain/consensus-candidate/data/priv_validator_state.json
 install -m 0600 -o ynx -g ynx "$role_dir/config/config.toml" /var/lib/ynx-chain/consensus-candidate/config/config.toml

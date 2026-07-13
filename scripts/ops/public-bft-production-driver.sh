@@ -7,7 +7,7 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "verify_recovery" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -120,6 +120,108 @@ final_snapshot_phase() {
   [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
   go run ./cmd/ynx-consensus-package -verify-migration-state "$transaction_dir/final-snapshot/migration.json" >"$transaction_dir/final-snapshot/local-validation.txt"
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
+}
+
+candidate_context() {
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || { echo "candidate commit does not match current HEAD" >&2; exit 1; }
+  candidate_bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$candidate_bft_release" ]] || { echo "candidate BFT release does not match current HEAD" >&2; exit 1; }
+  candidate_transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$candidate_transaction_dir" && -d "$candidate_transaction_dir" ]] || { echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2; exit 1; }
+  candidate_transaction_id="$(basename "$candidate_transaction_dir")"
+  [[ "$candidate_transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid candidate transaction id" >&2; exit 1; }
+  candidate_root="$candidate_transaction_dir/candidate"
+  candidate_package="$candidate_root/package"
+  candidate_binding="$candidate_root/binding.json"
+  candidate_approval="$candidate_transaction_dir/approval.json"
+  candidate_release="ynx-consensus-candidate-${commit}"
+}
+
+prepare_candidate_package() {
+  candidate_context
+  [[ "${PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED=yes is required" >&2; exit 1; }
+  local validator_manifest="${PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST:-}"
+  local genesis_time="${PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME:-}"
+  [[ -n "$validator_manifest" && -f "$validator_manifest" ]] || { echo "PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST is required" >&2; exit 1; }
+  [[ -n "$genesis_time" ]] || { echo "PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME is required" >&2; exit 1; }
+  umask 077
+  mkdir -p "$candidate_root"
+  chmod 0700 "$candidate_root"
+  node scripts/verify/public-bft-candidate-binding.mjs --inputs-only "$candidate_transaction_dir" "$commit" "$candidate_bft_release" "$validator_manifest" "$genesis_time" >/dev/null
+  if [[ -e "$candidate_package" || -e "$candidate_binding" ]]; then
+    [[ -d "$candidate_package" && -s "$candidate_binding" ]] || { echo "partial candidate package state exists" >&2; exit 1; }
+    go run ./cmd/ynx-consensus-package -verify-package "$candidate_package" >/dev/null
+    local expected_binding="$candidate_root/binding.expected.json"
+    node scripts/verify/public-bft-candidate-binding.mjs "$candidate_transaction_dir" "$commit" "$candidate_bft_release" "$validator_manifest" "$genesis_time" "$candidate_package" >"$expected_binding"
+    chmod 0600 "$expected_binding"
+    cmp "$candidate_binding" "$expected_binding" >/dev/null || { rm -f "$expected_binding"; echo "existing candidate binding mismatch" >&2; exit 1; }
+    rm -f "$expected_binding"
+    return
+  fi
+  go run ./cmd/ynx-consensus-package \
+    -migration-state "$candidate_transaction_dir/final-snapshot/migration.json" \
+    -validator-manifest "$validator_manifest" \
+    -genesis-time "$genesis_time" \
+    -output "$candidate_package" >/dev/null
+  go run ./cmd/ynx-consensus-package -verify-package "$candidate_package" >/dev/null
+  local partial_binding="$candidate_binding.partial"
+  node scripts/verify/public-bft-candidate-binding.mjs "$candidate_transaction_dir" "$commit" "$candidate_bft_release" "$validator_manifest" "$genesis_time" "$candidate_package" >"$partial_binding"
+  chmod 0600 "$partial_binding"
+  mv "$partial_binding" "$candidate_binding"
+}
+
+deploy_candidate_phase() {
+  prepare_candidate_package
+  local binding_sha result="$candidate_root/deploy-result.json"
+  binding_sha="$(shasum -a 256 "$candidate_binding" | awk '{print $1}')"
+  if [[ -s "$result" ]]; then
+    node -e 'const fs=require("fs"),[p,tx,c,r,s]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==s||v.deployed!==true) process.exit(1)' "$result" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" || { echo "existing candidate deploy result mismatch" >&2; exit 1; }
+    CONSENSUS_CANDIDATE_PACKAGE="$candidate_package" CONSENSUS_CANDIDATE_EVIDENCE_DIR="$candidate_root/reuse-evidence" bash scripts/verify/verify-consensus-candidate.sh >"$candidate_root/deploy-reuse.txt"
+    echo "production BFT candidate deploy reused verified result: transaction=$candidate_transaction_id"
+    return
+  fi
+  CONSENSUS_CANDIDATE_PACKAGE="$candidate_package" \
+    CONSENSUS_CANDIDATE_APPROVED=yes \
+    CONSENSUS_CANDIDATE_WORK_ROOT="$candidate_root/deploy-work" \
+    bash scripts/deploy/deploy-consensus-candidate.sh >"$candidate_root/deploy.txt"
+  printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","candidateRelease":"%s","bindingSha256":"%s","deployed":true,"dryRun":%s}\n' \
+    "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$candidate_release" "$binding_sha" "$([[ "${DEPLOY_DRY_RUN:-0}" == "1" ]] && echo true || echo false)" >"$result"
+  chmod 0600 "$result"
+  echo "production BFT candidate deploy passed: transaction=$candidate_transaction_id evidence=$candidate_root"
+}
+
+verify_candidate_phase() {
+  prepare_candidate_package
+  local deploy_result="$candidate_root/deploy-result.json" binding_sha
+  test -s "$deploy_result"
+  binding_sha="$(shasum -a 256 "$candidate_binding" | awk '{print $1}')"
+  node -e 'const fs=require("fs"),[p,tx,c,r,s]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==s||v.deployed!==true) process.exit(1)' "$deploy_result" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" || { echo "candidate deploy result is not transaction-bound" >&2; exit 1; }
+  local evidence="$candidate_root/remote-evidence"
+  CONSENSUS_CANDIDATE_PACKAGE="$candidate_package" CONSENSUS_CANDIDATE_EVIDENCE_DIR="$evidence" bash scripts/verify/verify-consensus-candidate.sh >"$candidate_root/verify.txt"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","bindingSha256":"%s","verified":true,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" >"$candidate_root/verify-result.json"
+  else
+    node -e 'const fs=require("fs"),[p,o,tx,c,r,s]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.status!=="passed"||v.publicCutoverAuthorized!==false||v.chainId!=="ynx_6423-1"||v.observedSignerCount<3||!Array.isArray(v.nodes)||v.nodes.length!==4) process.exit(1); fs.writeFileSync(o,JSON.stringify({transactionId:tx,commit:c,bftRelease:r,bindingSha256:s,candidateEvidenceSha256:require("crypto").createHash("sha256").update(fs.readFileSync(p)).digest("hex"),verified:true,dryRun:false})+"\n",{mode:0o600})' "$evidence/consensus-candidate-evidence.json" "$candidate_root/verify-result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha"
+  fi
+  chmod 0600 "$candidate_root/verify-result.json"
+  echo "production BFT candidate verification passed: transaction=$candidate_transaction_id evidence=$candidate_root"
+}
+
+rollback_candidate_phase() {
+  candidate_context
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$candidate_approval" "$commit" "$candidate_bft_release" >/dev/null
+  umask 077
+  mkdir -p "$candidate_root"
+  local attempt=1 output="$candidate_root/rollback.txt"
+  while [[ -e "$output" ]]; do
+    ((attempt += 1))
+    output="$candidate_root/rollback-attempt-${attempt}.txt"
+  done
+  CONSENSUS_CANDIDATE_ROLLBACK_APPROVED=yes CONSENSUS_CANDIDATE_RELEASE="$candidate_release" bash scripts/ops/rollback-consensus-candidate.sh >"$output"
+  printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","candidateRelease":"%s","automaticRollbackAuthorized":true,"rolledBack":true,"dryRun":%s}\n' \
+    "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$candidate_release" "$([[ "${DEPLOY_DRY_RUN:-0}" == "1" ]] && echo true || echo false)" >"$candidate_root/rollback-result.json"
+  chmod 0600 "$candidate_root/rollback-result.json"
+  echo "production BFT candidate rollback passed: transaction=$candidate_transaction_id evidence=$candidate_root"
 }
 [[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
@@ -301,7 +403,7 @@ recovery_phase() {
   echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "verify_recovery" ]]; then
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
@@ -310,6 +412,9 @@ if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "
     pause_authoritative) authoritative_production_phase pause ;;
     resume_authoritative) authoritative_production_phase resume ;;
     export_final_snapshot) final_snapshot_phase ;;
+    deploy_candidate) deploy_candidate_phase ;;
+    verify_candidate) verify_candidate_phase ;;
+    rollback_candidate) rollback_candidate_phase ;;
     verify_recovery) recovery_phase ;;
   esac
   exit 0

@@ -18,6 +18,15 @@ go run ./cmd/ynx-consensus-package \
   -output "$tmp/package" >/dev/null
 go run ./cmd/ynx-consensus-package -verify-package "$tmp/package" >/dev/null
 bash -n "$tmp"/package/roles/*/scripts/*.sh
+for role in primary singapore silicon-valley seoul; do
+  grep -Fq '/var/lib/ynx-chain/consensus-candidate/bin/ynx-abci' "$tmp/package/roles/$role/systemd/ynx-consensus-abci-candidate.service"
+  grep -Fq '/var/lib/ynx-chain/consensus-candidate/bin/cometbft' "$tmp/package/roles/$role/systemd/ynx-consensus-comet-candidate.service"
+  grep -Fq 'install -m 0755 -o root -g root "$binary_dir/ynx-abci" /var/lib/ynx-chain/consensus-candidate/bin/ynx-abci' "$tmp/package/roles/$role/scripts/install-candidate.sh"
+  if grep -Eq '/usr/local/bin/(ynx-abci|ynx-consensus-keycheck|cometbft)' "$tmp/package/roles/$role/systemd/"* "$tmp/package/roles/$role/scripts/install-candidate.sh"; then
+    echo "candidate package unexpectedly overwrites global binaries for $role" >&2
+    exit 1
+  fi
+done
 node scripts/verify/consensus-candidate-evidence.mjs --self-test "$tmp/package"
 node scripts/verify/consensus-candidate-tx-evidence.mjs --self-test
 

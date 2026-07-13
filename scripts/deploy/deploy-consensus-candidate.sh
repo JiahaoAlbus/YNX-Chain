@@ -31,7 +31,7 @@ candidate_mutation_started=0
 deployment_complete=0
 cleanup_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo systemctl disable --now ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service 2>/dev/null || true; sudo rm -rf /var/lib/ynx-chain/consensus-candidate; sudo rm -f /etc/systemd/system/ynx-consensus-comet-candidate.service /etc/systemd/system/ynx-consensus-abci-candidate.service; sudo systemctl daemon-reload; systemctl is-active ynx-chaind >/dev/null"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo systemctl disable --now ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service 2>/dev/null || true; sudo rm -rf /var/lib/ynx-chain/consensus-candidate '/opt/ynx-chain/consensus-candidates/$release/$role'; rm -f '/tmp/$release-$role.tar.gz'; sudo rm -f /etc/systemd/system/ynx-consensus-comet-candidate.service /etc/systemd/system/ynx-consensus-abci-candidate.service; sudo systemctl daemon-reload; systemctl is-active ynx-chaind >/dev/null"
 }
 cleanup_failed_candidate_deploy() {
   local status="$?"
@@ -55,17 +55,13 @@ deploy_candidate_role() {
   cp "$work/bin/ynx-abci" "$work/bin/ynx-consensus-keycheck" "$work/bin/cometbft" "$stage/bin/"
   cp -R "$role_source/." "$stage/role/"
   tar -czf "$archive" -C "$stage" .
+  chmod 0600 "$archive"
   local archive_hash
   archive_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
   local remote_archive="/tmp/${release}-${role}.tar.gz" remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
-  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
-    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
-  else
-    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
-  fi
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c - && sudo rm -rf '$remote_dir' && sudo install -d -m 0700 '$remote_dir' && sudo tar -xzf '$remote_archive' -C '$remote_dir'"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-abci' /usr/local/bin/ynx-abci && sudo install -m 0755 '$remote_dir/bin/ynx-consensus-keycheck' /usr/local/bin/ynx-consensus-keycheck && sudo install -m 0755 '$remote_dir/bin/cometbft' /usr/local/bin/cometbft"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo /usr/local/bin/ynx-consensus-keycheck -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
+  ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_archive\"' EXIT; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; sudo rm -rf '$remote_dir'; sudo install -d -m 0700 '$remote_dir'; sudo tar -xzf '$remote_archive' -C '$remote_dir'"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo '$remote_dir/bin/ynx-consensus-keycheck' -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "if sudo test -d /var/lib/ynx-chain/consensus-candidate; then sudo bash '$remote_dir/role/scripts/backup-candidate.sh' '/var/backups/ynx-chain/consensus-candidate-before-${release}-${role}.tar.gz'; fi"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/install-candidate.sh'"
 }
@@ -76,7 +72,7 @@ ynx_ops_each_node deploy_candidate_role
 verify_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
   local remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/verify-candidate.sh' && systemctl is-active ynx-chaind >/dev/null"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/verify-candidate.sh' && systemctl is-active ynx-chaind >/dev/null && test ! -e '/tmp/${release}-${role}.tar.gz'"
 }
 
 ynx_ops_each_node verify_candidate_role
