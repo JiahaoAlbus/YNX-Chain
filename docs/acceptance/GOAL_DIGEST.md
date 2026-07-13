@@ -26,11 +26,9 @@ Legacy protection:
 
 Current highest priority:
 
-- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Authoritative release `c9324fbfc464` and a read-only production rehearsal are verified, but `publicCutoverReady=false`; offline recovery, owner handover, rotation, and independent custody review remain mandatory before any transaction mutation. While that external gate is open, the next locally actionable gap is live website/Vercel integration against the current public chain.
-- Website/Vercel integration is now deployed from the intended repository. The next locally actionable gap is a reversible `ynx1...` human-readable address representation over the same 20-byte EVM account, with SDK/RPC/Explorer support while preserving canonical `0x...` JSON-RPC and MetaMask compatibility.
-- The dual-address codec, SDK helpers, REST/CLI normalization, and Explorer support now pass local verification. They remain local-only until the exact commit is deployed and public alias-to-canonical lookup is verified; ordinary authoritative deployment is next and must not be confused with the externally gated BFT transition.
-- Release `97ed0c645bd2` now deploys dual-address support on all authoritative roles, with operator-controlled public RPC/Explorer equivalence proof. The next local slice is production website exposure of this verified capability; independent proof, public BFT, wallet-default support, and successful provider-backed AI generation remain incomplete.
-- Website commit `752ea31e509478be199c5ce2a6596a54df0b3398` is now the exact source of READY production deployment `dpl_HzXdQozR45aHva8VjAY6c4xZmgXM`; the live converter, `/docs` route, real release identity, invalid-input behavior, and desktop/mobile layout are verified. The next local slice is a non-secret owner custody/handover inventory and offline recovery receipt; public BFT remains independently approval-gated.
+- Replace authoritative replication with public CometBFT voting only after offline recovery, owner handover, rotation, independent custody review, and transaction approval. Keep the current public services online as the rollback boundary.
+- Stablecoin issuer control commit `23a5702ec979` is persistent and locally verified, but the real deploy gate is false and no issuer support, mint/burn execution, remote service, public endpoint, or partnership exists.
+- The next locally actionable product gap is persistent sponsor transactions plus merchant/dApp resource pools with bounded authorization, resource accounting, revocation, audit, and Explorer cost-source evidence.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:

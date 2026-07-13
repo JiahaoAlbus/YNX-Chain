@@ -1,39 +1,43 @@
 # Next Action
 
-Current single action: implement the first real persistent Stablecoin Issuer Control Plane without claiming issuer support.
+Current single action: implement persistent sponsored transactions plus merchant and dApp resource pools.
 
 Why this action:
 
-- Public BFT engineering gates remain externally blocked by offline recovery, owner handover, rotation evidence, independent custody review, and transaction approval.
+- Public BFT remains externally gated by recovery, handover, rotation, independent custody review, and transaction approval.
 - Provider-backed AI proof remains externally blocked by quota.
-- Bridge coordinator code and deployment packaging are now locally verified at `44870de94b1b`, but external submission, relayer custody, remote deployment, and public proof remain absent.
-- Stablecoin issuer readiness is still documentation-only: there is no issuer registry, asset authorization, supply policy, governance decision record, mint/burn intent state, API, or tests.
+- Bridge and Stablecoin control planes now have real local code and default-disabled deployment packages; neither may be promoted without external evidence.
+- Resource delegation/rental exists, but the goal still requires sponsor transaction readiness, merchant resource pools, dApp resource pools, and Explorer payer/sponsor/resource-source evidence. The current Explorer sponsor field is always empty.
 
 Required behavior:
 
-- Add a standalone persistent issuer-control service and bounded authenticated JSON APIs.
-- Register issuer review requests and represented/canonical asset profiles only through explicit governance decision records.
-- Bind each asset to issuer identity, chain/contract reference, decimals, supply ceiling, mint/burn policy, evidence hashes, legal/review status, and revocation state.
-- Reject native `YNXT`, gas/resource balances, validator stake, and protocol treasury state from every issuer mint, burn, freeze, seize, or blacklist action.
-- Record mint/burn intents only for approved non-native assets, with exact idempotency, amount/supply bounds, issuer authorization, evidence requirements, and append-only audit.
-- Keep execution disabled: intent approval must not mint/burn tokens, submit an external transaction, or imply stablecoin issuer support.
-- Expose truthful health/metrics and persistent lookup/list/audit surfaces without secrets or unsupported partnership claims.
+- Add persistent merchant and dApp pool records owned by canonical accounts.
+- Require explicit owner authorization for create, fund/delegate, policy update, pause/resume, and revoke actions.
+- Bind each pool to type, owner, allowed beneficiaries or public policy, allowed operation scopes, resource types, per-action limit, cumulative allowance, expiry, and policy hash.
+- Sponsor only declared resource consumption or fee offset; never transfer a user's assets, change transaction sender/nonce/signature ownership, or create hidden balance movement.
+- Select a pool deterministically, reserve/consume allowance atomically, record payer, sponsor, pool, resource type/source, amount, policy, transaction/action reference, and exact idempotency.
+- Reject wrong owner, expired/paused/revoked pools, disallowed scope/beneficiary/resource, over-limit or exhausted allowance, changed idempotency reuse, overflow, and concurrent double spend without state corruption.
+- Persist pool, sponsorship, idempotency, and append-only audit state across restart.
+- Expose bounded authenticated API handlers plus read-only pool/sponsorship/analytics lookup.
+- Populate Explorer fee detail from real sponsorship records; unsponsored transactions must remain explicitly direct payer/resource source.
+- Add unit/race/restart/tamper/HTTP tests, smoke/check command, Makefile target, mutation-freeze/deploy package wiring, and truthful docs only after code exists.
 
 Files to touch:
 
-- a new bounded issuer-control package under `internal/`
-- a standalone daemon under `cmd/`
-- an issuer-control smoke/check script under `scripts/verify/`
-- `Makefile`
-- deployment-package wiring only after runtime tests pass
-- API/stablecoin/acceptance documentation only after real code exists
+- `internal/chain` and `internal/consensus` resource/accounting models
+- `internal/api` and `internal/resourcegateway`
+- `internal/explorer`
+- relevant daemon/deployment/verification scripts
+- API/resource/acceptance docs after implementation
 
 Validation commands:
 
-- focused issuer/asset authorization, restart, idempotency, supply-bound, native-YNXT rejection, revocation, audit, HTTP auth, and tamper tests
-- a dedicated stablecoin issuer-control Make target
+- focused race tests for pool lifecycle, sponsorship accounting, concurrency, idempotency, restart, revocation, and tamper rejection
+- a dedicated sponsor/resource-pool Make target
 - `go test ./...`
 - `make test`
+- `make resource-market-check`
+- `make explorer-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -42,14 +46,14 @@ Validation commands:
 
 Completion standard:
 
-- The issuer-control service has real persistent code, API handlers, fail-closed policy, tests, smoke target, and deployment package wiring.
-- Unauthorized issuers/assets, missing governance/evidence, supply overflow, changed idempotency reuse, revoked assets, and every native YNXT issuer action fail without state corruption.
-- Status remains local/not deployed; no issuer, external-chain, mint/burn, or partnership claim is added without separate live evidence and external approval.
+- Merchant/dApp resource pools and sponsored resource consumption have real persistent code, strict authorization/accounting, API handlers, Explorer evidence, tests, smoke target, and deployment wiring.
+- Sponsored actions charge only the approved pool allowance/resource source, preserve user ownership/signature/nonce semantics, and survive restart without replay or double-spend.
+- Status remains local/not remotely proven until an exact release is safely deployed and public sponsor evidence is verified.
 
 Explicitly not doing:
 
-- No live mint/burn, external-chain transaction, asset funding, issuer key creation, stablecoin support claim, or partnership claim.
-- No Bridge external adapter, relayer key ceremony, remote Bridge deployment, or public Bridge claim in this slice.
-- No freeze, pause, signer install, ingress switch, BFT candidate start, or public cutover.
+- No arbitrary third-party transaction signing, account abstraction claim, hidden fee payer, token transfer, auto-debit, or admin seizure.
+- No Stablecoin mint/burn execution, issuer-support claim, Bridge external adapter, or remote deployment of either default-disabled service.
+- No public BFT freeze, signer install, ingress switch, or cutover without the existing external approvals.
 - No expansion of bounded EVM opcodes, Counter/Hardhat artifacts, or IDE execution.
 - Do not modify or replace the long-term goal file.

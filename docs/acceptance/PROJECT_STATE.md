@@ -1,8 +1,8 @@
 # Project State
 
-- State snapshot baseline commit: `44870de Add persistent Bridge coordinator` (implementation baseline)
-- Last pushed commit (implementation): `44870de94b1bf232b80e9b45f7b9d8be4980e59c`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; the Bridge implementation commit is pushed and this acceptance update records its verified boundary.
+- State snapshot baseline commit: `23a5702 Add persistent stablecoin issuer control plane` (implementation baseline)
+- Last pushed commit (implementation): `23a5702ec97917b3696983817ee893de7756d9a7`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; the Stablecoin Issuer Control implementation commit is pushed and this acceptance update records its verified boundary.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `752ea31 Add dual-format YNX address converter`.
 - Vercel project `ynx-web4-website-new` (`prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa`) is now Git-connected to `JiahaoAlbus/YNX-Chain-website`, production branch `main`; the previous `ynx-web4-website-new` repository is no longer the automatic source.
 - Latest verified Vercel Git deployment: `dpl_HzXdQozR45aHva8VjAY6c4xZmgXM`, source repository `JiahaoAlbus/YNX-Chain-website`, branch `main`, exact commit `752ea31e509478be199c5ce2a6596a54df0b3398`, state `READY` and promoted to `www.ynxweb4.com`.
@@ -33,6 +33,7 @@ Completed modules:
 - Website repository selection, Vercel Git binding, production deployment, real API aggregation, responsive CSS chain interaction, truthful disclosure routes, SPA deep links, and the dual-format account converter are implemented and production verified.
 - Dual-format account addressing is implemented and remotely deployed: one canonical 20-byte account has lowercase EVM `0x...` and checksummed Bech32 `ynx1...` representations. Go/JS/Python shared vectors, signed-transfer canonicalization, REST boundary normalization, account-key public output, Explorer alias search/detail, dedicated Makefile checks, and operator-controlled public proof pass. EVM JSON-RPC and MetaMask remain on `0x...`.
 - Bridge coordinator code is implemented and locally verified at `44870de94b1b`: persistent source-event/idempotency state, bounded route/finality/amount policy, Ed25519 relayer threshold, local-only finalization, audit integrity, authenticated handlers, health/metrics, restart checks, mutation freeze, and deployment-package wiring pass. The real deploy gate is false and external submission is disabled.
+- Stablecoin Issuer Control code is implemented and locally verified at `23a5702ec979`: standalone authenticated daemon, mode-`0600` atomic persistence, issuer/asset approval and revocation, governance/evidence references, legal-review status, supply ceilings and reservations, exact-idempotent non-executing mint/burn intents, native/protocol asset rejection, audit/transparency, truthful health/metrics, mutation freeze, and release/systemd/backup/health-check wiring pass. The real deploy gate is false and no issuer support or token execution is claimed.
 - Owner-handover tooling now classifies four validator identities, five future BFT service signers, the authoritative Faucet runtime account, the funded public proof account, and ephemeral smoke identities without reading secret values. `make owner-handover-check` is part of `make preflight` and fail-closes on tampering, stale commits, self-review, duplicate signers, unknown funded ownership, or incomplete recovery/handover assertions.
 - A real mode-`0600` unreviewed packet was generated at `/Volumes/Data/Users/huangjiahao/.ynx-chain-custody/owner-handover-packets/owner-handover-4c3af99a39c2-20260713T184628Z`, bound to inventory digest `sha256:1674f8d80b6a8e4f09150a1f004486e33890dbd3cceb0e0fad062ddfbd9adb30`. It contains 12 public identity/status records, 9 handover-required identities, zero unknown ownership records, and no secret material.
 - Production custody review now requires and revalidates packet-local owner inventory/receipt evidence, requires exact service-signer/evidence/hash equality, enforces four distinct roles (owner, handover reviewer, custody reviewer, transaction approver), and propagates exact owner hashes through freeze/cutover approval evidence and candidate binding.
@@ -46,7 +47,7 @@ Incomplete modules or requirements:
 - Independent public-vantage evidence is absent.
 - SDK registry publication, signed versioning, independent consumer proof, mainnet audit/legal/custody, exchange listing, stablecoin issuer support, wallet default support, production bridge readiness, and third-party partnerships remain incomplete and are not claimed.
 - Bridge external-chain execution remains incomplete: there is no production relayer custody, approved asset route, external adapter, mint/burn authority, liquidity/rate controls, remote daemon, public endpoint, external transaction, rollback drill, independent audit, or public proof.
-- Stablecoin issuer support remains readiness-only. There is no persistent issuer/asset authorization control plane, no issuer-bound mint/burn intent workflow, and no external issuer approval; native YNXT must remain outside all issuer asset actions.
+- Stablecoin issuer support remains absent. The persistent local control plane and deployment package exist, but there is no external issuer approval, reserve/redemption proof, legal/custody approval, signer, token contract integration, mint/burn execution, remote daemon, public endpoint, rollback drill, independent audit, or public proof.
 - The production website exposes address conversion and the truthful MetaMask `0x...` boundary. Independent public-vantage proof is absent, and no wallet-default support is claimed.
 
 Current blockers:
@@ -57,4 +58,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Implement a persistent Stablecoin Issuer Control Plane that separates issuer-governed represented assets from native YNXT, binds issuer/asset authorization and supply limits, records governance approval/revocation and mint/burn intents without executing external issuance, exposes authenticated APIs/audit/metrics, and remains truthful about absent issuer support and remote proof.
+- Implement persistent sponsor transactions plus merchant and dApp resource pools: explicit owner authorization, beneficiary/scope/expiry/allowance limits, resource-only charging, exact idempotency, revocation, audit, restart safety, APIs, and Explorer fee-source evidence without hidden payer changes or arbitrary balance movement.
