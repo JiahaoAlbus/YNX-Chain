@@ -4,16 +4,18 @@ set -Eeuo pipefail
 cd "$(dirname "$0")/../.."
 
 bash -n scripts/ops/remote/public-bft-dependencies.sh
+bash -n scripts/ops/remote/public-bft-ingress.sh
 node scripts/verify/validate-public-bft-dependency-continuity.mjs --self-test
+node scripts/verify/validate-public-bft-public-continuity.mjs --self-test
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
 mkdir -p "$repo/scripts/ops/remote" "$repo/scripts/deploy" "$repo/scripts/verify" "$tmp/fake-bin"
 cp scripts/ops/public-bft-production-driver.sh scripts/ops/rollback-consensus-candidate.sh scripts/ops/lib.sh "$repo/scripts/ops/"
-cp scripts/ops/remote/public-bft-dependencies.sh "$repo/scripts/ops/remote/"
+cp scripts/ops/remote/public-bft-dependencies.sh scripts/ops/remote/public-bft-ingress.sh "$repo/scripts/ops/remote/"
 cp scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/lib.sh "$repo/scripts/deploy/"
-cp scripts/verify/verify-consensus-candidate.sh scripts/verify/public-bft-candidate-binding.mjs scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$repo/scripts/verify/"
+cp scripts/verify/verify-consensus-candidate.sh scripts/verify/public-bft-candidate-binding.mjs scripts/verify/validate-public-bft-cutover-approval-evidence.mjs scripts/verify/validate-public-bft-public-continuity.mjs "$repo/scripts/verify/"
 
 cat >"$tmp/fake-bin/go" <<'EOF'
 #!/usr/bin/env bash
@@ -177,6 +179,29 @@ if run_dependencies verify_continuity >/dev/null 2>&1; then
   exit 1
 fi
 mv "$tmp/start-result.valid" "$transaction/dependencies/start-result.json"
+
+run_ingress() {
+  local phase="$1" approval="${2:-yes}"
+  (PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED="$approval" run_dependencies "$phase")
+}
+
+run_ingress switch_ingress >/dev/null
+test -s "$transaction/ingress/switch-result.json"
+grep -Fq '"publicCutoverReady":true' "$transaction/ingress/switch-result.json"
+grep -Fq 'public-bft-ingress' "$transaction/roles/primary-switch-ingress.txt"
+run_ingress verify_public >/dev/null
+test -s "$transaction/ingress/public-result.json"
+grep -Fq '"publicIngressChanged":true' "$transaction/ingress/public-result.json"
+grep -Fq 'https://rpc.ynxweb4.com' "$transaction/ingress/public-continuity/endpoints.txt"
+if run_ingress switch_ingress no >/dev/null 2>&1; then
+  echo "ingress switch unexpectedly passed without separate ingress approval" >&2
+  exit 1
+fi
+run_ingress rollback_ingress >/dev/null
+test -s "$transaction/ingress/rollback-result.json"
+grep -Fq '"ingress":"authoritative"' "$transaction/ingress/rollback-result.json"
+grep -Fq 'public-bft-ingress' "$transaction/roles/primary-rollback-ingress.txt"
+
 if run_dependencies start_dependencies no >/dev/null 2>&1; then
   echo "dependency startup unexpectedly passed without separate dependency approval" >&2
   exit 1
@@ -253,4 +278,4 @@ fi
 mv "$tmp/approval.valid" "$transaction/approval.json"
 chmod 0600 "$transaction/approval.json"
 
-echo "public-bft-production-candidate-check passed: candidate package/deploy/verify plus parallel dependency startup/continuity/rollback are transaction-bound, signer-file isolated, failure-tested, and dry-run verified"
+echo "public-bft-production-candidate-check passed: candidate, dependencies, ingress switch/restore, and public continuity are transaction-bound, signer-file isolated, failure-tested, and dry-run verified"

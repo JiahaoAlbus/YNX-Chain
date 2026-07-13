@@ -205,6 +205,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertGetStatus(t, server.URL+"/txs?limit=101", http.StatusBadRequest)
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`, "0x1917")
+	assertRPCResult(t, server.URL+"/", `{"jsonrpc":"2.0","id":2,"method":"eth_chainId","params":[]}`, "0x1917")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_blockNumber","params":[]}`, "0x11")
 	transaction := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getTransactionByHash","params":[%q]}`, txHash))
 	if transaction["hash"] != txHash || transaction["transactionIndex"] != "0x0" || transaction["blockNumber"] != "0x11" || transaction["input"] != "0x" {

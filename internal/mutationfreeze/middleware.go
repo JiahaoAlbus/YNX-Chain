@@ -70,7 +70,7 @@ func isMutation(r *http.Request) bool {
 		if r.URL.Path == "/v1/chat/completions" {
 			return false
 		}
-		if r.URL.Path == "/evm" {
+		if r.URL.Path == "/evm" || r.URL.Path == "/" {
 			return !isReadOnlyEVMRequest(r)
 		}
 	}

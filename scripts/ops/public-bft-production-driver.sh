@@ -7,7 +7,7 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "verify_recovery" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -334,6 +334,104 @@ rollback_dependencies_phase() {
   chmod 0600 "$dependency_root/rollback-result.json"
   echo "production BFT dependency rollback passed: transaction=$candidate_transaction_id evidence=$dependency_root"
 }
+
+ingress_context() {
+  dependency_context
+  ingress_root="$candidate_transaction_dir/ingress"
+  ingress_remote_root="$dependency_remote_root"
+  ingress_helper="/tmp/ynx-public-bft-ingress-${candidate_transaction_id}.sh"
+}
+
+validated_continuity_result() {
+  test -s "$dependency_root/continuity-result.json"
+  node -e 'const fs=require("fs"),[p,c,r]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.commit!==c||v.release!==r||v.status!=="passed"||v.parallelCandidateOnly!==true||v.publicIngressChanged!==false||v.publicCutoverAuthorized!==false) process.exit(1)' \
+    "$dependency_root/continuity-result.json" "$commit" "$candidate_bft_release"
+}
+
+switch_ingress_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED=yes is required" >&2; exit 1; }
+  ingress_context
+  validated_candidate_result
+  if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
+    validated_continuity_result
+  else
+    test -s "$dependency_root/continuity-result.json"
+  fi
+  umask 077
+  mkdir -p "$ingress_root" "$candidate_transaction_dir/roles"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-ingress.sh "$ingress_helper"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$ingress_helper\"' EXIT; chmod 0700 '$ingress_helper'; sudo bash '$ingress_helper' switch '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$ingress_remote_root'" >"$candidate_transaction_dir/roles/primary-switch-ingress.txt"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","ingress":"bft","publicCutoverReady":true,"publicIngressChanged":true,"automaticRollbackRequired":true,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" >"$ingress_root/switch-result.json"
+  else
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$ingress_remote_root/ingress/switch.json'" >"$ingress_root/switch-result.json"
+  fi
+  chmod 0600 "$ingress_root/switch-result.json"
+  echo "production BFT ingress switch passed: transaction=$candidate_transaction_id evidence=$ingress_root"
+}
+
+rollback_ingress_phase() {
+  ingress_context
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$dependency_approval" "$commit" "$candidate_bft_release" >/dev/null
+  umask 077
+  mkdir -p "$ingress_root" "$candidate_transaction_dir/roles"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-ingress.sh "$ingress_helper"
+  local output="$candidate_transaction_dir/roles/primary-rollback-ingress.txt" attempt=1
+  while [[ -e "$output" ]]; do ((attempt += 1)); output="$candidate_transaction_dir/roles/primary-rollback-ingress-attempt-${attempt}.txt"; done
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$ingress_helper\"' EXIT; chmod 0700 '$ingress_helper'; sudo bash '$ingress_helper' rollback '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$ingress_remote_root'" >"$output"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","ingress":"authoritative","publicCutoverReady":false,"automaticRollbackAuthorized":true,"rolledBack":true,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" >"$ingress_root/rollback-result.json"
+  else
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$ingress_remote_root/ingress/rollback.json'" >"$ingress_root/rollback-result.json"
+  fi
+  chmod 0600 "$ingress_root/rollback-result.json"
+  echo "production BFT ingress rollback passed: transaction=$candidate_transaction_id evidence=$ingress_root"
+}
+
+verify_public_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED=yes is required" >&2; exit 1; }
+  ingress_context
+  validated_candidate_result
+  test -s "$ingress_root/switch-result.json"
+  node -e 'const fs=require("fs"),[p,tx,c,r]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.ingress!=="bft"||v.publicCutoverReady!==true||v.publicIngressChanged!==true||v.automaticRollbackRequired!==true) process.exit(1)' \
+    "$ingress_root/switch-result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" || { echo "ingress switch result is not transaction-bound" >&2; exit 1; }
+  local observation="${PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:-4}" max_lag="${PUBLIC_BFT_PUBLIC_MAX_INDEX_LAG:-3}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && ((observation >= 2 && observation <= 15)) || { echo "PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS must be between 2 and 15" >&2; exit 1; }
+  [[ "$max_lag" =~ ^[0-9]+$ ]] && ((max_lag <= 20)) || { echo "PUBLIC_BFT_PUBLIC_MAX_INDEX_LAG must be between 0 and 20" >&2; exit 1; }
+  local rpc="${PUBLIC_RPC_URL:-https://rpc.ynxweb4.com}" evm="${PUBLIC_EVM_RPC_URL:-https://evm.ynxweb4.com}" rest="${PUBLIC_REST_URL:-https://rest.ynxweb4.com}"
+  local indexer="${PUBLIC_INDEXER_URL:-https://indexer.ynxweb4.com}" explorer="${PUBLIC_EXPLORER_URL:-https://explorer.ynxweb4.com}" faucet="${PUBLIC_FAUCET_URL:-https://faucet.ynxweb4.com}"
+  local ai="${PUBLIC_AI_URL:-https://ai.ynxweb4.com}" pay="${PUBLIC_PAY_URL:-https://pay.ynxweb4.com}" trust="${PUBLIC_TRUST_URL:-https://trust.ynxweb4.com}" resource="${PUBLIC_RESOURCE_URL:-https://resource.ynxweb4.com}"
+  rpc="${rpc%/}"; evm="${evm%/}"; rest="${rest%/}"; indexer="${indexer%/}"; explorer="${explorer%/}"; faucet="${faucet%/}"; ai="${ai%/}"; pay="${pay%/}"; trust="${trust%/}"; resource="${resource%/}"
+  local evidence="$ingress_root/public-continuity"
+  rm -rf "$evidence"
+  mkdir -p "$evidence"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","release":"%s","status":"dry-run","publicIngressChanged":true,"automaticRollbackRequired":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" >"$ingress_root/public-result.json"
+    printf 'DRY RUN public continuity: %s %s %s %s %s %s %s %s %s %s\n' "$rpc" "$evm" "$rest" "$indexer" "$explorer" "$faucet" "$ai" "$pay" "$trust" "$resource" >"$evidence/endpoints.txt"
+    chmod 0600 "$ingress_root/public-result.json" "$evidence/endpoints.txt"
+    echo "production BFT public continuity dry-run passed: transaction=$candidate_transaction_id"
+    return
+  fi
+  curl -fsS "$rpc/health" >"$evidence/gateway-before-health.json"
+  sleep "$observation"
+  curl -fsS "$rpc/health" >"$evidence/gateway-after-health.json"
+  curl -fsS "$rpc/status" >"$evidence/gateway-status.json"
+  curl -fsS -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$evm" >"$evidence/evm-chain-id.json"
+  curl -fsS "$indexer/health" >"$evidence/indexer-health.json"
+  curl -fsS "$explorer/health" >"$evidence/explorer-health.json"
+  curl -fsS "$faucet/health" >"$evidence/faucet-health.json"
+  curl -fsS "$ai/health" >"$evidence/ai-health.json"
+  curl -fsS "$pay/health" >"$evidence/pay-health.json"
+  curl -fsS "$trust/health" >"$evidence/trust-health.json"
+  curl -fsS "$resource/health" >"$evidence/resource-health.json"
+  local mutation_code
+  mutation_code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -d '{}' "$rest/__ynx_mutation_freeze_probe__")"
+  printf '{"httpStatus":%s}\n' "$mutation_code" >"$evidence/mutation-freeze.json"
+  node scripts/verify/validate-public-bft-public-continuity.mjs "$evidence" "$commit" "$candidate_bft_release" "$dependency_migration_height" "$dependency_migration_hash" "$max_lag" "$ingress_root/public-result.json"
+  node -e 'const fs=require("fs"),[beforePath,publicPath]=process.argv.slice(1),before=JSON.parse(fs.readFileSync(beforePath)),current=JSON.parse(fs.readFileSync(publicPath)); for(const name of ["faucet","ai","pay","trust","resource"]) if(before.services?.[name]?.signerAddress!==current.services?.[name]) { console.error(`public signer binding changed for ${name}`); process.exit(1); }' \
+    "$dependency_root/continuity-result.json" "$ingress_root/public-result.json"
+  echo "production BFT public continuity passed: transaction=$candidate_transaction_id evidence=$ingress_root"
+}
 [[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
 
@@ -514,7 +612,7 @@ recovery_phase() {
   echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "verify_recovery" ]]; then
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
@@ -529,6 +627,9 @@ if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "
     start_dependencies) start_dependencies_phase ;;
     verify_continuity) verify_continuity_phase ;;
     rollback_dependencies) rollback_dependencies_phase ;;
+    switch_ingress) switch_ingress_phase ;;
+    rollback_ingress) rollback_ingress_phase ;;
+    verify_public) verify_public_phase ;;
     verify_recovery) recovery_phase ;;
   esac
   exit 0

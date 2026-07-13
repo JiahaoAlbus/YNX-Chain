@@ -31,6 +31,11 @@ func TestRuntimeMutationFreezePreservesReadsAndRestoresWrites(t *testing.T) {
 	if receivedBody != readPayload {
 		t.Fatalf("read-only EVM body was not restored: %q", receivedBody)
 	}
+	rootReadPayload := `{"jsonrpc":"2.0","id":3,"method":"eth_chainId","params":[]}`
+	assertStatus(t, handler, http.MethodPost, "/", rootReadPayload, http.StatusNoContent)
+	if receivedBody != rootReadPayload {
+		t.Fatalf("root-path read-only EVM body was not restored: %q", receivedBody)
+	}
 	assertStatus(t, handler, http.MethodPost, "/evm", `{bad`, http.StatusServiceUnavailable)
 	assertStatus(t, handler, http.MethodPost, "/v1/chat/completions", `{}`, http.StatusNoContent)
 	if err := os.Remove(marker); err != nil {

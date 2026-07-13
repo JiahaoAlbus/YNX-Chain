@@ -337,6 +337,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /validators", g.handleValidators)
 	g.mux.HandleFunc("GET /node/identity", g.handleNodeIdentity)
 	g.mux.HandleFunc("POST /evm", g.handleEVM)
+	g.mux.HandleFunc("POST /{$}", g.handleEVM)
 }
 
 func (c *client) get(ctx context.Context, path string, query url.Values, out any) error {
