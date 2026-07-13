@@ -116,6 +116,7 @@ ynx_transport_scp() {
   persist="${YNX_SSH_CONTROL_PERSIST_SECONDS:-60}"
   connect_timeout="${YNX_SSH_CONNECT_TIMEOUT_SECONDS:-10}"
   ynx_connection_retry "$label" scp -i "$key" \
+    -p \
     -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
     -o "ConnectTimeout=$connect_timeout" -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
     -o ControlMaster=auto -o "ControlPersist=${persist}s" -o "ControlPath=$control_path" \

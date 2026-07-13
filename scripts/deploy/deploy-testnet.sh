@@ -650,8 +650,11 @@ chmod +x "$work/scripts/check-local-services.sh"
 cp README.md REQUIRED_INPUTS.md ENV_INTAKE_FORM.md "$work/docs/"
 node scripts/deploy/write-release-manifest.mjs "$work" "$release" "$commit" "$build_time" "$DEPLOY_TARGET" "$CHAIN_ID" "$CHAIN_NAME"
 tarball="tmp/deploy/${release}.tar.gz"
-tar -C "$work" -czf "$tarball" .
+COPYFILE_DISABLE=1 tar -C "$work" -czf "$tarball" .
+chmod 0600 "$tarball"
 sha256sum "$tarball" > "${tarball}.sha256" 2>/dev/null || shasum -a 256 "$tarball" > "${tarball}.sha256"
+tarball_sha256="$(awk 'NR == 1 { print $1 }' "${tarball}.sha256")"
+[[ "$tarball_sha256" =~ ^[0-9a-f]{64}$ ]] || { echo "release checksum is invalid"; exit 1; }
 
 echo "release bundle: $tarball"
 echo "release checksum: $(cat "${tarball}.sha256")"
@@ -716,12 +719,12 @@ ynx_precheck_node_access() {
 
 ynx_prepare_release_on_node() {
   local role="$1" user="$2" host="$3" key="$4"
-  ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
   ynx_node_ssh "$role" "$user" "$host" "$key" "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/log/ynx-chain"
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo rm -rf '$remote_dir' && sudo mkdir -p '$remote_dir' && sudo tar -xzf '$remote_release' -C '$remote_dir'"
+  ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "set -e; trap 'rm -f \"$remote_release\"' EXIT; chmod 0600 '$remote_release'; test \"\$(stat -c '%a' '$remote_release')\" = 600; printf '%s  %s\\n' '$tarball_sha256' '$remote_release' | sha256sum -c -; sudo rm -rf '$remote_dir'; sudo mkdir -p '$remote_dir'; sudo tar -xzf '$remote_release' -C '$remote_dir'"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-chaind' /usr/local/bin/ynx-chaind && sudo install -m 0600 '$remote_dir/config/ynx-chaind-${role}.env' /etc/ynx/ynx-chaind.env && sudo install -m 0644 '$remote_dir/systemd/ynx-chaind.service' /etc/systemd/system/ynx-chaind.service"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; set +a; /usr/local/bin/ynx-chaind --check-config >/dev/null'"
 }

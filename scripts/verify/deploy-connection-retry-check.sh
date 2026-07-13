@@ -67,6 +67,7 @@ for log in "$tmp/ssh.log" "$tmp/scp.log"; do
   grep -Fxq 'ControlPersist=60s' "$log"
   grep -Fxq "ControlPath=$tmp/control/ynx-%C" "$log"
 done
+grep -Fxq -- '-p' "$tmp/scp.log"
 
 if YNX_SSH_CONTROL_DIR="$tmp/insecure" YNX_SSH_CONTROL_PERSIST_SECONDS=301 ynx_ssh_control_path >/dev/null 2>&1; then
   echo "out-of-range SSH control persistence was accepted"

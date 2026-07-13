@@ -98,6 +98,9 @@ done
 grep -Fq 'ynx_transport_ssh' scripts/ops/lib.sh || { echo "candidate ops helper does not use shared SSH transport" >&2; exit 1; }
 grep -Fq 'StrictHostKeyChecking=yes' scripts/deploy/lib.sh || { echo "shared strict SSH transport is missing host-key enforcement" >&2; exit 1; }
 grep -Fq 'ControlMaster=auto' scripts/deploy/lib.sh || { echo "shared SSH transport is missing bounded multiplexing" >&2; exit 1; }
+grep -Fq 'chmod 0600 "$tarball"' scripts/deploy/deploy-testnet.sh || { echo "release bundle is not mode restricted before transport" >&2; exit 1; }
+grep -Fq "stat -c '%a'" scripts/deploy/deploy-testnet.sh || { echo "remote release bundle mode is not verified" >&2; exit 1; }
+grep -Fq 'sha256sum -c -' scripts/deploy/deploy-testnet.sh || { echo "remote release bundle checksum is not verified" >&2; exit 1; }
 
 unsafe_ssh_policy='StrictHostKeyChecking='
 unsafe_ssh_policy+='accept-new'
