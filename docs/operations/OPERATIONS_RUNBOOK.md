@@ -118,4 +118,15 @@ GOMAXPROCS=2 make deploy-dry-run
 
 `ynx-bridged` requires a dedicated API key, at least two distinct base64 Ed25519 relayer public keys, a threshold of at least two, and one or more external-submission-disabled route policies. Keep `YNX_BRIDGE_DEPLOY_ENABLED=false` in a real deployment env until relayer custody and route approval are independently completed. The release package always carries the binary, dedicated env contract, systemd unit, state/backup paths, config check, and optional health check, but the deploy script installs and starts it only when that gate is explicitly `true`. The service persists local transfer, idempotency, attestation, finalization, and audit state under `/var/lib/ynx-chain/bridge` and rejects invalid/tampered state at startup. Its finalization is coordinator-local only: do not expose ingress or describe it as a live bridge until a separately reviewed external-chain adapter, mint/burn authority, custody, remote deployment, and public proof exist.
 
+Stablecoin Issuer Control readiness:
+
+```bash
+make stablecoin-issuer-check
+GOMAXPROCS=2 make deploy-dry-run
+```
+
+`ynx-stablecoind` requires `YNX_STABLECOIN_API_KEY`, `YNX_STABLECOIN_HTTP_ADDR`, and a writable `YNX_STABLECOIN_STATE_PATH`. The release package fixes the state path to `/var/lib/ynx-chain/stablecoin/state.json`, protects it with the shared mutation-freeze marker, and installs a loopback-only systemd service only when `YNX_STABLECOIN_DEPLOY_ENABLED=true`. Keep that gate `false` in the real deployment environment until an external issuer, independent legal/custody review, operator access policy, backup/rollback exercise, and explicit deployment approval exist. There is no public ingress configuration.
+
+The daemon records issuer and asset governance lifecycle plus bounded mint/burn intents; it cannot execute token actions. Before any future deployment, use a unique operator API key, preserve the mode-`0600` state and env files, run `--check-config`, confirm health reports `issuerSupportEstablished=false` and `externalExecutionEnabled=false`, and verify backup restoration on a non-production copy. A locally approved candidate is not issuer support, legal approval, reserve proof, or authorization to mint/burn.
+
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

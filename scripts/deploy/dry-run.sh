@@ -102,6 +102,9 @@ YNX_BRIDGE_RELAYERS_JSON='{"relayer-a":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTEx
 YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"sourceChain":"ynx-testnet","destinationChain":"external-testnet","sourceAsset":"YNXT","destinationAsset":"wrapped-ynxt","minConfirmations":12,"maxAmount":"1000000000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 YNX_BRIDGE_RELAYER_THRESHOLD=2
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
+YNX_STABLECOIN_DEPLOY_ENABLED=true
+YNX_STABLECOIN_API_KEY=dry-run-stablecoin-api-key
+YNX_STABLECOIN_HTTP_ADDR=127.0.0.1:6434
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
 WEBHOOK_SECRET=dry-run-webhook-secret
@@ -151,6 +154,9 @@ grep -Fq "YNX_BRIDGE_API_KEY=" "$release_dir/config/ynx-bridged.env" || { echo "
 grep -Fq "YNX_BRIDGE_RELAYERS_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing relayer allowlist"; exit 1; }
 grep -Fq "YNX_BRIDGE_ROUTE_POLICIES_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing route policies"; exit 1; }
 grep -Fq "YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing persistent state path"; exit 1; }
+grep -Fq "YNX_STABLECOIN_DEPLOY_ENABLED=true" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing deploy gate"; exit 1; }
+grep -Fq "YNX_STABLECOIN_API_KEY=" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing API key"; exit 1; }
+grep -Fq "YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing persistent state path"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
@@ -175,11 +181,15 @@ if grep -Eq '^YNX_BRIDGE_(API_KEY|RELAYERS_JSON|ROUTE_POLICIES_JSON)=' "$release
   echo "shared chain env must not contain Bridge access or relayer policy configuration"
   exit 1
 fi
+if grep -Eq '^YNX_STABLECOIN_API_KEY=' "$release_dir/config/ynx-chaind.env"; then
+  echo "shared chain env must not contain Stablecoin control access configuration"
+  exit 1
+fi
 grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { echo "release env missing commit"; exit 1; }
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged; do
+for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -201,6 +211,9 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-resourced.env" 
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-bridged" || { echo "release tarball missing Bridge coordinator binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-bridged.env" || { echo "release tarball missing Bridge coordinator env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-bridged.service" || { echo "release tarball missing Bridge coordinator systemd unit"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-stablecoind" || { echo "release tarball missing Stablecoin control binary"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-stablecoind.env" || { echo "release tarball missing Stablecoin control env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-stablecoind.service" || { echo "release tarball missing Stablecoin control systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
@@ -347,12 +360,17 @@ grep -Fq "ExecStart=/usr/local/bin/ynx-resourced" "$release_dir/systemd/ynx-reso
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-bridged.env" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-bridged" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing executable"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/bridge" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing bounded state path"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-stablecoind.env" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing secret env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-stablecoind" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing executable"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/stablecoin" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
 grep -Eq "check-local-services\\.sh.*primary.*${commit}.*${release}.*6423.*full" "$dry_run_out" || { echo "dry-run output missing primary full local service check"; exit 1; }
 grep -Fq "YNX_EXPECT_BRIDGE_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Bridge health expectation"; exit 1; }
 grep -Fq "ynx-bridged\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Bridge config check"; exit 1; }
+grep -Fq "YNX_EXPECT_STABLECOIN_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Stablecoin health expectation"; exit 1; }
+grep -Fq "ynx-stablecoind\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Stablecoin config check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }

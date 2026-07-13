@@ -13,6 +13,7 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
   source "$(dirname "$0")/../deploy/lib.sh"
   ynx_load_env
   YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
+  YNX_STABLECOIN_DEPLOY_ENABLED="${YNX_STABLECOIN_DEPLOY_ENABLED:-false}"
   required=(
     TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
     FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN RESOURCE_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
@@ -50,6 +51,15 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
     bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
     ynx_require_env "${bridge_required[@]}"
     ynx_reject_unsafe_env_values "${bridge_required[@]}"
+  fi
+  case "$YNX_STABLECOIN_DEPLOY_ENABLED" in
+    true | false) ;;
+    *) echo "YNX_STABLECOIN_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+  esac
+  if [[ "$YNX_STABLECOIN_DEPLOY_ENABLED" == "true" ]]; then
+    stablecoin_required=(YNX_STABLECOIN_API_KEY YNX_STABLECOIN_HTTP_ADDR)
+    ynx_require_env "${stablecoin_required[@]}"
+    ynx_reject_unsafe_env_values "${stablecoin_required[@]}"
   fi
   [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
   [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }

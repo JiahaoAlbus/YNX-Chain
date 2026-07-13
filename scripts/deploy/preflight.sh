@@ -22,6 +22,7 @@ make pay-api-check
 make trust-api-check
 make resource-api-check
 make bridge-api-check
+make stablecoin-issuer-check
 make sdk-check
 make validator-peer-readiness-check
 make anti-illegal-request-check
