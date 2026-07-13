@@ -1,35 +1,53 @@
 # Next Action
 
-Current single action: verify the separate YNX website repository and its Vercel production binding, then integrate the live YNX Testnet status through real public APIs. This is the largest locally actionable ecosystem gap now that release `c9324fbfc464` is live and both SDKs pass public read-only proof. Public BFT remains higher strategic priority but cannot proceed without offline recovery, owner handover, rotation evidence, and an independent custody review. AI generation proof also remains externally blocked by provider HTTP `429 insufficient_quota`.
+Current single action: implement reversible YNX human-readable account addresses without breaking EVM compatibility.
 
-Required work:
+Why this action:
 
-- Confirm `/Users/huangjiahao/Desktop/YNX-Chain-website` is the intended repository, branch, and Vercel production source before changing or deploying it.
-- Inspect the rendered production site and current data paths; replace synthetic or stale chain state with `https://rpc.ynxweb4.com`, `https://evm.ynxweb4.com`, and the real Explorer where appropriate.
-- Preserve truthful testnet language: no mainnet, exchange listing, stablecoin issuer support, wallet default support, partnership, or public BFT claim.
-- Keep website code in the website repository. Update chain acceptance files only after live production verification.
-- Apply the requested Apple-inspired interaction quality only where it does not hide operational state, testnet boundaries, errors, or data provenance.
+- The user explicitly identified that raw `0x...` addresses do not provide a visible YNX-native identity.
+- YNX remains an L1 because chain identity comes from its own state and chain ID; `0x...` is required by EVM tooling, not evidence that accounts live on Ethereum.
+- Public BFT and provider-backed AI generation remain externally blocked, while dual-address support is a real locally actionable Wallet/SDK/RPC/Explorer feature.
+
+Required behavior:
+
+- Use the same canonical 20 account bytes for both representations.
+- Add checksummed Bech32 `ynx1...` encode/decode and strict rejection for wrong HRP, mixed case, bad checksum, wrong payload length, and malformed hex.
+- Preserve lowercase canonical `0x` addresses inside consensus state and EVM JSON-RPC.
+- REST/native transaction entry points may accept either representation but must normalize before signing, hashing, persistence, or comparison.
+- JS and Python SDKs must provide dependency-free conversion helpers with matching fixtures.
+- Explorer/account APIs should expose and search both representations only after the shared codec and tests exist.
+- Do not claim MetaMask supports `ynx1...`; MetaMask continues to use the equivalent `0x...` address.
 
 Files to touch:
 
-- `/Users/huangjiahao/Desktop/YNX-Chain-website` frontend, configuration, tests, and deployment metadata as required by its existing architecture.
-- Chain acceptance state only after live production verification; do not place website runtime code in the chain repository.
+- `internal/consensus/transaction.go` and shared address validation call sites.
+- A small shared Go address-codec package, with focused tests.
+- `cmd/ynx-consensus-account-key` and native transfer input normalization.
+- `sdk/js`, `sdk/python`, and their fixture tests.
+- Explorer API/UI only after the codec contract is stable.
+- Makefile/check scripts and acceptance tracker.
 
 Validation commands:
 
-- Run the website repository's existing lint, typecheck, tests, and production build.
-- Verify desktop and mobile rendering, live height growth, correct chain ID `6423` / `0x1917`, native `YNXT`, API failure states, zero horizontal overflow, and no browser console errors.
-- Deploy through the confirmed Vercel production project, then repeat checks against the production URL.
-- Re-run `make sdk-remote-check`, `make no-placeholder-check`, `make secret-scan`, and `make objective-state-check` in the chain repository before recording completion.
+- `go test ./...`
+- new focused address-codec tests and command check
+- `make sdk-check`
+- `make explorer-check` after Explorer support exists
+- `make test`
+- `make no-placeholder-check`
+- `make secret-scan`
+- `make objective-state-check`
 
 Completion standard:
 
-- The intended Vercel production project serves the intended `main` branch.
-- Production website data is backed by live YNX public endpoints and visibly distinguishes testnet/current state from goals.
-- Local screenshots or a successful Vercel build alone do not count; the deployed URL must be verified.
+- Go, JavaScript, and Python encode/decode the same fixtures byte-for-byte.
+- Native REST/CLI paths accept `ynx1...` and canonicalize to the same account as `0x...`.
+- EVM JSON-RPC remains unchanged and EVM/MetaMask tests still pass.
+- Explorer displays/searches the alias without changing stored account identity.
+- No remote deployment or public proof claim until the exact chain release is deployed and verified.
 
 Explicitly not doing:
 
-- No new EVM opcodes, Counter behavior, Hardhat artifacts, arbitrary IDE execution, or unrelated Explorer expansion.
-- No signer upload, public freeze, authoritative pause, candidate/dependency start, ingress switch, or BFT cutover without the required independent custody approval.
+- No new EVM opcodes, Counter/Hardhat expansion, arbitrary IDE execution, or unrelated Explorer redesign.
+- No signer upload, freeze, pause, ingress switch, or BFT cutover without independent custody approval.
 - Do not modify or replace the long-term goal file.
