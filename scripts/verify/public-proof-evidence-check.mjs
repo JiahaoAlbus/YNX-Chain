@@ -84,6 +84,8 @@ const requiredChecks = [
   "resource.health.buildTime",
   "resource.auth.configured",
   "web4.health.truthful",
+  "web4.health.chain",
+  "web4.health.chainBinding",
   "pay.intent.created",
   "pay.intent.idempotency",
   "pay.invoice.idempotency",

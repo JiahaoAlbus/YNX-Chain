@@ -518,6 +518,30 @@ function checkTruthfulServiceHealth(name, json) {
   return ok;
 }
 
+function checkWeb4ChainBinding(json) {
+  const binding = json?.chain_binding;
+  const observed = binding?.observed;
+  const ok = binding?.required === true &&
+    binding?.verified === true &&
+    binding?.status === "verified" &&
+    binding?.expected_chain_id === "ynx_6423-1" &&
+    binding?.expected_numeric_chain_id === 6423 &&
+    observed?.chain_id === 6423 &&
+    observed?.native_symbol === "YNXT" &&
+    Number.isSafeInteger(observed?.height) && observed.height > 0 &&
+    observed?.public_network === true &&
+    /^[0-9a-f]{12}$/.test(String(observed?.build_commit || "")) &&
+    observed?.build_release === `ynx-chain-${observed?.build_commit}` &&
+    json?.truthful_status === "current-chain-rpc-bound";
+  record(
+    "web4.health.chainBinding",
+    ok,
+    ok ? `Web4 Hub is bound to live chain height ${observed.height} release ${observed.build_release}` : `Web4 Hub lacks verified current-chain binding: ${clip(binding)}`,
+    binding || {},
+  );
+  return ok;
+}
+
 function checkAIActionProposal(json) {
   const ok = typeof json?.id === "string" && json.id.length > 0 &&
     json?.status === "pending_approval" &&
@@ -813,6 +837,7 @@ async function main() {
   if (web4Health) {
     checkTruthfulServiceHealth("web4.health.truthful", web4Health);
     if (chainIdOf(web4Health) !== null) checkChain("web4.health.chain", web4Health);
+    checkWeb4ChainBinding(web4Health);
   }
 
   const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && resourceHealthOk && Boolean(resourceGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
