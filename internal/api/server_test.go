@@ -14,8 +14,43 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
+
+func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	source := "0x1111111111111111111111111111111111111111"
+	recipient := "0x2222222222222222222222222222222222222222"
+	sourceAlias, err := accountaddress.Encode(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recipientAlias, err := accountaddress.Encode(recipient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var faucetTx map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": sourceAlias, "amount": 100}, http.StatusCreated, &faucetTx)
+	if faucetTx["to"] != source {
+		t.Fatalf("faucet did not canonicalize YNX alias: %v", faucetTx)
+	}
+	var transferTx map[string]any
+	doJSON(t, http.MethodPost, server.URL+"/transfer", map[string]any{"from": sourceAlias, "to": recipientAlias, "amount": 25}, http.StatusCreated, &transferTx)
+	if transferTx["from"] != source || transferTx["to"] != recipient {
+		t.Fatalf("transfer did not canonicalize YNX aliases: %v", transferTx)
+	}
+	var account map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/accounts/"+recipientAlias, nil, http.StatusOK, &account)
+	if account["account"].(map[string]any)["address"] != recipient {
+		t.Fatalf("account lookup did not resolve YNX alias: %v", account)
+	}
+	var invalid map[string]any
+	doJSON(t, http.MethodGet, server.URL+"/accounts/ynx1qqqqqq", nil, http.StatusBadRequest, &invalid)
+}
 
 func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))

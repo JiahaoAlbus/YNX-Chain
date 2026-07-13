@@ -8,9 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
-	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"golang.org/x/crypto/sha3"
@@ -22,8 +21,6 @@ const (
 	SignedTransactionFeeYNXT = int64(1)
 	MaxSignedTransactionSize = 16 * 1024
 )
-
-var nativeAddressPattern = regexp.MustCompile(`^0x[0-9a-f]{40}$`)
 
 // SignedTransaction is the canonical native YNXT transaction envelope. The
 // public key is included so ownership can be verified without a key registry.
@@ -62,11 +59,11 @@ func NativeAddress(publicKey []byte) (string, error) {
 	hasher := sha3.NewLegacyKeccak256()
 	_, _ = hasher.Write(uncompressed[1:])
 	sum := hasher.Sum(nil)
-	return "0x" + hex.EncodeToString(sum[len(sum)-20:]), nil
+	return accountaddress.FromBytes(sum[len(sum)-20:])
 }
 
 func IsNativeAddress(address string) bool {
-	return nativeAddressPattern.MatchString(address)
+	return accountaddress.IsCanonical(address)
 }
 
 func NewSignedTransfer(privateKey *secp256k1.PrivateKey, chainID int64, to string, amount int64, nonce uint64) (SignedTransaction, error) {
@@ -78,12 +75,16 @@ func NewSignedTransfer(privateKey *secp256k1.PrivateKey, chainID int64, to strin
 	if err != nil {
 		return SignedTransaction{}, err
 	}
+	canonicalTo, err := accountaddress.Normalize(to)
+	if err != nil {
+		return SignedTransaction{}, fmt.Errorf("normalize recipient address: %w", err)
+	}
 	tx := SignedTransaction{
 		Version:   SignedTransactionVersion,
 		ChainID:   chainID,
 		Type:      SignedTransactionType,
 		From:      from,
-		To:        strings.ToLower(strings.TrimSpace(to)),
+		To:        canonicalTo,
 		Amount:    amount,
 		Fee:       SignedTransactionFeeYNXT,
 		Nonce:     nonce,

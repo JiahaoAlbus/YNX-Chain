@@ -250,7 +250,7 @@ const indexHTML = `<!doctype html>
       <h1>YNX Chain network explorer</h1>
       <p class="hero-copy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
       <form class="search" id="searchForm">
-        <input id="searchInput" aria-label="Search the chain" placeholder="Search block, transaction, or address" autocomplete="off" spellcheck="false">
+        <input id="searchInput" aria-label="Search the chain" placeholder="Search block, transaction, 0x, or ynx1 address" autocomplete="off" spellcheck="false">
         <button type="submit">Search</button>
       </form>
       <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
@@ -322,7 +322,7 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="wallet-band">
-        <div><h2>Use YNX Testnet in your wallet.</h2><p>Add the verified chain ID, RPC endpoint, YNXT currency, and explorer URL in one step.</p></div>
+        <div><h2>Use YNX Testnet in your wallet.</h2><p>Add the verified chain ID, RPC endpoint, YNXT currency, and explorer URL. MetaMask uses the canonical 0x form; YNX apps may show its equivalent ynx1 alias.</p></div>
         <button id="metamaskButton" class="wallet-button" type="button">Add YNX Testnet to MetaMask</button>
       </section>
     </div>
@@ -529,7 +529,7 @@ const indexHTML = `<!doctype html>
     function detailStats(type,detail) {
       if (type === 'block') return [['Height','#' + number(detail.height)],['Transactions',(detail.transactions || []).length],['Validator',compact(detail.validator,10,7)]];
       if (type === 'transaction') return [['Amount',number(detail.amount) + ' YNXT'],['Fee',number(detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)]];
-      if (type === 'account') return [['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)]];
+      if (type === 'account') return [['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)],['YNX address',compact(detail.addressFormats?.ynxAddress || detail.account?.address,12,9)]];
       return [];
     }
     function showDrawer(type,query,detail) {

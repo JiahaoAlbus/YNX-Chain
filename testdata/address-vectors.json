@@ -1,0 +1,14 @@
+[
+  {
+    "hex": "0x0000000000000000000000000000000000000000",
+    "bech32": "ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqgrm2qr"
+  },
+  {
+    "hex": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "bech32": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+  },
+  {
+    "hex": "0xffffffffffffffffffffffffffffffffffffffff",
+    "bech32": "ynx1llllllllllllllllllllllllllllllllyj698f"
+  }
+]

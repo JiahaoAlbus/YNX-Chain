@@ -28,6 +28,7 @@ Current highest priority:
 
 - Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. Authoritative release `c9324fbfc464` and a read-only production rehearsal are verified, but `publicCutoverReady=false`; offline recovery, owner handover, rotation, and independent custody review remain mandatory before any transaction mutation. While that external gate is open, the next locally actionable gap is live website/Vercel integration against the current public chain.
 - Website/Vercel integration is now deployed from the intended repository. The next locally actionable gap is a reversible `ynx1...` human-readable address representation over the same 20-byte EVM account, with SDK/RPC/Explorer support while preserving canonical `0x...` JSON-RPC and MetaMask compatibility.
+- The dual-address codec, SDK helpers, REST/CLI normalization, and Explorer support now pass local verification. They remain local-only until the exact commit is deployed and public alias-to-canonical lookup is verified; ordinary authoritative deployment is next and must not be confused with the externally gated BFT transition.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:

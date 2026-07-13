@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
@@ -255,15 +256,32 @@ func (s *Service) Transaction(ctx context.Context, hash string) (chain.Transacti
 }
 
 type AccountDetail struct {
-	Account   chain.Account         `json:"account"`
-	Resources chain.ResourceBalance `json:"resources"`
-	Trace     chain.TrustTrace      `json:"trace"`
+	Account        chain.Account         `json:"account"`
+	AddressFormats *AddressFormats       `json:"addressFormats,omitempty"`
+	Resources      chain.ResourceBalance `json:"resources"`
+	Trace          chain.TrustTrace      `json:"trace"`
+}
+
+type AddressFormats struct {
+	EVM string `json:"evmAddress"`
+	YNX string `json:"ynxAddress"`
 }
 
 func (s *Service) Account(ctx context.Context, address string) (AccountDetail, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return AccountDetail{}, err
+	}
 	var account AccountDetail
 	if err := s.rpcClient.getJSON(ctx, "/accounts/"+url.PathEscape(address), &account); err != nil {
 		return AccountDetail{}, err
+	}
+	if accountaddress.IsCanonical(account.Account.Address) {
+		alias, err := accountaddress.Encode(account.Account.Address)
+		if err != nil {
+			return AccountDetail{}, err
+		}
+		account.AddressFormats = &AddressFormats{EVM: account.Account.Address, YNX: alias}
 	}
 	return account, nil
 }
@@ -277,6 +295,10 @@ func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
 }
 
 func (s *Service) Resources(ctx context.Context, address string) (chain.ResourceBalance, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return chain.ResourceBalance{}, err
+	}
 	var resources chain.ResourceBalance
 	if err := s.rpcClient.getJSON(ctx, "/resources/"+url.PathEscape(address), &resources); err != nil {
 		return chain.ResourceBalance{}, err
@@ -366,10 +388,11 @@ func FeeDetailFromTx(tx chain.Transaction) FeeDetail {
 }
 
 type SearchResult struct {
-	Query          string `json:"query"`
-	Type           string `json:"type"`
-	Path           string `json:"path"`
-	TruthfulStatus string `json:"truthfulStatus"`
+	Query             string `json:"query"`
+	Type              string `json:"type"`
+	Path              string `json:"path"`
+	NormalizedAddress string `json:"normalizedAddress,omitempty"`
+	TruthfulStatus    string `json:"truthfulStatus"`
 }
 
 func (s *Service) Search(ctx context.Context, query string) (SearchResult, error) {
@@ -388,8 +411,21 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 		}
 	}
-	if _, err := s.Account(ctx, query); err == nil {
-		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(query), TruthfulStatus: "resolved-from-rpc"}, nil
+	normalized, err := normalizeExplorerAddress(query)
+	if err != nil {
+		return SearchResult{}, err
+	}
+	if _, err := s.Account(ctx, normalized); err == nil {
+		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
 	}
 	return SearchResult{}, fmt.Errorf("query not found")
+}
+
+func normalizeExplorerAddress(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, accountaddress.HRP+"1") || strings.HasPrefix(lower, "0x") {
+		return accountaddress.Normalize(value)
+	}
+	return value, nil
 }

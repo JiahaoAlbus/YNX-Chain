@@ -15,7 +15,7 @@ import (
 func main() {
 	keyPath := flag.String("key", "", "mode-0600 raw 32-byte secp256k1 private key file")
 	chainID := flag.Int64("chain-id", 6423, "numeric YNX chain ID")
-	to := flag.String("to", "", "canonical EVM-compatible recipient address")
+	to := flag.String("to", "", "recipient address in canonical 0x or checksummed ynx1 format")
 	amount := flag.Int64("amount", 0, "positive YNXT amount")
 	nonce := flag.Uint64("nonce", 0, "next account nonce")
 	flag.Parse()

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -23,6 +24,14 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	tx, err := devnet.Transfer("ynx_explorer_alice", "ynx_explorer_bob", 125)
 	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalAddress := "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+	ynxAddress, err := accountaddress.Encode(canonicalAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(canonicalAddress, 50); err != nil {
 		t.Fatal(err)
 	}
 	devnet.ProduceBlock()
@@ -48,7 +57,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/search?q=" + tx.Hash, "/metrics"} {
+	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -59,6 +68,18 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 			t.Fatalf("%s returned %d: %s", path, resp.StatusCode, string(body))
 		}
 		_ = resp.Body.Close()
+	}
+	aliasResponse, err := http.Get(server.URL + "/api/accounts/" + ynxAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer aliasResponse.Body.Close()
+	var aliasDetail AccountDetail
+	if err := json.NewDecoder(aliasResponse.Body).Decode(&aliasDetail); err != nil {
+		t.Fatal(err)
+	}
+	if aliasDetail.Account.Address != canonicalAddress || aliasDetail.AddressFormats == nil || aliasDetail.AddressFormats.YNX != ynxAddress || aliasDetail.AddressFormats.EVM != canonicalAddress {
+		t.Fatalf("explorer did not expose equivalent address formats: %+v", aliasDetail)
 	}
 
 	resp, err := http.Get(server.URL + "/")
@@ -86,6 +107,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Live finalized block stream",
 		"id=\"blockTrack\"",
 		"No event for ",
+		"ynx1 alias",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
@@ -96,7 +118,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 2 || summary.Wallet.ChainIDHex != "0x1917" {
+	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 3 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
 	resp, err = http.Get(server.URL + "/health")
@@ -138,7 +160,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	cancelStream()
 	_ = streamResp.Body.Close()
-	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":2`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
+	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":3`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
 	}
 }

@@ -1,8 +1,8 @@
 # Project State
 
-- State snapshot baseline commit: `9445e9e Add live-verified JavaScript and Python SDK clients`
-- Last pushed commit: `9445e9e Add live-verified JavaScript and Python SDK clients`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`, clean before this acceptance update.
+- State snapshot baseline commit: `3eca732 Record website production verification and next address gap`
+- Last pushed commit: `3eca732 Record website production verification and next address gap`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; current uncommitted changes implement and document dual-format account addressing.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `7a638b0 Fix production SPA deep links`.
 - Vercel project `ynx-web4-website-new` (`prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa`) is now Git-connected to `JiahaoAlbus/YNX-Chain-website`, production branch `main`; the previous `ynx-web4-website-new` repository is no longer the automatic source.
 - Latest verified Vercel Git deployment: `dpl_22cxGGiFypkzebGXhibDk7eaWG6q`, source commit `7a638b033d289d335d26500597d230a33b046d6e`, state `READY`.
@@ -26,6 +26,7 @@ Completed modules:
 
 - Chain runtime, authoritative replication, RPC/EVM RPC, Faucet, Indexer, Explorer, monitoring, deployment, backup, rollback, AI action governance, Pay, Trust/Chain Law, Anti-Illegal Request, Request Validity, native YNXT protection, Appeal/Correction, Transparency, Resource Market, bounded IDE, and JS/Python SDK slices have real code and local tests. The authoritative public release provides operator-controlled public proof for the documented deployed subset.
 - Website repository selection, Vercel Git binding, production deployment, real API aggregation, responsive CSS chain interaction, truthful disclosure routes, and SPA deep links are implemented and production verified.
+- Dual-format account addressing is implemented locally: one canonical 20-byte account has lowercase EVM `0x...` and checksummed Bech32 `ynx1...` representations. Go/JS/Python shared vectors, signed-transfer canonicalization, REST boundary normalization, account-key public output, Explorer alias search/detail, and dedicated Makefile checks pass. EVM JSON-RPC and MetaMask remain on `0x...`.
 
 Incomplete modules or requirements:
 
@@ -34,7 +35,7 @@ Incomplete modules or requirements:
 - Provider-backed AI generation proof is incomplete because upstream quota returns HTTP `429`.
 - Independent public-vantage evidence is absent.
 - SDK registry publication, signed versioning, independent consumer proof, mainnet audit/legal/custody, exchange listing, stablecoin issuer support, wallet default support, production bridge readiness, and third-party partnerships remain incomplete and are not claimed.
-- Native accounts currently use canonical EVM-compatible `0x...` representation. A reversible YNX human-readable `ynx1...` representation is not implemented in chain code, SDKs, Explorer, or the website.
+- The deployed authoritative release does not yet contain the new `ynx1...` codec or Explorer support. The website does not yet expose address conversion. No public dual-address proof is claimed.
 
 Current blockers:
 
@@ -44,4 +45,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Implement dual-format account addressing: preserve canonical 20-byte `0x...` addresses for EVM JSON-RPC, MetaMask, Solidity, and ABI compatibility while adding checksummed Bech32 `ynx1...` encode/decode, REST normalization, SDK conversion, Explorer display/search, and tests. This is locally actionable and directly answers the native-wallet identity gap without weakening EVM compatibility.
+- Commit and push the verified dual-address implementation, deploy that exact commit through the ordinary authoritative rollback-safe deployment path without any BFT mutation, then verify public REST and Explorer `ynx1...` lookup against the same canonical account. Until that succeeds, report the feature as local-only.

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
@@ -19,6 +20,7 @@ type publicRecord struct {
 	Version         int    `json:"version"`
 	Purpose         string `json:"purpose"`
 	Address         string `json:"address"`
+	YNXAddress      string `json:"ynxAddress"`
 	CustodyBoundary string `json:"custodyBoundary"`
 }
 
@@ -101,7 +103,11 @@ func run(mode, keyPath, publicRecordPath, purpose string, acknowledge bool, outp
 	if err != nil {
 		return err
 	}
-	record := publicRecord{Version: 1, Purpose: purpose, Address: address, CustodyBoundary: "owner-local-mode-0600"}
+	ynxAddress, err := accountaddress.Encode(address)
+	if err != nil {
+		return err
+	}
+	record := publicRecord{Version: 1, Purpose: purpose, Address: address, YNXAddress: ynxAddress, CustodyBoundary: "owner-local-mode-0600"}
 	payload, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
 		return err
@@ -112,6 +118,6 @@ func run(mode, keyPath, publicRecordPath, purpose string, acknowledge bool, outp
 	if err := os.Chmod(publicRecordPath, 0o600); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(output, "owner-controlled account ready: purpose=%s address=%s custody=%s\n", purpose, address, record.CustodyBoundary)
+	_, err = fmt.Fprintf(output, "owner-controlled account ready: purpose=%s address=%s ynxAddress=%s custody=%s\n", purpose, address, ynxAddress, record.CustodyBoundary)
 	return err
 }

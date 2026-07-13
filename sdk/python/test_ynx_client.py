@@ -7,7 +7,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
-from ynx_client import YNXClient, YNXSDKError, assert_ynx_testnet_snapshot, call_evm, get_status
+from ynx_client import (
+    YNXClient,
+    YNXSDKError,
+    assert_ynx_testnet_snapshot,
+    call_evm,
+    get_status,
+    normalize_ynx_address,
+    to_evm_address,
+    to_ynx_address,
+)
 
 
 class FixtureHandler(BaseHTTPRequestHandler):
@@ -74,6 +83,23 @@ class YNXClientTest(unittest.TestCase):
     def test_rejects_unsupported_protocol(self):
         with self.assertRaisesRegex(YNXSDKError, "absolute HTTP"):
             YNXClient("file:///tmp/status", self.base_url)
+
+    def test_shared_address_vectors(self):
+        vector_path = pathlib.Path(__file__).parents[2] / "testdata" / "address-vectors.json"
+        vectors = json.loads(vector_path.read_text(encoding="utf-8"))
+        for vector in vectors:
+            self.assertEqual(to_ynx_address(vector["hex"]), vector["bech32"])
+            self.assertEqual(to_evm_address(vector["bech32"]), vector["hex"])
+            self.assertEqual(
+                normalize_ynx_address(vector["bech32"]),
+                {"evmAddress": vector["hex"], "ynxAddress": vector["bech32"]},
+            )
+
+    def test_rejects_malformed_addresses(self):
+        valid = to_ynx_address("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf")
+        for value in ["0x1234", f"Y{valid[1:]}", f"{valid[:-1]}q", f"eth{valid[3:]}"]:
+            with self.subTest(value=value), self.assertRaises(YNXSDKError):
+                to_evm_address(value)
 
 
 if __name__ == "__main__":

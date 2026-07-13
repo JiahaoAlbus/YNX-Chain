@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -60,6 +61,25 @@ func TestSignedTransactionCanonicalAddressAndSignature(t *testing.T) {
 	}
 	if err := decoded.Verify(1); err == nil {
 		t.Fatal("signed transaction was replayable on another chain ID")
+	}
+}
+
+func TestSignedTransactionAcceptsYNXAliasAndSignsCanonicalAddress(t *testing.T) {
+	senderKey := deterministicPrivateKey(3)
+	recipient := mustNativeAddress(t, deterministicPrivateKey(4))
+	alias, err := accountaddress.Encode(recipient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := NewSignedTransfer(senderKey, 6423, alias, 25, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tx.To != recipient || !IsNativeAddress(tx.To) {
+		t.Fatalf("YNX alias was not canonicalized before signing: %+v", tx)
+	}
+	if err := tx.Verify(6423); err != nil {
+		t.Fatal(err)
 	}
 }
 

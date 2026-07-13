@@ -31,7 +31,7 @@ func TestRunCreatesAndInspectsOwnerControlledKeyWithoutPrintingIt(t *testing.T) 
 	}
 	var first publicRecord
 	payload, _ := os.ReadFile(recordPath)
-	if err := json.Unmarshal(payload, &first); err != nil || !strings.HasPrefix(first.Address, "0x") || first.Purpose != purpose {
+	if err := json.Unmarshal(payload, &first); err != nil || !strings.HasPrefix(first.Address, "0x") || !strings.HasPrefix(first.YNXAddress, "ynx1") || first.Purpose != purpose {
 		t.Fatal("public owner record is invalid")
 	}
 	output.Reset()

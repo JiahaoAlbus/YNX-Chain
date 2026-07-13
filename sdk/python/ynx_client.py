@@ -9,6 +9,10 @@ from typing import Any, Optional
 
 DEFAULT_TIMEOUT_SECONDS = 10.0
 HEX_QUANTITY = re.compile(r"^0x(?:0|[1-9a-f][0-9a-f]*)$", re.IGNORECASE)
+HEX_ADDRESS = re.compile(r"^0x[0-9a-f]{40}$", re.IGNORECASE)
+YNX_ADDRESS_HRP = "ynx"
+BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+BECH32_REVERSE = {character: index for index, character in enumerate(BECH32_CHARSET)}
 
 
 class YNXSDKError(RuntimeError):
@@ -16,6 +20,91 @@ class YNXSDKError(RuntimeError):
         super().__init__(message)
         self.status = status
         self.code = code
+
+
+def _convert_address_bits(data: list[int], from_bits: int, to_bits: int, pad: bool) -> list[int]:
+    accumulator = 0
+    bits = 0
+    result: list[int] = []
+    max_value = (1 << to_bits) - 1
+    max_accumulator = (1 << (from_bits + to_bits - 1)) - 1
+    for value in data:
+        if value < 0 or value >> from_bits:
+            raise YNXSDKError("address payload value exceeds conversion bit width")
+        accumulator = ((accumulator << from_bits) | value) & max_accumulator
+        bits += from_bits
+        while bits >= to_bits:
+            bits -= to_bits
+            result.append((accumulator >> bits) & max_value)
+    if pad and bits:
+        result.append((accumulator << (to_bits - bits)) & max_value)
+    if not pad and (bits >= from_bits or ((accumulator << (to_bits - bits)) & max_value)):
+        raise YNXSDKError("address payload has invalid Bech32 padding")
+    return result
+
+
+def _bech32_hrp_expand(hrp: str) -> list[int]:
+    return [ord(character) >> 5 for character in hrp] + [0] + [ord(character) & 31 for character in hrp]
+
+
+def _bech32_polymod(values: list[int]) -> int:
+    generators = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3]
+    checksum = 1
+    for value in values:
+        top = checksum >> 25
+        checksum = ((checksum & 0x1FFFFFF) << 5) ^ value
+        for index, generator in enumerate(generators):
+            if (top >> index) & 1:
+                checksum ^= generator
+    return checksum
+
+
+def _decode_hex_address(value: str) -> list[int]:
+    value = value.strip() if isinstance(value, str) else ""
+    if not HEX_ADDRESS.fullmatch(value):
+        raise YNXSDKError("account address must be 0x-prefixed with 40 hex characters")
+    return list(bytes.fromhex(value[2:]))
+
+
+def to_ynx_address(value: str) -> str:
+    payload = _decode_hex_address(to_evm_address(value))
+    data = _convert_address_bits(payload, 8, 5, True)
+    checksum = _bech32_polymod(_bech32_hrp_expand(YNX_ADDRESS_HRP) + data + [0] * 6) ^ 1
+    checksum_values = [(checksum >> (5 * (5 - index))) & 31 for index in range(6)]
+    return f"{YNX_ADDRESS_HRP}1" + "".join(BECH32_CHARSET[item] for item in data + checksum_values)
+
+
+def to_evm_address(value: str) -> str:
+    if not isinstance(value, str):
+        raise YNXSDKError("account address must be a string")
+    value = value.strip()
+    if not value.lower().startswith(f"{YNX_ADDRESS_HRP}1"):
+        return "0x" + bytes(_decode_hex_address(value)).hex()
+    if len(value) > 90:
+        raise YNXSDKError("YNX address exceeds Bech32 maximum length")
+    if value != value.lower() and value != value.upper():
+        raise YNXSDKError("YNX address must not mix uppercase and lowercase")
+    value = value.lower()
+    separator = value.rfind("1")
+    if separator <= 0 or separator + 7 > len(value):
+        raise YNXSDKError("YNX address has an invalid Bech32 separator or checksum length")
+    if value[:separator] != YNX_ADDRESS_HRP:
+        raise YNXSDKError('YNX address HRP must be "ynx"')
+    try:
+        data = [BECH32_REVERSE[character] for character in value[separator + 1 :]]
+    except KeyError as error:
+        raise YNXSDKError("YNX address contains an invalid Bech32 character") from error
+    if _bech32_polymod(_bech32_hrp_expand(YNX_ADDRESS_HRP) + data) != 1:
+        raise YNXSDKError("YNX address checksum is invalid")
+    payload = _convert_address_bits(data[:-6], 5, 8, False)
+    if len(payload) != 20:
+        raise YNXSDKError("YNX address payload must be 20 bytes")
+    return "0x" + bytes(payload).hex()
+
+
+def normalize_ynx_address(value: str) -> dict[str, str]:
+    evm_address = to_evm_address(value)
+    return {"evmAddress": evm_address, "ynxAddress": to_ynx_address(evm_address)}
 
 
 def _endpoint(base_url: str, path: str = "") -> str:

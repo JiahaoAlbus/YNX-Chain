@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -177,6 +178,15 @@ func constantTimeEqual(a, b string) bool {
 	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
 }
 
+func normalizeAccountInput(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, accountaddress.HRP+"1") || strings.HasPrefix(lower, "0x") {
+		return accountaddress.Normalize(value)
+	}
+	return value, nil
+}
+
 func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg := s.devnet.Config()
@@ -265,7 +275,12 @@ func (s *Server) handleRecentTransactions(w http.ResponseWriter, r *http.Request
 	writeJSON(w, http.StatusOK, map[string]any{"transactions": s.devnet.RecentTransactions(limit)})
 }
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
-	account, ok := s.devnet.Account(r.PathValue("address"))
+	address, err := normalizeAccountInput(r.PathValue("address"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	account, ok := s.devnet.Account(address)
 	if !ok {
 		writeError(w, http.StatusNotFound, "account not found")
 		return
@@ -337,7 +352,12 @@ func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	tx, err := s.devnet.Faucet(req.Address, req.Amount)
+	address, err := normalizeAccountInput(req.Address)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	tx, err := s.devnet.Faucet(address, req.Amount)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -352,7 +372,17 @@ func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	tx, err := s.devnet.Transfer(req.From, req.To, req.Amount)
+	from, err := normalizeAccountInput(req.From)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	to, err := normalizeAccountInput(req.To)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	tx, err := s.devnet.Transfer(from, to, req.Amount)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -367,7 +397,12 @@ func (s *Server) handleStake(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	tx, resources, err := s.devnet.Stake(req.Address, req.Amount)
+	address, err := normalizeAccountInput(req.Address)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	tx, resources, err := s.devnet.Stake(address, req.Amount)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -375,7 +410,12 @@ func (s *Server) handleStake(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, map[string]any{"transaction": tx, "resources": resources})
 }
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
-	resources, err := s.devnet.Resources(r.PathValue("address"))
+	address, err := normalizeAccountInput(r.PathValue("address"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	resources, err := s.devnet.Resources(address)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -383,7 +423,12 @@ func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resources)
 }
 func (s *Server) handleTrustTrace(w http.ResponseWriter, r *http.Request) {
-	trace, err := s.devnet.TrustTrace(r.PathValue("address"))
+	address, err := normalizeAccountInput(r.PathValue("address"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	trace, err := s.devnet.TrustTrace(address)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
