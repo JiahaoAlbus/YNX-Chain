@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "purpose": "ynx-owner-handover-operational-account-catalog",
+  "records": [
+    {
+      "id": "authoritative-faucet-runtime",
+      "category": "faucet-operator-signer",
+      "identityType": "authoritative-runtime-account",
+      "publicIdentity": "ynx_faucet",
+      "publicAlias": "",
+      "secondaryPublicIdentity": "",
+      "role": "authoritative-faucet",
+      "environment": "public-testnet-authoritative",
+      "custodyLocationClass": "no-private-key-runtime-state",
+      "fundingState": "runtime-protocol-balance",
+      "recoveryStatus": "state-backup-bound",
+      "rotationStatus": "not-applicable",
+      "remoteInstallStatus": "not-applicable",
+      "handoverStatus": "not-applicable",
+      "handoverRequired": false
+    },
+    {
+      "id": "public-address-proof-account",
+      "category": "funded-test-account",
+      "identityType": "secp256k1-test-account",
+      "publicIdentity": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "publicAlias": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+      "secondaryPublicIdentity": "",
+      "role": "public-address-proof",
+      "environment": "public-testnet",
+      "custodyLocationClass": "public-known-test-key-not-secure",
+      "fundingState": "funded-testnet-observed",
+      "recoveryStatus": "not-applicable",
+      "rotationStatus": "not-applicable",
+      "remoteInstallStatus": "not-applicable",
+      "handoverStatus": "not-applicable",
+      "handoverRequired": false
+    },
+    {
+      "id": "remote-smoke-runtime-pattern",
+      "category": "deterministic-smoke-only-account",
+      "identityType": "authoritative-runtime-account-pattern",
+      "publicIdentity": "ynx_remote_smoke_*",
+      "publicAlias": "",
+      "secondaryPublicIdentity": "",
+      "role": "remote-smoke",
+      "environment": "public-testnet-authoritative",
+      "custodyLocationClass": "no-private-key-ephemeral-runtime-state",
+      "fundingState": "ephemeral-faucet-funded",
+      "recoveryStatus": "not-applicable",
+      "rotationStatus": "not-applicable",
+      "remoteInstallStatus": "not-applicable",
+      "handoverStatus": "not-applicable",
+      "handoverRequired": false
+    }
+  ]
+}

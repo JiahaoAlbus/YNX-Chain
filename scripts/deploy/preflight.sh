@@ -48,6 +48,7 @@ make public-bft-freeze-rehearsal-approval-template-check
 make public-bft-freeze-rehearsal-transaction-check
 make production-service-signer-ceremony-check
 make production-custody-review-check
+make owner-handover-check
 make public-bft-production-rehearsal-check
 make public-bft-production-recovery-check
 make public-bft-production-driver-check
