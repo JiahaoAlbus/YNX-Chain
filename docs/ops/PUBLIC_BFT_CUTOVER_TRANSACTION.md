@@ -8,9 +8,9 @@ YNX Chain public BFT cutover is an approval-gated transaction. The transaction e
 - Execution requires `PUBLIC_BFT_CUTOVER_APPROVED=yes`, an executable driver, a clean `main` worktree, and a mode-`0600` approval file.
 - Approval must be valid for no more than 24 hours and bind the exact 12-character commit and `ynx-bft-gateway-<commit>` release.
 - Approval must explicitly set both `publicCutoverAuthorized` and `automaticRollbackRequired` to `true`.
-- Full-cutover approval and every downstream approval-evidence/candidate-binding validator require the same independent custody boundary as the bounded rehearsal: custody reviewer distinct from transaction approver, a compact non-secret evidence reference, validator and five-service signer recovery, owner handover, and rotation verification. Legacy or self-reviewed approval evidence fails closed.
+- Full-cutover approval and every downstream approval-evidence/candidate-binding validator require the same independent custody boundary as the bounded rehearsal: custody reviewer distinct from transaction approver, an exact `sha256:<digest>` reference to the reviewed non-secret custody packet, validator and five-service signer recovery, owner handover, and rotation verification. Legacy, free-form, or self-reviewed approval evidence fails closed.
 - Approval must bind `validatorManifestSha256` and a whole-second UTC `candidateGenesisTime`. Candidate generation requires that exact public-key-only manifest, a genesis time between the final snapshot timestamp and 30 minutes after it, and an approval that is still valid.
-- The bounded freeze-rehearsal approval is separately fail-closed on custody review: its transaction approver and custody reviewer must be different identified people, the reviewer must provide a non-secret evidence reference, and validator-key recovery, all five service-signer recovery paths, owner handover, and rotation procedure must each be explicitly verified. The generated template defaults every custody assertion to false.
+- The bounded freeze-rehearsal approval is separately fail-closed on custody review: its transaction approver and custody reviewer must be different identified people, the reviewer must provide the exact custody review packet hash, and validator-key recovery, all five service-signer recovery paths, owner handover, and rotation procedure must each be explicitly verified. The generated template defaults every custody assertion to false.
 - Candidate deployment additionally requires `PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED=yes`. Automatic candidate rollback consumes the transaction-local validated approval evidence and remains available after approval expiry so an in-flight failure cannot lose its rollback permission.
 - Parallel dependency startup additionally requires `PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED=yes`, a verified transaction candidate, and five owner-controlled mode-`0600` signer files under `/etc/ynx/consensus-signers`. Forward signer inputs are not required for automatic dependency rollback.
 - Ingress switching additionally requires `PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED=yes` and passed candidate dependency continuity. Automatic ingress rollback consumes transaction-local approval evidence and does not require the forward ingress approval variable.
@@ -55,6 +55,7 @@ All candidate dependency binaries and writable state remain under transaction or
 make public-bft-cutover-plan
 make public-bft-cutover-transaction-check
 make public-bft-production-driver-check
+make production-custody-review-check
 make mutation-freeze-check
 ```
 

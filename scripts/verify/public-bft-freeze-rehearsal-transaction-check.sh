@@ -19,7 +19,7 @@ future="$(date -u -v+1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+1 hour' 
 write_approval() {
   local transaction_id="$1" path="$2"
   cat >"$path" <<EOF
-{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"fixture-custody-review-${transaction_id}","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
+{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
 EOF
   chmod 600 "$path"
 }
@@ -102,6 +102,12 @@ write_approval rejected-custody "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.serviceSignerRecoveryVerified=false; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
 if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-custody) >/dev/null 2>&1; then
   echo "approval without service signer recovery unexpectedly passed" >&2
+  exit 1
+fi
+write_approval rejected-free-form-custody "$approval"
+node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.custodyEvidence="free-form-review-reference"; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-free-form-custody) >/dev/null 2>&1; then
+  echo "free-form custody evidence unexpectedly passed" >&2
   exit 1
 fi
 write_approval rejected-self-review "$approval"

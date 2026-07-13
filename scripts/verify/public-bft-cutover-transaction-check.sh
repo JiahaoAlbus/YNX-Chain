@@ -25,7 +25,7 @@ printf '%s\n' \
 
 future="$(date -u -v+1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"
 cat >"$tmp/approval.json" <<EOF
-{"schemaVersion":1,"action":"ynx-public-bft-cutover","approvalId":"self-test-${commit}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"fixture-full-cutover-custody-review","approved":true,"commit":"${commit}","release":"${release}","publicCutoverAuthorized":true,"automaticRollbackRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"validatorManifestSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","candidateGenesisTime":"${future}","expiresAt":"${future}"}
+{"schemaVersion":1,"action":"ynx-public-bft-cutover","approvalId":"self-test-${commit}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","approved":true,"commit":"${commit}","release":"${release}","publicCutoverAuthorized":true,"automaticRollbackRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"validatorManifestSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","candidateGenesisTime":"${future}","expiresAt":"${future}"}
 EOF
 chmod 600 "$tmp/approval.json"
 
@@ -135,6 +135,11 @@ fi
 node -e 'const fs=require("fs"),[i,o]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(i));v.serviceSignerRecoveryVerified=false;fs.writeFileSync(o,JSON.stringify(v)+"\n",{mode:0o600})' "$tmp/approval.json" "$tmp/incomplete-custody-approval.json"
 if (cd "$repo" && node scripts/verify/validate-public-bft-cutover-approval.mjs "$tmp/incomplete-custody-approval.json" "$commit" "$release") >/dev/null 2>&1; then
   echo "cutover approval without service signer recovery unexpectedly passed validation" >&2
+  exit 1
+fi
+node -e 'const fs=require("fs"),[i,o]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(i));v.custodyEvidence="free-form-review-reference";fs.writeFileSync(o,JSON.stringify(v)+"\n",{mode:0o600})' "$tmp/approval.json" "$tmp/free-form-custody-approval.json"
+if (cd "$repo" && node scripts/verify/validate-public-bft-cutover-approval.mjs "$tmp/free-form-custody-approval.json" "$commit" "$release") >/dev/null 2>&1; then
+  echo "cutover approval with free-form custody evidence unexpectedly passed validation" >&2
   exit 1
 fi
 node -e 'const fs=require("fs"),[i,o]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(i));v.custodyReviewer=v.approver;fs.writeFileSync(o,JSON.stringify(v)+"\n",{mode:0o600})' "$tmp/approval.json" "$tmp/self-reviewed-approval.json"

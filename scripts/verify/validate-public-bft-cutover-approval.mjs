@@ -32,7 +32,7 @@ if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{7,127}$/.test(approval.approvalId || "")) fail(
 if (typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approver is required");
 if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3) fail("independent custody reviewer is required");
 if (approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("custody reviewer must differ from transaction approver");
-if (typeof approval.custodyEvidence !== "string" || approval.custodyEvidence.trim().length < 8 || approval.custodyEvidence.length > 512 || /[\r\n]/.test(approval.custodyEvidence)) fail("a compact non-secret custody evidence reference is required");
+if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("an exact sha256 custody review evidence reference is required");
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval is bound to a different commit or release");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
   fail("explicit cutover authorization and automatic rollback consent are required");
