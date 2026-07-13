@@ -20,6 +20,18 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
+func TestGatewayRejectsIncompleteMigrationAnchor(t *testing.T) {
+	if _, err := New(Config{CometRPCURL: "http://127.0.0.1:27757", MigrationHeight: 10}); err == nil {
+		t.Fatal("gateway accepted migration height without a block hash")
+	}
+	if _, err := New(Config{CometRPCURL: "http://127.0.0.1:27757", MigrationBlockHash: strings.Repeat("a", 64)}); err == nil {
+		t.Fatal("gateway accepted migration block hash without a height")
+	}
+	if _, err := New(Config{CometRPCURL: "http://127.0.0.1:27757", MigrationHeight: 10, MigrationBlockHash: "bad"}); err == nil {
+		t.Fatal("gateway accepted an invalid migration block hash")
+	}
+}
+
 func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	privateKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 7))
 	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 8))
@@ -62,7 +74,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
 				"block_id": map[string]any{"hash": strings.Repeat("B", 64)},
 				"block": map[string]any{
-					"header": map[string]any{"height": "17", "time": blockTime, "proposer_address": strings.Repeat("C", 40), "last_block_id": map[string]any{"hash": strings.Repeat("D", 64)}},
+					"header": map[string]any{"height": "17", "time": blockTime, "proposer_address": strings.Repeat("C", 40), "last_block_id": map[string]any{"hash": ""}},
 					"data":   map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(txPayload)}},
 				},
 			}})
@@ -119,7 +131,8 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	}))
 	defer upstream.Close()
 
-	gateway, err := New(Config{CometRPCURL: upstream.URL, Build: buildinfo.Info{Commit: "abc123", Release: "bft-gateway-abc123", BuildTime: "2026-07-12T00:00:00Z"}})
+	migrationHash := strings.Repeat("F", 64)
+	gateway, err := New(Config{CometRPCURL: upstream.URL, Build: buildinfo.Info{Commit: "abc123", Release: "bft-gateway-abc123", BuildTime: "2026-07-12T00:00:00Z"}, MigrationHeight: 16, MigrationBlockHash: migrationHash})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,17 +141,17 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 15 || len(health.Missing) != 0 || health.Build.Commit != "abc123" {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 15 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
 	getJSON(t, server.URL+"/status", &status)
-	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.EarliestBlockHeight != 11 || status.EarliestBlockHash != strings.Repeat("e", 64) || status.PublicCutoverReady {
+	if status.ChainID != 6423 || status.CometChainID != "ynx_6423-1" || status.ConsensusEngine != "cometbft" || status.EarliestBlockHeight != 11 || status.EarliestBlockHash != strings.Repeat("e", 64) || status.PublicCutoverReady || status.MigrationHeight != 16 || status.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected status: %+v", status)
 	}
 	var block chain.Block
 	getJSON(t, server.URL+"/blocks/17", &block)
-	if block.Height != 17 || len(block.Transactions) != 1 || block.Transactions[0].From != signed.From || block.Transactions[0].Hash != consensus.SignedTransactionHash(txPayload) {
+	if block.Height != 17 || block.ParentHash != strings.ToLower(migrationHash) || len(block.Transactions) != 1 || block.Transactions[0].From != signed.From || block.Transactions[0].Hash != consensus.SignedTransactionHash(txPayload) {
 		t.Fatalf("unexpected block: %+v", block)
 	}
 	var queried chain.ConsensusAccount

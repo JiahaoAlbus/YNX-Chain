@@ -82,6 +82,14 @@ for role in primary singapore silicon-valley seoul; do
   grep -Fq "DRY RUN [$role]" "$tmp/deploy.out" || { echo "candidate deploy dry-run missing role $role" >&2; exit 1; }
 done
 grep -Fq "public ingress and authoritative ynx-chaind remain unchanged" "$tmp/deploy.out" || { echo "candidate deploy dry-run lost public rollback boundary" >&2; exit 1; }
+grep -Fq '/var/lib/ynx-chain/consensus-candidate/bin/' "$tmp/deploy.out" || { echo "candidate deploy does not install primary dependencies under the bounded candidate root" >&2; exit 1; }
+for binary in ynx-bft-gatewayd ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced; do
+  grep -Fq "$binary" scripts/deploy/deploy-consensus-candidate.sh || { echo "candidate deploy does not build the current-commit dependency: $binary" >&2; exit 1; }
+done
+if grep -Eq '/usr/local/bin/(ynx-bft-gatewayd|ynx-indexerd|ynx-explorerd|ynx-faucetd|ynx-ai-gatewayd|ynx-payd|ynx-trustd|ynx-resourced)' "$tmp/deploy.out"; then
+  echo "candidate deploy unexpectedly overwrites a global dependency binary" >&2
+  exit 1
+fi
 
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_CANDIDATE_PACKAGE="$tmp/package" \
   bash scripts/verify/verify-consensus-candidate.sh >"$tmp/verify.out"

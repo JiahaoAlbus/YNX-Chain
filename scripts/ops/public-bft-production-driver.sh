@@ -7,7 +7,7 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "verify_recovery" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -223,6 +223,117 @@ rollback_candidate_phase() {
   chmod 0600 "$candidate_root/rollback-result.json"
   echo "production BFT candidate rollback passed: transaction=$candidate_transaction_id evidence=$candidate_root"
 }
+
+dependency_context() {
+  candidate_context
+  dependency_root="$candidate_transaction_dir/dependencies"
+  dependency_approval="$candidate_transaction_dir/approval.json"
+  dependency_remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${candidate_transaction_id}"
+  dependency_helper="/tmp/ynx-public-bft-dependencies-${candidate_transaction_id}.sh"
+  dependency_migration_height=1
+  dependency_migration_hash="$(printf '0%.0s' {1..64})"
+  if [[ -s "$candidate_binding" ]]; then
+    read -r dependency_migration_height dependency_migration_hash < <(node -e 'const fs=require("fs"),v=JSON.parse(fs.readFileSync(process.argv[1])); if(!Number.isSafeInteger(v.finalSnapshotHeight)||v.finalSnapshotHeight<1||!(/^(0x)?[0-9a-fA-F]{64}$/).test(v.finalSnapshotBlockHash||"")) process.exit(1); process.stdout.write(`${v.finalSnapshotHeight} ${String(v.finalSnapshotBlockHash).replace(/^0x/,"").toLowerCase()}\n`)' "$candidate_binding")
+  fi
+}
+
+validated_candidate_result() {
+  test -s "$candidate_root/verify-result.json"
+  local binding_sha
+  binding_sha="$(shasum -a 256 "$candidate_binding" | awk '{print $1}')"
+  node -e 'const fs=require("fs"),[p,tx,c,r,s]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==s||v.verified!==true) process.exit(1)' "$candidate_root/verify-result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha"
+}
+
+dependency_signer_inputs() {
+  dependency_faucet_key="${PUBLIC_BFT_FAUCET_SIGNER_KEY_FILE:-}"
+  dependency_faucet_address="${PUBLIC_BFT_FAUCET_SIGNER_ADDRESS:-}"
+  dependency_ai_key="${PUBLIC_BFT_AI_SIGNER_KEY_FILE:-}"
+  dependency_ai_address="${PUBLIC_BFT_AI_SIGNER_ADDRESS:-}"
+  dependency_pay_key="${PUBLIC_BFT_PAY_SIGNER_KEY_FILE:-}"
+  dependency_pay_address="${PUBLIC_BFT_PAY_SIGNER_ADDRESS:-}"
+  dependency_trust_key="${PUBLIC_BFT_TRUST_SIGNER_KEY_FILE:-}"
+  dependency_trust_address="${PUBLIC_BFT_TRUST_SIGNER_ADDRESS:-}"
+  dependency_resource_key="${PUBLIC_BFT_RESOURCE_SIGNER_KEY_FILE:-}"
+  dependency_resource_address="${PUBLIC_BFT_RESOURCE_SIGNER_ADDRESS:-}"
+  local value
+  for value in "$dependency_faucet_key" "$dependency_faucet_address" "$dependency_ai_key" "$dependency_ai_address" "$dependency_pay_key" "$dependency_pay_address" "$dependency_trust_key" "$dependency_trust_address" "$dependency_resource_key" "$dependency_resource_address"; do
+    [[ -n "$value" ]] || { echo "all PUBLIC_BFT_*_SIGNER_KEY_FILE and PUBLIC_BFT_*_SIGNER_ADDRESS inputs are required" >&2; exit 1; }
+  done
+}
+
+start_dependencies_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED=yes is required" >&2; exit 1; }
+  prepare_candidate_package
+  dependency_context
+  validated_candidate_result
+  dependency_signer_inputs
+  umask 077
+  mkdir -p "$dependency_root" "$candidate_transaction_dir/roles"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-dependencies.sh "$dependency_helper"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$dependency_helper\"' EXIT; chmod 0700 '$dependency_helper'; sudo bash '$dependency_helper' start '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$dependency_migration_height' '$dependency_migration_hash' '$dependency_remote_root' '$dependency_faucet_key' '$dependency_faucet_address' '$dependency_ai_key' '$dependency_ai_address' '$dependency_pay_key' '$dependency_pay_address' '$dependency_trust_key' '$dependency_trust_address' '$dependency_resource_key' '$dependency_resource_address'" >"$candidate_transaction_dir/roles/primary-start-dependencies.txt"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","migrationHeight":%s,"migrationBlockHash":"%s","parallelCandidateOnly":true,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$dependency_migration_height" "$dependency_migration_hash" >"$dependency_root/start-result.json"
+  else
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$dependency_remote_root/primary-dependencies-start.json'" >"$dependency_root/start-result.json"
+  fi
+  chmod 0600 "$dependency_root/start-result.json"
+  echo "production BFT parallel dependencies started: transaction=$candidate_transaction_id evidence=$dependency_root"
+}
+
+verify_continuity_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED=yes is required" >&2; exit 1; }
+  prepare_candidate_package
+  dependency_context
+  validated_candidate_result
+  test -s "$dependency_root/start-result.json"
+  node -e 'const fs=require("fs"),[p,tx,c,r,h,b]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.migrationHeight!==Number(h)||v.migrationBlockHash!==b||v.parallelCandidateOnly!==true) process.exit(1)' \
+    "$dependency_root/start-result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$dependency_migration_height" "$dependency_migration_hash" || { echo "dependency startup result is not transaction-bound" >&2; exit 1; }
+  local observation="${PUBLIC_BFT_DEPENDENCY_CONTINUITY_OBSERVATION_SECONDS:-4}"
+  local max_lag="${PUBLIC_BFT_DEPENDENCY_MAX_INDEX_LAG:-3}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && ((observation >= 2 && observation <= 15)) || { echo "PUBLIC_BFT_DEPENDENCY_CONTINUITY_OBSERVATION_SECONDS must be between 2 and 15" >&2; exit 1; }
+  [[ "$max_lag" =~ ^[0-9]+$ ]] && ((max_lag <= 20)) || { echo "PUBLIC_BFT_DEPENDENCY_MAX_INDEX_LAG must be between 0 and 20" >&2; exit 1; }
+  local evidence="$dependency_root/continuity"
+  rm -rf "$evidence"
+  mkdir -p "$evidence"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27620/health" >"$evidence/gateway-before-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27626/health" >"$evidence/indexer-before-health.json"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","parallelCandidateOnly":true,"publicIngressChanged":false,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" >"$dependency_root/continuity-result.json"
+    chmod 0600 "$dependency_root/continuity-result.json"
+    echo "production BFT dependency continuity dry-run passed: transaction=$candidate_transaction_id"
+    return
+  fi
+  sleep "$observation"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27620/health" >"$evidence/gateway-after-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27620/status" >"$evidence/gateway-after-status.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27626/health" >"$evidence/indexer-after-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27627/health" >"$evidence/explorer-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27628/health" >"$evidence/faucet-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27629/health" >"$evidence/ai-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27630/health" >"$evidence/pay-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27631/health" >"$evidence/trust-health.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl -fsS http://127.0.0.1:27632/health" >"$evidence/resource-health.json"
+  node scripts/verify/validate-public-bft-dependency-continuity.mjs "$evidence" "$commit" "$candidate_bft_release" "$dependency_migration_height" "$dependency_migration_hash" "$max_lag" "$dependency_root/continuity-result.json"
+  echo "production BFT dependency continuity passed: transaction=$candidate_transaction_id evidence=$dependency_root"
+}
+
+rollback_dependencies_phase() {
+  dependency_context
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$dependency_approval" "$commit" "$candidate_bft_release" >/dev/null
+  umask 077
+  mkdir -p "$dependency_root" "$candidate_transaction_dir/roles"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-dependencies.sh "$dependency_helper"
+  local output="$candidate_transaction_dir/roles/primary-rollback-dependencies.txt" attempt=1
+  while [[ -e "$output" ]]; do ((attempt += 1)); output="$candidate_transaction_dir/roles/primary-rollback-dependencies-attempt-${attempt}.txt"; done
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$dependency_helper\"' EXIT; chmod 0700 '$dependency_helper'; sudo bash '$dependency_helper' rollback '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$dependency_migration_height' '$dependency_migration_hash' '$dependency_remote_root'" >"$output"
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s","automaticRollbackAuthorized":true,"rolledBack":true,"dryRun":true}\n' "$candidate_transaction_id" "$commit" "$candidate_bft_release" >"$dependency_root/rollback-result.json"
+  else
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$dependency_remote_root/primary-dependencies-rollback.json'" >"$dependency_root/rollback-result.json"
+  fi
+  chmod 0600 "$dependency_root/rollback-result.json"
+  echo "production BFT dependency rollback passed: transaction=$candidate_transaction_id evidence=$dependency_root"
+}
 [[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
 
@@ -403,7 +514,7 @@ recovery_phase() {
   echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "verify_recovery" ]]; then
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "deploy_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
@@ -415,6 +526,9 @@ if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "
     deploy_candidate) deploy_candidate_phase ;;
     verify_candidate) verify_candidate_phase ;;
     rollback_candidate) rollback_candidate_phase ;;
+    start_dependencies) start_dependencies_phase ;;
+    verify_continuity) verify_continuity_phase ;;
+    rollback_dependencies) rollback_dependencies_phase ;;
     verify_recovery) recovery_phase ;;
   esac
   exit 0
@@ -446,7 +560,7 @@ shasum -a 256 "$root"/prebuilt/* >"$root/prebuilt.sha256"
 
 collect_role() {
   local role="$1" user="$2" host="$3" key="$4" kind="$5"
-  local role_dir="$root/roles/$role" validator services
+  local role_dir="$root/roles/$role" validator services candidate_port_pattern
   mkdir -p "$role_dir"
   case "$role" in
     primary) validator=ynx_validator_primary ;;
@@ -455,8 +569,12 @@ collect_role() {
     seoul) validator=ynx_validator_seoul ;;
   esac
   services="$(ynx_ops_services_for_kind "$kind")"
+  candidate_port_pattern=':(27656|27757|27858)$'
+  if [[ "$kind" == "full" ]]; then
+    candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'
+  fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/status" >"$role_dir/status.json"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -eu; manifest=/opt/ynx-chain/releases/$release/config/release-manifest.json; for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate)\" = 750; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/priv_validator_key.json)\" = 600; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/priv_validator_state.json)\" = 600; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/node_key.json)\" = 600; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! ss -ltn | awk '{print \$4}' | grep -Eq ':(27656|27757|27858)$'; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; test -f \"\$manifest\"; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\nmanifest_sha256=' '$role' '$validator' '$release'; sha256sum \"\$manifest\" | awk '{print \$1}'" >"$role_dir/preflight.txt"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -eu; manifest=/opt/ynx-chain/releases/$release/config/release-manifest.json; for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate)\" = 750; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/priv_validator_key.json)\" = 600; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/priv_validator_state.json)\" = 600; test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate/$role/node_key.json)\" = 600; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! ss -ltn | awk '{print \$4}' | grep -Eq '$candidate_port_pattern'; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; test -f \"\$manifest\"; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\nmanifest_sha256=' '$role' '$validator' '$release'; sha256sum \"\$manifest\" | awk '{print \$1}'" >"$role_dir/preflight.txt"
 }
 ynx_ops_each_node collect_role
 

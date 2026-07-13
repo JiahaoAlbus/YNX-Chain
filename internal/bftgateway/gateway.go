@@ -53,12 +53,16 @@ type Config struct {
 	HTTPClient              *http.Client
 	Build                   buildinfo.Info
 	PublicCutoverAuthorized bool
+	MigrationHeight         uint64
+	MigrationBlockHash      string
 }
 
 type Gateway struct {
 	client                  *client
 	build                   buildinfo.Info
 	publicCutoverAuthorized bool
+	migrationHeight         uint64
+	migrationBlockHash      string
 	mux                     *http.ServeMux
 }
 
@@ -82,6 +86,8 @@ type Health struct {
 	TruthfulStatus     string         `json:"truthfulStatus"`
 	Build              buildinfo.Info `json:"build"`
 	LastCheckedAt      time.Time      `json:"lastCheckedAt"`
+	MigrationHeight    uint64         `json:"migrationHeight,omitempty"`
+	MigrationBlockHash string         `json:"migrationBlockHash,omitempty"`
 }
 
 type Status struct {
@@ -104,6 +110,8 @@ type Status struct {
 	ConsensusEngine      string    `json:"consensusEngine"`
 	CometChainID         string    `json:"cometChainId"`
 	PublicCutoverReady   bool      `json:"publicCutoverReady"`
+	MigrationHeight      uint64    `json:"migrationHeight,omitempty"`
+	MigrationBlockHash   string    `json:"migrationBlockHash,omitempty"`
 }
 
 type cometStatus struct {
@@ -246,10 +254,19 @@ func New(cfg Config) (*Gateway, error) {
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{Timeout: 8 * time.Second}
 	}
+	migrationHash := strings.ToLower(strings.TrimSpace(cfg.MigrationBlockHash))
+	if (cfg.MigrationHeight == 0) != (migrationHash == "") {
+		return nil, errors.New("migration height and block hash must be configured together")
+	}
+	if migrationHash != "" && !blockHashPattern.MatchString(migrationHash) {
+		return nil, errors.New("migration block hash must be 64 hexadecimal characters")
+	}
 	g := &Gateway{
 		client:                  &client{baseURL: baseURL, httpClient: cfg.HTTPClient},
 		build:                   buildinfo.Normalize(cfg.Build),
 		publicCutoverAuthorized: cfg.PublicCutoverAuthorized,
+		migrationHeight:         cfg.MigrationHeight,
+		migrationBlockHash:      migrationHash,
 		mux:                     http.NewServeMux(),
 	}
 	g.routes()
@@ -400,6 +417,8 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		ConsensusEngine:      "cometbft",
 		CometChainID:         upstream.Result.NodeInfo.Network,
 		PublicCutoverReady:   g.publicCutoverReady(),
+		MigrationHeight:      g.migrationHeight,
+		MigrationBlockHash:   g.migrationBlockHash,
 	}, nil
 }
 
@@ -436,6 +455,8 @@ func (g *Gateway) handleHealth(w http.ResponseWriter, r *http.Request) {
 		TruthfulStatus:     status.TruthfulStatus,
 		Build:              g.build,
 		LastCheckedAt:      time.Now().UTC(),
+		MigrationHeight:    g.migrationHeight,
+		MigrationBlockHash: g.migrationBlockHash,
 	})
 }
 
@@ -494,10 +515,17 @@ func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error)
 		}
 		transactions = append(transactions, tx)
 	}
+	parentHash := strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash)
+	if g.migrationHeight > 0 && height == g.migrationHeight+1 {
+		if parentHash != "" && parentHash != g.migrationBlockHash {
+			return chain.Block{}, errors.New("candidate first block parent differs from the approved migration anchor")
+		}
+		parentHash = g.migrationBlockHash
+	}
 	return chain.Block{
 		Height:       parsedHeight,
 		Hash:         strings.ToLower(upstream.Result.BlockID.Hash),
-		ParentHash:   strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash),
+		ParentHash:   parentHash,
 		Time:         upstream.Result.Block.Header.Time,
 		Validator:    strings.ToLower(upstream.Result.Block.Header.Proposer),
 		Transactions: transactions,

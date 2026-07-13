@@ -3,11 +3,15 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 
+bash -n scripts/ops/remote/public-bft-dependencies.sh
+node scripts/verify/validate-public-bft-dependency-continuity.mjs --self-test
+
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
-mkdir -p "$repo/scripts/ops" "$repo/scripts/deploy" "$repo/scripts/verify" "$tmp/fake-bin"
+mkdir -p "$repo/scripts/ops/remote" "$repo/scripts/deploy" "$repo/scripts/verify" "$tmp/fake-bin"
 cp scripts/ops/public-bft-production-driver.sh scripts/ops/rollback-consensus-candidate.sh scripts/ops/lib.sh "$repo/scripts/ops/"
+cp scripts/ops/remote/public-bft-dependencies.sh "$repo/scripts/ops/remote/"
 cp scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/lib.sh "$repo/scripts/deploy/"
 cp scripts/verify/verify-consensus-candidate.sh scripts/verify/public-bft-candidate-binding.mjs scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$repo/scripts/verify/"
 
@@ -128,6 +132,67 @@ done
 run_candidate deploy_candidate >/dev/null
 test -s "$transaction/candidate/deploy-reuse.txt"
 
+run_dependencies() {
+  local phase="$1" approval="${2:-yes}"
+  (cd "$repo" && PATH="$tmp/fake-bin:$PATH" ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
+    PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED=yes \
+    PUBLIC_BFT_PRODUCTION_DEPENDENCIES_APPROVED="$approval" \
+    PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST="$tmp/validator-manifest.json" \
+    PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME="$genesis_time" \
+    PUBLIC_BFT_CUTOVER_COMMIT="$commit" \
+    PUBLIC_BFT_CUTOVER_RELEASE="$release" \
+    PUBLIC_BFT_CUTOVER_TRANSACTION_DIR="$transaction" \
+    PUBLIC_BFT_FAUCET_SIGNER_KEY_FILE=/etc/ynx/consensus-signers/faucet.key \
+    PUBLIC_BFT_FAUCET_SIGNER_ADDRESS=0x1111111111111111111111111111111111111111 \
+    PUBLIC_BFT_AI_SIGNER_KEY_FILE=/etc/ynx/consensus-signers/ai.key \
+    PUBLIC_BFT_AI_SIGNER_ADDRESS=0x2222222222222222222222222222222222222222 \
+    PUBLIC_BFT_PAY_SIGNER_KEY_FILE=/etc/ynx/consensus-signers/pay.key \
+    PUBLIC_BFT_PAY_SIGNER_ADDRESS=0x3333333333333333333333333333333333333333 \
+    PUBLIC_BFT_TRUST_SIGNER_KEY_FILE=/etc/ynx/consensus-signers/trust.key \
+    PUBLIC_BFT_TRUST_SIGNER_ADDRESS=0x4444444444444444444444444444444444444444 \
+    PUBLIC_BFT_RESOURCE_SIGNER_KEY_FILE=/etc/ynx/consensus-signers/resource.key \
+    PUBLIC_BFT_RESOURCE_SIGNER_ADDRESS=0x5555555555555555555555555555555555555555 \
+    bash scripts/ops/public-bft-production-driver.sh "$phase")
+}
+
+run_dependencies start_dependencies >/dev/null
+test -s "$transaction/dependencies/start-result.json"
+grep -Fq 'parallelCandidateOnly' "$transaction/dependencies/start-result.json"
+grep -Fq 'public-bft-dependencies' "$transaction/roles/primary-start-dependencies.txt"
+grep -Fq '/etc/ynx/consensus-signers/faucet.key' "$transaction/roles/primary-start-dependencies.txt"
+for binary in ynx-bft-gatewayd ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced; do
+  grep -Fq "\$candidate_root/bin/$binary" "$repo/scripts/ops/remote/public-bft-dependencies.sh"
+done
+for raw_key in FAUCET_PRIVATE_KEY YNX_AI_GATEWAY_SIGNER_PRIVATE_KEY YNX_PAY_GATEWAY_SIGNER_PRIVATE_KEY YNX_TRUST_GATEWAY_SIGNER_PRIVATE_KEY YNX_RESOURCE_GATEWAY_SIGNER_PRIVATE_KEY; do
+  grep -Fxq "${raw_key}=" "$repo/scripts/ops/remote/public-bft-dependencies.sh"
+done
+run_dependencies verify_continuity >/dev/null
+test -s "$transaction/dependencies/continuity-result.json"
+grep -Fq 'publicIngressChanged' "$transaction/dependencies/continuity-result.json"
+grep -Fq '127.0.0.1:27620/health' "$transaction/dependencies/continuity/gateway-before-health.json"
+cp "$transaction/dependencies/start-result.json" "$tmp/start-result.valid"
+node -e 'const fs=require("fs"),p=process.argv[1],v=JSON.parse(fs.readFileSync(p));v.migrationBlockHash="f".repeat(64);fs.writeFileSync(p,JSON.stringify(v)+"\n",{mode:0o600})' "$transaction/dependencies/start-result.json"
+if run_dependencies verify_continuity >/dev/null 2>&1; then
+  echo "dependency continuity unexpectedly accepted a mismatched startup boundary" >&2
+  exit 1
+fi
+mv "$tmp/start-result.valid" "$transaction/dependencies/start-result.json"
+if run_dependencies start_dependencies no >/dev/null 2>&1; then
+  echo "dependency startup unexpectedly passed without separate dependency approval" >&2
+  exit 1
+fi
+cp "$transaction/candidate/verify-result.json" "$tmp/verify-result.valid"
+rm "$transaction/candidate/verify-result.json"
+if run_dependencies start_dependencies yes >/dev/null 2>&1; then
+  echo "dependency startup unexpectedly passed without verified candidate evidence" >&2
+  exit 1
+fi
+mv "$tmp/verify-result.valid" "$transaction/candidate/verify-result.json"
+run_dependencies rollback_dependencies >/dev/null
+test -s "$transaction/dependencies/rollback-result.json"
+grep -Fq 'automaticRollbackAuthorized' "$transaction/dependencies/rollback-result.json"
+grep -Fq 'public-bft-dependencies' "$transaction/roles/primary-rollback-dependencies.txt"
+
 if run_candidate deploy_candidate no >/dev/null 2>&1; then
   echo "candidate deploy unexpectedly passed without separate candidate approval" >&2
   exit 1
@@ -188,4 +253,4 @@ fi
 mv "$tmp/approval.valid" "$transaction/approval.json"
 chmod 0600 "$transaction/approval.json"
 
-echo "public-bft-production-candidate-check passed: final snapshot, validator manifest, genesis, package, deploy, verify, archive custody, and idempotent automatic rollback are transaction-bound and four-role dry-run verified"
+echo "public-bft-production-candidate-check passed: candidate package/deploy/verify plus parallel dependency startup/continuity/rollback are transaction-bound, signer-file isolated, failure-tested, and dry-run verified"

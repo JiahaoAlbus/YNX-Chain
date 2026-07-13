@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,10 +30,12 @@ func main() {
 	}
 	httpAddr := flag.String("http", envOrDefault("YNX_BFT_GATEWAY_HTTP_ADDR", "127.0.0.1:27620"), "BFT compatibility gateway HTTP listen address")
 	cometRPCURL := flag.String("comet-rpc", envOrDefault("YNX_BFT_GATEWAY_COMET_RPC_URL", "http://127.0.0.1:27757"), "private CometBFT RPC URL")
+	migrationHeight := flag.Uint64("migration-height", envUint64OrDefault("YNX_BFT_GATEWAY_MIGRATION_HEIGHT", 0), "approved authoritative migration height")
+	migrationBlockHash := flag.String("migration-block-hash", envOrDefault("YNX_BFT_GATEWAY_MIGRATION_BLOCK_HASH", ""), "approved authoritative migration block hash")
 	publicCutoverAuthorized := flag.Bool("public-cutover-authorized", cutoverAuthorizedDefault, "explicitly authorize public-cutover readiness after all other gates pass")
 	flag.Parse()
 
-	gateway, err := bftgateway.New(bftgateway.Config{CometRPCURL: *cometRPCURL, Build: currentBuildInfo(), PublicCutoverAuthorized: *publicCutoverAuthorized})
+	gateway, err := bftgateway.New(bftgateway.Config{CometRPCURL: *cometRPCURL, Build: currentBuildInfo(), PublicCutoverAuthorized: *publicCutoverAuthorized, MigrationHeight: *migrationHeight, MigrationBlockHash: *migrationBlockHash})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,4 +82,16 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envUint64OrDefault(key string, fallback uint64) uint64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		log.Fatalf("%s must be an unsigned integer", key)
+	}
+	return parsed
 }
