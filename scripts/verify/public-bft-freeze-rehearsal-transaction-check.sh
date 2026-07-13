@@ -19,7 +19,7 @@ future="$(date -u -v+1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+1 hour' 
 write_approval() {
   local transaction_id="$1" path="$2"
   cat >"$path" <<EOF
-{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"local self test","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
+{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"fixture-custody-review-${transaction_id}","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
 EOF
   chmod 600 "$path"
 }
@@ -98,10 +98,22 @@ if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-appro
   echo "approval authorizing authoritative pause unexpectedly passed" >&2
   exit 1
 fi
+write_approval rejected-custody "$approval"
+node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.serviceSignerRecoveryVerified=false; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-custody) >/dev/null 2>&1; then
+  echo "approval without service signer recovery unexpectedly passed" >&2
+  exit 1
+fi
+write_approval rejected-self-review "$approval"
+node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.custodyReviewer=a.approver; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review) >/dev/null 2>&1; then
+  echo "self-reviewed custody approval unexpectedly passed" >&2
+  exit 1
+fi
 chmod 644 "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-approval) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review) >/dev/null 2>&1; then
   echo "insecure approval permissions unexpectedly passed" >&2
   exit 1
 fi
 
-echo "public-bft-freeze-rehearsal-transaction-check passed: approval is transaction-bound, pause/ingress/cutover are explicitly prohibited, success always unfreezes, and injected freeze/unfreeze failures recover"
+echo "public-bft-freeze-rehearsal-transaction-check passed: approval is transaction-bound and independently custody-gated, pause/ingress/cutover are explicitly prohibited, success always unfreezes, and injected freeze/unfreeze failures recover"

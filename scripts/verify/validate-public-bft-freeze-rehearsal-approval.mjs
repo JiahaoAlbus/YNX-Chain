@@ -34,11 +34,19 @@ if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-freeze-r
 }
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "")) fail("approvalId is invalid");
 if (typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approver is required");
+if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3) fail("independent custody reviewer is required");
+if (approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("custody reviewer must differ from transaction approver");
+if (typeof approval.custodyEvidence !== "string" || approval.custodyEvidence.trim().length < 8 || approval.custodyEvidence.length > 512 || /[\r\n]/.test(approval.custodyEvidence)) {
+  fail("a compact non-secret custody evidence reference is required");
+}
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease || approval.transactionId !== expectedTransactionId) {
   fail("approval is bound to a different commit, release, or transaction");
 }
 if (approval.scopedBackupAuthorized !== true || approval.temporaryMutationFreezeAuthorized !== true || approval.automaticUnfreezeRequired !== true) {
   fail("scoped backup, temporary freeze, and automatic unfreeze consent are required");
+}
+if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) {
+  fail("validator/service signer recovery, owner handover, and rotation verification are required");
 }
 if (approval.authoritativePauseAuthorized !== false || approval.publicIngressChangeAuthorized !== false || approval.publicCutoverAuthorized !== false) {
   fail("pause, ingress change, and public cutover must be explicitly unauthorized");
@@ -56,10 +64,16 @@ process.stdout.write(JSON.stringify({
   action: approval.action,
   approvalId: approval.approvalId,
   approver: approval.approver.trim(),
+  custodyReviewer: approval.custodyReviewer.trim(),
+  custodyEvidence: approval.custodyEvidence.trim(),
   commit: expectedCommit,
   release: expectedRelease,
   transactionId: expectedTransactionId,
   maxFreezeSeconds: approval.maxFreezeSeconds,
+  validatorKeyRecoveryVerified: true,
+  serviceSignerRecoveryVerified: true,
+  ownerHandoverVerified: true,
+  rotationProcedureVerified: true,
   authoritativePauseAuthorized: false,
   publicIngressChangeAuthorized: false,
   publicCutoverAuthorized: false,

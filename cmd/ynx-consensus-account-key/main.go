@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -25,20 +26,33 @@ func main() {
 	mode := flag.String("mode", "create", "create a new key or inspect an existing key")
 	keyPath := flag.String("key", "", "owner-controlled raw 32-byte secp256k1 key file")
 	publicRecordPath := flag.String("public-record", "", "non-secret public address record")
+	purpose := flag.String("purpose", "ynx-owner-controlled-candidate-testnet-account", "approved non-secret key purpose")
 	acknowledge := flag.Bool("owner-controlled", false, "required acknowledgement that the key remains owner controlled")
 	flag.Parse()
-	if err := run(*mode, *keyPath, *publicRecordPath, *acknowledge, os.Stdout); err != nil {
+	if err := run(*mode, *keyPath, *publicRecordPath, *purpose, *acknowledge, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(mode, keyPath, publicRecordPath string, acknowledge bool, output io.Writer) error {
+func run(mode, keyPath, publicRecordPath, purpose string, acknowledge bool, output io.Writer) error {
 	if !acknowledge {
 		return errors.New("-owner-controlled acknowledgement is required")
 	}
 	if keyPath == "" || publicRecordPath == "" {
 		return errors.New("-key and -public-record are required")
+	}
+	purpose = strings.TrimSpace(purpose)
+	allowedPurposes := map[string]bool{
+		"ynx-owner-controlled-candidate-testnet-account": true,
+		"ynx-production-faucet-signer":                   true,
+		"ynx-production-ai-signer":                       true,
+		"ynx-production-pay-signer":                      true,
+		"ynx-production-trust-signer":                    true,
+		"ynx-production-resource-signer":                 true,
+	}
+	if !allowedPurposes[purpose] {
+		return errors.New("unsupported owner account key purpose")
 	}
 	var privateKey *secp256k1.PrivateKey
 	switch mode {
@@ -87,7 +101,7 @@ func run(mode, keyPath, publicRecordPath string, acknowledge bool, output io.Wri
 	if err != nil {
 		return err
 	}
-	record := publicRecord{Version: 1, Purpose: "ynx-owner-controlled-candidate-testnet-account", Address: address, CustodyBoundary: "owner-local-mode-0600"}
+	record := publicRecord{Version: 1, Purpose: purpose, Address: address, CustodyBoundary: "owner-local-mode-0600"}
 	payload, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
 		return err
@@ -98,6 +112,6 @@ func run(mode, keyPath, publicRecordPath string, acknowledge bool, output io.Wri
 	if err := os.Chmod(publicRecordPath, 0o600); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(output, "owner-controlled candidate testnet account ready: address=%s custody=%s\n", address, record.CustodyBoundary)
+	_, err = fmt.Fprintf(output, "owner-controlled account ready: purpose=%s address=%s custody=%s\n", purpose, address, record.CustodyBoundary)
 	return err
 }

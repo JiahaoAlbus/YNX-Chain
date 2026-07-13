@@ -14,7 +14,8 @@ func TestRunCreatesAndInspectsOwnerControlledKeyWithoutPrintingIt(t *testing.T) 
 	keyPath := filepath.Join(root, "owner.key")
 	recordPath := filepath.Join(root, "public.json")
 	var output bytes.Buffer
-	if err := run("create", keyPath, recordPath, true, &output); err != nil {
+	purpose := "ynx-production-faucet-signer"
+	if err := run("create", keyPath, recordPath, purpose, true, &output); err != nil {
 		t.Fatal(err)
 	}
 	keyPayload, err := os.ReadFile(keyPath)
@@ -30,11 +31,11 @@ func TestRunCreatesAndInspectsOwnerControlledKeyWithoutPrintingIt(t *testing.T) 
 	}
 	var first publicRecord
 	payload, _ := os.ReadFile(recordPath)
-	if err := json.Unmarshal(payload, &first); err != nil || !strings.HasPrefix(first.Address, "0x") {
+	if err := json.Unmarshal(payload, &first); err != nil || !strings.HasPrefix(first.Address, "0x") || first.Purpose != purpose {
 		t.Fatal("public owner record is invalid")
 	}
 	output.Reset()
-	if err := run("inspect", keyPath, recordPath, true, &output); err != nil {
+	if err := run("inspect", keyPath, recordPath, purpose, true, &output); err != nil {
 		t.Fatal(err)
 	}
 	var second publicRecord
@@ -42,7 +43,10 @@ func TestRunCreatesAndInspectsOwnerControlledKeyWithoutPrintingIt(t *testing.T) 
 	if err := json.Unmarshal(payload, &second); err != nil || second != first {
 		t.Fatal("owner key inspection changed the public identity")
 	}
-	if err := run("create", keyPath, recordPath, true, &output); err == nil {
+	if err := run("create", keyPath, recordPath, purpose, true, &output); err == nil {
 		t.Fatal("owner key creation overwrote an existing key")
+	}
+	if err := run("inspect", keyPath, recordPath, "ynx-unapproved-purpose", true, &output); err == nil {
+		t.Fatal("unapproved key purpose unexpectedly passed")
 	}
 }

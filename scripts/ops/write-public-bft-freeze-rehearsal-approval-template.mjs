@@ -22,6 +22,8 @@ const approval = {
   action: "ynx-public-bft-freeze-rehearsal",
   approvalId: `pending-${transactionId}`,
   approver: "",
+  custodyReviewer: "",
+  custodyEvidence: "",
   approved: false,
   commit,
   release,
@@ -29,6 +31,10 @@ const approval = {
   scopedBackupAuthorized: false,
   temporaryMutationFreezeAuthorized: false,
   automaticUnfreezeRequired: true,
+  validatorKeyRecoveryVerified: false,
+  serviceSignerRecoveryVerified: false,
+  ownerHandoverVerified: false,
+  rotationProcedureVerified: false,
   authoritativePauseAuthorized: false,
   publicIngressChangeAuthorized: false,
   publicCutoverAuthorized: false,
@@ -49,12 +55,16 @@ This packet does not authorize any remote action. Review and edit the mode-0600 
 - Transaction: \`${transactionId}\`
 - Allowed sequence: \`preflight -> backup -> freeze_mutations -> unfreeze_mutations -> verify_recovery\`
 - Maximum freeze window: \`60 seconds\`
+- Independent custody reviewer: required and must differ from the transaction approver
+- Validator-key recovery: must be verified
+- Faucet / AI / Pay / Trust / Resource signer recovery: must be verified
+- Owner handover and rotation procedure: must be verified
 - Authoritative pause: forbidden
 - Candidate deployment: forbidden
 - Public ingress change: forbidden
 - Public cutover: forbidden
 
-Approval requires an identified approver, \`approved=true\`, explicit scoped-backup and temporary-freeze consent, and an expiry no more than two hours in the future. The validator rejects any approval that permits pause, ingress change, or cutover.
+Approval requires an identified approver, a different identified custody reviewer, a non-secret custody evidence reference, \`approved=true\`, explicit recovery/handover/rotation attestations, scoped-backup and temporary-freeze consent, and an expiry no more than two hours in the future. The validator rejects self-review, incomplete custody recovery, or any approval that permits pause, ingress change, or cutover.
 
 Validation and execution:
 
