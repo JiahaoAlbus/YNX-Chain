@@ -30,9 +30,15 @@ if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover"
 }
 if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{7,127}$/.test(approval.approvalId || "")) fail("approvalId is invalid");
 if (typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approver is required");
+if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3) fail("independent custody reviewer is required");
+if (approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("custody reviewer must differ from transaction approver");
+if (typeof approval.custodyEvidence !== "string" || approval.custodyEvidence.trim().length < 8 || approval.custodyEvidence.length > 512 || /[\r\n]/.test(approval.custodyEvidence)) fail("a compact non-secret custody evidence reference is required");
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval is bound to a different commit or release");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
   fail("explicit cutover authorization and automatic rollback consent are required");
+}
+if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) {
+  fail("validator/service signer recovery, owner handover, and rotation verification are required");
 }
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
@@ -52,10 +58,16 @@ process.stdout.write(JSON.stringify({
   approved: true,
   approvalId: approval.approvalId,
   approver: approval.approver.trim(),
+  custodyReviewer: approval.custodyReviewer.trim(),
+  custodyEvidence: approval.custodyEvidence.trim(),
   commit: expectedCommit,
   release: expectedRelease,
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
+  validatorKeyRecoveryVerified: true,
+  serviceSignerRecoveryVerified: true,
+  ownerHandoverVerified: true,
+  rotationProcedureVerified: true,
   validatorManifestSha256: approval.validatorManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),

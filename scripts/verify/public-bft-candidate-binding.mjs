@@ -70,7 +70,10 @@ if (!inputsOnly) {
 const approval = readJSON(approvalPath, "transaction approval");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("transaction approval identity mismatch");
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "") || typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("transaction approval attribution is invalid");
+if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3 || approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("transaction approval independent custody attribution is invalid");
+if (typeof approval.custodyEvidence !== "string" || approval.custodyEvidence.trim().length < 8 || approval.custodyEvidence.length > 512 || /[\r\n]/.test(approval.custodyEvidence)) fail("transaction approval custody reference is invalid");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("transaction approval does not authorize cutover with automatic rollback");
+if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("transaction approval custody recovery is incomplete");
 if (approval.candidateGenesisTime !== genesisTime) fail("candidate genesis time differs from approval");
 const validatorManifestSha256 = sha256(validatorManifestPath);
 if (approval.validatorManifestSha256 !== validatorManifestSha256) fail("validator manifest checksum differs from approval");
