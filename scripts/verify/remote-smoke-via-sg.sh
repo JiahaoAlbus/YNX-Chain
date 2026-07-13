@@ -27,26 +27,45 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-ssh -N -i "$SG_NODE_SSH_KEY" \
-  -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-  -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
-  -o ExitOnForwardFailure=yes \
-  -L "127.0.0.1:${local_port}:${PRIMARY_NODE_HOST}:443" \
-  "${SG_NODE_USER}@${SG_NODE_HOST}" >"$tunnel_log" 2>&1 &
-tunnel_pid=$!
-
 ready=0
-for _ in $(seq 1 20); do
-  if ! kill -0 "$tunnel_pid" 2>/dev/null; then
-    cat "$tunnel_log" >&2
-    echo "Singapore proof tunnel exited before becoming ready" >&2
-    exit 1
+for attempt in 1 2 3; do
+  : >"$tunnel_log"
+  ssh -N -i "$SG_NODE_SSH_KEY" \
+    -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+    -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+    -o ExitOnForwardFailure=yes \
+    -L "127.0.0.1:${local_port}:${PRIMARY_NODE_HOST}:443" \
+    "${SG_NODE_USER}@${SG_NODE_HOST}" >"$tunnel_log" 2>&1 &
+  tunnel_pid=$!
+
+  for _ in $(seq 1 20); do
+    if ! kill -0 "$tunnel_pid" 2>/dev/null; then
+      break
+    fi
+    if nc -z 127.0.0.1 "$local_port" >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 0.5
+  done
+  [[ "$ready" == "0" ]] || break
+
+  tunnel_status=255
+  if kill -0 "$tunnel_pid" 2>/dev/null; then
+    kill "$tunnel_pid" 2>/dev/null || true
+    wait "$tunnel_pid" 2>/dev/null || true
+  else
+    set +e
+    wait "$tunnel_pid"
+    tunnel_status=$?
+    set -e
   fi
-  if nc -z 127.0.0.1 "$local_port" >/dev/null 2>&1; then
-    ready=1
+  tunnel_pid=""
+  if [[ "$tunnel_status" != "255" || "$attempt" == "3" ]]; then
     break
   fi
-  sleep 0.5
+  echo "Singapore proof tunnel connection closed; retrying attempt $((attempt + 1))/3" >&2
+  sleep 5
 done
 [[ "$ready" == "1" ]] || { cat "$tunnel_log" >&2; echo "Singapore proof tunnel did not become ready" >&2; exit 1; }
 
