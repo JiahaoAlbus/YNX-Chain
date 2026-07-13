@@ -1,8 +1,8 @@
 # Project State
 
-- State snapshot baseline commit: `4c3af99 Add owner custody handover inventory`
-- Last pushed commit: `4c3af99 Add owner custody handover inventory`
-- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; owner-handover code commit `4c3af99a39c2` is pushed and the only current changes are this acceptance update.
+- State snapshot baseline commit: `d4bebbc Bind custody review to owner handover`
+- Last pushed commit: `d4bebbc Bind custody review to owner handover`
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; custody evidence-chain commit `d4bebbc22fe6` is pushed and the only current changes are this acceptance update.
 - Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `752ea31 Add dual-format YNX address converter`.
 - Vercel project `ynx-web4-website-new` (`prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa`) is now Git-connected to `JiahaoAlbus/YNX-Chain-website`, production branch `main`; the previous `ynx-web4-website-new` repository is no longer the automatic source.
 - Latest verified Vercel Git deployment: `dpl_HzXdQozR45aHva8VjAY6c4xZmgXM`, source repository `JiahaoAlbus/YNX-Chain-website`, branch `main`, exact commit `752ea31e509478be199c5ce2a6596a54df0b3398`, state `READY` and promoted to `www.ynxweb4.com`.
@@ -34,6 +34,8 @@ Completed modules:
 - Dual-format account addressing is implemented and remotely deployed: one canonical 20-byte account has lowercase EVM `0x...` and checksummed Bech32 `ynx1...` representations. Go/JS/Python shared vectors, signed-transfer canonicalization, REST boundary normalization, account-key public output, Explorer alias search/detail, dedicated Makefile checks, and operator-controlled public proof pass. EVM JSON-RPC and MetaMask remain on `0x...`.
 - Owner-handover tooling now classifies four validator identities, five future BFT service signers, the authoritative Faucet runtime account, the funded public proof account, and ephemeral smoke identities without reading secret values. `make owner-handover-check` is part of `make preflight` and fail-closes on tampering, stale commits, self-review, duplicate signers, unknown funded ownership, or incomplete recovery/handover assertions.
 - A real mode-`0600` unreviewed packet was generated at `/Volumes/Data/Users/huangjiahao/.ynx-chain-custody/owner-handover-packets/owner-handover-4c3af99a39c2-20260713T184628Z`, bound to inventory digest `sha256:1674f8d80b6a8e4f09150a1f004486e33890dbd3cceb0e0fad062ddfbd9adb30`. It contains 12 public identity/status records, 9 handover-required identities, zero unknown ownership records, and no secret material.
+- Production custody review now requires and revalidates packet-local owner inventory/receipt evidence, requires exact service-signer/evidence/hash equality, enforces four distinct roles (owner, handover reviewer, custody reviewer, transaction approver), and propagates exact owner hashes through freeze/cutover approval evidence and candidate binding.
+- A current-commit replacement packet exists at `/Volumes/Data/Users/huangjiahao/.ynx-chain-custody/owner-handover-packets/owner-handover-d4bebbc22fe6-20260713T190221Z`, inventory digest `sha256:4e11b68953415234325d4e4873a7beae429e321969e0fd97391e52d8218ff558`. Its three files are mode `0600`; its receipt remains default-false and is correctly rejected.
 
 Incomplete modules or requirements:
 
@@ -42,6 +44,7 @@ Incomplete modules or requirements:
 - Provider-backed AI generation proof is incomplete because upstream quota returns HTTP `429`.
 - Independent public-vantage evidence is absent.
 - SDK registry publication, signed versioning, independent consumer proof, mainnet audit/legal/custody, exchange listing, stablecoin issuer support, wallet default support, production bridge readiness, and third-party partnerships remain incomplete and are not claimed.
+- No Bridge runtime, bridge persistence, relayer/attestation quorum, or public bridge proof exists in this repository yet; current bridge content is readiness language only.
 - The production website exposes address conversion and the truthful MetaMask `0x...` boundary. Independent public-vantage proof is absent, and no wallet-default support is claimed.
 
 Current blockers:
@@ -52,4 +55,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Bind the production custody review to an exact, independently validated owner-handover receipt and inventory digest. The current review gate can validate its own recovery assertions but does not yet require the separate 12-record owner inventory/receipt evidence chain.
+- Implement a real persistent Bridge coordinator/API with source-event uniqueness, threshold attestation, asset/finality policy, idempotent transfer state, and fail-closed finalize rules. This is a chain runtime gap that can advance while the separate owner ceremony remains externally gated.

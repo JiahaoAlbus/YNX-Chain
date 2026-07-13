@@ -1,37 +1,36 @@
 # Next Action
 
-Current single action: bind production custody review to the exact validated owner-handover receipt and inventory digest.
+Current single action: implement the first real persistent YNX Bridge coordinator and API runtime.
 
 Why this action:
 
-- The public identity inventory and mode-`0600` default-false owner packet now exist and are locally verified.
-- The current production custody review independently repeats recovery/handover assertions but does not require the owner receipt, so the evidence chain is not yet end-to-end.
-- Public BFT must remain impossible until the owner receipt, independent custody review, and transaction approval all bind the same commit and signer identities.
+- Public BFT engineering gates are complete locally, but execution is correctly blocked by an external offline-recovery and four-role owner ceremony.
+- Provider-backed AI proof is externally blocked by quota.
+- Bridge readiness is part of the full ecosystem target, but the repository currently has no Bridge daemon, persistence, API, or tests.
 
 Required behavior:
 
-- Extend the production custody review packet with owner-handover inventory digest, inventory file SHA-256, receipt SHA-256, owner identity, and independent owner-handover reviewer identity.
-- Invoke `validate-owner-handover-receipt.mjs` from the production custody validator and compare its commit, five service signers, recovery/handover/rotation assertions, and exact hashes.
-- Require the production custody reviewer to differ from both the owner and owner-handover reviewer.
-- Reject missing, unacknowledged, stale, expired, self-reviewed, tampered, mismatched-manifest, or free-form owner evidence.
-- Propagate the exact owner evidence hashes into custody validation output so later freeze/cutover approval cannot substitute another packet.
-- Keep the real packet unacknowledged until external owner and independent-review procedures actually occur.
+- Add a standalone `ynx-bridged` service with persistent restart-safe state and bounded JSON APIs.
+- Create transfer intents bound to source chain, source transaction/event identity, source/destination asset, amount, sender, recipient, and minimum finality policy.
+- Enforce global source-event uniqueness and exact idempotent replay; reject changed-input reuse.
+- Accept attestations only from an explicit relayer allowlist, one vote per relayer, with canonical payload/signature verification and configurable threshold.
+- Finalize only after source finality and threshold attestations; prevent double-finalize, amount overflow, unsupported assets, wrong destination, and native YNXT direct-freeze/seizure semantics.
+- Persist append-only audit events and expose transfer lookup/list plus health/metrics without leaking secrets.
+- Keep external-chain submission disabled: local completion must not be described as a live bridge or third-party integration.
 
 Files to touch:
 
-- `scripts/ops/write-production-custody-review-packet.mjs`
-- `scripts/verify/validate-production-custody-review.mjs`
-- `scripts/verify/production-custody-review-check.sh`
-- Transaction fixture/check files that construct production custody reviews
-- Custody and acceptance documentation
+- `internal/bridgegateway`
+- `cmd/ynx-bridged`
+- Bridge service config/systemd/deployment wiring only after runtime tests pass
+- `scripts/verify/bridge-api-check.sh`
+- `Makefile`
+- API/custody/acceptance documentation only after real code exists
 
 Validation commands:
 
-- `make owner-handover-check`
-- `make production-custody-review-check`
-- `make public-bft-freeze-rehearsal-transaction-check`
-- `make public-bft-cutover-transaction-check`
-- `make public-bft-production-driver-check`
+- focused Bridge unit, restart, idempotency, signature, quorum, overflow, and tamper tests
+- `make bridge-api-check`
 - `go test ./...`
 - `make test`
 - `make no-placeholder-check`
@@ -42,14 +41,13 @@ Validation commands:
 
 Completion standard:
 
-- No production custody review validates without an exact valid owner receipt and inventory.
-- Owner, owner-handover reviewer, custody reviewer, and transaction approver separation is enforced at the appropriate gates.
-- Exact hashes and commit identity propagate through owner receipt, custody review, and transaction approval evidence.
-- Incomplete real-world handover remains visibly false; no signer install, network mutation, or public BFT claim occurs.
+- The Bridge service has real persistent code, API handlers, fail-closed policy, tests, smoke target, and deployment package wiring.
+- Duplicate source events, unauthorized/duplicate relayers, insufficient finality/quorum, replay conflicts, and unsafe native YNXT actions fail without state corruption.
+- Status remains local/not deployed until a real external-chain test and public endpoint are independently verified.
 
 Explicitly not doing:
 
-- No private key, mnemonic, PEM, token, or secret environment value may be printed, committed, uploaded, or placed on the website.
-- No remote signer installation, account funding, freeze, pause, ingress switch, BFT candidate start, or public cutover.
+- No live mint/burn, external-chain transaction, asset funding, relayer key creation, or public bridge claim.
+- No freeze, pause, signer install, ingress switch, BFT candidate start, or public cutover.
 - No expansion of bounded EVM opcodes, Counter/Hardhat artifacts, or IDE execution.
 - Do not modify or replace the long-term goal file.
