@@ -94,7 +94,7 @@ cat >"$tmp/validator-manifest.json" <<'EOF'
 EOF
 validator_sha="$(shasum -a 256 "$tmp/validator-manifest.json" | awk '{print $1}')"
 cat >"$transaction/approval.json" <<EOF
-{"schemaVersion":1,"action":"ynx-public-bft-cutover","approved":true,"approvalId":"fixture-$commit","approver":"transaction fixture","custodyReviewer":"custody fixture","custodyEvidence":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","commit":"$commit","release":"$release","publicCutoverAuthorized":true,"automaticRollbackRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"validatorManifestSha256":"$validator_sha","candidateGenesisTime":"$genesis_time","expiresAt":"$expires_at"}
+{"schemaVersion":1,"action":"ynx-public-bft-cutover","approved":true,"approvalId":"fixture-$commit","approver":"transaction fixture","custodyReviewer":"custody fixture","custodyEvidence":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","commit":"$commit","release":"$release","publicCutoverAuthorized":true,"automaticRollbackRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"serviceSignerManifestSha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","validatorManifestSha256":"$validator_sha","candidateGenesisTime":"$genesis_time","expiresAt":"$expires_at"}
 EOF
 chmod 0600 "$transaction/approval.json" "$transaction/final-snapshot/migration.json" "$transaction/final-snapshot/remote-evidence.json"
 

@@ -23,6 +23,7 @@ if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.tri
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("approval evidence custody review hash is invalid");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("automatic rollback is not authorized");
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
+if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
 if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
 if (!Number.isFinite(Date.parse(approval.expiresAt || ""))) fail("approval expiry is invalid");
@@ -42,6 +43,7 @@ process.stdout.write(`${JSON.stringify({
   serviceSignerRecoveryVerified: true,
   ownerHandoverVerified: true,
   rotationProcedureVerified: true,
+  serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
   validatorManifestSha256: approval.validatorManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: approval.expiresAt,

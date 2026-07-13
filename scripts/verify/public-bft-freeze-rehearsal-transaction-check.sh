@@ -9,17 +9,26 @@ repo="$tmp/repo"
 mkdir -p "$repo/scripts/ops" "$repo/scripts/verify"
 cp scripts/ops/public-bft-freeze-rehearsal-transaction.sh "$repo/scripts/ops/"
 cp scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$repo/scripts/verify/"
+cp scripts/verify/validate-production-custody-review.mjs "$repo/scripts/verify/"
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
 git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'freeze rehearsal fixture'
 commit="$(git -C "$repo" rev-parse --short=12 HEAD)"
 release="ynx-bft-gateway-${commit}"
 future="$(date -u -v+1H +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"
+reviewed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+service_signer_manifest_sha="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+custody_review="$tmp/custody-review.json"
+cat >"$custody_review" <<EOF
+{"schemaVersion":1,"action":"ynx-production-custody-review","reviewId":"review-${commit}","reviewer":"custody self test","reviewed":true,"commit":"${commit}","publicManifestSha256":"${service_signer_manifest_sha}","sourceCeremonyStatusSha256":"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","signerCount":5,"records":[{"role":"faucet","purpose":"ynx-production-faucet-signer","address":"0x1111111111111111111111111111111111111111"},{"role":"ai","purpose":"ynx-production-ai-signer","address":"0x2222222222222222222222222222222222222222"},{"role":"pay","purpose":"ynx-production-pay-signer","address":"0x3333333333333333333333333333333333333333"},{"role":"trust","purpose":"ynx-production-trust-signer","address":"0x4444444444444444444444444444444444444444"},{"role":"resource","purpose":"ynx-production-resource-signer","address":"0x5555555555555555555555555555555555555555"}],"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"validatorRecoveryEvidence":"offline:validator-restore-001","serviceSignerRecoveryEvidence":"offline:service-restore-001","ownerHandoverEvidence":"handover:owner-ack-001","rotationProcedureEvidence":"rotation:review-001","reviewedAt":"${reviewed_at}","expiresAt":"${future}"}
+EOF
+chmod 600 "$custody_review"
+custody_evidence="sha256:$(shasum -a 256 "$custody_review" | awk '{print $1}')"
 
 write_approval() {
   local transaction_id="$1" path="$2"
   cat >"$path" <<EOF
-{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
+{"schemaVersion":1,"action":"ynx-public-bft-freeze-rehearsal","approvalId":"approval-${transaction_id}","approver":"transaction self test","custodyReviewer":"custody self test","custodyEvidence":"${custody_evidence}","approved":true,"commit":"${commit}","release":"${release}","transactionId":"${transaction_id}","scopedBackupAuthorized":true,"temporaryMutationFreezeAuthorized":true,"automaticUnfreezeRequired":true,"validatorKeyRecoveryVerified":true,"serviceSignerRecoveryVerified":true,"ownerHandoverVerified":true,"rotationProcedureVerified":true,"serviceSignerManifestSha256":"${service_signer_manifest_sha}","authoritativePauseAuthorized":false,"publicIngressChangeAuthorized":false,"publicCutoverAuthorized":false,"maxFreezeSeconds":30,"expiresAt":"${future}"}
 EOF
   chmod 600 "$path"
 }
@@ -60,6 +69,7 @@ run_rehearsal() {
   (cd "$repo" && PUBLIC_BFT_FREEZE_REHEARSAL_MODE=execute \
     PUBLIC_BFT_FREEZE_REHEARSAL_APPROVED=yes \
     PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE="$approval" \
+    PUBLIC_BFT_CUSTODY_REVIEW_FILE="$custody_review" \
     PUBLIC_BFT_FREEZE_REHEARSAL_DRIVER="$tmp/driver" \
     PUBLIC_BFT_FREEZE_REHEARSAL_EVIDENCE_DIR="$tmp/evidence" \
     PUBLIC_BFT_FREEZE_REHEARSAL_TRANSACTION_ID="$transaction_id" \
@@ -94,30 +104,30 @@ done
 approval="$tmp/rejected.json"
 write_approval rejected-approval "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.authoritativePauseAuthorized=true; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-approval) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-approval "$custody_review") >/dev/null 2>&1; then
   echo "approval authorizing authoritative pause unexpectedly passed" >&2
   exit 1
 fi
 write_approval rejected-custody "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.serviceSignerRecoveryVerified=false; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-custody) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-custody "$custody_review") >/dev/null 2>&1; then
   echo "approval without service signer recovery unexpectedly passed" >&2
   exit 1
 fi
 write_approval rejected-free-form-custody "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.custodyEvidence="free-form-review-reference"; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-free-form-custody) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-free-form-custody "$custody_review") >/dev/null 2>&1; then
   echo "free-form custody evidence unexpectedly passed" >&2
   exit 1
 fi
 write_approval rejected-self-review "$approval"
 node -e 'const fs=require("fs"),p=process.argv[1],a=JSON.parse(fs.readFileSync(p)); a.custodyReviewer=a.approver; fs.writeFileSync(p,JSON.stringify(a));' "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review "$custody_review") >/dev/null 2>&1; then
   echo "self-reviewed custody approval unexpectedly passed" >&2
   exit 1
 fi
 chmod 644 "$approval"
-if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review) >/dev/null 2>&1; then
+if (cd "$repo" && node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs "$approval" "$commit" "$release" rejected-self-review "$custody_review") >/dev/null 2>&1; then
   echo "insecure approval permissions unexpectedly passed" >&2
   exit 1
 fi

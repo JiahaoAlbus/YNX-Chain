@@ -74,6 +74,7 @@ if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.tri
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("transaction approval custody review hash is invalid");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("transaction approval does not authorize cutover with automatic rollback");
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("transaction approval custody recovery is incomplete");
+if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("transaction approval service signer manifest checksum is invalid");
 if (approval.candidateGenesisTime !== genesisTime) fail("candidate genesis time differs from approval");
 const validatorManifestSha256 = sha256(validatorManifestPath);
 if (approval.validatorManifestSha256 !== validatorManifestSha256) fail("validator manifest checksum differs from approval");
@@ -135,5 +136,6 @@ process.stdout.write(`${JSON.stringify({
   packageGenesisHash: packageManifest.genesisHash,
   packageMigrationStateHash: packageManifest.migrationStateHash,
   automaticRollbackRequired: true,
+  serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
   validated: true,
 }, null, 2)}\n`);

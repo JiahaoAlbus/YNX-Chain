@@ -6,6 +6,7 @@ YNX Chain public BFT cutover is an approval-gated transaction. The transaction e
 
 - `PUBLIC_BFT_CUTOVER_MODE` defaults to `plan`; only `execute` can invoke a driver.
 - Execution requires `PUBLIC_BFT_CUTOVER_APPROVED=yes`, an executable driver, a clean `main` worktree, and a mode-`0600` approval file.
+- Execution also requires `PUBLIC_BFT_CUSTODY_REVIEW_FILE`. The transaction revalidates that mode-restricted review file and requires its commit, service-signer manifest, reviewer, recovery/handover/rotation assertions, validity window, and exact file SHA-256 to match the approval before creating transaction evidence.
 - Approval must be valid for no more than 24 hours and bind the exact 12-character commit and `ynx-bft-gateway-<commit>` release.
 - Approval must explicitly set both `publicCutoverAuthorized` and `automaticRollbackRequired` to `true`.
 - Full-cutover approval and every downstream approval-evidence/candidate-binding validator require the same independent custody boundary as the bounded rehearsal: custody reviewer distinct from transaction approver, an exact `sha256:<digest>` reference to the reviewed non-secret custody packet, validator and five-service signer recovery, owner handover, and rotation verification. Legacy, free-form, or self-reviewed approval evidence fails closed.

@@ -30,6 +30,7 @@ fi
 [[ "${PUBLIC_BFT_FREEZE_REHEARSAL_APPROVED:-}" == "yes" ]] || { echo "PUBLIC_BFT_FREEZE_REHEARSAL_APPROVED=yes is required" >&2; exit 1; }
 [[ -x "$driver" ]] || { echo "PUBLIC_BFT_FREEZE_REHEARSAL_DRIVER must be executable" >&2; exit 1; }
 [[ -n "${PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE:-}" ]] || { echo "PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE is required" >&2; exit 1; }
+[[ -n "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" ]] || { echo "PUBLIC_BFT_CUSTODY_REVIEW_FILE is required" >&2; exit 1; }
 [[ "$(git branch --show-current)" == "main" ]] || { echo "public BFT freeze rehearsal requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short)" ]] || { echo "public BFT freeze rehearsal requires a clean worktree" >&2; exit 1; }
 
@@ -37,7 +38,7 @@ umask 077
 [[ ! -e "$transaction_dir" ]] || { echo "freeze rehearsal evidence already exists: $transaction_dir" >&2; exit 1; }
 mkdir -p "$transaction_dir"
 approval_evidence="$(node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs \
-  "$PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE" "$commit" "$release" "$transaction_id")"
+  "$PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE" "$commit" "$release" "$transaction_id" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
 printf '%s\n' "$approval_evidence" >"$transaction_dir/approval.json"
 max_freeze_seconds="$(node -e 'const a=JSON.parse(process.argv[1]); process.stdout.write(String(a.maxFreezeSeconds));' "$approval_evidence")"
 

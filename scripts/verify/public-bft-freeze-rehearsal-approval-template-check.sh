@@ -19,6 +19,7 @@ node -e '
 const fs=require("fs"), a=JSON.parse(fs.readFileSync(process.argv[1]));
 if (a.approved !== false || a.scopedBackupAuthorized !== false || a.temporaryMutationFreezeAuthorized !== false) process.exit(1);
 if (a.custodyReviewer !== "" || a.custodyEvidence !== "") process.exit(1);
+if (a.serviceSignerManifestSha256 !== "") process.exit(1);
 if (a.validatorKeyRecoveryVerified !== false || a.serviceSignerRecoveryVerified !== false || a.ownerHandoverVerified !== false || a.rotationProcedureVerified !== false) process.exit(1);
 if (a.authoritativePauseAuthorized !== false || a.publicIngressChangeAuthorized !== false || a.publicCutoverAuthorized !== false) process.exit(1);
 if (a.transactionId !== process.argv[2] || a.maxFreezeSeconds !== 60 || a.expiresAt !== "") process.exit(1);

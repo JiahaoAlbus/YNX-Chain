@@ -35,6 +35,7 @@ const approval = {
   serviceSignerRecoveryVerified: false,
   ownerHandoverVerified: false,
   rotationProcedureVerified: false,
+  serviceSignerManifestSha256: "",
   authoritativePauseAuthorized: false,
   publicIngressChangeAuthorized: false,
   publicCutoverAuthorized: false,
@@ -64,11 +65,11 @@ This packet does not authorize any remote action. Review and edit the mode-0600 
 - Public ingress change: forbidden
 - Public cutover: forbidden
 
-Approval requires an identified approver, a different identified custody reviewer, a non-secret custody evidence reference, \`approved=true\`, explicit recovery/handover/rotation attestations, scoped-backup and temporary-freeze consent, and an expiry no more than two hours in the future. The validator rejects self-review, incomplete custody recovery, or any approval that permits pause, ingress change, or cutover.
+Approval requires an identified approver, a different identified custody reviewer, the exact reviewed custody file hash and service-signer manifest hash, \`approved=true\`, explicit recovery/handover/rotation attestations, scoped-backup and temporary-freeze consent, and an expiry no more than two hours in the future. The validator reads \`PUBLIC_BFT_CUSTODY_REVIEW_FILE\` and rejects a missing/tampered review, reviewer/hash/manifest mismatch, self-review, incomplete custody recovery, or any approval that permits pause, ingress change, or cutover.
 
 Validation and execution:
 
-\`node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs ${shellQuote(approvalPath)} ${commit} ${release} ${transactionId}\`
+\`node scripts/verify/validate-public-bft-freeze-rehearsal-approval.mjs ${shellQuote(approvalPath)} ${commit} ${release} ${transactionId} "$PUBLIC_BFT_CUSTODY_REVIEW_FILE"\`
 
 \`PUBLIC_BFT_FREEZE_REHEARSAL_MODE=execute PUBLIC_BFT_FREEZE_REHEARSAL_APPROVED=yes PUBLIC_BFT_FREEZE_REHEARSAL_APPROVAL_FILE=${shellQuote(approvalPath)} PUBLIC_BFT_FREEZE_REHEARSAL_TRANSACTION_ID=${transactionId} bash scripts/ops/public-bft-freeze-rehearsal-transaction.sh\`
 `;

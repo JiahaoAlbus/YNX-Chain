@@ -2,6 +2,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 function fail(message) {
   throw new Error("public BFT freeze rehearsal approval rejected: " + message);
@@ -11,8 +13,9 @@ const approvalPath = process.argv[2];
 const expectedCommit = String(process.argv[3] || "");
 const expectedRelease = String(process.argv[4] || "");
 const expectedTransactionId = String(process.argv[5] || "");
-if (!approvalPath || !expectedCommit || !expectedRelease || !expectedTransactionId) {
-  fail("approval path, commit, release, and transaction id are required");
+const custodyReviewPath = String(process.argv[6] || "");
+if (!approvalPath || !expectedCommit || !expectedRelease || !expectedTransactionId || !custodyReviewPath) {
+  fail("approval path, commit, release, transaction id, and custody review path are required");
 }
 if (!/^[0-9a-f]{12}$/.test(expectedCommit)) fail("expected commit must be 12 lowercase hexadecimal characters");
 if (expectedRelease !== "ynx-bft-gateway-" + expectedCommit) fail("expected release is not bound to the expected commit");
@@ -48,6 +51,15 @@ if (approval.scopedBackupAuthorized !== true || approval.temporaryMutationFreeze
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) {
   fail("validator/service signer recovery, owner handover, and rotation verification are required");
 }
+if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("serviceSignerManifestSha256 is required");
+let custodyReview;
+try {
+  const validator = path.join(path.dirname(fileURLToPath(import.meta.url)), "validate-production-custody-review.mjs");
+  custodyReview = JSON.parse(execFileSync(process.execPath, [validator, custodyReviewPath, expectedCommit, approval.serviceSignerManifestSha256], { encoding: "utf8" }));
+} catch (error) {
+  fail(`custody review validation failed: ${error.stderr?.toString().trim() || error.message}`);
+}
+if (custodyReview.reviewer.toLowerCase() !== approval.custodyReviewer.trim().toLowerCase() || custodyReview.custodyEvidence !== approval.custodyEvidence.trim()) fail("custody review attribution or exact file hash differs from approval");
 if (approval.authoritativePauseAuthorized !== false || approval.publicIngressChangeAuthorized !== false || approval.publicCutoverAuthorized !== false) {
   fail("pause, ingress change, and public cutover must be explicitly unauthorized");
 }
@@ -74,6 +86,7 @@ process.stdout.write(JSON.stringify({
   serviceSignerRecoveryVerified: true,
   ownerHandoverVerified: true,
   rotationProcedureVerified: true,
+  serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
   authoritativePauseAuthorized: false,
   publicIngressChangeAuthorized: false,
   publicCutoverAuthorized: false,
