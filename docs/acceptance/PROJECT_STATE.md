@@ -1,11 +1,11 @@
 # Project State
 
-- State snapshot baseline commit: `97ed0c6 Add reversible ynx1 account addresses`
-- Last pushed commit: `97ed0c6 Add reversible ynx1 account addresses`
+- State snapshot baseline commit: `01f05fc Record deployed dual-address public proof`
+- Last pushed commit: `01f05fc Record deployed dual-address public proof`
 - Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; code commit is pushed and the only current changes are this post-deployment acceptance update.
-- Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `7a638b0 Fix production SPA deep links`.
+- Website repo state: `/Users/huangjiahao/Desktop/YNX-Chain-website`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain-website.git`, pushed commit `752ea31 Add dual-format YNX address converter`.
 - Vercel project `ynx-web4-website-new` (`prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa`) is now Git-connected to `JiahaoAlbus/YNX-Chain-website`, production branch `main`; the previous `ynx-web4-website-new` repository is no longer the automatic source.
-- Latest verified Vercel Git deployment: `dpl_22cxGGiFypkzebGXhibDk7eaWG6q`, source commit `7a638b033d289d335d26500597d230a33b046d6e`, state `READY`.
+- Latest verified Vercel Git deployment: `dpl_HzXdQozR45aHva8VjAY6c4xZmgXM`, source repository `JiahaoAlbus/YNX-Chain-website`, branch `main`, exact commit `752ea31e509478be199c5ce2a6596a54df0b3398`, state `READY` and promoted to `www.ynxweb4.com`.
 
 Remote deployment state:
 
@@ -14,7 +14,7 @@ Remote deployment state:
 - Active topology remains one authoritative producer plus three authenticated followers. It is not public CometBFT validator voting or Byzantine fault tolerance.
 - `www.ynxweb4.com` now serves the intended full-stack website from Vercel. `ynxweb4.com` redirects to `www`.
 - The production homepage uses a zero-image CSS/DOM chain scene with draggable depth layers, live block height, four role labels, block propagation, EVM/RPC/Index/Trust/State layers, responsive mobile behavior, and real public API data.
-- Production deep links `/risk`, `/docs`, and `/testnet` return the SPA directly after commit `7a638b0`.
+- Production deep links `/risk`, `/docs`, and `/testnet` return the SPA directly; `/docs` now links to the deployed address converter after commit `752ea31`.
 
 Public proof state:
 
@@ -24,12 +24,13 @@ Public proof state:
 - Existing Singapore-routed chain smoke remains operator-controlled evidence. Independent public-vantage proof, successful provider-backed AI generation, and public BFT proof remain absent.
 - Post-deploy Singapore-routed smoke verified exact release identity, chain growth, EVM `0x1917`, REST/gRPC, Faucet-to-Explorer indexing, Pay, AI action governance, Trust/Chain Law requests, appeal/correction, transparency growth `180` to `192`, Resource flows, and IDE compile. Provider-backed AI SSE alone returned YNX HTTP `502`; it remains an external provider/quota blocker.
 - Public address proof used the testnet account `0x7e5f...5bdf` and alias `ynx10e...hn80`: RPC alias and hex queries returned the same canonical account, Explorer returned both address formats, and Explorer search normalized the alias to the canonical address. The route was operator-controlled Singapore SSH with original TLS hostnames, not independent third-party proof.
+- Production website proof converted the same shared vector in both directions, copied the exact `ynx1...` value, linked to the live Explorer account route, rejected mixed-case input without leaving a result link, and passed desktop plus 390px mobile overflow/console checks. The rendered homepage also observed live release `ynx-chain-97ed0c645bd2`.
 - Direct public verification intermittently hit SSL/faucet connection timeouts; the controlled Singapore route succeeded. Public ingress stability remains a real operational risk.
 
 Completed modules:
 
 - Chain runtime, authoritative replication, RPC/EVM RPC, Faucet, Indexer, Explorer, monitoring, deployment, backup, rollback, AI action governance, Pay, Trust/Chain Law, Anti-Illegal Request, Request Validity, native YNXT protection, Appeal/Correction, Transparency, Resource Market, bounded IDE, and JS/Python SDK slices have real code and local tests. The authoritative public release provides operator-controlled public proof for the documented deployed subset.
-- Website repository selection, Vercel Git binding, production deployment, real API aggregation, responsive CSS chain interaction, truthful disclosure routes, and SPA deep links are implemented and production verified.
+- Website repository selection, Vercel Git binding, production deployment, real API aggregation, responsive CSS chain interaction, truthful disclosure routes, SPA deep links, and the dual-format account converter are implemented and production verified.
 - Dual-format account addressing is implemented and remotely deployed: one canonical 20-byte account has lowercase EVM `0x...` and checksummed Bech32 `ynx1...` representations. Go/JS/Python shared vectors, signed-transfer canonicalization, REST boundary normalization, account-key public output, Explorer alias search/detail, dedicated Makefile checks, and operator-controlled public proof pass. EVM JSON-RPC and MetaMask remain on `0x...`.
 
 Incomplete modules or requirements:
@@ -39,7 +40,7 @@ Incomplete modules or requirements:
 - Provider-backed AI generation proof is incomplete because upstream quota returns HTTP `429`.
 - Independent public-vantage evidence is absent.
 - SDK registry publication, signed versioning, independent consumer proof, mainnet audit/legal/custody, exchange listing, stablecoin issuer support, wallet default support, production bridge readiness, and third-party partnerships remain incomplete and are not claimed.
-- The production website does not yet expose address conversion or document the dual-format wallet boundary. Independent public-vantage proof is absent, and no wallet-default support is claimed.
+- The production website exposes address conversion and the truthful MetaMask `0x...` boundary. Independent public-vantage proof is absent, and no wallet-default support is claimed.
 
 Current blockers:
 
@@ -49,4 +50,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Add the now-deployed dual-address converter and truthful MetaMask boundary to the intended website repository, deploy through the confirmed Vercel project, and verify production desktop/mobile behavior. This is the next locally actionable full-ecosystem surface while public BFT remains custody-gated and AI generation remains provider-blocked.
+- Build and verify an owner-facing custody handover inventory and offline recovery receipt for every chain-controlled validator/service signer and operational wallet, without exposing secret material or mutating the public network. This is the next locally actionable prerequisite to independent custody review and any later public BFT transaction.
