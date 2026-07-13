@@ -7,7 +7,7 @@ source scripts/ops/lib.sh
 ynx_ops_init
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" ]] || {
+[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -117,12 +117,87 @@ mutation_freeze_phase() {
   echo "production BFT mutation $operation passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" ]]; then
+recovery_phase() {
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" ]] || {
+    echo "recovery commit does not match current HEAD" >&2
+    exit 1
+  }
+  local bft_release="ynx-bft-gateway-${commit}"
+  [[ "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "$bft_release" ]] || {
+    echo "recovery BFT release does not match current HEAD" >&2
+    exit 1
+  }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}"
+  [[ -n "$transaction_dir" && -d "$transaction_dir" ]] || {
+    echo "PUBLIC_BFT_CUTOVER_TRANSACTION_DIR must be an existing directory" >&2
+    exit 1
+  }
+  local transaction_id observation evidence_dir
+  transaction_id="$(basename "$transaction_dir")"
+  [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid recovery transaction id" >&2; exit 1; }
+  observation="${PUBLIC_BFT_RECOVERY_OBSERVATION_SECONDS:-4}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && (( observation >= 2 && observation <= 15 )) || {
+    echo "PUBLIC_BFT_RECOVERY_OBSERVATION_SECONDS must be between 2 and 15" >&2
+    exit 1
+  }
+  evidence_dir="$transaction_dir/recovery"
+  if [[ -e "$evidence_dir" ]]; then
+    local attempt=2
+    while [[ -e "$transaction_dir/recovery-attempt-$attempt" ]]; do
+      ((attempt += 1))
+    done
+    evidence_dir="$transaction_dir/recovery-attempt-$attempt"
+  fi
+  umask 077
+  mkdir -p "$evidence_dir/roles"
+
+  collect_status() {
+    local stage="$1" role="$2" user="$3" host="$4" key="$5" _kind="$6"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/status" >"$evidence_dir/roles/${role}-${stage}-status.json"
+  }
+  collect_before() {
+    local role="$1" user="$2" host="$3" key="$4" kind="$5"
+    collect_status before "$role" "$user" "$host" "$key" "$kind"
+  }
+  ynx_ops_each_node collect_before
+  if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
+    printf 'transactionId=%s\ncommit=%s\nrelease=%s\ndryRun=true\n' "$transaction_id" "$commit" "$release" >"$evidence_dir/dry-run.txt"
+    echo "production BFT recovery dry-run passed: transaction=$transaction_id evidence=$evidence_dir"
+    return
+  fi
+  sleep "$observation"
+
+  collect_after() {
+    local role="$1" user="$2" host="$3" key="$4" kind="$5" services mutation_urls
+    collect_status after "$role" "$user" "$host" "$key" "$kind"
+    services="$(ynx_ops_services_for_kind "$kind")"
+    mutation_urls="http://127.0.0.1:6420"
+    if [[ "$kind" == "full" ]]; then
+      mutation_urls+=",http://127.0.0.1:6428,http://127.0.0.1:6429,http://127.0.0.1:6430,http://127.0.0.1:6431,http://127.0.0.1:6432"
+    fi
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; test \"\$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:6420/status)\" = 200; test \"\$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_chainId\",\"params\":[]}' http://127.0.0.1:6420/evm)\" = 200; mutation_urls='$mutation_urls'; old_ifs=\$IFS; IFS=,; for url in \$mutation_urls; do code=\$(curl -sS -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' -d '{}' \"\$url/__ynx_mutation_freeze_probe__\"); test \"\$code\" != 503; done; IFS=\$old_ifs; printf 'role=%s\\nfreeze=absent\\nservices=active\\nstatus_read=200\\nevm_read=200\\nmutations=unfrozen\\n' '$role'" >"$evidence_dir/roles/${role}-recovery.txt"
+  }
+  ynx_ops_each_node collect_after
+
+  local height
+  height="$(node -e 'const fs=require("fs"),p=process.argv[1],roles=["primary","singapore","silicon-valley","seoul"]; const h=roles.map(r=>Number(JSON.parse(fs.readFileSync(`${p}/roles/${r}-after-status.json`)).height)); if(h.some(v=>!Number.isSafeInteger(v)||v<3)) process.exit(1); process.stdout.write(String(Math.min(...h)-2));' "$evidence_dir")"
+  printf '%s\n' "$height" >"$evidence_dir/convergence-height.txt"
+  collect_recovery_block() {
+    local role="$1" user="$2" host="$3" key="$4" _kind="$5"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/blocks/$height" >"$evidence_dir/roles/${role}-block.json"
+  }
+  ynx_ops_each_node collect_recovery_block
+  node scripts/verify/validate-public-bft-production-recovery.mjs "$evidence_dir" "$commit" "$release" >"$evidence_dir/validation.json"
+  echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
+}
+
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
     freeze_mutations) mutation_freeze_phase freeze ;;
     unfreeze_mutations) mutation_freeze_phase unfreeze ;;
+    verify_recovery) recovery_phase ;;
   esac
   exit 0
 fi

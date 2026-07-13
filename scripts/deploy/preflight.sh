@@ -42,7 +42,10 @@ make bft-trust-action-check
 make bft-resource-action-check
 make consensus-public-cutover-check
 make public-bft-cutover-transaction-check
+make public-bft-freeze-rehearsal-approval-template-check
+make public-bft-freeze-rehearsal-transaction-check
 make public-bft-production-rehearsal-check
+make public-bft-production-recovery-check
 make public-bft-production-driver-check
 make mutation-freeze-check
 make replication-compression-check

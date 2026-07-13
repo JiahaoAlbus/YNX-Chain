@@ -138,6 +138,11 @@ if run_freeze_dry_run freeze_mutations yes >/dev/null 2>&1; then
   echo "mutation freeze unexpectedly passed without four-role backup evidence" >&2
   exit 1
 fi
+run_freeze_dry_run verify_recovery >/dev/null
+test -s "$transaction/recovery/dry-run.txt"
+for role in primary singapore silicon-valley seoul; do
+  grep -Fq "DRY RUN [$role]" "$transaction/recovery/roles/${role}-before-status.json"
+done
 
 marker="$tmp/mutation-freeze.json"
 freeze_evidence="$tmp/freeze-evidence"

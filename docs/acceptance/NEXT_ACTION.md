@@ -1,6 +1,6 @@
 # Next Action
 
-Current single action: establish a current-HEAD authoritative runtime baseline through the reviewed restricted deployment path, rerun the read-only four-role rehearsal, and prepare an explicit live approval packet for one bounded backup plus freeze/unfreeze rehearsal. Backup and freeze/unfreeze are implemented and locally/dry-run verified, but none has been executed on production hosts. Do not create the public marker without explicit live approval. Stop before pausing authoritative production or changing public ingress. Do not execute later phases until custody inputs, remote backup/freeze evidence, final snapshot/candidate evidence, rollback rehearsal, and explicit live approval pass.
+Current single action: after the bounded freeze-rehearsal control plane is committed and pushed, establish an exact-current-control-plane authoritative baseline through the reviewed restricted deployment path and rerun the read-only four-role rehearsal. Only after that evidence passes may an operator generate the deliberately unapproved packet with `make public-bft-freeze-rehearsal-approval-template` for independent review. Backup, freeze/unfreeze, and recovery verification are implemented and locally/dry-run verified, but none has been executed on production hosts. Do not create the public marker without a separately completed mode-`0600` approval that is bound to the exact transaction. Stop before pausing authoritative production or changing public ingress.
 
 Current authoritative baseline (verified 2026-07-12): the current repository release is live on all four roles. Gzip snapshot transport and the bounded 45-second follower timeout are deployed. `make verify-testnet` observed the three followers at common height `44246` and common hash `48d6c3adec7496c878cd1f0128cba06b7cf371a3e0efd04ed2708b547266c6bf`; follower writes returned HTTP 409. The previous replication-lag blocker is resolved.
 
@@ -22,6 +22,8 @@ Required work:
 - Keep the implemented production preflight driver current: it must prebuild binaries and verify current HEAD/release identity, strict SSH host keys, overlay, production custody paths, disk, backup path, public role identity, candidate absence, freeze absence, and fixed-height convergence before any mutation.
 - Preserve the implemented transaction-bound, checksum-verified scoped backup phase and its explicit approval/commit/release gates. It is locally and dry-run verified only; execute it remotely only inside an approved current-commit transaction. Do not reuse the legacy broad backup that includes unrelated V2 state.
 - Preserve the implemented transaction-bound marker-based mutation freeze/unfreeze phases. Their fixture and four-role dry-run checks pass, but live execution is still pending a current-HEAD rehearsal and explicit approval. During a future bounded rehearsal, preserve supported read-only EVM/HTTP health, reject writes, record freeze/unfreeze evidence, and automatically unfreeze on any failure.
+- Use only the dedicated freeze-rehearsal transaction and approval schema for the first bounded live marker exercise. The generated template must remain unapproved until reviewed; authoritative pause, candidate deployment, dependency transition, ingress change, and public cutover must remain explicitly unauthorized.
+- Require `verify_recovery` after normal and automatic unfreeze: marker absent, services active, REST/EVM reads available, mutation probes no longer frozen, primary height growing, four-role lag bounded, and a common fixed-height hash.
 - Pause authoritative block production only after the freeze gate passes, export a final fresh migration, bind the approved validator manifest, deploy the candidate, and require four-signer/common-hash/four-application state evidence.
 - Start persistent BFT Gateway and dependent BFT-mode services on loopback, rebuild/resume Indexer from the retained candidate boundary, and verify Explorer/API continuity before changing ingress.
 - Atomically switch ingress with a checksummed backup, then require public chain identity, no height regression, height growth, four validators, EVM receipt/log behavior, Faucet/AI/Pay/Trust/Resource/IDE checks, Indexer lag, Explorer SSE, release identity, and cross-region health.
@@ -45,7 +47,10 @@ Validation commands:
 - `make consensus-production-package-check`
 - `make consensus-public-cutover-check`
 - `make public-bft-cutover-transaction-check`
+- `make public-bft-freeze-rehearsal-approval-template-check`
+- `make public-bft-freeze-rehearsal-transaction-check`
 - `make public-bft-production-rehearsal-check`
+- `make public-bft-production-recovery-check`
 - `make public-bft-production-driver-check`
 - `make public-bft-production-rehearsal`
 - `make no-placeholder-check`

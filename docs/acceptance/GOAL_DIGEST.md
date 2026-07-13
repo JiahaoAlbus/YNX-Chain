@@ -26,7 +26,7 @@ Legacy protection:
 
 Current highest priority:
 
-- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. The four-server private overlay, owner-controlled host-local validator keys, remote quorum/fault/native-transfer/Faucet proof, migration-height Indexer/Explorer proof, signed AI and Pay state-transition proof, rollback, and CometBFT-backed compatibility Gateway are remotely verified. The Gateway now reports eleven implemented and four missing cutover capabilities while keeping `publicCutoverReady=false`. Next: extend the signed application-action substrate to Trust and Chain Law governance, appeal, and transparency state before any public cutover.
+- Replace the remotely verified single-producer authoritative replication model with real CometBFT validator voting while preserving the current public network as a rollback boundary. The four-server private overlay, owner-controlled host-local validator keys, remote quorum/fault/native-transfer/Faucet/Indexer/Explorer/AI/Pay/Trust/Resource/IDE candidate proof, rollback, and all fifteen Gateway compatibility capabilities are verified while `publicCutoverReady=false`. Next: establish a current-HEAD authoritative release, rerun read-only production rehearsal, and require an explicit transaction-bound approval before any bounded backup/freeze rehearsal. Pause, candidate deployment, and ingress change remain forbidden during that rehearsal.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:
