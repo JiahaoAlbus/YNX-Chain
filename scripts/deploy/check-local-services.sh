@@ -40,6 +40,9 @@ case "$url" in
   http://127.0.0.1:6432/health)
     printf '%s\n' '{"ok":true,"service":"ynx-resourced","chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"bodyLimitBytes":1048576,"responseLimitBytes":2097152,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6433/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-bridged","nativeSymbol":"YNXT","persistence":"restart-safe-json","externalSubmissionEnabled":false,"liveBridge":false,"truthfulStatus":"local-coordinator-only-no-external-submission","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -47,7 +50,7 @@ case "$url" in
 esac
 EOF
   chmod +x "$tmp/bin/curl"
-  PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  YNX_EXPECT_BRIDGE_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
   PATH="$tmp/bin:$PATH" "$0" singapore abc123def456 ynx-chain-abc123def456 6423 validator
   echo "check-local-services self-test passed"
   exit 0
@@ -98,7 +101,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -147,6 +150,16 @@ check_full_stack_surface() {
   require_contains "Resource Gateway health" "$resource_gateway" '"responseLimitBytes":2097152'
   require_contains "Resource Gateway health build commit" "$resource_gateway" "$expected_commit"
   require_contains "Resource Gateway health release" "$resource_gateway" "$expected_release"
+
+  if [[ "${YNX_EXPECT_BRIDGE_SERVICE:-0}" == "1" ]]; then
+    bridge_gateway="$(fetch_with_retry "Bridge coordinator health" "http://127.0.0.1:6433/health")"
+    require_contains "Bridge coordinator health" "$bridge_gateway" "YNXT"
+    require_contains "Bridge coordinator health" "$bridge_gateway" '"externalSubmissionEnabled":false'
+    require_contains "Bridge coordinator health" "$bridge_gateway" '"liveBridge":false'
+    require_contains "Bridge coordinator health" "$bridge_gateway" '"truthfulStatus":"local-coordinator-only-no-external-submission"'
+    require_contains "Bridge coordinator health build commit" "$bridge_gateway" "$expected_commit"
+    require_contains "Bridge coordinator health release" "$bridge_gateway" "$expected_release"
+  fi
 }
 
 case "$mode" in

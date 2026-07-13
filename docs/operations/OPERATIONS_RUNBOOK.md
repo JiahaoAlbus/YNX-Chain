@@ -109,4 +109,13 @@ make bft-resource-action-check
 
 `ynx-resourced` requires a client API key from its dedicated `0600` env file. Keep `YNX_RESOURCE_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; this mode also requires the separate chain-upstream key. Candidate `bft` mode requires chain ID `6423`, `YNX_RESOURCE_GATEWAY_SIGNER_ADDRESS`, and exactly one of `YNX_RESOURCE_GATEWAY_SIGNER_PRIVATE_KEY` or `YNX_RESOURCE_GATEWAY_SIGNER_PRIVATE_KEY_FILE`; use the mode-`0600` file option for candidate work and remove runtime material after rollback. BFT mutations require `idempotencyKey`, inject the configured signer, serialize nonce selection, obtain the committed policy/quote, and verify committed response evidence. It serves health/metrics and authenticated Resource Market routes on `YNX_RESOURCE_GATEWAY_HTTP_ADDR`, enforces request IDs, a 1 MiB request-body limit, a 2 MiB response limit, per-key/IP rate limits, and redacted fail-closed JSONL audit. The complete Resource path passed temporary remote four-application/four-signer proof and rollback; public routing remains authoritative until a separate full cutover decision and production custody/recovery review.
 
+Bridge coordinator readiness:
+
+```bash
+make bridge-api-check
+GOMAXPROCS=2 make deploy-dry-run
+```
+
+`ynx-bridged` requires a dedicated API key, at least two distinct base64 Ed25519 relayer public keys, a threshold of at least two, and one or more external-submission-disabled route policies. Keep `YNX_BRIDGE_DEPLOY_ENABLED=false` in a real deployment env until relayer custody and route approval are independently completed. The release package always carries the binary, dedicated env contract, systemd unit, state/backup paths, config check, and optional health check, but the deploy script installs and starts it only when that gate is explicitly `true`. The service persists local transfer, idempotency, attestation, finalization, and audit state under `/var/lib/ynx-chain/bridge` and rejects invalid/tampered state at startup. Its finalization is coordinator-local only: do not expose ingress or describe it as a live bridge until a separately reviewed external-chain adapter, mint/burn authority, custody, remote deployment, and public proof exist.
+
 Emergency process: stop public writes, preserve logs, snapshot state, communicate incident, roll back only from verified backups.

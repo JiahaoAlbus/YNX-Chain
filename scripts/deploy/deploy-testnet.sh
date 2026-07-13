@@ -26,6 +26,7 @@ YNX_NODE_HTTP_ADDR="${YNX_NODE_HTTP_ADDR:-127.0.0.1:6420}"
 YNX_LOCAL_VALIDATOR_ADDRESS="${YNX_LOCAL_VALIDATOR_ADDRESS:-ynx_validator_primary}"
 YNX_PEER_RPC_URLS="${YNX_PEER_RPC_URLS:-ynx_validator_singapore|http://${SG_NODE_HOST}:6420;ynx_validator_silicon_valley|http://${SILICON_VALLEY_NODE_HOST}:6420;ynx_validator_seoul|http://${SEOUL_NODE_HOST}:6420}"
 YNX_PEER_SYNC_INTERVAL="${YNX_PEER_SYNC_INTERVAL:-5s}"
+YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
@@ -53,6 +54,15 @@ required=(
 )
 ynx_require_env "${required[@]}"
 ynx_reject_unsafe_env_values "${required[@]}"
+case "$YNX_BRIDGE_DEPLOY_ENABLED" in
+  true | false) ;;
+  *) echo "YNX_BRIDGE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+esac
+if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
+  bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
+  ynx_require_env "${bridge_required[@]}"
+  ynx_reject_unsafe_env_values "${bridge_required[@]}"
+fi
 [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
 [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
@@ -79,6 +89,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-payd" ./cmd/ynx-payd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-trustd" ./cmd/ynx-trustd
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-resourced" ./cmd/ynx-resourced
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/ynx-bridged" ./cmd/ynx-bridged
 cat > "$work/config/release.env" <<EOF
 YNX_RELEASE_COMMIT=${commit}
 YNX_RELEASE_NAME=${release}
@@ -111,6 +122,13 @@ ynx_write_kv_env "$work/config/ynx-trustd.env" \
 ynx_write_kv_env "$work/config/ynx-resourced.env" \
   YNX_RESOURCE_API_KEY YNX_RESOURCE_GATEWAY_UPSTREAM_KEY YNX_RESOURCE_GATEWAY_HTTP_ADDR YNX_RESOURCE_GATEWAY_CHAIN_URL \
   YNX_RESOURCE_GATEWAY_AUDIT_LOG YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX
+ynx_write_kv_env "$work/config/ynx-bridged.env" \
+  YNX_BRIDGE_DEPLOY_ENABLED YNX_BRIDGE_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON \
+  YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR
+cat >> "$work/config/ynx-bridged.env" <<EOF
+YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json
+YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
+EOF
 cat >> "$work/config/ynx-chaind.env" <<EOF
 YNX_NETWORK=testnet
 YNX_HTTP_ADDR=${YNX_NODE_HTTP_ADDR}
@@ -378,6 +396,30 @@ PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
 ReadWritePaths=/var/log/ynx-chain
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat > "$work/systemd/ynx-bridged.service" <<'EOF'
+[Unit]
+Description=YNX Chain bridge coordinator (local finalization only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-bridged.env
+ExecStart=/usr/local/bin/ynx-bridged
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-chain/bridge
 
 [Install]
 WantedBy=multi-user.target
@@ -696,7 +738,7 @@ ynx_node_scp() {
 ynx_capture_predeploy_state() {
   local role="$1" user="$2" host="$3" key="$4"
   local marker="/var/log/ynx-chain/deploy/predeploy-${release}-${role}.txt"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,340p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,340p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx /var/log/ynx-chain/deploy 2>/dev/null || sudo install -d /var/log/ynx-chain/deploy; { date -u; hostname; uname -a; echo '--- services'; systemctl list-units --type=service --all 'ynx-*' 2>/dev/null || true; systemctl is-active ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged 2>/dev/null || true; echo '--- local status'; curl -fsS http://127.0.0.1:6420/status 2>/dev/null || true; curl -fsS http://127.0.0.1:6426/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6427/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6428/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6429/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6430/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6431/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6432/health 2>/dev/null || true; curl -fsS http://127.0.0.1:6433/health 2>/dev/null || true; echo '--- ingress'; sudo test -f /etc/nginx/conf.d/ynx-chain.conf && sudo sed -n '1,340p' /etc/nginx/conf.d/ynx-chain.conf || true; sudo test -f /etc/caddy/Caddyfile && sudo sed -n '1,340p' /etc/caddy/Caddyfile || true; echo '--- data dirs'; sudo find /var/lib/ynx-chain -maxdepth 3 -type f 2>/dev/null | sort | head -200 || true; } | sudo tee '$marker' >/dev/null && sudo ls -lh '$marker'"
 }
 
 ynx_backup_node() {
@@ -709,7 +751,7 @@ ynx_backup_node() {
     echo "using validated off-node backup evidence for $role: $offnode_evidence"
     return 0
   fi
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -m 0700 '$BACKUP_STORAGE_PATH' && if sudo test -s '$backup_path' && sudo tar -tzf '$backup_path' >/dev/null; then sudo ls -lh '$backup_path'; else sudo rm -f '$backup_path' '$partial_path'; sudo tar --ignore-failed-read -czf '$partial_path' /etc/ynx /etc/systemd/system/ynx-chaind.service /etc/systemd/system/ynx-indexerd.service /etc/systemd/system/ynx-explorerd.service /etc/systemd/system/ynx-faucetd.service /etc/systemd/system/ynx-ai-gatewayd.service /etc/systemd/system/ynx-payd.service /etc/systemd/system/ynx-trustd.service /etc/systemd/system/ynx-resourced.service /etc/systemd/system/ynx-bridged.service /etc/systemd/system/caddy.service /etc/nginx/conf.d/ynx-chain.conf /etc/caddy /var/lib/ynx-chain 2>/dev/null || true; sudo tar -tzf '$partial_path' >/dev/null && sudo mv '$partial_path' '$backup_path' && sudo ls -lh '$backup_path'; fi"
 }
 
 ynx_precheck_node_access() {
@@ -721,7 +763,7 @@ ynx_precheck_node_access() {
 ynx_prepare_release_on_node() {
   local role="$1" user="$2" host="$3" key="$4"
   ynx_node_ssh "$role" "$user" "$host" "$key" "id -u ynx >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-chain --shell /usr/sbin/nologin ynx"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/log/ynx-chain"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o root -g root /opt/ynx-chain/releases /etc/ynx /usr/local/bin && sudo install -d -o ynx -g ynx /var/lib/ynx-chain/testnet /var/lib/ynx-chain/indexer /var/lib/ynx-chain/bridge /var/log/ynx-chain && sudo chmod 0700 /var/lib/ynx-chain/bridge"
   ynx_capture_predeploy_state "$role" "$user" "$host" "$key"
   ynx_backup_node "$role" "$user" "$host" "$key"
   ynx_node_scp "$role" "$user" "$host" "$key" "$tarball" "$remote_release"
@@ -739,7 +781,15 @@ ynx_install_primary_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v nginx >/dev/null 2>&1; then sudo install -m 0644 '$remote_dir/nginx/ynx-chain.conf' /etc/nginx/conf.d/ynx-chain.conf && sudo nginx -t && sudo systemctl reload nginx; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "if command -v caddy >/dev/null 2>&1; then sudo bash '$remote_dir/scripts/install-caddy-ingress.sh' '$remote_dir/caddy/ynx-chain.caddy' /etc/caddy/Caddyfile /etc/caddy/ynx-chain.caddy '$release' /etc/caddy/conf.d/ynx-v2-gateway.caddy; fi"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced && sudo systemctl restart ynx-chaind && sudo systemctl restart ynx-indexerd && sudo systemctl restart ynx-explorerd && sudo systemctl restart ynx-faucetd && sudo systemctl restart ynx-ai-gatewayd && sudo systemctl restart ynx-payd && sudo systemctl restart ynx-trustd && sudo systemctl restart ynx-resourced && sudo systemctl --no-pager --full status ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced"
-  ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
+  if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-bridged' /usr/local/bin/ynx-bridged && sudo install -m 0644 '$remote_dir/systemd/ynx-bridged.service' /etc/systemd/system/ynx-bridged.service && sudo install -m 0600 '$remote_dir/config/ynx-bridged.env' /etc/ynx/ynx-bridged.env"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-bridged.env; set +a; /usr/local/bin/ynx-bridged --check-config >/dev/null'"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-bridged && sudo systemctl restart ynx-bridged && sudo systemctl --no-pager --full status ynx-bridged"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "YNX_EXPECT_BRIDGE_SERVICE=1 bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
+  else
+    echo "bridge deployment remains disabled; release package contains ynx-bridged but no remote service is installed"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
+  fi
 }
 
 ynx_install_validator_node() {

@@ -96,6 +96,12 @@ YNX_RESOURCE_GATEWAY_CHAIN_URL=http://127.0.0.1:6420
 YNX_RESOURCE_GATEWAY_AUDIT_LOG=/var/log/ynx-chain/resource-gateway-audit.jsonl
 YNX_RESOURCE_GATEWAY_RATE_LIMIT_WINDOW=1m
 YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX=60
+YNX_BRIDGE_DEPLOY_ENABLED=true
+YNX_BRIDGE_API_KEY=dry-run-bridge-api-key
+YNX_BRIDGE_RELAYERS_JSON='{"relayer-a":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=","relayer-b":"MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI="}'
+YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"sourceChain":"ynx-testnet","destinationChain":"external-testnet","sourceAsset":"YNXT","destinationAsset":"wrapped-ynxt","minConfirmations":12,"maxAmount":"1000000000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+YNX_BRIDGE_RELAYER_THRESHOLD=2
+YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
 WEBHOOK_SECRET=dry-run-webhook-secret
@@ -140,6 +146,11 @@ grep -Fq "YNX_TRUST_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-chaind.env" 
 grep -Fq "YNX_RESOURCE_API_KEY=" "$release_dir/config/ynx-resourced.env" || { echo "Resource env missing API key"; exit 1; }
 grep -Fq "YNX_RESOURCE_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-resourced.env" || { echo "Resource env missing upstream key"; exit 1; }
 grep -Fq "YNX_RESOURCE_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing Resource Gateway upstream key"; exit 1; }
+grep -Fq "YNX_BRIDGE_DEPLOY_ENABLED=true" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing deploy gate"; exit 1; }
+grep -Fq "YNX_BRIDGE_API_KEY=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing API key"; exit 1; }
+grep -Fq "YNX_BRIDGE_RELAYERS_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing relayer allowlist"; exit 1; }
+grep -Fq "YNX_BRIDGE_ROUTE_POLICIES_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing route policies"; exit 1; }
+grep -Fq "YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing persistent state path"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
@@ -160,11 +171,15 @@ if grep -Eq '^YNX_RESOURCE_API_KEY=' "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain Resource client access key"
   exit 1
 fi
+if grep -Eq '^YNX_BRIDGE_(API_KEY|RELAYERS_JSON|ROUTE_POLICIES_JSON)=' "$release_dir/config/ynx-chaind.env"; then
+  echo "shared chain env must not contain Bridge access or relayer policy configuration"
+  exit 1
+fi
 grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { echo "release env missing commit"; exit 1; }
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced; do
+for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -183,6 +198,9 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-trustd" || { echo 
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-trustd.env" || { echo "release tarball missing Trust Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-resourced" || { echo "release tarball missing Resource Gateway binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-resourced.env" || { echo "release tarball missing Resource Gateway env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-bridged" || { echo "release tarball missing Bridge coordinator binary"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-bridged.env" || { echo "release tarball missing Bridge coordinator env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-bridged.service" || { echo "release tarball missing Bridge coordinator systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
@@ -326,10 +344,15 @@ grep -Fq "EnvironmentFile=/etc/ynx/ynx-trustd.env" "$release_dir/systemd/ynx-tru
 grep -Fq "ExecStart=/usr/local/bin/ynx-trustd" "$release_dir/systemd/ynx-trustd.service" || { echo "Trust Gateway service missing executable"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-resourced.env" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-resourced" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing executable"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-bridged.env" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing secret env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-bridged" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing executable"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/bridge" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
 grep -Eq "check-local-services\\.sh.*primary.*${commit}.*${release}.*6423.*full" "$dry_run_out" || { echo "dry-run output missing primary full local service check"; exit 1; }
+grep -Fq "YNX_EXPECT_BRIDGE_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Bridge health expectation"; exit 1; }
+grep -Fq "ynx-bridged\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Bridge config check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }
