@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
 
 const (
@@ -599,6 +601,17 @@ func (d *Devnet) BlockByHeight(height uint64) (Block, bool) {
 	return d.blocks[height], true
 }
 
+func (d *Devnet) BlockByHash(hash string) (Block, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	for _, block := range d.blocks {
+		if strings.EqualFold(block.Hash, hash) || strings.EqualFold("0x"+strings.TrimPrefix(block.Hash, "0x"), hash) {
+			return block, true
+		}
+	}
+	return Block{}, false
+}
+
 func (d *Devnet) Transaction(hash string) (Transaction, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
@@ -897,6 +910,71 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return tx, err
+}
+
+func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, bool, error) {
+	if !transactionHashPattern.MatchString(input.Hash) || input.Hash != strings.ToLower(input.Hash) {
+		return Transaction{}, false, errors.New("signed transaction hash must be canonical lowercase 32-byte hex")
+	}
+	if !accountaddress.IsCanonical(input.From) || !accountaddress.IsCanonical(input.To) {
+		return Transaction{}, false, errors.New("signed transaction requires canonical lowercase EVM addresses")
+	}
+	if input.From == input.To {
+		return Transaction{}, false, errors.New("signed transaction sender and recipient must differ")
+	}
+	if input.Amount <= 0 {
+		return Transaction{}, false, errors.New("signed transaction amount must be positive")
+	}
+	if input.Fee != 1 {
+		return Transaction{}, false, errors.New("signed transaction fee must equal 1 YNXT")
+	}
+	if input.Nonce == 0 {
+		return Transaction{}, false, errors.New("signed transaction nonce must be positive")
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if existing, ok := d.transactionLocked(input.Hash); ok {
+		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
+			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
+		}
+		return existing, true, nil
+	}
+	sender, ok := d.accounts[input.From]
+	if !ok {
+		return Transaction{}, false, errors.New("signed transaction sender account does not exist")
+	}
+	if sender.Nonce == math.MaxUint64 {
+		return Transaction{}, false, errors.New("signed transaction sender nonce is exhausted")
+	}
+	if input.Nonce != sender.Nonce+1 {
+		return Transaction{}, false, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", input.Nonce, sender.Nonce+1)
+	}
+	if input.Amount > math.MaxInt64-input.Fee || sender.Balance < input.Amount+input.Fee {
+		return Transaction{}, false, errors.New("insufficient YNXT balance for amount and fee")
+	}
+	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
+	}
+	receiver := d.account(input.To)
+	flows, err := d.moveLotsLocked(sender, receiver, input.Amount)
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	sender.Balance -= input.Amount + input.Fee
+	sender.Nonce = input.Nonce
+	sender.ResourceUsage.BandwidthUsed++
+	receiver.Balance += input.Amount
+	d.account(d.nextValidatorAddressLocked()).Balance += input.Fee
+	tx := Transaction{
+		Hash: input.Hash, Type: "transfer", From: input.From, To: input.To,
+		Amount: input.Amount, Fee: input.Fee, Nonce: input.Nonce,
+		Timestamp: time.Now().UTC(), LotFlows: flows, Memo: "signed native YNXT transfer",
+	}
+	d.pending = append(d.pending, tx)
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return tx, false, err
 }
 
 func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalance, error) {

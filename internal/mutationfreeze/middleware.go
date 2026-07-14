@@ -13,7 +13,7 @@ const EnvFile = "YNX_MUTATION_FREEZE_FILE"
 
 var readOnlyEVMMethods = map[string]struct{}{
 	"eth_chainId": {}, "net_version": {}, "eth_blockNumber": {},
-	"eth_getBalance": {}, "eth_getBlockByNumber": {}, "eth_getBlockByHash": {},
+	"eth_getBalance": {}, "eth_getTransactionCount": {}, "eth_getBlockByNumber": {}, "eth_getBlockByHash": {},
 	"eth_getTransactionByHash": {}, "eth_getTransactionReceipt": {},
 	"eth_estimateGas": {}, "eth_call": {}, "eth_getLogs": {},
 }

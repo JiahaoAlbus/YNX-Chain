@@ -1,0 +1,134 @@
+{
+  "addressPolicy": {
+    "acceptedRepresentations": [
+      "lowercase-evm-0x",
+      "checksummed-ynx1"
+    ],
+    "canonicalQueryFormat": "lowercase-evm-0x",
+    "canonicalSigningFormat": "lowercase-evm-0x",
+    "canonicalStorageFormat": "lowercase-evm-0x",
+    "memoTag": "not-used",
+    "oneAccountTwoRepresentations": true
+  },
+  "broadcastPolicy": {
+    "canonicalEnvelope": "ynx-native-json-envelope-v1",
+    "publicAuthoritativeDeployed": false,
+    "restContentType": "application/json",
+    "restPath": "/transactions/broadcast",
+    "rpcEncoding": "0x-hex-of-canonical-ynx-native-json-envelope-v1",
+    "rpcMethod": "eth_sendRawTransaction",
+    "standardEthereumRLP": false
+  },
+  "confirmationPolicy": {
+    "duplicateTransactionHash": "idempotent-exact-replay",
+    "finalityModel": "authoritative-producer-follower; no-public-bft-finality-proof",
+    "fixtureMinimumConfirmations": 2,
+    "pauseOnBlockIdentityMismatch": true,
+    "pauseOnIndexerLag": true,
+    "pauseOnObservedReorg": true,
+    "productionCreditThreshold": null,
+    "productionThresholdApproved": false,
+    "reorgResistanceProven": false,
+    "restartPersistenceRequired": true
+  },
+  "rpcCapabilities": [
+    {
+      "compatibility": "standard-read",
+      "method": "eth_chainId",
+      "publicVerified": true,
+      "status": "supported"
+    },
+    {
+      "compatibility": "standard-read",
+      "method": "net_version",
+      "publicVerified": true,
+      "status": "supported"
+    },
+    {
+      "compatibility": "standard-read",
+      "method": "eth_blockNumber",
+      "publicVerified": true,
+      "status": "supported"
+    },
+    {
+      "compatibility": "latest-or-pending-only",
+      "method": "eth_getBalance",
+      "publicVerified": true,
+      "status": "bounded"
+    },
+    {
+      "compatibility": "latest-or-pending-only",
+      "method": "eth_getTransactionCount",
+      "publicVerified": false,
+      "status": "implemented-not-public-release"
+    },
+    {
+      "compatibility": "exact-height-or-standard-tag",
+      "method": "eth_getBlockByNumber",
+      "publicVerified": false,
+      "status": "implemented-not-public-release"
+    },
+    {
+      "compatibility": "exact-canonical-block-hash",
+      "method": "eth_getBlockByHash",
+      "publicVerified": false,
+      "status": "implemented-not-public-release"
+    },
+    {
+      "compatibility": "standard-read-bounded-fields",
+      "method": "eth_getTransactionByHash",
+      "publicVerified": false,
+      "status": "bounded"
+    },
+    {
+      "compatibility": "standard-read-bounded-fields",
+      "method": "eth_getTransactionReceipt",
+      "publicVerified": false,
+      "status": "bounded"
+    },
+    {
+      "compatibility": "bounded-range-address-topic-filter",
+      "method": "eth_getLogs",
+      "publicVerified": true,
+      "status": "bounded"
+    },
+    {
+      "compatibility": "ynx-native-envelope-only; standard-ethereum-rlp-unsupported",
+      "method": "eth_sendRawTransaction",
+      "publicVerified": false,
+      "status": "implemented-not-public-release"
+    },
+    {
+      "compatibility": "bounded-contract-subset",
+      "method": "eth_call",
+      "publicVerified": false,
+      "status": "bounded"
+    },
+    {
+      "compatibility": "constant-local-estimate-not-production-gas-market",
+      "method": "eth_estimateGas",
+      "publicVerified": false,
+      "status": "not-exchange-safe"
+    },
+    {
+      "compatibility": "bounded-devtool-contract-call-only",
+      "method": "eth_sendTransaction",
+      "publicVerified": false,
+      "status": "not-exchange-safe"
+    },
+    {
+      "compatibility": "not-implemented",
+      "method": "eth_gasPrice",
+      "publicVerified": false,
+      "status": "unsupported"
+    }
+  ],
+  "schema": "ynx-exchange-policy/v1",
+  "status": {
+    "exchangeListed": false,
+    "exchangePartnership": false,
+    "exchangeSubmitted": false,
+    "independentExchangeVerified": false,
+    "mainnet": false
+  }
+}

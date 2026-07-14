@@ -152,6 +152,18 @@ type Transaction struct {
 	ActionReference  string    `json:"actionReference,omitempty"`
 }
 
+// SignedTransferInput is an already signature-verified native YNXT transfer.
+// Signature decoding stays at the API boundary; state application rechecks all
+// deterministic balance, nonce, fee, address, replay, and persistence rules.
+type SignedTransferInput struct {
+	Hash   string
+	From   string
+	To     string
+	Amount int64
+	Fee    int64
+	Nonce  uint64
+}
+
 type EVMLog struct {
 	Address          string   `json:"address"`
 	Topics           []string `json:"topics"`

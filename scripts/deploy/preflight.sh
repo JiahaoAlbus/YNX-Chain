@@ -4,6 +4,7 @@ set -euo pipefail
 make env-check
 make no-placeholder-check
 make secret-scan
+make static-check
 make objective-state-check
 make deploy-readiness-gate-check
 make deploy-connection-retry-check
@@ -25,6 +26,7 @@ make bridge-api-check
 make stablecoin-issuer-check
 make sdk-check
 make chainlist-candidate-check
+make exchange-integration-check
 make validator-peer-readiness-check
 make anti-illegal-request-check
 make request-validity-check

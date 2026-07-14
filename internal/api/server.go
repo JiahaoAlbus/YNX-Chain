@@ -8,7 +8,9 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +18,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
 type Server struct {
@@ -75,6 +78,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /validators/{address}/peer-sync", s.handleValidatorPeerSync)
 	s.mux.HandleFunc("GET /txs", s.handleRecentTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
 	s.mux.HandleFunc("POST /transfer", s.handleTransfer)
@@ -398,6 +402,53 @@ func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, tx)
+}
+func (s *Server) handleSignedTransactionBroadcast(w http.ResponseWriter, r *http.Request) {
+	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, "Content-Type application/json is required")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, consensus.MaxSignedTransactionSize)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "signed transaction exceeds maximum size")
+		return
+	}
+	tx, replayed, err := s.submitSignedTransaction(payload)
+	if err != nil {
+		writeError(w, signedTransactionHTTPStatus(err), err.Error())
+		return
+	}
+	status := http.StatusCreated
+	if replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, map[string]any{"transaction": tx, "replayed": replayed, "truthfulStatus": "signature-verified-authoritative-native-transfer"})
+}
+
+func (s *Server) submitSignedTransaction(payload []byte) (chain.Transaction, bool, error) {
+	tx, err := consensus.DecodeSignedTransaction(payload)
+	if err != nil {
+		return chain.Transaction{}, false, err
+	}
+	if err := tx.Verify(s.devnet.Config().ChainID); err != nil {
+		return chain.Transaction{}, false, err
+	}
+	return s.devnet.SubmitSignedTransfer(chain.SignedTransferInput{
+		Hash: consensus.SignedTransactionHash(payload), From: tx.From, To: tx.To,
+		Amount: tx.Amount, Fee: tx.Fee, Nonce: tx.Nonce,
+	})
+}
+
+func signedTransactionHTTPStatus(err error) int {
+	message := err.Error()
+	if strings.Contains(message, "nonce") || strings.Contains(message, "conflicts") {
+		return http.StatusConflict
+	}
+	if strings.Contains(message, "decode signed transaction") || strings.Contains(message, "encoding is not canonical") || strings.Contains(message, "size must be") {
+		return http.StatusBadRequest
+	}
+	return http.StatusUnprocessableEntity
 }
 func (s *Server) handleStake(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -1143,10 +1194,25 @@ type rpcRequest struct {
 	Params  []any  `json:"params"`
 }
 type rpcResponse struct {
-	JSONRPC string `json:"jsonrpc"`
-	ID      any    `json:"id"`
-	Result  any    `json:"result,omitempty"`
-	Error   any    `json:"error,omitempty"`
+	JSONRPC string
+	ID      any
+	Result  any
+	Error   any
+}
+
+func (r rpcResponse) MarshalJSON() ([]byte, error) {
+	if r.Error != nil {
+		return json.Marshal(struct {
+			JSONRPC string `json:"jsonrpc"`
+			ID      any    `json:"id"`
+			Error   any    `json:"error"`
+		}{JSONRPC: r.JSONRPC, ID: r.ID, Error: r.Error})
+	}
+	return json.Marshal(struct {
+		JSONRPC string `json:"jsonrpc"`
+		ID      any    `json:"id"`
+		Result  any    `json:"result"`
+	}{JSONRPC: r.JSONRPC, ID: r.ID, Result: r.Result})
 }
 
 func (s *Server) handleEVM(w http.ResponseWriter, r *http.Request) {
@@ -1161,7 +1227,11 @@ func (s *Server) handleEVM(w http.ResponseWriter, r *http.Request) {
 	result, err := s.evmResult(req.Method, req.Params)
 	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if err != nil {
-		resp.Error = map[string]any{"code": -32601, "message": err.Error()}
+		code := -32603
+		if rpcErr, ok := err.(*rpcMethodError); ok {
+			code = rpcErr.code
+		}
+		resp.Error = map[string]any{"code": code, "message": err.Error()}
 	} else {
 		resp.Result = result
 	}
@@ -1172,28 +1242,60 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 	cfg, latest := s.devnet.Config(), s.devnet.LatestBlock()
 	switch method {
 	case "eth_chainId":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("eth_chainId accepts no parameters")
+		}
 		return hexQuantity(uint64(cfg.ChainID)), nil
 	case "net_version":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("net_version accepts no parameters")
+		}
 		return fmt.Sprint(cfg.ChainID), nil
 	case "eth_blockNumber":
-		return hexQuantity(latest.Height), nil
-	case "eth_getBalance":
-		if len(params) == 0 {
-			return "0x0", nil
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("eth_blockNumber accepts no parameters")
 		}
-		addr, _ := params[0].(string)
+		return hexQuantity(latest.Height), nil
+	case "eth_getBalance", "eth_getTransactionCount":
+		if len(params) < 1 || len(params) > 2 {
+			return nil, rpcInvalidParams(method + " requires an address and optional latest/pending block tag")
+		}
+		addr, ok := params[0].(string)
+		if !ok || !accountaddress.IsCanonical(addr) {
+			return nil, rpcInvalidParams(method + " requires a canonical lowercase EVM address")
+		}
+		if len(params) == 2 && params[1] != "latest" && params[1] != "pending" {
+			return nil, rpcInvalidParams(method + " currently supports only latest or pending state")
+		}
 		acct, ok := s.devnet.Account(addr)
 		if !ok {
 			return "0x0", nil
 		}
+		if method == "eth_getTransactionCount" {
+			return hexQuantity(acct.Nonce), nil
+		}
 		return hexQuantity(uint64(acct.Balance)), nil
 	case "eth_getBlockByNumber":
-		return evmBlock(latest, len(s.devnet.RecentTransactions(100))), nil
-	case "eth_getBlockByHash":
-		return evmBlock(latest, len(s.devnet.RecentTransactions(100))), nil
-	case "eth_getTransactionByHash":
-		if len(params) == 0 {
+		block, full, found, err := s.evmBlockByNumber(params)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
 			return nil, nil
+		}
+		return evmBlock(block, full), nil
+	case "eth_getBlockByHash":
+		block, full, found, err := s.evmBlockByHash(params)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			return nil, nil
+		}
+		return evmBlock(block, full), nil
+	case "eth_getTransactionByHash":
+		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
+			return nil, rpcInvalidParams("eth_getTransactionByHash requires one 32-byte transaction hash")
 		}
 		tx, ok := s.devnet.Transaction(fmt.Sprint(params[0]))
 		if !ok {
@@ -1201,41 +1303,52 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 		}
 		return evmTx(tx), nil
 	case "eth_getTransactionReceipt":
-		if len(params) == 0 {
-			return nil, nil
+		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
+			return nil, rpcInvalidParams("eth_getTransactionReceipt requires one 32-byte transaction hash")
 		}
 		tx, ok := s.devnet.Transaction(fmt.Sprint(params[0]))
-		if !ok {
+		if !ok || tx.BlockNum == 0 || tx.BlockHash == "" {
 			return nil, nil
 		}
-		return map[string]any{"transactionHash": tx.Hash, "status": "0x1", "blockHash": tx.BlockHash, "blockNumber": hexQuantity(tx.BlockNum), "gasUsed": "0x5208", "logs": evmLogs(tx.Logs)}, nil
+		index := transactionIndex(s.devnet, tx)
+		gasUsed := uint64(21_000)
+		return map[string]any{
+			"transactionHash": tx.Hash, "transactionIndex": hexQuantity(index), "status": "0x1",
+			"blockHash": evmHash(tx.BlockHash), "blockNumber": hexQuantity(tx.BlockNum),
+			"from": tx.From, "to": tx.To, "contractAddress": nil,
+			"gasUsed": hexQuantity(gasUsed), "cumulativeGasUsed": hexQuantity((index + 1) * gasUsed),
+			"logs": evmLogs(tx.Logs),
+		}, nil
 	case "eth_sendRawTransaction":
-		if len(params) == 0 || fmt.Sprint(params[0]) == "" {
-			return nil, fmt.Errorf("raw transaction parameter is required")
+		if len(params) != 1 {
+			return nil, rpcInvalidParams("eth_sendRawTransaction requires one signed transaction data value")
 		}
-		tx, err := s.devnet.Faucet("0xraw_tx_sink", 1)
+		payload, err := decodeRPCData(fmt.Sprint(params[0]), consensus.MaxSignedTransactionSize)
 		if err != nil {
-			return nil, err
+			return nil, rpcInvalidParams(err.Error())
 		}
-		s.devnet.ProduceBlock()
+		tx, _, err := s.submitSignedTransaction(payload)
+		if err != nil {
+			return nil, rpcTransactionRejected(err.Error())
+		}
 		return tx.Hash, nil
 	case "eth_sendTransaction":
 		if len(params) == 0 {
-			return nil, fmt.Errorf("transaction object is required")
+			return nil, rpcInvalidParams("transaction object is required")
 		}
 		call, ok := params[0].(map[string]any)
 		if !ok {
-			return nil, fmt.Errorf("transaction parameter must be an object")
+			return nil, rpcInvalidParams("transaction parameter must be an object")
 		}
 		from := strings.TrimSpace(fmt.Sprint(call["from"]))
 		to := strings.TrimSpace(fmt.Sprint(call["to"]))
 		data := strings.TrimSpace(fmt.Sprint(call["data"]))
 		if from == "" || to == "" || data == "" || data == "<nil>" {
-			return nil, fmt.Errorf("from, to, and data are required")
+			return nil, rpcInvalidParams("from, to, and data are required")
 		}
 		_, tx, err := s.devnet.ExecuteContract(from, to, data)
 		if err != nil {
-			return nil, err
+			return nil, rpcTransactionRejected(err.Error())
 		}
 		s.devnet.ProduceBlock()
 		return tx.Hash, nil
@@ -1260,20 +1373,153 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 	case "eth_getLogs":
 		filter, err := parseEVMLogFilter(params, latest.Height)
 		if err != nil {
-			return nil, err
+			return nil, rpcInvalidParams(err.Error())
 		}
 		return evmLogs(s.devnet.EVMLogs(filter)), nil
 	default:
-		return nil, fmt.Errorf("method %s is not implemented by the local YNX devnet RPC", method)
+		return nil, rpcMethodNotFound(fmt.Sprintf("method %s is not implemented by the local YNX devnet RPC", method))
 	}
 }
 
-func evmBlock(block chain.Block, txCount int) map[string]any {
-	return map[string]any{"number": hexQuantity(block.Height), "hash": "0x" + trim0x(block.Hash), "parentHash": "0x" + trim0x(block.ParentHash), "timestamp": hexQuantity(uint64(block.Time.Unix())), "transactions": []any{}, "transactionsRoot": "0x" + strings.Repeat("0", 64), "stateRoot": "0x" + strings.Repeat("0", 64), "receiptsRoot": "0x" + strings.Repeat("0", 64), "miner": "0x0000000000000000000000000000000000000000", "gasUsed": "0x0", "gasLimit": "0x1c9c380", "transactionCount": txCount}
+func (s *Server) evmBlockByNumber(params []any) (chain.Block, bool, bool, error) {
+	if len(params) != 2 {
+		return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByNumber requires a block tag and full-transaction boolean")
+	}
+	full, ok := params[1].(bool)
+	if !ok {
+		return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByNumber full-transaction parameter must be boolean")
+	}
+	tag, ok := params[0].(string)
+	if !ok {
+		return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByNumber block tag must be a string")
+	}
+	var height uint64
+	switch tag {
+	case "latest", "pending":
+		height = s.devnet.LatestBlock().Height
+	case "earliest":
+		height = 0
+	default:
+		var err error
+		height, err = parseCanonicalQuantity(tag)
+		if err != nil {
+			return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByNumber requires latest, pending, earliest, or a canonical quantity")
+		}
+	}
+	block, found := s.devnet.BlockByHeight(height)
+	return block, full, found, nil
+}
+
+func (s *Server) evmBlockByHash(params []any) (chain.Block, bool, bool, error) {
+	if len(params) != 2 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
+		return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByHash requires a 32-byte hash and full-transaction boolean")
+	}
+	full, ok := params[1].(bool)
+	if !ok {
+		return chain.Block{}, false, false, rpcInvalidParams("eth_getBlockByHash full-transaction parameter must be boolean")
+	}
+	block, found := s.devnet.BlockByHash(fmt.Sprint(params[0]))
+	return block, full, found, nil
+}
+
+func evmBlock(block chain.Block, full bool) map[string]any {
+	transactions := make([]any, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		if full {
+			transactions = append(transactions, evmTx(tx))
+		} else {
+			transactions = append(transactions, tx.Hash)
+		}
+	}
+	return map[string]any{
+		"number": hexQuantity(block.Height), "hash": evmHash(block.Hash), "parentHash": evmHash(block.ParentHash),
+		"timestamp": hexQuantity(uint64(block.Time.Unix())), "transactions": transactions,
+		"transactionsRoot": "0x" + strings.Repeat("0", 64), "stateRoot": "0x" + strings.Repeat("0", 64),
+		"receiptsRoot": "0x" + strings.Repeat("0", 64), "miner": "0x0000000000000000000000000000000000000000",
+		"gasUsed": hexQuantity(uint64(len(block.Transactions)) * 21_000), "gasLimit": "0x1c9c380",
+		"transactionCount": len(block.Transactions),
+	}
 }
 func evmTx(tx chain.Transaction) map[string]any {
-	return map[string]any{"hash": tx.Hash, "from": tx.From, "to": tx.To, "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "blockHash": tx.BlockHash, "blockNumber": hexQuantity(tx.BlockNum), "gas": "0x5208", "gasPrice": "0x1"}
+	result := map[string]any{"hash": tx.Hash, "from": tx.From, "to": tx.To, "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "gas": "0x5208", "gasPrice": "0x1", "input": "0x"}
+	if tx.BlockNum == 0 || tx.BlockHash == "" {
+		result["blockHash"] = nil
+		result["blockNumber"] = nil
+	} else {
+		result["blockHash"] = evmHash(tx.BlockHash)
+		result["blockNumber"] = hexQuantity(tx.BlockNum)
+	}
+	return result
 }
+
+type rpcMethodError struct {
+	code    int
+	message string
+}
+
+func (e *rpcMethodError) Error() string { return e.message }
+
+func rpcInvalidParams(message string) error  { return &rpcMethodError{code: -32602, message: message} }
+func rpcMethodNotFound(message string) error { return &rpcMethodError{code: -32601, message: message} }
+func rpcTransactionRejected(message string) error {
+	return &rpcMethodError{code: -32003, message: message}
+}
+
+func parseCanonicalQuantity(value string) (uint64, error) {
+	if !strings.HasPrefix(value, "0x") || len(value) < 3 || (len(value) > 3 && value[2] == '0') {
+		return 0, errors.New("quantity must be minimally encoded 0x-prefixed hex")
+	}
+	for _, character := range value[2:] {
+		if !((character >= '0' && character <= '9') || (character >= 'a' && character <= 'f')) {
+			return 0, errors.New("quantity must use lowercase hexadecimal digits")
+		}
+	}
+	return strconv.ParseUint(value[2:], 16, 64)
+}
+
+func isCanonicalData(value string, byteLength int) bool {
+	if len(value) != 2+byteLength*2 || !strings.HasPrefix(value, "0x") || value != strings.ToLower(value) {
+		return false
+	}
+	_, err := hex.DecodeString(value[2:])
+	return err == nil
+}
+
+func decodeRPCData(value string, maximumBytes int) ([]byte, error) {
+	if !strings.HasPrefix(value, "0x") || len(value) <= 2 || len(value)%2 != 0 {
+		return nil, errors.New("signed transaction data must be non-empty, 0x-prefixed, and byte-aligned")
+	}
+	if (len(value)-2)/2 > maximumBytes {
+		return nil, errors.New("signed transaction data exceeds maximum size")
+	}
+	payload, err := hex.DecodeString(value[2:])
+	if err != nil {
+		return nil, errors.New("signed transaction data must be hexadecimal")
+	}
+	return payload, nil
+}
+
+func transactionIndex(devnet *chain.Devnet, tx chain.Transaction) uint64 {
+	block, ok := devnet.BlockByHeight(tx.BlockNum)
+	if !ok {
+		return 0
+	}
+	for index, candidate := range block.Transactions {
+		if candidate.Hash == tx.Hash {
+			return uint64(index)
+		}
+	}
+	return 0
+}
+
+func evmHash(value string) string {
+	value = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(value), "0x"))
+	if len(value) != 64 {
+		return "0x" + strings.Repeat("0", 64)
+	}
+	return "0x" + value
+}
+
 func evmLogs(logs []chain.EVMLog) []any {
 	out := make([]any, 0, len(logs))
 	for _, log := range logs {
