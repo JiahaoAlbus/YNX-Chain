@@ -23,6 +23,7 @@ make pay-api-check
 make trust-api-check
 make native-wallet-check
 make chat-api-check
+make square-api-check
 make resource-api-check
 make bridge-api-check
 make stablecoin-issuer-check

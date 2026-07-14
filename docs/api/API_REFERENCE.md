@@ -203,6 +203,18 @@ YNX Chat API:
 - The release bundle carries the binary, dedicated env, systemd unit, backup/state paths, config check, and optional health verification. Remote installation remains default-disabled behind `YNX_CHAT_DEPLOY_ENABLED=false`, and no public ingress is configured.
 - `make native-wallet-check` and `make chat-api-check` prove native-only identity, device proof, E2EE interoperability, AAD/tamper rejection, signed HTTP routes, access control, replay/conflict handling, revocation, acknowledgements, rate limiting, restart/tamper behavior, truthful health, and file modes. They do not prove remote/public Chat, multi-device recovery, groups, attachments, Pay/Trust integration, a user-facing app, or WeChat-equivalent completeness.
 
+YNX Square API:
+
+- `ynx-squared` is a standalone signed social-record service on loopback port `6436`. Process health and metrics are public locally; `/square/*` requires `X-YNX-Square-Key`. Mutations and private report reads additionally require an active `ynx1...` device, bounded timestamp, and Ed25519 signature over the exact method, request URI, timestamp, and body hash.
+- `POST /square/devices` registers an Ed25519 public key after private-key proof. `POST /square/devices/{id}/revoke` disables the device. The first-party boundary rejects `0x...` identity input.
+- `POST /square/posts` creates a bounded signed post with optional normalized tags. `GET /square/posts/{id}` returns one active post, and `GET /square/feed?limit=&cursor=` returns deterministic reverse-time cursor pagination from persisted records.
+- `POST /square/posts/{id}/comments` and `GET /square/posts/{id}/comments` create and list bounded comments. `POST /square/posts/{id}/reactions` sets or removes one `like`, `insight`, or `support` reaction per account while maintaining persisted post counts.
+- `POST /square/follows` sets or removes a signed follow relationship. `GET /square/profiles/{ynx1Account}/following` returns the normalized active following list.
+- `POST /square/reports` opens a `pending_review` report against an existing post/comment or normalized account with bounded category/detail and optional SHA-256 evidence references. `GET /square/reports/{id}` is restricted to the reporting account. `appealRoute=/trust/appeals` is a route reference only; automatic Trust appeal creation and moderation decisions are not implemented yet.
+- Every mutation is exact-idempotent; changed key reuse fails with `409`. Requests are body/rate/timestamp bounded, unknown-field rejecting, and protected by the shared mutation-freeze wrapper. State is mode-`0600` atomic JSON with an integrity digest and hash-chained audit.
+- The release bundle includes a default-disabled `YNX_SQUARE_DEPLOY_ENABLED` gate, binary, secret env, systemd unit, state/backup paths, config check, and optional local health verification. No public ingress or browser-safe session boundary is configured.
+- `make square-api-check` proves signed post/comment/reaction/follow/report lifecycle, feed pagination, replay/conflict, access/rate bounds, restart/tamper checks, health/metrics, and file modes. It does not prove remote/public Square, moderation resolution, Trust/Pay integration, tipping, media, a user-facing app, independent audit, or public proof.
+
 Pay merchant safety:
 
 - `ynx-payd` is the independent public merchant API on port `6430`. Its protected `/pay/*` routes require `X-YNX-Pay-Key` or `Authorization: Bearer <YNX_PAY_API_KEY>` and return a unique `X-Request-ID`.
