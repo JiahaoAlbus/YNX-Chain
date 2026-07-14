@@ -9,6 +9,7 @@ import {
   YNXSquareAppClient,
   accountIdentity,
   deviceIdentity,
+  deviceIdentifier,
   exportAccountSecret,
   importAccountSecret,
   openSignerVault,
@@ -62,6 +63,11 @@ test("binds Square registration and HTTP signatures to exact fields", () => {
   assert.notEqual(signature, signSquareRequest({method: "POST", requestUri: "/square/posts?mode=changed", timestamp, body, deviceSecret}));
 });
 
+test("derives a stable bounded browser device identifier", () => {
+  assert.equal(deviceIdentifier(deviceSecret), "web-9a92d2b54a9a5402de3e65a0");
+  assert.equal(deviceIdentifier(deviceSecret), deviceIdentifier(deviceSecret));
+});
+
 test("rejects malformed inputs and zeroizes caller-owned buffers", () => {
   assert.throws(() => importAccountSecret("01"), (error) => error instanceof YNXBrowserSignerError && error.code === "INVALID_ACCOUNT_SECRET");
   assert.throws(() => signSquareRequest({method: "DELETE", requestUri: "/square/posts", timestamp: "2026-07-14T12:00:00Z", body: "", deviceSecret}), /method/);
@@ -94,11 +100,15 @@ test("establishes a bound session and signs Square requests without sending priv
   const device = deviceIdentity(deviceSecret);
   const signPayload = new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1","version":1,"chainId":6423}');
   const signBytes = Buffer.from(signPayload).toString("base64url");
+  let challengeCount = 0;
   const fetchImpl = async (url, options) => {
     const path = new URL(url).pathname;
     requests.push({path, options});
-    if (path === "/app/session/challenges") return jsonResponse(201, {challengeId: "challenge-browser-1", account: identity.account, signBytes, signDocument: {account: identity.account, deviceId: "device-browser-1", deviceSigningPublicKey: device.deviceSigningPublicKey, chainId: 6423}});
-    if (path === "/app/session/challenges/challenge-browser-1/verify") return jsonResponse(201, {account: identity.account, deviceId: "device-browser-1", token: "s".repeat(43), expiresAt: "2026-07-14T12:30:00Z"});
+    if (path === "/app/session/challenges") {
+      challengeCount += 1;
+      return jsonResponse(201, {challengeId: `challenge-browser-${challengeCount}`, account: identity.account, signBytes, signDocument: {account: identity.account, deviceId: "device-browser-1", deviceSigningPublicKey: device.deviceSigningPublicKey, chainId: 6423}});
+    }
+    if (/^\/app\/session\/challenges\/challenge-browser-\d+\/verify$/.test(path)) return jsonResponse(201, {account: identity.account, deviceId: "device-browser-1", token: "s".repeat(43), expiresAt: "2026-07-14T12:30:00Z"});
     if (path === "/app/square/devices") return jsonResponse(201, {record: {id: "device-browser-1"}});
     if (path === "/app/square/posts") return jsonResponse(201, {record: {id: "post-browser-1"}});
     if (path === "/app/square/devices/device-browser-1/revoke") return jsonResponse(200, {record: {status: "revoked"}});
@@ -110,11 +120,18 @@ test("establishes a bound session and signs Square requests without sending priv
   assert.equal((await client.createPost({content: "first signed browser post", idempotencyKey: "post-browser-1"})).record.id, "post-browser-1");
   await client.disconnect();
   assert.equal(client.connected, false);
+  assert.equal((await client.connect()).connected, true);
+  await client.disconnect({revokeDevice: true});
+  assert.equal(client.connected, false);
   assert.deepEqual(requests.map((request) => request.path), [
     "/app/session/challenges",
     "/app/session/challenges/challenge-browser-1/verify",
     "/app/square/devices",
     "/app/square/posts",
+    "/app/session/revoke",
+    "/app/session/challenges",
+    "/app/session/challenges/challenge-browser-2/verify",
+    "/app/square/devices",
     "/app/square/devices/device-browser-1/revoke",
     "/app/session/revoke",
   ]);
@@ -124,6 +141,9 @@ test("establishes a bound session and signs Square requests without sending priv
   const postRequest = requests.find((request) => request.path === "/app/square/posts");
   assert.equal(postRequest.options.headers["X-YNX-App-Session"], "s".repeat(43));
   assert.match(postRequest.options.headers["X-YNX-Device-Signature"], /^[A-Za-z0-9+/]+$/);
+  const registrations = requests.filter((request) => request.path === "/app/square/devices").map((request) => request.options.body);
+  assert.equal(registrations.length, 2);
+  assert.equal(registrations[0], registrations[1]);
   client.lock();
   await assert.rejects(client.createPost({content: "blocked", idempotencyKey: "post-blocked-1"}), /not connected/);
 });

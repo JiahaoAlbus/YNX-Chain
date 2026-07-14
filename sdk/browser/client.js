@@ -1,5 +1,6 @@
 import {
   accountIdentity,
+  deviceIdentifier,
   deviceIdentity,
   randomIdentifier,
   signOwnershipChallenge,
@@ -19,7 +20,7 @@ export class YNXSquareAppClient {
     this.baseURL = validBaseURL(baseURL);
     this.#accountSecret = copySecret(accountSecret, "account secret");
     this.#deviceSecret = copySecret(deviceSecret, "device secret");
-    this.deviceId = validIdentifier(deviceId, "device id");
+    this.deviceId = validIdentifier(deviceId || deviceIdentifier(this.#deviceSecret), "device id");
     this.identity = accountIdentity(this.#accountSecret);
     this.device = deviceIdentity(this.#deviceSecret);
     if (typeof fetchImpl !== "function") throw new Error("fetch is required");
@@ -65,7 +66,7 @@ export class YNXSquareAppClient {
         account: this.identity.account,
         deviceId: this.deviceId,
         deviceSecret: this.#deviceSecret,
-        idempotencyKey: randomIdentifier("register"),
+        idempotencyKey: registrationIdempotencyKey(this.identity.account, this.deviceId, this.device.deviceSigningPublicKey),
       });
       await this.#request("/app/square/devices", registration, this.#sessionHeaders());
     } catch (error) {
@@ -104,11 +105,13 @@ export class YNXSquareAppClient {
     return this.#signedPost("/app/square/reports", "/square/reports", {idempotencyKey: validIdentifier(idempotencyKey, "idempotency key"), targetType, targetId, category, detail, ...(evidenceHashes.length ? {evidenceHashes} : {})});
   }
 
-  async disconnect() {
+  async disconnect({revokeDevice = false} = {}) {
     if (!this.#session) return;
     const session = this.#session;
     try {
-      await this.#signedPost(`/app/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, `/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, undefined);
+      if (revokeDevice) {
+        await this.#signedPost(`/app/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, `/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, undefined);
+      }
     } finally {
       try {
         await this.#request("/app/session/revoke", undefined, this.#sessionHeaders(session));
@@ -199,4 +202,13 @@ function validPathSegment(value, label) {
 function validFutureDate(value, now) {
   const timestamp = typeof value === "string" ? new Date(value).getTime() : Number.NaN;
   return Number.isFinite(timestamp) && timestamp > now.getTime();
+}
+
+function registrationIdempotencyKey(account, deviceId, publicKey) {
+  let hash = 2166136261;
+  for (const character of `${account}\n${deviceId}\n${publicKey}`) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return `register-${hash.toString(16).padStart(8, "0")}-${deviceId.slice(-12)}`;
 }

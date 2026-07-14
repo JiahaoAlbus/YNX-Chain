@@ -47,6 +47,14 @@ export function deviceIdentity(deviceSecret) {
   });
 }
 
+export function deviceIdentifier(deviceSecret, prefix = "web") {
+  const secret = validDeviceSecret(deviceSecret);
+  if (typeof prefix !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,15}$/.test(prefix)) {
+    throw new YNXBrowserSignerError("device identifier prefix is invalid", "INVALID_IDENTIFIER");
+  }
+  return `${prefix}-${bytesToHex(sha256(ed25519.getPublicKey(secret))).slice(0, 24)}`;
+}
+
 export function signOwnershipChallenge({accountSecret, deviceSecret, signBytes}) {
   const account = validAccountSecret(accountSecret);
   const device = validDeviceSecret(deviceSecret);
