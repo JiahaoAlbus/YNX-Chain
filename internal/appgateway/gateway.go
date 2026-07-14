@@ -154,44 +154,14 @@ func routeAllowed(service, method, path string) bool {
 	}
 	if service == "square" {
 		switch {
-		case len(parts) == 2 && parts[1] == "devices":
-			return method == "POST"
-		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
-			return method == "POST" && validSegment(parts[2])
 		case len(parts) == 2 && parts[1] == "feed":
 			return method == "GET"
-		case len(parts) == 2 && parts[1] == "posts":
-			return method == "POST"
 		case len(parts) == 3 && parts[1] == "posts":
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "posts" && parts[3] == "comments":
-			return (method == "GET" || method == "POST") && validSegment(parts[2])
-		case len(parts) == 4 && parts[1] == "posts" && parts[3] == "reactions":
-			return method == "POST" && validSegment(parts[2])
+			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "profiles" && parts[3] == "following":
 			return method == "GET" && validSegment(parts[2])
-		case len(parts) == 2 && parts[1] == "follows":
-			return method == "POST"
-		case len(parts) == 2 && parts[1] == "reports":
-			return method == "POST"
-		case len(parts) == 3 && parts[1] == "reports":
-			return method == "GET" && validSegment(parts[2])
-		}
-	}
-	if service == "chat" {
-		switch {
-		case len(parts) == 2 && parts[1] == "devices":
-			return method == "POST"
-		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
-			return method == "POST" && validSegment(parts[2])
-		case len(parts) == 2 && parts[1] == "conversations":
-			return method == "POST"
-		case len(parts) == 3 && parts[1] == "conversations":
-			return method == "GET" && validSegment(parts[2])
-		case len(parts) == 4 && parts[1] == "conversations" && parts[3] == "messages":
-			return (method == "GET" || method == "POST") && validSegment(parts[2])
-		case len(parts) == 6 && parts[1] == "conversations" && parts[3] == "messages" && (parts[5] == "delivered" || parts[5] == "read"):
-			return method == "POST" && validSegment(parts[2]) && validSegment(parts[4])
 		}
 	}
 	return false

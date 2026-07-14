@@ -1,7 +1,6 @@
 package appgateway
 
 import (
-	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -68,13 +67,13 @@ func TestGatewayProxiesAllowedRoutesWithoutLeakingCredentials(t *testing.T) {
 	server := httptest.NewServer(NewServer(gateway).Handler())
 	defer server.Close()
 
-	body := []byte(`{"idempotencyKey":"post-1","content":"Signed Square post"}`)
-	request, _ := http.NewRequest(http.MethodPost, server.URL+"/app/square/posts", bytes.NewReader(body))
+	body := []byte(nil)
+	request, _ := http.NewRequest(http.MethodGet, server.URL+"/app/square/feed?limit=10", nil)
 	request.Header.Set("Origin", testOrigin)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-YNX-Device-ID", "device-1")
 	request.Header.Set("X-YNX-Timestamp", "2026-07-14T00:00:00Z")
-	request.Header.Set("X-YNX-Device-Signature", "signed-for-/square/posts")
+	request.Header.Set("X-YNX-Device-Signature", "must-not-be-trusted-by-gateway")
 	request.Header.Set("X-YNX-Square-Key", "attacker-key")
 	request.Header.Set("X-YNX-Chat-Key", "attacker-chat-key")
 	request.Header.Set("Cookie", "session=must-not-pass")
@@ -96,7 +95,7 @@ func TestGatewayProxiesAllowedRoutesWithoutLeakingCredentials(t *testing.T) {
 		t.Fatalf("requests: %+v", square.requests)
 	}
 	got := square.requests[0]
-	if got.Method != http.MethodPost || got.URI != "/square/posts" || got.ServiceKey != testSquareKey || got.Injected != "1" || got.DeviceID != "device-1" || got.Cookie != "" || got.Auth != "" || got.Body != string(body) {
+	if got.Method != http.MethodGet || got.URI != "/square/feed?limit=10" || got.ServiceKey != testSquareKey || got.Injected != "1" || got.DeviceID != "device-1" || got.Cookie != "" || got.Auth != "" || got.Body != string(body) {
 		t.Fatalf("unsafe proxy request: %+v", got)
 	}
 	if len(chat.requests) != 0 {
@@ -113,7 +112,7 @@ func TestGatewayRoutesQueryAndSignedInternalPath(t *testing.T) {
 	paths := []struct{ method, public, internal string }{
 		{http.MethodGet, "/app/square/feed?limit=10&cursor=abc", "/square/feed?limit=10&cursor=abc"},
 		{http.MethodGet, "/app/square/posts/post-1/comments", "/square/posts/post-1/comments"},
-		{http.MethodPost, "/app/chat/conversations/conversation-1/messages/message-1/read", "/chat/conversations/conversation-1/messages/message-1/read"},
+		{http.MethodGet, "/app/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following", "/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following"},
 	}
 	for _, item := range paths {
 		request, _ := http.NewRequest(item.method, server.URL+item.public, strings.NewReader(`{}`))
@@ -160,11 +159,15 @@ func TestGatewayRejectsOriginsRoutesHeadersAndBounds(t *testing.T) {
 		{"bad origin", http.MethodGet, "/app/square/feed", "https://evil.example", nil, "", http.StatusForbidden},
 		{"unknown route", http.MethodGet, "/app/square/metrics", "", nil, "", http.StatusNotFound},
 		{"encoded escape", http.MethodGet, "/app/square/posts/%2e%2e", "", nil, "", http.StatusNotFound},
-		{"large body", http.MethodPost, "/app/square/posts", "", nil, strings.Repeat("x", 4097), http.StatusRequestEntityTooLarge},
+		{"mutating post", http.MethodPost, "/app/square/posts", "", nil, `{}`, http.StatusNotFound},
+		{"device registration", http.MethodPost, "/app/square/devices", "", nil, `{}`, http.StatusNotFound},
+		{"chat disabled", http.MethodPost, "/app/chat/devices", "", nil, `{}`, http.StatusNotFound},
+		{"large body", http.MethodGet, "/app/square/feed", "", nil, strings.Repeat("x", 4097), http.StatusRequestEntityTooLarge},
 		{"bad preflight method", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "DELETE"}, "", http.StatusForbidden},
-		{"bad preflight header", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "Authorization"}, "", http.StatusForbidden},
+		{"bad preflight header", http.MethodOptions, "/app/square/feed", testOrigin, map[string]string{"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Authorization"}, "", http.StatusForbidden},
 		{"unknown preflight route", http.MethodOptions, "/app/square/metrics", testOrigin, map[string]string{"Access-Control-Request-Method": "GET"}, "", http.StatusNotFound},
-		{"good preflight", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "Content-Type, X-YNX-Device-Signature"}, "", http.StatusNoContent},
+		{"mutation preflight disabled", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "POST"}, "", http.StatusNotFound},
+		{"good preflight", http.MethodOptions, "/app/square/feed", testOrigin, map[string]string{"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Content-Type"}, "", http.StatusNoContent},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -206,7 +209,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary == "" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-browser-safe-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "read-only-square-exact-routes-service-keys-server-side" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-browser-safe-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 

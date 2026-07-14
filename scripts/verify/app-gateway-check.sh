@@ -48,7 +48,7 @@ done
 node - "$tmp/health.json" <<'NODE'
 const fs = require("fs");
 const health = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-route-allowlist-device-signatures-service-keys-server-side" || health.truthfulStatus !== "local-browser-safe-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok) {
+if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "read-only-square-exact-routes-service-keys-server-side" || health.truthfulStatus !== "local-browser-safe-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok) {
   throw new Error(`bad app gateway health: ${JSON.stringify(health)}`);
 }
 NODE
@@ -64,11 +64,13 @@ if (!Array.isArray(feed.posts) || feed.posts.length !== 0) throw new Error(`bad 
 NODE
 status="$(curl -sS -H 'Origin: https://evil.example' -o "$tmp/bad-origin.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/feed)"
 [[ "$status" == "403" ]] || { echo "bad origin accepted: $status"; exit 1; }
-status="$(curl -sS -X OPTIONS -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type, X-YNX-Device-Signature' -o /dev/null -w '%{http_code}' http://127.0.0.1:17437/app/square/posts)"
+status="$(curl -sS -X OPTIONS -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: Content-Type' -o /dev/null -w '%{http_code}' http://127.0.0.1:17437/app/square/feed)"
 [[ "$status" == "204" ]] || { echo "browser preflight failed: $status"; exit 1; }
+status="$(curl -sS -X POST -H 'Origin: https://www.ynxweb4.com' -H 'Content-Type: application/json' -d '{}' -o "$tmp/mutation.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/posts)"
+[[ "$status" == "404" ]] || { echo "Square mutation route exposed before account ownership proof: $status"; exit 1; }
 status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: attacker-value' -o "$tmp/unknown.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/metrics)"
 [[ "$status" == "404" ]] || { echo "unlisted Square route accepted: $status"; exit 1; }
 ! grep -R -F "$chat_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$square_key" "$tmp" --exclude='ynx-*' >/dev/null
 
-echo "app-gateway-check passed: exact first-party origins/routes, server-side credentials, public feed proxy, CORS preflight, bounds, rate limit, health, and direct-service denial"
+echo "app-gateway-check passed: read-only Square routes, no public Chat/mutations, exact origins, server-side credentials, CORS, bounds, rate limit, health, and direct-service denial"

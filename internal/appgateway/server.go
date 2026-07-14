@@ -99,7 +99,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-route-allowlist-device-signatures-service-keys-server-side", RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "read-only-square-exact-routes-service-keys-server-side", RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
