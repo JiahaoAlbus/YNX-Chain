@@ -250,7 +250,7 @@ const indexHTML = `<!doctype html>
       <h1>YNX Chain network explorer</h1>
       <p class="hero-copy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
       <form class="search" id="searchForm">
-        <input id="searchInput" aria-label="Search the chain" placeholder="Search block, transaction, 0x, or ynx1 address" autocomplete="off" spellcheck="false">
+        <input id="searchInput" aria-label="Search the chain" placeholder="Search ynx1 address, transaction, block, or EVM compatibility address" autocomplete="off" spellcheck="false">
         <button type="submit">Search</button>
       </form>
       <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
@@ -322,8 +322,8 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="wallet-band">
-        <div><h2>Use YNX Testnet in your wallet.</h2><p>Add the verified chain ID, RPC endpoint, YNXT currency, and explorer URL. MetaMask uses the canonical 0x form; YNX apps may show its equivalent ynx1 alias.</p></div>
-        <button id="metamaskButton" class="wallet-button" type="button">Add YNX Testnet to MetaMask</button>
+        <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
+        <button id="metamaskButton" class="wallet-button" type="button">Open MetaMask compatibility</button>
       </section>
     </div>
   </main>
@@ -533,16 +533,28 @@ const indexHTML = `<!doctype html>
       if (type === 'block') return [['Height','#' + number(detail.height)],['Transactions',(detail.transactions || []).length],['Validator',compact(detail.validator,10,7)]];
       if (type === 'transaction' && detail.sponsor) return [['Resource',number(detail.resourceConsumed) + ' ' + String(detail.resourceType || 'units').replaceAll('_',' ')],['Sponsor',compact(detail.sponsor,10,7)],['Pool',compact(detail.sponsorPoolId,10,7)]];
       if (type === 'transaction') return [['Amount',number(detail.amount) + ' YNXT'],['Fee',number(detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)]];
-      if (type === 'account') return [['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)],['YNX address',compact(detail.addressFormats?.ynxAddress || detail.account?.address,12,9)]];
+      if (type === 'account') return [['YNX address',compact(detail.addressFormats?.ynxAddress || detail.account?.address,14,10)],['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)]];
       return [];
+    }
+    function detailRows(type,detail) {
+      if (type !== 'account') return flatten(detail);
+      const account = {...(detail.account || {})};
+      delete account.address;
+      const rest = {...detail,account};
+      delete rest.addressFormats;
+      return [
+        ['YNX native address (default)',detail.addressFormats?.ynxAddress || detail.account?.address || 'unavailable'],
+        ['EVM compatibility address',detail.addressFormats?.evmAddress || detail.account?.address || 'unavailable'],
+        ...flatten(rest)
+      ];
     }
     function showDrawer(type,query,detail) {
       const title = type.charAt(0).toUpperCase() + type.slice(1);
       $('detailKicker').textContent = 'Live ' + type + ' detail';
-      $('detailTitle').textContent = title;
+      $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : title;
       const stats = detailStats(type,detail);
       const summary = stats.length ? '<div class="detail-summary">' + stats.map(([label,value]) => '<div class="detail-stat"><span>' + escapeHTML(label) + '</span><strong class="mono">' + escapeHTML(value) + '</strong></div>').join('') + '</div>' : '';
-      const rows = flatten(detail).map(([key,value]) => {
+      const rows = detailRows(type,detail).map(([key,value]) => {
         const text = String(value ?? '');
         const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="Copy value">Copy</button>' : '';
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
@@ -613,7 +625,7 @@ const indexHTML = `<!doctype html>
       if (!walletConfig) await load();
       try {
         await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
-        $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request sent'; $('resultSubtitle').textContent = 'Confirm YNX Testnet in your wallet.'; $('resultBody').innerHTML = '<div class="empty">Network details were sourced from the live Explorer API.</div>';
+        $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
       } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
     };
     function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }

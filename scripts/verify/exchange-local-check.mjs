@@ -66,7 +66,7 @@ await assertRPCError("eth_gasPrice", [], -32601);
 if (await rpc("eth_getBlockByNumber", ["0xffffffffffff", false]) !== null) throw new Error("unknown historical height did not return null");
 if (await rpc("eth_getBlockByHash", [`0x${"00".repeat(32)}`, false]) !== null) throw new Error("unknown block hash did not return null");
 
-process.stdout.write(`exchange-local-check passed: signed deposit=${depositVector.transactionHash} withdrawal=${withdrawalHash} exact replay, restart-tested state, ${sources.policy.value.confirmationPolicy.fixtureMinimumConfirmations}-confirmation fixtures, dual-address identity, historical blocks, receipts, logs, nonce, and false raw-input rejection verified\n`);
+process.stdout.write(`exchange-local-check passed: signed deposit=${depositVector.transactionHash} withdrawal=${withdrawalHash} exact replay, ${sources.policy.value.confirmationPolicy.fixtureMinimumConfirmations}-confirmation fixtures, dual-address identity, historical blocks, receipts, logs, nonce, and false raw-input rejection verified; restart persistence is covered separately by Go integration tests\n`);
 
 async function assertHistoricalBlock(receipt, transactionHash) {
   const byNumber = await rpc("eth_getBlockByNumber", [receipt.blockNumber, false]);

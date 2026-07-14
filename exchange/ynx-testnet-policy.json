@@ -12,7 +12,7 @@
   },
   "broadcastPolicy": {
     "canonicalEnvelope": "ynx-native-json-envelope-v1",
-    "publicAuthoritativeDeployed": false,
+    "publicAuthoritativeDeployed": true,
     "restContentType": "application/json",
     "restPath": "/transactions/broadcast",
     "rpcEncoding": "0x-hex-of-canonical-ynx-native-json-envelope-v1",
@@ -59,31 +59,31 @@
     {
       "compatibility": "latest-or-pending-only",
       "method": "eth_getTransactionCount",
-      "publicVerified": false,
-      "status": "implemented-not-public-release"
+      "publicVerified": true,
+      "status": "bounded"
     },
     {
       "compatibility": "exact-height-or-standard-tag",
       "method": "eth_getBlockByNumber",
-      "publicVerified": false,
-      "status": "implemented-not-public-release"
+      "publicVerified": true,
+      "status": "supported"
     },
     {
       "compatibility": "exact-canonical-block-hash",
       "method": "eth_getBlockByHash",
-      "publicVerified": false,
-      "status": "implemented-not-public-release"
+      "publicVerified": true,
+      "status": "supported"
     },
     {
       "compatibility": "standard-read-bounded-fields",
       "method": "eth_getTransactionByHash",
-      "publicVerified": false,
+      "publicVerified": true,
       "status": "bounded"
     },
     {
       "compatibility": "standard-read-bounded-fields",
       "method": "eth_getTransactionReceipt",
-      "publicVerified": false,
+      "publicVerified": true,
       "status": "bounded"
     },
     {
@@ -95,8 +95,8 @@
     {
       "compatibility": "ynx-native-envelope-only; standard-ethereum-rlp-unsupported",
       "method": "eth_sendRawTransaction",
-      "publicVerified": false,
-      "status": "implemented-not-public-release"
+      "publicVerified": true,
+      "status": "bounded"
     },
     {
       "compatibility": "bounded-contract-subset",

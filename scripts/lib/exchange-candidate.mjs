@@ -18,13 +18,13 @@ const CAPABILITIES = Object.freeze([
   ["net_version", "standard-read", "supported", true],
   ["eth_blockNumber", "standard-read", "supported", true],
   ["eth_getBalance", "latest-or-pending-only", "bounded", true],
-  ["eth_getTransactionCount", "latest-or-pending-only", "implemented-not-public-release", false],
-  ["eth_getBlockByNumber", "exact-height-or-standard-tag", "implemented-not-public-release", false],
-  ["eth_getBlockByHash", "exact-canonical-block-hash", "implemented-not-public-release", false],
-  ["eth_getTransactionByHash", "standard-read-bounded-fields", "bounded", false],
-  ["eth_getTransactionReceipt", "standard-read-bounded-fields", "bounded", false],
+  ["eth_getTransactionCount", "latest-or-pending-only", "bounded", true],
+  ["eth_getBlockByNumber", "exact-height-or-standard-tag", "supported", true],
+  ["eth_getBlockByHash", "exact-canonical-block-hash", "supported", true],
+  ["eth_getTransactionByHash", "standard-read-bounded-fields", "bounded", true],
+  ["eth_getTransactionReceipt", "standard-read-bounded-fields", "bounded", true],
   ["eth_getLogs", "bounded-range-address-topic-filter", "bounded", true],
-  ["eth_sendRawTransaction", "ynx-native-envelope-only; standard-ethereum-rlp-unsupported", "implemented-not-public-release", false],
+  ["eth_sendRawTransaction", "ynx-native-envelope-only; standard-ethereum-rlp-unsupported", "bounded", true],
   ["eth_call", "bounded-contract-subset", "bounded", false],
   ["eth_estimateGas", "constant-local-estimate-not-production-gas-market", "not-exchange-safe", false],
   ["eth_sendTransaction", "bounded-devtool-contract-call-only", "not-exchange-safe", false],
@@ -58,11 +58,11 @@ export function validateExchangePolicy(policy) {
   }
 
   assertExactKeys(policy.broadcastPolicy, ["canonicalEnvelope", "publicAuthoritativeDeployed", "restContentType", "restPath", "rpcEncoding", "rpcMethod", "standardEthereumRLP"], "exchange broadcast policy");
-  if (policy.broadcastPolicy.canonicalEnvelope !== "ynx-native-json-envelope-v1" || policy.broadcastPolicy.publicAuthoritativeDeployed !== false ||
+  if (policy.broadcastPolicy.canonicalEnvelope !== "ynx-native-json-envelope-v1" || policy.broadcastPolicy.publicAuthoritativeDeployed !== true ||
       policy.broadcastPolicy.restContentType !== "application/json" || policy.broadcastPolicy.restPath !== "/transactions/broadcast" ||
       policy.broadcastPolicy.rpcEncoding !== "0x-hex-of-canonical-ynx-native-json-envelope-v1" || policy.broadcastPolicy.rpcMethod !== "eth_sendRawTransaction" ||
       policy.broadcastPolicy.standardEthereumRLP !== false) {
-    throw new Error("exchange broadcast policy makes an unsupported deployment or Ethereum RLP claim");
+    throw new Error("exchange broadcast policy differs from the verified authoritative deployment or Ethereum RLP boundary");
   }
 
   assertExactKeys(policy.confirmationPolicy, ["duplicateTransactionHash", "finalityModel", "fixtureMinimumConfirmations", "pauseOnBlockIdentityMismatch", "pauseOnIndexerLag", "pauseOnObservedReorg", "productionCreditThreshold", "productionThresholdApproved", "reorgResistanceProven", "restartPersistenceRequired"], "exchange confirmation policy");

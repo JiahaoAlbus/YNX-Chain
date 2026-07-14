@@ -129,7 +129,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	html := string(body)
 	for _, marker := range []string{
-		"Add YNX Testnet to MetaMask",
+		"Open MetaMask compatibility",
 		"/api/summary",
 		"new EventSource('/api/stream')",
 		"Network TPS",
@@ -140,7 +140,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Live finalized block stream",
 		"id=\"blockTrack\"",
 		"No event for ",
-		"ynx1 alias",
+		"YNX native address (default)",
+		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
 	} {

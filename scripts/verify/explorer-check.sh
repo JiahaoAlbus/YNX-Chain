@@ -56,7 +56,9 @@ search="$(curl -fsS "$explorer_url/api/search?q=$tx_hash")"
 [[ "$(printf '%s' "$search" | ynx_json_field '["type"]')" == "transaction" ]] || { echo "explorer search did not resolve tx"; exit 1; }
 
 html="$(curl -fsS "$explorer_url/")"
-grep -Fq "Add YNX Testnet to MetaMask" <<<"$html"
+grep -Fq "Open MetaMask compatibility" <<<"$html"
+grep -Fq "YNX native address (default)" <<<"$html"
+grep -Fq "EVM compatibility address" <<<"$html"
 grep -Fq "/api/summary" <<<"$html"
 metrics="$(curl -fsS "$explorer_url/metrics")"
 grep -Fq "ynx_explorer_rpc_height" <<<"$metrics"

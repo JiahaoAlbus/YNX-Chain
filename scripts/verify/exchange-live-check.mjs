@@ -32,6 +32,15 @@ if (accountByHex.account?.address !== accountHex || canonicalJSON(accountByHex.a
 
 const byTransactionHash = await rpc("eth_getTransactionByHash", [transaction.hash]);
 const receipt = await rpc("eth_getTransactionReceipt", [transaction.hash]);
+const signedVectorEvidence = [];
+for (const vector of sources.vectors.value.transactions) {
+  const vectorTransaction = await rpc("eth_getTransactionByHash", [vector.transactionHash]);
+  const vectorReceipt = await rpc("eth_getTransactionReceipt", [vector.transactionHash]);
+  if (vectorTransaction?.hash !== vector.transactionHash || vectorReceipt?.transactionHash !== vector.transactionHash || vectorReceipt?.status !== "0x1") {
+    throw new Error(`public signed vector evidence is missing for ${vector.purpose}`);
+  }
+  signedVectorEvidence.push({blockNumber: vectorReceipt.blockNumber, purpose: vector.purpose, transactionHash: vector.transactionHash});
+}
 const historicalByNumber = await rpc("eth_getBlockByNumber", [`0x${transaction.blockNumber.toString(16)}`, false]);
 const historicalByHash = await rpc("eth_getBlockByHash", [`0x${transaction.blockHash}`, false]);
 const transactionCount = await rpcResponse("eth_getTransactionCount", [accountHex, "latest"]);
@@ -47,7 +56,7 @@ const capabilities = {
   getTransactionCountAvailable: !transactionCount.error && typeof transactionCount.result === "string",
   receiptAvailable: receipt?.transactionHash === transaction.hash,
 };
-const candidatePublicRuntimeDeployed = capabilities.canonicalReceiptBlockHash && capabilities.exactBlockByHash && capabilities.exactBlockByNumber && capabilities.getTransactionCountAvailable;
+const candidatePublicRuntimeDeployed = capabilities.canonicalReceiptBlockHash && capabilities.exactBlockByHash && capabilities.exactBlockByNumber && capabilities.getTransactionCountAvailable && signedVectorEvidence.length === 2;
 if (candidatePublicRuntimeDeployed !== sources.policy.value.broadcastPolicy.publicAuthoritativeDeployed) {
   throw new Error("public exchange runtime capability no longer matches exchange/ynx-testnet-policy.json; update policy and evidence before claiming deployment");
 }
@@ -70,6 +79,7 @@ const proof = {
   publicHeightBefore: chainlistProof.evmHeightBefore,
   release: chainlistProof.release,
   schema: "ynx-exchange-live-proof/v1",
+  signedVectorEvidence,
   standardEthereumRLPBroadcastSupported: false,
   truthfulStatus: candidatePublicRuntimeDeployed ? "operator-controlled-candidate-runtime-read-proof" : "operator-controlled-pre-candidate-runtime-read-proof",
 };

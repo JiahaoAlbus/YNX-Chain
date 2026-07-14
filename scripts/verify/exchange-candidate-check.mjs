@@ -33,7 +33,8 @@ try {
     (value) => { value.confirmationPolicy.reorgResistanceProven = true; },
     (value) => { value.addressPolicy.memoTag = "required"; },
     (value) => { value.broadcastPolicy.standardEthereumRLP = true; },
-    (value) => { value.rpcCapabilities[10].publicVerified = true; },
+    (value) => { value.broadcastPolicy.publicAuthoritativeDeployed = false; },
+    (value) => { value.rpcCapabilities[10].publicVerified = false; },
   ]) {
     const value = structuredClone(sources.policy.value);
     mutation(value);
