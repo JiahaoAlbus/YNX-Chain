@@ -105,6 +105,9 @@ YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 YNX_STABLECOIN_DEPLOY_ENABLED=true
 YNX_STABLECOIN_API_KEY=dry-run-stablecoin-api-key
 YNX_STABLECOIN_HTTP_ADDR=127.0.0.1:6434
+YNX_CHAT_DEPLOY_ENABLED=true
+YNX_CHAT_API_KEY=dry-run-chat-api-key-123456789
+YNX_CHAT_HTTP_ADDR=127.0.0.1:6435
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
 WEBHOOK_SECRET=dry-run-webhook-secret
@@ -157,6 +160,9 @@ grep -Fq "YNX_BRIDGE_STATE_PATH=/var/lib/ynx-chain/bridge/state.json" "$release_
 grep -Fq "YNX_STABLECOIN_DEPLOY_ENABLED=true" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing deploy gate"; exit 1; }
 grep -Fq "YNX_STABLECOIN_API_KEY=" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing API key"; exit 1; }
 grep -Fq "YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing persistent state path"; exit 1; }
+grep -Fq "YNX_CHAT_DEPLOY_ENABLED=true" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing deploy gate"; exit 1; }
+grep -Fq "YNX_CHAT_API_KEY=" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing API key"; exit 1; }
+grep -Fq "YNX_CHAT_STATE_PATH=/var/lib/ynx-chain/chat/state.json" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing persistent state path"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain FAUCET_PRIVATE_KEY"
   exit 1
@@ -185,11 +191,15 @@ if grep -Eq '^YNX_STABLECOIN_API_KEY=' "$release_dir/config/ynx-chaind.env"; the
   echo "shared chain env must not contain Stablecoin control access configuration"
   exit 1
 fi
+if grep -Eq '^YNX_CHAT_API_KEY=' "$release_dir/config/ynx-chaind.env"; then
+  echo "shared chain env must not contain Chat access configuration"
+  exit 1
+fi
 grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { echo "release env missing commit"; exit 1; }
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind; do
+for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -214,6 +224,9 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-bridged.servic
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-stablecoind" || { echo "release tarball missing Stablecoin control binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-stablecoind.env" || { echo "release tarball missing Stablecoin control env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-stablecoind.service" || { echo "release tarball missing Stablecoin control systemd unit"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-chatd" || { echo "release tarball missing Chat binary"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-chatd.env" || { echo "release tarball missing Chat env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-chatd.service" || { echo "release tarball missing Chat systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
@@ -363,6 +376,9 @@ grep -Fq "ReadWritePaths=/var/lib/ynx-chain/bridge" "$release_dir/systemd/ynx-br
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-stablecoind.env" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-stablecoind" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing executable"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/stablecoin" "$release_dir/systemd/ynx-stablecoind.service" || { echo "Stablecoin control service missing bounded state path"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-chatd.env" "$release_dir/systemd/ynx-chatd.service" || { echo "Chat service missing secret env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-chatd" "$release_dir/systemd/ynx-chatd.service" || { echo "Chat service missing executable"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/chat" "$release_dir/systemd/ynx-chatd.service" || { echo "Chat service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
@@ -371,6 +387,8 @@ grep -Fq "YNX_EXPECT_BRIDGE_SERVICE=1" "$dry_run_out" || { echo "dry-run output 
 grep -Fq "ynx-bridged\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Bridge config check"; exit 1; }
 grep -Fq "YNX_EXPECT_STABLECOIN_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Stablecoin health expectation"; exit 1; }
 grep -Fq "ynx-stablecoind\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Stablecoin config check"; exit 1; }
+grep -Fq "YNX_EXPECT_CHAT_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Chat health expectation"; exit 1; }
+grep -Fq "ynx-chatd\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Chat config check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }

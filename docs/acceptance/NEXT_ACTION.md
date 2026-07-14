@@ -1,63 +1,63 @@
 # Next Action
 
-Current single action: build the YNX-native wallet identity and device-signing foundation required by first-party applications, then use it for the first bounded YNX Chat service slice.
+Current single action: close the bounded YNX Chat deployment and user-session boundary, then build YNX Square as the next real first-party application.
 
 Why this action:
 
-- Release `ynx-chain-fb6f1726719b` and website `8cb3d3c` now make `ynx1...` the default first-party display while keeping standard MetaMask and EVM JSON-RPC inside an explicit `0x...` compatibility boundary.
-- A converter is not a production native wallet. Secure device identity, signing, encrypted backup/recovery, owner handover, and an independently reviewable application boundary are still missing.
-- The user added YNX Chat as a full-ecosystem requirement. It is currently target state only and must become executable code before it appears as live on the website.
-- Native wallet/device identity is the prerequisite for signed conversations and should be implemented before broad Chat features.
+- Core commit `7c4ecbf` now provides `ynx1...` device identity, Ed25519 request proof, X25519 encrypted envelopes, persistent direct conversations, delivery/read state, revocation, rate/access/replay bounds, tests, and a standalone Chat daemon.
+- The deployment package now carries default-disabled Chat release/systemd/backup/health wiring, but the real environment has not enabled it and no remote or public proof exists.
+- A browser must never receive `YNX_CHAT_API_KEY`. The public app needs a bounded server-side session/proxy boundary tied to device signatures before Chat can be exposed safely.
+- The user explicitly requires YNX Square. It must become a real persistent service and app, not a static website section or an unsupported ecosystem claim.
 
-Required wallet foundation:
+First close Chat:
 
-- Default all first-party account output and inputs to checksummed `ynx1...`; keep `0x...` only in a named EVM compatibility adapter.
-- Use a proven cryptographic library for key generation, signing, verification, KDF, authenticated encryption, and secure random generation; do not hand-roll cryptography.
-- Separate account identity from device keys and support device registration, revocation, rotation, backup/recovery metadata, and owner-handover evidence.
-- Never log or return mnemonics, private keys, recovery secrets, or plaintext encrypted backups from a service API.
-- Add deterministic public test vectors, unit/race tests, strict persistence permissions, tamper/restart tests, smoke/check commands, and Makefile targets.
+- Add the server-side public session boundary and CORS/origin/body/rate controls without weakening device signatures.
+- Add key rotation and bounded encrypted backup/recovery metadata; never return or log private keys, mnemonics, recovery secrets, plaintext messages, or service credentials.
+- Deploy the exact committed release with `YNX_CHAT_DEPLOY_ENABLED=true`, verify service build/state/backup/restart evidence, then expose a functional Chat window and verify it in production.
+- Keep groups, contacts, attachments, voice/video, Pay, Trust, appeals, and moderation incomplete until their own code and tests exist.
 
-First bounded YNX Chat slice:
+Then implement YNX Square:
 
-- Add a standalone daemon with authenticated APIs for device registration, direct conversation creation, encrypted-envelope submission, conversation/message lookup, delivery acknowledgement, and read acknowledgement.
-- Persist only ciphertext envelopes plus bounded routing/audit metadata. Do not put private message content on the public chain.
-- Bind senders and recipients to normalized `ynx1...` identities; reject malformed identities, unknown/revoked devices, replayed/conflicting message IDs, oversized payloads, and unauthorized conversation access.
-- Add hash-chained redacted audit, rate limits, health/metrics, atomic mode-`0600` persistence, mutation-freeze behavior, deployment env templates, systemd/release/backup/rollback wiring, and API documentation after code exists.
-- Keep group chat, attachments, voice/video, moments/feed, bots, payments, Trust reports, appeals, moderation, and multi-device recovery explicitly incomplete until each has code and tests.
+- Add a standalone persistent Square daemon using normalized `ynx1...` authors and signed device mutations.
+- Implement feed pagination, post create/read, comment create/read, reactions, follow/unfollow, report intake, moderation status, and appeal linkage.
+- Implement tipping only as a bounded Pay intent through the existing Pay API; Square must never hold a user key or debit assets directly.
+- Add exact idempotency, replay/conflict protection, content/body/rate bounds, mode-`0600` persistence, integrity/audit checks, unit/race/HTTP tests, smoke commands, Make targets, mutation-freeze behavior, release/systemd/backup/rollback wiring, and API docs after handlers exist.
+- Build the actual Square UI with live records, loading/empty/error states, signed posting, comments, reactions, follows, reports, and truthful availability boundaries.
 
 Files to touch:
 
-- new bounded wallet/device identity packages and command paths following existing `internal/*` and `cmd/*` service patterns
-- new bounded Chat package and daemon, deployment env/systemd/backup wiring, verification scripts, and Makefile targets
-- API and ecosystem documentation only after the handlers and tests exist
+- `internal/chat`, `cmd/ynx-chatd`, deployment ingress/session code, and Chat application code for the remaining public boundary
+- new `internal/square` and `cmd/ynx-squared` service paths after Chat closure
+- `scripts/verify`, `scripts/deploy`, `scripts/ops`, and `Makefile` for checks and lifecycle wiring
+- API and ecosystem documentation only after matching handlers exist
 - `FEATURE_COMPLETION_TRACKER.md`, `PROJECT_STATE.md`, and `NEXT_ACTION.md` after each verified slice
-- the website only after an exact public deployment is verified
+- the website repository only after the matching remote service is deployed and verified
 
 Validation commands:
 
 - `go test ./...`
-- `go test -race` for the new wallet/device and Chat packages
 - `make native-wallet-check`
 - `make chat-api-check`
+- future `make square-api-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
+- `GOMAXPROCS=2 make deploy-dry-run`
 - `make preflight`
 - `make objective-state-check`
 
 Completion standard:
 
-- Real wallet/device and Chat code exists with tests, restart/tamper/replay/access-control proof, smoke targets, and deployable service wiring.
-- Local completion is recorded honestly. Remote/public status stays false until the exact release is deployed and verified.
-- The website receives a YNX Chat surface only after the daemon is publicly reachable and verified; before that it may only describe Chat as target state.
-- Standard MetaMask remains a compatibility adapter and is not claimed to display `ynx1...` or provide wallet-default support.
+- Chat has an exact committed remote release, safe server-side session boundary, restart/backup evidence, functional production UI, and public proof without browser-visible service credentials.
+- Square has real service code, persistent signed records, focused and repository-wide passing tests, deployment lifecycle wiring, a functional production UI, and exact public proof.
+- Anything not implemented or externally approved remains explicitly incomplete in all public and acceptance surfaces.
 
-Explicitly not doing:
+Explicitly not doing / truth boundaries:
 
-- No claim of WeChat-equivalent completeness from a messaging MVP.
-- No plaintext message or key material on chain, in logs, in commits, or in transparency reports.
-- No custom cryptographic primitives, fake E2EE claim, mainnet claim, wallet-vendor default claim, exchange listing claim, or partnership claim.
-- No bounded EVM opcode, Counter sample, Hardhat artifact, or IDE execution expansion.
-- No public BFT freeze, signer install, candidate start, ingress switch, or cutover without existing independent approvals.
+- Chat is locally verified but not remotely/publicly available yet.
+- YNX Square is target state only until code, tests, deployment, UI, and public proof all exist.
+- Standard MetaMask remains the `0x...` EVM compatibility adapter; first-party identity remains `ynx1...`.
+- Do not claim WeChat-equivalent completeness, wallet default support, mainnet, exchange listing, stablecoin issuer support, third-party partnership, remote Chat, or live Square without exact external evidence.
+- Do not expand bounded EVM opcode, Counter sample, Hardhat artifact, or IDE work except to preserve passing tests.
 - Do not modify or replace the long-term goal file.

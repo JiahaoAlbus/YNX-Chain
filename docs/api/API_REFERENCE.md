@@ -192,6 +192,17 @@ Stablecoin Issuer Control API:
 - The release package carries the binary, dedicated env, systemd unit, backup/state paths, config check, and optional health check. Real deployment remains default-disabled behind `YNX_STABLECOIN_DEPLOY_ENABLED=false`, and no ingress is configured.
 - `make stablecoin-issuer-check` proves issuer/asset approval and revocation, native/protocol asset rejection, supply bounds, exact replay/conflict, concurrency, restart persistence, tamper rejection, strict auth/JSON, transparency, truthful metrics, and file modes. It does not prove issuer support, mint/burn execution, remote deployment, public availability, or a third-party partnership.
 
+YNX Chat API:
+
+- `ynx-chatd` is a standalone encrypted-envelope service on loopback port `6435`. `GET /health` and `GET /metrics` expose process state. Every `/chat/*` route requires `X-YNX-Chat-Key`; device-authenticated routes additionally require `X-YNX-Device-ID`, `X-YNX-Timestamp`, and `X-YNX-Device-Signature` over the method, exact request URI, timestamp, and body hash.
+- `POST /chat/devices` registers an Ed25519 signing key and X25519 encryption key against a normalized `ynx1...` account after private-key proof. EVM `0x...` identities are rejected at this first-party boundary. `POST /chat/devices/{id}/revoke` prevents further signed requests from the device.
+- `POST /chat/conversations` creates one direct conversation between two distinct `ynx1...` members, each with an active device. `GET /chat/conversations/{id}` and `GET /chat/conversations/{id}/messages` enforce membership.
+- `POST /chat/conversations/{id}/messages` accepts only `x25519-hkdf-sha256-xchacha20poly1305` envelope metadata and ciphertext. The service never accepts or persists a plaintext field. `POST /chat/conversations/{id}/messages/{messageId}/delivered` and `/read` persist acknowledgements.
+- Device registration, conversation creation, and message IDs are exact-replay safe; changed reuse fails with `409`. Requests are size bounded, rate limited per device/IP, timestamp bounded, unknown-field rejecting, and protected by the shared mutation-freeze wrapper.
+- State is atomically replaced as mode `0600` JSON with an integrity digest and redacted hash-chained audit events. This provides restart recovery and corruption detection, not multi-region durability or an independent security audit.
+- The release bundle carries the binary, dedicated env, systemd unit, backup/state paths, config check, and optional health verification. Remote installation remains default-disabled behind `YNX_CHAT_DEPLOY_ENABLED=false`, and no public ingress is configured.
+- `make native-wallet-check` and `make chat-api-check` prove native-only identity, device proof, E2EE interoperability, AAD/tamper rejection, signed HTTP routes, access control, replay/conflict handling, revocation, acknowledgements, rate limiting, restart/tamper behavior, truthful health, and file modes. They do not prove remote/public Chat, multi-device recovery, groups, attachments, Pay/Trust integration, a user-facing app, or WeChat-equivalent completeness.
+
 Pay merchant safety:
 
 - `ynx-payd` is the independent public merchant API on port `6430`. Its protected `/pay/*` routes require `X-YNX-Pay-Key` or `Authorization: Bearer <YNX_PAY_API_KEY>` and return a unique `X-Request-ID`.

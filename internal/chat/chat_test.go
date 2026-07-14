@@ -290,3 +290,21 @@ func TestValidateConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRateLimitUsesDeviceAndIP(t *testing.T) {
+	now := time.Date(2026, 7, 14, 14, 0, 0, 0, time.UTC)
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: chatAPIKey, Now: func() time.Time { return now }, RateLimitWindow: time.Minute, RateLimitMax: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !service.Allow("192.0.2.1:1234", "device-a") || !service.Allow("192.0.2.1:5678", "device-a") || service.Allow("192.0.2.1:9012", "device-a") {
+		t.Fatal("same device/IP rate limit was not enforced")
+	}
+	if !service.Allow("192.0.2.1:1234", "device-b") || !service.Allow("192.0.2.2:1234", "device-a") {
+		t.Fatal("independent device/IP bucket was incorrectly denied")
+	}
+	now = now.Add(time.Minute + time.Second)
+	if !service.Allow("192.0.2.1:1234", "device-a") {
+		t.Fatal("expired rate-limit window did not reset")
+	}
+}

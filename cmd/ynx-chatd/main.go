@@ -33,7 +33,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := chat.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_CHAT_API_KEY"), MaxCiphertextBytes: maxCiphertext}
+	rateLimitMax, err := envInt("YNX_CHAT_RATE_LIMIT_MAX", 120)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rateLimitWindow, err := time.ParseDuration(envOrDefault("YNX_CHAT_RATE_LIMIT_WINDOW", "1m"))
+	if err != nil {
+		log.Fatal("YNX_CHAT_RATE_LIMIT_WINDOW must be a Go duration")
+	}
+	cfg := chat.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_CHAT_API_KEY"), MaxCiphertextBytes: maxCiphertext, RemoteDeployed: envBool("YNX_CHAT_DEPLOY_ENABLED"), RateLimitMax: rateLimitMax, RateLimitWindow: rateLimitWindow}
 	if *checkConfig {
 		if err := chat.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
@@ -82,4 +90,8 @@ func envInt(key string, fallback int) (int, error) {
 		return 0, fmt.Errorf("%s must be an integer", key)
 	}
 	return parsed, nil
+}
+
+func envBool(key string) bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv(key)), "true")
 }

@@ -18,6 +18,9 @@ type Config struct {
 	StatePath          string
 	APIKey             string
 	MaxCiphertextBytes int
+	RemoteDeployed     bool
+	RateLimitWindow    time.Duration
+	RateLimitMax       int
 	Now                func() time.Time
 }
 
@@ -86,10 +89,12 @@ type Health struct {
 	StateIntegrity       string         `json:"stateIntegrity"`
 	NativeAddressDefault bool           `json:"nativeAddressDefault"`
 	PlaintextStored      bool           `json:"plaintextStored"`
+	RemoteDeployed       bool           `json:"remoteDeployed"`
 	DeviceCount          int            `json:"deviceCount"`
 	ConversationCount    int            `json:"conversationCount"`
 	MessageCount         int            `json:"messageCount"`
 	TruthfulStatus       string         `json:"truthfulStatus"`
+	RateLimit            string         `json:"rateLimit"`
 	Build                buildinfo.Info `json:"build"`
 }
 

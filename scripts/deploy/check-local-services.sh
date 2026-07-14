@@ -46,6 +46,9 @@ case "$url" in
   http://127.0.0.1:6434/health)
     printf '%s\n' '{"ok":true,"service":"ynx-stablecoind","nativeSymbol":"YNXT","persistence":"atomic-json-file","issuerSupportEstablished":false,"externalExecutionEnabled":false,"nativeYnxtIssuerActionsAllowed":false,"truthfulStatus":"local-control-plane-only-no-issuer-support-no-execution","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6435/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-chatd","persistence":"atomic-json-mode-0600","nativeAddressDefault":true,"plaintextStored":false,"remoteDeployed":true,"truthfulStatus":"remote-bounded-chat-core-no-public-ingress-claim","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -53,7 +56,7 @@ case "$url" in
 esac
 EOF
   chmod +x "$tmp/bin/curl"
-  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
   PATH="$tmp/bin:$PATH" "$0" singapore abc123def456 ynx-chain-abc123def456 6423 validator
   echo "check-local-services self-test passed"
   exit 0
@@ -104,7 +107,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -173,6 +176,16 @@ check_full_stack_surface() {
     require_contains "Stablecoin control health" "$stablecoin_gateway" '"truthfulStatus":"local-control-plane-only-no-issuer-support-no-execution"'
     require_contains "Stablecoin control health build commit" "$stablecoin_gateway" "$expected_commit"
     require_contains "Stablecoin control health release" "$stablecoin_gateway" "$expected_release"
+  fi
+
+  if [[ "${YNX_EXPECT_CHAT_SERVICE:-0}" == "1" ]]; then
+    chat_gateway="$(fetch_with_retry "Chat health" "http://127.0.0.1:6435/health")"
+    require_contains "Chat health" "$chat_gateway" '"nativeAddressDefault":true'
+    require_contains "Chat health" "$chat_gateway" '"plaintextStored":false'
+    require_contains "Chat health" "$chat_gateway" '"remoteDeployed":true'
+    require_contains "Chat health" "$chat_gateway" '"persistence":"atomic-json-mode-0600"'
+    require_contains "Chat health build commit" "$chat_gateway" "$expected_commit"
+    require_contains "Chat health release" "$chat_gateway" "$expected_release"
   fi
 }
 

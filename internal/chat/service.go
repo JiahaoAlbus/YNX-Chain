@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"regexp"
 	"sort"
 	"strconv"
@@ -25,6 +26,7 @@ type Service struct {
 	mu    sync.Mutex
 	cfg   Config
 	state persistentState
+	seen  map[string][]time.Time
 }
 
 func New(cfg Config) (*Service, error) {
@@ -39,11 +41,17 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
+	if cfg.RateLimitWindow <= 0 {
+		cfg.RateLimitWindow = time.Minute
+	}
+	if cfg.RateLimitMax <= 0 {
+		cfg.RateLimitMax = 120
+	}
 	state, existed, err := loadState(cfg.StatePath)
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: cfg, state: state}
+	service := &Service{cfg: cfg, state: state, seen: map[string][]time.Time{}}
 	if err := service.validateAuditLocked(); err != nil {
 		return nil, err
 	}
@@ -66,7 +74,34 @@ func ValidateConfig(cfg Config) error {
 	if limit < 1024 || limit > 1024*1024 {
 		return errors.New("chat ciphertext limit must be between 1024 and 1048576 bytes")
 	}
+	if cfg.RateLimitWindow < 0 || cfg.RateLimitMax < 0 {
+		return errors.New("chat rate limit values cannot be negative")
+	}
 	return nil
+}
+
+func (s *Service) Allow(remoteAddress, deviceID string) bool {
+	host, _, err := net.SplitHostPort(remoteAddress)
+	if err != nil {
+		host = remoteAddress
+	}
+	key := strings.TrimSpace(deviceID) + "|" + strings.TrimSpace(host)
+	now := s.cfg.Now().UTC()
+	cutoff := now.Add(-s.cfg.RateLimitWindow)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	recent := s.seen[key][:0]
+	for _, at := range s.seen[key] {
+		if at.After(cutoff) {
+			recent = append(recent, at)
+		}
+	}
+	if len(recent) >= s.cfg.RateLimitMax {
+		s.seen[key] = recent
+		return false
+	}
+	s.seen[key] = append(recent, now)
+	return true
 }
 
 func (s *Service) Authorized(value string) bool {
@@ -311,7 +346,11 @@ func (s *Service) Health() Health {
 	for _, messages := range s.state.Messages {
 		count += len(messages)
 	}
-	return Health{OK: true, Service: "ynx-chatd", Persistence: "atomic-json-mode-0600", StateIntegrity: "sha256-and-hash-chained-audit", NativeAddressDefault: true, PlaintextStored: false, DeviceCount: len(s.state.Devices), ConversationCount: len(s.state.Conversations), MessageCount: count, TruthfulStatus: "local-bounded-chat-core-not-remote-deployed"}
+	status := "local-bounded-chat-core-not-remote-deployed"
+	if s.cfg.RemoteDeployed {
+		status = "remote-bounded-chat-core-no-public-ingress-claim"
+	}
+	return Health{OK: true, Service: "ynx-chatd", Persistence: "atomic-json-mode-0600", StateIntegrity: "sha256-and-hash-chained-audit", NativeAddressDefault: true, PlaintextStored: false, RemoteDeployed: s.cfg.RemoteDeployed, DeviceCount: len(s.state.Devices), ConversationCount: len(s.state.Conversations), MessageCount: count, TruthfulStatus: status, RateLimit: fmt.Sprintf("%d per %s per device/ip", s.cfg.RateLimitMax, s.cfg.RateLimitWindow)}
 }
 
 func (s *Service) hasActiveDeviceLocked(account string) bool {

@@ -46,12 +46,20 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	}
 	health := s.service.Health()
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	fmt.Fprintf(w, "ynx_chat_devices %d\nynx_chat_conversations %d\nynx_chat_messages %d\nynx_chat_plaintext_stored 0\nynx_chat_remote_deployed 0\n", health.DeviceCount, health.ConversationCount, health.MessageCount)
+	remote := 0
+	if health.RemoteDeployed {
+		remote = 1
+	}
+	fmt.Fprintf(w, "ynx_chat_devices %d\nynx_chat_conversations %d\nynx_chat_messages %d\nynx_chat_plaintext_stored 0\nynx_chat_remote_deployed %d\n", health.DeviceCount, health.ConversationCount, health.MessageCount, remote)
 }
 
 func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 	if !s.service.Authorized(r.Header.Get("X-YNX-Chat-Key")) {
 		writeError(w, http.StatusUnauthorized, "service authentication required")
+		return
+	}
+	if !s.service.Allow(r.RemoteAddr, r.Header.Get("X-YNX-Device-ID")) {
+		writeError(w, http.StatusTooManyRequests, "chat API rate limit exceeded")
 		return
 	}
 	body, err := readBody(r, s.service.cfg.MaxCiphertextBytes+4096)
