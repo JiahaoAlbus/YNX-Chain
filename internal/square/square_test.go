@@ -120,6 +120,21 @@ func TestSquarePersistentSocialLifecycle(t *testing.T) {
 	}
 }
 
+func TestEmptyFeedSerializesAsArray(t *testing.T) {
+	service := newTestService(t, filepath.Join(t.TempDir(), "state.json"), time.Now)
+	feed, err := service.Feed(20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(feed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != `{"posts":[]}` {
+		t.Fatalf("empty feed JSON %s", encoded)
+	}
+}
+
 func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	now := time.Date(2026, 7, 14, 16, 0, 0, 0, time.UTC)
 	service := newTestService(t, filepath.Join(t.TempDir(), "state.json"), func() time.Time { return now })

@@ -52,6 +52,9 @@ case "$url" in
   http://127.0.0.1:6436/health)
     printf '%s\n' '{"ok":true,"service":"ynx-squared","persistence":"atomic-json-mode-0600","nativeIdentity":"ynx1","remoteDeployed":true,"truthfulStatus":"remote-bounded-square-core-no-public-ingress-claim","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6437/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-route-allowlist-device-signatures-service-keys-server-side","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -59,7 +62,7 @@ case "$url" in
 esac
 EOF
   chmod +x "$tmp/bin/curl"
-  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
   PATH="$tmp/bin:$PATH" "$0" singapore abc123def456 ynx-chain-abc123def456 6423 validator
   echo "check-local-services self-test passed"
   exit 0
@@ -110,7 +113,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -198,6 +201,15 @@ check_full_stack_surface() {
     require_contains "Square health" "$square_gateway" '"persistence":"atomic-json-mode-0600"'
     require_contains "Square health build commit" "$square_gateway" "$expected_commit"
     require_contains "Square health release" "$square_gateway" "$expected_release"
+  fi
+
+  if [[ "${YNX_EXPECT_APP_GATEWAY_SERVICE:-0}" == "1" ]]; then
+    app_gateway="$(fetch_with_retry "App Gateway health" "http://127.0.0.1:6437/health")"
+    require_contains "App Gateway health" "$app_gateway" '"browserBoundary":"exact-route-allowlist-device-signatures-service-keys-server-side"'
+    require_contains "App Gateway health" "$app_gateway" '"remoteDeployed":true'
+    require_contains "App Gateway health" "$app_gateway" '"truthfulStatus":"remote-first-party-app-gateway"'
+    require_contains "App Gateway health build commit" "$app_gateway" "$expected_commit"
+    require_contains "App Gateway health release" "$app_gateway" "$expected_release"
   fi
 }
 

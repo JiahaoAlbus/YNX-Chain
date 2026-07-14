@@ -1,5 +1,15 @@
 # Next Action
 
+Highest-priority bounded delivery (2026-07-14):
+
+1. Commit the verified `ynx-app-gatewayd` implementation and exact release package, then run the exact-commit preflight.
+2. Enable Chat, Square, and App Gateway only as one release transaction using real mode-`0600` service keys; verify loopback health, backups, build identity, and public `https://api.ynxweb4.com/app/health` plus read-only Square feed evidence. Do not claim public availability until those checks pass.
+3. Replace the website's hard-to-scan long-page navigation with stable top-level `Products`, `Apps`, `Explorer`, `Developers`, and in-site `Docs` routes. Docs must render inside the official site rather than sending normal readers to repository files.
+4. Deliver the first real Square Web/PWA window with live feed, post detail, comments, and explicit offline/unavailable states. Add signed mutations only after browser key storage, device proof, recovery/export warnings, and gateway path-signing interoperability are tested.
+5. Establish a shared clean YNX brand system: one reviewed logo/wordmark, Klein blue and white core tokens, typography, icon treatment, and one truthful ecosystem tagline reused by website, Explorer, Wallet, Square, Chat, IDE, and Pay.
+6. Package the shared application shell for macOS and Windows only after the Web/PWA workflows pass. Produce Windows artifacts on Windows CI and macOS artifacts on macOS CI; do not call either platform delivered without install/update/signing verification.
+7. Keep IDE, Pay, Chat, Bank, Shop, AI, Wallet, Explorer, and future ecosystem apps as separately testable products with `live`, `local verified`, or `planned` status. Do not use empty screens to imply completion.
+
 Current single action: add a browser-safe first-party session boundary for the locally verified Chat and Square services, complete bounded Square moderation/Trust/Pay adapters, then deploy and expose real application windows.
 
 Why this action:

@@ -1,5 +1,14 @@
 # Project State
 
+## 2026-07-14 First-party application boundary
+
+- `ynx-app-gatewayd` is implemented and locally race/API verified as the browser-safe boundary for the existing signed Chat and Square services.
+- Exact route/method and HTTPS origin allowlists, server-side service credential injection, device-signature forwarding, credential/header stripping, CORS preflight, request/response bounds, rate limiting, upstream health, and truthful deployment state are implemented.
+- Linux release binary, strict systemd unit, secret env, release manifest, backup/predeploy inventory, local health verification, and Nginx/Caddy `/app/*` ingress packaging pass the complete deployment dry-run.
+- The gateway, Chat, and Square remain default-disabled in the real deployment environment and have no remote/public proof. No user-facing Square/Chat Web, PWA, macOS, or Windows application is complete yet.
+- The next user-visible delivery is the website Apps center plus a real Square window backed by the public gateway. Shared native identity/key handling must be implemented before signed browser mutations are enabled.
+- IDE, Pay, Bank, Shop, and other ecosystem products must be tracked separately as real workflows; existing APIs or readiness packages do not by themselves constitute finished applications.
+
 - State snapshot baseline commit: `fb6f172 Promote exchange proof and native-first Explorer`
 - Last pushed commit (implementation): `fb6f1726719b14410aa6217dded48a012d1f6906`
 - Chain repo state: `/Users/huangjiahao/Desktop/YNX Chain`, branch `main`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`; the native-first Explorer and public Exchange candidate status are pushed and ordinarily deployed.

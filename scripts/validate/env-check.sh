@@ -14,6 +14,9 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
   ynx_load_env
   YNX_BRIDGE_DEPLOY_ENABLED="${YNX_BRIDGE_DEPLOY_ENABLED:-false}"
   YNX_STABLECOIN_DEPLOY_ENABLED="${YNX_STABLECOIN_DEPLOY_ENABLED:-false}"
+  YNX_CHAT_DEPLOY_ENABLED="${YNX_CHAT_DEPLOY_ENABLED:-false}"
+  YNX_SQUARE_DEPLOY_ENABLED="${YNX_SQUARE_DEPLOY_ENABLED:-false}"
+  YNX_APP_GATEWAY_DEPLOY_ENABLED="${YNX_APP_GATEWAY_DEPLOY_ENABLED:-false}"
   required=(
     TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
     FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN RESOURCE_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
@@ -60,6 +63,34 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
     stablecoin_required=(YNX_STABLECOIN_API_KEY YNX_STABLECOIN_HTTP_ADDR)
     ynx_require_env "${stablecoin_required[@]}"
     ynx_reject_unsafe_env_values "${stablecoin_required[@]}"
+  fi
+  case "$YNX_CHAT_DEPLOY_ENABLED" in
+    true | false) ;;
+    *) echo "YNX_CHAT_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+  esac
+  if [[ "$YNX_CHAT_DEPLOY_ENABLED" == "true" ]]; then
+    chat_required=(YNX_CHAT_API_KEY YNX_CHAT_HTTP_ADDR)
+    ynx_require_env "${chat_required[@]}"
+    ynx_reject_unsafe_env_values "${chat_required[@]}"
+  fi
+  case "$YNX_SQUARE_DEPLOY_ENABLED" in
+    true | false) ;;
+    *) echo "YNX_SQUARE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+  esac
+  if [[ "$YNX_SQUARE_DEPLOY_ENABLED" == "true" ]]; then
+    square_required=(YNX_SQUARE_API_KEY YNX_SQUARE_HTTP_ADDR)
+    ynx_require_env "${square_required[@]}"
+    ynx_reject_unsafe_env_values "${square_required[@]}"
+  fi
+  case "$YNX_APP_GATEWAY_DEPLOY_ENABLED" in
+    true | false) ;;
+    *) echo "YNX_APP_GATEWAY_DEPLOY_ENABLED must be true or false"; exit 1 ;;
+  esac
+  if [[ "$YNX_APP_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
+    [[ "$YNX_CHAT_DEPLOY_ENABLED" == "true" && "$YNX_SQUARE_DEPLOY_ENABLED" == "true" ]] || { echo "App Gateway requires Chat and Square deployment"; exit 1; }
+    app_gateway_required=(YNX_APP_GATEWAY_HTTP_ADDR YNX_APP_GATEWAY_ALLOWED_ORIGINS)
+    ynx_require_env "${app_gateway_required[@]}"
+    ynx_reject_unsafe_env_values "${app_gateway_required[@]}"
   fi
   [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
   [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }

@@ -215,6 +215,18 @@ YNX Square API:
 - The release bundle includes a default-disabled `YNX_SQUARE_DEPLOY_ENABLED` gate, binary, secret env, systemd unit, state/backup paths, config check, and optional local health verification. No public ingress or browser-safe session boundary is configured.
 - `make square-api-check` proves signed post/comment/reaction/follow/report lifecycle, feed pagination, replay/conflict, access/rate bounds, restart/tamper checks, health/metrics, and file modes. It does not prove remote/public Square, moderation resolution, Trust/Pay integration, tipping, media, a user-facing app, independent audit, or public proof.
 
+First-party App Gateway:
+
+- `ynx-app-gatewayd` listens on loopback port `6437` and is the only supported browser ingress for Chat and Square. Public paths retain `/app`, while the gateway rewrites `/app/chat/*` to `/chat/*` and `/app/square/*` to `/square/*` before forwarding.
+- The gateway exposes only the documented Chat and Square route/method combinations. Metrics, arbitrary upstream paths, path escapes, unsupported acknowledgement actions, and unknown services fail closed.
+- `X-YNX-Chat-Key` and `X-YNX-Square-Key` are loaded from the gateway's mode-`0600` server environment and injected only on loopback requests. Incoming service-key headers, cookies, and authorization headers are discarded. Browsers receive no service credential.
+- Device requests still carry `X-YNX-Device-ID`, `X-YNX-Timestamp`, and `X-YNX-Device-Signature`. The signature is over the internal exact path (`/chat/...` or `/square/...`), not the public `/app/...` prefix; upstream services remain the source of device authorization.
+- Browser access requires an exact configured HTTPS `Origin`. CORS permits only `GET`, `POST`, and `OPTIONS` plus the bounded content/device headers. Wildcards, HTTP origins, origin paths, unknown preflight headers, and unlisted methods are rejected.
+- Request and response sizes, upstream duration, and request rate are bounded. Responses copy only content type and status and always use `Cache-Control: no-store`; upstream internal headers are not exposed.
+- `GET /health` is loopback operations health. `GET /app/health` exposes the same bounded health through the application ingress and reports Chat/Square upstream status, build identity, gateway boundary, and whether the gateway was configured as remotely deployed.
+- Release installation is default-disabled behind `YNX_APP_GATEWAY_DEPLOY_ENABLED=false` and requires both Chat and Square deployment gates. Nginx/Caddy route only `/app/*` to this daemon; direct Chat and Square remain loopback-only.
+- `make app-gateway-check` proves exact origin/route behavior, server-side credential injection, sensitive-header stripping, CORS, body/response/rate bounds, health aggregation, read-only Square feed proxying, and direct-service denial. It does not prove remote deployment, public DNS/TLS, browser wallet/key recovery, a user-facing app, or desktop packaging.
+
 Pay merchant safety:
 
 - `ynx-payd` is the independent public merchant API on port `6430`. Its protected `/pay/*` routes require `X-YNX-Pay-Key` or `Authorization: Bearer <YNX_PAY_API_KEY>` and return a unique `X-Request-ID`.

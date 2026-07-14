@@ -281,7 +281,7 @@ func (s *Service) Feed(limit int, cursor string) (Feed, error) {
 	if end > len(posts) {
 		end = len(posts)
 	}
-	feed := Feed{Posts: append([]Post(nil), posts[start:end]...)}
+	feed := Feed{Posts: append([]Post{}, posts[start:end]...)}
 	if end < len(posts) && end > start {
 		feed.NextCursor = posts[end-1].ID
 	}
