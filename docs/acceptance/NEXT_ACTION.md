@@ -2,14 +2,13 @@
 
 Highest-priority bounded delivery (2026-07-14):
 
-1. Replace the website's hard-to-scan long-page navigation with stable top-level `Products`, `Apps`, `Explorer`, `Developers`, and in-site `Docs` routes. Docs must render inside the official site rather than sending normal readers to repository files.
-2. Deliver the first real Square Web/PWA window with live feed, post detail, comments, and explicit loading/empty/error/unavailable states. It must show persisted remote data only and must not invent sample posts.
-3. Implement chain-account ownership proof before enabling public device registration, Chat, or any Square mutation. The flow must bind an expiring/replay-resistant challenge to the claimed `ynx1...` chain account, device key, origin, and intended session, with tested revocation and recovery/export warnings.
-4. Establish a shared clean YNX brand system: one reviewed logo/wordmark, Klein blue and white core tokens, typography, icon treatment, and one truthful ecosystem tagline reused by website, Explorer, Wallet, Square, Chat, IDE, and Pay.
-5. Package the shared application shell for macOS and Windows only after the Web/PWA workflows pass. Produce Windows artifacts on Windows CI and macOS artifacts on macOS CI; do not call either platform delivered without install/update/signing verification.
-6. Keep IDE, Pay, Chat, Bank, Shop, AI, Wallet, Explorer, and future ecosystem apps as separately testable products with `live`, `local verified`, or `planned` status. Do not use empty screens to imply completion.
+1. Implement chain-account ownership proof before enabling public device registration, Chat, or any Square mutation. The flow must bind an expiring/replay-resistant challenge to the claimed `ynx1...` chain account, device key, origin, and intended session, with tested revocation and recovery/export warnings.
+2. Widen the App Gateway only after the ownership/session verifier passes focused, full, deployment, restart, replay, and remote public tests. Preserve the current read-only Square allowlist until then.
+3. Add write-capable Square and Chat Web/PWA workflows only after the widened remote release is proven; then package the shared shell for macOS and Windows with platform-native CI verification.
+4. Continue the shared clean YNX brand system: one reviewed logo/wordmark, Klein blue and white core tokens, typography, icon treatment, and one truthful ecosystem tagline reused by website, Explorer, Wallet, Square, Chat, IDE, and Pay.
+5. Keep IDE, Pay, Chat, Bank, Shop, AI, Wallet, Explorer, and future ecosystem apps as separately testable products with `live`, `local verified`, or `planned` status. Do not use empty screens to imply completion.
 
-Current single action: publish the website Apps center, real Square reader, and in-site Docs against the remotely verified read-only Gateway. Public Chat and writes remain blocked on chain-account ownership proof.
+Current single action: implement and verify chain-account ownership proof plus expiring browser sessions. Public Chat and writes remain blocked until that exact boundary is remotely proven.
 
 Why this action:
 
@@ -18,6 +17,7 @@ Why this action:
 - Exact Chat and Square daemons are remotely installed on loopback. Their service keys remain server-only and direct service ingress is not public.
 - The first device model proves possession of a newly supplied device key, not ownership of the claimed chain account. Exposing its write routes would allow account impersonation, so the public boundary must remain read-only.
 - Square reports currently stop at `pending_review`; the Trust appeal route is metadata only, and Pay tipping is not implemented. Those boundaries must be real before the UI exposes them.
+- Website commit `c9759e9` and production deployment `dpl_4p2AUTFL5ouSB3mVdN9XC7MeHe6K` already provide the Apps directory, searchable in-site Docs, and a real read-only Square window. More website routes are deferred while the chain ownership gap is higher priority.
 
 Required implementation:
 
@@ -25,7 +25,7 @@ Required implementation:
 - Build chain-account ownership verification plus CSRF/origin/CORS controls, replay-resistant challenges, session expiry/revocation, per-session/IP rate limits, redacted audit, persistence, tests, health/metrics, and mutation-freeze behavior before widening the allowlist.
 - Add Square moderation review records with evidence references, explicit status transitions, reviewer separation, report transparency metadata, and appeal linkage without direct YNXT freeze/seize authority.
 - Add Square tips only by creating a bounded intent through the existing Pay API. Square must never hold a user private key, sign for a user, or debit assets directly.
-- Publish the read-only Square Web/PWA window first. Add functional Chat and signed Square windows only after the ownership/session gate passes and the exact widened release is remotely verified.
+- Add functional Chat and signed Square windows only after the ownership/session gate passes and the exact widened release is remotely verified.
 
 Files to touch:
 
