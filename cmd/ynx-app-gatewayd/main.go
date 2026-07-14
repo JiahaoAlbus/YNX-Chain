@@ -65,7 +65,7 @@ func main() {
 		if err := appgateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("ynx-app-gatewayd config check passed; ynx1 ownership challenges, persistent hashed sessions, and exact browser allowlists enabled; public deployment not implied")
+		fmt.Println("ynx-app-gatewayd config check passed; ynx1 ownership challenges, persistent hashed sessions, exact browser allowlists, and the bounded native-mobile client enabled; public deployment not implied")
 		return
 	}
 	gateway, err := appgateway.New(cfg)
@@ -81,7 +81,7 @@ func main() {
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
 	}()
-	log.Printf("YNX App Gateway listening on http://%s; server-side service credentials and exact browser allowlists enabled", *httpAddr)
+	log.Printf("YNX App Gateway listening on http://%s; server-side service credentials, exact browser allowlists, and the bounded native-mobile client enabled", *httpAddr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}

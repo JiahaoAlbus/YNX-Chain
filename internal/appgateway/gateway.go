@@ -48,6 +48,11 @@ type visitor struct {
 	count  int
 }
 
+const (
+	nativeMobileClient  = "ynx-mobile-v1"
+	nativeMobileBinding = "ynx-mobile://com.ynxweb4.mobile"
+)
+
 func New(cfg Config) (*Gateway, error) {
 	if err := ValidateConfig(cfg); err != nil {
 		return nil, err
@@ -148,6 +153,23 @@ func validateLoopbackURL(name, raw string) error {
 func (g *Gateway) OriginAllowed(origin string) bool {
 	_, ok := g.origins[strings.TrimSpace(origin)]
 	return ok
+}
+
+func (g *Gateway) ClientBinding(origin, client string) (string, bool) {
+	origin = strings.TrimSpace(origin)
+	client = strings.TrimSpace(client)
+	if origin != "" {
+		return origin, client == "" && g.OriginAllowed(origin)
+	}
+	if client == nativeMobileClient {
+		return nativeMobileBinding, true
+	}
+	return "", client == ""
+}
+
+func (g *Gateway) BindingAllowed(binding string) bool {
+	binding = strings.TrimSpace(binding)
+	return binding == nativeMobileBinding || g.OriginAllowed(binding)
 }
 
 func (g *Gateway) Allow(remoteAddr string) bool {

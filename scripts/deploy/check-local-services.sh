@@ -53,7 +53,7 @@ case "$url" in
     printf '%s\n' '{"ok":true,"service":"ynx-squared","persistence":"atomic-json-mode-0600","nativeIdentity":"ynx1","remoteDeployed":true,"truthfulStatus":"remote-bounded-square-core-no-public-ingress-claim","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6437/health)
-    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"public-square-reads-account-bound-private-routes","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   *)
     echo "unexpected URL: $url" >&2
@@ -205,7 +205,8 @@ check_full_stack_surface() {
 
   if [[ "${YNX_EXPECT_APP_GATEWAY_SERVICE:-0}" == "1" ]]; then
     app_gateway="$(fetch_with_retry "App Gateway health" "http://127.0.0.1:6437/health")"
-    require_contains "App Gateway health" "$app_gateway" '"browserBoundary":"public-square-reads-account-bound-private-routes"'
+    require_contains "App Gateway health" "$app_gateway" '"browserBoundary":"exact-https-origin"'
+    require_contains "App Gateway health" "$app_gateway" '"nativeBoundary":"ynx-mobile-v1"'
     require_contains "App Gateway ownership proof" "$app_gateway" '"ownershipProof":"ynx1-secp256k1-plus-ed25519-device"'
     require_contains "App Gateway session storage" "$app_gateway" '"sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only"'
     require_contains "App Gateway health" "$app_gateway" '"remoteDeployed":true'

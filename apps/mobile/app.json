@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "YNX",
+    "slug": "ynx-chain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ynx",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.mobile"
+    },
+    "android": {
+      "package": "com.ynxweb4.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#002FA7",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Allow YNX to unlock your locally held account keys."
+        }
+      ]
+    ]
+  }
+}

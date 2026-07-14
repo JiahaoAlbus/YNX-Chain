@@ -144,6 +144,49 @@ func TestOwnershipChallengeRejectsWrongKeysHighSExpiryAndReplay(t *testing.T) {
 	}
 }
 
+func TestNativeMobileOwnershipSessionIsBoundSeparatelyFromBrowserOrigin(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	square, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	gateway := newTestGateway(t, chatServer.URL, squareServer.URL, 100)
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+	fixture := newOwnershipFixture(t, 0x81, 0x82, "mobile-device-primary")
+
+	challenge := createNativeHTTPChallenge(t, server.URL, fixture, http.StatusCreated)
+	if challenge.SignDoc.Origin != nativeMobileBinding {
+		t.Fatalf("native sign document binding %q", challenge.SignDoc.Origin)
+	}
+	session := verifyNativeHTTPChallenge(t, server.URL, challenge, fixture, http.StatusCreated)
+	if _, err := gateway.AuthenticateSession(nativeMobileBinding, session.Token, fixture.deviceID); err != nil {
+		t.Fatalf("native session did not authenticate: %v", err)
+	}
+
+	registration := map[string]any{"idempotencyKey": "register-native-primary", "account": fixture.account, "deviceId": fixture.deviceID, "signingPublicKey": fixture.devicePublic, "proofSignature": "upstream-validates-device-proof"}
+	response := protectedNativeRequest(t, server.URL, http.MethodPost, "/app/square/devices", registration, fixture.deviceID, session.Token)
+	if response.Code != http.StatusCreated || len(square.snapshot()) != 1 {
+		t.Fatalf("native registration status=%d upstream=%+v body=%s", response.Code, square.snapshot(), response.Body.String())
+	}
+
+	mixed := mustProtectedRequest(t, http.MethodPost, server.URL+"/app/square/posts", []byte(`{}`), fixture.deviceID, session.Token, testOrigin)
+	mixed.Header.Set("X-YNX-Client", nativeMobileClient)
+	mixedResponse, err := http.DefaultClient.Do(mixed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mixedResponse.Body.Close()
+	if mixedResponse.StatusCode != http.StatusForbidden {
+		t.Fatalf("mixed browser/native binding status %d", mixedResponse.StatusCode)
+	}
+
+	revoke := protectedNativeRequest(t, server.URL, http.MethodPost, "/app/session/revoke", nil, fixture.deviceID, session.Token)
+	if revoke.Code != http.StatusOK {
+		t.Fatalf("native revoke status %d: %s", revoke.Code, revoke.Body.String())
+	}
+	if _, err := gateway.AuthenticateSession(nativeMobileBinding, session.Token, fixture.deviceID); err == nil {
+		t.Fatal("revoked native session remained active")
+	}
+}
+
 func TestOwnershipStateTamperFailsClosed(t *testing.T) {
 	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
 	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
@@ -267,6 +310,79 @@ func protectedRequest(t *testing.T, baseURL, method, path string, value any, dev
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
+	recorder.Code = response.StatusCode
+	recorder.HeaderMap = response.Header.Clone()
+	_, _ = recorder.Body.ReadFrom(response.Body)
+	return recorder
+}
+
+func createNativeHTTPChallenge(t *testing.T, baseURL string, fixture ownershipFixture, want int) ChallengeResponse {
+	t.Helper()
+	body, _ := json.Marshal(ChallengeRequest{Account: fixture.account, DeviceID: fixture.deviceID, DeviceSigningPublicKey: fixture.devicePublic})
+	request := mustRequest(t, http.MethodPost, baseURL+"/app/session/challenges", body, "")
+	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != want {
+		t.Fatalf("native challenge status %d want %d: %s", response.StatusCode, want, readAll(response.Body))
+	}
+	var challenge ChallengeResponse
+	if want == http.StatusCreated {
+		if err := json.NewDecoder(response.Body).Decode(&challenge); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return challenge
+}
+
+func verifyNativeHTTPChallenge(t *testing.T, baseURL string, challenge ChallengeResponse, fixture ownershipFixture, want int) SessionResponse {
+	t.Helper()
+	signBytes, err := base64.RawStdEncoding.DecodeString(challenge.SignBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(signBytes)
+	body, _ := json.Marshal(VerifyChallengeRequest{
+		AccountPublicKey: fixture.accountPublic,
+		AccountSignature: hex.EncodeToString(ecdsa.Sign(fixture.accountPrivate, digest[:]).Serialize()),
+		DeviceSignature:  nativewallet.Sign(fixture.devicePrivate, signBytes),
+	})
+	request := mustRequest(t, http.MethodPost, baseURL+"/app/session/challenges/"+challenge.ChallengeID+"/verify", body, "")
+	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != want {
+		t.Fatalf("native verify status %d want %d: %s", response.StatusCode, want, readAll(response.Body))
+	}
+	var session SessionResponse
+	if want == http.StatusCreated {
+		if err := json.NewDecoder(response.Body).Decode(&session); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return session
+}
+
+func protectedNativeRequest(t *testing.T, baseURL, method, path string, value any, deviceID, token string) *httptest.ResponseRecorder {
+	t.Helper()
+	var body []byte
+	if value != nil {
+		body, _ = json.Marshal(value)
+	}
+	request := mustProtectedRequest(t, method, baseURL+path, body, deviceID, token, "")
+	request.Header.Set("X-YNX-Client", nativeMobileClient)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	recorder := httptest.NewRecorder()
 	recorder.Code = response.StatusCode
 	recorder.HeaderMap = response.Header.Clone()
 	_, _ = recorder.Body.ReadFrom(response.Body)

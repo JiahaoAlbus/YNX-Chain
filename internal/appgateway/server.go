@@ -31,6 +31,7 @@ type Health struct {
 	OK              bool                      `json:"ok"`
 	Service         string                    `json:"service"`
 	BrowserBoundary string                    `json:"browserBoundary"`
+	NativeBoundary  string                    `json:"nativeBoundary"`
 	OwnershipProof  string                    `json:"ownershipProof"`
 	SessionStorage  string                    `json:"sessionStorage"`
 	ActiveSessions  int                       `json:"activeSessions"`
@@ -99,11 +100,11 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		}
 		upstreams[service] = health
 	}
-	status := "local-browser-safe-gateway-not-remote-deployed"
+	status := "local-first-party-app-gateway-not-remote-deployed"
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "public-square-reads-account-bound-private-routes", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: nativeMobileClient, OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
@@ -113,8 +114,9 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	origin := strings.TrimSpace(r.Header.Get("Origin"))
-	if origin != "" && !s.gateway.OriginAllowed(origin) {
-		writeError(w, http.StatusForbidden, "origin is not allowed")
+	binding, allowed := s.gateway.ClientBinding(origin, r.Header.Get("X-YNX-Client"))
+	if !allowed {
+		writeError(w, http.StatusForbidden, "browser origin or native client binding is not allowed")
 		return
 	}
 	if origin != "" {
@@ -129,7 +131,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(r.URL.EscapedPath(), "/app/session/") {
-		s.session(w, r, origin)
+		s.session(w, r, binding)
 		return
 	}
 	service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
@@ -157,11 +159,11 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if protected {
-		if origin == "" {
-			writeError(w, http.StatusUnauthorized, "exact browser origin is required")
+		if binding == "" {
+			writeError(w, http.StatusUnauthorized, "browser origin or native client binding is required")
 			return
 		}
-		session, err := s.gateway.AuthenticateSession(origin, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
+		session, err := s.gateway.AuthenticateSession(binding, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "account-bound app session required")
 			return
@@ -207,9 +209,9 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(responseBody)
 }
 
-func (s *Server) session(w http.ResponseWriter, r *http.Request, origin string) {
-	if origin == "" {
-		writeError(w, http.StatusUnauthorized, "exact browser origin is required")
+func (s *Server) session(w http.ResponseWriter, r *http.Request, binding string) {
+	if binding == "" {
+		writeError(w, http.StatusUnauthorized, "browser origin or native client binding is required")
 		return
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
@@ -226,7 +228,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, origin string) 
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		response, err := s.gateway.CreateChallenge(origin, request)
+		response, err := s.gateway.CreateChallenge(binding, request)
 		if err != nil {
 			writeSessionError(w, err)
 			return
@@ -238,7 +240,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, origin string) 
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		response, err := s.gateway.VerifyChallenge(origin, parts[3], request)
+		response, err := s.gateway.VerifyChallenge(binding, parts[3], request)
 		if err != nil {
 			writeSessionError(w, err)
 			return
@@ -252,7 +254,7 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request, origin string) 
 				return
 			}
 		}
-		if err := s.gateway.RevokeSession(origin, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID")); err != nil {
+		if err := s.gateway.RevokeSession(binding, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID")); err != nil {
 			writeSessionError(w, err)
 			return
 		}

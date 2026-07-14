@@ -30,6 +30,7 @@ make bridge-api-check
 make stablecoin-issuer-check
 make sdk-check
 make browser-signer-check
+make mobile-check
 make chainlist-candidate-check
 make exchange-integration-check
 make validator-peer-readiness-check

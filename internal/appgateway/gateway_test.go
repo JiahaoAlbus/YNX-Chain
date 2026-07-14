@@ -210,7 +210,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "public-square-reads-account-bound-private-routes" || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-browser-safe-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 

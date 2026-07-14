@@ -68,7 +68,7 @@ func validateAudit(state persistentState) error {
 		canonical, canonicalErr := normalizeAccountAddress(challenge.Account)
 		_, keyErr := nativewallet.DecodePublicKey(challenge.DeviceSigningPublicKey, 32)
 		validStatus := challenge.Status == "pending" || (challenge.Status == "consumed" && !challenge.ConsumedAt.IsZero())
-		if id != challenge.ID || !validSegment(id) || err != nil || native != challenge.Account || canonicalErr != nil || canonical != challenge.CanonicalAddress || !identifierPattern.MatchString(challenge.DeviceID) || keyErr != nil || !validStoredOrigin(challenge.Origin) || challenge.IssuedAt.IsZero() || !challenge.ExpiresAt.After(challenge.IssuedAt) || !validStatus {
+		if id != challenge.ID || !validSegment(id) || err != nil || native != challenge.Account || canonicalErr != nil || canonical != challenge.CanonicalAddress || !identifierPattern.MatchString(challenge.DeviceID) || keyErr != nil || !validStoredBinding(challenge.Origin) || challenge.IssuedAt.IsZero() || !challenge.ExpiresAt.After(challenge.IssuedAt) || !validStatus {
 			return errors.New("app gateway challenge state is invalid")
 		}
 	}
@@ -78,7 +78,7 @@ func validateAudit(state persistentState) error {
 		_, keyErr := nativewallet.DecodePublicKey(session.DeviceSigningPublicKey, 32)
 		tokenHash, hashErr := hex.DecodeString(session.TokenHash)
 		validStatus := session.Status == "active" || (session.Status == "revoked" && !session.RevokedAt.IsZero())
-		if id != session.ID || !validSegment(id) || err != nil || native != session.Account || canonicalErr != nil || canonical != session.CanonicalAddress || !identifierPattern.MatchString(session.DeviceID) || keyErr != nil || hashErr != nil || len(tokenHash) != sha256.Size || !validStoredOrigin(session.Origin) || session.IssuedAt.IsZero() || !session.ExpiresAt.After(session.IssuedAt) || !validStatus {
+		if id != session.ID || !validSegment(id) || err != nil || native != session.Account || canonicalErr != nil || canonical != session.CanonicalAddress || !identifierPattern.MatchString(session.DeviceID) || keyErr != nil || hashErr != nil || len(tokenHash) != sha256.Size || !validStoredBinding(session.Origin) || session.IssuedAt.IsZero() || !session.ExpiresAt.After(session.IssuedAt) || !validStatus {
 			return errors.New("app gateway session state is invalid")
 		}
 	}
@@ -105,7 +105,10 @@ func validateAudit(state persistentState) error {
 	return nil
 }
 
-func validStoredOrigin(raw string) bool {
+func validStoredBinding(raw string) bool {
+	if strings.TrimSpace(raw) == nativeMobileBinding {
+		return true
+	}
 	parsed, err := url.Parse(strings.TrimSpace(raw))
 	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.Path == "" && parsed.RawQuery == "" && parsed.Fragment == "" && parsed.User == nil
 }

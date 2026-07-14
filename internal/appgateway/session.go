@@ -123,8 +123,8 @@ type AuditEvent struct {
 func (g *Gateway) CreateChallenge(origin string, req ChallengeRequest) (ChallengeResponse, error) {
 	origin = strings.TrimSpace(origin)
 	account, err := nativewallet.NormalizeNativeAddress(req.Account)
-	if err != nil || !g.OriginAllowed(origin) || !identifierPattern.MatchString(req.DeviceID) {
-		return ChallengeResponse{}, fmt.Errorf("%w: exact origin, ynx1 account, and device id are required", ErrInvalidSessionRequest)
+	if err != nil || !g.BindingAllowed(origin) || !identifierPattern.MatchString(req.DeviceID) {
+		return ChallengeResponse{}, fmt.Errorf("%w: exact client binding, ynx1 account, and device id are required", ErrInvalidSessionRequest)
 	}
 	if _, err := nativewallet.DecodePublicKey(req.DeviceSigningPublicKey, ed25519.PublicKeySize); err != nil {
 		return ChallengeResponse{}, fmt.Errorf("%w: invalid device signing public key", ErrInvalidSessionRequest)
@@ -162,7 +162,7 @@ func (g *Gateway) CreateChallenge(origin string, req ChallengeRequest) (Challeng
 
 func (g *Gateway) VerifyChallenge(origin, challengeID string, req VerifyChallengeRequest) (SessionResponse, error) {
 	origin = strings.TrimSpace(origin)
-	if !g.OriginAllowed(origin) || !validSegment(challengeID) {
+	if !g.BindingAllowed(origin) || !validSegment(challengeID) {
 		return SessionResponse{}, ErrSessionUnauthorized
 	}
 	g.stateMu.Lock()
@@ -213,7 +213,7 @@ func (g *Gateway) AuthenticateSession(origin, token, deviceID string) (AppSessio
 	origin = strings.TrimSpace(origin)
 	token = strings.TrimSpace(token)
 	deviceID = strings.TrimSpace(deviceID)
-	if !g.OriginAllowed(origin) || token == "" || deviceID == "" {
+	if !g.BindingAllowed(origin) || token == "" || deviceID == "" {
 		return AppSession{}, ErrSessionUnauthorized
 	}
 	digest := sha256.Sum256([]byte(token))
