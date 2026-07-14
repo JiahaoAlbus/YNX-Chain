@@ -21,6 +21,8 @@ make explorer-check
 make ai-gateway-check
 make pay-api-check
 make trust-api-check
+make native-wallet-check
+make chat-api-check
 make resource-api-check
 make bridge-api-check
 make stablecoin-issuer-check
