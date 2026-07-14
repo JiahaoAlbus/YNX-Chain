@@ -101,7 +101,8 @@ test("establishes a bound session and signs Square requests without sending priv
   const signPayload = new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1","version":1,"chainId":6423}');
   const signBytes = Buffer.from(signPayload).toString("base64url");
   let challengeCount = 0;
-  const fetchImpl = async (url, options) => {
+  const fetchImpl = async function (url, options) {
+    assert.equal(this, globalThis, "fetch must retain its browser global binding");
     const path = new URL(url).pathname;
     requests.push({path, options});
     if (path === "/app/session/challenges") {

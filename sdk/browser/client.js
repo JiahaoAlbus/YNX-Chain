@@ -25,7 +25,7 @@ export class YNXSquareAppClient {
     this.device = deviceIdentity(this.#deviceSecret);
     if (typeof fetchImpl !== "function") throw new Error("fetch is required");
     if (typeof now !== "function") throw new Error("clock is required");
-    this.#fetch = fetchImpl;
+    this.#fetch = fetchImpl.bind(globalThis);
     this.#now = now;
   }
 
