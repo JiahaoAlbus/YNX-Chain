@@ -4,13 +4,14 @@ Highest-priority bounded delivery (2026-07-15):
 
 Turn the remotely verified native protocol into an installed, lifecycle-safe iOS and Android client path. The Web/PWA remains online as fallback; mobile is the intended primary user window.
 
-Current single action: run the native application on one iOS simulator or device and one Android emulator or device against the public App Gateway, then close the background/foreground, offline, timeout, expiry, revocation, corrupted SecureStore, reinstall, and recovery lifecycle evidence. Produce installable development artifacts only after the corresponding native toolchain succeeds.
+Current single action: run the native application on one iOS simulator or device and one Android emulator or device against the public App Gateway, then observe the implemented background/foreground lock, offline/timeout, expiry/auth revocation, corrupted SecureStore cleanup, reinstall, and recovery behavior. Produce installable development artifacts only after the corresponding native toolchain succeeds.
 
 Why this action:
 
 - `apps/mobile` now contains real React Native iOS/Android controls, not a WebView, and implements live Square/Network reads plus a SecureStore-backed `ynx1...` wallet create/import flow.
 - The mobile signer and App Gateway native-client protocol pass canonical address/signature, session, signed-post-request, device-revocation, and secret non-disclosure tests.
-- `make mobile-check` passes strict TypeScript, seven tests, prohibited-storage scanning, and both iOS/Android Hermes exports. Expo Doctor passes 20/20.
+- Commit `1437771` adds immediate local lock plus best-effort remote session revocation on foreground exit, Square unmount, or identity change; expiry/`401`/`403` invalidation; compose clearing; strict SecureStore decoding; and confirmed unreadable-record cleanup.
+- `make mobile-check` passes strict TypeScript, 13 tests, prohibited-storage scanning, and both iOS/Android Hermes exports. Expo Doctor passes 20/20.
 - Public Gateway release `ynx-chain-ae3e0457c082` now exposes the separately bound `ynx-mobile-v1` protocol while preserving exact browser-origin enforcement.
 - A disposable operator-controlled remote smoke completed ownership proof, device registration, device revocation, and session revocation without creating a Square post. Public active sessions returned to zero and the feed hash remained unchanged.
 - This machine has Java and `adb`, but lacks full Xcode/simulator and Android Emulator/SDK Manager, so device lifecycle proof remains unavailable rather than silently skipped.
@@ -19,7 +20,7 @@ Required implementation:
 
 - Preserve the deployed exact browser-origin and separately bound `ynx-mobile-v1` enforcement. Mixed browser/native requests must continue to fail closed.
 - Keep public Gateway health and the no-post disposable native-protocol revoke smoke as regression gates. Do not submit a public Square post without explicit owner content approval.
-- Add mobile lifecycle handling for background/foreground, expired/revoked sessions, offline/timeout, corrupted SecureStore state, and safe local removal.
+- Exercise the implemented background/foreground, expired/revoked session, offline/timeout, corrupted SecureStore, and safe local removal paths in installed clients; fix only defects found by that evidence.
 - Add biometric unlock only with explicit platform support and fallback behavior; do not claim biometrics from SecureStore storage alone.
 - Install or use a full Xcode simulator and Android emulator environment, then capture one iOS and one Android smoke. If toolchains remain unavailable, retain this as an explicit blocker.
 - Verify reinstall and recovery behavior without logging, uploading, or screenshotting the 64-hex recovery key.
