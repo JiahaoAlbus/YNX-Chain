@@ -1,68 +1,69 @@
 # Next Action
 
-Highest-priority bounded delivery (2026-07-14):
+Highest-priority bounded delivery (2026-07-15):
 
-Build the first native YNX mobile client for iOS and Android. The deployed Web/PWA remains a fallback and proof surface; it is not the final primary user window.
+Promote the locally verified native iOS/Android slice into a remotely testable, lifecycle-safe mobile path. The Web/PWA remains online as fallback; mobile is the intended primary user window.
 
-Current single action: create a React Native mobile application that reuses the verified YNX account/signature formats while replacing browser storage with platform Keychain/Keystore custody. Deliver one real native Square workflow: local account create/import, backup acknowledgement, lock/unlock, ownership-bound Gateway session, live persisted feed, signed composition, and device/session revocation. Do not use a WebView and do not create a public post without owner approval.
+Current single action: commit and remotely deploy the App Gateway `ynx-mobile-v1` binding with scoped backup/rollback, then run a disposable native-protocol ownership/device/session/revocation smoke without publishing a Square post. In parallel, close the missing iOS/Android lifecycle evidence when the required simulator/emulator toolchains are available.
 
 Why this action:
 
-- Website commit `9967633` and Vercel deployment `dpl_3BBSTkc6Q5eb6nLaacfnMLmo9oxG` now provide a production-verified signed Square Web/PWA window.
-- Production browser proof completed disposable account creation, encrypted backup, ownership verification, device registration, session establishment, composition enablement, device/session revocation, and local cleanup. Gateway active sessions returned to zero and the feed remained empty.
-- Users need a primary mobile interaction model for iOS and Android. Expanding more website routes now would not close native custody, biometric lock, mobile navigation, or app lifecycle gaps.
-- Chain signer formats are already cross-language verified. The mobile client must preserve those canonical formats and add platform-specific secure storage instead of forking protocol rules.
+- `apps/mobile` now contains real React Native iOS/Android controls, not a WebView, and implements live Square/Network reads plus a SecureStore-backed `ynx1...` wallet create/import flow.
+- The mobile signer and App Gateway native-client protocol pass canonical address/signature, session, signed-post-request, device-revocation, and secret non-disclosure tests.
+- `make mobile-check` passes strict TypeScript, seven tests, prohibited-storage scanning, and both iOS/Android Hermes exports. Expo Doctor passes 20/20.
+- The currently deployed Gateway release `132b711450f6` supports the browser flow only. Mobile write connectivity must not be claimed until the new binding is remotely deployed and observed.
+- This machine has Java and `adb`, but lacks full Xcode/simulator and Android Emulator/SDK Manager, so device lifecycle proof remains unavailable rather than silently skipped.
 
 Required implementation:
 
-- Create a narrowly scoped React Native application under a dedicated mobile workspace with reproducible dependency locks and no WebView-based product UI.
-- Implement platform adapters for iOS Keychain and Android Keystore. Account and device secrets must never enter AsyncStorage, logs, analytics, screenshots, repository state, Gateway payloads, or build artifacts.
-- Preserve shared `ynx1...` derivation, low-S secp256k1 ownership proof, Ed25519 device proof, exact Square request signatures, stable device identity, and Go/JavaScript vectors.
-- Provide native create and import flows, explicit encrypted backup acknowledgement, lock/unlock, optional biometric gate where platform support is available, and visible recovery limitations.
-- Implement live sessionless Square feed reads and account-bound challenge/verify/device registration against `https://api.ynxweb4.com`.
-- Implement signed post composition but do not submit a public post during smoke. Add signed device/session revocation and safe local removal.
-- Cover cold start, background/foreground, offline, timeout, wrong password, corrupted storage, expired/revoked session, rejected signature, and reinstall/recovery boundaries.
-- Add focused unit/component tests and at least one iOS simulator plus one Android emulator smoke when local toolchains are available. Report any unavailable toolchain honestly.
-- Keep Web/PWA online as the fallback route. Do not start Bank, Shop, broad route expansion, macOS/Windows packaging, or bounded EVM/IDE expansion in this slice.
+- Preserve exact browser-origin enforcement while deploying the separately bound `ynx-mobile-v1` protocol. Mixed browser/native requests must continue to fail closed.
+- Use the existing default-disabled deployment gate, strict SSH role mapping, scoped backup, health polling, and rollback path. Do not expose Chat/Square service keys or raw session tokens.
+- Verify public Gateway health reports the native boundary and exact new release.
+- Run a disposable native-protocol challenge/verify/device-registration/device-revocation/session-revocation lifecycle. Do not submit a public Square post without explicit owner content approval.
+- Add mobile lifecycle handling for background/foreground, expired/revoked sessions, offline/timeout, corrupted SecureStore state, and safe local removal.
+- Add biometric unlock only with explicit platform support and fallback behavior; do not claim biometrics from SecureStore storage alone.
+- Install or use a full Xcode simulator and Android emulator environment, then capture one iOS and one Android smoke. If toolchains remain unavailable, retain this as an explicit blocker.
+- Keep the mobile recovery format truthful: current 64-hex export is not a mnemonic, hardware wallet, social recovery, or completed custody solution.
+- Track the 10 moderate Expo build-chain advisories. Do not apply npm's incompatible Expo 46 downgrade merely to clear the report.
 
 Files to touch:
 
-- new dedicated native mobile workspace and reproducible package lock
-- shared signer/vector adapters under `sdk/browser` only where platform-neutral reuse requires it
-- platform Keychain/Keystore adapters and native Square screens
-- focused mobile verification scripts and Makefile targets
-- `docs/api/API_REFERENCE.md` only after matching mobile code and tests exist
-- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `docs/acceptance/PROJECT_STATE.md`, and `docs/acceptance/NEXT_ACTION.md` after verification
+- `internal/appgateway` and `cmd/ynx-app-gatewayd` only for the already bounded native binding and deployment correctness
+- `apps/mobile` for lifecycle/session/recovery hardening and focused tests
+- deployment and remote verification scripts only where native-bound health/smoke evidence requires them
+- `docs/api/API_REFERENCE.md` only after matching code and tests exist
+- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `docs/acceptance/PROJECT_STATE.md`, and this file after remote/device evidence
 
 Validation commands:
 
-- `make browser-signer-check`
 - `go test ./...`
-- new mobile signer/vector check
-- new mobile unit/component test command
-- iOS simulator build/smoke
-- Android emulator build/smoke
+- `make app-account-ownership-check`
+- `make mobile-check`
+- `make browser-signer-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
-- `make preflight`
+- `GOMAXPROCS=2 make preflight`
 - `make objective-state-check`
-- production read-only Square and Gateway health checks
+- production Gateway health and disposable native-protocol revoke smoke
+- iOS simulator and Android emulator smoke when toolchains exist
 
 Completion standard:
 
-- The same native project produces working iOS and Android application builds, not just mock screens or a web wrapper.
-- A user can create or import a YNX-native account, see its `ynx1...` identity, protect it with platform secure storage, unlock it, establish an ownership-bound session, view the live Square feed, compose a signed post, and revoke the device/session without sending private material to a server.
-- Mobile lifecycle and failure states are visible and safe. Tests prove canonical parity with the chain signer vectors.
-- No App Store, Google Play, hardware-wallet, social-recovery, custody, wallet-default, or independent-audit claim is made until external evidence exists.
+- The public Gateway reports the exact deployed release and native boundary while existing browser Square behavior remains intact.
+- A disposable mobile-protocol client completes ownership proof, device registration, device revocation, and session revocation against the public Gateway without sending private keys or creating a post.
+- iOS and Android continue to produce valid Hermes bundles; simulator/emulator evidence is recorded when toolchains exist.
+- Mobile offline, expiry, revocation, corrupt-storage, and app-lifecycle states fail safely and visibly.
+- No App Store, Google Play, mainnet, exchange listing, stablecoin issuer support, wallet default support, partnership, hardware-wallet, social-recovery, or independent-audit claim is made without external evidence.
 
 Explicitly not doing / truth boundaries:
 
-- Do not expose mnemonics, private keys, recovery secrets, session tokens, Chat/Square service keys, or plaintext private messages to servers, logs, commits, analytics, screenshots, or chain state.
-- Do not treat a generated mobile key as completed custody, backup, recovery, or owner handover.
-- Do not claim an owner-approved public post until exact content and signing account are deliberately approved and observed in the persisted feed.
+- Do not expose mnemonics, private keys, recovery secrets, session tokens, service keys, or plaintext private messages to servers, logs, commits, analytics, screenshots, or chain state.
+- Do not treat `X-YNX-Client` as authentication; both account and device signatures remain mandatory.
+- Do not create a public Square post during infrastructure smoke.
+- Do not call local Hermes exports an IPA, APK/AAB, installed application, simulator proof, real-device proof, or store release.
 - Do not claim independent public proof from operator-controlled checks.
-- Do not claim WeChat-equivalent completeness, wallet default support, mainnet, exchange listing, stablecoin issuer support, third-party partnership, automated punishment, or native YNXT freeze authority.
+- Do not expand Chat, Square interactions, Pay, Trust, Bank, Shop, desktop packaging, or broad website routes before this native deployment/lifecycle slice closes.
 - Do not expand bounded EVM opcode, Counter sample, Hardhat artifact, or IDE work except to preserve passing tests.
 - Do not modify or replace the long-term goal file.
