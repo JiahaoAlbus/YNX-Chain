@@ -4,7 +4,7 @@ Highest-priority bounded delivery (2026-07-14):
 
 Build one real YNX-native browser signing boundary and use it to deliver the first signed Square Web/PWA write workflow against remotely active App Gateway release `ynx-chain-132b711450f6`.
 
-Current single action: implement and verify client-owned `ynx1...` account proof, device-key registration, account-bound session establishment, and signed Square post/comment/reaction/follow/report requests. Private keys must never enter Vercel functions, App Gateway requests, service environments, logs, analytics, or repository state. The production Square page remains read-only until the client storage, signing, revocation, and failure paths pass focused tests and remote non-content smoke.
+Current single action: integrate the locally verified `sdk/browser` signer into the production Square Web/PWA route. Private keys must never enter Vercel functions, App Gateway requests, service environments, logs, analytics, or repository state. The production Square page remains read-only until browser persistence, backup acknowledgement, lock/unlock, signing, revocation, and failure states pass website tests and remote non-content smoke.
 
 Why this action:
 
@@ -15,8 +15,8 @@ Why this action:
 
 Required implementation:
 
-- Add a reviewed browser-capable signer package with deterministic `ynx1...` derivation, canonical ownership sign bytes, low-S secp256k1 signatures, Ed25519 device signatures, and exact Square request-signature generation matching Go vectors.
-- Store encrypted key material only in local browser storage with an explicit lock/unlock boundary, bounded idle/session lifetime, versioned ciphertext metadata, authenticated encryption, and a user-controlled backup/export acknowledgement. Never silently upload or log key material.
+- Use the existing locally verified `sdk/browser` package with deterministic `ynx1...` derivation, low-S secp256k1 ownership signatures, Ed25519 device signatures, exact Square request binding, Go vectors, and encrypted vault primitives. Do not fork or weaken its canonical formats in website code.
+- Persist only the versioned encrypted vault in local browser storage with an explicit lock/unlock boundary, bounded idle/session lifetime, and a user-controlled backup/export acknowledgement. Never silently upload or log key material.
 - Support import and creation as separate explicit flows. Display the derived `ynx1...` address before any registration. Do not claim hardware-wallet, social recovery, custody, or wallet-vendor support.
 - Implement challenge creation, ownership verification, session expiry/revocation, Square device registration/revocation, and signed post/comment/reaction/follow/report clients with exact-origin and idempotency handling.
 - Add focused cross-language vectors and tests for account derivation, sign bytes, DER low-S canonicalization, device proof, request URI/query binding, encrypted storage tamper rejection, wrong password, replay, expiry, logout/revocation, and zero secret leakage into network payload snapshots.

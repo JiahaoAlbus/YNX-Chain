@@ -1,0 +1,27 @@
+{
+  "account": {
+    "ynx": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "evm": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "publicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+  },
+  "device": {
+    "id": "device-browser-1",
+    "signingPublicKey": "25lf4lFp0UHKubu6krqgH58uHs599MsqwFGQ83/MH50"
+  },
+  "ownership": {
+    "signBytes": "eyJkb21haW4iOiJZTlhfQVBQX0FDQ09VTlRfT1dORVJTSElQX1YxIiwidmVyc2lvbiI6MSwiY2hhaW5JZCI6NjQyM30",
+    "accountSignature": "304402200432a331864f0cc70048ff5ce3c5ee83ccb846cfcd0d88fb82f2c7316a53df7c02200a28588ba2db9716786e4af4f6dffb8e9fdaafddc93aac1b78acf5f8e7e6aaad",
+    "deviceSignature": "LFXTBR6pK6G2XQ/I9D4m3ZlHyhmAyxb1cpDevhdu9ghxALBPxAUefBFK8d7njNTr/1uGdw1btV/xUKqHrDbvDA"
+  },
+  "registration": {
+    "idempotencyKey": "register-browser-1",
+    "proofSignature": "xiYjvryDNVPvvjlJmRdVfqlyEIBO3mSBJ/WfZ7ExGmwWBYM/2dsCdEfAgFnUAQ117LDyN7Y5bIJa7VpyenX6BA"
+  },
+  "request": {
+    "method": "POST",
+    "uri": "/square/posts",
+    "timestamp": "2026-07-14T12:00:00Z",
+    "body": "{\"idempotencyKey\":\"post-browser-1\",\"content\":\"ownership-bound\"}",
+    "signature": "EEbTNKrgWCUSDfF/k5SAsHGqzMNORHOOd8bopBpei8bftSR9nplY5vj+bQR7ZDpTK9vSrKCLAk1+u+UkFPXmDA"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@ynx-chain/browser-signer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Client-owned YNX native account and application request signing primitives",
+  "type": "module",
+  "exports": "./index.js",
+  "files": [
+    "client.js",
+    "index.js",
+    "README.md",
+    "vault.js"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test index.test.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0"
+  }
+}
