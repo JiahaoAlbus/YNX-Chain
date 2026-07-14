@@ -1,0 +1,11 @@
+{
+  "blockGrowthPollIntervalMs": 1000,
+  "blockGrowthTimeoutMs": 15000,
+  "explorerAccountQuery": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+  "explorerHealthPath": "/health",
+  "explorerSearchPath": "/api/search",
+  "faucetHealthPath": "/health",
+  "requestAttempts": 3,
+  "requestTimeoutMs": 8000,
+  "restStatusURL": "https://rpc.ynxweb4.com/status"
+}

@@ -3,6 +3,9 @@ const YNX_ADDRESS_HRP = "ynx";
 const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 const BECH32_REVERSE = Object.freeze(Object.fromEntries([...BECH32_CHARSET].map((character, index) => [character, index])));
 
+export {ynxTestnet} from "./ynx-testnet.js";
+export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
+
 export class YNXSDKError extends Error {
   constructor(message, {cause, status, code} = {}) {
     super(message, {cause});
@@ -217,13 +220,3 @@ export function assertYNXTestnetSnapshot(snapshot, {maximumHeightLag = 30} = {})
   }
   return snapshot;
 }
-
-export const ynxTestnet = Object.freeze({
-  chainId: "0x1917",
-  chainIdDecimal: 6423,
-  chainName: "YNX Testnet",
-  nativeCurrency: Object.freeze({name: "YNXT", symbol: "YNXT", decimals: 18}),
-  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
-  restUrls: Object.freeze(["https://rpc.ynxweb4.com"]),
-  blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
-});

@@ -24,6 +24,7 @@ make resource-api-check
 make bridge-api-check
 make stablecoin-issuer-check
 make sdk-check
+make chainlist-candidate-check
 make validator-peer-readiness-check
 make anti-illegal-request-check
 make request-validity-check

@@ -15,20 +15,7 @@ block_number=$(ynx_jsonrpc eth_blockNumber | ynx_json_field '["result"]')
 [[ "$net_version" == "6423" ]] || { echo "unexpected net_version: $net_version"; exit 1; }
 [[ "$block_number" =~ ^0x[0-9a-f]+$ ]] || { echo "invalid eth_blockNumber: $block_number"; exit 1; }
 
-node - <<'NODE'
-const fs = require("fs");
-const metadata = JSON.parse(fs.readFileSync("chain-metadata/ynx-testnet.json", "utf8"));
-if (metadata.chainId !== 6423) throw new Error("chain metadata chainId must be 6423");
-if (metadata.nativeCurrency?.symbol !== "YNXT") throw new Error("native currency symbol must be YNXT");
-const addEthereumChain = {
-  chainId: "0x1917",
-  chainName: "YNX Testnet",
-  nativeCurrency: metadata.nativeCurrency,
-  rpcUrls: metadata.rpc.length ? metadata.rpc : ["http://127.0.0.1:6420/evm"],
-  blockExplorerUrls: metadata.explorers.map((explorer) => explorer.url).filter(Boolean)
-};
-if (addEthereumChain.nativeCurrency.decimals !== 18) throw new Error("YNXT decimals must be 18");
-console.log(JSON.stringify(addEthereumChain));
-NODE
+node --test sdk/js/wallet.test.mjs
+node ./scripts/verify/chainlist-candidate-check.mjs
 
-echo "wallet-integration-check passed: eth_chainId=$chain_id net_version=$net_version block=$block_number native=YNXT"
+echo "wallet-integration-check passed: eth_chainId=$chain_id net_version=$net_version block=$block_number native=YNXT EIP-1193 add/switch is metadata-bound and requests no account secret"

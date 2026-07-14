@@ -1,11 +1,27 @@
 {
-  "name": "YNX Testnet",
   "chain": "YNX",
   "chainId": 6423,
-  "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
-  "rpc": [],
-  "faucets": [],
-  "explorers": [],
-  "status": "requires real public URLs before submission",
-  "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01; repeat before submission"
+  "explorers": [
+    {
+      "name": "YNX Explorer",
+      "standard": "EIP3091",
+      "url": "https://explorer.ynxweb4.com"
+    }
+  ],
+  "faucets": [
+    "https://faucet.ynxweb4.com"
+  ],
+  "infoURL": "https://www.ynxweb4.com",
+  "name": "YNX Testnet",
+  "nativeCurrency": {
+    "decimals": 18,
+    "name": "YNXT",
+    "symbol": "YNXT"
+  },
+  "networkId": 6423,
+  "rpc": [
+    "https://evm.ynxweb4.com"
+  ],
+  "shortName": "ynxt",
+  "status": "active"
 }

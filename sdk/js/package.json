@@ -1,11 +1,13 @@
 {
   "name": "@ynx-chain/sdk",
-  "version": "0.1.0",
-  "description": "Dependency-free JavaScript client for YNX Chain status, EVM JSON-RPC, and ynx1 addresses",
+  "version": "0.2.0",
+  "description": "Dependency-free JavaScript client for YNX Chain status, EVM JSON-RPC, ynx1 addresses, and bounded wallet integration",
   "type": "module",
   "exports": "./index.js",
   "files": [
-    "index.js"
+    "index.js",
+    "wallet.js",
+    "ynx-testnet.js"
   ],
   "engines": {
     "node": ">=18"

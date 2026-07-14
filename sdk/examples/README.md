@@ -13,3 +13,5 @@ SDK address helpers convert the same account between canonical EVM `0x...` and c
 The canonical read-only example is implemented by `make sdk-remote-check`. It runs both clients, verifies REST and EVM identity, requires positive and closely aligned heights, and requires a live release identity. It does not fund an account, submit a transaction, or imply mainnet readiness.
 
 `make sdk-release-package` creates deterministic local JavaScript and Python artifacts plus an unpublished canonical manifest. `make sdk-release-integrity-check` verifies digest, archive, detached-signature, and clean-consumer boundaries. These commands do not publish either package registry.
+
+The JavaScript SDK also provides a metadata-bound EIP-1193 add/switch helper. It never requests wallet accounts or submits transactions; `make wallet-integration-check` verifies its bounded provider method sequence and failure behavior.

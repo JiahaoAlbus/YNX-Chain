@@ -1,0 +1,26 @@
+{
+  "aggregate": {
+    "bytes": 1133516,
+    "chainCount": 2657,
+    "fetchedAt": "2026-07-13T23:55:49Z",
+    "sha256": "030098fee82f2e1ad64e9e9481fa40fa8eec6e1d3b178294423ff3f22aa5135d",
+    "url": "https://chainid.network/chains.json"
+  },
+  "candidate": {
+    "chainId": 6423,
+    "name": "YNX Testnet",
+    "shortName": "ynxt"
+  },
+  "matches": {
+    "chainId": [],
+    "name": [],
+    "shortName": []
+  },
+  "registry": {
+    "commit": "a04fd826d72b9108a2cf1e7b6a7f7e5f13ef6f62",
+    "repository": "https://github.com/ethereum-lists/chains.git",
+    "targetFile": "_data/chains/eip155-6423.json",
+    "targetFilePresent": false
+  },
+  "status": "unassigned-at-observation; refresh-before-submission"
+}

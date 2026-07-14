@@ -62,7 +62,7 @@ function validatePackages(packages, artifactDir, sourceRoot) {
     archiveRoot: "package",
     name: "@ynx-chain/sdk",
     registry: "npm",
-    sourcePaths: ["sdk/js/index.js", "sdk/js/package.json"],
+    sourcePaths: ["sdk/js/index.js", "sdk/js/package.json", "sdk/js/wallet.js", "sdk/js/ynx-testnet.js"],
   }, artifactDir, sourceRoot);
   validatePackage(byID.get("python"), {
     archiveRoot: "",
@@ -126,7 +126,7 @@ function validateExpectedArchiveFiles(entry) {
   const actual = entry.archiveFiles.map((file) => file.archivePath).sort();
   let expected;
   if (entry.id === "javascript") {
-    expected = ["package/index.js", "package/package.json"];
+    expected = ["package/index.js", "package/package.json", "package/wallet.js", "package/ynx-testnet.js"].sort();
   } else {
     const distInfo = `ynx_chain_sdk-${entry.version}.dist-info`;
     expected = [`${distInfo}/METADATA`, `${distInfo}/RECORD`, `${distInfo}/WHEEL`, `${distInfo}/top_level.txt`, "ynx_client.py"].sort();
