@@ -2,15 +2,14 @@
 
 Highest-priority bounded delivery (2026-07-14):
 
-1. Ship the corrective App Gateway release that allows only persisted Square reads. Verify `GET /app/square/feed` succeeds while Square mutations and every Chat route return `404`; record server-local, source-bound TLS, and independent public-vantage evidence separately.
-2. Replace the website's hard-to-scan long-page navigation with stable top-level `Products`, `Apps`, `Explorer`, `Developers`, and in-site `Docs` routes. Docs must render inside the official site rather than sending normal readers to repository files.
-3. Deliver the first real Square Web/PWA window with live feed, post detail, comments, and explicit loading/empty/error/unavailable states. It must show persisted remote data only and must not invent sample posts.
-4. Implement chain-account ownership proof before enabling public device registration, Chat, or any Square mutation. The flow must bind an expiring/replay-resistant challenge to the claimed `ynx1...` chain account, device key, origin, and intended session, with tested revocation and recovery/export warnings.
-5. Establish a shared clean YNX brand system: one reviewed logo/wordmark, Klein blue and white core tokens, typography, icon treatment, and one truthful ecosystem tagline reused by website, Explorer, Wallet, Square, Chat, IDE, and Pay.
-6. Package the shared application shell for macOS and Windows only after the Web/PWA workflows pass. Produce Windows artifacts on Windows CI and macOS artifacts on macOS CI; do not call either platform delivered without install/update/signing verification.
-7. Keep IDE, Pay, Chat, Bank, Shop, AI, Wallet, Explorer, and future ecosystem apps as separately testable products with `live`, `local verified`, or `planned` status. Do not use empty screens to imply completion.
+1. Replace the website's hard-to-scan long-page navigation with stable top-level `Products`, `Apps`, `Explorer`, `Developers`, and in-site `Docs` routes. Docs must render inside the official site rather than sending normal readers to repository files.
+2. Deliver the first real Square Web/PWA window with live feed, post detail, comments, and explicit loading/empty/error/unavailable states. It must show persisted remote data only and must not invent sample posts.
+3. Implement chain-account ownership proof before enabling public device registration, Chat, or any Square mutation. The flow must bind an expiring/replay-resistant challenge to the claimed `ynx1...` chain account, device key, origin, and intended session, with tested revocation and recovery/export warnings.
+4. Establish a shared clean YNX brand system: one reviewed logo/wordmark, Klein blue and white core tokens, typography, icon treatment, and one truthful ecosystem tagline reused by website, Explorer, Wallet, Square, Chat, IDE, and Pay.
+5. Package the shared application shell for macOS and Windows only after the Web/PWA workflows pass. Produce Windows artifacts on Windows CI and macOS artifacts on macOS CI; do not call either platform delivered without install/update/signing verification.
+6. Keep IDE, Pay, Chat, Bank, Shop, AI, Wallet, Explorer, and future ecosystem apps as separately testable products with `live`, `local verified`, or `planned` status. Do not use empty screens to imply completion.
 
-Current single action: deploy the read-only corrective Gateway, then publish the website Apps center, real Square reader, and in-site Docs. Public Chat and writes remain blocked on chain-account ownership proof.
+Current single action: publish the website Apps center, real Square reader, and in-site Docs against the remotely verified read-only Gateway. Public Chat and writes remain blocked on chain-account ownership proof.
 
 Why this action:
 
