@@ -31,7 +31,10 @@ export class YNXMobileAppClient {
   }
 
   get connected(): boolean {
-    return this.session !== null && new Date(this.session.expiresAt).getTime() > this.now().getTime();
+    if (this.session === null) return false;
+    if (new Date(this.session.expiresAt).getTime() > this.now().getTime()) return true;
+    this.session = null;
+    return false;
   }
 
   async connect(): Promise<void> {
@@ -96,6 +99,13 @@ export class YNXMobileAppClient {
     }
   }
 
+  async lockAndRevokeSession(): Promise<void> {
+    const headers = this.session ? this.sessionHeaders() : null;
+    this.session = null;
+    zeroize(this.accountSecret, this.deviceSecret);
+    if (headers) await this.request("/app/session/revoke", undefined, headers);
+  }
+
   lock(): void {
     this.session = null;
     zeroize(this.accountSecret, this.deviceSecret);
@@ -124,7 +134,10 @@ export class YNXMobileAppClient {
     const text = await response.text();
     let data: unknown;
     try { data = text ? JSON.parse(text) : {}; } catch { throw new Error(`YNX application endpoint returned invalid JSON (${response.status})`); }
-    if (!response.ok) throw new Error(isPlainObject(data) && typeof data.error === "string" ? data.error : `YNX application endpoint failed (${response.status})`);
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) this.session = null;
+      throw new Error(isPlainObject(data) && typeof data.error === "string" ? data.error : `YNX application endpoint failed (${response.status})`);
+    }
     return data;
   }
 }

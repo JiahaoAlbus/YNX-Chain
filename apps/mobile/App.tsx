@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Modal,
   Pressable,
@@ -60,6 +61,21 @@ function YNXApp() {
 
   const identity = useMemo(() => stored ? accountIdentity(stored.accountSecret) : null, [stored]);
 
+  const handleSaved = (value: StoredIdentity) => {
+    setStorageError(null);
+    setStored(value);
+  };
+
+  const handleDeleted = () => {
+    setStorageError(null);
+    setStored(null);
+  };
+
+  const resetUnreadableStorage = async () => {
+    await deleteIdentity();
+    handleDeleted();
+  };
+
   useEffect(() => () => {
     if (stored) zeroize(stored.accountSecret, stored.deviceSecret);
   }, [stored]);
@@ -83,8 +99,9 @@ function YNXApp() {
             identity={identity}
             loading={!storageReady}
             error={storageError}
-            onSaved={setStored}
-            onDeleted={() => setStored(null)}
+            onSaved={handleSaved}
+            onDeleted={handleDeleted}
+            onResetUnreadable={storageError?.startsWith("Secure YNX identity record") ? resetUnreadableStorage : null}
           />
         )}
         {tab === "network" && <NetworkScreen />}
@@ -125,7 +142,33 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
 
   useEffect(() => { void load(); }, [load]);
 
-  useEffect(() => () => client?.lock(), [client]);
+  useEffect(() => () => {
+    if (client) void client.lockAndRevokeSession().catch(() => undefined);
+  }, [client]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" || !client) return;
+      const current = client;
+      setClient(null);
+      setComposeOpen(false);
+      setContent("");
+      setSessionError("Session locked when YNX left the foreground. Connect again to continue.");
+      void current.lockAndRevokeSession().catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [client]);
+
+  const storedAccount = stored ? accountIdentity(stored.accountSecret).account : null;
+  useEffect(() => {
+    if (!client || client.account === storedAccount) return;
+    const current = client;
+    setClient(null);
+    setComposeOpen(false);
+    setContent("");
+    setSessionError("Local identity changed. Connect again to continue.");
+    void current.lockAndRevokeSession().catch(() => undefined);
+  }, [client, storedAccount]);
 
   const connect = async () => {
     if (!stored) { openWallet(); return; }
@@ -243,7 +286,7 @@ function PostRow({ post }: { post: SquarePost }) {
   );
 }
 
-function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void }) {
+function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null }) {
   const [mode, setMode] = useState<"closed" | "create" | "import">("closed");
   const [pending, setPending] = useState<StoredIdentity | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -305,13 +348,37 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
     { text: "Remove", style: "destructive", onPress: async () => { await deleteIdentity(); props.onDeleted(); } },
   ]);
 
+  const resetUnreadable = () => Alert.alert("Remove unreadable identity data?", "The damaged local record cannot be recovered. Continue only if the recovery key is stored offline.", [
+    { text: "Cancel", style: "cancel" },
+    { text: "Remove", style: "destructive", onPress: async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        if (!props.onResetUnreadable) throw new Error("Secure storage cannot be reset on this device");
+        await props.onResetUnreadable();
+      } catch (caught) { setError(errorMessage(caught)); }
+      finally { setBusy(false); }
+    } },
+  ]);
+
   if (props.loading) return <View style={styles.center}><ActivityIndicator color={BLUE} /></View>;
   return (
     <View style={styles.screenPadded}>
       <Text style={styles.eyebrow}>NATIVE IDENTITY</Text>
       <Text style={styles.title}>Wallet</Text>
-      {props.error ? <Text style={styles.errorText}>{props.error}</Text> : null}
-      {props.identity ? (
+      {props.error ? (
+        <View style={styles.recoveryErrorPanel}>
+          <Text style={styles.errorText}>{props.error}</Text>
+          {props.onResetUnreadable ? (
+            <>
+              <Text style={styles.walletNote}>YNX will not use an unreadable secure record. Remove it, then import the offline recovery key.</Text>
+              <Pressable disabled={busy} onPress={resetUnreadable} style={({ pressed }) => [styles.destructiveButton, pressed && styles.pressed]}>
+                {busy ? <ActivityIndicator color="#B42318" /> : <><Trash2 color="#B42318" size={18} /><Text style={styles.destructiveText}>Remove unreadable data</Text></>}
+              </Pressable>
+            </>
+          ) : null}
+        </View>
+      ) : props.identity ? (
         <View style={styles.walletBody}>
           <Text style={styles.walletLabel}>YNX address</Text>
           <Text selectable style={styles.address}>{props.identity.account}</Text>
@@ -451,6 +518,7 @@ const styles = StyleSheet.create({
   tabBar: { height: 70, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: LINE, backgroundColor: "rgba(255,255,255,0.98)" },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 5 }, tabText: { color: "#7A8494", fontSize: 11, fontWeight: "600" }, tabTextActive: { color: BLUE },
   walletBody: { marginTop: 36 }, walletLabel: { color: MUTED, fontSize: 12, fontWeight: "600" }, address: { color: INK, fontSize: 17, lineHeight: 25, fontWeight: "600", marginTop: 9 }, secondaryAddress: { color: INK, fontSize: 14, lineHeight: 22, marginTop: 9 },
+  recoveryErrorPanel: { marginTop: 24 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 24 }, walletNote: { color: MUTED, fontSize: 13, lineHeight: 20, marginTop: 14 },
   onboarding: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 }, keyCircle: { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EEF3FF", alignItems: "center", justifyContent: "center", marginBottom: 14 },
   primaryButton: { minHeight: 48, borderRadius: 8, backgroundColor: BLUE, paddingHorizontal: 24, alignItems: "center", justifyContent: "center", marginTop: 24 }, primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
