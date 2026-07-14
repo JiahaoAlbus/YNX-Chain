@@ -209,6 +209,10 @@ YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
 YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
 YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
 YNX_APP_GATEWAY_RATE_LIMIT_MAX=300
+YNX_APP_GATEWAY_STATE_PATH=/var/lib/ynx-chain/app-gateway/state.json
+YNX_APP_GATEWAY_CHAIN_ID=${CHAIN_ID}
+YNX_APP_GATEWAY_CHALLENGE_TTL=5m
+YNX_APP_GATEWAY_SESSION_TTL=30m
 EOF
 printf 'YNX_APP_GATEWAY_CHAT_API_KEY=%q\n' "${YNX_CHAT_API_KEY:-disabled-chat-key}" >> "$work/config/ynx-app-gatewayd.env"
 printf 'YNX_APP_GATEWAY_SQUARE_API_KEY=%q\n' "${YNX_SQUARE_API_KEY:-disabled-square-key}" >> "$work/config/ynx-app-gatewayd.env"
@@ -604,6 +608,7 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
+ReadWritePaths=/var/lib/ynx-chain/app-gateway
 
 [Install]
 WantedBy=multi-user.target
@@ -1010,7 +1015,7 @@ ynx_install_primary_node() {
     echo "Square deployment remains disabled; release package contains ynx-squared but no remote service is installed"
   fi
   if [[ "$YNX_APP_GATEWAY_DEPLOY_ENABLED" == "true" ]]; then
-    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 '$remote_dir/bin/ynx-app-gatewayd' /usr/local/bin/ynx-app-gatewayd && sudo install -m 0644 '$remote_dir/systemd/ynx-app-gatewayd.service' /etc/systemd/system/ynx-app-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-app-gatewayd.env' /etc/ynx/ynx-app-gatewayd.env"
+    ynx_node_ssh "$role" "$user" "$host" "$key" "sudo install -d -o ynx -g ynx -m 0700 /var/lib/ynx-chain/app-gateway && sudo install -m 0755 '$remote_dir/bin/ynx-app-gatewayd' /usr/local/bin/ynx-app-gatewayd && sudo install -m 0644 '$remote_dir/systemd/ynx-app-gatewayd.service' /etc/systemd/system/ynx-app-gatewayd.service && sudo install -m 0600 '$remote_dir/config/ynx-app-gatewayd.env' /etc/ynx/ynx-app-gatewayd.env"
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-app-gatewayd.env; set +a; /usr/local/bin/ynx-app-gatewayd --check-config >/dev/null'"
     ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-app-gatewayd && sudo systemctl restart ynx-app-gatewayd && sudo systemctl --no-pager --full status ynx-app-gatewayd"
     expected_services="${expected_services}YNX_EXPECT_APP_GATEWAY_SERVICE=1 "

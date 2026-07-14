@@ -3,6 +3,7 @@ package appgateway
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -30,6 +31,9 @@ type Health struct {
 	OK              bool                      `json:"ok"`
 	Service         string                    `json:"service"`
 	BrowserBoundary string                    `json:"browserBoundary"`
+	OwnershipProof  string                    `json:"ownershipProof"`
+	SessionStorage  string                    `json:"sessionStorage"`
+	ActiveSessions  int                       `json:"activeSessions"`
 	RemoteDeployed  bool                      `json:"remoteDeployed"`
 	Upstreams       map[string]upstreamHealth `json:"upstreams"`
 	TruthfulStatus  string                    `json:"truthfulStatus"`
@@ -99,7 +103,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "read-only-square-exact-routes-service-keys-server-side", RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "public-square-reads-account-bound-private-routes", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
@@ -124,12 +128,18 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "app gateway rate limit exceeded")
 		return
 	}
+	if strings.HasPrefix(r.URL.EscapedPath(), "/app/session/") {
+		s.session(w, r, origin)
+		return
+	}
 	service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
 	if !ok {
 		writeError(w, http.StatusNotFound, "app route not found")
 		return
 	}
-	if !routeAllowed(service, r.Method, upstreamPath) {
+	public := publicRouteAllowed(service, r.Method, upstreamPath)
+	protected := protectedRouteAllowed(service, r.Method, upstreamPath)
+	if !public && !protected {
 		writeError(w, http.StatusNotFound, "app route not found")
 		return
 	}
@@ -145,6 +155,21 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	if int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
 		writeError(w, http.StatusRequestEntityTooLarge, "request body exceeds gateway policy")
 		return
+	}
+	if protected {
+		if origin == "" {
+			writeError(w, http.StatusUnauthorized, "exact browser origin is required")
+			return
+		}
+		session, err := s.gateway.AuthenticateSession(origin, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "account-bound app session required")
+			return
+		}
+		if r.Method == http.MethodPost && upstreamPath == "/"+service+"/devices" && !s.gateway.RegistrationMatchesSession(service, session, body) {
+			writeError(w, http.StatusUnauthorized, "device registration does not match account-bound session")
+			return
+		}
 	}
 	base, key, keyHeader, _ := s.gateway.upstream(service)
 	upstreamURL := *base
@@ -182,16 +207,78 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(responseBody)
 }
 
+func (s *Server) session(w http.ResponseWriter, r *http.Request, origin string) {
+	if origin == "" {
+		writeError(w, http.StatusUnauthorized, "exact browser origin is required")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
+	if err != nil || int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, "request body exceeds gateway policy")
+		return
+	}
+	path := strings.Trim(r.URL.EscapedPath(), "/")
+	parts := strings.Split(path, "/")
+	switch {
+	case len(parts) == 3 && parts[0] == "app" && parts[1] == "session" && parts[2] == "challenges" && r.Method == http.MethodPost:
+		var request ChallengeRequest
+		if err := decodeOne(body, &request); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		response, err := s.gateway.CreateChallenge(origin, request)
+		if err != nil {
+			writeSessionError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, response)
+	case len(parts) == 5 && parts[0] == "app" && parts[1] == "session" && parts[2] == "challenges" && parts[4] == "verify" && r.Method == http.MethodPost && validSegment(parts[3]):
+		var request VerifyChallengeRequest
+		if err := decodeOne(body, &request); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		response, err := s.gateway.VerifyChallenge(origin, parts[3], request)
+		if err != nil {
+			writeSessionError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusCreated, response)
+	case len(parts) == 3 && parts[0] == "app" && parts[1] == "session" && parts[2] == "revoke" && r.Method == http.MethodPost:
+		if len(strings.TrimSpace(string(body))) != 0 {
+			var request struct{}
+			if err := decodeOne(body, &request); err != nil {
+				writeError(w, http.StatusBadRequest, "session revoke body must be empty")
+				return
+			}
+		}
+		if err := s.gateway.RevokeSession(origin, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID")); err != nil {
+			writeSessionError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"revoked": true})
+	default:
+		writeError(w, http.StatusNotFound, "app session route not found")
+	}
+}
+
 func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 	method := strings.ToUpper(strings.TrimSpace(r.Header.Get("Access-Control-Request-Method")))
 	if method != http.MethodGet && method != http.MethodPost {
 		writeError(w, http.StatusForbidden, "preflight method is not allowed")
 		return
 	}
-	service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
-	if !ok || !routeAllowed(service, method, upstreamPath) {
-		writeError(w, http.StatusNotFound, "app route not found")
-		return
+	if strings.HasPrefix(r.URL.EscapedPath(), "/app/session/") {
+		if !sessionRouteAllowed(method, r.URL.EscapedPath()) {
+			writeError(w, http.StatusNotFound, "app session route not found")
+			return
+		}
+	} else {
+		service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
+		if !ok || (!publicRouteAllowed(service, method, upstreamPath) && !protectedRouteAllowed(service, method, upstreamPath)) {
+			writeError(w, http.StatusNotFound, "app route not found")
+			return
+		}
 	}
 	for _, raw := range strings.Split(r.Header.Get("Access-Control-Request-Headers"), ",") {
 		header := http.CanonicalHeaderKey(strings.TrimSpace(raw))
@@ -199,13 +286,18 @@ func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		switch header {
-		case "Accept", "Content-Type", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature":
+		case "Accept", "Content-Type", "X-Ynx-App-Session", "X-Ynx-Device-Id", "X-Ynx-Timestamp", "X-Ynx-Device-Signature":
 		default:
 			writeError(w, http.StatusForbidden, fmt.Sprintf("preflight header %s is not allowed", header))
 			return
 		}
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func sessionRouteAllowed(method, escapedPath string) bool {
+	parts := strings.Split(strings.Trim(escapedPath, "/"), "/")
+	return method == http.MethodPost && ((len(parts) == 3 && parts[0] == "app" && parts[1] == "session" && (parts[2] == "challenges" || parts[2] == "revoke")) || (len(parts) == 5 && parts[0] == "app" && parts[1] == "session" && parts[2] == "challenges" && validSegment(parts[3]) && parts[4] == "verify"))
 }
 
 func resolveAppPath(escapedPath string) (string, string, bool) {
@@ -222,9 +314,34 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 func setCORS(w http.ResponseWriter, origin string) {
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-App-Session, X-YNX-Device-ID, X-YNX-Timestamp, X-YNX-Device-Signature")
 	w.Header().Set("Access-Control-Max-Age", "600")
 	w.Header().Add("Vary", "Origin")
+}
+
+func decodeOne(body []byte, out any) error {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		return fmt.Errorf("request body must be one bounded JSON object")
+	}
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		return fmt.Errorf("request body must contain exactly one JSON object")
+	}
+	return nil
+}
+
+func writeSessionError(w http.ResponseWriter, err error) {
+	status := http.StatusInternalServerError
+	switch {
+	case errors.Is(err, ErrInvalidSessionRequest):
+		status = http.StatusBadRequest
+	case errors.Is(err, ErrSessionUnauthorized):
+		status = http.StatusUnauthorized
+	case errors.Is(err, ErrSessionConflict):
+		status = http.StatusConflict
+	}
+	writeError(w, status, err.Error())
 }
 
 func securityHeaders(next http.Handler) http.Handler {

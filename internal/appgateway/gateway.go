@@ -1,10 +1,13 @@
 package appgateway
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -20,8 +23,13 @@ type Config struct {
 	MaxResponseBytes int64
 	RateLimitMax     int
 	RateLimitWindow  time.Duration
+	StatePath        string
+	ChainID          int64
+	ChallengeTTL     time.Duration
+	SessionTTL       time.Duration
 	RemoteDeployed   bool
 	Now              func() time.Time
+	Random           io.Reader
 }
 
 type Gateway struct {
@@ -31,6 +39,8 @@ type Gateway struct {
 	origins   map[string]struct{}
 	mu        sync.Mutex
 	visitors  map[string]visitor
+	stateMu   sync.Mutex
+	state     persistentState
 }
 
 type visitor struct {
@@ -51,7 +61,20 @@ func New(cfg Config) (*Gateway, error) {
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
-	return &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, origins: origins, visitors: map[string]visitor{}}, nil
+	if cfg.Random == nil {
+		cfg.Random = rand.Reader
+	}
+	state, exists, err := loadState(cfg.StatePath)
+	if err != nil {
+		return nil, err
+	}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	if !exists {
+		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
+			return nil, err
+		}
+	}
+	return gateway, nil
 }
 
 func ValidateConfig(cfg Config) error {
@@ -93,6 +116,18 @@ func ValidateConfig(cfg Config) error {
 	}
 	if cfg.RateLimitWindow < time.Second || cfg.RateLimitWindow > time.Hour {
 		return errors.New("YNX_APP_GATEWAY_RATE_LIMIT_WINDOW must be between 1s and 1h")
+	}
+	if strings.TrimSpace(cfg.StatePath) == "" || !filepath.IsAbs(cfg.StatePath) || filepath.Clean(cfg.StatePath) == string(filepath.Separator) {
+		return errors.New("YNX_APP_GATEWAY_STATE_PATH must be an absolute file path")
+	}
+	if cfg.ChainID <= 0 {
+		return errors.New("YNX_APP_GATEWAY_CHAIN_ID must be positive")
+	}
+	if cfg.ChallengeTTL < time.Minute || cfg.ChallengeTTL > 15*time.Minute {
+		return errors.New("YNX_APP_GATEWAY_CHALLENGE_TTL must be between 1m and 15m")
+	}
+	if cfg.SessionTTL < 5*time.Minute || cfg.SessionTTL > 24*time.Hour {
+		return errors.New("YNX_APP_GATEWAY_SESSION_TTL must be between 5m and 24h")
 	}
 	return nil
 }
@@ -147,7 +182,7 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 	}
 }
 
-func routeAllowed(service, method, path string) bool {
+func publicRouteAllowed(service, method, path string) bool {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) < 2 || parts[0] != service {
 		return false
@@ -162,6 +197,44 @@ func routeAllowed(service, method, path string) bool {
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "profiles" && parts[3] == "following":
 			return method == "GET" && validSegment(parts[2])
+		}
+	}
+	return false
+}
+
+func protectedRouteAllowed(service, method, path string) bool {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) < 2 || parts[0] != service {
+		return false
+	}
+	switch service {
+	case "chat":
+		switch {
+		case len(parts) == 2 && parts[1] == "devices":
+			return method == "POST"
+		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
+			return method == "POST" && validSegment(parts[2])
+		case len(parts) == 2 && parts[1] == "conversations":
+			return method == "POST"
+		case len(parts) == 3 && parts[1] == "conversations":
+			return method == "GET" && validSegment(parts[2])
+		case len(parts) == 4 && parts[1] == "conversations" && parts[3] == "messages":
+			return (method == "GET" || method == "POST") && validSegment(parts[2])
+		case len(parts) == 6 && parts[1] == "conversations" && parts[3] == "messages":
+			return method == "POST" && validSegment(parts[2]) && validSegment(parts[4]) && (parts[5] == "delivered" || parts[5] == "read")
+		}
+	case "square":
+		switch {
+		case len(parts) == 2 && parts[1] == "devices":
+			return method == "POST"
+		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
+			return method == "POST" && validSegment(parts[2])
+		case len(parts) == 2 && (parts[1] == "posts" || parts[1] == "follows" || parts[1] == "reports"):
+			return method == "POST"
+		case len(parts) == 3 && parts[1] == "reports":
+			return method == "GET" && validSegment(parts[2])
+		case len(parts) == 4 && parts[1] == "posts" && (parts[3] == "comments" || parts[3] == "reactions"):
+			return method == "POST" && validSegment(parts[2])
 		}
 	}
 	return false

@@ -42,17 +42,30 @@ func main() {
 	if err != nil {
 		log.Fatal("YNX_APP_GATEWAY_RATE_LIMIT_WINDOW must be a Go duration")
 	}
+	chainID, err := envInt64("YNX_APP_GATEWAY_CHAIN_ID", 6423)
+	if err != nil {
+		log.Fatal(err)
+	}
+	challengeTTL, err := time.ParseDuration(envOrDefault("YNX_APP_GATEWAY_CHALLENGE_TTL", "5m"))
+	if err != nil {
+		log.Fatal("YNX_APP_GATEWAY_CHALLENGE_TTL must be a Go duration")
+	}
+	sessionTTL, err := time.ParseDuration(envOrDefault("YNX_APP_GATEWAY_SESSION_TTL", "30m"))
+	if err != nil {
+		log.Fatal("YNX_APP_GATEWAY_SESSION_TTL must be a Go duration")
+	}
 	cfg := appgateway.Config{
 		ChatURL: envOrDefault("YNX_APP_GATEWAY_CHAT_URL", "http://127.0.0.1:6435"), ChatAPIKey: os.Getenv("YNX_APP_GATEWAY_CHAT_API_KEY"),
 		SquareURL: envOrDefault("YNX_APP_GATEWAY_SQUARE_URL", "http://127.0.0.1:6436"), SquareAPIKey: os.Getenv("YNX_APP_GATEWAY_SQUARE_API_KEY"),
 		AllowedOrigins: splitCSV(os.Getenv("YNX_APP_GATEWAY_ALLOWED_ORIGINS")), MaxBodyBytes: maxBody, MaxResponseBytes: maxResponse,
-		RateLimitMax: rateMax, RateLimitWindow: rateWindow, RemoteDeployed: envBool("YNX_APP_GATEWAY_DEPLOY_ENABLED"),
+		RateLimitMax: rateMax, RateLimitWindow: rateWindow, StatePath: envOrDefault("YNX_APP_GATEWAY_STATE_PATH", "/var/lib/ynx-chain/app-gateway/state.json"),
+		ChainID: chainID, ChallengeTTL: challengeTTL, SessionTTL: sessionTTL, RemoteDeployed: envBool("YNX_APP_GATEWAY_DEPLOY_ENABLED"),
 	}
 	if *checkConfig {
 		if err := appgateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("ynx-app-gatewayd config check passed; exact browser route and origin allowlists enabled; public deployment not implied")
+		fmt.Println("ynx-app-gatewayd config check passed; ynx1 ownership challenges, persistent hashed sessions, and exact browser allowlists enabled; public deployment not implied")
 		return
 	}
 	gateway, err := appgateway.New(cfg)

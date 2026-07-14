@@ -28,7 +28,7 @@ Current highest priority:
 
 - Replace authoritative replication with public CometBFT voting only after offline recovery, owner handover, rotation, independent custody review, and transaction approval. Keep the current public services online as the rollback boundary.
 - Stablecoin issuer control commit `23a5702ec979` is persistent and locally verified, but the real deploy gate is false and no issuer support, mint/burn execution, remote service, public endpoint, or partnership exists.
-- The next locally actionable product gap is persistent sponsor transactions plus merchant/dApp resource pools with bounded authorization, resource accounting, revocation, audit, and Explorer cost-source evidence.
+- The current bounded product gap is exact-commit deployment and remote verification of the locally implemented `ynx1...` chain-account ownership/session boundary before any public Chat or Square write workflow. The existing remote Gateway remains read-only until replay, expiry, revocation, restart, state permissions, protected registration/mutation, rollback, and chain continuity are proven.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:

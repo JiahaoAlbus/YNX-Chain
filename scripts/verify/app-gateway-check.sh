@@ -30,6 +30,10 @@ common_gateway_env=(
   YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
   YNX_APP_GATEWAY_RATE_LIMIT_MAX=300
   YNX_APP_GATEWAY_RATE_LIMIT_WINDOW=1m
+  YNX_APP_GATEWAY_STATE_PATH="$tmp/app-gateway/state.json"
+  YNX_APP_GATEWAY_CHAIN_ID=6423
+  YNX_APP_GATEWAY_CHALLENGE_TTL=5m
+  YNX_APP_GATEWAY_SESSION_TTL=30m
 )
 
 env "${common_gateway_env[@]}" "$tmp/ynx-app-gatewayd" --check-config >/dev/null
@@ -48,7 +52,7 @@ done
 node - "$tmp/health.json" <<'NODE'
 const fs = require("fs");
 const health = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "read-only-square-exact-routes-service-keys-server-side" || health.truthfulStatus !== "local-browser-safe-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok) {
+if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "public-square-reads-account-bound-private-routes" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-browser-safe-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok) {
   throw new Error(`bad app gateway health: ${JSON.stringify(health)}`);
 }
 NODE
@@ -67,10 +71,13 @@ status="$(curl -sS -H 'Origin: https://evil.example' -o "$tmp/bad-origin.json" -
 status="$(curl -sS -X OPTIONS -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: GET' -H 'Access-Control-Request-Headers: Content-Type' -o /dev/null -w '%{http_code}' http://127.0.0.1:17437/app/square/feed)"
 [[ "$status" == "204" ]] || { echo "browser preflight failed: $status"; exit 1; }
 status="$(curl -sS -X POST -H 'Origin: https://www.ynxweb4.com' -H 'Content-Type: application/json' -d '{}' -o "$tmp/mutation.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/posts)"
-[[ "$status" == "404" ]] || { echo "Square mutation route exposed before account ownership proof: $status"; exit 1; }
+[[ "$status" == "401" ]] || { echo "Square mutation route accepted without account ownership session: $status"; exit 1; }
 status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: attacker-value' -o "$tmp/unknown.json" -w '%{http_code}' http://127.0.0.1:17437/app/square/metrics)"
 [[ "$status" == "404" ]] || { echo "unlisted Square route accepted: $status"; exit 1; }
 ! grep -R -F "$chat_key" "$tmp" --exclude='ynx-*' >/dev/null
 ! grep -R -F "$square_key" "$tmp" --exclude='ynx-*' >/dev/null
 
-echo "app-gateway-check passed: read-only Square routes, no public Chat/mutations, exact origins, server-side credentials, CORS, bounds, rate limit, health, and direct-service denial"
+go run ./scripts/verify/app-gateway-session-smoke.go -url http://127.0.0.1:17437 -origin https://www.ynxweb4.com -signed-post
+[[ "$(stat -f '%Lp' "$tmp/app-gateway/state.json" 2>/dev/null || stat -c '%a' "$tmp/app-gateway/state.json")" == "600" ]] || { echo "App Gateway state mode is not 0600"; exit 1; }
+
+echo "app-gateway-check passed: ynx1 ownership proof, persistent hashed sessions, replay/revocation controls, protected Chat/Square routes, public Square reads, exact origins, CORS, bounds, and direct-service denial"

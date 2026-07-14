@@ -175,6 +175,10 @@ grep -Fq "YNX_SQUARE_STATE_PATH=/var/lib/ynx-chain/square/state.json" "$release_
 grep -Fq "YNX_APP_GATEWAY_DEPLOY_ENABLED=true" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing deploy gate"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_CHAT_API_KEY=" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing Chat credential"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_SQUARE_API_KEY=" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing Square credential"; exit 1; }
+grep -Fq "YNX_APP_GATEWAY_STATE_PATH=/var/lib/ynx-chain/app-gateway/state.json" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing persistent session state path"; exit 1; }
+grep -Fq "YNX_APP_GATEWAY_CHAIN_ID=6423" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing chain identity"; exit 1; }
+grep -Fq "YNX_APP_GATEWAY_CHALLENGE_TTL=5m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded challenge TTL"; exit 1; }
+grep -Fq "YNX_APP_GATEWAY_SESSION_TTL=30m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded session TTL"; exit 1; }
 app_gateway_origins="$(set -a; source "$release_dir/config/ynx-app-gatewayd.env"; printf '%s' "$YNX_APP_GATEWAY_ALLOWED_ORIGINS")"
 [[ "$app_gateway_origins" == "https://www.ynx.test,https://ynx.test" ]] || { echo "App Gateway env missing exact origins"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
@@ -411,6 +415,7 @@ grep -Fq "ReadWritePaths=/var/lib/ynx-chain/square" "$release_dir/systemd/ynx-sq
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-app-gatewayd.env" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-app-gatewayd" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing executable"; exit 1; }
 grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing strict filesystem protection"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/app-gateway" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }

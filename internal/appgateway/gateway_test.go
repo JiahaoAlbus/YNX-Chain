@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -159,14 +160,14 @@ func TestGatewayRejectsOriginsRoutesHeadersAndBounds(t *testing.T) {
 		{"bad origin", http.MethodGet, "/app/square/feed", "https://evil.example", nil, "", http.StatusForbidden},
 		{"unknown route", http.MethodGet, "/app/square/metrics", "", nil, "", http.StatusNotFound},
 		{"encoded escape", http.MethodGet, "/app/square/posts/%2e%2e", "", nil, "", http.StatusNotFound},
-		{"mutating post", http.MethodPost, "/app/square/posts", "", nil, `{}`, http.StatusNotFound},
-		{"device registration", http.MethodPost, "/app/square/devices", "", nil, `{}`, http.StatusNotFound},
-		{"chat disabled", http.MethodPost, "/app/chat/devices", "", nil, `{}`, http.StatusNotFound},
+		{"mutating post needs ownership session", http.MethodPost, "/app/square/posts", "", nil, `{}`, http.StatusUnauthorized},
+		{"device registration needs ownership session", http.MethodPost, "/app/square/devices", "", nil, `{}`, http.StatusUnauthorized},
+		{"chat needs ownership session", http.MethodPost, "/app/chat/devices", "", nil, `{}`, http.StatusUnauthorized},
 		{"large body", http.MethodGet, "/app/square/feed", "", nil, strings.Repeat("x", 4097), http.StatusRequestEntityTooLarge},
 		{"bad preflight method", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "DELETE"}, "", http.StatusForbidden},
 		{"bad preflight header", http.MethodOptions, "/app/square/feed", testOrigin, map[string]string{"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Authorization"}, "", http.StatusForbidden},
 		{"unknown preflight route", http.MethodOptions, "/app/square/metrics", testOrigin, map[string]string{"Access-Control-Request-Method": "GET"}, "", http.StatusNotFound},
-		{"mutation preflight disabled", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "POST"}, "", http.StatusNotFound},
+		{"authenticated mutation preflight", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "X-YNX-App-Session,X-YNX-Device-ID"}, "", http.StatusNoContent},
 		{"good preflight", http.MethodOptions, "/app/square/feed", testOrigin, map[string]string{"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Content-Type"}, "", http.StatusNoContent},
 	}
 	for _, test := range tests {
@@ -209,7 +210,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "read-only-square-exact-routes-service-keys-server-side" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-browser-safe-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "public-square-reads-account-bound-private-routes" || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-browser-safe-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 
@@ -239,7 +240,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 }
 
 func TestValidateConfigFailClosed(t *testing.T) {
-	valid := testConfig("http://127.0.0.1:6435", "http://localhost:6436", 20)
+	valid := testConfig(t, "http://127.0.0.1:6435", "http://localhost:6436", 20)
 	for name, mutate := range map[string]func(*Config){
 		"remote chat upstream": func(c *Config) { c.ChatURL = "https://chat.example" },
 		"short key":            func(c *Config) { c.SquareAPIKey = "short" },
@@ -259,13 +260,14 @@ func TestValidateConfigFailClosed(t *testing.T) {
 	}
 }
 
-func testConfig(chatURL, squareURL string, rate int) Config {
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, Now: time.Now}
+func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
+	t.Helper()
+	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
 }
 
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {
 	t.Helper()
-	gateway, err := New(testConfig(chatURL, squareURL, rate))
+	gateway, err := New(testConfig(t, chatURL, squareURL, rate))
 	if err != nil {
 		t.Fatal(err)
 	}
