@@ -71,7 +71,7 @@ export class YNXMobileAppClient {
       }), this.sessionHeaders());
       this.registeredSquare = true;
     } catch (error) {
-      this.session = null;
+      await this.revokeSessionAfterConnectFailure();
       throw error;
     }
     if (options.registerChat !== false) try {
@@ -84,7 +84,7 @@ export class YNXMobileAppClient {
       await this.request("/app/chat/devices", registration, this.sessionHeaders());
       this.registeredChat = true;
     } catch (error) {
-      this.session = null;
+      await this.revokeSessionAfterConnectFailure();
       throw error;
     }
   }
@@ -214,6 +214,12 @@ export class YNXMobileAppClient {
   private sessionHeaders(): Record<string, string> {
     if (!this.session) throw new Error("Native YNX session is unavailable");
     return { "X-YNX-App-Session": this.session.token, "X-YNX-Device-ID": this.deviceId };
+  }
+
+  private async revokeSessionAfterConnectFailure(): Promise<void> {
+    const headers = this.session ? this.sessionHeaders() : null;
+    this.session = null;
+    if (headers) await this.request("/app/session/revoke", undefined, headers).catch(() => undefined);
   }
 
   private async signedChatRequest(method: "GET" | "POST", requestUri: string, value?: unknown): Promise<unknown> {

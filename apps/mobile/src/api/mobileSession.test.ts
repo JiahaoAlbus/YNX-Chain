@@ -130,6 +130,32 @@ test("clears an active session after an authorization failure", async () => {
   client.lock();
 });
 
+test("revokes the server session when Chat registration fails", async () => {
+  const paths: string[] = [];
+  const account = accountIdentity(accountSecret).account;
+  const deviceId = deviceIdentifier(deviceSecret);
+  const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
+  const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
+  const client = new YNXMobileAppClient({
+    accountSecret,
+    deviceSecret,
+    now: () => new Date("2026-07-14T12:00:00Z"),
+    authorize: permitLocalKeyUse,
+    fetchImpl: async (input: string) => {
+      const path = new URL(input).pathname;
+      paths.push(path);
+      if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "native-connect-failure", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
+      if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "f".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+      if (path === "/app/chat/devices") return jsonResponse(409, { error: "chat registration conflict" });
+      return jsonResponse(200, { ok: true });
+    },
+  });
+  await assert.rejects(client.connect({ registerSquare: false }), /chat registration conflict/);
+  assert.equal(client.connected, false);
+  assert.deepEqual(paths.slice(-2), ["/app/chat/devices", "/app/session/revoke"]);
+  client.lock();
+});
+
 test("locks locally before best-effort session revocation completes", async () => {
   let finishRevoke: (() => void) | undefined;
   const client = connectedClient({
