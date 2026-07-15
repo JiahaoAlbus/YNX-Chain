@@ -9,10 +9,12 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ynxweb4.mobile"
+      "bundleIdentifier": "com.ynxweb4.mobile",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.ynxweb4.mobile",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -28,7 +30,8 @@
         {
           "faceIDPermission": "Allow YNX to unlock your locally held account keys."
         }
-      ]
+      ],
+      "./plugins/withYnxAndroidReleaseSigning"
     ]
   }
 }

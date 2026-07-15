@@ -13,6 +13,7 @@ import {readFile} from "node:fs/promises";
 
 const pkg = JSON.parse(await readFile("apps/mobile/package.json", "utf8"));
 const lock = JSON.parse(await readFile("apps/mobile/package-lock.json", "utf8"));
+const app = JSON.parse(await readFile("apps/mobile/app.json", "utf8"));
 assert.equal(lock.lockfileVersion, 3);
 assert.equal(pkg.dependencies.expo, "~57.0.4");
 assert.equal(pkg.dependencies["expo-secure-store"], "~57.0.0");
@@ -21,6 +22,11 @@ assert.equal(pkg.dependencies["@noble/curves"], "2.2.0");
 assert.equal(pkg.dependencies["@noble/hashes"], "2.2.0");
 assert.equal(pkg.scripts.android, "expo run:android");
 assert.equal(pkg.scripts.ios, "expo run:ios");
+assert.equal(app.expo.android.package, "com.ynxweb4.mobile");
+assert.equal(app.expo.android.versionCode, 1);
+assert.equal(app.expo.ios.bundleIdentifier, "com.ynxweb4.mobile");
+assert.equal(app.expo.ios.buildNumber, "1");
+assert.ok(app.expo.plugins.includes("./plugins/withYnxAndroidReleaseSigning"));
 assert.equal(lock.packages["node_modules/@noble/curves"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/@noble/hashes"].version, "2.2.0");
 NODE
