@@ -4,9 +4,9 @@
 
 - Branch: `codex/ecosystem-wallet-auth`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Wallet Auth`
-- Baseline commit: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`
-- Baseline source: local `origin/main` and `main` both resolved to the commit above on 2026-07-15. A fresh fetch was attempted twice before worktree creation but GitHub TLS failed with `LibreSSL SSL_ERROR_SYSCALL`; no newer remote object could be observed.
-- Final code/proof commit: `33179416ce1f299445934a185194d966e341cdfe`
+- Baseline commit: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`
+- Baseline source: refreshed `origin/main` on 2026-07-16. The isolated Wallet commits were rebased onto this exact commit before final verification and push.
+- Final code/proof commit: `cdc3f4ed8dd4f091b19ce48c792b35585261cc14`
 - Final branch-tip commit: reported to the integration controller after the handoff commit is created. A commit cannot contain its own hash.
 
 ## Changed paths
