@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./tests',workers:1,outputDir:'./test-results',use:{baseURL:'http://127.0.0.1:6440',trace:'retain-on-failure'},webServer:{command:'rm -f /tmp/ynx-trust-center-playwright.json && YNX_TRUST_CENTER_DEV_HEADER_AUTH=1 YNX_TRUST_CENTER_STORE=/tmp/ynx-trust-center-playwright.json go run .',url:'http://127.0.0.1:6440/health',reuseExistingServer:false,timeout:120000}});
