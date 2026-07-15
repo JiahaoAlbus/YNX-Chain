@@ -519,7 +519,8 @@ func (s *Service) Messages(actor Device, id string) ([]Message, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]Message(nil), s.state.Messages[id]...), nil
+	records := s.state.Messages[id]
+	return append(make([]Message, 0, len(records)), records...), nil
 }
 
 func (s *Service) Health() Health {

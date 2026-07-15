@@ -124,6 +124,13 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	conversation := conversationResult.Record
+	emptyMessages, err := service.Messages(alice.device, conversation.ID)
+	if err != nil || emptyMessages == nil || len(emptyMessages) != 0 {
+		t.Fatalf("empty message list must be a non-nil zero-length slice: %#v %v", emptyMessages, err)
+	}
+	if encoded := string(mustJSON(t, map[string]any{"messages": emptyMessages})); encoded != `{"messages":[]}` {
+		t.Fatalf("empty message API shape %s", encoded)
+	}
 	conversations := service.Conversations(alice.device)
 	if len(conversations) != 1 || conversations[0].ID != conversation.ID {
 		t.Fatalf("conversation list: %+v", conversations)
