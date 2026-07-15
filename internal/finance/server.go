@@ -70,6 +70,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/protocol-risk", s.protected("finance.portfolio.read", s.protocolRisk))
 	s.mux.HandleFunc("POST /api/ai/jobs", s.protected("finance.ai.draft", s.startAI))
 	s.mux.HandleFunc("GET /api/ai/jobs/{id}", s.protected("finance.ai.draft", s.getAI))
+	s.mux.HandleFunc("DELETE /api/ai/jobs/{id}", s.protected("finance.ai.draft", s.deleteAI))
 	s.mux.HandleFunc("POST /api/ai/jobs/{id}/cancel", s.protected("finance.ai.draft", s.cancelAI))
 	s.mux.HandleFunc("POST /api/ai/jobs/{id}/decision", s.protected("finance.ai.draft", s.decideAI))
 	s.mux.HandleFunc("GET /", s.web)
@@ -345,6 +346,13 @@ func (s *Server) getAI(w http.ResponseWriter, r *http.Request, session Session) 
 		return
 	}
 	writeJSON(w, 200, job)
+}
+func (s *Server) deleteAI(w http.ResponseWriter, r *http.Request, session Session) {
+	if err := s.service.DeleteAI(session.Account, r.PathValue("id")); err != nil {
+		writeError(w, 409, "delete_rejected", err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) cancelAI(w http.ResponseWriter, r *http.Request, session Session) {

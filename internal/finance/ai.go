@@ -249,6 +249,25 @@ func (s *Service) CancelAI(account, id string) error {
 	return nil
 }
 
+func (s *Service) DeleteAI(account, id string) error {
+	job, ok := s.aiJob(account, id)
+	if !ok {
+		return errors.New("AI job not found")
+	}
+	if job.Status == "running" {
+		return errors.New("cancel a running AI job before deleting it")
+	}
+	return s.Store.Update(account, "ai.deleted", id, func(state *AccountState) error {
+		for i := range state.AIJobs {
+			if state.AIJobs[i].ID == id {
+				state.AIJobs = append(state.AIJobs[:i], state.AIJobs[i+1:]...)
+				return nil
+			}
+		}
+		return errors.New("AI job not found")
+	})
+}
+
 func (s *Service) DecideAI(account, id, decision string) error {
 	if decision != "apply" && decision != "reject" {
 		return errors.New("AI decision must be apply or reject")

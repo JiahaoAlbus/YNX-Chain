@@ -189,6 +189,16 @@ func TestAIBudgetDraftOnlyAppliesAfterReview(t *testing.T) {
 	if len(budgets) != 1 || budgets[0].LimitYNXT != 75 || budgets[0].Name != "AI draft" {
 		t.Fatalf("reviewed AI budget not applied: %+v", budgets)
 	}
+	if err := service.DeleteAI(testAccount, job.ID); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.Account(testAccount).AIJobs) != 0 {
+		t.Fatal("AI draft data was not deleted")
+	}
+	audit := store.Audit(testAccount)
+	if len(audit) == 0 || audit[len(audit)-1].Action != "ai.deleted" {
+		t.Fatal("minimal AI deletion audit event is missing")
+	}
 }
 
 func testAssertion(t *testing.T, secret, nonce string) SignedWalletAssertion {

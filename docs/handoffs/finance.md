@@ -77,7 +77,9 @@ Supported draft kinds are `categorize`, `explain_fees`, `draft_budget`,
    drafts are revalidated against account categories, period and positive YNXT
    limits. No draft applies before review.
 7. Provider/model, selected context class, record IDs, estimate, status,
-   decision and timestamps remain in the account audit state.
+   decision and timestamps remain in the account audit state. The user can
+   delete a non-running draft and its result/context; a minimal `ai.deleted`
+   event without draft content remains for security audit.
 
 The permission sent to the Gateway explicitly excludes transactions, transfers,
 trades, borrowing, lending, staking, freezing and account-control changes.

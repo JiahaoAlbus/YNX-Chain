@@ -19,6 +19,8 @@ test('wallet, real-source, export and AI review paths are wired',()=>{
   assert.ok(js.includes("crypto.randomUUID()"));
   assert.ok(js.includes("No receipt placeholders are shown"));
   assert.ok(js.includes("data-ai=apply"));
+  assert.ok(js.includes("Delete draft data"));
+  assert.ok(js.includes("window.confirm"));
 });
 test('responsive and accessibility contracts exist',()=>{
   assert.ok(html.includes('class="skip"'));
