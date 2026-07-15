@@ -6,6 +6,8 @@ YNX Chain is a full-stack blockchain ecosystem made of distinct products, not on
 
 Shared `ynx1...` identity, YNXT settlement, Trust evidence, resource accounting, and signed APIs connect products only through explicit consent. A Social user finds people by `@handle`, contacts, invite links, or QR codes. The chain account remains the cryptographic principal and is not the normal friend-search interface.
 
+Every product is AI-native through the permissioned YNX AI Gateway, but AI is a product-specific workflow rather than a repeated generic chat panel. Context selection, provider/model status, resource/cost estimate, streaming/cancel, result review, apply/reject, audit and failure recovery are required. AI cannot bypass Wallet signatures, payment confirmation, Trust review, product authorization or explicit user consent.
+
 Klein blue `#002FA7` and white are the ecosystem foundation. Apple-style means restrained hierarchy, platform-native interaction, motion, accessibility, clear recovery, and predictable navigation. It does not mean copying Apple or a benchmark product's protected artwork or exact interface.
 
 The current `com.ynxweb4.mobile` build is an internal integration and acceptance shell. It is not the final consumer product and must not be marketed as the YNX ecosystem App.
@@ -26,6 +28,14 @@ The current `com.ynxweb4.mobile` build is an internal integration and acceptance
 | YNX Trust Center | case-management and transparency workflows | evidence, tracing, request validity, rejection reasons, appeals, correction, transparency reports | standalone Web and contextual universal links from other products | protocol/API engineering exists; full public case-center product remains incomplete |
 | YNX Resource Market | cloud marketplace-style capacity management | resource balance, rental/delegation, sponsored pools, pricing, income, history, disputes | standalone Web/mobile product | runtime slices exist; current public release and complete marketplace workflow remain incomplete |
 | YNX Browser | Safari/Chrome-class browsing with explicit Web4 permissions | proven engine, origin isolation, tabs, downloads, permissions, phishing controls, wallet/session mediation, updates | separate desktop/mobile browser | target product; no browser is claimed |
+| YNX Music | Spotify/Apple Music-class listening and creator operations | licensed catalog, search, library, playback, playlists, creator publishing, rights, usage, royalty evidence, settlement and disputes | separate mobile/desktop/Web product plus creator console | target product; no licensed public catalog or production streaming service is claimed |
+| YNX Video | YouTube-class viewing and creator operations | upload/transcode, channels, discovery, playback, captions, subscriptions, comments, moderation, analytics, monetization evidence and appeals | separate mobile/TV/Web product plus creator studio | target product; no public media service or creator monetization is claimed |
+| YNX Cloud | Drive-class file lifecycle | upload/download, folders, search, versions, sharing, permissions, quota, recovery, integrity and audit | separate mobile/desktop/Web product | target product; no production-durable user storage service is claimed |
+| YNX Docs | Docs-class editing and collaboration | create/edit/autosave, versions, comments, access control, bounded collaboration, export and conflict recovery | separate Web/desktop/mobile product | target product; no production collaboration service is claimed |
+| YNX Search | source-grounded Web4 search | authorized indexing, query, filters, source/freshness evidence, correction, removal and appeal | separate Web/mobile product and browser integration | target product; no global-web coverage is claimed |
+| YNX Finance | modern personal-finance ergonomics without unsupported bank claims | owned portfolio/activity, budgets, receipts, statements, risk explanation, alerts, privacy and disputes | separate mobile/Web product | target product; no bank, broker, custody, credit, insurance or yield service is claimed |
+| YNX Mail | modern private messaging and internet-mail workflow | inbox, threads, compose, drafts, delivery state, attachments, search, spam/abuse controls, identity and recovery | separate mobile/desktop/Web product | target product; no internet-wide mail-delivery service is claimed |
+| YNX Calendar | modern scheduling and collaboration | events, invites, RSVP, recurrence, reminders, time zones, sharing, conflicts and recovery | separate mobile/desktop/Web product | target product; no production scheduling service is claimed |
 
 Benchmarks define expected workflow completeness and usability, not partnerships, compatibility approval, copied code, or copied branding.
 
@@ -42,9 +52,9 @@ Benchmarks define expected workflow completeness and usability, not partnerships
 
 | Surface | Primary role |
 | --- | --- |
-| iOS / Android | separate Social, Wallet, Pay, Exchange, Shop, AI, and approval clients where the complete workflow is real |
-| Web / PWA | Explorer, docs, official status, Exchange terminal, Shop, Trust Center, Resource Market, and bounded product companions |
-| macOS / Windows | Developer, Exchange professional terminal, merchant operations, Monitor, and later Browser |
+| iOS / Android | separate Social, Wallet, Pay, Exchange, Shop, AI, Music, Video, Cloud, Finance, Mail, Calendar, and approval clients where the complete workflow is real |
+| Web / PWA | Explorer, Developer, Docs, Search, official status, Exchange terminal, Shop, Trust Center, Resource Market, Cloud, media creator consoles, and bounded product companions |
+| macOS / Windows | Developer, Exchange professional terminal, merchant operations, Monitor, Music, Cloud, Mail, Calendar, and later Browser |
 | Browser extension | Wallet DApp permissions and transaction signing only |
 | Chain services | RPC, Indexer, Chat, Square, Pay, Trust, AI, Resource, governance, and audited product APIs |
 
