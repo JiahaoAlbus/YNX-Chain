@@ -101,6 +101,51 @@ test("lists, sends, decrypts, and acknowledges native Chat messages", async () =
   client.lock();
 });
 
+test("signs and binds native Square comment, reaction, follow, and report actions", async () => {
+  const requests: Array<{ path: string; init?: RequestInit }> = [];
+  const authorizations: string[] = [];
+  const account = accountIdentity(accountSecret).account;
+  const deviceId = deviceIdentifier(deviceSecret);
+  const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
+  const target = "ynx1llllllllllllllllllllllllllllllllyj698f";
+  const postId = "post_social_1";
+  const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
+  const fetchImpl = async (input: string, init?: RequestInit): Promise<Response> => {
+    const path = new URL(input).pathname;
+    requests.push({ path, init });
+    if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "social-actions", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
+    if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "q".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+    if (path.endsWith("/comments")) return jsonResponse(201, { replayed: false, record: { id: "comment_social_1", postId, author: account, authorDevice: deviceId, content: "Native reply", status: "active", createdAt: "2026-07-14T12:00:01Z" } });
+    if (path.endsWith("/reactions")) return jsonResponse(201, { replayed: false, record: { postId, account, kind: "support", active: true, updatedAt: "2026-07-14T12:00:02Z" } });
+    if (path === "/app/square/follows") return jsonResponse(201, { replayed: false, record: { follower: account, following: target, active: true, updatedAt: "2026-07-14T12:00:03Z" } });
+    if (path === "/app/square/reports") return jsonResponse(201, { replayed: false, record: { id: "report_social_1", reporter: account, targetType: "post", targetId: postId, category: "spam", detail: "Review this record", status: "pending_review", appealRoute: "/trust/appeals", createdAt: "2026-07-14T12:00:04Z", updatedAt: "2026-07-14T12:00:04Z" } });
+    return jsonResponse(201, { ok: true });
+  };
+  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:00:00Z"), authorize: async (purpose) => { authorizations.push(purpose); } });
+  await client.connect({ registerChat: false });
+  assert.equal((await client.createSquareComment(postId, "Native reply", "comment-native-1")).postId, postId);
+  assert.equal((await client.setSquareReaction(postId, "support", true, "reaction-native-1")).active, true);
+  assert.equal((await client.setSquareFollow(target, true, "follow-native-1")).following, target);
+  assert.equal((await client.createSquareReport({ targetType: "post", targetId: postId, category: "spam", detail: "Review this record", idempotencyKey: "report-native-1" })).appealRoute, "/trust/appeals");
+  const mutations = requests.filter((request) => request.path.includes("/comments") || request.path.includes("/reactions") || request.path.endsWith("/follows") || request.path.endsWith("/reports"));
+  assert.deepEqual(mutations.map((request) => request.path), [`/app/square/posts/${postId}/comments`, `/app/square/posts/${postId}/reactions`, "/app/square/follows", "/app/square/reports"]);
+  for (const request of mutations) assert.match(String((request.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
+  assert.deepEqual(authorizations, ["ownership-proof", "signed-social-action", "signed-social-action", "signed-social-action", "signed-social-action"]);
+  client.lock();
+});
+
+test("rejects malformed Square social actions before signing", async () => {
+  const purposes: string[] = [];
+  const client = connectedClient({ authorize: async (purpose) => { purposes.push(purpose); } });
+  await client.connect({ registerChat: false });
+  await assert.rejects(client.createSquareComment("../post", "reply", "comment-native-1"), /post ID is invalid/);
+  await assert.rejects(client.setSquareReaction("post_1", "clap" as "like", true, "reaction-native-1"), /reaction kind is invalid/);
+  await assert.rejects(client.setSquareFollow(client.account, true, "follow-native-1"), /local account/);
+  await assert.rejects(client.createSquareReport({ targetType: "post", targetId: "post_1", category: "x", detail: "", idempotencyKey: "report-native-1" }), /category is invalid/);
+  assert.deepEqual(purposes, ["ownership-proof"]);
+  client.lock();
+});
+
 test("aborts a stalled native ownership request", async () => {
   const fetchImpl = async (_input: string, init?: RequestInit): Promise<Response> => new Promise((_resolve, reject) => {
     init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), { once: true });

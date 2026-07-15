@@ -16,9 +16,10 @@ import {
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync, usePreventScreenCapture } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
-import { Activity, CreditCard, Fingerprint, KeyRound, LogOut, MessageCircle, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
+import { Activity, ChevronLeft, CreditCard, Flag, Heart, KeyRound, LogOut, MessageCircle, Plus, Radio, RefreshCw, Send, Trash2, UserPlus, WalletCards, X } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { fetchGatewayHealth, fetchSquareFeed, type GatewayHealth, type SquarePost } from "./src/api/ynxGateway";
+import { fetchGatewayHealth, fetchSquareComments, fetchSquareFeed, fetchSquareFollowing, type GatewayHealth, type SquarePost } from "./src/api/ynxGateway";
+import type { SquareComment } from "./src/api/square";
 import { YNXMobileAppClient } from "./src/api/mobileSession";
 import { accountIdentity, exportAccountSecret, importAccountSecret, isValidAccountSecret, zeroize, type YNXIdentity } from "./src/crypto/ynxSigner";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
@@ -27,7 +28,8 @@ import { NativeWalletDashboard } from "./src/components/NativeWalletDashboard";
 import { NativePayScreen } from "./src/components/NativePayScreen";
 import { NativeChatScreen } from "./src/components/NativeChatScreen";
 
-type Tab = "square" | "chat" | "wallet" | "pay" | "network";
+type Tab = "social" | "wallet" | "pay" | "network";
+type SocialRoute = "feed" | "messages";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -44,7 +46,8 @@ export default function App() {
 }
 
 function YNXApp() {
-  const [tab, setTab] = useState<Tab>("square");
+  const [tab, setTab] = useState<Tab>("social");
+  const [socialRoute, setSocialRoute] = useState<SocialRoute>("feed");
   const [stored, setStored] = useState<StoredIdentity | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -99,8 +102,13 @@ function YNXApp() {
       </View>}
 
       <View style={styles.content}>
-        {tab === "square" && <SquareScreen stored={stored} openWallet={() => setTab("wallet")} />}
-        {tab === "chat" && <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} />}
+        {tab === "social" && <View style={styles.socialShell}>
+          {!chatDetail && <View style={styles.socialSwitcher}>
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "feed" }} onPress={() => setSocialRoute("feed")} style={[styles.socialSwitch, socialRoute === "feed" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "feed" && styles.socialSwitchTextActive]}>Feed</Text></Pressable>
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "messages" }} onPress={() => setSocialRoute("messages")} style={[styles.socialSwitch, socialRoute === "messages" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "messages" && styles.socialSwitchTextActive]}>Messages</Text></Pressable>
+          </View>}
+          {socialRoute === "feed" ? <SquareScreen stored={stored} openWallet={() => setTab("wallet")} /> : <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} />}
+        </View>}
         {tab === "wallet" && (
           <WalletScreen
             stored={stored}
@@ -117,8 +125,7 @@ function YNXApp() {
       </View>
 
       {!chatDetail && <View style={styles.tabBar}>
-        <TabButton active={tab === "square"} icon={Radio} label="Square" onPress={() => setTab("square")} />
-        <TabButton active={tab === "chat"} icon={MessageCircle} label="Chat" onPress={() => setTab("chat")} />
+        <TabButton active={tab === "social"} icon={MessageCircle} label="Social" onPress={() => setTab("social")} />
         <TabButton active={tab === "wallet"} icon={WalletCards} label="Wallet" onPress={() => setTab("wallet")} />
         <TabButton active={tab === "pay"} icon={CreditCard} label="Pay" onPress={() => setTab("pay")} />
         <TabButton active={tab === "network"} icon={Activity} label="Network" onPress={() => setTab("network")} />
@@ -137,6 +144,7 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
   const [composeOpen, setComposeOpen] = useState(false);
   const [content, setContent] = useState("");
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<SquarePost | null>(null);
 
   const load = useCallback(async (refresh = false) => {
     refresh ? setRefreshing(true) : setLoading(true);
@@ -162,6 +170,7 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
       if (nextState === "active" || !client) return;
       const current = client;
       setClient(null);
+      setSelectedPost(null);
       setComposeOpen(false);
       setContent("");
       setSessionError("Session locked when YNX left the foreground. Connect again to continue.");
@@ -175,6 +184,7 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
     if (!client || client.account === storedAccount) return;
     const current = client;
     setClient(null);
+    setSelectedPost(null);
     setComposeOpen(false);
     setContent("");
     setSessionError("Local identity changed. Connect again to continue.");
@@ -255,9 +265,10 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} tintColor={BLUE} />}
           contentContainerStyle={posts.length === 0 ? styles.emptyList : styles.feedList}
           ListEmptyComponent={<View style={styles.center}><Radio color={BLUE} size={30} strokeWidth={1.5} /><Text style={styles.emptyTitle}>The Square is quiet</Text><Text style={styles.centerText}>Live public feed connected. No posts are stored yet.</Text></View>}
-          renderItem={({ item }) => <PostRow post={item} />}
+          renderItem={({ item }) => <PostRow post={item} onPress={() => setSelectedPost(item)} />}
         />
       )}
+      {selectedPost ? <SquarePostDetail post={selectedPost} client={client?.connected ? client : null} close={() => setSelectedPost(null)} refreshFeed={() => load(true)} /> : null}
       <Modal visible={composeOpen} transparent animationType="slide" onRequestClose={() => setComposeOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
@@ -280,9 +291,9 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
   );
 }
 
-function PostRow({ post }: { post: SquarePost }) {
+function PostRow({ post, onPress }: { post: SquarePost; onPress: () => void }) {
   return (
-    <View style={styles.postRow}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Open post by ${shortAddress(post.author)}`} onPress={onPress} style={({ pressed }) => [styles.postRow, pressed && styles.postPressed]}>
       <View style={styles.avatar}><Text style={styles.avatarText}>Y</Text></View>
       <View style={styles.postBody}>
         <View style={styles.postMeta}>
@@ -293,8 +304,100 @@ function PostRow({ post }: { post: SquarePost }) {
         {post.tags?.length ? <Text style={styles.tags}>{post.tags.map((tag) => `#${tag}`).join("  ")}</Text> : null}
         <Text style={styles.postStats}>{post.commentCount} replies  ·  {post.reactionCount} reactions</Text>
       </View>
-    </View>
+    </Pressable>
   );
+}
+
+function SquarePostDetail({ post, client, close, refreshFeed }: { post: SquarePost; client: YNXMobileAppClient | null; close: () => void; refreshFeed: () => Promise<void> }) {
+  const [comments, setComments] = useState<SquareComment[]>([]);
+  const [comment, setComment] = useState("");
+  const [following, setFollowing] = useState(false);
+  const [supported, setSupported] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportStatus, setReportStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [nextComments, followingAccounts] = await Promise.all([
+        fetchSquareComments(post.id),
+        client ? fetchSquareFollowing(client.account) : Promise.resolve([]),
+      ]);
+      setComments(nextComments);
+      setFollowing(followingAccounts.includes(post.author));
+      setError(null);
+    } catch (caught) { setError(errorMessage(caught)); }
+    finally { setLoading(false); }
+  }, [client, post.author, post.id]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const mutate = async (operation: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try { await operation(); await refreshFeed(); }
+    catch (caught) { setError(errorMessage(caught)); }
+    finally { setBusy(false); }
+  };
+
+  const publishComment = () => mutate(async () => {
+    if (!client) throw new Error("Connect your YNX identity to comment");
+    await client.createSquareComment(post.id, comment, await socialKey("comment"));
+    setComment("");
+    setComments(await fetchSquareComments(post.id));
+  });
+  const support = () => mutate(async () => {
+    if (!client) throw new Error("Connect your YNX identity to react");
+    await client.setSquareReaction(post.id, "support", true, await socialKey("reaction"));
+    setSupported(true);
+  });
+  const follow = () => mutate(async () => {
+    if (!client) throw new Error("Connect your YNX identity to follow");
+    const next = !following;
+    await client.setSquareFollow(post.author, next, await socialKey("follow"));
+    setFollowing(next);
+  });
+  const report = () => mutate(async () => {
+    if (!client) throw new Error("Connect your YNX identity to report");
+    const record = await client.createSquareReport({ targetType: "post", targetId: post.id, category: "review_requested", detail: reportDetail, idempotencyKey: await socialKey("report") });
+    setReportStatus(`${record.status} · ${record.id}`);
+    setReportDetail("");
+    setReportOpen(false);
+  });
+
+  const ownPost = client?.account === post.author;
+  return <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={close}>
+    <SafeAreaView style={styles.detailSafeArea} edges={["top", "bottom", "left", "right"]}>
+      <View style={styles.detailHeader}><Pressable accessibilityLabel="Back to Social feed" onPress={close} style={styles.detailBack}><ChevronLeft color={INK} size={25} /></Pressable><Text style={styles.detailTitle}>Post</Text><View style={styles.detailHeaderSpacer} /></View>
+      <FlatList
+        data={comments}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.detailList}
+        refreshing={loading}
+        onRefresh={() => void load()}
+        ListHeaderComponent={<>
+          <PostRow post={post} onPress={() => undefined} />
+          <View style={styles.socialActions}>
+            <Pressable disabled={!client || busy || supported} onPress={() => void support()} style={[styles.socialAction, (!client || supported) && styles.socialActionMuted]}><Heart color={supported ? BLUE : INK} fill={supported ? BLUE : "transparent"} size={19} /><Text style={styles.socialActionText}>{supported ? "Supported" : "Support"}</Text></Pressable>
+            {!ownPost ? <Pressable disabled={!client || busy} onPress={() => void follow()} style={[styles.socialAction, !client && styles.socialActionMuted]}><UserPlus color={following ? BLUE : INK} size={19} /><Text style={styles.socialActionText}>{following ? "Following" : "Follow"}</Text></Pressable> : null}
+            <Pressable disabled={!client || busy} onPress={() => setReportOpen(!reportOpen)} style={[styles.socialAction, !client && styles.socialActionMuted]}><Flag color={INK} size={18} /><Text style={styles.socialActionText}>Report</Text></Pressable>
+          </View>
+          {!client ? <Text style={styles.detailNotice}>Connect from the Feed header to comment, react, follow, or report.</Text> : null}
+          {reportOpen ? <View style={styles.reportPanel}><Text style={styles.reportTitle}>Request review</Text><TextInput value={reportDetail} onChangeText={setReportDetail} maxLength={2000} multiline style={styles.reportInput} placeholder="Describe the issue and relevant evidence" placeholderTextColor="#98A2B3" /><Pressable disabled={busy} onPress={() => void report()} style={styles.reportSubmit}><Text style={styles.primaryButtonText}>Submit signed report</Text></Pressable></View> : null}
+          {reportStatus ? <Text selectable style={styles.reportStatus}>{reportStatus}</Text> : null}
+          {error ? <Text style={styles.inlineDetailError}>{error}</Text> : null}
+          <Text style={styles.repliesTitle}>Replies · {comments.length}</Text>
+        </>}
+        renderItem={({ item }) => <View style={styles.commentRow}><View style={styles.commentAvatar}><Text style={styles.avatarText}>Y</Text></View><View style={styles.commentBody}><Text style={styles.commentAuthor}>{shortAddress(item.author)}</Text><Text style={styles.commentContent}>{item.content}</Text><Text style={styles.commentTime}>{formatDate(item.createdAt)}</Text></View></View>}
+        ListEmptyComponent={!loading ? <Text style={styles.noReplies}>No replies yet.</Text> : null}
+        ListFooterComponent={client ? <View style={styles.commentComposer}><TextInput value={comment} onChangeText={setComment} maxLength={2000} multiline style={styles.commentInput} placeholder="Write a reply" placeholderTextColor="#98A2B3" /><Pressable accessibilityLabel="Publish signed reply" disabled={busy || comment.trim().length === 0} onPress={() => void publishComment()} style={[styles.commentSend, (busy || comment.trim().length === 0) && styles.disabled]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Send color="#FFFFFF" size={17} />}</Pressable></View> : null}
+      />
+    </SafeAreaView>
+  </Modal>;
 }
 
 function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null }) {
@@ -522,6 +625,7 @@ function TabButton({ active, icon: Icon, label, onPress }: { active: boolean; ic
 function shortAddress(value: string): string { return value.length > 18 ? `${value.slice(0, 10)}…${value.slice(-6)}` : value; }
 function formatDate(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 function errorMessage(error: unknown): string { return error instanceof Error ? error.message : "Unexpected YNX application error"; }
+async function socialKey(prefix: string): Promise<string> { const value = await getRandomBytesAsync(12); return `${prefix}-${Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join("")}`; }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
@@ -531,6 +635,9 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#12B76A" },
   headerStatusText: { color: MUTED, fontSize: 12, fontWeight: "600" },
   content: { flex: 1 }, screen: { flex: 1 }, screenPadded: { flex: 1, padding: 20 },
+  socialShell: { flex: 1 }, socialSwitcher: { height: 46, marginHorizontal: 20, marginTop: 10, padding: 3, flexDirection: "row", borderRadius: 8, backgroundColor: "#F2F4F7" },
+  socialSwitch: { flex: 1, alignItems: "center", justifyContent: "center", borderRadius: 6 }, socialSwitchActive: { backgroundColor: "#FFFFFF", borderWidth: StyleSheet.hairlineWidth, borderColor: "#D0D5DD" },
+  socialSwitchText: { color: MUTED, fontSize: 13, fontWeight: "600" }, socialSwitchTextActive: { color: BLUE },
   screenTitleRow: { padding: 20, paddingBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   eyebrow: { color: BLUE, fontSize: 11, fontWeight: "700", letterSpacing: 0 },
   title: { color: INK, fontSize: 30, lineHeight: 36, fontWeight: "700", marginTop: 3, letterSpacing: 0 },
@@ -543,11 +650,19 @@ const styles = StyleSheet.create({
   center: { flex: 1, minHeight: 180, alignItems: "center", justifyContent: "center", paddingHorizontal: 34, gap: 12 },
   centerText: { color: MUTED, textAlign: "center", fontSize: 14, lineHeight: 21 },
   emptyTitle: { color: INK, fontSize: 19, fontWeight: "600", marginTop: 4 }, emptyList: { flexGrow: 1 }, feedList: { paddingBottom: 22 },
-  postRow: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE },
+  postRow: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE }, postPressed: { backgroundColor: "#F8FAFC" },
   avatar: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#EEF3FF", alignItems: "center", justifyContent: "center" },
   avatarText: { color: BLUE, fontWeight: "800", fontSize: 15 }, postBody: { flex: 1, marginLeft: 12 },
   postMeta: { flexDirection: "row", alignItems: "center", gap: 10 }, postAuthor: { color: INK, fontSize: 13, fontWeight: "600", flexShrink: 1 }, postTime: { color: "#98A2B3", fontSize: 12 },
   postContent: { color: INK, fontSize: 15, lineHeight: 22, marginTop: 7 }, tags: { color: BLUE, fontSize: 13, marginTop: 8 }, postStats: { color: MUTED, fontSize: 12, marginTop: 11 },
+  detailSafeArea: { flex: 1, backgroundColor: "#FFFFFF" }, detailHeader: { height: 54, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE },
+  detailBack: { width: 54, height: 54, alignItems: "center", justifyContent: "center" }, detailTitle: { flex: 1, color: INK, fontSize: 17, fontWeight: "700", textAlign: "center" }, detailHeaderSpacer: { width: 54 }, detailList: { paddingBottom: 28 },
+  socialActions: { minHeight: 58, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 22, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE }, socialAction: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 7 }, socialActionMuted: { opacity: 0.45 }, socialActionText: { color: INK, fontSize: 13, fontWeight: "600" },
+  detailNotice: { color: MUTED, fontSize: 12, lineHeight: 18, paddingHorizontal: 20, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE },
+  reportPanel: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE, backgroundColor: "#FAFBFC" }, reportTitle: { color: INK, fontSize: 14, fontWeight: "700" }, reportInput: { minHeight: 86, marginTop: 10, borderWidth: 1, borderColor: LINE, borderRadius: 8, padding: 12, color: INK, fontSize: 14, lineHeight: 20, textAlignVertical: "top", backgroundColor: "#FFFFFF" }, reportSubmit: { minHeight: 42, marginTop: 10, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: BLUE }, reportStatus: { color: "#067647", fontSize: 12, lineHeight: 18, paddingHorizontal: 20, paddingVertical: 12 },
+  inlineDetailError: { color: "#B42318", fontSize: 12, lineHeight: 18, paddingHorizontal: 20, paddingVertical: 12 }, repliesTitle: { color: INK, fontSize: 14, fontWeight: "700", paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 }, noReplies: { color: MUTED, fontSize: 13, paddingHorizontal: 20, paddingVertical: 18 },
+  commentRow: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE }, commentAvatar: { width: 32, height: 32, borderRadius: 8, backgroundColor: "#EEF3FF", alignItems: "center", justifyContent: "center" }, commentBody: { flex: 1, marginLeft: 11 }, commentAuthor: { color: INK, fontSize: 12, fontWeight: "700" }, commentContent: { color: INK, fontSize: 14, lineHeight: 20, marginTop: 4 }, commentTime: { color: "#98A2B3", fontSize: 11, marginTop: 6 },
+  commentComposer: { flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 20, paddingTop: 18 }, commentInput: { flex: 1, minHeight: 44, maxHeight: 110, borderWidth: 1, borderColor: LINE, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, color: INK, fontSize: 14, lineHeight: 20, textAlignVertical: "top" }, commentSend: { width: 44, height: 44, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: BLUE },
   tabBar: { height: 70, flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: LINE, backgroundColor: "rgba(255,255,255,0.98)" },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 5 }, tabText: { color: "#7A8494", fontSize: 11, fontWeight: "600" }, tabTextActive: { color: BLUE },
   walletBody: { marginTop: 36 }, walletLabel: { color: MUTED, fontSize: 12, fontWeight: "600" }, address: { color: INK, fontSize: 17, lineHeight: 25, fontWeight: "600", marginTop: 9 }, secondaryAddress: { color: INK, fontSize: 14, lineHeight: 22, marginTop: 9 },

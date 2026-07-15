@@ -54,6 +54,13 @@ test("uses an explicit no-fallback transfer prompt", async () => {
   assert.equal(adapter.calls.options?.biometricsSecurityLevel, "strong");
 });
 
+test("uses an explicit native social-action prompt", async () => {
+  const adapter = fakeAdapter();
+  await authorizeLocalKeyUse("signed-social-action", adapter);
+  assert.equal(adapter.calls.options?.promptMessage, "Authorize signed YNX social action");
+  assert.equal(adapter.calls.options?.disableDeviceFallback, true);
+});
+
 type FakeOptions = {
   hasHardware?: boolean;
   enrolled?: boolean;

@@ -3,6 +3,7 @@ import { chatDeviceRegistration, createChatDeviceRotation, createChatEnvelopeSet
 import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
 import { parsePaySettlement, type PaySettlement } from "./pay";
 import { parseChatConversationResult, parseChatConversations, parseChatDevices, parseChatMessages, type ChatConversation, type ChatDevice, type ChatMessage, type DecryptedChatMessage } from "./chat";
+import { parseSquareCommentResult, parseSquareFollowResult, parseSquareReactionResult, parseSquareReportResult, type SquareComment, type SquareFollow, type SquareReaction, type SquareReport } from "./square";
 
 const CLIENT = "ynx-mobile-v1";
 const BINDING = "ynx-mobile://com.ynxweb4.mobile";
@@ -164,13 +165,41 @@ export class YNXMobileAppClient {
     if (content.trim().length === 0 || content.length > 2000) throw new Error("Post content must contain 1 to 2000 characters");
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$/.test(idempotencyKey)) throw new Error("Post idempotency key is invalid");
     await this.authorize("signed-post");
-    const body = JSON.stringify({ idempotencyKey, content });
-    const timestamp = this.now().toISOString();
-    return this.request("/app/square/posts", body, {
-      ...this.sessionHeaders(),
-      "X-YNX-Timestamp": timestamp,
-      "X-YNX-Device-Signature": signSquareRequest({ method: "POST", requestUri: "/square/posts", timestamp, body, deviceSecret: this.deviceSecret }),
-    }, true);
+    return this.signedSquareRequest("POST", "/square/posts", { idempotencyKey, content });
+  }
+
+  async createSquareComment(postId: string, content: string, idempotencyKey: string): Promise<SquareComment> {
+    requireSegment(postId, "Square post ID");
+    requireContent(content, "Comment");
+    requireIdempotencyKey(idempotencyKey);
+    await this.authorize("signed-social-action");
+    return parseSquareCommentResult(await this.signedSquareRequest("POST", `/square/posts/${postId}/comments`, { idempotencyKey, content }));
+  }
+
+  async setSquareReaction(postId: string, kind: "like" | "insight" | "support", active: boolean, idempotencyKey: string): Promise<SquareReaction> {
+    requireSegment(postId, "Square post ID");
+    if (!["like", "insight", "support"].includes(kind)) throw new Error("Square reaction kind is invalid");
+    requireIdempotencyKey(idempotencyKey);
+    await this.authorize("signed-social-action");
+    return parseSquareReactionResult(await this.signedSquareRequest("POST", `/square/posts/${postId}/reactions`, { idempotencyKey, kind, active }));
+  }
+
+  async setSquareFollow(account: string, active: boolean, idempotencyKey: string): Promise<SquareFollow> {
+    const target = addressIdentity(account).ynxAddress;
+    if (target === this.account) throw new Error("Square cannot follow the local account");
+    requireIdempotencyKey(idempotencyKey);
+    await this.authorize("signed-social-action");
+    return parseSquareFollowResult(await this.signedSquareRequest("POST", "/square/follows", { idempotencyKey, account: target, active }));
+  }
+
+  async createSquareReport(input: { targetType: "post" | "comment" | "account"; targetId: string; category: string; detail: string; evidenceHashes?: string[]; idempotencyKey: string }): Promise<SquareReport> {
+    const targetId = input.targetType === "account" ? addressIdentity(input.targetId).ynxAddress : requireSegment(input.targetId, "Square report target ID");
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$/.test(input.category)) throw new Error("Square report category is invalid");
+    if (input.detail.length > 2000) throw new Error("Square report detail exceeds 2000 characters");
+    if ((input.evidenceHashes?.length ?? 0) > 8 || input.evidenceHashes?.some((hash) => !/^[a-f0-9]{64}$/.test(hash))) throw new Error("Square report evidence hashes are invalid");
+    requireIdempotencyKey(input.idempotencyKey);
+    await this.authorize("signed-social-action");
+    return parseSquareReportResult(await this.signedSquareRequest("POST", "/square/reports", { ...input, targetId }));
   }
 
   async disconnect(revokeDevice = false): Promise<void> {
@@ -230,6 +259,17 @@ export class YNXMobileAppClient {
       ...this.sessionHeaders(),
       "X-YNX-Timestamp": timestamp,
       "X-YNX-Device-Signature": signChatRequest({ method, requestUri, timestamp, body, deviceSecret: this.deviceSecret }),
+    }, true, method);
+  }
+
+  private async signedSquareRequest(method: "GET" | "POST", requestUri: string, value?: unknown): Promise<unknown> {
+    if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
+    const body = value === undefined ? "" : JSON.stringify(value);
+    const timestamp = this.now().toISOString();
+    return this.request(`/app${requestUri}`, method === "GET" ? undefined : body, {
+      ...this.sessionHeaders(),
+      "X-YNX-Timestamp": timestamp,
+      "X-YNX-Device-Signature": signSquareRequest({ method, requestUri, timestamp, body, deviceSecret: this.deviceSecret }),
     }, true, method);
   }
 
@@ -296,6 +336,10 @@ function registrationKey(account: string, deviceId: string, publicKey: string): 
   }
   return `register-${hash.toString(16).padStart(8, "0")}-${deviceId.slice(-12)}`;
 }
+
+function requireSegment(value: string, label: string): string { if (!/^[a-zA-Z0-9_-]{1,128}$/.test(value)) throw new Error(`${label} is invalid`); return value; }
+function requireIdempotencyKey(value: string): void { if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$/.test(value)) throw new Error("Square idempotency key is invalid"); }
+function requireContent(value: string, label: string): void { if (value.trim().length === 0 || value.length > 2000) throw new Error(`${label} content must contain 1 to 2000 characters`); }
 
 function validBaseURL(value: string): string {
   const normalized = value.replace(/\/$/, "");

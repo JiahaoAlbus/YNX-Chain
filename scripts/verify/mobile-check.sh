@@ -61,7 +61,13 @@ rg -q 'createChatEnvelopeSet' apps/mobile/src/api/mobileSession.ts
 rg -q 'rotateCurrentChatDevice' apps/mobile/src/api/mobileSession.ts
 rg -q 'Manage Chat devices' apps/mobile/src/components/NativeChatScreen.tsx
 rg -q 'await this\.authorize\("device-rotation"\)' apps/mobile/src/api/mobileSession.ts
-rg -q 'type Tab = "square" \| "chat" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
+rg -q 'type Tab = "social" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
+rg -q 'type SocialRoute = "feed" \| "messages"' apps/mobile/App.tsx
+rg -q 'createSquareComment' apps/mobile/src/api/mobileSession.ts
+rg -q 'setSquareReaction' apps/mobile/src/api/mobileSession.ts
+rg -q 'setSquareFollow' apps/mobile/src/api/mobileSession.ts
+rg -q 'createSquareReport' apps/mobile/src/api/mobileSession.ts
+rg -q 'parseSquareComments' apps/mobile/src/api/square.ts
 rg -q 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
 test -s testdata/mobile-native-transfer-vector.json
 
@@ -77,4 +83,4 @@ npm --prefix apps/mobile run bundle-check
 test -s apps/mobile/dist/metadata.json
 rm -rf apps/mobile/dist
 
-echo "mobile-check passed: native mobile UI, strict types, canonical ynx1/signing and multi-device Chat vectors, biometric device rotation, secure-storage boundary, and iOS/Android Hermes bundles"
+echo "mobile-check passed: native Social/Wallet/Pay/Network UI, strict ynx1 signing, persistent Square action clients, multi-device Chat vectors, biometric authorization, secure-storage boundary, and iOS/Android Hermes bundles"
