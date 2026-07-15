@@ -7,6 +7,7 @@
 - The chain snapshot remains atomically persistent. The runtime record intentionally resets after process restart, preventing a pre-restart success from being reused as fresh convergence proof. Local tests verify persistence, revalidation, degraded recovery, exact height/hash equality, cancellation, and race safety.
 - `validator-peer-readiness-check` and `verify-testnet` now require `status=synced`, `catchingUp=false`, `fresh=true`, and exact source/local height/hash equality for followers. Focused and full validation pass locally.
 - This source is not remotely deployed. One operator diagnostic observed healthy primary Caddy, loopback chain/services, resource capacity, and Caddy configuration while external TLS intermittently stalled and later SSH connections closed. No firewall, server, or public route was changed; no fresh remote follower/restart or independent public proof is claimed.
+- The subsequent non-mutating `deploy-readiness-gate` failed closed because `tmp/verify-testnet/remote-blockers.json` was about 678 minutes old, beyond its 120-minute maximum. No deployment ran. Fresh remote evidence remains deferred until SSH/ingress is stable enough for one bounded verification cycle.
 - The public topology therefore remains the previously deployed authoritative producer plus three authenticated followers. It remains deterministic authoritative replication, not CometBFT validator voting or Byzantine fault tolerance.
 
 ## 2026-07-15 Independent Social and Wallet product boundary

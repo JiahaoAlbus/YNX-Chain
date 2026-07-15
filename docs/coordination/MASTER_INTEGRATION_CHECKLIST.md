@@ -84,3 +84,16 @@ For every accepted branch record:
 - package/deployment release and hashes;
 - remote/public/independent proof classification;
 - remaining blockers and next real gap.
+
+## Candidate intake queue
+
+Intake review is not acceptance, merge, deployment, or public proof. Dependency
+order still applies, and no candidate below has been merged into `main`.
+
+| Product | Source | Intake result | Integration gate |
+| --- | --- | --- | --- |
+| AI | `codex/ecosystem-ai` at `5d8ff21f6b7999a441754e0c30b4b2ae9ef0b0bf` | Owned-path and handoff review passed; branch is queued | Wait for Wallet; replace prompt-bearing GET streaming with reviewed POST-body Gateway transport before public use |
+| Music | `codex/ecosystem-music` at `74f315e368658aa0db3528b737f8c8b53fee75f7` | Owned-path and handoff review passed; branch is queued | Wait for Wallet, AI, Pay, Trust, and product-scoped Gateway contracts |
+| Cloud / Docs | `codex/ecosystem-cloud-docs` at `82e095e4c545c38df74c6bf2a7cfa8aae719d111` | Owned-path and handoff review passed; branch is queued | Wait for Wallet, AI, Trust, storage/deployment review, and product-scoped Gateway contracts |
+| Browser / Search | `codex/ecosystem-browser-search` at `7878c79557b30195a2deab87a72ccfa314442875` | Owned-path and handoff review passed; branch is queued | Wait for Wallet, AI, Trust, privacy review, and real search/provider contracts |
+| Shop | `codex/ecosystem-shop` at `a3aa37007a55736496f811faccae8fae7e5bfdf2` | Isolated Go race, buyer/seller UI test/build, no-placeholder, secret, env, and diff checks pass; branch is queued from older baseline `271197feb48fd362292fb2210887edf3109ce4f7` | Replace plaintext-persisted temporary bearer sessions with the reviewed central Wallet/Gateway protocol; integrate real Pay, AI, Trust and deployment contracts before merge or public use |
