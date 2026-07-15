@@ -30,6 +30,7 @@ for asset in assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png internal/
 done
 cmp -s assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png
 cmp -s assets/brand/ynx-logo.png internal/explorer/assets/ynx-logo.png
+test ! -e apps/mobile/assets/ynx-mark.svg
 rg -q 'require\("\./assets/ynx-logo\.png"\)' apps/mobile/App.tsx
 rg -q '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
 
