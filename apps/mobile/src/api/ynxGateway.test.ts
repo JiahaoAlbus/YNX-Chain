@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { fetchGatewayHealth, fetchSquareComments, fetchSquareFeed, fetchSquareFollowing, fetchSquareProfile } from "./ynxGateway";
+import { fetchGatewayHealth, fetchSquareComments, fetchSquareFeed, fetchSquareFollowing, fetchSquareProfile, fetchSquareProfileByHandle } from "./ynxGateway";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
@@ -29,10 +29,11 @@ test("validates Square comments and following reads", async () => {
 });
 
 test("validates public Square profile counts", async () => {
-  globalThis.fetch = async () => new Response(JSON.stringify({ account: "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", displayName: "Alice", bio: "Native profile", createdAt: "2026-07-15T00:00:00Z", updatedAt: "2026-07-15T00:00:00Z", followerCount: 4, followingCount: 2, postCount: 7 }), { status: 200 });
+  globalThis.fetch = async () => new Response(JSON.stringify({ account: "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", handle: "alice", displayName: "Alice", bio: "Native profile", createdAt: "2026-07-15T00:00:00Z", updatedAt: "2026-07-15T00:00:00Z", followerCount: 4, followingCount: 2, postCount: 7 }), { status: 200 });
   const profile = await fetchSquareProfile("ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80");
   assert.equal(profile.displayName, "Alice");
   assert.equal(profile.postCount, 7);
+  assert.equal((await fetchSquareProfileByHandle("@Alice")).handle, "alice");
 });
 
 test("rejects malformed Square social reads before use", async () => {
@@ -41,4 +42,5 @@ test("rejects malformed Square social reads before use", async () => {
   await assert.rejects(fetchSquareComments("../escape"), /post ID is invalid/);
   await assert.rejects(fetchSquareFollowing("0x0000000000000000000000000000000000000000"), /profile account is invalid/);
   await assert.rejects(fetchSquareProfile("0x0000000000000000000000000000000000000000"), /profile account is invalid/);
+  await assert.rejects(fetchSquareProfileByHandle("x"), /valid Social username/);
 });

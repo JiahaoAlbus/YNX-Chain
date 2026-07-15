@@ -33,16 +33,26 @@ func TestSquarePersistentSocialLifecycle(t *testing.T) {
 	service := newTestService(t, statePath, func() time.Time { return now })
 	alice := registerTestDevice(t, service, aliceAddress, "alice-device", "register-alice", 0x11)
 	bob := registerTestDevice(t, service, bobAddress, "bob-device", "register-bob", 0x22)
-	aliceProfile, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Alice YNX", Bio: "Building the native network."})
-	if err != nil || aliceProfile.Record.Account != aliceAddress || aliceProfile.Record.DisplayName != "Alice YNX" {
+	aliceProfile, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", Handle: "Alice_YNX", DisplayName: "Alice YNX", Bio: "Building the native network."})
+	if err != nil || aliceProfile.Record.Account != aliceAddress || aliceProfile.Record.Handle != "alice_ynx" || aliceProfile.Record.DisplayName != "Alice YNX" {
 		t.Fatalf("set Alice profile: %+v %v", aliceProfile, err)
 	}
-	profileReplay, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Alice YNX", Bio: "Building the native network."})
+	profileReplay, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", Handle: "@alice_ynx", DisplayName: "Alice YNX", Bio: "Building the native network."})
 	if err != nil || !profileReplay.Replayed {
 		t.Fatalf("profile replay: %+v %v", profileReplay, err)
 	}
-	if _, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Changed", Bio: "Building the native network."}); !errors.Is(err, ErrConflict) {
+	if _, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", Handle: "alice_ynx", DisplayName: "Changed", Bio: "Building the native network."}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("changed profile replay should conflict: %v", err)
+	}
+	if _, err := service.SetProfile(bob.device, SetProfileRequest{IdempotencyKey: "profile-bob-conflict", Handle: "alice_ynx", DisplayName: "Bob"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate handle should conflict: %v", err)
+	}
+	byHandle, err := service.ProfileByHandle("@ALICE_YNX")
+	if err != nil || byHandle.Account != aliceAddress || byHandle.Handle != "alice_ynx" {
+		t.Fatalf("profile by handle: %+v %v", byHandle, err)
+	}
+	if _, err := service.ProfileByHandle("missing_user"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing handle: %v", err)
 	}
 
 	bad := registrationRequest("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", "evm-device", "register-evm", alice.keys)
@@ -228,7 +238,7 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	bobKeys := generateKeys(t, 0x32)
 	registerHTTPDevice(t, server.URL, registrationRequest(aliceAddress, "alice-http", "register-alice-http", aliceKeys))
 	registerHTTPDevice(t, server.URL, registrationRequest(bobAddress, "bob-http", "register-bob-http", bobKeys))
-	profileBody := mustJSON(t, SetProfileRequest{IdempotencyKey: "http-profile", DisplayName: "Alice HTTP", Bio: "Signed profile"})
+	profileBody := mustJSON(t, SetProfileRequest{IdempotencyKey: "http-profile", Handle: "alice_http", DisplayName: "Alice HTTP", Bio: "Signed profile"})
 	response := signedHTTP(t, server.URL, http.MethodPost, "/square/profiles", profileBody, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
 	assertStatus(t, response, http.StatusCreated)
 
@@ -259,7 +269,7 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	decodeJSON(t, response.Body, &reportResult)
 	response.Body.Close()
 
-	for _, path := range []string{"/square/feed?limit=20", "/square/posts/" + postResult.Record.ID, "/square/posts/" + postResult.Record.ID + "/comments", "/square/profiles/" + aliceAddress, "/square/profiles/" + bobAddress + "/following"} {
+	for _, path := range []string{"/square/feed?limit=20", "/square/posts/" + postResult.Record.ID, "/square/posts/" + postResult.Record.ID + "/comments", "/square/profiles/" + aliceAddress, "/square/handles/alice_http", "/square/profiles/" + bobAddress + "/following"} {
 		request, _ := http.NewRequest(http.MethodGet, server.URL+path, nil)
 		request.Header.Set("X-YNX-Square-Key", squareAPIKey)
 		response, err := http.DefaultClient.Do(request)

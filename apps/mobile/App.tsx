@@ -31,6 +31,9 @@ import { NativeSocialAlertsScreen } from "./src/components/NativeSocialAlertsScr
 
 type Tab = "social" | "wallet" | "pay" | "network";
 type SocialRoute = "feed" | "messages" | "alerts";
+type MobileProduct = "integration" | "social" | "wallet";
+
+const PRODUCT: MobileProduct = process.env.EXPO_PUBLIC_YNX_PRODUCT === "social" ? "social" : process.env.EXPO_PUBLIC_YNX_PRODUCT === "wallet" ? "wallet" : "integration";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -53,6 +56,7 @@ function YNXApp() {
   const [storageReady, setStorageReady] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [chatDetail, setChatDetail] = useState(false);
+  const [identitySetup, setIdentitySetup] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -75,6 +79,7 @@ function YNXApp() {
   const handleSaved = (value: StoredIdentity) => {
     setStorageError(null);
     setStored(value);
+    setIdentitySetup(false);
   };
 
   const handleDeleted = () => {
@@ -96,6 +101,7 @@ function YNXApp() {
       <StatusBar style="dark" />
       {!chatDetail && <View style={styles.header}>
         <Image source={require("./assets/ynx-logo.png")} resizeMode="contain" style={styles.brandLogo} accessibilityLabel="YNX" />
+        {PRODUCT !== "integration" ? <Text style={styles.productName}>{PRODUCT === "social" ? "Social" : "Wallet"}</Text> : null}
         <View style={styles.headerStatus}>
           <View style={styles.liveDot} />
           <Text style={styles.headerStatusText}>Testnet</Text>
@@ -103,15 +109,15 @@ function YNXApp() {
       </View>}
 
       <View style={styles.content}>
-        {tab === "social" && <View style={styles.socialShell}>
+        {(PRODUCT === "social" ? !identitySetup : PRODUCT === "integration" && tab === "social") && <View style={styles.socialShell}>
           {!chatDetail && <View style={styles.socialSwitcher}>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "feed" }} onPress={() => setSocialRoute("feed")} style={[styles.socialSwitch, socialRoute === "feed" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "feed" && styles.socialSwitchTextActive]}>Feed</Text></Pressable>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "messages" }} onPress={() => setSocialRoute("messages")} style={[styles.socialSwitch, socialRoute === "messages" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "messages" && styles.socialSwitchTextActive]}>Messages</Text></Pressable>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "alerts" }} onPress={() => setSocialRoute("alerts")} style={[styles.socialSwitch, socialRoute === "alerts" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "alerts" && styles.socialSwitchTextActive]}>Alerts</Text></Pressable>
           </View>}
-          {socialRoute === "feed" ? <SquareScreen stored={stored} openWallet={() => setTab("wallet")} /> : socialRoute === "messages" ? <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} /> : <NativeSocialAlertsScreen stored={stored} openWallet={() => setTab("wallet")} />}
+          {socialRoute === "feed" ? <SquareScreen stored={stored} openWallet={() => PRODUCT === "social" ? setIdentitySetup(true) : setTab("wallet")} /> : socialRoute === "messages" ? <NativeChatScreen stored={stored} openWallet={() => PRODUCT === "social" ? setIdentitySetup(true) : setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} /> : <NativeSocialAlertsScreen stored={stored} openWallet={() => PRODUCT === "social" ? setIdentitySetup(true) : setTab("wallet")} />}
         </View>}
-        {tab === "wallet" && (
+        {(PRODUCT === "wallet" || PRODUCT === "integration" && tab === "wallet" || PRODUCT === "social" && identitySetup) && (
           <WalletScreen
             stored={stored}
             identity={identity}
@@ -120,13 +126,14 @@ function YNXApp() {
             onSaved={handleSaved}
             onDeleted={handleDeleted}
             onResetUnreadable={storageError?.startsWith("Secure YNX identity record") ? resetUnreadableStorage : null}
+            context={PRODUCT === "social" ? "social" : "wallet"}
           />
         )}
-        {tab === "pay" && <NativePayScreen stored={stored} identity={identity} openWallet={() => setTab("wallet")} />}
-        {tab === "network" && <NetworkScreen />}
+        {PRODUCT === "integration" && tab === "pay" && <NativePayScreen stored={stored} identity={identity} openWallet={() => setTab("wallet")} />}
+        {PRODUCT === "integration" && tab === "network" && <NetworkScreen />}
       </View>
 
-      {!chatDetail && <View style={styles.tabBar}>
+      {PRODUCT === "integration" && !chatDetail && <View style={styles.tabBar}>
         <TabButton active={tab === "social"} icon={MessageCircle} label="Social" onPress={() => setTab("social")} />
         <TabButton active={tab === "wallet"} icon={WalletCards} label="Wallet" onPress={() => setTab("wallet")} />
         <TabButton active={tab === "pay"} icon={CreditCard} label="Pay" onPress={() => setTab("pay")} />
@@ -248,8 +255,8 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
               <Pressable accessibilityLabel="Create Square post" onPress={() => setComposeOpen(true)} style={({ pressed }) => [styles.squareCreateButton, pressed && styles.primaryPressed]}><Plus color="#FFFFFF" size={20} /></Pressable>
             </>
           ) : (
-            <Pressable accessibilityLabel={stored ? "Connect Square identity" : "Open wallet"} disabled={sessionBusy} onPress={() => void connect()} style={({ pressed }) => [styles.connectButton, pressed && styles.pressed]}>
-              {sessionBusy ? <ActivityIndicator color={BLUE} /> : <><KeyRound color={BLUE} size={16} /><Text style={styles.connectText}>{stored ? "Connect" : "Wallet"}</Text></>}
+            <Pressable accessibilityLabel={stored ? "Connect Square identity" : "Create local identity"} disabled={sessionBusy} onPress={() => void connect()} style={({ pressed }) => [styles.connectButton, pressed && styles.pressed]}>
+              {sessionBusy ? <ActivityIndicator color={BLUE} /> : <><KeyRound color={BLUE} size={16} /><Text style={styles.connectText}>{stored ? "Connect" : "Create"}</Text></>}
             </Pressable>
           )}
           <Pressable accessibilityLabel="Refresh Square" onPress={() => void load(true)} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}><RefreshCw color={INK} size={19} strokeWidth={1.8} /></Pressable>
@@ -402,7 +409,7 @@ function SquarePostDetail({ post, client, close, refreshFeed }: { post: SquarePo
   </Modal>;
 }
 
-function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null }) {
+function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null; context: "wallet" | "social" }) {
   const [mode, setMode] = useState<"closed" | "create" | "import">("closed");
   const [pending, setPending] = useState<StoredIdentity | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -514,7 +521,7 @@ function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdent
   if (props.loading) return <View style={styles.center}><ActivityIndicator color={BLUE} /></View>;
   return (
     <View style={props.identity && props.stored ? styles.screen : styles.screenPadded}>
-      {!props.identity || !props.stored ? <><Text style={styles.eyebrow}>NATIVE IDENTITY</Text><Text style={styles.title}>Wallet</Text></> : null}
+      {!props.identity || !props.stored ? <><Text style={styles.eyebrow}>{props.context === "social" ? "SOCIAL ACCOUNT" : "NATIVE IDENTITY"}</Text><Text style={styles.title}>{props.context === "social" ? "Create your account" : "Wallet"}</Text></> : null}
       {error && mode === "closed" ? <Text style={styles.inlineError}>{error}</Text> : null}
       {props.error ? (
         <View style={styles.recoveryErrorPanel}>
@@ -528,12 +535,12 @@ function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdent
             </>
           ) : null}
         </View>
-      ) : props.identity && props.stored ? (
+      ) : props.identity && props.stored && props.context === "wallet" ? (
         <NativeWalletDashboard stored={props.stored} identity={props.identity} removing={busy} onRemove={remove} />
       ) : (
         <View style={styles.onboarding}>
           <View style={styles.keyCircle}><KeyRound color={BLUE} size={30} strokeWidth={1.5} /></View>
-          <Text style={styles.emptyTitle}>Own your YNX identity</Text>
+          <Text style={styles.emptyTitle}>{props.context === "social" ? "Your private Social identity" : "Own your YNX identity"}</Text>
           <Text style={styles.centerText}>Keys stay in iOS Keychain or Android Keystore-backed secure storage.</Text>
           <Pressable disabled={busy} onPress={() => void create()} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
             {busy ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Create identity</Text>}
@@ -633,6 +640,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   header: { height: 58, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE },
   brandLogo: { width: 54, height: 29 },
+  productName: { color: INK, fontSize: 15, fontWeight: "700", marginLeft: 10 },
   headerStatus: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 7 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#12B76A" },
   headerStatusText: { color: MUTED, fontSize: 12, fontWeight: "600" },

@@ -21,9 +21,14 @@ import (
 
 var (
 	identifierPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$`)
+	handlePattern     = regexp.MustCompile(`^[a-z][a-z0-9_]{2,23}$`)
 	tagPattern        = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,31}$`)
 	hashPattern       = regexp.MustCompile(`^(sha256:)?[0-9a-f]{64}$`)
 )
+
+var reservedHandles = map[string]struct{}{
+	"admin": {}, "official": {}, "security": {}, "support": {}, "system": {}, "ynx": {},
+}
 
 type Service struct {
 	mu    sync.Mutex
@@ -440,6 +445,11 @@ func (s *Service) Following(account string) ([]string, error) {
 }
 
 func (s *Service) SetProfile(actor Device, req SetProfileRequest) (Result[Profile], error) {
+	handle, err := normalizeHandle(req.Handle)
+	if err != nil {
+		return Result[Profile]{}, ErrInvalid
+	}
+	req.Handle = handle
 	req.DisplayName = strings.TrimSpace(req.DisplayName)
 	req.Bio = strings.TrimSpace(req.Bio)
 	if !identifierPattern.MatchString(req.IdempotencyKey) || len(req.DisplayName) == 0 || len(req.DisplayName) > 64 || len(req.Bio) > 280 {
@@ -457,12 +467,18 @@ func (s *Service) SetProfile(actor Device, req SetProfileRequest) (Result[Profil
 		}
 		return Result[Profile]{Record: s.state.Profiles[previous.ObjectID], Replayed: true}, nil
 	}
+	for account, existing := range s.state.Profiles {
+		if account != actor.Account && existing.Handle == handle {
+			return Result[Profile]{}, ErrConflict
+		}
+	}
 	now := s.cfg.Now().UTC()
 	profile := s.state.Profiles[actor.Account]
 	if profile.Account == "" {
 		profile.Account = actor.Account
 		profile.CreatedAt = now
 	}
+	profile.Handle = handle
 	profile.DisplayName = req.DisplayName
 	profile.Bio = req.Bio
 	profile.UpdatedAt = now
@@ -476,6 +492,21 @@ func (s *Service) SetProfile(actor Device, req SetProfileRequest) (Result[Profil
 	return Result[Profile]{Record: profile}, nil
 }
 
+func (s *Service) ProfileByHandle(handle string) (ProfileView, error) {
+	normalized, err := normalizeHandle(handle)
+	if err != nil {
+		return ProfileView{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, profile := range s.state.Profiles {
+		if profile.Handle == normalized {
+			return s.profileViewLocked(profile), nil
+		}
+	}
+	return ProfileView{}, ErrNotFound
+}
+
 func (s *Service) Profile(account string) (ProfileView, error) {
 	normalized, err := nativewallet.NormalizeNativeAddress(account)
 	if err != nil {
@@ -487,6 +518,11 @@ func (s *Service) Profile(account string) (ProfileView, error) {
 	if profile.Account == "" {
 		profile.Account = normalized
 	}
+	return s.profileViewLocked(profile), nil
+}
+
+func (s *Service) profileViewLocked(profile Profile) ProfileView {
+	normalized := profile.Account
 	view := ProfileView{Profile: profile}
 	for _, follow := range s.state.Follows {
 		if !follow.Active {
@@ -504,7 +540,7 @@ func (s *Service) Profile(account string) (ProfileView, error) {
 			view.PostCount++
 		}
 	}
-	return view, nil
+	return view
 }
 
 func (s *Service) Notifications(actor Device, limit int, cursor string) (NotificationFeed, error) {
@@ -736,7 +772,33 @@ func (s *Service) validateLocked() error {
 		}
 		previous = event.Hash
 	}
+	handles := make(map[string]string, len(s.state.Profiles))
+	for account, profile := range s.state.Profiles {
+		if profile.Handle == "" {
+			continue
+		}
+		handle, err := normalizeHandle(profile.Handle)
+		if err != nil || handle != profile.Handle {
+			return errors.New("square profile handle is invalid")
+		}
+		if previousAccount, exists := handles[handle]; exists && previousAccount != account {
+			return errors.New("square profile handles are not unique")
+		}
+		handles[handle] = account
+	}
 	return nil
+}
+
+func normalizeHandle(value string) (string, error) {
+	handle := strings.ToLower(strings.TrimSpace(value))
+	handle = strings.TrimPrefix(handle, "@")
+	if !handlePattern.MatchString(handle) {
+		return "", ErrInvalid
+	}
+	if _, reserved := reservedHandles[handle]; reserved {
+		return "", ErrInvalid
+	}
+	return handle, nil
 }
 
 func auditHash(event AuditEvent) string {

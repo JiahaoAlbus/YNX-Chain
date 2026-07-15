@@ -23,6 +23,7 @@ export function NativeSocialAlertsScreen({ stored, openWallet }: { stored: Store
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
 
@@ -30,6 +31,7 @@ export function NativeSocialAlertsScreen({ stored, openWallet }: { stored: Store
     if (!account) { setProfile(null); return; }
     const next = await fetchSquareProfile(account);
     setProfile(next);
+    setHandle(next.handle);
     setDisplayName(next.displayName);
     setBio(next.bio);
   }, [account]);
@@ -105,7 +107,7 @@ export function NativeSocialAlertsScreen({ stored, openWallet }: { stored: Store
     setBusy(true);
     setError(null);
     try {
-      await client.setSquareProfile(displayName, bio, await socialKey("profile"));
+      await client.setSquareProfile(handle, displayName, bio, await socialKey("profile"));
       await loadProfile();
       setEditing(false);
     } catch (caught) {
@@ -120,17 +122,17 @@ export function NativeSocialAlertsScreen({ stored, openWallet }: { stored: Store
       <View style={styles.titleRow}>
         <View><Text style={styles.eyebrow}>SOCIAL INBOX</Text><Text style={styles.title}>Alerts{unread > 0 ? ` · ${unread}` : ""}</Text></View>
         <View style={styles.actions}>
-          {client?.connected ? <Pressable accessibilityLabel="Edit Social profile" onPress={() => setEditing(true)} style={styles.iconButton}><UserRound color={INK} size={19} /></Pressable> : <Pressable accessibilityLabel={stored ? "Connect Social alerts" : "Open wallet"} disabled={busy} onPress={() => void connect()} style={styles.connectButton}>{busy ? <ActivityIndicator color={BLUE} /> : <><KeyRound color={BLUE} size={16} /><Text style={styles.connectText}>{stored ? "Connect" : "Wallet"}</Text></>}</Pressable>}
+          {client?.connected ? <Pressable accessibilityLabel="Edit Social profile" onPress={() => setEditing(true)} style={styles.iconButton}><UserRound color={INK} size={19} /></Pressable> : <Pressable accessibilityLabel={stored ? "Connect Social alerts" : "Create Social identity"} disabled={busy} onPress={() => void connect()} style={styles.connectButton}>{busy ? <ActivityIndicator color={BLUE} /> : <><KeyRound color={BLUE} size={16} /><Text style={styles.connectText}>{stored ? "Connect" : "Create"}</Text></>}</Pressable>}
           <Pressable accessibilityLabel="Refresh Social alerts" disabled={loading} onPress={() => void refresh()} style={styles.iconButton}>{loading ? <ActivityIndicator color={BLUE} /> : <RefreshCw color={INK} size={19} />}</Pressable>
         </View>
       </View>
-      {profile ? <View style={styles.profileStrip}><View style={styles.avatar}><Text style={styles.avatarText}>{profile.displayName.slice(0, 1).toUpperCase() || "Y"}</Text></View><View style={styles.profileCopy}><Text numberOfLines={1} style={styles.profileName}>{profile.displayName || shortAddress(profile.account)}</Text><Text numberOfLines={1} style={styles.profileMeta}>{profile.followerCount} followers · {profile.postCount} posts</Text></View></View> : null}
+      {profile ? <View style={styles.profileStrip}><View style={styles.avatar}><Text style={styles.avatarText}>{profile.displayName.slice(0, 1).toUpperCase() || "Y"}</Text></View><View style={styles.profileCopy}><Text numberOfLines={1} style={styles.profileName}>{profile.displayName || "Create your profile"}</Text><Text numberOfLines={1} style={styles.profileMeta}>{profile.handle ? `@${profile.handle} · ` : ""}{profile.followerCount} followers · {profile.postCount} posts</Text></View></View> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {!client?.connected ? <View style={styles.empty}><Bell color={BLUE} size={31} strokeWidth={1.5} /><Text style={styles.emptyTitle}>Private alerts are locked</Text><Text style={styles.emptyText}>Connect your native account to load member-scoped Social activity.</Text></View> : (
         <FlatList data={notifications} keyExtractor={(item) => item.id} contentContainerStyle={notifications.length === 0 ? styles.emptyList : styles.list} ListEmptyComponent={<View style={styles.empty}><Bell color={BLUE} size={31} strokeWidth={1.5} /><Text style={styles.emptyTitle}>No alerts yet</Text><Text style={styles.emptyText}>Comments, reactions, and follows will appear here.</Text></View>} renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityLabel={item.readAt ? notificationLabel(item) : `${notificationLabel(item)}, unread`} disabled={busy || Boolean(item.readAt)} onPress={() => void markRead(item)} style={({ pressed }) => [styles.notification, !item.readAt && styles.notificationUnread, pressed && styles.pressed]}><View style={[styles.dot, item.readAt && styles.dotRead]} /><View style={styles.notificationBody}><Text style={styles.notificationTitle}>{notificationLabel(item)}</Text><Text numberOfLines={1} style={styles.notificationActor}>{shortAddress(item.actor)}</Text><Text style={styles.notificationTime}>{formatDate(item.createdAt)}</Text></View></Pressable>} />
       )}
       <Modal visible={editing} transparent animationType="slide" onRequestClose={() => setEditing(false)}>
-        <View style={styles.backdrop}><View style={styles.sheet}><View style={styles.sheetHeader}><Text style={styles.sheetTitle}>Social profile</Text><Pressable accessibilityLabel="Close profile editor" onPress={() => setEditing(false)} style={styles.iconButton}><X color={INK} size={20} /></Pressable></View><TextInput value={displayName} onChangeText={setDisplayName} maxLength={64} placeholder="Display name" placeholderTextColor="#98A2B3" style={styles.input} /><TextInput value={bio} onChangeText={setBio} maxLength={280} multiline placeholder="Bio" placeholderTextColor="#98A2B3" style={[styles.input, styles.bioInput]} /><Pressable disabled={busy || displayName.trim().length === 0} onPress={() => void saveProfile()} style={[styles.saveButton, (busy || displayName.trim().length === 0) && styles.disabled]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <><Save color="#FFFFFF" size={17} /><Text style={styles.saveText}>Save profile</Text></>}</Pressable></View></View>
+        <View style={styles.backdrop}><View style={styles.sheet}><View style={styles.sheetHeader}><Text style={styles.sheetTitle}>Social profile</Text><Pressable accessibilityLabel="Close profile editor" onPress={() => setEditing(false)} style={styles.iconButton}><X color={INK} size={20} /></Pressable></View><TextInput accessibilityLabel="Social username" value={handle} onChangeText={setHandle} autoCapitalize="none" autoCorrect={false} maxLength={24} placeholder="@username" placeholderTextColor="#98A2B3" style={styles.input} /><TextInput value={displayName} onChangeText={setDisplayName} maxLength={64} placeholder="Display name" placeholderTextColor="#98A2B3" style={styles.input} /><TextInput value={bio} onChangeText={setBio} maxLength={280} multiline placeholder="Bio" placeholderTextColor="#98A2B3" style={[styles.input, styles.bioInput]} /><Pressable disabled={busy || !/^[a-z][a-z0-9_]{2,23}$/.test(handle.trim().replace(/^@/, "").toLowerCase()) || displayName.trim().length === 0} onPress={() => void saveProfile()} style={[styles.saveButton, (busy || !/^[a-z][a-z0-9_]{2,23}$/.test(handle.trim().replace(/^@/, "").toLowerCase()) || displayName.trim().length === 0) && styles.disabled]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <><Save color="#FFFFFF" size={17} /><Text style={styles.saveText}>Save profile</Text></>}</Pressable></View></View>
       </Modal>
     </View>
   );

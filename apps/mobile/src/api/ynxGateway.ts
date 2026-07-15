@@ -43,6 +43,12 @@ export async function fetchSquareProfile(account: string, signal?: AbortSignal):
   return parseSquareProfile(await requestJSON(`${GATEWAY_URL}/app/square/profiles/${account}`, signal));
 }
 
+export async function fetchSquareProfileByHandle(handle: string, signal?: AbortSignal): Promise<SquareProfile> {
+  const normalized = handle.trim().replace(/^@/, "").toLowerCase();
+  if (!/^[a-z][a-z0-9_]{2,23}$/.test(normalized)) throw new Error("Enter a valid Social username");
+  return parseSquareProfile(await requestJSON(`${GATEWAY_URL}/app/square/handles/${encodeURIComponent(normalized)}`, signal));
+}
+
 export async function fetchGatewayHealth(signal?: AbortSignal): Promise<GatewayHealth> {
   const value = await requestJSON(`${GATEWAY_URL}/app/health`, signal);
   if (!isPlainObject(value) || typeof value.ok !== "boolean" || typeof value.service !== "string" || typeof value.activeSessions !== "number" || typeof value.truthfulStatus !== "string" || typeof value.remoteDeployed !== "boolean") {

@@ -211,6 +211,10 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request, parts []stri
 		record, err := s.service.Following(parts[2])
 		writeRecord(w, map[string]any{"following": record}, err)
 		return true
+	case len(parts) == 3 && parts[0] == "square" && parts[1] == "handles" && r.Method == http.MethodGet:
+		record, err := s.service.ProfileByHandle(parts[2])
+		writeRecord(w, record, err)
+		return true
 	case len(parts) == 3 && parts[0] == "square" && parts[1] == "profiles" && r.Method == http.MethodGet:
 		record, err := s.service.Profile(parts[2])
 		writeRecord(w, record, err)

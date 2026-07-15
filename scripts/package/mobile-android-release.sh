@@ -5,9 +5,16 @@ cd "$(dirname "$0")/../.."
 
 mode="${YNX_ANDROID_RELEASE_MODE:-}"
 output="${1:-tmp/packages/mobile-android-release}"
+product="${YNX_MOBILE_PRODUCT:-integration}"
 case "$mode" in
   test-only | owner-approved) ;;
   *) echo "YNX_ANDROID_RELEASE_MODE must be test-only or owner-approved" >&2; exit 1 ;;
+esac
+case "$product" in
+  integration) package_name="com.ynxweb4.mobile" ;;
+  social) package_name="com.ynxweb4.social" ;;
+  wallet) package_name="com.ynxweb4.wallet" ;;
+  *) echo "YNX_MOBILE_PRODUCT must be integration, social, or wallet" >&2; exit 1 ;;
 esac
 
 repo_root="$(pwd -P)"
@@ -71,13 +78,15 @@ keytool -list -keystore "$keystore" -storetype "$store_type" -storepass:env YNX_
 
 (
   cd apps/mobile
-  CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --clean --no-install
+  CI=1 EXPO_NO_TELEMETRY=1 YNX_MOBILE_PRODUCT="$product" EXPO_PUBLIC_YNX_PRODUCT="$product" npx expo prebuild --platform android --clean --no-install
   rg -q 'signingConfig ynxReleaseSigningConfigured \? signingConfigs\.release : null' android/app/build.gradle
   rg -q 'System\.getenv\("YNX_ANDROID_KEYSTORE_PATH"\)' android/app/build.gradle
   cd android
   YNX_ANDROID_KEYSTORE_PATH="$keystore" \
   YNX_ANDROID_KEYSTORE_TYPE="$store_type" \
   YNX_ANDROID_KEY_ALIAS="$alias" \
+  YNX_MOBILE_PRODUCT="$product" \
+  EXPO_PUBLIC_YNX_PRODUCT="$product" \
   NODE_ENV=production \
   ./gradlew --no-daemon --console=plain :app:bundleRelease :app:assembleRelease
 )
@@ -95,7 +104,8 @@ aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt -perm -111 | sort -V
 apk_signer_output="$($apksigner verify --verbose --print-certs "$apk_source")"
 printf '%s\n' "$apk_signer_output" | rg -q '^Verifies$'
 printf '%s\n' "$apk_signer_output" | rg -q '^Verified using v2 scheme \(APK Signature Scheme v2\): true$'
-"$aapt" dump badging "$apk_source" | rg -q "package: name='com\.ynxweb4\.mobile' versionCode='1' versionName='1\.0\.0'"
+actual_package="$("$aapt" dump badging "$apk_source" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
+[[ "$actual_package" == "$package_name" ]] || { echo "Android package identity mismatch: $actual_package" >&2; exit 1; }
 
 aab_cert="$(keytool -printcert -jarfile "$aab_source" | awk -F': ' '/SHA256:/{gsub(":", "", $2); print tolower($2); exit}')"
 apk_cert="$(printf '%s\n' "$apk_signer_output" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2); exit}')"
@@ -110,6 +120,7 @@ install -m 0644 "$apk_source" "$partial/ynx-mobile-android.apk"
 YNX_RELEASE_OUTPUT="$partial" \
 YNX_RELEASE_MODE="$mode" \
 YNX_RELEASE_CERT_SHA="$aab_cert" \
+YNX_RELEASE_PACKAGE_NAME="$package_name" \
 node --input-type=module <<'NODE'
 import {createHash} from "node:crypto";
 import {execFileSync} from "node:child_process";
@@ -140,7 +151,7 @@ const manifest = {
   sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], {encoding: "utf8"}).trim(),
   sourceTreeDigest: treeHash.digest("hex"),
   sourceTreeDirty: dirty,
-  packageName: app.expo.android.package,
+  packageName: process.env.YNX_RELEASE_PACKAGE_NAME,
   versionName: app.expo.version,
   versionCode: app.expo.android.versionCode,
   signerCertificateSHA256: process.env.YNX_RELEASE_CERT_SHA,

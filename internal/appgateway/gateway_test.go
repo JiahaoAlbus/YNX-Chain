@@ -115,6 +115,7 @@ func TestGatewayRoutesQueryAndSignedInternalPath(t *testing.T) {
 		{http.MethodGet, "/app/square/feed?limit=10&cursor=abc", "/square/feed?limit=10&cursor=abc"},
 		{http.MethodGet, "/app/square/posts/post-1/comments", "/square/posts/post-1/comments"},
 		{http.MethodGet, "/app/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", "/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"},
+		{http.MethodGet, "/app/square/handles/alice_ynx", "/square/handles/alice_ynx"},
 		{http.MethodGet, "/app/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following", "/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following"},
 	}
 	for _, item := range paths {
@@ -143,6 +144,28 @@ func TestGatewayRoutesQueryAndSignedInternalPath(t *testing.T) {
 		if !found {
 			t.Fatalf("missing internal path %s in %+v", item.internal, all)
 		}
+	}
+}
+
+func TestNativeProductBindingsAndRouteIsolation(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	gateway := newTestGateway(t, chatServer.URL, squareServer.URL, 20)
+	for client, expected := range map[string]string{
+		nativeMobileClient: nativeMobileBinding,
+		nativeSocialClient: nativeSocialBinding,
+		nativeWalletClient: nativeWalletBinding,
+	} {
+		binding, ok := gateway.ClientBinding("", client)
+		if !ok || binding != expected || !gateway.BindingAllowed(binding) {
+			t.Fatalf("native product binding %s => %q allowed=%v", client, binding, ok)
+		}
+	}
+	if !productRouteAllowed(nativeSocialBinding, "chat") || !productRouteAllowed(nativeSocialBinding, "square") || productRouteAllowed(nativeSocialBinding, "pay") {
+		t.Fatal("Social route isolation is invalid")
+	}
+	if productRouteAllowed(nativeWalletBinding, "chat") || productRouteAllowed(nativeWalletBinding, "square") || productRouteAllowed(nativeWalletBinding, "pay") {
+		t.Fatal("Wallet unexpectedly received protected product routes")
 	}
 }
 

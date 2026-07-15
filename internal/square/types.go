@@ -73,6 +73,7 @@ type Follow struct {
 
 type Profile struct {
 	Account     string    `json:"account"`
+	Handle      string    `json:"handle,omitempty"`
 	DisplayName string    `json:"displayName"`
 	Bio         string    `json:"bio"`
 	CreatedAt   time.Time `json:"createdAt"`
@@ -145,6 +146,7 @@ type SetFollowRequest struct {
 
 type SetProfileRequest struct {
 	IdempotencyKey string `json:"idempotencyKey"`
+	Handle         string `json:"handle"`
 	DisplayName    string `json:"displayName"`
 	Bio            string `json:"bio"`
 }

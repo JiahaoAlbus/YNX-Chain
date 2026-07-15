@@ -2,47 +2,41 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: complete and cleanly restore an installed two-user Social lifecycle against the now remotely deployed profile/notification release, then connect report outcomes to the existing Trust appeal/transparency boundary. Keep one Social product and do not turn backend services into bottom-tab items.
+Current single action: deploy the persistent Social handle and product-scoped Gateway release, then build and install separate test-only YNX Social and YNX Wallet Android Release packages. Prove that Social uses username/QR discovery and has no Wallet/Pay/Network navigation, while Wallet has no Feed/Chat navigation.
 
 Why this is next:
 
-- Installed Android proof now covers a real multi-device Chat message, two-recipient decryption/read state, reload, biometric device rotation, revoked/active directory state, reconnect, and a post-rotation message.
-- Square's existing comment, reaction, follow, and report APIs are now wired into a strict native client and post-detail window, and Feed/Chat now share one Social destination. The public feed was empty during installed verification, so no installed real-record mutation proof exists yet.
-- Persistent bounded profiles and private notifications now pass local persistence, restart, access, idempotency, Gateway, native-client, Hermes, exact remote deployment, and emulator-installed UI checks. Installed signed real-record execution remains absent; contacts, moments-style publishing, moderation outcomes, and Trust/appeal completion also remain absent.
-- The current App has already reached five tabs. Adding AI, IDE, Shop, Bank, Browser, Bridge, Trust, and every other service as peers would produce shallow screens and prevent complete workflows.
-- `docs/ecosystem/PRODUCT_ARCHITECTURE.md` defines the product boundary: YNX App owns high-frequency consumer identity/social/wallet/Pay; Explorer, Developer Suite, Browser, and merchant operations are separate applications; backend services receive windows only after a real workflow exists.
+- The user rejected the mixed super-App architecture. The current integration binary is now explicitly internal-only.
+- Unique Social handles, public resolution, Chat profile display, separate package identities, and Gateway route isolation are implemented and locally tested.
+- Remote Square/Gateway still run release `09598d2cbcd7`, so the new Social package cannot yet complete a product-bound ownership session or resolve handles remotely.
+- Installed proof is required before either standalone package can be described as usable. Production signing, stores, and complete benchmark parity remain later gates.
 
 Files to touch:
 
-- `internal/square` and `cmd/ynx-squared` only if an audited existing API contract has a real correctness or access-control gap
-- `internal/appgateway` only if an exact existing protected route or response-boundary gap is found
-- `apps/mobile` for the native Social information architecture and signed workflows
-- `internal/trustgateway` and existing Trust handlers only where report/appeal evidence requires a real integration
-- API and acceptance documentation only after matching code and tests exist
+- `internal/square`, `cmd/ynx-squared`
+- `internal/appgateway`, `cmd/ynx-app-gatewayd`
+- `apps/mobile`
+- `scripts/package/mobile-android-release.sh`
+- `scripts/verify/mobile-product-split-check.sh`
+- API and acceptance documentation only after matching evidence exists
 
-Required implementation:
+Required implementation and verification:
 
-- Reuse the existing persistent signed Square comment, reaction, follow, and report APIs; do not duplicate their domain state or handlers.
-- Preserve the strict native client request/response types, parsers, signatures, authorization-failure handling, and tests now implemented for the exact Square Gateway routes.
-- Preserve the completed member-scoped profile and notification records, legacy-state migration, access control, restart integrity, read acknowledgement, strict parsers, exact remote release, and rollback backup while producing installed signed-lifecycle evidence.
-- Connect reports and moderation outcomes to the existing Trust appeal/transparency boundary; rejection and appeal state must remain visible and auditable.
-- Preserve the completed Feed/Messages/Alerts Social route and native profile editor. Keep the four-item bottom bar stable and do not copy the Web layout.
-- Preserve `ynx1...` as the visible identity default and YNXT as the only native coin/resource asset.
-- Keep Pay/tips disabled until an exact recipient-bound consumer payment and receipt workflow is connected to the social action.
-- Add API documentation only after matching handlers, persistence, tests, and smoke targets exist.
-- Update the official website only with implemented capability and truthful deployed/not-deployed status; do not represent the architecture document as shipped products.
+- Preserve existing Square state, audit integrity, profiles, notifications, posts, comments, reactions, follows, reports, and rollback evidence during scoped deployment.
+- Deploy exact source-built Square and Gateway binaries with existing server-only credentials and no authoritative-chain restart.
+- Verify exact remote build IDs, public handle route behavior, private-route denial, product client binding, healthy Chat/Square/Pay upstreams, and zero leaked sessions.
+- Build externally test-signed Social and Wallet APK/AAB artifacts with exact provenance and no production-signing claim.
+- Install both new package IDs on the connected Pixel without deleting the internal package or unrelated phone data.
+- Verify Social and Wallet foreground identity, navigation separation, embedded Hermes, no fatal log, and truthful unavailable/locked states.
 
 Validation commands:
 
 - `go test ./...`
 - `make square-api-check`
-- `make chat-api-check`
-- `make trust-api-check`
-- `make trust-appeal-check`
-- `make transparency-report-check`
-- `make app-account-ownership-check`
 - `make app-gateway-check`
+- `make app-account-ownership-check`
 - `make mobile-check`
+- `make mobile-product-split-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -52,14 +46,14 @@ Validation commands:
 
 Completion standard:
 
-- Two disposable `ynx1...` users can use the installed native client to follow/unfollow, publish, comment, react/unreact, report, and read the resulting real feed/profile/notification state after service restart, without touching owner funds or claiming independent public proof.
-- Changed-input idempotency, duplicate reactions, unauthorized deletion/moderation, overlong content, rate abuse, hidden/revoked identities, and malformed signatures fail closed.
-- The installed native App exposes a coherent Social workflow rather than a list of service buttons, and all remote claims match exact deployment evidence.
-- No groups, moments equivalence, media, public Pay/tip settlement, iOS/real-device interaction, production signing, store acceptance, audit, or independent proof is inferred unless separately verified.
+- Remote Square/Gateway exact release and scoped backup are verified without state loss.
+- Separate Social and Wallet test-only Release packages are installed and render their own product workflows on Pixel.
+- Social account discovery accepts `@handle`/Social QR and never asks the user for a wallet address.
+- No mainnet, production signing, store acceptance, exchange listing, stablecoin support, wallet default support, partnership, benchmark parity, or independent proof is inferred.
 
-Explicitly not doing / truth boundaries:
+Explicitly not doing:
 
-- Do not add fake Bank, Shop, Browser, Bridge, AI, IDE, desktop, group, media, contact, moderation, or moments screens. Build each later as a complete domain workflow or separate application under the architecture boundary.
-- Do not claim WeChat/Binance/Apple equivalence, mainnet, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, public settlement, or independent proof without evidence.
-- Do not expand bounded EVM opcode, Counter sample, Hardhat artifacts, or IDE execution except to preserve passing tests.
+- Do not restore the mixed super-App as the consumer architecture.
+- Do not create empty Exchange, Shop, AI, Monitor, Browser, Bank, desktop, groups, media, or moments screens.
+- Do not expand bounded EVM/IDE except to preserve passing tests.
 - Do not modify or replace the long-term goal file.

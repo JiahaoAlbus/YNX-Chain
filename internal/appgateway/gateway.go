@@ -54,7 +54,17 @@ type visitor struct {
 const (
 	nativeMobileClient  = "ynx-mobile-v1"
 	nativeMobileBinding = "ynx-mobile://com.ynxweb4.mobile"
+	nativeSocialClient  = "ynx-social-v1"
+	nativeSocialBinding = "ynx-social://com.ynxweb4.social"
+	nativeWalletClient  = "ynx-wallet-v1"
+	nativeWalletBinding = "ynx-wallet://com.ynxweb4.wallet"
 )
+
+var nativeClientBindings = map[string]string{
+	nativeMobileClient: nativeMobileBinding,
+	nativeSocialClient: nativeSocialBinding,
+	nativeWalletClient: nativeWalletBinding,
+}
 
 func New(cfg Config) (*Gateway, error) {
 	if err := ValidateConfig(cfg); err != nil {
@@ -171,15 +181,31 @@ func (g *Gateway) ClientBinding(origin, client string) (string, bool) {
 	if origin != "" {
 		return origin, client == "" && g.OriginAllowed(origin)
 	}
-	if client == nativeMobileClient {
-		return nativeMobileBinding, true
+	if binding, ok := nativeClientBindings[client]; ok {
+		return binding, true
 	}
 	return "", client == ""
 }
 
 func (g *Gateway) BindingAllowed(binding string) bool {
 	binding = strings.TrimSpace(binding)
-	return binding == nativeMobileBinding || g.OriginAllowed(binding)
+	for _, nativeBinding := range nativeClientBindings {
+		if binding == nativeBinding {
+			return true
+		}
+	}
+	return g.OriginAllowed(binding)
+}
+
+func productRouteAllowed(binding, service string) bool {
+	switch binding {
+	case nativeSocialBinding:
+		return service == "chat" || service == "square"
+	case nativeWalletBinding:
+		return false
+	default:
+		return true
+	}
 }
 
 func (g *Gateway) Allow(remoteAddr string) bool {
@@ -232,6 +258,8 @@ func publicRouteAllowed(service, method, path string) bool {
 		case len(parts) == 4 && parts[1] == "profiles" && parts[3] == "following":
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 3 && parts[1] == "profiles":
+			return method == "GET" && validSegment(parts[2])
+		case len(parts) == 3 && parts[1] == "handles":
 			return method == "GET" && validSegment(parts[2])
 		}
 	}

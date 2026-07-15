@@ -5,8 +5,9 @@ import { parsePaySettlement, type PaySettlement } from "./pay";
 import { parseChatConversationResult, parseChatConversations, parseChatDevices, parseChatMessages, type ChatConversation, type ChatDevice, type ChatMessage, type DecryptedChatMessage } from "./chat";
 import { parseSquareCommentResult, parseSquareFollowResult, parseSquareNotificationFeed, parseSquareNotificationResult, parseSquareProfileResult, parseSquareReactionResult, parseSquareReportResult, type SquareComment, type SquareFollow, type SquareNotification, type SquareNotificationFeed, type SquareProfile, type SquareReaction, type SquareReport } from "./square";
 
-const CLIENT = "ynx-mobile-v1";
-const BINDING = "ynx-mobile://com.ynxweb4.mobile";
+const PRODUCT = process.env.EXPO_PUBLIC_YNX_PRODUCT;
+const CLIENT = PRODUCT === "social" ? "ynx-social-v1" : PRODUCT === "wallet" ? "ynx-wallet-v1" : "ynx-mobile-v1";
+const BINDING = PRODUCT === "social" ? "ynx-social://com.ynxweb4.social" : PRODUCT === "wallet" ? "ynx-wallet://com.ynxweb4.wallet" : "ynx-mobile://com.ynxweb4.mobile";
 
 type Session = { token: string; expiresAt: string };
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
@@ -202,12 +203,14 @@ export class YNXMobileAppClient {
     return parseSquareReportResult(await this.signedSquareRequest("POST", "/square/reports", { ...input, targetId }));
   }
 
-  async setSquareProfile(displayName: string, bio: string, idempotencyKey: string): Promise<SquareProfile> {
+  async setSquareProfile(handle: string, displayName: string, bio: string, idempotencyKey: string): Promise<SquareProfile> {
+    const normalizedHandle = handle.trim().replace(/^@/, "").toLowerCase();
+    if (!/^[a-z][a-z0-9_]{2,23}$/.test(normalizedHandle)) throw new Error("Social username must contain 3 to 24 lowercase letters, numbers, or underscores");
     if (displayName.trim().length === 0 || displayName.trim().length > 64) throw new Error("Square display name must contain 1 to 64 characters");
     if (bio.trim().length > 280) throw new Error("Square profile bio exceeds 280 characters");
     requireIdempotencyKey(idempotencyKey);
     await this.authorize("signed-social-action");
-    return parseSquareProfileResult(await this.signedSquareRequest("POST", "/square/profiles", { idempotencyKey, displayName, bio }));
+    return parseSquareProfileResult(await this.signedSquareRequest("POST", "/square/profiles", { idempotencyKey, handle: normalizedHandle, displayName, bio }));
   }
 
   async listSquareNotifications(limit = 30, cursor = ""): Promise<SquareNotificationFeed> {

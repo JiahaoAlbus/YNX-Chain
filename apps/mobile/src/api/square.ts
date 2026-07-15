@@ -12,6 +12,7 @@ export type SquareReaction = { postId: string; account: string; kind: "like" | "
 export type SquareFollow = { follower: string; following: string; active: boolean; updatedAt: string };
 export type SquareProfile = {
   account: string;
+  handle: string;
   displayName: string;
   bio: string;
   createdAt: string;
@@ -57,7 +58,8 @@ export function parseSquareFollowResult(value: unknown): SquareFollow { return p
 export function parseSquareReportResult(value: unknown): SquareReport { return parseResult(value, parseSquareReport, "report"); }
 export function parseSquareProfile(value: unknown): SquareProfile {
   if (!isPlainObject(value) || !strings(value, ["account", "displayName", "bio", "createdAt", "updatedAt"]) || !numbers(value, ["followerCount", "followingCount", "postCount"])) throw new Error("Square profile returned an invalid payload");
-  return value as SquareProfile;
+  if (value.handle !== undefined && typeof value.handle !== "string") throw new Error("Square profile handle is invalid");
+  return { ...(value as Omit<SquareProfile, "handle">), handle: typeof value.handle === "string" ? value.handle : "" };
 }
 export function parseSquareProfileResult(value: unknown): SquareProfile { return profileFromRecord(parseResult(value, parseSquareProfileRecord, "profile")); }
 export function parseSquareNotificationFeed(value: unknown): SquareNotificationFeed {
@@ -89,7 +91,8 @@ function parseSquareReport(value: unknown): SquareReport {
 
 function parseSquareProfileRecord(value: unknown): Omit<SquareProfile, "followerCount" | "followingCount" | "postCount"> {
   if (!isPlainObject(value) || !strings(value, ["account", "displayName", "bio", "createdAt", "updatedAt"])) throw new Error("Square profile result returned an invalid payload");
-  return value as Omit<SquareProfile, "followerCount" | "followingCount" | "postCount">;
+  if (value.handle !== undefined && typeof value.handle !== "string") throw new Error("Square profile result handle is invalid");
+  return { ...(value as Omit<SquareProfile, "handle" | "followerCount" | "followingCount" | "postCount">), handle: typeof value.handle === "string" ? value.handle : "" };
 }
 
 function profileFromRecord(value: Omit<SquareProfile, "followerCount" | "followingCount" | "postCount">): SquareProfile {

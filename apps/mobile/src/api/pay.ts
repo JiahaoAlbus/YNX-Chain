@@ -1,5 +1,6 @@
 const DEFAULT_APP_URL = "https://api.ynxweb4.com";
-const CLIENT = "ynx-mobile-v1";
+const PRODUCT = process.env.EXPO_PUBLIC_YNX_PRODUCT;
+const CLIENT = PRODUCT === "social" ? "ynx-social-v1" : PRODUCT === "wallet" ? "ynx-wallet-v1" : "ynx-mobile-v1";
 const REQUEST_TIMEOUT_MS = 8_000;
 
 export type PayInvoice = Readonly<{

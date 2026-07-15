@@ -33,6 +33,9 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
+    "bundle-check:social": "YNX_MOBILE_PRODUCT=social EXPO_PUBLIC_YNX_PRODUCT=social expo export --platform android --platform ios --output-dir dist-social",
+    "bundle-check:wallet": "YNX_MOBILE_PRODUCT=wallet EXPO_PUBLIC_YNX_PRODUCT=wallet expo export --platform android --platform ios --output-dir dist-wallet",
+    "bundle-check:products": "npm run bundle-check:social && npm run bundle-check:wallet",
     "check": "npm run typecheck && npm test && npm run bundle-check"
   },
   "private": true

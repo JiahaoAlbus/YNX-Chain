@@ -4,6 +4,8 @@ import { getRandomBytesAsync } from "expo-crypto";
 import { ArrowLeft, LockKeyhole, MessageCircle, Plus, RefreshCw, RotateCw, Send, ShieldCheck, Smartphone, X } from "lucide-react-native";
 import { YNXMobileAppClient } from "../api/mobileSession";
 import type { ChatConversation, ChatDevice, DecryptedChatMessage } from "../api/chat";
+import { fetchSquareProfile, fetchSquareProfileByHandle } from "../api/ynxGateway";
+import type { SquareProfile } from "../api/square";
 import { accountIdentity } from "../crypto/ynxSigner";
 import type { PendingChatRotation } from "../storage/chatRotationRecord";
 import { deletePendingChatRotation, loadPendingChatRotation, saveIdentity, savePendingChatRotation, type StoredIdentity } from "../storage/secureIdentity";
@@ -17,6 +19,7 @@ type PendingSend = Readonly<{ content: string; messageId: string; entropy: Uint8
 export function NativeChatScreen(props: { stored: StoredIdentity | null; openWallet: () => void; onDetailChange?: (open: boolean) => void; onIdentityChange: (value: StoredIdentity) => void }) {
   const [client, setClient] = useState<YNXMobileAppClient | null>(null);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, SquareProfile>>({});
   const [selected, setSelected] = useState<ChatConversation | null>(null);
   const [messages, setMessages] = useState<DecryptedChatMessage[]>([]);
   const [peerInput, setPeerInput] = useState("");
@@ -64,7 +67,14 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
   const loadConversations = useCallback(async (active: YNXMobileAppClient, refresh = false) => {
     if (refresh) setRefreshing(true);
     try {
-      setConversations(await active.listChatConversations());
+      const records = await active.listChatConversations();
+      setConversations(records);
+      const accounts = [...new Set(records.flatMap((record) => record.members).filter((account) => account !== active.account))];
+      const resolved = await Promise.all(accounts.map(async (account) => {
+        try { return [account, await fetchSquareProfile(account)] as const; }
+        catch { return null; }
+      }));
+      setProfiles(Object.fromEntries(resolved.filter((record): record is readonly [string, SquareProfile] => record !== null)));
       setError(null);
     } catch (caught) {
       setError(message(caught));
@@ -133,8 +143,11 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
     setBusy(true);
     setError(null);
     try {
+      const profile = await fetchSquareProfileByHandle(socialHandle(peerInput));
+      if (profile.account === client.account) throw new Error("Choose another Social username");
       const random = await getRandomBytesAsync(12);
-      const conversation = await client.createChatConversation(peerInput.trim(), `conversation-${hex(random)}`);
+      const conversation = await client.createChatConversation(profile.account, `conversation-${hex(random)}`);
+      setProfiles((current) => ({ ...current, [profile.account]: profile }));
       setPeerInput("");
       setCreateOpen(false);
       await loadConversations(client);
@@ -231,10 +244,11 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
 
   if (selected && client) {
     const peer = selected.members.find((member) => member !== client.account) ?? "YNX account";
+    const peerProfile = profiles[peer];
     return <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={0} style={styles.screen}>
       <View style={styles.conversationHeader}>
         <Pressable accessibilityLabel="Back to conversations" onPress={closeConversation} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><ArrowLeft color={INK} size={22} /></Pressable>
-        <View style={styles.conversationIdentity}><Text numberOfLines={1} style={styles.peerTitle}>{short(peer)}</Text><View style={styles.encryptedRow}><ShieldCheck color="#067647" size={12} /><Text style={styles.encryptedText}>End-to-end encrypted</Text></View></View>
+        <View style={styles.conversationIdentity}><Text numberOfLines={1} style={styles.peerTitle}>{peerProfile?.displayName || "YNX member"}</Text><View style={styles.encryptedRow}><ShieldCheck color="#067647" size={12} /><Text style={styles.encryptedText}>{peerProfile?.handle ? `@${peerProfile.handle} · ` : ""}End-to-end encrypted</Text></View></View>
         <Pressable accessibilityLabel="Refresh messages" onPress={() => void loadMessages(client, selected)} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><RefreshCw color={INK} size={19} /></Pressable>
       </View>
       {error ? <Text style={styles.inlineError}>{error}</Text> : null}
@@ -258,25 +272,25 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
   return <View style={styles.screen}>
     <View style={styles.heading}>
       <View><Text style={styles.eyebrow}>PRIVATE MESSAGING</Text><Text style={styles.title}>Chat</Text></View>
-      <View style={styles.actions}>{client?.connected ? <><Pressable accessibilityLabel="Manage Chat devices" onPress={() => void openDevices()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><Smartphone color={INK} size={19} /></Pressable><Pressable accessibilityLabel="Lock Chat" onPress={() => void lock()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><LockKeyhole color={INK} size={19} /></Pressable><Pressable accessibilityLabel="New conversation" onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.addButton, pressed && styles.sendPressed]}><Plus color="#FFFFFF" size={21} /></Pressable></> : <Pressable disabled={busy} onPress={() => void connect()} style={({ pressed }) => [styles.unlockButton, pressed && styles.pressed]}>{busy ? <ActivityIndicator color={BLUE} /> : <><LockKeyhole color={BLUE} size={16} /><Text style={styles.unlockText}>{props.stored ? "Unlock" : "Wallet"}</Text></>}</Pressable>}</View>
+      <View style={styles.actions}>{client?.connected ? <><Pressable accessibilityLabel="Manage Chat devices" onPress={() => void openDevices()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><Smartphone color={INK} size={19} /></Pressable><Pressable accessibilityLabel="Lock Chat" onPress={() => void lock()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><LockKeyhole color={INK} size={19} /></Pressable><Pressable accessibilityLabel="New conversation" onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.addButton, pressed && styles.sendPressed]}><Plus color="#FFFFFF" size={21} /></Pressable></> : <Pressable disabled={busy} onPress={() => void connect()} style={({ pressed }) => [styles.unlockButton, pressed && styles.pressed]}>{busy ? <ActivityIndicator color={BLUE} /> : <><LockKeyhole color={BLUE} size={16} /><Text style={styles.unlockText}>{props.stored ? "Unlock" : "Create"}</Text></>}</Pressable>}</View>
     </View>
     {error ? <Text style={styles.inlineError}>{error}</Text> : null}
-    {!client?.connected ? <View style={styles.empty}><View style={styles.chatGlyph}><MessageCircle color={BLUE} size={31} strokeWidth={1.5} /></View><Text style={styles.emptyTitle}>Private by design</Text><Text style={styles.emptyText}>Unlock your native YNX identity to access encrypted direct conversations.</Text></View> : <FlatList
+    {!client?.connected ? <View style={styles.empty}><View style={styles.chatGlyph}><MessageCircle color={BLUE} size={31} strokeWidth={1.5} /></View><Text style={styles.emptyTitle}>Private by design</Text><Text style={styles.emptyText}>Unlock your Social identity to access encrypted direct conversations.</Text></View> : <FlatList
       data={conversations}
       keyExtractor={(item) => item.id}
       contentContainerStyle={conversations.length ? styles.conversationList : styles.emptyConversationList}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadConversations(client, true)} tintColor={BLUE} />}
-      ListEmptyComponent={<View style={styles.empty}><MessageCircle color={BLUE} size={31} strokeWidth={1.5} /><Text style={styles.emptyTitle}>No conversations yet</Text><Text style={styles.emptyText}>Start with another registered ynx1 account.</Text><Pressable onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.startButton, pressed && styles.pressed]}><Plus color={BLUE} size={18} /><Text style={styles.startText}>New conversation</Text></Pressable></View>}
-      renderItem={({ item }) => <ConversationRow conversation={item} account={client.account} onPress={() => void openConversation(item)} />}
+      ListEmptyComponent={<View style={styles.empty}><MessageCircle color={BLUE} size={31} strokeWidth={1.5} /><Text style={styles.emptyTitle}>No conversations yet</Text><Text style={styles.emptyText}>Find someone by username or scan their Social QR code.</Text><Pressable onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.startButton, pressed && styles.pressed]}><Plus color={BLUE} size={18} /><Text style={styles.startText}>New conversation</Text></Pressable></View>}
+      renderItem={({ item }) => { const peer = item.members.find((member) => member !== client.account); return <ConversationRow conversation={item} profile={peer ? profiles[peer] : undefined} onPress={() => void openConversation(item)} />; }}
     />}
     <Modal animationType="slide" onRequestClose={() => setCreateOpen(false)} transparent visible={createOpen}>
       <View style={styles.backdrop}><View style={styles.sheet}>
         <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>New conversation</Text><Pressable accessibilityLabel="Close" onPress={() => setCreateOpen(false)} style={styles.headerIcon}><X color={INK} size={20} /></Pressable></View>
-        <Text style={styles.sheetLabel}>YNX account</Text>
-        <TextInput accessibilityLabel="Recipient YNX address" autoCapitalize="none" autoCorrect={false} onChangeText={setPeerInput} placeholder="ynx1..." placeholderTextColor="#98A2B3" style={styles.addressInput} value={peerInput} />
-        <Text style={styles.sheetNote}>The recipient needs an active registered Chat device. A conversation is created before its member device keys become visible.</Text>
+        <Text style={styles.sheetLabel}>Username or Social QR</Text>
+        <TextInput accessibilityLabel="Social username or QR" autoCapitalize="none" autoCorrect={false} onChangeText={setPeerInput} placeholder="@username" placeholderTextColor="#98A2B3" style={styles.addressInput} value={peerInput} />
+        <Text style={styles.sheetNote}>The recipient needs an active Social profile and Chat device. Their chain account is resolved securely in the background.</Text>
         {error ? <Text style={styles.sheetError}>{error}</Text> : null}
-        <Pressable disabled={busy || !peerInput.trim().startsWith("ynx1")} onPress={() => void createConversation()} style={({ pressed }) => [styles.createButton, (busy || !peerInput.trim().startsWith("ynx1")) && styles.disabled, pressed && styles.sendPressed]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createText}>Create conversation</Text>}</Pressable>
+        <Pressable disabled={busy || !validSocialInput(peerInput)} onPress={() => void createConversation()} style={({ pressed }) => [styles.createButton, (busy || !validSocialInput(peerInput)) && styles.disabled, pressed && styles.sendPressed]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createText}>Create conversation</Text>}</Pressable>
       </View></View>
     </Modal>
     <Modal animationType="slide" onRequestClose={() => setDevicesOpen(false)} transparent visible={devicesOpen}>
@@ -289,9 +303,9 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
   </View>;
 }
 
-function ConversationRow({ conversation, account, onPress }: { conversation: ChatConversation; account: string; onPress: () => void }) {
-  const peer = conversation.members.find((member) => member !== account) ?? "YNX account";
-  return <Pressable onPress={onPress} style={({ pressed }) => [styles.conversationRow, pressed && styles.rowPressed]}><View style={styles.avatar}><Text style={styles.avatarText}>{peer.slice(4, 6).toUpperCase()}</Text></View><View style={styles.rowCopy}><View style={styles.rowTop}><Text numberOfLines={1} style={styles.rowTitle}>{short(peer)}</Text><Text style={styles.rowTime}>{formatTime(conversation.updatedAt)}</Text></View><Text numberOfLines={1} style={styles.rowSubtitle}>Encrypted direct conversation</Text></View></Pressable>;
+function ConversationRow({ conversation, profile, onPress }: { conversation: ChatConversation; profile?: SquareProfile; onPress: () => void }) {
+  const title = profile?.displayName || "YNX member";
+  return <Pressable onPress={onPress} style={({ pressed }) => [styles.conversationRow, pressed && styles.rowPressed]}><View style={styles.avatar}><Text style={styles.avatarText}>{title.slice(0, 2).toUpperCase()}</Text></View><View style={styles.rowCopy}><View style={styles.rowTop}><Text numberOfLines={1} style={styles.rowTitle}>{title}</Text><Text style={styles.rowTime}>{formatTime(conversation.updatedAt)}</Text></View><Text numberOfLines={1} style={styles.rowSubtitle}>{profile?.handle ? `@${profile.handle} · ` : ""}Encrypted direct conversation</Text></View></Pressable>;
 }
 
 function MessageBubble({ item, own }: { item: DecryptedChatMessage; own: boolean }) {
@@ -299,6 +313,8 @@ function MessageBubble({ item, own }: { item: DecryptedChatMessage; own: boolean
 }
 
 function short(value: string): string { return value.length > 22 ? `${value.slice(0, 11)}...${value.slice(-7)}` : value; }
+function socialHandle(value: string): string { return value.trim().replace(/^ynxsocial:\/\/profile\//i, "").replace(/^@/, "").toLowerCase(); }
+function validSocialInput(value: string): boolean { return /^[a-z][a-z0-9_]{2,23}$/.test(socialHandle(value)); }
 function hex(value: Uint8Array): string { return Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join(""); }
 function message(error: unknown): string { return error instanceof Error ? error.message : "YNX Chat is unavailable"; }
 function submissionMessage(error: unknown): string { const detail = message(error); return /abort|network|fetch|timeout|connection|invalid json/i.test(detail) ? `Message result is unknown. Refresh before retrying; the same message ID will be reused. ${detail}` : detail; }

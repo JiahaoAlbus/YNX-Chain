@@ -139,6 +139,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "app route not found")
 		return
 	}
+	if !productRouteAllowed(binding, service) {
+		writeError(w, http.StatusNotFound, "app route not available to this product")
+		return
+	}
 	public := publicRouteAllowed(service, r.Method, upstreamPath)
 	protected := protectedRouteAllowed(service, r.Method, upstreamPath)
 	if !public && !protected {
