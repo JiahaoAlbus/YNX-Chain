@@ -6,7 +6,7 @@
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Wallet Auth`
 - Baseline commit: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`
 - Baseline source: local `origin/main` and `main` both resolved to the commit above on 2026-07-15. A fresh fetch was attempted twice before worktree creation but GitHub TLS failed with `LibreSSL SSL_ERROR_SYSCALL`; no newer remote object could be observed.
-- Final code/proof commit: recorded after the implementation commit is created.
+- Final code/proof commit: `33179416ce1f299445934a185194d966e341cdfe`
 - Final branch-tip commit: reported to the integration controller after the handoff commit is created. A commit cannot contain its own hash.
 
 ## Changed paths
