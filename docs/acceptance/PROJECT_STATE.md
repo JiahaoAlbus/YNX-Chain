@@ -1,5 +1,14 @@
 # Project State
 
+## 2026-07-16 Authoritative follower runtime evidence
+
+- Current source adds a thread-safe authoritative replication runtime status to `/status` and `/node/identity`: configured source, lifecycle state, `catchingUp`, freshness, exact source/local height and hash, lag, attempts, successes, failures, synchronization timestamps, bounded last error, and stage.
+- Followers start and restart as `starting` with `catchingUp=true`; attempts move to `syncing`; authenticated exact snapshot application moves to `synced`; stale or failed polling remains catching up as `stale` or `degraded`; shutdown records `stopped`. Producers report `not_configured` and do not claim follower synchronization.
+- The chain snapshot remains atomically persistent. The runtime record intentionally resets after process restart, preventing a pre-restart success from being reused as fresh convergence proof. Local tests verify persistence, revalidation, degraded recovery, exact height/hash equality, cancellation, and race safety.
+- `validator-peer-readiness-check` and `verify-testnet` now require `status=synced`, `catchingUp=false`, `fresh=true`, and exact source/local height/hash equality for followers. Focused and full validation pass locally.
+- This source is not remotely deployed. One operator diagnostic observed healthy primary Caddy, loopback chain/services, resource capacity, and Caddy configuration while external TLS intermittently stalled and later SSH connections closed. No firewall, server, or public route was changed; no fresh remote follower/restart or independent public proof is claimed.
+- The public topology therefore remains the previously deployed authoritative producer plus three authenticated followers. It remains deterministic authoritative replication, not CometBFT validator voting or Byzantine fault tolerance.
+
 ## 2026-07-15 Independent Social and Wallet product boundary
 
 - The previous `com.ynxweb4.mobile` Social/Wallet/Pay/Network binary is now classified as an internal integration and acceptance shell, not a final consumer product. `docs/ecosystem/PRODUCT_ARCHITECTURE.md` defines separate Social, Wallet, Pay, Exchange, Shop, Explorer, Developer, AI, Monitor, Trust, Resource, and Browser product boundaries, benchmark workflows, and honest incomplete status.

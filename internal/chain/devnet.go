@@ -64,6 +64,7 @@ type Devnet struct {
 	validatorPeers       map[string]ValidatorPeer
 	validatorPeerSyncs   map[string]ValidatorPeerSync
 	nodeIdentity         NodeIdentityConfig
+	replicationRuntime   ReplicationRuntimeStatus
 	lots                 map[string]TrustTraceLot
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
@@ -519,9 +520,11 @@ func (d *Devnet) Status() map[string]any {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 	latest := d.blocks[len(d.blocks)-1]
+	now := time.Now().UTC()
 	readyCount := d.readyValidatorCountLocked()
 	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
 	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked()
+	identity := d.nodeIdentityLocked(now)
 	return map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
@@ -531,7 +534,9 @@ func (d *Devnet) Status() map[string]any {
 		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
 		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
 		"validatorPeerSync":      map[string]any{"synced": syncedPeers, "lagging": laggingPeers, "total": len(d.validatorPeerSyncs)},
-		"nodeIdentity":           d.nodeIdentityLocked(time.Now().UTC()),
+		"nodeIdentity":           identity,
+		"catchingUp":             identity.Replication.CatchingUp,
+		"replication":            identity.Replication,
 		"build":                  normalizeBuildInfo(d.nodeIdentity.Build),
 		"persistence":            d.dataDir != "", "persistenceError": d.lastPersistenceError,
 		"truthfulStatus": TruthfulStatus(d.cfg), "mainnetReady": false,
@@ -554,6 +559,7 @@ func (d *Devnet) SetNodeIdentityConfig(input NodeIdentityConfig) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.nodeIdentity = input
+	d.configureReplicationRuntimeLocked(input.ReplicationSource)
 }
 
 func normalizeBuildInfo(input BuildInfo) BuildInfo {
@@ -2707,6 +2713,7 @@ func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
 		identity.ValidatorPeerID = validator.PeerID
 	}
 	identity.PeerSyncFreshness = d.validatorPeerSyncFreshnessLocked(cfg.ValidatorAddress, targets, cfg.PeerSyncInterval, cfg.StaleAfter, now)
+	identity.Replication = d.replicationRuntimeStatusLocked(now, cfg.PeerSyncInterval, cfg.StaleAfter)
 	return identity
 }
 

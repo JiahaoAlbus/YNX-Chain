@@ -90,6 +90,9 @@ for _ in {1..40}; do
 done
 PRIMARY_STATUS="$primary_status" SECONDARY_STATUS="$secondary_status" node -e 'const p=JSON.parse(process.env.PRIMARY_STATUS); const s=JSON.parse(process.env.SECONDARY_STATUS); if (p.height!==s.height || p.latestBlockHash!==s.latestBlockHash) { console.error(`replication did not converge: primary=${p.height}/${p.latestBlockHash} secondary=${s.height}/${s.latestBlockHash}`); process.exit(1); }'
 secondary_identity="$(curl -fsS http://127.0.0.1:6461/node/identity)"
-printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460") { console.error(`follower identity missing replication mode: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460" || !r.configured || r.status !== "synced" || r.catchingUp !== false || r.fresh !== true || r.localHeight !== r.sourceHeight || r.localBlockHash !== r.sourceBlockHash || r.consecutiveFailures !== 0 || r.successes < 1) { console.error(`follower identity missing verified replication state: ${JSON.stringify(data)}`); process.exit(1); }'
+
+secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
+printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.catchingUp !== false || r.status !== "synced" || r.localHeight !== data.height || r.localBlockHash !== data.latestBlockHash) { console.error(`follower status missing convergence proof: ${JSON.stringify(data)}`); process.exit(1); }'
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"

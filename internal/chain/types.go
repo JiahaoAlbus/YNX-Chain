@@ -303,6 +303,28 @@ type NodeIdentity struct {
 	RuntimeEvidence         string                     `json:"runtimeEvidence"`
 	Build                   BuildInfo                  `json:"build"`
 	PeerSyncFreshness       ValidatorPeerSyncFreshness `json:"peerSyncFreshness"`
+	Replication             ReplicationRuntimeStatus   `json:"replication"`
+}
+
+type ReplicationRuntimeStatus struct {
+	Configured          bool       `json:"configured"`
+	Source              string     `json:"source,omitempty"`
+	Status              string     `json:"status"`
+	CatchingUp          bool       `json:"catchingUp"`
+	Fresh               bool       `json:"fresh"`
+	LocalHeight         uint64     `json:"localHeight"`
+	LocalBlockHash      string     `json:"localBlockHash,omitempty"`
+	SourceHeight        uint64     `json:"sourceHeight"`
+	SourceBlockHash     string     `json:"sourceBlockHash,omitempty"`
+	LagBlocks           int64      `json:"lagBlocks"`
+	Attempts            uint64     `json:"attempts"`
+	Successes           uint64     `json:"successes"`
+	ConsecutiveFailures uint64     `json:"consecutiveFailures"`
+	LastAttemptAt       *time.Time `json:"lastAttemptAt,omitempty"`
+	LastSuccessAt       *time.Time `json:"lastSuccessAt,omitempty"`
+	LastSnapshotAt      *time.Time `json:"lastSnapshotAt,omitempty"`
+	LastErrorStage      string     `json:"lastErrorStage,omitempty"`
+	LastError           string     `json:"lastError,omitempty"`
 }
 
 type ValidatorPeerSyncFreshness struct {

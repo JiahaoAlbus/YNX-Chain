@@ -26,10 +26,10 @@ Legacy protection:
 
 Current highest priority:
 
-- Replace authoritative replication with public CometBFT voting only after offline recovery, owner handover, rotation, independent custody review, and transaction approval. Keep the current public services online as the rollback boundary.
-- Stablecoin issuer control commit `23a5702ec979` is persistent and locally verified, but the real deploy gate is false and no issuer support, mint/burn execution, remote service, public endpoint, or partnership exists.
-- Exact App Gateway release `ynx-chain-132b711450f6` is remotely active and operator-source TLS proof passed `ynx1...` ownership, device binding, protected Chat/Square registration and revocation, session revocation, state restart, public read continuity, rollback recovery, and chain continuity without creating a public post. Independent public-vantage proof remains absent.
-- The current bounded product gap is a real YNX-native browser signing boundary and signed Square Web/PWA write workflow. It must preserve client-side key ownership, encrypted persistence/recovery boundaries, exact account/device/origin binding, and device-signed mutations before any write-capable product is described as usable.
+- Finish and deploy the authoritative follower replication runtime proof: every follower must expose fresh exact source/local height and hash equality, clear `catchingUp` only after authenticated revalidation, and repeat the same proof after a bounded follower restart.
+- Current source implements and locally verifies that lifecycle, but it is not in the public release. The active public chain release remains the previously recorded authoritative release until an ordinary rollback-safe deployment succeeds.
+- External TLS/SSH reachability was intermittent during the latest operator check while source Caddy and loopback services were healthy. Do not fabricate remote completion or repeatedly hammer the route; require a fresh deploy-readiness pass before mutation.
+- Replace authoritative replication with public CometBFT voting only after offline recovery, owner handover, rotation, independent custody review, and explicit transaction approval. Keep the current public services online as the rollback boundary.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.
 
 Forbidden:
