@@ -1,5 +1,13 @@
 # Project State
 
+## 2026-07-16 Authoritative snapshot v2 corruption detection
+
+- Current source upgrades the authoritative `devnet-state.json` from partial Resource Sponsor integrity to a versioned full-snapshot SHA-256 digest covering blocks, transactions, accounts, validators, operational peer records, Pay, Trust, governance, AI, Resource, contracts, and nested records. Startup and replication validate the digest before applying state.
+- Persistent writes now fsync the mode-`0600` temporary file, rename it atomically, and fsync the parent directory. A separate `devnet-state.integrity-version` marker allows one valid marker-free v1 migration and rejects later local downgrade to v1. This detects corruption and unkeyed file changes; it is not a keyed signature or independent storage audit.
+- Replication validates full integrity and Resource Sponsor integrity before mutation. If persistence fails after an incoming state is applied, memory is restored to the pre-apply snapshot and rollback persistence is attempted; failure evidence is returned rather than exposing a successful half-apply.
+- Local tests cover v2 restart, account and block tamper rejection, authenticated replication tamper rejection, v1 migration, post-migration downgrade rejection, mode `0600`, temporary-file cleanup, write failure, rollback after failed persistence, and race safety. No remote state file was changed and no public v2 migration, remote corruption drill, or independent proof exists.
+- The safe first rollout order is all three followers before the primary. New followers can consume authenticated v1 during the bounded mixed-version interval and reseal locally as v2; after the primary upgrade they must consume authenticated v2. Deploying the primary before old followers would make those old followers reject the unsupported snapshot version.
+
 ## 2026-07-16 Replication fault detection and bounded remote audit
 
 - One fresh read-only remote cycle completed. Strict SSH and current host keys passed on the primary, Singapore, Silicon Valley, and Seoul roles. Public RPC identified chain `6423`, four active validators, four observed peer records, three peer-sync records, and deployed release `0d31850f74b2` at observed height `185750`.

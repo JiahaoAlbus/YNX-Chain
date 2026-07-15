@@ -94,7 +94,19 @@ printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs")
 
 secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
 printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.catchingUp !== false || r.status !== "synced" || r.localHeight !== data.height || r.localBlockHash !== data.latestBlockHash) { console.error(`follower status missing convergence proof: ${JSON.stringify(data)}`); process.exit(1); }'
-secondary_metrics="$(curl -fsS http://127.0.0.1:6461/metrics)"
+secondary_metrics=""
+# The producer can advance between the status and metrics requests. Poll until
+# one coherent metrics scrape observes the follower fully caught up.
+for _ in {1..40}; do
+  secondary_metrics="$(curl -fsS http://127.0.0.1:6461/metrics)"
+  if grep -Fq 'ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="synced"} 1' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_fresh{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_lag_blocks{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' <<<"$secondary_metrics"; then
+    break
+  fi
+  sleep 0.25
+done
 for metric in \
   'ynx_chain_replication_configured{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' \
   'ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="synced"} 1' \

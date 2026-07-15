@@ -26,8 +26,8 @@ Legacy protection:
 
 Current highest priority:
 
-- Finish and deploy the authoritative follower replication runtime proof: every follower must expose fresh exact source/local height and hash equality, clear `catchingUp` only after authenticated revalidation, and repeat the same proof after a bounded follower restart.
-- Current source implements and locally verifies that lifecycle, but it is not in the public release. The active public chain release remains the previously recorded authoritative release until an ordinary rollback-safe deployment succeeds.
+- Finish and deploy the authoritative follower replication runtime proof: every follower must expose fresh exact source/local height and hash equality, clear `catchingUp` only after authenticated revalidation, persist an integrity-validated snapshot v2, and repeat the same proof after a bounded follower restart.
+- Current source implements and locally verifies that lifecycle, full-state corruption detection, v1 migration/downgrade protection, durable replacement, and follower-first deployment order, but it is not in the public release. The active public chain release remains the previously recorded authoritative release until an ordinary rollback-safe deployment succeeds.
 - External TLS/SSH reachability was intermittent during the latest operator check while source Caddy and loopback services were healthy. Do not fabricate remote completion or repeatedly hammer the route; require a fresh deploy-readiness pass before mutation.
 - Replace authoritative replication with public CometBFT voting only after offline recovery, owner handover, rotation, independent custody review, and explicit transaction approval. Keep the current public services online as the rollback boundary.
 - Keep the current public services online while BFT work is incomplete. Do not deploy an unproven consensus migration or confuse authoritative replication with validator consensus.

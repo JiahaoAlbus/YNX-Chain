@@ -248,6 +248,7 @@ func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
 type devnetSnapshot struct {
 	Version          int                                   `json:"version"`
 	SavedAt          time.Time                             `json:"savedAt"`
+	StateIntegrity   string                                `json:"stateIntegrity,omitempty"`
 	Config           NetworkConfig                         `json:"config"`
 	Blocks           []Block                               `json:"blocks"`
 	Pending          []Transaction                         `json:"pending"`
@@ -2973,6 +2974,13 @@ func (d *Devnet) snapshotPath() string {
 	return filepath.Join(d.dataDir, "devnet-state.json")
 }
 
+func (d *Devnet) snapshotIntegrityMarkerPath() string {
+	if d.dataDir == "" {
+		return ""
+	}
+	return filepath.Join(d.dataDir, "devnet-state.integrity-version")
+}
+
 func (d *Devnet) loadSnapshot() error {
 	path := d.snapshotPath()
 	if path == "" {
@@ -2989,14 +2997,27 @@ func (d *Devnet) loadSnapshot() error {
 	if err := json.Unmarshal(payload, &snapshot); err != nil {
 		return fmt.Errorf("decode devnet snapshot: %w", err)
 	}
-	if snapshot.Version != 1 {
+	markerPresent, err := validateSnapshotIntegrityMarker(d.snapshotIntegrityMarkerPath())
+	if err != nil {
+		return err
+	}
+	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion {
 		return fmt.Errorf("unsupported devnet snapshot version %d", snapshot.Version)
+	}
+	if markerPresent && snapshot.Version < devnetSnapshotVersion {
+		return errors.New("devnet snapshot integrity downgrade rejected after v2 migration")
 	}
 	if snapshot.Config.ChainID != d.cfg.ChainID {
 		return fmt.Errorf("snapshot chain ID %d does not match configured chain ID %d", snapshot.Config.ChainID, d.cfg.ChainID)
 	}
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("devnet snapshot has no blocks")
+	}
+	if err := validateDevnetSnapshotIntegrity(snapshot); err != nil {
+		return fmt.Errorf("validate devnet snapshot integrity: %w", err)
+	}
+	if err := validateReplicationBlockHistory(snapshot, d.cfg); err != nil {
+		return fmt.Errorf("validate devnet block history: %w", err)
 	}
 	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
 		return fmt.Errorf("validate Resource sponsor snapshot: %w", err)
@@ -3019,17 +3040,75 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	snapshot := d.snapshotLocked()
+	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
+	if err != nil {
+		return fmt.Errorf("seal devnet snapshot: %w", err)
+	}
 	payload, err := json.MarshalIndent(snapshot, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
 	}
+	if err := writeDurableSnapshot(path, payload); err != nil {
+		return err
+	}
+	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
+		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
+	}
+	return nil
+}
+
+func validateSnapshotIntegrityMarker(path string) (bool, error) {
+	if path == "" {
+		return false, nil
+	}
+	payload, err := os.ReadFile(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("read devnet snapshot integrity marker: %w", err)
+	}
+	if string(payload) != "2\n" {
+		return false, errors.New("devnet snapshot integrity marker is invalid")
+	}
+	return true, nil
+}
+
+func writeDurableSnapshot(path string, payload []byte) (err error) {
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, payload, 0o600); err != nil {
+	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return fmt.Errorf("open devnet snapshot temp file: %w", err)
+	}
+	defer func() {
+		if file != nil {
+			_ = file.Close()
+		}
+		if err != nil {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	if _, err = file.Write(payload); err != nil {
 		return fmt.Errorf("write devnet snapshot: %w", err)
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err = file.Sync(); err != nil {
+		return fmt.Errorf("sync devnet snapshot: %w", err)
+	}
+	if err = file.Close(); err != nil {
+		file = nil
+		return fmt.Errorf("close devnet snapshot: %w", err)
+	}
+	file = nil
+	if err = os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
+	}
+	directory, openErr := os.Open(filepath.Dir(path))
+	if openErr != nil {
+		return fmt.Errorf("open devnet snapshot directory: %w", openErr)
+	}
+	defer directory.Close()
+	if err = directory.Sync(); err != nil {
+		return fmt.Errorf("sync devnet snapshot directory: %w", err)
 	}
 	return nil
 }

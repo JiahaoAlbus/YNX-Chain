@@ -43,6 +43,8 @@ ENV_FILE=.env.deploy make public-proof
 
 For each authoritative follower, `verify-testnet` also requires the live replication runtime to report `status=synced`, `catchingUp=false`, `fresh=true`, and exact source/local height and hash equality. After any follower restart, expect `starting` or `syncing` with `catchingUp=true` until a newly authenticated source snapshot is verified; only the subsequent exact equality is recovery evidence. The runtime status is intentionally not persisted, while the chain snapshot is. A stale persisted snapshot or a pre-restart success counter must never be presented as fresh convergence proof.
 
+Current source writes authoritative state as snapshot v2 with a full SHA-256 corruption-detection digest and a separate `devnet-state.integrity-version` downgrade marker. A valid legacy v1 state without that marker migrates once; after migration, local v1 rollback fails closed. The digest is not a keyed tamper-proof store. For the first v2 remote rollout, deploy and verify all three followers while the primary still serves authenticated v1, then deploy the primary so every follower receives and persists authenticated v2. Do not deploy the primary first: an old follower does not understand v2. Back up both `devnet-state.json` and the integrity marker before later releases, and treat any integrity or marker error as a stop condition requiring operator review rather than deleting or regenerating state.
+
 Monitoring readiness:
 
 ```bash
