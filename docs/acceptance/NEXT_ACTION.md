@@ -2,13 +2,13 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: deploy the now locally verified persistent profile/notification release, then verify the installed comment, reaction, follow, report, feed, profile, alert, and Messages workflow against disposable records. Keep one Social product and do not turn backend services into bottom-tab items.
+Current single action: complete and cleanly restore an installed two-user Social lifecycle against the now remotely deployed profile/notification release, then connect report outcomes to the existing Trust appeal/transparency boundary. Keep one Social product and do not turn backend services into bottom-tab items.
 
 Why this is next:
 
 - Installed Android proof now covers a real multi-device Chat message, two-recipient decryption/read state, reload, biometric device rotation, revoked/active directory state, reconnect, and a post-rotation message.
 - Square's existing comment, reaction, follow, and report APIs are now wired into a strict native client and post-detail window, and Feed/Chat now share one Social destination. The public feed was empty during installed verification, so no installed real-record mutation proof exists yet.
-- Persistent bounded profiles and private notifications now pass local persistence, restart, access, idempotency, Gateway, native-client, and Hermes checks. Exact remote deployment and installed real-record execution remain absent; contacts, moments-style publishing, moderation outcomes, and Trust/appeal completion also remain absent.
+- Persistent bounded profiles and private notifications now pass local persistence, restart, access, idempotency, Gateway, native-client, Hermes, exact remote deployment, and emulator-installed UI checks. Installed signed real-record execution remains absent; contacts, moments-style publishing, moderation outcomes, and Trust/appeal completion also remain absent.
 - The current App has already reached five tabs. Adding AI, IDE, Shop, Bank, Browser, Bridge, Trust, and every other service as peers would produce shallow screens and prevent complete workflows.
 - `docs/ecosystem/PRODUCT_ARCHITECTURE.md` defines the product boundary: YNX App owns high-frequency consumer identity/social/wallet/Pay; Explorer, Developer Suite, Browser, and merchant operations are separate applications; backend services receive windows only after a real workflow exists.
 
@@ -24,7 +24,7 @@ Required implementation:
 
 - Reuse the existing persistent signed Square comment, reaction, follow, and report APIs; do not duplicate their domain state or handlers.
 - Preserve the strict native client request/response types, parsers, signatures, authorization-failure handling, and tests now implemented for the exact Square Gateway routes.
-- Preserve the completed member-scoped profile and notification records, legacy-state migration, access control, restart integrity, read acknowledgement, and strict parsers while producing exact deployment and installed evidence.
+- Preserve the completed member-scoped profile and notification records, legacy-state migration, access control, restart integrity, read acknowledgement, strict parsers, exact remote release, and rollback backup while producing installed signed-lifecycle evidence.
 - Connect reports and moderation outcomes to the existing Trust appeal/transparency boundary; rejection and appeal state must remain visible and auditable.
 - Preserve the completed Feed/Messages/Alerts Social route and native profile editor. Keep the four-item bottom bar stable and do not copy the Web layout.
 - Preserve `ynx1...` as the visible identity default and YNXT as the only native coin/resource asset.
@@ -55,7 +55,7 @@ Completion standard:
 - Two disposable `ynx1...` users can use the installed native client to follow/unfollow, publish, comment, react/unreact, report, and read the resulting real feed/profile/notification state after service restart, without touching owner funds or claiming independent public proof.
 - Changed-input idempotency, duplicate reactions, unauthorized deletion/moderation, overlong content, rate abuse, hidden/revoked identities, and malformed signatures fail closed.
 - The installed native App exposes a coherent Social workflow rather than a list of service buttons, and all remote claims match exact deployment evidence.
-- No groups, moments equivalence, media, public Pay/tip settlement, iOS/real-device, production signing, store acceptance, audit, or independent proof is inferred unless separately verified.
+- No groups, moments equivalence, media, public Pay/tip settlement, iOS/real-device interaction, production signing, store acceptance, audit, or independent proof is inferred unless separately verified.
 
 Explicitly not doing / truth boundaries:
 
