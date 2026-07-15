@@ -4,7 +4,7 @@
 
 - Branch: `codex/ecosystem-explorer-monitor`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Explorer Monitor`
-- Implementation commit: recorded in the final handoff commit below
+- Implementation commit: `46b06effc8746392263cfc1ec43d908d68b9c93d`
 - Ownership changed only under `apps/explorer/**`, `apps/monitor/**`, and this handoff.
 
 ## Product architecture
