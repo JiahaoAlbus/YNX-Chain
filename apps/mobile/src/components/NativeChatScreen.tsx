@@ -4,8 +4,9 @@ import { getRandomBytesAsync } from "expo-crypto";
 import { ArrowLeft, LockKeyhole, MessageCircle, Plus, RefreshCw, RotateCw, Send, ShieldCheck, Smartphone, X } from "lucide-react-native";
 import { YNXMobileAppClient } from "../api/mobileSession";
 import type { ChatConversation, ChatDevice, DecryptedChatMessage } from "../api/chat";
-import { accountIdentity, zeroize } from "../crypto/ynxSigner";
-import { saveIdentity, type StoredIdentity } from "../storage/secureIdentity";
+import { accountIdentity } from "../crypto/ynxSigner";
+import type { PendingChatRotation } from "../storage/chatRotationRecord";
+import { deletePendingChatRotation, loadPendingChatRotation, saveIdentity, savePendingChatRotation, type StoredIdentity } from "../storage/secureIdentity";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -100,6 +101,13 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
     const next = new YNXMobileAppClient(props.stored);
     try {
       await next.connect({ registerSquare: false });
+      const pending = await loadPendingChatRotation();
+      if (pending) {
+        if (pending.account !== next.account || pending.authorizingDeviceId !== next.deviceId) throw new Error("Pending Chat rotation does not match this secure identity. Keep this identity on the device and contact YNX support.");
+        await next.rotateCurrentChatDevice(pending.newDeviceSecret, pending.idempotencyKey);
+        await finishRotation(next, props.stored, pending);
+        return;
+      }
       setClient(next);
       await loadConversations(next);
     } catch (caught) {
@@ -164,42 +172,37 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
     if (!client || !props.stored) return;
     const current = client;
     const stored = props.stored;
-    let nextSecret: Uint8Array | null = null;
-    let remoteRotated = false;
+    let pending: PendingChatRotation | null = null;
     setBusy(true);
     setError(null);
     try {
-      const [secret, random] = await Promise.all([getRandomBytesAsync(32), getRandomBytesAsync(12)]);
-      nextSecret = secret;
-      await saveIdentity(stored.accountSecret, nextSecret);
-      await saveIdentity(stored.accountSecret, stored.deviceSecret);
-      await current.rotateCurrentChatDevice(nextSecret, `rotate-${hex(random)}`);
-      remoteRotated = true;
-      await saveIdentity(stored.accountSecret, nextSecret);
-      const updated = Object.freeze({ accountSecret: stored.accountSecret.slice(), deviceSecret: nextSecret.slice() });
-      props.onIdentityChange(updated);
-      setDevicesOpen(false);
-      setClient(null);
-      closeConversation();
-      await current.lockAndRevokeSession().catch(() => undefined);
-      setError("Chat device rotated. Unlock again with the new device identity.");
-    } catch (caught) {
-      const restoreSecret = remoteRotated && nextSecret ? nextSecret : stored.deviceSecret;
-      const restored = await saveIdentity(stored.accountSecret, restoreSecret).then(() => true).catch(() => false);
-      if (remoteRotated && restored && nextSecret) {
-        props.onIdentityChange(Object.freeze({ accountSecret: stored.accountSecret.slice(), deviceSecret: nextSecret.slice() }));
-        setDevicesOpen(false);
-        setClient(null);
-        closeConversation();
-        await current.lockAndRevokeSession().catch(() => undefined);
-        setError("Chat device rotated. Unlock again with the new device identity.");
-      } else {
-        setError(remoteRotated ? "Chat device rotated remotely, but secure local identity storage failed. Keep this app open and contact YNX support before retrying." : message(caught));
+      pending = await loadPendingChatRotation();
+      if (pending && (pending.account !== current.account || pending.authorizingDeviceId !== current.deviceId)) throw new Error("Pending Chat rotation does not match this secure identity. Keep this identity on the device and contact YNX support.");
+      if (!pending) {
+        const [nextSecret, random] = await Promise.all([getRandomBytesAsync(32), getRandomBytesAsync(12)]);
+        pending = Object.freeze({ account: current.account, authorizingDeviceId: current.deviceId, newDeviceSecret: nextSecret, idempotencyKey: `rotate-${hex(random)}` });
+        await savePendingChatRotation(pending);
       }
+      await current.rotateCurrentChatDevice(pending.newDeviceSecret, pending.idempotencyKey);
+      await finishRotation(current, stored, pending);
+    } catch (caught) {
+      const detail = message(caught);
+      setError(pending && uncertain(detail) ? `Rotation result is unknown. The new key and exact request are secured on this device. Keep the App open and tap Rotate again. ${detail}` : detail);
     } finally {
-      if (nextSecret) zeroize(nextSecret);
       setBusy(false);
     }
+  };
+
+  const finishRotation = async (current: YNXMobileAppClient, stored: StoredIdentity, pending: PendingChatRotation) => {
+    await saveIdentity(stored.accountSecret, pending.newDeviceSecret);
+    const updated = Object.freeze({ accountSecret: stored.accountSecret.slice(), deviceSecret: pending.newDeviceSecret.slice() });
+    await deletePendingChatRotation();
+    props.onIdentityChange(updated);
+    setDevicesOpen(false);
+    setClient(null);
+    closeConversation();
+    await current.lockAndRevokeSession().catch(() => undefined);
+    setError("Chat device rotated. Unlock again with the new device identity.");
   };
 
   const send = async () => {
@@ -299,6 +302,7 @@ function short(value: string): string { return value.length > 22 ? `${value.slic
 function hex(value: Uint8Array): string { return Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join(""); }
 function message(error: unknown): string { return error instanceof Error ? error.message : "YNX Chat is unavailable"; }
 function submissionMessage(error: unknown): string { const detail = message(error); return /abort|network|fetch|timeout|connection|invalid json/i.test(detail) ? `Message result is unknown. Refresh before retrying; the same message ID will be reused. ${detail}` : detail; }
+function uncertain(detail: string): boolean { return /abort|network|fetch|timeout|connection|invalid json/i.test(detail); }
 function messageState(item: DecryptedChatMessage): string { return Object.keys(item.readAt).length ? "Read" : Object.keys(item.deliveredAt).length ? "Delivered" : "Sent"; }
 function formatTime(value: string): string { const date = new Date(value); return date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
 function formatMessageTime(value: string): string { const date = new Date(value); return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }

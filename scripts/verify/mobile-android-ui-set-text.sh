@@ -38,6 +38,7 @@ javac -source 8 -target 8 -Xlint:-options \
 (cd "$work/dex" && jar cf "$work/ynx-ui-set-text.jar" classes.dex)
 adb -s "$serial" push "$work/ynx-ui-set-text.jar" /data/local/tmp/ynx-ui-set-text.jar >/dev/null
 encoded_description="$(printf '%s' "$description" | base64 | tr -d '\n')"
+encoded_value="$(printf '%s' "$value" | base64 | tr -d '\n')"
 adb -s "$serial" shell uiautomator runtest ynx-ui-set-text.jar -c ynx.verify.SetText \
-  -e descriptionBase64 "$encoded_description" -e value "$value" -s | grep -q '^OK '
+  -e descriptionBase64 "$encoded_description" -e valueBase64 "$encoded_value" -s | grep -q '^OK '
 echo "mobile Android visible native input set-text passed: $description"
