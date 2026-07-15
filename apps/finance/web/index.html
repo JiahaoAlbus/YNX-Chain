@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#002FA7">
+  <meta name="description" content="Read-only YNXT activity, private planning, statements, and evidence-linked Pay receipts.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <title>YNX Finance</title>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Product navigation">
+      <a class="brand" href="#overview" aria-label="YNX Finance home"><span class="mark">Y</span><span>YNX <b>Finance</b></span></a>
+      <nav id="nav">
+        <a class="active" href="#overview">Overview</a><a href="#activity">Activity</a><a href="#planning">Planning</a><a href="#statements">Statements</a><a href="#assistant">AI review</a><a href="#privacy">Privacy & safety</a><a href="#support">Support</a>
+      </nav>
+      <div class="boundary"><strong>Read-only by design</strong><p>No custody, bank account, brokerage, fiat balance, credit, insurance, yield, or automatic asset control.</p></div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <header class="topbar"><div><span class="eyebrow">YNX Chain public testnet · YNXT</span><h1 id="page-title">Your money, with its evidence attached.</h1></div><div class="session"><span id="source-pill" class="pill neutral">Not connected</span><button id="signin" class="primary">Sign in with YNX Wallet</button><button id="logout" class="ghost hidden">Sign out</button></div></header>
+      <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+
+      <section id="signed-out" class="hero">
+        <div><span class="eyebrow">Personal finance without account control</span><h2>See owned YNXT activity.<br>Plan privately.</h2><p>YNX Finance reads evidence through Explorer and Pay after Wallet authorization. It cannot see recovery material, sign transactions, move funds, or invent missing balances.</p><button class="primary connect">Connect YNX Wallet</button></div>
+        <div class="truth-card"><span class="status-dot"></span><div><strong>What appears here</strong><p>Only live indexed YNXT records, authorized Pay receipts, and planning data you create. Empty or unavailable sources stay visibly empty.</p></div></div>
+      </section>
+
+      <div id="workspace" class="hidden">
+        <section id="overview" class="view active-view">
+          <div class="balance-card"><div><span class="eyebrow light">READ-ONLY PORTFOLIO</span><p class="account" id="account">—</p></div><div class="balance-row"><div><span>Available evidence</span><strong id="balance">— YNXT</strong><small id="balance-source">Waiting for Explorer</small></div><div><span>Staked on-chain</span><strong id="staked">— YNXT</strong><small>No fiat conversion inferred</small></div></div></div>
+          <div class="section-head"><div><span class="eyebrow">Current attention</span><h2>Evidence and alerts</h2></div><button class="ghost" id="refresh">Refresh sources</button></div>
+          <div id="alerts" class="alert-list"></div>
+          <div class="grid two"><article class="panel"><div class="panel-head"><h3>Recent owned activity</h3><a href="#activity">View all</a></div><div id="recent-activity" class="rows"></div></article><article class="panel"><div class="panel-head"><h3>Pay receipts</h3><span class="micro">Pay API</span></div><div id="recent-receipts" class="rows"></div></article></div>
+        </section>
+
+        <section id="activity" class="view"><div class="section-head"><div><span class="eyebrow">Indexed records</span><h2>YNXT activity</h2><p>Amounts and fees are chain units from Explorer. No price or fiat value is estimated.</p></div><a class="button ghost" href="/api/export?format=csv" data-auth-download>Export CSV</a></div><div class="panel table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Direction</th><th class="num">Amount</th><th class="num">Fee</th><th>Evidence</th></tr></thead><tbody id="activity-body"></tbody></table><div id="activity-empty" class="empty hidden"></div></div></section>
+
+        <section id="planning" class="view"><div class="section-head"><div><span class="eyebrow">Private product state</span><h2>Budgets & recurring reminders</h2><p>Planning does not reserve, freeze, transfer, or control YNXT.</p></div></div><div class="grid two"><article class="panel"><h3>Categories</h3><div id="categories" class="chips"></div><form id="category-form"><label>Name<input name="name" maxlength="48" required placeholder="e.g. Operations"></label><label>Color<input name="color" type="color" value="#002FA7"></label><button class="primary" type="submit">Add category</button></form></article><article class="panel"><h3>Budget</h3><div id="budgets" class="rows"></div><form id="budget-form"><label>Name<input name="name" maxlength="64" required></label><label>Category<select name="categoryId" required></select></label><label>Limit in YNXT<input name="limitYnxt" type="number" min="1" step="1" required></label><label>Period<select name="period"><option value="monthly">Monthly</option><option value="weekly">Weekly</option></select></label><button class="primary" type="submit">Create budget</button></form></article><article class="panel span-two"><h3>Recurring reminders</h3><div id="reminders" class="rows"></div><form id="reminder-form" class="inline-form"><label>Reminder<input name="title" maxlength="80" required></label><label>Optional YNXT<input name="amountYnxt" type="number" min="0"></label><label>Frequency<select name="schedule"><option>monthly</option><option>weekly</option><option>custom</option></select></label><label>Next date<input name="nextDueAt" type="datetime-local" required></label><button class="primary" type="submit">Add reminder</button></form></article></div></section>
+
+        <section id="statements" class="view"><div class="section-head"><div><span class="eyebrow">Source-bounded record</span><h2>Statements & export</h2><p>A statement is a Finance summary of available on-chain and Pay evidence, not a bank statement.</p></div><div><button id="export-json" class="ghost">Export all JSON</button></div></div><article class="panel"><form id="statement-form" class="inline-form"><label>From<input name="from" type="date" required></label><label>Through<input name="to" type="date" required></label><button class="primary">Generate statement</button></form><div id="statement" class="statement-placeholder">Choose a period to build a source-backed summary.</div></article></section>
+
+        <section id="assistant" class="view"><div class="section-head"><div><span class="eyebrow">Draft-only AI</span><h2>Review owned activity with AI</h2><p>Select exact records. The provider receives only the preview below after permission; results never execute an asset action.</p></div></div><div class="grid two"><article class="panel"><label>Workflow<select id="ai-kind"><option value="categorize">Categorize activity</option><option value="explain_fees">Explain fees</option><option value="draft_budget">Draft a budget</option><option value="detect_anomalies">Detect anomalies</option><option value="explain_recurring">Explain recurring payments</option></select></label><fieldset><legend>Owned activity context</legend><div id="ai-records" class="check-list"></div></fieldset><label class="consent"><input id="ai-consent" type="checkbox"> Send only selected owned activity and my category/budget labels to the configured YNX AI Gateway.</label><button id="ai-start" class="primary">Request review draft</button></article><article class="panel"><h3>Provider & review state</h3><div id="ai-status" class="empty compact">No AI request has been made. Unavailable providers produce an error, never a canned answer.</div><div id="ai-actions" class="hidden"><button data-ai="apply" class="primary">Apply reviewed draft</button><button data-ai="reject" class="ghost">Reject</button><button data-ai="cancel" class="danger">Cancel stream</button></div></article></div></section>
+
+        <section id="privacy" class="view"><div class="section-head"><div><span class="eyebrow">Least privilege</span><h2>Privacy & safety</h2></div></div><div class="grid two"><form id="privacy-form" class="panel toggles"><label><span><strong>Include Pay in statements</strong><small>Uses only Pay records authorized for this account.</small></span><input name="includePayInStatements" type="checkbox"></label><label><span><strong>Allow AI activity context</strong><small>Each AI request still requires exact-record consent.</small></span><input name="allowAiActivityContext" type="checkbox"></label><label><span><strong>Source and anomaly alerts</strong><small>Alerts inform; Finance cannot freeze assets.</small></span><input name="alertsEnabled" type="checkbox"></label><button class="primary">Save privacy settings</button></form><article class="panel risk"><h3>Product boundary</h3><dl><div><dt>Custody</dt><dd>None</dd></div><div><dt>Signature</dt><dd>YNX Wallet only</dd></div><div><dt>Fiat / cards / credit</dt><dd>Not provided</dd></div><div><dt>Returns / APY</dt><dd>Never promised or fabricated</dd></div><div><dt>Cross-chain</dt><dd>Unsupported balances excluded</dd></div></dl></article></div></section>
+
+        <section id="support" class="view"><div class="section-head"><div><span class="eyebrow">Human recovery paths</span><h2>Support & disputes</h2><p>Finance cannot reverse chain transactions. Pay disputes use the linked receipt and support path.</p></div></div><div id="support-links" class="grid three"></div><article class="panel protocol"><h3>Optional protocol disclosure gate</h3><p>No investment, lending, staking, custody, brokerage, or cross-chain module is enabled. Before any future signature, the screen must identify:</p><div class="chips"><span>Counterparty</span><span>Custody</span><span>Contract</span><span>Principal-loss risk</span><span>Fee</span><span>Liquidity risk</span><span>Jurisdiction risk</span><span>Signature boundary</span></div></article></section>
+      </div>
+    </main>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
