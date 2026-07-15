@@ -1,0 +1,1 @@
+const base=process.env.YNX_SHOP_URL||'http://127.0.0.1:8095';for(const path of['/health','/api/capabilities','/api/products']){const r=await fetch(base+path);if(!r.ok)throw new Error(`${path}: ${r.status}`);console.log(path,'OK')}

@@ -1,0 +1,1 @@
+{"name":"@ynx/seller-console","private":true,"scripts":{"test":"node --test test/*.test.mjs","build":"node scripts/build.mjs","smoke":"node scripts/smoke.mjs"},"engines":{"node":">=20"}}
