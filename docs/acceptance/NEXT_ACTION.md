@@ -2,7 +2,7 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: build the first real native Pay consumer window on top of the existing authenticated Pay API. Keep mobile as the primary user surface and use App-native screens, navigation, sheets, system share/clipboard, and biometric confirmation rather than reusing the website's long-page composition.
+Current single action: close the Pay consumer-protocol gap, then build the first real native Pay window. Keep mobile as the primary user surface and use App-native screens, navigation, sheets, system share/clipboard, and biometric confirmation rather than reusing the website's long-page composition.
 
 Current state entering this action:
 
@@ -11,10 +11,13 @@ Current state entering this action:
 - The installed disposable public account was genuinely unfunded. No owner-approved public transfer was executed, so installed Send review/biometric/broadcast/receipt evidence remains incomplete and must not be described as completed.
 - Cross-chain remains visibly `Not active`. Bridge coordinator/readiness code is not a usable bridge: no external adapter, mint/burn authority, public Bridge deployment, or real cross-chain transfer exists.
 - Chat has a protected bounded protocol/core but no finished App. Bank and Shop are not implemented products. Do not represent them as available.
+- The current Pay API is merchant-control metadata only. It records intent/invoice/refund/webhook/events but does not bind a payout address, payer, real native transfer, confirmed settlement, or consumer App session. It is not yet a user payment protocol.
 
 Required Pay implementation:
 
-- Audit and reuse the actual Pay API contract, persistence, idempotency, account ownership, fee/resource, status, and receipt semantics. Do not invent a parallel client protocol.
+- Extend the actual Pay contract rather than inventing a parallel client protocol: bind a merchant payout `ynx1...` address when an intent is created and preserve it on the invoice.
+- Add an idempotent settlement operation that accepts an invoice, session-bound payer, and native transaction hash; verify the committed chain transaction sender, recipient, amount, fee, and finality before changing the invoice/intent to paid and appending a receipt/event.
+- Add an App Gateway Pay upstream whose API key stays server-side. Public invoice lookup may reveal only bounded checkout fields; settlement must require the existing account-bound native session and must inject the payer from that verified session instead of trusting client JSON.
 - Add a native Pay route/window with merchant or payment-request discovery, recipient and amount validation, exact YNXT debit plus fee/resource preview, explicit review, strong-biometric authorization, submission, status tracking, receipt/history, retry safety, and visible rejected/unknown states.
 - Keep `ynx1...` primary and expose `0x...` only where EVM compatibility is technically required.
 - Use real API data only. Empty, unavailable, unsupported, and not-deployed states must remain distinguishable.
@@ -25,7 +28,7 @@ Files to touch:
 
 - `apps/mobile` for native Pay routes, request/review/receipt UI, ownership authorization, and focused tests
 - `apps/mobile/src/api` for the existing Pay API client and strict response validation
-- `internal/paygateway`, `internal/appgateway`, or public API documentation only if a verified contract defect requires a matching code change
+- `internal/chain`, `internal/api`, `internal/paygateway`, and `internal/appgateway` for persisted settlement, transaction verification, authenticated routing, and focused tests
 - `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `docs/acceptance/PROJECT_STATE.md`, and this file after installed-app evidence
 
 Wallet follow-up still required:
