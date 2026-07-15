@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+test('Cloud exposes bounded offline and AI consent workflow',async()=>{const js=await readFile(new URL('../web/app.js',import.meta.url),'utf8');assert.match(js,/selected-context consent/i);assert.match(js,/window\.ynxWallet/);assert.match(js,/addEventListener\('offline'/);assert.match(js,/indexedDB\.open/);assert.match(js,/sessionStorage/);assert.doesNotMatch(js,/recovery.?key.*localStorage/i)});

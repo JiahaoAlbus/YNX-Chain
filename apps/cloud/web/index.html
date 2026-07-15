@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#002FA7">
+  <title>YNX Cloud</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to files</a>
+  <div id="offline" class="offline" role="status" hidden>Offline. Changes stay on this device until you reconnect.</div>
+  <header class="topbar">
+    <a class="brand" href="/cloud/" aria-label="YNX Cloud home"><span class="mark" aria-hidden="true">Y</span><span>YNX Cloud</span></a>
+    <label class="search"><span class="sr-only">Search files</span><input id="search" type="search" placeholder="Search your authorized files" autocomplete="off"><kbd>⌘ K</kbd></label>
+    <button id="wallet" class="wallet">Sign in with YNX Wallet</button>
+  </header>
+  <div class="shell">
+    <nav class="sidebar" aria-label="Cloud views">
+      <button class="primary" id="new-folder">New folder</button>
+      <label class="upload">Upload<input id="upload" type="file" multiple></label>
+      <div class="nav-list">
+        <button data-view="files" aria-current="page">Files</button>
+        <button data-view="recent">Recent</button>
+        <button data-view="starred">Starred</button>
+        <button data-view="shared">Permissions</button>
+        <button data-view="trash">Trash</button>
+        <button data-view="audit">Audit</button>
+      </div>
+      <div class="quota" aria-label="Storage quota"><div><span id="quota-used">0 B</span><span id="quota-limit"> / 64 MB</span></div><progress id="quota-bar" max="100" value="0">0%</progress><small>Bounded local test storage. No production durability claim.</small></div>
+    </nav>
+    <main id="workspace" tabindex="-1">
+      <div class="workspace-head"><div><p class="eyebrow">PRIVATE WORKSPACE</p><h1 id="view-title">Files</h1><p id="view-subtitle">Only items your current YNX identity can access.</p></div><div class="head-actions"><button id="sync" class="quiet">Sync now</button><button id="ai-open" class="quiet">AI workspace</button></div></div>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <section id="empty" class="empty" hidden><div class="empty-icon" aria-hidden="true">↥</div><h2>No files here</h2><p>Upload a bounded file or create a folder. Content is stored off-chain; only identity, permissions, hashes, or settlement evidence may be anchored.</p></section>
+      <section id="files" class="file-grid" aria-label="Files"></section>
+    </main>
+    <aside id="details" class="details" aria-label="File details" hidden>
+      <button id="details-close" class="close" aria-label="Close details">×</button>
+      <p class="eyebrow">OBJECT &amp; ACCESS</p><h2 id="detail-name"></h2><div id="preview" class="preview"></div><dl id="metadata"></dl>
+      <div class="action-stack"><button id="download">Download</button><button id="star">Star</button><button id="share">Manage access</button><button id="versions">Version history</button><button id="trash">Move to trash</button></div>
+      <div id="detail-panel"></div>
+    </aside>
+  </div>
+  <dialog id="auth-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button><p class="eyebrow">EXPLICIT AUTHORIZATION</p><h2>Sign in with YNX Wallet</h2><p>Cloud requests <code>files.read</code>, <code>files.write</code>, permission, audit and selected-context AI scopes on <strong>ynx_6423-1</strong>. Your recovery key never enters Cloud.</p><div id="auth-state" class="callout">Waiting for the separate YNX Wallet application.</div><button id="auth-start" value="none" type="button" class="primary wide">Open YNX Wallet</button><button value="cancel" class="quiet wide">Cancel</button></form></dialog>
+  <dialog id="share-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button><p class="eyebrow">LEAST PRIVILEGE</p><h2>Access controls</h2><label>YNX account<input id="share-account" placeholder="ynx1…"></label><label>Role<select id="share-role"><option value="viewer">Can view</option><option value="editor">Can edit</option></select></label><label>Expires<input id="share-expiry" type="datetime-local"></label><button id="share-save" type="button" class="primary wide">Grant access</button><hr><button id="link-create" type="button" class="quiet wide">Create 24-hour view link</button><div id="grant-list"></div></form></dialog>
+  <aside id="ai-panel" class="ai-panel" aria-label="AI workspace" hidden><button id="ai-close" class="close" aria-label="Close AI workspace">×</button><p class="eyebrow">SELECTED CONTEXT ONLY</p><h2>Cloud intelligence</h2><p>Choose files in the grid. YNX AI cannot read the rest of your drive, share, delete or overwrite anything.</p><label>Workflow<select id="ai-mode"><option value="summarize">Summarize selected files</option><option value="answer">Answer with file/version citations</option><option value="organize">Propose folder organization</option></select></label><label>Instruction<textarea id="ai-instruction" rows="4" placeholder="What should the AI do?"></textarea></label><div id="ai-context" class="context-list">No files selected.</div><label class="consent"><input id="ai-consent" type="checkbox"> I approve sending exactly these versions to the configured YNX AI Gateway.</label><button id="ai-run" class="primary wide">Review provider &amp; run</button><div id="ai-result" class="callout"></div></aside>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
