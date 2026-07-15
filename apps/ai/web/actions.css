@@ -1,0 +1,24 @@
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+@media (max-width: 900px) {
+  .sessions {
+    transform: translateX(-120%);
+  }
+
+  .conversation-actions {
+    display: none;
+  }
+}

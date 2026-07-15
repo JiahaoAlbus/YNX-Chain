@@ -1,0 +1,310 @@
+package aiproduct
+
+import (
+	"bytes"
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
+)
+
+const testGatewayKey = "test-ai-gateway-key-material"
+
+type testIdentity struct {
+	account       string
+	accountKey    *secp256k1.PrivateKey
+	deviceID      string
+	devicePublic  ed25519.PublicKey
+	devicePrivate ed25519.PrivateKey
+}
+
+func newTestIdentity(t *testing.T) testIdentity {
+	t.Helper()
+	accountKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 83))
+	canonical, err := consensus.NativeAddress(accountKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	account, err := accountaddress.Encode(canonical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devicePublic, devicePrivate, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return testIdentity{account: account, accountKey: accountKey, deviceID: "browser-device-01", devicePublic: devicePublic, devicePrivate: devicePrivate}
+}
+
+func newGatewayFixture(t *testing.T, available bool) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/health" && r.Header.Get("X-YNX-AI-Key") != testGatewayKey {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		switch {
+		case r.URL.Path == "/health":
+			if !available {
+				w.WriteHeader(http.StatusBadGateway)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": available, "model": "ynx-test-model", "providerConfigured": available, "truthfulStatus": "provider-backed"})
+		case r.URL.Path == "/ai/stream":
+			if !available {
+				http.Error(w, "provider unavailable", http.StatusBadGateway)
+				return
+			}
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = io.WriteString(w, "event: metadata\ndata: {\"requestId\":\"gateway-request-1\"}\n\nevent: token\ndata: {\"text\":\"real provider \"}\n\nevent: token\ndata: {\"text\":\"answer\"}\n\nevent: done\ndata: {}\n\n")
+		case r.URL.Path == "/ai/permissions":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "gateway-permission-1", "status": "active"})
+		case r.URL.Path == "/ai/actions":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "gateway-action-1", "status": "pending", "executable": false})
+		case strings.HasSuffix(r.URL.Path, "/approve"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "gateway-action-1", "status": "approved", "executable": true})
+		case strings.HasSuffix(r.URL.Path, "/reject"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "gateway-action-1", "status": "rejected", "executable": false})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+}
+
+func testProduct(t *testing.T, gateway string) (*Store, *httptest.Server) {
+	t.Helper()
+	key := bytes.Repeat([]byte{9}, 32)
+	store, err := NewStore(filepath.Join(t.TempDir(), "state.json"), key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := NewServer(Config{GatewayURL: gateway, GatewayKey: testGatewayKey, ExactWalletCallback: "ynx-ai://com.ynxweb4.ai/auth/callback", TrustURL: "https://trust.example/appeals", ProviderName: "fixture provider", GenerationTimeout: 2 * time.Second}, store, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return store, httptest.NewServer(server.Handler())
+}
+
+func authenticate(t *testing.T, productURL string, store *Store, identity testIdentity) SessionOutput {
+	t.Helper()
+	out, err := store.CreateWalletChallenge(ChallengeInput{Account: identity.account, DeviceID: identity.deviceID, DeviceSigningPublicKey: nativewallet.EncodePublicKey(identity.devicePublic), Callback: "ynx-ai://com.ynxweb4.ai/auth/callback", Scopes: []string{"ai:conversations", "ai:generate", "ai:permissions", "ai:data-control"}}, "ynx-ai://com.ynxweb4.ai/auth/callback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	signBytes, _ := base64.RawStdEncoding.DecodeString(out.SignBytes)
+	digest := sha256.Sum256(signBytes)
+	accountSignature := ecdsa.Sign(identity.accountKey, digest[:]).Serialize()
+	session, err := store.VerifyWalletChallenge(out.ChallengeID, VerifyInput{AccountPublicKey: hex.EncodeToString(identity.accountKey.PubKey().SerializeCompressed()), AccountSignature: hex.EncodeToString(accountSignature), DeviceSignature: nativewallet.Sign(identity.devicePrivate, signBytes)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return session
+}
+
+func authedJSON(t *testing.T, method, rawURL string, body any, session SessionOutput, want int) []byte {
+	t.Helper()
+	var reader io.Reader
+	if body != nil {
+		raw, _ := json.Marshal(body)
+		reader = bytes.NewReader(raw)
+	}
+	req, _ := http.NewRequest(method, rawURL, reader)
+	req.Header.Set("Authorization", "Bearer "+session.Token)
+	req.Header.Set("X-YNX-Device-ID", session.DeviceID)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != want {
+		t.Fatalf("%s %s status=%d want=%d body=%s", method, rawURL, resp.StatusCode, want, raw)
+	}
+	return raw
+}
+
+func TestWalletChallengeIsExactSingleUseAndRevocable(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	identity := newTestIdentity(t)
+	if _, err := store.CreateWalletChallenge(ChallengeInput{Account: identity.account, DeviceID: identity.deviceID, DeviceSigningPublicKey: nativewallet.EncodePublicKey(identity.devicePublic), Callback: "ynx-ai://attacker/callback", Scopes: []string{"ai:conversations"}}, "ynx-ai://com.ynxweb4.ai/auth/callback"); err == nil {
+		t.Fatal("callback substitution was accepted")
+	}
+	out, err := store.CreateWalletChallenge(ChallengeInput{Account: identity.account, DeviceID: identity.deviceID, DeviceSigningPublicKey: nativewallet.EncodePublicKey(identity.devicePublic), Callback: "ynx-ai://com.ynxweb4.ai/auth/callback", Scopes: []string{"ai:conversations"}}, "ynx-ai://com.ynxweb4.ai/auth/callback")
+	if err != nil {
+		t.Fatal(err)
+	}
+	signBytes, _ := base64.RawStdEncoding.DecodeString(out.SignBytes)
+	digest := sha256.Sum256(signBytes)
+	sig := ecdsa.Sign(identity.accountKey, digest[:]).Serialize()
+	verify := VerifyInput{AccountPublicKey: hex.EncodeToString(identity.accountKey.PubKey().SerializeCompressed()), AccountSignature: hex.EncodeToString(sig), DeviceSignature: nativewallet.Sign(identity.devicePrivate, signBytes)}
+	session, err := store.VerifyWalletChallenge(out.ChallengeID, verify)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.VerifyWalletChallenge(out.ChallengeID, verify); err == nil {
+		t.Fatal("challenge replay was accepted")
+	}
+	authedJSON(t, http.MethodGet, product.URL+"/api/provider", nil, session, http.StatusForbidden)
+	if err := store.RevokeSession("Bearer "+session.Token, session.DeviceID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Authenticate(session.Token, session.DeviceID); err == nil {
+		t.Fatal("revoked session remained active")
+	}
+}
+
+func TestProviderBackedConversationPersistsEncryptedAndExports(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	raw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Chain state"}, session, http.StatusCreated)
+	var conversation Conversation
+	_ = json.Unmarshal(raw, &conversation)
+	raw = authedJSON(t, http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/generate", map[string]any{"generationId": "generation-1", "prompt": "Explain the selected block", "model": "ynx-test-model", "includedContext": []string{"conversation"}, "excludedContext": []string{"selected_files"}}, session, http.StatusOK)
+	if !bytes.Contains(raw, []byte("real provider")) || !bytes.Contains(raw, []byte("event: done")) {
+		t.Fatalf("missing provider stream: %s", raw)
+	}
+	_, messages, err := store.Conversation(session.Account, conversation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 2 || messages[1].Content != "real provider answer" || messages[1].RequestID != "gateway-request-1" || messages[1].Cost.ActualUsageReported {
+		t.Fatalf("unexpected messages: %+v", messages)
+	}
+	stateRaw, _ := os.ReadFile(store.path)
+	if bytes.Contains(stateRaw, []byte("Explain the selected block")) || bytes.Contains(stateRaw, []byte("real provider answer")) {
+		t.Fatalf("state leaked plaintext: %s", stateRaw)
+	}
+	export := authedJSON(t, http.MethodGet, product.URL+"/api/conversations/"+conversation.ID+"/export", nil, session, http.StatusOK)
+	if !bytes.Contains(export, []byte("real provider answer")) {
+		t.Fatalf("export missing decrypted user-selected content: %s", export)
+	}
+}
+
+func TestUnavailableProviderNeverCreatesCannedAnswer(t *testing.T) {
+	gateway := newGatewayFixture(t, false)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	raw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Unavailable"}, session, http.StatusCreated)
+	var conversation Conversation
+	_ = json.Unmarshal(raw, &conversation)
+	raw = authedJSON(t, http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/generate", map[string]any{"generationId": "generation-fail", "prompt": "Answer me", "includedContext": []string{"conversation"}}, session, http.StatusBadGateway)
+	if !bytes.Contains(raw, []byte("no substitute answer")) {
+		t.Fatalf("failure boundary is not explicit: %s", raw)
+	}
+	_, messages, err := store.Conversation(session.Account, conversation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(messages) != 0 {
+		t.Fatalf("unavailable provider persisted synthetic messages: %+v", messages)
+	}
+}
+
+func TestActionApprovalRecordsReviewButNeverExecution(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	permissionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/permissions", map[string]any{"conversationId": "conv-review", "scope": "chain:transfer-draft", "purpose": "review exact transfer draft", "expiryHours": 1}, session, http.StatusCreated)
+	var permission PermissionRecord
+	_ = json.Unmarshal(permissionRaw, &permission)
+	actionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/actions", map[string]any{"conversationId": "conv-review", "kind": "chain_action", "scope": "chain:transfer-draft", "description": "Transfer 1 YNXT to selected account", "payloadPreview": "to=ynx1recipient amount=1 YNXT"}, session, http.StatusCreated)
+	var action ActionRecord
+	_ = json.Unmarshal(actionRaw, &action)
+	review := authedJSON(t, http.MethodPost, product.URL+"/api/actions/"+action.ID+"/review", map[string]any{"decision": "approve", "permissionGatewayId": permission.GatewayID}, session, http.StatusOK)
+	if !bytes.Contains(review, []byte("approved_not_executed")) || !bytes.Contains(review, []byte("open YNX Wallet")) {
+		t.Fatalf("approval blurred execution boundary: %s", review)
+	}
+	record, ok := store.Action(session.Account, action.ID)
+	if !ok || record.Status != "approved_not_executed" || !record.WalletStillNeeded {
+		t.Fatalf("unexpected action record: %+v", record)
+	}
+}
+
+func TestContextPolicyDeletionAndRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	key := bytes.Repeat([]byte{5}, 32)
+	store, err := NewStore(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity := newTestIdentity(t)
+	conversation, err := store.CreateConversation(identity.account, "Retention")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetPolicy(identity.account, DataPolicy{RetentionDays: 7, SaveEncryptedBody: true, AllowedContextTypes: []string{"conversation"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.AddMessage(identity.account, conversation.ID, Message{Role: "user", Content: "restart secret", Status: "complete"}); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := NewStore(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, messages, err := restarted.Conversation(identity.account, conversation.ID)
+	if err != nil || len(messages) != 1 || messages[0].Content != "restart secret" {
+		t.Fatalf("restart mismatch messages=%+v err=%v", messages, err)
+	}
+	if err := restarted.DeleteAccount(identity.account); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := restarted.Conversation(identity.account, conversation.ID); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("account deletion left conversation: %v", err)
+	}
+}
+
+func TestCancelEndpointCancelsRegisteredGeneration(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	// Unknown or already-finished generation IDs fail closed instead of claiming cancellation.
+	authedJSON(t, http.MethodPost, product.URL+"/api/generations/not-active/cancel", nil, session, http.StatusNotFound)
+	ctx, cancel := context.WithCancel(context.Background())
+	service := &Server{generations: map[string]context.CancelFunc{"active-generation": cancel}}
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/generations/active-generation/cancel", nil)
+	req.SetPathValue("id", "active-generation")
+	service.handleCancel(recorder, req, ProductSession{Account: session.Account})
+	if recorder.Code != http.StatusAccepted {
+		t.Fatalf("active cancel status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	select {
+	case <-ctx.Done():
+	default:
+		t.Fatal("cancel endpoint did not cancel the active generation context")
+	}
+}

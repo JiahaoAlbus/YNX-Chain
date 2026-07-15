@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#002FA7">
+  <title>YNX AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/actions.css">
+</head>
+<body>
+  <div id="signin" class="auth-shell">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <div class="brand-mark" aria-hidden="true">Y</div>
+      <p class="eyebrow">YNX AI · permissioned intelligence</p>
+      <h1 id="auth-title">Bring your Wallet.<br>Keep your authority.</h1>
+      <p class="lede">Sign in proves account and device control. It never grants signing, transfer, publishing, sending, permission changes, or freezing authority.</p>
+      <form id="challenge-form" class="auth-grid">
+        <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
+        <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
+        <label>Device Ed25519 public key <input id="device-public" required placeholder="base64url public key" autocomplete="off"></label>
+        <button class="primary" type="submit">Continue with YNX Wallet</button>
+      </form>
+      <div id="proof-step" class="proof-step hidden">
+        <p class="notice"><strong>Review in YNX Wallet.</strong> The request expires in five minutes and is bound to this product, callback, device, chain, and exact scopes.</p>
+        <a id="wallet-link" class="wallet-link" href="#">Open YNX Wallet</a>
+        <details>
+          <summary>Complete with signed proof</summary>
+          <form id="verify-form" class="auth-grid compact">
+            <label>Account public key <input id="account-public" required placeholder="compressed secp256k1 hex"></label>
+            <label>Account signature <input id="account-signature" required placeholder="DER low-S hex"></label>
+            <label>Device signature <input id="device-signature" required placeholder="base64url signature"></label>
+            <button class="primary" type="submit">Verify and enter</button>
+          </form>
+        </details>
+      </div>
+      <p id="auth-error" class="error" role="alert"></p>
+    </section>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="rail" aria-label="YNX AI controls">
+      <div class="rail-brand">Y</div>
+      <button class="rail-button active" data-panel="chat" aria-label="Conversations">◫</button>
+      <button class="rail-button" data-panel="review" aria-label="Tool and action review">✓</button>
+      <button class="rail-button" data-panel="control" aria-label="Data controls">◎</button>
+      <button class="rail-button" data-panel="audit" aria-label="Audit and appeals">⌁</button>
+      <span class="rail-spacer"></span>
+      <button id="signout" class="rail-button" aria-label="Sign out">↗</button>
+    </aside>
+
+    <aside class="sessions" aria-label="Conversation list">
+      <header>
+        <div><p class="eyebrow">Workspace</p><h2>Conversations</h2></div>
+        <button id="new-conversation" class="icon-button" aria-label="New conversation">＋</button>
+      </header>
+      <div class="session-tabs" role="tablist"><button class="active" data-archive="false">Active</button><button data-archive="true">Archive</button></div>
+      <div id="conversation-list" class="conversation-list"></div>
+      <div class="account-chip"><span class="live-dot"></span><div><strong id="account-label">ynx1…</strong><small>Wallet-bound session</small></div></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div><p id="conversation-kicker" class="eyebrow">No conversation selected</p><h1 id="conversation-title">A clear boundary for every answer.</h1></div>
+        <div class="topbar-actions">
+          <div id="conversation-actions" class="conversation-actions hidden"><button id="rename-conversation" class="text-button">Rename</button><button id="archive-conversation" class="text-button">Archive</button><button id="export-conversation" class="text-button">Export</button><button id="delete-conversation" class="text-button danger-text">Delete</button></div>
+          <div class="provider-pill"><span id="provider-dot" class="status-dot"></span><div><strong id="provider-label">Checking provider</strong><small id="model-label">Quota unknown</small></div></div>
+        </div>
+      </header>
+
+      <section id="chat-panel" class="panel active">
+        <div id="empty-state" class="empty-state">
+          <span class="orbit" aria-hidden="true"></span>
+          <p class="eyebrow">Start deliberately</p>
+          <h2>Choose the context.<br>See the cost. Stay in control.</h2>
+          <p>YNX AI only shows provider output after the Gateway succeeds. Tools and chain actions always stop for review.</p>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <div class="composer-wrap">
+          <div class="context-strip">
+            <span>CONTEXT</span>
+            <label><input type="checkbox" value="conversation" checked> Conversation</label>
+            <label><input type="checkbox" value="selected_chain_records"> Selected chain records</label>
+            <button id="context-details" class="text-button">Exclusions</button>
+          </div>
+          <div id="exclusion-row" class="exclusion-row hidden">
+            <label><input type="checkbox" value="selected_files"> Exclude files</label>
+            <label><input type="checkbox" value="selected_trust_records"> Exclude Trust records</label>
+            <span>Recovery material and secrets are always excluded.</span>
+          </div>
+          <form id="composer" class="composer">
+            <textarea id="prompt" rows="1" maxlength="8000" placeholder="Ask with an explicit boundary…" aria-label="Message"></textarea>
+            <div class="composer-meta"><span id="estimate">~0 tokens · ~0 resource · money/quota unknown</span><button id="cancel-generation" class="cancel hidden" type="button">Stop</button><button class="send" type="submit" aria-label="Send">↑</button></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="review-panel" class="panel management-panel">
+        <div class="panel-heading"><div><p class="eyebrow">Explicit approval only</p><h2>Tool & action review</h2></div><button id="new-action" class="primary small">Create review</button></div>
+        <div class="boundary-banner"><strong>Approval is not execution.</strong> Chain actions still require a separate YNX Wallet review and signature. YNX AI never signs or transfers.</div>
+        <div id="action-list" class="card-list"></div>
+        <h3>Permission history</h3><div id="permission-list" class="card-list compact-list"></div>
+      </section>
+
+      <section id="control-panel" class="panel management-panel">
+        <div class="panel-heading"><div><p class="eyebrow">Bounded encrypted storage</p><h2>Privacy & retention</h2></div></div>
+        <form id="privacy-form" class="settings-card">
+          <label>Retention window <select id="retention"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>
+          <label class="switch-row"><span><strong>Retain encrypted message bodies</strong><small>When off, new content is replaced by a non-retained marker after generation.</small></span><input id="save-body" type="checkbox"></label>
+          <fieldset><legend>Context types this product may offer</legend><label><input class="policy-context" value="conversation" type="checkbox"> Conversation</label><label><input class="policy-context" value="selected_chain_records" type="checkbox"> Selected chain records</label><label><input class="policy-context" value="selected_files" type="checkbox"> Selected files</label><label><input class="policy-context" value="selected_trust_records" type="checkbox"> Selected Trust records</label></fieldset>
+          <button class="primary small" type="submit">Save data policy</button>
+        </form>
+        <div class="danger-card"><div><strong>Delete all YNX AI data</strong><p>Removes conversation metadata, encrypted content, local permission/action records, appeals, and policy state. Gateway audit retention remains a separate truthful boundary.</p></div><button id="delete-all" class="danger">Delete all</button></div>
+      </section>
+
+      <section id="audit-panel" class="panel management-panel">
+        <div class="panel-heading"><div><p class="eyebrow">Traceable by design</p><h2>Audit, usage & appeals</h2></div><button id="new-appeal" class="primary small">New appeal</button></div>
+        <div id="usage-cards" class="usage-grid"></div>
+        <h3>Local audit chain</h3><div id="audit-list" class="audit-list"></div>
+        <h3>Trust appeals</h3><div id="appeal-list" class="card-list compact-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="modal"><form method="dialog" id="modal-form"><header><p class="eyebrow" id="modal-kicker">Review</p><h2 id="modal-title">Action review</h2></header><div id="modal-body"></div><p id="modal-error" class="error"></p><footer><button value="cancel">Cancel</button><button id="modal-submit" class="primary" value="default">Continue</button></footer></form></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
