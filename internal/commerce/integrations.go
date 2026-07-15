@@ -174,7 +174,7 @@ func (s *Store) CreateAIJob(actor string, in AIInput) (AIJob, error) {
 	if !ok {
 		return AIJob{}, errors.New("unsupported AI workflow")
 	}
-	if !in.PermissionGranted || len(in.ContextClasses) == 0 || in.ContextSummary == "" || in.EstimateUnits <= 0 {
+	if !in.PermissionGranted || len(in.ContextClasses) == 0 || len(in.ContextClasses) > 4 || in.ContextSummary == "" || len(in.ContextSummary) > 2000 || in.EstimateUnits <= 0 || in.EstimateUnits > 1_000_000 {
 		return AIJob{}, errors.New("bounded context preview, estimate and explicit permission required")
 	}
 	for _, c := range in.ContextClasses {

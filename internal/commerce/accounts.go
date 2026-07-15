@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
 func (s *Store) Profile(actor string) BuyerProfile {
@@ -21,7 +23,7 @@ func (s *Store) SaveProfile(actor, displayName string, addresses []Address) (Buy
 		return BuyerProfile{}, errors.New("profile exceeds limits")
 	}
 	for _, a := range addresses {
-		if a.Recipient == "" || a.Line1 == "" || a.Country == "" {
+		if a.Recipient == "" || a.Line1 == "" || a.Country == "" || len(a.Recipient) > 120 || len(a.Line1) > 240 || len(a.City) > 120 || len(a.Region) > 120 || len(a.PostalCode) > 40 || len(a.Country) > 80 {
 			return BuyerProfile{}, errors.New("address recipient, line and country required")
 		}
 	}
@@ -85,8 +87,8 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 	if err := s.requireSellerLocked(id, actor, "owner"); err != nil {
 		return StoreProfile{}, err
 	}
-	if strings.TrimSpace(in.Name) == "" || strings.TrimSpace(in.Policy) == "" {
-		return StoreProfile{}, errors.New("store name and policy required")
+	if err := validateStoreFields(in.Name, in.Description, in.Policy, in.TrustURL, in.SettlementAccount); err != nil {
+		return StoreProfile{}, err
 	}
 	st.Name = in.Name
 	st.Description = in.Description
@@ -113,13 +115,39 @@ func (s *Store) SellerStores(actor string) []StoreProfile {
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
 	return out
 }
+
+func (s *Store) PublicStore(id string) (PublicStore, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	store, ok := s.s.Stores[id]
+	if !ok || store.Status != "active" {
+		return PublicStore{}, ErrNotFound
+	}
+	return PublicStore{ID: store.ID, Name: store.Name, Description: store.Description, Policy: store.Policy, TrustURL: store.TrustURL, Status: store.Status}, nil
+}
+
+func (s *Store) SellerProducts(actor, storeID string) ([]Product, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "fulfillment", "support"); err != nil {
+		return nil, err
+	}
+	out := []Product{}
+	for _, product := range s.s.Products {
+		if product.StoreID == storeID {
+			out = append(out, product)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out, nil
+}
 func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.requireSellerLocked(storeID, actor, "owner"); err != nil {
 		return err
 	}
-	if account == "" || account == actor {
+	if !consensus.IsNativeAddress(account) || account == actor {
 		return errors.New("valid distinct account required")
 	}
 	allowed := map[string]bool{"manager": true, "fulfillment": true, "support": true}
@@ -153,4 +181,37 @@ func (s *Store) Settlements(actor string) []SettlementEvidence {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ConfirmedAt.After(out[j].ConfirmedAt) })
 	return out
+}
+
+func (s *Store) SellerAudit(actor string) ([]AuditEvent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	owned := map[string]bool{}
+	for storeID, roles := range s.s.SellerRoles {
+		if roles[actor] == "owner" || roles[actor] == "manager" {
+			owned[storeID] = true
+		}
+	}
+	if len(owned) == 0 {
+		return nil, ErrUnauthorized
+	}
+	out := []AuditEvent{}
+	for _, event := range s.s.Audits {
+		visible := event.Actor == actor
+		switch event.ObjectType {
+		case "store":
+			visible = visible || owned[event.ObjectID]
+		case "product":
+			product, ok := s.s.Products[event.ObjectID]
+			visible = visible || (ok && owned[product.StoreID])
+		case "order":
+			order, ok := s.s.Orders[event.ObjectID]
+			visible = visible || (ok && owned[order.StoreID])
+		}
+		if visible {
+			out = append(out, event)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].At.After(out[j].At) })
+	return out, nil
 }

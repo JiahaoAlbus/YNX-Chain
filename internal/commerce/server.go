@@ -37,6 +37,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/auth/sessions", s.session)
 	s.mux.HandleFunc("GET /api/products", s.products)
 	s.mux.HandleFunc("GET /api/products/{id}", s.product)
+	s.mux.HandleFunc("GET /api/stores/{id}", s.publicStore)
 	s.mux.HandleFunc("GET /api/profile", s.profile)
 	s.mux.HandleFunc("PUT /api/profile", s.saveProfile)
 	s.mux.HandleFunc("GET /api/cart", s.cart)
@@ -54,6 +55,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.mux.HandleFunc("POST /api/seller/products", s.createProduct)
+	s.mux.HandleFunc("GET /api/seller/products", s.sellerProducts)
 	s.mux.HandleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)
 	s.mux.HandleFunc("POST /api/seller/inventory", s.inventory)
 	s.mux.HandleFunc("GET /api/seller/audit", s.audit)
@@ -77,6 +79,10 @@ func (s *Server) security(next http.Handler) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:")
 		w.Header().Set("Cache-Control", "no-store")
+		if r.Method != http.MethodGet && !s.store.Allow(r.RemoteAddr, "http.mutation", 240, time.Minute) {
+			fail(w, http.StatusTooManyRequests, errors.New("mutation rate limit exceeded"))
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -192,6 +198,14 @@ func (s *Server) product(w http.ResponseWriter, r *http.Request) {
 	v, err := s.store.Product(r.PathValue("id"))
 	if err != nil || !v.Published {
 		fail(w, 404, ErrNotFound)
+		return
+	}
+	write(w, 200, v)
+}
+func (s *Server) publicStore(w http.ResponseWriter, r *http.Request) {
+	v, err := s.store.PublicStore(r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
 		return
 	}
 	write(w, 200, v)
@@ -338,8 +352,8 @@ func (s *Server) orderTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		Action, Carrier, TrackingNumber, Reason, Explanation, Body string
-		Rating                                                     int
+		Action, Carrier, TrackingNumber, Reason, Explanation, Body, IdempotencyKey string
+		Rating                                                                     int
 	}
 	if !decode(w, r, &in) {
 		return
@@ -356,7 +370,7 @@ func (s *Server) orderTransition(w http.ResponseWriter, r *http.Request) {
 	if in.Action == "reviewed" {
 		review = &Review{Rating: in.Rating, Body: in.Body}
 	}
-	v, err := s.store.transition(sess.Account, sess.Role, r.PathValue("id"), in.Action, ship, res, review)
+	v, err := s.store.transition(sess.Account, sess.Role, r.PathValue("id"), in.Action, ship, res, review, in.IdempotencyKey)
 	if err != nil {
 		fail(w, status(err), err)
 		return
@@ -458,6 +472,18 @@ func (s *Server) createProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	write(w, 201, v)
 }
+func (s *Server) sellerProducts(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	v, err := s.store.SellerProducts(sess.Account, r.URL.Query().Get("storeId"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, map[string]any{"products": v})
+}
 func (s *Server) publishProduct(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
 	if !ok {
@@ -491,7 +517,12 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	write(w, 200, map[string]any{"events": s.store.AuditFor(sess.Account)})
+	events, err := s.store.SellerAudit(sess.Account)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, map[string]any{"events": events})
 }
 func (s *Server) settlements(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
