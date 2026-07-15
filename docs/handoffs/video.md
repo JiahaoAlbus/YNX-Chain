@@ -12,35 +12,37 @@
 
 `internal/video` is a deployable Go service with atomic JSON persistence and a
 bounded private object directory. It implements channel creation, upload,
-type/size/rights checks, account quota, malware scanner interface, real FFmpeg
-HLS processing, processing state, restart recovery, visibility review, search,
+type/size/signature/rights checks, total derived-media account quota, malware scanner interface, real FFmpeg
+HLS plus progressive-fallback processing, processing state/retry/restart recovery, visibility review, search,
 authorized media delivery, subscriptions, playlists, history, comments,
-captions, thumbnails, reports, moderator takedown, creator appeal, event-derived
+captions, thumbnails, reports, moderator takedown, creator appeal/review, event-derived
 analytics, derived monetization eligibility plus human review, verified Pay
 revenue records, Wallet-confirmed payout intents, revenue disputes and audit
 events. Strict JSON parsing, bearer product sessions, moderator separation,
 per-account rate limits, object path containment and replay rejection for Pay
-receipts are enforced.
+receipts and usage-allocation evidence are enforced. Health fails readiness when
+the configured scanner or FFmpeg executable cannot be resolved.
 
 `apps/video` is a responsive viewer with Wallet deep-link sign-in, discovery,
-search, adaptive-HLS playback selection, subscriptions, playlists, history,
+search, channel views, adaptive-HLS playback with progressive fallback, approved
+caption tracks, subscriptions, playlists, persisted watch/history events,
 comments and reporting. It displays loading, empty and service-failure states and
 never fills them with recommendations or counters.
 
 `apps/creator-studio` uses a separate side-navigation operations structure. It
-provides upload/rights declaration, processing and visibility review, captions,
-real analytics, monetization eligibility, payout intent, revenue dispute and a
-bounded AI workspace. AI prepares an auditable permission request, calls the
-server-side Gateway only when configured, preserves provider failure, requires
-review and cannot directly apply metadata or publish/take down/claim rights/
-punish/enable monetization.
+provides channel creation, upload/rights declaration, processing recovery,
+metadata/thumbnail/caption/visibility review, real analytics, moderation appeal,
+monetization eligibility, payout intent, revenue audit/dispute and a bounded AI
+workspace. AI exposes context/cost permission review, server-side NDJSON provider
+streaming, cancellation/retry, accept/reject, provenance, deletion and audit. It
+cannot publish, take down, claim rights, punish or enable monetization.
 
 ## Truth and security boundaries
 
 - The included MP4 is repository-owned: a generated Klein-blue frame and 642 Hz
   tone. Its provenance and SHA-256 are in `internal/video/testdata/README.md`.
-- No views, watch time, subscribers, revenue, recommendations, copyright,
-  partnerships or public availability are seeded or claimed.
+- No source-controlled views, watch time, subscribers, revenue, recommendations,
+  copyright, partnerships or public availability are seeded or claimed.
 - Analytics are reductions over persisted watch/subscription/verified-receipt
   records. Zero records means zero or an explicit empty state.
 - `YNX_VIDEO_SCANNER` is required; absent/unavailable scanning fails closed.
@@ -55,7 +57,7 @@ punish/enable monetization.
 
 ## Verification performed
 
-- `go test ./internal/video/...` — PASS, including repository-owned MP4 through
+- `go test -race ./internal/video/...` — PASS, including repository-owned MP4 through
   the installed FFmpeg binary to a real HLS playlist.
 - `go vet ./internal/video/...` — PASS.
 - `npm --prefix apps/video run check` — PASS.
@@ -64,10 +66,13 @@ punish/enable monetization.
 - `npm --prefix apps/creator-studio run smoke` — PASS.
 - `make env-check`, `make no-placeholder-check`, `make secret-scan` — PASS.
 - Headless Google Chrome cold loads — PASS at 1440x1000 for both products and at
-  a narrow 500x844 viewer width. Evidence files and hashes:
-  - `video-evidence/viewer-desktop.png`: `2b77dab5e70256fced433e377a1d2f90bca39029c2f7d2fd0eeae3bebd0936f8`
-  - `video-evidence/viewer-mobile.png`: `1b9f5d34dc4f1360eb28f925d4d20cf1a0c8bfbe5498ffc48eed7fa119a8129b`
-  - `video-evidence/studio-desktop.png`: `c9d75d1765593ec11ee2e92188013e2baccd38458450d4309e7d1f20e268b004`
+  a narrow 500x844 viewer width. The evidence run used a temporary data directory,
+  the repository-owned MP4, `/usr/bin/true` as an explicitly test-only scanner,
+  and real FFmpeg; it produced exactly one persisted view second/subscription and
+  zero revenue. Evidence files and hashes:
+  - `video-evidence/viewer-desktop.png`: `a1a19e8c503d7d2e1fd5f366fa1aeafdb5e4f7a0778d24dbb148a5d0214de615`
+  - `video-evidence/viewer-mobile.png`: `165569abf4e200ecd6f2b91b0202e2e778bc5ab91622f72ee14223539efa11f1`
+  - `video-evidence/studio-desktop.png`: `e564da14bd81dd836ec2230750afd00c82f054a7d0396e62a12d29eec136b28d`
 - `go test ./...` — NOT fully passing because the baseline lacks
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
   Failures are limited to existing `internal/bftgateway` and `internal/consensus`
@@ -81,7 +86,7 @@ punish/enable monetization.
    session verifier and register exact clients `ynx.video.web` and
    `ynx.creator-studio.web`, callbacks and least-privilege scopes.
 2. Register the product-specific AI scope and reconcile the implemented
-   `POST /v1/video/generate` adapter with the accepted central Gateway contract.
+   `POST /v1/video/stream` NDJSON adapter with the accepted central Gateway contract.
 3. Reconcile `PayClient` receipt and payout-intent paths with the accepted Pay
    branch; committed receipt evidence must remain authoritative.
 4. Add reviewed Gateway routes, production origins/TLS, durable volume/backup,

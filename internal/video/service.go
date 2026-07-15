@@ -1,6 +1,7 @@
 package video
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -8,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -34,8 +37,11 @@ type Config struct {
 	Now                               func() time.Time
 }
 type Service struct {
-	store *Store
-	cfg   Config
+	store     *Store
+	cfg       Config
+	aiMu      sync.Mutex
+	aiCancels map[string]context.CancelFunc
+	quotaMu   sync.Mutex
 }
 type UploadInput struct {
 	Title, Description, Filename, ContentType string
@@ -67,7 +73,7 @@ func NewService(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Service{store: store, cfg: cfg}
+	s := &Service{store: store, cfg: cfg, aiCancels: map[string]context.CancelFunc{}}
 	if err = s.recoverInterrupted(); err != nil {
 		return nil, err
 	}
@@ -99,6 +105,13 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 	if !owner {
 		return nil, ErrForbidden
 	}
+	s.quotaMu.Lock()
+	defer s.quotaMu.Unlock()
+	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+		return nil, usageErr
+	} else if used+size > s.cfg.AccountQuotaBytes {
+		return nil, ErrQuota
+	}
 	key := videoID + "/captions-" + id("track") + ".vtt"
 	path := filepath.Join(s.cfg.Root, "objects", key)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
@@ -116,6 +129,14 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 	if n != size {
 		os.Remove(path)
 		return nil, errors.New("declared caption size mismatch")
+	}
+	content, readErr := os.ReadFile(path)
+	if readErr != nil {
+		return nil, readErr
+	}
+	if !bytes.HasPrefix(bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf}), []byte("WEBVTT")) {
+		os.Remove(path)
+		return nil, errors.New("captions must be valid WebVTT text")
 	}
 	track := CaptionTrack{Language: language, Label: label, ObjectKey: key, AIProposed: aiProposed, HumanApproved: !aiProposed}
 	err = s.store.update(func(st *State) error {
@@ -173,7 +194,7 @@ func (s *Service) Comments(actor, videoID string) ([]Comment, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && (v.Visibility != VisibilityPublic || v.Takedown != nil) {
+		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
 			return ErrForbidden
 		}
 		for _, c := range st.Comments {
@@ -184,6 +205,185 @@ func (s *Service) Comments(actor, videoID string) ([]Comment, error) {
 		return nil
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out, err
+}
+func (s *Service) Video(actor, videoID string) (*Video, error) {
+	var out *Video
+	err := s.store.read(func(st State) error {
+		v := st.Videos[videoID]
+		if v == nil {
+			return ErrNotFound
+		}
+		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+			return ErrForbidden
+		}
+		copy := *v
+		out = &copy
+		return nil
+	})
+	return out, err
+}
+func (s *Service) Channel(actor, channelID string) (ChannelView, error) {
+	var out ChannelView
+	err := s.store.read(func(st State) error {
+		c := st.Channels[channelID]
+		if c == nil {
+			return ErrNotFound
+		}
+		out.Channel = *c
+		for _, v := range st.Videos {
+			if v.ChannelID == channelID && (v.Owner == actor || (v.Visibility == VisibilityPublic && v.Status == "published" && !activeTakedown(v))) {
+				out.Videos = append(out.Videos, *v)
+			}
+		}
+		for _, x := range st.Subscriptions {
+			if x.ChannelID == channelID {
+				out.Subscribers++
+			}
+		}
+		return nil
+	})
+	sort.Slice(out.Videos, func(i, j int) bool { return out.Videos[i].CreatedAt.After(out.Videos[j].CreatedAt) })
+	return out, err
+}
+
+func (s *Service) Studio(owner string) (StudioSnapshot, error) {
+	var out StudioSnapshot
+	out.Analytics, _ = s.Analytics(owner)
+	err := s.store.read(func(st State) error {
+		owned := map[string]bool{}
+		for _, v := range st.Videos {
+			if v.Owner == owner {
+				out.Videos = append(out.Videos, *v)
+				owned[v.ID] = true
+			}
+		}
+		for _, report := range st.Reports {
+			if owned[report.VideoID] {
+				out.Reports = append(out.Reports, *report)
+			}
+		}
+		for _, m := range st.Monetization {
+			if m.Owner == owner {
+				out.Monetization = append(out.Monetization, *m)
+			}
+		}
+		for _, r := range st.Revenue {
+			if r.Owner == owner {
+				out.Revenue = append(out.Revenue, *r)
+			}
+		}
+		for _, p := range st.PayoutIntents {
+			if p.Owner == owner {
+				out.PayoutIntents = append(out.PayoutIntents, *p)
+			}
+		}
+		for _, d := range st.Disputes {
+			if d.Owner == owner {
+				out.Disputes = append(out.Disputes, *d)
+			}
+		}
+		for _, a := range st.Appeals {
+			if a.Appellant == owner {
+				out.Appeals = append(out.Appeals, *a)
+			}
+		}
+		for _, j := range st.AIJobs {
+			if j.Owner == owner {
+				out.AIJobs = append(out.AIJobs, *j)
+			}
+		}
+		return nil
+	})
+	sort.Slice(out.Videos, func(i, j int) bool { return out.Videos[i].CreatedAt.After(out.Videos[j].CreatedAt) })
+	return out, err
+}
+
+func (s *Service) UpdateMetadata(actor, videoID, title, description string) error {
+	title, err := cleanText(title, 140)
+	if err != nil {
+		return err
+	}
+	if len(description) > 5000 {
+		return errors.New("description too long")
+	}
+	return s.store.update(func(st *State) error {
+		v := st.Videos[videoID]
+		if v == nil {
+			return ErrNotFound
+		}
+		if v.Owner != actor {
+			return ErrForbidden
+		}
+		v.Title = title
+		v.Description = strings.TrimSpace(description)
+		v.UpdatedAt = s.cfg.Now().UTC()
+		s.audit(st, actor, "video.metadata.update", "video", videoID, "")
+		return nil
+	})
+}
+
+func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*Video, error) {
+	s.quotaMu.Lock()
+	defer s.quotaMu.Unlock()
+	var original string
+	err := s.store.update(func(st *State) error {
+		v := st.Videos[videoID]
+		if v == nil {
+			return ErrNotFound
+		}
+		if v.Owner != actor {
+			return ErrForbidden
+		}
+		if v.Status != "failed" {
+			return errors.New("only failed processing can be retried")
+		}
+		v.Status = "scanning"
+		v.Failure = ""
+		v.UpdatedAt = s.cfg.Now().UTC()
+		original = filepath.Join(s.cfg.Root, "objects", v.ObjectKey)
+		s.audit(st, actor, "video.processing.retry", "video", videoID, "")
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err = s.cfg.Scanner.Scan(ctx, original); err != nil {
+		s.failVideo(videoID, "scan_failed: "+err.Error())
+		return nil, err
+	}
+	s.setStatus(videoID, "transcoding", "")
+	if err = cleanProcessingOutputs(filepath.Dir(original)); err != nil {
+		s.failVideo(videoID, "processing cleanup failed: "+err.Error())
+		return nil, err
+	}
+	variants, err := s.cfg.Processor.Transcode(ctx, original, filepath.Dir(original))
+	if err != nil {
+		s.failVideo(videoID, "transcode_failed: "+err.Error())
+		return nil, err
+	}
+	var contentType string
+	_ = s.store.read(func(st State) error { contentType = st.Videos[videoID].ContentType; return nil })
+	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: videoID + "/original", MIME: contentType})
+	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+		return nil, usageErr
+	} else if used > s.cfg.AccountQuotaBytes {
+		_ = cleanProcessingOutputs(filepath.Dir(original))
+		s.failVideo(videoID, "processed media exceeds account quota")
+		return nil, ErrQuota
+	}
+	var out *Video
+	err = s.store.update(func(st *State) error {
+		v := st.Videos[videoID]
+		v.Status = "ready"
+		v.Variants = variants
+		v.Failure = ""
+		v.UpdatedAt = s.cfg.Now().UTC()
+		copy := *v
+		out = &copy
+		s.audit(st, actor, "video.processing.ready", "video", videoID, "retry")
+		return nil
+	})
 	return out, err
 }
 func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size int64) error {
@@ -205,6 +405,13 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	if !allowed {
 		return ErrForbidden
 	}
+	s.quotaMu.Lock()
+	defer s.quotaMu.Unlock()
+	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+		return usageErr
+	} else if used+size > s.cfg.AccountQuotaBytes {
+		return ErrQuota
+	}
 	key := videoID + "/thumbnail." + ext
 	path := filepath.Join(s.cfg.Root, "objects", key)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
@@ -222,6 +429,15 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	if n != size {
 		os.Remove(path)
 		return errors.New("declared thumbnail size mismatch")
+	}
+	prefix, readErr := os.ReadFile(path)
+	if readErr != nil {
+		return readErr
+	}
+	detected := http.DetectContentType(prefix)
+	if detected != mime {
+		os.Remove(path)
+		return errors.New("thumbnail content does not match declared type")
 	}
 	return s.store.update(func(st *State) error {
 		st.Videos[videoID].ThumbnailKey = key
@@ -242,6 +458,9 @@ func (s *Service) ModerateReport(reviewer, reportID, decision, explanation strin
 		if r == nil {
 			return ErrNotFound
 		}
+		if r.State != "submitted" {
+			return errors.New("report already reviewed")
+		}
 		v := st.Videos[r.VideoID]
 		now := s.cfg.Now().UTC()
 		r.State = decision
@@ -251,6 +470,39 @@ func (s *Service) ModerateReport(reviewer, reportID, decision, explanation strin
 			v.Visibility = VisibilityPrivate
 		}
 		s.audit(st, reviewer, "moderation."+decision, "report", reportID, explanation)
+		return nil
+	})
+}
+func (s *Service) ReviewAppeal(reviewer, appealID string, accepted bool, explanation string) error {
+	if _, err := cleanText(explanation, 2000); err != nil {
+		return err
+	}
+	return s.store.update(func(st *State) error {
+		a := st.Appeals[appealID]
+		if a == nil {
+			return ErrNotFound
+		}
+		if a.State != "submitted" {
+			return errors.New("appeal already reviewed")
+		}
+		v := st.Videos[a.VideoID]
+		r := st.Reports[a.ReportID]
+		now := s.cfg.Now().UTC()
+		if accepted {
+			a.State = "accepted"
+			r.State = "appeal_accepted"
+			if v.Takedown != nil {
+				v.Takedown.State = "reversed"
+			}
+			v.Status = "ready"
+			v.Visibility = VisibilityPrivate
+		} else {
+			a.State = "denied"
+			r.State = "appeal_denied"
+		}
+		a.UpdatedAt = now
+		r.UpdatedAt = now
+		s.audit(st, reviewer, "appeal.review", "appeal", appealID, fmt.Sprintf("accepted=%t; %s", accepted, explanation))
 		return nil
 	})
 }
@@ -271,7 +523,10 @@ func (s *Service) RequestMonetization(owner, videoID string) (*Monetization, err
 		}
 		now := s.cfg.Now().UTC()
 		state, reason := "pending_review", "derived thresholds met; human review required"
-		if a.WatchSeconds < s.cfg.MinMonetizationWatchSeconds || a.Subscribers < s.cfg.MinMonetizationSubscribers {
+		if v.Status != "published" || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || activeTakedown(v) {
+			state = "ineligible"
+			reason = "video must be published and free of an active takedown"
+		} else if a.WatchSeconds < s.cfg.MinMonetizationWatchSeconds || a.Subscribers < s.cfg.MinMonetizationSubscribers {
 			state = "ineligible"
 			reason = fmt.Sprintf("requires %d watch seconds and %d subscribers; current %d/%d", s.cfg.MinMonetizationWatchSeconds, s.cfg.MinMonetizationSubscribers, a.WatchSeconds, a.Subscribers)
 		}
@@ -293,6 +548,10 @@ func (s *Service) ReviewMonetization(reviewer, videoID string, approved bool, re
 		}
 		if m.State != "pending_review" {
 			return errors.New("monetization is not pending review")
+		}
+		v := st.Videos[videoID]
+		if approved && (v == nil || v.Status != "published" || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || activeTakedown(v)) {
+			return errors.New("video is no longer eligible for monetization review")
 		}
 		now := s.cfg.Now().UTC()
 		if approved {
@@ -324,6 +583,13 @@ func (s *Service) RecordRevenue(ctx context.Context, reviewer, videoID, receiptI
 			e, ok := st.WatchEvents[u]
 			if !ok || e.VideoID != videoID {
 				return errors.New("usage evidence mismatch")
+			}
+			for _, existing := range st.Revenue {
+				for _, usedID := range existing.UsageEventIDs {
+					if usedID == u {
+						return errors.New("usage evidence already allocated")
+					}
+				}
 			}
 		}
 		for _, x := range st.Revenue {
@@ -459,6 +725,8 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	if actor == "" {
 		return nil, ErrUnauthorized
 	}
+	s.quotaMu.Lock()
+	defer s.quotaMu.Unlock()
 	if !in.OwnedDeclaration {
 		return nil, errors.New("owned-content declaration is required")
 	}
@@ -476,7 +744,6 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	if len(in.Description) > 5000 {
 		return nil, errors.New("description too long")
 	}
-	var used int64
 	err = s.store.read(func(st State) error {
 		c, ok := st.Channels[channelID]
 		if !ok {
@@ -485,15 +752,14 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		if c.Owner != actor {
 			return ErrForbidden
 		}
-		for _, v := range st.Videos {
-			if v.Owner == actor {
-				used += v.Bytes
-			}
-		}
 		return nil
 	})
 	if err != nil {
 		return nil, err
+	}
+	used, usageErr := s.usageForOwner(actor)
+	if usageErr != nil {
+		return nil, usageErr
 	}
 	if used+in.Size > s.cfg.AccountQuotaBytes {
 		return nil, ErrQuota
@@ -523,6 +789,10 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		os.RemoveAll(objDir)
 		return nil, errors.New("declared size does not match upload")
 	}
+	if err = verifyVideoSignature(original, in.ContentType); err != nil {
+		os.RemoveAll(objDir)
+		return nil, err
+	}
 	now := s.cfg.Now().UTC()
 	v := &Video{ID: vid, Owner: actor, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: hex.EncodeToString(h.Sum(nil)), ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
 	if err = s.store.update(func(st *State) error {
@@ -543,6 +813,14 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.failVideo(vid, "transcode_failed: "+err.Error())
 		return v, err
 	}
+	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: vid + "/original", MIME: in.ContentType})
+	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+		return v, usageErr
+	} else if used > s.cfg.AccountQuotaBytes {
+		_ = cleanProcessingOutputs(objDir)
+		s.failVideo(vid, "processed media exceeds account quota")
+		return v, ErrQuota
+	}
 	err = s.store.update(func(st *State) error {
 		x := st.Videos[vid]
 		x.Status = "ready"
@@ -555,6 +833,77 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	})
 	return v, err
 }
+func verifyVideoSignature(path, mime string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	data := make([]byte, 12)
+	n, err := io.ReadFull(f, data)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return err
+	}
+	data = data[:n]
+	switch mime {
+	case "video/mp4":
+		if len(data) < 12 || !bytes.Equal(data[4:8], []byte("ftyp")) {
+			return errors.New("MP4 content signature mismatch")
+		}
+	case "video/webm":
+		if len(data) < 4 || !bytes.Equal(data[:4], []byte{0x1a, 0x45, 0xdf, 0xa3}) {
+			return errors.New("WebM content signature mismatch")
+		}
+	default:
+		return errors.New("unsupported video type")
+	}
+	return nil
+}
+func cleanProcessingOutputs(dir string) error {
+	matches, err := filepath.Glob(filepath.Join(dir, "segment-*.ts"))
+	if err != nil {
+		return err
+	}
+	matches = append(matches, filepath.Join(dir, "stream.m3u8"))
+	for _, path := range matches {
+		if err = os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	return nil
+}
+func (s *Service) usageForOwner(owner string) (int64, error) {
+	ids := []string{}
+	if err := s.store.read(func(st State) error {
+		for _, v := range st.Videos {
+			if v.Owner == owner {
+				ids = append(ids, v.ID)
+			}
+		}
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+	var total int64
+	for _, id := range ids {
+		err := filepath.Walk(filepath.Join(s.cfg.Root, "objects", id), func(_ string, info os.FileInfo, err error) error {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			if info.Mode().IsRegular() {
+				total += info.Size()
+			}
+			return nil
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+	return total, nil
+}
 func (s *Service) setStatus(videoID, status, failure string) {
 	_ = s.store.update(func(st *State) error {
 		if v := st.Videos[videoID]; v != nil {
@@ -566,6 +915,9 @@ func (s *Service) setStatus(videoID, status, failure string) {
 	})
 }
 func (s *Service) failVideo(videoID, failure string) { s.setStatus(videoID, "failed", failure) }
+func activeTakedown(v *Video) bool {
+	return v != nil && v.Takedown != nil && v.Takedown.State == "active"
+}
 func (s *Service) recoverInterrupted() error {
 	return s.store.update(func(st *State) error {
 		for _, v := range st.Videos {
@@ -614,7 +966,7 @@ func (s *Service) Search(actor, query string) ([]Video, error) {
 	out := []Video{}
 	err := s.store.read(func(st State) error {
 		for _, v := range st.Videos {
-			allowed := v.Visibility == VisibilityPublic && v.Status == "published" && v.Takedown == nil
+			allowed := v.Visibility == VisibilityPublic && v.Status == "published" && !activeTakedown(v)
 			if actor == v.Owner {
 				allowed = true
 			}
@@ -638,7 +990,7 @@ func (s *Service) MediaPath(actor, objectKey string) (string, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && (v.Visibility != VisibilityPublic || v.Status != "published" || v.Takedown != nil) {
+		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
 			return ErrForbidden
 		}
 		return nil
@@ -665,7 +1017,7 @@ func (s *Service) RecordWatch(actor, videoID string, seconds int64, completed bo
 	}
 	return s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
-		if v == nil || v.Visibility != VisibilityPublic || v.Status != "published" {
+		if v == nil || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v) {
 			return ErrNotFound
 		}
 		e := WatchEvent{ID: id("watch"), VideoID: videoID, Account: actor, Seconds: seconds, Completed: completed, CreatedAt: s.cfg.Now().UTC()}
@@ -685,7 +1037,7 @@ func (s *Service) AddComment(actor, videoID, body string) (*Comment, error) {
 	var c *Comment
 	err = s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
-		if v == nil || v.Visibility != VisibilityPublic || v.Status != "published" {
+		if v == nil || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v) {
 			return ErrNotFound
 		}
 		now := s.cfg.Now().UTC()
@@ -767,8 +1119,12 @@ func (s *Service) Report(actor, vid, reason, details string) (*Report, error) {
 	}
 	var r *Report
 	err = s.store.update(func(st *State) error {
-		if st.Videos[vid] == nil {
+		v := st.Videos[vid]
+		if v == nil {
 			return ErrNotFound
+		}
+		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+			return ErrForbidden
 		}
 		now := s.cfg.Now().UTC()
 		r = &Report{ID: id("rpt"), VideoID: vid, Reporter: actor, Reason: reason, Details: details, State: "submitted", CreatedAt: now, UpdatedAt: now}
@@ -795,6 +1151,14 @@ func (s *Service) Appeal(actor, reportID, reason string) (*Appeal, error) {
 		v := st.Videos[r.VideoID]
 		if v.Owner != actor {
 			return ErrForbidden
+		}
+		if r.State != "takedown" {
+			return errors.New("only an active takedown can be appealed")
+		}
+		for _, existing := range st.Appeals {
+			if existing.ReportID == reportID && existing.State == "submitted" {
+				return errors.New("appeal already submitted")
+			}
 		}
 		now := s.cfg.Now().UTC()
 		a = &Appeal{ID: id("apl"), ReportID: reportID, VideoID: v.ID, Appellant: actor, Reason: reason, State: "submitted", CreatedAt: now, UpdatedAt: now}
@@ -851,8 +1215,10 @@ func (s *Service) PrepareAI(actor, videoID, kind string, classes []string) (*AIJ
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && kind != "search_assistance" {
-			return ErrForbidden
+		if v.Owner != actor {
+			if kind != "search_assistance" || v.Visibility != VisibilityPublic || v.Status != "published" || activeTakedown(v) {
+				return ErrForbidden
+			}
 		}
 		preview := "title and description"
 		for _, c := range classes {
@@ -893,9 +1259,42 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 	if err != nil {
 		return nil, err
 	}
-	result, runErr := s.cfg.AI.Generate(ctx, AIRequest{Kind: snapshot.Kind, VideoID: snapshot.VideoID, ContextPreview: snapshot.ContextPreview, ContextClasses: snapshot.ContextClasses})
+	runCtx, cancel := context.WithCancel(ctx)
+	s.aiMu.Lock()
+	s.aiCancels[jobID] = cancel
+	s.aiMu.Unlock()
+	defer func() { cancel(); s.aiMu.Lock(); delete(s.aiCancels, jobID); s.aiMu.Unlock() }()
+	request := AIRequest{Kind: snapshot.Kind, VideoID: snapshot.VideoID, ContextPreview: snapshot.ContextPreview, ContextClasses: snapshot.ContextClasses}
+	var result AIResult
+	var runErr error
+	if streamer, ok := s.cfg.AI.(AIStreamer); ok {
+		result, runErr = streamer.Stream(runCtx, request, func(delta string) error {
+			if delta == "" {
+				return nil
+			}
+			return s.store.update(func(st *State) error {
+				j := st.AIJobs[jobID]
+				if j == nil {
+					return ErrNotFound
+				}
+				if j.State == "cancelled" {
+					return context.Canceled
+				}
+				if len(j.Partial)+len(delta) > 200_000 {
+					return errors.New("AI result exceeds bound")
+				}
+				j.Partial += delta
+				return nil
+			})
+		})
+	} else {
+		result, runErr = s.cfg.AI.Generate(runCtx, request)
+	}
 	err = s.store.update(func(st *State) error {
 		j := st.AIJobs[jobID]
+		if j.State == "cancelled" {
+			return nil
+		}
 		if runErr != nil {
 			j.State = "failed"
 			j.Failure = runErr.Error()
@@ -904,10 +1303,14 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 			j.Provider = result.Provider
 			j.Model = result.Model
 			j.Result = result.Text
+			j.Partial = ""
 			j.EstimatedUnits = result.Units
 		}
 		return nil
 	})
+	if current, _ := s.GetAI(actor, jobID); current != nil && current.State == "cancelled" {
+		return current, nil
+	}
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -915,6 +1318,37 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 		return nil, err
 	}
 	return s.GetAI(actor, jobID)
+}
+func (s *Service) CancelAI(actor, jobID string) (*AIJob, error) {
+	var out *AIJob
+	err := s.store.update(func(st *State) error {
+		j := st.AIJobs[jobID]
+		if j == nil {
+			return ErrNotFound
+		}
+		if j.Owner != actor {
+			return ErrForbidden
+		}
+		if j.State != "running" && j.State != "awaiting_permission" {
+			return errors.New("AI job cannot be cancelled")
+		}
+		j.State = "cancelled"
+		j.Failure = "cancelled by user"
+		copy := *j
+		out = &copy
+		s.audit(st, actor, "ai.cancel", "ai_job", jobID, "")
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.aiMu.Lock()
+	cancel := s.aiCancels[jobID]
+	s.aiMu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
+	return out, nil
 }
 func (s *Service) GetAI(actor, id string) (*AIJob, error) {
 	var out *AIJob
@@ -950,9 +1384,6 @@ func (s *Service) ReviewAI(actor, id string, apply bool) (*AIJob, error) {
 		j.ReviewedAt = &now
 		j.Applied = apply
 		if apply {
-			if j.Kind == "metadata" {
-				return errors.New("metadata AI output must be copied into a separate human edit; direct apply is disabled")
-			}
 			j.State = "accepted_suggestion"
 		} else {
 			j.State = "rejected"
@@ -963,4 +1394,21 @@ func (s *Service) ReviewAI(actor, id string, apply bool) (*AIJob, error) {
 		return nil
 	})
 	return out, err
+}
+func (s *Service) DeleteAI(actor, id string) error {
+	return s.store.update(func(st *State) error {
+		j := st.AIJobs[id]
+		if j == nil {
+			return ErrNotFound
+		}
+		if j.Owner != actor {
+			return ErrForbidden
+		}
+		if j.State == "running" {
+			return errors.New("cancel a running AI job before deletion")
+		}
+		delete(st.AIJobs, id)
+		s.audit(st, actor, "ai.delete", "ai_job", id, "result and context deleted")
+		return nil
+	})
 }

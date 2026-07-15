@@ -1,6 +1,7 @@
 package video
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -11,6 +12,75 @@ import (
 	"strings"
 	"time"
 )
+
+func (g GatewayAI) Stream(ctx context.Context, in AIRequest, emit func(string) error) (AIResult, error) {
+	if g.Endpoint == "" || g.Token == "" {
+		return AIResult{}, errors.New("AI Gateway is not configured")
+	}
+	body, _ := json.Marshal(in)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(g.Endpoint, "/")+"/v1/video/stream", bytes.NewReader(body))
+	if err != nil {
+		return AIResult{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+g.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/x-ndjson")
+	client := g.Client
+	if client == nil {
+		client = &http.Client{Timeout: 2 * time.Minute}
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		return AIResult{}, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return AIResult{}, fmt.Errorf("AI Gateway stream returned %s", res.Status)
+	}
+	scanner := bufio.NewScanner(res.Body)
+	scanner.Buffer(make([]byte, 4096), 1<<20)
+	var out AIResult
+	var text strings.Builder
+	for scanner.Scan() {
+		var event struct {
+			Delta, Provider, Model, Error string
+			Units                         int64
+			Done                          bool
+		}
+		if err = json.Unmarshal(scanner.Bytes(), &event); err != nil {
+			return AIResult{}, err
+		}
+		if event.Error != "" {
+			return AIResult{}, errors.New(event.Error)
+		}
+		if event.Delta != "" {
+			if text.Len()+len(event.Delta) > 200_000 {
+				return AIResult{}, errors.New("AI stream exceeded result bound")
+			}
+			text.WriteString(event.Delta)
+			if err = emit(event.Delta); err != nil {
+				return AIResult{}, err
+			}
+		}
+		if event.Provider != "" {
+			out.Provider = event.Provider
+		}
+		if event.Model != "" {
+			out.Model = event.Model
+		}
+		if event.Units > 0 {
+			out.Units = event.Units
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		return AIResult{}, err
+	}
+	out.Text = text.String()
+	if out.Provider == "" || out.Model == "" || out.Text == "" {
+		return AIResult{}, errors.New("AI Gateway stream ended without complete provenance or result")
+	}
+	return out, nil
+}
 
 type GatewayAI struct {
 	Endpoint, Token string

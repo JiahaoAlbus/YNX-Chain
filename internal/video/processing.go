@@ -17,10 +17,14 @@ type Processor interface {
 type AIProvider interface {
 	Generate(context.Context, AIRequest) (AIResult, error)
 }
+type AIStreamer interface {
+	Stream(context.Context, AIRequest, func(string) error) (AIResult, error)
+}
 type PayVerifier interface {
 	VerifyReceipt(context.Context, string, string, int64) error
 	CreatePayoutIntent(context.Context, string, int64, string) (string, error)
 }
+type DependencyChecker interface{ Check() error }
 type AIRequest struct {
 	Kind, VideoID, ContextPreview string
 	ContextClasses                []string
@@ -31,6 +35,14 @@ type AIResult struct {
 }
 
 type CommandScanner struct{ Command string }
+
+func (s CommandScanner) Check() error {
+	if s.Command == "" {
+		return errors.New("malware scanner unavailable")
+	}
+	_, err := exec.LookPath(s.Command)
+	return err
+}
 
 func (s CommandScanner) Scan(ctx context.Context, path string) error {
 	if s.Command == "" {
@@ -43,6 +55,15 @@ func (s CommandScanner) Scan(ctx context.Context, path string) error {
 }
 
 type FFmpegProcessor struct{ FFmpeg string }
+
+func (p FFmpegProcessor) Check() error {
+	bin := p.FFmpeg
+	if bin == "" {
+		bin = "ffmpeg"
+	}
+	_, err := exec.LookPath(bin)
+	return err
+}
 
 func (p FFmpegProcessor) Transcode(ctx context.Context, input, outputDir string) ([]MediaVariant, error) {
 	bin := p.FFmpeg

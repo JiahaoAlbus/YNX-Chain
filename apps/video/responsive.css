@@ -1,5 +1,11 @@
 body { overflow-x: hidden; }
+.card-open { width: 100%; padding: 0; background: transparent; color: inherit; text-align: left; }
+.grid { grid-template-columns: repeat(auto-fill, minmax(280px, 360px)); }
+.thumb.image { width: 100%; object-fit: cover; display: block; }
+#comments article { padding: 10px 0; border-bottom: 1px solid #e5e9f2; }
+#comments article p { margin-bottom: 0; }
 @media (max-width: 760px) {
+	.grid { grid-template-columns: 1fr; }
   header { grid-template-columns: minmax(0, 1fr) 132px; gap: 10px; }
   header .outline { width: 132px; padding: 8px; font-size: 0; line-height: 1.2; }
   header .outline::after { content: "Wallet sign in"; font-size: .8rem; }

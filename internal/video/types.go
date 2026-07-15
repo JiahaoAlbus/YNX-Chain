@@ -59,6 +59,11 @@ type Channel struct {
 	ID, Owner, Handle, Name, Description string
 	CreatedAt                            time.Time
 }
+type ChannelView struct {
+	Channel     Channel `json:"channel"`
+	Videos      []Video `json:"videos"`
+	Subscribers int64   `json:"subscribers"`
+}
 type Subscription struct {
 	Account, ChannelID string
 	CreatedAt          time.Time
@@ -115,9 +120,22 @@ type AIJob struct {
 	EstimatedUnits                                            int64
 	PermissionAt, CreatedAt                                   time.Time
 	Result                                                    string
+	Partial                                                   string
 	ReviewedBy                                                string
 	ReviewedAt                                                *time.Time
 	Applied                                                   bool
+}
+
+type StudioSnapshot struct {
+	Videos        []Video         `json:"videos"`
+	Analytics     Analytics       `json:"analytics"`
+	Reports       []Report        `json:"reports"`
+	Monetization  []Monetization  `json:"monetization"`
+	Revenue       []RevenueRecord `json:"revenue"`
+	PayoutIntents []PayoutIntent  `json:"payout_intents"`
+	Disputes      []Dispute       `json:"disputes"`
+	Appeals       []Appeal        `json:"appeals"`
+	AIJobs        []AIJob         `json:"ai_jobs"`
 }
 
 type AuditEvent struct {

@@ -23,8 +23,12 @@ type StaticTokenAuth struct {
 func (a StaticTokenAuth) IsModerator(account string) bool { return a.Moderators[account] }
 
 func (a StaticTokenAuth) Account(r *http.Request) (string, error) {
-	v := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-	if v == "" {
+	header := r.Header.Get("Authorization")
+	if !strings.HasPrefix(header, "Bearer ") {
+		return "", ErrUnauthorized
+	}
+	v := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
+	if v == "" || strings.ContainsAny(v, " \t\r\n,") {
 		return "", ErrUnauthorized
 	}
 	account, ok := a.Tokens[v]
@@ -59,14 +63,41 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if r.URL.Path == "/health" {
-		write(w, 200, map[string]any{"ok": true, "service": "ynx-video", "truth": "no synthetic metrics"})
+		failures := []string{}
+		for name, dependency := range map[string]any{"scanner": s.service.cfg.Scanner, "processor": s.service.cfg.Processor} {
+			if checker, ok := dependency.(DependencyChecker); ok {
+				if err := checker.Check(); err != nil {
+					failures = append(failures, name+": "+err.Error())
+				}
+			}
+		}
+		status := http.StatusOK
+		if len(failures) > 0 {
+			status = http.StatusServiceUnavailable
+		}
+		write(w, status, map[string]any{"ok": len(failures) == 0, "service": "ynx-video", "dependencies": failures, "truth": "no synthetic metrics"})
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, "/media/") {
+		actor := ""
+		if r.Header.Get("Authorization") != "" {
+			actor, _ = s.auth.Account(r)
+		}
+		path, err := s.service.MediaPath(actor, strings.TrimPrefix(r.URL.Path, "/media/"))
+		if err != nil {
+			respond(w, nil, err)
+			return
+		}
+		w.Header().Del("Content-Type")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		http.ServeFile(w, r, path)
 		return
 	}
 	actor, err := s.auth.Account(r)
@@ -76,16 +107,6 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if !s.allow(actor) {
 		problem(w, 429, errors.New("rate limit exceeded"))
-		return
-	}
-	if strings.HasPrefix(r.URL.Path, "/media/") {
-		path, err := s.service.MediaPath(actor, strings.TrimPrefix(r.URL.Path, "/media/"))
-		if err != nil {
-			respond(w, nil, err)
-			return
-		}
-		w.Header().Del("Content-Type")
-		http.ServeFile(w, r, path)
 		return
 	}
 	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
@@ -102,6 +123,24 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		s.upload(w, r, actor)
 	case r.Method == "GET" && path == "videos":
 		out, err := s.service.Search(actor, r.URL.Query().Get("q"))
+		respond(w, out, err)
+	case len(parts) == 2 && parts[0] == "videos" && r.Method == "GET":
+		out, err := s.service.Video(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 2 && parts[0] == "channels" && r.Method == "GET":
+		out, err := s.service.Channel(actor, parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "metadata" && r.Method == "POST":
+		var in struct {
+			Title       string `json:"title"`
+			Description string `json:"description"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		respond(w, map[string]bool{"ok": true}, s.service.UpdateMetadata(actor, parts[1], in.Title, in.Description))
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "retry-processing" && r.Method == "POST":
+		out, err := s.service.RetryProcessing(r.Context(), actor, parts[1])
 		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "publish" && r.Method == "POST":
 		var in struct{ Visibility Visibility }
@@ -139,6 +178,19 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out, err := s.service.Appeal(actor, parts[1], in.Reason)
 		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "appeals" && parts[2] == "review" && r.Method == "POST":
+		if !s.isModerator(actor) {
+			problem(w, 403, ErrForbidden)
+			return
+		}
+		var in struct {
+			Accepted    bool   `json:"accepted"`
+			Explanation string `json:"explanation"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		respond(w, map[string]bool{"ok": true}, s.service.ReviewAppeal(actor, parts[1], in.Accepted, in.Explanation))
 	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "POST":
 		respond(w, map[string]bool{"ok": true}, s.service.Subscribe(actor, parts[1]))
 	case r.Method == "POST" && path == "playlists":
@@ -158,6 +210,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		respond(w, map[string]bool{"ok": true}, s.service.AddToPlaylist(actor, parts[1], in.VideoID))
 	case r.Method == "GET" && path == "studio/analytics":
 		out, err := s.service.Analytics(actor)
+		respond(w, out, err)
+	case r.Method == "GET" && path == "studio":
+		out, err := s.service.Studio(actor)
 		respond(w, out, err)
 	case r.Method == "GET" && path == "history":
 		out, err := s.service.History(actor)
@@ -210,6 +265,22 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out, err := s.service.CreatePayoutIntent(r.Context(), actor, in.AmountYNXT)
 		respond(w, out, err)
+	case r.Method == "POST" && path == "studio/revenue":
+		if !s.isModerator(actor) {
+			problem(w, 403, ErrForbidden)
+			return
+		}
+		var in struct {
+			VideoID       string   `json:"video_id"`
+			ReceiptID     string   `json:"receipt_id"`
+			AmountYNXT    int64    `json:"amount_ynxt"`
+			UsageEventIDs []string `json:"usage_event_ids"`
+		}
+		if decode(r, &in, w) {
+			return
+		}
+		out, err := s.service.RecordRevenue(r.Context(), actor, in.VideoID, in.ReceiptID, in.AmountYNXT, in.UsageEventIDs)
+		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "revenue" && parts[2] == "disputes" && r.Method == "POST":
 		var in struct{ Reason string }
 		if decode(r, &in, w) {
@@ -228,12 +299,18 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out, err := s.service.PrepareAI(actor, in.VideoID, in.Kind, in.ContextClasses)
 		respond(w, out, err)
+	case r.Method == "GET" && path == "ai/status":
+		write(w, 200, map[string]any{"configured": s.service.cfg.AI != nil, "mode": "server-side permissioned gateway", "automatic_actions": false})
 	case len(parts) == 3 && parts[0] == "ai" && parts[1] == "jobs" && r.Method == "GET":
 		out, err := s.service.GetAI(actor, parts[2])
 		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "ai" && parts[1] == "jobs" && r.Method == "DELETE":
+		respond(w, map[string]bool{"ok": true}, s.service.DeleteAI(actor, parts[2]))
 	case len(parts) == 4 && parts[0] == "ai" && parts[1] == "jobs" && parts[3] == "run" && r.Method == "POST":
 		out, err := s.service.RunAI(r.Context(), actor, parts[2])
 		respond(w, out, err)
+	case len(parts) == 4 && parts[0] == "ai" && parts[1] == "jobs" && parts[3] == "stream" && r.Method == "POST":
+		s.streamAI(w, r, actor, parts[2])
 	case len(parts) == 4 && parts[0] == "ai" && parts[1] == "jobs" && parts[3] == "review" && r.Method == "POST":
 		var in struct{ Apply bool }
 		if decode(r, &in, w) {
@@ -241,8 +318,58 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out, err := s.service.ReviewAI(actor, parts[2], in.Apply)
 		respond(w, out, err)
+	case len(parts) == 4 && parts[0] == "ai" && parts[1] == "jobs" && parts[3] == "cancel" && r.Method == "POST":
+		out, err := s.service.CancelAI(actor, parts[2])
+		respond(w, out, err)
 	default:
 		problem(w, 404, ErrNotFound)
+	}
+}
+func (s *Server) streamAI(w http.ResponseWriter, r *http.Request, actor, jobID string) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		problem(w, 500, errors.New("streaming unsupported"))
+		return
+	}
+	w.Header().Set("Content-Type", "application/x-ndjson")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	_ = encoder.Encode(map[string]any{"state": "starting"})
+	flusher.Flush()
+	type result struct {
+		job *AIJob
+		err error
+	}
+	done := make(chan result, 1)
+	go func() { job, err := s.service.RunAI(r.Context(), actor, jobID); done <- result{job: job, err: err} }()
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+	last := ""
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case out := <-done:
+			if out.err != nil {
+				_ = encoder.Encode(map[string]any{"state": "failed", "error": out.err.Error()})
+			} else {
+				_ = encoder.Encode(map[string]any{"state": out.job.State, "job": out.job})
+			}
+			flusher.Flush()
+			return
+		case <-ticker.C:
+			job, err := s.service.GetAI(actor, jobID)
+			if err != nil {
+				continue
+			}
+			if strings.HasPrefix(job.Partial, last) && len(job.Partial) > len(last) {
+				delta := job.Partial[len(last):]
+				last = job.Partial
+				_ = encoder.Encode(map[string]any{"state": job.State, "delta": delta})
+				flusher.Flush()
+			}
+		}
 	}
 }
 func (s *Server) isModerator(actor string) bool {

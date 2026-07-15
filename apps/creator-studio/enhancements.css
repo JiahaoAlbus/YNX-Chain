@@ -1,0 +1,11 @@
+.row small { display: block; color: #667085; margin-top: 5px; overflow-wrap: anywhere; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.row-actions button { padding: 7px 9px; font-size: .76rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.meta { color: #667085; }
+#ai-provider { margin-bottom: 18px; }
+@media (max-width: 800px) {
+  .row-actions { justify-content: flex-start; }
+  header #signin { max-width: 155px; }
+}

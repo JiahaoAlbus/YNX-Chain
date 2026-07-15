@@ -32,7 +32,38 @@ func (a testAI) Generate(context.Context, AIRequest) (AIResult, error) {
 	return AIResult{Provider: "test-provider", Model: "test-model", Text: "review this summary", Units: 7}, a.err
 }
 
+type blockingAI struct{ started chan struct{} }
+
+func (a blockingAI) Generate(ctx context.Context, _ AIRequest) (AIResult, error) {
+	close(a.started)
+	<-ctx.Done()
+	return AIResult{}, ctx.Err()
+}
+
+type stagedAI struct{ emitted, release chan struct{} }
+
+func (a stagedAI) Generate(context.Context, AIRequest) (AIResult, error) {
+	return AIResult{}, errors.New("stream expected")
+}
+func (a stagedAI) Stream(ctx context.Context, _ AIRequest, emit func(string) error) (AIResult, error) {
+	if err := emit("first"); err != nil {
+		return AIResult{}, err
+	}
+	close(a.emitted)
+	select {
+	case <-a.release:
+	case <-ctx.Done():
+		return AIResult{}, ctx.Err()
+	}
+	if err := emit(" second"); err != nil {
+		return AIResult{}, err
+	}
+	return AIResult{Provider: "provider", Model: "model", Text: "first second", Units: 2}, nil
+}
+
 type testPay struct{}
+
+var testMP4 = []byte{0, 0, 0, 24, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm', 0, 0, 0, 0, 't', 'e', 's', 't'}
 
 func (testPay) VerifyReceipt(_ context.Context, id, owner string, amount int64) error {
 	if id != "receipt-1" || owner == "" || amount != 5 {
@@ -66,7 +97,7 @@ func fixture(t *testing.T, mutate func(*Config)) (*Service, *Channel) {
 }
 func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
 	t.Helper()
-	data := []byte("repository-owned-test-media")
+	data := testMP4
 	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: title, Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(data)), OwnedDeclaration: true, Reader: bytes.NewReader(data)})
 	if err != nil {
 		t.Fatal(err)
@@ -77,7 +108,7 @@ func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
 func TestUploadPublishMetricsAndRestart(t *testing.T) {
 	s, c := fixture(t, nil)
 	v := upload(t, s, c, "Test clip")
-	if v.Status != "ready" || len(v.Variants) != 1 {
+	if v.Status != "ready" || len(v.Variants) != 2 {
 		t.Fatalf("unexpected processing result: %+v", v)
 	}
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
@@ -112,14 +143,106 @@ func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 	if err == nil {
 		t.Fatal("missing rights declaration accepted")
 	}
+	_, err = s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "spoofed", Filename: "x.mp4", ContentType: "video/mp4", Size: 12, OwnedDeclaration: true, Reader: bytes.NewReader([]byte("not-an-mp4!"))})
+	if err == nil {
+		t.Fatal("spoofed MIME accepted")
+	}
 	v := upload(t, s, c, "Owned")
 	if err = s.Publish("ynx1attacker", v.ID, VisibilityPublic); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("authorization not enforced: %v", err)
 	}
 	s3, c3 := fixture(t, func(cfg *Config) { cfg.Scanner = testScanner{err: errors.New("malware signature")} })
-	v3, err := s3.Upload(context.Background(), c3.Owner, c3.ID, UploadInput{Title: "bad", Filename: "bad.mp4", ContentType: "video/mp4", Size: 1, OwnedDeclaration: true, Reader: bytes.NewReader([]byte("x"))})
+	v3, err := s3.Upload(context.Background(), c3.Owner, c3.ID, UploadInput{Title: "bad", Filename: "bad.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
 	if err == nil || v3.Status != "failed" {
 		t.Fatalf("scan failure did not fail closed: %+v %v", v3, err)
+	}
+}
+
+func TestDerivedMediaCannotEscapeAccountQuota(t *testing.T) {
+	s, c := fixture(t, func(cfg *Config) { cfg.AccountQuotaBytes = int64(len(testMP4)) + 4 })
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "quota", Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
+	if !errors.Is(err, ErrQuota) || v.Status != "failed" {
+		t.Fatalf("derived output escaped quota: %+v %v", v, err)
+	}
+	used, err := s.usageForOwner(c.Owner)
+	if err != nil || used > s.cfg.AccountQuotaBytes {
+		t.Fatalf("failed cleanup left quota exceeded: %d %v", used, err)
+	}
+}
+
+func TestMetadataAssetsRetryStudioAndAICancel(t *testing.T) {
+	s, c := fixture(t, func(cfg *Config) { cfg.Processor = testProcessor{err: errors.New("worker offline")} })
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "Recover", Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
+	if err == nil || v.Status != "failed" {
+		t.Fatalf("processing failure not persisted: %+v %v", v, err)
+	}
+	s.cfg.Processor = testProcessor{}
+	v, err = s.RetryProcessing(context.Background(), c.Owner, v.ID)
+	if err != nil || v.Status != "ready" {
+		t.Fatalf("retry failed: %+v %v", v, err)
+	}
+	if err = s.UpdateMetadata(c.Owner, v.ID, "Recovered title", "Reviewed description"); err != nil {
+		t.Fatal(err)
+	}
+	vtt := []byte("WEBVTT\n\n00:00.000 --> 00:01.000\nYNX\n")
+	if _, err = s.AddCaptions(c.Owner, v.ID, "en", "English", false, bytes.NewReader(vtt), int64(len(vtt))); err != nil {
+		t.Fatal(err)
+	}
+	png := append([]byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}, make([]byte, 24)...)
+	if err = s.SetThumbnail(c.Owner, v.ID, "image/png", bytes.NewReader(png), int64(len(png))); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := s.Studio(c.Owner)
+	if err != nil || len(snap.Videos) != 1 || snap.Videos[0].Title != "Recovered title" || len(snap.Videos[0].Captions) != 1 || snap.Videos[0].ThumbnailKey == "" {
+		t.Fatalf("studio snapshot incomplete: %+v %v", snap, err)
+	}
+	started := make(chan struct{})
+	s.cfg.AI = blockingAI{started: started}
+	job, err := s.PrepareAI(c.Owner, v.ID, "summary", []string{"metadata"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, e := s.RunAI(context.Background(), c.Owner, job.ID); done <- e }()
+	<-started
+	cancelled, err := s.CancelAI(c.Owner, job.ID)
+	if err != nil || cancelled.State != "cancelled" {
+		t.Fatalf("cancel failed: %+v %v", cancelled, err)
+	}
+	if err = <-done; err != nil {
+		t.Fatalf("cancelled run returned error: %v", err)
+	}
+}
+
+func TestAIStreamingPersistsBoundedPartialThenRequiresReview(t *testing.T) {
+	s, c := fixture(t, nil)
+	v := upload(t, s, c, "Streamed AI")
+	emitted, release := make(chan struct{}), make(chan struct{})
+	s.cfg.AI = stagedAI{emitted: emitted, release: release}
+	job, err := s.PrepareAI(c.Owner, v.ID, "chapters", []string{"metadata"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, e := s.RunAI(context.Background(), c.Owner, job.ID); done <- e }()
+	<-emitted
+	partial, err := s.GetAI(c.Owner, job.ID)
+	if err != nil || partial.State != "running" || partial.Partial != "first" {
+		t.Fatalf("partial not persisted: %+v %v", partial, err)
+	}
+	close(release)
+	if err = <-done; err != nil {
+		t.Fatal(err)
+	}
+	final, err := s.GetAI(c.Owner, job.ID)
+	if err != nil || final.State != "review_required" || final.Result != "first second" || final.Partial != "" {
+		t.Fatalf("final stream boundary wrong: %+v %v", final, err)
+	}
+	if err = s.DeleteAI(c.Owner, job.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.GetAI(c.Owner, job.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("AI deletion failed: %v", err)
 	}
 }
 func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
@@ -148,7 +271,14 @@ func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	if err = s.ModerateReport("moderator", r.ID, "takedown", "policy explanation"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.Appeal(c.Owner, r.ID, "context and evidence"); err != nil {
+	appeal, err := s.Appeal(c.Owner, r.ID, "context and evidence")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.ReviewAppeal("moderator", appeal.ID, true, "evidence accepted"); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
 	m, err := s.RequestMonetization(c.Owner, v.ID)
@@ -218,7 +348,7 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(v.Variants) != 1 || v.Variants[0].MIME != "application/vnd.apple.mpegurl" {
+	if len(v.Variants) != 2 || v.Variants[0].MIME != "application/vnd.apple.mpegurl" || v.Variants[1].MIME != "video/mp4" {
 		t.Fatalf("adaptive output missing: %+v", v.Variants)
 	}
 	if _, err = os.Stat(filepath.Join(s.cfg.Root, "objects", v.ID, "stream.m3u8")); err != nil {

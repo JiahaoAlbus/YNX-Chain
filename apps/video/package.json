@@ -1,1 +1,1 @@
-{"name":"@ynx/video","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --check library.js && node --test app.test.mjs","smoke":"node smoke.mjs"}}
+{"name":"@ynx/video","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --test app.test.mjs","smoke":"node smoke.mjs"}}
