@@ -123,14 +123,14 @@ func TestReplicationRuntimeStatusLifecycle(t *testing.T) {
 
 	devnet.RecordReplicationFailure("fetch response", errors.New("temporary source failure\nwith details"))
 	degraded := devnet.NodeIdentity().Replication
-	if degraded.Status != "degraded" || !degraded.CatchingUp || degraded.Fresh || degraded.ConsecutiveFailures != 1 || degraded.LastErrorStage != "fetch response" || degraded.LastError != "temporary source failure with details" {
+	if degraded.Status != "degraded" || !degraded.CatchingUp || degraded.Fresh || degraded.Failures != 1 || degraded.ConsecutiveFailures != 1 || degraded.LastErrorStage != "fetch response" || degraded.LastError != "temporary source failure with details" {
 		t.Fatalf("unexpected degraded replication status: %+v", degraded)
 	}
 
 	latest := devnet.LatestBlock()
 	devnet.RecordReplicationSuccess(ReplicationApplyResult{Height: latest.Height, BlockHash: latest.Hash, SnapshotAt: time.Now().UTC()})
 	synced := devnet.NodeIdentity().Replication
-	if synced.Status != "synced" || synced.CatchingUp || !synced.Fresh || synced.LocalHeight != synced.SourceHeight || synced.LocalBlockHash != synced.SourceBlockHash || synced.Successes != 1 || synced.ConsecutiveFailures != 0 || synced.LastSuccessAt == nil || synced.LastSnapshotAt == nil || synced.LastError != "" {
+	if synced.Status != "synced" || synced.CatchingUp || !synced.Fresh || synced.LocalHeight != synced.SourceHeight || synced.LocalBlockHash != synced.SourceBlockHash || synced.Successes != 1 || synced.Failures != 1 || synced.ConsecutiveFailures != 0 || synced.LastSuccessAt == nil || synced.LastSnapshotAt == nil || synced.LastError != "" {
 		t.Fatalf("unexpected synced replication status: %+v", synced)
 	}
 

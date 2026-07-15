@@ -49,6 +49,8 @@ Monitoring readiness:
 make monitoring-check
 ```
 
+Follower monitoring uses `ynx_chain_replication_configured`, lifecycle status, `catching_up`, freshness, lag, attempt/success/failure counters, consecutive failures, and last-success time. Alert rules cover non-fresh replication, prolonged catch-up, lag above three blocks, and new or consecutive failures. Configure one private or node-local scrape target per deployed follower; the single `ynx-chaind` Docker target is a local-stack example and cannot prove four-host monitoring. Metrics intentionally omit the replication source URL, authentication material, and runtime error text.
+
 Prometheus config lives in `infra/monitoring/prometheus.yml`, alert rules in `infra/monitoring/ynx-alerts.yml`, and the starter dashboard in `infra/monitoring/grafana-dashboard.json`.
 
 Indexer readiness:

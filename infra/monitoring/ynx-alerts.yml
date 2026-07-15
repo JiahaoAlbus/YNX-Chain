@@ -25,6 +25,38 @@ groups:
         annotations:
           summary: YNX Chain persistence layer reports an error
           description: Node metrics report a persistence error. Check journal logs and backup state before restart.
+      - alert: YNXFollowerReplicationDegraded
+        expr: ynx_chain_replication_configured{job="ynx-chaind"} == 1 and ynx_chain_replication_fresh{job="ynx-chaind"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX authoritative follower replication is not fresh
+          description: The follower has not recently completed authenticated exact source convergence. Inspect lifecycle state, source reachability, HMAC validation, and local persistence before restart.
+      - alert: YNXFollowerReplicationCatchingUp
+        expr: ynx_chain_replication_configured{job="ynx-chaind"} == 1 and ynx_chain_replication_catching_up{job="ynx-chaind"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX authoritative follower remains in catching-up state
+          description: The follower has not returned to a fresh exact source height and block hash for five minutes.
+      - alert: YNXFollowerReplicationLagging
+        expr: ynx_chain_replication_configured{job="ynx-chaind"} == 1 and ynx_chain_replication_lag_blocks{job="ynx-chaind"} > 3
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX authoritative follower is behind the producer
+          description: Authenticated source height exceeds local follower height by more than three blocks.
+      - alert: YNXFollowerReplicationFailures
+        expr: increase(ynx_chain_replication_failures_total{job="ynx-chaind"}[5m]) > 0 or ynx_chain_replication_consecutive_failures{job="ynx-chaind"} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX authoritative follower replication is failing
+          description: At least one replication attempt failed or the follower still has consecutive failures. Inspect bounded runtime stage/error evidence without exposing replication credentials.
       - alert: YNXIndexerLagging
         expr: ynx_indexer_sync_lag_blocks{job="ynx-indexerd"} > 3
         for: 3m

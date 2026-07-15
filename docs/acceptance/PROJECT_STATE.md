@@ -1,5 +1,14 @@
 # Project State
 
+## 2026-07-16 Replication fault detection and bounded remote audit
+
+- One fresh read-only remote cycle completed. Strict SSH and current host keys passed on the primary, Singapore, Silicon Valley, and Seoul roles. Public RPC identified chain `6423`, four active validators, four observed peer records, three peer-sync records, and deployed release `0d31850f74b2` at observed height `185750`.
+- The bounded public smoke correctly failed against current `main`: release identity remained `0d31850f74b2`, no growth appeared during the one-second observation window, and EVM chain ID, REST, gRPC, Explorer summary, Resource health, and Web4 health intermittently timed out. Other RPC validator, Faucet, Indexer, AI, Pay, Trust, governance rules, and transparency reads succeeded. Mutable proof was skipped.
+- `remote-blocker-report` refreshed the evidence and `deploy-readiness-gate` rejected deployment because the remote evidence status is failed. No backup, install, restart, firewall, ingress, chain state, or BFT transaction phase ran. This is a current operator diagnostic, not independent public proof.
+- Current source now adds process-local total replication failures and Prometheus metrics for configured state, bounded lifecycle, catching up, freshness, lag, attempts, successes, failures, consecutive failures, and last-success time. Metrics omit source URLs, keys, and error text.
+- Prometheus rules alert on non-fresh replication, prolonged catch-up, lag above three blocks, and new/consecutive failures. Grafana adds follower health, lag, and failure panels. Focused race tests, producer/follower metrics, exact local follower convergence, monitoring checks, JSON parsing, and alert YAML parsing pass locally.
+- This monitoring source is not remotely deployed. No protected per-follower Prometheus scrape targets, fired-alert interruption drill, remote dashboard evidence, or independent monitoring proof exists yet.
+
 ## 2026-07-16 Authoritative follower runtime evidence
 
 - Current source adds a thread-safe authoritative replication runtime status to `/status` and `/node/identity`: configured source, lifecycle state, `catchingUp`, freshness, exact source/local height and hash, lag, attempts, successes, failures, synchronization timestamps, bounded last error, and stage.

@@ -93,6 +93,7 @@ func (d *Devnet) RecordReplicationFailure(stage string, err error) {
 	d.replicationRuntime.Fresh = false
 	d.replicationRuntime.LocalHeight = latest.Height
 	d.replicationRuntime.LocalBlockHash = latest.Hash
+	d.replicationRuntime.Failures++
 	d.replicationRuntime.ConsecutiveFailures++
 	d.replicationRuntime.LastErrorStage = boundedReplicationText(stage, 32)
 	if err != nil {

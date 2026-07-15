@@ -319,6 +319,7 @@ type ReplicationRuntimeStatus struct {
 	LagBlocks           int64      `json:"lagBlocks"`
 	Attempts            uint64     `json:"attempts"`
 	Successes           uint64     `json:"successes"`
+	Failures            uint64     `json:"failures"`
 	ConsecutiveFailures uint64     `json:"consecutiveFailures"`
 	LastAttemptAt       *time.Time `json:"lastAttemptAt,omitempty"`
 	LastSuccessAt       *time.Time `json:"lastSuccessAt,omitempty"`

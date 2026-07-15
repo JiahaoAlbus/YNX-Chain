@@ -94,5 +94,17 @@ printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs")
 
 secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
 printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.catchingUp !== false || r.status !== "synced" || r.localHeight !== data.height || r.localBlockHash !== data.latestBlockHash) { console.error(`follower status missing convergence proof: ${JSON.stringify(data)}`); process.exit(1); }'
+secondary_metrics="$(curl -fsS http://127.0.0.1:6461/metrics)"
+for metric in \
+  'ynx_chain_replication_configured{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' \
+  'ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="synced"} 1' \
+  'ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' \
+  'ynx_chain_replication_fresh{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' \
+  'ynx_chain_replication_lag_blocks{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' \
+  'ynx_chain_replication_consecutive_failures{network="testnet",chain_id="6423",native_symbol="YNXT"} 0'
+do
+  grep -Fq "$metric" <<<"$secondary_metrics" || { echo "follower metrics missing: $metric"; exit 1; }
+done
+grep -Eq 'ynx_chain_replication_successes_total\{[^}]+\} [1-9][0-9]*' <<<"$secondary_metrics" || { echo "follower metrics missing successful replication count"; exit 1; }
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"
