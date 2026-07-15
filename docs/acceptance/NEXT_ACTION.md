@@ -2,9 +2,9 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Turn the remotely verified native protocol into an installed, lifecycle-safe iOS and Android client path. The Web/PWA remains online as fallback; mobile is the intended primary user window.
+Close the remaining iOS-installed and production-signing gap after the Android installed-app slice. The Web/PWA remains online as fallback; mobile is the intended primary user window.
 
-Current single action: run the native application on one iOS simulator or device and one Android emulator or device against the public App Gateway, then observe the implemented background/foreground lock, offline/timeout, expiry/auth revocation, corrupted SecureStore cleanup, reinstall, and recovery behavior. Produce installable development artifacts only after the corresponding native toolchain succeeds.
+Current single action: run the native application on an iOS simulator or device against the public App Gateway, observe the same fail-closed lifecycle and recovery boundaries already proven on Android, then establish owner-controlled iOS/Android release signing and recovery procedures before producing any signed IPA/AAB candidate.
 
 Why this action:
 
@@ -14,7 +14,10 @@ Why this action:
 - `make mobile-check` passes strict TypeScript, 13 tests, prohibited-storage scanning, and both iOS/Android Hermes exports. Expo Doctor passes 20/20.
 - Public Gateway release `ynx-chain-ae3e0457c082` now exposes the separately bound `ynx-mobile-v1` protocol while preserving exact browser-origin enforcement.
 - A disposable operator-controlled remote smoke completed ownership proof, device registration, device revocation, and session revocation without creating a Square post. Public active sessions returned to zero and the feed hash remained unchanged.
-- This machine has Java and `adb`, but lacks full Xcode/simulator and Android Emulator/SDK Manager, so device lifecycle proof remains unavailable rather than silently skipped.
+- Android SDK/Emulator is now installed. Package `com.ynxweb4.mobile` was built and installed on Android 16 arm64 emulator `YNX_API_36`; SecureStore identity, public session `0 -> 1`, background lock/revocation `1 -> 0`, return messaging, and safe removal were observed without posting.
+- The recovery screen had a real immediate-capture race; generation now awaits native screen-capture protection. Immediate and settled Android captures are black and the windows report `SECURE`.
+- The rebuilt debug APK SHA-256 is `c889263e0026c233ca443ef0fed913f5df77384b0210d622b5f5c2046ac5428d`, and `make mobile-android-native-check` reproduces its native project/build/package checks.
+- Full Xcode/simulator remains unavailable, and no real-device, production-signing, IPA, AAB, or store proof exists.
 
 Required implementation:
 
@@ -22,9 +25,9 @@ Required implementation:
 - Keep public Gateway health and the no-post disposable native-protocol revoke smoke as regression gates. Do not submit a public Square post without explicit owner content approval.
 - Exercise the implemented background/foreground, expired/revoked session, offline/timeout, corrupted SecureStore, and safe local removal paths in installed clients; fix only defects found by that evidence.
 - Add biometric unlock only with explicit platform support and fallback behavior; do not claim biometrics from SecureStore storage alone.
-- Install or use a full Xcode simulator and Android emulator environment, then capture one iOS and one Android smoke. If toolchains remain unavailable, retain this as an explicit blocker.
+- Install or use a full Xcode simulator environment and capture one iOS installed-app smoke. Keep the Android emulator smoke as a regression gate and add real-device checks only when owner-controlled devices are available.
 - Verify reinstall and recovery behavior without logging, uploading, or screenshotting the 64-hex recovery key.
-- Build installable development artifacts through the native toolchains before making any IPA, APK, or AAB claim.
+- Define owner-controlled signing-key custody, backup, rotation, and recovery before producing signed IPA/AAB candidates; keep the current artifact labeled as an Android debug APK only.
 - Keep the mobile recovery format truthful: current 64-hex export is not a mnemonic, hardware wallet, social recovery, or completed custody solution.
 - Track the 10 moderate Expo build-chain advisories. Do not apply npm's incompatible Expo 46 downgrade merely to clear the report.
 
@@ -41,6 +44,7 @@ Validation commands:
 - `go test ./...`
 - `make app-account-ownership-check`
 - `make mobile-check`
+- `make mobile-android-native-check`
 - `make browser-signer-check`
 - `make test`
 - `make no-placeholder-check`
@@ -49,14 +53,14 @@ Validation commands:
 - `GOMAXPROCS=2 make preflight`
 - `make objective-state-check`
 - production Gateway health and disposable no-post native-protocol revoke regression smoke
-- iOS simulator/device and Android emulator/device installed-client smoke
+- iOS simulator/device installed-client smoke and Android emulator regression smoke
 - native development artifact build commands from the installed Xcode and Android toolchains
 
 Completion standard:
 
 - The public Gateway continues to report exact release `ynx-chain-ae3e0457c082` and native boundary `ynx-mobile-v1` while existing browser Square behavior remains intact.
-- An installed iOS client and an installed Android client each connect to the public Gateway and complete the approved no-post session lifecycle without sending private keys.
-- iOS and Android produce valid Hermes bundles and installable development artifacts through their actual native toolchains.
+- An installed iOS client connects to the public Gateway and completes the approved no-post session lifecycle without sending private keys; the Android emulator regression remains green.
+- iOS and Android produce valid Hermes bundles and native development artifacts through their actual toolchains; any signed release candidate is backed by owner-controlled signing and recovery evidence.
 - Mobile offline, expiry, revocation, corrupt-storage, and app-lifecycle states fail safely and visibly.
 - No App Store, Google Play, mainnet, exchange listing, stablecoin issuer support, wallet default support, partnership, hardware-wallet, social-recovery, or independent-audit claim is made without external evidence.
 
@@ -65,7 +69,7 @@ Explicitly not doing / truth boundaries:
 - Do not expose mnemonics, private keys, recovery secrets, session tokens, service keys, or plaintext private messages to servers, logs, commits, analytics, screenshots, or chain state.
 - Do not treat `X-YNX-Client` as authentication; both account and device signatures remain mandatory.
 - Do not create a public Square post during infrastructure smoke.
-- Do not call local Hermes exports an IPA, APK/AAB, installed application, simulator proof, real-device proof, or store release.
+- Do not call local Hermes exports an IPA, APK/AAB, installed application, simulator proof, real-device proof, or store release. Do not call the verified Android debug APK a release APK/AAB or real-device proof.
 - Do not claim independent public proof from operator-controlled checks.
 - Do not repeat the completed Gateway deployment unless a verified compatibility defect requires a scoped release.
 - Do not expand Chat, Square interactions, Pay, Trust, Bank, Shop, desktop packaging, or broad website routes before this native deployment/lifecycle slice closes.
