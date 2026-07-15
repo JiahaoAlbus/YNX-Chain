@@ -1,0 +1,1 @@
+import{cp,mkdir,rm}from'node:fs/promises';await rm('dist',{recursive:true,force:true});await mkdir('dist');for(const f of['index.html','styles.css','responsive.css','app.js','account.js','ai.js'])await cp(f,`dist/${f}`);console.log('YNX Seller Console web build: dist/');
