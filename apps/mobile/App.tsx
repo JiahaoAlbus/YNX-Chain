@@ -16,11 +16,12 @@ import {
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync, usePreventScreenCapture } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
-import { Activity, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
+import { Activity, Fingerprint, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { fetchGatewayHealth, fetchSquareFeed, type GatewayHealth, type SquarePost } from "./src/api/ynxGateway";
 import { YNXMobileAppClient } from "./src/api/mobileSession";
 import { accountIdentity, exportAccountSecret, importAccountSecret, isValidAccountSecret, zeroize, type YNXIdentity } from "./src/crypto/ynxSigner";
+import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { deleteIdentity, loadIdentity, saveIdentity, secureStorageAvailable, type StoredIdentity } from "./src/storage/secureIdentity";
 
 type Tab = "square" | "wallet" | "network";
@@ -302,12 +303,16 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
     setImportValue("");
     setError(null);
     setMode("closed");
+    void allowScreenCaptureAsync(RECOVERY_CAPTURE_KEY).catch(() => undefined);
   };
+
+  useEffect(() => () => { void allowScreenCaptureAsync(RECOVERY_CAPTURE_KEY).catch(() => undefined); }, []);
 
   const create = async () => {
     setBusy(true);
     setError(null);
     try {
+      await authorizeLocalKeyUse("recovery-key");
       await preventScreenCaptureAsync(RECOVERY_CAPTURE_KEY);
       let accountSecret: Uint8Array;
       do accountSecret = await getRandomBytesAsync(32); while (!isValidAccountSecret(accountSecret));
@@ -337,18 +342,45 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
   };
 
   const importExisting = async () => {
+    setBusy(true);
+    setError(null);
     try {
+      await authorizeLocalKeyUse("identity-import");
       const accountSecret = importAccountSecret(importValue);
       const deviceSecret = await getRandomBytesAsync(32);
       await persist(Object.freeze({ accountSecret, deviceSecret }));
     } catch (caught) {
       setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openImport = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await preventScreenCaptureAsync(RECOVERY_CAPTURE_KEY);
+      setMode("import");
+    } catch (caught) {
+      setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
     }
   };
 
   const remove = () => Alert.alert("Remove local identity?", "This device will lose access unless the recovery key is backed up.", [
     { text: "Cancel", style: "cancel" },
-    { text: "Remove", style: "destructive", onPress: async () => { await deleteIdentity(); props.onDeleted(); } },
+    { text: "Remove", style: "destructive", onPress: async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        await authorizeLocalKeyUse("identity-removal");
+        await deleteIdentity();
+        props.onDeleted();
+      } catch (caught) { setError(errorMessage(caught)); }
+      finally { setBusy(false); }
+    } },
   ]);
 
   const resetUnreadable = () => Alert.alert("Remove unreadable identity data?", "The damaged local record cannot be recovered. Continue only if the recovery key is stored offline.", [
@@ -357,6 +389,7 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
       setBusy(true);
       setError(null);
       try {
+        await authorizeLocalKeyUse("identity-removal");
         if (!props.onResetUnreadable) throw new Error("Secure storage cannot be reset on this device");
         await props.onResetUnreadable();
       } catch (caught) { setError(errorMessage(caught)); }
@@ -369,6 +402,7 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
     <View style={styles.screenPadded}>
       <Text style={styles.eyebrow}>NATIVE IDENTITY</Text>
       <Text style={styles.title}>Wallet</Text>
+      {error && mode === "closed" ? <Text style={styles.inlineError}>{error}</Text> : null}
       {props.error ? (
         <View style={styles.recoveryErrorPanel}>
           <Text style={styles.errorText}>{props.error}</Text>
@@ -389,8 +423,12 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
           <Text style={styles.walletLabel}>EVM compatibility address</Text>
           <Text selectable style={styles.secondaryAddress}>{props.identity.evmAddress}</Text>
           <Text style={styles.walletNote}>The ynx1 address is the default YNX identity. The 0x address is exposed only for EVM-compatible tooling.</Text>
-          <Pressable onPress={remove} style={({ pressed }) => [styles.destructiveButton, pressed && styles.pressed]}>
-            <Trash2 color="#B42318" size={18} /><Text style={styles.destructiveText}>Remove from this device</Text>
+          <View style={styles.securityRow}>
+            <Fingerprint color={BLUE} size={21} />
+            <View style={styles.securityCopy}><Text style={styles.securityTitle}>Biometric authorization</Text><Text style={styles.securityText}>Required before account signatures, recovery-key actions, and local identity removal.</Text></View>
+          </View>
+          <Pressable disabled={busy} onPress={remove} style={({ pressed }) => [styles.destructiveButton, pressed && styles.pressed]}>
+            {busy ? <ActivityIndicator color="#B42318" /> : <><Trash2 color="#B42318" size={18} /><Text style={styles.destructiveText}>Remove from this device</Text></>}
           </Pressable>
         </View>
       ) : (
@@ -401,7 +439,7 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
           <Pressable disabled={busy} onPress={() => void create()} style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryPressed]}>
             {busy ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Create identity</Text>}
           </Pressable>
-          <Pressable onPress={() => setMode("import")} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
+          <Pressable disabled={busy} onPress={() => void openImport()} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
             <Text style={styles.secondaryButtonText}>Import recovery key</Text>
           </Pressable>
         </View>
@@ -521,6 +559,8 @@ const styles = StyleSheet.create({
   walletBody: { marginTop: 36 }, walletLabel: { color: MUTED, fontSize: 12, fontWeight: "600" }, address: { color: INK, fontSize: 17, lineHeight: 25, fontWeight: "600", marginTop: 9 }, secondaryAddress: { color: INK, fontSize: 14, lineHeight: 22, marginTop: 9 },
   recoveryErrorPanel: { marginTop: 24 },
   divider: { height: 1, backgroundColor: LINE, marginVertical: 24 }, walletNote: { color: MUTED, fontSize: 13, lineHeight: 20, marginTop: 14 },
+  securityRow: { marginTop: 24, padding: 16, flexDirection: "row", alignItems: "flex-start", gap: 12, borderWidth: 1, borderColor: "#C7D7FE", borderRadius: 8, backgroundColor: "#F5F8FF" },
+  securityCopy: { flex: 1 }, securityTitle: { color: INK, fontSize: 14, lineHeight: 20, fontWeight: "700" }, securityText: { color: MUTED, fontSize: 12, lineHeight: 18, marginTop: 3 },
   onboarding: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 }, keyCircle: { width: 64, height: 64, borderRadius: 18, backgroundColor: "#EEF3FF", alignItems: "center", justifyContent: "center", marginBottom: 14 },
   primaryButton: { minHeight: 48, borderRadius: 8, backgroundColor: BLUE, paddingHorizontal: 24, alignItems: "center", justifyContent: "center", marginTop: 24 }, primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   secondaryButton: { minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: LINE, paddingHorizontal: 20, alignItems: "center", justifyContent: "center", marginTop: 12, backgroundColor: "#FFFFFF" }, secondaryButtonText: { color: INK, fontSize: 14, fontWeight: "600" },

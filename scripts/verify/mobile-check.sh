@@ -18,6 +18,7 @@ assert.equal(lock.lockfileVersion, 3);
 assert.equal(pkg.dependencies.expo, "~57.0.4");
 assert.equal(pkg.dependencies["expo-secure-store"], "~57.0.0");
 assert.equal(pkg.dependencies["expo-screen-capture"], "57.0.0");
+assert.equal(pkg.dependencies["expo-local-authentication"], "~57.0.0");
 assert.equal(pkg.dependencies["@noble/curves"], "2.2.0");
 assert.equal(pkg.dependencies["@noble/hashes"], "2.2.0");
 assert.equal(pkg.scripts.android, "expo run:android");
@@ -27,8 +28,10 @@ assert.equal(app.expo.android.versionCode, 1);
 assert.equal(app.expo.ios.bundleIdentifier, "com.ynxweb4.mobile");
 assert.equal(app.expo.ios.buildNumber, "1");
 assert.ok(app.expo.plugins.includes("./plugins/withYnxAndroidReleaseSigning"));
+assert.ok(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-local-authentication" && plugin[1]?.faceIDPermission === "Allow YNX to authorize local account key use."));
 assert.equal(lock.packages["node_modules/@noble/curves"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/@noble/hashes"].version, "2.2.0");
+assert.equal(lock.packages["node_modules/expo-local-authentication"].version, "57.0.0");
 NODE
 
 for asset in assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png internal/explorer/assets/ynx-logo.png; do
@@ -39,6 +42,9 @@ cmp -s assets/brand/ynx-logo.png internal/explorer/assets/ynx-logo.png
 test ! -e apps/mobile/assets/ynx-mark.svg
 rg -q 'require\("\./assets/ynx-logo\.png"\)' apps/mobile/App.tsx
 rg -q '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
+rg -q 'await this\.authorize\("ownership-proof"\)' apps/mobile/src/api/mobileSession.ts
+rg -q 'await this\.authorize\("signed-post"\)' apps/mobile/src/api/mobileSession.ts
+rg -q 'await authorizeLocalKeyUse\("identity-removal"\)' apps/mobile/App.tsx
 
 if rg -n 'AsyncStorage|localStorage|sessionStorage' apps/mobile --glob '!package-lock.json' --glob '!scripts/**'; then
   echo "mobile-check failed: account or session data must not use unprotected web/async storage" >&2

@@ -1,4 +1,5 @@
 import { accountIdentity, deviceIdentifier, deviceIdentity, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration, zeroize } from "../crypto/ynxSigner";
+import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
 
 const CLIENT = "ynx-mobile-v1";
 const BINDING = "ynx-mobile://com.ynxweb4.mobile";
@@ -13,11 +14,12 @@ export class YNXMobileAppClient {
   private readonly fetchImpl: FetchLike;
   private readonly now: () => Date;
   private readonly timeoutMs: number;
+  private readonly authorize: LocalKeyAuthorizer;
   private accountSecret: Uint8Array;
   private deviceSecret: Uint8Array;
   private session: Session | null = null;
 
-  constructor(input: { accountSecret: Uint8Array; deviceSecret: Uint8Array; baseURL?: string; fetchImpl?: FetchLike; now?: () => Date; timeoutMs?: number }) {
+  constructor(input: { accountSecret: Uint8Array; deviceSecret: Uint8Array; baseURL?: string; fetchImpl?: FetchLike; now?: () => Date; timeoutMs?: number; authorize?: LocalKeyAuthorizer }) {
     if (input.accountSecret.length !== 32 || input.deviceSecret.length !== 32) throw new Error("YNX mobile client requires two 32-byte secrets");
     this.accountSecret = input.accountSecret.slice();
     this.deviceSecret = input.deviceSecret.slice();
@@ -27,6 +29,7 @@ export class YNXMobileAppClient {
     this.fetchImpl = input.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.now = input.now ?? (() => new Date());
     this.timeoutMs = input.timeoutMs ?? 8000;
+    this.authorize = input.authorize ?? authorizeLocalKeyUse;
     if (!Number.isInteger(this.timeoutMs) || this.timeoutMs < 10 || this.timeoutMs > 30000) throw new Error("YNX mobile request timeout must be between 10 and 30000 milliseconds");
   }
 
@@ -38,6 +41,7 @@ export class YNXMobileAppClient {
   }
 
   async connect(): Promise<void> {
+    await this.authorize("ownership-proof");
     const device = deviceIdentity(this.deviceSecret);
     const challenge = await this.request("/app/session/challenges", {
       account: this.account,
@@ -70,6 +74,7 @@ export class YNXMobileAppClient {
     if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
     if (content.trim().length === 0 || content.length > 2000) throw new Error("Post content must contain 1 to 2000 characters");
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{2,63}$/.test(idempotencyKey)) throw new Error("Post idempotency key is invalid");
+    await this.authorize("signed-post");
     const body = JSON.stringify({ idempotencyKey, content });
     const timestamp = this.now().toISOString();
     return this.request("/app/square/posts", body, {
@@ -83,6 +88,7 @@ export class YNXMobileAppClient {
     if (!this.session) return;
     try {
       if (revokeDevice && this.connected) {
+        await this.authorize("device-revocation");
         const timestamp = this.now().toISOString();
         await this.request(`/app/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, "", {
           ...this.sessionHeaders(),

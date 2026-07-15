@@ -9,6 +9,7 @@ const deviceSecret = new Uint8Array(32).fill(0x41);
 
 test("establishes a native-bound session, signs a post, and revokes", async () => {
   const requests: Array<{ path: string; init?: RequestInit }> = [];
+  const authorizations: string[] = [];
   const account = accountIdentity(accountSecret).account;
   const deviceId = deviceIdentifier(deviceSecret);
   const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
@@ -20,7 +21,7 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
     if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "s".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
     return jsonResponse(201, { ok: true });
   };
-  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:00:00Z") });
+  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:00:00Z"), authorize: async (purpose) => { authorizations.push(purpose); } });
   await client.connect();
   await client.createPost("native post", "post-native-1");
   await client.disconnect(true);
@@ -32,6 +33,7 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
     `/app/square/devices/${deviceId}/revoke`,
     "/app/session/revoke",
   ]);
+  assert.deepEqual(authorizations, ["ownership-proof", "signed-post", "device-revocation"]);
   for (const request of requests) assert.equal((request.init?.headers as Record<string, string>)["X-YNX-Client"], "ynx-mobile-v1");
   const serialized = JSON.stringify(requests);
   assert.equal(serialized.includes(Buffer.from(accountSecret).toString("hex")), false);
@@ -43,7 +45,7 @@ test("aborts a stalled native ownership request", async () => {
   const fetchImpl = async (_input: string, init?: RequestInit): Promise<Response> => new Promise((_resolve, reject) => {
     init?.signal?.addEventListener("abort", () => reject(new Error("request aborted")), { once: true });
   });
-  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, timeoutMs: 10 });
+  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, timeoutMs: 10, authorize: permitLocalKeyUse });
   await assert.rejects(client.connect(), /request aborted/);
   assert.equal(client.connected, false);
   client.lock();
@@ -83,10 +85,40 @@ test("locks locally before best-effort session revocation completes", async () =
   await revocation;
 });
 
+test("refuses ownership network traffic when local authorization fails", async () => {
+  let requests = 0;
+  const client = new YNXMobileAppClient({
+    accountSecret,
+    deviceSecret,
+    fetchImpl: async () => { requests += 1; return jsonResponse(500, {}); },
+    authorize: async () => { throw new Error("biometric denied"); },
+  });
+  await assert.rejects(client.connect(), /biometric denied/);
+  assert.equal(requests, 0);
+  assert.equal(client.connected, false);
+  client.lock();
+});
+
+test("refuses signed post creation when local authorization fails", async () => {
+  const purposes: string[] = [];
+  const client = connectedClient({
+    authorize: async (purpose) => {
+      purposes.push(purpose);
+      if (purpose === "signed-post") throw new Error("biometric denied");
+    },
+  });
+  await client.connect();
+  await assert.rejects(client.createPost("denied locally", "post-local-denied"), /biometric denied/);
+  assert.deepEqual(purposes, ["ownership-proof", "signed-post"]);
+  assert.equal(client.connected, true);
+  client.lock();
+});
+
 function connectedClient(options: {
   now?: () => Date;
   mutationStatus?: number;
   revokeResponse?: () => Promise<Response>;
+  authorize?: ConstructorParameters<typeof YNXMobileAppClient>[0]["authorize"];
 } = {}): YNXMobileAppClient {
   const account = accountIdentity(accountSecret).account;
   const deviceId = deviceIdentifier(deviceSecret);
@@ -100,8 +132,10 @@ function connectedClient(options: {
     if (path === "/app/square/posts" && options.mutationStatus) return jsonResponse(options.mutationStatus, { error: "session revoked" });
     return jsonResponse(201, { ok: true });
   };
-  return new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: options.now ?? (() => new Date("2026-07-14T12:00:00Z")) });
+  return new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: options.now ?? (() => new Date("2026-07-14T12:00:00Z")), authorize: options.authorize ?? permitLocalKeyUse });
 }
+
+async function permitLocalKeyUse(): Promise<void> {}
 
 function jsonResponse(status: number, value: unknown): Promise<Response> {
   return Promise.resolve(new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } }));

@@ -31,6 +31,12 @@
           "faceIDPermission": "Allow YNX to unlock your locally held account keys."
         }
       ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow YNX to authorize local account key use."
+        }
+      ],
       "./plugins/withYnxAndroidReleaseSigning"
     ]
   }
