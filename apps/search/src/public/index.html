@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>YNX Search · auditable sources</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+<a class="skip" href="#query">Skip to search</a>
+<header><a class="brand" href="/" aria-label="YNX Search home"><span aria-hidden="true">Y</span><strong>YNX Search</strong></a><span class="scope">Authorized sources only · no global coverage claim</span><button id="status-button">Index status</button></header>
+<main>
+  <section class="hero" aria-labelledby="heading"><p class="eyebrow">Web4 discovery with evidence</p><h1 id="heading">Search with the source<br>still attached.</h1><form id="search-form" role="search"><label class="sr-only" for="query">Search indexed sources</label><input id="query" name="q" required maxlength="256" autocomplete="off" placeholder="Search indexed sources"><button>Search</button></form><div class="filters"><label>Freshness <select id="freshness"><option value="">Any time</option><option value="7">Past 7 days</option><option value="30">Past 30 days</option><option value="365">Past year</option></select></label><label>Type <select id="type"><option value="">All types</option><option value="text/html">Web pages</option><option value="application/json">JSON</option><option value="text/plain">Text</option></select></label></div></section>
+  <section id="summary" aria-live="polite"></section><section id="ai-entry"></section><section id="results" aria-label="Search results"></section><nav id="pages" aria-label="Search result pages"></nav>
+</main>
+<dialog id="status-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button><h2>Index status</h2><p>Coverage is limited to sources with recorded authorization and robots policy. Status is evidence, not a neutrality claim.</p><div id="status-list"></div></form></dialog>
+<dialog id="ai-dialog"><div class="dialog-body"><button id="ai-close" class="close" aria-label="Close">×</button><h2>Answer from indexed sources</h2><div id="ai-preview"></div><button id="ai-approve">Allow selected sources</button><button id="ai-cancel">Cancel generation</button><pre id="ai-output" aria-live="polite"></pre><div id="ai-review" hidden><button data-review="accept">Accept</button><button data-review="reject">Reject</button><button data-review="request-correction">Request correction</button></div></div></dialog>
+<footer><span>YNX public testnet product engineering</span><nav><button data-case="correction">Request correction</button><button data-case="removal">Request removal</button><button data-case="appeal">Appeal a decision</button></nav></footer>
+<script type="module" src="/app.js"></script>
+</body></html>

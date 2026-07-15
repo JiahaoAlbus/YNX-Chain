@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>YNX Browser</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="library.css"></head>
+<body>
+  <a class="skip" href="#address">Skip to address bar</a>
+  <aside aria-label="Browser spaces"><div class="brand"><span aria-hidden="true">Y</span><div><strong>YNX Browser</strong><small>Web4 access, visibly bounded</small></div></div><button id="new-tab">＋ New tab</button><button id="private-tab">◐ Private tab</button><div class="library"><button id="history">History</button><button id="bookmarks">Bookmarks</button><button id="downloads">Downloads</button></div><nav id="tabs" aria-label="Open tabs"></nav><div class="boundary">Chromium engine · signed updates only<br><strong>No perfect privacy or phishing claim</strong></div></aside>
+  <header><div class="controls"><button id="back" aria-label="Go back">←</button><button id="forward" aria-label="Go forward">→</button><button id="reload" aria-label="Reload">↻</button><button id="security" aria-label="View connection security">◇</button><form id="navigate"><label class="sr-only" for="address">Address or search query</label><input id="address" autocomplete="off" spellcheck="false" placeholder="Search authorized sources or enter an address"></form><button id="bookmark" aria-label="Bookmark this page">☆</button><button id="permissions">Permissions</button><button id="ai">Page AI</button><button id="wallet">Wallet review</button></div><div id="notice" role="status" aria-live="polite"></div></header>
+  <dialog id="panel"><form method="dialog"><button class="close" aria-label="Close">×</button><h2 id="panel-title">Site controls</h2><div id="panel-content"></div></form></dialog>
+  <script type="module" src="app.js"></script>
+</body></html>

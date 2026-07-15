@@ -1,0 +1,14 @@
+{
+  "name": "@ynx/browser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "swift run --package-path native YNXBrowserNative",
+    "test": "node --test",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm test && npm run smoke && npm run build:macos",
+    "build:macos": "swift build -c release --package-path native"
+  },
+  "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
+}

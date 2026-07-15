@@ -1,0 +1,5 @@
+.library{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.library button{padding:7px 3px;font-size:11px}
+.tab-row{display:flex;gap:3px}
+.tab-row .tab{flex:1}
+.tab-close{padding:5px 8px;border-color:transparent;background:transparent}
