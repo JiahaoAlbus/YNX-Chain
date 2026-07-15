@@ -1,0 +1,18 @@
+.alert-list article > * { min-width: 0; }
+.alert-list a { overflow-wrap: anywhere; }
+.approval { min-width: 0; }
+.approval input { width: 100%; }
+.log-sources { display: flex; gap: 8px; padding: 14px; overflow-x: auto; }
+.log-sources button { min-height: 34px; padding: 0 13px; border: 1px solid #355486; color: #dbe8ff; background: #102957; }
+.log-output { max-height: 65vh; margin: 0; padding: 18px; overflow: auto; white-space: pre-wrap; color: #c6d8f8; background: #071831; font: 10px/1.6 ui-monospace, monospace; }
+@media (max-width: 680px) {
+  .rail { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) 58px; overflow: hidden; }
+  .monitor-brand { display: none; }
+  .rail nav { grid-column: 1; min-width: 0; max-width: calc(100vw - 58px); }
+  .rail nav button { width: auto; padding: 0 9px; font-size: 9px; }
+  .rail nav button i { display: none; }
+  .rail-foot { grid-column: 2; }
+  .commandbar { flex-wrap: wrap; }
+  .command-actions { min-width: 0; }
+  .alert-list article { overflow: hidden; }
+}

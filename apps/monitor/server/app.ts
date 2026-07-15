@@ -1,0 +1,43 @@
+import express, { type Request, type Response } from 'express';
+import { readFile } from 'node:fs/promises';
+import { auth, createToken, loadUsers, operator, verifyUser } from './auth.js';
+import { OpsStore } from './store.js';
+
+interface Probe { id:string; label:string; url:string; status:'healthy'|'unavailable'; checkedAt:string; latencyMs?:number; httpStatus?:number; data?:unknown; error?:string }
+const bounded = (value:unknown,limit=240) => String(value ?? '').slice(0,limit);
+
+async function probe(id:string,label:string,url:string):Promise<Probe>{
+  const started=Date.now();const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),2500);
+  try{const response=await fetch(url,{signal:controller.signal});const text=await response.text();let data:unknown;try{data=JSON.parse(text);}catch{data=text.slice(0,1000);}return{id,label,url,status:response.ok?'healthy':'unavailable',checkedAt:new Date().toISOString(),latencyMs:Date.now()-started,httpStatus:response.status,data};}
+  catch(error){return{id,label,url,status:'unavailable',checkedAt:new Date().toISOString(),latencyMs:Date.now()-started,error:error instanceof Error?error.message:'probe failed'};}
+  finally{clearTimeout(timeout);}
+}
+
+export async function createApp(options:{store?:OpsStore;secret?:string;rpcUrl?:string;explorerUrl?:string;indexerUrl?:string;aiUrl?:string;users?:ReturnType<typeof loadUsers>}={}){
+  const secret=options.secret??process.env.YNX_MONITOR_SESSION_SECRET;if(!secret||secret.length<24)throw new Error('YNX_MONITOR_SESSION_SECRET must contain at least 24 characters');
+  const users=options.users??loadUsers();const store=options.store??new OpsStore(process.env.YNX_MONITOR_STATE_PATH||'tmp/monitor/state.json');await store.load();
+  const rpc=(options.rpcUrl??process.env.YNX_MONITOR_RPC_URL??'http://127.0.0.1:6420').replace(/\/$/,'');
+  const explorer=(options.explorerUrl??process.env.YNX_MONITOR_EXPLORER_URL??'http://127.0.0.1:6427').replace(/\/$/,'');
+  const indexer=(options.indexerUrl??process.env.YNX_MONITOR_INDEXER_URL??'http://127.0.0.1:6426').replace(/\/$/,'');
+  const ai=(options.aiUrl??process.env.YNX_MONITOR_AI_URL??'http://127.0.0.1:6429').replace(/\/$/,'');
+  const logSources:Record<string,string>=process.env.YNX_MONITOR_LOG_SOURCES?JSON.parse(process.env.YNX_MONITOR_LOG_SOURCES):{};
+  const app=express();app.disable('x-powered-by');app.use(express.json({limit:'128kb'}));
+  app.post('/ops/login',async(req,res)=>{const principal=verifyUser(users,bounded(req.body?.username,80),bounded(req.body?.password,200));if(!principal)return res.status(401).json({error:'invalid_credentials'});await store.audit(principal,'session.login','monitor','authenticated');return res.json({token:createToken(principal,secret),principal,expiresIn:3600});});
+  app.use('/ops',auth(secret));
+  app.get('/ops/me',(req,res)=>res.json({principal:req.principal}));
+  app.get('/ops/overview',async(req,res)=>{
+    const probes=await Promise.all([probe('node','Node',`${rpc}/status`),probe('identity','Release identity',`${rpc}/node/identity`),probe('validators','Validators',`${rpc}/validators`),probe('peers','Peers',`${rpc}/validators/peers`),probe('peer-sync','Peer sync',`${rpc}/validators/peer-sync`),probe('explorer','Explorer',`${explorer}/health`),probe('indexer','Indexer',`${indexer}/health`),probe('ai','AI Gateway',`${ai}/health`)]);
+    for(const item of probes){if(item.status==='healthy')await store.observeRecovery(item.id);else await store.observeFailure(item.id,item.error||`HTTP ${item.httpStatus}`,item.url);}
+    const state=store.snapshot();
+    res.setHeader('Cache-Control','no-store');return res.json({checkedAt:new Date().toISOString(),probes,slo:{definition:'Current bounded endpoint availability only; no historical uptime is inferred.',passing:probes.filter(p=>p.status==='healthy').length,total:probes.length},incidents:state.incidents,alerts:state.alerts,rollbackProposals:state.rollbackProposals,backupRecords:state.backupRecords});
+  });
+  app.get('/ops/audit',(req,res)=>res.json({audit:store.snapshot().audits}));
+  app.get('/ops/logs',async(req,res)=>{const names=Object.keys(logSources).sort();const source=bounded(req.query.source,80);if(!source)return res.json({status:names.length?'sources_available':'not_configured',sources:names,lines:[]});const path=logSources[source];if(!path)return res.status(404).json({error:'log_source_not_allowed'});try{const raw=await readFile(path);const tail=raw.subarray(Math.max(0,raw.length-65_536)).toString('utf8');const lines=tail.split(/\r?\n/).slice(-200).map(line=>line.slice(0,2_000).replace(/(authorization:\s*bearer|x-ynx-[\w-]*-key[=:]?|password[=:]?|private[_ -]?key[=:]?)\s*\S+/gi,'$1 [REDACTED]'));await store.audit(req.principal!,'logs.read',source,'read',{bytes:Math.min(raw.length,65_536),lines:lines.length});return res.json({status:'available',source,sources:names,lines,truncated:raw.length>65_536,fetchedAt:new Date().toISOString()});}catch(error){return res.status(502).json({error:'log_source_unavailable',detail:error instanceof Error?error.message:'read failed'})}});
+  app.post('/ops/incidents',operator,async(req,res)=>{const title=bounded(req.body?.title,160),source=bounded(req.body?.source,160),severity=req.body?.severity;const evidence=Array.isArray(req.body?.evidence)?req.body.evidence.slice(0,12).map((x:unknown)=>bounded(x,500)):[];if(!title||!source||!['low','medium','high','critical'].includes(severity))return res.status(400).json({error:'invalid_incident'});return res.status(201).json(await store.createIncident(req.principal!,{title,source,severity,evidence}));});
+  app.post('/ops/alerts/:id/acknowledge',operator,async(req,res)=>{if(req.body?.approvalPhrase!=='ACKNOWLEDGE')return res.status(409).json({error:'explicit_operator_approval_required',requiredPhrase:'ACKNOWLEDGE'});const alert=await store.acknowledge(req.principal!,String(req.params.id));return alert?res.json(alert):res.status(404).json({error:'alert_not_found'});});
+  app.post('/ops/backup-records',operator,async(req,res)=>{const evidence=bounded(req.body?.evidence,500);if(!evidence)return res.status(400).json({error:'backup_evidence_required'});return res.status(201).json(await store.addBackupRecord(req.principal!,evidence));});
+  app.post('/ops/rollback-proposals',operator,async(req,res)=>{if(req.body?.approvalPhrase!=='APPROVE ROLLBACK PROPOSAL')return res.status(409).json({error:'explicit_operator_approval_required',requiredPhrase:'APPROVE ROLLBACK PROPOSAL'});const release=bounded(req.body?.release,120),reason=bounded(req.body?.reason,500);if(!release||!reason)return res.status(400).json({error:'release_and_reason_required'});return res.status(201).json(await store.addRollbackProposal(req.principal!,release,reason));});
+  app.post('/ops/incidents/:id/ai',async(req:Request,res:Response)=>{const incident=store.snapshot().incidents.find(x=>x.id===String(req.params.id));if(!incident)return res.status(404).json({error:'incident_not_found'});const context={id:incident.id,title:incident.title,severity:incident.severity,status:incident.status,source:incident.source,evidence:incident.evidence};const key=process.env.YNX_MONITOR_AI_KEY;if(!key)return res.status(503).json({error:'ai_gateway_not_configured'});await store.audit(req.principal!,'incident.ai_summary',incident.id,'requested',{contextFields:Object.keys(context),authority:'advisory-only'});const prompt=`Summarize this incident using only the evidence and propose numbered runbook steps. Do not acknowledge alerts, restart services, rotate keys, execute rollback, or claim an action happened. Evidence: ${JSON.stringify(context)}`;const upstream=await fetch(`${ai}/ai/stream?session=${encodeURIComponent(`monitor-${incident.id}`)}&q=${encodeURIComponent(prompt)}`,{headers:{'X-YNX-AI-Key':key}});res.status(upstream.status);for(const [name,value] of upstream.headers)if(['content-type','cache-control'].includes(name))res.setHeader(name,value);if(!upstream.body)return res.end();const reader=upstream.body.getReader();while(true){const{done,value}=await reader.read();if(done)break;res.write(Buffer.from(value));}res.end();});
+  app.use((_req,res)=>res.status(404).json({error:'not_found'}));
+  return app;
+}
