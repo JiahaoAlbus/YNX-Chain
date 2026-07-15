@@ -3,7 +3,7 @@ import { chatDeviceRegistration, createChatDeviceRotation, createChatEnvelopeSet
 import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
 import { parsePaySettlement, type PaySettlement } from "./pay";
 import { parseChatConversationResult, parseChatConversations, parseChatDevices, parseChatMessages, type ChatConversation, type ChatDevice, type ChatMessage, type DecryptedChatMessage } from "./chat";
-import { parseSquareCommentResult, parseSquareFollowResult, parseSquareReactionResult, parseSquareReportResult, type SquareComment, type SquareFollow, type SquareReaction, type SquareReport } from "./square";
+import { parseSquareCommentResult, parseSquareFollowResult, parseSquareNotificationFeed, parseSquareNotificationResult, parseSquareProfileResult, parseSquareReactionResult, parseSquareReportResult, type SquareComment, type SquareFollow, type SquareNotification, type SquareNotificationFeed, type SquareProfile, type SquareReaction, type SquareReport } from "./square";
 
 const CLIENT = "ynx-mobile-v1";
 const BINDING = "ynx-mobile://com.ynxweb4.mobile";
@@ -200,6 +200,27 @@ export class YNXMobileAppClient {
     requireIdempotencyKey(input.idempotencyKey);
     await this.authorize("signed-social-action");
     return parseSquareReportResult(await this.signedSquareRequest("POST", "/square/reports", { ...input, targetId }));
+  }
+
+  async setSquareProfile(displayName: string, bio: string, idempotencyKey: string): Promise<SquareProfile> {
+    if (displayName.trim().length === 0 || displayName.trim().length > 64) throw new Error("Square display name must contain 1 to 64 characters");
+    if (bio.trim().length > 280) throw new Error("Square profile bio exceeds 280 characters");
+    requireIdempotencyKey(idempotencyKey);
+    await this.authorize("signed-social-action");
+    return parseSquareProfileResult(await this.signedSquareRequest("POST", "/square/profiles", { idempotencyKey, displayName, bio }));
+  }
+
+  async listSquareNotifications(limit = 30, cursor = ""): Promise<SquareNotificationFeed> {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error("Square notification limit is invalid");
+    if (cursor !== "") requireSegment(cursor, "Square notification cursor");
+    const requestUri = `/square/notifications?limit=${limit}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    return parseSquareNotificationFeed(await this.signedSquareRequest("GET", requestUri));
+  }
+
+  async readSquareNotification(notificationId: string, idempotencyKey: string): Promise<SquareNotification> {
+    requireSegment(notificationId, "Square notification ID");
+    requireIdempotencyKey(idempotencyKey);
+    return parseSquareNotificationResult(await this.signedSquareRequest("POST", `/square/notifications/${notificationId}/read`, { idempotencyKey }));
   }
 
   async disconnect(revokeDevice = false): Promise<void> {

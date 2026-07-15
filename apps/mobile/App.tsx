@@ -27,9 +27,10 @@ import { deleteIdentity, loadIdentity, saveIdentity, secureStorageAvailable, typ
 import { NativeWalletDashboard } from "./src/components/NativeWalletDashboard";
 import { NativePayScreen } from "./src/components/NativePayScreen";
 import { NativeChatScreen } from "./src/components/NativeChatScreen";
+import { NativeSocialAlertsScreen } from "./src/components/NativeSocialAlertsScreen";
 
 type Tab = "social" | "wallet" | "pay" | "network";
-type SocialRoute = "feed" | "messages";
+type SocialRoute = "feed" | "messages" | "alerts";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -106,8 +107,9 @@ function YNXApp() {
           {!chatDetail && <View style={styles.socialSwitcher}>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "feed" }} onPress={() => setSocialRoute("feed")} style={[styles.socialSwitch, socialRoute === "feed" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "feed" && styles.socialSwitchTextActive]}>Feed</Text></Pressable>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "messages" }} onPress={() => setSocialRoute("messages")} style={[styles.socialSwitch, socialRoute === "messages" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "messages" && styles.socialSwitchTextActive]}>Messages</Text></Pressable>
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: socialRoute === "alerts" }} onPress={() => setSocialRoute("alerts")} style={[styles.socialSwitch, socialRoute === "alerts" && styles.socialSwitchActive]}><Text style={[styles.socialSwitchText, socialRoute === "alerts" && styles.socialSwitchTextActive]}>Alerts</Text></Pressable>
           </View>}
-          {socialRoute === "feed" ? <SquareScreen stored={stored} openWallet={() => setTab("wallet")} /> : <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} />}
+          {socialRoute === "feed" ? <SquareScreen stored={stored} openWallet={() => setTab("wallet")} /> : socialRoute === "messages" ? <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} /> : <NativeSocialAlertsScreen stored={stored} openWallet={() => setTab("wallet")} />}
         </View>}
         {tab === "wallet" && (
           <WalletScreen

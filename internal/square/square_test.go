@@ -33,6 +33,17 @@ func TestSquarePersistentSocialLifecycle(t *testing.T) {
 	service := newTestService(t, statePath, func() time.Time { return now })
 	alice := registerTestDevice(t, service, aliceAddress, "alice-device", "register-alice", 0x11)
 	bob := registerTestDevice(t, service, bobAddress, "bob-device", "register-bob", 0x22)
+	aliceProfile, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Alice YNX", Bio: "Building the native network."})
+	if err != nil || aliceProfile.Record.Account != aliceAddress || aliceProfile.Record.DisplayName != "Alice YNX" {
+		t.Fatalf("set Alice profile: %+v %v", aliceProfile, err)
+	}
+	profileReplay, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Alice YNX", Bio: "Building the native network."})
+	if err != nil || !profileReplay.Replayed {
+		t.Fatalf("profile replay: %+v %v", profileReplay, err)
+	}
+	if _, err := service.SetProfile(alice.device, SetProfileRequest{IdempotencyKey: "profile-alice", DisplayName: "Changed", Bio: "Building the native network."}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed profile replay should conflict: %v", err)
+	}
 
 	bad := registrationRequest("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf", "evm-device", "register-evm", alice.keys)
 	if _, err := service.RegisterDevice(bad); !errors.Is(err, ErrInvalid) {
@@ -83,6 +94,32 @@ func TestSquarePersistentSocialLifecycle(t *testing.T) {
 	if err != nil || len(following) != 1 || following[0] != aliceAddress {
 		t.Fatalf("following: %+v %v", following, err)
 	}
+	profile, err := service.Profile(aliceAddress)
+	if err != nil || profile.DisplayName != "Alice YNX" || profile.FollowerCount != 1 || profile.PostCount != 1 {
+		t.Fatalf("Alice profile view: %+v %v", profile, err)
+	}
+	notifications, err := service.Notifications(alice.device, 20, "")
+	if err != nil || len(notifications.Notifications) != 3 || notifications.UnreadCount != 3 {
+		t.Fatalf("Alice notifications: %+v %v", notifications, err)
+	}
+	if bobNotifications, err := service.Notifications(bob.device, 20, ""); err != nil || len(bobNotifications.Notifications) != 0 || bobNotifications.UnreadCount != 0 {
+		t.Fatalf("Bob notifications: %+v %v", bobNotifications, err)
+	}
+	notificationID := notifications.Notifications[0].ID
+	if _, err := service.ReadNotification(bob.device, notificationID, ReadNotificationRequest{IdempotencyKey: "read-notification-bob"}); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("another account marked notification read: %v", err)
+	}
+	read, err := service.ReadNotification(alice.device, notificationID, ReadNotificationRequest{IdempotencyKey: "read-notification-alice"})
+	if err != nil || read.Record.ReadAt == nil || read.Replayed {
+		t.Fatalf("read notification: %+v %v", read, err)
+	}
+	readReplay, err := service.ReadNotification(alice.device, notificationID, ReadNotificationRequest{IdempotencyKey: "read-notification-alice"})
+	if err != nil || !readReplay.Replayed || readReplay.Record.ReadAt == nil {
+		t.Fatalf("read notification replay: %+v %v", readReplay, err)
+	}
+	if _, err := service.ReadNotification(alice.device, notifications.Notifications[1].ID, ReadNotificationRequest{IdempotencyKey: "read-notification-alice"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed notification replay should conflict: %v", err)
+	}
 
 	report, err := service.CreateReport(bob.device, CreateReportRequest{IdempotencyKey: "report-first", TargetType: "post", TargetID: created.Record.ID, Category: "spam", Detail: "review requested", EvidenceHashes: []string{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}})
 	if err != nil || report.Record.Status != "pending_review" || report.Record.AppealRoute != "/trust/appeals" {
@@ -102,8 +139,16 @@ func TestSquarePersistentSocialLifecycle(t *testing.T) {
 	}
 	restarted := newTestService(t, statePath, func() time.Time { return now })
 	health := restarted.Health()
-	if health.PostCount != 2 || health.CommentCount != 1 || health.ActiveReactions != 1 || health.ActiveFollows != 1 || health.ReportCount != 1 || health.RemoteDeployed {
+	if health.PostCount != 2 || health.CommentCount != 1 || health.ActiveReactions != 1 || health.ActiveFollows != 1 || health.ReportCount != 1 || health.ProfileCount != 1 || health.NotificationCount != 3 || health.RemoteDeployed {
 		t.Fatalf("restarted health: %+v", health)
+	}
+	restartedProfile, err := restarted.Profile(aliceAddress)
+	if err != nil || restartedProfile.DisplayName != "Alice YNX" || restartedProfile.FollowerCount != 1 {
+		t.Fatalf("restarted profile: %+v %v", restartedProfile, err)
+	}
+	restartedNotifications, err := restarted.Notifications(alice.device, 20, "")
+	if err != nil || len(restartedNotifications.Notifications) != 3 || restartedNotifications.UnreadCount != 2 {
+		t.Fatalf("restarted notifications: %+v %v", restartedNotifications, err)
 	}
 
 	data, err := os.ReadFile(statePath)
@@ -135,6 +180,45 @@ func TestEmptyFeedSerializesAsArray(t *testing.T) {
 	}
 }
 
+func TestEmptyNotificationsSerializeAsArray(t *testing.T) {
+	service := newTestService(t, filepath.Join(t.TempDir(), "state.json"), time.Now)
+	alice := registerTestDevice(t, service, aliceAddress, "alice-empty", "register-alice-empty", 0x24)
+	feed, err := service.Notifications(alice.device, 20, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(feed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(encoded) != `{"notifications":[],"unreadCount":0}` {
+		t.Fatalf("empty notification JSON %s", encoded)
+	}
+}
+
+func TestLoadsLegacyV1StateWithoutNewSocialMaps(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy-state.json")
+	state := newState()
+	state.Profiles = nil
+	state.Notifications = nil
+	hash, err := legacyStateIntegrity(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := legacyPersistentStateV1{SchemaVersion: state.SchemaVersion, Devices: state.Devices, Posts: state.Posts, Comments: state.Comments, Reactions: state.Reactions, Follows: state.Follows, Reports: state.Reports, Idempotency: state.Idempotency, Audit: state.Audit, IntegrityHash: hash}
+	data, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	service := newTestService(t, path, time.Now)
+	if service.state.Profiles == nil || service.state.Notifications == nil || service.Health().ProfileCount != 0 || service.Health().NotificationCount != 0 {
+		t.Fatalf("legacy state was not normalized: %+v", service.Health())
+	}
+}
+
 func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	now := time.Date(2026, 7, 14, 16, 0, 0, 0, time.UTC)
 	service := newTestService(t, filepath.Join(t.TempDir(), "state.json"), func() time.Time { return now })
@@ -144,9 +228,12 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	bobKeys := generateKeys(t, 0x32)
 	registerHTTPDevice(t, server.URL, registrationRequest(aliceAddress, "alice-http", "register-alice-http", aliceKeys))
 	registerHTTPDevice(t, server.URL, registrationRequest(bobAddress, "bob-http", "register-bob-http", bobKeys))
+	profileBody := mustJSON(t, SetProfileRequest{IdempotencyKey: "http-profile", DisplayName: "Alice HTTP", Bio: "Signed profile"})
+	response := signedHTTP(t, server.URL, http.MethodPost, "/square/profiles", profileBody, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
+	assertStatus(t, response, http.StatusCreated)
 
 	postBody := mustJSON(t, CreatePostRequest{IdempotencyKey: "http-post", Content: "Live Square HTTP post", Tags: []string{"ynx"}})
-	response := signedHTTP(t, server.URL, http.MethodPost, "/square/posts", postBody, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
+	response = signedHTTP(t, server.URL, http.MethodPost, "/square/posts", postBody, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
 	if response.StatusCode != http.StatusCreated {
 		t.Fatalf("post status %d: %s", response.StatusCode, readAll(response.Body))
 	}
@@ -172,7 +259,7 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	decodeJSON(t, response.Body, &reportResult)
 	response.Body.Close()
 
-	for _, path := range []string{"/square/feed?limit=20", "/square/posts/" + postResult.Record.ID, "/square/posts/" + postResult.Record.ID + "/comments", "/square/profiles/" + bobAddress + "/following"} {
+	for _, path := range []string{"/square/feed?limit=20", "/square/posts/" + postResult.Record.ID, "/square/posts/" + postResult.Record.ID + "/comments", "/square/profiles/" + aliceAddress, "/square/profiles/" + bobAddress + "/following"} {
 		request, _ := http.NewRequest(http.MethodGet, server.URL+path, nil)
 		request.Header.Set("X-YNX-Square-Key", squareAPIKey)
 		response, err := http.DefaultClient.Do(request)
@@ -183,6 +270,22 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	}
 	response = signedHTTP(t, server.URL, http.MethodGet, "/square/reports/"+reportResult.Record.ID, nil, "bob-http", bobKeys.SigningPrivate, now, squareAPIKey)
 	assertStatus(t, response, http.StatusOK)
+	response = signedHTTP(t, server.URL, http.MethodGet, "/square/notifications?limit=20", nil, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("notification list status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	var notificationFeed NotificationFeed
+	decodeJSON(t, response.Body, &notificationFeed)
+	response.Body.Close()
+	if len(notificationFeed.Notifications) != 3 || notificationFeed.UnreadCount != 3 {
+		t.Fatalf("HTTP notifications: %+v", notificationFeed)
+	}
+	readBody := mustJSON(t, ReadNotificationRequest{IdempotencyKey: "http-notification-read"})
+	readPath := "/square/notifications/" + notificationFeed.Notifications[0].ID + "/read"
+	response = signedHTTP(t, server.URL, http.MethodPost, readPath, readBody, "bob-http", bobKeys.SigningPrivate, now, squareAPIKey)
+	assertStatus(t, response, http.StatusUnauthorized)
+	response = signedHTTP(t, server.URL, http.MethodPost, readPath, readBody, "alice-http", aliceKeys.SigningPrivate, now, squareAPIKey)
+	assertStatus(t, response, http.StatusCreated)
 
 	response = signedHTTP(t, server.URL, http.MethodPost, "/square/posts", postBody, "alice-http", aliceKeys.SigningPrivate, now.Add(-10*time.Minute), squareAPIKey)
 	assertStatus(t, response, http.StatusUnauthorized)
@@ -196,7 +299,7 @@ func TestSquareHTTPRoutesAndSignedMutations(t *testing.T) {
 	var health Health
 	decodeJSON(t, healthResponse.Body, &health)
 	healthResponse.Body.Close()
-	if !health.OK || health.NativeIdentity != "ynx1" || health.TruthfulStatus != "local-bounded-square-core-not-remote-deployed" || health.PostCount != 1 {
+	if !health.OK || health.NativeIdentity != "ynx1" || health.TruthfulStatus != "local-bounded-square-core-not-remote-deployed" || health.PostCount != 1 || health.ProfileCount != 1 || health.NotificationCount != 3 {
 		t.Fatalf("health: %+v", health)
 	}
 }

@@ -71,6 +71,33 @@ type Follow struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+type Profile struct {
+	Account     string    `json:"account"`
+	DisplayName string    `json:"displayName"`
+	Bio         string    `json:"bio"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type ProfileView struct {
+	Profile
+	FollowerCount  int `json:"followerCount"`
+	FollowingCount int `json:"followingCount"`
+	PostCount      int `json:"postCount"`
+}
+
+type Notification struct {
+	ID         string     `json:"id"`
+	Recipient  string     `json:"recipient"`
+	Actor      string     `json:"actor"`
+	Kind       string     `json:"kind"`
+	TargetType string     `json:"targetType"`
+	TargetID   string     `json:"targetId"`
+	PostID     string     `json:"postId,omitempty"`
+	ReadAt     *time.Time `json:"readAt,omitempty"`
+	CreatedAt  time.Time  `json:"createdAt"`
+}
+
 type Report struct {
 	ID             string    `json:"id"`
 	Reporter       string    `json:"reporter"`
@@ -116,6 +143,16 @@ type SetFollowRequest struct {
 	Active         bool   `json:"active"`
 }
 
+type SetProfileRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+	DisplayName    string `json:"displayName"`
+	Bio            string `json:"bio"`
+}
+
+type ReadNotificationRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+}
+
 type CreateReportRequest struct {
 	IdempotencyKey string   `json:"idempotencyKey"`
 	TargetType     string   `json:"targetType"`
@@ -135,21 +172,29 @@ type Feed struct {
 	NextCursor string `json:"nextCursor,omitempty"`
 }
 
+type NotificationFeed struct {
+	Notifications []Notification `json:"notifications"`
+	NextCursor    string         `json:"nextCursor,omitempty"`
+	UnreadCount   int            `json:"unreadCount"`
+}
+
 type Health struct {
-	OK              bool           `json:"ok"`
-	Service         string         `json:"service"`
-	Persistence     string         `json:"persistence"`
-	StateIntegrity  string         `json:"stateIntegrity"`
-	NativeIdentity  string         `json:"nativeIdentity"`
-	RemoteDeployed  bool           `json:"remoteDeployed"`
-	PostCount       int            `json:"postCount"`
-	CommentCount    int            `json:"commentCount"`
-	ActiveReactions int            `json:"activeReactions"`
-	ActiveFollows   int            `json:"activeFollows"`
-	ReportCount     int            `json:"reportCount"`
-	RateLimit       string         `json:"rateLimit"`
-	TruthfulStatus  string         `json:"truthfulStatus"`
-	Build           buildinfo.Info `json:"build"`
+	OK                bool           `json:"ok"`
+	Service           string         `json:"service"`
+	Persistence       string         `json:"persistence"`
+	StateIntegrity    string         `json:"stateIntegrity"`
+	NativeIdentity    string         `json:"nativeIdentity"`
+	RemoteDeployed    bool           `json:"remoteDeployed"`
+	PostCount         int            `json:"postCount"`
+	CommentCount      int            `json:"commentCount"`
+	ActiveReactions   int            `json:"activeReactions"`
+	ActiveFollows     int            `json:"activeFollows"`
+	ReportCount       int            `json:"reportCount"`
+	ProfileCount      int            `json:"profileCount"`
+	NotificationCount int            `json:"notificationCount"`
+	RateLimit         string         `json:"rateLimit"`
+	TruthfulStatus    string         `json:"truthfulStatus"`
+	Build             buildinfo.Info `json:"build"`
 }
 
 type AuditEvent struct {
@@ -178,6 +223,8 @@ type persistentState struct {
 	Reactions     map[string]Reaction          `json:"reactions"`
 	Follows       map[string]Follow            `json:"follows"`
 	Reports       map[string]Report            `json:"reports"`
+	Profiles      map[string]Profile           `json:"profiles"`
+	Notifications map[string]Notification      `json:"notifications"`
 	Idempotency   map[string]idempotencyRecord `json:"idempotency"`
 	Audit         []AuditEvent                 `json:"audit"`
 	IntegrityHash string                       `json:"integrityHash"`

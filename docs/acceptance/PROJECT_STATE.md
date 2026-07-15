@@ -1,5 +1,12 @@
 # Project State
 
+## 2026-07-15 Persistent Social profiles and private alerts
+
+- Square now persists bounded `ynx1...` profiles and member-scoped notifications in the same atomic mode-`0600` state as posts, comments, reactions, follows, reports, idempotency records, and the hash-chained audit. Existing schema-v1 state files are verified against their original field layout before in-memory normalization; a migration regression test prevents a legitimate pre-profile remote state from being rejected on upgrade.
+- Signed profile update and public profile/count read handlers are implemented. Comments, newly active reactions, and newly active follows create recipient notifications atomically with the source mutation. Private notification pagination, unread counts, recipient-only access, exact-idempotent read acknowledgement, restart recovery, cross-account denial, malformed-input rejection, health counters, and Prometheus metrics are tested.
+- App Gateway now distinguishes public profile reads from ownership-session-protected profile updates and notification routes. The native client strictly parses and signs profile/notification responses and exact query strings. One Social product now exposes Feed, Messages, and Alerts while the four-item bottom bar remains Social, Wallet, Pay, and Network. Alerts provides locked/private state, unread rows, read acknowledgement, and a native profile editor.
+- `make square-api-check`, `make app-gateway-check`, strict TypeScript, 53 mobile tests, and Android/iOS Hermes exports pass locally. At this checkpoint the public profile route still returns `404` because the exact Square/Gateway release has not yet been deployed; no installed mutation, public profile/notification record, iOS/real-device proof, production package, or independent proof is claimed.
+
 ## 2026-07-15 Native Social product foundation
 
 - The native information architecture no longer exposes Square and Chat as separate bottom-level service buttons. One `Social` product now contains native `Feed` and `Messages` routes; Wallet, Pay, and Network remain separate complete workflows. This implements the portfolio boundary in `docs/ecosystem/PRODUCT_ARCHITECTURE.md` without adding fake Bank, Shop, Browser, IDE, or other placeholder windows.

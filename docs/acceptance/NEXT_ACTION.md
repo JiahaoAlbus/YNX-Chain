@@ -2,13 +2,13 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: complete the next bounded native Social lifecycle by adding persistent profile/notification state and verifying the installed comment, reaction, follow, report, feed, and Messages workflow against real disposable records. Keep one Social product and do not turn backend services into bottom-tab items.
+Current single action: deploy the now locally verified persistent profile/notification release, then verify the installed comment, reaction, follow, report, feed, profile, alert, and Messages workflow against disposable records. Keep one Social product and do not turn backend services into bottom-tab items.
 
 Why this is next:
 
 - Installed Android proof now covers a real multi-device Chat message, two-recipient decryption/read state, reload, biometric device rotation, revoked/active directory state, reconnect, and a post-rotation message.
 - Square's existing comment, reaction, follow, and report APIs are now wired into a strict native client and post-detail window, and Feed/Chat now share one Social destination. The public feed was empty during installed verification, so no installed real-record mutation proof exists yet.
-- Contacts, persistent notifications, richer profiles, moments-style publishing, moderation outcomes, and Trust/appeal completion remain absent.
+- Persistent bounded profiles and private notifications now pass local persistence, restart, access, idempotency, Gateway, native-client, and Hermes checks. Exact remote deployment and installed real-record execution remain absent; contacts, moments-style publishing, moderation outcomes, and Trust/appeal completion also remain absent.
 - The current App has already reached five tabs. Adding AI, IDE, Shop, Bank, Browser, Bridge, Trust, and every other service as peers would produce shallow screens and prevent complete workflows.
 - `docs/ecosystem/PRODUCT_ARCHITECTURE.md` defines the product boundary: YNX App owns high-frequency consumer identity/social/wallet/Pay; Explorer, Developer Suite, Browser, and merchant operations are separate applications; backend services receive windows only after a real workflow exists.
 
@@ -24,9 +24,9 @@ Required implementation:
 
 - Reuse the existing persistent signed Square comment, reaction, follow, and report APIs; do not duplicate their domain state or handlers.
 - Preserve the strict native client request/response types, parsers, signatures, authorization-failure handling, and tests now implemented for the exact Square Gateway routes.
-- Add the missing member-scoped profile and notification records needed by the Social workflow, with persistence, access control, restart integrity, read/acknowledgement APIs, and tests before exposing them.
+- Preserve the completed member-scoped profile and notification records, legacy-state migration, access control, restart integrity, read acknowledgement, and strict parsers while producing exact deployment and installed evidence.
 - Connect reports and moderation outcomes to the existing Trust appeal/transparency boundary; rejection and appeal state must remain visible and auditable.
-- Extend the existing App-native Social route from Feed/Messages to profiles/follows and notifications with native nested navigation. Keep the four-item bottom bar stable and do not copy the Web layout.
+- Preserve the completed Feed/Messages/Alerts Social route and native profile editor. Keep the four-item bottom bar stable and do not copy the Web layout.
 - Preserve `ynx1...` as the visible identity default and YNXT as the only native coin/resource asset.
 - Keep Pay/tips disabled until an exact recipient-bound consumer payment and receipt workflow is connected to the social action.
 - Add API documentation only after matching handlers, persistence, tests, and smoke targets exist.

@@ -114,6 +114,7 @@ func TestGatewayRoutesQueryAndSignedInternalPath(t *testing.T) {
 	paths := []struct{ method, public, internal string }{
 		{http.MethodGet, "/app/square/feed?limit=10&cursor=abc", "/square/feed?limit=10&cursor=abc"},
 		{http.MethodGet, "/app/square/posts/post-1/comments", "/square/posts/post-1/comments"},
+		{http.MethodGet, "/app/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", "/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"},
 		{http.MethodGet, "/app/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following", "/square/profiles/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/following"},
 	}
 	for _, item := range paths {
@@ -196,6 +197,31 @@ func TestGatewayRejectsOriginsRoutesHeadersAndBounds(t *testing.T) {
 	}
 	if len(square.snapshot()) != 0 {
 		t.Fatalf("rejected request reached upstream: %+v", square.snapshot())
+	}
+}
+
+func TestSquareProfileAndNotificationRoutePolicy(t *testing.T) {
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	for _, route := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/square/profiles"},
+		{http.MethodGet, "/square/notifications"},
+		{http.MethodPost, "/square/notifications/notification_1/read"},
+	} {
+		if !protectedRouteAllowed("square", route.method, route.path) {
+			t.Fatalf("protected Square route rejected: %s %s", route.method, route.path)
+		}
+		if publicRouteAllowed("square", route.method, route.path) {
+			t.Fatalf("private Square route became public: %s %s", route.method, route.path)
+		}
+	}
+	if !publicRouteAllowed("square", http.MethodGet, "/square/profiles/"+account) {
+		t.Fatal("public Square profile read rejected")
+	}
+	if protectedRouteAllowed("square", http.MethodGet, "/square/notifications/../read") {
+		t.Fatal("unsafe notification segment accepted")
 	}
 }
 

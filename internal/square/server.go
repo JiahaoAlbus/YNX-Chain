@@ -51,7 +51,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 		remote = 1
 	}
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-	fmt.Fprintf(w, "ynx_square_posts %d\nynx_square_comments %d\nynx_square_active_reactions %d\nynx_square_active_follows %d\nynx_square_reports %d\nynx_square_remote_deployed %d\n", health.PostCount, health.CommentCount, health.ActiveReactions, health.ActiveFollows, health.ReportCount, remote)
+	fmt.Fprintf(w, "ynx_square_posts %d\nynx_square_comments %d\nynx_square_active_reactions %d\nynx_square_active_follows %d\nynx_square_reports %d\nynx_square_profiles %d\nynx_square_notifications %d\nynx_square_remote_deployed %d\n", health.PostCount, health.CommentCount, health.ActiveReactions, health.ActiveFollows, health.ReportCount, health.ProfileCount, health.NotificationCount, remote)
 }
 
 func (s *Server) square(w http.ResponseWriter, r *http.Request) {
@@ -139,6 +139,36 @@ func (s *Server) square(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeResult(w, result.Replayed, result)
+	case len(parts) == 2 && parts[0] == "square" && parts[1] == "profiles" && r.Method == http.MethodPost:
+		var request SetProfileRequest
+		if !decodeOrError(w, body, &request) {
+			return
+		}
+		result, err := s.service.SetProfile(actor, request)
+		if err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		writeResult(w, result.Replayed, result)
+	case len(parts) == 2 && parts[0] == "square" && parts[1] == "notifications" && r.Method == http.MethodGet:
+		limit, err := strconv.Atoi(defaultValue(r.URL.Query().Get("limit"), "20"))
+		if err != nil {
+			writeServiceError(w, ErrInvalid)
+			return
+		}
+		record, err := s.service.Notifications(actor, limit, r.URL.Query().Get("cursor"))
+		writeRecord(w, record, err)
+	case len(parts) == 4 && parts[0] == "square" && parts[1] == "notifications" && parts[3] == "read" && r.Method == http.MethodPost:
+		var request ReadNotificationRequest
+		if !decodeOrError(w, body, &request) {
+			return
+		}
+		result, err := s.service.ReadNotification(actor, parts[2], request)
+		if err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		writeResult(w, result.Replayed, result)
 	case len(parts) == 2 && parts[0] == "square" && parts[1] == "reports" && r.Method == http.MethodPost:
 		var request CreateReportRequest
 		if !decodeOrError(w, body, &request) {
@@ -180,6 +210,10 @@ func (s *Server) handleRead(w http.ResponseWriter, r *http.Request, parts []stri
 	case len(parts) == 4 && parts[0] == "square" && parts[1] == "profiles" && parts[3] == "following" && r.Method == http.MethodGet:
 		record, err := s.service.Following(parts[2])
 		writeRecord(w, map[string]any{"following": record}, err)
+		return true
+	case len(parts) == 3 && parts[0] == "square" && parts[1] == "profiles" && r.Method == http.MethodGet:
+		record, err := s.service.Profile(parts[2])
+		writeRecord(w, record, err)
 		return true
 	default:
 		return false

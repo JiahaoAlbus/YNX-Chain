@@ -324,6 +324,7 @@ func (s *Service) CreateComment(actor Device, postID string, req CreateCommentRe
 	s.state.Posts[postID] = post
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "comment_create", Digest: digest, ObjectID: id}
 	s.appendAuditLocked("comment_created", "comment", id, actor.Account, digest, now)
+	s.appendNotificationLocked(post.Author, actor.Account, "comment", "comment", id, postID, digest, now)
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return Result[Comment]{}, err
 	}
@@ -377,6 +378,9 @@ func (s *Service) SetReaction(actor Device, postID string, req SetReactionReques
 	s.state.Reactions[key] = reaction
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "reaction_set", Digest: digest, ObjectID: key}
 	s.appendAuditLocked("reaction_set", "post", postID, actor.Account, digest, now)
+	if !prior.Active && reaction.Active {
+		s.appendNotificationLocked(post.Author, actor.Account, "reaction_"+reaction.Kind, "post", postID, postID, digest, now)
+	}
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return Result[Reaction]{}, err
 	}
@@ -402,12 +406,16 @@ func (s *Service) SetFollow(actor Device, req SetFollowRequest) (Result[Follow],
 		return Result[Follow]{Record: s.state.Follows[previous.ObjectID], Replayed: true}, nil
 	}
 	key := actor.Account + "|" + target
+	prior := s.state.Follows[key]
 	now := s.cfg.Now().UTC()
 	follow := Follow{Follower: actor.Account, Following: target, Active: req.Active, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.Follows[key] = follow
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "follow_set", Digest: digest, ObjectID: key}
 	s.appendAuditLocked("follow_set", "account", target, actor.Account, digest, now)
+	if !prior.Active && follow.Active {
+		s.appendNotificationLocked(target, actor.Account, "follow", "account", actor.Account, "", digest, now)
+	}
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return Result[Follow]{}, err
 	}
@@ -429,6 +437,162 @@ func (s *Service) Following(account string) ([]string, error) {
 	}
 	sort.Strings(result)
 	return result, nil
+}
+
+func (s *Service) SetProfile(actor Device, req SetProfileRequest) (Result[Profile], error) {
+	req.DisplayName = strings.TrimSpace(req.DisplayName)
+	req.Bio = strings.TrimSpace(req.Bio)
+	if !identifierPattern.MatchString(req.IdempotencyKey) || len(req.DisplayName) == 0 || len(req.DisplayName) > 64 || len(req.Bio) > 280 {
+		return Result[Profile]{}, ErrInvalid
+	}
+	digest := objectDigest(struct {
+		Account string
+		Request SetProfileRequest
+	}{actor.Account, req})
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if previous, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if previous.Action != "profile_set" || previous.Digest != digest {
+			return Result[Profile]{}, ErrConflict
+		}
+		return Result[Profile]{Record: s.state.Profiles[previous.ObjectID], Replayed: true}, nil
+	}
+	now := s.cfg.Now().UTC()
+	profile := s.state.Profiles[actor.Account]
+	if profile.Account == "" {
+		profile.Account = actor.Account
+		profile.CreatedAt = now
+	}
+	profile.DisplayName = req.DisplayName
+	profile.Bio = req.Bio
+	profile.UpdatedAt = now
+	before := cloneState(s.state)
+	s.state.Profiles[actor.Account] = profile
+	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "profile_set", Digest: digest, ObjectID: actor.Account}
+	s.appendAuditLocked("profile_set", "account", actor.Account, actor.Account, digest, now)
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return Result[Profile]{}, err
+	}
+	return Result[Profile]{Record: profile}, nil
+}
+
+func (s *Service) Profile(account string) (ProfileView, error) {
+	normalized, err := nativewallet.NormalizeNativeAddress(account)
+	if err != nil {
+		return ProfileView{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	profile := s.state.Profiles[normalized]
+	if profile.Account == "" {
+		profile.Account = normalized
+	}
+	view := ProfileView{Profile: profile}
+	for _, follow := range s.state.Follows {
+		if !follow.Active {
+			continue
+		}
+		if follow.Following == normalized {
+			view.FollowerCount++
+		}
+		if follow.Follower == normalized {
+			view.FollowingCount++
+		}
+	}
+	for _, post := range s.state.Posts {
+		if post.Status == "active" && post.Author == normalized {
+			view.PostCount++
+		}
+	}
+	return view, nil
+}
+
+func (s *Service) Notifications(actor Device, limit int, cursor string) (NotificationFeed, error) {
+	if limit == 0 {
+		limit = 20
+	}
+	if limit < 1 || limit > 100 {
+		return NotificationFeed{}, ErrInvalid
+	}
+	s.mu.Lock()
+	records := make([]Notification, 0, len(s.state.Notifications))
+	unread := 0
+	for _, notification := range s.state.Notifications {
+		if notification.Recipient != actor.Account {
+			continue
+		}
+		records = append(records, notification)
+		if notification.ReadAt == nil {
+			unread++
+		}
+	}
+	s.mu.Unlock()
+	sort.Slice(records, func(i, j int) bool {
+		if records[i].CreatedAt.Equal(records[j].CreatedAt) {
+			return records[i].ID > records[j].ID
+		}
+		return records[i].CreatedAt.After(records[j].CreatedAt)
+	})
+	start := 0
+	if cursor != "" {
+		start = -1
+		for index, notification := range records {
+			if notification.ID == cursor {
+				start = index + 1
+				break
+			}
+		}
+		if start < 0 {
+			return NotificationFeed{}, fmt.Errorf("%w: cursor", ErrInvalid)
+		}
+	}
+	end := start + limit
+	if end > len(records) {
+		end = len(records)
+	}
+	feed := NotificationFeed{Notifications: append([]Notification{}, records[start:end]...), UnreadCount: unread}
+	if end < len(records) && end > start {
+		feed.NextCursor = records[end-1].ID
+	}
+	return feed, nil
+}
+
+func (s *Service) ReadNotification(actor Device, id string, req ReadNotificationRequest) (Result[Notification], error) {
+	if !identifierPattern.MatchString(req.IdempotencyKey) {
+		return Result[Notification]{}, ErrInvalid
+	}
+	digest := objectDigest(struct {
+		NotificationID string
+		Account        string
+		Request        ReadNotificationRequest
+	}{id, actor.Account, req})
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	notification, ok := s.state.Notifications[id]
+	if !ok {
+		return Result[Notification]{}, ErrNotFound
+	}
+	if notification.Recipient != actor.Account {
+		return Result[Notification]{}, ErrUnauthorized
+	}
+	if previous, ok := s.state.Idempotency[req.IdempotencyKey]; ok {
+		if previous.Action != "notification_read" || previous.Digest != digest || previous.ObjectID != id {
+			return Result[Notification]{}, ErrConflict
+		}
+		return Result[Notification]{Record: notification, Replayed: true}, nil
+	}
+	now := s.cfg.Now().UTC()
+	before := cloneState(s.state)
+	if notification.ReadAt == nil {
+		notification.ReadAt = &now
+		s.state.Notifications[id] = notification
+	}
+	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "notification_read", Digest: digest, ObjectID: id}
+	s.appendAuditLocked("notification_read", "notification", id, actor.Account, digest, now)
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return Result[Notification]{}, err
+	}
+	return Result[Notification]{Record: notification}, nil
 }
 
 func (s *Service) CreateReport(actor Device, req CreateReportRequest) (Result[Report], error) {
@@ -533,7 +697,25 @@ func (s *Service) Health() Health {
 	if s.cfg.RemoteDeployed {
 		status = "remote-bounded-square-core-no-public-ingress-claim"
 	}
-	return Health{OK: true, Service: "ynx-squared", Persistence: "atomic-json-mode-0600", StateIntegrity: "sha256-and-hash-chained-audit", NativeIdentity: "ynx1", RemoteDeployed: s.cfg.RemoteDeployed, PostCount: len(s.state.Posts), CommentCount: comments, ActiveReactions: reactions, ActiveFollows: follows, ReportCount: len(s.state.Reports), RateLimit: fmt.Sprintf("%d per %s per device/ip", s.cfg.RateLimitMax, s.cfg.RateLimitWindow), TruthfulStatus: status}
+	return Health{OK: true, Service: "ynx-squared", Persistence: "atomic-json-mode-0600", StateIntegrity: "sha256-and-hash-chained-audit", NativeIdentity: "ynx1", RemoteDeployed: s.cfg.RemoteDeployed, PostCount: len(s.state.Posts), CommentCount: comments, ActiveReactions: reactions, ActiveFollows: follows, ReportCount: len(s.state.Reports), ProfileCount: len(s.state.Profiles), NotificationCount: len(s.state.Notifications), RateLimit: fmt.Sprintf("%d per %s per device/ip", s.cfg.RateLimitMax, s.cfg.RateLimitWindow), TruthfulStatus: status}
+}
+
+func (s *Service) appendNotificationLocked(recipient, actor, kind, targetType, targetID, postID, sourceDigest string, at time.Time) {
+	if recipient == actor {
+		return
+	}
+	digest := objectDigest(struct {
+		Recipient    string
+		Actor        string
+		Kind         string
+		TargetType   string
+		TargetID     string
+		PostID       string
+		SourceDigest string
+	}{recipient, actor, kind, targetType, targetID, postID, sourceDigest})
+	id := "notification_" + digest[:24]
+	s.state.Notifications[id] = Notification{ID: id, Recipient: recipient, Actor: actor, Kind: kind, TargetType: targetType, TargetID: targetID, PostID: postID, CreatedAt: at}
+	s.appendAuditLocked("notification_created", "notification", id, actor, digest, at)
 }
 
 func (s *Service) appendAuditLocked(eventType, objectType, objectID, actor, payloadHash string, at time.Time) {

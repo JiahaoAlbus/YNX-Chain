@@ -86,4 +86,4 @@ status="$(curl -sS -H 'Origin: https://www.ynxweb4.com' -H 'X-YNX-Square-Key: at
 go run ./scripts/verify/app-gateway-session-smoke.go -url http://127.0.0.1:17437 -origin https://www.ynxweb4.com -signed-post
 [[ "$(stat -f '%Lp' "$tmp/app-gateway/state.json" 2>/dev/null || stat -c '%a' "$tmp/app-gateway/state.json")" == "600" ]] || { echo "App Gateway state mode is not 0600"; exit 1; }
 
-echo "app-gateway-check passed: ynx1 ownership proof, browser/native binding separation, persistent hashed sessions, replay/revocation controls, protected Chat/Square/Pay routes, public Square/Pay reads, exact origins, CORS, bounds, and direct-service denial"
+echo "app-gateway-check passed: ynx1 ownership proof, browser/native binding separation, persistent hashed sessions, replay/revocation controls, protected Chat/Square profile/notification/Pay routes, public Square profile/feed and Pay reads, exact origins, CORS, bounds, and direct-service denial"

@@ -142,7 +142,38 @@ test("rejects malformed Square social actions before signing", async () => {
   await assert.rejects(client.setSquareReaction("post_1", "clap" as "like", true, "reaction-native-1"), /reaction kind is invalid/);
   await assert.rejects(client.setSquareFollow(client.account, true, "follow-native-1"), /local account/);
   await assert.rejects(client.createSquareReport({ targetType: "post", targetId: "post_1", category: "x", detail: "", idempotencyKey: "report-native-1" }), /category is invalid/);
+  await assert.rejects(client.setSquareProfile("", "bio", "profile-native-1"), /display name/);
+  await assert.rejects(client.listSquareNotifications(101), /notification limit/);
+  await assert.rejects(client.readSquareNotification("../escape", "notification-read-1"), /notification ID is invalid/);
   assert.deepEqual(purposes, ["ownership-proof"]);
+  client.lock();
+});
+
+test("signs profile and private notification lifecycle with exact query binding", async () => {
+  const requests: Array<{ uri: string; init?: RequestInit }> = [];
+  const account = accountIdentity(accountSecret).account;
+  const actor = "ynx1llllllllllllllllllllllllllllllllyj698f";
+  const deviceId = deviceIdentifier(deviceSecret);
+  const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
+  const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
+  const notification = { id: "notification_social_1", recipient: account, actor, kind: "comment", targetType: "comment", targetId: "comment_social_1", postId: "post_social_1", createdAt: "2026-07-15T00:00:00Z" };
+  const fetchImpl = async (input: string, init?: RequestInit): Promise<Response> => {
+    const url = new URL(input);
+    requests.push({ uri: `${url.pathname}${url.search}`, init });
+    if (url.pathname === "/app/session/challenges") return jsonResponse(201, { challengeId: "social-profile", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
+    if (url.pathname.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "p".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+    if (url.pathname === "/app/square/profiles") return jsonResponse(201, { replayed: false, record: { account, displayName: "Alice", bio: "YNX native profile", createdAt: "2026-07-15T00:00:00Z", updatedAt: "2026-07-15T00:00:00Z" } });
+    if (url.pathname === "/app/square/notifications") return jsonResponse(200, { notifications: [notification], unreadCount: 1 });
+    if (url.pathname.endsWith("/read")) return jsonResponse(201, { replayed: false, record: { ...notification, readAt: "2026-07-15T00:01:00Z" } });
+    return jsonResponse(201, { ok: true });
+  };
+  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:00:00Z"), authorize: permitLocalKeyUse });
+  await client.connect({ registerChat: false });
+  assert.equal((await client.setSquareProfile("Alice", "YNX native profile", "profile-native-1")).displayName, "Alice");
+  assert.equal((await client.listSquareNotifications(30)).unreadCount, 1);
+  assert.equal((await client.readSquareNotification(notification.id, "notification-read-1")).readAt, "2026-07-15T00:01:00Z");
+  assert.deepEqual(requests.slice(-3).map((request) => request.uri), ["/app/square/profiles", "/app/square/notifications?limit=30", `/app/square/notifications/${notification.id}/read`]);
+  for (const request of requests.slice(-3)) assert.match(String((request.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
   client.lock();
 });
 

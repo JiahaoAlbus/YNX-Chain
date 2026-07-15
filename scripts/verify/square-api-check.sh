@@ -35,13 +35,15 @@ for _ in {1..80}; do
 done
 
 health="$(curl -fsS "$url/health")" || { sed -n '1,120p' "$log" >&2; exit 1; }
-printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-squared"||d.nativeIdentity!=="ynx1"||d.persistence!=="atomic-json-mode-0600"||d.remoteDeployed!==false||d.truthfulStatus!=="local-bounded-square-core-not-remote-deployed")throw new Error(`bad square health ${JSON.stringify(d)}`)'
+printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-squared"||d.nativeIdentity!=="ynx1"||d.persistence!=="atomic-json-mode-0600"||d.profileCount!==0||d.notificationCount!==0||d.remoteDeployed!==false||d.truthfulStatus!=="local-bounded-square-core-not-remote-deployed")throw new Error(`bad square health ${JSON.stringify(d)}`)'
 status="$(curl -sS -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/square/feed")"
 [[ "$status" == 401 ]]
 metrics="$(curl -fsS "$url/metrics")"
 grep -Fq 'ynx_square_posts 0' <<<"$metrics"
+grep -Fq 'ynx_square_profiles 0' <<<"$metrics"
+grep -Fq 'ynx_square_notifications 0' <<<"$metrics"
 grep -Fq 'ynx_square_remote_deployed 0' <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "square-api-check passed: signed ynx1 authors, persistent feed/posts/comments/reactions/follows/reports, replay/access/rate bounds, restart/tamper checks, truthful health, and mode-0600 state"
+echo "square-api-check passed: signed ynx1 profiles, persistent feed/posts/comments/reactions/follows/member notifications/reports, private read acknowledgement, replay/access/rate bounds, restart/tamper checks, truthful health, and mode-0600 state"

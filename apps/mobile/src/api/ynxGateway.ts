@@ -1,5 +1,5 @@
 const GATEWAY_URL = "https://api.ynxweb4.com";
-import { parseSquareComments, type SquareComment } from "./square";
+import { parseSquareComments, parseSquareProfile, type SquareComment, type SquareProfile } from "./square";
 
 export type SquarePost = {
   id: string;
@@ -36,6 +36,11 @@ export async function fetchSquareFollowing(account: string, signal?: AbortSignal
   const value = await requestJSON(`${GATEWAY_URL}/app/square/profiles/${account}/following`, signal);
   if (!isPlainObject(value) || !Array.isArray(value.following) || value.following.some((item) => typeof item !== "string")) throw new Error("Square following returned an invalid payload");
   return value.following;
+}
+
+export async function fetchSquareProfile(account: string, signal?: AbortSignal): Promise<SquareProfile> {
+  if (!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(account)) throw new Error("Square profile account is invalid");
+  return parseSquareProfile(await requestJSON(`${GATEWAY_URL}/app/square/profiles/${account}`, signal));
 }
 
 export async function fetchGatewayHealth(signal?: AbortSignal): Promise<GatewayHealth> {
