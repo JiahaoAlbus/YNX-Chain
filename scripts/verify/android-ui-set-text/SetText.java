@@ -18,6 +18,9 @@ public final class SetText extends UiAutomatorTestCase {
             throw new IllegalArgumentException("descriptionBase64 and valueBase64 are required");
         }
         UiObject input = new UiObject(new UiSelector().description(description).className("android.widget.EditText"));
+        if (!input.waitForExists(1000)) {
+            input = new UiObject(new UiSelector().text(description).className("android.widget.EditText"));
+        }
         assertTrue("visible input not found: " + description, input.waitForExists(5000));
         input.click();
         assertTrue("visible input rejected text: " + description, input.setText(value));

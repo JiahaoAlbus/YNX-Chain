@@ -185,8 +185,16 @@ func (s *Service) RegisterDevice(req RegisterDeviceRequest) (Result[Device], err
 		}
 		return Result[Device]{Record: s.state.Devices[previous.ObjectID], Replayed: true}, nil
 	}
-	if _, exists := s.state.Devices[req.DeviceID]; exists {
-		return Result[Device]{}, fmt.Errorf("%w: device id already exists", ErrConflict)
+	if existing, exists := s.state.Devices[req.DeviceID]; exists {
+		if existing.Status != "active" || existing.Account != account || existing.SigningPublicKey != req.SigningPublicKey || existing.EncryptionPublicKey != req.EncryptionPublicKey {
+			return Result[Device]{}, fmt.Errorf("%w: device id already exists", ErrConflict)
+		}
+		before := cloneState(s.state)
+		s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "device_register", Digest: digest, ObjectID: existing.ID}
+		if err := s.saveOrRollbackLocked(before); err != nil {
+			return Result[Device]{}, err
+		}
+		return Result[Device]{Record: existing, Replayed: true}, nil
 	}
 	now := s.cfg.Now().UTC()
 	device := Device{ID: req.DeviceID, Account: account, SigningPublicKey: req.SigningPublicKey, EncryptionPublicKey: req.EncryptionPublicKey, Status: "active", CreatedAt: now, UpdatedAt: now}

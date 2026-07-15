@@ -335,6 +335,19 @@ func TestAuthorizedDeviceRotationAndRecoveryPersistence(t *testing.T) {
 	if statuses[alicePrimary.device.ID] != "revoked" || statuses[aliceBackup.device.ID] != "active" || statuses[request.NewDeviceID] != "active" {
 		t.Fatalf("rotation device statuses: %+v", statuses)
 	}
+	rotatedRegistration := registrationRequest(aliceAddress, request.NewDeviceID, "register-alice-recovered", newKeys)
+	registered, err := service.RegisterDevice(rotatedRegistration)
+	if err != nil || !registered.Replayed || registered.Record.ID != request.NewDeviceID || registered.Record.Status != "active" {
+		t.Fatalf("rotated device registration recovery: %+v %v", registered, err)
+	}
+	registeredAgain, err := service.RegisterDevice(rotatedRegistration)
+	if err != nil || !registeredAgain.Replayed || registeredAgain.Record.ID != request.NewDeviceID {
+		t.Fatalf("rotated device registration idempotency replay: %+v %v", registeredAgain, err)
+	}
+	revokedRegistration := registrationRequest(aliceAddress, alicePrimary.device.ID, "register-revoked-primary", alicePrimary.keys)
+	if _, err := service.RegisterDevice(revokedRegistration); !errors.Is(err, ErrConflict) {
+		t.Fatalf("revoked device re-registration should conflict: %v", err)
+	}
 	if _, err := service.AuthenticateDevice(alicePrimary.device.ID, http.MethodGet, "/chat/device-rotations", now.Format(time.RFC3339), nativewallet.Sign(alicePrimary.keys.SigningPrivate, RequestSignaturePayload(http.MethodGet, "/chat/device-rotations", now.Format(time.RFC3339), nil)), nil); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("replaced device authenticated after rotation: %v", err)
 	}
