@@ -14,7 +14,7 @@
     "android": {
       "package": "com.ynxweb4.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#002FA7",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": true

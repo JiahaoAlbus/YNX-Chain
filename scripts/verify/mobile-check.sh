@@ -19,9 +19,19 @@ assert.equal(pkg.dependencies["expo-secure-store"], "~57.0.0");
 assert.equal(pkg.dependencies["expo-screen-capture"], "57.0.0");
 assert.equal(pkg.dependencies["@noble/curves"], "2.2.0");
 assert.equal(pkg.dependencies["@noble/hashes"], "2.2.0");
+assert.equal(pkg.scripts.android, "expo run:android");
+assert.equal(pkg.scripts.ios, "expo run:ios");
 assert.equal(lock.packages["node_modules/@noble/curves"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/@noble/hashes"].version, "2.2.0");
 NODE
+
+for asset in assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png internal/explorer/assets/ynx-logo.png; do
+  test -s "$asset"
+done
+cmp -s assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png
+cmp -s assets/brand/ynx-logo.png internal/explorer/assets/ynx-logo.png
+rg -q 'require\("\./assets/ynx-logo\.png"\)' apps/mobile/App.tsx
+rg -q '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
 
 if rg -n 'AsyncStorage|localStorage|sessionStorage' apps/mobile --glob '!package-lock.json' --glob '!scripts/**'; then
   echo "mobile-check failed: account or session data must not use unprotected web/async storage" >&2

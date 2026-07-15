@@ -51,6 +51,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
@@ -66,6 +67,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
 	s.mux.HandleFunc("GET /api/fees/{hash}", s.handleFee)
 	s.mux.HandleFunc("GET /api/search", s.handleSearch)
+}
+
+func (s *Server) handleLogo(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=86400, immutable")
+	_, _ = w.Write(logoPNG)
 }
 
 type dashboardSnapshot struct {

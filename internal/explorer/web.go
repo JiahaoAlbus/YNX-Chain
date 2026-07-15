@@ -1,11 +1,17 @@
 package explorer
 
+import _ "embed"
+
+//go:embed assets/ynx-logo.png
+var logoPNG []byte
+
 const indexHTML = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
+  <link rel="icon" href="/assets/ynx-logo.png" type="image/png">
   <title>YNX Chain Explorer</title>
   <style>
     :root {
@@ -28,7 +34,7 @@ const indexHTML = `<!doctype html>
     .nav { position:sticky; top:0; z-index:20; height:54px; border-bottom:1px solid rgba(0,0,0,.08); background:rgba(250,250,252,.82); backdrop-filter:saturate(180%) blur(18px); -webkit-backdrop-filter:saturate(180%) blur(18px); }
     .nav-inner { height:100%; display:flex; align-items:center; gap:28px; }
     .brand { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:650; white-space:nowrap; }
-    .brand-mark { display:grid; place-items:center; width:26px; height:26px; border-radius:7px; color:#fff; background:linear-gradient(145deg,#1d1d1f,#505055); font-size:11px; font-weight:750; }
+    .brand-logo { display:block; width:44px; height:24px; object-fit:contain; }
     .nav-links { display:flex; align-items:center; gap:24px; margin-left:auto; color:#424245; font-size:13px; }
     .nav-links a:hover { color:var(--blue); }
     .network-pill { display:flex; align-items:center; gap:7px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.76); font-size:12px; color:#424245; }
@@ -236,7 +242,7 @@ const indexHTML = `<!doctype html>
 <body>
   <nav class="nav" aria-label="Primary navigation">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><span class="brand-mark">YNX</span><span>Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png" alt=""><span>Chain Explorer</span></a>
       <div class="nav-links">
         <a href="#network">Overview</a><a href="#live">Blockchain</a><a href="#intelligence">Validators</a><a href="#resourcesPanel">Resources</a>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>

@@ -4,6 +4,7 @@ import {
   Alert,
   AppState,
   FlatList,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -13,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { getRandomBytesAsync } from "expo-crypto";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import { allowScreenCaptureAsync, preventScreenCaptureAsync, usePreventScreenCapture } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
 import { Activity, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ const BLUE = "#002FA7";
 const INK = "#111827";
 const MUTED = "#667085";
 const LINE = "#E5E7EB";
+const RECOVERY_CAPTURE_KEY = "ynx-recovery-key";
 
 export default function App() {
   return (
@@ -84,8 +86,7 @@ function YNXApp() {
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <View style={styles.brandMark}><Text style={styles.brandMarkText}>Y</Text></View>
-        <Text style={styles.brand}>YNX</Text>
+        <Image source={require("./assets/ynx-logo.png")} resizeMode="contain" style={styles.brandLogo} accessibilityLabel="YNX" />
         <View style={styles.headerStatus}>
           <View style={styles.liveDot} />
           <Text style={styles.headerStatusText}>Testnet</Text>
@@ -307,12 +308,14 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
     setBusy(true);
     setError(null);
     try {
+      await preventScreenCaptureAsync(RECOVERY_CAPTURE_KEY);
       let accountSecret: Uint8Array;
       do accountSecret = await getRandomBytesAsync(32); while (!isValidAccountSecret(accountSecret));
       const deviceSecret = await getRandomBytesAsync(32);
       setPending(Object.freeze({ accountSecret, deviceSecret }));
       setMode("create");
     } catch (caught) {
+      await allowScreenCaptureAsync(RECOVERY_CAPTURE_KEY).catch(() => undefined);
       setError(errorMessage(caught));
     } finally {
       setBusy(false);
@@ -430,7 +433,7 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
 }
 
 function RecoveryPanel({ pending, confirmed, setConfirmed, busy, persist }: { pending: StoredIdentity; confirmed: boolean; setConfirmed: (value: boolean) => void; busy: boolean; persist: (value: StoredIdentity) => Promise<void> }) {
-  usePreventScreenCapture("ynx-recovery-key");
+  usePreventScreenCapture(RECOVERY_CAPTURE_KEY);
   return (
     <>
       <Text style={styles.modalText}>Store this key offline. YNX cannot recover it. Screen capture is blocked while this panel is open.</Text>
@@ -491,9 +494,7 @@ function errorMessage(error: unknown): string { return error instanceof Error ? 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
   header: { height: 58, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE },
-  brandMark: { width: 28, height: 28, backgroundColor: BLUE, alignItems: "center", justifyContent: "center", borderRadius: 7 },
-  brandMarkText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
-  brand: { marginLeft: 9, color: INK, fontSize: 18, fontWeight: "700" },
+  brandLogo: { width: 54, height: 29 },
   headerStatus: { marginLeft: "auto", flexDirection: "row", alignItems: "center", gap: 7 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#12B76A" },
   headerStatusText: { color: MUTED, fontSize: 12, fontWeight: "600" },

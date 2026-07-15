@@ -140,6 +140,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Live finalized block stream",
 		"id=\"blockTrack\"",
 		"No event for ",
+		"/assets/ynx-logo.png",
 		"YNX native address (default)",
 		"EVM compatibility address",
 		"tx.sponsor",
@@ -148,6 +149,18 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
+	}
+	logoResponse, err := http.Get(server.URL + "/assets/ynx-logo.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logoResponse.Body.Close()
+	logoBody, err := io.ReadAll(logoResponse.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if logoResponse.StatusCode != http.StatusOK || logoResponse.Header.Get("Content-Type") != "image/png" || len(logoBody) < 8 || string(logoBody[:8]) != "\x89PNG\r\n\x1a\n" {
+		t.Fatalf("explorer logo asset is invalid: status=%d content-type=%q size=%d", logoResponse.StatusCode, logoResponse.Header.Get("Content-Type"), len(logoBody))
 	}
 
 	summary, err := svc.Summary(context.Background())
