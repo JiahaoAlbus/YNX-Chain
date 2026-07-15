@@ -39,7 +39,7 @@ func NewUpstreams(explorerURL, payURL, payAPIKey, disputeBase string) (*Upstream
 }
 
 func (u *Upstreams) Portfolio(ctx context.Context, account string, classifications map[string]Classification) Portfolio {
-	portfolio := Portfolio{Account: account, Network: ChainID, Symbol: "YNXT", Activity: []Activity{}, PayReceipts: []PayReceipt{}, ReadOnly: true, AsOf: time.Now().UTC(), ExplorerStatus: SourceStatus{Source: u.ExplorerURL, Coverage: "account balance plus latest 200 indexed transactions filtered to the authorized account"}, PayStatus: SourceStatus{Source: u.PayURL, Coverage: "Pay events returned by the configured authorized Pay API, filtered to the authorized account"}}
+	portfolio := Portfolio{Account: account, Network: ChainID, Symbol: "YNXT", Activity: []Activity{}, PayReceipts: []PayReceipt{}, ReadOnly: true, AsOf: time.Now().UTC(), ExplorerStatus: SourceStatus{Source: u.ExplorerURL, Coverage: "account balance plus latest 100 indexed transactions filtered to the authorized account"}, PayStatus: SourceStatus{Source: u.PayURL, Coverage: "Pay events returned by the configured authorized Pay API, filtered to the authorized account"}}
 	var accountDetail struct {
 		Account chain.Account `json:"account"`
 	}
@@ -55,7 +55,7 @@ func (u *Upstreams) Portfolio(ctx context.Context, account string, classificatio
 		var txPayload struct {
 			Transactions []chain.Transaction `json:"transactions"`
 		}
-		if err := u.get(ctx, u.ExplorerURL+"/api/txs?limit=200", "", &txPayload); err != nil {
+		if err := u.get(ctx, u.ExplorerURL+"/api/txs?limit=100", "", &txPayload); err != nil {
 			portfolio.ExplorerStatus.Error = "account loaded but activity unavailable: " + err.Error()
 		} else {
 			for _, tx := range txPayload.Transactions {
