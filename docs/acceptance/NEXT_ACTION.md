@@ -2,55 +2,59 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: safely deploy and verify the current authoritative Pay consumer-settlement protocol and three-upstream App Gateway on the public testnet. Do not execute a public value transfer without separate explicit approval of the disposable payer, recipient, and amount.
+Current single action: build the first real App-native YNX Chat direct-message window over the existing remotely protected E2EE core. The mobile UI must use native navigation, lists, sheets, composer, keyboard behavior, delivery states, and lifecycle handling rather than website-style sections.
 
 Why this is next:
 
-- Payout-bound invoices, committed native-transfer verification, paid transition, persisted receipts/events, account-session payer binding, and the App-native Pay window now exist and pass local checks.
-- The public chain and App Gateway still run older releases. Local completion is not remote completion, and the App cannot use Pay publicly until exact binaries/configuration are deployed.
-- Deployment has a bounded existing path with backup, rollback, exact release identity, health checks, and public route verification. This closes more real product value than adding another local placeholder.
+- Pay consumer settlement, the native Pay window, four-role release `0d31850f74b2`, and three-upstream App Gateway are implemented and deployed. Public settlement remains intentionally unclaimed because no approved public transfer was executed.
+- Chat already has signed `ynx1...` devices, encrypted envelopes, persistent two-member conversations, delivery/read acknowledgements, revocation, replay/access/rate bounds, loopback deployment, and protected App Gateway routes.
+- The largest missing user-visible step is a real conversation workflow. Adding Bank, Shop, Bridge, groups, or decorative routes before direct messaging works would create placeholders rather than ecosystem capability.
 
 Files to touch:
 
-- Commit and push the exact tested source first.
-- Run the full local gates, including deployment dry-run and objective-state validation.
-- Revalidate the primary host, PEM mapping, current remote release, and rollback boundary from current deployment docs and live read-only evidence. Do not guess SSH targets.
-- Deploy through the existing guarded testnet workflow. Preserve authoritative Pay mode; do not cut over BFT or broaden bounded EVM/IDE.
-- Confirm `ynx-payd` on `127.0.0.1:6430`, App Gateway Pay loopback configuration, mode-`0600` env/state, service health, exact build identity, chain growth, and unchanged Chat/Square routes.
-- Verify bounded public `GET /app/pay/invoices/{id}` behavior only when a real existing payout-bound invoice is available. A `404` for an unknown fixture is acceptable route evidence; synthetic records are not.
-- Record any DNS/TLS/SSH/provider failure honestly. Do not claim public consumer settlement until an approved public transfer and receipt have actually completed.
+- `apps/mobile` for native conversation list, create/open flow, message timeline, composer, delivery/read indicators, loading/empty/error/offline states, and focused tests
+- `apps/mobile/src/api` for strict Chat route clients integrated with the existing account/device/session signer
+- `internal/appgateway` only if a real mobile Chat route or binding gap is found; do not weaken direct-service credential isolation
+- `docs/api/API_REFERENCE.md` only after real route behavior exists
+- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `docs/acceptance/PROJECT_STATE.md`, and this file after installed-app evidence
+
+Required implementation:
+
+- Reuse the existing SecureStore identity, exact `ynx-mobile-v1` ownership session, Ed25519 device registration, and lifecycle lock/revocation behavior.
+- Create or open only two-member direct conversations supported by the backend; do not label them groups.
+- Encrypt plaintext locally before upload and decrypt only on the device. Never persist or log plaintext server-side.
+- Show bounded conversation/message history, sender/time, sent/delivered/read state, retry-safe idempotency, explicit failed/unknown state, and visible empty/unavailable states.
+- Require strong biometric authorization where a new ownership session, device registration, recovery-key use, or protected signing boundary requires it. Do not prompt on every passive read.
+- Keep Square, Wallet, Pay, Network, capture protection, key custody, and no-unapproved-write behavior passing.
 
 Validation commands:
 
-- `go test ./...`
-- `make pay-api-check`
+- focused mobile Chat/API tests
+- `make chat-api-check`
 - `make app-account-ownership-check`
+- `make app-gateway-check`
 - `make mobile-check`
 - `make mobile-android-release-check`
+- installed Android Release navigation/rendering check on an emulator
+- `go test ./...`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
-- `GOMAXPROCS=2 make deploy-dry-run`
 - `GOMAXPROCS=2 make preflight`
 - `make objective-state-check`
-- guarded deploy/verify commands selected from the current operations runbook after host/key revalidation
 
 Completion standard:
 
-- Exact pushed code is installed with a recoverable backup and all affected services healthy.
-- Public App health reports Chat, Square, and Pay upstreams without exposing credentials.
-- Existing public chain, Explorer, Square, and Chat reads remain healthy and chain height continues advancing.
-- Remote state files truthfully distinguish deployed protocol from absent public payment proof.
-
-After this deployment:
-
-- Build the first real native Chat window over the existing protected direct-message core, including device/session lifecycle, conversation list, encrypted message send/read/delivery state, and visible unavailable/empty states.
-- Do not add fake Bank, Shop, Bridge, AI, IDE, or desktop routes. Each window must follow real backend capability and verification.
+- An installed native App can establish/reuse the account-bound device session, list real direct conversations, create/open a supported two-member conversation, encrypt and submit a message, read/decrypt persisted ciphertext, and display delivery/read state without exposing secrets or plaintext to the server.
+- Invalid identity, revoked device/session, replay, timeout, offline, decryption failure, and unknown submission states fail closed and remain visible.
+- Existing Wallet, Pay, Square, chain, App Gateway, and release checks remain green.
+- No public message is sent without explicit approval of the disposable accounts and content. Remote deployment/proof remains separate from local/installed completion.
 
 Explicitly not doing / truth boundaries:
 
-- Do not claim mainnet, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, public settlement, or independent proof without external evidence.
+- Do not add fake Bank, Shop, Bridge, AI, IDE, desktop, group, attachment, contact, or moderation screens.
+- Do not claim WeChat equivalence, mainnet, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, public settlement, or independent proof without evidence.
 - Do not expose Bridge as usable until external execution and custody/mint-burn authority exist.
 - Do not expand bounded EVM opcode, Counter sample, Hardhat artifact, or IDE work except to preserve passing tests.
 - Do not modify or replace the long-term goal file.
