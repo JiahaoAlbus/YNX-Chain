@@ -8,6 +8,8 @@
   baseline is an ancestor and the intervening commit only adds the parallel
   ecosystem delivery contracts used by this task.
 - Implementation commit: `3738356` (`feat: build YNX Mail and Calendar products`).
+- AI interaction follow-up: `7efc5b1` (bounded multi-message organization,
+  visible provider cancellation and action-specific review/apply behavior).
 - Final branch tip: use the commit reported by the product task.
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Mail Calendar`
 - Ownership changed: `apps/mail/**`, `apps/calendar/**`, `internal/mail/**`, and
@@ -117,13 +119,13 @@ repository-wide `artifacts/` ignore rule; rerun the browser-proof scripts to
 reproduce):
 
 - `apps/mail/tests/artifacts/mail-desktop.png` —
-  `30b388d0aceef339a82911e48fa577b2368903198f484b1cad01c66a01c29173`
+  `6e0988deb9076aaeeb45ddd62ec7566c2be5ccec0f6139e46783a861e2552007`
 - `apps/mail/tests/artifacts/mail-mobile.png` —
-  `677bb0fd21161b8017f8edac59166e522cc83ba1ceca878aa993594522608e7e`
+  `913c32930d74b502514d13eaf424100eba499de9c4c4f790366ebaf48a84273c`
 - `apps/calendar/tests/artifacts/calendar-desktop.png` —
-  `c87415f218f7655f47635253877f01de9706528f6a27f0d6f1e9cd6001a3684c`
+  `0263e3a7a21412a6c9555a1887d31f422abc66bbce9c26128ba44b6b2d3e1ab7`
 - `apps/calendar/tests/artifacts/calendar-mobile.png` —
-  `343eab77fcc9c1d1e7ddcebbf72e1e4a9a59f82c7ec8900a5507f9beb4c685c5`
+  `ca8efcb56e0307ad10fc61d66cb18924712c19ba55d1158e9269878436282b1a`
 
 The UI uses Klein blue `#002FA7` and white, with a reading/writing split for Mail
 and a conflict-aware time grid for Calendar. Static tests verify desktop/mobile
