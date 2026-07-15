@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+test('Docs protects autosave with version and conflict recovery',async()=>{const js=await readFile(new URL('../web/app.js',import.meta.url),'utf8');assert.match(js,/baseVersion/);assert.match(js,/status===409/);assert.match(js,/offline draft/i);assert.match(js,/nothing was overwritten/i)});
