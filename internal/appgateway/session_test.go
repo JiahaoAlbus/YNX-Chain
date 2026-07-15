@@ -82,7 +82,16 @@ func TestOwnershipSessionLifecyclePersistenceAndProtectedRoutes(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("protected chat status %d: %s", response.Code, response.Body.String())
 	}
-	if len(square.snapshot()) != 2 || len(chat.snapshot()) != 1 {
+	response = protectedRequest(t, server.URL, http.MethodGet, "/app/chat/conversations", nil, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("protected chat list status %d: %s", response.Code, response.Body.String())
+	}
+	response = protectedRequest(t, server.URL, http.MethodGet, "/app/chat/accounts/"+fixture.account+"/devices", nil, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("protected chat device directory status %d: %s", response.Code, response.Body.String())
+	}
+	chatRequests := chat.snapshot()
+	if len(square.snapshot()) != 2 || len(chatRequests) != 3 || chatRequests[1].URI != "/chat/conversations" || chatRequests[2].URI != "/chat/accounts/"+fixture.account+"/devices" {
 		t.Fatalf("protected upstream calls square=%+v chat=%+v", square.snapshot(), chat.snapshot())
 	}
 	response = protectedRequest(t, server.URL, http.MethodPost, "/app/pay/invoices/invoice-1/settle", map[string]any{"transactionHash": "0x" + strings.Repeat("a", 64), "idempotencyKey": "settle-primary"}, fixture.deviceID, session.Token, testOrigin)

@@ -257,13 +257,15 @@ func protectedRouteAllowed(service, method, path string) bool {
 		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
 			return method == "POST" && validSegment(parts[2])
 		case len(parts) == 2 && parts[1] == "conversations":
-			return method == "POST"
+			return method == "GET" || method == "POST"
 		case len(parts) == 3 && parts[1] == "conversations":
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "conversations" && parts[3] == "messages":
 			return (method == "GET" || method == "POST") && validSegment(parts[2])
 		case len(parts) == 6 && parts[1] == "conversations" && parts[3] == "messages":
 			return method == "POST" && validSegment(parts[2]) && validSegment(parts[4]) && (parts[5] == "delivered" || parts[5] == "read")
+		case len(parts) == 4 && parts[1] == "accounts" && parts[3] == "devices":
+			return method == "GET" && validSegment(parts[2])
 		}
 	case "square":
 		switch {
