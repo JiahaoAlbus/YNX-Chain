@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "YNX Wallet",
+    "slug": "ynx-wallet",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ynxwallet",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.wallet",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "YNX Wallet uses Face ID to unlock local account keys and approve exact requests.",
+        "CFBundleURLTypes": [{"CFBundleURLSchemes": ["ynxwallet"]}]
+      }
+    },
+    "android": {
+      "package": "com.ynxweb4.wallet",
+      "permissions": ["USE_BIOMETRIC"],
+      "intentFilters": [{
+        "action": "VIEW",
+        "autoVerify": false,
+        "data": [{"scheme": "ynxwallet", "host": "authorize"}],
+        "category": ["BROWSABLE", "DEFAULT"]
+      }]
+    },
+    "plugins": [
+      ["expo-secure-store", {"configureAndroidBackup": true}],
+      ["expo-local-authentication", {"faceIDPermission": "YNX Wallet uses Face ID to unlock keys and approve exact requests."}]
+    ],
+    "extra": {
+      "product": "wallet",
+      "nativeChainId": "ynx_6423-1",
+      "evmChainId": 6423,
+      "nativeAsset": "YNXT",
+      "internalAcceptanceShell": false
+    }
+  }
+}

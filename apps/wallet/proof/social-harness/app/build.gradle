@@ -1,0 +1,13 @@
+apply plugin: "com.android.application"
+
+android {
+  namespace "com.ynxweb4.social"
+  compileSdk 36
+  defaultConfig {
+    applicationId "com.ynxweb4.social"
+    minSdk 24
+    targetSdk 36
+    versionCode 1
+    versionName "wallet-auth-proof-1"
+  }
+}

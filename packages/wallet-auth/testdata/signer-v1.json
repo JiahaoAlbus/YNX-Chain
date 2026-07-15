@@ -1,0 +1,35 @@
+{
+  "request": {
+    "version": "1",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynxweb4.social",
+    "productDeviceKey": "IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+    "callback": "ynxsocial://wallet-auth/callback",
+    "scopes": ["account:read", "profile:link"],
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T11:59:00.000Z",
+    "expiresAt": "2026-07-15T12:04:00.000Z"
+  },
+  "requestDigest": "5997ab438ab75efee14821a97a7dca355a303c54364ae14b54926ee7ebcc0e07",
+  "approval": {
+    "version": "1",
+    "requestDigest": "5997ab438ab75efee14821a97a7dca355a303c54364ae14b54926ee7ebcc0e07",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynxweb4.social",
+    "productDeviceKey": "IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+    "callback": "ynxsocial://wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "grantedScopes": ["account:read", "profile:link"],
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:04:00.000Z",
+    "walletSignature": "c8f0612d92c304662bdee81c12b281457db2be75d753768da0b35cdb5455d72b792abe79133c28335e3bc9b7d3f7b5f24152817cef23bff861dc06da017759cc"
+  }
+}
