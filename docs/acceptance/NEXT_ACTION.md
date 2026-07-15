@@ -2,27 +2,27 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: deploy the exact multi-device Chat/App Gateway release with scoped rollback, prove the new routes without creating public conversation/message state, then obtain installed disposable multi-device execution evidence before expanding Chat features.
+Current single action: build and install the exact test-only native App, then prove one disposable multi-device Chat v2 lifecycle against the exact remote release before expanding Chat features.
 
 Why this is next:
 
-- Multi-device envelope fan-out, sender continuity, per-device acknowledgements, sender signatures, bounded rotation/recovery, Gateway routes, shared Go/mobile vectors, 43 mobile tests, and dual Hermes exports now pass locally.
-- Public Chat `f81f3b6cabe2` and Gateway `376c95793d66` still run the prior single-envelope protocol. Until exact binaries are deployed and health/routes are verified, v2 is not a remote capability.
-- Android installed proof currently covers navigation/rendering only. It does not prove two authenticated devices can exchange and reload one v2 message through the real deployed path.
+- Exact Chat/Gateway release `ynx-chain-c6a0e908e184` is remotely active with scoped rollback, preserved state/config modes, healthy dependencies, public exact-build health, fail-closed unauthenticated rotation routes, and signed empty conversation/device/rotation reads plus cleanup.
+- The native App, Go service, and Gateway agree on fixed multi-device envelope/signature vectors, but current installed Android evidence only proves navigation/rendering. No installed device has authenticated, sent, reloaded, acknowledged, or rotated a v2 message.
+- A real installed lifecycle is the smallest remaining proof that connects the native UI, SecureStore/biometric boundary, Gateway ownership session, remote ciphertext-only persistence, and per-device envelope behavior.
 
 Files to touch:
 
-- exact-release Chat and App Gateway binaries plus their preserved remote env/unit/state boundaries
-- scoped backup, health, route, and signed-session proof artifacts
-- `docs/acceptance/PROJECT_STATE.md`, `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, and this next-action record after real evidence exists
+- exact test-only Android package and emulator-only installed verification tooling
+- disposable account/device proof harness only where native UI automation cannot safely supply deterministic evidence
+- Chat/App Gateway read-only post-proof checks and acceptance documents after evidence exists
 
-Deployment and proof scope:
+Required implementation:
 
-- Commit the exact passing source and build `ynx-chatd` plus `ynx-app-gatewayd` with that release identity.
-- Preserve existing env files, service units, mode-`0600`/`0700` state, Square/Pay services, chain runtime, and public ingress.
-- Create recoverable scoped backups, validate both binaries against preserved env, restart only Chat and App Gateway, and poll loopback/public health for exact build identity.
-- Verify unauthenticated rotation/list routes fail closed and an operator-controlled signed session can perform empty conversation/device/rotation reads followed by device/session cleanup. Do not create a public conversation or message during deployment proof.
-- Build/install the exact test-only native package separately. A later disposable two-account/two-device message proof must verify sender continuity, per-device decrypt/read state, restart/reload, rotation, cleanup, and zero plaintext server persistence. It is operator proof, not independent or production proof.
+- Build the exact source-bound test-only Release package; keep owner production signing and store claims false.
+- Use two disposable `ynx1...` accounts and at least two active devices for one recipient plus sender continuity.
+- Through the installed native UI, authenticate with real emulator biometrics, create/open one direct conversation, send one v2 message, verify intended devices can authenticate/decrypt it after reload, and verify per-device acknowledgement state.
+- Exercise current-device rotation with system confirmation, strong biometrics, old/new proofs, SecureStore identity switch, re-unlock, and exact replay behavior.
+- Confirm Chat health still reports `plaintextStored=false`, exact release identity, and no unexpected active Gateway sessions. Revoke disposable devices/sessions. If immutable conversation/message proof state must remain, record its IDs and explicit retention reason rather than claiming deletion.
 
 Validation commands:
 
@@ -31,7 +31,8 @@ Validation commands:
 - `make app-account-ownership-check`
 - `make app-gateway-check`
 - `make mobile-check`
-- `make test`
+- `make mobile-android-release-check`
+- `ANDROID_SERIAL=<emulator> make mobile-android-release-installed-check`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
@@ -40,15 +41,14 @@ Validation commands:
 
 Completion standard:
 
-- Public and loopback health report the exact committed Chat/Gateway release with preserved state modes and healthy Square/Pay upstreams.
-- Rotation and rotation-list routes are present and fail closed without ownership/device authorization; signed empty reads and cleanup succeed without creating conversation/message state.
-- The exact test-only native package is separately buildable; installed authenticated multi-device execution remains the next proof until actually completed.
+- Exact installed package/source digest and emulator identity are recorded as disposable test evidence.
+- One installed v2 message is sender-signed, encrypted separately for all active devices, decrypted after reload on every intended proof device, acknowledged per device, and remains plaintext-invisible to the service.
+- Device rotation is proven through the native biometric/SecureStore flow with old-device rejection, new-device access, exact replay, and zero active sessions after cleanup.
+- No installed iOS/real-device, production signing, store acceptance, independent proof, or general availability is inferred.
 
 Explicitly not doing / truth boundaries:
 
-- Do not claim v2 remote support before exact release and route evidence.
-- Do not claim a public/installed message before the message exists, decrypts on every intended device, survives reload, and is cleaned up or explicitly retained as proof state.
-- Bounded recovery requires an active authorizing device. All-devices-lost recovery, social recovery, owner custody handover, hardware custody, groups, contacts, attachments, Pay/Trust/appeal integration, moderation, iOS/real devices, production signing, stores, audit, and independent proof remain incomplete.
+- Bounded recovery requires an active authorizing device. All-devices-lost recovery, social recovery, owner custody handover, and hardware custody remain incomplete.
 - Do not add fake Bank, Shop, Bridge, AI, IDE, desktop, group, attachment, contact, or moderation screens.
 - Do not claim WeChat equivalence, mainnet, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, public settlement, or independent proof without evidence.
 - Do not expand bounded EVM opcode, Counter sample, Hardhat artifact, or IDE work except to preserve passing tests.

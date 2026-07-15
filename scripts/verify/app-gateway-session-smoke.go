@@ -105,6 +105,12 @@ func run(baseURL, origin string, signedPost bool) error {
 	if err := signedServiceRead(baseURL, origin, session.Token, deviceID, "/app/chat/conversations", "/chat/conversations", deviceKeys.SigningPrivate, chat.RequestSignaturePayload, http.StatusOK); err != nil {
 		return err
 	}
+	if err := signedServiceRead(baseURL, origin, session.Token, deviceID, "/app/chat/accounts/"+account+"/devices", "/chat/accounts/"+account+"/devices", deviceKeys.SigningPrivate, chat.RequestSignaturePayload, http.StatusOK); err != nil {
+		return err
+	}
+	if err := signedServiceRead(baseURL, origin, session.Token, deviceID, "/app/chat/device-rotations", "/chat/device-rotations", deviceKeys.SigningPrivate, chat.RequestSignaturePayload, http.StatusOK); err != nil {
+		return err
+	}
 
 	if signedPost {
 		postBody, _ := json.Marshal(square.CreatePostRequest{IdempotencyKey: "post-" + suffix, Content: "YNX account ownership local verification"})
