@@ -3,9 +3,12 @@ package commerce
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
 type CreateStoreInput struct{ Name, Description, Policy, TrustURL, SettlementAccount, IdempotencyKey string }
@@ -28,8 +31,8 @@ type OrderInput struct {
 func (s *Store) CreateStore(actor string, in CreateStoreInput) (StoreProfile, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if strings.TrimSpace(in.Name) == "" || len(in.Name) > 100 {
-		return StoreProfile{}, errors.New("store name required")
+	if err := validateStoreFields(in.Name, in.Description, in.Policy, in.TrustURL, in.SettlementAccount); err != nil {
+		return StoreProfile{}, err
 	}
 	h, replay, err := s.idempotencyLocked(actor, "store.create", in.IdempotencyKey, in)
 	if err != nil {
@@ -101,7 +104,7 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 	if err := s.requireSellerLocked(in.StoreID, actor, "owner", "manager"); err != nil {
 		return Product{}, err
 	}
-	if in.Title == "" || len(in.Variants) == 0 {
+	if strings.TrimSpace(in.Title) == "" || len(in.Title) > 160 || len(in.Description) > 5000 || len(in.Category) > 80 || len(in.Variants) == 0 || len(in.Variants) > 50 {
 		return Product{}, errors.New("title and variants required")
 	}
 	for i := range in.Variants {
@@ -109,7 +112,7 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 		if v.ID == "" {
 			v.ID = newID("variant")
 		}
-		if v.Name == "" || v.SKU == "" || v.PriceYNXT <= 0 || v.Inventory < 0 {
+		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 {
 			return Product{}, errors.New("valid variant name, SKU, price and inventory required")
 		}
 		v.Reserved = 0
@@ -210,7 +213,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 	if len(in.Items) == 0 || len(in.Items) > 50 {
 		return Order{}, errors.New("one to fifty cart items required")
 	}
-	if in.Address.Recipient == "" || in.Address.Line1 == "" || in.Address.Country == "" {
+	if in.Address.Recipient == "" || in.Address.Line1 == "" || in.Address.Country == "" || len(in.Address.Recipient) > 120 || len(in.Address.Line1) > 240 || len(in.Address.City) > 120 || len(in.Address.Region) > 120 || len(in.Address.PostalCode) > 40 || len(in.Address.Country) > 80 {
 		return Order{}, errors.New("complete shipping address required")
 	}
 	h, replay, err := s.idempotencyLocked(actor, "order.create", in.IdempotencyKey, in)
@@ -367,36 +370,70 @@ func (s *Store) Orders(actor, role string) []Order {
 	return out
 }
 
-func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review) (Order, error) {
+func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (Order, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if shipment != nil && (len(shipment.Carrier) > 120 || len(shipment.TrackingNumber) > 200) {
+		return Order{}, errors.New("shipment fields exceed limits")
+	}
+	if res != nil && (len(res.Reason) > 1000 || len(res.Explanation) > 5000) {
+		return Order{}, errors.New("resolution fields exceed limits")
+	}
+	if review != nil && len(review.Body) > 5000 {
+		return Order{}, errors.New("review exceeds limits")
+	}
+	request := struct {
+		OrderID, Next string
+		Shipment      *Shipment
+		Resolution    *Resolution
+		Review        *Review
+	}{id, next, shipment, res, review}
+	requestDigest := ""
+	if len(idempotencyKeys) > 0 {
+		var replay bool
+		var err error
+		requestDigest, replay, err = s.idempotencyLocked(actor, "order.transition."+id, idempotencyKeys[0], request)
+		if err != nil {
+			return Order{}, err
+		}
+		if replay {
+			existing, ok := s.s.Orders[requestDigest]
+			if !ok {
+				return Order{}, ErrConflict
+			}
+			return existing, nil
+		}
+	}
 	o, ok := s.s.Orders[id]
 	if !ok {
 		return Order{}, ErrNotFound
 	}
 	buyer := role == "buyer" && o.Buyer == actor
-	seller := role == "seller"
-	if seller {
-		_, seller = s.s.SellerRoles[o.StoreID][actor]
+	sellerRole := ""
+	if role == "seller" {
+		sellerRole = s.s.SellerRoles[o.StoreID][actor]
 	}
+	canFulfill := sellerRole == "owner" || sellerRole == "manager" || sellerRole == "fulfillment"
+	canResolveReturn := sellerRole == "owner" || sellerRole == "manager" || sellerRole == "support"
+	canApproveRefund := sellerRole == "owner" || sellerRole == "manager"
 	allowed := false
 	switch next {
 	case "cancelled":
 		allowed = buyer && o.Status == "payment_pending"
 	case "shipped":
-		allowed = seller && o.Status == "paid" && shipment != nil && shipment.TrackingNumber != ""
+		allowed = canFulfill && o.Status == "paid" && shipment != nil && shipment.Carrier != "" && shipment.TrackingNumber != ""
 	case "delivered":
-		allowed = (buyer || seller) && o.Status == "shipped"
+		allowed = (buyer || canFulfill) && o.Status == "shipped"
 	case "return_requested":
 		allowed = buyer && (o.Status == "delivered" || o.Status == "reviewed") && res != nil
 	case "refund_requested":
-		allowed = buyer && (o.Status == "paid" || o.Status == "return_requested") && res != nil
+		allowed = buyer && (o.Status == "paid" || o.Status == "return_requested" || o.Status == "return_approved") && res != nil
 	case "disputed":
-		allowed = buyer && (o.Status == "paid" || o.Status == "shipped" || o.Status == "delivered" || o.Status == "return_requested" || o.Status == "refund_requested") && res != nil
+		allowed = buyer && (o.Status == "paid" || o.Status == "shipped" || o.Status == "delivered" || o.Status == "reviewed" || o.Status == "return_requested" || o.Status == "return_approved" || o.Status == "refund_requested") && res != nil
 	case "reviewed":
 		allowed = buyer && o.Status == "delivered" && review != nil && review.Rating >= 1 && review.Rating <= 5
 	case "return_approved", "return_rejected", "refund_approved", "refund_rejected":
-		allowed = seller && ((strings.HasPrefix(next, "return") && o.Status == "return_requested") || (strings.HasPrefix(next, "refund") && o.Status == "refund_requested"))
+		allowed = (strings.HasPrefix(next, "return") && canResolveReturn && o.Status == "return_requested") || (strings.HasPrefix(next, "refund") && canApproveRefund && o.Status == "refund_requested")
 	}
 	if !allowed {
 		return Order{}, ErrInvalidState
@@ -433,9 +470,28 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	o.Status = next
 	o.UpdatedAt = now
 	s.s.Orders[id] = o
+	if len(idempotencyKeys) > 0 {
+		s.recordIdempotencyLocked(actor, "order.transition."+id, idempotencyKeys[0], requestDigest, id)
+	}
 	s.auditLocked(actor, role, "order_transition", "order", id, next, "explicit authorized action")
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
 	return o, nil
+}
+
+func validateStoreFields(name, description, policy, trustURL, settlementAccount string) error {
+	if strings.TrimSpace(name) == "" || len(name) > 100 || len(description) > 3000 || len(policy) > 5000 || len(trustURL) > 500 {
+		return errors.New("store profile fields exceed limits or name is missing")
+	}
+	if trustURL != "" {
+		parsed, err := url.Parse(trustURL)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+			return errors.New("Trust evidence URL must be absolute HTTPS")
+		}
+	}
+	if settlementAccount != "" && !consensus.IsNativeAddress(settlementAccount) {
+		return errors.New("settlement account must be canonical ynx1 address")
+	}
+	return nil
 }

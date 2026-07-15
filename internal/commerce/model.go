@@ -14,6 +14,10 @@ type StoreProfile struct {
 	CreatedAt, UpdatedAt                                              time.Time
 }
 
+type PublicStore struct {
+	ID, Name, Description, Policy, TrustURL, Status string
+}
+
 type BuyerProfile struct {
 	Account, DisplayName string
 	Addresses            []Address

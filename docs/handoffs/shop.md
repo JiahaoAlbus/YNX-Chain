@@ -4,19 +4,19 @@
 
 - Branch: `codex/ecosystem-shop`
 - Baseline: `271197feb48fd362292fb2210887edf3109ce4f7`
-- Implementation commit: `8caa94ebb683396e8dd3a140e361b407ffb107fb`
-- Handoff commit: branch tip containing this document (use `git rev-parse codex/ecosystem-shop`)
+- Initial implementation commit: `8caa94ebb683396e8dd3a140e361b407ffb107fb`
+- Final implementation and handoff: branch tip containing this document (use `git rev-parse codex/ecosystem-shop`)
 - Owned paths: `apps/shop/**`, `apps/seller-console/**`, `internal/commerce/**`, this handoff
 
 ## Delivered architecture
 
 `internal/commerce` is a standalone commerce domain and HTTP service (`go run ./internal/commerce/cmd/shopd`). It persists one versioned JSON snapshot with mode `0600`, fsyncs a temporary file, and atomically renames it. All inventory reservations, order transitions, idempotency records, roles and audit records share a mutex-protected transaction boundary. Startup calls `Recover`, releasing expired unpaid reservations deterministically.
 
-The buyer surface under `apps/shop` covers Wallet sign-in, persistent profile/address APIs, search/category filters, product variants/live available quantity, persistent cart APIs, order review, inventory reservation, YNX Pay handoff, payment pending/confirmation, shipment/delivery, cancellation, review, return/refund request and dispute states, plus Trust links and explicit capability status.
+The buyer surface under `apps/shop` is an API-driven application rather than a navigation shell. It covers Wallet sign-in, persistent profile/address APIs, search/category/price/in-stock filters, product variants/live available quantity, persistent cart APIs, order review, inventory reservation, YNX Pay handoff, payment pending/confirmation, shipment/delivery, cancellation, review, return/refund request and dispute states, plus Trust links and explicit capability status.
 
-The separate seller surface under `apps/seller-console` covers Wallet-scoped onboarding, store profile/policy, catalog drafts, explicit publication, variants, concurrency-safe inventory, order/fulfillment transitions, seller-entered shipment updates, return/refund decisions, authoritative settlement records, owner/manager/fulfillment/support roles and audit history.
+The separate seller surface under `apps/seller-console` exposes working views for Wallet-scoped onboarding, store profile/policy, catalog drafts, explicit publication, variants, concurrency-safe inventory, order/fulfillment transitions, seller-entered shipment updates, return/refund decisions, authoritative settlement records, owner/manager/fulfillment/support roles and audit history. Fulfillment, support and refund decisions are permissioned separately; support cannot approve a refund transfer decision.
 
-The service API rejects unknown JSON fields, limits bodies, applies subject/action rate windows, uses 8-128 character idempotency keys, rejects replay with changed request hashes, checks buyer/seller ownership on every private record, and emits immutable audit events. Security headers include a same-origin CSP, no-sniff, no-referrer and no-store.
+The service API rejects unknown JSON fields, limits bodies and field lengths, applies global and subject/action rate windows, uses 8-128 character persistent idempotency keys (including HTTP state transitions), returns the original result for an exact replay, rejects replay with changed request hashes, checks buyer/seller ownership on every private record, and emits immutable audit events. Security headers include a same-origin CSP, no-sniff, no-referrer and no-store.
 
 ## Payment truth boundary
 
@@ -33,11 +33,12 @@ AI workflows are `catalog_creation`, `search_comparison`, `support_draft`, `fulf
 ## Verification evidence
 
 - `go test -race ./internal/commerce/...` — pass. Covers concurrent no-oversell reservation, persistence/restart recovery, exact Pay evidence, Wallet callback/scope/signature/replay, authorization/lifecycle and AI permission/provider/review boundaries.
+- `go test ./...` — pass. Includes a signed-session HTTP workflow test covering seller onboarding/roles/catalog/publication/inventory, buyer cart/order, Pay handoff and exact committed settlement, shipment/delivery/review/return/refund, role denial, settlements, idempotent replay and strict JSON validation.
 - `npm test && npm run build` in `apps/shop` — pass; build emitted ignored `dist/`.
 - `npm test && npm run build` in `apps/seller-console` — pass; build emitted ignored `dist/`.
-- Cold-start `ynx-shopd` plus both `npm run smoke` commands — pass for health, capabilities, catalog and both static product roots.
-- Browser verification — buyer desktop and 390x844 mobile; seller 390x844 mobile. Buyer and seller mobile document widths match their viewport with no horizontal overflow after the responsive fix.
-- `npm ci && npm run hardhat:build && npm run contracts:selectors && go test ./...` — pass. Hardhat artifacts and `node_modules` are ignored and not committed.
+- Cold-start `ynx-shopd` plus `npm run smoke -- --base-url http://127.0.0.1:18095` in both Web apps — pass for health, capabilities and catalog. Smoke also accepts `YNX_SHOP_URL`.
+- Browser verification — buyer and seller at 1440x1000 and 390x844; no console errors or horizontal overflow. Responsive viewport screenshots were reviewed visually.
+- `npm run hardhat:build && npm run contracts:selectors` — pass. The root package has no `npm test` script; app tests and Go tests are the applicable suites. Generated artifacts and `node_modules` are ignored and not committed.
 - `make no-placeholder-check` — pass.
 - `make secret-scan` — pass.
 - `make env-check` — pass.
@@ -48,6 +49,7 @@ Screenshot evidence:
 - `apps/shop/evidence/buyer-desktop.jpg`
 - `apps/shop/evidence/buyer-mobile.jpg`
 - `apps/seller-console/evidence/seller-mobile.jpg`
+- `apps/seller-console/evidence/seller-desktop.jpg`
 
 ## Exact integration requests
 
