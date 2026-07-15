@@ -19,8 +19,10 @@ assert.equal(pkg.dependencies.expo, "~57.0.4");
 assert.equal(pkg.dependencies["expo-secure-store"], "~57.0.0");
 assert.equal(pkg.dependencies["expo-screen-capture"], "57.0.0");
 assert.equal(pkg.dependencies["expo-local-authentication"], "~57.0.0");
+assert.equal(pkg.dependencies["expo-clipboard"], "57.0.0");
 assert.equal(pkg.dependencies["@noble/curves"], "2.2.0");
 assert.equal(pkg.dependencies["@noble/hashes"], "2.2.0");
+assert.equal(pkg.dependencies["react-native-qrcode-svg"], "6.3.21");
 assert.equal(pkg.scripts.android, "expo run:android");
 assert.equal(pkg.scripts.ios, "expo run:ios");
 assert.equal(app.expo.android.package, "com.ynxweb4.mobile");
@@ -32,6 +34,8 @@ assert.ok(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] =
 assert.equal(lock.packages["node_modules/@noble/curves"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/@noble/hashes"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/expo-local-authentication"].version, "57.0.0");
+assert.equal(lock.packages["node_modules/expo-clipboard"].version, "57.0.0");
+assert.equal(lock.packages["node_modules/react-native-qrcode-svg"].version, "6.3.21");
 NODE
 
 for asset in assets/brand/ynx-logo.png apps/mobile/assets/ynx-logo.png internal/explorer/assets/ynx-logo.png; do
@@ -45,6 +49,13 @@ rg -q '"backgroundColor": "#FFFFFF"' apps/mobile/app.json
 rg -q 'await this\.authorize\("ownership-proof"\)' apps/mobile/src/api/mobileSession.ts
 rg -q 'await this\.authorize\("signed-post"\)' apps/mobile/src/api/mobileSession.ts
 rg -q 'await authorizeLocalKeyUse\("identity-removal"\)' apps/mobile/App.tsx
+rg -q 'await authorizeLocalKeyUse\("native-transfer"\)' apps/mobile/src/components/NativeWalletDashboard.tsx
+rg -q 'Cross-chain.*Not active' apps/mobile/src/components/NativeWalletDashboard.tsx
+rg -q 'chainId=6423&asset=YNXT' apps/mobile/src/components/NativeWalletDashboard.tsx
+rg -q 'type WalletRoute = "assets" \| "activity" \| "account"' apps/mobile/src/components/NativeWalletDashboard.tsx
+rg -q 'YNX_NATIVE_TX_V1' apps/mobile/src/crypto/ynxSigner.ts
+rg -q 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
+test -s testdata/mobile-native-transfer-vector.json
 
 if rg -n 'AsyncStorage|localStorage|sessionStorage' apps/mobile --glob '!package-lock.json' --glob '!scripts/**'; then
   echo "mobile-check failed: account or session data must not use unprotected web/async storage" >&2

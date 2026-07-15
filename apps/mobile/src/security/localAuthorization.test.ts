@@ -46,6 +46,14 @@ test("accepts strong biometrics with an exact no-fallback prompt", async () => {
   });
 });
 
+test("uses an explicit no-fallback transfer prompt", async () => {
+  const adapter = fakeAdapter();
+  await authorizeLocalKeyUse("native-transfer", adapter);
+  assert.equal(adapter.calls.options?.promptMessage, "Authorize YNXT transfer");
+  assert.equal(adapter.calls.options?.disableDeviceFallback, true);
+  assert.equal(adapter.calls.options?.biometricsSecurityLevel, "strong");
+});
+
 type FakeOptions = {
   hasHardware?: boolean;
   enrolled?: boolean;

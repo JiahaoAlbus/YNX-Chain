@@ -5,7 +5,7 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { base64RawToBytes, bytesToBase64Raw } from "./encoding";
-import { accountIdentity, deviceIdentifier, deviceIdentity, exportAccountSecret, importAccountSecret, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration } from "./ynxSigner";
+import { accountIdentity, addressIdentity, createNativeTransferPreview, deviceIdentifier, deviceIdentity, exportAccountSecret, importAccountSecret, signNativeTransfer, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration } from "./ynxSigner";
 
 const accountSecret = Uint8Array.from({ length: 32 }, (_, index) => index === 31 ? 1 : 0);
 const deviceSecret = new Uint8Array(32).fill(0x41);
@@ -43,4 +43,59 @@ test("base64 codec round-trips without browser globals", () => {
     const value = Uint8Array.from({ length }, (_, index) => (index * 17 + length) & 255);
     assert.deepEqual(base64RawToBytes(bytesToBase64Raw(value)), value);
   }
+});
+
+test("normalizes checksummed ynx1 and EVM compatibility addresses", () => {
+  const expected = accountIdentity(accountSecret);
+  assert.deepEqual(addressIdentity(expected.account), { ynxAddress: expected.account, evmAddress: expected.evmAddress });
+  assert.deepEqual(addressIdentity(expected.evmAddress.toUpperCase().replace("0X", "0x")), { ynxAddress: expected.account, evmAddress: expected.evmAddress });
+  assert.throws(() => addressIdentity(expected.account.slice(0, -1) + "q"), /checksum/);
+  assert.throws(() => addressIdentity("ynx1qqqqqq"), /checksum/);
+  assert.throws(() => addressIdentity("0x1234"), /prefix|checksum|address/);
+});
+
+test("creates the canonical Go-compatible native YNXT transfer envelope", () => {
+  const recipient = "ynx1llllllllllllllllllllllllllllllllyj698f";
+  const preview = createNativeTransferPreview({ from: accountIdentity(accountSecret).account, to: recipient, amount: 25, nonce: 7, balance: 100 });
+  assert.deepEqual(preview, {
+    chainId: 6423,
+    from: { ynxAddress: accountIdentity(accountSecret).account, evmAddress: accountIdentity(accountSecret).evmAddress },
+    to: { ynxAddress: recipient, evmAddress: "0xffffffffffffffffffffffffffffffffffffffff" },
+    amount: 25,
+    fee: 1,
+    total: 26,
+    nonce: 7,
+  });
+  const signed = signNativeTransfer({ accountSecret, preview });
+  assert.equal(signed.payload, JSON.stringify(signed.transaction));
+  assert.equal(signed.transaction.version, 1);
+  assert.equal(signed.transaction.chainId, 6423);
+  assert.equal(signed.transaction.type, "transfer");
+  assert.equal(signed.transaction.from, accountIdentity(accountSecret).evmAddress);
+  assert.equal(signed.transaction.to, "0xffffffffffffffffffffffffffffffffffffffff");
+  assert.equal(signed.transaction.fee, 1);
+  assert.equal(signed.hash, "0x5bd5da6a2960e6afed4e39ec739e833894fba1f2921952f725c56cebdd89dc03");
+
+  const signDocument = {
+    domain: "YNX_NATIVE_TX_V1",
+    version: 1,
+    chainId: 6423,
+    type: "transfer",
+    from: signed.transaction.from,
+    to: signed.transaction.to,
+    amount: 25,
+    fee: 1,
+    nonce: 7,
+    publicKey: signed.transaction.publicKey,
+  };
+  assert.equal(secp256k1.verify(hexToBytes(signed.transaction.signature), sha256(utf8ToBytes(JSON.stringify(signDocument))), hexToBytes(signed.transaction.publicKey), { format: "der", lowS: true, prehash: false }), true);
+});
+
+test("rejects unsafe native transfer previews before signing", () => {
+  const identity = accountIdentity(accountSecret);
+  const recipient = "0x1111111111111111111111111111111111111111";
+  assert.throws(() => createNativeTransferPreview({ from: identity.account, to: identity.account, amount: 1, nonce: 1, balance: 10 }), /different/);
+  assert.throws(() => createNativeTransferPreview({ from: identity.account, to: recipient, amount: 10, nonce: 1, balance: 10 }), /Insufficient/);
+  assert.throws(() => createNativeTransferPreview({ from: identity.account, to: recipient, amount: 1.5, nonce: 1, balance: 10 }), /whole number/);
+  assert.throws(() => createNativeTransferPreview({ from: identity.account, to: recipient, amount: 1, nonce: 0, balance: 10 }), /nonce/);
 });

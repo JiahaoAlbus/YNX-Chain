@@ -6,6 +6,7 @@
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
     "expo": "~57.0.4",
+    "expo-clipboard": "57.0.0",
     "expo-crypto": "~57.0.0",
     "expo-local-authentication": "~57.0.0",
     "expo-screen-capture": "57.0.0",
@@ -14,6 +15,7 @@
     "lucide-react-native": "1.24.0",
     "react": "19.2.3",
     "react-native": "0.86.0",
+    "react-native-qrcode-svg": "6.3.21",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4"
   },

@@ -8,6 +8,7 @@ import type {
 export type LocalKeyPurpose =
   | "ownership-proof"
   | "signed-post"
+  | "native-transfer"
   | "device-revocation"
   | "recovery-key"
   | "identity-import"
@@ -38,6 +39,7 @@ export const BIOMETRIC_STRONG = 3 as SecurityLevel;
 const prompts: Record<LocalKeyPurpose, string> = {
   "ownership-proof": "Authorize YNX account connection",
   "signed-post": "Authorize signed YNX post",
+  "native-transfer": "Authorize YNXT transfer",
   "device-revocation": "Authorize YNX device revocation",
   "recovery-key": "Authorize recovery key access",
   "identity-import": "Authorize recovery key import",

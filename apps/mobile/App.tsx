@@ -23,6 +23,7 @@ import { YNXMobileAppClient } from "./src/api/mobileSession";
 import { accountIdentity, exportAccountSecret, importAccountSecret, isValidAccountSecret, zeroize, type YNXIdentity } from "./src/crypto/ynxSigner";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { deleteIdentity, loadIdentity, saveIdentity, secureStorageAvailable, type StoredIdentity } from "./src/storage/secureIdentity";
+import { NativeWalletDashboard } from "./src/components/NativeWalletDashboard";
 
 type Tab = "square" | "wallet" | "network";
 
@@ -98,6 +99,7 @@ function YNXApp() {
         {tab === "square" && <SquareScreen stored={stored} openWallet={() => setTab("wallet")} />}
         {tab === "wallet" && (
           <WalletScreen
+            stored={stored}
             identity={identity}
             loading={!storageReady}
             error={storageError}
@@ -288,7 +290,7 @@ function PostRow({ post }: { post: SquarePost }) {
   );
 }
 
-function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null }) {
+function WalletScreen(props: { stored: StoredIdentity | null; identity: YNXIdentity | null; loading: boolean; error: string | null; onSaved: (value: StoredIdentity) => void; onDeleted: () => void; onResetUnreadable: (() => Promise<void>) | null }) {
   const [mode, setMode] = useState<"closed" | "create" | "import">("closed");
   const [pending, setPending] = useState<StoredIdentity | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -399,9 +401,8 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
 
   if (props.loading) return <View style={styles.center}><ActivityIndicator color={BLUE} /></View>;
   return (
-    <View style={styles.screenPadded}>
-      <Text style={styles.eyebrow}>NATIVE IDENTITY</Text>
-      <Text style={styles.title}>Wallet</Text>
+    <View style={props.identity && props.stored ? styles.screen : styles.screenPadded}>
+      {!props.identity || !props.stored ? <><Text style={styles.eyebrow}>NATIVE IDENTITY</Text><Text style={styles.title}>Wallet</Text></> : null}
       {error && mode === "closed" ? <Text style={styles.inlineError}>{error}</Text> : null}
       {props.error ? (
         <View style={styles.recoveryErrorPanel}>
@@ -415,22 +416,8 @@ function WalletScreen(props: { identity: YNXIdentity | null; loading: boolean; e
             </>
           ) : null}
         </View>
-      ) : props.identity ? (
-        <View style={styles.walletBody}>
-          <Text style={styles.walletLabel}>YNX address</Text>
-          <Text selectable style={styles.address}>{props.identity.account}</Text>
-          <View style={styles.divider} />
-          <Text style={styles.walletLabel}>EVM compatibility address</Text>
-          <Text selectable style={styles.secondaryAddress}>{props.identity.evmAddress}</Text>
-          <Text style={styles.walletNote}>The ynx1 address is the default YNX identity. The 0x address is exposed only for EVM-compatible tooling.</Text>
-          <View style={styles.securityRow}>
-            <Fingerprint color={BLUE} size={21} />
-            <View style={styles.securityCopy}><Text style={styles.securityTitle}>Biometric authorization</Text><Text style={styles.securityText}>Required before account signatures, recovery-key actions, and local identity removal.</Text></View>
-          </View>
-          <Pressable disabled={busy} onPress={remove} style={({ pressed }) => [styles.destructiveButton, pressed && styles.pressed]}>
-            {busy ? <ActivityIndicator color="#B42318" /> : <><Trash2 color="#B42318" size={18} /><Text style={styles.destructiveText}>Remove from this device</Text></>}
-          </Pressable>
-        </View>
+      ) : props.identity && props.stored ? (
+        <NativeWalletDashboard stored={props.stored} identity={props.identity} removing={busy} onRemove={remove} />
       ) : (
         <View style={styles.onboarding}>
           <View style={styles.keyCircle}><KeyRound color={BLUE} size={30} strokeWidth={1.5} /></View>
