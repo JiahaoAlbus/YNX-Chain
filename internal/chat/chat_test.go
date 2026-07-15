@@ -2,7 +2,9 @@ package chat
 
 import (
 	"bytes"
+	"crypto/ecdh"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"io"
@@ -28,12 +30,45 @@ type testDevice struct {
 	keys   nativewallet.DeviceKeys
 }
 
+func TestMobileChatEncryptionVector(t *testing.T) {
+	aliceSecret := bytes.Repeat([]byte{0x41}, 32)
+	bobSecret := bytes.Repeat([]byte{0x42}, 32)
+	alicePrivate := sha256.Sum256(append([]byte("YNX_CHAT_ENCRYPTION_KEY_V1\n"), aliceSecret...))
+	bobPrivate := sha256.Sum256(append([]byte("YNX_CHAT_ENCRYPTION_KEY_V1\n"), bobSecret...))
+	aliceKey, err := ecdh.X25519().NewPrivateKey(alicePrivate[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	bobKey, err := ecdh.X25519().NewPrivateKey(bobPrivate[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := nativewallet.EncodePublicKey(aliceKey.PublicKey().Bytes()); got != "+QxS9u2JoARjv3sLy26eC2dI+7nOQz+RRPzqlFmovEI" {
+		t.Fatalf("mobile Alice encryption public key mismatch: %s", got)
+	}
+	if got := nativewallet.EncodePublicKey(bobKey.PublicKey().Bytes()); got != "6WVQ++QAF0ooHRrQW2ym8KVsNrD2IrkoQ7AC0jD9GWk" {
+		t.Fatalf("mobile Bob encryption public key mismatch: %s", got)
+	}
+	envelope := nativewallet.EncryptedEnvelope{
+		Algorithm:  "x25519-hkdf-sha256-xchacha20poly1305",
+		Nonce:      "MzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMz",
+		Ciphertext: "hWJma27C1qBVFMbUQK01kiRzNG9vThV16xvrGKVb8WD7DLI",
+	}
+	plaintext, err := nativewallet.Decrypt(bobPrivate[:], aliceKey.PublicKey().Bytes(), []byte("ynx-chat-v1|conv_mobile_vector|message_mobile_vector"), envelope)
+	if err != nil || string(plaintext) != "native chat message" {
+		t.Fatalf("decrypt mobile Chat vector: %q %v", plaintext, err)
+	}
+}
+
 func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(t.TempDir(), "chat", "state.json")
 	service := newTestService(t, statePath, func() time.Time { return now })
 	alice := registerTestDevice(t, service, aliceAddress, "alice-device", 0x11)
 	bob := registerTestDevice(t, service, bobAddress, "bob-device", 0x22)
+	if _, err := service.Devices(alice.device, bobAddress); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("device directory allowed before a shared conversation: %v", err)
+	}
 
 	replay := registrationRequest(aliceAddress, "alice-device", "register-alice", alice.keys)
 	replayed, err := service.RegisterDevice(replay)
@@ -60,6 +95,14 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	conversation := conversationResult.Record
+	conversations := service.Conversations(alice.device)
+	if len(conversations) != 1 || conversations[0].ID != conversation.ID {
+		t.Fatalf("conversation list: %+v", conversations)
+	}
+	devices, err := service.Devices(alice.device, bobAddress)
+	if err != nil || len(devices) != 1 || devices[0].ID != bob.device.ID || devices[0].Status != "active" {
+		t.Fatalf("active member devices: %+v %v", devices, err)
+	}
 	aad := []byte("ynx-chat-v1|" + conversation.ID + "|message-001")
 	envelope, err := nativewallet.Encrypt(alice.keys.EncryptionPrivate, bob.keys.EncryptionPublic, []byte("private square coordination"), aad, bytes.NewReader(bytes.Repeat([]byte{0x33}, 24)))
 	if err != nil {
@@ -112,6 +155,10 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	if _, err := restarted.RevokeDevice(alice.device, alice.device.ID); err != nil {
 		t.Fatal(err)
 	}
+	devices, err = restarted.Devices(bob.device, aliceAddress)
+	if err != nil || len(devices) != 1 || devices[0].Status != "revoked" {
+		t.Fatalf("revoked historical device directory: %+v %v", devices, err)
+	}
 	if _, err := restarted.AuthenticateDevice(alice.device.ID, http.MethodGet, "/chat/conversations/"+conversation.ID, now.Format(time.RFC3339), nativewallet.Sign(alice.keys.SigningPrivate, RequestSignaturePayload(http.MethodGet, "/chat/conversations/"+conversation.ID, now.Format(time.RFC3339), nil)), nil); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("revoked device authenticated: %v", err)
 	}
@@ -145,6 +192,33 @@ func TestChatHTTPAuthenticationAndRoutes(t *testing.T) {
 	}
 	var created Result[Conversation]
 	decodeJSON(t, response.Body, &created)
+
+	response = signedHTTP(t, server.URL, http.MethodGet, "/chat/conversations", nil, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("list conversations status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	var conversations struct {
+		Conversations []Conversation `json:"conversations"`
+	}
+	decodeJSON(t, response.Body, &conversations)
+	response.Body.Close()
+	if len(conversations.Conversations) != 1 || conversations.Conversations[0].ID != created.Record.ID {
+		t.Fatalf("unexpected conversation list: %+v", conversations)
+	}
+
+	devicePath := "/chat/accounts/" + bobAddress + "/devices"
+	response = signedHTTP(t, server.URL, http.MethodGet, devicePath, nil, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("member device directory status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	var devices struct {
+		Devices []Device `json:"devices"`
+	}
+	decodeJSON(t, response.Body, &devices)
+	response.Body.Close()
+	if len(devices.Devices) != 1 || devices.Devices[0].ID != "bob-http" || devices.Devices[0].EncryptionPublicKey == "" {
+		t.Fatalf("unexpected member device directory: %+v", devices)
+	}
 
 	envelope, err := nativewallet.Encrypt(aliceKeys.EncryptionPrivate, bobKeys.EncryptionPublic, []byte("hello"), []byte("http"), bytes.NewReader(bytes.Repeat([]byte{0x44}, 24)))
 	if err != nil {

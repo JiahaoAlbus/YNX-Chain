@@ -16,7 +16,7 @@ import {
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync, usePreventScreenCapture } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
-import { Activity, CreditCard, Fingerprint, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
+import { Activity, CreditCard, Fingerprint, KeyRound, LogOut, MessageCircle, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { fetchGatewayHealth, fetchSquareFeed, type GatewayHealth, type SquarePost } from "./src/api/ynxGateway";
 import { YNXMobileAppClient } from "./src/api/mobileSession";
@@ -25,8 +25,9 @@ import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { deleteIdentity, loadIdentity, saveIdentity, secureStorageAvailable, type StoredIdentity } from "./src/storage/secureIdentity";
 import { NativeWalletDashboard } from "./src/components/NativeWalletDashboard";
 import { NativePayScreen } from "./src/components/NativePayScreen";
+import { NativeChatScreen } from "./src/components/NativeChatScreen";
 
-type Tab = "square" | "wallet" | "pay" | "network";
+type Tab = "square" | "chat" | "wallet" | "pay" | "network";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -47,6 +48,7 @@ function YNXApp() {
   const [stored, setStored] = useState<StoredIdentity | null>(null);
   const [storageReady, setStorageReady] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [chatDetail, setChatDetail] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -88,16 +90,17 @@ function YNXApp() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
+      {!chatDetail && <View style={styles.header}>
         <Image source={require("./assets/ynx-logo.png")} resizeMode="contain" style={styles.brandLogo} accessibilityLabel="YNX" />
         <View style={styles.headerStatus}>
           <View style={styles.liveDot} />
           <Text style={styles.headerStatusText}>Testnet</Text>
         </View>
-      </View>
+      </View>}
 
       <View style={styles.content}>
         {tab === "square" && <SquareScreen stored={stored} openWallet={() => setTab("wallet")} />}
+        {tab === "chat" && <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} />}
         {tab === "wallet" && (
           <WalletScreen
             stored={stored}
@@ -113,12 +116,13 @@ function YNXApp() {
         {tab === "network" && <NetworkScreen />}
       </View>
 
-      <View style={styles.tabBar}>
+      {!chatDetail && <View style={styles.tabBar}>
         <TabButton active={tab === "square"} icon={Radio} label="Square" onPress={() => setTab("square")} />
+        <TabButton active={tab === "chat"} icon={MessageCircle} label="Chat" onPress={() => setTab("chat")} />
         <TabButton active={tab === "wallet"} icon={WalletCards} label="Wallet" onPress={() => setTab("wallet")} />
         <TabButton active={tab === "pay"} icon={CreditCard} label="Pay" onPress={() => setTab("pay")} />
         <TabButton active={tab === "network"} icon={Activity} label="Network" onPress={() => setTab("network")} />
-      </View>
+      </View>}
     </SafeAreaView>
   );
 }
@@ -183,7 +187,7 @@ function SquareScreen({ stored, openWallet }: { stored: StoredIdentity | null; o
     setSessionError(null);
     const next = new YNXMobileAppClient(stored);
     try {
-      await next.connect();
+      await next.connect({ registerChat: false });
       setClient(next);
     } catch (caught) {
       next.lock();

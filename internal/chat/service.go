@@ -330,6 +330,53 @@ func (s *Service) Conversation(actor Device, id string) (Conversation, error) {
 	return record, nil
 }
 
+func (s *Service) Conversations(actor Device) []Conversation {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	records := make([]Conversation, 0)
+	for _, record := range s.state.Conversations {
+		if contains(record.Members, actor.Account) {
+			records = append(records, record)
+		}
+	}
+	sort.Slice(records, func(i, j int) bool {
+		if records[i].UpdatedAt.Equal(records[j].UpdatedAt) {
+			return records[i].ID < records[j].ID
+		}
+		return records[i].UpdatedAt.After(records[j].UpdatedAt)
+	})
+	return records
+}
+
+func (s *Service) Devices(actor Device, account string) ([]Device, error) {
+	normalized, err := nativewallet.NormalizeNativeAddress(account)
+	if err != nil {
+		return nil, fmt.Errorf("%w: device directory account must be a ynx1 address", ErrInvalid)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if normalized != actor.Account {
+		shared := false
+		for _, conversation := range s.state.Conversations {
+			if contains(conversation.Members, actor.Account) && contains(conversation.Members, normalized) {
+				shared = true
+				break
+			}
+		}
+		if !shared {
+			return nil, ErrUnauthorized
+		}
+	}
+	records := make([]Device, 0)
+	for _, device := range s.state.Devices {
+		if device.Account == normalized {
+			records = append(records, device)
+		}
+	}
+	sort.Slice(records, func(i, j int) bool { return records[i].ID < records[j].ID })
+	return records, nil
+}
+
 func (s *Service) Messages(actor Device, id string) ([]Message, error) {
 	if _, err := s.Conversation(actor, id); err != nil {
 		return nil, err

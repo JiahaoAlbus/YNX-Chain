@@ -22,6 +22,7 @@ assert.equal(pkg.dependencies["expo-local-authentication"], "~57.0.0");
 assert.equal(pkg.dependencies["expo-clipboard"], "57.0.0");
 assert.equal(pkg.dependencies["@noble/curves"], "2.2.0");
 assert.equal(pkg.dependencies["@noble/hashes"], "2.2.0");
+assert.equal(pkg.dependencies["@noble/ciphers"], "2.2.0");
 assert.equal(pkg.dependencies["react-native-qrcode-svg"], "6.3.21");
 assert.equal(pkg.scripts.android, "expo run:android");
 assert.equal(pkg.scripts.ios, "expo run:ios");
@@ -33,6 +34,7 @@ assert.ok(app.expo.plugins.includes("./plugins/withYnxAndroidReleaseSigning"));
 assert.ok(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-local-authentication" && plugin[1]?.faceIDPermission === "Allow YNX to authorize local account key use."));
 assert.equal(lock.packages["node_modules/@noble/curves"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/@noble/hashes"].version, "2.2.0");
+assert.equal(lock.packages["node_modules/@noble/ciphers"].version, "2.2.0");
 assert.equal(lock.packages["node_modules/expo-local-authentication"].version, "57.0.0");
 assert.equal(lock.packages["node_modules/expo-clipboard"].version, "57.0.0");
 assert.equal(lock.packages["node_modules/react-native-qrcode-svg"].version, "6.3.21");
@@ -54,6 +56,8 @@ rg -q 'Cross-chain.*Not active' apps/mobile/src/components/NativeWalletDashboard
 rg -q 'chainId=6423&asset=YNXT' apps/mobile/src/components/NativeWalletDashboard.tsx
 rg -q 'type WalletRoute = "assets" \| "activity" \| "account"' apps/mobile/src/components/NativeWalletDashboard.tsx
 rg -q 'YNX_NATIVE_TX_V1' apps/mobile/src/crypto/ynxSigner.ts
+rg -q 'x25519-hkdf-sha256-xchacha20poly1305' apps/mobile/src/crypto/chatCrypto.ts
+rg -q 'type Tab = "square" \| "chat" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
 rg -q 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
 test -s testdata/mobile-native-transfer-vector.json
 

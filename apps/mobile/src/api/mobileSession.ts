@@ -1,6 +1,8 @@
-import { accountIdentity, deviceIdentifier, deviceIdentity, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration, zeroize } from "../crypto/ynxSigner";
+import { accountIdentity, addressIdentity, deviceIdentifier, deviceIdentity, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration, zeroize } from "../crypto/ynxSigner";
+import { chatDeviceRegistration, decryptChatMessage, encryptChatMessage, signChatRequest } from "../crypto/chatCrypto";
 import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
 import { parsePaySettlement, type PaySettlement } from "./pay";
+import { parseChatConversationResult, parseChatConversations, parseChatDevices, parseChatMessages, type ChatConversation, type ChatDevice, type ChatMessage, type DecryptedChatMessage } from "./chat";
 
 const CLIENT = "ynx-mobile-v1";
 const BINDING = "ynx-mobile://com.ynxweb4.mobile";
@@ -19,6 +21,8 @@ export class YNXMobileAppClient {
   private accountSecret: Uint8Array;
   private deviceSecret: Uint8Array;
   private session: Session | null = null;
+  private registeredSquare = false;
+  private registeredChat = false;
 
   constructor(input: { accountSecret: Uint8Array; deviceSecret: Uint8Array; baseURL?: string; fetchImpl?: FetchLike; now?: () => Date; timeoutMs?: number; authorize?: LocalKeyAuthorizer }) {
     if (input.accountSecret.length !== 32 || input.deviceSecret.length !== 32) throw new Error("YNX mobile client requires two 32-byte secrets");
@@ -41,7 +45,7 @@ export class YNXMobileAppClient {
     return false;
   }
 
-  async connect(options: { registerSquare?: boolean } = {}): Promise<void> {
+  async connect(options: { registerSquare?: boolean; registerChat?: boolean } = {}): Promise<void> {
     await this.authorize("ownership-proof");
     const device = deviceIdentity(this.deviceSecret);
     const challenge = await this.request("/app/session/challenges", {
@@ -65,10 +69,61 @@ export class YNXMobileAppClient {
         deviceSecret: this.deviceSecret,
         idempotencyKey: registrationKey(this.account, this.deviceId, device.deviceSigningPublicKey),
       }), this.sessionHeaders());
+      this.registeredSquare = true;
     } catch (error) {
       this.session = null;
       throw error;
     }
+    if (options.registerChat !== false) try {
+      const registration = chatDeviceRegistration({
+        account: this.account,
+        deviceId: this.deviceId,
+        deviceSecret: this.deviceSecret,
+        idempotencyKey: `chat-${registrationKey(this.account, this.deviceId, device.deviceSigningPublicKey)}`,
+      });
+      await this.request("/app/chat/devices", registration, this.sessionHeaders());
+      this.registeredChat = true;
+    } catch (error) {
+      this.session = null;
+      throw error;
+    }
+  }
+
+  async listChatConversations(): Promise<ChatConversation[]> {
+    return parseChatConversations(await this.signedChatRequest("GET", "/chat/conversations"));
+  }
+
+  async createChatConversation(peer: string, idempotencyKey: string): Promise<ChatConversation> {
+    if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
+    const peerAccount = addressIdentity(peer).ynxAddress;
+    if (peerAccount === this.account) throw new Error("Chat recipient must be a different YNX account");
+    return parseChatConversationResult(await this.signedChatRequest("POST", "/chat/conversations", { idempotencyKey, members: [this.account, peerAccount] }));
+  }
+
+  async listChatDevices(account: string): Promise<ChatDevice[]> {
+    const normalized = addressIdentity(account).ynxAddress;
+    return parseChatDevices(await this.signedChatRequest("GET", `/chat/accounts/${normalized}/devices`));
+  }
+
+  async listChatMessages(conversation: ChatConversation): Promise<DecryptedChatMessage[]> {
+    const peer = chatPeer(conversation, this.account);
+    const devices = await this.listChatDevices(peer);
+    const messages = parseChatMessages(await this.signedChatRequest("GET", `/chat/conversations/${conversation.id}/messages`));
+    return messages.map((message) => this.decryptMessage(message, devices));
+  }
+
+  async sendChatMessage(conversation: ChatConversation, plaintext: string, messageId: string, nonce: Uint8Array): Promise<void> {
+    const peer = chatPeer(conversation, this.account);
+    const devices = (await this.listChatDevices(peer)).filter((device) => device.status === "active");
+    if (devices.length !== 1) throw new Error(devices.length === 0 ? "Chat recipient has no active device" : "This Chat version requires the recipient to have exactly one active device");
+    const recipient = devices[0];
+    if (!recipient) throw new Error("Chat recipient has no active device");
+    const envelope = encryptChatMessage({ deviceSecret: this.deviceSecret, recipientPublicKey: recipient.encryptionPublicKey, conversationId: conversation.id, messageId, plaintext, nonce });
+    await this.signedChatRequest("POST", `/chat/conversations/${conversation.id}/messages`, { messageId, ...envelope });
+  }
+
+  async acknowledgeChatMessage(conversationId: string, messageId: string, state: "delivered" | "read"): Promise<void> {
+    await this.signedChatRequest("POST", `/chat/conversations/${conversationId}/messages/${messageId}/${state}`);
   }
 
   async settlePayInvoice(invoiceID: string, transactionHash: string, idempotencyKey: string): Promise<PaySettlement> {
@@ -98,12 +153,17 @@ export class YNXMobileAppClient {
     try {
       if (revokeDevice && this.connected) {
         await this.authorize("device-revocation");
+        const failures: unknown[] = [];
         const timestamp = this.now().toISOString();
-        await this.request(`/app/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, "", {
-          ...this.sessionHeaders(),
-          "X-YNX-Timestamp": timestamp,
-          "X-YNX-Device-Signature": signSquareRequest({ method: "POST", requestUri: `/square/devices/${this.deviceId}/revoke`, timestamp, body: "", deviceSecret: this.deviceSecret }),
-        }, true);
+        if (this.registeredSquare) try {
+          await this.request(`/app/square/devices/${encodeURIComponent(this.deviceId)}/revoke`, "", {
+            ...this.sessionHeaders(),
+            "X-YNX-Timestamp": timestamp,
+            "X-YNX-Device-Signature": signSquareRequest({ method: "POST", requestUri: `/square/devices/${this.deviceId}/revoke`, timestamp, body: "", deviceSecret: this.deviceSecret }),
+          }, true);
+        } catch (error) { failures.push(error); }
+        if (this.registeredChat) try { await this.signedChatRequest("POST", `/chat/devices/${this.deviceId}/revoke`); } catch (error) { failures.push(error); }
+        if (failures.length > 0) throw failures[0];
       }
     } finally {
       try {
@@ -131,14 +191,36 @@ export class YNXMobileAppClient {
     return { "X-YNX-App-Session": this.session.token, "X-YNX-Device-ID": this.deviceId };
   }
 
-  private async request(path: string, value?: unknown, headers: Record<string, string> = {}, serialized = false): Promise<unknown> {
+  private async signedChatRequest(method: "GET" | "POST", requestUri: string, value?: unknown): Promise<unknown> {
+    if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
+    const body = value === undefined ? "" : JSON.stringify(value);
+    const timestamp = this.now().toISOString();
+    return this.request(`/app${requestUri}`, method === "GET" ? undefined : body, {
+      ...this.sessionHeaders(),
+      "X-YNX-Timestamp": timestamp,
+      "X-YNX-Device-Signature": signChatRequest({ method, requestUri, timestamp, body, deviceSecret: this.deviceSecret }),
+    }, true, method);
+  }
+
+  private decryptMessage(message: ChatMessage, peerDevices: ChatDevice[]): DecryptedChatMessage {
+    const candidates = message.sender === this.account ? peerDevices : peerDevices.filter((device) => device.id === message.senderDeviceId);
+    for (const device of candidates) {
+      try {
+        const plaintext = decryptChatMessage({ deviceSecret: this.deviceSecret, peerPublicKey: device.encryptionPublicKey, conversationId: message.conversationId, messageId: message.id, envelope: message });
+        return Object.freeze({ ...message, plaintext, decryptionError: null });
+      } catch { /* Try the historical peer device used for this envelope. */ }
+    }
+    return Object.freeze({ ...message, plaintext: null, decryptionError: "Message could not be authenticated on this device" });
+  }
+
+  private async request(path: string, value?: unknown, headers: Record<string, string> = {}, serialized = false, method: "GET" | "POST" = "POST"): Promise<unknown> {
     const body = value === undefined ? undefined : serialized ? String(value) : JSON.stringify(value);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.baseURL}${path}`, {
-        method: "POST",
+        method,
         headers: { Accept: "application/json", "Content-Type": "application/json", "X-YNX-Client": CLIENT, ...headers },
         body,
         signal: controller.signal,
@@ -155,6 +237,13 @@ export class YNXMobileAppClient {
     }
     return data;
   }
+}
+
+function chatPeer(conversation: ChatConversation, account: string): string {
+  if (!conversation.members.includes(account)) throw new Error("Chat conversation does not include the local YNX account");
+  const peer = conversation.members.find((member) => member !== account);
+  if (!peer) throw new Error("Chat conversation has no peer account");
+  return peer;
 }
 
 function registrationKey(account: string, deviceId: string, publicKey: string): string {

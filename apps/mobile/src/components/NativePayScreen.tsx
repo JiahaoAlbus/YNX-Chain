@@ -62,7 +62,7 @@ export function NativePayScreen(props: { stored: StoredIdentity | null; identity
       assertPayable(invoice);
       client = new YNXMobileAppClient(props.stored);
       activeClient.current = client;
-      await client.connect({ registerSquare: false });
+      await client.connect({ registerSquare: false, registerChat: false });
       const account = await fetchNativeAccount(props.identity.account);
       if (!account.exists) throw new Error("Fund this YNX account before paying the invoice.");
       const preview = createNativeTransferPreview({ from: props.identity.account, to: invoice.payoutAddress, amount: invoice.amount, nonce: account.nonce + 1, balance: account.balance });
@@ -105,7 +105,7 @@ export function NativePayScreen(props: { stored: StoredIdentity | null; identity
       if (transaction.blockNumber === 0) throw new Error("Payment is still waiting for block confirmation.");
       client = new YNXMobileAppClient(props.stored);
       activeClient.current = client;
-      await client.connect({ registerSquare: false });
+      await client.connect({ registerSquare: false, registerChat: false });
       setSettlement(await settle(client, pending.invoice, pending.transactionHash));
       setPending(null);
     } catch (resumeError) {

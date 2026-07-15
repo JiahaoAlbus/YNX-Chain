@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { bytesToBase64Raw } from "../crypto/encoding";
+import { chatEncryptionPublicKey, encryptChatMessage } from "../crypto/chatCrypto";
 import { accountIdentity, deviceIdentifier, deviceIdentity } from "../crypto/ynxSigner";
 import { YNXMobileAppClient } from "./mobileSession";
 
@@ -33,9 +34,11 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
     "/app/session/challenges",
     "/app/session/challenges/native-challenge-1/verify",
     "/app/square/devices",
+		"/app/chat/devices",
     "/app/square/posts",
 		"/app/pay/invoices/invoice_123/settle",
     `/app/square/devices/${deviceId}/revoke`,
+		`/app/chat/devices/${deviceId}/revoke`,
     "/app/session/revoke",
   ]);
   assert.deepEqual(authorizations, ["ownership-proof", "signed-post", "device-revocation"]);
@@ -43,8 +46,46 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
   const serialized = JSON.stringify(requests);
   assert.equal(serialized.includes(Buffer.from(accountSecret).toString("hex")), false);
   assert.equal(serialized.includes(Buffer.from(deviceSecret).toString("hex")), false);
-  assert.match(String((requests[3]?.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
-	assert.equal(String(requests[4]?.init?.body).includes("payer"), false);
+  assert.match(String((requests[4]?.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
+	assert.equal(String(requests[5]?.init?.body).includes("payer"), false);
+});
+
+test("lists, sends, decrypts, and acknowledges native Chat messages", async () => {
+  const requests: Array<{ path: string; init?: RequestInit }> = [];
+  const account = accountIdentity(accountSecret).account;
+  const deviceId = deviceIdentifier(deviceSecret);
+  const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
+  const bob = "ynx1llllllllllllllllllllllllllllllllyj698f";
+  const bobDeviceSecret = new Uint8Array(32).fill(0x42);
+  const conversation = { id: "conv_mobile_chat", members: [account, bob], createdBy: account, createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:01:00Z" };
+  const incomingEnvelope = encryptChatMessage({ deviceSecret: bobDeviceSecret, recipientPublicKey: chatEncryptionPublicKey(deviceSecret), conversationId: conversation.id, messageId: "message_incoming", plaintext: "hello from Bob", nonce: new Uint8Array(24).fill(0x31) });
+  const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
+  const fetchImpl = async (input: string, init?: RequestInit): Promise<Response> => {
+    const path = new URL(input).pathname;
+    requests.push({ path, init });
+    if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "native-chat-challenge", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
+    if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "c".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+    if (path === "/app/chat/conversations") return jsonResponse(200, { conversations: [conversation] });
+    if (path === `/app/chat/accounts/${bob}/devices`) return jsonResponse(200, { devices: [{ id: "bob-device", account: bob, signingPublicKey: "Qg", encryptionPublicKey: chatEncryptionPublicKey(bobDeviceSecret), status: "active", createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:00:00Z" }] });
+    if (path.endsWith("/messages") && init?.method === "GET") return jsonResponse(200, { messages: [{ id: "message_incoming", conversationId: conversation.id, sender: bob, senderDeviceId: "bob-device", ...incomingEnvelope, ciphertextHash: "a".repeat(64), createdAt: "2026-07-14T12:02:00Z", deliveredAt: {}, readAt: {} }] });
+    return jsonResponse(201, { ok: true });
+  };
+  const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:05:00Z"), authorize: permitLocalKeyUse });
+  await client.connect({ registerSquare: false });
+  const conversations = await client.listChatConversations();
+  assert.equal(conversations[0]?.id, conversation.id);
+  await client.sendChatMessage(conversations[0]!, "hello Bob", "message_outgoing", new Uint8Array(24).fill(0x32));
+  const messages = await client.listChatMessages(conversations[0]!);
+  assert.equal(messages[0]?.plaintext, "hello from Bob");
+  assert.equal(messages[0]?.decryptionError, null);
+  await client.acknowledgeChatMessage(conversation.id, "message_incoming", "read");
+  const chatRequests = requests.filter((request) => request.path.startsWith("/app/chat/"));
+  assert.deepEqual(chatRequests.map((request) => request.init?.method), ["POST", "GET", "GET", "POST", "GET", "GET", "POST"]);
+  for (const request of chatRequests.slice(1)) assert.match(String((request.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
+  const sent = JSON.parse(String(chatRequests[3]?.init?.body));
+  assert.equal(sent.plaintext, undefined);
+  assert.equal(sent.algorithm, "x25519-hkdf-sha256-xchacha20poly1305");
+  client.lock();
 });
 
 test("aborts a stalled native ownership request", async () => {
@@ -120,11 +161,23 @@ test("refuses signed post creation when local authorization fails", async () => 
   client.lock();
 });
 
+test("revokes only services registered by the current client session", async () => {
+  const paths: string[] = [];
+  const client = connectedClient({ paths });
+  await client.connect({ registerChat: false });
+  await client.disconnect(true);
+  assert.equal(paths.includes("/app/square/devices"), true);
+  assert.equal(paths.some((path) => path.startsWith("/app/chat/")), false);
+  assert.equal(paths.some((path) => path.startsWith("/app/square/devices/") && path.endsWith("/revoke")), true);
+  client.lock();
+});
+
 function connectedClient(options: {
   now?: () => Date;
   mutationStatus?: number;
   revokeResponse?: () => Promise<Response>;
   authorize?: ConstructorParameters<typeof YNXMobileAppClient>[0]["authorize"];
+	paths?: string[];
 } = {}): YNXMobileAppClient {
   const account = accountIdentity(accountSecret).account;
   const deviceId = deviceIdentifier(deviceSecret);
@@ -132,6 +185,7 @@ function connectedClient(options: {
   const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
   const fetchImpl = async (input: string): Promise<Response> => {
     const path = new URL(input).pathname;
+		options.paths?.push(path);
     if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "native-challenge-2", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
     if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "t".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
     if (path === "/app/session/revoke" && options.revokeResponse) return options.revokeResponse();

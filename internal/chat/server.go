@@ -116,6 +116,15 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 			status = http.StatusOK
 		}
 		writeJSON(w, status, result)
+	case len(parts) == 2 && parts[0] == "chat" && parts[1] == "conversations" && r.Method == http.MethodGet:
+		writeJSON(w, http.StatusOK, map[string]any{"conversations": s.service.Conversations(actor)})
+	case len(parts) == 4 && parts[0] == "chat" && parts[1] == "accounts" && parts[3] == "devices" && r.Method == http.MethodGet:
+		records, err := s.service.Devices(actor, parts[2])
+		if err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"devices": records})
 	case len(parts) == 3 && parts[0] == "chat" && parts[1] == "conversations" && r.Method == http.MethodGet:
 		record, err := s.service.Conversation(actor, parts[2])
 		if err != nil {
