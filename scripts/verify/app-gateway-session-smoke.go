@@ -102,6 +102,9 @@ func run(baseURL, origin string, signedPost bool) error {
 	if err := requestJSON(baseURL+"/app/chat/devices", origin, session.Token, deviceID, body, http.StatusCreated, nil); err != nil {
 		return err
 	}
+	if err := signedServiceRead(baseURL, origin, session.Token, deviceID, "/app/chat/conversations", "/chat/conversations", deviceKeys.SigningPrivate, chat.RequestSignaturePayload, http.StatusOK); err != nil {
+		return err
+	}
 
 	if signedPost {
 		postBody, _ := json.Marshal(square.CreatePostRequest{IdempotencyKey: "post-" + suffix, Content: "YNX account ownership local verification"})
@@ -125,6 +128,18 @@ func run(baseURL, origin string, signedPost bool) error {
 		return fmt.Errorf("revoked session accepted: %w", err)
 	}
 	return nil
+}
+
+func signedServiceRead(baseURL, origin, token, deviceID, publicPath, signedPath string, privateKey ed25519.PrivateKey, payload func(string, string, string, []byte) []byte, want int) error {
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	request, err := http.NewRequest(http.MethodGet, baseURL+publicPath, nil)
+	if err != nil {
+		return err
+	}
+	setHeaders(request, origin, token, deviceID)
+	request.Header.Set("X-YNX-Timestamp", timestamp)
+	request.Header.Set("X-YNX-Device-Signature", nativewallet.Sign(privateKey, payload(http.MethodGet, signedPath, timestamp, nil)))
+	return do(request, want, nil)
 }
 
 func signedServiceRequest(baseURL, origin, token, deviceID, publicPath, signedPath string, body []byte, privateKey ed25519.PrivateKey, payload func(string, string, string, []byte) []byte, want int) error {

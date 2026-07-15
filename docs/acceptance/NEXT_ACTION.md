@@ -2,38 +2,36 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: commit and guarded-deploy the exact new Chat daemon/App Gateway source, then verify the new signed conversation-list and member-device-directory routes through public ingress without sending a public message.
+Current single action: implement multi-device Chat recipient fan-out plus bounded device recovery/rotation, then verify the exact protocol in Go and the native mobile client without exposing plaintext or inventing a public message proof.
 
 Why this is next:
 
-- Pay consumer settlement, the native Pay window, four-role release `0d31850f74b2`, and three-upstream App Gateway are implemented and deployed. Public settlement remains intentionally unclaimed because no approved public transfer was executed.
-- Chat already has signed `ynx1...` devices, encrypted envelopes, persistent two-member conversations, delivery/read acknowledgements, revocation, replay/access/rate bounds, loopback deployment, and protected App Gateway routes.
-- The App-native direct-message window, mobile E2EE client, Go-compatible envelope vector, five-tab Release rendering, and local protocol tests now exist.
-- The remote Chat daemon is still the older release and cannot serve the new list/directory calls required by the App. This deployment mismatch is now the highest bounded gap.
+- Exact Chat release `ynx-chain-f81f3b6cabe2` and App Gateway release `ynx-chain-376c95793d66` are remotely active with recoverable scoped backups.
+- Public TLS and native-bound operator smokes now prove ownership/session/device binding and signed empty conversation-list reads. The Android 16 test-only Release renders the five native tabs and dedicated Chat/Pay windows.
+- Current sending rejects recipients with zero or more than one active device. That is a real protocol limitation that blocks normal phone replacement and multi-device users; adding more UI before closing it would create unusable surfaces.
 
 Files to touch:
 
-- exact source commit/release package for `ynx-chatd` and `ynx-app-gatewayd`
-- existing primary-host Chat/App Gateway environment, state, backup, systemd, and health paths
-- public `api.ynxweb4.com/app/chat/*` ingress with native ownership/session/device signatures
-- acceptance files after exact remote release and route evidence
+- `internal/chat` envelope validation, persistence invariants, API handlers, and tests
+- `apps/mobile/src/crypto/chatCrypto.ts`, Chat API parsing, client fan-out/decrypt logic, and native Chat states
+- shared Go/TypeScript multi-recipient vectors and verification scripts
+- API and acceptance documents only after real code exists
 
 Required implementation:
 
-- Preserve existing Chat/Square/Pay credentials and state server-side; do not download or print secrets.
-- Back up current binaries, env, units, and state before replacement, run config checks, restart only scoped services, poll health, and retain rollback.
-- Prove exact build/release identity and verify `GET /app/chat/conversations` requires a native account/device session.
-- If using disposable registered accounts for route proof, stop before conversation or message creation unless exact public write content/accounts are separately approved.
-- Keep authoritative chain, Square, Pay, Explorer, and public testnet continuity unchanged.
+- Define one message with immutable content identity and one authenticated encrypted envelope per active recipient device, including the sender's active devices when needed for conversation continuity.
+- Bind every envelope to conversation ID, message ID, sender device, recipient account/device, algorithm, ephemeral public key, nonce, and ciphertext; reject missing, duplicate, extra, revoked, or changed-envelope replay.
+- Keep the server ciphertext-only and preserve historical revoked public keys for old-message authentication while excluding revoked devices from new sends.
+- Add bounded owner-authorized device rotation/recovery records with explicit old/new device evidence, replay protection, audit entries, persistence validation, and fail-closed behavior. Do not claim social recovery or hardware custody.
+- Make the native App show per-device delivery/decrypt failures without falling back to plaintext or silently dropping a recipient.
 
 Validation commands:
 
+- `go test ./...`
 - `make chat-api-check`
 - `make app-account-ownership-check`
 - `make app-gateway-check`
 - `make mobile-check`
-- `make mobile-android-release-check`
-- `go test ./...`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -43,10 +41,10 @@ Validation commands:
 
 Completion standard:
 
-- The exact pushed release is active for Chat and App Gateway with recoverable scoped backups and exact build evidence.
-- Public ingress accepts only properly bound native sessions/device signatures for the new read routes and rejects unauthenticated calls.
-- Existing Wallet, Pay, Square, chain, Explorer, and App Gateway health remain green.
-- No public conversation/message write occurs without explicit approval of disposable accounts and content.
+- Shared Go/mobile vectors prove deterministic metadata binding and decryption for at least two active recipient devices plus sender continuity.
+- Unit/HTTP tests cover revoked devices, missing/duplicate/changed envelopes, replay, restart/tamper, authorization, and bounded recovery/rotation.
+- Native Chat no longer rejects a valid recipient solely because more than one active device exists.
+- No remote deployment or public message is claimed until the exact release is deployed and separately verified.
 
 Explicitly not doing / truth boundaries:
 
