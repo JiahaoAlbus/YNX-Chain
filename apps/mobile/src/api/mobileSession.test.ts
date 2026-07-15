@@ -14,22 +14,27 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
   const deviceId = deviceIdentifier(deviceSecret);
   const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
   const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
+	const transactionHash = `0x${"a".repeat(64)}`;
   const fetchImpl = async (input: string, init?: RequestInit) => {
     const path = new URL(input).pathname;
     requests.push({ path, init });
     if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "native-challenge-1", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
-    if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "s".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+	if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "s".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
+	if (path.endsWith("/settle")) return jsonResponse(201, { id: "settlement_1", intentId: "intent_123", invoiceId: "invoice_123", merchant: "merchant_demo", payoutAddress: "ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zcrwn4", payer: account, amount: 25, currency: "YNXT", transactionHash, blockNumber: 7, status: "paid", auditHash: "b".repeat(64), createdAt: "2026-07-14T12:01:00Z" });
     return jsonResponse(201, { ok: true });
   };
   const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:00:00Z"), authorize: async (purpose) => { authorizations.push(purpose); } });
   await client.connect();
   await client.createPost("native post", "post-native-1");
+	const settlement = await client.settlePayInvoice("invoice_123", transactionHash, "settle-mobile-1");
+	assert.equal(settlement.payer, account);
   await client.disconnect(true);
   assert.deepEqual(requests.map((request) => request.path), [
     "/app/session/challenges",
     "/app/session/challenges/native-challenge-1/verify",
     "/app/square/devices",
     "/app/square/posts",
+		"/app/pay/invoices/invoice_123/settle",
     `/app/square/devices/${deviceId}/revoke`,
     "/app/session/revoke",
   ]);
@@ -39,6 +44,7 @@ test("establishes a native-bound session, signs a post, and revokes", async () =
   assert.equal(serialized.includes(Buffer.from(accountSecret).toString("hex")), false);
   assert.equal(serialized.includes(Buffer.from(deviceSecret).toString("hex")), false);
   assert.match(String((requests[3]?.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
+	assert.equal(String(requests[4]?.init?.body).includes("payer"), false);
 });
 
 test("aborts a stalled native ownership request", async () => {

@@ -34,6 +34,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /pay/intents/{id}", s.handleProxy)
 	s.mux.HandleFunc("POST /pay/invoices", s.handleProxy)
 	s.mux.HandleFunc("GET /pay/invoices/{id}", s.handleProxy)
+	s.mux.HandleFunc("POST /pay/invoices/{id}/settle", s.handleProxy)
+	s.mux.HandleFunc("GET /pay/invoices/{id}/settlement", s.handleProxy)
 	s.mux.HandleFunc("POST /pay/refunds", s.handleProxy)
 	s.mux.HandleFunc("POST /pay/webhook-signatures", s.handleProxy)
 	s.mux.HandleFunc("GET /pay/webhook-signatures/{eventId}", s.handleProxy)

@@ -19,6 +19,8 @@ api_key="local-pay-api-key"
 webhook_key="local-pay-webhook-signing-key"
 merchant_id="merchant_pay_check"
 audit_log="$YNX_VERIFY_WORK/pay-gateway-audit.jsonl"
+payer="0x1111111111111111111111111111111111111111"
+payout="0x2222222222222222222222222222222222222222"
 
 YNX_PAY_GATEWAY_CHAIN_URL="$YNX_REST_URL" \
 YNX_PAY_GATEWAY_HTTP_ADDR=127.0.0.1:6431 \
@@ -51,10 +53,10 @@ status="$(curl -s -o "$YNX_VERIFY_WORK/pay-missing-idempotency.json" -w '%{http_
 status="$(curl -s -o "$YNX_VERIFY_WORK/pay-merchant-mismatch.json" -w '%{http_code}' -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"merchant":"other","amount":25,"idempotencyKey":"mismatch"}')"
 [[ "$status" == "400" ]] || { echo "expected merchant mismatch to return 400, got $status"; exit 1; }
 
-intent="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":25,"callbackUrl":"https://merchant.example/callback","idempotencyKey":"pay-check-intent"}')"
+intent="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d "{\"payoutAddress\":\"$payout\",\"amount\":25,\"callbackUrl\":\"https://merchant.example/callback\",\"idempotencyKey\":\"pay-check-intent\"}")"
 intent_id="$(printf '%s' "$intent" | ynx_json_field '["id"]')"
-printf '%s' "$intent" | MERCHANT_ID="$merchant_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); if (d.merchant !== process.env.MERCHANT_ID || d.currency !== "YNXT" || !d.id) throw new Error(`bad Pay intent: ${JSON.stringify(d)}`);'
-intent_replay="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":25,"callbackUrl":"https://merchant.example/callback","idempotencyKey":"pay-check-intent"}')"
+printf '%s' "$intent" | MERCHANT_ID="$merchant_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); if (d.merchant !== process.env.MERCHANT_ID || d.currency !== "YNXT" || !d.id || !/^ynx1/.test(d.payoutAddress)) throw new Error(`bad Pay intent: ${JSON.stringify(d)}`);'
+intent_replay="$(curl -fsS -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d "{\"payoutAddress\":\"$payout\",\"amount\":25,\"callbackUrl\":\"https://merchant.example/callback\",\"idempotencyKey\":\"pay-check-intent\"}")"
 [[ "$(printf '%s' "$intent_replay" | ynx_json_field '["id"]')" == "$intent_id" ]]
 status="$(curl -s -o "$YNX_VERIFY_WORK/pay-idempotency-conflict.json" -w '%{http_code}' -X POST "$pay_url/pay/intents" "${auth[@]}" -H 'content-type: application/json' -d '{"amount":999,"idempotencyKey":"pay-check-intent"}')"
 [[ "$status" == "400" ]] || { echo "expected changed-input idempotency conflict, got $status"; exit 1; }
@@ -62,6 +64,23 @@ status="$(curl -s -o "$YNX_VERIFY_WORK/pay-idempotency-conflict.json" -w '%{http
 invoice="$(curl -fsS -X POST "$pay_url/pay/invoices" "${auth[@]}" -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12,\"idempotencyKey\":\"pay-check-invoice\"}")"
 invoice_id="$(printf '%s' "$invoice" | ynx_json_field '["id"]')"
 curl -fsS "$pay_url/pay/invoices/$invoice_id" "${auth[@]}" >/dev/null
+
+curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d "{\"address\":\"$payer\",\"amount\":100}" >/dev/null
+for _ in {1..80}; do
+  account="$(curl -fsS "$YNX_REST_URL/accounts/$payer" 2>/dev/null || true)"
+  [[ -n "$account" ]] && printf '%s' "$account" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); process.exit((d.account?.balance ?? d.balance ?? 0) >= 100 ? 0 : 1)' && break
+  sleep 0.1
+done
+transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d "{\"from\":\"$payer\",\"to\":\"$payout\",\"amount\":25}")"
+transaction_hash="$(printf '%s' "$transfer" | ynx_json_field '["hash"]')"
+for _ in {1..80}; do
+  transaction="$(curl -fsS "$YNX_REST_URL/txs/$transaction_hash" 2>/dev/null || true)"
+  [[ -n "$transaction" ]] && printf '%s' "$transaction" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); process.exit((d.blockNumber ?? 0) > 0 ? 0 : 1)' && break
+  sleep 0.1
+done
+settlement="$(curl -fsS -X POST "$pay_url/pay/invoices/$invoice_id/settle" "${auth[@]}" -H 'content-type: application/json' -d "{\"payer\":\"$payer\",\"transactionHash\":\"$transaction_hash\",\"idempotencyKey\":\"pay-check-settlement\"}")"
+printf '%s' "$settlement" | INVOICE_ID="$invoice_id" TRANSACTION_HASH="$transaction_hash" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); if (d.invoiceId !== process.env.INVOICE_ID || d.transactionHash !== process.env.TRANSACTION_HASH || d.status !== "paid" || d.currency !== "YNXT" || !/^ynx1/.test(d.payer) || !/^ynx1/.test(d.payoutAddress) || !(d.blockNumber > 0) || !/^[0-9a-f]{64}$/.test(d.auditHash)) throw new Error(`bad settlement: ${JSON.stringify(d)}`);'
+curl -fsS "$pay_url/pay/invoices/$invoice_id/settlement" "${auth[@]}" >/dev/null
 
 webhook="$(curl -fsS -X POST "$pay_url/pay/webhook-signatures" "${auth[@]}" -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"eventType\":\"payment_intent.created\",\"idempotencyKey\":\"pay-check-webhook\"}")"
 webhook_id="$(printf '%s' "$webhook" | ynx_json_field '["eventId"]')"
@@ -89,4 +108,4 @@ grep -Fq '"outcome":"proxied"' "$audit_log"
 ! grep -Fq "client-secret" "$audit_log"
 ! grep -Fq "merchant.example/callback" "$audit_log"
 
-echo "pay-api-check passed: standalone merchant auth, chain bypass protection, idempotency, managed webhook signing, persistent Pay events, metrics, and redacted audit"
+echo "pay-api-check passed: merchant auth, chain bypass protection, payout-bound YNXT invoice, committed native transfer settlement, idempotency, managed webhook signing, persistent Pay events, metrics, and redacted audit"

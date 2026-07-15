@@ -103,6 +103,8 @@ func (s *Server) routes() {
 	s.payRoute("GET /pay/intents/{id}", s.handlePayIntentLookup)
 	s.payRoute("POST /pay/invoices", s.handleInvoice)
 	s.payRoute("GET /pay/invoices/{id}", s.handleInvoiceLookup)
+	s.payRoute("POST /pay/invoices/{id}/settle", s.handleInvoiceSettlement)
+	s.payRoute("GET /pay/invoices/{id}/settlement", s.handleInvoiceSettlementLookup)
 	s.payRoute("POST /pay/refunds", s.handleRefund)
 	s.payRoute("POST /pay/webhook-signatures", s.handleWebhookSignature)
 	s.payRoute("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
@@ -644,6 +646,7 @@ func (s *Server) handleTrackingPolicyReviewLookup(w http.ResponseWriter, r *http
 func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Merchant       string `json:"merchant"`
+		PayoutAddress  string `json:"payoutAddress"`
 		Amount         int64  `json:"amount"`
 		CallbackURL    string `json:"callbackUrl"`
 		IdempotencyKey string `json:"idempotencyKey"`
@@ -651,7 +654,7 @@ func (s *Server) handlePayIntent(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	intent, err := s.devnet.CreatePayIntentWithIdempotency(req.Merchant, req.Amount, req.CallbackURL, req.IdempotencyKey)
+	intent, err := s.devnet.CreatePayIntentForPayoutWithIdempotency(req.Merchant, req.PayoutAddress, req.Amount, req.CallbackURL, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -689,6 +692,32 @@ func (s *Server) handleInvoiceLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, invoice)
+}
+
+func (s *Server) handleInvoiceSettlement(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Payer           string `json:"payer"`
+		TransactionHash string `json:"transactionHash"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	settlement, err := s.devnet.SettleInvoice(r.PathValue("id"), req.Payer, req.TransactionHash, req.IdempotencyKey)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, settlement)
+}
+
+func (s *Server) handleInvoiceSettlementLookup(w http.ResponseWriter, r *http.Request) {
+	settlement, ok := s.devnet.PaySettlementByInvoice(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "invoice settlement not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, settlement)
 }
 func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 	var req struct {

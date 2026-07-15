@@ -693,6 +693,41 @@ func TestPayResourceAndIDEFlow(t *testing.T) {
 	}
 }
 
+func TestPayInvoiceSettlementAPI(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+	payer := "0x1111111111111111111111111111111111111111"
+	merchant := "0x2222222222222222222222222222222222222222"
+	merchantNative, err := accountaddress.Encode(merchant)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(payer, 100); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	var intent chain.PayIntent
+	doJSON(t, http.MethodPost, server.URL+"/pay/intents", map[string]any{"merchant": "merchant_checkout", "payoutAddress": merchantNative, "amount": 25, "idempotencyKey": "intent-settlement-api"}, http.StatusCreated, &intent)
+	var invoice chain.Invoice
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices", map[string]any{"intentId": intent.ID, "dueInHours": 12, "idempotencyKey": "invoice-settlement-api"}, http.StatusCreated, &invoice)
+	tx, err := devnet.Transfer(payer, merchant, 25)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	var settlement chain.PaySettlement
+	doJSON(t, http.MethodPost, server.URL+"/pay/invoices/"+invoice.ID+"/settle", map[string]any{"payer": payer, "transactionHash": tx.Hash, "idempotencyKey": "settlement-api"}, http.StatusCreated, &settlement)
+	if settlement.InvoiceID != invoice.ID || settlement.TransactionHash != tx.Hash || settlement.Status != "paid" {
+		t.Fatalf("unexpected settlement: %+v", settlement)
+	}
+	var lookedUp chain.PaySettlement
+	doJSON(t, http.MethodGet, server.URL+"/pay/invoices/"+invoice.ID+"/settlement", nil, http.StatusOK, &lookedUp)
+	if lookedUp != settlement {
+		t.Fatalf("settlement lookup changed record: %+v != %+v", lookedUp, settlement)
+	}
+}
+
 func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
 	root := testRepoRoot(t)
 	if _, err := os.Stat(root + "/artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"); err != nil {

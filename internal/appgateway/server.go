@@ -76,7 +76,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square"} {
+	for _, service := range []string{"chat", "square", "pay"} {
 		base, _, _, _ := s.gateway.upstream(service)
 		request, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, base.String()+"/health", nil)
 		response, err := s.client.Do(request)
@@ -158,6 +158,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusRequestEntityTooLarge, "request body exceeds gateway policy")
 		return
 	}
+	var authenticatedSession AppSession
 	if protected {
 		if binding == "" {
 			writeError(w, http.StatusUnauthorized, "browser origin or native client binding is required")
@@ -168,9 +169,17 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "account-bound app session required")
 			return
 		}
+		authenticatedSession = session
 		if r.Method == http.MethodPost && upstreamPath == "/"+service+"/devices" && !s.gateway.RegistrationMatchesSession(service, session, body) {
 			writeError(w, http.StatusUnauthorized, "device registration does not match account-bound session")
 			return
+		}
+		if service == "pay" && r.Method == http.MethodPost && strings.HasSuffix(upstreamPath, "/settle") {
+			body, err = bindPayPayer(body, authenticatedSession.Account)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
 		}
 	}
 	base, key, keyHeader, _ := s.gateway.upstream(service)
@@ -307,10 +316,22 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 		return "", "", false
 	}
 	pieces := strings.SplitN(strings.TrimPrefix(escapedPath, "/app/"), "/", 2)
-	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square") {
+	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay") {
 		return "", "", false
 	}
 	return pieces[0], "/" + pieces[0] + "/" + pieces[1], true
+}
+
+func bindPayPayer(body []byte, account string) ([]byte, error) {
+	var payload map[string]any
+	if err := decodeOne(body, &payload); err != nil {
+		return nil, err
+	}
+	if _, supplied := payload["payer"]; supplied {
+		return nil, errors.New("payer is bound to the authenticated app session and must not be supplied")
+	}
+	payload["payer"] = account
+	return json.Marshal(payload)
 }
 
 func setCORS(w http.ResponseWriter, origin string) {

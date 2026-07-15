@@ -15,6 +15,7 @@ import (
 const (
 	testChatKey   = "chat-key-1234567890"
 	testSquareKey = "square-key-1234567890"
+	testPayKey    = "pay-key-123456789012"
 	testOrigin    = "https://www.ynxweb4.com"
 )
 
@@ -210,7 +211,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 2 || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 3 || !health.Upstreams["pay"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 
@@ -262,7 +263,8 @@ func TestValidateConfigFailClosed(t *testing.T) {
 
 func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
 	t.Helper()
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
+	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
 }
 
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {

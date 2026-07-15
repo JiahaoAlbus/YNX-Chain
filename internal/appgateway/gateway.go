@@ -18,6 +18,8 @@ type Config struct {
 	ChatAPIKey       string
 	SquareURL        string
 	SquareAPIKey     string
+	PayURL           string
+	PayAPIKey        string
 	AllowedOrigins   []string
 	MaxBodyBytes     int64
 	MaxResponseBytes int64
@@ -36,6 +38,7 @@ type Gateway struct {
 	cfg       Config
 	chatURL   *url.URL
 	squareURL *url.URL
+	payURL    *url.URL
 	origins   map[string]struct{}
 	mu        sync.Mutex
 	visitors  map[string]visitor
@@ -59,6 +62,7 @@ func New(cfg Config) (*Gateway, error) {
 	}
 	chatURL, _ := url.Parse(cfg.ChatURL)
 	squareURL, _ := url.Parse(cfg.SquareURL)
+	payURL, _ := url.Parse(cfg.PayURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
 		origins[strings.TrimSpace(origin)] = struct{}{}
@@ -73,7 +77,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -89,11 +93,17 @@ func ValidateConfig(cfg Config) error {
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_SQUARE_URL", cfg.SquareURL); err != nil {
 		return err
 	}
+	if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_URL", cfg.PayURL); err != nil {
+		return err
+	}
 	if len(strings.TrimSpace(cfg.ChatAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_CHAT_API_KEY must contain at least 16 characters")
 	}
 	if len(strings.TrimSpace(cfg.SquareAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_SQUARE_API_KEY must contain at least 16 characters")
+	}
+	if len(strings.TrimSpace(cfg.PayAPIKey)) < 16 {
+		return errors.New("YNX_APP_GATEWAY_PAY_API_KEY must contain at least 16 characters")
 	}
 	if len(cfg.AllowedOrigins) == 0 {
 		return errors.New("YNX_APP_GATEWAY_ALLOWED_ORIGINS must contain at least one exact HTTPS origin")
@@ -199,6 +209,8 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 		return g.chatURL, g.cfg.ChatAPIKey, "X-YNX-Chat-Key", true
 	case "square":
 		return g.squareURL, g.cfg.SquareAPIKey, "X-YNX-Square-Key", true
+	case "pay":
+		return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
 	default:
 		return nil, "", "", false
 	}
@@ -218,6 +230,14 @@ func publicRouteAllowed(service, method, path string) bool {
 		case len(parts) == 4 && parts[1] == "posts" && parts[3] == "comments":
 			return method == "GET" && validSegment(parts[2])
 		case len(parts) == 4 && parts[1] == "profiles" && parts[3] == "following":
+			return method == "GET" && validSegment(parts[2])
+		}
+	}
+	if service == "pay" {
+		switch {
+		case len(parts) == 3 && parts[1] == "invoices":
+			return method == "GET" && validSegment(parts[2])
+		case len(parts) == 4 && parts[1] == "invoices" && parts[3] == "settlement":
 			return method == "GET" && validSegment(parts[2])
 		}
 	}
@@ -258,6 +278,8 @@ func protectedRouteAllowed(service, method, path string) bool {
 		case len(parts) == 4 && parts[1] == "posts" && (parts[3] == "comments" || parts[3] == "reactions"):
 			return method == "POST" && validSegment(parts[2])
 		}
+	case "pay":
+		return len(parts) == 4 && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "settle" && method == "POST"
 	}
 	return false
 }

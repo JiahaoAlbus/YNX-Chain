@@ -16,7 +16,7 @@ import {
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync, usePreventScreenCapture } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
-import { Activity, Fingerprint, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
+import { Activity, CreditCard, Fingerprint, KeyRound, LogOut, Plus, Radio, RefreshCw, Send, Trash2, WalletCards, X } from "lucide-react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { fetchGatewayHealth, fetchSquareFeed, type GatewayHealth, type SquarePost } from "./src/api/ynxGateway";
 import { YNXMobileAppClient } from "./src/api/mobileSession";
@@ -24,8 +24,9 @@ import { accountIdentity, exportAccountSecret, importAccountSecret, isValidAccou
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { deleteIdentity, loadIdentity, saveIdentity, secureStorageAvailable, type StoredIdentity } from "./src/storage/secureIdentity";
 import { NativeWalletDashboard } from "./src/components/NativeWalletDashboard";
+import { NativePayScreen } from "./src/components/NativePayScreen";
 
-type Tab = "square" | "wallet" | "network";
+type Tab = "square" | "wallet" | "pay" | "network";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
@@ -108,12 +109,14 @@ function YNXApp() {
             onResetUnreadable={storageError?.startsWith("Secure YNX identity record") ? resetUnreadableStorage : null}
           />
         )}
+        {tab === "pay" && <NativePayScreen stored={stored} identity={identity} openWallet={() => setTab("wallet")} />}
         {tab === "network" && <NetworkScreen />}
       </View>
 
       <View style={styles.tabBar}>
         <TabButton active={tab === "square"} icon={Radio} label="Square" onPress={() => setTab("square")} />
         <TabButton active={tab === "wallet"} icon={WalletCards} label="Wallet" onPress={() => setTab("wallet")} />
+        <TabButton active={tab === "pay"} icon={CreditCard} label="Pay" onPress={() => setTab("pay")} />
         <TabButton active={tab === "network"} icon={Activity} label="Network" onPress={() => setTab("network")} />
       </View>
     </SafeAreaView>

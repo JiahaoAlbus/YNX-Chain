@@ -2,71 +2,55 @@
 
 Highest-priority bounded delivery (2026-07-15):
 
-Current single action: close the Pay consumer-protocol gap, then build the first real native Pay window. Keep mobile as the primary user surface and use App-native screens, navigation, sheets, system share/clipboard, and biometric confirmation rather than reusing the website's long-page composition.
+Current single action: safely deploy and verify the current authoritative Pay consumer-settlement protocol and three-upstream App Gateway on the public testnet. Do not execute a public value transfer without separate explicit approval of the disposable payer, recipient, and amount.
 
-Current state entering this action:
+Why this is next:
 
-- Native Wallet now has separate Assets, Activity, and Account routes, real public-testnet balance/nonce/history reads, public-address QR receive, exact `1 YNXT` fee preview, canonical Go-compatible transfer signing, strong-biometric authorization, bounded broadcast/finality tracking, and visible unknown-result handling.
-- Thirty-three mobile tests, strict TypeScript, Android/iOS Hermes bundles, the shared Go/TypeScript transaction vector, and Android 16 arm64 installed rendering for Assets, Account, Activity, and Receive pass locally.
-- The installed disposable public account was genuinely unfunded. No owner-approved public transfer was executed, so installed Send review/biometric/broadcast/receipt evidence remains incomplete and must not be described as completed.
-- Cross-chain remains visibly `Not active`. Bridge coordinator/readiness code is not a usable bridge: no external adapter, mint/burn authority, public Bridge deployment, or real cross-chain transfer exists.
-- Chat has a protected bounded protocol/core but no finished App. Bank and Shop are not implemented products. Do not represent them as available.
-- The current Pay API is merchant-control metadata only. It records intent/invoice/refund/webhook/events but does not bind a payout address, payer, real native transfer, confirmed settlement, or consumer App session. It is not yet a user payment protocol.
-
-Required Pay implementation:
-
-- Extend the actual Pay contract rather than inventing a parallel client protocol: bind a merchant payout `ynx1...` address when an intent is created and preserve it on the invoice.
-- Add an idempotent settlement operation that accepts an invoice, session-bound payer, and native transaction hash; verify the committed chain transaction sender, recipient, amount, fee, and finality before changing the invoice/intent to paid and appending a receipt/event.
-- Add an App Gateway Pay upstream whose API key stays server-side. Public invoice lookup may reveal only bounded checkout fields; settlement must require the existing account-bound native session and must inject the payer from that verified session instead of trusting client JSON.
-- Add a native Pay route/window with merchant or payment-request discovery, recipient and amount validation, exact YNXT debit plus fee/resource preview, explicit review, strong-biometric authorization, submission, status tracking, receipt/history, retry safety, and visible rejected/unknown states.
-- Keep `ynx1...` primary and expose `0x...` only where EVM compatibility is technically required.
-- Use real API data only. Empty, unavailable, unsupported, and not-deployed states must remain distinguishable.
-- Preserve SecureStore custody, capture protection, AppState/session locking, canonical Wallet signing, external Android Release signing, official Logo identity, and no-post/no-unapproved-transfer behavior.
-- Add routes only for real workflows. Do not add Bank, Shop, Bridge, Chat, AI, or IDE placeholders merely to make the App look complete.
+- Payout-bound invoices, committed native-transfer verification, paid transition, persisted receipts/events, account-session payer binding, and the App-native Pay window now exist and pass local checks.
+- The public chain and App Gateway still run older releases. Local completion is not remote completion, and the App cannot use Pay publicly until exact binaries/configuration are deployed.
+- Deployment has a bounded existing path with backup, rollback, exact release identity, health checks, and public route verification. This closes more real product value than adding another local placeholder.
 
 Files to touch:
 
-- `apps/mobile` for native Pay routes, request/review/receipt UI, ownership authorization, and focused tests
-- `apps/mobile/src/api` for the existing Pay API client and strict response validation
-- `internal/chain`, `internal/api`, `internal/paygateway`, and `internal/appgateway` for persisted settlement, transaction verification, authenticated routing, and focused tests
-- `docs/acceptance/FEATURE_COMPLETION_TRACKER.md`, `docs/acceptance/PROJECT_STATE.md`, and this file after installed-app evidence
-
-Wallet follow-up still required:
-
-- Exercise Send review and biometric denial/success against deterministic local chain fixtures without broadcasting real public value, or obtain explicit owner approval for a disposable public-testnet recipient and amount.
-- Then verify broadcast binding, receipt/finality display, duplicate-submit prevention, and app-restart history reconciliation in the installed Android app.
-- Keep iOS installation, Android/iOS real devices, owner production signing/recovery/handover, store distribution, audit, and independent proof explicitly incomplete until separately evidenced.
-
-Completion standard:
-
-- A user can open an independent native Pay screen, inspect a real payment request, review exact recipient/amount/fee/resource impact, authorize with strong biometrics, submit through the verified account-bound protocol, and observe persisted status and receipt history.
-- Invalid, stale, duplicate, rejected, timed-out, and unknown-result states fail closed and remain visible; no synthetic merchant, balance, payment, or receipt data is shown.
-- Existing Wallet, Square, secure key custody, release packaging, and truth-boundary tests remain green.
+- Commit and push the exact tested source first.
+- Run the full local gates, including deployment dry-run and objective-state validation.
+- Revalidate the primary host, PEM mapping, current remote release, and rollback boundary from current deployment docs and live read-only evidence. Do not guess SSH targets.
+- Deploy through the existing guarded testnet workflow. Preserve authoritative Pay mode; do not cut over BFT or broaden bounded EVM/IDE.
+- Confirm `ynx-payd` on `127.0.0.1:6430`, App Gateway Pay loopback configuration, mode-`0600` env/state, service health, exact build identity, chain growth, and unchanged Chat/Square routes.
+- Verify bounded public `GET /app/pay/invoices/{id}` behavior only when a real existing payout-bound invoice is available. A `404` for an unknown fixture is acceptable route evidence; synthetic records are not.
+- Record any DNS/TLS/SSH/provider failure honestly. Do not claim public consumer settlement until an approved public transfer and receipt have actually completed.
 
 Validation commands:
 
 - `go test ./...`
 - `make pay-api-check`
-- `make wallet-integration-check`
-- `make address-codec-check`
 - `make app-account-ownership-check`
 - `make mobile-check`
-- `make mobile-android-native-check`
-- `ANDROID_SERIAL=<enrolled-emulator> make mobile-biometric-installed-check`
 - `make mobile-android-release-check`
-- `ANDROID_SERIAL=<emulator> make mobile-android-release-installed-check`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
 - `make env-check`
+- `GOMAXPROCS=2 make deploy-dry-run`
 - `GOMAXPROCS=2 make preflight`
 - `make objective-state-check`
+- guarded deploy/verify commands selected from the current operations runbook after host/key revalidation
+
+Completion standard:
+
+- Exact pushed code is installed with a recoverable backup and all affected services healthy.
+- Public App health reports Chat, Square, and Pay upstreams without exposing credentials.
+- Existing public chain, Explorer, Square, and Chat reads remain healthy and chain height continues advancing.
+- Remote state files truthfully distinguish deployed protocol from absent public payment proof.
+
+After this deployment:
+
+- Build the first real native Chat window over the existing protected direct-message core, including device/session lifecycle, conversation list, encrypted message send/read/delivery state, and visible unavailable/empty states.
+- Do not add fake Bank, Shop, Bridge, AI, IDE, or desktop routes. Each window must follow real backend capability and verification.
 
 Explicitly not doing / truth boundaries:
 
-- Do not describe the current Wallet as Binance-class, production custody, hardware wallet, mnemonic/social recovery, or a complete payment product.
-- Do not submit a public Square post or real value transfer without explicit owner approval of content, recipient, and amount.
-- Do not expose Bridge as usable until external execution, custody/mint-burn authority, monitoring, rollback, audit, deployment, and real transaction evidence exist.
-- Do not claim mainnet launch, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, or independent proof without external evidence.
+- Do not claim mainnet, exchange listing, stablecoin issuer support, wallet default support, store acceptance, partnership, public settlement, or independent proof without external evidence.
+- Do not expose Bridge as usable until external execution and custody/mint-burn authority exist.
 - Do not expand bounded EVM opcode, Counter sample, Hardhat artifact, or IDE work except to preserve passing tests.
 - Do not modify or replace the long-term goal file.

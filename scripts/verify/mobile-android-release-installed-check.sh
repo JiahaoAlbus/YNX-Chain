@@ -34,7 +34,17 @@ local_dump="$(mktemp)"
 trap 'rm -f "$local_dump"' EXIT
 adb -s "$serial" shell uiautomator dump "$remote_dump" >/dev/null
 adb -s "$serial" pull "$remote_dump" "$local_dump" >/dev/null
-for text in 'content-desc="YNX"' 'text="Testnet"' 'text="The Square is quiet"' 'text="Live public feed connected. No posts are stored yet."'; do
+for text in 'content-desc="YNX"' 'text="Testnet"' 'content-desc="Square"' 'content-desc="Wallet"' 'content-desc="Pay"' 'content-desc="Network"'; do
+  rg -Fq "$text" "$local_dump"
+done
+size="$(adb -s "$serial" shell wm size | awk -F': ' '/Physical size/{print $2}' | tr -d '\r')"
+width="${size%x*}"
+height="${size#*x}"
+adb -s "$serial" shell input tap "$((width * 5 / 8))" "$((height - 100))"
+sleep 1
+adb -s "$serial" shell uiautomator dump "$remote_dump" >/dev/null
+adb -s "$serial" pull "$remote_dump" "$local_dump" >/dev/null
+for text in 'text="NATIVE YNXT CHECKOUT"' 'text="Pay"' 'text="Invoice"' 'content-desc="YNX Pay invoice"' 'content-desc="Open invoice"' 'text="Verified before signing"'; do
   rg -Fq "$text" "$local_dump"
 done
 if adb -s "$serial" logcat -d -t 1200 | rg -i 'FATAL EXCEPTION|AndroidRuntime.*FATAL|Process: com\.ynxweb4\.mobile.*crash'; then
@@ -42,5 +52,5 @@ if adb -s "$serial" logcat -d -t 1200 | rg -i 'FATAL EXCEPTION|AndroidRuntime.*F
   exit 1
 fi
 
-printf 'mobile-android-release-installed-check passed: serial=%s package=com.ynxweb4.mobile no-post-live-feed apkSha256=' "$serial"
+printf 'mobile-android-release-installed-check passed: serial=%s package=com.ynxweb4.mobile embedded-Hermes four-tab-native-Pay-ui apkSha256=' "$serial"
 shasum -a 256 "$apk" | awk '{print $1}'

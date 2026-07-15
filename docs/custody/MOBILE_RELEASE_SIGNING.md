@@ -6,7 +6,7 @@ Status: Android release pipeline verified with a disposable test certificate; ow
 
 `make mobile-android-release-check` creates a disposable mode-`0600` PKCS12 keystore outside the repository, generates a Release APK and AAB through the Expo/Gradle native toolchain, verifies the APK v2 and AAB JAR signatures, binds both artifacts to one certificate fingerprint, writes a canonical provenance manifest, and rejects artifact tampering and false production-signing claims. The disposable package is test-only and is deleted by the check.
 
-`ANDROID_SERIAL=<emulator> make mobile-android-release-installed-check` installs the generated Release APK only when Android reports `ro.kernel.qemu=1`. It clears the test application, launches the embedded Hermes build, and verifies the official Logo, Testnet state, and live empty Square feed. It refuses real devices because the smoke clears application data.
+`ANDROID_SERIAL=<emulator> make mobile-android-release-installed-check` installs the generated Release APK only when Android reports `ro.kernel.qemu=1`. It clears the test application, launches the embedded Hermes build, and verifies the official Logo, Testnet state, four native tabs, and the independent native Pay invoice screen. It refuses real devices because the smoke clears application data. This installed-package check does not claim that public APIs are reachable; remote route evidence is tracked separately.
 
 The Expo config plugin removes the generated debug signing assignment from the Release build. A Release is signed only when all external keystore credentials are present; partial configuration fails closed. Debug builds retain the ordinary generated debug certificate.
 

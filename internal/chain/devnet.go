@@ -68,6 +68,7 @@ type Devnet struct {
 	payIntents           map[string]PayIntent
 	invoices             map[string]Invoice
 	refunds              map[string]RefundRecord
+	paySettlements       map[string]PaySettlement
 	webhookSignatures    map[string]WebhookSignature
 	payEvents            map[string]PayEvent
 	riskLabels           map[string][]RiskLabel
@@ -257,6 +258,7 @@ type devnetSnapshot struct {
 	PayIntents       map[string]PayIntent                  `json:"payIntents"`
 	Invoices         map[string]Invoice                    `json:"invoices"`
 	Refunds          map[string]RefundRecord               `json:"refunds"`
+	PaySettlements   map[string]PaySettlement              `json:"paySettlements"`
 	Webhooks         map[string]WebhookSignature           `json:"webhookSignatures"`
 	PayEvents        map[string]PayEvent                   `json:"payEvents"`
 	RiskLabels       map[string][]RiskLabel                `json:"riskLabels"`
@@ -412,6 +414,7 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		payIntents:           map[string]PayIntent{},
 		invoices:             map[string]Invoice{},
 		refunds:              map[string]RefundRecord{},
+		paySettlements:       map[string]PaySettlement{},
 		webhookSignatures:    map[string]WebhookSignature{},
 		payEvents:            map[string]PayEvent{},
 		riskLabels:           map[string][]RiskLabel{},
@@ -1041,6 +1044,10 @@ func (d *Devnet) CreatePayIntent(merchant string, amount int64, callbackURL stri
 }
 
 func (d *Devnet) CreatePayIntentWithIdempotency(merchant string, amount int64, callbackURL, idempotencyKey string) (PayIntent, error) {
+	return d.CreatePayIntentForPayoutWithIdempotency(merchant, "", amount, callbackURL, idempotencyKey)
+}
+
+func (d *Devnet) CreatePayIntentForPayoutWithIdempotency(merchant, payoutAddress string, amount int64, callbackURL, idempotencyKey string) (PayIntent, error) {
 	merchant = strings.TrimSpace(merchant)
 	callbackURL = strings.TrimSpace(callbackURL)
 	idempotencyKey = strings.TrimSpace(idempotencyKey)
@@ -1050,19 +1057,26 @@ func (d *Devnet) CreatePayIntentWithIdempotency(merchant string, amount int64, c
 	if amount <= 0 {
 		return PayIntent{}, errors.New("amount must be positive")
 	}
+	var err error
+	if strings.TrimSpace(payoutAddress) != "" {
+		payoutAddress, _, err = normalizePayAddress(payoutAddress)
+		if err != nil {
+			return PayIntent{}, fmt.Errorf("invalid payoutAddress: %w", err)
+		}
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if existing, ok := d.findPayIntentByIdempotencyLocked(merchant, idempotencyKey); ok {
-		if existing.Amount != amount || existing.CallbackURL != callbackURL {
+		if existing.PayoutAddress != payoutAddress || existing.Amount != amount || existing.CallbackURL != callbackURL {
 			return PayIntent{}, errors.New("idempotencyKey was already used with different payment intent input")
 		}
 		return existing, nil
 	}
 	now := time.Now().UTC()
-	intent := PayIntent{ID: hashParts("pay", merchant, fmt.Sprint(amount), fmt.Sprint(now.UnixNano()))[:24], Merchant: merchant, Amount: amount, Currency: d.cfg.NativeCurrencySymbol, Status: "created", CreatedAt: now, CallbackURL: callbackURL, IdempotencyKey: idempotencyKey}
+	intent := PayIntent{ID: hashParts("pay", merchant, payoutAddress, fmt.Sprint(amount), fmt.Sprint(now.UnixNano()))[:24], Merchant: merchant, PayoutAddress: payoutAddress, Amount: amount, Currency: d.cfg.NativeCurrencySymbol, Status: "created", CreatedAt: now, CallbackURL: callbackURL, IdempotencyKey: idempotencyKey}
 	d.payIntents[intent.ID] = intent
 	d.recordPayEventLocked("payment_intent.created", intent.ID, intent.ID, intent.Merchant, intent.Amount, intent.Currency, intent.IdempotencyKey, now)
-	err := d.persistSnapshotLocked()
+	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return intent, err
 }
@@ -1104,6 +1118,7 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 		ID:             hashParts("invoice", intent.ID, fmt.Sprint(now.UnixNano()))[:24],
 		IntentID:       intent.ID,
 		Merchant:       intent.Merchant,
+		PayoutAddress:  intent.PayoutAddress,
 		Amount:         intent.Amount,
 		Currency:       intent.Currency,
 		Status:         "issued",
@@ -1124,6 +1139,96 @@ func (d *Devnet) Invoice(id string) (Invoice, bool) {
 	defer d.mu.RUnlock()
 	invoice, ok := d.invoices[id]
 	return invoice, ok
+}
+
+func (d *Devnet) SettleInvoice(invoiceID, payer, transactionHash, idempotencyKey string) (PaySettlement, error) {
+	invoiceID = strings.TrimSpace(invoiceID)
+	transactionHash = strings.TrimSpace(transactionHash)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
+	if invoiceID == "" {
+		return PaySettlement{}, errors.New("invoiceId is required")
+	}
+	if !transactionHashPattern.MatchString(transactionHash) || transactionHash != strings.ToLower(transactionHash) {
+		return PaySettlement{}, errors.New("transactionHash must be canonical lowercase 32-byte hex")
+	}
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		return PaySettlement{}, errors.New("idempotencyKey must contain 1 to 128 characters")
+	}
+	payerNative, payerCanonical, err := normalizePayAddress(payer)
+	if err != nil {
+		return PaySettlement{}, fmt.Errorf("invalid payer: %w", err)
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	invoice, ok := d.invoices[invoiceID]
+	if !ok {
+		return PaySettlement{}, errors.New("invoice not found")
+	}
+	if invoice.PayoutAddress == "" {
+		return PaySettlement{}, errors.New("invoice has no bound merchant payout address")
+	}
+	if existing, found := d.findPaySettlementByIdempotencyLocked(invoiceID, payerNative, idempotencyKey); found {
+		if existing.TransactionHash != transactionHash {
+			return PaySettlement{}, errors.New("idempotencyKey was already used with a different settlement transaction")
+		}
+		return existing, nil
+	}
+	if invoice.Status == "paid" {
+		return PaySettlement{}, errors.New("invoice is already paid")
+	}
+	if time.Now().UTC().After(invoice.DueAt) {
+		return PaySettlement{}, errors.New("invoice is expired")
+	}
+	for _, existing := range d.paySettlements {
+		if existing.TransactionHash == transactionHash {
+			return PaySettlement{}, errors.New("transactionHash is already bound to another settlement")
+		}
+	}
+	tx, found := d.transactionLocked(transactionHash)
+	if !found || tx.BlockNum == 0 || tx.BlockHash == "" {
+		return PaySettlement{}, errors.New("settlement transaction is not committed")
+	}
+	_, payoutCanonical, err := normalizePayAddress(invoice.PayoutAddress)
+	if err != nil {
+		return PaySettlement{}, errors.New("invoice payout address is invalid")
+	}
+	if tx.Type != "transfer" || tx.From != payerCanonical || tx.To != payoutCanonical || tx.Amount != invoice.Amount || tx.Fee != 1 {
+		return PaySettlement{}, errors.New("settlement transaction does not match payer, payout address, amount, and native fee")
+	}
+	if tx.Timestamp.Before(invoice.CreatedAt) {
+		return PaySettlement{}, errors.New("settlement transaction predates the invoice")
+	}
+
+	now := time.Now().UTC()
+	settlement := PaySettlement{
+		ID: hashParts("pay-settlement", invoice.ID, payerNative, transactionHash)[:24], IntentID: invoice.IntentID,
+		InvoiceID: invoice.ID, Merchant: invoice.Merchant, PayoutAddress: invoice.PayoutAddress, Payer: payerNative,
+		Amount: invoice.Amount, Currency: invoice.Currency, TransactionHash: transactionHash, BlockNumber: tx.BlockNum,
+		Status: "paid", IdempotencyKey: idempotencyKey, CreatedAt: now,
+	}
+	settlement.AuditHash = paySettlementAuditHash(settlement)
+	d.paySettlements[settlement.ID] = settlement
+	invoice.Status = "paid"
+	d.invoices[invoice.ID] = invoice
+	intent := d.payIntents[invoice.IntentID]
+	intent.Status = "paid"
+	d.payIntents[intent.ID] = intent
+	d.recordPaySettlementEventLocked(settlement)
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return settlement, err
+}
+
+func (d *Devnet) PaySettlementByInvoice(invoiceID string) (PaySettlement, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	for _, settlement := range d.paySettlements {
+		if settlement.InvoiceID == strings.TrimSpace(invoiceID) {
+			return settlement, true
+		}
+	}
+	return PaySettlement{}, false
 }
 
 func (d *Devnet) CreateRefund(intentID string, amount int64, reason string) (RefundRecord, error) {
@@ -2938,6 +3043,9 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.refunds == nil {
 		d.refunds = map[string]RefundRecord{}
 	}
+	if d.paySettlements == nil {
+		d.paySettlements = map[string]PaySettlement{}
+	}
 	if d.webhookSignatures == nil {
 		d.webhookSignatures = map[string]WebhookSignature{}
 	}
@@ -3195,6 +3303,15 @@ func (d *Devnet) findRefundByIdempotencyLocked(intentID, idempotencyKey string) 
 	return RefundRecord{}, false
 }
 
+func (d *Devnet) findPaySettlementByIdempotencyLocked(invoiceID, payer, idempotencyKey string) (PaySettlement, bool) {
+	for _, settlement := range d.paySettlements {
+		if settlement.InvoiceID == invoiceID && settlement.Payer == payer && settlement.IdempotencyKey == idempotencyKey {
+			return settlement, true
+		}
+	}
+	return PaySettlement{}, false
+}
+
 func (d *Devnet) findWebhookByIdempotencyLocked(intentID, eventType, idempotencyKey string) (WebhookSignature, bool) {
 	if idempotencyKey == "" {
 		return WebhookSignature{}, false
@@ -3222,6 +3339,32 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func (d *Devnet) recordPaySettlementEventLocked(settlement PaySettlement) PayEvent {
+	event := d.recordPayEventLocked("invoice.paid", settlement.IntentID, settlement.ID, settlement.Merchant, settlement.Amount, settlement.Currency, settlement.IdempotencyKey, settlement.CreatedAt)
+	event.PayoutAddress = settlement.PayoutAddress
+	event.Payer = settlement.Payer
+	event.TransactionHash = settlement.TransactionHash
+	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	d.payEvents[event.ID] = event
+	return event
+}
+
+func normalizePayAddress(value string) (native, canonical string, err error) {
+	canonical, err = accountaddress.Normalize(strings.TrimSpace(value))
+	if err != nil {
+		return "", "", err
+	}
+	native, err = accountaddress.Encode(canonical)
+	if err != nil {
+		return "", "", err
+	}
+	return native, canonical, nil
+}
+
+func paySettlementAuditHash(value PaySettlement) string {
+	return hashParts("pay-settlement-audit", value.ID, value.IntentID, value.InvoiceID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.Status, value.IdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano))
 }
 
 func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {

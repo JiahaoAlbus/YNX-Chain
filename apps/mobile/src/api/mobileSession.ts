@@ -1,5 +1,6 @@
 import { accountIdentity, deviceIdentifier, deviceIdentity, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration, zeroize } from "../crypto/ynxSigner";
 import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
+import { parsePaySettlement, type PaySettlement } from "./pay";
 
 const CLIENT = "ynx-mobile-v1";
 const BINDING = "ynx-mobile://com.ynxweb4.mobile";
@@ -40,7 +41,7 @@ export class YNXMobileAppClient {
     return false;
   }
 
-  async connect(): Promise<void> {
+  async connect(options: { registerSquare?: boolean } = {}): Promise<void> {
     await this.authorize("ownership-proof");
     const device = deviceIdentity(this.deviceSecret);
     const challenge = await this.request("/app/session/challenges", {
@@ -57,7 +58,7 @@ export class YNXMobileAppClient {
       throw new Error("Gateway native session binding mismatch");
     }
     this.session = { token: session.token, expiresAt: session.expiresAt };
-    try {
+    if (options.registerSquare !== false) try {
       await this.request("/app/square/devices", squareDeviceRegistration({
         account: this.account,
         deviceId: this.deviceId,
@@ -68,6 +69,14 @@ export class YNXMobileAppClient {
       this.session = null;
       throw error;
     }
+  }
+
+  async settlePayInvoice(invoiceID: string, transactionHash: string, idempotencyKey: string): Promise<PaySettlement> {
+    if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{2,127}$/.test(invoiceID)) throw new Error("Pay invoice ID is invalid");
+    if (!/^0x[0-9a-f]{64}$/.test(transactionHash)) throw new Error("Canonical lowercase YNX transaction hash is required");
+    if (idempotencyKey.trim().length < 1 || idempotencyKey.length > 128) throw new Error("Pay settlement idempotency key is invalid");
+    return parsePaySettlement(await this.request(`/app/pay/invoices/${encodeURIComponent(invoiceID)}/settle`, { transactionHash, idempotencyKey }, this.sessionHeaders()));
   }
 
   async createPost(content: string, idempotencyKey: string): Promise<unknown> {

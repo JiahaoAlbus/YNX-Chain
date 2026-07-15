@@ -34,9 +34,11 @@ type ownershipFixture struct {
 func TestOwnershipSessionLifecyclePersistenceAndProtectedRoutes(t *testing.T) {
 	chat, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
 	square, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	pay, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
 	now := time.Date(2026, 7, 14, 8, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(t.TempDir(), "app-gateway", "state.json")
 	cfg := testConfig(t, chatServer.URL, squareServer.URL, 100)
+	cfg.PayURL = payServer.URL
 	cfg.StatePath = statePath
 	cfg.Now = func() time.Time { return now }
 	gateway, err := New(cfg)
@@ -82,6 +84,18 @@ func TestOwnershipSessionLifecyclePersistenceAndProtectedRoutes(t *testing.T) {
 	}
 	if len(square.snapshot()) != 2 || len(chat.snapshot()) != 1 {
 		t.Fatalf("protected upstream calls square=%+v chat=%+v", square.snapshot(), chat.snapshot())
+	}
+	response = protectedRequest(t, server.URL, http.MethodPost, "/app/pay/invoices/invoice-1/settle", map[string]any{"transactionHash": "0x" + strings.Repeat("a", 64), "idempotencyKey": "settle-primary"}, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("protected Pay settlement status %d: %s", response.Code, response.Body.String())
+	}
+	payRequests := pay.snapshot()
+	if len(payRequests) != 1 || payRequests[0].ServiceKey != testPayKey || !strings.Contains(payRequests[0].Body, `"payer":"`+fixture.account+`"`) {
+		t.Fatalf("Pay account binding or credential injection failed: %+v", payRequests)
+	}
+	response = protectedRequest(t, server.URL, http.MethodPost, "/app/pay/invoices/invoice-1/settle", map[string]any{"payer": fixture.account, "transactionHash": "0x" + strings.Repeat("a", 64), "idempotencyKey": "settle-supplied"}, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusBadRequest || len(pay.snapshot()) != 1 {
+		t.Fatalf("client-supplied payer reached Pay upstream: status=%d upstream=%+v", response.Code, pay.snapshot())
 	}
 
 	badRegistration := map[string]any{"idempotencyKey": "register-other", "account": fixture.account, "deviceId": "device-other", "signingPublicKey": fixture.devicePublic, "proofSignature": "x"}
