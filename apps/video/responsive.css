@@ -1,0 +1,11 @@
+body { overflow-x: hidden; }
+@media (max-width: 760px) {
+  header { grid-template-columns: minmax(0, 1fr) 132px; gap: 10px; }
+  header .outline { width: 132px; padding: 8px; font-size: 0; line-height: 1.2; }
+  header .outline::after { content: "Wallet sign in"; font-size: .8rem; }
+  #search input { min-width: 0; }
+  main { padding-left: 20px; padding-right: 20px; }
+  .intro { grid-template-columns: minmax(0, 1fr); overflow: hidden; }
+  .intro > * { min-width: 0; }
+  .intro h1, .intro p { overflow-wrap: anywhere; }
+}

@@ -1,0 +1,1 @@
+{"name":"@ynx/creator-studio","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --test app.test.mjs","smoke":"node smoke.mjs"}}
