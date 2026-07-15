@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#002FA7">
+  <meta name="description" content="YNX Developer — bounded, evidence-first project, compile and Wallet deployment workflows for YNX Chain.">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg">
+  <link rel="stylesheet" href="/styles.css?v=2">
+  <title>YNX Developer</title>
+</head>
+<body>
+  <a class="skip" href="#editor">Skip to editor</a>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">&gt;_</span><span>YNX Developer</span><span class="surface-badge">WEB PRODUCT</span></div>
+      <div class="project-actions">
+        <button id="create-project" class="button primary">New project</button>
+        <button id="import-project" class="button">Import</button>
+        <button id="export-project" class="button">Export</button>
+      </div>
+      <div class="network" id="network-status" role="status"><span class="status-dot unknown"></span><span>YNX Testnet · checking</span></div>
+    </header>
+
+    <nav class="activity" aria-label="Workspace views">
+      <button class="activity-button active" data-view="files" aria-label="Files"><span>▱</span><small>Files</small></button>
+      <button class="activity-button" data-view="search" aria-label="Search"><span>⌕</span><small>Search</small></button>
+      <button class="activity-button" data-view="source" aria-label="Source control"><span>⑂</span><small>Diff</small></button>
+      <button class="activity-button" data-view="deploy" aria-label="Deployment"><span>↑</span><small>Deploy</small></button>
+      <button class="activity-button" data-view="docs" aria-label="Documentation"><span>?</span><small>Docs</small></button>
+      <button id="mobile-agent" class="activity-button mobile-agent" data-view="agent" aria-label="Open AI Coding Agent"><span>✦</span><small>AI</small></button>
+    </nav>
+
+    <aside class="sidebar" aria-label="Project navigator">
+      <section id="view-files" class="side-view active">
+        <div class="pane-heading"><div><span class="eyebrow">PROJECT</span><strong id="project-name">No project</strong></div><button id="new-file" class="icon-button" aria-label="New file">＋</button></div>
+        <div id="file-tree" class="file-tree" role="tree"></div>
+        <div class="side-footer"><span>Persistence</span><strong>IndexedDB · local</strong></div>
+      </section>
+      <section id="view-search" class="side-view">
+        <div class="pane-heading"><strong>Search approved files</strong></div>
+        <label class="field"><span>Query</span><input id="search-query" placeholder="Text or symbol"></label>
+        <button id="run-search" class="button primary full">Search project</button>
+        <div id="search-results" class="result-list"></div>
+      </section>
+      <section id="view-source" class="side-view">
+        <div class="pane-heading"><strong>Source control review</strong></div>
+        <p class="muted compact">Local checkpoint baseline. This is not a remote Git claim.</p>
+        <div id="diff-list" class="result-list"></div>
+        <label class="field"><span>Checkpoint label</span><input id="checkpoint-label" value="reviewed checkpoint"></label>
+        <button id="create-checkpoint" class="button primary full">Create checkpoint</button>
+        <select id="checkpoint-select" class="select full" aria-label="Checkpoint to revert"></select>
+        <button id="revert-checkpoint" class="button danger full">Review & revert</button>
+      </section>
+      <section id="view-deploy" class="side-view">
+        <div class="pane-heading"><strong>Deployment</strong></div>
+        <div class="boundary"><span>Signing boundary</span><strong>YNX Wallet only</strong><small>No private key enters Developer.</small></div>
+        <label class="field"><span>Wallet account</span><input id="deploy-account" placeholder="ynx1..."></label>
+        <label class="field"><span>Constructor args (JSON)</span><input id="constructor-args" value="[]"></label>
+        <button id="review-deployment" class="button primary full">Review deployment</button>
+        <div id="deployment-state" class="state-card">Compile a supported Solidity file first.</div>
+      </section>
+      <section id="view-docs" class="side-view">
+        <div class="pane-heading"><strong>Documentation</strong></div>
+        <div class="docs-list">
+          <button data-doc="compiler">Pinned compiler & bounded EVM</button>
+          <button data-doc="wallet">Wallet authorization & signing</button>
+          <button data-doc="ai">AI permissions & review</button>
+          <button data-doc="surfaces">Web vs desktop evidence</button>
+          <button data-doc="recovery">Recovery & checkpoints</button>
+        </div>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <div class="editor-toolbar">
+        <div class="tabs"><button id="active-tab" class="tab active">Welcome</button></div>
+        <div class="run-actions"><span id="save-state">Saved</span><button id="compile" class="button primary">Compile</button><button id="run-tests" class="button">Run tests</button><button id="run-task" class="button">Tasks ▾</button></div>
+      </div>
+      <section class="editor-area">
+        <div class="gutter" id="line-numbers" aria-hidden="true">1</div>
+        <textarea id="editor" spellcheck="false" aria-label="Source editor" placeholder="Create or open a project to edit files."></textarea>
+      </section>
+      <section class="bottom-panel" aria-label="Output panel">
+        <div class="panel-tabs" role="tablist">
+          <button class="panel-tab active" data-panel="problems">Problems <span id="problem-count">0</span></button>
+          <button class="panel-tab" data-panel="output">Output</button>
+          <button class="panel-tab" data-panel="terminal">Terminal</button>
+          <button class="panel-tab" data-panel="rpc">RPC Tools</button>
+          <button class="panel-tab" data-panel="receipts">Receipts & logs</button>
+        </div>
+        <div id="panel-problems" class="panel-body active"><div id="diagnostics" class="diagnostics empty">No diagnostics. Open a Solidity file to analyze.</div></div>
+        <div id="panel-output" class="panel-body"><pre id="command-output">Command output is evidence-backed. Nothing has run.</pre></div>
+        <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: preview only</span><span>Unsigned local desktop package: allowlisted executor when installed</span><span>Signed production desktop release: not claimed</span></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
+        <div id="panel-rpc" class="panel-body"><div class="rpc-row"><select id="rpc-method" class="select"><option>eth_chainId</option><option>eth_blockNumber</option><option>net_version</option><option>eth_getTransactionReceipt</option><option>eth_getLogs</option></select><input id="rpc-params" value="[]" aria-label="RPC parameters JSON"><button id="run-rpc" class="button primary">Run read-only RPC</button></div><pre id="rpc-output">RPC methods are allowlisted and read-only.</pre></div>
+        <div id="panel-receipts" class="panel-body"><pre id="receipt-output">No authoritative deployment receipt, logs, or source match evidence loaded.</pre></div>
+      </section>
+    </main>
+
+    <aside class="agent" aria-label="AI Coding Agent">
+      <div class="agent-heading"><div><span class="eyebrow">YNX AI GATEWAY</span><strong>AI Coding Agent</strong></div><span id="provider-status" class="provider unavailable">Unavailable</span><button id="close-agent" class="icon-button close-agent" aria-label="Close AI Coding Agent">×</button></div>
+      <div class="agent-scroll">
+        <div class="agent-note">The agent sees only checked files, cites source lines, proposes diffs and tests, and cannot write or run commands without review.</div>
+        <fieldset id="context-files" class="context"><legend>Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
+        <label class="field"><span>Model / provider</span><select id="model-select" class="select"><option>Gateway configured model</option></select></label>
+        <label class="field"><span>Session-only Gateway access</span><input id="gateway-token" type="password" autocomplete="off" placeholder="Not persisted"></label>
+        <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>
+        <div id="cost-estimate" class="estimate"><span>Cost estimate</span><strong>Select context</strong><small>Provider billing is unavailable until reported.</small></div>
+        <div class="agent-actions"><button id="ask-ai" class="button primary full">Review context & stream</button><button id="cancel-ai" class="button full" disabled>Cancel stream</button></div>
+        <pre id="ai-output" class="ai-output">No provider-backed result.</pre>
+        <div class="review-actions"><button id="apply-ai" class="button primary" disabled>Apply reviewed diff</button><button id="reject-ai" class="button" disabled>Reject</button></div>
+        <div class="pane-heading"><strong>Local conversation history</strong><button id="clear-ai-history" class="button">Clear</button></div>
+        <div id="ai-history" class="result-list"><p class="muted compact">No saved AI results.</p></div>
+      </div>
+    </aside>
+
+    <footer class="statusbar"><span>YNX Chain <strong>ynx_6423-1</strong></span><span>EVM ID <strong>6423</strong></span><span>Gas <strong>YNXT</strong></span><span>Compiler <strong>Solidity 0.8.24 · pinned</strong></span><span class="truth">Bounded execution · no arbitrary EVM claim</span></footer>
+  </div>
+
+  <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-heading"><strong id="modal-title">Action</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="button">Cancel</button><button id="modal-confirm" value="default" class="button primary">Continue</button></div></form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <input id="file-import" type="file" accept="application/json,.json" hidden>
+  <script type="module" src="/app.js?v=4"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "YNX Developer",
+  "short_name": "YNX Dev",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#002FA7",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
