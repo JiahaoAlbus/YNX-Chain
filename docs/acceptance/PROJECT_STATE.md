@@ -1,5 +1,13 @@
 # Project State
 
+## 2026-07-16 Seoul follower outage and executable replication alert rules
+
+- A fresh bounded read-only cycle observed successful public RPC, EVM RPC, REST, gRPC, governance, Faucet, Indexer, Explorer, AI, Pay, Trust, Resource, and Web4 reads. A second RPC sample advanced from height `188136` to `188137`; the public chain remains release `0d31850f74b2`, not current source `145230ce73cc`.
+- Strict SSH and current host keys passed for primary, Singapore, and Silicon Valley. Seoul's ports `22` and `6420` accepted TCP connections from the workstation, but direct and primary-origin probes received neither an SSH banner nor an HTTP response. Primary peer evidence for Seoul was stale by more than 20 minutes while the other two follower observations remained fresh. This is an unavailable follower/control-plane condition, not a host-key-change claim.
+- Exact-release mismatch prevented the remote smoke from entering any Faucet, Pay, Trust, Resource, IDE, or governance mutation. `remote-blocker-report` recorded the Seoul node and peer-freshness failures, and `deploy-readiness-gate` rejected deployment. No backup, install, restart, cloud action, chain mutation, firewall/ingress change, or BFT phase ran.
+- `infra/monitoring/replication-alerts.test.yml` now exercises the production Prometheus rules with synthetic follower timelines. Prometheus 2.55.1 `promtool` proves degraded, prolonged catch-up, lag-above-three, and consecutive-failure alerts remain pending for the configured `for` duration, fire, and clear after recovery. This is local rule behavior evidence only; no remote scrape target, Alertmanager notification, controlled remote interruption, or independent proof exists.
+- Actual ordinary deployment now fails before the readiness gate or build when Git has tracked modifications or untracked files, preventing dirty source from being labeled as the clean `HEAD` release. Ignored runtime/secret evidence remains allowed, and dry-run remains non-mutating. An isolated check covers clean, ignored-only, tracked-dirty, and untracked repositories.
+
 ## 2026-07-16 Authoritative snapshot v2 corruption detection
 
 - Current source upgrades the authoritative `devnet-state.json` from partial Resource Sponsor integrity to a versioned full-snapshot SHA-256 digest covering blocks, transactions, accounts, validators, operational peer records, Pay, Trust, governance, AI, Resource, contracts, and nested records. Startup and replication validate the digest before applying state.

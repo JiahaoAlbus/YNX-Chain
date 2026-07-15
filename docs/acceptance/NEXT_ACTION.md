@@ -9,8 +9,8 @@ Why this is next:
 - The public chain still depends on one producer and three authenticated read-only followers while the approval-gated BFT transition remains intentionally inactive.
 - Current source now exposes the real replication lifecycle, `catchingUp`, freshness, exact source/local height and hash, lag, attempts, successes, failures, timestamps, bounded error evidence, Prometheus telemetry, alerts, and Grafana panels.
 - Current source now also seals the complete authoritative snapshot as v2, durably syncs replacement, permits one marker-free v1 migration, rejects later downgrade/corruption, and restores in-memory state when replication persistence fails.
-- Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass.
-- This source is not yet deployed. The 2026-07-16 read-only cycle passed strict SSH on all four roles but public smoke failed on exact-release mismatch and intermittent EVM/REST/gRPC/Explorer/Resource/Web4 timeouts; the deployment gate rejected mutation.
+- Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass. Pinned Prometheus rule tests now prove that degraded, prolonged catch-up, lag, and consecutive-failure alerts fire after their configured hold time and clear after recovery.
+- This source is not yet deployed. The latest 2026-07-16 read-only cycle observed public block growth and successful RPC, EVM, REST, gRPC, Faucet, Indexer, Explorer, AI, Pay, Trust, Resource, and Web4 reads. Primary, Singapore, and Silicon Valley passed strict SSH; Seoul accepted TCP on ports 22 and 6420 but returned neither an SSH banner nor chain HTTP, and its primary-side peer observation was stale. Exact-release mismatch kept all mutable smoke actions skipped, and the deployment gate rejected mutation.
 
 Files to touch:
 
@@ -36,6 +36,8 @@ Validation commands:
 - `go test -race ./internal/chain ./cmd/ynx-chaind`
 - `make validator-peer-readiness-check`
 - `make monitoring-check`
+- `make replication-alert-check`
+- `make deploy-source-integrity-check`
 - `make verify-testnet-check`
 - `make replication-compression-check`
 - `make smoke-test`

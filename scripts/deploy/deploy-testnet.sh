@@ -111,6 +111,7 @@ fi
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
+  ynx_require_clean_worktree
   node scripts/verify/deploy-readiness-gate.mjs
 fi
 

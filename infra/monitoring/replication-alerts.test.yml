@@ -1,0 +1,105 @@
+rule_files:
+  - ynx-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: follower degraded fires after two minutes and clears when fresh
+    interval: 1m
+    input_series:
+      - series: 'ynx_chain_replication_configured{job="ynx-chaind",instance="follower-a"}'
+        values: '1x5'
+      - series: 'ynx_chain_replication_fresh{job="ynx-chaind",instance="follower-a"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXFollowerReplicationDegraded
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXFollowerReplicationDegraded
+        exp_alerts:
+          - exp_labels:
+              instance: follower-a
+              job: ynx-chaind
+              severity: critical
+            exp_annotations:
+              summary: YNX authoritative follower replication is not fresh
+              description: The follower has not recently completed authenticated exact source convergence. Inspect lifecycle state, source reachability, HMAC validation, and local persistence before restart.
+      - eval_time: 3m
+        alertname: YNXFollowerReplicationDegraded
+        exp_alerts: []
+
+  - name: follower catching up fires after five minutes and clears on convergence
+    interval: 1m
+    input_series:
+      - series: 'ynx_chain_replication_configured{job="ynx-chaind",instance="follower-b"}'
+        values: '1x8'
+      - series: 'ynx_chain_replication_catching_up{job="ynx-chaind",instance="follower-b"}'
+        values: '1x5 0x2'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: YNXFollowerReplicationCatchingUp
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: YNXFollowerReplicationCatchingUp
+        exp_alerts:
+          - exp_labels:
+              instance: follower-b
+              job: ynx-chaind
+              severity: warning
+            exp_annotations:
+              summary: YNX authoritative follower remains in catching-up state
+              description: The follower has not returned to a fresh exact source height and block hash for five minutes.
+      - eval_time: 6m
+        alertname: YNXFollowerReplicationCatchingUp
+        exp_alerts: []
+
+  - name: follower lag fires after two minutes and clears below threshold
+    interval: 1m
+    input_series:
+      - series: 'ynx_chain_replication_configured{job="ynx-chaind",instance="follower-c"}'
+        values: '1x5'
+      - series: 'ynx_chain_replication_lag_blocks{job="ynx-chaind",instance="follower-c"}'
+        values: '4x2 0x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXFollowerReplicationLagging
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXFollowerReplicationLagging
+        exp_alerts:
+          - exp_labels:
+              instance: follower-c
+              job: ynx-chaind
+              severity: warning
+            exp_annotations:
+              summary: YNX authoritative follower is behind the producer
+              description: Authenticated source height exceeds local follower height by more than three blocks.
+      - eval_time: 3m
+        alertname: YNXFollowerReplicationLagging
+        exp_alerts: []
+
+  - name: follower consecutive failure fires after one minute and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_chain_replication_failures_total{job="ynx-chaind",instance="follower-d"}'
+        values: '0x4'
+      - series: 'ynx_chain_replication_consecutive_failures{job="ynx-chaind",instance="follower-d"}'
+        values: '1x1 0x2'
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: YNXFollowerReplicationFailures
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: YNXFollowerReplicationFailures
+        exp_alerts:
+          - exp_labels:
+              instance: follower-d
+              job: ynx-chaind
+              severity: critical
+            exp_annotations:
+              summary: YNX authoritative follower replication is failing
+              description: At least one replication attempt failed or the follower still has consecutive failures. Inspect bounded runtime stage/error evidence without exposing replication credentials.
+      - eval_time: 2m
+        alertname: YNXFollowerReplicationFailures
+        exp_alerts: []
