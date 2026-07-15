@@ -1,0 +1,1 @@
+{"name":"@ynx/calendar","version":"0.1.0","private":true,"description":"Independent YNX Calendar Web/PWA and service","scripts":{"test":"node --check web/app.js && node --test tests/*.test.mjs","build":"go build -o /tmp/ynx-calendard .","smoke":"sh tests/smoke.sh"},"ynx":{"productId":"com.ynx.calendar","walletScope":"calendar:account","recoveryScope":"calendar:recover"}}
