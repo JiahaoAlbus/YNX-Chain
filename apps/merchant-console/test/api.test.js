@@ -1,0 +1,2 @@
+import assert from "node:assert/strict";import test from "node:test";import { realRecords } from "../src/api.js";
+test("dashboard derives only persisted records",()=>{const out=realRecords({merchants:{m:{id:"m"}},invoices:{i:{id:"i",status:"pending"}},audit:[]});assert.equal(out.invoices.length,1);assert.equal(out.merchant.id,"m");assert.equal(out.catalog.length,0)});test("invalid state is rejected",()=>assert.throws(()=>realRecords(null)));

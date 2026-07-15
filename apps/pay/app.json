@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "YNX Pay",
+    "slug": "ynx-pay",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ynxpay",
+    "userInterfaceStyle": "light",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.ynxweb4.pay", "buildNumber": "1", "infoPlist": { "NSCameraUsageDescription": "Scan a merchant-signed YNX Pay invoice." } },
+    "android": { "package": "com.ynxweb4.pay", "versionCode": 1, "permissions": ["CAMERA"], "adaptiveIcon": { "backgroundColor": "#FFFFFF" } },
+    "plugins": [["expo-camera", { "cameraPermission": "Scan a merchant-signed YNX Pay invoice." }], "expo-secure-store"],
+    "extra": { "product": "pay", "network": "ynx_6423-1", "asset": "YNXT", "crossChainSettlement": "unavailable" }
+  }
+}
