@@ -1,5 +1,5 @@
 import { accountIdentity, addressIdentity, deviceIdentifier, deviceIdentity, signOwnershipChallenge, signSquareRequest, squareDeviceRegistration, zeroize } from "../crypto/ynxSigner";
-import { chatDeviceRegistration, decryptChatMessage, encryptChatMessage, signChatRequest } from "../crypto/chatCrypto";
+import { chatDeviceRegistration, createChatDeviceRotation, createChatEnvelopeSet, decryptChatDeviceEnvelope, decryptChatMessage, signChatRequest, verifyChatEnvelopeSetSignature } from "../crypto/chatCrypto";
 import { authorizeLocalKeyUse, type LocalKeyAuthorizer } from "../security/localAuthorization";
 import { parsePaySettlement, type PaySettlement } from "./pay";
 import { parseChatConversationResult, parseChatConversations, parseChatDevices, parseChatMessages, type ChatConversation, type ChatDevice, type ChatMessage, type DecryptedChatMessage } from "./chat";
@@ -107,23 +107,48 @@ export class YNXMobileAppClient {
 
   async listChatMessages(conversation: ChatConversation): Promise<DecryptedChatMessage[]> {
     const peer = chatPeer(conversation, this.account);
-    const devices = await this.listChatDevices(peer);
-    const messages = parseChatMessages(await this.signedChatRequest("GET", `/chat/conversations/${conversation.id}/messages`));
-    return messages.map((message) => this.decryptMessage(message, devices));
+    const [peerDevices, ownDevices, rawMessages] = await Promise.all([
+      this.listChatDevices(peer),
+      this.listChatDevices(this.account),
+      this.signedChatRequest("GET", `/chat/conversations/${conversation.id}/messages`),
+    ]);
+    return parseChatMessages(rawMessages).map((message) => this.decryptMessage(message, [...peerDevices, ...ownDevices]));
   }
 
-  async sendChatMessage(conversation: ChatConversation, plaintext: string, messageId: string, nonce: Uint8Array): Promise<void> {
+  async sendChatMessage(conversation: ChatConversation, plaintext: string, messageId: string, entropy: Uint8Array): Promise<void> {
     const peer = chatPeer(conversation, this.account);
-    const devices = (await this.listChatDevices(peer)).filter((device) => device.status === "active");
-    if (devices.length !== 1) throw new Error(devices.length === 0 ? "Chat recipient has no active device" : "This Chat version requires the recipient to have exactly one active device");
-    const recipient = devices[0];
-    if (!recipient) throw new Error("Chat recipient has no active device");
-    const envelope = encryptChatMessage({ deviceSecret: this.deviceSecret, recipientPublicKey: recipient.encryptionPublicKey, conversationId: conversation.id, messageId, plaintext, nonce });
-    await this.signedChatRequest("POST", `/chat/conversations/${conversation.id}/messages`, { messageId, ...envelope });
+    const [peerDevices, ownDevices] = await Promise.all([this.listChatDevices(peer), this.listChatDevices(this.account)]);
+    const devices = [...peerDevices, ...ownDevices].filter((device) => device.status === "active");
+    if (!devices.some((device) => device.account === peer)) throw new Error("Chat recipient has no active device");
+    if (!devices.some((device) => device.account === this.account && device.id === this.deviceId)) throw new Error("Current Chat device is no longer active");
+    const envelopeSet = createChatEnvelopeSet({
+      deviceSecret: this.deviceSecret,
+      senderAccount: this.account,
+      senderDeviceId: this.deviceId,
+      conversationId: conversation.id,
+      messageId,
+      plaintext,
+      recipients: devices.map((device) => ({ account: device.account, deviceId: device.id, encryptionPublicKey: device.encryptionPublicKey })),
+      entropy,
+    });
+    await this.signedChatRequest("POST", `/chat/conversations/${conversation.id}/messages`, envelopeSet);
   }
 
   async acknowledgeChatMessage(conversationId: string, messageId: string, state: "delivered" | "read"): Promise<void> {
     await this.signedChatRequest("POST", `/chat/conversations/${conversationId}/messages/${messageId}/${state}`);
+  }
+
+  async rotateCurrentChatDevice(newDeviceSecret: Uint8Array, idempotencyKey: string): Promise<string> {
+    if (!this.connected) throw new Error("Native YNX session is disconnected or expired");
+    await this.authorize("device-rotation");
+    const newDeviceId = deviceIdentifier(newDeviceSecret);
+    const request = createChatDeviceRotation({ account: this.account, authorizingDeviceId: this.deviceId, replacedDeviceId: this.deviceId, authorizingDeviceSecret: this.deviceSecret, newDeviceSecret, idempotencyKey, newDeviceId });
+    const value = await this.signedChatRequest("POST", `/chat/devices/${this.deviceId}/rotate`, request);
+    if (!isPlainObject(value) || !isPlainObject(value.record) || value.record.account !== this.account || value.record.authorizingDeviceId !== this.deviceId || value.record.replacedDeviceId !== this.deviceId || value.record.newDeviceId !== newDeviceId || typeof value.record.id !== "string") {
+      throw new Error("Chat device rotation response binding mismatch");
+    }
+    this.registeredChat = false;
+    return newDeviceId;
   }
 
   async settlePayInvoice(invoiceID: string, transactionHash: string, idempotencyKey: string): Promise<PaySettlement> {
@@ -202,14 +227,25 @@ export class YNXMobileAppClient {
     }, true, method);
   }
 
-  private decryptMessage(message: ChatMessage, peerDevices: ChatDevice[]): DecryptedChatMessage {
-    const candidates = message.sender === this.account ? peerDevices : peerDevices.filter((device) => device.id === message.senderDeviceId);
-    for (const device of candidates) {
+  private decryptMessage(message: ChatMessage, devices: ChatDevice[]): DecryptedChatMessage {
+    if (message.protocolVersion === 2) {
+      const senderDevice = devices.find((device) => device.id === message.senderDeviceId && device.account === message.sender);
+      const envelope = message.envelopes.find((candidate) => candidate.recipientAccount === this.account && candidate.recipientDeviceId === this.deviceId);
+      if (!senderDevice || !envelope || !message.senderSignature) return Object.freeze({ ...message, plaintext: null, decryptionError: "Message is not available for this device" });
       try {
-        const plaintext = decryptChatMessage({ deviceSecret: this.deviceSecret, peerPublicKey: device.encryptionPublicKey, conversationId: message.conversationId, messageId: message.id, envelope: message });
+        if (!verifyChatEnvelopeSetSignature({ conversationId: message.conversationId, messageId: message.id, senderAccount: message.sender, senderDeviceId: message.senderDeviceId, envelopes: message.envelopes, senderSignature: message.senderSignature, senderSigningPublicKey: senderDevice.signingPublicKey })) throw new Error("sender signature failed");
+        const plaintext = decryptChatDeviceEnvelope({ deviceSecret: this.deviceSecret, conversationId: message.conversationId, messageId: message.id, senderDeviceId: message.senderDeviceId, envelope });
         return Object.freeze({ ...message, plaintext, decryptionError: null });
-      } catch { /* Try the historical peer device used for this envelope. */ }
+      } catch {
+        return Object.freeze({ ...message, plaintext: null, decryptionError: "Message could not be authenticated on this device" });
+      }
     }
+    const legacyEnvelope = message.algorithm && message.nonce && message.ciphertext ? { algorithm: message.algorithm, nonce: message.nonce, ciphertext: message.ciphertext } : null;
+    const candidates = devices.filter((device) => device.account !== this.account && device.id === message.senderDeviceId);
+    if (legacyEnvelope) for (const device of candidates) try {
+      const plaintext = decryptChatMessage({ deviceSecret: this.deviceSecret, peerPublicKey: device.encryptionPublicKey, conversationId: message.conversationId, messageId: message.id, envelope: legacyEnvelope });
+      return Object.freeze({ ...message, plaintext, decryptionError: null });
+    } catch { /* Try another historical sender key if present. */ }
     return Object.freeze({ ...message, plaintext: null, decryptionError: "Message could not be authenticated on this device" });
   }
 

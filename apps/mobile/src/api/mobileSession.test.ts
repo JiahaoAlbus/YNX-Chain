@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { bytesToBase64Raw } from "../crypto/encoding";
-import { chatEncryptionPublicKey, encryptChatMessage } from "../crypto/chatCrypto";
+import { chatEncryptionPublicKey, createChatEnvelopeSet } from "../crypto/chatCrypto";
 import { accountIdentity, deviceIdentifier, deviceIdentity } from "../crypto/ynxSigner";
 import { YNXMobileAppClient } from "./mobileSession";
 
@@ -57,8 +57,10 @@ test("lists, sends, decrypts, and acknowledges native Chat messages", async () =
   const publicKey = deviceIdentity(deviceSecret).deviceSigningPublicKey;
   const bob = "ynx1llllllllllllllllllllllllllllllllyj698f";
   const bobDeviceSecret = new Uint8Array(32).fill(0x42);
+  const replacementSecret = new Uint8Array(32).fill(0x55);
+  const replacementDeviceId = deviceIdentifier(replacementSecret);
   const conversation = { id: "conv_mobile_chat", members: [account, bob], createdBy: account, createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:01:00Z" };
-  const incomingEnvelope = encryptChatMessage({ deviceSecret: bobDeviceSecret, recipientPublicKey: chatEncryptionPublicKey(deviceSecret), conversationId: conversation.id, messageId: "message_incoming", plaintext: "hello from Bob", nonce: new Uint8Array(24).fill(0x31) });
+  const incomingEnvelopeSet = createChatEnvelopeSet({ deviceSecret: bobDeviceSecret, senderAccount: bob, senderDeviceId: "bob-device", conversationId: conversation.id, messageId: "message_incoming", plaintext: "hello from Bob", recipients: [{ account, deviceId, encryptionPublicKey: chatEncryptionPublicKey(deviceSecret) }], entropy: new Uint8Array(32).fill(0x31) });
   const signBytes = bytesToBase64Raw(new TextEncoder().encode('{"domain":"YNX_APP_ACCOUNT_OWNERSHIP_V1"}'));
   const fetchImpl = async (input: string, init?: RequestInit): Promise<Response> => {
     const path = new URL(input).pathname;
@@ -66,25 +68,36 @@ test("lists, sends, decrypts, and acknowledges native Chat messages", async () =
     if (path === "/app/session/challenges") return jsonResponse(201, { challengeId: "native-chat-challenge", account, signBytes, signDocument: { account, deviceId, deviceSigningPublicKey: publicKey, origin: "ynx-mobile://com.ynxweb4.mobile", chainId: 6423 } });
     if (path.endsWith("/verify")) return jsonResponse(201, { account, deviceId, token: "c".repeat(43), expiresAt: "2026-07-14T12:30:00Z" });
     if (path === "/app/chat/conversations") return jsonResponse(200, { conversations: [conversation] });
-    if (path === `/app/chat/accounts/${bob}/devices`) return jsonResponse(200, { devices: [{ id: "bob-device", account: bob, signingPublicKey: "Qg", encryptionPublicKey: chatEncryptionPublicKey(bobDeviceSecret), status: "active", createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:00:00Z" }] });
-    if (path.endsWith("/messages") && init?.method === "GET") return jsonResponse(200, { messages: [{ id: "message_incoming", conversationId: conversation.id, sender: bob, senderDeviceId: "bob-device", ...incomingEnvelope, ciphertextHash: "a".repeat(64), createdAt: "2026-07-14T12:02:00Z", deliveredAt: {}, readAt: {} }] });
+    if (path === `/app/chat/accounts/${bob}/devices`) return jsonResponse(200, { devices: [{ id: "bob-device", account: bob, signingPublicKey: deviceIdentity(bobDeviceSecret).deviceSigningPublicKey, encryptionPublicKey: chatEncryptionPublicKey(bobDeviceSecret), status: "active", createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:00:00Z" }] });
+    if (path === `/app/chat/accounts/${account}/devices`) return jsonResponse(200, { devices: [{ id: deviceId, account, signingPublicKey: publicKey, encryptionPublicKey: chatEncryptionPublicKey(deviceSecret), status: "active", createdAt: "2026-07-14T12:00:00Z", updatedAt: "2026-07-14T12:00:00Z" }] });
+    if (path.endsWith("/messages") && init?.method === "GET") return jsonResponse(200, { messages: [{ id: "message_incoming", conversationId: conversation.id, sender: bob, senderDeviceId: "bob-device", protocolVersion: 2, ...incomingEnvelopeSet, envelopeSetHash: "a".repeat(64), createdAt: "2026-07-14T12:02:00Z", deliveredAt: {}, readAt: {} }] });
+    if (path === `/app/chat/devices/${deviceId}/rotate`) return jsonResponse(201, { record: { id: "rotation_mobile", account, authorizingDeviceId: deviceId, replacedDeviceId: deviceId, newDeviceId: replacementDeviceId }, replayed: false });
     return jsonResponse(201, { ok: true });
   };
   const client = new YNXMobileAppClient({ accountSecret, deviceSecret, fetchImpl, now: () => new Date("2026-07-14T12:05:00Z"), authorize: permitLocalKeyUse });
   await client.connect({ registerSquare: false });
   const conversations = await client.listChatConversations();
   assert.equal(conversations[0]?.id, conversation.id);
-  await client.sendChatMessage(conversations[0]!, "hello Bob", "message_outgoing", new Uint8Array(24).fill(0x32));
+  await client.sendChatMessage(conversations[0]!, "hello Bob", "message_outgoing", new Uint8Array(32).fill(0x32));
   const messages = await client.listChatMessages(conversations[0]!);
   assert.equal(messages[0]?.plaintext, "hello from Bob");
   assert.equal(messages[0]?.decryptionError, null);
   await client.acknowledgeChatMessage(conversation.id, "message_incoming", "read");
   const chatRequests = requests.filter((request) => request.path.startsWith("/app/chat/"));
-  assert.deepEqual(chatRequests.map((request) => request.init?.method), ["POST", "GET", "GET", "POST", "GET", "GET", "POST"]);
+  assert.deepEqual(chatRequests.map((request) => request.init?.method), ["POST", "GET", "GET", "GET", "POST", "GET", "GET", "GET", "POST"]);
   for (const request of chatRequests.slice(1)) assert.match(String((request.init?.headers as Record<string, string>)["X-YNX-Device-Signature"]), /^[A-Za-z0-9+/]+$/);
-  const sent = JSON.parse(String(chatRequests[3]?.init?.body));
+  const sent = JSON.parse(String(chatRequests[4]?.init?.body));
   assert.equal(sent.plaintext, undefined);
-  assert.equal(sent.algorithm, "x25519-hkdf-sha256-xchacha20poly1305");
+  assert.equal(sent.envelopes.length, 2);
+  assert.deepEqual(sent.envelopes.map((envelope: { recipientDeviceId: string }) => envelope.recipientDeviceId).sort(), ["bob-device", deviceId].sort());
+  assert.match(sent.senderSignature, /^[A-Za-z0-9+/]+$/);
+  assert.equal(await client.rotateCurrentChatDevice(replacementSecret, "rotate-mobile-device"), replacementDeviceId);
+  const rotationRequest = requests.at(-1);
+  assert.equal(rotationRequest?.path, `/app/chat/devices/${deviceId}/rotate`);
+  const rotationBody = JSON.parse(String(rotationRequest?.init?.body));
+  assert.equal(rotationBody.newDeviceId, replacementDeviceId);
+  assert.match(rotationBody.authorizationSignature, /^[A-Za-z0-9+/]+$/);
+  assert.match(rotationBody.newDeviceProofSignature, /^[A-Za-z0-9+/]+$/);
   client.lock();
 });
 

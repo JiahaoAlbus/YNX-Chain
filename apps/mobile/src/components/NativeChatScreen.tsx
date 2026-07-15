@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, AppState, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from "react-native";
 import { getRandomBytesAsync } from "expo-crypto";
-import { ArrowLeft, LockKeyhole, MessageCircle, Plus, RefreshCw, Send, ShieldCheck, X } from "lucide-react-native";
+import { ArrowLeft, LockKeyhole, MessageCircle, Plus, RefreshCw, RotateCw, Send, ShieldCheck, Smartphone, X } from "lucide-react-native";
 import { YNXMobileAppClient } from "../api/mobileSession";
-import type { ChatConversation, DecryptedChatMessage } from "../api/chat";
-import { accountIdentity } from "../crypto/ynxSigner";
-import type { StoredIdentity } from "../storage/secureIdentity";
+import type { ChatConversation, ChatDevice, DecryptedChatMessage } from "../api/chat";
+import { accountIdentity, zeroize } from "../crypto/ynxSigner";
+import { saveIdentity, type StoredIdentity } from "../storage/secureIdentity";
 
 const BLUE = "#002FA7";
 const INK = "#111827";
 const MUTED = "#667085";
 const LINE = "#E5E7EB";
-type PendingSend = Readonly<{ content: string; messageId: string; nonce: Uint8Array }>;
+type PendingSend = Readonly<{ content: string; messageId: string; entropy: Uint8Array }>;
 
-export function NativeChatScreen(props: { stored: StoredIdentity | null; openWallet: () => void; onDetailChange?: (open: boolean) => void }) {
+export function NativeChatScreen(props: { stored: StoredIdentity | null; openWallet: () => void; onDetailChange?: (open: boolean) => void; onIdentityChange: (value: StoredIdentity) => void }) {
   const [client, setClient] = useState<YNXMobileAppClient | null>(null);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selected, setSelected] = useState<ChatConversation | null>(null);
@@ -21,6 +21,8 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
   const [peerInput, setPeerInput] = useState("");
   const [draft, setDraft] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
+  const [devices, setDevices] = useState<ChatDevice[]>([]);
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
       const records = await active.listChatMessages(conversation);
       setMessages(records);
       setError(null);
-      const unread = records.filter((record) => record.sender !== active.account && !record.readAt[active.account]);
+      const unread = records.filter((record) => record.sender !== active.account && !record.readAt[active.deviceId]);
       await Promise.all(unread.map((record) => active.acknowledgeChatMessage(conversation.id, record.id, "read").catch(() => undefined)));
     } catch (caught) {
       if (!quiet) setError(message(caught));
@@ -136,6 +138,70 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
     }
   };
 
+  const openDevices = async () => {
+    if (!client) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setDevices(await client.listChatDevices(client.account));
+      setDevicesOpen(true);
+    } catch (caught) {
+      setError(message(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmRotation = () => {
+    if (!client || !props.stored) return;
+    Alert.alert("Rotate Chat device?", "This creates a new device key, revokes this Chat device, and requires you to unlock Chat again.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Rotate", style: "destructive", onPress: () => void rotateDevice() },
+    ]);
+  };
+
+  const rotateDevice = async () => {
+    if (!client || !props.stored) return;
+    const current = client;
+    const stored = props.stored;
+    let nextSecret: Uint8Array | null = null;
+    let remoteRotated = false;
+    setBusy(true);
+    setError(null);
+    try {
+      const [secret, random] = await Promise.all([getRandomBytesAsync(32), getRandomBytesAsync(12)]);
+      nextSecret = secret;
+      await saveIdentity(stored.accountSecret, nextSecret);
+      await saveIdentity(stored.accountSecret, stored.deviceSecret);
+      await current.rotateCurrentChatDevice(nextSecret, `rotate-${hex(random)}`);
+      remoteRotated = true;
+      await saveIdentity(stored.accountSecret, nextSecret);
+      const updated = Object.freeze({ accountSecret: stored.accountSecret.slice(), deviceSecret: nextSecret.slice() });
+      props.onIdentityChange(updated);
+      setDevicesOpen(false);
+      setClient(null);
+      closeConversation();
+      await current.lockAndRevokeSession().catch(() => undefined);
+      setError("Chat device rotated. Unlock again with the new device identity.");
+    } catch (caught) {
+      const restoreSecret = remoteRotated && nextSecret ? nextSecret : stored.deviceSecret;
+      const restored = await saveIdentity(stored.accountSecret, restoreSecret).then(() => true).catch(() => false);
+      if (remoteRotated && restored && nextSecret) {
+        props.onIdentityChange(Object.freeze({ accountSecret: stored.accountSecret.slice(), deviceSecret: nextSecret.slice() }));
+        setDevicesOpen(false);
+        setClient(null);
+        closeConversation();
+        await current.lockAndRevokeSession().catch(() => undefined);
+        setError("Chat device rotated. Unlock again with the new device identity.");
+      } else {
+        setError(remoteRotated ? "Chat device rotated remotely, but secure local identity storage failed. Keep this app open and contact YNX support before retrying." : message(caught));
+      }
+    } finally {
+      if (nextSecret) zeroize(nextSecret);
+      setBusy(false);
+    }
+  };
+
   const send = async () => {
     if (!client || !selected || !draft.trim()) return;
     const content = draft;
@@ -144,11 +210,11 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
     try {
       let attempt = pendingSend;
       if (!attempt || attempt.content !== content) {
-        const [idRandom, nonce] = await Promise.all([getRandomBytesAsync(12), getRandomBytesAsync(24)]);
-        attempt = Object.freeze({ content, messageId: `message-${hex(idRandom)}`, nonce });
+        const [idRandom, entropy] = await Promise.all([getRandomBytesAsync(12), getRandomBytesAsync(32)]);
+        attempt = Object.freeze({ content, messageId: `message-${hex(idRandom)}`, entropy });
         setPendingSend(attempt);
       }
-      await client.sendChatMessage(selected, attempt.content, attempt.messageId, attempt.nonce);
+      await client.sendChatMessage(selected, attempt.content, attempt.messageId, attempt.entropy);
       setDraft("");
       setPendingSend(null);
       await loadMessages(client, selected, true);
@@ -189,7 +255,7 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
   return <View style={styles.screen}>
     <View style={styles.heading}>
       <View><Text style={styles.eyebrow}>PRIVATE MESSAGING</Text><Text style={styles.title}>Chat</Text></View>
-      <View style={styles.actions}>{client?.connected ? <><Pressable accessibilityLabel="Lock Chat" onPress={() => void lock()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><LockKeyhole color={INK} size={19} /></Pressable><Pressable accessibilityLabel="New conversation" onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.addButton, pressed && styles.sendPressed]}><Plus color="#FFFFFF" size={21} /></Pressable></> : <Pressable disabled={busy} onPress={() => void connect()} style={({ pressed }) => [styles.unlockButton, pressed && styles.pressed]}>{busy ? <ActivityIndicator color={BLUE} /> : <><LockKeyhole color={BLUE} size={16} /><Text style={styles.unlockText}>{props.stored ? "Unlock" : "Wallet"}</Text></>}</Pressable>}</View>
+      <View style={styles.actions}>{client?.connected ? <><Pressable accessibilityLabel="Manage Chat devices" onPress={() => void openDevices()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><Smartphone color={INK} size={19} /></Pressable><Pressable accessibilityLabel="Lock Chat" onPress={() => void lock()} style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}><LockKeyhole color={INK} size={19} /></Pressable><Pressable accessibilityLabel="New conversation" onPress={() => setCreateOpen(true)} style={({ pressed }) => [styles.addButton, pressed && styles.sendPressed]}><Plus color="#FFFFFF" size={21} /></Pressable></> : <Pressable disabled={busy} onPress={() => void connect()} style={({ pressed }) => [styles.unlockButton, pressed && styles.pressed]}>{busy ? <ActivityIndicator color={BLUE} /> : <><LockKeyhole color={BLUE} size={16} /><Text style={styles.unlockText}>{props.stored ? "Unlock" : "Wallet"}</Text></>}</Pressable>}</View>
     </View>
     {error ? <Text style={styles.inlineError}>{error}</Text> : null}
     {!client?.connected ? <View style={styles.empty}><View style={styles.chatGlyph}><MessageCircle color={BLUE} size={31} strokeWidth={1.5} /></View><Text style={styles.emptyTitle}>Private by design</Text><Text style={styles.emptyText}>Unlock your native YNX identity to access encrypted direct conversations.</Text></View> : <FlatList
@@ -208,6 +274,13 @@ export function NativeChatScreen(props: { stored: StoredIdentity | null; openWal
         <Text style={styles.sheetNote}>The recipient needs an active registered Chat device. A conversation is created before its member device keys become visible.</Text>
         {error ? <Text style={styles.sheetError}>{error}</Text> : null}
         <Pressable disabled={busy || !peerInput.trim().startsWith("ynx1")} onPress={() => void createConversation()} style={({ pressed }) => [styles.createButton, (busy || !peerInput.trim().startsWith("ynx1")) && styles.disabled, pressed && styles.sendPressed]}>{busy ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.createText}>Create conversation</Text>}</Pressable>
+      </View></View>
+    </Modal>
+    <Modal animationType="slide" onRequestClose={() => setDevicesOpen(false)} transparent visible={devicesOpen}>
+      <View style={styles.backdrop}><View style={styles.sheet}>
+        <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>Chat devices</Text><Pressable accessibilityLabel="Close device manager" onPress={() => setDevicesOpen(false)} style={styles.headerIcon}><X color={INK} size={20} /></Pressable></View>
+        <Text style={styles.sheetNote}>Active devices receive their own encrypted copy of each message. Revoked device keys remain visible only for historical signature verification.</Text>
+        <View style={styles.deviceList}>{devices.map((device) => <View key={device.id} style={styles.deviceRow}><View style={styles.deviceGlyph}><Smartphone color={device.status === "active" ? BLUE : MUTED} size={18} /></View><View style={styles.deviceCopy}><Text numberOfLines={1} style={styles.deviceName}>{device.id === client?.deviceId ? "This device" : short(device.id)}</Text><Text style={styles.deviceStatus}>{device.status === "active" ? "Active" : "Revoked"}</Text></View>{device.id === client?.deviceId && device.status === "active" ? <Pressable accessibilityLabel="Rotate this Chat device" disabled={busy} onPress={confirmRotation} style={({ pressed }) => [styles.rotateButton, pressed && styles.pressed]}><RotateCw color={BLUE} size={17} /><Text style={styles.rotateText}>Rotate</Text></Pressable> : null}</View>)}</View>
       </View></View>
     </Modal>
   </View>;
@@ -244,5 +317,6 @@ const styles = StyleSheet.create({
   messageList: { paddingHorizontal: 14, paddingVertical: 16 }, emptyMessageList: { flexGrow: 1 }, messageRow: { width: "100%", alignItems: "flex-start", marginVertical: 4 }, messageRowOwn: { alignItems: "flex-end" }, bubble: { maxWidth: "82%", paddingHorizontal: 13, paddingTop: 9, paddingBottom: 7, borderRadius: 18 }, bubblePeer: { backgroundColor: "#F2F4F7", borderBottomLeftRadius: 5 }, bubbleOwn: { backgroundColor: BLUE, borderBottomRightRadius: 5 }, bubbleError: { borderWidth: 1, borderColor: "#FECDCA", backgroundColor: "#FFFBFA" }, messageText: { color: INK, fontSize: 15, lineHeight: 21 }, messageTextOwn: { color: "#FFFFFF" }, messageError: { color: "#B42318", fontSize: 12 }, messageTime: { color: "#98A2B3", fontSize: 9, marginTop: 4, textAlign: "right" }, messageTimeOwn: { color: "#D6E0FF" },
   composer: { minHeight: 62, paddingHorizontal: 12, paddingVertical: 8, flexDirection: "row", alignItems: "flex-end", gap: 9, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: LINE, backgroundColor: "#FFFFFF" }, composerInput: { flex: 1, minHeight: 44, maxHeight: 112, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 22, color: INK, fontSize: 15, lineHeight: 20, backgroundColor: "#F2F4F7" }, sendButton: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: BLUE },
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(17,24,39,0.32)" }, sheet: { padding: 22, paddingBottom: 36, borderTopLeftRadius: 18, borderTopRightRadius: 18, backgroundColor: "#FFFFFF" }, sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, sheetTitle: { color: INK, fontSize: 22, fontWeight: "700" }, sheetLabel: { color: INK, fontSize: 13, fontWeight: "700", marginTop: 24 }, addressInput: { height: 50, marginTop: 9, paddingHorizontal: 14, borderWidth: 1, borderColor: LINE, borderRadius: 8, color: INK, fontSize: 13 }, sheetNote: { color: MUTED, fontSize: 11, lineHeight: 17, marginTop: 11 }, sheetError: { color: "#B42318", fontSize: 12, lineHeight: 18, marginTop: 12 }, createButton: { minHeight: 50, marginTop: 22, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: BLUE }, createText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  deviceList: { marginTop: 18, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: LINE }, deviceRow: { minHeight: 66, flexDirection: "row", alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: LINE }, deviceGlyph: { width: 38, height: 38, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#F5F8FF" }, deviceCopy: { flex: 1, marginLeft: 11 }, deviceName: { color: INK, fontSize: 13, fontWeight: "700" }, deviceStatus: { color: MUTED, fontSize: 11, marginTop: 3 }, rotateButton: { minWidth: 82, height: 38, paddingHorizontal: 11, borderRadius: 8, borderWidth: 1, borderColor: "#C7D7FE", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#F5F8FF" }, rotateText: { color: BLUE, fontSize: 12, fontWeight: "700" },
   pressed: { opacity: 0.62 }, sendPressed: { backgroundColor: "#001F70" }, disabled: { opacity: 0.38 },
 });

@@ -57,6 +57,10 @@ rg -q 'chainId=6423&asset=YNXT' apps/mobile/src/components/NativeWalletDashboard
 rg -q 'type WalletRoute = "assets" \| "activity" \| "account"' apps/mobile/src/components/NativeWalletDashboard.tsx
 rg -q 'YNX_NATIVE_TX_V1' apps/mobile/src/crypto/ynxSigner.ts
 rg -q 'x25519-hkdf-sha256-xchacha20poly1305' apps/mobile/src/crypto/chatCrypto.ts
+rg -q 'createChatEnvelopeSet' apps/mobile/src/api/mobileSession.ts
+rg -q 'rotateCurrentChatDevice' apps/mobile/src/api/mobileSession.ts
+rg -q 'Manage Chat devices' apps/mobile/src/components/NativeChatScreen.tsx
+rg -q 'await this\.authorize\("device-rotation"\)' apps/mobile/src/api/mobileSession.ts
 rg -q 'type Tab = "square" \| "chat" \| "wallet" \| "pay" \| "network"' apps/mobile/App.tsx
 rg -q 'https://rpc\.ynxweb4\.com' apps/mobile/src/api/nativeWallet.ts
 test -s testdata/mobile-native-transfer-vector.json
@@ -73,4 +77,4 @@ npm --prefix apps/mobile run bundle-check
 test -s apps/mobile/dist/metadata.json
 rm -rf apps/mobile/dist
 
-echo "mobile-check passed: strict types, canonical ynx1/signing vectors, secure-storage boundary, and iOS/Android Hermes bundles"
+echo "mobile-check passed: native mobile UI, strict types, canonical ynx1/signing and multi-device Chat vectors, biometric device rotation, secure-storage boundary, and iOS/Android Hermes bundles"

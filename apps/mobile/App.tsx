@@ -100,7 +100,7 @@ function YNXApp() {
 
       <View style={styles.content}>
         {tab === "square" && <SquareScreen stored={stored} openWallet={() => setTab("wallet")} />}
-        {tab === "chat" && <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} />}
+        {tab === "chat" && <NativeChatScreen stored={stored} openWallet={() => setTab("wallet")} onDetailChange={setChatDetail} onIdentityChange={handleSaved} />}
         {tab === "wallet" && (
           <WalletScreen
             stored={stored}

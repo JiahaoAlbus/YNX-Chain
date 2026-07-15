@@ -90,8 +90,16 @@ func TestOwnershipSessionLifecyclePersistenceAndProtectedRoutes(t *testing.T) {
 	if response.Code != http.StatusCreated {
 		t.Fatalf("protected chat device directory status %d: %s", response.Code, response.Body.String())
 	}
+	response = protectedRequest(t, server.URL, http.MethodPost, "/app/chat/devices/"+fixture.deviceID+"/rotate", map[string]any{"idempotencyKey": "rotate-primary", "newDeviceId": "device-replacement"}, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("protected chat rotation status %d: %s", response.Code, response.Body.String())
+	}
+	response = protectedRequest(t, server.URL, http.MethodGet, "/app/chat/device-rotations", nil, fixture.deviceID, session.Token, testOrigin)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("protected chat rotation list status %d: %s", response.Code, response.Body.String())
+	}
 	chatRequests := chat.snapshot()
-	if len(square.snapshot()) != 2 || len(chatRequests) != 3 || chatRequests[1].URI != "/chat/conversations" || chatRequests[2].URI != "/chat/accounts/"+fixture.account+"/devices" {
+	if len(square.snapshot()) != 2 || len(chatRequests) != 5 || chatRequests[1].URI != "/chat/conversations" || chatRequests[2].URI != "/chat/accounts/"+fixture.account+"/devices" || chatRequests[3].URI != "/chat/devices/"+fixture.deviceID+"/rotate" || chatRequests[4].URI != "/chat/device-rotations" {
 		t.Fatalf("protected upstream calls square=%+v chat=%+v", square.snapshot(), chat.snapshot())
 	}
 	response = protectedRequest(t, server.URL, http.MethodPost, "/app/pay/invoices/invoice-1/settle", map[string]any{"transactionHash": "0x" + strings.Repeat("a", 64), "idempotencyKey": "settle-primary"}, fixture.deviceID, session.Token, testOrigin)

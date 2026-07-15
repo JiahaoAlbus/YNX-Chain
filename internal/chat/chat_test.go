@@ -60,6 +60,35 @@ func TestMobileChatEncryptionVector(t *testing.T) {
 	}
 }
 
+func TestMobileMultiDeviceEnvelopeVector(t *testing.T) {
+	senderPrivate := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x41}, ed25519.SeedSize))
+	req := SendMessageRequest{
+		MessageID: "message_multi_vector",
+		Envelopes: []MessageEnvelope{
+			{RecipientAccount: bobAddress, RecipientDeviceID: "bob-phone", Algorithm: messageAlgorithm, EphemeralPublicKey: "/y7kVgHsG2cxDHeQQEWFrmlzMe7hwfjPJBlzHB//Pms", Nonce: "KyIspY1eGst2yX8X9O4DdOnlLYx8BeID", Ciphertext: "ppnLcfWhGrFmXB/wkXZ34+x0UE0qbLLOhKFVQ8Z2uon2BsuRZ//A0Q", CiphertextHash: "4d992ed906ec07c6e04020740216f9f95af2a6ebde3dc6e7514a263036996105"},
+			{RecipientAccount: bobAddress, RecipientDeviceID: "bob-tablet", Algorithm: messageAlgorithm, EphemeralPublicKey: "/y7kVgHsG2cxDHeQQEWFrmlzMe7hwfjPJBlzHB//Pms", Nonce: "GQV7Yr4xKdVoUW+nEvtJLMd150+LF2Yt", Ciphertext: "sEq8c0gf2yOph3xLZPBMLjuBijpkSKvcrQzfbZtMUlXFqOLJL7uScw", CiphertextHash: "8ea95b65259407971e96c028c30e3623809a90448ff0cb761c99860e560d4615"},
+		},
+		SenderSignature: "eQQoXodUn0aY7FU1Ruy4G6SFZuFGyXkRXUzveFhHtTQvDPXvvDJaqfPGFnsVwZoecHI4Mme1goaQ/H2wyg/9Aw",
+	}
+	if !nativewallet.Verify(nativewallet.EncodePublicKey(senderPrivate.Public().(ed25519.PublicKey)), MessageSignaturePayload("conv_multi_vector", aliceAddress, "alice-mobile", req), req.SenderSignature) {
+		t.Fatal("mobile multi-device sender signature does not match Go canonical payload")
+	}
+	ephemeralPublic, err := nativewallet.DecodePublicKey(req.Envelopes[0].EphemeralPublicKey, 32)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index, seed := range []byte{0x42, 0x43} {
+		deviceSecret := bytes.Repeat([]byte{seed}, 32)
+		devicePrivate := sha256.Sum256(append([]byte("YNX_CHAT_ENCRYPTION_KEY_V1\n"), deviceSecret...))
+		envelope := req.Envelopes[index]
+		aad := MessageEnvelopeAAD("conv_multi_vector", req.MessageID, "alice-mobile", envelope.RecipientAccount, envelope.RecipientDeviceID, envelope.Algorithm, envelope.EphemeralPublicKey)
+		plaintext, err := nativewallet.Decrypt(devicePrivate[:], ephemeralPublic, aad, nativewallet.EncryptedEnvelope{Algorithm: envelope.Algorithm, Nonce: envelope.Nonce, Ciphertext: envelope.Ciphertext})
+		if err != nil || string(plaintext) != "multi device native chat" {
+			t.Fatalf("decrypt mobile envelope %s: %q %v", envelope.RecipientDeviceID, plaintext, err)
+		}
+	}
+}
+
 func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	now := time.Date(2026, 7, 14, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(t.TempDir(), "chat", "state.json")
@@ -70,7 +99,7 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 		t.Fatalf("device directory allowed before a shared conversation: %v", err)
 	}
 
-	replay := registrationRequest(aliceAddress, "alice-device", "register-alice", alice.keys)
+	replay := registrationRequest(aliceAddress, "alice-device", "register-alice-device", alice.keys)
 	replayed, err := service.RegisterDevice(replay)
 	if err != nil || !replayed.Replayed {
 		t.Fatalf("replay registration: %+v %v", replayed, err)
@@ -103,12 +132,7 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	if err != nil || len(devices) != 1 || devices[0].ID != bob.device.ID || devices[0].Status != "active" {
 		t.Fatalf("active member devices: %+v %v", devices, err)
 	}
-	aad := []byte("ynx-chat-v1|" + conversation.ID + "|message-001")
-	envelope, err := nativewallet.Encrypt(alice.keys.EncryptionPrivate, bob.keys.EncryptionPublic, []byte("private square coordination"), aad, bytes.NewReader(bytes.Repeat([]byte{0x33}, 24)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	messageRequest := SendMessageRequest{MessageID: "message-001", Algorithm: envelope.Algorithm, Nonce: envelope.Nonce, Ciphertext: envelope.Ciphertext}
+	messageRequest := encryptedMessageRequest(t, conversation.ID, "message-001", alice, []testDevice{alice, bob}, "private square coordination", 0x33)
 	messageResult, err := service.SendMessage(alice.device, conversation.ID, messageRequest)
 	if err != nil || messageResult.Replayed {
 		t.Fatalf("send message: %+v %v", messageResult, err)
@@ -119,10 +143,11 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	}
 	changed := messageRequest
 	replacement := "A"
-	if changed.Ciphertext[0] == 'A' {
+	if changed.Envelopes[0].Ciphertext[0] == 'A' {
 		replacement = "B"
 	}
-	changed.Ciphertext = replacement + changed.Ciphertext[1:]
+	changed.Envelopes = append([]MessageEnvelope(nil), changed.Envelopes...)
+	changed.Envelopes[0].Ciphertext = replacement + changed.Envelopes[0].Ciphertext[1:]
 	if _, err := service.SendMessage(alice.device, conversation.ID, changed); !errors.Is(err, ErrConflict) {
 		t.Fatalf("changed message replay should conflict: %v", err)
 	}
@@ -133,7 +158,7 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	}
 	now = now.Add(time.Second)
 	read, err := service.Acknowledge(bob.device, conversation.ID, messageRequest.MessageID, "read")
-	if err != nil || read.ReadAt[bobAddress].IsZero() {
+	if err != nil || read.ReadAt[bob.device.ID].IsZero() {
 		t.Fatalf("read acknowledgement: %+v %v", read, err)
 	}
 
@@ -171,6 +196,168 @@ func TestPersistentEncryptedChatLifecycle(t *testing.T) {
 	}
 	if _, err := New(Config{StatePath: tamperPath, APIKey: chatAPIKey}); err == nil {
 		t.Fatal("tampered persistent state was accepted")
+	}
+}
+
+func TestMultiDeviceEnvelopeCoverageAndPerDeviceAcknowledgements(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 30, 0, 0, time.UTC)
+	service := newTestService(t, filepath.Join(t.TempDir(), "state.json"), func() time.Time { return now })
+	alicePrimary := registerTestDevice(t, service, aliceAddress, "alice-primary", 0x51)
+	aliceTablet := registerTestDevice(t, service, aliceAddress, "alice-tablet", 0x52)
+	bobPrimary := registerTestDevice(t, service, bobAddress, "bob-primary", 0x53)
+	bobTablet := registerTestDevice(t, service, bobAddress, "bob-tablet", 0x54)
+
+	created, err := service.CreateConversation(alicePrimary.device, CreateConversationRequest{IdempotencyKey: "conversation-multi-device", Members: []string{aliceAddress, bobAddress}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	recipients := []testDevice{alicePrimary, aliceTablet, bobPrimary, bobTablet}
+	request := encryptedMessageRequest(t, created.Record.ID, "message-multi-device", alicePrimary, recipients, "fan-out continuity", 0x61)
+	result, err := service.SendMessage(alicePrimary.device, created.Record.ID, request)
+	if err != nil || len(result.Record.Envelopes) != len(recipients) || result.Record.ProtocolVersion != messageProtocolVersion {
+		t.Fatalf("multi-device message: %+v %v", result, err)
+	}
+	for _, recipient := range recipients {
+		var envelope MessageEnvelope
+		for _, candidate := range result.Record.Envelopes {
+			if candidate.RecipientDeviceID == recipient.device.ID {
+				envelope = candidate
+				break
+			}
+		}
+		ephemeralPublic, err := nativewallet.DecodePublicKey(envelope.EphemeralPublicKey, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		aad := MessageEnvelopeAAD(created.Record.ID, request.MessageID, alicePrimary.device.ID, recipient.device.Account, recipient.device.ID, envelope.Algorithm, envelope.EphemeralPublicKey)
+		plaintext, err := nativewallet.Decrypt(recipient.keys.EncryptionPrivate, ephemeralPublic, aad, nativewallet.EncryptedEnvelope{Algorithm: envelope.Algorithm, Nonce: envelope.Nonce, Ciphertext: envelope.Ciphertext})
+		if err != nil || string(plaintext) != "fan-out continuity" {
+			t.Fatalf("decrypt %s: %q %v", recipient.device.ID, plaintext, err)
+		}
+	}
+
+	missing := request
+	missing.MessageID = "message-missing-device"
+	missing.Envelopes = append([]MessageEnvelope(nil), missing.Envelopes[:len(missing.Envelopes)-1]...)
+	missing.SenderSignature = nativewallet.Sign(alicePrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, missing))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, missing); !errors.Is(err, ErrConflict) {
+		t.Fatalf("missing active-device envelope accepted: %v", err)
+	}
+
+	duplicate := request
+	duplicate.MessageID = "message-duplicate-device"
+	duplicate.Envelopes = append([]MessageEnvelope(nil), duplicate.Envelopes...)
+	duplicate.Envelopes[1] = duplicate.Envelopes[0]
+	duplicate.SenderSignature = nativewallet.Sign(alicePrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, duplicate))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, duplicate); !errors.Is(err, ErrConflict) {
+		t.Fatalf("duplicate recipient envelope accepted: %v", err)
+	}
+
+	mixedKey := request
+	mixedKey.MessageID = "message-mixed-ephemeral"
+	mixedKey.Envelopes = append([]MessageEnvelope(nil), mixedKey.Envelopes...)
+	mixedKey.Envelopes[1].EphemeralPublicKey = nativewallet.EncodePublicKey(bobPrimary.keys.EncryptionPublic)
+	mixedKey.SenderSignature = nativewallet.Sign(alicePrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, mixedKey))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, mixedKey); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("mixed message ephemeral keys accepted: %v", err)
+	}
+
+	duplicateNonce := request
+	duplicateNonce.MessageID = "message-duplicate-nonce"
+	duplicateNonce.Envelopes = append([]MessageEnvelope(nil), duplicateNonce.Envelopes...)
+	duplicateNonce.Envelopes[1].Nonce = duplicateNonce.Envelopes[0].Nonce
+	duplicateNonce.SenderSignature = nativewallet.Sign(alicePrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, duplicateNonce))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, duplicateNonce); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("duplicate envelope nonce accepted: %v", err)
+	}
+
+	badHash := request
+	badHash.MessageID = "message-bad-hash"
+	badHash.Envelopes = append([]MessageEnvelope(nil), badHash.Envelopes...)
+	badHash.Envelopes[0].CiphertextHash = strings.Repeat("0", 64)
+	badHash.SenderSignature = nativewallet.Sign(alicePrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, badHash))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, badHash); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("incorrect ciphertext hash accepted: %v", err)
+	}
+
+	badSignature := request
+	badSignature.MessageID = "message-bad-signature"
+	badSignature.SenderSignature = nativewallet.Sign(bobPrimary.keys.SigningPrivate, MessageSignaturePayload(created.Record.ID, aliceAddress, alicePrimary.device.ID, badSignature))
+	if _, err := service.SendMessage(alicePrimary.device, created.Record.ID, badSignature); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("incorrect sender signature accepted: %v", err)
+	}
+
+	now = now.Add(time.Second)
+	firstAck, err := service.Acknowledge(bobPrimary.device, created.Record.ID, request.MessageID, "read")
+	if err != nil || firstAck.ReadAt[bobPrimary.device.ID].IsZero() || !firstAck.ReadAt[bobTablet.device.ID].IsZero() {
+		t.Fatalf("first per-device acknowledgement: %+v %v", firstAck.ReadAt, err)
+	}
+	now = now.Add(time.Second)
+	secondAck, err := service.Acknowledge(bobTablet.device, created.Record.ID, request.MessageID, "read")
+	if err != nil || secondAck.ReadAt[bobTablet.device.ID].IsZero() || len(secondAck.ReadAt) != 2 {
+		t.Fatalf("second per-device acknowledgement: %+v %v", secondAck.ReadAt, err)
+	}
+}
+
+func TestAuthorizedDeviceRotationAndRecoveryPersistence(t *testing.T) {
+	now := time.Date(2026, 7, 14, 12, 45, 0, 0, time.UTC)
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	service := newTestService(t, statePath, func() time.Time { return now })
+	alicePrimary := registerTestDevice(t, service, aliceAddress, "alice-primary", 0x71)
+	aliceBackup := registerTestDevice(t, service, aliceAddress, "alice-backup", 0x72)
+	bob := registerTestDevice(t, service, bobAddress, "bob-primary", 0x73)
+	newKeys := generateKeys(t, 0x74)
+	request := rotationRequest(aliceBackup, alicePrimary.device.ID, "alice-recovered", "rotate-alice-primary", newKeys)
+
+	result, err := service.RotateDevice(aliceBackup.device, alicePrimary.device.ID, request)
+	if err != nil || result.Replayed || result.Record.AuthorizingDeviceID != aliceBackup.device.ID || result.Record.ReplacedDeviceID != alicePrimary.device.ID || result.Record.NewDeviceID != request.NewDeviceID {
+		t.Fatalf("device recovery rotation: %+v %v", result, err)
+	}
+	replay, err := service.RotateDevice(aliceBackup.device, alicePrimary.device.ID, request)
+	if err != nil || !replay.Replayed || replay.Record.ID != result.Record.ID {
+		t.Fatalf("device rotation replay: %+v %v", replay, err)
+	}
+	devices, err := service.Devices(aliceBackup.device, aliceAddress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	statuses := map[string]string{}
+	for _, device := range devices {
+		statuses[device.ID] = device.Status
+	}
+	if statuses[alicePrimary.device.ID] != "revoked" || statuses[aliceBackup.device.ID] != "active" || statuses[request.NewDeviceID] != "active" {
+		t.Fatalf("rotation device statuses: %+v", statuses)
+	}
+	if _, err := service.AuthenticateDevice(alicePrimary.device.ID, http.MethodGet, "/chat/device-rotations", now.Format(time.RFC3339), nativewallet.Sign(alicePrimary.keys.SigningPrivate, RequestSignaturePayload(http.MethodGet, "/chat/device-rotations", now.Format(time.RFC3339), nil)), nil); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("replaced device authenticated after rotation: %v", err)
+	}
+	rotations := service.DeviceRotations(aliceBackup.device)
+	if len(rotations) != 1 || rotations[0].ID != result.Record.ID || service.Health().RotationCount != 1 {
+		t.Fatalf("rotation records or health: %+v %+v", rotations, service.Health())
+	}
+
+	badAuthorization := rotationRequest(aliceBackup, aliceBackup.device.ID, "alice-invalid-auth", "rotate-invalid-auth", generateKeys(t, 0x75))
+	badAuthorization.AuthorizationSignature = nativewallet.Sign(bob.keys.SigningPrivate, DeviceRotationAuthorizationPayload(aliceAddress, aliceBackup.device.ID, aliceBackup.device.ID, badAuthorization))
+	if _, err := service.RotateDevice(aliceBackup.device, aliceBackup.device.ID, badAuthorization); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("invalid authorization accepted: %v", err)
+	}
+	badNewProof := rotationRequest(aliceBackup, aliceBackup.device.ID, "alice-invalid-new-proof", "rotate-invalid-new-proof", generateKeys(t, 0x76))
+	badNewProof.NewDeviceProofSignature = nativewallet.Sign(bob.keys.SigningPrivate, DeviceRotationNewDevicePayload(aliceAddress, aliceBackup.device.ID, aliceBackup.device.ID, badNewProof))
+	if _, err := service.RotateDevice(aliceBackup.device, aliceBackup.device.ID, badNewProof); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("invalid new-device proof accepted: %v", err)
+	}
+	foreign := rotationRequest(bob, aliceBackup.device.ID, "bob-replacement", "rotate-foreign-device", generateKeys(t, 0x77))
+	if _, err := service.RotateDevice(bob.device, aliceBackup.device.ID, foreign); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("cross-account device rotation accepted: %v", err)
+	}
+	changed := rotationRequest(aliceBackup, alicePrimary.device.ID, "alice-second-recovery", request.IdempotencyKey, generateKeys(t, 0x78))
+	if _, err := service.RotateDevice(aliceBackup.device, alicePrimary.device.ID, changed); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed device rotation replay accepted: %v", err)
+	}
+
+	restarted := newTestService(t, statePath, func() time.Time { return now })
+	if restarted.Health().RotationCount != 1 || len(restarted.DeviceRotations(aliceBackup.device)) != 1 {
+		t.Fatalf("rotation was not restored: %+v", restarted.Health())
 	}
 }
 
@@ -220,11 +407,9 @@ func TestChatHTTPAuthenticationAndRoutes(t *testing.T) {
 		t.Fatalf("unexpected member device directory: %+v", devices)
 	}
 
-	envelope, err := nativewallet.Encrypt(aliceKeys.EncryptionPrivate, bobKeys.EncryptionPublic, []byte("hello"), []byte("http"), bytes.NewReader(bytes.Repeat([]byte{0x44}, 24)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	messageBody := mustJSON(t, SendMessageRequest{MessageID: "http-message", Algorithm: envelope.Algorithm, Nonce: envelope.Nonce, Ciphertext: envelope.Ciphertext})
+	aliceDevice := testDevice{device: Device{ID: "alice-http", Account: aliceAddress}, keys: aliceKeys}
+	bobDevice := testDevice{device: Device{ID: "bob-http", Account: bobAddress}, keys: bobKeys}
+	messageBody := mustJSON(t, encryptedMessageRequest(t, created.Record.ID, "http-message", aliceDevice, []testDevice{aliceDevice, bobDevice}, "hello", 0x44))
 	messagePath := "/chat/conversations/" + created.Record.ID + "/messages"
 	response = signedHTTP(t, server.URL, http.MethodPost, messagePath, messageBody, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
 	if response.StatusCode != http.StatusCreated {
@@ -243,6 +428,38 @@ func TestChatHTTPAuthenticationAndRoutes(t *testing.T) {
 		t.Fatalf("ack status %d: %s", response.StatusCode, readAll(response.Body))
 	}
 	response.Body.Close()
+
+	newAliceKeys := generateKeys(t, 0x45)
+	rotation := rotationRequest(aliceDevice, aliceDevice.device.ID, "alice-http-replacement", "rotate-alice-http", newAliceKeys)
+	rotationBody := mustJSON(t, rotation)
+	rotationPath := "/chat/devices/alice-http/rotate"
+	response = signedHTTP(t, server.URL, http.MethodPost, rotationPath, rotationBody, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("rotate device status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	response.Body.Close()
+	response = signedHTTP(t, server.URL, http.MethodPost, rotationPath, rotationBody, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("revoked authorizer exact rotation replay status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	response.Body.Close()
+	response = signedHTTP(t, server.URL, http.MethodGet, "/chat/conversations", nil, "alice-http", aliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("revoked authorizer non-rotation status %d", response.StatusCode)
+	}
+	response.Body.Close()
+	response = signedHTTP(t, server.URL, http.MethodGet, "/chat/device-rotations", nil, "alice-http-replacement", newAliceKeys.SigningPrivate, now, chatAPIKey)
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("rotation list status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	var rotationList struct {
+		Rotations []DeviceRotation `json:"rotations"`
+	}
+	decodeJSON(t, response.Body, &rotationList)
+	response.Body.Close()
+	if len(rotationList.Rotations) != 1 || rotationList.Rotations[0].NewDeviceID != "alice-http-replacement" {
+		t.Fatalf("unexpected HTTP rotation list: %+v", rotationList)
+	}
 
 	response = signedHTTP(t, server.URL, http.MethodGet, "/chat/conversations/"+created.Record.ID, nil, "alice-http", aliceKeys.SigningPrivate, now.Add(-10*time.Minute), chatAPIKey)
 	if response.StatusCode != http.StatusUnauthorized {
@@ -294,11 +511,45 @@ func registrationRequest(account, deviceID, idempotencyKey string, keys nativewa
 func registerTestDevice(t *testing.T, service *Service, account, deviceID string, seed byte) testDevice {
 	t.Helper()
 	keys := generateKeys(t, seed)
-	result, err := service.RegisterDevice(registrationRequest(account, deviceID, "register-"+deviceID[:strings.Index(deviceID, "-")], keys))
+	result, err := service.RegisterDevice(registrationRequest(account, deviceID, "register-"+deviceID, keys))
 	if err != nil {
 		t.Fatal(err)
 	}
 	return testDevice{device: result.Record, keys: keys}
+}
+
+func encryptedMessageRequest(t *testing.T, conversationID, messageID string, sender testDevice, recipients []testDevice, plaintext string, seed byte) SendMessageRequest {
+	t.Helper()
+	ephemeralSecret := bytes.Repeat([]byte{seed}, 32)
+	ephemeral, err := ecdh.X25519().NewPrivateKey(ephemeralSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ephemeralPublicKey := nativewallet.EncodePublicKey(ephemeral.PublicKey().Bytes())
+	request := SendMessageRequest{MessageID: messageID}
+	for index, recipient := range recipients {
+		nonceByte := seed + byte(index) + 1
+		aad := MessageEnvelopeAAD(conversationID, messageID, sender.device.ID, recipient.device.Account, recipient.device.ID, messageAlgorithm, ephemeralPublicKey)
+		encrypted, err := nativewallet.Encrypt(ephemeralSecret, recipient.keys.EncryptionPublic, []byte(plaintext), aad, bytes.NewReader(bytes.Repeat([]byte{nonceByte}, 24)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.Envelopes = append(request.Envelopes, MessageEnvelope{RecipientAccount: recipient.device.Account, RecipientDeviceID: recipient.device.ID, Algorithm: encrypted.Algorithm, EphemeralPublicKey: ephemeralPublicKey, Nonce: encrypted.Nonce, Ciphertext: encrypted.Ciphertext})
+	}
+	request.SenderSignature = nativewallet.Sign(sender.keys.SigningPrivate, MessageSignaturePayload(conversationID, sender.device.Account, sender.device.ID, request))
+	return request
+}
+
+func rotationRequest(authorizer testDevice, replacedDeviceID, newDeviceID, idempotencyKey string, newKeys nativewallet.DeviceKeys) RotateDeviceRequest {
+	request := RotateDeviceRequest{
+		IdempotencyKey:      idempotencyKey,
+		NewDeviceID:         newDeviceID,
+		SigningPublicKey:    nativewallet.EncodePublicKey(newKeys.SigningPublic),
+		EncryptionPublicKey: nativewallet.EncodePublicKey(newKeys.EncryptionPublic),
+	}
+	request.AuthorizationSignature = nativewallet.Sign(authorizer.keys.SigningPrivate, DeviceRotationAuthorizationPayload(authorizer.device.Account, authorizer.device.ID, replacedDeviceID, request))
+	request.NewDeviceProofSignature = nativewallet.Sign(newKeys.SigningPrivate, DeviceRotationNewDevicePayload(authorizer.device.Account, authorizer.device.ID, replacedDeviceID, request))
+	return request
 }
 
 func registerHTTPDevice(t *testing.T, baseURL string, request RegisterDeviceRequest, want int) {

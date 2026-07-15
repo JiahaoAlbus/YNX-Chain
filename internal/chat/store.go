@@ -11,7 +11,7 @@ import (
 )
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Devices: map[string]Device{}, Conversations: map[string]Conversation{}, Messages: map[string][]Message{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: 1, Devices: map[string]Device{}, Conversations: map[string]Conversation{}, Messages: map[string][]Message{}, Rotations: map[string]DeviceRotation{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
 }
 
 func loadState(path string) (persistentState, bool, error) {
@@ -28,6 +28,12 @@ func loadState(path string) (persistentState, bool, error) {
 	}
 	if state.SchemaVersion != 1 || state.IntegrityHash == "" {
 		return persistentState{}, false, errors.New("chat state schema or integrity hash is invalid")
+	}
+	if state.Devices == nil || state.Conversations == nil || state.Messages == nil || state.Idempotency == nil || state.Audit == nil {
+		return persistentState{}, false, errors.New("chat state collections are invalid")
+	}
+	if state.Rotations == nil {
+		state.Rotations = map[string]DeviceRotation{}
 	}
 	expected, err := stateIntegrity(state)
 	if err != nil || expected != state.IntegrityHash {

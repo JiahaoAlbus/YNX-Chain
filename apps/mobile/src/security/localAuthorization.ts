@@ -10,6 +10,7 @@ export type LocalKeyPurpose =
   | "signed-post"
   | "native-transfer"
   | "device-revocation"
+  | "device-rotation"
   | "recovery-key"
   | "identity-import"
   | "identity-removal";
@@ -41,6 +42,7 @@ const prompts: Record<LocalKeyPurpose, string> = {
   "signed-post": "Authorize signed YNX post",
   "native-transfer": "Authorize YNXT transfer",
   "device-revocation": "Authorize YNX device revocation",
+  "device-rotation": "Authorize YNX Chat device rotation",
   "recovery-key": "Authorize recovery key access",
   "identity-import": "Authorize recovery key import",
   "identity-removal": "Authorize identity removal",

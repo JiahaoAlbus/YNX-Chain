@@ -43,17 +43,42 @@ type Conversation struct {
 }
 
 type Message struct {
-	ID             string               `json:"id"`
-	ConversationID string               `json:"conversationId"`
-	Sender         string               `json:"sender"`
-	SenderDeviceID string               `json:"senderDeviceId"`
-	Algorithm      string               `json:"algorithm"`
-	Nonce          string               `json:"nonce"`
-	Ciphertext     string               `json:"ciphertext"`
-	CiphertextHash string               `json:"ciphertextHash"`
-	CreatedAt      time.Time            `json:"createdAt"`
-	DeliveredAt    map[string]time.Time `json:"deliveredAt,omitempty"`
-	ReadAt         map[string]time.Time `json:"readAt,omitempty"`
+	ID              string               `json:"id"`
+	ConversationID  string               `json:"conversationId"`
+	Sender          string               `json:"sender"`
+	SenderDeviceID  string               `json:"senderDeviceId"`
+	ProtocolVersion int                  `json:"protocolVersion,omitempty"`
+	Envelopes       []MessageEnvelope    `json:"envelopes,omitempty"`
+	SenderSignature string               `json:"senderSignature,omitempty"`
+	EnvelopeSetHash string               `json:"envelopeSetHash,omitempty"`
+	Algorithm       string               `json:"algorithm,omitempty"`
+	Nonce           string               `json:"nonce,omitempty"`
+	Ciphertext      string               `json:"ciphertext,omitempty"`
+	CiphertextHash  string               `json:"ciphertextHash,omitempty"`
+	CreatedAt       time.Time            `json:"createdAt"`
+	DeliveredAt     map[string]time.Time `json:"deliveredAt,omitempty"`
+	ReadAt          map[string]time.Time `json:"readAt,omitempty"`
+}
+
+type MessageEnvelope struct {
+	RecipientAccount   string `json:"recipientAccount"`
+	RecipientDeviceID  string `json:"recipientDeviceId"`
+	Algorithm          string `json:"algorithm"`
+	EphemeralPublicKey string `json:"ephemeralPublicKey"`
+	Nonce              string `json:"nonce"`
+	Ciphertext         string `json:"ciphertext"`
+	CiphertextHash     string `json:"ciphertextHash,omitempty"`
+}
+
+type DeviceRotation struct {
+	ID                         string    `json:"id"`
+	Account                    string    `json:"account"`
+	AuthorizingDeviceID        string    `json:"authorizingDeviceId"`
+	ReplacedDeviceID           string    `json:"replacedDeviceId"`
+	NewDeviceID                string    `json:"newDeviceId"`
+	AuthorizationSignatureHash string    `json:"authorizationSignatureHash"`
+	NewDeviceProofHash         string    `json:"newDeviceProofHash"`
+	CreatedAt                  time.Time `json:"createdAt"`
 }
 
 type RegisterDeviceRequest struct {
@@ -71,10 +96,18 @@ type CreateConversationRequest struct {
 }
 
 type SendMessageRequest struct {
-	MessageID  string `json:"messageId"`
-	Algorithm  string `json:"algorithm"`
-	Nonce      string `json:"nonce"`
-	Ciphertext string `json:"ciphertext"`
+	MessageID       string            `json:"messageId"`
+	Envelopes       []MessageEnvelope `json:"envelopes"`
+	SenderSignature string            `json:"senderSignature"`
+}
+
+type RotateDeviceRequest struct {
+	IdempotencyKey          string `json:"idempotencyKey"`
+	NewDeviceID             string `json:"newDeviceId"`
+	SigningPublicKey        string `json:"signingPublicKey"`
+	EncryptionPublicKey     string `json:"encryptionPublicKey"`
+	AuthorizationSignature  string `json:"authorizationSignature"`
+	NewDeviceProofSignature string `json:"newDeviceProofSignature"`
 }
 
 type Result[T any] struct {
@@ -93,6 +126,7 @@ type Health struct {
 	DeviceCount          int            `json:"deviceCount"`
 	ConversationCount    int            `json:"conversationCount"`
 	MessageCount         int            `json:"messageCount"`
+	RotationCount        int            `json:"rotationCount"`
 	TruthfulStatus       string         `json:"truthfulStatus"`
 	RateLimit            string         `json:"rateLimit"`
 	Build                buildinfo.Info `json:"build"`
@@ -121,6 +155,7 @@ type persistentState struct {
 	Devices       map[string]Device            `json:"devices"`
 	Conversations map[string]Conversation      `json:"conversations"`
 	Messages      map[string][]Message         `json:"messages"`
+	Rotations     map[string]DeviceRotation    `json:"rotations,omitempty"`
 	Idempotency   map[string]idempotencyRecord `json:"idempotency"`
 	Audit         []AuditEvent                 `json:"audit"`
 	IntegrityHash string                       `json:"integrityHash"`

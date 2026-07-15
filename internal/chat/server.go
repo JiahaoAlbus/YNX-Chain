@@ -50,7 +50,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	if health.RemoteDeployed {
 		remote = 1
 	}
-	fmt.Fprintf(w, "ynx_chat_devices %d\nynx_chat_conversations %d\nynx_chat_messages %d\nynx_chat_plaintext_stored 0\nynx_chat_remote_deployed %d\n", health.DeviceCount, health.ConversationCount, health.MessageCount, remote)
+	fmt.Fprintf(w, "ynx_chat_devices %d\nynx_chat_conversations %d\nynx_chat_messages %d\nynx_chat_device_rotations %d\nynx_chat_plaintext_stored 0\nynx_chat_remote_deployed %d\n", health.DeviceCount, health.ConversationCount, health.MessageCount, health.RotationCount, remote)
 }
 
 func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +62,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "chat API rate limit exceeded")
 		return
 	}
-	body, err := readBody(r, s.service.cfg.MaxCiphertextBytes+4096)
+	body, err := readBody(r, s.service.cfg.MaxCiphertextBytes*2+64*1024)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -93,6 +93,22 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch {
+	case len(parts) == 4 && parts[0] == "chat" && parts[1] == "devices" && parts[3] == "rotate" && r.Method == http.MethodPost:
+		var request RotateDeviceRequest
+		if err := decodeBody(body, &request); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		result, err := s.service.RotateDevice(actor, parts[2], request)
+		if err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		status := http.StatusCreated
+		if result.Replayed {
+			status = http.StatusOK
+		}
+		writeJSON(w, status, result)
 	case len(parts) == 4 && parts[0] == "chat" && parts[1] == "devices" && parts[3] == "revoke" && r.Method == http.MethodPost:
 		record, err := s.service.RevokeDevice(actor, parts[2])
 		if err != nil {
@@ -125,6 +141,8 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"devices": records})
+	case len(parts) == 2 && parts[0] == "chat" && parts[1] == "device-rotations" && r.Method == http.MethodGet:
+		writeJSON(w, http.StatusOK, map[string]any{"rotations": s.service.DeviceRotations(actor)})
 	case len(parts) == 3 && parts[0] == "chat" && parts[1] == "conversations" && r.Method == http.MethodGet:
 		record, err := s.service.Conversation(actor, parts[2])
 		if err != nil {

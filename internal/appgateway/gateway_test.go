@@ -166,6 +166,8 @@ func TestGatewayRejectsOriginsRoutesHeadersAndBounds(t *testing.T) {
 		{"chat needs ownership session", http.MethodPost, "/app/chat/devices", "", nil, `{}`, http.StatusUnauthorized},
 		{"chat conversation list needs ownership session", http.MethodGet, "/app/chat/conversations", "", nil, "", http.StatusUnauthorized},
 		{"chat device directory needs ownership session", http.MethodGet, "/app/chat/accounts/ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80/devices", "", nil, "", http.StatusUnauthorized},
+		{"chat rotation needs ownership session", http.MethodPost, "/app/chat/devices/device-primary/rotate", "", nil, `{}`, http.StatusUnauthorized},
+		{"chat rotation list needs ownership session", http.MethodGet, "/app/chat/device-rotations", "", nil, "", http.StatusUnauthorized},
 		{"large body", http.MethodGet, "/app/square/feed", "", nil, strings.Repeat("x", 4097), http.StatusRequestEntityTooLarge},
 		{"bad preflight method", http.MethodOptions, "/app/square/posts", testOrigin, map[string]string{"Access-Control-Request-Method": "DELETE"}, "", http.StatusForbidden},
 		{"bad preflight header", http.MethodOptions, "/app/square/feed", testOrigin, map[string]string{"Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "Authorization"}, "", http.StatusForbidden},

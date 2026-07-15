@@ -256,6 +256,10 @@ func protectedRouteAllowed(service, method, path string) bool {
 			return method == "POST"
 		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "revoke":
 			return method == "POST" && validSegment(parts[2])
+		case len(parts) == 4 && parts[1] == "devices" && parts[3] == "rotate":
+			return method == "POST" && validSegment(parts[2])
+		case len(parts) == 2 && parts[1] == "device-rotations":
+			return method == "GET"
 		case len(parts) == 2 && parts[1] == "conversations":
 			return method == "GET" || method == "POST"
 		case len(parts) == 3 && parts[1] == "conversations":
