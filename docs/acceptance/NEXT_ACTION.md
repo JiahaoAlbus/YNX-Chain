@@ -2,7 +2,7 @@
 
 Highest-priority bounded delivery (2026-07-16):
 
-Current single action: preserve deployed release `02f4ccd8770c` and protected Prometheus, diagnose the intermittent direct public ingress failures without weakening timeouts, and prove repeated direct-route chain/API continuity. Restore provider-backed AI only after the external account can return a real successful response.
+Current single action: preserve deployed release `02f4ccd8770c` and protected Prometheus, harden the now-layered direct public ingress diagnosis without weakening timeouts, and prove repeated zero-failure direct-route chain/API continuity from multiple non-primary regions. Restore provider-backed AI only after the external account can return a real successful response.
 
 Why this is next:
 
@@ -11,7 +11,7 @@ Why this is next:
 - Current source now also seals the complete authoritative snapshot as v2, durably syncs replacement, permits one marker-free v1 migration, rejects later downgrade/corruption, and restores in-memory state when replication persistence fails.
 - Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass. Prometheus 3.11.2 is now deployed on the primary's WireGuard address with four distinct targets; a controlled Seoul outage made the expected metrics-down alert pending, firing, and cleared after recovery.
 - Authoritative snapshot-v2 runtime `02f4ccd8770c` is deployed on all four roles. Exact manifest/binary checks pass; every role has marker/version 2; all three followers passed fresh canonical convergence and read-only rejection; one Seoul restart proved lifecycle reset and authenticated recovery. The subsequent verifier race fix and bounded Explorer/AI waiting logic are local control-plane changes only and do not change the deployed chain runtime.
-- Post-drill convergence passed for all followers, including restarted Seoul at height `200947`, and public RPC grew from `200969` to `200971`. The same verifier still observed direct REST, Faucet, Explorer, AI, and Pay fetch failures. Singapore-routed exact-release mutation smoke passed earlier, but it does not prove the direct route. Provider-backed AI remains blocked by upstream HTTP `429`. These are not independent proof.
+- Post-drill convergence passed for all followers, including restarted Seoul at height `200947`, and public RPC grew from `200969` to `200971`. Fresh direct path diagnosis found no Caddy restart, listener backlog, backend failure, host pressure, or local `:443` rate limit. Primary and Singapore direct cycles each passed 50/50 reads with block growth; Silicon Valley passed 49/50 before one RPC TLS timeout, then passed 20/20 TLS 1.2, 20/20 TLS 1.3, and 20/20 HTTPS RPC retries. The workstation is ineligible as a direct vantage because SingLinkVPN resolves YNX names into `198.18.0.0/15` and routes traffic through `utun4`. Provider-backed AI remains blocked by upstream HTTP `429`. None of this is independent proof.
 
 Files to touch:
 
@@ -38,6 +38,7 @@ Validation commands:
 - `make deploy-source-integrity-check`
 - `make verify-testnet-check`
 - `make replication-compression-check`
+- `make public-ingress-path-check`
 - `make smoke-test`
 - `make test`
 - `make no-placeholder-check`

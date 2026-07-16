@@ -1,5 +1,13 @@
 # Project State
 
+## 2026-07-16 direct public ingress path diagnosis
+
+- The authoritative runtime and ingress were not changed. Caddy has remained active since 2026-07-11 with zero restarts, 36 open file descriptors against a `1048576` limit, an empty `:443` receive queue, and no warning/error journal entries during the observed failures. All eight loopback backends returned HTTP `200`; Caddy validation passed. Host memory, task, socket, and qdisc evidence showed no current resource or queue exhaustion, and no local firewall rate limit applies to `:443`.
+- Five bounded direct cycles from the primary and five from Singapore each passed RPC, REST, Faucet, Indexer, Explorer, AI, Pay, Trust, Resource, and EVM `0x1917` reads: 50/50 probes per vantage. Heights grew `202784` to `202805` on the primary and `202784` to `202802` from Singapore. These are operator-controlled direct public-origin reads, not independent proof.
+- The first Silicon Valley cycle set passed 49/50 probes and grew from `202786` to `202827`; one RPC TLS handshake exceeded the existing four-second connect bound. A follow-up from the same node passed 20/20 TLS 1.2 handshakes, 20/20 TLS 1.3 handshakes, and 20/20 HTTPS RPC reads. This shows recovery but does not erase the observed cross-region failure or establish guaranteed availability.
+- The workstation is not a direct public vantage while SingLinkVPN is active: all YNX public names resolve to `198.18.0.0/15` fake IPs, and routes to both fake and real origin addresses traverse `utun4`. A one-cycle run completed only 4/10 probes. New `public-ingress-diagnostic` evidence records DNS, TCP, TLS, TTFB, semantic chain/release checks, and block growth; it marks fake/non-public DNS and explicit origin overrides as ineligible for direct proof. Its bounded offline self-test is now part of preflight.
+- The remaining ingress gap is intermittent long-distance TLS/path availability and absence of an independent public vantage or redundant ingress. No timeout was increased, no retry policy was widened, and no DNS, Caddy, firewall, BFT, or chain mutation was performed.
+
 ## 2026-07-16 authoritative snapshot-v2 rollout and follower recovery
 
 - Ordinary authoritative release `02f4ccd8770c` was deployed through the restricted upgrade gate in follower-first order: Singapore, Silicon Valley, Seoul, then primary. Predeploy reports and valid scoped backups were created on every role (about 12 MB per follower and 23 MB primary). No BFT freeze, signer, candidate, ingress cutover, or rollback transaction phase ran.
@@ -237,4 +245,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Build the first real native Chat window over the remotely protected direct-message core: conversation list/create, encrypted message send/read, delivery/read state, device/session lifecycle, retry-safe errors, and honest empty/unavailable states. Keep the App native rather than website-shaped. Groups, attachments, Bank, Shop, live Bridge execution, iOS/real devices, owner production signing, stores, audit, and independent proof remain later gaps. Bounded EVM/IDE remains frozen.
+- Preserve authoritative release `02f4ccd8770c` and protected monitoring while hardening direct public ingress: retain bounded per-phase path evidence, obtain repeated zero-failure cycles from multiple non-primary public regions, and design a truthful redundant-ingress/failover option before changing DNS or origin routing. Then repeat exact-release, block-growth, and transaction/receipt continuity without using the workstation VPN path or the Singapore SSH tunnel. Provider-backed AI remains an external HTTP `429` blocker; BFT and bounded EVM/IDE remain frozen.
