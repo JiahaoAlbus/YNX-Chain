@@ -15,15 +15,22 @@ module.exports = {
       supportsTablet: true,
       infoPlist: {
         NSContactsUsageDescription: "YNX Social matches locally selected contact hashes only after you allow access.",
-        NSPhotoLibraryUsageDescription: "Choose an image to share in a Social post or message."
+        NSPhotoLibraryUsageDescription: "Choose an image to share in a Social post or message.",
+        NSCameraUsageDescription: "Scan a YNX Social profile QR only when you choose the QR discovery method."
       }
     },
     android: {
       package: "com.ynx.social",
+      allowBackup: false,
       adaptiveIcon: { foregroundImage: path.resolve(__dirname, "assets/adaptive-icon.png"), backgroundColor: "#FFFFFF" },
-      permissions: ["READ_CONTACTS", "READ_MEDIA_IMAGES"]
+      permissions: ["READ_CONTACTS", "READ_MEDIA_IMAGES", "CAMERA"],
+      blockedPermissions: [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
-    plugins: ["expo-secure-store", ["expo-image-picker", { photosPermission: "Choose images you explicitly share in YNX Social." }], ["expo-contacts", { contactsPermission: "Match contacts only after you explicitly allow YNX Social." }]],
+    plugins: ["expo-secure-store", ["expo-camera", { cameraPermission: "Scan a YNX Social profile QR only when you choose QR discovery." }], ["expo-image-picker", { photosPermission: "Choose images you explicitly share in YNX Social." }], ["expo-contacts", { contactsPermission: "Match contacts only after you explicitly allow YNX Social." }]],
     extra: { product: "social", chainId: "ynx_6423-1", evmChainId: 6423, asset: "YNXT" }
   }
 };

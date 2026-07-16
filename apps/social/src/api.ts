@@ -1,4 +1,4 @@
-import type { WalletAssertion } from "./walletAuth";
+import type { ProductSessionChallenge, WalletApproval, WalletAuthorizationRequest, WalletLogin } from "./walletAuth";
 import type { ChatDevice, ChatMessage, DeviceRotationRequest, SendMessageRequest } from "./chatCrypto";
 export type Person = Readonly<{ id:string; handle:string; displayName:string; avatarUrl?:string }>;
 export type ContactRequest = Readonly<{ id:string; person:Person; direction:"incoming"|"outgoing"; status:string; source:string }>;
@@ -10,7 +10,7 @@ export type FeedPost = Readonly<{ id:string; author:Person; text:string; media:r
 export type MomentComment = Readonly<{id:string;author:Person;text:string;createdAt:string}>;
 export type SocialReport = Readonly<{id:string;status:string;outcome:string;explanation:string;evidenceHashes:readonly string[];appeal?:string;updatedAt:string}>;
 export type AlertItem = Readonly<{ id:string; kind:string; actor:Person; summary:string; readAt?:string; createdAt:string }>;
-export type AIJob = Readonly<{id:string;status:"awaiting_permission"|"streaming"|"cancelled"|"provider_failed"|"review"|"applied"|"rejected"|"appealed";output?:string;provider:string;model:string;estimatedCostUsd:number;actualCostUsd?:number;actualTokens?:number}>;
+export type AIJob = Readonly<{id:string;status:"awaiting_permission"|"streaming"|"cancelled"|"provider_failed"|"review"|"applied"|"rejected"|"appealed";output?:string;provider:string;model:string;outputLanguage:string;estimatedCostUsd:number;actualCostUsd?:number;actualTokens?:number}>;
 export type Session = Readonly<{ token:string; session:Readonly<{id:string;account:string;deviceId:string;scopes:readonly string[];createdAt:string;expiresAt:string}>; profile?:Person }>;
 export type SocialProfile = Person & Readonly<{bio:string;followerCount:number;followingCount:number;postCount:number;privacy:Readonly<{discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:string;avatarUrl?:string;profileQrPayload?:string}>}>;
 export type PrivacySettings = SocialProfile["privacy"] & Readonly<{account?:string;updatedAt?:string}>;
@@ -19,7 +19,8 @@ export class SocialAPI {
   readonly base:string; private token:string|null;
   constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
   setToken(value:string|null){this.token=value}
-  login(assertion:WalletAssertion&{deviceProofSignature:string}){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:assertion,auth:false})}
+  walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}
+  login(input:WalletLogin){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:input,auth:false})}
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
   updateProfile(body:{idempotencyKey:string;handle:string;displayName:string;bio:string;avatarUrl?:string}){return this.request<{record:SocialProfile;replayed:boolean}>("/social/v1/profile",{method:"PUT",body})}
   settings(){return this.request<{record:PrivacySettings}>("/social/v1/settings")}

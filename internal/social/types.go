@@ -17,10 +17,12 @@ var (
 )
 
 const (
-	SchemaVersion = 3
-	ProductID     = "ynx-social"
-	ClientID      = "com.ynx.social"
-	Callback      = "ynxsocial://auth/callback"
+	SchemaVersion          = 4
+	RequestingProduct      = "social"
+	ProductClientID        = "ynx-social-v1"
+	BundleID               = "com.ynx.social"
+	Callback               = "ynxsocial://wallet-auth/callback"
+	ProductDeviceAlgorithm = "p256-sha256"
 )
 
 type Config struct {
@@ -41,22 +43,76 @@ type AIProvider struct {
 	CostPer1KUSD float64  `json:"costPer1KUsd"`
 }
 
-type WalletAssertion struct {
-	Account                     string    `json:"account"`
-	PublicKey                   string    `json:"publicKey"`
-	DeviceID                    string    `json:"deviceId"`
-	DeviceSigningPublicKey      string    `json:"deviceSigningPublicKey"`
-	DeviceEncryptionPublicKey   string    `json:"deviceEncryptionPublicKey"`
-	DeviceProofSignature        string    `json:"deviceProofSignature"`
-	ChatRegistrationSignature   string    `json:"chatRegistrationSignature"`
-	SquareRegistrationSignature string    `json:"squareRegistrationSignature"`
-	ClientID                    string    `json:"clientId"`
-	Callback                    string    `json:"callback"`
-	Scopes                      []string  `json:"scopes"`
-	Nonce                       string    `json:"nonce"`
-	IssuedAt                    time.Time `json:"issuedAt"`
-	ExpiresAt                   time.Time `json:"expiresAt"`
-	Signature                   string    `json:"signature"`
+type WalletAuthorizationRequest struct {
+	Version                string   `json:"version"`
+	Nonce                  string   `json:"nonce"`
+	ChainID                string   `json:"chainId"`
+	RequestingProduct      string   `json:"requestingProduct"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Callback               string   `json:"callback"`
+	Scopes                 []string `json:"scopes"`
+	Purpose                string   `json:"purpose"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+}
+
+type WalletApproval struct {
+	Version                string   `json:"version"`
+	RequestDigest          string   `json:"requestDigest"`
+	Nonce                  string   `json:"nonce"`
+	ChainID                string   `json:"chainId"`
+	RequestingProduct      string   `json:"requestingProduct"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Callback               string   `json:"callback"`
+	Account                string   `json:"account"`
+	AccountPublicKey       string   `json:"accountPublicKey"`
+	GrantedScopes          []string `json:"grantedScopes"`
+	Purpose                string   `json:"purpose"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+	WalletSignature        string   `json:"walletSignature"`
+}
+
+type WalletChallengeRequest struct {
+	Request  WalletAuthorizationRequest `json:"request"`
+	Approval WalletApproval             `json:"approval"`
+}
+
+type ProductSessionChallenge struct {
+	Version                string   `json:"version"`
+	Challenge              string   `json:"challenge"`
+	RequestDigest          string   `json:"requestDigest"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Account                string   `json:"account"`
+	Scopes                 []string `json:"scopes"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+}
+
+type WalletLogin struct {
+	Challenge                   ProductSessionChallenge `json:"challenge"`
+	DeviceSignature             string                  `json:"deviceSignature"`
+	DeviceID                    string                  `json:"deviceId"`
+	DeviceSigningPublicKey      string                  `json:"deviceSigningPublicKey"`
+	DeviceEncryptionPublicKey   string                  `json:"deviceEncryptionPublicKey"`
+	DeviceProofSignature        string                  `json:"deviceProofSignature"`
+	ChatRegistrationSignature   string                  `json:"chatRegistrationSignature"`
+	SquareRegistrationSignature string                  `json:"squareRegistrationSignature"`
+}
+
+type PendingWalletChallenge struct {
+	Challenge ProductSessionChallenge `json:"challenge"`
+	Approval  WalletApproval          `json:"approval"`
+	UsedAt    *time.Time              `json:"usedAt,omitempty"`
 }
 
 type Session struct {
@@ -228,6 +284,7 @@ type AIRequest struct {
 	Provider        string   `json:"provider"`
 	Model           string   `json:"model"`
 	EstimatedTokens int      `json:"estimatedTokens"`
+	OutputLanguage  string   `json:"outputLanguage"`
 }
 
 type AIJob struct {
@@ -240,6 +297,7 @@ type AIJob struct {
 	Provider         string     `json:"provider"`
 	Model            string     `json:"model"`
 	EstimatedTokens  int        `json:"estimatedTokens"`
+	OutputLanguage   string     `json:"outputLanguage"`
 	EstimatedCostUSD float64    `json:"estimatedCostUsd"`
 	PermissionAt     *time.Time `json:"permissionAt,omitempty"`
 	Status           string     `json:"status"`
@@ -282,29 +340,30 @@ type idempotencyRecord struct {
 }
 
 type persistentState struct {
-	SchemaVersion   int                          `json:"schemaVersion"`
-	Sessions        map[string]Session           `json:"sessions"`
-	UsedNonces      map[string]time.Time         `json:"usedNonces"`
-	Settings        map[string]ProfileSettings   `json:"settings"`
-	Invites         map[string]Invite            `json:"invites"`
-	Requests        map[string]ContactRequest    `json:"requests"`
-	Contacts        map[string]Contact           `json:"contacts"`
-	Blocks          map[string]time.Time         `json:"blocks"`
-	Mutes           map[string]time.Time         `json:"mutes"`
-	Notifications   map[string]Notification      `json:"notifications"`
-	AIJobs          map[string]AIJob             `json:"aiJobs"`
-	Automation      map[string]AutomationRule    `json:"automation"`
-	Devices         map[string]ProductDevice     `json:"devices"`
-	Groups          map[string]GroupConversation `json:"groups"`
-	GroupMessages   map[string][]chat.Message    `json:"groupMessages"`
-	Media           map[string]MediaObject       `json:"media"`
-	Moments         map[string]Moment            `json:"moments"`
-	MomentComments  map[string][]MomentComment   `json:"momentComments"`
-	MomentReactions map[string]MomentReaction    `json:"momentReactions"`
-	Reports         map[string]SocialReport      `json:"reports"`
-	Idempotency     map[string]idempotencyRecord `json:"idempotency"`
-	Audit           []AuditEvent                 `json:"audit"`
-	IntegrityHash   string                       `json:"integrityHash"`
+	SchemaVersion    int                               `json:"schemaVersion"`
+	Sessions         map[string]Session                `json:"sessions"`
+	UsedNonces       map[string]time.Time              `json:"usedNonces"`
+	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
+	Settings         map[string]ProfileSettings        `json:"settings"`
+	Invites          map[string]Invite                 `json:"invites"`
+	Requests         map[string]ContactRequest         `json:"requests"`
+	Contacts         map[string]Contact                `json:"contacts"`
+	Blocks           map[string]time.Time              `json:"blocks"`
+	Mutes            map[string]time.Time              `json:"mutes"`
+	Notifications    map[string]Notification           `json:"notifications"`
+	AIJobs           map[string]AIJob                  `json:"aiJobs"`
+	Automation       map[string]AutomationRule         `json:"automation"`
+	Devices          map[string]ProductDevice          `json:"devices"`
+	Groups           map[string]GroupConversation      `json:"groups"`
+	GroupMessages    map[string][]chat.Message         `json:"groupMessages"`
+	Media            map[string]MediaObject            `json:"media"`
+	Moments          map[string]Moment                 `json:"moments"`
+	MomentComments   map[string][]MomentComment        `json:"momentComments"`
+	MomentReactions  map[string]MomentReaction         `json:"momentReactions"`
+	Reports          map[string]SocialReport           `json:"reports"`
+	Idempotency      map[string]idempotencyRecord      `json:"idempotency"`
+	Audit            []AuditEvent                      `json:"audit"`
+	IntegrityHash    string                            `json:"integrityHash"`
 }
 
 type Export struct {

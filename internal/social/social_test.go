@@ -3,12 +3,16 @@ package social
 import (
 	"bytes"
 	"context"
+	stdECDSA "crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +30,7 @@ import (
 
 type fixture struct {
 	key        *secp256k1.PrivateKey
+	productKey *stdECDSA.PrivateKey
 	account    string
 	device     string
 	deviceKeys nativewallet.DeviceKeys
@@ -47,25 +52,25 @@ func (f fakeAIStreamer) Stream(ctx context.Context, in AIStreamRequest, emit fun
 func TestWalletLoginRejectsReplayWrongBindingAndWrongAccount(t *testing.T) {
 	s, now := testService(t)
 	alice := newFixture(t, 1)
-	assertion := signedAssertion(t, alice, now)
-	result, err := s.Login(assertion)
+	login := signedLogin(t, s, alice, now)
+	result, err := s.Login(login)
 	if err != nil || result.Token == "" || result.Session.Account != alice.account {
 		t.Fatalf("login: %#v %v", result, err)
 	}
-	if _, err := s.Login(assertion); !errors.Is(err, ErrConflict) {
+	if _, err := s.Login(login); !errors.Is(err, ErrConflict) {
 		t.Fatalf("replay error = %v", err)
 	}
-	bad := signedAssertion(t, alice, now)
-	bad.Callback = "ynxsocial://evil"
-	resign(t, alice, &bad)
-	if _, err := s.Login(bad); !errors.Is(err, ErrInvalid) {
+	bad := signedWalletApproval(t, alice, now)
+	bad.Request.Callback = "ynxsocial://evil"
+	resignApproval(t, alice, &bad)
+	if _, err := s.CreateWalletChallenge(bad); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("callback error = %v", err)
 	}
 	bob := newFixture(t, 2)
-	wrong := signedAssertion(t, alice, now)
-	wrong.Account = bob.account
-	resign(t, alice, &wrong)
-	if _, err := s.Login(wrong); !errors.Is(err, ErrUnauthorized) {
+	wrong := signedWalletApproval(t, alice, now)
+	wrong.Approval.Account = bob.account
+	resignApproval(t, alice, &wrong)
+	if _, err := s.CreateWalletChallenge(wrong); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("account binding error = %v", err)
 	}
 }
@@ -86,7 +91,7 @@ func TestWalletLoginRegistersOneBoundProductDeviceWithChatAndSquare(t *testing.T
 		t.Fatal(err)
 	}
 	member := newFixture(t, 41)
-	if _, err := service.Login(signedAssertion(t, member, now)); err != nil {
+	if _, err := service.Login(signedLogin(t, service, member, now)); err != nil {
 		t.Fatal(err)
 	}
 	if chatService.Health().DeviceCount != 1 || squareService.Health().ProfileCount != 0 {
@@ -94,6 +99,28 @@ func TestWalletLoginRegistersOneBoundProductDeviceWithChatAndSquare(t *testing.T
 	}
 	if devices, err := chatService.Devices(chat.Device{Account: member.account}, member.account); err != nil || len(devices) != 1 || devices[0].ID != member.device {
 		t.Fatalf("chat device binding %#v %v", devices, err)
+	}
+}
+
+func TestWalletGatewayChallengeSurvivesRestartAndRejectsTamper(t *testing.T) {
+	s, now := testService(t)
+	alice := newFixture(t, 42)
+	login := signedLogin(t, s, alice, now)
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := login
+	tampered.DeviceSignature = "A" + tampered.DeviceSignature[1:]
+	if _, err := restarted.Login(tampered); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("tampered P-256 completion = %v", err)
+	}
+	result, err := restarted.Login(login)
+	if err != nil || result.Session.Account != alice.account {
+		t.Fatalf("restart completion = %#v %v", result, err)
+	}
+	if _, err := restarted.Login(login); !errors.Is(err, ErrConflict) {
+		t.Fatalf("completion replay = %v", err)
 	}
 }
 
@@ -345,10 +372,16 @@ func TestAINativePermissionReviewCancelRetryAndProviderFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := AIRequest{IdempotencyKey: "ai-reply-one", Kind: "reply_draft", SelectionIDs: []string{moment.ID}, ContextClasses: []string{"message_text"}, PrivacyPreview: "One selected message will be sent without contact metadata.", Provider: "test-provider", Model: "test-model", EstimatedTokens: 800}
+	input := AIRequest{IdempotencyKey: "ai-reply-one", Kind: "reply_draft", SelectionIDs: []string{moment.ID}, ContextClasses: []string{"message_text"}, PrivacyPreview: "One selected message will be sent without contact metadata.", Provider: "test-provider", Model: "test-model", EstimatedTokens: 800, OutputLanguage: "en"}
 	job, replay, err := s.BeginAI(alice, input)
-	if err != nil || replay || job.Status != "awaiting_permission" || job.EstimatedCostUSD <= 0 {
+	if err != nil || replay || job.Status != "awaiting_permission" || job.EstimatedCostUSD <= 0 || job.OutputLanguage != "en" {
 		t.Fatalf("begin %#v %v", job, err)
+	}
+	invalidLanguage := input
+	invalidLanguage.IdempotencyKey = "ai-invalid-language"
+	invalidLanguage.OutputLanguage = "auto"
+	if _, _, err := s.BeginAI(alice, invalidLanguage); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unapproved AI output language = %v", err)
 	}
 	if _, err := s.TransitionAI(alice, job.ID, "complete", "draft"); !errors.Is(err, ErrConflict) {
 		t.Fatalf("completed without consent: %v", err)
@@ -393,7 +426,7 @@ func TestAIStreamsOnlyAfterPermissionAndPersistsReviewUsage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := AIRequest{IdempotencyKey: "ai-stream-job", Kind: "translation", SelectionIDs: []string{moment.ID}, ContextClasses: []string{"selected_text"}, PrivacyPreview: "Only one selected private text block is shared.", Provider: "test-provider", Model: "test-model", EstimatedTokens: 400}
+	input := AIRequest{IdempotencyKey: "ai-stream-job", Kind: "translation", SelectionIDs: []string{moment.ID}, ContextClasses: []string{"selected_text"}, PrivacyPreview: "Only one selected private text block is shared.", Provider: "test-provider", Model: "test-model", EstimatedTokens: 400, OutputLanguage: "en"}
 	job, _, err := s.BeginAI(alice, input)
 	if err != nil {
 		t.Fatal(err)
@@ -420,6 +453,15 @@ func TestAIStreamsOnlyAfterPermissionAndPersistsReviewUsage(t *testing.T) {
 	}
 	if _, err := s.TransitionAI(alice, job.ID, "apply", ""); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAIPromptBindsExplicitOutputLanguageAndForbidsSideEffects(t *testing.T) {
+	prompt := socialAIPrompt(AIStreamRequest{Kind: "reply_draft", Provider: "test-provider", Model: "test-model", OutputLanguage: "ar", ContextText: "selected message"})
+	for _, required := range []string{"locale: ar", "Do not send it", "Never send, publish, follow, block, report, or punish", "selected message"} {
+		if !strings.Contains(prompt, required) {
+			t.Fatalf("AI prompt missing %q: %s", required, prompt)
+		}
 	}
 }
 
@@ -516,30 +558,51 @@ func newFixture(t *testing.T, seed byte) fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return fixture{key: key, account: account, device: "device-test-" + hex.EncodeToString([]byte{seed}), deviceKeys: deviceKeys}
+	x, y := elliptic.P256().ScalarBaseMult(bytes.Repeat([]byte{seed + 40}, 32))
+	return fixture{key: key, productKey: &stdECDSA.PrivateKey{PublicKey: stdECDSA.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, D: new(big.Int).SetBytes(bytes.Repeat([]byte{seed + 40}, 32))}, account: account, device: "device-test-" + hex.EncodeToString([]byte{seed}), deviceKeys: deviceKeys}
 }
-func signedAssertion(t *testing.T, f fixture, now time.Time) WalletAssertion {
+func signedWalletApproval(t *testing.T, f fixture, now time.Time) WalletChallengeRequest {
 	t.Helper()
-	a := WalletAssertion{Account: f.account, PublicKey: hex.EncodeToString(f.key.PubKey().SerializeCompressed()), DeviceID: f.device, DeviceSigningPublicKey: nativewallet.EncodePublicKey(f.deviceKeys.SigningPublic), DeviceEncryptionPublicKey: nativewallet.EncodePublicKey(f.deviceKeys.EncryptionPublic), ClientID: ClientID, Callback: Callback, Scopes: []string{"social.profile", "social.contacts", "social.messaging", "social.feed", "social.ai"}, Nonce: "nonce-test-" + f.device, IssuedAt: now.Add(-time.Second), ExpiresAt: now.Add(4 * time.Minute)}
-	resign(t, f, &a)
-	return a
+	productPublicKey := base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), f.productKey.X, f.productKey.Y))
+	request := WalletAuthorizationRequest{Version: "1", Nonce: base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{f.device[len(f.device)-1]}, 32)), ChainID: "ynx_6423-1", RequestingProduct: RequestingProduct, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: productPublicKey, Callback: Callback, Scopes: append([]string(nil), walletScopes...), Purpose: "Sign in to YNX Social. No recovery key is shared.", IssuedAt: now.Add(-time.Second).Format(protocolTimeLayout), ExpiresAt: now.Add(4 * time.Minute).Format(protocolTimeLayout)}
+	digest, _ := WalletRequestDigest(request)
+	approval := WalletApproval{Version: "1", RequestDigest: digest, Nonce: request.Nonce, ChainID: request.ChainID, RequestingProduct: request.RequestingProduct, ProductClientID: request.ProductClientID, BundleID: request.BundleID, ProductDeviceAlgorithm: request.ProductDeviceAlgorithm, ProductDeviceKey: request.ProductDeviceKey, Callback: request.Callback, Account: f.account, AccountPublicKey: hex.EncodeToString(f.key.PubKey().SerializeCompressed()), GrantedScopes: append([]string(nil), request.Scopes...), Purpose: request.Purpose, IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: now.Add(3 * time.Minute).Format(protocolTimeLayout)}
+	in := WalletChallengeRequest{Request: request, Approval: approval}
+	resignApproval(t, f, &in)
+	return in
 }
-func resign(t *testing.T, f fixture, a *WalletAssertion) {
+func resignApproval(t *testing.T, f fixture, in *WalletChallengeRequest) {
 	t.Helper()
-	digest := sha256.Sum256(WalletAssertionPayload(*a))
-	a.Signature = hex.EncodeToString(ecdsa.Sign(f.key, digest[:]).Serialize())
-	a.DeviceProofSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, DeviceProofPayload(*a))
-	squareRequest := square.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-square", a.Nonce), Account: a.Account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey}
-	a.SquareRegistrationSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, square.DeviceRegistrationPayload(squareRequest))
-	chatRequest := chat.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-chat", a.Nonce), Account: a.Account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey, EncryptionPublicKey: a.DeviceEncryptionPublicKey}
-	a.ChatRegistrationSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, chat.DeviceRegistrationPayload(chatRequest))
+	digest, _ := WalletRequestDigest(in.Request)
+	in.Approval.RequestDigest = digest
+	payload, _ := WalletApprovalSignBytes(in.Approval)
+	signDigest := sha256.Sum256(payload)
+	in.Approval.WalletSignature = hex.EncodeToString(ecdsa.SignCompact(f.key, signDigest[:], false)[1:])
+}
+func signedLogin(t *testing.T, s *Service, f fixture, now time.Time) WalletLogin {
+	t.Helper()
+	approval := signedWalletApproval(t, f, now)
+	challenge, err := s.CreateWalletChallenge(approval)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bytesToSign, _ := GatewayChallengeSignBytes(challenge)
+	digest := sha256.Sum256(bytesToSign)
+	deviceSignature, err := stdECDSA.SignASN1(rand.Reader, f.productKey, digest[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	login := WalletLogin{Challenge: challenge, DeviceSignature: base64.RawURLEncoding.EncodeToString(deviceSignature), DeviceID: f.device, DeviceSigningPublicKey: nativewallet.EncodePublicKey(f.deviceKeys.SigningPublic), DeviceEncryptionPublicKey: nativewallet.EncodePublicKey(f.deviceKeys.EncryptionPublic)}
+	login.DeviceProofSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, DeviceProofPayload(login, approval.Approval))
+	squareRequest := square.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-square", approval.Approval.RequestDigest), Account: approval.Approval.Account, DeviceID: login.DeviceID, SigningPublicKey: login.DeviceSigningPublicKey}
+	login.SquareRegistrationSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, square.DeviceRegistrationPayload(squareRequest))
+	chatRequest := chat.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-chat", approval.Approval.RequestDigest), Account: approval.Approval.Account, DeviceID: login.DeviceID, SigningPublicKey: login.DeviceSigningPublicKey, EncryptionPublicKey: login.DeviceEncryptionPublicKey}
+	login.ChatRegistrationSignature = nativewallet.Sign(f.deviceKeys.SigningPrivate, chat.DeviceRegistrationPayload(chatRequest))
+	return login
 }
 func loginFixture(t *testing.T, s *Service, f fixture, now time.Time) Session {
 	t.Helper()
-	a := signedAssertion(t, f, now)
-	a.Nonce += "-login"
-	resign(t, f, &a)
-	result, err := s.Login(a)
+	result, err := s.Login(signedLogin(t, s, f, now))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -29,6 +29,7 @@ func NewServer(service *Service, resolver DiscoveryResolver) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.health)
+	mux.HandleFunc("/social/v1/wallet/challenge", s.walletChallenge)
 	mux.HandleFunc("/social/v1/wallet/login", s.login)
 	mux.HandleFunc("/social/v1/", s.social)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,14 +45,46 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 405, "method not allowed")
 		return
 	}
-	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "strict-temporary-adapter", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
+	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "canonical-signed-envelope-v1", "walletGateway": "persistent-p256-challenge-v1", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
+}
+func (s *Server) walletChallenge(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, 405, "method not allowed")
+		return
+	}
+	if r.URL.RawQuery != "" {
+		writeError(w, 400, "wallet authorization query fields are not accepted")
+		return
+	}
+	if !s.service.Allow(r.RemoteAddr, "anonymous", "wallet-challenge") {
+		writeError(w, 429, ErrRateLimited.Error())
+		return
+	}
+	var in WalletChallengeRequest
+	if !decodeRequest(w, r, &in, 32*1024) {
+		return
+	}
+	record, err := s.service.CreateWalletChallenge(in)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, map[string]any{"challenge": record})
 }
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, 405, "method not allowed")
 		return
 	}
-	var in WalletAssertion
+	if r.URL.RawQuery != "" {
+		writeError(w, 400, "wallet authorization query fields are not accepted")
+		return
+	}
+	if !s.service.Allow(r.RemoteAddr, "anonymous", "wallet-login") {
+		writeError(w, 429, ErrRateLimited.Error())
+		return
+	}
+	var in WalletLogin
 	if !decodeRequest(w, r, &in, 32*1024) {
 		return
 	}

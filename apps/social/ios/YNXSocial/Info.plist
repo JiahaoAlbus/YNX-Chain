@@ -46,7 +46,7 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your camera</string>
+    <string>Scan a YNX Social profile QR only when you choose QR discovery.</string>
     <key>NSContactsUsageDescription</key>
     <string>Match contacts only after you explicitly allow YNX Social.</string>
     <key>NSFaceIDUsageDescription</key>

@@ -23,7 +23,7 @@ func TestServerStrictParserDiscoveryBoundaryAndAuthorization(t *testing.T) {
 	service.cfg.RateLimitMax = 100
 	aliceFixture := newFixture(t, 31)
 	bobFixture := newFixture(t, 32)
-	login, err := service.Login(signedAssertion(t, aliceFixture, now))
+	login, err := service.Login(signedLogin(t, service, aliceFixture, now))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,6 +53,17 @@ func TestServerStrictParserDiscoveryBoundaryAndAuthorization(t *testing.T) {
 		t.Fatalf("unauthorized status=%d", response.StatusCode)
 	}
 	response.Body.Close()
+}
+
+func TestServerRejectsLegacyWalletQueryFieldAuthorization(t *testing.T) {
+	service, _ := testService(t)
+	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())
+	defer server.Close()
+	response := doRequest(t, http.MethodPost, server.URL+"/social/v1/wallet/challenge?account=legacy&nonce=legacy", "", []byte(`{}`))
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusBadRequest {
+		t.Fatalf("legacy wallet query status=%d", response.StatusCode)
+	}
 }
 
 func doRequest(t *testing.T, method, url, token string, body []byte) *http.Response {

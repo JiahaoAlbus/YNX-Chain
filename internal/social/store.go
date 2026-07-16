@@ -28,6 +28,9 @@ func normalizeState(s *persistentState) {
 	if s.UsedNonces == nil {
 		s.UsedNonces = map[string]time.Time{}
 	}
+	if s.WalletChallenges == nil {
+		s.WalletChallenges = map[string]PendingWalletChallenge{}
+	}
 	if s.Settings == nil {
 		s.Settings = map[string]ProfileSettings{}
 	}
@@ -102,7 +105,7 @@ func loadState(path string, key []byte) (persistentState, bool, error) {
 		return persistentState{}, true, fmt.Errorf("decode social state: %w", err)
 	}
 	version := state.SchemaVersion
-	if version != 1 && version != 2 && version != SchemaVersion {
+	if version != 1 && version != 2 && version != 3 && version != SchemaVersion {
 		return persistentState{}, true, fmt.Errorf("unsupported social state schema %d", state.SchemaVersion)
 	}
 	normalizeState(&state)

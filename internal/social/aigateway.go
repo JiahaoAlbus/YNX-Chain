@@ -14,11 +14,12 @@ import (
 )
 
 type AIStreamRequest struct {
-	JobID       string
-	Kind        string
-	Provider    string
-	Model       string
-	ContextText string
+	JobID          string
+	Kind           string
+	Provider       string
+	Model          string
+	OutputLanguage string
+	ContextText    string
 }
 
 type AIUsage struct{ Tokens int }
@@ -106,5 +107,5 @@ func socialAIPrompt(in AIStreamRequest) string {
 		"inbox_classification":   "Classify the selected inbox thread and explain the category.",
 		"moderation_explanation": "Explain the selected moderation outcome and available appeal path without changing the outcome.",
 	}[in.Kind]
-	return strings.Join([]string{"YNX Social user-approved task.", instruction, "Never send, publish, follow, block, report, or punish. Return reviewable text only.", "Provider label: " + in.Provider + ". Model label: " + in.Model + ".", "Selected context:", in.ContextText}, "\n")
+	return strings.Join([]string{"YNX Social user-approved task.", instruction, "Write the reviewable output in locale: " + in.OutputLanguage + ".", "Never send, publish, follow, block, report, or punish. Return reviewable text only.", "Provider label: " + in.Provider + ". Model label: " + in.Model + ".", "Selected context:", in.ContextText}, "\n")
 }

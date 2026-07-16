@@ -33,6 +33,7 @@ var identifierPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{2,95}$`)
 var allowedScopes = map[string]bool{"social.profile": true, "social.contacts": true, "social.messaging": true, "social.feed": true, "social.ai": true}
 var allowedSources = map[string]bool{"handle": true, "contacts": true, "qr": true, "invite": true, "recommendation": true}
 var allowedAIKinds = map[string]bool{"reply_draft": true, "conversation_summary": true, "translation": true, "inbox_classification": true, "moderation_explanation": true}
+var allowedAILanguages = map[string]bool{"en": true, "zh-Hans": true, "zh-Hant": true, "ja": true, "ko": true, "es": true, "fr": true, "de": true, "pt": true, "ru": true, "ar": true, "id": true}
 
 type Service struct {
 	mu    sync.Mutex
@@ -74,67 +75,82 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 
-func WalletAssertionPayload(a WalletAssertion) []byte {
-	scopes := append([]string(nil), a.Scopes...)
-	sort.Strings(scopes)
-	return []byte(strings.Join([]string{"ynx-wallet-product-auth-v1", ProductID, a.Account, a.DeviceID, a.DeviceSigningPublicKey, a.DeviceEncryptionPublicKey, a.ClientID, a.Callback, strings.Join(scopes, ","), a.Nonce, a.IssuedAt.UTC().Format(time.RFC3339Nano), a.ExpiresAt.UTC().Format(time.RFC3339Nano)}, "\n"))
+func DeviceProofPayload(a WalletLogin, approval WalletApproval) []byte {
+	return []byte(strings.Join([]string{"ynx-social-device-proof-v2", approval.Account, a.DeviceID, a.DeviceSigningPublicKey, a.DeviceEncryptionPublicKey, approval.RequestDigest, a.Challenge.Challenge}, "\n"))
 }
 
-func DeviceProofPayload(a WalletAssertion) []byte {
-	return []byte(strings.Join([]string{"ynx-social-device-proof-v1", a.Account, a.DeviceID, a.DeviceSigningPublicKey, a.DeviceEncryptionPublicKey, a.Nonce}, "\n"))
-}
-
-func RegistrationIdempotencyKey(kind, nonce string) string {
-	digest := sha256.Sum256([]byte(nonce))
+func RegistrationIdempotencyKey(kind, requestDigest string) string {
+	digest := sha256.Sum256([]byte(requestDigest))
 	return kind + "-" + hex.EncodeToString(digest[:12])
 }
 
-func (s *Service) Login(a WalletAssertion) (LoginResult, error) {
+func (s *Service) CreateWalletChallenge(in WalletChallengeRequest) (ProductSessionChallenge, error) {
 	now := s.cfg.Now().UTC()
-	account, err := nativewallet.NormalizeNativeAddress(a.Account)
+	approvalExpires, err := verifyWalletApproval(in.Request, in.Approval, now)
 	if err != nil {
-		return LoginResult{}, fmt.Errorf("%w: wallet native account", ErrInvalid)
+		return ProductSessionChallenge{}, err
 	}
-	if a.ClientID != ClientID {
-		return LoginResult{}, fmt.Errorf("%w: wallet client binding", ErrInvalid)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, used := s.state.UsedNonces[in.Approval.Nonce]; used {
+		return ProductSessionChallenge{}, fmt.Errorf("%w: wallet approval replay", ErrConflict)
 	}
-	if a.Callback != Callback {
-		return LoginResult{}, fmt.Errorf("%w: wallet callback binding", ErrInvalid)
+	for _, pending := range s.state.WalletChallenges {
+		if pending.Approval.RequestDigest == in.Approval.RequestDigest && pending.UsedAt == nil {
+			return pending.Challenge, nil
+		}
 	}
+	expires := now.Add(2 * time.Minute)
+	if approvalExpires.Before(expires) {
+		expires = approvalExpires
+	}
+	challenge := ProductSessionChallenge{Version: "1", Challenge: base64.RawURLEncoding.EncodeToString(randomBytes(32)), RequestDigest: in.Approval.RequestDigest, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: in.Approval.ProductDeviceKey, Account: in.Approval.Account, Scopes: append([]string(nil), in.Approval.GrantedScopes...), IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: expires.Format(protocolTimeLayout)}
+	before := cloneState(s.state)
+	s.state.WalletChallenges[challenge.Challenge] = PendingWalletChallenge{Challenge: challenge, Approval: in.Approval}
+	s.appendAuditLocked("wallet_challenge_created", "wallet_challenge", challenge.Challenge, in.Approval.Account, objectDigest(challenge), now)
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return ProductSessionChallenge{}, err
+	}
+	return challenge, nil
+}
+
+func (s *Service) Login(a WalletLogin) (LoginResult, error) {
+	now := s.cfg.Now().UTC()
 	if !identifierPattern.MatchString(a.DeviceID) {
 		return LoginResult{}, fmt.Errorf("%w: wallet device identifier", ErrInvalid)
 	}
-	if !identifierPattern.MatchString(a.Nonce) {
-		return LoginResult{}, fmt.Errorf("%w: wallet nonce identifier", ErrInvalid)
+	challengeExpires, err := parseProtocolTime(a.Challenge.ExpiresAt)
+	if err != nil || !challengeExpires.After(now) {
+		return LoginResult{}, fmt.Errorf("%w: product challenge expired", ErrUnauthorized)
 	}
-	if a.IssuedAt.After(now.Add(30*time.Second)) || a.IssuedAt.Before(now.Add(-5*time.Minute)) || !a.ExpiresAt.After(now) || a.ExpiresAt.After(a.IssuedAt.Add(5*time.Minute)) {
-		return LoginResult{}, fmt.Errorf("%w: wallet assertion lifetime", ErrUnauthorized)
+	s.mu.Lock()
+	pending, exists := s.state.WalletChallenges[a.Challenge.Challenge]
+	s.mu.Unlock()
+	if !exists || pending.UsedAt != nil || objectDigest(pending.Challenge) != objectDigest(a.Challenge) {
+		return LoginResult{}, fmt.Errorf("%w: product challenge replay or substitution", ErrConflict)
 	}
-	if len(a.Scopes) == 0 || len(a.Scopes) > len(allowedScopes) {
-		return LoginResult{}, fmt.Errorf("%w: wallet scopes", ErrInvalid)
+	approval := pending.Approval
+	if a.Challenge.RequestDigest != approval.RequestDigest || a.Challenge.ProductClientID != ProductClientID || a.Challenge.BundleID != BundleID || a.Challenge.ProductDeviceAlgorithm != ProductDeviceAlgorithm || a.Challenge.ProductDeviceKey != approval.ProductDeviceKey || a.Challenge.Account != approval.Account || strings.Join(a.Challenge.Scopes, "\n") != strings.Join(approval.GrantedScopes, "\n") {
+		return LoginResult{}, fmt.Errorf("%w: product challenge binding", ErrUnauthorized)
 	}
-	seenScope := map[string]bool{}
-	for _, scope := range a.Scopes {
-		if !allowedScopes[scope] || seenScope[scope] {
-			return LoginResult{}, fmt.Errorf("%w: wallet scope %q", ErrInvalid, scope)
-		}
-		seenScope[scope] = true
+	if !verifyProductDeviceSignature(a.Challenge, a.DeviceSignature) {
+		return LoginResult{}, fmt.Errorf("%w: product device challenge proof", ErrUnauthorized)
 	}
-	a.Account = account
-	if !verifyWalletSignature(account, a.PublicKey, a.Signature, WalletAssertionPayload(a)) {
-		return LoginResult{}, fmt.Errorf("%w: wallet signature", ErrUnauthorized)
+	account, err := nativewallet.NormalizeNativeAddress(approval.Account)
+	if err != nil {
+		return LoginResult{}, fmt.Errorf("%w: wallet native account", ErrInvalid)
 	}
-	if !nativewallet.Verify(a.DeviceSigningPublicKey, DeviceProofPayload(a), a.DeviceProofSignature) {
+	if !nativewallet.Verify(a.DeviceSigningPublicKey, DeviceProofPayload(a, approval), a.DeviceProofSignature) {
 		return LoginResult{}, fmt.Errorf("%w: product device proof", ErrUnauthorized)
 	}
 	if s.cfg.Square != nil {
-		request := square.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-square", a.Nonce), Account: account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey, ProofSignature: a.SquareRegistrationSignature}
+		request := square.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-square", approval.RequestDigest), Account: account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey, ProofSignature: a.SquareRegistrationSignature}
 		if _, err := s.cfg.Square.RegisterDevice(request); err != nil {
 			return LoginResult{}, fmt.Errorf("%w: square device registration: %v", ErrUnauthorized, err)
 		}
 	}
 	if s.cfg.Chat != nil {
-		request := chat.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-chat", a.Nonce), Account: account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey, EncryptionPublicKey: a.DeviceEncryptionPublicKey, ProofSignature: a.ChatRegistrationSignature}
+		request := chat.RegisterDeviceRequest{IdempotencyKey: RegistrationIdempotencyKey("social-chat", approval.RequestDigest), Account: account, DeviceID: a.DeviceID, SigningPublicKey: a.DeviceSigningPublicKey, EncryptionPublicKey: a.DeviceEncryptionPublicKey, ProofSignature: a.ChatRegistrationSignature}
 		if _, err := s.cfg.Chat.RegisterDevice(request); err != nil {
 			return LoginResult{}, fmt.Errorf("%w: chat device registration: %v", ErrUnauthorized, err)
 		}
@@ -142,8 +158,12 @@ func (s *Service) Login(a WalletAssertion) (LoginResult, error) {
 	digest := objectDigest(a)
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, exists := s.state.UsedNonces[a.Nonce]; exists {
-		return LoginResult{}, fmt.Errorf("%w: wallet nonce replay", ErrConflict)
+	pending, exists = s.state.WalletChallenges[a.Challenge.Challenge]
+	if !exists || pending.UsedAt != nil {
+		return LoginResult{}, fmt.Errorf("%w: product challenge replay", ErrConflict)
+	}
+	if _, exists := s.state.UsedNonces[approval.Nonce]; exists {
+		return LoginResult{}, fmt.Errorf("%w: wallet approval replay", ErrConflict)
 	}
 	if existing, ok := s.state.Devices[a.DeviceID]; ok && (existing.Account != account || existing.SigningPublicKey != a.DeviceSigningPublicKey || existing.EncryptionPublicKey != a.DeviceEncryptionPublicKey) {
 		return LoginResult{}, fmt.Errorf("%w: product device id collision", ErrConflict)
@@ -151,10 +171,17 @@ func (s *Service) Login(a WalletAssertion) (LoginResult, error) {
 	raw := randomBytes(32)
 	token := base64.RawURLEncoding.EncodeToString(raw)
 	id := "session_" + digest[:24]
-	session := Session{ID: id, Account: account, DeviceID: a.DeviceID, Scopes: append([]string(nil), a.Scopes...), CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
+	scopes := make([]string, 0, len(allowedScopes))
+	for scope := range allowedScopes {
+		scopes = append(scopes, scope)
+	}
+	sort.Strings(scopes)
+	session := Session{ID: id, Account: account, DeviceID: a.DeviceID, Scopes: scopes, CreatedAt: now, ExpiresAt: now.Add(24 * time.Hour)}
 	before := cloneState(s.state)
 	s.state.Sessions[tokenDigest(token, s.cfg.TokenKey)] = session
-	s.state.UsedNonces[a.Nonce] = a.ExpiresAt
+	s.state.UsedNonces[approval.Nonce] = challengeExpires
+	pending.UsedAt = &now
+	s.state.WalletChallenges[a.Challenge.Challenge] = pending
 	s.state.Devices[a.DeviceID] = ProductDevice{ID: a.DeviceID, Account: account, SigningPublicKey: a.DeviceSigningPublicKey, EncryptionPublicKey: a.DeviceEncryptionPublicKey, Status: "active", CreatedAt: now, UpdatedAt: now}
 	s.appendAuditLocked("wallet_session_created", "session", id, account, digest, now)
 	if err := s.saveOrRollbackLocked(before); err != nil {
@@ -423,7 +450,7 @@ func (s *Service) Requests(actor Session) []ContactRequest {
 }
 
 func (s *Service) BeginAI(actor Session, in AIRequest) (AIJob, bool, error) {
-	if !identifierPattern.MatchString(in.IdempotencyKey) || !allowedAIKinds[in.Kind] || len(in.SelectionIDs) == 0 || len(in.SelectionIDs) > 100 || len(in.PrivacyPreview) < 10 || len(in.PrivacyPreview) > 2000 || in.EstimatedTokens < 1 || in.EstimatedTokens > 100000 {
+	if !identifierPattern.MatchString(in.IdempotencyKey) || !allowedAIKinds[in.Kind] || !allowedAILanguages[in.OutputLanguage] || len(in.SelectionIDs) == 0 || len(in.SelectionIDs) > 100 || len(in.PrivacyPreview) < 10 || len(in.PrivacyPreview) > 2000 || in.EstimatedTokens < 1 || in.EstimatedTokens > 100000 {
 		return AIJob{}, false, ErrInvalid
 	}
 	provider, ok := s.cfg.AIProviders[in.Provider]
@@ -448,7 +475,7 @@ func (s *Service) BeginAI(actor Session, in AIRequest) (AIJob, bool, error) {
 	}
 	now := s.cfg.Now().UTC()
 	id := "ai_" + digest[:24]
-	job := AIJob{ID: id, Account: actor.Account, Kind: in.Kind, SelectionIDs: append([]string(nil), in.SelectionIDs...), ContextClasses: append([]string(nil), in.ContextClasses...), PrivacyPreview: in.PrivacyPreview, Provider: in.Provider, Model: in.Model, EstimatedTokens: in.EstimatedTokens, EstimatedCostUSD: float64(in.EstimatedTokens) / 1000 * provider.CostPer1KUSD, Status: "awaiting_permission", CreatedAt: now, UpdatedAt: now}
+	job := AIJob{ID: id, Account: actor.Account, Kind: in.Kind, SelectionIDs: append([]string(nil), in.SelectionIDs...), ContextClasses: append([]string(nil), in.ContextClasses...), PrivacyPreview: in.PrivacyPreview, Provider: in.Provider, Model: in.Model, EstimatedTokens: in.EstimatedTokens, OutputLanguage: in.OutputLanguage, EstimatedCostUSD: float64(in.EstimatedTokens) / 1000 * provider.CostPer1KUSD, Status: "awaiting_permission", CreatedAt: now, UpdatedAt: now}
 	before := cloneState(s.state)
 	s.state.AIJobs[id] = job
 	s.state.Idempotency[stateKey] = idempotencyRecord{"ai_begin", digest, id}
@@ -525,7 +552,7 @@ func (s *Service) StreamAI(ctx context.Context, actor Session, id, contextText s
 		return s.failAIStream(actor, id, errors.New("YNX AI Gateway is unavailable"))
 	}
 	var output strings.Builder
-	usage, err := s.cfg.AI.Stream(ctx, AIStreamRequest{JobID: id, Kind: job.Kind, Provider: job.Provider, Model: job.Model, ContextText: contextText}, func(chunk string) error {
+	usage, err := s.cfg.AI.Stream(ctx, AIStreamRequest{JobID: id, Kind: job.Kind, Provider: job.Provider, Model: job.Model, OutputLanguage: job.OutputLanguage, ContextText: contextText}, func(chunk string) error {
 		if output.Len()+len(chunk) > 20000 {
 			return errors.New("AI output exceeds Social review limit")
 		}
