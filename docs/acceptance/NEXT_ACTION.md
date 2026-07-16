@@ -16,9 +16,12 @@ Why this is next:
   transaction, 5/5 EVM transaction, 5/5 successful EVM receipt, and 5/5 exact
   release reads for the committed Exchange reference while height grew `204647`
   to `204653`. Silicon Valley could not repeat this check because three strict
-  SSH attempts timed out at the banner before any API request. The next direct
-  evidence gap is therefore a second non-primary region with transaction and
-  receipt continuity, not another Singapore rerun.
+  SSH attempts timed out at the banner before any API request. Seoul then
+  repeated all five groups 5/5 while height grew `215973` to `215988`, completing
+  bounded operator-controlled continuity from two non-primary regions. The next
+  ingress gap is an independent public vantage or redundant ingress plus
+  resolution of the observed Silicon Valley path instability, not another
+  Singapore or Seoul rerun.
 
 Files to touch:
 

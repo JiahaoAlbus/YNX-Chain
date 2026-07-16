@@ -12,7 +12,13 @@
 - The corresponding Silicon Valley attempt did not reach the APIs: three
   strict-host-key SSH attempts timed out while waiting for the SSH banner. No
   transaction/receipt failure is inferred because no API probe executed. The
-  missing second-region continuity proof remains open.
+  Silicon Valley-specific continuity proof remains open.
+- A subsequent Seoul direct-origin check completed the second non-primary
+  region: REST transaction, Explorer transaction, EVM transaction, successful
+  EVM receipt, and exact release each passed 5/5 for the same committed
+  reference. Public height advanced from `215973` to `215988`. Singapore and
+  Seoul therefore provide two operator-controlled non-primary continuity
+  vantages; neither is independent third-party proof.
 - `public-ingress-diagnostic` now binds its transaction and receipt probes to the
   committed Exchange vector, checks REST, Explorer, EVM transaction, and
   successful EVM receipt semantics, and records the expected release and vector
