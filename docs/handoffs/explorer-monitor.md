@@ -5,7 +5,7 @@
 - Branch: `codex/ecosystem-explorer-monitor`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Explorer Monitor`
 - Rework base: `2e5ef561c5ae782b9e5dfaff0ca5a013df390423`
-- Rework implementation commit: recorded after the final commit below.
+- Completion commit: use the pushed branch tip returned with this handoff.
 - Ownership changed only under `apps/explorer/**`, `apps/monitor/**`, and this handoff.
 
 ## Product architecture
@@ -101,6 +101,10 @@ overflow and live service-worker registration.
 
 ## Verification evidence
 
+Completion pass on 2026-07-16 used fresh `npm ci --ignore-scripts` installs from
+both committed lockfiles. Both products resolved Playwright `1.61.1`; no result
+below relies on the pre-upgrade `node_modules` tree.
+
 - Explorer `npm run build`: passed; TypeScript and Vite production bundle.
 - Explorer `npm test`: 7/7 passed, including 12-locale resolution, dashboard data classification,
   stale/catching-up, SSE reconnect and bounded polling failure cutoff.
@@ -118,18 +122,27 @@ overflow and live service-worker registration.
   overflow. Tests run one worker with a 90-second ceiling because Chrome cold
   startup on this host is slow; no product wait was weakened.
 - Local real service smoke: started the repository local chain, seeded a real
-  account, ran `ynx-indexerd` and `ynx-explorerd`, then passed Explorer checks for
-  `/health`, summary, blocks, transactions, validators and SSE. Monitor passed
-  all eight bounded probes against those real services.
+  account and committed transfer, then ran `ynx-indexerd`, `ynx-explorerd` and
+  the real `ynx-ai-gatewayd`. Explorer required canonical
+  `rpc-and-indexer-backed` summary evidence, non-empty indexed blocks and
+  transactions, validators and SSE. Monitor required all eight bounded probes
+  to be healthy; unavailable probes now fail smoke instead of only checking the
+  probe count.
 - Explorer production BFF smoke: served `dist`, returned the YNX Explorer title,
   and truthfully returned `503 ai_gateway_not_configured` with no AI key.
 - `git diff --check`: passed.
-- Vite and `@vitejs/plugin-react` were upgraded in both products to stable
-  `8.1.4` and `6.0.3`; both production builds passed. The official npm advisory
-  endpoint could not be reached from this host (`Client network socket
-  disconnected before secure TLS connection was established`), so this handoff
-  does not claim a successful online `npm audit`.
+- Vite and `@vitejs/plugin-react` are pinned in both products to `8.1.4` and
+  `6.0.3`; Playwright is upgraded to `1.61.1`, and the transitive `esbuild`
+  version is overridden to `0.28.1`. Online `npm audit --audit-level=low`
+  completed for both product lockfiles with `found 0 vulnerabilities`, and both
+  production builds passed.
 - Go tests were not rerun because no Go file changed.
+
+The final desktop/mobile Playwright rerun passed Explorer 6/6 and Monitor 6/6
+with the upgraded browser-test dependency. The hardened local service smoke
+passed with 10 indexed blocks and 3 indexed transactions in Explorer and 8/8
+healthy Monitor probes. These counts are ephemeral local-chain evidence, not
+public network statistics.
 
 The products are intentionally Web-first public/operator tools. Installable PWA
 companions, responsive mobile layouts, icons and standalone launch entrypoints
