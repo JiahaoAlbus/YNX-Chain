@@ -60,6 +60,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
 	s.mux.HandleFunc("GET /api/profile", s.protected("finance.portfolio.read", s.profile))
 	s.mux.HandleFunc("POST /api/categories", s.protected("finance.profile.write", s.createCategory))
+	s.mux.HandleFunc("PUT /api/activity/{id}/category", s.protected("finance.profile.write", s.classifyActivity))
 	s.mux.HandleFunc("POST /api/budgets", s.protected("finance.profile.write", s.createBudget))
 	s.mux.HandleFunc("POST /api/reminders", s.protected("finance.profile.write", s.createReminder))
 	s.mux.HandleFunc("PUT /api/privacy", s.protected("finance.profile.write", s.updatePrivacy))
@@ -78,6 +79,27 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /app.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
+}
+func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, session Session) {
+	var input struct {
+		CategoryID     string `json:"categoryId"`
+		IdempotencyKey string `json:"idempotencyKey"`
+	}
+	if err := decodeStrict(w, r, &input); err != nil {
+		writeError(w, 400, "invalid_request", err.Error())
+		return
+	}
+	state := s.service.Store.Account(session.Account)
+	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	if !p.ExplorerStatus.Available {
+		writeError(w, 503, "source_unavailable", "Explorer evidence is unavailable; classification was not changed")
+		return
+	}
+	if err := s.service.Classify(session.Account, r.PathValue("id"), input.CategoryID, input.IdempotencyKey, p.Activity); err != nil {
+		writeError(w, 422, "classification_rejected", err.Error())
+		return
+	}
+	writeJSON(w, 200, s.service.Store.Account(session.Account).Classifications[r.PathValue("id")])
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
@@ -321,6 +343,7 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 		RecordIDs      []string `json:"recordIds"`
 		ContextClasses []string `json:"contextClasses"`
 		Consent        bool     `json:"consent"`
+		OutputLocale   string   `json:"outputLocale"`
 	}
 	if err := decodeStrict(w, r, &input); err != nil {
 		writeError(w, 400, "invalid_request", err.Error())
@@ -332,7 +355,7 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 		writeError(w, 503, "source_unavailable", "AI cannot use activity while Explorer evidence is unavailable")
 		return
 	}
-	job, err := s.service.StartAI(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p)
+	job, err := s.service.StartAI(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p, input.OutputLocale)
 	if err != nil {
 		writeError(w, 503, "ai_unavailable", err.Error())
 		return

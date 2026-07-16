@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -19,6 +20,7 @@ type AIRequest struct {
 	ContextClasses []string       `json:"contextClasses"`
 	Context        map[string]any `json:"context"`
 	Permission     string         `json:"permission"`
+	OutputLocale   string         `json:"outputLocale"`
 }
 
 type AIProvider interface {
@@ -37,39 +39,30 @@ func (p *HTTPAIProvider) Status(ctx context.Context) (string, string, bool, erro
 	if strings.TrimSpace(p.URL) == "" {
 		return "YNX AI Gateway", "", false, errors.New("YNX AI Gateway is not configured")
 	}
-	var status struct {
-		Provider  string `json:"provider"`
-		Model     string `json:"model"`
-		Available bool   `json:"available"`
+	var health struct {
+		OK    bool   `json:"ok"`
+		Model string `json:"model"`
 	}
-	if err := p.get(ctx, "/v1/status", &status); err != nil {
+	if err := p.get(ctx, "/health", &health); err != nil {
 		return "YNX AI Gateway", "", false, err
 	}
-	return status.Provider, status.Model, status.Available, nil
+	return "YNX AI Gateway", health.Model, health.OK, nil
 }
 
 func (p *HTTPAIProvider) Estimate(ctx context.Context, request AIRequest) (string, error) {
-	var out struct {
-		Estimate string `json:"estimate"`
-	}
-	if err := p.post(ctx, "/v1/finance/estimate", request, &out); err != nil {
-		return "", err
-	}
-	if out.Estimate == "" {
-		return "", errors.New("AI Gateway returned no resource or cost estimate")
-	}
-	return out.Estimate, nil
+	return "unavailable from AI Gateway; no monetary charge is inferred", nil
 }
 
 func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit func(string)) (map[string]any, error) {
 	raw, _ := json.Marshal(request)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.URL, "/")+"/v1/finance/drafts:stream", bytes.NewReader(raw))
+	query := "Return one reviewable Finance analysis draft as JSON. Never execute or claim to execute an action. Input: " + string(raw)
+	endpoint := strings.TrimRight(p.URL, "/") + "/ai/stream?session=" + url.QueryEscape("finance:"+request.Account) + "&q=" + url.QueryEscape(query)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
 	if p.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+p.APIKey)
+		req.Header.Set("X-YNX-AI-Key", p.APIKey)
 	}
 	resp, err := p.client().Do(req)
 	if err != nil {
@@ -80,29 +73,30 @@ func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit fun
 		return nil, fmt.Errorf("AI Gateway returned HTTP %d", resp.StatusCode)
 	}
 	var result map[string]any
+	var complete strings.Builder
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Buffer(make([]byte, 4096), 256*1024)
 	for scanner.Scan() {
-		var event struct {
-			Delta  string         `json:"delta"`
-			Result map[string]any `json:"result"`
-			Error  string         `json:"error"`
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
 		}
-		if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
-			return nil, errors.New("AI Gateway stream contained invalid JSON")
+		var event map[string]any
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &event); err != nil {
+			return nil, errors.New("AI Gateway stream contained invalid SSE JSON")
 		}
-		if event.Error != "" {
-			return nil, errors.New(event.Error)
-		}
-		if event.Delta != "" {
-			emit(event.Delta)
-		}
-		if event.Result != nil {
-			result = event.Result
+		if delta, ok := event["text"].(string); ok {
+			complete.WriteString(delta)
+			emit(delta)
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
+	}
+	if complete.Len() > 0 {
+		if err := json.Unmarshal([]byte(complete.String()), &result); err != nil {
+			result = map[string]any{"analysis": complete.String(), "outputLocale": request.OutputLocale, "draftOnly": true}
+		}
 	}
 	if result == nil {
 		return nil, errors.New("AI Gateway stream ended without a reviewable result")
@@ -113,7 +107,7 @@ func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit fun
 func (p *HTTPAIProvider) get(ctx context.Context, path string, out any) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(p.URL, "/")+path, nil)
 	if p.APIKey != "" {
-		req.Header.Set("Authorization", "Bearer "+p.APIKey)
+		req.Header.Set("X-YNX-AI-Key", p.APIKey)
 	}
 	resp, err := p.client().Do(req)
 	if err != nil {
@@ -151,7 +145,7 @@ func (p *HTTPAIProvider) client() *http.Client {
 	return &http.Client{Timeout: 30 * time.Second}
 }
 
-func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, classes []string, consent bool, portfolio Portfolio) (AIJob, error) {
+func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, classes []string, consent bool, portfolio Portfolio, outputLocale ...string) (AIJob, error) {
 	if !consent || (kind != "categorize" && kind != "explain_fees" && kind != "draft_budget" && kind != "detect_anomalies" && kind != "explain_recurring") {
 		return AIJob{}, errors.New("supported AI workflow and explicit context permission are required")
 	}
@@ -177,7 +171,14 @@ func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, 
 	if len(classes) != 1 || classes[0] != "owned_activity" {
 		return AIJob{}, errors.New("Finance AI only accepts the owned_activity context class")
 	}
-	request := AIRequest{Kind: kind, Account: account, RecordIDs: recordIDs, ContextClasses: classes, Context: map[string]any{"activity": selected, "categories": state.Categories, "budgets": state.Budgets}, Permission: "draft-only; no transaction, transfer, trade, borrow, lend, stake, freeze, or account-control authority"}
+	locale := "en"
+	if len(outputLocale) == 1 && outputLocale[0] != "" {
+		locale = outputLocale[0]
+	}
+	if !allowedLocale(locale) {
+		return AIJob{}, errors.New("AI output locale is unsupported")
+	}
+	request := AIRequest{Kind: kind, Account: account, RecordIDs: recordIDs, ContextClasses: classes, Context: map[string]any{"activity": selected, "categories": state.Categories, "budgets": state.Budgets}, Permission: "draft-only; no transaction, transfer, trade, borrow, lend, stake, freeze, or account-control authority", OutputLocale: locale}
 	provider, model, available, err := s.AI.Status(ctx)
 	if err != nil || !available {
 		if err == nil {
@@ -190,7 +191,7 @@ func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, 
 		return AIJob{}, err
 	}
 	now := time.Now().UTC()
-	job := AIJob{ID: newID("ai"), Account: account, Kind: kind, RecordIDs: append([]string(nil), recordIDs...), ContextClasses: append([]string(nil), classes...), Provider: provider, Model: model, EstimatedCost: estimate, Status: "running", CreatedAt: now, UpdatedAt: now}
+	job := AIJob{ID: newID("ai"), Account: account, Kind: kind, RecordIDs: append([]string(nil), recordIDs...), ContextClasses: append([]string(nil), classes...), Provider: provider, Model: model, EstimatedCost: estimate, OutputLocale: locale, Status: "running", CreatedAt: now, UpdatedAt: now}
 	if err := s.Store.Update(account, "ai.started", job.ID, func(state *AccountState) error { state.AIJobs = append(state.AIJobs, job); return nil }); err != nil {
 		return AIJob{}, err
 	}

@@ -98,9 +98,11 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		t.Fatal("idempotent category replay created a new object")
 	}
 	requestJSON(t, ts.URL+"/api/budgets", http.MethodPost, map[string]any{"name": "Monthly essentials", "categoryId": category.ID, "limitYnxt": 100, "period": "monthly", "startsAt": time.Now().UTC(), "idempotencyKey": "budget-test-key-000001"}, session.Token, "https://finance.example", 201, &map[string]any{})
+	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
+	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/privacy", http.MethodPut, map[string]any{"includePayInStatements": true, "allowAiActivityContext": true, "alertsEnabled": true}, session.Token, "https://finance.example", 200, &map[string]any{})
 	var job AIJob
-	requestJSON(t, ts.URL+"/api/ai/jobs", http.MethodPost, map[string]any{"kind": "detect_anomalies", "recordIds": []string{"tx-owned"}, "contextClasses": []string{"owned_activity"}, "consent": true}, session.Token, "https://finance.example", 202, &job)
+	requestJSON(t, ts.URL+"/api/ai/jobs", http.MethodPost, map[string]any{"kind": "detect_anomalies", "recordIds": []string{"tx-owned"}, "contextClasses": []string{"owned_activity"}, "consent": true, "outputLocale": "ar"}, session.Token, "https://finance.example", 202, &job)
 	deadline := time.Now().Add(time.Second)
 	for time.Now().Before(deadline) {
 		requestJSON(t, ts.URL+"/api/ai/jobs/"+job.ID, http.MethodGet, nil, session.Token, "", 200, &job)
@@ -109,7 +111,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	if job.Status != "ready" || job.Provider != "test-provider" || job.Progress == "" {
+	if job.Status != "ready" || job.Provider != "test-provider" || job.Progress == "" || job.OutputLocale != "ar" {
 		t.Fatalf("AI draft not reviewable: %+v", job)
 	}
 	requestJSON(t, ts.URL+"/api/ai/jobs/"+job.ID+"/decision", http.MethodPost, map[string]any{"decision": "reject"}, session.Token, "https://finance.example", 200, &job)

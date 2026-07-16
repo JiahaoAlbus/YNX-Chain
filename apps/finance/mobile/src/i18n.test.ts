@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {locales,messages,formatYNXT,formatDate} from './i18n';
+test('all required locales have nonblank localized safety and accessibility copy',()=>{assert.equal(locales.length,12);for(const l of locales){for(const [k,v] of Object.entries(messages[l]))assert.ok(v.trim(),`${l}.${k}`);if(l!=='en')assert.notEqual(messages[l].legal,messages.en.legal,`${l} legal fallback`);assert.match(messages[l].aiDraft,/./)}});
+test('money and dates use locale formatters and Arabic is distinct',()=>{assert.match(formatYNXT(1234567,'de'),/1,234567|1,23457/);assert.notEqual(formatDate('2026-07-16T00:00:00.000Z','ar'),formatDate('2026-07-16T00:00:00.000Z','en'))});

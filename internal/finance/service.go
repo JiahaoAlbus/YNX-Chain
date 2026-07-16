@@ -93,6 +93,37 @@ func (s *Service) AddBudget(account, name, categoryID string, limit int64, perio
 	return budget, err
 }
 
+func (s *Service) Classify(account, recordID, categoryID, idempotencyKey string, activity []Activity) error {
+	if !idempotencyPattern.MatchString(idempotencyKey) || strings.TrimSpace(recordID) == "" || strings.TrimSpace(categoryID) == "" {
+		return errors.New("record, category and idempotency key are required")
+	}
+	owned := false
+	for _, item := range activity {
+		if item.ID == recordID {
+			owned = true
+			break
+		}
+	}
+	if !owned {
+		return errors.New("activity is not owned by this account")
+	}
+	now := time.Now().UTC()
+	return s.Store.Update(account, "activity.classified", recordID, func(state *AccountState) error {
+		if existing, ok := state.Idempotency[idempotencyKey]; ok {
+			if existing == recordID+":"+categoryID {
+				return nil
+			}
+			return errors.New("idempotency key was already used for another classification")
+		}
+		if !categoryExists(*state, categoryID) {
+			return errors.New("category does not exist")
+		}
+		state.Classifications[recordID] = Classification{RecordID: recordID, CategoryID: categoryID, Source: "user", UpdatedAt: now}
+		state.Idempotency[idempotencyKey] = recordID + ":" + categoryID
+		return nil
+	})
+}
+
 func (s *Service) AddReminder(account, title, schedule, sourceRef string, amount *int64, next time.Time, idempotencyKey string) (Reminder, error) {
 	title = strings.TrimSpace(title)
 	if title == "" || len(title) > 80 || (schedule != "weekly" && schedule != "monthly" && schedule != "custom") || next.Before(time.Now().UTC().Add(-time.Minute)) || (amount != nil && *amount < 0) || !idempotencyPattern.MatchString(idempotencyKey) {

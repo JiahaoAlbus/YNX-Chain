@@ -7,6 +7,14 @@ const (
 	Product = "finance"
 )
 
+func allowedLocale(value string) bool {
+	switch value {
+	case "en", "zh-Hans", "zh-Hant", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id":
+		return true
+	}
+	return false
+}
+
 type Category struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
@@ -69,6 +77,7 @@ type AIJob struct {
 	Provider       string         `json:"provider"`
 	Model          string         `json:"model"`
 	EstimatedCost  string         `json:"estimatedCost"`
+	OutputLocale   string         `json:"outputLocale"`
 	Status         string         `json:"status"`
 	Progress       string         `json:"progress,omitempty"`
 	Result         map[string]any `json:"result,omitempty"`
