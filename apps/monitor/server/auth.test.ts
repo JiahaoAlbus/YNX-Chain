@@ -1,12 +1,188 @@
 // @vitest-environment node
-import { mkdtemp } from 'node:fs/promises';import { tmpdir } from 'node:os';import { join } from 'node:path';import type{Server}from'node:http';import assert from'node:assert/strict';import { after,describe,it } from 'node:test';import { createApp } from './app.js';import { hashPassword } from './auth.js';import { OpsStore } from './store.js';
-const expect=(actual:unknown)=>({toBe:(expected:unknown)=>assert.equal(actual,expected)});const users=[{username:'view',role:'viewer' as const,passwordHash:hashPassword('view-pass')},{username:'op',role:'operator' as const,passwordHash:hashPassword('op-pass')}];const servers:Server[]=[];after(async()=>{await Promise.all(servers.splice(0).map(server=>new Promise<void>(resolve=>server.close(()=>resolve()))))});
-async function fixture(){const dir=await mkdtemp(join(tmpdir(),'ynx-monitor-'));const store=new OpsStore(join(dir,'state.json'));await store.load();await store.observeFailure('node','connection refused','http://127.0.0.1:1/status');const app=await createApp({store,secret:'test-session-secret-with-32-bytes',users,rpcUrl:'http://127.0.0.1:1',explorerUrl:'http://127.0.0.1:1',indexerUrl:'http://127.0.0.1:1',aiUrl:'http://127.0.0.1:1'});const server=app.listen(0,'127.0.0.1');servers.push(server);await new Promise<void>(resolve=>server.once('listening',resolve));const address=server.address();if(!address||typeof address==='string')throw new Error('test server did not bind');return{base:`http://127.0.0.1:${address.port}`,store};}
-async function call(base:string,path:string,init:RequestInit={}){const response=await fetch(base+path,{...init,headers:{'content-type':'application/json',...init.headers}});return{status:response.status,body:await response.json() as any}}
-async function token(base:string,username:string,password:string){const response=await call(base,'/ops/login',{method:'POST',body:JSON.stringify({username,password})});expect(response.status).toBe(200);return response.body.token as string}
-describe('Monitor authorization and approval boundaries',()=>{
- it('rejects missing and invalid authentication',async()=>{const{base}=await fixture();expect((await call(base,'/ops/me')).status).toBe(401);expect((await call(base,'/ops/login',{method:'POST',body:JSON.stringify({username:'op',password:'wrong'})})).status).toBe(401)});
- it('allows viewers to inspect and read bounded logs but forbids acknowledgement',async()=>{const{base}=await fixture();const viewer=await token(base,'view','view-pass');const headers={Authorization:`Bearer ${viewer}`};expect((await call(base,'/ops/audit',{headers})).status).toBe(200);const logs=await call(base,'/ops/logs',{headers});expect(logs.status).toBe(200);expect(logs.body.status).toBe('not_configured');expect((await call(base,'/ops/alerts/upstream%3Anode/acknowledge',{method:'POST',headers,body:JSON.stringify({approvalPhrase:'ACKNOWLEDGE'})})).status).toBe(403)});
- it('requires exact operator approval and writes audit',async()=>{const{base}=await fixture();const op=await token(base,'op','op-pass');const headers={Authorization:`Bearer ${op}`};expect((await call(base,'/ops/alerts/upstream%3Anode/acknowledge',{method:'POST',headers,body:'{}'})).status).toBe(409);const ack=await call(base,'/ops/alerts/upstream%3Anode/acknowledge',{method:'POST',headers,body:JSON.stringify({approvalPhrase:'ACKNOWLEDGE'})});expect(ack.status).toBe(200);expect(ack.body.acknowledgedBy).toBe('op');const audit=await call(base,'/ops/audit',{headers});expect(audit.body.audit.some((x:{action:string})=>x.action==='alert.acknowledge')).toBe(true)});
- it('records rollback approval without executing infrastructure',async()=>{const{base}=await fixture();const op=await token(base,'op','op-pass');const response=await call(base,'/ops/rollback-proposals',{method:'POST',headers:{Authorization:`Bearer ${op}`},body:JSON.stringify({release:'release-a',reason:'failed probe',approvalPhrase:'APPROVE ROLLBACK PROPOSAL'})});expect(response.status).toBe(201);expect(response.body.status).toBe('approved-not-executed');expect(response.body.executionBoundary).toBe('central infrastructure owner')});
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { Server } from "node:http";
+import assert from "node:assert/strict";
+import { after, describe, it } from "node:test";
+import { createApp } from "./app.js";
+import { hashPassword } from "./auth.js";
+import { OpsStore } from "./store.js";
+const expect = (actual: unknown) => ({
+  toBe: (expected: unknown) => assert.equal(actual, expected),
+});
+const users = [
+  {
+    username: "view",
+    role: "viewer" as const,
+    passwordHash: hashPassword("view-pass"),
+  },
+  {
+    username: "op",
+    role: "operator" as const,
+    passwordHash: hashPassword("op-pass"),
+  },
+];
+const servers: Server[] = [];
+after(async () => {
+  await Promise.all(
+    servers
+      .splice(0)
+      .map(
+        (server) =>
+          new Promise<void>((resolve) => server.close(() => resolve())),
+      ),
+  );
+});
+async function fixture(extra: Record<string, unknown> = {}) {
+  const dir = await mkdtemp(join(tmpdir(), "ynx-monitor-"));
+  const store = new OpsStore(join(dir, "state.json"));
+  await store.load();
+  await store.observeFailure(
+    "node",
+    "connection refused",
+    "http://127.0.0.1:1/status",
+  );
+  const app = await createApp({
+    store,
+    secret: "test-session-secret-with-32-bytes",
+    users,
+    rpcUrl: "http://127.0.0.1:1",
+    explorerUrl: "http://127.0.0.1:1",
+    indexerUrl: "http://127.0.0.1:1",
+    aiUrl: "http://127.0.0.1:1",
+    ...extra,
+  });
+  const server = app.listen(0, "127.0.0.1");
+  servers.push(server);
+  await new Promise<void>((resolve) => server.once("listening", resolve));
+  const address = server.address();
+  if (!address || typeof address === "string")
+    throw new Error("test server did not bind");
+  return { base: `http://127.0.0.1:${address.port}`, store };
+}
+async function call(base: string, path: string, init: RequestInit = {}) {
+  const response = await fetch(base + path, {
+    ...init,
+    headers: { "content-type": "application/json", ...init.headers },
+  });
+  return { status: response.status, body: (await response.json()) as any };
+}
+async function token(base: string, username: string, password: string) {
+  const response = await call(base, "/ops/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+  expect(response.status).toBe(200);
+  return response.body.token as string;
+}
+describe("Monitor authorization and approval boundaries", () => {
+  it("rejects missing and invalid authentication", async () => {
+    const { base } = await fixture();
+    expect((await call(base, "/ops/me")).status).toBe(401);
+    expect(
+      (
+        await call(base, "/ops/login", {
+          method: "POST",
+          body: JSON.stringify({ username: "op", password: "wrong" }),
+        })
+      ).status,
+    ).toBe(401);
+  });
+  it("allows viewers to inspect and read bounded logs but forbids acknowledgement", async () => {
+    const { base } = await fixture();
+    const viewer = await token(base, "view", "view-pass");
+    const headers = { Authorization: `Bearer ${viewer}` };
+    expect((await call(base, "/ops/audit", { headers })).status).toBe(200);
+    const logs = await call(base, "/ops/logs", { headers });
+    expect(logs.status).toBe(200);
+    expect(logs.body.status).toBe("not_configured");
+    expect(
+      (
+        await call(base, "/ops/alerts/upstream%3Anode/acknowledge", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ approvalPhrase: "ACKNOWLEDGE" }),
+        })
+      ).status,
+    ).toBe(403);
+  });
+  it("requires exact operator approval and writes audit", async () => {
+    const { base } = await fixture();
+    const op = await token(base, "op", "op-pass");
+    const headers = { Authorization: `Bearer ${op}` };
+    expect(
+      (
+        await call(base, "/ops/alerts/upstream%3Anode/acknowledge", {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).status,
+    ).toBe(409);
+    const ack = await call(base, "/ops/alerts/upstream%3Anode/acknowledge", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ approvalPhrase: "ACKNOWLEDGE" }),
+    });
+    expect(ack.status).toBe(200);
+    expect(ack.body.acknowledgedBy).toBe("op");
+    const audit = await call(base, "/ops/audit", { headers });
+    expect(
+      audit.body.audit.some(
+        (x: { action: string }) => x.action === "alert.acknowledge",
+      ),
+    ).toBe(true);
+  });
+  it("records rollback approval without executing infrastructure", async () => {
+    const { base } = await fixture();
+    const op = await token(base, "op", "op-pass");
+    const response = await call(base, "/ops/rollback-proposals", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${op}` },
+      body: JSON.stringify({
+        release: "release-a",
+        reason: "failed probe",
+        approvalPhrase: "APPROVE ROLLBACK PROPOSAL",
+      }),
+    });
+    expect(response.status).toBe(201);
+    expect(response.body.status).toBe("approved-not-executed");
+    expect(response.body.executionBoundary).toBe(
+      "central infrastructure owner",
+    );
+  });
+  it("accepts a centrally verified wallet once and rejects replay", async () => {
+    const { base } = await fixture({
+      walletOrigin: "https://monitor.example",
+      walletRoles: { ynx1viewer: "viewer" },
+      walletVerifier: async (input: { origin: string; chainId: number }) => {
+        assert.equal(input.origin, "https://monitor.example");
+        assert.equal(input.chainId, 6423);
+        return { account: "ynx1viewer" };
+      },
+    });
+    const issued = await call(base, "/ops/wallet/challenges", {
+      method: "POST",
+      body: "{}",
+    });
+    expect(issued.status).toBe(201);
+    const signed = {
+      challengeId: issued.body.challengeId,
+      nonce: issued.body.nonce,
+      signature: "verified-by-central-gateway",
+      signedPayload: JSON.stringify(issued.body),
+    };
+    const session = await call(base, "/ops/wallet/sessions", {
+      method: "POST",
+      body: JSON.stringify(signed),
+    });
+    expect(session.status).toBe(200);
+    expect(session.body.principal.role).toBe("viewer");
+    const replay = await call(base, "/ops/wallet/sessions", {
+      method: "POST",
+      body: JSON.stringify(signed),
+    });
+    expect(replay.status).toBe(409);
+  });
 });

@@ -20,3 +20,5 @@ test('responsive product has no horizontal viewport overflow', async ({ page }) 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
 });
+
+test('persists locale, supports RTL and exposes an installable shell',async({page,request})=>{await page.goto('/');await page.getByLabel('Language').selectOption('ar');await expect(page.locator('html')).toHaveAttribute('dir','rtl');await page.reload();await expect(page.locator('html')).toHaveAttribute('lang','ar');expect((await request.get('/manifest.webmanifest')).ok()).toBe(true);const sw=await request.get('/sw.js');expect(await sw.text()).toContain("url.pathname.startsWith('/api/')");await expect.poll(()=>page.evaluate(async()=>Boolean(await navigator.serviceWorker.getRegistration()))).toBe(true)});

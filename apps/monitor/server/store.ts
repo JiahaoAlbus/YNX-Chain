@@ -1,17 +1,19 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import type { Alert, AuditEvent, Incident, OpsState, Principal } from './types.js';
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import type { Alert, AuditEvent, Incident, OpsState, Principal, WalletChallenge } from './types.js';
 
-const empty = (): OpsState => ({ incidents:[], alerts:[], audits:[], rollbackProposals:[], backupRecords:[] });
+const empty = (): OpsState => ({ incidents:[], alerts:[], audits:[], rollbackProposals:[], backupRecords:[], walletChallenges:[] });
+const stable=(value:unknown)=>JSON.stringify(value);
 export class OpsStore {
   private state: OpsState = empty();
   private loaded = false;
   private writes: Promise<void> = Promise.resolve();
-  constructor(private path:string) {}
-  async load() { if (this.loaded) return; try { this.state = JSON.parse(await readFile(this.path,'utf8')); } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; } this.loaded = true; }
+  constructor(private path:string,private integrityKey:string='local-test-integrity-key-must-be-32-bytes') { if(integrityKey.length<32)throw new Error('monitor state integrity key must contain at least 32 characters'); }
+  private digest(state:OpsState){return createHmac('sha256',this.integrityKey).update(stable(state)).digest('hex')}
+  async load() { if (this.loaded) return; try { const parsed=JSON.parse(await readFile(this.path,'utf8'));if(parsed?.version===2&&parsed?.state&&typeof parsed?.digest==='string'){const expected=this.digest(parsed.state);if(parsed.digest.length!==expected.length||!timingSafeEqual(Buffer.from(parsed.digest),Buffer.from(expected)))throw new Error('monitor state integrity check failed');this.state={...empty(),...parsed.state};}else{this.state={...empty(),...parsed};await this.persist();} } catch (e) { if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e; } this.loaded = true; }
   snapshot() { return structuredClone(this.state); }
-  async persist() { const content=JSON.stringify(this.state,null,2); this.writes=this.writes.then(async()=>{await mkdir(dirname(this.path),{recursive:true,mode:0o700});const temp=`${this.path}.${process.pid}.${randomUUID()}.tmp`;await writeFile(temp,content,{mode:0o600});await rename(temp,this.path)});await this.writes; }
+  async persist() { const content=JSON.stringify({version:2,state:this.state,digest:this.digest(this.state)},null,2); this.writes=this.writes.then(async()=>{await mkdir(dirname(this.path),{recursive:true,mode:0o700});const temp=`${this.path}.${process.pid}.${randomUUID()}.tmp`;await writeFile(temp,content,{mode:0o600});await rename(temp,this.path)});await this.writes; }
   async audit(principal:Principal, action:string, target:string, outcome:string, evidence?:Record<string,unknown>) { const item:AuditEvent={id:randomUUID(),at:new Date().toISOString(),actor:principal.username,role:principal.role,action,target,outcome,evidence}; this.state.audits.unshift(item); this.state.audits=this.state.audits.slice(0,500); await this.persist(); return item; }
   async createIncident(principal:Principal, input:Pick<Incident,'title'|'severity'|'source'|'evidence'>) { const item:Incident={id:`inc_${randomUUID()}`,title:input.title,severity:input.severity,status:'open',openedAt:new Date().toISOString(),source:input.source,evidence:input.evidence,notes:[]}; this.state.incidents.unshift(item); await this.audit(principal,'incident.create',item.id,'created',{source:item.source}); return item; }
   async acknowledge(principal:Principal,id:string) { const alert=this.state.alerts.find(a=>a.id===id); if(!alert) return undefined; if(alert.state==='acknowledged') return alert; alert.state='acknowledged'; alert.acknowledgedBy=principal.username; alert.acknowledgedAt=new Date().toISOString(); await this.audit(principal,'alert.acknowledge',id,'acknowledged',{reason:alert.reason}); return alert; }
@@ -19,4 +21,6 @@ export class OpsStore {
   async observeRecovery(source:string) { const alert=this.state.alerts.find(a=>a.id===`upstream:${source}`); if(alert&&alert.state!=='resolved'){alert.state='resolved';alert.lastObservedAt=new Date().toISOString();await this.persist();} }
   async addRollbackProposal(principal:Principal, release:string, reason:string) { const proposal={id:`rb_${randomUUID()}`,release,reason,status:'approved-not-executed',approvedBy:principal.username,approvedAt:new Date().toISOString(),executionBoundary:'central infrastructure owner'};this.state.rollbackProposals.unshift(proposal);await this.audit(principal,'rollback.propose',String(proposal.id),'approved-not-executed',{release});return proposal; }
   async addBackupRecord(principal:Principal, evidence:string) { const item={id:`backup_${randomUUID()}`,evidence,status:'evidence-recorded',recordedAt:new Date().toISOString(),recordedBy:principal.username};this.state.backupRecords.unshift(item);await this.audit(principal,'backup.record',String(item.id),'recorded',{evidence});return item; }
+  async createWalletChallenge(origin:string,accountHint?:string){const nonce=randomBytes(32).toString('base64url');const now=Date.now();const item:WalletChallenge={id:`wch_${randomUUID()}`,nonceHash:createHash('sha256').update(nonce).digest('hex'),accountHint,origin,issuedAt:new Date(now).toISOString(),expiresAt:new Date(now+5*60_000).toISOString()};this.state.walletChallenges=[item,...this.state.walletChallenges.filter(x=>Date.parse(x.expiresAt)>now-3600_000)].slice(0,100);await this.persist();return{challenge:item,nonce};}
+  async consumeWalletChallenge(id:string,nonce:string){const item=this.state.walletChallenges.find(x=>x.id===id);if(!item||item.consumedAt||Date.parse(item.expiresAt)<Date.now())return undefined;const actual=createHash('sha256').update(nonce).digest('hex');if(actual.length!==item.nonceHash.length||!timingSafeEqual(Buffer.from(actual),Buffer.from(item.nonceHash)))return undefined;item.consumedAt=new Date().toISOString();await this.persist();return structuredClone(item);}
 }

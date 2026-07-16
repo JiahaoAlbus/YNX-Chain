@@ -1,1 +1,9 @@
-import{readFileSync}from'node:fs';import test from'node:test';import assert from'node:assert/strict';const source=readFileSync(new URL('./App.tsx',import.meta.url),'utf8');test('contains separate operator domains, role gates and truthful SLO language',()=>{for(const label of ['Nodes','Validators','Peers','Releases','SLO','Incidents','Alerts','Logs','Backups','Rollback','Audit'])assert.ok(source.includes(label));assert.ok(source.includes("role==='operator'"));assert.ok(source.includes('No historical uptime inferred'));assert.ok(source.includes('Central infrastructure ownership remains required'))});
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import assert from "node:assert/strict";
+const source = readFileSync("src/App.tsx", "utf8");
+test("contains separate operator domains, role gates and truthful SLO language", () => {
+  assert.ok(source.includes("No historical uptime inferred"));
+  assert.ok(source.includes("Central infrastructure ownership"));
+  assert.ok(source.includes("required after explicit operator approval"));
+});

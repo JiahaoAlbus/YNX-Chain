@@ -5,6 +5,7 @@
 .log-sources { display: flex; gap: 8px; padding: 14px; overflow-x: auto; }
 .log-sources button { min-height: 34px; padding: 0 13px; border: 1px solid #355486; color: #dbe8ff; background: #102957; }
 .log-output { max-height: 65vh; margin: 0; padding: 18px; overflow: auto; white-space: pre-wrap; color: #c6d8f8; background: #071831; font: 10px/1.6 ui-monospace, monospace; }
+.locale-bar,.login-locales{display:flex;gap:8px;align-items:end;flex-wrap:wrap;padding:10px 0}.locale-bar label{display:grid;gap:4px;color:#8496b8;font-size:9px}.locale-bar select,.login-locales select,.locale-bar button,.wallet-login button{min-height:34px;border:1px solid #355486;padding:0 10px;color:#dbe8ff;background:#102957}.login-locales{padding:0 0 18px}.wallet-login{display:grid;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #243b63}.wallet-login p{margin:0;color:#8496b8;font-size:9px}.wallet-login textarea{min-height:64px;border:1px solid #36527f;color:#fff;background:#071831}.wallet-login input{width:100%}html[dir="rtl"] .rail nav button,html[dir="rtl"] th,html[dir="rtl"] td{text-align:right}html[dir="rtl"] .rail{border-right:0;border-left:1px solid var(--line)}
 @media (max-width: 680px) {
   .rail { width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) 58px; overflow: hidden; }
   .monitor-brand { display: none; }
@@ -14,5 +15,6 @@
   .rail-foot { grid-column: 2; }
   .commandbar { flex-wrap: wrap; }
   .command-actions { min-width: 0; }
+  .locale-bar{align-items:stretch}.locale-bar label{flex:1}.locale-bar select{width:100%}
   .alert-list article { overflow: hidden; }
 }

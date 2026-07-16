@@ -4,7 +4,8 @@
 
 - Branch: `codex/ecosystem-explorer-monitor`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Explorer Monitor`
-- Implementation commit: `46b06effc8746392263cfc1ec43d908d68b9c93d`
+- Rework base: `2e5ef561c5ae782b9e5dfaff0ca5a013df390423`
+- Rework implementation commit: recorded after the final commit below.
 - Ownership changed only under `apps/explorer/**`, `apps/monitor/**`, and this handoff.
 
 ## Product architecture
@@ -25,6 +26,13 @@ polling fallback, stale, catching-up and unavailable states. It never derives or
 displays synthetic TPS, token price, market cap, validator state, balance,
 uptime or market data.
 
+The real stream and API collections are paginated in the browser without
+inventing records. Evidence selections are URL-addressable (`kind` + `id`) and
+survive direct navigation. The installable PWA caches only the static product
+shell; all `/api/`, `/chain/` and `/ai-gateway/` evidence is always network
+fetched. Offline, upstream-unavailable, stale and catching-up states remain
+explicit.
+
 Explorer AI sends at most 6,000 characters from the currently selected public
 transaction/receipt/contract/resource/Trust evidence. The context preview names
 the included sources. The provider-backed result streams through the
@@ -33,7 +41,8 @@ permissioned Gateway and remains review-only; it has no mutation route.
 ### YNX Monitor
 
 `apps/monitor` is a separate dark operations product with an independent
-Express control plane and atomic mode-`0600` JSON state. It uses HMAC-signed,
+Express control plane and atomic mode-`0600` JSON state. The state envelope is
+HMAC-authenticated and rejected on tamper at restart. It uses HMAC-signed,
 one-hour bearer sessions over server-configured scrypt password hashes and
 separates `viewer` from `operator` on every mutation route.
 
@@ -46,6 +55,14 @@ the exact operator phrase `ACKNOWLEDGE`. Rollback needs
 `APPROVE ROLLBACK PROPOSAL` and is saved as `approved-not-executed`; there is no
 infrastructure execution route.
 
+In addition to password login, Monitor implements Sign in with YNX Wallet as a
+five-minute, one-time challenge for chain `6423` / network `ynx_6423-1`. The
+signature and exact challenge binding are verified only through the configured
+central Wallet Gateway interface. Replay is rejected, challenges persist over
+restart, and wallet accounts receive roles only from the server-side
+`YNX_MONITOR_WALLET_ROLES` map. No browser- or wallet-supplied role is trusted.
+The PWA shell never caches `/ops/` responses.
+
 Logs are read-only and limited to the server-side `YNX_MONITOR_LOG_SOURCES`
 allowlist. Reads are capped to the last 65,536 bytes / 200 lines, long lines are
 bounded, common credential patterns are redacted, and every read is audited.
@@ -57,6 +74,13 @@ authority in local audit, and requests a summary plus runbook proposal. It has
 no route that can acknowledge, restart, rotate keys, execute rollback or mutate
 operations state.
 
+Both products support English, 简体中文, 繁體中文, 日本語, 한국어, Español,
+Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia. Locale and
+independent AI-output language are system-detected, manually selectable and
+persisted across reloads. Dates and numbers use `Intl`; Arabic sets document
+RTL. Automated tests verify 12-locale key fallback, RTL/persistence, responsive
+overflow and live service-worker registration.
+
 ## Security and truth boundaries
 
 - Provider, AI Gateway and upstream service keys never enter browser bundles,
@@ -64,6 +88,9 @@ operations state.
 - Production users and session secrets are mandatory. Built-in local accounts
   exist only behind explicit `YNX_MONITOR_DEV_USERS=1` for Playwright.
 - Monitor mutations require authenticated `operator`; viewer denial is tested.
+- `YNX_MONITOR_STATE_INTEGRITY_KEY` is mandatory in production and must be a
+  separate high-entropy server secret. Wallet authentication fails closed when
+  the central verifier is absent.
 - Alert and incident state is real persisted operator/probe evidence. Empty is a
   valid state. The screenshots intentionally show current failed local probes,
   not invented incidents or uptime.
@@ -75,17 +102,21 @@ operations state.
 ## Verification evidence
 
 - Explorer `npm run build`: passed; TypeScript and Vite production bundle.
-- Explorer `npm test`: 5/5 passed, including dashboard data classification,
+- Explorer `npm test`: 7/7 passed, including 12-locale resolution, dashboard data classification,
   stale/catching-up, SSE reconnect and bounded polling failure cutoff.
 - Explorer `npm run test:a11y`: passed.
-- Explorer `npm run test:e2e`: 4/4 passed on system Chrome at desktop and iPhone
-  13 emulation, including catch-up rendering and zero horizontal overflow.
+- Explorer `npm run test:e2e`: 6/6 passed on system Chrome at desktop and iPhone
+  13 emulation. The post-fix PWA/RTL subset also passed 2/2 with real service
+  worker registration.
 - Monitor `npm run build`: passed; TypeScript and Vite production bundle.
-- Monitor `npm test`: 6/6 passed, including login failure, viewer/operator RBAC,
-  logs read boundary, explicit acknowledgement, audit and non-executing rollback.
+- Monitor `npm test`: 11/11 passed, including login failure, viewer/operator
+  RBAC, wallet replay rejection, restart recovery, state tamper rejection, logs
+  read boundary, explicit acknowledgement, audit and non-executing rollback.
 - Monitor `npm run test:a11y`: passed.
-- Monitor `npm run test:e2e`: 4/4 passed on desktop/mobile, including operator
-  login, viewer denial and zero mobile/desktop horizontal overflow.
+- Monitor Playwright: desktop 3/3 and mobile 3/3 passed, including operator
+  login, viewer denial, RTL persistence, PWA registration, and zero horizontal
+  overflow. Tests run one worker with a 90-second ceiling because Chrome cold
+  startup on this host is slow; no product wait was weakened.
 - Local real service smoke: started the repository local chain, seeded a real
   account, ran `ynx-indexerd` and `ynx-explorerd`, then passed Explorer checks for
   `/health`, summary, blocks, transactions, validators and SSE. Monitor passed
@@ -93,7 +124,18 @@ operations state.
 - Explorer production BFF smoke: served `dist`, returned the YNX Explorer title,
   and truthfully returned `503 ai_gateway_not_configured` with no AI key.
 - `git diff --check`: passed.
+- Vite and `@vitejs/plugin-react` were upgraded in both products to stable
+  `8.1.4` and `6.0.3`; both production builds passed. The official npm advisory
+  endpoint could not be reached from this host (`Client network socket
+  disconnected before secure TLS connection was established`), so this handoff
+  does not claim a successful online `npm audit`.
 - Go tests were not rerun because no Go file changed.
+
+The products are intentionally Web-first public/operator tools. Installable PWA
+companions, responsive mobile layouts, icons and standalone launch entrypoints
+are delivered. Android APK and iOS Xcode/Simulator evidence are not applicable
+to this product architecture; no native shell, store signing or mobile-store
+publication is claimed.
 
 ## Screenshot evidence
 
@@ -111,7 +153,8 @@ These are intentionally left to the main integration task:
 2. Route Monitor only behind the approved operator ingress/TLS boundary; keep
    its control plane private and provide production `YNX_MONITOR_USERS`, a
    high-entropy `YNX_MONITOR_SESSION_SECRET`, and durable
-   `YNX_MONITOR_STATE_PATH` backup policy.
+   `YNX_MONITOR_STATE_PATH` backup policy plus a distinct
+   `YNX_MONITOR_STATE_INTEGRITY_KEY`.
 3. Create least-privilege Explorer/Monitor YNX AI Gateway client bindings and
    inject the two server-side keys. Provider quota/unavailable must remain an
    explicit 503/stream failure.
@@ -120,6 +163,9 @@ These are intentionally left to the main integration task:
 5. Apply Caddy, DNS, public ingress and service deployment changes centrally.
    Suggested local product ports are Explorer `4673`, Monitor Web `4674`, and
    Monitor control plane `4675`; the main task may remap them at ingress.
+6. Configure `YNX_MONITOR_WALLET_AUTH_URL`, its server-only Gateway credential,
+   the exact public origin, and the server-owned wallet role map. The product
+   correctly reports `wallet_gateway_not_configured` until this is provided.
 
 There is no claim of public deployment, historical SLO compliance, production
 operator enrollment or provider-backed AI success until the main task supplies
