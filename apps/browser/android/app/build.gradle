@@ -1,0 +1,20 @@
+plugins { id "com.android.application" }
+
+android {
+    namespace "com.ynxweb4.browser"
+    compileSdk 36
+    defaultConfig {
+        applicationId "com.ynxweb4.browser"
+        minSdk 28
+        targetSdk 36
+        versionCode 1
+        versionName "0.2.0-candidate"
+        buildConfigField "String", "GATEWAY_URL", '""'
+        buildConfigField "String", "TRUST_URL", '"https://trust.ynxweb4.com"'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes {
+        debug { applicationIdSuffix ""; versionNameSuffix "-debug" }
+        release { minifyEnabled false }
+    }
+}

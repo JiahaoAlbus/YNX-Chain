@@ -1,2 +1,5 @@
 native/.build/
+android/.gradle/
+android/app/build/
+android/.manual-build/
 .DS_Store

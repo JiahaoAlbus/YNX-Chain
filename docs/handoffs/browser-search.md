@@ -5,6 +5,8 @@
 - Branch: `codex/ecosystem-browser-search`
 - Baseline: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`
 - Implementation commit: `54fad972b9dc28e49a2590fef19ded1d5c876136`
+- Platform/contracts continuation: the final pushed branch tip reported to the
+  integration task
 - Final handoff commit: the branch tip reported to the integration task
 - Ownership stayed within `apps/browser/**`, `apps/search/**`,
   `packages/web4-permissions/**`, and this file.
@@ -39,6 +41,14 @@
 - Update policy accepts only a newer semantic version with valid signature
   evidence. The compiled local binary is unsigned and is not presented as a
   distributed update.
+- Android now has a source-buildable system-WebView application; iOS/iPadOS has
+  a native WKWebView project; Windows has a WebView2/WPF feasibility host.
+  `apps/browser/PLATFORM_EVIDENCE.md` separates actual build/parse evidence from
+  signing, store and distribution work that has not happened.
+- Shared product contracts cover 12 locales (`en`, `zh-Hans`, `zh-Hant`, `ja`,
+  `ko`, `es`, `fr`, `de`, `pt`, `ru`, `ar`, `id`) and Arabic RTL. Localized
+  security, signing and privacy text is tested not to fall back to stronger or
+  misleading English-only semantics.
 
 ### Search
 
@@ -54,7 +64,8 @@
   registered authorized sources and makes no neutrality/global-coverage claim.
 - Removal, correction and appeal are persistent auditable cases. Appeals require
   an existing parent case; an accepted removal deletes the matching indexed
-  document.
+  document. The web UI now submits all three case types and returns the stored
+  case ID plus the current central-Trust referral boundary.
 - Search AI previews the exact retrieved source set, provider/model state and
   resource estimate before consent. Streaming requires Gateway citation metadata
   and rejects any URL outside the retrieved indexed set. Retrieval sources and
@@ -80,23 +91,30 @@
 
 | Command | Result |
 | --- | --- |
-| `cd packages/web4-permissions && npm test` | pass: 5/5 |
-| `cd apps/browser && npm run check` | pass: 6/6 tests, smoke pass, Swift release build pass |
-| `cd apps/search && npm run check` | pass: 7/7 tests, smoke pass |
+| `cd packages/web4-permissions && npm test` | pass: 12/12 |
+| `cd apps/browser && npm run check` | pass: 9/9 tests, smoke pass, macOS Swift release build pass |
+| `ANDROID_SDK_ROOT=/Users/huangjiahao/Library/Android/sdk ./apps/browser/scripts/build-android.sh` | pass: API 36 compile/dex/align and v3 debug signature verification |
+| `swiftc -parse apps/browser/ios/YNXBrowser/*.swift` plus `plutil -lint` | pass: all Swift syntax, Info.plist and Xcode project parse |
+| `xmllint --noout apps/browser/windows/YNXBrowser.Windows/*` (XML/XAML/project files) | pass: Windows project structure parses; no Windows compile claimed |
+| `cd apps/search && npm run check` | pass: 10/10 tests, smoke pass |
 | local HTTP `/api/search?q=origin` smoke | pass; returned cited authorized fixture URL |
+| local HTTP UI assets plus correction-to-appeal flow | pass; shared locale module served, cases persisted and parent linkage returned |
 | `make no-placeholder-check` | pass |
 | `make secret-scan` | pass |
 | `make env-check` | pass |
-| `npm run hardhat:build && npm run contracts:selectors && make test` | pass; generated contract artifacts remained ignored |
+| `make test` | pass: all root `cmd/...` and `internal/...` Go packages |
 | `git diff --check` | pass |
 
 The unsigned local WebKit release binary was built at
 `apps/browser/native/.build/release/YNXBrowserNative` and had SHA-256
-`cfb95afe70511be661cddd73077f0b64f6e1649a976ef0c1f1a7982482ab43a0` at
-handoff time. `.build` is ignored. The in-app screenshot runner could not reach
-the host-local loopback service because it runs behind a separate local-network
-boundary, so no screenshot is claimed; responsive/accessibility structure is
-covered by focused DOM/CSS tests.
+`81d0f008b35b97e8b3b494835d579b56255743381b7eeeca01b6250d54ecccda` at
+handoff time. The ignored Android debug APK had SHA-256
+`2e0e5d468776a454f16e150dcfe8c79c9285227073862b6e225044f7d9195f98`.
+The available Android emulator had not completed package/activity service boot,
+full Xcode is absent, and `dotnet` is absent, so Android launch, iOS build/run and
+Windows compile/run are explicitly not claimed. Responsive/accessibility and
+platform-contract structure are covered by focused tests; detailed evidence is
+in `apps/browser/PLATFORM_EVIDENCE.md`.
 
 ## Focused test coverage
 
@@ -112,6 +130,11 @@ covered by focused DOM/CSS tests.
   unindexed-stream-citation rejection.
 - Semantic labels, live regions, focus visibility, reduced motion and responsive
   search layout.
+- Twelve-locale key completeness, localized privacy/signing semantics, locale
+  resolution, ICU formatting and Arabic RTL.
+- Android/iOS/Windows mature-engine declarations, product identity, Wallet
+  callback binding, secure device identity, private-store/profile and update
+  boundary structure.
 
 ## Integration requests for the main task
 
