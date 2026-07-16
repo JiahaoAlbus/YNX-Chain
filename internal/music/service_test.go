@@ -190,3 +190,32 @@ func TestTamperedStateFailsClosed(t *testing.T) {
 		t.Fatalf("tampered state accepted: %v", e)
 	}
 }
+
+func TestCreatorSnapshotIncludesPrivateDraftWithoutCatalogLeak(t *testing.T) {
+	s := testService(t)
+	creator := testAccount(t, 11)
+	listener := testAccount(t, 12)
+	if _, err := s.UpsertProfile(creator, Profile{DisplayName: "Draft Owner"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.OnboardCreator(creator, "Draft Owner", "Private test drafts"); err != nil {
+		t.Fatal(err)
+	}
+	draft, err := s.UploadTrack(creator, TrackUpload{Title: "Private Draft", ArtistName: "Draft Owner", Audio: Upload{Reader: bytes.NewReader(toneWAV(1000))}, AudioProvenance: "repository-generated test tone", RightsBasis: "owned", Territories: []string{"TEST"}, EvidenceRef: "repository fixture"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := s.CreatorTracks(creator); len(got) != 1 || got[0].ID != draft.ID || got[0].ReleaseState != "draft" {
+		t.Fatalf("creator draft missing: %#v", got)
+	}
+	if _, err := s.UpsertProfile(listener, Profile{DisplayName: "Listener"}); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Catalog(listener, ""); len(got) != 0 {
+		t.Fatalf("private draft leaked into catalog: %#v", got)
+	}
+	snapshot := s.Snapshot(creator)
+	if got, ok := snapshot["creatorTracks"].([]Track); !ok || len(got) != 1 || got[0].ID != draft.ID {
+		t.Fatalf("creator snapshot omitted private draft: %#v", snapshot["creatorTracks"])
+	}
+}

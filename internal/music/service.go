@@ -544,6 +544,23 @@ func (s *Service) Playlists(actor string) []Playlist {
 	}
 	return out
 }
+
+func (s *Service) CreatorTracks(actor string) []Track {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return []Track{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	tracks := []Track{}
+	for _, track := range s.state.Tracks {
+		if track.Owner == actor {
+			tracks = append(tracks, track)
+		}
+	}
+	sort.Slice(tracks, func(i, j int) bool { return tracks[i].CreatedAt.Before(tracks[j].CreatedAt) })
+	return tracks
+}
 func (s *Service) Usage(actor string) []UsageRecord {
 	actor, _ = normalizeActor(actor)
 	s.mu.RLock()
@@ -884,7 +901,7 @@ func (s *Service) Snapshot(actor string) map[string]any {
 		}
 	}
 	s.mu.RUnlock()
-	return map[string]any{"profile": p, "listener": l, "catalog": catalog, "playlists": s.Playlists(actor), "usage": s.Usage(actor), "allocations": allocations, "settlements": settlements, "cases": cases, "aiProposals": ai, "truth": map[string]any{"licensedPublicCatalog": false, "productionStreaming": false, "settlementFinality": "Pay intent requires Wallet review and authoritative Pay receipt"}}
+	return map[string]any{"profile": p, "listener": l, "catalog": catalog, "creatorTracks": s.CreatorTracks(actor), "playlists": s.Playlists(actor), "usage": s.Usage(actor), "allocations": allocations, "settlements": settlements, "cases": cases, "aiProposals": ai, "truth": map[string]any{"licensedPublicCatalog": false, "productionStreaming": false, "settlementFinality": "Pay intent requires Wallet review and authoritative Pay receipt"}}
 }
 func (s *Service) VerifyIntegrity() error {
 	s.mu.RLock()
