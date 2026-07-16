@@ -13,6 +13,7 @@ PROMETHEUS_VERSION=3.11.2
 PROMETHEUS_ARCHIVE="prometheus-${PROMETHEUS_VERSION}.linux-amd64.tar.gz"
 PROMETHEUS_ARCHIVE_SHA256=f643ea1ee90d109329302d27bddb1fb2e52655b1fa84e9e26f9a6f340da144a6
 PROMETHEUS_URL="https://github.com/prometheus/prometheus/releases/download/v${PROMETHEUS_VERSION}/${PROMETHEUS_ARCHIVE}"
+PROMETHEUS_ARCHIVE_PATH="${YNX_PROMETHEUS_ARCHIVE_PATH:-}"
 
 [[ -r "$PRIMARY_NODE_SSH_KEY" ]] || { echo "primary SSH key is not readable"; exit 1; }
 ynx_require_clean_worktree
@@ -23,9 +24,14 @@ remote_work="/tmp/ynx-prometheus-install-$$"
 cleanup() { rm -rf "$work"; }
 trap cleanup EXIT
 
-curl --fail --location --silent --show-error --max-time 180 \
-  --retry 4 --retry-all-errors --retry-delay 3 \
-  "$PROMETHEUS_URL" -o "$work/$PROMETHEUS_ARCHIVE"
+if [[ -n "$PROMETHEUS_ARCHIVE_PATH" ]]; then
+  [[ -f "$PROMETHEUS_ARCHIVE_PATH" && ! -L "$PROMETHEUS_ARCHIVE_PATH" ]] || { echo "Prometheus archive cache must be a regular file"; exit 1; }
+  cp "$PROMETHEUS_ARCHIVE_PATH" "$work/$PROMETHEUS_ARCHIVE"
+else
+  curl --fail --location --silent --show-error --max-time 900 \
+    --continue-at - --retry 4 --retry-all-errors --retry-delay 3 \
+    "$PROMETHEUS_URL" -o "$work/$PROMETHEUS_ARCHIVE"
+fi
 printf '%s  %s\n' "$PROMETHEUS_ARCHIVE_SHA256" "$work/$PROMETHEUS_ARCHIVE" | shasum -a 256 -c -
 tar -xzf "$work/$PROMETHEUS_ARCHIVE" -C "$work"
 binary="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus"
