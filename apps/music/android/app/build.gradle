@@ -1,0 +1,24 @@
+apply plugin: "com.android.application"
+
+android {
+    namespace "com.ynxweb4.music"
+    compileSdk 35
+    defaultConfig {
+        applicationId "com.ynxweb4.music"
+        minSdk 28
+        targetSdk 35
+        versionCode 2
+        versionName "0.2.0-testnet"
+        testInstrumentationRunner "android.test.InstrumentationTestRunner"
+        buildConfigField "String", "DEFAULT_API", '"http://10.0.2.2:6436"'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes {
+        debug { versionNameSuffix "-debug" }
+        release { minifyEnabled false; proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro" }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    testOptions { unitTests.returnDefaultValues = true }
+}
+
+dependencies { testImplementation "junit:junit:4.13.2"; androidTestImplementation "junit:junit:4.13.2" }

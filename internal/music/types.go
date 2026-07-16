@@ -14,13 +14,20 @@ var (
 )
 
 type Config struct {
-	StatePath      string
-	MediaDir       string
-	MaxUploadBytes int64
-	AIGatewayURL   string
-	AIGatewayKey   string
-	HTTPClient     *http.Client
-	Now            func() time.Time
+	StatePath        string
+	MediaDir         string
+	MaxUploadBytes   int64
+	AIGatewayURL     string
+	AIGatewayKey     string
+	WalletSessionURL string
+	WalletVerifyURL  string
+	WalletGatewayKey string
+	PayGatewayURL    string
+	PayGatewayKey    string
+	TrustGatewayURL  string
+	TrustGatewayKey  string
+	HTTPClient       *http.Client
+	Now              func() time.Time
 }
 
 type Profile struct {
@@ -115,26 +122,29 @@ type RevenueAllocation struct {
 }
 
 type SettlementIntent struct {
-	ID           string    `json:"id"`
-	Creator      string    `json:"creator"`
-	AllocationID string    `json:"allocationId"`
-	AmountMicros int64     `json:"amountMicros"`
-	Currency     string    `json:"currency"`
-	PayTo        string    `json:"payTo"`
-	Status       string    `json:"status"`
-	ReviewURI    string    `json:"reviewUri"`
-	CreatedAt    time.Time `json:"createdAt"`
+	ID               string    `json:"id"`
+	Creator          string    `json:"creator"`
+	AllocationID     string    `json:"allocationId"`
+	AmountMicros     int64     `json:"amountMicros"`
+	Currency         string    `json:"currency"`
+	PayTo            string    `json:"payTo"`
+	Status           string    `json:"status"`
+	ReviewURI        string    `json:"reviewUri"`
+	CentralIntentID  string    `json:"centralIntentId,omitempty"`
+	CommittedReceipt string    `json:"committedReceipt,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
 }
 
 type Case struct {
-	ID          string    `json:"id"`
-	Kind        string    `json:"kind"`
-	TrackID     string    `json:"trackId,omitempty"`
-	OpenedBy    string    `json:"openedBy"`
-	Reason      string    `json:"reason"`
-	EvidenceRef string    `json:"evidenceRef,omitempty"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID            string    `json:"id"`
+	Kind          string    `json:"kind"`
+	TrackID       string    `json:"trackId,omitempty"`
+	OpenedBy      string    `json:"openedBy"`
+	Reason        string    `json:"reason"`
+	EvidenceRef   string    `json:"evidenceRef,omitempty"`
+	Status        string    `json:"status"`
+	CentralCaseID string    `json:"centralCaseId,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
 type AIProposal struct {

@@ -117,6 +117,55 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 	return nil
 }
 
+func (s *Service) Idempotency(namespace, key string) (string, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.state.Idempotency[namespace+":"+key]
+	return v, ok
+}
+func (s *Service) ClaimIdempotency(actor, namespace, key, id string) error {
+	return s.mutate(actor, namespace+"_idempotency_claimed", id, map[string]string{"key": key}, func(st *persistentState) error {
+		k := namespace + ":" + key
+		if old := st.Idempotency[k]; old != "" && old != id {
+			return ErrConflict
+		}
+		st.Idempotency[k] = id
+		return nil
+	})
+}
+func (s *Service) CaseByID(actor, id string) (Case, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Case{}, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.state.Cases[id]
+	if !ok {
+		return Case{}, ErrNotFound
+	}
+	if v.OpenedBy != actor {
+		return Case{}, ErrUnauthorized
+	}
+	return v, nil
+}
+func (s *Service) SettlementByID(actor, id string) (SettlementIntent, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return SettlementIntent{}, err
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	v, ok := s.state.Settlements[id]
+	if !ok {
+		return SettlementIntent{}, ErrNotFound
+	}
+	if v.Creator != actor {
+		return SettlementIntent{}, ErrUnauthorized
+	}
+	return v, nil
+}
+
 func (s *Service) UpsertProfile(actor string, req Profile) (Profile, error) {
 	actor, err := normalizeActor(actor)
 	if err != nil {
@@ -558,6 +607,35 @@ func (s *Service) Settlement(actor, allocationID, payTo string) (SettlementInten
 	})
 	return out, err
 }
+
+func (s *Service) LinkCentralSettlement(actor, id, centralID, reviewURI string) (SettlementIntent, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return SettlementIntent{}, err
+	}
+	if strings.TrimSpace(centralID) == "" || !strings.HasPrefix(reviewURI, "ynxpay://settlement/review") {
+		return SettlementIntent{}, ErrInvalid
+	}
+	var out SettlementIntent
+	err = s.mutate(actor, "settlement_central_intent_linked", id, map[string]string{"centralIntentId": centralID, "reviewUri": reviewURI}, func(st *persistentState) error {
+		v, ok := st.Settlements[id]
+		if !ok {
+			return ErrNotFound
+		}
+		if v.Creator != actor {
+			return ErrUnauthorized
+		}
+		if v.CentralIntentID != "" && v.CentralIntentID != centralID {
+			return ErrConflict
+		}
+		v.CentralIntentID = centralID
+		v.ReviewURI = reviewURI
+		st.Settlements[id] = v
+		out = v
+		return nil
+	})
+	return out, err
+}
 func (s *Service) OpenCase(actor, kind, trackID, reason, evidence string) (Case, error) {
 	actor, err := normalizeActor(actor)
 	if err != nil {
@@ -577,6 +655,35 @@ func (s *Service) OpenCase(actor, kind, trackID, reason, evidence string) (Case,
 	c := Case{ID: newID("case"), Kind: kind, TrackID: trackID, OpenedBy: actor, Reason: strings.TrimSpace(reason), EvidenceRef: strings.TrimSpace(evidence), Status: "open", CreatedAt: s.cfg.Now().UTC()}
 	err = s.mutate(actor, "case_opened", c.ID, c, func(st *persistentState) error { st.Cases[c.ID] = c; return nil })
 	return c, err
+}
+
+func (s *Service) LinkCentralCase(actor, id, centralID string) (Case, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Case{}, err
+	}
+	if strings.TrimSpace(centralID) == "" {
+		return Case{}, ErrInvalid
+	}
+	var out Case
+	err = s.mutate(actor, "case_central_linked", id, map[string]string{"centralCaseId": centralID}, func(st *persistentState) error {
+		v, ok := st.Cases[id]
+		if !ok {
+			return ErrNotFound
+		}
+		if v.OpenedBy != actor {
+			return ErrUnauthorized
+		}
+		if v.CentralCaseID != "" && v.CentralCaseID != centralID {
+			return ErrConflict
+		}
+		v.CentralCaseID = centralID
+		v.Status = "submitted_to_trust"
+		st.Cases[id] = v
+		out = v
+		return nil
+	})
+	return out, err
 }
 
 func (s *Service) CreateAIProposal(actor, kind, intent, provider, model string, trackIDs []string, permission bool) (AIProposal, error) {

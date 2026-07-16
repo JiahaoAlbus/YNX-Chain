@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,6 +40,38 @@ func TestServerAuthorizationAndSecurityHeaders(t *testing.T) {
 	}
 	if w.Header().Get("Content-Security-Policy") == "" || w.Header().Get("Permissions-Policy") == "" {
 		t.Fatal("security headers missing")
+	}
+}
+
+func TestWalletCentralExchangeUnavailableAndReplayRejected(t *testing.T) {
+	service := testService(t)
+	server := NewServer(service, testAuth(t), "https://music.ynx.test", nil).Handler()
+	body := map[string]string{"response": strings.Repeat("r", 64), "expectedNonce": strings.Repeat("n", 32), "productClientId": musicProductClient, "bundleId": musicBundleID}
+	raw, _ := json.Marshal(body)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/session", bytes.NewReader(raw)))
+	if w.Code != http.StatusServiceUnavailable || !strings.Contains(w.Body.String(), "Wallet Gateway unavailable") {
+		t.Fatalf("unavailable boundary status=%d body=%s", w.Code, w.Body.String())
+	}
+
+	fixture, _ := signedSession(t, testAuth(t), "https://music.ynx.test")
+	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer central-test-key" {
+			t.Error("central bearer missing")
+		}
+		writeJSON(w, http.StatusOK, walletSession{Token: "central-session", Account: fixture.account, DeviceID: "music-device", ExpiresAt: "2030-01-01T00:00:00.000Z"})
+	}))
+	defer central.Close()
+	service.cfg.WalletSessionURL, service.cfg.WalletGatewayKey = central.URL, "central-test-key"
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/session", bytes.NewReader(raw)))
+	if w.Code != http.StatusOK {
+		t.Fatalf("central exchange status=%d body=%s", w.Code, w.Body.String())
+	}
+	w = httptest.NewRecorder()
+	server.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/auth/wallet-v1/session", bytes.NewReader(raw)))
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "replay") {
+		t.Fatalf("replay status=%d body=%s", w.Code, w.Body.String())
 	}
 }
 
@@ -78,6 +111,9 @@ func signedSession(t *testing.T, g *appgateway.Gateway, binding string) (authFix
 	return f, session
 }
 func protected(t *testing.T, h http.Handler, method, target string, body any, f authFixture, s appgateway.SessionResponse) *httptest.ResponseRecorder {
+	return protectedWithKey(t, h, method, target, body, f, s, "")
+}
+func protectedWithKey(t *testing.T, h http.Handler, method, target string, body any, f authFixture, s appgateway.SessionResponse, key string) *httptest.ResponseRecorder {
 	t.Helper()
 	var raw []byte
 	if body != nil {
@@ -89,9 +125,66 @@ func protected(t *testing.T, h http.Handler, method, target string, body any, f 
 	if body != nil {
 		r.Header.Set("Content-Type", "application/json")
 	}
+	if key != "" {
+		r.Header.Set("Idempotency-Key", key)
+	}
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, r)
 	return w
+}
+
+func TestPayAndTrustCentralIdempotencyAndTamperBoundaries(t *testing.T) {
+	gateway := testAuth(t)
+	fixture, session := signedSession(t, gateway, "https://music.ynx.test")
+	svc := testService(t)
+	track := publishTrack(t, svc, fixture.account, false)
+	listener := testAccount(t, 12)
+	_, _ = svc.UpsertProfile(listener, Profile{DisplayName: "Listener"})
+	_, usage, err := svc.SavePosition(listener, track.ID, "central-usage", 1200, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	allocation, err := svc.Allocate(fixture.account, "external-source", 1000, []string{usage.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var q map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&q); err != nil {
+			t.Fatal(err)
+		}
+		switch q["type"] {
+		case "open_case":
+			writeJSON(w, 200, map[string]string{"id": "trust-central-1"})
+		case "music_creator_settlement":
+			writeJSON(w, 200, map[string]string{"id": "pay-central-1", "reviewUri": "ynxpay://settlement/review?intent=pay-central-1", "status": "requires_wallet_review"})
+		default:
+			t.Errorf("unexpected central type %v", q["type"])
+			writeJSON(w, 400, map[string]string{"error": "type"})
+		}
+	}))
+	defer central.Close()
+	svc.cfg.TrustGatewayURL = central.URL
+	svc.cfg.TrustGatewayKey = "trust-key"
+	svc.cfg.PayGatewayURL = central.URL
+	svc.cfg.PayGatewayKey = "pay-key"
+	handler := NewServer(svc, gateway, "https://music.ynx.test", nil).Handler()
+	missing := protected(t, handler, http.MethodPost, "/api/cases", map[string]string{"kind": "report", "trackID": track.ID, "reason": "rights evidence mismatch", "evidenceRef": "sha256:abc"}, fixture, session)
+	if missing.Code != 400 {
+		t.Fatalf("Trust missing key=%d %s", missing.Code, missing.Body.String())
+	}
+	trust := protectedWithKey(t, handler, http.MethodPost, "/api/cases", map[string]string{"kind": "report", "trackID": track.ID, "reason": "rights evidence mismatch", "evidenceRef": "sha256:abc"}, fixture, session, "trust-1")
+	if trust.Code != 201 || !strings.Contains(trust.Body.String(), "trust-central-1") {
+		t.Fatalf("Trust central=%d %s", trust.Code, trust.Body.String())
+	}
+	tampered := protectedWithKey(t, handler, http.MethodPost, "/api/cases", map[string]string{"kind": "report", "trackID": track.ID, "reason": "changed rights evidence", "evidenceRef": "sha256:abc"}, fixture, session, "trust-1")
+	if tampered.Code != 409 {
+		t.Fatalf("Trust tamper=%d %s", tampered.Code, tampered.Body.String())
+	}
+	pay := protectedWithKey(t, handler, http.MethodPost, "/api/creator/settlements", map[string]string{"allocationID": allocation.ID, "payTo": fixture.account}, fixture, session, "pay-1")
+	if pay.Code != 201 || !strings.Contains(pay.Body.String(), "requires_wallet_review") || !strings.Contains(pay.Body.String(), "pay-central-1") {
+		t.Fatalf("Pay central=%d %s", pay.Code, pay.Body.String())
+	}
 }
 
 func TestAuthorizedRangePlaybackAndAIGatewayReview(t *testing.T) {

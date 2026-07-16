@@ -18,7 +18,7 @@ func main() {
 	dataDir := flag.String("data", env("YNX_MUSIC_DATA_DIR", filepath.Join(os.TempDir(), "ynx-music")), "absolute private data directory")
 	publicOrigin := flag.String("origin", env("YNX_MUSIC_ORIGIN", "https://music.ynxweb4.com"), "exact product origin binding")
 	flag.Parse()
-	svc, err := music.New(music.Config{StatePath: filepath.Join(*dataDir, "state.json"), MediaDir: filepath.Join(*dataDir, "media"), MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY")})
+	svc, err := music.New(music.Config{StatePath: filepath.Join(*dataDir, "state.json"), MediaDir: filepath.Join(*dataDir, "media"), MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")})
 	if err != nil {
 		log.Fatal(err)
 	}

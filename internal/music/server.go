@@ -38,6 +38,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("POST /api/auth/challenges", s.challenge)
 	s.mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.verify)
+	s.mux.HandleFunc("POST /api/auth/wallet-v1/session", s.walletSession)
 	s.mux.HandleFunc("GET /api/me", s.api(s.me))
 	s.mux.HandleFunc("PUT /api/profile", s.api(s.profile))
 	s.mux.HandleFunc("POST /api/creator/onboarding", s.api(s.creator))
@@ -92,6 +93,53 @@ func (s *Server) verify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
+func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
+	if !s.auth.Allow(r.RemoteAddr) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "music auth rate limit exceeded"})
+		return
+	}
+	var q walletExchangeRequest
+	if !decode(w, r, &q, 64<<10) {
+		return
+	}
+	if q.ProductClientID != musicProductClient || q.BundleID != musicBundleID || len(q.Response) < 32 || len(q.ExpectedNonce) < 32 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "exact Wallet product binding and response are required"})
+		return
+	}
+	key := responseReplayKey(q.Response)
+	s.service.mu.Lock()
+	if s.service.state.Idempotency[key] != "" {
+		s.service.mu.Unlock()
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "Wallet response replay rejected"})
+		return
+	}
+	s.service.mu.Unlock()
+	var session walletSession
+	if err := s.service.centralJSON(r.Context(), s.service.cfg.WalletSessionURL, s.service.cfg.WalletGatewayKey, q, &session); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Wallet Gateway unavailable", "central": true})
+		return
+	}
+	if session.Token == "" || session.DeviceID == "" {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Wallet Gateway returned an incomplete session"})
+		return
+	}
+	if _, err := normalizeActor(session.Account); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Wallet Gateway returned an invalid account"})
+		return
+	}
+	if err := s.service.mutate(session.Account, "wallet_session_exchanged", musicProductClient, map[string]string{"deviceId": session.DeviceID, "expiresAt": session.ExpiresAt}, func(st *persistentState) error {
+		if st.Idempotency[key] != "" {
+			return ErrConflict
+		}
+		st.Idempotency[key] = "consumed"
+		return nil
+	}); err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, session)
+}
+
 type apiHandler func(http.ResponseWriter, *http.Request, string)
 
 func (s *Server) api(next apiHandler) http.HandlerFunc {
@@ -103,7 +151,17 @@ func (s *Server) api(next apiHandler) http.HandlerFunc {
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		session, err := s.auth.AuthenticateSession(s.binding, token, r.Header.Get("X-YNX-Device-ID"))
 		if err != nil {
-			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Sign in with YNX Wallet session required"})
+			var central walletSession
+			verify := map[string]string{"token": token, "deviceId": r.Header.Get("X-YNX-Device-ID"), "productClientId": musicProductClient, "bundleId": musicBundleID}
+			if token == "" || s.service.centralJSON(r.Context(), s.service.cfg.WalletVerifyURL, s.service.cfg.WalletGatewayKey, verify, &central) != nil || central.Token != token || central.DeviceID != verify["deviceId"] {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Sign in with YNX Wallet session required"})
+				return
+			}
+			if _, e := normalizeActor(central.Account); e != nil {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Wallet session account invalid"})
+				return
+			}
+			next(w, r, central.Account)
 			return
 		}
 		next(w, r, session.Account)
@@ -254,7 +312,38 @@ func (s *Server) openCase(w http.ResponseWriter, r *http.Request, a string) {
 	if !decode(w, r, &q, 16<<10) {
 		return
 	}
-	v, e := s.service.OpenCase(a, q.Kind, q.TrackID, q.Reason, q.EvidenceRef)
+	idempotency := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotency == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Idempotency-Key is required for YNX Trust"})
+		return
+	}
+	var v Case
+	var e error
+	if old, ok := s.service.Idempotency("trust", idempotency); ok {
+		v, e = s.service.CaseByID(a, old)
+	} else {
+		v, e = s.service.OpenCase(a, q.Kind, q.TrackID, q.Reason, q.EvidenceRef)
+		if e == nil {
+			e = s.service.ClaimIdempotency(a, "trust", idempotency, v.ID)
+		}
+	}
+	if e != nil {
+		resultStatus(w, v, e, http.StatusCreated)
+		return
+	}
+	if v.Kind != q.Kind || v.TrackID != q.TrackID || v.Reason != strings.TrimSpace(q.Reason) || v.EvidenceRef != strings.TrimSpace(q.EvidenceRef) {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "YNX Trust idempotency tamper rejected"})
+		return
+	}
+	input := map[string]any{"type": "open_case", "idempotencyKey": idempotency, "subject": q.TrackID, "requestScope": "music.rights", "purpose": q.Reason, "requestedAction": q.Kind, "evidence": []map[string]any{{"source": "ynx-music", "digest": q.EvidenceRef, "summary": q.Reason, "collectedAt": s.service.cfg.Now().UTC(), "visibleToSubject": true}}}
+	var central struct {
+		ID string `json:"id"`
+	}
+	if err := s.service.centralJSON(r.Context(), s.service.cfg.TrustGatewayURL, s.service.cfg.TrustGatewayKey, input, &central); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Trust unavailable", "localCase": v, "central": true})
+		return
+	}
+	v, e = s.service.LinkCentralCase(a, v.ID, central.ID)
 	resultStatus(w, v, e, http.StatusCreated)
 }
 func (s *Server) allocate(w http.ResponseWriter, r *http.Request, a string) {
@@ -274,7 +363,44 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request, a string) {
 	if !decode(w, r, &q, 8<<10) {
 		return
 	}
-	v, e := s.service.Settlement(a, q.AllocationID, q.PayTo)
+	idempotency := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
+	if idempotency == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Idempotency-Key is required for YNX Pay"})
+		return
+	}
+	var v SettlementIntent
+	var e error
+	if old, ok := s.service.Idempotency("pay", idempotency); ok {
+		v, e = s.service.SettlementByID(a, old)
+	} else {
+		v, e = s.service.Settlement(a, q.AllocationID, q.PayTo)
+		if e == nil {
+			e = s.service.ClaimIdempotency(a, "pay", idempotency, v.ID)
+		}
+	}
+	if e != nil {
+		resultStatus(w, v, e, http.StatusCreated)
+		return
+	}
+	if v.AllocationID != q.AllocationID || v.PayTo != q.PayTo {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "YNX Pay idempotency tamper rejected"})
+		return
+	}
+	input := map[string]any{"type": "music_creator_settlement", "idempotencyKey": idempotency, "productIntentId": v.ID, "asset": "YNXT", "amountMicros": v.AmountMicros, "payTo": v.PayTo, "status": "requires_wallet_review"}
+	var central struct {
+		ID        string `json:"id"`
+		ReviewURI string `json:"reviewUri"`
+		Status    string `json:"status"`
+	}
+	if err := s.service.centralJSON(r.Context(), s.service.cfg.PayGatewayURL, s.service.cfg.PayGatewayKey, input, &central); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "YNX Pay unavailable; intent is not paid", "localIntent": v, "central": true})
+		return
+	}
+	if central.Status != "requires_wallet_review" {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "YNX Pay returned an unsafe settlement state"})
+		return
+	}
+	v, e = s.service.LinkCentralSettlement(a, v.ID, central.ID, central.ReviewURI)
 	resultStatus(w, v, e, http.StatusCreated)
 }
 func (s *Server) aiProposal(w http.ResponseWriter, r *http.Request, a string) {

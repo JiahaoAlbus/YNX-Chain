@@ -1,0 +1,30 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+		A00000000000000000000001 = {isa = PBXBuildFile; fileRef = A00000000000000000000011; };
+		A00000000000000000000002 = {isa = PBXBuildFile; fileRef = A00000000000000000000012; };
+		A00000000000000000000010 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXMusic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXMusicApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000012 = {isa = PBXFileReference; lastKnownFileType = text.json; name = i18n.json; path = ../../shared/i18n.json; sourceTree = "<group>"; };
+		A00000000000000000000013 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A00000000000000000000014 = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = YNXMusic.entitlements; sourceTree = "<group>"; };
+		A00000000000000000000020 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000021 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001,); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000022 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000002,); runOnlyForDeploymentPostprocessing = 0; };
+		A00000000000000000000030 = {isa = PBXGroup; children = (A00000000000000000000031, A00000000000000000000032,); sourceTree = "<group>"; };
+		A00000000000000000000031 = {isa = PBXGroup; children = (A00000000000000000000011, A00000000000000000000012, A00000000000000000000013, A00000000000000000000014,); path = YNXMusic; sourceTree = "<group>"; };
+		A00000000000000000000032 = {isa = PBXGroup; children = (A00000000000000000000010,); name = Products; sourceTree = "<group>"; };
+		A00000000000000000000040 = {isa = PBXNativeTarget; buildConfigurationList = A00000000000000000000061; buildPhases = (A00000000000000000000021, A00000000000000000000020, A00000000000000000000022,); buildRules = (); dependencies = (); name = YNXMusic; productName = YNXMusic; productReference = A00000000000000000000010; productType = "com.apple.product-type.application"; };
+		A00000000000000000000050 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {A00000000000000000000040 = {CreatedOnToolsVersion = 16.0; };};}; buildConfigurationList = A00000000000000000000060; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base, "zh-Hans", "zh-Hant", ja, ko, es, fr, de, pt, ru, ar, id); mainGroup = A00000000000000000000030; productRefGroup = A00000000000000000000032; projectDirPath = ""; projectRoot = ""; targets = (A00000000000000000000040,); };
+		A00000000000000000000070 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Debug; };
+		A00000000000000000000071 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0;}; name = Release; };
+		A00000000000000000000072 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_ENTITLEMENTS = YNXMusic/YNXMusic.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXMusic/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.music; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = "1,2";}; name = Debug; };
+		A00000000000000000000073 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_ENTITLEMENTS = YNXMusic/YNXMusic.entitlements; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXMusic/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.music; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SWIFT_EMIT_LOC_STRINGS = YES; TARGETED_DEVICE_FAMILY = "1,2";}; name = Release; };
+		A00000000000000000000060 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000070, A00000000000000000000071,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A00000000000000000000061 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000072, A00000000000000000000073,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+	};
+	rootObject = A00000000000000000000050;
+}
