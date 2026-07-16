@@ -3,6 +3,7 @@
 ## Scope and identity
 
 - Branch: `codex/ecosystem-finance`; rework starts from `06868310ed4f03abe2e84d4f3a69c0a65101cb10`.
+- Native rework implementation commit: `9a18de44545236f00698542138ba61408c5fc6cd`; final handoff commit is the branch SHA reported after push.
 - Owned paths only: `apps/finance/**`, `internal/finance/**`, this handoff.
 - Native product: `com.ynxweb4.finance`, scheme `ynxfinance`, callback `ynxfinance://wallet-auth/callback`, client `ynx-finance-v1`.
 - No central state, root Makefile, long-term objective, acceptance state, or another product directory was edited.
