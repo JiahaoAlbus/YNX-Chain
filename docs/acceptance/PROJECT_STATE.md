@@ -1,5 +1,13 @@
 # Project State
 
+## 2026-07-16 ecosystem candidate intake batch
+
+- Total-control intake reviewed exact remote tips for Wallet Auth/Wallet, Social, Pay, Exchange, Trust/Resource, Explorer/Monitor, Developer, Mail/Calendar, Finance, and Video. Every branch stayed within its declared product paths plus one handoff and passed an isolated repository secret scan. These are queued candidates only; none was merged, deployed, or promoted to public proof.
+- Focused independent reruns passed: Wallet protocol 13/13 and App 13/13 plus type/product checks; Social Go race plus 8/8 App tests and typecheck; Pay Go race, merchant test/build, consumer typecheck and 2/2 tests; Exchange Go race, 5/5 UI and smoke; Trust/Resource four race suites; Explorer 5/5 and Monitor 6/6 plus both builds; Developer 13/13 client, 5/5 Web and 2/2 sandbox; Mail/Calendar race, 3/3 UI and smoke for each; Finance race, 3/3 UI and smoke; Video race, viewer/studio checks and smoke.
+- Integration conflicts remain explicit. Social uses `com.ynx.social` and a legacy query-field Wallet request while the reviewed Wallet Auth candidate requires exact registry binding and a canonical base64url request envelope. Pay, Exchange and other older candidates also retain temporary product-local Wallet adapters. No dependent product may merge until one central Wallet/Gateway verifier is implemented and exact cross-product vectors pass.
+- Trust/Resource still sends AI prompts in a GET query and must adopt reviewed POST-body Gateway transport. Explorer/Monitor installs Vite 6.4.1, for which the current audit reports a high-severity path traversal/file-read advisory; it must be upgraded and rebuilt. Wallet, Pay and Social Expo dependency trees currently report ten moderate advisories. These dependency findings are integration-release blockers, not evidence that the implemented local workflows are fake.
+- All product branches except Wallet/Social start from older baseline `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`; Wallet/Social start from `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`. Integration requires current-main replay/cherry-pick review and full central gates. Local screenshots, Hermes bundles, emulator runs, ad-hoc desktop archives and handoff-reported Playwright runs remain product evidence only.
+
 ## 2026-07-16 Seoul follower outage and executable replication alert rules
 
 - A fresh bounded read-only cycle observed successful public RPC, EVM RPC, REST, gRPC, governance, Faucet, Indexer, Explorer, AI, Pay, Trust, Resource, and Web4 reads. A second RPC sample advanced from height `188136` to `188137`; the public chain remains release `0d31850f74b2`, not current source `145230ce73cc`.
