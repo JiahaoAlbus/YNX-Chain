@@ -1,0 +1,2 @@
+CFBundleDisplayName = "YNX Pay";
+NSCameraUsageDescription = "Die Kamera wird nur zum Scannen einer signierten YNX-Pay-Rechnung genutzt. Es wird kein Bild gespeichert.";

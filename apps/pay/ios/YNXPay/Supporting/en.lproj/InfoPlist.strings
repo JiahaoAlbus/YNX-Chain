@@ -1,0 +1,2 @@
+CFBundleDisplayName = "YNX Pay";
+NSCameraUsageDescription = "Camera access is used only to scan a signed YNX Pay invoice. No image is stored.";

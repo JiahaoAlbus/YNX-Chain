@@ -12,6 +12,7 @@ const (
 
 type Merchant struct {
 	ID                          string    `json:"id"`
+	CentralMerchantID           string    `json:"centralMerchantId"`
 	DisplayName                 string    `json:"displayName"`
 	PayoutAddress               string    `json:"payoutAddress"`
 	Status                      string    `json:"status"`
@@ -134,6 +135,7 @@ type AIRun struct {
 	Status         string    `json:"status"`
 	Permission     string    `json:"permission"`
 	EstimatedUnits int64     `json:"estimatedUnits"`
+	OutputLanguage string    `json:"outputLanguage"`
 	Result         string    `json:"result,omitempty"`
 	Decision       string    `json:"decision,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
@@ -152,24 +154,23 @@ type NonceRecord struct {
 	SeenAt     time.Time `json:"seenAt"`
 }
 type WalletChallenge struct {
-	ID              string     `json:"id"`
-	Account         string     `json:"account"`
-	DevicePublicKey string     `json:"devicePublicKey"`
-	Nonce           string     `json:"nonce"`
-	SignBytes       string     `json:"signBytes"`
-	Callback        string     `json:"callback"`
-	Scopes          []string   `json:"scopes"`
-	ExpiresAt       time.Time  `json:"expiresAt"`
-	UsedAt          *time.Time `json:"usedAt,omitempty"`
+	Nonce         string     `json:"nonce"`
+	RequestDigest string     `json:"requestDigest"`
+	ExpiresAt     time.Time  `json:"expiresAt"`
+	UsedAt        *time.Time `json:"usedAt,omitempty"`
 }
 type WalletSession struct {
-	ID              string     `json:"id"`
-	Account         string     `json:"account"`
-	DevicePublicKey string     `json:"devicePublicKey"`
-	TokenHash       string     `json:"tokenHash"`
-	Scopes          []string   `json:"scopes"`
-	ExpiresAt       time.Time  `json:"expiresAt"`
-	RevokedAt       *time.Time `json:"revokedAt,omitempty"`
+	ID                     string     `json:"id"`
+	Account                string     `json:"account"`
+	ProductClientID        string     `json:"productClientId"`
+	BundleID               string     `json:"bundleId"`
+	ProductDeviceAlgorithm string     `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string     `json:"productDeviceKey"`
+	SessionBinding         string     `json:"sessionBinding"`
+	TokenHash              string     `json:"tokenHash"`
+	Scopes                 []string   `json:"scopes"`
+	ExpiresAt              time.Time  `json:"expiresAt"`
+	RevokedAt              *time.Time `json:"revokedAt,omitempty"`
 }
 
 type Snapshot struct {

@@ -2,7 +2,9 @@ package payproduct
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -22,7 +25,6 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
-	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	secpECDSA "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
@@ -36,11 +38,29 @@ type fakePay struct {
 	invoiceCalls  int
 }
 type blockingAI struct{ started chan struct{} }
+type fixedAI struct{}
 
 func (a *blockingAI) Complete(ctx context.Context, _, _ string) (string, string, string, int64, error) {
 	close(a.started)
 	<-ctx.Done()
 	return "YNX AI Gateway", "test-model", "", 0, ctx.Err()
+}
+
+func (fixedAI) Complete(context.Context, string, string) (string, string, string, int64, error) {
+	return "YNX AI Gateway", "provider-backed-test-model", "Risk explanation grounded in the selected invoice; human approval does not move funds.", 42, nil
+}
+
+func TestCanonicalWalletRequestMatchesTypeScriptVector(t *testing.T) {
+	request := WalletAuthorizationRequest{
+		Version: "1", Nonce: "pay_nonce_abcdefghijklmnopqrstuvwxyz12", ChainID: ChainID, RequestingProduct: walletProduct,
+		ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm,
+		ProductDeviceKey: "A-p256-device-key-vector", Callback: walletCallback, Scopes: append([]string(nil), walletScopes...),
+		Purpose: "Review YNXT payments and manage only this account&apos;s payment cases.", IssuedAt: "2026-07-16T00:00:00.000Z", ExpiresAt: "2026-07-16T00:05:00.000Z",
+	}
+	const want = "b984b0360a06b93e6c269ff79c86022d47aaea7cdee434a1ed6b72eb20e18ebd"
+	if got := digestCanonical(walletRequestDomain, request); got != want {
+		t.Fatalf("canonical request digest differs from TypeScript Wallet: got %s want %s canonical=%s", got, want, mustCanonical(request))
+	}
 }
 
 func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string) (chain.PayIntent, error) {
@@ -164,9 +184,32 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 	if err != nil || expired.Status != "expired" {
 		t.Fatalf("expiry failed: %+v %v", expired, err)
 	}
+	attempts := 0
 	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-YNX-Signature") == "" || r.Header.Get("X-YNX-Event-ID") == "" {
+		attempts++
+		eventID, deliveryID, timestamp, payloadHash, version, signed := r.Header.Get("X-YNX-Event-ID"), r.Header.Get("X-YNX-Delivery-ID"), r.Header.Get("X-YNX-Timestamp"), r.Header.Get("X-YNX-Payload-SHA256"), r.Header.Get("X-YNX-Signature-Version"), r.Header.Get("X-YNX-Signature")
+		if signed == "" || eventID == "" || deliveryID == "" || timestamp == "" || payloadHash == "" || version == "" {
 			t.Error("webhook signature headers missing")
+		}
+		if eventID != deliveryID || version != fmt.Sprint(merchant.SecretVersion) {
+			t.Error("webhook delivery identity or signature version is inconsistent")
+		}
+		parsed, err := time.Parse(time.RFC3339Nano, timestamp)
+		if err != nil {
+			t.Errorf("webhook timestamp is not canonical: %v", err)
+		}
+		body, _ := io.ReadAll(r.Body)
+		secret, _ := service.open(merchant.WebhookSecretCipher)
+		if payloadHash != hexSHA(body) {
+			t.Error("webhook payload hash does not match exact body")
+		}
+		want := "v" + version + "=" + hmacHex([]byte(secret), webhookSigningMaterial(deliveryID, parsed, payloadHash))
+		if !hmacEqual(signed, want) {
+			t.Errorf("webhook signature does not bind event ID, timestamp, and exact body")
+		}
+		if attempts == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
 		}
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -180,8 +223,12 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 	state, _ := service.SnapshotForMerchant(merchant.ID)
 	for id := range state.Deliveries {
 		d, err := service.Deliver(context.Background(), id)
-		if err != nil || d.Status != "delivered" {
-			t.Fatalf("webhook delivery failed: %+v %v", d, err)
+		if err != nil || d.Status != "retrying" || d.Attempt != 1 {
+			t.Fatalf("webhook failure did not persist a retry: %+v %v", d, err)
+		}
+		d, err = service.Deliver(context.Background(), id)
+		if err != nil || d.Status != "delivered" || d.Attempt != 2 {
+			t.Fatalf("webhook retry did not deliver idempotently: %+v %v", d, err)
 		}
 	}
 }
@@ -208,15 +255,7 @@ func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
 	accountKey := secp256k1.PrivKeyFromBytes(bytes32(9))
 	accountHex, _ := consensus.NativeAddress(accountKey.PubKey().SerializeCompressed())
 	account, _ := accountaddress.Encode(accountHex)
-	devicePub, devicePriv, _ := ed25519.GenerateKey(rand.Reader)
-	challenge, err := service.CreateWalletChallenge(WalletChallengeInput{Account: account, DevicePublicKey: nativewallet.EncodePublicKey(devicePub)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	payload, _ := base64.RawURLEncoding.DecodeString(challenge.Challenge.SignBytes)
-	digest := sha256.Sum256(payload)
-	accountSig := secpECDSA.Sign(accountKey, digest[:]).Serialize()
-	input := WalletSessionInput{ChallengeID: challenge.Challenge.ID, AccountPublicKey: hex.EncodeToString(accountKey.PubKey().SerializeCompressed()), AccountSignature: hex.EncodeToString(accountSig), DeviceSignature: nativewallet.Sign(devicePriv, payload)}
+	input := walletSessionFixture(t, now, accountKey, account)
 	sessionResult, err := service.CompleteWalletSession(input)
 	if err != nil {
 		t.Fatal(err)
@@ -229,8 +268,14 @@ func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
 		t.Fatal(err)
 	}
 	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: account, Amount: 11, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("e", 64), BlockNumber: 3, Status: "paid", AuditHash: strings.Repeat("f", 64), CreatedAt: now}
-	if _, err := service.SubmitSettlement(context.Background(), invoice.ID, account, pay.settlement.TransactionHash, "settle-key-03"); err != nil {
+	intent, result := signedPaymentFixture(t, now, invoice, session, accountKey)
+	if _, err := service.SubmitSignedSettlement(context.Background(), session, invoice.ID, intent, result, "settle-key-03"); err != nil {
 		t.Fatal(err)
+	}
+	tampered := intent
+	tampered.Amount++
+	if _, err := service.SubmitSignedSettlement(context.Background(), session, invoice.ID, tampered, result, "settle-key-04"); err == nil {
+		t.Fatal("tampered signed payment intent was accepted")
 	}
 	if _, err := service.CreateRefundRequest(session, invoice.ID, 5, "item not delivered", "refund-key-01"); err != nil {
 		t.Fatal(err)
@@ -238,6 +283,37 @@ func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
 	if _, err := service.CreateDispute(session, invoice.ID, "merchant did not deliver the item", "dispute-key-01", []string{"trust.case-123"}); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func walletSessionFixture(t *testing.T, now time.Time, accountKey *secp256k1.PrivateKey, account string) WalletSessionInput {
+	t.Helper()
+	device, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deviceKey := base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), device.PublicKey.X, device.PublicKey.Y))
+	request := WalletAuthorizationRequest{Version: "1", Nonce: "pay_nonce_abcdefghijklmnopqrstuvwxyz12", ChainID: ChainID, RequestingProduct: walletProduct, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, ProductDeviceKey: deviceKey, Callback: walletCallback, Scopes: append([]string(nil), walletScopes...), Purpose: "Review YNXT payments and manage only this account's payment cases.", IssuedAt: now.Add(-time.Minute).Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(4 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
+	approval := WalletAuthorizationResponse{Version: request.Version, RequestDigest: digestCanonical(walletRequestDomain, request), Nonce: request.Nonce, ChainID: request.ChainID, RequestingProduct: request.RequestingProduct, ProductClientID: request.ProductClientID, BundleID: request.BundleID, ProductDeviceAlgorithm: request.ProductDeviceAlgorithm, ProductDeviceKey: request.ProductDeviceKey, Callback: request.Callback, Account: account, AccountPublicKey: hex.EncodeToString(accountKey.PubKey().SerializeCompressed()), GrantedScopes: append([]string(nil), request.Scopes...), Purpose: request.Purpose, IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(4 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
+	unsigned := map[string]any{"version": approval.Version, "requestDigest": approval.RequestDigest, "nonce": approval.Nonce, "chainId": approval.ChainID, "requestingProduct": approval.RequestingProduct, "productClientId": approval.ProductClientID, "bundleId": approval.BundleID, "productDeviceAlgorithm": approval.ProductDeviceAlgorithm, "productDeviceKey": approval.ProductDeviceKey, "callback": approval.Callback, "account": approval.Account, "accountPublicKey": approval.AccountPublicKey, "grantedScopes": approval.GrantedScopes, "purpose": approval.Purpose, "issuedAt": approval.IssuedAt, "expiresAt": approval.ExpiresAt}
+	digest := sha256.Sum256([]byte(walletApprovalDomain + "\n" + string(mustCanonical(unsigned))))
+	approval.WalletSignature = hex.EncodeToString(secpECDSA.SignCompact(accountKey, digest[:], true)[1:])
+	challenge := GatewayChallenge{Version: "1", Challenge: "gateway_challenge_abcdefghijklmnop", RequestDigest: approval.RequestDigest, ProductClientID: approval.ProductClientID, BundleID: approval.BundleID, ProductDeviceAlgorithm: approval.ProductDeviceAlgorithm, ProductDeviceKey: approval.ProductDeviceKey, Account: approval.Account, Scopes: append([]string(nil), approval.GrantedScopes...), IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(3 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
+	deviceDigest := sha256.Sum256([]byte(walletGatewayDomain + "\n" + string(mustCanonical(challenge))))
+	deviceSignature, err := ecdsa.SignASN1(rand.Reader, device, deviceDigest[:])
+	if err != nil {
+		t.Fatal(err)
+	}
+	return WalletSessionInput{Request: request, Approval: approval, Completion: GatewayCompletion{Challenge: challenge, DeviceSignature: base64.RawURLEncoding.EncodeToString(deviceSignature)}}
+}
+
+func signedPaymentFixture(t *testing.T, now time.Time, invoice Invoice, session WalletSession, accountKey *secp256k1.PrivateKey) (SignedPaymentIntent, WalletPaymentResult) {
+	t.Helper()
+	intent := SignedPaymentIntent{Version: "1", IntentType: "pay.ynxt.transfer", RequestID: "payment_request_abcdefghijklmnop", ChainID: ChainID, ProductClientID: walletProductClientID, BundleID: walletBundleID, SessionBinding: session.SessionBinding, InvoiceID: invoice.ID, CentralInvoiceID: invoice.CentralID, MerchantID: invoice.MerchantID, MerchantName: invoice.MerchantName, PayoutAddress: invoice.PayoutAddress, Amount: invoice.Amount, Asset: invoice.Asset, Fee: invoice.Fee, Total: invoice.Amount + invoice.Fee, QuoteIssuedAt: now.Format("2006-01-02T15:04:05.000Z"), QuoteExpiresAt: now.Add(3 * time.Minute).Format("2006-01-02T15:04:05.000Z"), InvoiceSignature: invoice.Signature, Callback: "ynxpay://payment-result"}
+	result := WalletPaymentResult{Version: "1", IntentDigest: digestCanonical(walletPayIntentDomain, intent), RequestID: intent.RequestID, InvoiceID: intent.InvoiceID, ChainID: intent.ChainID, Account: session.Account, AccountPublicKey: hex.EncodeToString(accountKey.PubKey().SerializeCompressed()), TransactionHash: "0x" + strings.Repeat("e", 64), IssuedAt: now.Format("2006-01-02T15:04:05.000Z")}
+	unsigned := map[string]any{"version": result.Version, "intentDigest": result.IntentDigest, "requestId": result.RequestID, "invoiceId": result.InvoiceID, "chainId": result.ChainID, "account": result.Account, "accountPublicKey": result.AccountPublicKey, "transactionHash": result.TransactionHash, "issuedAt": result.IssuedAt}
+	digest := sha256.Sum256([]byte(walletPayResultDomain + "\n" + string(mustCanonical(unsigned))))
+	result.WalletSignature = hex.EncodeToString(secpECDSA.SignCompact(accountKey, digest[:], true)[1:])
+	return intent, result
 }
 
 func TestHTTPProductSmoke(t *testing.T) {
@@ -336,7 +412,7 @@ func TestAIUsesAuthorizedRecordsAndCanCancelWithoutExecutingAction(t *testing.T)
 	}
 	ai := &blockingAI{started: make(chan struct{})}
 	service.ai = ai
-	run, err := service.StartAI(context.Background(), merchant, AIRunInput{Workflow: "reconciliation_explanation", ContextIDs: []string{invoice.ID}, Permission: "allow-once"})
+	run, err := service.StartAI(context.Background(), merchant, AIRunInput{Workflow: "reconciliation_explanation", ContextIDs: []string{invoice.ID}, Permission: "allow-once", OutputLanguage: "zh-Hans"})
 	if err != nil || run.Status != "running" {
 		t.Fatalf("AI run did not start: %+v %v", run, err)
 	}
@@ -359,8 +435,55 @@ func TestAIUsesAuthorizedRecordsAndCanCancelWithoutExecutingAction(t *testing.T)
 	}
 	var otherMerchant Merchant
 	_ = service.store.View(func(data Snapshot) error { otherMerchant = data.Merchants[otherResult.Merchant.ID]; return nil })
-	if _, err := service.StartAI(context.Background(), otherMerchant, AIRunInput{Workflow: "anomaly_review", ContextIDs: []string{invoice.ID}, Permission: "allow-once"}); err == nil {
+	if _, err := service.StartAI(context.Background(), otherMerchant, AIRunInput{Workflow: "anomaly_review", ContextIDs: []string{invoice.ID}, Permission: "allow-once", OutputLanguage: "en"}); err == nil {
 		t.Fatal("cross-merchant AI context was accepted")
+	}
+}
+
+func TestAIRiskExplanationRequiresHumanApprovalAndNeverExecutesPayment(t *testing.T) {
+	now := time.Date(2026, 7, 15, 15, 30, 0, 0, time.UTC)
+	pay := &fakePay{}
+	service, _ := testService(t, pay, func() time.Time { return now })
+	merchant, _ := onboard(t, service)
+	pay.invoice.Merchant, pay.invoice.PayoutAddress, pay.invoice.Amount = merchant.ID, merchant.PayoutAddress, 9
+	invoice, err := service.CreateInvoice(context.Background(), merchant, InvoiceInput{Amount: 9, ExpiresInMinutes: 30, IdempotencyKey: "ai-approval-invoice-01"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.ai = fixedAI{}
+	run, err := service.StartAI(context.Background(), merchant, AIRunInput{Workflow: "anomaly_review", ContextIDs: []string{invoice.ID}, Permission: "allow-once", OutputLanguage: "ar"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var review AIRun
+	for range 100 {
+		state, _ := service.SnapshotForMerchant(merchant.ID)
+		review = state.AIRuns[run.ID]
+		if review.Status == "review" {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if review.Status != "review" || review.Provider != "YNX AI Gateway" || review.Model != "provider-backed-test-model" || review.Result == "" {
+		t.Fatalf("AI risk explanation is not reviewable: %+v", review)
+	}
+	applied, err := service.ReviewAI(merchant, run.ID, "applied")
+	if err != nil || applied.Status != "applied" || applied.Decision != "applied" {
+		t.Fatalf("AI approval failed: %+v %v", applied, err)
+	}
+	unchanged, err := service.Invoice(context.Background(), invoice.ID)
+	if err != nil || unchanged.Status != "pending" || unchanged.Settlement != nil {
+		t.Fatalf("AI approval executed or fabricated a payment: %+v %v", unchanged, err)
+	}
+	state, _ := service.SnapshotForMerchant(merchant.ID)
+	foundAudit := false
+	for _, entry := range state.Audit {
+		if entry.Action == "ai.review" && entry.ObjectID == run.ID && entry.Outcome == "applied" && strings.Contains(entry.Detail, "does not execute financial action") {
+			foundAudit = true
+		}
+	}
+	if !foundAudit {
+		t.Fatal("AI approval audit boundary is missing")
 	}
 }
 
