@@ -10,6 +10,7 @@ test("strictly parses a five-minute product- and device-bound request", () => {
   const parsed = parse(JSON.stringify(request()));
   assert.equal(parsed.chainId, "ynx_6423-1");
   assert.equal(parsed.productDeviceKey, PRODUCT_DEVICE_KEY);
+  assert.equal(parsed.productDeviceAlgorithm, "p256-sha256");
   assert.deepEqual(parsed.scopes, ["account:read", "profile:link"]);
   assert.equal(Object.isFrozen(parsed), true);
 });
@@ -33,4 +34,6 @@ test("rejects product, callback, bundle and scope substitution", () => {
   rejects(request({ callback: "attacker://wallet-auth/callback" }), "CALLBACK_MISMATCH");
   rejects(request({ scopes: ["account:read", "payments:write"] }), "SCOPE_NOT_ALLOWED");
   rejects(request({ scopes: ["profile:link", "account:read"] }), "INVALID_SCOPES");
+  rejects(request({ productDeviceAlgorithm: "ed25519" }), "UNSUPPORTED_DEVICE_ALGORITHM");
+  rejects(request({ productDeviceKey: "A".repeat(44) }), "INVALID_DEVICE_KEY");
 });

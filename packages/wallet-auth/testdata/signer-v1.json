@@ -6,23 +6,25 @@
     "requestingProduct": "social",
     "productClientId": "ynx-social-v1",
     "bundleId": "com.ynxweb4.social",
-    "productDeviceKey": "IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
     "callback": "ynxsocial://wallet-auth/callback",
     "scopes": ["account:read", "profile:link"],
     "purpose": "Link this YNX account to the selected Social profile on this device.",
     "issuedAt": "2026-07-15T11:59:00.000Z",
     "expiresAt": "2026-07-15T12:04:00.000Z"
   },
-  "requestDigest": "5997ab438ab75efee14821a97a7dca355a303c54364ae14b54926ee7ebcc0e07",
+  "requestDigest": "8af8ac0dd31e2aa874ef95d9c22c1aae25d1f42bf661b0427c9553aecc7f701d",
   "approval": {
     "version": "1",
-    "requestDigest": "5997ab438ab75efee14821a97a7dca355a303c54364ae14b54926ee7ebcc0e07",
+    "requestDigest": "8af8ac0dd31e2aa874ef95d9c22c1aae25d1f42bf661b0427c9553aecc7f701d",
     "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
     "chainId": "ynx_6423-1",
     "requestingProduct": "social",
     "productClientId": "ynx-social-v1",
     "bundleId": "com.ynxweb4.social",
-    "productDeviceKey": "IVL40Zt5HSRFMkLhXy6rbLfP-ntqXtMAl5YOBpiB2xI",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
     "callback": "ynxsocial://wallet-auth/callback",
     "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
     "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
@@ -30,6 +32,6 @@
     "purpose": "Link this YNX account to the selected Social profile on this device.",
     "issuedAt": "2026-07-15T12:00:00.000Z",
     "expiresAt": "2026-07-15T12:04:00.000Z",
-    "walletSignature": "c8f0612d92c304662bdee81c12b281457db2be75d753768da0b35cdb5455d72b792abe79133c28335e3bc9b7d3f7b5f24152817cef23bff861dc06da017759cc"
+    "walletSignature": "abefbb30a7e6ac1adfc2ef13d89b71e984b9c07d70db6e7a3f4209ab02c3b2190048628314f5c67eb25f2976421a64cf00f39ea3cbabdface812f2a0b68a2ab5"
   }
 }

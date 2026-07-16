@@ -8,6 +8,7 @@ for (const platform of ["android", "ios"]) {
     const parsed = parseWalletDeepLink(encodeRequestDeepLink(request()), platform, { now: NOW, registry: REGISTRY });
     assert.equal(parsed.platform, platform);
     assert.equal(parsed.request.bundleId, "com.ynxweb4.social");
+    assert.equal(parsed.request.productDeviceAlgorithm, "p256-sha256");
   });
 }
 

@@ -1,17 +1,20 @@
 import { canonicalJSON, digestHex, exactFields, isPlainObject, WalletAuthError } from "./canonical.js";
+import { decodeBase64url, encodeBase64url } from "./base64url.js";
+import { p256 } from "@noble/curves/nist.js";
 
 export const WALLET_AUTH_VERSION = "1";
 export const YNX_NATIVE_CHAIN_ID = "ynx_6423-1";
 export const YNX_EVM_CHAIN_ID = 6423;
+export const PRODUCT_DEVICE_ALGORITHM = "p256-sha256";
 export const MAX_REQUEST_LIFETIME_MS = 5 * 60 * 1000;
 
 const REQUEST_FIELDS = [
   "version", "nonce", "chainId", "requestingProduct", "productClientId", "bundleId",
-  "productDeviceKey", "callback", "scopes", "purpose", "issuedAt", "expiresAt",
+  "productDeviceAlgorithm", "productDeviceKey", "callback", "scopes", "purpose", "issuedAt", "expiresAt",
 ];
 const RESPONSE_FIELDS = [
   "version", "requestDigest", "nonce", "chainId", "requestingProduct", "productClientId",
-  "bundleId", "productDeviceKey", "callback", "account", "accountPublicKey", "grantedScopes",
+  "bundleId", "productDeviceAlgorithm", "productDeviceKey", "callback", "account", "accountPublicKey", "grantedScopes",
   "purpose", "issuedAt", "expiresAt", "walletSignature",
 ];
 
@@ -25,7 +28,8 @@ export function parseAuthorizationRequest(input, options) {
     requestingProduct: requiredPattern(raw.requestingProduct, "requestingProduct", /^[a-z][a-z0-9-]{1,31}$/),
     productClientId: requiredPattern(raw.productClientId, "productClientId", /^[a-z][a-z0-9._-]{2,63}$/),
     bundleId: requiredPattern(raw.bundleId, "bundleId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/),
-    productDeviceKey: requiredPattern(raw.productDeviceKey, "productDeviceKey", /^[A-Za-z0-9_-]{43}$/),
+    productDeviceAlgorithm: requiredString(raw.productDeviceAlgorithm, "productDeviceAlgorithm", 32),
+    productDeviceKey: strictProductDeviceKey(raw.productDeviceKey),
     callback: strictURL(raw.callback, "callback"),
     scopes: strictScopes(raw.scopes),
     purpose: requiredString(raw.purpose, "purpose", 180),
@@ -35,6 +39,7 @@ export function parseAuthorizationRequest(input, options) {
   const now = options?.now instanceof Date ? options.now : new Date();
   if (request.version !== WALLET_AUTH_VERSION) throw new WalletAuthError("UNSUPPORTED_VERSION", "Wallet authorization request version is unsupported");
   if (request.chainId !== YNX_NATIVE_CHAIN_ID) throw new WalletAuthError("WRONG_NETWORK", `Wallet authorization requires ${YNX_NATIVE_CHAIN_ID}`);
+  if (request.productDeviceAlgorithm !== PRODUCT_DEVICE_ALGORITHM) throw new WalletAuthError("UNSUPPORTED_DEVICE_ALGORITHM", `Product device algorithm must be ${PRODUCT_DEVICE_ALGORITHM}`);
   const issued = Date.parse(request.issuedAt);
   const expires = Date.parse(request.expiresAt);
   if (expires <= issued || expires - issued > MAX_REQUEST_LIFETIME_MS) throw new WalletAuthError("INVALID_EXPIRY", "Wallet authorization expiry must be after issue time and no more than five minutes later");
@@ -69,6 +74,7 @@ export function createApprovalPayload(request, approval) {
     requestingProduct: request.requestingProduct,
     productClientId: request.productClientId,
     bundleId: request.bundleId,
+    productDeviceAlgorithm: request.productDeviceAlgorithm,
     productDeviceKey: request.productDeviceKey,
     callback: request.callback,
     account,
@@ -92,6 +98,8 @@ export function parseAuthorizationResponse(input) {
   requiredPattern(raw.walletSignature, "walletSignature", /^[0-9a-f]{128}$/);
   requiredPattern(raw.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/);
   requiredPattern(raw.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/);
+  if (raw.productDeviceAlgorithm !== PRODUCT_DEVICE_ALGORITHM) throw new WalletAuthError("UNSUPPORTED_DEVICE_ALGORITHM", "Wallet authorization response device algorithm is unsupported");
+  strictProductDeviceKey(raw.productDeviceKey);
   strictScopes(raw.grantedScopes);
   strictURL(raw.callback, "callback");
   strictTime(raw.issuedAt, "issuedAt");
@@ -139,4 +147,12 @@ function strictScopes(value) {
   const scopes = value.map((scope) => requiredPattern(scope, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
   if (new Set(scopes).size !== scopes.length || [...scopes].sort().join("\n") !== scopes.join("\n")) throw new WalletAuthError("INVALID_SCOPES", "scopes must be unique and sorted");
   return scopes;
+}
+
+function strictProductDeviceKey(value) {
+  const normalized = requiredPattern(value, "productDeviceKey", /^[A-Za-z0-9_-]{44}$/);
+  const bytes = decodeBase64url(normalized, "productDeviceKey");
+  if (bytes.length !== 33 || encodeBase64url(bytes) !== normalized || (bytes[0] !== 2 && bytes[0] !== 3)) throw new WalletAuthError("INVALID_DEVICE_KEY", "productDeviceKey must be canonical compressed P-256 SEC1");
+  try { p256.Point.fromBytes(bytes); } catch { throw new WalletAuthError("INVALID_DEVICE_KEY", "productDeviceKey is not a valid P-256 point"); }
+  return normalized;
 }

@@ -25,7 +25,7 @@ export function signAuthorization(request, input) {
 
 export function verifyAuthorization(response, expected) {
   const parsed = parseAuthorizationResponse(response);
-  const exactKeys = ["nonce", "chainId", "requestingProduct", "productClientId", "bundleId", "productDeviceKey", "callback", "purpose"];
+  const exactKeys = ["nonce", "chainId", "requestingProduct", "productClientId", "bundleId", "productDeviceAlgorithm", "productDeviceKey", "callback", "purpose"];
   if (parsed.requestDigest !== expected.requestDigest || exactKeys.some((key) => parsed[key] !== expected[key]) || parsed.grantedScopes.join("\n") !== expected.scopes.join("\n") || parsed.expiresAt > expected.expiresAt) {
     throw new WalletAuthError("BINDING_MISMATCH", "Wallet approval does not match the exact product request");
   }
