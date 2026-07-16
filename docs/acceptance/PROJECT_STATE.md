@@ -1,5 +1,34 @@
 # Project State
 
+## 2026-07-16 transaction continuity and ecosystem worktree audit
+
+- A Singapore direct-origin read-only check used the committed Exchange
+  withdrawal reference transaction
+  `0x5469bfc2a41b76150b765122e4dc5e02c3bbe66886c24f46efe0dfd60edea5ac`.
+  REST transaction, Explorer transaction, EVM transaction, EVM receipt with
+  status `0x1`, and exact release `02f4ccd8770c` each passed 5/5. Public height
+  advanced from `204647` to `204653`. This is operator-controlled regional
+  evidence, not independent proof.
+- The corresponding Silicon Valley attempt did not reach the APIs: three
+  strict-host-key SSH attempts timed out while waiting for the SSH banner. No
+  transaction/receipt failure is inferred because no API probe executed. The
+  missing second-region continuity proof remains open.
+- `public-ingress-diagnostic` now binds its transaction and receipt probes to the
+  committed Exchange vector, checks REST, Explorer, EVM transaction, and
+  successful EVM receipt semantics, and records the expected release and vector
+  source in evidence. The bounded diagnostic now has 14 probes per cycle.
+- All 15 declared ecosystem product directories under Desktop were verified as
+  clean registered worktrees sharing this repository's Git directory, using the
+  declared product branches and the expected GitHub origin. No product migration
+  is required. Exchange currently points at the newer clean tip `ff2b6b4ea877`;
+  it must not be reset to the earlier `ee1c3f...` candidate.
+- The 23-product matrix is now explicit in
+  `docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md`. All 15 original product tasks
+  received targeted rework for product closure, native/installable platform
+  evidence, central Wallet/Gateway integration, and 12-language localization
+  including Arabic RTL. None of those candidates is represented as integrated,
+  deployed, publicly available, production signed, or externally accepted.
+
 ## 2026-07-16 direct public ingress path diagnosis
 
 - The authoritative runtime and ingress were not changed. Caddy has remained active since 2026-07-11 with zero restarts, 36 open file descriptors against a `1048576` limit, an empty `:443` receive queue, and no warning/error journal entries during the observed failures. All eight loopback backends returned HTTP `200`; Caddy validation passed. Host memory, task, socket, and qdisc evidence showed no current resource or queue exhaustion, and no local firewall rate limit applies to `:443`.

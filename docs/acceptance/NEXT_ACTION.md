@@ -12,6 +12,13 @@ Why this is next:
 - Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass. Prometheus 3.11.2 is now deployed on the primary's WireGuard address with four distinct targets; a controlled Seoul outage made the expected metrics-down alert pending, firing, and cleared after recovery.
 - Authoritative snapshot-v2 runtime `02f4ccd8770c` is deployed on all four roles. Exact manifest/binary checks pass; every role has marker/version 2; all three followers passed fresh canonical convergence and read-only rejection; one Seoul restart proved lifecycle reset and authenticated recovery. The subsequent verifier race fix and bounded Explorer/AI waiting logic are local control-plane changes only and do not change the deployed chain runtime.
 - Post-drill convergence passed for all followers, including restarted Seoul at height `200947`, and public RPC grew from `200969` to `200971`. Fresh direct path diagnosis found no Caddy restart, listener backlog, backend failure, host pressure, or local `:443` rate limit. Primary and Singapore direct cycles each passed 50/50 reads with block growth; Silicon Valley passed 49/50 before one RPC TLS timeout, then passed 20/20 TLS 1.2, 20/20 TLS 1.3, and 20/20 HTTPS RPC retries. The workstation is ineligible as a direct vantage because SingLinkVPN resolves YNX names into `198.18.0.0/15` and routes traffic through `utun4`. Provider-backed AI remains blocked by upstream HTTP `429`. None of this is independent proof.
+- A later Singapore check also passed 5/5 REST transaction, 5/5 Explorer
+  transaction, 5/5 EVM transaction, 5/5 successful EVM receipt, and 5/5 exact
+  release reads for the committed Exchange reference while height grew `204647`
+  to `204653`. Silicon Valley could not repeat this check because three strict
+  SSH attempts timed out at the banner before any API request. The next direct
+  evidence gap is therefore a second non-primary region with transaction and
+  receipt continuity, not another Singapore rerun.
 
 Files to touch:
 
@@ -61,4 +68,7 @@ Explicitly not doing:
 - Do not execute any BFT freeze, signer installation, dependency transition, ingress cutover, or public rollback phase without the required external approval.
 - Do not expand bounded EVM/IDE except to preserve passing tests.
 - Do not merge product branches out of dependency order.
+- Continue reviewing the 15 clean registered ecosystem worktrees against
+  `docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md`; the original tasks own
+  product rework, native/installable artifacts, and 12-language/RTL closure.
 - Do not modify or replace the long-term goal file.

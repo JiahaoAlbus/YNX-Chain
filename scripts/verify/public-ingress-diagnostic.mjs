@@ -6,8 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { isIP } from "node:net";
+import { fileURLToPath } from "node:url";
 
-const endpoints = [
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const baseEndpoints = [
   { name: "rpc", host: "rpc.ynxweb4.com", path: "/status", kind: "rpc" },
   { name: "evm", host: "evm.ynxweb4.com", path: "/", kind: "evm" },
   { name: "rest", host: "rest.ynxweb4.com", path: "/status" },
@@ -19,6 +21,26 @@ const endpoints = [
   { name: "trust", host: "trust.ynxweb4.com", path: "/health" },
   { name: "resource", host: "resource.ynxweb4.com", path: "/health" },
 ];
+
+export function loadReferenceTransaction(root = repoRoot) {
+  const vectorsPath = path.join(root, "testdata/exchange-signed-transactions.json");
+  const vectors = JSON.parse(fs.readFileSync(vectorsPath, "utf8"));
+  const transaction = vectors.transactions?.find((entry) => entry?.purpose === "withdrawal-broadcast");
+  if (!/^0x[0-9a-f]{64}$/.test(transaction?.transactionHash || "")) {
+    throw new Error("public ingress reference transaction is missing from exchange vectors");
+  }
+  return { purpose: transaction.purpose, transactionHash: transaction.transactionHash, vectorsPath };
+}
+
+function diagnosticEndpoints(transactionHash) {
+  return [
+    ...baseEndpoints,
+    { name: "rest.transaction", host: "rest.ynxweb4.com", path: `/txs/${transactionHash}`, kind: "restTransaction" },
+    { name: "explorer.transaction", host: "explorer.ynxweb4.com", path: `/api/txs/${transactionHash}`, kind: "explorerTransaction" },
+    { name: "evm.transaction", host: "evm.ynxweb4.com", path: "/", kind: "evmTransaction" },
+    { name: "evm.receipt", host: "evm.ynxweb4.com", path: "/", kind: "evmReceipt" },
+  ];
+}
 
 export function isBenchmarkFakeIPv4(value) {
   const parts = String(value).split(".").map(Number);
@@ -88,7 +110,19 @@ function runSelfTest() {
   });
   assert.equal(boundedInteger("3", "cycles", 1, 10), 3);
   assert.throws(() => boundedInteger("11", "cycles", 1, 10), /between 1 and 10/);
-  console.log("public-ingress-path-check passed: fake/local DNS and explicit origin overrides cannot be misreported as direct public proof, and diagnostic bounds fail closed");
+  const reference = loadReferenceTransaction();
+  assert.equal(reference.transactionHash, "0x5469bfc2a41b76150b765122e4dc5e02c3bbe66886c24f46efe0dfd60edea5ac");
+  assert.equal(diagnosticEndpoints(reference.transactionHash).length, 14);
+  assert.equal(evaluateSemantic("restTransaction", {
+    transaction: { hash: reference.transactionHash, blockNumber: 12 },
+  }, "02f4ccd8770c", reference.transactionHash).ok, true);
+  assert.equal(evaluateSemantic("evmReceipt", {
+    result: { transactionHash: reference.transactionHash, status: "0x1", blockHash: `0x${"1".repeat(64)}` },
+  }, "02f4ccd8770c", reference.transactionHash).ok, true);
+  assert.equal(evaluateSemantic("evmReceipt", {
+    result: { transactionHash: reference.transactionHash, status: "0x0", blockHash: `0x${"1".repeat(64)}` },
+  }, "02f4ccd8770c", reference.transactionHash).ok, false);
+  console.log("public-ingress-path-check passed: fake/local DNS and explicit origin overrides cannot be misreported as direct public proof, bounds fail closed, and the committed transaction/receipt reference is canonical");
 }
 
 function parseJSON(body) {
@@ -113,7 +147,43 @@ function parseTiming(value) {
   };
 }
 
-function probe(endpoint, originIP, timeoutSeconds, workDir, cycle) {
+export function evaluateSemantic(kind, json, expectedRelease, referenceTransactionHash) {
+  if (kind === "rpc") {
+    return {
+      ok: Number(json?.chainId) === 6423 && json?.build?.commit === expectedRelease,
+      summary: `chainId=${json?.chainId ?? "missing"} release=${json?.build?.commit ?? "missing"} height=${json?.height ?? "missing"}`,
+    };
+  }
+  if (kind === "evm") {
+    return {
+      ok: String(json?.result || "").toLowerCase() === "0x1917",
+      summary: `chainId=${json?.result ?? "missing"}`,
+    };
+  }
+  if (kind === "restTransaction" || kind === "explorerTransaction") {
+    const hash = json?.transaction?.hash ?? json?.hash ?? null;
+    const blockNumber = json?.transaction?.blockNumber ?? json?.blockNumber;
+    return {
+      ok: hash === referenceTransactionHash && Number(blockNumber) > 0,
+      summary: `transactionHash=${hash ?? "missing"} blockNumber=${blockNumber ?? "missing"}`,
+    };
+  }
+  if (kind === "evmTransaction") {
+    return {
+      ok: json?.result?.hash === referenceTransactionHash && typeof json?.result?.blockHash === "string",
+      summary: `transactionHash=${json?.result?.hash ?? "missing"} blockHash=${json?.result?.blockHash ?? "missing"}`,
+    };
+  }
+  if (kind === "evmReceipt") {
+    return {
+      ok: json?.result?.transactionHash === referenceTransactionHash && json?.result?.status === "0x1" && typeof json?.result?.blockHash === "string",
+      summary: `receiptHash=${json?.result?.transactionHash ?? "missing"} status=${json?.result?.status ?? "missing"} blockHash=${json?.result?.blockHash ?? "missing"}`,
+    };
+  }
+  return { ok: true, summary: "HTTP 200" };
+}
+
+function probe(endpoint, originIP, timeoutSeconds, workDir, cycle, expectedRelease, referenceTransactionHash) {
   const bodyPath = path.join(workDir, `${cycle}-${endpoint.name}.body`);
   const args = [
     "--connect-timeout", String(Math.min(4, timeoutSeconds)),
@@ -123,10 +193,16 @@ function probe(endpoint, originIP, timeoutSeconds, workDir, cycle) {
     "--write-out", "%{http_code}|%{remote_ip}|%{time_namelookup}|%{time_connect}|%{time_appconnect}|%{time_starttransfer}|%{time_total}",
   ];
   if (originIP) args.push("--resolve", `${endpoint.host}:443:${originIP}`);
-  if (endpoint.kind === "evm") {
+  const evmMethods = {
+    evm: { method: "eth_chainId", params: [] },
+    evmTransaction: { method: "eth_getTransactionByHash", params: [referenceTransactionHash] },
+    evmReceipt: { method: "eth_getTransactionReceipt", params: [referenceTransactionHash] },
+  };
+  if (evmMethods[endpoint.kind]) {
+    const rpc = evmMethods[endpoint.kind];
     args.push(
       "--header", "content-type: application/json",
-      "--data", '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}',
+      "--data", JSON.stringify({ jsonrpc: "2.0", id: 1, method: rpc.method, params: rpc.params }),
     );
   }
   args.push(`https://${endpoint.host}${endpoint.path}`);
@@ -140,25 +216,17 @@ function probe(endpoint, originIP, timeoutSeconds, workDir, cycle) {
   const body = fs.existsSync(bodyPath) ? fs.readFileSync(bodyPath, "utf8") : "";
   const timing = parseTiming(result.stdout || "");
   const json = parseJSON(body);
-  let semanticOK = true;
-  let semantic = "HTTP 200";
-  if (endpoint.kind === "rpc") {
-    semanticOK = Number(json?.chainId) === 6423 && json?.build?.commit === "02f4ccd8770c";
-    semantic = `chainId=${json?.chainId ?? "missing"} release=${json?.build?.commit ?? "missing"} height=${json?.height ?? "missing"}`;
-  } else if (endpoint.kind === "evm") {
-    semanticOK = String(json?.result || "").toLowerCase() === "0x1917";
-    semantic = `chainId=${json?.result ?? "missing"}`;
-  }
+  const semanticResult = evaluateSemantic(endpoint.kind, json, expectedRelease, referenceTransactionHash);
   const transportOK = result.status === 0 && timing?.status === 200;
   return {
     name: endpoint.name,
     host: endpoint.host,
     startedAt,
-    ok: Boolean(transportOK && semanticOK),
+    ok: Boolean(transportOK && semanticResult.ok),
     curlExit: result.status,
     error: String(result.stderr || "").trim(),
     timing,
-    semantic,
+    semantic: semanticResult.summary,
     height: endpoint.kind === "rpc" && Number.isInteger(Number(json?.height)) ? Number(json.height) : null,
   };
 }
@@ -167,10 +235,14 @@ async function main() {
   const cycles = boundedInteger(process.env.YNX_INGRESS_CYCLES || "3", "YNX_INGRESS_CYCLES", 1, 10);
   const timeoutSeconds = boundedInteger(process.env.YNX_INGRESS_TIMEOUT_SECONDS || "8", "YNX_INGRESS_TIMEOUT_SECONDS", 2, 12);
   const originIP = String(process.env.YNX_INGRESS_ORIGIN_IP || "").trim();
+  const expectedRelease = String(process.env.YNX_EXPECTED_RELEASE_COMMIT || "02f4ccd8770c").trim();
+  if (!/^[0-9a-f]{12}$/.test(expectedRelease)) throw new Error("YNX_EXPECTED_RELEASE_COMMIT must be a 12-character lowercase Git commit");
   if (originIP && !isPublicIPv4(originIP)) {
     throw new Error("YNX_INGRESS_ORIGIN_IP must be a public IPv4 address");
   }
 
+  const referenceTransaction = loadReferenceTransaction();
+  const endpoints = diagnosticEndpoints(referenceTransaction.transactionHash);
   const resolved = {};
   for (const endpoint of endpoints) {
     resolved[endpoint.host] = await dns.resolve4(endpoint.host);
@@ -183,7 +255,7 @@ async function main() {
   try {
     for (let cycle = 1; cycle <= cycles; cycle += 1) {
       for (const endpoint of endpoints) {
-        const result = probe(endpoint, originIP, timeoutSeconds, workDir, cycle);
+        const result = probe(endpoint, originIP, timeoutSeconds, workDir, cycle, expectedRelease, referenceTransaction.transactionHash);
         probes.push({ cycle, ...result });
         const timing = result.timing;
         console.log(`${result.ok ? "ok" : "FAIL"} cycle=${cycle} ${result.name} ${result.semantic} status=${timing?.status ?? 0} tcp=${timing?.tcpSeconds ?? 0}s tls=${timing?.tlsSeconds ?? 0}s total=${timing?.totalSeconds ?? 0}s${result.error ? ` error=${result.error}` : ""}`);
@@ -201,6 +273,12 @@ async function main() {
     proofType: "bounded-public-ingress-path-diagnostic",
     cycles,
     timeoutSeconds,
+    expectedRelease,
+    referenceTransaction: {
+      purpose: referenceTransaction.purpose,
+      transactionHash: referenceTransaction.transactionHash,
+      source: path.relative(repoRoot, referenceTransaction.vectorsPath),
+    },
     resolved,
     originIP: originIP || null,
     route,
