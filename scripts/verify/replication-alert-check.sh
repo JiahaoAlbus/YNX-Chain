@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-image="${YNX_PROMETHEUS_TEST_IMAGE:-prom/prometheus:v2.55.1}"
+image="${YNX_PROMETHEUS_TEST_IMAGE:-prom/prometheus:v3.11.2}"
 test_file="infra/monitoring/replication-alerts.test.yml"
 
 [[ -s infra/monitoring/ynx-alerts.yml ]] || { echo "missing alert rules"; exit 1; }

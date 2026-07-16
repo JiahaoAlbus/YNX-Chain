@@ -16,6 +16,9 @@ make release-manifest-evidence-check
 make upgrade-source-release-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
+make monitoring-check
+make authoritative-monitoring-check
+make replication-alert-check
 go test ./cmd/... ./internal/...
 make faucet-check
 make indexer-check
