@@ -23,7 +23,12 @@ func main() {
 	if u := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")); u != "" {
 		chain = exchangeproduct.IndexerChainReader{BaseURL: u, Client: &http.Client{Timeout: 5 * time.Second}}
 	}
-	service, err := exchangeproduct.New(exchangeproduct.Config{StatePath: state, APIKey: apiKey, WalletCallback: callback, CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")), RequiredConfirmations: int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)), MakerFeeBPS: int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)), TakerFeeBPS: int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)), WithdrawalFeeMicroYNXT: int64(envInt("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000)), Chain: chain})
+	gatewayURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_URL"))
+	var gateway exchangeproduct.GatewayAuthorizer
+	if gatewayURL != "" {
+		gateway = exchangeproduct.HTTPGatewayAuthorizer{BaseURL: gatewayURL, Client: &http.Client{Timeout: 5 * time.Second}}
+	}
+	service, err := exchangeproduct.New(exchangeproduct.Config{StatePath: state, APIKey: apiKey, WalletCallback: callback, CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")), GatewayURL: gatewayURL, GatewayClientID: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_CLIENT_ID")), Gateway: gateway, IndexerURL: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")), RequiredConfirmations: int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)), MakerFeeBPS: int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)), TakerFeeBPS: int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)), WithdrawalFeeMicroYNXT: envInt64("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000), MaxOrderNotionalMicro: envInt64("YNX_EXCHANGE_MAX_ORDER_NOTIONAL_MICRO", 100_000*exchangeproduct.AmountScale), MaxWithdrawalMicro: envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale), Chain: chain})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,6 +50,14 @@ func env(k, v string) string {
 func envInt(k string, v int) int {
 	if x := strings.TrimSpace(os.Getenv(k)); x != "" {
 		if n, e := strconv.Atoi(x); e == nil {
+			return n
+		}
+	}
+	return v
+}
+func envInt64(k string, v int64) int64 {
+	if x := strings.TrimSpace(os.Getenv(k)); x != "" {
+		if n, e := strconv.ParseInt(x, 10, 64); e == nil {
 			return n
 		}
 	}

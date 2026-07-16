@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {BUNDLE_ID,CALLBACK,CLIENT_ID,SCOPES} from "./wallet-config";
+test("central Wallet product binding is stable and least privilege",()=>{assert.equal(CLIENT_ID,"ynx-exchange-v1");assert.equal(BUNDLE_ID,"com.ynxweb4.exchange");assert.equal(CALLBACK,"ynxexchange://wallet-auth/callback");assert.deepEqual([...SCOPES],[...SCOPES].sort());assert.equal(SCOPES.includes("exchange:withdrawal-review"),true)});

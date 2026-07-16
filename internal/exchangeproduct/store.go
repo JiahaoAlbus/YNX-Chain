@@ -23,6 +23,8 @@ type persistentState struct {
 	Challenges     map[string]WalletChallenge   `json:"challenges"`
 	Sessions       map[string]WalletSession     `json:"sessions"`
 	Balances       map[string]Balance           `json:"balances"`
+	Ledger         []LedgerEntry                `json:"ledger"`
+	DepositIntents map[string]DepositIntent     `json:"depositIntents"`
 	Deposits       map[string]Deposit           `json:"deposits"`
 	Withdrawals    map[string]Withdrawal        `json:"withdrawals"`
 	Orders         map[string]Order             `json:"orders"`
@@ -37,7 +39,7 @@ type persistentState struct {
 }
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: 1, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Ledger: []LedgerEntry{}, DepositIntents: map[string]DepositIntent{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
 }
 
 func normalizeState(s *persistentState) {
@@ -49,6 +51,12 @@ func normalizeState(s *persistentState) {
 	}
 	if s.Balances == nil {
 		s.Balances = map[string]Balance{}
+	}
+	if s.Ledger == nil {
+		s.Ledger = []LedgerEntry{}
+	}
+	if s.DepositIntents == nil {
+		s.DepositIntents = map[string]DepositIntent{}
 	}
 	if s.Deposits == nil {
 		s.Deposits = map[string]Deposit{}
@@ -80,6 +88,31 @@ func normalizeState(s *persistentState) {
 	if s.Audit == nil {
 		s.Audit = []AuditEvent{}
 	}
+}
+
+func normalizeAuditChain(s *persistentState) (bool, error) {
+	changed := false
+	previous := ""
+	for i := range s.Audit {
+		e := s.Audit[i]
+		if e.Hash == "" { // migrate schema-v1 events created before per-event chaining
+			e.PreviousHash = previous
+			e.Hash = digest(e)
+			s.Audit[i] = e
+			changed = true
+		} else {
+			if e.PreviousHash != previous {
+				return false, errors.New("exchange audit chain verification failed")
+			}
+			stored := e.Hash
+			e.Hash = ""
+			if digest(e) != stored {
+				return false, errors.New("exchange audit event verification failed")
+			}
+		}
+		previous = s.Audit[i].Hash
+	}
+	return changed, nil
 }
 
 func stateIntegrity(s persistentState) (string, error) {

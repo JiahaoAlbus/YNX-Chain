@@ -1,12 +1,19 @@
 package exchangeproduct
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"golang.org/x/crypto/sha3"
 )
 
 type Server struct {
@@ -23,6 +30,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	s.mux.HandleFunc("POST /v1/auth/sessions", s.session)
 	s.mux.HandleFunc("GET /v1/account", s.account)
+	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
 	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
 	s.mux.HandleFunc("POST /v1/withdrawals/review", s.withdrawal)
@@ -45,7 +53,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"status": "ok", "product": "YNX Exchange", "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
 }
 func (s *Server) config(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
+	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "integrations": s.service.Integrations(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
 }
 func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
@@ -82,23 +90,38 @@ func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, s.service.Snapshot(session.Account))
 }
-func (s *Server) deposit(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+func (s *Server) depositIntent(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:deposit")
 	if !ok {
 		return
 	}
 	var q struct {
+		IdempotencyKey string `json:"idempotencyKey"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, err := s.service.CreateDepositIntent(session, q.IdempotencyKey)
+	respond(w, v, err, 201)
+}
+func (s *Server) deposit(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.auth(w, r, "exchange:deposit")
+	if !ok {
+		return
+	}
+	var q struct {
+		IntentID       string `json:"intentId"`
 		TxHash         string `json:"txHash"`
 		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, err := s.service.ObserveDeposit(session, q.TxHash, q.IdempotencyKey)
+	v, err := s.service.ObserveDeposit(session, q.IntentID, q.TxHash, q.IdempotencyKey)
 	respond(w, v, err, 201)
 }
 func (s *Server) refreshDeposit(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:trade")
+	session, ok := s.auth(w, r, "exchange:deposit")
 	if !ok {
 		return
 	}
@@ -106,7 +129,7 @@ func (s *Server) refreshDeposit(w http.ResponseWriter, r *http.Request) {
 	respond(w, v, err, 200)
 }
 func (s *Server) withdrawal(w http.ResponseWriter, r *http.Request) {
-	session, ok := s.auth(w, r, "exchange:withdraw")
+	session, ok := s.auth(w, r, "exchange:withdrawal-review")
 	if !ok {
 		return
 	}
@@ -271,6 +294,93 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 type IndexerChainReader struct {
 	BaseURL string
 	Client  *http.Client
+}
+
+type HTTPGatewayAuthorizer struct {
+	BaseURL string
+	Client  *http.Client
+}
+
+func (g HTTPGatewayAuthorizer) Authorize(token, scope, clientID string) (WalletSession, error) {
+	if token == "" || scope == "" || clientID == "" {
+		return WalletSession{}, ErrUnauthorized
+	}
+	client := g.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	body, _ := json.Marshal(map[string]string{"productClientId": clientID, "scope": scope})
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(g.BaseURL, "/")+"/v1/sessions/introspect", strings.NewReader(string(body)))
+	if err != nil {
+		return WalletSession{}, ErrUnavailable
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return WalletSession{}, ErrUnavailable
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return WalletSession{}, ErrUnauthorized
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return WalletSession{}, ErrForbidden
+	}
+	if resp.StatusCode != http.StatusOK {
+		return WalletSession{}, ErrUnavailable
+	}
+	var v struct {
+		VerifierVersion  string   `json:"verifierVersion"`
+		ProductClientID  string   `json:"productClientId"`
+		BundleID         string   `json:"bundleId"`
+		Account          string   `json:"account"`
+		AccountPublicKey string   `json:"accountPublicKey"`
+		ExpiresAt        string   `json:"expiresAt"`
+		Scopes           []string `json:"scopes"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&v); err != nil {
+		return WalletSession{}, ErrUnavailable
+	}
+	account, err := nativewallet.NormalizeNativeAddress(v.Account)
+	derived, keyErr := walletAccount(v.AccountPublicKey)
+	if err != nil || keyErr != nil || derived != account || v.VerifierVersion != "wallet-auth-v1" || v.ProductClientID != clientID || v.BundleID != "com.ynxweb4.exchange" {
+		return WalletSession{}, ErrUnauthorized
+	}
+	expires, err := time.Parse(time.RFC3339Nano, v.ExpiresAt)
+	if err != nil || !time.Now().UTC().Before(expires) {
+		return WalletSession{}, ErrUnauthorized
+	}
+	found := false
+	for _, candidate := range v.Scopes {
+		if candidate == scope {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return WalletSession{}, ErrForbidden
+	}
+	return WalletSession{Account: account, WalletPublicKey: v.AccountPublicKey, Scopes: append([]string(nil), v.Scopes...), ExpiresAt: expires}, nil
+}
+
+func walletAccount(publicKeyHex string) (string, error) {
+	encoded, err := hex.DecodeString(publicKeyHex)
+	if err != nil || len(encoded) != 33 {
+		return "", ErrUnauthorized
+	}
+	key, err := secp256k1.ParsePubKey(encoded)
+	if err != nil {
+		return "", ErrUnauthorized
+	}
+	h := sha3.NewLegacyKeccak256()
+	_, _ = h.Write(key.SerializeUncompressed()[1:])
+	sum := h.Sum(nil)
+	evm, err := accountaddress.FromBytes(sum[len(sum)-accountaddress.PayloadLength:])
+	if err != nil {
+		return "", err
+	}
+	return accountaddress.Encode(evm)
 }
 
 func (r IndexerChainReader) Transfer(hash string) (ChainTransfer, error) {

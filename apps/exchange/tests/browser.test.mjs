@@ -16,7 +16,8 @@ test.before(async()=>{
   const work=await mkdtemp(path.join(os.tmpdir(),'ynx-exchange-browser-'));
   evidence=path.join(repo,'tmp','exchange-browser-evidence');await mkdir(evidence,{recursive:true});
 	server=spawn('go',['run','./apps/exchange/server'],{cwd:repo,detached:true,env:{...process.env,YNX_EXCHANGE_ADMIN_API_KEY:'browser-test-admin-123456',YNX_EXCHANGE_STATE_PATH:path.join(work,'state.json'),YNX_EXCHANGE_HTTP_ADDR:`127.0.0.1:${port}`},stdio:['ignore','pipe','pipe']});
-  for(let i=0;i<60;i++){try{const r=await fetch(`${base}/api/health`);if(r.ok)break}catch{}await new Promise(r=>setTimeout(r,250));if(i===59)throw new Error('exchange server did not become healthy')}
+  let startup='';server.stderr.on('data',chunk=>{startup+=chunk.toString()});
+  for(let i=0;i<240;i++){try{const r=await fetch(`${base}/api/health`);if(r.ok)break}catch{}await new Promise(r=>setTimeout(r,250));if(i===239)throw new Error(`exchange server did not become healthy: ${startup.slice(-2000)}`)}
   browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 });
 test.after(async()=>{await browser?.close();if(server?.pid){try{process.kill(-server.pid,'SIGTERM')}catch{}}});

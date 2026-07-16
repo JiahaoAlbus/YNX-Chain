@@ -1,0 +1,3 @@
+import test from "node:test";import assert from "node:assert/strict";import {catalogs,formatAmount,locales,resolveLocale,rtl,t} from "./i18n";
+test("all locale catalogs resolve every audited key",()=>{const keys=Object.keys(catalogs.en);for(const locale of locales){assert.deepEqual(Object.keys(catalogs[locale]),keys);for(const key of keys)assert.ok(t(locale,key as never).trim())}});
+test("system locale, RTL and localized amounts",()=>{assert.equal(resolveLocale("zh_TW"),"zh-Hant");assert.equal(resolveLocale("ar-SA"),"ar");assert.equal(rtl("ar"),true);assert.match(formatAmount("de",1234567,"YNXT"),/1[,\.]234567/)});

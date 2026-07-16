@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "YNX Exchange",
+    "slug": "ynx-exchange",
+    "version": "1.0.0",
+    "orientation": "default",
+    "scheme": "ynxexchange",
+    "icon": "./icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {"supportsTablet":true,"bundleIdentifier":"com.ynxweb4.exchange","buildNumber":"1"},
+    "android": {"package":"com.ynxweb4.exchange","versionCode":1,"allowBackup":false,"permissions":[],"blockedPermissions":["android.permission.READ_EXTERNAL_STORAGE","android.permission.WRITE_EXTERNAL_STORAGE","android.permission.SYSTEM_ALERT_WINDOW","android.permission.VIBRATE"],"adaptiveIcon":{"foregroundImage":"./icon.png","backgroundColor":"#FFFFFF"}},
+    "plugins": ["expo-localization",["expo-secure-store",{"configureAndroidBackup":false}]],
+    "extra": {"product":"exchange","network":"ynx_6423-1","venue":"YNX-owned deterministic testnet","crossChain":"unavailable","productionCustody":false}
+  }
+}

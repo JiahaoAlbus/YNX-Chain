@@ -35,6 +35,25 @@ type Config struct {
 	Now                    func() time.Time
 	Chain                  ChainReader
 	CustodyAddress         string
+	GatewayURL             string
+	GatewayClientID        string
+	Gateway                GatewayAuthorizer
+	IndexerURL             string
+	MaxOrderNotionalMicro  int64
+	MaxWithdrawalMicro     int64
+}
+
+type GatewayAuthorizer interface {
+	Authorize(token, scope, clientID string) (WalletSession, error)
+}
+
+type IntegrationStatus struct {
+	Gateway        string `json:"gateway"`
+	GatewayReason  string `json:"gatewayReason,omitempty"`
+	WalletRegistry string `json:"walletRegistry"`
+	Custody        string `json:"custody"`
+	Indexer        string `json:"indexer"`
+	CrossChain     string `json:"crossChain"`
 }
 
 type ChainTransfer struct {
@@ -111,6 +130,30 @@ type Balance struct {
 	ReservedMicro  int64  `json:"reservedMicro"`
 }
 
+type LedgerEntry struct {
+	ID             string    `json:"id"`
+	Account        string    `json:"account"`
+	Asset          string    `json:"asset"`
+	AvailableDelta int64     `json:"availableDelta"`
+	ReservedDelta  int64     `json:"reservedDelta"`
+	SourceType     string    `json:"sourceType"`
+	SourceID       string    `json:"sourceId"`
+	SourceDigest   string    `json:"sourceDigest"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type DepositIntent struct {
+	ID            string    `json:"id"`
+	Account       string    `json:"account"`
+	Asset         string    `json:"asset"`
+	Network       string    `json:"network"`
+	Address       string    `json:"address"`
+	Status        string    `json:"status"`
+	IndexerSource string    `json:"indexerSource"`
+	CreatedAt     time.Time `json:"createdAt"`
+	ExpiresAt     time.Time `json:"expiresAt"`
+}
+
 type Deposit struct {
 	ID            string    `json:"id"`
 	Account       string    `json:"account"`
@@ -123,6 +166,9 @@ type Deposit struct {
 	Status        string    `json:"status"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+	IntentID      string    `json:"intentId"`
+	SourceType    string    `json:"sourceType"`
+	SourceDigest  string    `json:"sourceDigest"`
 }
 
 type Withdrawal struct {
@@ -138,23 +184,26 @@ type Withdrawal struct {
 	WalletAuthorized bool      `json:"walletAuthorized"`
 	CreatedAt        time.Time `json:"createdAt"`
 	UpdatedAt        time.Time `json:"updatedAt"`
+	SourceType       string    `json:"sourceType"`
+	SourceDigest     string    `json:"sourceDigest"`
 }
 
 type Order struct {
-	ID               string    `json:"id"`
-	Account          string    `json:"account"`
-	Market           string    `json:"market"`
-	Side             string    `json:"side"`
-	Type             string    `json:"type"`
-	PriceMicro       int64     `json:"priceMicro"`
-	AmountMicro      int64     `json:"amountMicro"`
-	FilledMicro      int64     `json:"filledMicro"`
-	ReservedMicro    int64     `json:"reservedMicro"`
-	Status           string    `json:"status"`
-	RejectReason     string    `json:"rejectReason,omitempty"`
-	WalletAuthorized bool      `json:"walletAuthorized"`
-	CreatedAt        time.Time `json:"createdAt"`
-	UpdatedAt        time.Time `json:"updatedAt"`
+	ID                  string    `json:"id"`
+	Account             string    `json:"account"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Type                string    `json:"type"`
+	PriceMicro          int64     `json:"priceMicro"`
+	AmountMicro         int64     `json:"amountMicro"`
+	FilledMicro         int64     `json:"filledMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Status              string    `json:"status"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	WalletAuthorized    bool      `json:"walletAuthorized"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
 }
 
 type Trade struct {
@@ -169,6 +218,8 @@ type Trade struct {
 	BuyerFeeMicro  int64     `json:"buyerFeeMicro"`
 	SellerFeeMicro int64     `json:"sellerFeeMicro"`
 	CreatedAt      time.Time `json:"createdAt"`
+	SourceType     string    `json:"sourceType"`
+	SourceDigest   string    `json:"sourceDigest"`
 }
 
 type FeeRecord struct {
@@ -212,18 +263,21 @@ type AIRecord struct {
 	Result          string    `json:"result,omitempty"`
 	Status          string    `json:"status"`
 	ReviewedAction  string    `json:"reviewedAction,omitempty"`
+	ApprovalDigest  string    `json:"approvalDigest,omitempty"`
 	UpdatedAt       time.Time `json:"updatedAt"`
 	CreatedAt       time.Time `json:"createdAt"`
 }
 
 type AuditEvent struct {
-	ID         string    `json:"id"`
-	Account    string    `json:"account"`
-	Action     string    `json:"action"`
-	ObjectType string    `json:"objectType"`
-	ObjectID   string    `json:"objectId"`
-	Digest     string    `json:"digest"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID           string    `json:"id"`
+	Account      string    `json:"account"`
+	Action       string    `json:"action"`
+	ObjectType   string    `json:"objectType"`
+	ObjectID     string    `json:"objectId"`
+	Digest       string    `json:"digest"`
+	CreatedAt    time.Time `json:"createdAt"`
+	PreviousHash string    `json:"previousHash,omitempty"`
+	Hash         string    `json:"hash"`
 }
 
 type OrderBook struct {

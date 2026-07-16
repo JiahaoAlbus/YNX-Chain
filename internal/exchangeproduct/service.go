@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
 
-var allowedScopes = map[string]bool{"exchange:read": true, "exchange:trade": true, "exchange:withdraw": true, "exchange:ai": true}
+var allowedScopes = map[string]bool{"exchange:read": true, "exchange:trade": true, "exchange:deposit": true, "exchange:withdraw": true, "exchange:withdrawal-review": true, "exchange:ai": true}
 
 type Service struct {
 	mu    sync.Mutex
@@ -68,6 +70,15 @@ func New(cfg Config) (*Service, error) {
 	if cfg.WithdrawalFeeMicroYNXT == 0 {
 		cfg.WithdrawalFeeMicroYNXT = 10_000
 	}
+	if cfg.MaxOrderNotionalMicro == 0 {
+		cfg.MaxOrderNotionalMicro = 100_000 * AmountScale
+	}
+	if cfg.MaxWithdrawalMicro == 0 {
+		cfg.MaxWithdrawalMicro = 25_000 * AmountScale
+	}
+	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
+	cfg.GatewayClientID = strings.TrimSpace(cfg.GatewayClientID)
+	cfg.IndexerURL = strings.TrimRight(strings.TrimSpace(cfg.IndexerURL), "/")
 	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
 		return nil, fmt.Errorf("%w: exchange configuration", ErrInvalid)
 	}
@@ -85,13 +96,32 @@ func New(cfg Config) (*Service, error) {
 	if cfg.CustodyAddress != "" {
 		s.CustodyAddress = cfg.CustodyAddress
 	}
+	migrated, err := normalizeAuditChain(&s)
+	if err != nil {
+		return nil, err
+	}
 	service := &Service{cfg: cfg, state: s}
-	if !existed {
+	if !existed || migrated {
 		if err := saveState(cfg.StatePath, &service.state); err != nil {
 			return nil, err
 		}
 	}
 	return service, nil
+}
+
+func (s *Service) Integrations() IntegrationStatus {
+	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
+	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
+		status.Gateway = "configured_not_attested"
+		status.GatewayReason = "Configuration is not evidence of central route acceptance"
+	}
+	if s.state.CustodyAddress != "" {
+		status.Custody = "review_only"
+	}
+	if s.cfg.Chain != nil && s.cfg.IndexerURL != "" {
+		status.Indexer = "configured"
+	}
+	return status
 }
 
 func (s *Service) Authorized(value string) bool {
@@ -117,7 +147,7 @@ func WalletChallengePayload(c WalletChallenge) []byte {
 
 func (s *Service) CreateChallenge(account, deviceID string, scopes []string) (WalletChallenge, error) {
 	account, err := nativewallet.NormalizeNativeAddress(account)
-	if err != nil || strings.TrimSpace(deviceID) == "" || len(deviceID) > 128 || len(scopes) == 0 || len(scopes) > 4 {
+	if err != nil || strings.TrimSpace(deviceID) == "" || len(deviceID) > 128 || len(scopes) == 0 || len(scopes) > 8 {
 		return WalletChallenge{}, ErrInvalid
 	}
 	clean := append([]string(nil), scopes...)
@@ -145,7 +175,7 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	c, ok := s.state.Challenges[req.ChallengeID]
-	if !ok || !c.UsedAt.IsZero() || !s.cfg.Now().Before(c.ExpiresAt) || !nativewallet.Verify(req.WalletPublicKey, WalletChallengePayload(c), req.WalletSignature) {
+	if !ok || !c.UsedAt.IsZero() || !s.cfg.Now().Before(c.ExpiresAt) || !verifyWalletSignature(c.Account, req.WalletPublicKey, WalletChallengePayload(c), req.WalletSignature) {
 		return WalletSession{}, "", ErrUnauthorized
 	}
 	token := randomToken(32)
@@ -171,14 +201,18 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 }
 
 func (s *Service) Authenticate(token, scope string) (WalletSession, error) {
+	raw := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	session, ok := s.state.Sessions[hashText(strings.TrimSpace(strings.TrimPrefix(token, "Bearer ")))]
+	session, ok := s.state.Sessions[hashText(raw)]
+	s.mu.Unlock()
 	if !ok || !session.RevokedAt.IsZero() || !s.cfg.Now().Before(session.ExpiresAt) {
-		return WalletSession{}, ErrUnauthorized
+		if s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
+			return WalletSession{}, ErrUnauthorized
+		}
+		return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
 	}
 	for _, v := range session.Scopes {
-		if v == scope {
+		if v == scope || (scope == "exchange:deposit" && v == "exchange:trade") || (scope == "exchange:withdrawal-review" && v == "exchange:withdraw") {
 			return session, nil
 		}
 	}
@@ -216,6 +250,7 @@ func (s *Service) CreditTestQuote(apiKey, account string, amount int64, key stri
 	b := s.balanceLocked(account, QuoteAsset)
 	b.AvailableMicro += amount
 	s.state.Balances[balanceKey(account, QuoteAsset)] = b
+	s.ledgerLocked(account, QuoteAsset, amount, 0, "test_credit", key, d)
 	s.state.Idempotency[key] = idempotencyRecord{Action: "test_quote_credit", Digest: d, ObjectID: account}
 	s.auditLocked(account, "test_quote_credit_allocated", "balance", QuoteAsset, d)
 	if err := s.saveOrRollbackLocked(before); err != nil {
@@ -224,7 +259,36 @@ func (s *Service) CreditTestQuote(apiKey, account string, amount int64, key stri
 	return b, nil
 }
 
-func (s *Service) ObserveDeposit(session WalletSession, txHash, key string) (Deposit, error) {
+func (s *Service) CreateDepositIntent(session WalletSession, key string) (DepositIntent, error) {
+	if s.cfg.Chain == nil || s.state.CustodyAddress == "" || s.cfg.IndexerURL == "" {
+		return DepositIntent{}, ErrUnavailable
+	}
+	if !validKey(key) {
+		return DepositIntent{}, ErrInvalid
+	}
+	d := digest(struct{ Account, Asset, Network string }{session.Account, NativeAsset, "YNX Testnet"})
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if prev, ok := s.state.Idempotency[key]; ok {
+		if prev.Action != "deposit_intent" || prev.Digest != d {
+			return DepositIntent{}, ErrConflict
+		}
+		return s.state.DepositIntents[prev.ObjectID], nil
+	}
+	now := s.cfg.Now().UTC()
+	id := s.nextIDLocked("deposit_intent")
+	v := DepositIntent{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", Address: s.state.CustodyAddress, Status: "awaiting_chain_transfer", IndexerSource: s.cfg.IndexerURL, CreatedAt: now, ExpiresAt: now.Add(30 * time.Minute)}
+	before := cloneState(s.state)
+	s.state.DepositIntents[id] = v
+	s.state.Idempotency[key] = idempotencyRecord{Action: "deposit_intent", Digest: d, ObjectID: id}
+	s.auditLocked(session.Account, "deposit_intent_created", "deposit_intent", id, d)
+	if err := s.saveOrRollbackLocked(before); err != nil {
+		return DepositIntent{}, err
+	}
+	return v, nil
+}
+
+func (s *Service) ObserveDeposit(session WalletSession, intentID, txHash, key string) (Deposit, error) {
 	if s.cfg.Chain == nil || s.state.CustodyAddress == "" {
 		return Deposit{}, ErrUnavailable
 	}
@@ -247,6 +311,13 @@ func (s *Service) ObserveDeposit(session WalletSession, txHash, key string) (Dep
 		}
 		return s.state.Deposits[prev.ObjectID], nil
 	}
+	intent, ok := s.state.DepositIntents[intentID]
+	if !ok {
+		return Deposit{}, ErrNotFound
+	}
+	if intent.Account != session.Account || intent.Status != "awaiting_chain_transfer" || !s.cfg.Now().Before(intent.ExpiresAt) {
+		return Deposit{}, ErrForbidden
+	}
 	for _, existing := range s.state.Deposits {
 		if existing.TxHash == txHash {
 			return Deposit{}, ErrConflict
@@ -258,14 +329,17 @@ func (s *Service) ObserveDeposit(session WalletSession, txHash, key string) (Dep
 		status = "confirmed"
 	}
 	id := s.nextIDLocked("deposit")
-	dep := Deposit{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", TxHash: txHash, AmountMicro: transfer.AmountMicro, Confirmations: transfer.Confirmations, Required: s.cfg.RequiredConfirmations, Status: status, CreatedAt: now, UpdatedAt: now}
+	dep := Deposit{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", TxHash: txHash, AmountMicro: transfer.AmountMicro, Confirmations: transfer.Confirmations, Required: s.cfg.RequiredConfirmations, Status: status, CreatedAt: now, UpdatedAt: now, IntentID: intentID, SourceType: "ynx_indexer_transfer", SourceDigest: digest(transfer)}
 	before := cloneState(s.state)
 	s.state.Deposits[id] = dep
+	intent.Status = "transfer_observed"
+	s.state.DepositIntents[intentID] = intent
 	s.state.Idempotency[key] = idempotencyRecord{Action: "deposit_observe", Digest: d, ObjectID: id}
 	if status == "confirmed" {
 		b := s.balanceLocked(session.Account, NativeAsset)
 		b.AvailableMicro += dep.AmountMicro
 		s.state.Balances[balanceKey(session.Account, NativeAsset)] = b
+		s.ledgerLocked(session.Account, NativeAsset, dep.AmountMicro, 0, "confirmed_deposit", id, dep.SourceDigest)
 	}
 	s.auditLocked(session.Account, "deposit_"+status, "deposit", id, d)
 	if err := s.saveOrRollbackLocked(before); err != nil {
@@ -305,6 +379,7 @@ func (s *Service) RefreshDeposit(session WalletSession, id string) (Deposit, err
 		b := s.balanceLocked(dep.Account, dep.Asset)
 		b.AvailableMicro += dep.AmountMicro
 		s.state.Balances[balanceKey(dep.Account, dep.Asset)] = b
+		s.ledgerLocked(dep.Account, dep.Asset, dep.AmountMicro, 0, "confirmed_deposit", id, dep.SourceDigest)
 		s.auditLocked(dep.Account, "deposit_confirmed", "deposit", id, digest(t))
 	}
 	s.state.Deposits[id] = dep
@@ -327,13 +402,16 @@ func (s *Service) ReviewWithdrawal(session WalletSession, req WithdrawalReviewRe
 	}
 	req.Destination = dest
 	payload := WithdrawalAuthorizationPayload(session.Account, req, s.cfg.WithdrawalFeeMicroYNXT)
-	if !nativewallet.Verify(session.WalletPublicKey, payload, req.WalletSignature) {
+	if !verifyWalletSignature(session.Account, session.WalletPublicKey, payload, req.WalletSignature) {
 		return Withdrawal{}, ErrUnauthorized
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	settings := s.securityLocked(session.Account)
 	if settings.WithdrawalLock {
+		return Withdrawal{}, ErrForbidden
+	}
+	if req.AmountMicro > s.cfg.MaxWithdrawalMicro {
 		return Withdrawal{}, ErrForbidden
 	}
 	d := digest(req)
@@ -349,11 +427,12 @@ func (s *Service) ReviewWithdrawal(session WalletSession, req WithdrawalReviewRe
 	}
 	now := s.cfg.Now().UTC()
 	id := s.nextIDLocked("withdrawal")
-	w := Withdrawal{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", Destination: dest, AmountMicro: req.AmountMicro, FeeMicro: s.cfg.WithdrawalFeeMicroYNXT, ReceiveMicro: req.AmountMicro - s.cfg.WithdrawalFeeMicroYNXT, Status: "reviewed_pending_operator_broadcast", WalletAuthorized: true, CreatedAt: now, UpdatedAt: now}
+	w := Withdrawal{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", Destination: dest, AmountMicro: req.AmountMicro, FeeMicro: s.cfg.WithdrawalFeeMicroYNXT, ReceiveMicro: req.AmountMicro - s.cfg.WithdrawalFeeMicroYNXT, Status: "reviewed_pending_operator_broadcast", WalletAuthorized: true, CreatedAt: now, UpdatedAt: now, SourceType: "wallet_authorized_review", SourceDigest: digest(payload)}
 	before := cloneState(s.state)
 	b.AvailableMicro -= req.AmountMicro
 	b.ReservedMicro += req.AmountMicro
 	s.state.Balances[balanceKey(session.Account, NativeAsset)] = b
+	s.ledgerLocked(session.Account, NativeAsset, -req.AmountMicro, req.AmountMicro, "withdrawal_review", id, w.SourceDigest)
 	s.state.Withdrawals[id] = w
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "withdrawal_review", Digest: d, ObjectID: id}
 	s.feeLocked(session.Account, NativeAsset, w.FeeMicro, "withdrawal_review", id)
@@ -371,8 +450,11 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	if req.Market != DefaultMarket || (req.Side != "buy" && req.Side != "sell") || req.Type != "limit" || req.PriceMicro <= 0 || req.AmountMicro <= 0 || req.PriceMicro > 1_000_000*AmountScale || req.AmountMicro > 1_000_000*AmountScale || !validKey(req.IdempotencyKey) {
 		return Order{}, ErrInvalid
 	}
-	if !nativewallet.Verify(session.WalletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
+	if !verifyWalletSignature(session.Account, session.WalletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
 		return Order{}, ErrUnauthorized
+	}
+	if mulDiv(req.AmountMicro, req.PriceMicro, AmountScale) > s.cfg.MaxOrderNotionalMicro {
+		return Order{}, ErrForbidden
 	}
 	d := digest(req)
 	s.mu.Lock()
@@ -385,7 +467,7 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	}
 	now := s.cfg.Now().UTC()
 	id := s.nextIDLocked("order")
-	o := Order{ID: id, Account: session.Account, Market: req.Market, Side: req.Side, Type: "limit", PriceMicro: req.PriceMicro, AmountMicro: req.AmountMicro, Status: "open", WalletAuthorized: true, CreatedAt: now, UpdatedAt: now}
+	o := Order{ID: id, Account: session.Account, Market: req.Market, Side: req.Side, Type: "limit", PriceMicro: req.PriceMicro, AmountMicro: req.AmountMicro, Status: "open", WalletAuthorized: true, CreatedAt: now, UpdatedAt: now, AuthorizationDigest: digest(OrderAuthorizationPayload(session.Account, req))}
 	for _, other := range s.state.Orders {
 		if other.Account == session.Account && other.Market == o.Market && (other.Status == "open" || other.Status == "partially_filled") && other.Side != o.Side && crosses(o, other) {
 			o.Status = "rejected"
@@ -417,6 +499,7 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	b.AvailableMicro -= reserve
 	b.ReservedMicro += reserve
 	s.state.Balances[balanceKey(session.Account, asset)] = b
+	s.ledgerLocked(session.Account, asset, -reserve, reserve, "order_reserve", id, o.AuthorizationDigest)
 	o.ReservedMicro = reserve
 	s.state.Orders[id] = o
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "order_place", Digest: d, ObjectID: id}
@@ -434,7 +517,7 @@ func (s *Service) CancelOrder(session WalletSession, id, key, walletSignature st
 		return Order{}, ErrInvalid
 	}
 	payload := []byte(strings.Join([]string{"ynx-exchange-cancel-v1", session.Account, id, key}, "\n"))
-	if !nativewallet.Verify(session.WalletPublicKey, payload, walletSignature) {
+	if !verifyWalletSignature(session.Account, session.WalletPublicKey, payload, walletSignature) {
 		return Order{}, ErrUnauthorized
 	}
 	s.mu.Lock()
@@ -486,6 +569,9 @@ func (s *Service) matchLocked(incomingID string) {
 		}
 		sort.Slice(candidates, func(i, j int) bool {
 			if candidates[i].PriceMicro == candidates[j].PriceMicro {
+				if candidates[i].CreatedAt.Equal(candidates[j].CreatedAt) {
+					return candidates[i].ID < candidates[j].ID
+				}
 				return candidates[i].CreatedAt.Before(candidates[j].CreatedAt)
 			}
 			if incoming.Side == "buy" {
@@ -502,6 +588,11 @@ func (s *Service) matchLocked(incomingID string) {
 }
 
 func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
+	id := s.nextIDLocked("trade")
+	sourceDigest := digest(struct {
+		Incoming, Maker string
+		Qty, Price      int64
+	}{incoming.ID, maker.ID, qty, price})
 	buyer, seller := incoming, maker
 	if incoming.Side == "sell" {
 		buyer, seller = maker, incoming
@@ -517,19 +608,25 @@ func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
 	sellerFee := fee(quote, sellerBPS)
 	bb := s.balanceLocked(buyer.Account, QuoteAsset)
 	spend := quote + buyerFee
-	bb.ReservedMicro -= min64(bb.ReservedMicro, spend)
+	buyerReservedDebit := min64(bb.ReservedMicro, spend)
+	bb.ReservedMicro -= buyerReservedDebit
 	buyer.ReservedMicro -= min64(buyer.ReservedMicro, spend)
 	s.state.Balances[balanceKey(buyer.Account, QuoteAsset)] = bb
+	s.ledgerLocked(buyer.Account, QuoteAsset, 0, -buyerReservedDebit, "trade_settlement", id, sourceDigest)
 	baseBuyer := s.balanceLocked(buyer.Account, NativeAsset)
 	baseBuyer.AvailableMicro += qty
 	s.state.Balances[balanceKey(buyer.Account, NativeAsset)] = baseBuyer
+	s.ledgerLocked(buyer.Account, NativeAsset, qty, 0, "trade_settlement", id, sourceDigest)
 	baseSeller := s.balanceLocked(seller.Account, NativeAsset)
-	baseSeller.ReservedMicro -= min64(baseSeller.ReservedMicro, qty)
+	sellerReservedDebit := min64(baseSeller.ReservedMicro, qty)
+	baseSeller.ReservedMicro -= sellerReservedDebit
 	seller.ReservedMicro -= min64(seller.ReservedMicro, qty)
 	s.state.Balances[balanceKey(seller.Account, NativeAsset)] = baseSeller
+	s.ledgerLocked(seller.Account, NativeAsset, 0, -sellerReservedDebit, "trade_settlement", id, sourceDigest)
 	quoteSeller := s.balanceLocked(seller.Account, QuoteAsset)
 	quoteSeller.AvailableMicro += quote - sellerFee
 	s.state.Balances[balanceKey(seller.Account, QuoteAsset)] = quoteSeller
+	s.ledgerLocked(seller.Account, QuoteAsset, quote-sellerFee, 0, "trade_settlement", id, sourceDigest)
 	buyer.FilledMicro += qty
 	seller.FilledMicro += qty
 	now := s.cfg.Now().UTC()
@@ -544,8 +641,8 @@ func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
 	}
 	updateStatus(buyer)
 	updateStatus(seller)
-	id := s.nextIDLocked("trade")
-	trade := Trade{ID: id, Market: buyer.Market, PriceMicro: price, AmountMicro: qty, BuyOrderID: buyer.ID, SellOrderID: seller.ID, Buyer: buyer.Account, Seller: seller.Account, BuyerFeeMicro: buyerFee, SellerFeeMicro: sellerFee, CreatedAt: now}
+	trade := Trade{ID: id, Market: buyer.Market, PriceMicro: price, AmountMicro: qty, BuyOrderID: buyer.ID, SellOrderID: seller.ID, Buyer: buyer.Account, Seller: seller.Account, BuyerFeeMicro: buyerFee, SellerFeeMicro: sellerFee, CreatedAt: now, SourceType: "deterministic_price_time_match"}
+	trade.SourceDigest = sourceDigest
 	s.state.Trades = append(s.state.Trades, trade)
 	s.feeLocked(buyer.Account, QuoteAsset, buyerFee, "trade", id)
 	s.feeLocked(seller.Account, QuoteAsset, sellerFee, "trade", id)
@@ -569,6 +666,7 @@ func (s *Service) releaseOrderReserveLocked(o *Order) {
 	b.AvailableMicro += release
 	o.ReservedMicro = 0
 	s.state.Balances[balanceKey(o.Account, asset)] = b
+	s.ledgerLocked(o.Account, asset, release, -release, "order_reserve_release", o.ID, o.AuthorizationDigest)
 }
 
 func (s *Service) Book() OrderBook {
@@ -590,22 +688,34 @@ func (s *Service) Book() OrderBook {
 }
 
 type AccountSnapshot struct {
-	Balances    []Balance        `json:"balances"`
-	Orders      []Order          `json:"orders"`
-	Trades      []Trade          `json:"trades"`
-	Fees        []FeeRecord      `json:"fees"`
-	Deposits    []Deposit        `json:"deposits"`
-	Withdrawals []Withdrawal     `json:"withdrawals"`
-	Security    SecuritySettings `json:"security"`
-	Support     []SupportCase    `json:"support"`
-	AI          []AIRecord       `json:"ai"`
-	Audit       []AuditEvent     `json:"audit"`
+	Balances       []Balance        `json:"balances"`
+	Ledger         []LedgerEntry    `json:"ledger"`
+	DepositIntents []DepositIntent  `json:"depositIntents"`
+	Orders         []Order          `json:"orders"`
+	Trades         []Trade          `json:"trades"`
+	Fees           []FeeRecord      `json:"fees"`
+	Deposits       []Deposit        `json:"deposits"`
+	Withdrawals    []Withdrawal     `json:"withdrawals"`
+	Security       SecuritySettings `json:"security"`
+	Support        []SupportCase    `json:"support"`
+	AI             []AIRecord       `json:"ai"`
+	Audit          []AuditEvent     `json:"audit"`
 }
 
 func (s *Service) Snapshot(account string) AccountSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
+	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
+	for _, v := range s.state.Ledger {
+		if v.Account == account {
+			r.Ledger = append(r.Ledger, v)
+		}
+	}
+	for _, v := range s.state.DepositIntents {
+		if v.Account == account {
+			r.DepositIntents = append(r.DepositIntents, v)
+		}
+	}
 	for _, v := range s.state.Orders {
 		if v.Account == account {
 			r.Orders = append(r.Orders, v)
@@ -724,7 +834,7 @@ func (s *Service) DraftAI(session WalletSession, kind, prompt string, contexts [
 
 func (s *Service) ReviewAI(session WalletSession, id, action string) (AIRecord, error) {
 	action = strings.ToLower(strings.TrimSpace(action))
-	if action != "retry" && action != "cancel" && action != "reject" && action != "delete" {
+	if action != "approve" && action != "retry" && action != "cancel" && action != "reject" && action != "delete" {
 		return AIRecord{}, ErrInvalid
 	}
 	s.mu.Lock()
@@ -739,6 +849,21 @@ func (s *Service) ReviewAI(session WalletSession, id, action string) (AIRecord, 
 	before := cloneState(s.state)
 	now := s.cfg.Now().UTC()
 	switch action {
+	case "approve":
+		if r.Kind != "order_draft" || !r.Permission || r.Status != "result_ready" || strings.TrimSpace(r.Result) == "" || r.ApprovalDigest != "" {
+			return AIRecord{}, ErrConflict
+		}
+		// Approval covers the exact immutable AI output and selected context only.
+		// It intentionally does not create an order: PlaceOrder still requires a
+		// fresh Wallet signature over the canonical order payload.
+		r.ApprovalDigest = digest(struct {
+			ID       string
+			Kind     string
+			Contexts []string
+			Result   string
+		}{r.ID, r.Kind, r.ContextClasses, r.Result})
+		r.Status = "approved_for_wallet_review"
+		r.ReviewedAction = "approve"
 	case "retry":
 		r.ProviderStatus = "not_configured"
 		r.Status = "provider_unavailable"
@@ -789,7 +914,16 @@ func (s *Service) nextIDLocked(prefix string) string {
 	return fmt.Sprintf("%s_%012d", prefix, s.state.Sequence)
 }
 func (s *Service) auditLocked(account, action, objectType, objectID, d string) {
-	s.state.Audit = append(s.state.Audit, AuditEvent{ID: s.nextIDLocked("audit"), Account: account, Action: action, ObjectType: objectType, ObjectID: objectID, Digest: d, CreatedAt: s.cfg.Now().UTC()})
+	previous := ""
+	if len(s.state.Audit) > 0 {
+		previous = s.state.Audit[len(s.state.Audit)-1].Hash
+	}
+	e := AuditEvent{ID: s.nextIDLocked("audit"), Account: account, Action: action, ObjectType: objectType, ObjectID: objectID, Digest: d, CreatedAt: s.cfg.Now().UTC(), PreviousHash: previous}
+	e.Hash = digest(e)
+	s.state.Audit = append(s.state.Audit, e)
+}
+func (s *Service) ledgerLocked(account, asset string, available, reserved int64, sourceType, sourceID, sourceDigest string) {
+	s.state.Ledger = append(s.state.Ledger, LedgerEntry{ID: s.nextIDLocked("ledger"), Account: account, Asset: asset, AvailableDelta: available, ReservedDelta: reserved, SourceType: sourceType, SourceID: sourceID, SourceDigest: sourceDigest, CreatedAt: s.cfg.Now().UTC()})
 }
 func (s *Service) feeLocked(account, asset string, amount int64, kind, ref string) {
 	if amount <= 0 {
@@ -814,6 +948,32 @@ func digest(v any) string {
 	b, _ := json.Marshal(v)
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
+}
+
+func verifyWalletSignature(account, publicKeyHex string, payload []byte, signatureHex string) bool {
+	derived, err := walletAccount(strings.TrimPrefix(strings.TrimSpace(publicKeyHex), "0x"))
+	if err != nil || derived != account {
+		return false
+	}
+	publicKeyBytes, err := hex.DecodeString(strings.TrimPrefix(strings.TrimSpace(publicKeyHex), "0x"))
+	if err != nil {
+		return false
+	}
+	publicKey, err := secp256k1.ParsePubKey(publicKeyBytes)
+	if err != nil {
+		return false
+	}
+	signatureBytes, err := hex.DecodeString(strings.TrimPrefix(strings.TrimSpace(signatureHex), "0x"))
+	if err != nil || len(signatureBytes) != 64 {
+		return false
+	}
+	var r, scalarS secp256k1.ModNScalar
+	if r.SetByteSlice(signatureBytes[:32]) || scalarS.SetByteSlice(signatureBytes[32:]) || r.IsZero() || scalarS.IsZero() || scalarS.IsOverHalfOrder() {
+		return false
+	}
+	signature := ecdsa.NewSignature(&r, &scalarS)
+	h := sha256.Sum256(payload)
+	return signature.Verify(h[:], publicKey)
 }
 func hashText(v string) string { h := sha256.Sum256([]byte(v)); return hex.EncodeToString(h[:]) }
 func randomToken(n int) string {

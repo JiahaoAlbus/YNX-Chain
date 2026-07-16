@@ -1,0 +1,19 @@
+{
+  "name": "@ynx-chain/wallet-auth",
+  "version": "1.0.0",
+  "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
+  "type": "module",
+  "exports": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "files": ["src", "testdata"],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "npm test"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0"
+  },
+  "engines": { "node": ">=22" },
+  "private": true
+}
