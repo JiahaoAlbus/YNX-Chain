@@ -23,7 +23,9 @@ remote_work="/tmp/ynx-prometheus-install-$$"
 cleanup() { rm -rf "$work"; }
 trap cleanup EXIT
 
-curl --fail --location --silent --show-error --max-time 180 "$PROMETHEUS_URL" -o "$work/$PROMETHEUS_ARCHIVE"
+curl --fail --location --silent --show-error --max-time 180 \
+  --retry 4 --retry-all-errors --retry-delay 3 \
+  "$PROMETHEUS_URL" -o "$work/$PROMETHEUS_ARCHIVE"
 printf '%s  %s\n' "$PROMETHEUS_ARCHIVE_SHA256" "$work/$PROMETHEUS_ARCHIVE" | shasum -a 256 -c -
 tar -xzf "$work/$PROMETHEUS_ARCHIVE" -C "$work"
 binary="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus"
