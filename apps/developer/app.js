@@ -1,5 +1,5 @@
 import {
-  AICodingAgent, CommandAudit, IndexedDBPersistence, ProjectWorkspace, WalletDeployment,
+  AICodingAgent, CommandAudit, DeveloperI18n, DeveloperWalletSession, IndexedDBPersistence, ProjectWorkspace, SUPPORTED_LOCALES, WalletDeployment,
   YNXChainClient, commandPreview, errorMessage, sourceDiagnostics
 } from "/client/index.js";
 
@@ -10,6 +10,8 @@ const config = { chainURL: localStorage.getItem("ynx.developer.v1.chainURL") || 
 const workspace = new ProjectWorkspace({ persistence: new IndexedDBPersistence() });
 const chain = new YNXChainClient({ baseURL: config.chainURL });
 const ai = new AICodingAgent({ gatewayURL: config.aiURL });
+const i18n = new DeveloperI18n();
+const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
 const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
 const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, deployReview: null, saveTimer: null };
@@ -28,11 +30,18 @@ function modal({ title, content, confirm = "Continue", danger = false }) {
 function field(label, input) { const wrap = node("label", "field"); wrap.append(node("span", "", label), input); return wrap; }
 
 async function bootstrap() {
-  bindNavigation(); bindActions();
+  configureLanguages(); bindNavigation(); bindActions();
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
   await Promise.allSettled([refreshNetwork(), refreshProvider()]);
 }
+
+function configureLanguages() {
+  const labels={en:"English","zh-CN":"简体中文","zh-TW":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"};
+  for (const id of ["locale-select","ai-language"]) for (const locale of SUPPORTED_LOCALES) $(`#${id}`).append(new Option(labels[locale],locale));
+  $("#locale-select").value=i18n.locale; $("#ai-language").value=localStorage.getItem("ynx.developer.ai-language")||i18n.locale; applyLocale();
+}
+function applyLocale() { document.documentElement.lang=i18n.locale; document.documentElement.dir=i18n.dir; $$('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);}); }
 
 async function loadProject(id) {
   state.project = await workspace.get(id); state.path = Object.keys(state.project.files).find((path) => path.endsWith(".sol")) || Object.keys(state.project.files)[0];
@@ -115,6 +124,9 @@ function bindActions() {
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
+  $("#locale-select").onchange=()=>{i18n.setLocale($("#locale-select").value);applyLocale();};
+  $("#ai-language").onchange=()=>localStorage.setItem("ynx.developer.ai-language",$("#ai-language").value);
+  $("#wallet-sign-in").onclick=signInWallet;
   $("#review-deployment").onclick = reviewDeployment;
   $$("[data-doc]").forEach((button) => button.onclick = () => showDocumentation(button.dataset.doc));
 }
@@ -197,7 +209,7 @@ async function askAI() {
     const review = node("div"); review.append(node("p", "muted compact", "Only these files leave the browser through the permissioned YNX AI Gateway:")); for (const item of state.aiPrepared.privacyPreview) review.append(node("div", "result-item", `${item.path} · ${item.bytes} bytes`)); review.append(node("p", "muted compact", `${state.aiPrepared.estimate.estimatedInputTokens} estimated input tokens. Provider cost is not known and will not be invented.`));
     if (!await modal({ title: "Approve AI context and estimated cost", content: review, confirm: "Stream from Gateway" })) return;
     $("#ask-ai").disabled = true; $("#cancel-ai").disabled = false; $("#ai-output").textContent = "";
-    state.aiResult = await ai.stream(state.aiPrepared, { accessToken: $("#gateway-token").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
+    state.aiResult = await ai.stream(state.aiPrepared, { accessToken: $("#gateway-token").value, model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
     state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: state.aiResult.status, output: state.aiResult.output }); renderAIHistory();
     $("#apply-ai").disabled = false; $("#reject-ai").disabled = false;
   } catch (error) {
@@ -232,6 +244,14 @@ async function clearAIHistory() {
   if (!state.project || !(state.project.conversations ?? []).length) return;
   if (!await modal({ title: "Clear local AI history", content: "This removes locally persisted provider results from this project. The deletion is retained only as a project audit event.", confirm: "Clear history", danger: true })) return;
   state.project = await workspace.clearConversationHistory(state.project.id); renderAIHistory(); toast("Local AI conversation history cleared.");
+}
+
+async function signInWallet() {
+  const stateBox=$("#wallet-state");
+  if (!await modal({title:i18n.t("walletSignIn"),content:"Developer requests only public account access and deployment-review scope. The Wallet private key never leaves Wallet; this product device must complete a separate central Gateway challenge.",confirm:i18n.t("continue")})) return;
+  stateBox.textContent="Waiting for Wallet authorization and central verifier…";
+  try { const session=await walletSession.signIn({approved:true}); $("#deploy-account").value=session.account; stateBox.textContent=`${session.account} · ${i18n.date(session.expiresAt)}`; stateBox.className="state-card success"; }
+  catch(error){ stateBox.textContent=`${errorMessage(error)} ${i18n.t("retry")}`; stateBox.className="state-card"; toast(errorMessage(error)); }
 }
 
 async function reviewDeployment() {

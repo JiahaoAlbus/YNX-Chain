@@ -1,5 +1,39 @@
 # YNX Developer handoff
 
+## 2026-07-16 correction candidate
+
+This section supersedes stale counts, artifact names and desktop launch claims
+later in the original handoff. The correction retains the previously accepted
+IDE, pinned compiler, AI review, deployment, receipt/source-match and checkpoint
+workflows, and adds the integration gates requested by total control:
+
+- AI streaming is now `POST /ai/stream` with a bounded JSON body containing
+  version, random session, product workflow, reviewed model, independent output
+  language and prompt. Source/prompt text never appears in the URL. SSE remains
+  streaming/cancellable and no provider result is synthesized.
+- `DeveloperWalletSession` adopts Wallet Auth v1's exact product-device boundary:
+  `ynx-developer-v1`, bundle `com.ynxweb4.developer.testnetpreview`, callback
+  `ynxdeveloper://wallet-auth/callback`, sorted `account:read` and
+  `developer:deploy` scopes, five-minute expiry, compressed P-256 device key,
+  exact approval fields, persistent callback nonce consumption, replay/tamper/
+  scope rejection, and two POST Gateway challenge/completion calls. The session
+  token stays memory-only. With no reviewed central verifier/provider, sign-in
+  fails visibly as unavailable and offers retry; no local-key fallback exists.
+- The UI exposes interface locale plus a separately persisted AI-output locale.
+  English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch,
+  Português, Русский, العربية and Bahasa Indonesia are complete for the audited
+  critical vocabulary. Locale auto-detection/manual override/restart persistence,
+  `Intl` date/number/plural handling, Arabic RTL, nonblank fallback and localized
+  Wallet/private-key/deployment/privacy/recovery/update class language are tested.
+- macOS now has native File/Edit/Window/App menus, Cmd shortcuts, window-frame
+  restoration/reopen behavior, sandboxed task execution, and a fail-closed signed
+  update explanation. The package and bundle title explicitly say unsigned
+  **Testnet Preview** and use `com.ynxweb4.developer.testnetpreview`.
+- A native Windows WPF/WebView2 project supplies the same package identity,
+  menus/shortcuts, file actions, persistent window geometry, loopback server,
+  `asInvoker` permission manifest and unsigned-update refusal. It is source
+  delivery only on this macOS host; no Windows binary or cold launch is claimed.
+
 ## Review identity
 
 - Branch: `codex/ecosystem-developer`
@@ -46,7 +80,7 @@ The Web Product implements:
   explicit machine-applicable file blocks, apply/reject, generated-test support,
   local conversation history, deletion audit, command audit and provider failure
   recovery;
-- same-origin, body-bounded `/chain` and `/ai-gateway` proxy prefixes for the
+- same-origin, body-bounded `/chain`, `/ai-gateway` and `/app-gateway` proxy prefixes for the
   local Web and desktop servers. Incoming browser headers are not forwarded
   wholesale.
 
@@ -73,20 +107,22 @@ so the UI does not own security decisions.
 
 ## Desktop package evidence
 
-`apps/developer/scripts/package-local-macos.sh` built and self-tested:
+`apps/developer/scripts/package-local-macos.sh` built and resource-self-tested:
 
-- `.ynx-developer-local/YNX Developer Local.app`
-- `.ynx-developer-local/ynx-developer-local-macos-unsigned.zip`
+- `.ynx-developer-local/YNX Developer Testnet Preview.app`
+- `.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip`
 - tested ZIP SHA-256:
-  `bb97b4bc3635bfcf76d4c5dd0e2b9fbc0645c226afe7b1de82adfa08fe1fe03d`
-- cold-launch loopback response title: `YNX Developer`
+  `19249d8cc6042151a8bf29bed34e1fa3d23682806a837dd6e081111543ad4b2e`
 - code-sign classification: `Signature=adhoc`, `TeamIdentifier=not set`
-- forced parent termination: loopback child observed exiting with the parent
 
 The macOS linker automatically adds an ad-hoc signature. This artifact has no
 Developer ID/team identity, notarization, installer signature, update signature,
-Windows build, independent audit or distribution approval. It is the **unsigned
-local desktop package** class and is not a signed production desktop release.
+Windows binary, independent audit or distribution approval. It is the **unsigned
+Testnet Preview** class and is not a signed production desktop release. This
+host's AppleSystemPolicy rejected launching an ad-hoc/unknown-chain App from the
+worktree, so macOS installed cold launch remains pending; resource self-test,
+strict code-sign verification and ZIP hash passed. This failure is not presented
+as a successful launch.
 
 The native command bridge accepts only `test` and `check`, validates project
 paths and sizes, writes only the approved project snapshot, launches Node without
@@ -129,8 +165,9 @@ real output, returns the real exit code and propagates cancellation.
 
 Product-local checks:
 
-- `cd packages/developer-client && npm test` — 13 tests passed.
-- `cd apps/developer && npm test` — 5 tests passed.
+- `cd packages/developer-client && npm test` — 16 tests passed, including POST
+  privacy, Wallet binding/replay/tamper, all locales, RTL and persistence.
+- `cd apps/developer && npm test` — 6 tests passed.
 - `cd apps/developer && npm run check` — passed.
 - `cd apps/developer && npm run build` — passed.
 - `cd apps/developer && npm run live-check` — real local chain `6423` / `YNXT`,
@@ -139,7 +176,7 @@ Product-local checks:
 - `cd apps/developer && npm run desktop:sandbox-check` — 2 tests passed;
   network and out-of-workspace writes denied.
 - `cd apps/developer && ./scripts/package-local-macos.sh` — built, resource
-  self-test passed and artifact classification verified.
+  self-test passed, strict ad-hoc classification verified and SHA-256 emitted.
 - In-app Browser desktop project create/reload and 390 px responsive interaction
   checks — passed after correcting the mobile AI activity-rail clipping issue.
 
@@ -157,26 +194,30 @@ Repository gates:
 
 ## Incomplete/external boundaries
 
-- No signed macOS/Windows production release exists. Windows packaging was not
-  built on this macOS worktree.
+- No signed macOS/Windows production release exists. Windows source was not
+  built on this macOS worktree. macOS cold launch was rejected by host execution
+  policy; no installed or cold-launch claim is made.
 - No public Web deployment was performed. Static hosting must supply equivalent
   authenticated `/chain` and `/ai-gateway` routing.
 - No real provider-backed AI response was requested because no operator Gateway
   access token/provider configuration was supplied. Provider-unavailable behavior
   and streaming protocol are covered by tests.
-- No real Wallet transaction was signed or deployed because the separate Wallet
-  provider is not integrated into this branch. The UI and client fail closed
-  instead of using the unsigned local `/ide/deploy` shortcut.
+- No real Wallet transaction was signed or deployed. The exact reviewed Wallet
+  Auth envelope is implemented, but the central registry/verifier and injected
+  Wallet-only provider remain outside this product branch. The UI and client fail
+  closed instead of using the unsigned local `/ide/deploy` shortcut.
 - No remote public source-verification badge is claimed.
 - Collaboration/server persistence and production language-server breadth are
   later product work, not represented by empty UI.
 
 ## Exact central integration requests
 
-1. Register a least-privilege Developer product identity and production
-   same-origin routes for `/chain` and `/ai-gateway`; keep provider credentials
-   server-side.
-2. From the reviewed Wallet Auth branch, expose a provider equivalent to:
+1. Register the exact `ynx-developer-v1` binding, bundle, callback and scopes in
+   the central Wallet registry, verify the canonical P-256 Gateway completion,
+   and expose authenticated same-origin `/app-gateway` routing.
+2. Expose a Wallet provider equivalent to:
+   `getProductDevicePublicKey(clientId)`, `authorize(exactRequest)` and
+   `signProductChallenge(exactChallenge)`, plus deployment methods
    `authorizeDeployment(exactReview)` and
    `signAndSubmitDeployment({review, authorization})`. It must bind client,
    callback, account, chain, artifact, constructor args, nonce and expiry; verify
@@ -185,7 +226,9 @@ Repository gates:
 3. Map the Wallet deployment submission to the accepted signed YNX transaction
    path. Do not connect this UI to plain `/ide/deploy`, because that endpoint does
    not prove Wallet-only signing.
-4. Supply production hosting/desktop update/signing work only after exact source,
+4. Make the central AI Gateway accept the exact POST-body Developer workflow;
+   do not restore prompt-bearing query transport. Supply production hosting/
+   desktop update/signing work only after exact source,
    artifact checksum, Developer ID/Windows certificate, install, cold-launch,
    update and rollback evidence is available.
 5. Do not update central acceptance/product claims until the integration task has

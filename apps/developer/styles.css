@@ -91,6 +91,9 @@ pre { margin:0; color:#344054; white-space:pre-wrap; overflow-wrap:anywhere; fon
 .review-actions { display:flex; gap:6px; }
 .statusbar { grid-area:status; display:flex; align-items:center; gap:18px; padding:0 10px; overflow:hidden; background:var(--blue); color:#dfe7ff; font-size:9px; }
 .statusbar strong { color:white; }.statusbar .truth { margin-left:auto; }
+[dir="rtl"] .app-shell { direction:rtl; }
+[dir="rtl"] .editor-area,[dir="rtl"] pre,[dir="rtl"] code,[dir="rtl"] textarea { direction:ltr; text-align:left; }
+[dir="rtl"] .statusbar .truth { margin-left:0; margin-right:auto; }
 .result-list { display:grid; gap:5px; margin:9px 0; }
 .result-item { display:grid; gap:2px; padding:7px; border:1px solid var(--line); border-radius:5px; background:white; font-size:10px; }
 .result-item button { border:0; background:transparent; color:var(--blue); text-align:left; padding:0; font-weight:700; }

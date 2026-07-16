@@ -74,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var server: Process?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        installMenus()
         let configuration = WKWebViewConfiguration(); let controller = WKUserContentController()
         let bridgeScript = #"""
         (() => {
@@ -86,9 +87,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         configuration.userContentController = controller
         webView = WKWebView(frame: .zero, configuration: configuration); bridge = CommandBridge(webView: webView); controller.add(bridge, name: "command")
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900), styleMask: [.titled,.closable,.miniaturizable,.resizable], backing: .buffered, defer: false)
-        window.title = "YNX Developer Local — unsigned package"; window.contentView = webView; window.center(); window.makeKeyAndOrderFront(nil)
+        window.title = "YNX Developer — Testnet Preview (unsigned)"; window.contentView = webView
+        if !window.setFrameUsingName("YNXDeveloperTestnetPreviewMainWindow") { window.center() }
+        window.setFrameAutosaveName("YNXDeveloperTestnetPreviewMainWindow"); window.isRestorable = true; window.makeKeyAndOrderFront(nil)
         launchServer(); loadWhenReady(attempt: 0)
     }
+
+    private func installMenus() {
+        let main = NSMenu(); NSApp.mainMenu = main
+        let appItem = NSMenuItem(); main.addItem(appItem); let appMenu = NSMenu(); appItem.submenu = appMenu
+        appMenu.addItem(withTitle: "About YNX Developer Testnet Preview", action: #selector(showAbout), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator()); appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        appMenu.addItem(NSMenuItem.separator()); appMenu.addItem(withTitle: "Quit YNX Developer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let fileItem = NSMenuItem(); main.addItem(fileItem); let file = NSMenu(title: "File"); fileItem.submenu = file
+        file.addItem(withTitle: "New Project…", action: #selector(newProject), keyEquivalent: "n")
+        file.addItem(withTitle: "Open Project…", action: #selector(openProject), keyEquivalent: "o")
+        file.addItem(withTitle: "Save", action: #selector(saveFile), keyEquivalent: "s")
+        let export = file.addItem(withTitle: "Export Project…", action: #selector(exportProject), keyEquivalent: "s"); export.keyEquivalentModifierMask = [.command,.shift]
+        let editItem = NSMenuItem(); main.addItem(editItem); let edit = NSMenu(title: "Edit"); editItem.submenu = edit
+        for (title, action, key) in [("Undo",#selector(UndoManager.undo),"z"),("Redo",#selector(UndoManager.redo),"Z"),("Cut",#selector(NSText.cut(_:)),"x"),("Copy",#selector(NSText.copy(_:)),"c"),("Paste",#selector(NSText.paste(_:)),"v"),("Select All",#selector(NSText.selectAll(_:)),"a")] { edit.addItem(withTitle:title,action:action,keyEquivalent:key) }
+        let windowItem = NSMenuItem(); main.addItem(windowItem); let windows = NSMenu(title: "Window"); windowItem.submenu = windows; windows.addItem(withTitle:"Minimize",action:#selector(NSWindow.performMiniaturize(_:)),keyEquivalent:"m"); windows.addItem(withTitle:"Bring All to Front",action:#selector(NSApplication.arrangeInFront(_:)),keyEquivalent:"")
+    }
+    private func click(_ selector: String) { webView?.evaluateJavaScript("document.querySelector('\(selector)')?.click()") }
+    @objc private func newProject() { click("#create-project") }
+    @objc private func openProject() { click("#import-project") }
+    @objc private func saveFile() { webView?.evaluateJavaScript("document.querySelector('#editor')?.dispatchEvent(new Event('input',{bubbles:true}))") }
+    @objc private func exportProject() { click("#export-project") }
+    @objc private func showAbout() { let alert=NSAlert(); alert.messageText="YNX Developer Testnet Preview"; alert.informativeText="Unsigned local build for YNX public testnet engineering. It is not a production-signed desktop release."; alert.runModal() }
+    @objc private func checkForUpdates() { let alert=NSAlert(); alert.messageText="Updates require signed release metadata"; alert.informativeText="This unsigned Testnet Preview will not download or install updates automatically. A production updater must verify an owner-signed manifest and package before installation."; alert.runModal() }
 
     private func launchServer() {
         guard let resources = Bundle.main.resourceURL else { return }
@@ -105,11 +131,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     }
     func applicationWillTerminate(_ notification: Notification) { server?.terminate() }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool { if !flag { window.makeKeyAndOrderFront(nil) }; return true }
 }
 
 if CommandLine.arguments.contains("--self-test") {
-    guard let resources = Bundle.main.resourceURL,
+    let explicit = CommandLine.arguments.last.flatMap { $0 == "--self-test" ? nil : URL(fileURLWithPath: $0) }
+    guard let resources = explicit ?? Bundle.main.resourceURL,
           FileManager.default.fileExists(atPath: resources.appendingPathComponent("web/index.html").path) else { exit(2) }
-    print("YNX Developer unsigned local package resources OK"); exit(0)
+    print("YNX Developer unsigned Testnet Preview resources OK"); exit(0)
 }
 let app = NSApplication.shared; let delegate = AppDelegate(); app.delegate = delegate; app.setActivationPolicy(.regular); app.activate(ignoringOtherApps: true); app.run()

@@ -16,9 +16,10 @@
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">&gt;_</span><span>YNX Developer</span><span class="surface-badge">WEB PRODUCT</span></div>
       <div class="project-actions">
-        <button id="create-project" class="button primary">New project</button>
-        <button id="import-project" class="button">Import</button>
-        <button id="export-project" class="button">Export</button>
+        <button id="create-project" class="button primary" data-i18n="newProject">New project</button>
+        <button id="import-project" class="button" data-i18n="import">Import</button>
+        <button id="export-project" class="button" data-i18n="export">Export</button>
+        <select id="locale-select" class="select" aria-label="Interface language"></select>
       </div>
       <div class="network" id="network-status" role="status"><span class="status-dot unknown"></span><span>YNX Testnet · checking</span></div>
     </header>
@@ -55,10 +56,12 @@
       </section>
       <section id="view-deploy" class="side-view">
         <div class="pane-heading"><strong>Deployment</strong></div>
-        <div class="boundary"><span>Signing boundary</span><strong>YNX Wallet only</strong><small>No private key enters Developer.</small></div>
+        <div class="boundary"><span>Signing boundary</span><strong data-i18n="walletOnly">YNX Wallet only</strong><small data-i18n="privateKeyBoundary">No private key enters Developer.</small></div>
+        <button id="wallet-sign-in" class="button full" data-i18n="walletSignIn">Sign in with YNX Wallet</button>
+        <div id="wallet-state" class="state-card">Wallet provider and central verifier are required.</div>
         <label class="field"><span>Wallet account</span><input id="deploy-account" placeholder="ynx1..."></label>
         <label class="field"><span>Constructor args (JSON)</span><input id="constructor-args" value="[]"></label>
-        <button id="review-deployment" class="button primary full">Review deployment</button>
+        <button id="review-deployment" class="button primary full" data-i18n="reviewDeployment">Review deployment</button>
         <div id="deployment-state" class="state-card">Compile a supported Solidity file first.</div>
       </section>
       <section id="view-docs" class="side-view">
@@ -104,6 +107,7 @@
         <div class="agent-note">The agent sees only checked files, cites source lines, proposes diffs and tests, and cannot write or run commands without review.</div>
         <fieldset id="context-files" class="context"><legend>Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
         <label class="field"><span>Model / provider</span><select id="model-select" class="select"><option>Gateway configured model</option></select></label>
+        <label class="field"><span data-i18n="aiLanguage">AI output language</span><select id="ai-language" class="select"></select></label>
         <label class="field"><span>Session-only Gateway access</span><input id="gateway-token" type="password" autocomplete="off" placeholder="Not persisted"></label>
         <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>
         <div id="cost-estimate" class="estimate"><span>Cost estimate</span><strong>Select context</strong><small>Provider billing is unavailable until reported.</small></div>
@@ -121,6 +125,6 @@
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-heading"><strong id="modal-title">Action</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="button">Cancel</button><button id="modal-confirm" value="default" class="button primary">Continue</button></div></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <input id="file-import" type="file" accept="application/json,.json" hidden>
-  <script type="module" src="/app.js?v=4"></script>
+  <script type="module" src="/app.js?v=5"></script>
 </body>
 </html>

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   AICodingAgent, CommandAudit, DeveloperError, MemoryPersistence, ProjectWorkspace,
-  WalletDeployment, YNXChainClient, commandPreview, sourceDiagnostics
+  DeveloperI18n, MESSAGES, SUPPORTED_LOCALES, DeveloperWalletSession, LocalNonceLedger, WalletDeployment, YNXChainClient, commandPreview, sourceDiagnostics
 } from "../src/index.js";
 
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
@@ -96,16 +96,43 @@ test("source match never promotes local evidence to remote proof", async () => {
   assert.equal(result.status, "source-matched-local-evidence"); assert.equal(result.remotePublicProof, false);
 });
 
+test("Wallet Auth uses exact Developer binding, POST Gateway completion and memory-only session", async () => {
+  let request; const calls = []; const now = Date.parse("2026-07-16T00:00:00.000Z");
+  const wallet = {
+    getProductDevicePublicKey: async () => `A${"a".repeat(43)}`,
+    authorize: async (value) => { request = value; return { version:"1",requestDigest:"a".repeat(64),nonce:value.nonce,chainId:value.chainId,requestingProduct:value.requestingProduct,productClientId:value.productClientId,bundleId:value.bundleId,productDeviceAlgorithm:value.productDeviceAlgorithm,productDeviceKey:value.productDeviceKey,callback:value.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...value.scopes],purpose:value.purpose,issuedAt:value.issuedAt,expiresAt:value.expiresAt,walletSignature:"b".repeat(128) }; },
+    signProductChallenge: async (challenge) => ({ challenge, deviceSignature: "device-proof" }),
+  };
+  const fetcher = async (url, options) => { calls.push([url, options]); if (url.endsWith("/challenges")) return json({ challenge: "server-bound" }); return json({ account:`ynx1${"q".repeat(38)}`,expiresAt:request.expiresAt,productClientId:"ynx-developer-v1",sessionToken:"memory-only-token",scopes:["account:read","developer:deploy"] }); };
+  const session = new DeveloperWalletSession({ wallet, gatewayURL:"https://gateway.invalid/app", fetcher, clock:()=>now, ledger:new LocalNonceLedger({ getItem:()=>null, setItem(){} }) });
+  await assert.rejects(() => session.signIn(), (error) => error.code === "wallet_permission_required");
+  const result = await session.signIn({ approved:true });
+  assert.equal(result.productClientId, "ynx-developer-v1"); assert.equal(request.bundleId, "com.ynxweb4.developer.testnetpreview");
+  assert.deepEqual(calls.map((call) => call[1].method), ["POST","POST"]); assert.equal(JSON.stringify(calls).includes("memory-only-token"), false);
+});
+
+test("Wallet nonce ledger persists replay rejection and altered approval fails before Gateway", async () => {
+  const data = new Map(); const storage = { getItem:(key)=>data.get(key) ?? null, setItem:(key,value)=>data.set(key,value) }; const ledger = new LocalNonceLedger(storage);
+  ledger.consume("nonce"); assert.throws(() => ledger.consume("nonce"), (error) => error.code === "wallet_replay_rejected");
+  let network = false; const now = Date.parse("2026-07-16T00:00:00.000Z");
+  const wallet = { getProductDevicePublicKey:async()=>`A${"a".repeat(43)}`, authorize:async(value)=>({ version:"1",requestDigest:"a".repeat(64),nonce:value.nonce,chainId:value.chainId,requestingProduct:value.requestingProduct,productClientId:"substituted",bundleId:value.bundleId,productDeviceAlgorithm:value.productDeviceAlgorithm,productDeviceKey:value.productDeviceKey,callback:value.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...value.scopes],purpose:value.purpose,issuedAt:value.issuedAt,expiresAt:value.expiresAt,walletSignature:"b".repeat(128)}), signProductChallenge:async()=>({}) };
+  const session = new DeveloperWalletSession({ wallet, fetcher:async()=>{ network=true; return json({}); }, clock:()=>now, ledger:new LocalNonceLedger(storage,"second") });
+  await assert.rejects(() => session.signIn({ approved:true }), (error) => error.code === "wallet_tamper_rejected"); assert.equal(network,false);
+});
+
 test("AI context is least privilege, cost is labeled estimate, permission is mandatory", async () => {
   const project = { files: { "src/A.sol": "line one", "secret.txt": "do not send" } };
   const body = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('event: token\ndata: {"text":"Patch with src/A.sol:1"}\n\nevent: done\ndata: {}\n\n')); controller.close(); } });
-  const agent = new AICodingAgent({ fetcher: async () => new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } }) });
+  let requestURL; let requestOptions;
+  const agent = new AICodingAgent({ fetcher: async (url, options) => { requestURL = url; requestOptions = options; return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } }); } });
   const prepared = agent.prepare({ intent: "explain this source", project, approvedPaths: ["src/A.sol"] });
   assert.deepEqual(prepared.privacyPreview.map((item) => item.path), ["src/A.sol"]);
   assert.equal(prepared.prompt.includes("do not send"), false); assert.equal(prepared.estimate.estimatedYNXT, null);
   await assert.rejects(() => agent.stream(prepared, { accessToken: "session-token" }), (error) => error.code === "ai_permission_required");
   const result = await agent.stream(prepared, { accessToken: "session-token", approved: true });
   assert.equal(result.status, "review-required"); assert.match(result.output, /src\/A.sol:1/);
+  assert.equal(requestURL, "http://127.0.0.1:6429/ai/stream"); assert.equal(requestOptions.method, "POST");
+  assert.equal(requestURL.includes(prepared.prompt), false); assert.equal(JSON.parse(requestOptions.body).workflow, "developer.coding-agent");
   assert.equal(agent.review(result, "reject").status, "rejected");
 });
 
@@ -117,4 +144,12 @@ test("AI context fails before network when the Gateway request limit would be ex
 test("diagnostics explain unsupported compiler and syntax shape", () => {
   const diagnostics = sourceDiagnostics("src/A.sol", "pragma solidity ^0.8.0; contract A {");
   assert.deepEqual(diagnostics.map((item) => item.code), ["YNX001", "YNX003", "YNX004"]);
+});
+
+test("all 12 locales are complete, persistent and Arabic is RTL", () => {
+  assert.deepEqual(SUPPORTED_LOCALES, ["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]);
+  const keys = Object.keys(MESSAGES.en); for (const locale of SUPPORTED_LOCALES) assert.deepEqual(Object.keys(MESSAGES[locale]), keys), assert.ok(Object.values(MESSAGES[locale]).every((value)=>value.trim()));
+  const data = new Map(); const storage={getItem:(key)=>data.get(key),setItem:(key,value)=>data.set(key,value)}; const i18n=new DeveloperI18n({locale:"ar",storage});
+  assert.equal(i18n.dir,"rtl"); assert.match(i18n.t("privateKeyBoundary"),/المفتاح الخاص/); i18n.setLocale("ja"); assert.equal(new DeveloperI18n({storage}).locale,"ja");
+  assert.ok(i18n.number(1234).length>0); assert.ok(i18n.date("2026-07-16T00:00:00.000Z").length>0); assert.equal(i18n.plural(2,{other:"files"}),"files");
 });

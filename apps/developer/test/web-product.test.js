@@ -31,6 +31,13 @@ test("CSP and build do not permit inline script or embedded provider secrets", a
 
 test("local servers expose only bounded same-origin YNX proxy prefixes", async () => {
   for (const file of ["scripts/server.mjs", "desktop/server.mjs"]) {
-    const server = await read(file); assert.match(server, /"\/chain"/); assert.match(server, /"\/ai-gateway"/); assert.match(server, /2 \* 1024 \* 1024/); assert.doesNotMatch(server, /request\.headers\s*[,}]/);
+    const server = await read(file); assert.match(server, /"\/chain"/); assert.match(server, /"\/ai-gateway"/); assert.match(server, /"\/app-gateway"/); assert.match(server, /2 \* 1024 \* 1024/); assert.doesNotMatch(server, /request\.headers\s*[,}]/);
   }
+});
+
+test("localized UI and native desktop sources preserve language, permission and release boundaries", async () => {
+  const html=await read("index.html"), app=await read("app.js"), mac=await read("desktop/macos/main.swift"), windows=await read("desktop/windows/MainWindow.xaml.cs");
+  assert.match(html,/locale-select/); assert.match(html,/ai-language/); assert.match(app,/DeveloperI18n/); assert.match(app,/DeveloperWalletSession/);
+  for(const source of [mac,windows]) { assert.match(source,/Testnet Preview/); assert.match(source,/Check(?: for )?Updates/); assert.match(source,/window|Window/); }
+  assert.match(mac,/New Project/); assert.match(windows,/owner-signed manifest/); assert.doesNotMatch(mac+windows,/production release is signed/i);
 });
