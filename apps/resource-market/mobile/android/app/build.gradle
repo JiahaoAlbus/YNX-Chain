@@ -1,0 +1,15 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.ynxweb4.resource'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.ynxweb4.resource'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.2.0-candidate'
+        buildConfigField 'String', 'GATEWAY_BASE_URL', '"http://10.0.2.2:8092"'
+    }
+    buildFeatures { buildConfig true }
+}

@@ -9,12 +9,13 @@ import (
 
 func (s *Service) Handler(assets http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	s.registerAuthorityRoutes(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		authMode := "session-registry"
 		if s.cfg.AllowHeaderAuth {
 			authMode = "development-trusted-header"
 		}
-		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-resource-market", "persistent": true, "authMode": authMode, "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Sponsorship moves bounded resource capacity only and never user assets."})
+		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-resource-market", "persistent": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Sponsorship moves bounded resource capacity only and never user assets."})
 	})
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
 		v, err := s.View(s.actorFrom(r))
@@ -47,6 +48,11 @@ func (s *Service) actorFrom(r *http.Request) Actor {
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if actor, ok := s.sessions[token]; ok && token != "" {
 		return actor
+	}
+	if token != "" {
+		if actor, err := s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Device-ID"))); err == nil {
+			return actor
+		}
 	}
 	if s.cfg.AllowHeaderAuth {
 		return Actor{ID: strings.TrimSpace(r.Header.Get("X-YNX-Actor")), Role: strings.TrimSpace(r.Header.Get("X-YNX-Role"))}

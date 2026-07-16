@@ -21,7 +21,7 @@ func main() {
 			log.Fatal("invalid YNX_TRUST_CENTER_SESSIONS_JSON: ", err)
 		}
 	}
-	svc, err := trustproduct.New(trustproduct.Config{StorePath: store, AIURL: os.Getenv("YNX_AI_GATEWAY_URL"), AIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), AIModel: os.Getenv("YNX_AI_MODEL"), Sessions: sessions, AllowHeaderAuth: os.Getenv("YNX_TRUST_CENTER_DEV_HEADER_AUTH") == "1"})
+	svc, err := trustproduct.New(trustproduct.Config{StorePath: store, AIURL: os.Getenv("YNX_AI_GATEWAY_URL"), AIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), AIModel: os.Getenv("YNX_AI_MODEL"), Sessions: sessions, AllowHeaderAuth: os.Getenv("YNX_TRUST_CENTER_DEV_HEADER_AUTH") == "1", CentralGatewayURL: os.Getenv("YNX_CENTRAL_GATEWAY_URL"), CentralClientID: env("YNX_TRUST_CENTER_CLIENT_ID", "ynx-trust-center-v1")})
 	if err != nil {
 		log.Fatal(err)
 	}

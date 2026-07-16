@@ -16,7 +16,7 @@ func TestResourceUIAccessibilityResponsiveAndBoundaryContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, c := string(html), string(css)
-	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Resource Market"`, `Bandwidth`, `Compute`, `AI Credits`, `Trust Credits`, `Pay Credits`, `No sponsorship, rental or delegation moves user assets.`} {
+	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Resource Market"`, `Bandwidth`, `Compute`, `AI Credits`, `Trust Credits`, `Pay Credits`, `Sponsorship transfers only limited resource capacity`, `A fee quote is not settlement`} {
 		if !strings.Contains(h, want) {
 			t.Errorf("missing UI contract %q", want)
 		}

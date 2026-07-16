@@ -1,175 +1,183 @@
-# Trust Center and Resource Market handoff
+# YNX Trust Center + Resource Market correction handoff
 
-## Branch and implementation commit
+## Scope and truth status
 
 - Branch: `codex/ecosystem-trust-resource`
-- Product implementation commit: `5391455fa0fd880c814b400f95a92986ac87371a`
-- Baseline: `51bed84`
-- Final handoff commit: the commit containing this document
+- Corrected candidate: the commit containing this handoff
+- Final verification date: `2026-07-16` (Asia/Shanghai)
+- Parent before this correction: `ae210bffbcd6`
+- Products remain separate: `apps/trust-center/**` and `apps/resource-market/**`
+- No root Makefile, central acceptance state, long-term objective, or another product directory was changed.
+- This is a candidate implementation. It is not claimed merged, installed in a public environment, deployed, production-signed, published in an app store, or integrated into the central Gateway registry.
 
-This branch implements two separate products. It does not modify the root
-Makefile, central Gateway policy, long-term goal, or acceptance state.
+## Corrected service boundaries
+
+Both products now expose product-local adapters for the central Wallet/App Gateway contract:
+
+- `POST /api/auth/challenges`
+- `POST /api/auth/challenges/{id}/verify`
+- `POST /api/auth/revoke`
+
+The adapter uses the current central headers `X-YNX-App-Session`, `X-YNX-Device-ID`, and `X-YNX-Client`. A successful session is bound to the exact device and stored as a SHA-256 token hash only. Expiry, revocation, wrong-device access, restart recovery, and constant-time token comparison are tested. Request/response bodies and signed payloads are not stored in authority audit; only hashes, route, actor, status, outcome and time are persisted.
+
+Central Wallet sessions are also accepted by the product-local persisted read and AI workflows after device-bound verification; logging in no longer leaves `/api/state` behind a separate local-only session registry. GET query strings are forwarded intact to the central authority, so Resource quotes contain the exact address and requested Bandwidth/Compute/AI/Trust quantities. Authority responses are bounded to 1 MiB and fail closed when oversized.
+
+Central URLs must be HTTPS except loopback test URLs. When the central Gateway or authoritative API is absent, product endpoints return an explicit retryable `503`; they do not invent an enforcement, label, capacity, transaction or settlement result.
+
+YNX AI calls are now JSON `POST /ai/stream` requests containing prompt, bounded context and independently selected output language. There is no query-string prompt fallback. Provider failure remains a failure. Trust AI cannot mutate evidence, labels, decisions, appeals or assets. Resource AI cannot rent, stake, sponsor, revoke, settle or transfer.
+
+## Trust Center authoritative workflow
+
+Implemented central adapters:
+
+- evidence submit and query;
+- governance request submit/query, independent review and rejection;
+- appeal submit/query/resolve;
+- request-validity rules;
+- public transparency reports.
+
+The Web and native clients present evidence, query, appeal, review, transparency, Wallet sign-in and AI explanation as distinct steps. Local development records are explicitly identified as drafts. Authoritative calls require a central Wallet session. Native YNXT cannot be frozen, seized, blacklisted, confiscated or transferred by any Trust product route. Evidence and independent human review are required; appeal remains available.
+
+The existing durable local workflow still covers request validity, illegal/overbroad rejection, evidence notices, role separation, sourced labels, finite label expiry, false-positive correction and audit. It is not described as authoritative central enforcement.
+
+Final hardening prevents a reviewer from overriding an illegal native-asset-control request or an overbroad request to `valid`. Evidence used by the local conclusion workflow is bounded and must be visible to the subject; request fields and evidence counts/sizes are bounded. Review reasons are mandatory. These checks protect the native YNXT and due-process boundary even when a reviewer supplies a conflicting decision.
+
+## Resource Market authoritative workflow
+
+Implemented central adapters:
+
+- policy, quote, analytics, balances and income;
+- delegation, rental, sponsored pool and sponsorship APIs;
+- owner/beneficiary/resource/limit/source/expiry/fee/audit records;
+- signed purchase-intent creation, exact retry, status query and persisted recovery.
+
+Intent replay is keyed by owner plus idempotency key and exact signed-payload hash. Changed payload retry is rejected. Statuses distinguish `submitting`, `failed`, `authority_rejected`, `pending_authority_confirmation`, and `authority_confirmed_capacity`. Confirmation requires both an authoritative object ID and transaction hash. Even then, the fee field states that asset settlement is not proven without separate authoritative settlement evidence. Resource sponsorship moves bounded capacity only and never YNXT or a user asset.
+
+Resource dispute recovery now restores the exact disputed capacity to its source pool only when an independent reviewer upholds the dispute, caps recovery at the pool limit, and never changes an asset balance. Rejected disputes return to `active` only before expiry; otherwise they become `expired`.
 
 ## Changed paths
 
-- `apps/trust-center/**`
-- `apps/resource-market/**`
-- `internal/trustproduct/**`
-- `internal/resourceproduct/**`
-- `docs/handoffs/trust-resource.md`
-- `docs/handoffs/evidence/{trust-center,resource-market}-{desktop,mobile}.png`
+- `apps/trust-center/**`: standalone Web, Android and iOS clients; product smoke; Playwright and semantic i18n contracts.
+- `apps/resource-market/**`: standalone Web, Android and iOS clients; product smoke; Playwright and semantic i18n contracts.
+- `internal/trustproduct/**`: persistent cases, evidence, validity, review, labels, appeal/correction, transparency, AI records, central Wallet/Gateway adapter and authority audit.
+- `internal/resourceproduct/**`: persistent capacity pools/records, pricing and income boundaries, delegation/rental/sponsorship, revoke/dispute recovery, AI records, signed authority intents and audit.
+- `docs/handoffs/evidence/**`: fresh desktop/mobile screenshots generated by the real Playwright runs.
+- `docs/handoffs/trust-resource.md`: this handoff only; no central acceptance state or root integration policy was changed.
 
-## Architecture
+## Native products
 
-Both products are standalone Go services with embedded dependency-free Web
-clients, versioned JSON persistence, atomic `0600` store replacement, exact
-idempotency/replay conflict detection, product audit logs, CSP/security headers,
-and fail-closed session authorization. Trusted actor/role headers are disabled
-by default and exist only behind an explicit development flag. Production-style
-requests use an opaque server-side session registry; the browser can consume the
-accepted Sign in with YNX Wallet session through `sessionStorage.ynxSession`.
+### Android
 
-Trust Center persists evidence, bounded request scope, validity decisions,
-illegal and overbroad rejection reasons, independent review, subject notice,
-appeals, false-positive correction, visible label provenance, label expiry,
-transparency aggregates and audit entries. Case owners cannot review their own
-requests; initial reviewers cannot resolve the same appeal. No Trust action can
-freeze, seize, blacklist or transfer native YNXT. Evidence is mandatory before a
-valid conclusion.
+- Trust package: `com.ynxweb4.trust`, deep link `ynxtrust://auth/callback`
+- Resource package: `com.ynxweb4.resource`, deep link `ynxresource://auth/callback`
+- Independent launcher icons, manifests, Gradle projects and APKs.
+- Native Java UI; no WebView.
+- Automatic locale selection, manual locale and independent AI-language persistence, Arabic RTL, localized legal/payment boundary, native accessibility descriptions.
+- Central Wallet challenge and proof verification, product-specific authoritative workflows, offline/unavailable states, exact intent retry and explicit no-substitution wording.
+- Session tokens are encrypted with per-product Android Keystore AES-GCM keys.
 
-Resource Market persists five capacity types (Bandwidth, Compute, AI Credits,
-Trust Credits and Pay Credits), staking evidence, owner pools, bounded policy,
-delegation, rental, beneficiary-consented sponsorship, expiry, capacity-only
-revocation, fee quotes, income quote history, disputes and independent dispute
-review. Every capacity record includes owner, beneficiary, resource type, limit,
-source, expiry, fee and audit references. Sponsorship changes pool availability
-only. The settlement field explicitly says that a fee remains a quote until
-external authoritative settlement evidence exists.
-
-Both AI workflows implement context selection, privacy preview, provider/model
-status, cost estimate, explicit permission, SSE-backed YNX AI Gateway execution,
-cancel, provider failure, result review state and audit. Trust AI only explains
-evidence/classification/appeal. Resource AI only explains usage/cost/rental
-options. Tests prove that AI creates no case decision, label, penalty, rental,
-stake, sponsorship or transfer.
-
-## Lifecycle and security evidence
-
-Focused Go tests cover:
-
-- Trust: evidence requirement, illegal native-asset request rejection, overbroad
-  rejection, review separation, notice, sourced/expiring label, appeal,
-  false-positive correction, transparency, restart, exact replay and changed
-  input conflict.
-- Resource: all five types, staking evidence, pool and policy, delegation,
-  rental, beneficiary-consented sponsorship, required record fields, expiry,
-  revocation, fee/income truthfulness, dispute separation, restart, exact replay
-  and changed input conflict.
-- Authorization: spoofed role headers fail in default mode; registered opaque
-  bearer sessions succeed; development header mode must be explicitly enabled.
-- AI: explicit permission, least-privilege context, provider-backed SSE, honest
-  unconfigured/provider failure and no automatic domain mutation.
-- Persistence: restart recovery, `0600` store permissions and idempotent replay.
-
-Web tests run in Playwright Chromium at 1440x1000 and 390x844. They verify page
-identity, keyboard skip-link focus, critical safety wording, no horizontal
-overflow, empty states, primary submission/create flows, permission preview and
-honest AI provider failure. Go UI contract tests additionally check semantic
-labels, viewport, Klein Blue, reduced-motion, focus and responsive rules, and
-ensure the two products are not merged.
-
-## Test output summary
-
-Passed:
+Build commands and results:
 
 ```text
-go test -race ./internal/trustproduct ./internal/resourceproduct
-ok internal/trustproduct
-ok internal/resourceproduct
+JAVA_HOME=/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home \
+ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk \
+./gradlew --no-daemon assembleDebug
 
-GOMAXPROCS=2 go test ./...
-all packages passed
-
-make test
-all cmd/internal packages passed
-
-./apps/trust-center/check.sh
-trust-center-check: ok
-
-./apps/resource-market/check.sh
-resource-market-check: ok
-
-cd apps/trust-center && npm run test:ui
-3 passed
-
-cd apps/resource-market && npm run test:ui
-3 passed
-
-make no-placeholder-check secret-scan env-check objective-state-check
-all passed
+Trust: BUILD SUCCESSFUL, 32 tasks
+Resource: BUILD SUCCESSFUL, 32 tasks
 ```
 
-The repository's IDE tests require
-`artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
-This artifact exists in the base repository workspace but is not tracked in this
-worktree. The full `go test ./...` and `make test` runs passed with a temporary
-read-only symlink to that existing generated `artifacts` directory; the symlink
-was removed immediately after each run and is not part of this branch.
+Generated APKs are verification artifacts under ignored `app/build/` directories and are not committed.
 
-## Screenshots
+Debug APK SHA-256 values from the final build:
 
-- [Trust Center desktop](evidence/trust-center-desktop.png)
-- [Trust Center mobile](evidence/trust-center-mobile.png)
-- [Resource Market desktop](evidence/resource-market-desktop.png)
-- [Resource Market mobile](evidence/resource-market-mobile.png)
+```text
+Trust:    30ad7b06ed2cfb4c92325d216b5142db0656a357e4de4c5d52ae331875f2df6a
+Resource: e834b50f811ed0c0f820efb36aa0369a2d36cb44267619ed2d64ba87aec62c00
+```
 
-The screenshots contain empty persisted state, not invented users, transactions,
-market volume or public chain metrics.
+### iOS
 
-## Security boundaries
+- Trust bundle: `com.ynxweb4.trust`, scheme `ynxtrust`
+- Resource bundle: `com.ynxweb4.resource`, scheme `ynxresource`
+- Independent `.xcodeproj`, SwiftUI app entry, Info.plist, product workflow, locale persistence, Arabic RTL and strict boundary translations.
+- `plutil -lint` and `swiftc -parse` pass for both projects.
 
-- Native YNXT cannot be frozen, seized, blacklisted, confiscated or transferred
-  by this product.
-- Trust labels require evidence, explicit human review, visible source and finite
-  expiry; appeal cannot be removed.
-- Resource operations move only bounded capacity. No private key, Wallet secret,
-  token debit or asset transfer path exists.
-- Role headers are rejected unless the development-only flag is explicitly set.
-- AI provider keys stay server-side. AI context classes are allowlisted and
-  provider failure is not replaced with canned output.
-- Persistence contains domain/audit records only. It contains no provider secret
-  or Wallet recovery material.
+The host has Apple Command Line Tools but no full Xcode installation or Simulator runtime. Therefore no Xcode build, code-signing, Simulator install or cold-launch claim is made.
 
-## Incomplete external/integration items
+## Internationalization contract
 
-No production deployment or public availability is claimed. The product-local
-JSON store is durable for a single service process but is not a multi-node HA
-database. Production session issuance and signed chain mutations intentionally
-remain outside this branch because the main integration task must first accept
-the Wallet authorization contract and central Gateway bindings.
+Web, Android and iOS cover English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia. Web tests exercise every locale, reload persistence, no blank critical boundary and Arabic RTL. Locale-aware `Intl` date, number and plural formatters are provided. AI output language persists independently.
 
-The local product ledger is a real persistent case/capacity workflow ledger, but
-it must not be described as authoritative chain settlement. Existing
-`ynx-trustd` and `ynx-resourced` remain the authoritative signed API boundaries.
+Critical Trust asset/due-process and Resource payment/settlement translations are explicitly checked by Go semantic-contract tests. These tests require the native-YNXT prohibition, human-review/appeal concepts, capacity-only transfer and quote-not-settlement meaning across all locale dictionaries.
 
-## Exact integration requests
+## Verification completed
 
-1. Register distinct least-privilege Gateway clients and accepted Wallet session
-   bindings for Trust Center and Resource Market; inject opaque session tokens,
-   never user-selectable roles.
-2. Add reviewed adapters from product workflow actions to existing signed
-   `ynx-trustd` and `ynx-resourced` mutations. Preserve Wallet review, nonce,
-   idempotency, committed-response verification and all current Gateway policy.
-3. Add central deployment/systemd/reverse-proxy configuration for ports 6440 and
-   6441 only after session, TLS, backup/restore and rollback review.
-4. Provision product-specific YNX AI Gateway scopes for Trust explanation and
-   Resource cost/option explanation. Do not grant action, asset, label or
-   permission mutation scopes.
-5. Schedule `expire_labels` and `expire_resources` with the system role at an
-   integration-owned cadence and monitor audit persistence failures.
-6. Replace the single-process store with the integration-approved durable store
-   before any HA or production claim; retain versioning, replay and audit
-   semantics.
+```text
+go test ./internal/trustproduct ./internal/resourceproduct ./apps/trust-center ./apps/resource-market
+PASS
 
-There are no claimed public deployment, mainnet, store acceptance, partnership,
-independent audit or independent proof results in this branch.
+go test -race ./internal/trustproduct ./internal/resourceproduct
+PASS
+
+go test ./...
+PASS with a temporary read-only symlink to the base workspace's existing generated `artifacts/` directory; the symlink was removed and is not committed
+
+node --check apps/trust-center/web/{i18n,app}.js
+node --check apps/resource-market/web/{i18n,app}.js
+PASS
+
+swiftc -parse apps/trust-center/mobile/ios/YNXTrust/YNXTrustApp.swift
+swiftc -parse apps/resource-market/mobile/ios/YNXResource/YNXResourceApp.swift
+PASS
+
+cd apps/trust-center && npm run test:ui
+4 passed: desktop, mobile, lifecycle/failure, all-locales/RTL/persistence
+
+cd apps/resource-market && npm run test:ui
+4 passed: desktop, mobile, lifecycle/failure, all-locales/RTL/persistence
+```
+
+Authority tests use a real HTTP mock central service and verify challenge/verify, session binding, evidence/governance/appeal or quote/intent forwarding, POST bodies, token secrecy, signed-payload secrecy, persisted hashes, unavailable behavior, exact retry, tamper rejection and restart recovery.
+
+Additional final verification:
+
+```text
+./apps/trust-center/check.sh
+./apps/resource-market/check.sh
+PASS against real locally started HTTP servers and persisted temporary stores
+
+npm run test:ui (both products)
+4/4 PASS for Trust and 4/4 PASS for Resource in real Chromium
+
+make test
+make no-placeholder-check
+make secret-scan
+make env-check
+make objective-state-check
+PASS
+
+All remaining preflight targets were run through `ops-check` and passed, including
+anti-illegal-request, request-validity, transparency-report, trust-appeal,
+anti-unreasonable-tracking, native-ynxt-no-hidden-freeze, resource-market,
+resource-sponsor, App Gateway, AI Gateway, BFT Trust/Resource actions and ops.
+```
+
+The monolithic `GOMAXPROCS=2 make preflight` was attempted three times. It advanced through the product-relevant and repository checks but encountered three host-local transient failures at different later stages: one AI fixed-port run returned `401`, one Explorer fixed-port run returned `502`, and the default `/Library/Frameworks/Python.framework/Versions/3.12/bin/python3` was killed with exit `137`. The AI and Explorer checks passed immediately when rerun alone. `sdk-check` passed completely with `/usr/bin/python3` (JavaScript 12/12, Python 6/6 and release integrity). Every target after `sdk-check` through `ops-check` was then run serially with the generated artifact link present and passed. No failing product test was waived.
+
+## Outstanding integration blockers
+
+1. The central App Gateway registry in the integration branch does not yet register Trust/Resource client routes and scopes. Product adapters therefore correctly remain unavailable until the total-control thread adds and reviews those bindings.
+2. No live authoritative Trust/Resource deployment endpoint or production credential was provided. No live enforcement, transaction or settlement proof is claimed.
+3. Android APK installation/cold launch was attempted against three existing API 36 emulators and a newly started API 34 emulator. ADB detected them, but Android's `package` service never became available and `sys.boot_completed` stayed unset; installation returned `Can't find service: package`. APK build is proven, but installed cold-launch evidence remains blocked by the host emulator state.
+4. Full Xcode/Simulator and signing identities are unavailable, so iOS Simulator/device execution and signed archive remain pending.
+5. No TestFlight, App Store, Google Play, public deployment, third-party audit or central merge is claimed.
+
+## Integration requests
+
+1. Register `ynx-trust-center-v1` and `ynx-resource-market-v1` in the central Gateway with the least-privilege scopes documented by each product's `/api/meta` response.
+2. Map `/app/trust/**`, `/app/governance/**`, and `/app/resource-market/**` to the authoritative services with replay, nonce, committed-response and role policies intact.
+3. Repeat Android install/cold-launch on a healthy emulator/device and iOS build/Simulator tests on a host with full Xcode before distribution acceptance.
+4. Provision production HTTPS origins, product AI scopes and audited persistence/backup before any deployment statement.
+
+There are no secrets, real `.env` files, recovery materials, debug APKs, Xcode derived data or signing artifacts in the commit.

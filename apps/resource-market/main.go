@@ -20,7 +20,7 @@ func main() {
 			log.Fatal("invalid YNX_RESOURCE_MARKET_SESSIONS_JSON: ", err)
 		}
 	}
-	svc, err := resourceproduct.New(resourceproduct.Config{StorePath: env("YNX_RESOURCE_MARKET_STORE", "tmp/resource-market/state.json"), AIURL: os.Getenv("YNX_AI_GATEWAY_URL"), AIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), AIModel: os.Getenv("YNX_AI_MODEL"), Sessions: sessions, AllowHeaderAuth: os.Getenv("YNX_RESOURCE_MARKET_DEV_HEADER_AUTH") == "1"})
+	svc, err := resourceproduct.New(resourceproduct.Config{StorePath: env("YNX_RESOURCE_MARKET_STORE", "tmp/resource-market/state.json"), AIURL: os.Getenv("YNX_AI_GATEWAY_URL"), AIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), AIModel: os.Getenv("YNX_AI_MODEL"), Sessions: sessions, AllowHeaderAuth: os.Getenv("YNX_RESOURCE_MARKET_DEV_HEADER_AUTH") == "1", CentralGatewayURL: os.Getenv("YNX_CENTRAL_GATEWAY_URL"), CentralClientID: env("YNX_RESOURCE_MARKET_CLIENT_ID", "ynx-resource-market-v1")})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -42,6 +42,12 @@ func TestCaseLifecycleRoleSeparationCorrectionExpiryReplayRestart(t *testing.T) 
 	if overbroad.Status != "rejected_overbroad" {
 		t.Fatalf("overbroad=%s", overbroad.Status)
 	}
+	if _, err := svc.Do(reviewer, Action{Type: "review", IdempotencyKey: "illegal-valid", CaseID: illegal.ID, Decision: "valid", Reason: "override", Classification: "allowed"}); err == nil {
+		t.Fatal("illegal native asset request was reviewed as valid")
+	}
+	if _, err := svc.Do(reviewer, Action{Type: "review", IdempotencyKey: "broad-valid", CaseID: overbroad.ID, Decision: "valid", Reason: "override", Classification: "allowed"}); err == nil {
+		t.Fatal("overbroad request was reviewed as valid")
+	}
 	in := Action{Type: "submit_case", IdempotencyKey: "case-1", Subject: user.ID, Purpose: "explain event", RequestScope: "one account/event", RequestedAction: "review", Evidence: evidence()}
 	submitted := do(t, svc, reporter, in).Case
 	again := do(t, svc, reporter, in)
@@ -105,6 +111,13 @@ func TestLabelExpiryAndEvidenceRequired(t *testing.T) {
 func TestAIProviderPermissionFailureAndNoCaseMutation(t *testing.T) {
 	now := time.Now().UTC()
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.RawQuery != "" {
+			t.Errorf("AI prompt must use POST body, got %s %s", r.Method, r.URL.String())
+		}
+		var aiBody map[string]any
+		if json.NewDecoder(r.Body).Decode(&aiBody) != nil || aiBody["prompt"] == "" || aiBody["outputLanguage"] != "en" {
+			t.Errorf("invalid POST AI body: %+v", aiBody)
+		}
 		if r.Header.Get("Authorization") != "Bearer server-key" {
 			t.Error("missing server-only gateway key")
 		}

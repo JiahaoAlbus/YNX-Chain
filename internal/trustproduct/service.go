@@ -3,6 +3,7 @@ package trustproduct
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -20,13 +21,15 @@ import (
 const maxBody = 1 << 20
 
 type Config struct {
-	StorePath       string
-	AIURL           string
-	AIKey           string
-	AIModel         string
-	Sessions        map[string]Actor
-	AllowHeaderAuth bool
-	Now             func() time.Time
+	StorePath         string
+	AIURL             string
+	AIKey             string
+	AIModel           string
+	Sessions          map[string]Actor
+	AllowHeaderAuth   bool
+	CentralGatewayURL string
+	CentralClientID   string
+	Now               func() time.Time
 }
 
 type Actor struct{ ID, Role string }
@@ -93,6 +96,7 @@ type AIRecord struct {
 	PrivacyPreview   string    `json:"privacyPreview"`
 	Provider         string    `json:"provider"`
 	Model            string    `json:"model"`
+	OutputLanguage   string    `json:"outputLanguage"`
 	EstimatedCredits int       `json:"estimatedCredits"`
 	Permission       bool      `json:"permission"`
 	Status           string    `json:"status"`
@@ -112,14 +116,36 @@ type Audit struct {
 	Outcome string    `json:"outcome"`
 	At      time.Time `json:"at"`
 }
+type CentralSession struct {
+	ID        string    `json:"id"`
+	TokenHash string    `json:"tokenHash"`
+	Account   string    `json:"account"`
+	DeviceID  string    `json:"deviceId"`
+	Scopes    []string  `json:"scopes"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	Status    string    `json:"status"`
+}
+type AuthorityAudit struct {
+	ID           string    `json:"id"`
+	Actor        string    `json:"actor"`
+	Method       string    `json:"method"`
+	Path         string    `json:"path"`
+	RequestHash  string    `json:"requestHash"`
+	ResponseHash string    `json:"responseHash,omitempty"`
+	Status       int       `json:"status"`
+	Outcome      string    `json:"outcome"`
+	At           time.Time `json:"at"`
+}
 
 type snapshot struct {
-	Version  int                 `json:"version"`
-	Cases    map[string]Case     `json:"cases"`
-	AI       map[string]AIRecord `json:"ai"`
-	Audit    []Audit             `json:"audit"`
-	Replay   map[string]replay   `json:"replay"`
-	Sequence uint64              `json:"sequence"`
+	Version        int                       `json:"version"`
+	Cases          map[string]Case           `json:"cases"`
+	AI             map[string]AIRecord       `json:"ai"`
+	Audit          []Audit                   `json:"audit"`
+	Sessions       map[string]CentralSession `json:"sessions"`
+	AuthorityAudit []AuthorityAudit          `json:"authorityAudit"`
+	Replay         map[string]replay         `json:"replay"`
+	Sequence       uint64                    `json:"sequence"`
 }
 type replay struct{ Digest, Kind, ID string }
 
@@ -141,7 +167,16 @@ func New(cfg Config) (*Service, error) {
 	if cfg.AIModel == "" {
 		cfg.AIModel = "unconfigured"
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}}}
+	cfg.CentralGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.CentralGatewayURL), "/")
+	if cfg.CentralGatewayURL != "" {
+		if !strings.HasPrefix(cfg.CentralGatewayURL, "https://") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://127.0.0.1:") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://localhost:") {
+			return nil, errors.New("central Gateway URL must use HTTPS or loopback HTTP")
+		}
+		if strings.TrimSpace(cfg.CentralClientID) == "" {
+			return nil, errors.New("central Gateway client ID is required")
+		}
+	}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}}}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || !validActor(actor) {
 			return nil, errors.New("Trust session registry contains an invalid token or actor")
@@ -178,6 +213,9 @@ func (s *Service) load() error {
 	}
 	if d.Replay == nil {
 		d.Replay = map[string]replay{}
+	}
+	if d.Sessions == nil {
+		d.Sessions = map[string]CentralSession{}
 	}
 	s.data = d
 	return nil
@@ -233,6 +271,7 @@ type Action struct {
 	ExpiresAt       time.Time  `json:"expiresAt,omitempty"`
 	Context         []string   `json:"context,omitempty"`
 	Permission      bool       `json:"permission,omitempty"`
+	Language        string     `json:"language,omitempty"`
 	AIID            string     `json:"aiId,omitempty"`
 }
 
@@ -306,14 +345,72 @@ func (s *Service) auditLocked(a Actor, action, target, outcome string) {
 	s.data.Audit = append(s.data.Audit, Audit{ID: s.nextLocked("audit"), Actor: a.ID, Role: a.Role, Action: action, Target: target, Outcome: outcome, At: s.cfg.Now().UTC()})
 }
 
+func (s *Service) storeCentralSession(token string, v CentralSession) error {
+	sum := sha256.Sum256([]byte(token))
+	v.TokenHash = hex.EncodeToString(sum[:])
+	v.Status = "active"
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data.Sessions[v.ID] = v
+	return s.saveLocked()
+}
+func (s *Service) authenticateCentral(token, device string) (Actor, error) {
+	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	if token == "" || device == "" {
+		return Actor{}, apiError{401, "central Wallet session and device are required"}
+	}
+	sum := sha256.Sum256([]byte(token))
+	want := hex.EncodeToString(sum[:])
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.cfg.Now().UTC()
+	for _, v := range s.data.Sessions {
+		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 {
+			if v.Status != "active" || v.DeviceID != device || !now.Before(v.ExpiresAt) {
+				break
+			}
+			return Actor{ID: v.Account, Role: "user"}, nil
+		}
+	}
+	return Actor{}, apiError{401, "central Wallet session is invalid, expired or revoked"}
+}
+func (s *Service) revokeCentral(token, device string) error {
+	a, err := s.authenticateCentral(token, device)
+	if err != nil {
+		return err
+	}
+	clean := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	sum := sha256.Sum256([]byte(clean))
+	want := hex.EncodeToString(sum[:])
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, v := range s.data.Sessions {
+		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 && v.Account == a.ID {
+			v.Status = "revoked"
+			s.data.Sessions[id] = v
+			return s.saveLocked()
+		}
+	}
+	return apiError{404, "central session not found"}
+}
+
 func normalizeEvidence(e []Evidence, now time.Time, next func(string) string) ([]Evidence, error) {
 	if len(e) == 0 {
 		return nil, apiError{422, "at least one evidence record is required"}
+	}
+	if len(e) > 32 {
+		return nil, apiError{422, "evidence record limit exceeded"}
 	}
 	out := make([]Evidence, 0, len(e))
 	for _, x := range e {
 		if strings.TrimSpace(x.Source) == "" || strings.TrimSpace(x.Digest) == "" || strings.TrimSpace(x.Summary) == "" {
 			return nil, apiError{422, "evidence source, digest and summary are required"}
+		}
+		if len(x.Source) > 512 || len(x.Digest) > 256 || len(x.Summary) > 4096 {
+			return nil, apiError{422, "evidence field limit exceeded"}
+		}
+		if !x.VisibleToSubject {
+			return nil, apiError{422, "evidence used by this workflow must be visible to the subject"}
 		}
 		x.ID = next("evidence")
 		if x.CollectedAt.IsZero() {
@@ -345,8 +442,11 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		if !role(a, "user", "reporter", "evidence_officer") {
 			return Result{}, apiError{403, "role cannot submit evidence request"}
 		}
-		if in.Subject == "" || in.Purpose == "" || in.RequestScope == "" {
-			return Result{}, apiError{422, "subject, purpose and requestScope are required"}
+		if in.Subject == "" || in.Purpose == "" || in.RequestScope == "" || in.RequestedAction == "" {
+			return Result{}, apiError{422, "subject, purpose, requestScope and requestedAction are required"}
+		}
+		if len(in.Subject) > 256 || len(in.Purpose) > 2048 || len(in.RequestScope) > 2048 || len(in.RequestedAction) > 2048 {
+			return Result{}, apiError{422, "request field limit exceeded"}
 		}
 		ev, err := normalizeEvidence(in.Evidence, now, s.nextLocked)
 		if err != nil {
@@ -380,12 +480,21 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		if len(c.Evidence) == 0 {
 			return Result{}, apiError{422, "evidence is required before any conclusion"}
 		}
+		if strings.TrimSpace(in.Reason) == "" {
+			return Result{}, apiError{422, "review reason is required"}
+		}
 		allowed := map[string]bool{"valid": true, "rejected_illegal": true, "rejected_overbroad": true, "needs_evidence": true}
 		if !allowed[in.Decision] {
 			return Result{}, apiError{422, "invalid review decision"}
 		}
 		if in.Decision == "valid" && strings.TrimSpace(in.Classification) == "" {
 			return Result{}, apiError{422, "classification required for valid decision"}
+		}
+		if in.Decision == "valid" && forbiddenAction(c.RequestedAction) {
+			return Result{}, apiError{422, "an illegal native YNXT control request cannot be reviewed as valid"}
+		}
+		if in.Decision == "valid" && overbroad(c.RequestScope) {
+			return Result{}, apiError{422, "an overbroad request cannot be reviewed as valid"}
 		}
 		c.Status = in.Decision
 		c.ValidityReason = in.Reason
@@ -524,7 +633,11 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		if s.cfg.AIURL != "" && s.cfg.AIKey != "" {
 			provider = "YNX AI Gateway"
 		}
-		x := AIRecord{ID: id, Owner: a.ID, CaseID: c.ID, Intent: in.Purpose, Context: in.Context, PrivacyPreview: "Only selected Trust record fields; evidence payloads remain excluded unless evidence_summary is selected.", Provider: provider, Model: s.cfg.AIModel, EstimatedCredits: 2 + len(in.Context), Permission: false, Status: "prepared", CreatedAt: now, UpdatedAt: now}
+		language := normalizeLanguage(in.Language)
+		if language == "" {
+			return Result{}, apiError{422, "supported AI output language is required"}
+		}
+		x := AIRecord{ID: id, Owner: a.ID, CaseID: c.ID, Intent: in.Purpose, Context: in.Context, PrivacyPreview: "Only selected Trust record fields; evidence payloads remain excluded unless evidence_summary is selected.", Provider: provider, Model: s.cfg.AIModel, OutputLanguage: language, EstimatedCredits: 2 + len(in.Context), Permission: false, Status: "prepared", CreatedAt: now, UpdatedAt: now}
 		s.data.AI[id] = x
 		s.auditLocked(a, in.Type, id, "prepared")
 		return Result{AI: &x}, nil
@@ -615,12 +728,14 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 }
 
 func (s *Service) askAI(x AIRecord) (string, error) {
-	prompt := fmt.Sprintf("Explain Trust case %s for intent %s using only context classes %s. Do not decide guilt, change labels, punish, freeze or transfer assets.", x.CaseID, x.Intent, strings.Join(x.Context, ","))
-	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream?session="+x.ID+"&q="+urlQuery(prompt), nil)
+	prompt := fmt.Sprintf("Explain Trust case %s for intent %s using only context classes %s. Respond in %s. Do not decide guilt, change labels, punish, freeze or transfer assets.", x.CaseID, x.Intent, strings.Join(x.Context, ","), x.OutputLanguage)
+	body, _ := json.Marshal(map[string]any{"session": x.ID, "prompt": prompt, "context": x.Context, "outputLanguage": x.OutputLanguage})
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.AIKey)
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return "", err
@@ -652,9 +767,18 @@ func (s *Service) askAI(x AIRecord) (string, error) {
 	}
 	return out.String(), nil
 }
-func urlQuery(s string) string {
-	r := strings.NewReplacer("%", "%25", " ", "%20", "?", "%3F", "&", "%26", "#", "%23")
-	return r.Replace(s)
+
+var supportedLanguages = map[string]bool{"en": true, "zh-Hans": true, "zh-Hant": true, "ja": true, "ko": true, "es": true, "fr": true, "de": true, "pt": true, "ru": true, "ar": true, "id": true}
+
+func normalizeLanguage(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		v = "en"
+	}
+	if supportedLanguages[v] {
+		return v
+	}
+	return ""
 }
 
 func (s *Service) View(a Actor) (map[string]any, error) {

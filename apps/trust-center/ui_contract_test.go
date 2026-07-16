@@ -16,7 +16,7 @@ func TestTrustUIAccessibilityResponsiveAndBoundaryContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, c := string(html), string(css)
-	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Trust Center sections"`, `Evidence · Procedure · Appeal`, `cannot freeze, seize, blacklist or transfer native YNXT`} {
+	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Trust Center sections"`, `Evidence · Procedure · Appeal`, `cannot freeze, seize, blacklist, confiscate or transfer native YNXT`, `Appeal & review`} {
 		if !strings.Contains(h, want) {
 			t.Errorf("missing UI contract %q", want)
 		}

@@ -113,6 +113,10 @@ func TestAllResourceTypesStakeDelegationRentalPolicyExpiryAndDispute(t *testing.
 	if resolved.Status != "revoked" || resolved.Dispute.Reviewer != "independent" {
 		t.Fatalf("resolution %+v", resolved)
 	}
+	view, _ := svc.View(Actor{"owner", "user"})
+	if got := view["pools"].([]Pool)[0].Available; got != 90 {
+		t.Fatalf("upheld dispute did not restore capacity: %d", got)
+	}
 	if _, err := svc.Do(Actor{"owner", "user"}, Action{Type: "update_policy", IdempotencyKey: "too-large", PoolID: p.ID, Policy: Policy{MaxPerGrant: 200}}); err == nil {
 		t.Fatal("unbounded policy accepted")
 	}
@@ -121,6 +125,13 @@ func TestAllResourceTypesStakeDelegationRentalPolicyExpiryAndDispute(t *testing.
 func TestAIExplicitPermissionProviderFailureAndNoAutomaticRental(t *testing.T) {
 	now := time.Now().UTC()
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.RawQuery != "" {
+			t.Errorf("AI prompt must use POST body, got %s %s", r.Method, r.URL.String())
+		}
+		var aiBody map[string]any
+		if json.NewDecoder(r.Body).Decode(&aiBody) != nil || aiBody["prompt"] == "" || aiBody["outputLanguage"] != "en" {
+			t.Errorf("invalid POST AI body: %+v", aiBody)
+		}
 		if r.Header.Get("Authorization") != "Bearer gateway-key" {
 			t.Error("missing gateway authorization")
 		}

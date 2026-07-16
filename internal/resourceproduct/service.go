@@ -3,6 +3,7 @@ package resourceproduct
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -25,6 +26,8 @@ type Config struct {
 	StorePath, AIURL, AIKey, AIModel string
 	Sessions                         map[string]Actor
 	AllowHeaderAuth                  bool
+	CentralGatewayURL                string
+	CentralClientID                  string
 	Now                              func() time.Time
 }
 type Actor struct{ ID, Role string }
@@ -36,6 +39,42 @@ type Audit struct {
 	Target  string    `json:"target"`
 	Outcome string    `json:"outcome"`
 	At      time.Time `json:"at"`
+}
+type CentralSession struct {
+	ID        string    `json:"id"`
+	TokenHash string    `json:"tokenHash"`
+	Account   string    `json:"account"`
+	DeviceID  string    `json:"deviceId"`
+	Scopes    []string  `json:"scopes"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	Status    string    `json:"status"`
+}
+type AuthorityAudit struct {
+	ID           string    `json:"id"`
+	Actor        string    `json:"actor"`
+	Method       string    `json:"method"`
+	Path         string    `json:"path"`
+	RequestHash  string    `json:"requestHash"`
+	ResponseHash string    `json:"responseHash,omitempty"`
+	Status       int       `json:"status"`
+	Outcome      string    `json:"outcome"`
+	At           time.Time `json:"at"`
+}
+type PurchaseIntent struct {
+	ID                string    `json:"id"`
+	Owner             string    `json:"owner"`
+	Kind              string    `json:"kind"`
+	IdempotencyKey    string    `json:"idempotencyKey"`
+	RequestHash       string    `json:"requestHash"`
+	Status            string    `json:"status"`
+	AuthorityPath     string    `json:"authorityPath"`
+	AuthorityObjectID string    `json:"authorityObjectId,omitempty"`
+	TransactionHash   string    `json:"transactionHash,omitempty"`
+	FeeSettlement     string    `json:"feeSettlement"`
+	Attempts          int       `json:"attempts"`
+	LastError         string    `json:"lastError,omitempty"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }
 type Policy struct {
 	AllowedBeneficiaries []string `json:"allowedBeneficiaries"`
@@ -93,6 +132,7 @@ type AIRecord struct {
 	PrivacyPreview   string    `json:"privacyPreview"`
 	Provider         string    `json:"provider"`
 	Model            string    `json:"model"`
+	OutputLanguage   string    `json:"outputLanguage"`
 	EstimatedCredits int       `json:"estimatedCredits"`
 	Permission       bool      `json:"permission"`
 	Status           string    `json:"status"`
@@ -104,13 +144,16 @@ type AIRecord struct {
 }
 type replay struct{ Digest, Kind, ID string }
 type snapshot struct {
-	Version  int                 `json:"version"`
-	Pools    map[string]Pool     `json:"pools"`
-	Records  map[string]Record   `json:"records"`
-	AI       map[string]AIRecord `json:"ai"`
-	Audit    []Audit             `json:"audit"`
-	Replay   map[string]replay   `json:"replay"`
-	Sequence uint64              `json:"sequence"`
+	Version        int                       `json:"version"`
+	Pools          map[string]Pool           `json:"pools"`
+	Records        map[string]Record         `json:"records"`
+	AI             map[string]AIRecord       `json:"ai"`
+	Audit          []Audit                   `json:"audit"`
+	Sessions       map[string]CentralSession `json:"sessions"`
+	AuthorityAudit []AuthorityAudit          `json:"authorityAudit"`
+	Intents        map[string]PurchaseIntent `json:"intents"`
+	Replay         map[string]replay         `json:"replay"`
+	Sequence       uint64                    `json:"sequence"`
 }
 type Service struct {
 	mu       sync.Mutex
@@ -130,7 +173,16 @@ func New(cfg Config) (*Service, error) {
 	if cfg.AIModel == "" {
 		cfg.AIModel = "unconfigured"
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}}}
+	cfg.CentralGatewayURL = strings.TrimRight(strings.TrimSpace(cfg.CentralGatewayURL), "/")
+	if cfg.CentralGatewayURL != "" {
+		if !strings.HasPrefix(cfg.CentralGatewayURL, "https://") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://127.0.0.1:") && !strings.HasPrefix(cfg.CentralGatewayURL, "http://localhost:") {
+			return nil, errors.New("central Gateway URL must use HTTPS or loopback HTTP")
+		}
+		if strings.TrimSpace(cfg.CentralClientID) == "" {
+			return nil, errors.New("central Gateway client ID is required")
+		}
+	}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}, Intents: map[string]PurchaseIntent{}}}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || strings.TrimSpace(actor.ID) == "" || strings.TrimSpace(actor.Role) == "" {
 			return nil, errors.New("Resource session registry contains an invalid token or actor")
@@ -169,6 +221,12 @@ func (s *Service) load() error {
 	}
 	if d.Replay == nil {
 		d.Replay = map[string]replay{}
+	}
+	if d.Sessions == nil {
+		d.Sessions = map[string]CentralSession{}
+	}
+	if d.Intents == nil {
+		d.Intents = map[string]PurchaseIntent{}
 	}
 	s.data = d
 	return nil
@@ -218,6 +276,7 @@ type Action struct {
 	Decision           string    `json:"decision,omitempty"`
 	Context            []string  `json:"context,omitempty"`
 	Permission         bool      `json:"permission,omitempty"`
+	Language           string    `json:"language,omitempty"`
 	BeneficiaryConsent bool      `json:"beneficiaryConsent,omitempty"`
 }
 type Result struct {
@@ -273,6 +332,54 @@ func (s *Service) auditLocked(a Actor, action, target, outcome string) string {
 	id := s.nextLocked("audit")
 	s.data.Audit = append(s.data.Audit, Audit{ID: id, Actor: a.ID, Role: a.Role, Action: action, Target: target, Outcome: outcome, At: s.cfg.Now().UTC()})
 	return id
+}
+func (s *Service) storeCentralSession(token string, v CentralSession) error {
+	sum := sha256.Sum256([]byte(token))
+	v.TokenHash = hex.EncodeToString(sum[:])
+	v.Status = "active"
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data.Sessions[v.ID] = v
+	return s.saveLocked()
+}
+func (s *Service) authenticateCentral(token, device string) (Actor, error) {
+	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	if token == "" || device == "" {
+		return Actor{}, apiError{401, "central Wallet session and device are required"}
+	}
+	sum := sha256.Sum256([]byte(token))
+	want := hex.EncodeToString(sum[:])
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.cfg.Now().UTC()
+	for _, v := range s.data.Sessions {
+		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 {
+			if v.Status != "active" || v.DeviceID != device || !now.Before(v.ExpiresAt) {
+				break
+			}
+			return Actor{ID: v.Account, Role: "user"}, nil
+		}
+	}
+	return Actor{}, apiError{401, "central Wallet session is invalid, expired or revoked"}
+}
+func (s *Service) revokeCentral(token, device string) error {
+	a, err := s.authenticateCentral(token, device)
+	if err != nil {
+		return err
+	}
+	clean := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
+	sum := sha256.Sum256([]byte(clean))
+	want := hex.EncodeToString(sum[:])
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, v := range s.data.Sessions {
+		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 && v.Account == a.ID {
+			v.Status = "revoked"
+			s.data.Sessions[id] = v
+			return s.saveLocked()
+		}
+	}
+	return apiError{404, "central session not found"}
 }
 func validResource(in Action, now time.Time) error {
 	if !resourceTypes[in.ResourceType] {
@@ -502,8 +609,21 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 		r.Dispute.Resolution = in.Reason
 		if in.Decision == "upheld" {
 			r.Status = "revoked"
+			if r.PoolID != "" {
+				p := s.data.Pools[r.PoolID]
+				p.Available += r.Limit
+				if p.Available > p.Limit {
+					p.Available = p.Limit
+				}
+				p.UpdatedAt = now
+				s.data.Pools[p.ID] = p
+			}
 		} else {
-			r.Status = "active"
+			if r.Expiry.After(now) {
+				r.Status = "active"
+			} else {
+				r.Status = "expired"
+			}
 		}
 		r.UpdatedAt = now
 		r.Audit = append(r.Audit, s.auditLocked(a, in.Type, r.ID, in.Decision))
@@ -527,7 +647,11 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 			provider = "YNX AI Gateway"
 		}
 		id := s.nextLocked("ai")
-		x := AIRecord{ID: id, Owner: a.ID, Intent: in.Reason, Context: in.Context, PrivacyPreview: "Only selected capacity, price and owned history fields; wallet secrets and asset balances are excluded.", Provider: provider, Model: s.cfg.AIModel, EstimatedCredits: 2 + len(in.Context), Status: "prepared", CreatedAt: now, UpdatedAt: now}
+		language := normalizeLanguage(in.Language)
+		if language == "" {
+			return Result{}, "", "", apiError{422, "supported AI output language is required"}
+		}
+		x := AIRecord{ID: id, Owner: a.ID, Intent: in.Reason, Context: in.Context, PrivacyPreview: "Only selected capacity, price and owned history fields; wallet secrets and asset balances are excluded.", Provider: provider, Model: s.cfg.AIModel, OutputLanguage: language, EstimatedCredits: 2 + len(in.Context), Status: "prepared", CreatedAt: now, UpdatedAt: now}
 		s.data.AI[id] = x
 		s.auditLocked(a, in.Type, id, "prepared")
 		return Result{AI: &x}, "ai", id, nil
@@ -612,12 +736,14 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 }
 
 func (s *Service) askAI(x AIRecord) (string, error) {
-	prompt := fmt.Sprintf("Explain resource usage, cost and rental options for %s using only %s. Never rent, stake, transfer or sponsor automatically.", x.Intent, strings.Join(x.Context, ","))
-	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream?session="+x.ID+"&q="+urlQuery(prompt), nil)
+	prompt := fmt.Sprintf("Explain resource usage, cost and rental options for %s using only %s. Respond in %s. Never rent, stake, transfer or sponsor automatically.", x.Intent, strings.Join(x.Context, ","), x.OutputLanguage)
+	body, _ := json.Marshal(map[string]any{"session": x.ID, "prompt": prompt, "context": x.Context, "outputLanguage": x.OutputLanguage})
+	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+s.cfg.AIKey)
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return "", err
@@ -649,8 +775,18 @@ func (s *Service) askAI(x AIRecord) (string, error) {
 	}
 	return out.String(), nil
 }
-func urlQuery(s string) string {
-	return strings.NewReplacer("%", "%25", " ", "%20", "?", "%3F", "&", "%26", "#", "%23").Replace(s)
+
+var supportedLanguages = map[string]bool{"en": true, "zh-Hans": true, "zh-Hant": true, "ja": true, "ko": true, "es": true, "fr": true, "de": true, "pt": true, "ru": true, "ar": true, "id": true}
+
+func normalizeLanguage(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		v = "en"
+	}
+	if supportedLanguages[v] {
+		return v
+	}
+	return ""
 }
 func (s *Service) View(a Actor) (map[string]any, error) {
 	if a.ID == "" || a.Role == "" {
