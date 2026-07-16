@@ -74,7 +74,8 @@ sed "s#/etc/ynx/prometheus/ynx-alerts.yml#$work/ynx-alerts.yml#" "$work/promethe
 "$work/promtool" check rules "$work/ynx-alerts.yml"
 ip -4 address show dev ynxwg0 | grep -Fq '10.77.42.1/32' || { echo "primary WireGuard monitoring address is absent"; exit 1; }
 for target in 10.77.42.2 10.77.42.3 10.77.42.4; do
-  curl -fsS --max-time 5 "http://$target:6420/metrics" >/dev/null || { echo "WireGuard metrics target unavailable: $target"; exit 1; }
+  curl -fsS --max-time 8 --retry 3 --retry-all-errors --retry-delay 2 \
+    "http://$target:6420/metrics" >/dev/null || { echo "WireGuard metrics target unavailable after bounded retries: $target"; exit 1; }
 done
 if ! id -u ynx-prometheus >/dev/null 2>&1; then
   sudo -n useradd --system --home-dir /var/lib/ynx-prometheus --shell /usr/sbin/nologin ynx-prometheus
