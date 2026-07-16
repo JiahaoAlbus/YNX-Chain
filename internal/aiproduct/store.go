@@ -26,18 +26,27 @@ type storedMessage struct {
 	Cipher  string `json:"cipher"`
 }
 
+type storedAttachment struct {
+	Attachment
+	Nonce  string `json:"nonce"`
+	Cipher string `json:"cipher"`
+}
+
 type persistentState struct {
-	Version       int                         `json:"version"`
-	Conversations map[string]Conversation     `json:"conversations"`
-	Messages      map[string][]storedMessage  `json:"messages"`
-	Policies      map[string]DataPolicy       `json:"policies"`
-	Permissions   map[string]PermissionRecord `json:"permissions"`
-	Actions       map[string]ActionRecord     `json:"actions"`
-	Appeals       map[string]Appeal           `json:"appeals"`
-	Audits        []AuditRecord               `json:"audits"`
-	AuditSequence uint64                      `json:"auditSequence"`
-	Challenges    map[string]WalletChallenge  `json:"walletChallenges"`
-	Sessions      map[string]ProductSession   `json:"sessions"`
+	Version          int                                     `json:"version"`
+	Conversations    map[string]Conversation                 `json:"conversations"`
+	Messages         map[string][]storedMessage              `json:"messages"`
+	Attachments      map[string][]storedAttachment           `json:"attachments"`
+	Policies         map[string]DataPolicy                   `json:"policies"`
+	Permissions      map[string]PermissionRecord             `json:"permissions"`
+	Actions          map[string]ActionRecord                 `json:"actions"`
+	Appeals          map[string]Appeal                       `json:"appeals"`
+	Audits           []AuditRecord                           `json:"audits"`
+	AuditSequence    uint64                                  `json:"auditSequence"`
+	Challenges       map[string]WalletChallenge              `json:"walletChallenges"`
+	Sessions         map[string]ProductSession               `json:"sessions"`
+	FormalRequests   map[string]FormalWalletRequestRecord    `json:"formalWalletRequests"`
+	FormalChallenges map[string]FormalGatewayChallengeRecord `json:"formalGatewayChallenges"`
 }
 
 type Store struct {
@@ -71,7 +80,7 @@ func NewStore(path string, key []byte) (*Store, error) {
 }
 
 func emptyState() persistentState {
-	return persistentState{Version: 1, Conversations: map[string]Conversation{}, Messages: map[string][]storedMessage{}, Policies: map[string]DataPolicy{}, Permissions: map[string]PermissionRecord{}, Actions: map[string]ActionRecord{}, Appeals: map[string]Appeal{}, Audits: []AuditRecord{}, Challenges: map[string]WalletChallenge{}, Sessions: map[string]ProductSession{}}
+	return persistentState{Version: 1, Conversations: map[string]Conversation{}, Messages: map[string][]storedMessage{}, Attachments: map[string][]storedAttachment{}, Policies: map[string]DataPolicy{}, Permissions: map[string]PermissionRecord{}, Actions: map[string]ActionRecord{}, Appeals: map[string]Appeal{}, Audits: []AuditRecord{}, Challenges: map[string]WalletChallenge{}, Sessions: map[string]ProductSession{}, FormalRequests: map[string]FormalWalletRequestRecord{}, FormalChallenges: map[string]FormalGatewayChallengeRecord{}}
 }
 
 func (s *Store) load() error {
@@ -88,6 +97,15 @@ func (s *Store) load() error {
 	}
 	if s.state.Version != 1 || s.state.Conversations == nil || s.state.Messages == nil || s.state.Policies == nil || s.state.Permissions == nil || s.state.Actions == nil || s.state.Appeals == nil || s.state.Challenges == nil || s.state.Sessions == nil {
 		return errors.New("AI product state schema is invalid")
+	}
+	if s.state.FormalRequests == nil {
+		s.state.FormalRequests = map[string]FormalWalletRequestRecord{}
+	}
+	if s.state.FormalChallenges == nil {
+		s.state.FormalChallenges = map[string]FormalGatewayChallengeRecord{}
+	}
+	if s.state.Attachments == nil {
+		s.state.Attachments = map[string][]storedAttachment{}
 	}
 	return nil
 }
@@ -244,9 +262,107 @@ func (s *Store) DeleteConversation(account, id string) error {
 		return os.ErrNotExist
 	}
 	delete(s.state.Messages, id)
+	delete(s.state.Attachments, id)
 	delete(s.state.Conversations, id)
 	s.auditLocked(account, "conversation_deleted", id, "encrypted content and metadata removed")
 	return s.saveLocked()
+}
+
+func (s *Store) AddAttachment(account, conversationID, name, mimeType string, data []byte) (Attachment, error) {
+	if len(data) == 0 || len(data) > 256<<10 {
+		return Attachment{}, errors.New("attachment must contain 1 to 262144 bytes")
+	}
+	allowed := map[string]bool{"text/plain": true, "text/markdown": true, "application/json": true}
+	if !allowed[mimeType] {
+		return Attachment{}, errors.New("only bounded plain text, Markdown, or JSON attachments are supported")
+	}
+	name = boundedText(name, 160)
+	if name == "" {
+		return Attachment{}, errors.New("attachment name is required")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.state.Conversations[conversationID]
+	if !ok || c.Account != account {
+		return Attachment{}, os.ErrNotExist
+	}
+	if len(s.state.Attachments[conversationID]) >= 8 {
+		return Attachment{}, errors.New("a conversation may retain at most 8 attachments")
+	}
+	id := randomID("attachment")
+	nonce, cipherText, err := s.encrypt(account, conversationID, id, string(data))
+	if err != nil {
+		return Attachment{}, err
+	}
+	hash := sha256.Sum256(data)
+	a := Attachment{ID: id, ConversationID: conversationID, Name: name, MIMEType: mimeType, Size: len(data), SHA256: hex.EncodeToString(hash[:]), CreatedAt: s.now().UTC()}
+	s.state.Attachments[conversationID] = append(s.state.Attachments[conversationID], storedAttachment{Attachment: a, Nonce: nonce, Cipher: cipherText})
+	s.auditLocked(account, "attachment_stored", id, "bounded encrypted attachment stored")
+	return a, s.saveLocked()
+}
+
+func (s *Store) Attachments(account, conversationID string) ([]Attachment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.state.Conversations[conversationID]
+	if !ok || c.Account != account {
+		return nil, os.ErrNotExist
+	}
+	out := make([]Attachment, 0, len(s.state.Attachments[conversationID]))
+	for _, stored := range s.state.Attachments[conversationID] {
+		out = append(out, stored.Attachment)
+	}
+	return out, nil
+}
+
+func (s *Store) AttachmentContexts(account, conversationID string, ids []string) ([]AttachmentContext, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.state.Conversations[conversationID]
+	if !ok || c.Account != account {
+		return nil, os.ErrNotExist
+	}
+	wanted := map[string]bool{}
+	for _, id := range cleanList(ids) {
+		wanted[id] = true
+	}
+	if len(wanted) != len(cleanList(ids)) {
+		return nil, errors.New("attachment ids must be unique")
+	}
+	out := make([]AttachmentContext, 0, len(wanted))
+	for _, stored := range s.state.Attachments[conversationID] {
+		if !wanted[stored.ID] {
+			continue
+		}
+		plain, err := s.decrypt(account, storedMessage{Message: Message{ID: stored.ID, ConversationID: conversationID}, Nonce: stored.Nonce, Cipher: stored.Cipher})
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, AttachmentContext{ID: stored.ID, Name: stored.Name, MIMEType: stored.MIMEType, Text: plain})
+		delete(wanted, stored.ID)
+	}
+	if len(wanted) != 0 {
+		return nil, errors.New("one or more attachments do not exist in this conversation")
+	}
+	return out, nil
+}
+
+func (s *Store) DeleteAttachment(account, conversationID, attachmentID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	c, ok := s.state.Conversations[conversationID]
+	if !ok || c.Account != account {
+		return os.ErrNotExist
+	}
+	items := s.state.Attachments[conversationID]
+	for i, stored := range items {
+		if stored.ID == attachmentID {
+			s.state.Attachments[conversationID] = append(items[:i], items[i+1:]...)
+			s.auditLocked(account, "attachment_deleted", attachmentID, "encrypted attachment removed")
+			return s.saveLocked()
+		}
+	}
+	return os.ErrNotExist
 }
 
 func (s *Store) AddMessage(account, conversationID string, m Message) (Message, error) {
@@ -440,6 +556,7 @@ func (s *Store) DeleteAccount(account string) error {
 		if c.Account == account {
 			delete(s.state.Conversations, id)
 			delete(s.state.Messages, id)
+			delete(s.state.Attachments, id)
 		}
 	}
 	for id, r := range s.state.Permissions {
@@ -500,6 +617,7 @@ func (s *Store) purgeLocked() {
 		if c.UpdatedAt.Before(cutoff) {
 			delete(s.state.Conversations, id)
 			delete(s.state.Messages, id)
+			delete(s.state.Attachments, id)
 			s.auditLocked(c.Account, "retention_purge", id, "retention boundary reached")
 		}
 	}

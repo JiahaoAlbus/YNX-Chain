@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "YNX AI",
+    "slug": "ynx-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ynxai",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.ai",
+      "infoPlist": {
+        "CFBundleDisplayName": "YNX AI",
+        "NSAppTransportSecurity": { "NSAllowsArbitraryLoads": false }
+      }
+    },
+    "android": {
+      "package": "com.ynxweb4.ai",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [],
+      "intentFilters": [{
+        "action": "VIEW",
+        "autoVerify": false,
+        "data": [{ "scheme": "ynxai", "host": "wallet-auth", "pathPrefix": "/callback" }],
+        "category": ["BROWSABLE", "DEFAULT"]
+      }]
+    },
+    "plugins": ["expo-secure-store", "expo-localization", "expo-document-picker"],
+    "extra": {
+      "apiBaseUrl": "http://10.0.2.2:8096"
+    }
+  }
+}

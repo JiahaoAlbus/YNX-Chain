@@ -73,6 +73,13 @@ func newGatewayFixture(t *testing.T, available bool) *httptest.Server {
 				http.Error(w, "provider unavailable", http.StatusBadGateway)
 				return
 			}
+			if r.Method != http.MethodPost || r.URL.RawQuery != "" {
+				t.Errorf("sensitive prompt stream must use POST body without query, method=%s query=%q", r.Method, r.URL.RawQuery)
+			}
+			var streamRequest map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&streamRequest); err != nil || streamRequest["prompt"] == "" || streamRequest["outputLanguage"] == "" {
+				t.Errorf("invalid POST stream body: %+v err=%v", streamRequest, err)
+			}
 			w.Header().Set("Content-Type", "text/event-stream")
 			_, _ = io.WriteString(w, "event: metadata\ndata: {\"requestId\":\"gateway-request-1\"}\n\nevent: token\ndata: {\"text\":\"real provider \"}\n\nevent: token\ndata: {\"text\":\"answer\"}\n\nevent: done\ndata: {}\n\n")
 		case r.URL.Path == "/ai/permissions":
@@ -96,7 +103,7 @@ func testProduct(t *testing.T, gateway string) (*Store, *httptest.Server) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := NewServer(Config{GatewayURL: gateway, GatewayKey: testGatewayKey, ExactWalletCallback: "ynx-ai://com.ynxweb4.ai/auth/callback", TrustURL: "https://trust.example/appeals", ProviderName: "fixture provider", GenerationTimeout: 2 * time.Second}, store, nil)
+	server, err := NewServer(Config{GatewayURL: gateway, GatewayKey: testGatewayKey, ExactWalletCallback: FormalCallback, TrustURL: "https://trust.example/appeals", ProviderName: "fixture provider", GenerationTimeout: 2 * time.Second}, store, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,6 +233,33 @@ func TestUnavailableProviderNeverCreatesCannedAnswer(t *testing.T) {
 	}
 	if len(messages) != 0 {
 		t.Fatalf("unavailable provider persisted synthetic messages: %+v", messages)
+	}
+}
+
+func TestProviderQuotaFailurePreserves429AndCreatesNoMessages(t *testing.T) {
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = io.WriteString(w, `{"ok":false,"error":"provider quota exhausted"}`)
+	}))
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	provider := authedJSON(t, http.MethodGet, product.URL+"/api/provider", nil, session, http.StatusTooManyRequests)
+	if !bytes.Contains(provider, []byte("rate_limited")) || !bytes.Contains(provider, []byte("429")) {
+		t.Fatalf("provider quota status is not truthful: %s", provider)
+	}
+	raw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Quota"}, session, http.StatusCreated)
+	var conversation Conversation
+	_ = json.Unmarshal(raw, &conversation)
+	failure := authedJSON(t, http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/generate", map[string]any{"generationId": "generation-quota", "prompt": "Answer me", "includedContext": []string{"conversation"}}, session, http.StatusTooManyRequests)
+	if !bytes.Contains(failure, []byte("quota reached (429)")) || !bytes.Contains(failure, []byte("no substitute answer")) {
+		t.Fatalf("quota failure boundary is not explicit: %s", failure)
+	}
+	_, messages, err := store.Conversation(session.Account, conversation.ID)
+	if err != nil || len(messages) != 0 {
+		t.Fatalf("quota failure persisted synthetic messages: %+v err=%v", messages, err)
 	}
 }
 

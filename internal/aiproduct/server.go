@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -72,6 +73,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
 	s.mux.HandleFunc("POST /api/auth/challenges", s.handleChallenge)
 	s.mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleVerify)
+	s.mux.HandleFunc("POST /api/auth/wallet/requests", s.handleFormalWalletRequest)
+	s.mux.HandleFunc("POST /api/auth/wallet/approvals", s.handleFormalWalletApproval)
+	s.mux.HandleFunc("POST /api/auth/wallet/sessions", s.handleFormalWalletSession)
 	s.mux.HandleFunc("POST /api/auth/revoke", s.authed("", s.handleRevoke))
 	s.mux.HandleFunc("GET /api/provider", s.authed("ai:generate", s.handleProvider))
 	s.mux.HandleFunc("GET /api/usage", s.authed("ai:data-control", s.handleUsage))
@@ -80,6 +84,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationGet))
 	s.mux.HandleFunc("PATCH /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationPatch))
 	s.mux.HandleFunc("DELETE /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationDelete))
+	s.mux.HandleFunc("GET /api/conversations/{id}/attachments", s.authed("ai:attachments", s.handleAttachmentList))
+	s.mux.HandleFunc("POST /api/conversations/{id}/attachments", s.authed("ai:attachments", s.handleAttachmentCreate))
+	s.mux.HandleFunc("DELETE /api/conversations/{id}/attachments/{attachmentId}", s.authed("ai:attachments", s.handleAttachmentDelete))
 	s.mux.HandleFunc("POST /api/conversations/{id}/generate", s.authed("ai:generate", s.handleGenerate))
 	s.mux.HandleFunc("GET /api/conversations/{id}/export", s.authed("ai:data-control", s.handleExport))
 	s.mux.HandleFunc("POST /api/generations/{id}/cancel", s.authed("ai:generate", s.handleCancel))
@@ -151,7 +158,7 @@ func (s *Server) allow(key string, limit int, now time.Time) bool {
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": []string{"ai:conversations", "ai:generate", "ai:permissions", "ai:data-control"}, "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
 }
 func (s *Server) handleChallenge(w http.ResponseWriter, r *http.Request) {
 	var in ChallengeInput
@@ -171,6 +178,43 @@ func (s *Server) handleVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.store.VerifyWalletChallenge(r.PathValue("id"), in)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, out)
+}
+
+func (s *Server) handleFormalWalletRequest(w http.ResponseWriter, r *http.Request) {
+	var in FormalRequestInput
+	if !decodeJSON(w, r, &in, 16<<10) {
+		return
+	}
+	out, err := s.store.CreateFormalWalletRequest(in)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, out)
+}
+func (s *Server) handleFormalWalletApproval(w http.ResponseWriter, r *http.Request) {
+	var in FormalApprovalInput
+	if !decodeJSON(w, r, &in, 64<<10) {
+		return
+	}
+	out, err := s.store.ApproveFormalWallet(in)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, out)
+}
+func (s *Server) handleFormalWalletSession(w http.ResponseWriter, r *http.Request) {
+	var in FormalCompletionInput
+	if !decodeJSON(w, r, &in, 64<<10) {
+		return
+	}
+	out, err := s.store.CompleteFormalWallet(in)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -211,6 +255,9 @@ func (s *Server) providerStatus(ctx context.Context) map[string]any {
 		return map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway is unreachable", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return map[string]any{"available": false, "status": "rate_limited", "error": "AI provider quota reached (429)", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
+	}
 	var health map[string]any
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&health); err != nil {
 		return map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway returned an invalid health response", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
@@ -227,7 +274,11 @@ func (s *Server) handleProvider(w http.ResponseWriter, r *http.Request, session 
 	status := s.providerStatus(r.Context())
 	code := http.StatusOK
 	if status["available"] != true {
-		code = http.StatusBadGateway
+		if status["status"] == "rate_limited" {
+			code = http.StatusTooManyRequests
+		} else {
+			code = http.StatusBadGateway
+		}
 	}
 	writeJSON(w, code, status)
 }
@@ -297,6 +348,45 @@ func (s *Server) handleConversationDelete(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (s *Server) handleAttachmentList(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	attachments, err := s.store.Attachments(session.Account, r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "conversation not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"attachments": attachments})
+}
+
+func (s *Server) handleAttachmentCreate(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	var in struct {
+		Name          string `json:"name"`
+		MIMEType      string `json:"mimeType"`
+		ContentBase64 string `json:"contentBase64"`
+	}
+	if !decodeJSON(w, r, &in, 384<<10) {
+		return
+	}
+	data, err := base64.RawStdEncoding.DecodeString(in.ContentBase64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "attachment contentBase64 is invalid")
+		return
+	}
+	a, err := s.store.AddAttachment(session.Account, r.PathValue("id"), in.Name, in.MIMEType, data)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, a)
+}
+
+func (s *Server) handleAttachmentDelete(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	if err := s.store.DeleteAttachment(session.Account, r.PathValue("id"), r.PathValue("attachmentId")); err != nil {
+		writeError(w, http.StatusNotFound, "attachment not found")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type generationInput struct {
 	GenerationID    string   `json:"generationId"`
 	Prompt          string   `json:"prompt"`
@@ -305,6 +395,8 @@ type generationInput struct {
 	IncludedContext []string `json:"includedContext"`
 	ExcludedContext []string `json:"excludedContext"`
 	RetryOf         string   `json:"retryOf"`
+	OutputLanguage  string   `json:"outputLanguage"`
+	AttachmentIDs   []string `json:"attachmentIds,omitempty"`
 }
 
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session ProductSession) {
@@ -313,9 +405,20 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	in.GenerationID = boundedText(in.GenerationID, 100)
-	in.Prompt = boundedText(in.Prompt, 8000)
+	in.Prompt = strings.TrimSpace(in.Prompt)
 	if in.GenerationID == "" || in.Prompt == "" {
 		writeError(w, http.StatusBadRequest, "generationId and prompt are required")
+		return
+	}
+	if len([]rune(in.Prompt)) > 8000 {
+		writeError(w, http.StatusRequestEntityTooLarge, "prompt exceeds the 8000-character product limit")
+		return
+	}
+	if in.OutputLanguage == "" {
+		in.OutputLanguage = "en"
+	}
+	if !supportedOutputLanguage(in.OutputLanguage) {
+		writeError(w, http.StatusBadRequest, "unsupported AI output language")
 		return
 	}
 	if _, _, err := s.store.Conversation(session.Account, r.PathValue("id")); err != nil {
@@ -327,9 +430,18 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	attachments, err := s.store.AttachmentContexts(session.Account, r.PathValue("id"), in.AttachmentIDs)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	status := s.providerStatus(r.Context())
 	if status["available"] != true {
-		writeError(w, http.StatusBadGateway, "AI provider is unavailable; no substitute answer was generated")
+		if status["status"] == "rate_limited" {
+			writeError(w, http.StatusTooManyRequests, "AI provider quota reached (429); no substitute answer was generated")
+		} else {
+			writeError(w, http.StatusBadGateway, "AI provider is unavailable; no substitute answer was generated")
+		}
 		return
 	}
 	model, _ := status["model"].(string)
@@ -353,14 +465,18 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	path := "/ai/stream?session=" + url.QueryEscape(r.PathValue("id")) + "&q=" + url.QueryEscape(in.Prompt)
-	resp, err := s.gatewayRequest(ctx, http.MethodGet, path, nil)
+	payload := map[string]any{"session": r.PathValue("id"), "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments}
+	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
 	if err != nil {
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusTooManyRequests {
+			s.streamFailure(w, "provider_rate_limited_429", in.GenerationID)
+			return
+		}
 		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<10))
 		message := "AI provider is unavailable; no substitute answer was generated"
 		if len(raw) > 0 {
@@ -701,6 +817,14 @@ func cleanList(values []string) []string {
 		}
 	}
 	return out
+}
+func supportedOutputLanguage(value string) bool {
+	switch value {
+	case "en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id":
+		return true
+	default:
+		return false
+	}
 }
 func decodeJSON(w http.ResponseWriter, r *http.Request, out any, max int64) bool {
 	decoder := json.NewDecoder(io.LimitReader(r.Body, max+1))

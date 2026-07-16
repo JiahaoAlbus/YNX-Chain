@@ -1,0 +1,37 @@
+{
+  "name": "@ynx-chain/ai-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts",
+    "product-check": "node scripts/product-check.mjs && node scripts/i18n-layout-check.mjs",
+    "bundle-check": "expo export --platform android --platform ios --output-dir dist",
+    "check": "npm run typecheck && npm test && npm run product-check && npm run bundle-check"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "expo": "~57.0.4",
+    "expo-clipboard": "57.0.0",
+    "expo-crypto": "~57.0.0",
+    "expo-document-picker": "~57.0.0",
+    "expo-file-system": "~57.0.0",
+    "expo-linking": "~57.0.0",
+    "expo-localization": "~57.0.0",
+    "expo-secure-store": "~57.0.0",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "tsx": "4.23.1",
+    "typescript": "~6.0.3"
+  }
+}

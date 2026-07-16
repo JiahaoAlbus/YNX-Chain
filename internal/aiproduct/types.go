@@ -37,6 +37,23 @@ type Message struct {
 	CreatedAt       time.Time `json:"createdAt"`
 }
 
+type Attachment struct {
+	ID             string    `json:"id"`
+	ConversationID string    `json:"conversationId"`
+	Name           string    `json:"name"`
+	MIMEType       string    `json:"mimeType"`
+	Size           int       `json:"size"`
+	SHA256         string    `json:"sha256"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type AttachmentContext struct {
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	MIMEType string `json:"mimeType"`
+	Text     string `json:"text"`
+}
+
 type Cost struct {
 	InputTokensEstimate  int64   `json:"inputTokensEstimate"`
 	OutputTokensEstimate int64   `json:"outputTokensEstimate"`
@@ -147,13 +164,16 @@ type WalletSignDocument struct {
 }
 
 type ProductSession struct {
-	ID        string    `json:"id"`
-	TokenHash string    `json:"tokenHash"`
-	Account   string    `json:"account"`
-	DeviceID  string    `json:"deviceId"`
-	Scopes    []string  `json:"scopes"`
-	IssuedAt  time.Time `json:"issuedAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	Status    string    `json:"status"`
-	RevokedAt time.Time `json:"revokedAt,omitempty"`
+	ID              string    `json:"id"`
+	TokenHash       string    `json:"tokenHash"`
+	Account         string    `json:"account"`
+	DeviceID        string    `json:"deviceId"`
+	ProductClientID string    `json:"productClientId,omitempty"`
+	BundleID        string    `json:"bundleId,omitempty"`
+	SessionBinding  string    `json:"sessionBinding,omitempty"`
+	Scopes          []string  `json:"scopes"`
+	IssuedAt        time.Time `json:"issuedAt"`
+	ExpiresAt       time.Time `json:"expiresAt"`
+	Status          string    `json:"status"`
+	RevokedAt       time.Time `json:"revokedAt,omitempty"`
 }
