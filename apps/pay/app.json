@@ -2,13 +2,67 @@
   "expo": {
     "name": "YNX Pay",
     "slug": "ynx-pay",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "ynxpay",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.ynxweb4.pay", "buildNumber": "1", "infoPlist": { "NSCameraUsageDescription": "Scan a merchant-signed YNX Pay invoice." } },
-    "android": { "package": "com.ynxweb4.pay", "versionCode": 1, "permissions": ["CAMERA"], "adaptiveIcon": { "backgroundColor": "#FFFFFF" } },
-    "plugins": [["expo-camera", { "cameraPermission": "Scan a merchant-signed YNX Pay invoice." }], "expo-secure-store"],
-    "extra": { "product": "pay", "network": "ynx_6423-1", "asset": "YNXT", "crossChainSettlement": "unavailable" }
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "locales": {
+      "en": "./assets/locales/en.json",
+      "zh": "./assets/locales/zh-Hans.json",
+      "zh-Hant": "./assets/locales/zh-Hant.json",
+      "ja": "./assets/locales/ja.json",
+      "ko": "./assets/locales/ko.json",
+      "es": "./assets/locales/es.json",
+      "fr": "./assets/locales/fr.json",
+      "de": "./assets/locales/de.json",
+      "pt": "./assets/locales/pt.json",
+      "ru": "./assets/locales/ru.json",
+      "ar": "./assets/locales/ar.json",
+      "id": "./assets/locales/id.json"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.pay",
+      "buildNumber": "2",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is used only to scan a signed YNX Pay invoice. No image is stored.",
+        "LSApplicationQueriesSchemes": ["ynxwallet"]
+      }
+    },
+    "android": {
+      "package": "com.ynxweb4.pay",
+      "versionCode": 2,
+      "permissions": ["CAMERA"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [{"scheme": "ynxpay"}],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": [
+      ["expo-camera", {"cameraPermission": "Camera access is used only to scan a signed YNX Pay invoice. No image is stored."}],
+      "expo-secure-store",
+      "expo-localization"
+    ],
+    "extra": {
+      "product": "pay",
+      "productClientId": "ynx-pay-v1",
+      "network": "ynx_6423-1",
+      "asset": "YNXT",
+      "crossChainSettlement": "unavailable"
+    }
   }
 }

@@ -15,10 +15,13 @@ import (
 var aiWorkflows = map[string][]string{"invoice_extraction": {"invoice"}, "merchant_support_draft": {"invoice", "refund", "dispute"}, "reconciliation_explanation": {"invoice", "settlement", "webhook"}, "anomaly_review": {"invoice", "settlement", "webhook", "dispute"}}
 
 type AIRunInput struct {
-	Workflow   string   `json:"workflow"`
-	ContextIDs []string `json:"contextIds"`
-	Permission string   `json:"permission"`
+	Workflow       string   `json:"workflow"`
+	ContextIDs     []string `json:"contextIds"`
+	Permission     string   `json:"permission"`
+	OutputLanguage string   `json:"outputLanguage"`
 }
+
+var aiOutputLanguages = map[string]string{"en": "English", "zh-Hans": "Simplified Chinese", "zh-Hant": "Traditional Chinese", "ja": "Japanese", "ko": "Korean", "es": "Spanish", "fr": "French", "de": "German", "pt": "Portuguese", "ru": "Russian", "ar": "Arabic", "id": "Bahasa Indonesia"}
 
 func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInput) (AIRun, error) {
 	classes, ok := aiWorkflows[input.Workflow]
@@ -27,6 +30,10 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 	}
 	if input.Permission != "allow-once" {
 		return AIRun{}, errors.New("AI requires explicit allow-once permission")
+	}
+	language, ok := aiOutputLanguages[input.OutputLanguage]
+	if !ok {
+		return AIRun{}, errors.New("AI output language is unsupported")
 	}
 	if len(input.ContextIDs) == 0 || len(input.ContextIDs) > 20 {
 		return AIRun{}, errors.New("AI context must contain 1 to 20 authorized record IDs")
@@ -69,7 +76,7 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 		return AIRun{}, err
 	}
 	now := s.now()
-	run := AIRun{ID: "air_" + randomToken(12), MerchantID: merchant.ID, Workflow: input.Workflow, ContextIDs: append([]string(nil), input.ContextIDs...), ContextClasses: classes, Provider: "YNX AI Gateway", Status: "running", Permission: "allow-once", EstimatedUnits: int64(len(records)) * 250, CreatedAt: now, UpdatedAt: now}
+	run := AIRun{ID: "air_" + randomToken(12), MerchantID: merchant.ID, Workflow: input.Workflow, ContextIDs: append([]string(nil), input.ContextIDs...), ContextClasses: classes, Provider: "YNX AI Gateway", Status: "running", Permission: "allow-once", EstimatedUnits: int64(len(records)) * 250, OutputLanguage: input.OutputLanguage, CreatedAt: now, UpdatedAt: now}
 	_ = s.store.Update(func(data *Snapshot) error {
 		data.AIRuns[run.ID] = run
 		appendAudit(data, merchant.ID, merchant.ID, "ai."+input.Workflow, run.ID, "authorized", "bounded records only", now)
@@ -82,7 +89,7 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 		return run, nil
 	}
 	recordJSON, _ := json.Marshal(records)
-	prompt := fmt.Sprintf("You are the YNX Pay %s workflow. Analyze only the supplied authorized JSON records. Never sign, pay, refund, redirect funds, approve disputes, or modify secrets. Return a factual draft with record IDs and uncertainty. Records: %s", input.Workflow, recordJSON)
+	prompt := fmt.Sprintf("You are the YNX Pay %s workflow. Analyze only the supplied authorized JSON records. Never sign, pay, refund, redirect funds, approve disputes, or modify secrets. Return a factual draft in %s with record IDs and uncertainty. Records: %s", input.Workflow, language, recordJSON)
 	providerContext, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	s.aiMu.Lock()
 	s.aiCancels[run.ID] = cancel

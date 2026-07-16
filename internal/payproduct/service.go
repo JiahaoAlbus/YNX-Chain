@@ -32,27 +32,29 @@ type AIProvider interface {
 	Complete(context.Context, string, string) (provider, model, result string, units int64, err error)
 }
 type Config struct {
-	StorePath     string
-	IntegrityKey  []byte
-	BootstrapKey  string
-	PublicBaseURL string
-	PayAPI        PayAPI
-	AI            AIProvider
-	HTTPClient    *http.Client
-	Now           func() time.Time
+	StorePath         string
+	IntegrityKey      []byte
+	BootstrapKey      string
+	PublicBaseURL     string
+	CentralMerchantID string
+	PayAPI            PayAPI
+	AI                AIProvider
+	HTTPClient        *http.Client
+	Now               func() time.Time
 }
 type Service struct {
-	store      *Store
-	pay        PayAPI
-	ai         AIProvider
-	bootstrap  string
-	publicBase string
-	key        []byte
-	client     *http.Client
-	now        func() time.Time
-	mutation   sync.Mutex
-	aiMu       sync.Mutex
-	aiCancels  map[string]context.CancelFunc
+	store             *Store
+	pay               PayAPI
+	ai                AIProvider
+	bootstrap         string
+	publicBase        string
+	centralMerchantID string
+	key               []byte
+	client            *http.Client
+	now               func() time.Time
+	mutation          sync.Mutex
+	aiMu              sync.Mutex
+	aiCancels         map[string]context.CancelFunc
 }
 
 func New(cfg Config) (*Service, error) {
@@ -82,7 +84,7 @@ func New(cfg Config) (*Service, error) {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, bootstrap: cfg.BootstrapKey, publicBase: base, key: append([]byte(nil), cfg.IntegrityKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -155,7 +157,11 @@ func (s *Service) Onboard(input OnboardInput) (OnboardResult, error) {
 	}
 	now := s.now()
 	id := "mrc_" + hashString(name, payout, key)[:20]
-	merchant := Merchant{ID: id, DisplayName: name, PayoutAddress: payout, Status: "active", WebhookURL: endpoint, SecretVersion: 1, SecretHash: hashString(credential), CredentialCipher: s.seal(credential), WebhookSecretCipher: s.seal(webhookSecret), InvoiceSigningPublicKey: hex.EncodeToString(invoicePublic), InvoiceSigningPrivateCipher: s.seal(base64.RawStdEncoding.EncodeToString(invoicePrivate)), CreatedAt: now, UpdatedAt: now}
+	centralMerchantID := s.centralMerchantID
+	if centralMerchantID == "" {
+		centralMerchantID = id
+	}
+	merchant := Merchant{ID: id, CentralMerchantID: centralMerchantID, DisplayName: name, PayoutAddress: payout, Status: "active", WebhookURL: endpoint, SecretVersion: 1, SecretHash: hashString(credential), CredentialCipher: s.seal(credential), WebhookSecretCipher: s.seal(webhookSecret), InvoiceSigningPublicKey: hex.EncodeToString(invoicePublic), InvoiceSigningPrivateCipher: s.seal(base64.RawStdEncoding.EncodeToString(invoicePrivate)), CreatedAt: now, UpdatedAt: now}
 	err = s.store.Update(func(data *Snapshot) error {
 		if _, ok := data.Merchants[id]; ok {
 			return errors.New("merchant already exists")
@@ -297,7 +303,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	} else if ok {
 		return existing, nil
 	}
-	intent, err := s.pay.CreateIntent(ctx, merchant.ID, merchant.PayoutAddress, amount, "product-intent-"+key)
+	intent, err := s.pay.CreateIntent(ctx, merchant.CentralMerchantID, merchant.PayoutAddress, amount, "product-intent-"+key)
 	if err != nil {
 		return Invoice{}, err
 	}
@@ -306,7 +312,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	if err != nil {
 		return Invoice{}, err
 	}
-	if central.Currency != NativeAsset || central.Amount != amount || central.Merchant != merchant.ID || central.PayoutAddress != merchant.PayoutAddress || central.Status != "issued" {
+	if central.Currency != NativeAsset || central.Amount != amount || central.Merchant != merchant.CentralMerchantID || central.PayoutAddress != merchant.PayoutAddress || central.Status != "issued" {
 		return Invoice{}, errors.New("central Pay invoice did not match the merchant request")
 	}
 	expiry := s.now().Add(time.Duration(input.ExpiresInMinutes) * time.Minute)
@@ -382,7 +388,7 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != invoice.MerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 {
+	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
@@ -430,13 +436,15 @@ func (s *Service) queueWebhook(merchant Merchant, event, objectID string) error 
 	if merchant.WebhookURL == "" {
 		return nil
 	}
-	payload, _ := json.Marshal(map[string]any{"event": event, "objectId": objectID, "merchantId": merchant.ID, "occurredAt": s.now()})
+	now := s.now().UTC()
+	payload, _ := json.Marshal(map[string]any{"event": event, "objectId": objectID, "merchantId": merchant.ID, "occurredAt": now})
 	secret, err := s.open(merchant.WebhookSecretCipher)
 	if err != nil {
 		return err
 	}
 	id := "whd_" + hashString(event, objectID, fmt.Sprint(merchant.SecretVersion))[:20]
-	delivery := WebhookDelivery{ID: id, MerchantID: merchant.ID, EventType: event, ObjectID: objectID, Endpoint: merchant.WebhookURL, PayloadHash: hexSHA(payload), Signature: hmacHex([]byte(secret), payload), SecretVersion: merchant.SecretVersion, Status: "pending", CreatedAt: s.now(), UpdatedAt: s.now()}
+	payloadHash := hexSHA(payload)
+	delivery := WebhookDelivery{ID: id, MerchantID: merchant.ID, EventType: event, ObjectID: objectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(id, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", CreatedAt: now, UpdatedAt: now}
 	return s.store.Update(func(data *Snapshot) error {
 		if _, ok := data.Deliveries[id]; !ok {
 			data.Deliveries[id] = delivery
@@ -468,6 +476,10 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-YNX-Event-ID", d.ID)
+	req.Header.Set("X-YNX-Delivery-ID", d.ID)
+	req.Header.Set("X-YNX-Timestamp", d.CreatedAt.UTC().Format(time.RFC3339Nano))
+	req.Header.Set("X-YNX-Payload-SHA256", d.PayloadHash)
+	req.Header.Set("X-YNX-Signature-Version", fmt.Sprint(d.SecretVersion))
 	req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
 	resp, sendErr := s.client.Do(req)
 	d.Attempt++
@@ -497,6 +509,10 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 		return nil
 	})
 	return d, err
+}
+
+func webhookSigningMaterial(id string, timestamp time.Time, payloadHash string) []byte {
+	return []byte(strings.Join([]string{"YNX_PAY_WEBHOOK_V1", id, timestamp.UTC().Format(time.RFC3339Nano), payloadHash}, "\n"))
 }
 
 func (s *Service) RetryDue(ctx context.Context) []WebhookDelivery {

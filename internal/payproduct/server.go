@@ -27,8 +27,7 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
-	s.mux.HandleFunc("POST /v1/wallet/challenges", s.walletChallenge)
-	s.mux.HandleFunc("POST /v1/wallet/session", s.walletSession)
+	s.mux.HandleFunc("POST /v1/wallet/gateway-sessions", s.walletSession)
 	s.mux.HandleFunc("GET /v1/invoices/{id}", s.invoice)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/settlements", s.settlement)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/refund-requests", s.refund)
@@ -59,14 +58,6 @@ func (s *Server) onboard(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Onboard(in)
 	respond(w, 201, out, err)
 }
-func (s *Server) walletChallenge(w http.ResponseWriter, r *http.Request) {
-	var in WalletChallengeInput
-	if !decode(w, r, &in) {
-		return
-	}
-	out, err := s.service.CreateWalletChallenge(in)
-	respond(w, 201, out, err)
-}
 func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
 	var in WalletSessionInput
 	if !decode(w, r, &in) {
@@ -89,13 +80,14 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var in struct {
-		TransactionHash string `json:"transactionHash"`
-		IdempotencyKey  string `json:"idempotencyKey"`
+		Intent         SignedPaymentIntent `json:"intent"`
+		Result         WalletPaymentResult `json:"result"`
+		IdempotencyKey string              `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &in) {
 		return
 	}
-	out, err := s.service.SubmitSettlement(r.Context(), r.PathValue("id"), session.Account, in.TransactionHash, in.IdempotencyKey)
+	out, err := s.service.SubmitSignedSettlement(r.Context(), session, r.PathValue("id"), in.Intent, in.Result, in.IdempotencyKey)
 	respond(w, 201, out, err)
 }
 func (s *Server) refund(w http.ResponseWriter, r *http.Request) {
