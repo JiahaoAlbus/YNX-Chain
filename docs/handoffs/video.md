@@ -4,8 +4,9 @@
 
 - Branch: `codex/ecosystem-video`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Video`
-- Returned candidate: `8dc10dcbc047299c8d322be7d9431fc5325b9416`
-- Corrected commit: use the pushed branch HEAD reported by this product thread.
+- Implementation parent: `7a89550d4964ea38b854cbd03f18775494c2f513`.
+- Final evidence candidate: use the pushed branch HEAD reported by this product
+  thread; the final commit adds only handoff and install/build evidence.
 - Changed ownership only: `apps/video/**`, `apps/creator-studio/**`,
   `internal/video/**`, `docs/handoffs/video.md`, and existing product evidence.
 - No central state/acceptance file, long-term objective, root `Makefile`, Gateway
@@ -178,6 +179,8 @@ Passed in this worktree on 2026-07-16:
   activity, icon and only INTERNET/ACCESS_NETWORK_STATE permissions confirmed.
 - `xcrun swiftc -frontend -parse` — pass for both Swift sources.
 - `plutil -lint` — pass for Info.plist and Xcode project.
+- `make env-check && make no-placeholder-check && make secret-scan` — pass.
+- `make static-check` — pass, including repository Go vet and script syntax.
 - `git diff --check` — pass.
 - `go test ./...` — Video and all other available packages pass, except the
   unchanged baseline `internal/bftgateway` and `internal/consensus` IDE tests,
@@ -185,14 +188,17 @@ Passed in this worktree on 2026-07-16:
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
   This branch did not generate or commit another product's contract artifact.
 
-Android device evidence has an important qualification. An earlier corrected
-checkpoint installed successfully and produced `LaunchState: COLD`, resumed
-`com.ynxweb4.video/.MainActivity`, and `TotalTime: 17536 ms`. The emulator then
-showed a Pixel Launcher ANR. Subsequent attempts were blocked by multiple
-parallel product emulators and an SDK image stuck before PackageManager. No
-misleading screenshot is committed, and that earlier checkpoint is not claimed
-as final-APK cold-start proof. A clean final-APK install/cold-start rerun remains
-required when an isolated emulator is available.
+The final APK was installed on a clean, isolated `ynx_video_api36` API 36
+emulator through a dedicated ADB server. PackageManager returned `Success`.
+After package-data clear, log clear and force-stop, `am start -W -S` returned
+`Status: ok`, `LaunchState: COLD`, resumed
+`com.ynxweb4.video/.MainActivity`, and measured `TotalTime: 2427 ms` /
+`WaitTime: 2485 ms`. The process remained live and the post-launch error log had
+no matching `FATAL EXCEPTION`, `AndroidRuntime`, or package crash. Exact install,
+launch, runtime, package, permission, hash and emulator provenance are committed
+under `docs/handoffs/video-evidence/android-final/`. This is debug/test-signed
+emulator evidence only; it is not production signing, physical-device, Play or
+independent evidence.
 
 The existing `docs/handoffs/video-evidence/viewer-*.png` and
 `studio-desktop.png` are retained as Web visual evidence from the returned
@@ -210,8 +216,10 @@ candidate only; they are not presented as native or new localization evidence.
 4. Pay deployment credentials and a real committed testnet settlement are
    required for external revenue/payout evidence. No revenue or payout exists in
    repository state.
-5. Android final APK still needs a clean isolated-emulator install/cold-start
-   rerun and production signing/release ownership. No Play submission is claimed.
+5. Android production signing, release-owner custody, physical-device coverage
+   and store submission remain absent. The committed proof is an API 36
+   debug/test-signed emulator install and cold start only; no Play submission is
+   claimed.
 6. Full Xcode, Simulator, CocoaPods/toolchain if required, Apple signing,
    reviewed AppIcon, device tests and archive are absent. No iOS build,
    Simulator run, TestFlight or App Store readiness is claimed.

@@ -1,0 +1,11 @@
+boot_completed=1
+package_service=found
+topResumedActivity=com.ynxweb4.video/.MainActivity
+pid=20760
+versionCode=1
+versionName=0.1.0-test
+minSdk=26
+targetSdk=36
+firstInstallTime=2026-07-17 00:50:04 Asia/Shanghai
+lastUpdateTime=2026-07-17 00:50:04 Asia/Shanghai
+fatal_or_androidruntime_matches=0

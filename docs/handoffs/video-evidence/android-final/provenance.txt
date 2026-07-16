@@ -1,0 +1,13 @@
+captured_at=2026-07-16T16:57:04Z
+source_commit=7a89550d4964ea38b854cbd03f18775494c2f513
+source_branch=codex/ecosystem-video
+apk_path=apps/video/android/app/build/outputs/apk/debug/app-debug.apk
+apk_bytes=32353
+apk_sha256=76e379743a3c9d461eba796db6bb4677bbb4096d46a44d9e083854bd67ffe73b
+avd=ynx_video_api36
+serial=emulator-5582
+boot_completed=1
+build_fingerprint=google/sdk_gphone64_arm64/emu64a:16/BP22.250325.006/13344233:user/release-keys
+adb_server_port=5041
+emulator_console_port=5582
+apk_signing=Android debug/test key; not production signing

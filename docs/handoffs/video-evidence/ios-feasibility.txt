@@ -1,0 +1,21 @@
+captured_at=2026-07-16T16:57:04Z
+source_commit=7a89550d4964ea38b854cbd03f18775494c2f513
+source_branch=codex/ecosystem-video
+
+xcode-select -p
+/Library/Developer/CommandLineTools
+
+xcodebuild -version
+xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance
+
+xcrun --find swiftc
+/Library/Developer/CommandLineTools/usr/bin/swiftc
+
+xcrun swiftc -frontend -parse apps/video/ios/YNXVideo/YNXVideoApp.swift apps/video/ios/YNXVideo/ContentView.swift
+exit=0
+
+plutil -lint apps/video/ios/YNXVideo/Info.plist apps/video/ios/YNXVideo.xcodeproj/project.pbxproj
+apps/video/ios/YNXVideo/Info.plist: OK
+apps/video/ios/YNXVideo.xcodeproj/project.pbxproj: OK
+
+boundary=Source syntax and project metadata are feasible on this host. Full Xcode, Simulator, signing, archive and device evidence are unavailable and are not claimed.
