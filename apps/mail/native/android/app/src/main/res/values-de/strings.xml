@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Mit YNX Wallet anmelden</string>
+  <string name="inbox">Posteingang</string>
+  <string name="search">E-Mails suchen</string>
+  <string name="compose">Verfassen</string>
+  <string name="drafts">Entw&#xFC;rfe</string>
+  <string name="archive">Archiv</string>
+  <string name="spam">Spam</string>
+  <string name="offline">Offline &#x2014; &#xC4;nderungen bleiben auf diesem Ger&#xE4;t</string>
+  <string name="empty">Keine Nachrichten</string>
+  <string name="retry">Erneut versuchen</string>
+  <string name="privacy">Nur ausgew&#xE4;hlte Unterhaltungen werden nach Freigabe an die KI gesendet.</string>
+  <string name="ai">KI-Arbeitsbereich</string>
+  <string name="ai_language">KI-Ausgabesprache</string>
+  <string name="approve">Ausgew&#xE4;hlten Kontext freigeben</string>
+  <string name="recover">Mit YNX Wallet wiederherstellen</string>
+  <string name="unavailable">Gateway nicht verf&#xFC;gbar</string>
+  <string name="security">Die Wallet-Freigabe gibt niemals Wiederherstellungsmaterial weiter.</string>
+  <string name="attachment">Anhang hinzuf&#xFC;gen (max. 10 MB)</string>
+  <string name="send_preview">Pr&#xFC;fen und senden</string>
+  <string name="a11y_nav">E-Mail-Navigation</string>
+  <string name="thread">Unterhaltung</string>
+  <string name="delivery_failure">Zustellung fehlgeschlagen — Entwurf behalten</string>
+  <string name="block_sender">Absender blockieren</string>
+  <string name="report_trust">An Trust melden</string>
+  <string name="appeal">Meldung anfechten</string>
+</resources>

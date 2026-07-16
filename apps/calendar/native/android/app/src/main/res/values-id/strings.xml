@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Masuk dengan YNX Wallet</string>
+  <string name="today">Hari ini</string>
+  <string name="create">Buat acara</string>
+  <string name="empty">Tidak ada acara dalam rentang ini</string>
+  <string name="offline">Offline &#x2014; perubahan mengantre di perangkat ini</string>
+  <string name="invite">Undang kontak dengan nama pengguna</string>
+  <string name="timezone">Zona waktu</string>
+  <string name="repeat">Pengulangan</string>
+  <string name="reminder">Pengingat</string>
+  <string name="conflict">Periksa konflik</string>
+  <string name="review">Tinjau perubahan</string>
+  <string name="approve">Setujui perubahan</string>
+  <string name="recover">Pulihkan dengan YNX Wallet</string>
+  <string name="privacy">Hanya detail acara yang dipilih yang dikirim ke AI setelah persetujuan.</string>
+  <string name="ai">Asisten penjadwalan</string>
+  <string name="ai_language">Bahasa keluaran AI</string>
+  <string name="unavailable">Gateway tidak tersedia</string>
+  <string name="security">Persetujuan Wallet tidak pernah membagikan materi pemulihan.</string>
+  <string name="a11y_timeline">Linimasa kalender</string>
+  <string name="rsvp">Tanggapi undangan</string>
+  <string name="update">Perbarui acara</string>
+  <string name="cancel_event">Batalkan rapat</string>
+  <string name="share">Bagikan kalender</string>
+  <string name="meeting_link">Tautan rapat</string>
+</resources>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">YNX Wallet&#xC73C;&#xB85C; &#xB85C;&#xADF8;&#xC778;</string>
+  <string name="today">&#xC624;&#xB298;</string>
+  <string name="create">&#xC77C;&#xC815; &#xB9CC;&#xB4E4;&#xAE30;</string>
+  <string name="empty">&#xC774; &#xBC94;&#xC704;&#xC5D0; &#xC77C;&#xC815;&#xC774; &#xC5C6;&#xC2B5;&#xB2C8;&#xB2E4;</string>
+  <string name="offline">&#xC624;&#xD504;&#xB77C;&#xC778; &#x2014; &#xBCC0;&#xACBD; &#xC0AC;&#xD56D;&#xC774; &#xC774; &#xAE30;&#xAE30;&#xC5D0;&#xC11C; &#xB300;&#xAE30;&#xD569;&#xB2C8;&#xB2E4;</string>
+  <string name="invite">&#xD578;&#xB4E4;&#xB85C; &#xC5F0;&#xB77D;&#xCC98; &#xCD08;&#xB300;</string>
+  <string name="timezone">&#xC2DC;&#xAC04;&#xB300;</string>
+  <string name="repeat">&#xBC18;&#xBCF5;</string>
+  <string name="reminder">&#xC54C;&#xB9BC;</string>
+  <string name="conflict">&#xCDA9;&#xB3CC; &#xD655;&#xC778;</string>
+  <string name="review">&#xBCC0;&#xACBD; &#xC0AC;&#xD56D; &#xAC80;&#xD1A0;</string>
+  <string name="approve">&#xBCC0;&#xACBD; &#xC2B9;&#xC778;</string>
+  <string name="recover">YNX Wallet&#xC73C;&#xB85C; &#xBCF5;&#xAD6C;</string>
+  <string name="privacy">&#xC2B9;&#xC778; &#xD6C4; &#xC120;&#xD0DD;&#xD55C; &#xC77C;&#xC815; &#xC815;&#xBCF4;&#xB9CC; AI&#xB85C; &#xC804;&#xC1A1;&#xB429;&#xB2C8;&#xB2E4;.</string>
+  <string name="ai">&#xC77C;&#xC815; &#xB3C4;&#xC6B0;&#xBBF8;</string>
+  <string name="ai_language">AI &#xCD9C;&#xB825; &#xC5B8;&#xC5B4;</string>
+  <string name="unavailable">&#xAC8C;&#xC774;&#xD2B8;&#xC6E8;&#xC774;&#xB97C; &#xC0AC;&#xC6A9;&#xD560; &#xC218; &#xC5C6;&#xC74C;</string>
+  <string name="security">Wallet &#xC2B9;&#xC778;&#xC740; &#xBCF5;&#xAD6C; &#xC790;&#xB8CC;&#xB97C; &#xACF5;&#xC720;&#xD558;&#xC9C0; &#xC54A;&#xC2B5;&#xB2C8;&#xB2E4;.</string>
+  <string name="a11y_timeline">&#xCE98;&#xB9B0;&#xB354; &#xD0C0;&#xC784;&#xB77C;&#xC778;</string>
+  <string name="rsvp">참석 여부 응답</string>
+  <string name="update">일정 업데이트</string>
+  <string name="cancel_event">회의 취소</string>
+  <string name="share">캘린더 공유</string>
+  <string name="meeting_link">회의 링크</string>
+</resources>

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Masuk dengan YNX Wallet</string>
+  <string name="inbox">Kotak masuk</string>
+  <string name="search">Cari email</string>
+  <string name="compose">Tulis</string>
+  <string name="drafts">Draf</string>
+  <string name="archive">Arsip</string>
+  <string name="spam">Spam</string>
+  <string name="offline">Offline &#x2014; perubahan tetap di perangkat ini</string>
+  <string name="empty">Belum ada pesan</string>
+  <string name="retry">Coba lagi</string>
+  <string name="privacy">Hanya percakapan yang dipilih yang dikirim ke AI setelah persetujuan.</string>
+  <string name="ai">Ruang kerja AI</string>
+  <string name="ai_language">Bahasa keluaran AI</string>
+  <string name="approve">Setujui konteks yang dipilih</string>
+  <string name="recover">Pulihkan dengan YNX Wallet</string>
+  <string name="unavailable">Gateway tidak tersedia</string>
+  <string name="security">Persetujuan Wallet tidak pernah membagikan materi pemulihan.</string>
+  <string name="attachment">Tambah lampiran (batas 10 MB)</string>
+  <string name="send_preview">Tinjau dan kirim</string>
+  <string name="a11y_nav">Navigasi email</string>
+  <string name="thread">Percakapan</string>
+  <string name="delivery_failure">Pengiriman gagal — draf dipertahankan</string>
+  <string name="block_sender">Blokir pengirim</string>
+  <string name="report_trust">Laporkan ke Trust</string>
+  <string name="appeal">Ajukan banding laporan</string>
+</resources>

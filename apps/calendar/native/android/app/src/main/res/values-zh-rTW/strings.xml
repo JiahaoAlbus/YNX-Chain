@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">&#x767B;&#x5165; YNX Wallet</string>
+  <string name="today">&#x4ECA;&#x5929;</string>
+  <string name="create">&#x5EFA;&#x7ACB;&#x6D3B;&#x52D5;</string>
+  <string name="empty">&#x6B64;&#x7BC4;&#x570D;&#x6C92;&#x6709;&#x6D3B;&#x52D5;</string>
+  <string name="offline">&#x96E2;&#x7DDA;&#x2014;&#x2014;&#x8B8A;&#x66F4;&#x5DF2;&#x5728;&#x6B64;&#x88DD;&#x7F6E;&#x6392;&#x968A;</string>
+  <string name="invite">&#x4EE5;&#x806F;&#x7D61;&#x4EBA;&#x540D;&#x7A31;&#x9080;&#x8ACB;</string>
+  <string name="timezone">&#x6642;&#x5340;</string>
+  <string name="repeat">&#x91CD;&#x8907;</string>
+  <string name="reminder">&#x63D0;&#x9192;</string>
+  <string name="conflict">&#x885D;&#x7A81;&#x6AA2;&#x67E5;</string>
+  <string name="review">&#x6AA2;&#x67E5;&#x8B8A;&#x66F4;</string>
+  <string name="approve">&#x6838;&#x51C6;&#x8B8A;&#x66F4;</string>
+  <string name="recover">&#x4F7F;&#x7528; YNX Wallet &#x5FA9;&#x539F;</string>
+  <string name="privacy">&#x53EA;&#x6709;&#x6838;&#x51C6;&#x5F8C;&#x624D;&#x6703;&#x5C07;&#x6240;&#x9078;&#x6D3B;&#x52D5;&#x8A73;&#x60C5;&#x50B3;&#x9001;&#x7D66; AI&#x3002;</string>
+  <string name="ai">&#x6392;&#x7A0B;&#x52A9;&#x7406;</string>
+  <string name="ai_language">AI &#x8F38;&#x51FA;&#x8A9E;&#x8A00;</string>
+  <string name="unavailable">&#x9598;&#x9053;&#x7121;&#x6CD5;&#x4F7F;&#x7528;</string>
+  <string name="security">&#x9322;&#x5305;&#x6838;&#x51C6;&#x7D55;&#x4E0D;&#x6703;&#x5206;&#x4EAB;&#x5FA9;&#x539F;&#x8CC7;&#x6599;&#x3002;</string>
+  <string name="a11y_timeline">&#x884C;&#x4E8B;&#x66C6;&#x6642;&#x9593;&#x8EF8;</string>
+  <string name="rsvp">回覆邀請</string>
+  <string name="update">更新活動</string>
+  <string name="cancel_event">取消會議</string>
+  <string name="share">分享行事曆</string>
+  <string name="meeting_link">會議連結</string>
+</resources>

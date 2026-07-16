@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -78,6 +79,27 @@ func signIn(t *testing.T, s *Service, handle, account string) (string, User, Wal
 func validAttachment() Attachment {
 	body := []byte("bounded attachment")
 	return Attachment{Name: "notes.txt", MediaType: "text/plain", Size: len(body), SHA256: digestBytes(body), ContentBase64: base64.StdEncoding.EncodeToString(body)}
+}
+
+func TestCentralWalletRequestReplayPersistsAcrossRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mail.json")
+	svc, key := newTestService(t, path)
+	c, _ := svc.NewChallenge()
+	central := &CentralWalletProof{AuthorizationRequest: json.RawMessage(`{"version":"1","nonce":"same"}`)}
+	proof := WalletProof{Account: "ynx1central", Handle: "@central", Product: ProductID, Scopes: []string{RequiredScope}, Challenge: c.ID, DeviceKey: "device-binding-12345", ExpiresAt: svc.now().Add(time.Minute).Unix(), Signature: "verified", Central: central}
+	if _, _, err := svc.SignIn(context.Background(), proof); err != nil {
+		t.Fatal(err)
+	}
+	store, _ := NewStore(path)
+	restarted, err := NewService(store, testVerifier{}, testAI{}, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next, _ := restarted.NewChallenge()
+	proof.Challenge = next.ID
+	if _, _, err = restarted.SignIn(context.Background(), proof); err == nil || !strings.Contains(err.Error(), "replayed") {
+		t.Fatalf("central request replay survived restart: %v", err)
+	}
 }
 
 func TestPersistentDeliveryThreadSearchAndSignature(t *testing.T) {

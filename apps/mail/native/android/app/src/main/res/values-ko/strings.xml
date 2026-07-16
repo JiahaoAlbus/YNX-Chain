@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">YNX Wallet&#xC73C;&#xB85C; &#xB85C;&#xADF8;&#xC778;</string>
+  <string name="inbox">&#xBC1B;&#xC740;&#xD3B8;&#xC9C0;&#xD568;</string>
+  <string name="search">&#xBA54;&#xC77C; &#xAC80;&#xC0C9;</string>
+  <string name="compose">&#xC791;&#xC131;</string>
+  <string name="drafts">&#xC784;&#xC2DC;&#xBCF4;&#xAD00;&#xD568;</string>
+  <string name="archive">&#xBCF4;&#xAD00;</string>
+  <string name="spam">&#xC2A4;&#xD338;</string>
+  <string name="offline">&#xC624;&#xD504;&#xB77C;&#xC778; &#x2014; &#xBCC0;&#xACBD; &#xC0AC;&#xD56D;&#xC740; &#xC774; &#xAE30;&#xAE30;&#xC5D0; &#xC800;&#xC7A5;&#xB429;&#xB2C8;&#xB2E4;</string>
+  <string name="empty">&#xBA54;&#xC2DC;&#xC9C0;&#xAC00; &#xC5C6;&#xC2B5;&#xB2C8;&#xB2E4;</string>
+  <string name="retry">&#xB2E4;&#xC2DC; &#xC2DC;&#xB3C4;</string>
+  <string name="privacy">&#xC2B9;&#xC778; &#xD6C4; &#xC120;&#xD0DD;&#xD55C; &#xB300;&#xD654;&#xB9CC; AI&#xB85C; &#xC804;&#xC1A1;&#xB429;&#xB2C8;&#xB2E4;.</string>
+  <string name="ai">AI &#xC791;&#xC5C5; &#xACF5;&#xAC04;</string>
+  <string name="ai_language">AI &#xCD9C;&#xB825; &#xC5B8;&#xC5B4;</string>
+  <string name="approve">&#xC120;&#xD0DD;&#xD55C; &#xCEE8;&#xD14D;&#xC2A4;&#xD2B8; &#xC2B9;&#xC778;</string>
+  <string name="recover">YNX Wallet&#xC73C;&#xB85C; &#xBCF5;&#xAD6C;</string>
+  <string name="unavailable">&#xAC8C;&#xC774;&#xD2B8;&#xC6E8;&#xC774;&#xB97C; &#xC0AC;&#xC6A9;&#xD560; &#xC218; &#xC5C6;&#xC74C;</string>
+  <string name="security">Wallet &#xC2B9;&#xC778;&#xC740; &#xBCF5;&#xAD6C; &#xC790;&#xB8CC;&#xB97C; &#xACF5;&#xC720;&#xD558;&#xC9C0; &#xC54A;&#xC2B5;&#xB2C8;&#xB2E4;.</string>
+  <string name="attachment">&#xCCA8;&#xBD80; &#xD30C;&#xC77C; &#xCD94;&#xAC00;(10 MB &#xC81C;&#xD55C;)</string>
+  <string name="send_preview">&#xAC80;&#xD1A0; &#xD6C4; &#xBCF4;&#xB0B4;&#xAE30;</string>
+  <string name="a11y_nav">&#xBA54;&#xC77C; &#xD0D0;&#xC0C9;</string>
+  <string name="thread">대화</string>
+  <string name="delivery_failure">전송 실패 — 임시보관함에 유지됨</string>
+  <string name="block_sender">보낸 사람 차단</string>
+  <string name="report_trust">Trust에 신고</string>
+  <string name="appeal">신고 이의 제기</string>
+</resources>

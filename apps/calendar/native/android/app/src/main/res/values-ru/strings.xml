@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">&#x412;&#x43E;&#x439;&#x442;&#x438; &#x447;&#x435;&#x440;&#x435;&#x437; YNX Wallet</string>
+  <string name="today">&#x421;&#x435;&#x433;&#x43E;&#x434;&#x43D;&#x44F;</string>
+  <string name="create">&#x421;&#x43E;&#x437;&#x434;&#x430;&#x442;&#x44C; &#x441;&#x43E;&#x431;&#x44B;&#x442;&#x438;&#x435;</string>
+  <string name="empty">&#x412; &#x44D;&#x442;&#x43E;&#x43C; &#x434;&#x438;&#x430;&#x43F;&#x430;&#x437;&#x43E;&#x43D;&#x435; &#x441;&#x43E;&#x431;&#x44B;&#x442;&#x438;&#x439; &#x43D;&#x435;&#x442;</string>
+  <string name="offline">&#x41D;&#x435;&#x442; &#x441;&#x435;&#x442;&#x438; &#x2014; &#x438;&#x437;&#x43C;&#x435;&#x43D;&#x435;&#x43D;&#x438;&#x44F; &#x432; &#x43E;&#x447;&#x435;&#x440;&#x435;&#x434;&#x438; &#x43D;&#x430; &#x443;&#x441;&#x442;&#x440;&#x43E;&#x439;&#x441;&#x442;&#x432;&#x435;</string>
+  <string name="invite">&#x41F;&#x440;&#x438;&#x433;&#x43B;&#x430;&#x441;&#x438;&#x442;&#x44C; &#x43A;&#x43E;&#x43D;&#x442;&#x430;&#x43A;&#x442;&#x44B; &#x43F;&#x43E; &#x438;&#x43C;&#x435;&#x43D;&#x438;</string>
+  <string name="timezone">&#x427;&#x430;&#x441;&#x43E;&#x432;&#x43E;&#x439; &#x43F;&#x43E;&#x44F;&#x441;</string>
+  <string name="repeat">&#x41F;&#x43E;&#x432;&#x442;&#x43E;&#x440;&#x435;&#x43D;&#x438;&#x435;</string>
+  <string name="reminder">&#x41D;&#x430;&#x43F;&#x43E;&#x43C;&#x438;&#x43D;&#x430;&#x43D;&#x438;&#x435;</string>
+  <string name="conflict">&#x41F;&#x440;&#x43E;&#x432;&#x435;&#x440;&#x43A;&#x430; &#x43A;&#x43E;&#x43D;&#x444;&#x43B;&#x438;&#x43A;&#x442;&#x43E;&#x432;</string>
+  <string name="review">&#x41F;&#x440;&#x43E;&#x432;&#x435;&#x440;&#x438;&#x442;&#x44C; &#x438;&#x437;&#x43C;&#x435;&#x43D;&#x435;&#x43D;&#x438;&#x44F;</string>
+  <string name="approve">&#x41F;&#x43E;&#x434;&#x442;&#x432;&#x435;&#x440;&#x434;&#x438;&#x442;&#x44C; &#x438;&#x437;&#x43C;&#x435;&#x43D;&#x435;&#x43D;&#x438;&#x435;</string>
+  <string name="recover">&#x412;&#x43E;&#x441;&#x441;&#x442;&#x430;&#x43D;&#x43E;&#x432;&#x438;&#x442;&#x44C; &#x447;&#x435;&#x440;&#x435;&#x437; YNX Wallet</string>
+  <string name="privacy">&#x422;&#x43E;&#x43B;&#x44C;&#x43A;&#x43E; &#x432;&#x44B;&#x431;&#x440;&#x430;&#x43D;&#x43D;&#x44B;&#x435; &#x441;&#x432;&#x435;&#x434;&#x435;&#x43D;&#x438;&#x44F; &#x43E;&#x442;&#x43F;&#x440;&#x430;&#x432;&#x43B;&#x44F;&#x44E;&#x442;&#x441;&#x44F; &#x418;&#x418; &#x43F;&#x43E;&#x441;&#x43B;&#x435; &#x43F;&#x43E;&#x434;&#x442;&#x432;&#x435;&#x440;&#x436;&#x434;&#x435;&#x43D;&#x438;&#x44F;.</string>
+  <string name="ai">&#x41F;&#x43E;&#x43C;&#x43E;&#x449;&#x43D;&#x438;&#x43A; &#x440;&#x430;&#x441;&#x43F;&#x438;&#x441;&#x430;&#x43D;&#x438;&#x44F;</string>
+  <string name="ai_language">&#x42F;&#x437;&#x44B;&#x43A; &#x43E;&#x442;&#x432;&#x435;&#x442;&#x430; &#x418;&#x418;</string>
+  <string name="unavailable">&#x428;&#x43B;&#x44E;&#x437; &#x43D;&#x435;&#x434;&#x43E;&#x441;&#x442;&#x443;&#x43F;&#x435;&#x43D;</string>
+  <string name="security">&#x41F;&#x43E;&#x434;&#x442;&#x432;&#x435;&#x440;&#x436;&#x434;&#x435;&#x43D;&#x438;&#x435; Wallet &#x43D;&#x438;&#x43A;&#x43E;&#x433;&#x434;&#x430; &#x43D;&#x435; &#x440;&#x430;&#x441;&#x43A;&#x440;&#x44B;&#x432;&#x430;&#x435;&#x442; &#x434;&#x430;&#x43D;&#x43D;&#x44B;&#x435; &#x432;&#x43E;&#x441;&#x441;&#x442;&#x430;&#x43D;&#x43E;&#x432;&#x43B;&#x435;&#x43D;&#x438;&#x44F;.</string>
+  <string name="a11y_timeline">&#x41B;&#x435;&#x43D;&#x442;&#x430; &#x43A;&#x430;&#x43B;&#x435;&#x43D;&#x434;&#x430;&#x440;&#x44F;</string>
+  <string name="rsvp">Ответить на приглашение</string>
+  <string name="update">Обновить событие</string>
+  <string name="cancel_event">Отменить встречу</string>
+  <string name="share">Поделиться календарём</string>
+  <string name="meeting_link">Ссылка на встречу</string>
+</resources>

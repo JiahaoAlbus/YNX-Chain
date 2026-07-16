@@ -1,8 +1,10 @@
 # YNX Calendar
 
-YNX Calendar is an independent Web/PWA and Go service for handle-based
-scheduling with explicit previews, conflict review and reversible changes. This
-repository does not claim a production scheduling network.
+YNX Calendar is an independent native-first Android/iOS product with an optional
+Web/PWA companion and a Go service for handle-based scheduling with explicit
+previews, conflict review and reversible changes. Native setup and identity
+details are in `native/README.md`. This repository does not claim a production
+scheduling network.
 
 ## Run
 
@@ -14,9 +16,10 @@ YNX_AI_GATEWAY_TOKEN=server-side-token \
 go run ./apps/calendar
 ```
 
-The service listens on `:8096` by default. Wallet verification must bind
-`com.ynx.calendar`, the exact account or recovery scope, one-time challenge,
-device key and expiry. Ordinary event, invite and sharing responses expose
+The service listens on `:8096` by default. Central Wallet verification must bind
+client `ynx-calendar-v1`, bundle `com.ynxweb4.calendar`, the exact account or
+recovery scope, authorization request, P-256 device completion and expiry.
+Ordinary event, invite and sharing responses expose
 `@handle` values, never Wallet addresses.
 
 ## State and security boundaries
@@ -63,6 +66,8 @@ AI: `preview` -> `running` -> `review | failed | cancelled` ->
 npm test --prefix apps/calendar
 npm run build --prefix apps/calendar
 npm run smoke --prefix apps/calendar
+npm run build:android --prefix apps/calendar
+npm run check:ios --prefix apps/calendar
 go test ./internal/calendar ./apps/calendar
 ```
 

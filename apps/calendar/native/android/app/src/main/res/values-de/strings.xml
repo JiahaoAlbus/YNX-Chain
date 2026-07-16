@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Mit YNX Wallet anmelden</string>
+  <string name="today">Heute</string>
+  <string name="create">Termin erstellen</string>
+  <string name="empty">Keine Termine in diesem Zeitraum</string>
+  <string name="offline">Offline &#x2014; &#xC4;nderungen warten auf diesem Ger&#xE4;t</string>
+  <string name="invite">Kontakte per Kennung einladen</string>
+  <string name="timezone">Zeitzone</string>
+  <string name="repeat">Wiederholung</string>
+  <string name="reminder">Erinnerung</string>
+  <string name="conflict">Konflikte pr&#xFC;fen</string>
+  <string name="review">&#xC4;nderungen pr&#xFC;fen</string>
+  <string name="approve">&#xC4;nderung freigeben</string>
+  <string name="recover">Mit YNX Wallet wiederherstellen</string>
+  <string name="privacy">Nur ausgew&#xE4;hlte Termindetails werden nach Freigabe an die KI gesendet.</string>
+  <string name="ai">Terminassistent</string>
+  <string name="ai_language">KI-Ausgabesprache</string>
+  <string name="unavailable">Gateway nicht verf&#xFC;gbar</string>
+  <string name="security">Die Wallet-Freigabe gibt niemals Wiederherstellungsmaterial weiter.</string>
+  <string name="a11y_timeline">Kalender-Zeitachse</string>
+  <string name="rsvp">Auf Einladung antworten</string>
+  <string name="update">Termin aktualisieren</string>
+  <string name="cancel_event">Besprechung absagen</string>
+  <string name="share">Kalender teilen</string>
+  <string name="meeting_link">Besprechungslink</string>
+</resources>

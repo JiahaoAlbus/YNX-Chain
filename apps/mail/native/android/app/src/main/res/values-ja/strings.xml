@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">YNX Wallet&#x3067;&#x30B5;&#x30A4;&#x30F3;&#x30A4;&#x30F3;</string>
+  <string name="inbox">&#x53D7;&#x4FE1;&#x30C8;&#x30EC;&#x30A4;</string>
+  <string name="search">&#x30E1;&#x30FC;&#x30EB;&#x3092;&#x691C;&#x7D22;</string>
+  <string name="compose">&#x4F5C;&#x6210;</string>
+  <string name="drafts">&#x4E0B;&#x66F8;&#x304D;</string>
+  <string name="archive">&#x30A2;&#x30FC;&#x30AB;&#x30A4;&#x30D6;</string>
+  <string name="spam">&#x8FF7;&#x60D1;&#x30E1;&#x30FC;&#x30EB;</string>
+  <string name="offline">&#x30AA;&#x30D5;&#x30E9;&#x30A4;&#x30F3; &#x2014; &#x5909;&#x66F4;&#x306F;&#x3053;&#x306E;&#x7AEF;&#x672B;&#x306B;&#x4FDD;&#x5B58;&#x3055;&#x308C;&#x307E;&#x3059;</string>
+  <string name="empty">&#x30E1;&#x30C3;&#x30BB;&#x30FC;&#x30B8;&#x306F;&#x3042;&#x308A;&#x307E;&#x305B;&#x3093;</string>
+  <string name="retry">&#x518D;&#x8A66;&#x884C;</string>
+  <string name="privacy">&#x627F;&#x8A8D;&#x5F8C;&#x3001;&#x9078;&#x629E;&#x3057;&#x305F;&#x30B9;&#x30EC;&#x30C3;&#x30C9;&#x3060;&#x3051;&#x3092;AI&#x306B;&#x9001;&#x4FE1;&#x3057;&#x307E;&#x3059;&#x3002;</string>
+  <string name="ai">AI&#x30EF;&#x30FC;&#x30AF;&#x30B9;&#x30DA;&#x30FC;&#x30B9;</string>
+  <string name="ai_language">AI&#x51FA;&#x529B;&#x8A00;&#x8A9E;</string>
+  <string name="approve">&#x9078;&#x629E;&#x3057;&#x305F;&#x5185;&#x5BB9;&#x3092;&#x627F;&#x8A8D;</string>
+  <string name="recover">YNX Wallet&#x3067;&#x5FA9;&#x65E7;</string>
+  <string name="unavailable">&#x30B2;&#x30FC;&#x30C8;&#x30A6;&#x30A7;&#x30A4;&#x3092;&#x5229;&#x7528;&#x3067;&#x304D;&#x307E;&#x305B;&#x3093;</string>
+  <string name="security">Wallet&#x306E;&#x627F;&#x8A8D;&#x3067;&#x5FA9;&#x65E7;&#x60C5;&#x5831;&#x304C;&#x5171;&#x6709;&#x3055;&#x308C;&#x308B;&#x3053;&#x3068;&#x306F;&#x3042;&#x308A;&#x307E;&#x305B;&#x3093;&#x3002;</string>
+  <string name="attachment">&#x6DFB;&#x4ED8;&#x30D5;&#x30A1;&#x30A4;&#x30EB;&#x3092;&#x8FFD;&#x52A0;&#xFF08;&#x4E0A;&#x9650;10 MB&#xFF09;</string>
+  <string name="send_preview">&#x78BA;&#x8A8D;&#x3057;&#x3066;&#x9001;&#x4FE1;</string>
+  <string name="a11y_nav">&#x30E1;&#x30FC;&#x30EB;&#x30CA;&#x30D3;&#x30B2;&#x30FC;&#x30B7;&#x30E7;&#x30F3;</string>
+  <string name="thread">スレッド</string>
+  <string name="delivery_failure">配信に失敗しました — 下書きを保持しました</string>
+  <string name="block_sender">送信者をブロック</string>
+  <string name="report_trust">Trustに報告</string>
+  <string name="appeal">報告に異議申し立て</string>
+</resources>

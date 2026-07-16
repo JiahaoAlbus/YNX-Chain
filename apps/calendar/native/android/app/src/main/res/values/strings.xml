@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Sign in with YNX Wallet</string>
+  <string name="today">Today</string>
+  <string name="create">Create event</string>
+  <string name="empty">No events in this range</string>
+  <string name="offline">Offline &#x2014; changes are queued on this device</string>
+  <string name="invite">Invite contacts by handle</string>
+  <string name="timezone">Time zone</string>
+  <string name="repeat">Recurrence</string>
+  <string name="reminder">Reminder</string>
+  <string name="conflict">Conflict check</string>
+  <string name="review">Review changes</string>
+  <string name="approve">Approve change</string>
+  <string name="recover">Recover with YNX Wallet</string>
+  <string name="privacy">Only selected event details are sent to AI after approval.</string>
+  <string name="ai">Scheduling assistant</string>
+  <string name="ai_language">AI output language</string>
+  <string name="unavailable">Gateway unavailable</string>
+  <string name="security">Wallet approval never shares recovery material.</string>
+  <string name="a11y_timeline">Calendar timeline</string>
+  <string name="rsvp">RSVP</string>
+  <string name="update">Update event</string>
+  <string name="cancel_event">Cancel event</string>
+  <string name="share">Share calendar</string>
+  <string name="meeting_link">Meeting link</string>
+</resources>

@@ -33,7 +33,7 @@ func NewStore(path string) (*Store, error) {
 	return s, nil
 }
 func emptyState() State {
-	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, Events: map[string]Event{}, ReminderDeliveries: map[string]ReminderDelivery{}, Changes: map[string]ChangePreview{}, Mutations: map[string]string{}, AIJobs: map[string]AIJob{}}
+	return State{Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Events: map[string]Event{}, ReminderDeliveries: map[string]ReminderDelivery{}, Changes: map[string]ChangePreview{}, Mutations: map[string]string{}, AIJobs: map[string]AIJob{}}
 }
 func (s *Store) normalize() {
 	if s.data.Users == nil {
@@ -44,6 +44,9 @@ func (s *Store) normalize() {
 	}
 	if s.data.Sessions == nil {
 		s.data.Sessions = map[string]Session{}
+	}
+	if s.data.WalletRequests == nil {
+		s.data.WalletRequests = map[string]bool{}
 	}
 	if s.data.Events == nil {
 		s.data.Events = map[string]Event{}

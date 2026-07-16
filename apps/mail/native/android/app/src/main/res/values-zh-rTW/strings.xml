@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">&#x767B;&#x5165; YNX Wallet</string>
+  <string name="inbox">&#x6536;&#x4EF6;&#x5323;</string>
+  <string name="search">&#x641C;&#x5C0B;&#x90F5;&#x4EF6;</string>
+  <string name="compose">&#x64B0;&#x5BEB;</string>
+  <string name="drafts">&#x8349;&#x7A3F;</string>
+  <string name="archive">&#x5C01;&#x5B58;</string>
+  <string name="spam">&#x5783;&#x573E;&#x90F5;&#x4EF6;</string>
+  <string name="offline">&#x96E2;&#x7DDA;&#x2014;&#x2014;&#x8B8A;&#x66F4;&#x4FDD;&#x7559;&#x5728;&#x6B64;&#x88DD;&#x7F6E;</string>
+  <string name="empty">&#x5C1A;&#x7121;&#x90F5;&#x4EF6;</string>
+  <string name="retry">&#x91CD;&#x8A66;</string>
+  <string name="privacy">&#x53EA;&#x6709;&#x5728;&#x6838;&#x51C6;&#x5F8C;&#x624D;&#x6703;&#x5C07;&#x6240;&#x9078;&#x8A0E;&#x8AD6;&#x4E32;&#x50B3;&#x9001;&#x7D66; AI&#x3002;</string>
+  <string name="ai">AI &#x5DE5;&#x4F5C;&#x5340;</string>
+  <string name="ai_language">AI &#x8F38;&#x51FA;&#x8A9E;&#x8A00;</string>
+  <string name="approve">&#x6838;&#x51C6;&#x6240;&#x9078;&#x5167;&#x5BB9;</string>
+  <string name="recover">&#x4F7F;&#x7528; YNX Wallet &#x5FA9;&#x539F;</string>
+  <string name="unavailable">&#x9598;&#x9053;&#x7121;&#x6CD5;&#x4F7F;&#x7528;</string>
+  <string name="security">&#x9322;&#x5305;&#x6838;&#x51C6;&#x7D55;&#x4E0D;&#x6703;&#x5206;&#x4EAB;&#x5FA9;&#x539F;&#x8CC7;&#x6599;&#x3002;</string>
+  <string name="attachment">&#x52A0;&#x5165;&#x9644;&#x4EF6;&#xFF08;&#x4E0A;&#x9650; 10 MB&#xFF09;</string>
+  <string name="send_preview">&#x6AA2;&#x67E5;&#x4E26;&#x50B3;&#x9001;</string>
+  <string name="a11y_nav">&#x90F5;&#x4EF6;&#x5C0E;&#x89BD;</string>
+  <string name="thread">討論串</string>
+  <string name="delivery_failure">投遞失敗——草稿已保留</string>
+  <string name="block_sender">封鎖寄件者</string>
+  <string name="report_trust">向 Trust 檢舉</string>
+  <string name="appeal">申訴檢舉</string>
+</resources>

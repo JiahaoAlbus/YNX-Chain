@@ -1,5 +1,130 @@
 # Mail + Calendar handoff
 
+## 2026-07-16 controller correction pass (authoritative)
+
+This section supersedes the earlier Web/PWA-first and placeholder integration
+wording below. The existing browser companions and passing domain functions were
+preserved, while both products gained independent native mobile clients and the
+server adapters were corrected to the accepted central contracts.
+
+### Independent install identities
+
+| Product | Android application ID | iOS bundle ID | Wallet product client | Exact callback |
+| --- | --- | --- | --- | --- |
+| YNX Mail | `com.ynxweb4.mail` | `com.ynxweb4.mail` | `ynx-mail-v1` | `ynxmail://wallet-auth/callback` |
+| YNX Calendar | `com.ynxweb4.calendar` | `com.ynxweb4.calendar` | `ynx-calendar-v1` | `ynxcalendar://wallet-auth/callback` |
+
+Android is a native Java/Material application, not a WebView. iOS is a native
+SwiftUI application with an Xcode project, Info.plist, independent icon asset
+catalog and String Catalog. The earlier Web/PWA surfaces remain optional desktop
+companions; they are not presented as substitutes for the mobile apps.
+
+Each native client owns a P-256 product-device key (Android Keystore; iOS
+ThisDeviceOnly Keychain), emits canonical JSON in
+`ynxwallet://authorize?request=<base64url>`, persists the pending exact request,
+accepts only one `response` query parameter on its exact callback, checks product,
+client, bundle, device, callback, nonce and purpose bindings, and persistently
+rejects callback replay. A Wallet callback is recorded only as
+`gateway_required`; it is never treated as a product session.
+
+The product service now sends the exact Wallet Auth v1 verifier input
+`{registryEntry, authorizationRequest, walletApproval, gatewayCompletion}` to
+`POST /v1/wallet-auth/verify-session`. It accepts only a live
+`wallet-auth-v1` result whose product client, bundle, account and exact scopes
+match. Canonical authorization-request digests are persisted so replay remains
+rejected across service restart. Tampered account/scope responses are covered by
+remote-adapter tests.
+
+AI adapters no longer call invented `/v1/status` or `/v1/product-workflows`
+routes. They use the existing AI Gateway `/health` and authenticated
+`GET /ai/stream` SSE contract. Mail selected-message and Calendar selected-event
+context is assembled only after the existing preview and explicit approval; AI
+results remain suggestions/drafts and cannot send, invite, mutate, cancel or
+enable automation. Provider/model absence and an empty/error stream fail closed.
+
+### Native product behavior
+
+- Mail provides native inbox/search/compose, restart-persistent drafts, send
+  review, bounded attachment disclosure, archive/spam navigation, delivery
+  unavailable/offline states, recovery, Wallet sign-in and approved AI context.
+  The Go service remains the authoritative implementation for signed threads,
+  delivery state/retry, attachment bounds, block/report/appeal, rate/anti-spam,
+  audit and YNX-handle-only delivery.
+- Calendar provides native timeline/create review, invite handle, system time
+  zone, recurrence, reminder/conflict disclosure, restart-persistent event and
+  offline queue state, recovery, Wallet sign-in and approved AI context. The Go
+  service remains authoritative for preview/approve/revert, RSVP/share,
+  recurrence/DST expansion, optimistic conflict control, reminder restart
+  recovery and audit.
+- Release manifests default to TLS-only traffic. Only the Android debug flavor
+  allows cleartext loopback development. Release variants are not debug-signed.
+- No contact surface displays Wallet addresses. No mobile client contains a
+  provider token, Wallet secret, recovery material or production environment.
+
+### Auditable localization
+
+Both native products ship English, 简体中文, 繁體中文, 日本語, 한국어, Español,
+Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia (`en`,
+`zh-Hans`, `zh-Hant`, `ja`, `ko`, `es`, `fr`, `de`, `pt`, `ru`, `ar`, `id`).
+System locale detection is the default; a manual product locale is persisted
+across restart. AI output language is independently persisted. Arabic declares
+RTL support and both native layouts switch direction. Android uses localized
+date/time formatters and iOS uses locale-aware SwiftUI date controls. Error,
+offline, unavailable, privacy, recovery, security, AI approval and accessibility
+labels are in the audited catalogs. Generators create the iOS String Catalog
+from the Android source catalogs; tests require the exact locale set, nonblank
+values and Arabic security wording for every key, preventing silent blanks.
+
+### Correction-pass evidence
+
+| Gate | Evidence | Result |
+| --- | --- | --- |
+| Mail service | `go test ./internal/mail` | pass, including exact central verifier contract and tampered-account rejection |
+| Calendar service | `go test ./internal/calendar` | pass, including exact central verifier contract and tampered-scope rejection |
+| Mail product | `npm test && npm run build && npm run check:ios && npm run smoke` in `apps/mail` | pass; 5 Node tests, Go binary, Swift parse, plist/pbxproj lint, smoke |
+| Calendar product | same command in `apps/calendar` | pass; 5 Node tests, Go binary, Swift parse, plist/pbxproj lint, smoke |
+| Native i18n | `node --test apps/{mail,calendar}/tests/native-i18n.test.mjs` | 4/4 pass across all 12 enumerated locales |
+| Mail Android | `ANDROID_HOME=... gradle :app:assembleDebug --max-workers=1` | pass; 32 tasks; 6,405,207-byte installable debug APK; SHA-256 `c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f` |
+| Calendar Android | same | pass; 32 tasks; 6,404,458-byte installable debug APK; SHA-256 `f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030` |
+| Android install/cold launch | clean install on dedicated API 36 AVD, then `am start -W -S` | both pass independently: Mail `COLD`, `TotalTime: 8204`; Calendar `COLD`, `TotalTime: 2327`; both packages remained installed together |
+| iOS native build | Xcode 16.3, generic iOS Simulator build with `CODE_SIGNING_ALLOWED=NO EXCLUDED_SOURCE_FILE_NAMES=Assets.xcassets` | both pass; SwiftUI, Info.plist and all 12 String Catalog localizations compiled and linked. Asset exclusion is limited to this proof because the host has SDK 18.4 but only runtimes 18.5/26.2; normal release must compile the catalog against a matching runtime |
+| iOS install/cold launch | clean install on iPhone 16 Pro / iOS 18.5 Simulator, then `simctl launch` | both pass independently after adding the required `CFBundleExecutable`/`CFBundlePackageType`: Mail PID 16674, command wall 7.97 s; Calendar PID 16786, command wall 0.88 s; both bundle IDs remained installed together and both rendered screenshots were inspected |
+
+Android physical-device note: no physical device remained connected at final
+verification. The install/cold-launch evidence above is emulator evidence, not a
+physical-device or store-release claim.
+
+Desktop/browser proof was rerun after its Wallet fixture was corrected to send
+the complete four-part central Wallet Auth v1 verifier input. Both desktop and
+mobile viewports passed with named controls and zero page errors. Current hashes:
+
+- Mail desktop `56e5e9aed54af86cd5ef620b7117cc2c7887005a701d1fa3f959a7dc2b148eea`;
+  Mail mobile `c696fa13ce777922668894db71fd8d43732b8ddbafb6987204eb7959e8acff39`.
+- Calendar desktop `03cb5ef40ab08413a537ed8dc7f590c9f3f931019617e0ac52a327c0f5367130`;
+  Calendar mobile `25e1c144c7a93c760c2702bd39305352096fb304cee74084eaf8c29ed57fb6f2`.
+- Android rendered screenshot hashes: Mail
+  `a017a3846ae9862ebe6e47f8c4de12990d8102993268e033f822c56d1314743f`;
+  Calendar `fddeba2c5d98141dc23a812b396cc35111e7ae1422bf146b5a13b771d1ca6539`.
+- iOS rendered screenshot hashes: Mail
+  `16b90dd969c73ecac3ed10844005de99a9b89db88a832a5e7bba08dcbee628f3`;
+  Calendar `12e38f04b93ca83a09b7b4814861c271cd71f487d7111e8d99317c61f3e6fe56`.
+
+### Still external and not claimed
+
+1. Central Wallet registry must add the two exact product clients, bundles,
+   callbacks, sorted scopes and `p256-sha256`, and expose the accepted central
+   verifier in the target Gateway environment. Until then sign-in is visibly
+   unavailable after local callback validation.
+2. A deployed AI Gateway must provide a product-session credential, provider,
+   model, quota and authoritative cost estimate. No live AI/provider result is
+   claimed by this branch.
+3. Mail remains known-YNX-handle delivery only. There is no SMTP/MX/DNS,
+   internet reputation, external abuse operation or live internet delivery.
+4. Calendar invitations/reminders are local product state. There is no claimed
+   production push/email/external-calendar or meeting-provider delivery.
+5. There is no deployment, production signing, TestFlight, App Store, Google
+   Play, central merge or public release claim.
+
 ## Source
 
 - Branch: `codex/ecosystem-mail-calendar`
@@ -154,12 +279,13 @@ gradient/neon styles. The screenshots were also inspected after generation.
 These do not make the bounded local products synthetic, but they prevent public
 production claims:
 
-1. Central Wallet Auth has not yet registered `com.ynx.mail` and
-   `com.ynx.calendar`, their exact scopes/callbacks or the proposed verifier
-   routes. Without that external binding, sign-in/recovery fails honestly.
-2. Central YNX AI Gateway has not yet accepted the product workflow endpoint or
-   supplied a provider token/quota. Provider-backed live generation is not
-   claimed; the adapters and failure states are implemented and tested.
+1. Central Wallet Auth has not yet registered clients `ynx-mail-v1` and
+   `ynx-calendar-v1`, bundles `com.ynxweb4.mail` and
+   `com.ynxweb4.calendar`, their exact scopes/callbacks and P-256 algorithms.
+   Without that external binding, sign-in/recovery fails honestly.
+2. Central YNX AI Gateway has not yet supplied product-session credentials,
+   provider/model quota or an authoritative cost estimate. Provider-backed live
+   generation is not claimed; `/health` and `/ai/stream` adapters fail closed.
 3. No deployment, public TLS route, uptime evidence, signed desktop/mobile store
    package or production owner acceptance exists for these branch products.
 4. Mail has no SMTP/DNS/reputation/external abuse handling, malware scanner,
@@ -170,14 +296,16 @@ production claims:
 ## Exact integration requests
 
 1. Wallet Auth review and register:
-   - product IDs `com.ynx.mail`, `com.ynx.calendar`;
+   - client IDs `ynx-mail-v1`, `ynx-calendar-v1`;
+   - bundles `com.ynxweb4.mail`, `com.ynxweb4.calendar`;
    - scopes `mail:account`, `mail:recover`, `calendar:account`,
      `calendar:recover`;
-   - exact PWA callbacks and server-to-server verification contracts currently
-     called as `/v1/mail/verify` and `/v1/calendar/verify`.
-2. AI Gateway review and bind product-scoped status/workflow routes for the eight
-   named workflows. Preserve selected-ID context, provider/model/cost evidence,
-   cancellation and server-only credentials.
+   - exact native callbacks `ynxmail://wallet-auth/callback` and
+     `ynxcalendar://wallet-auth/callback`, sorted scopes, `p256-sha256`, and the
+     `POST /v1/wallet-auth/verify-session` central verifier contract.
+2. AI Gateway issue product-session credentials for the existing `/health` and
+   `/ai/stream` boundary. Preserve selected-ID context,
+   provider/model/cost evidence, cancellation and server-only credentials.
 3. Integration authority may add deployment/systemd/reverse-proxy configuration
    after choosing hosts, secrets, TLS names, backups and rollback paths. No such
    central files were changed here.

@@ -1,8 +1,10 @@
 # YNX Mail
 
-YNX Mail is an independent Web/PWA and Go service for signed, handle-based
-communication inside the YNX product boundary. It is not an SMTP service and
-does not claim internet-wide email delivery.
+YNX Mail is an independent native-first Android/iOS product with an optional
+Web/PWA companion and a Go service for signed, handle-based communication inside
+the YNX product boundary. It is not an SMTP service and does not claim
+internet-wide email delivery. Native setup and identity details are in
+`native/README.md`.
 
 ## Run
 
@@ -20,9 +22,11 @@ that key with the state file; replacing it changes the Mail service identity.
 
 `YNX_WALLET_VERIFY_URL` is mandatory for sign-in and recovery. Without it the
 UI and health endpoint start, but Wallet authorization fails honestly. The
-verifier must validate the exact product (`com.ynx.mail`), scope, challenge,
-device binding, account signature and expiry. Product sessions contain only a
-hash of the Wallet account identifier and an opaque product token.
+verifier receives the Wallet Auth v1 four-part input at
+`POST /v1/wallet-auth/verify-session` and must return a live session bound to
+client `ynx-mail-v1`, bundle `com.ynxweb4.mail`, the exact scope, account,
+request digest and P-256 product device. Product sessions contain only a hash of
+the Wallet account identifier and an opaque product token.
 
 ## State and security boundaries
 
@@ -64,6 +68,8 @@ the message sender.
 npm test --prefix apps/mail
 npm run build --prefix apps/mail
 npm run smoke --prefix apps/mail
+npm run build:android --prefix apps/mail
+npm run check:ios --prefix apps/mail
 go test ./internal/mail ./apps/mail
 ```
 

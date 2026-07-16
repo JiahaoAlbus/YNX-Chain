@@ -59,6 +59,22 @@ func (s *Service) SenderPublicKey() string {
 	return nativewallet.EncodePublicKey(s.signer.Public().(ed25519.PublicKey))
 }
 
+func centralRequestKey(proof WalletProof) string {
+	if proof.Central == nil || len(proof.Central.AuthorizationRequest) == 0 {
+		return ""
+	}
+	var value any
+	if json.Unmarshal(proof.Central.AuthorizationRequest, &value) != nil {
+		return "invalid"
+	}
+	canonical, err := json.Marshal(value)
+	if err != nil {
+		return "invalid"
+	}
+	sum := sha256.Sum256(canonical)
+	return hex.EncodeToString(sum[:])
+}
+
 func (s *Service) NewChallenge() (Challenge, error) {
 	now := s.now().UTC()
 	c := Challenge{ID: s.id("challenge"), ExpiresAt: now.Add(5 * time.Minute)}
@@ -89,6 +105,12 @@ func (s *Service) SignIn(ctx context.Context, proof WalletProof) (string, User, 
 		}
 		c.Used = true
 		st.Challenges[c.ID] = c
+		if key := centralRequestKey(proof); key != "" {
+			if st.WalletRequests[key] {
+				return errors.New("central Wallet authorization request replayed")
+			}
+			st.WalletRequests[key] = true
+		}
 		accountHash := digest(proof.Account)
 		for _, existing := range st.Users {
 			if existing.Handle == proof.Handle && existing.AccountHash != accountHash {
@@ -134,6 +156,12 @@ func (s *Service) Recover(ctx context.Context, proof WalletProof) (string, User,
 		}
 		c.Used = true
 		st.Challenges[c.ID] = c
+		if key := centralRequestKey(proof); key != "" {
+			if st.WalletRequests[key] {
+				return errors.New("central Wallet authorization request replayed")
+			}
+			st.WalletRequests[key] = true
+		}
 		accountHash := digest(proof.Account)
 		for _, existing := range st.Users {
 			if existing.Handle == proof.Handle && existing.AccountHash == accountHash {

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Sign in with YNX Wallet</string>
+  <string name="inbox">Inbox</string>
+  <string name="search">Search mail</string>
+  <string name="compose">Compose</string>
+  <string name="drafts">Drafts</string>
+  <string name="archive">Archive</string>
+  <string name="spam">Spam</string>
+  <string name="offline">Offline &#x2014; changes stay on this device</string>
+  <string name="empty">No messages yet</string>
+  <string name="retry">Retry</string>
+  <string name="privacy">Only selected threads are sent to AI after approval.</string>
+  <string name="ai">AI workspace</string>
+  <string name="ai_language">AI output language</string>
+  <string name="approve">Approve selected context</string>
+  <string name="recover">Recover with YNX Wallet</string>
+  <string name="unavailable">Gateway unavailable</string>
+  <string name="security">Wallet approval never shares recovery material.</string>
+  <string name="attachment">Add attachment (10 MB limit)</string>
+  <string name="send_preview">Review and send</string>
+  <string name="a11y_nav">Mail navigation</string>
+  <string name="thread">Thread</string>
+  <string name="delivery_failure">Delivery failed — draft retained</string>
+  <string name="block_sender">Block sender</string>
+  <string name="report_trust">Report to Trust</string>
+  <string name="appeal">Appeal report</string>
+</resources>

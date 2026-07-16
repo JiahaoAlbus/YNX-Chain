@@ -2,6 +2,7 @@ package calendar
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -69,6 +70,23 @@ func signIn(t *testing.T, s *Service, handle, account string) (string, User, Wal
 }
 func input(title, start, end, zone, id string) EventInput {
 	return EventInput{Title: title, LocalStart: start, LocalEnd: end, TimeZone: zone, ClientMutationID: id, Reminders: []Reminder{{MinutesBefore: 10, Channel: "local"}}}
+}
+
+func TestCentralWalletRequestReplayPersistsAcrossRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "calendar.json")
+	svc := newTestService(t, path)
+	c, _ := svc.NewChallenge()
+	central := &CentralWalletProof{AuthorizationRequest: json.RawMessage(`{"version":"1","nonce":"same"}`)}
+	proof := WalletProof{Account: "ynx1central", Handle: "@central", Product: ProductID, Scopes: []string{RequiredScope}, Challenge: c.ID, DeviceKey: "calendar-device-key", ExpiresAt: svc.now().Add(time.Minute).Unix(), Assertion: "verified", Central: central}
+	if _, _, e := svc.SignIn(context.Background(), proof); e != nil {
+		t.Fatal(e)
+	}
+	restarted := newTestService(t, path)
+	next, _ := restarted.NewChallenge()
+	proof.Challenge = next.ID
+	if _, _, e := restarted.SignIn(context.Background(), proof); e == nil || !strings.Contains(e.Error(), "replayed") {
+		t.Fatalf("central request replay survived restart: %v", e)
+	}
 }
 
 func TestPersistenceEventStateConflictIdempotencyAndRestart(t *testing.T) {

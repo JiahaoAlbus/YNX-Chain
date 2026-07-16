@@ -1,9 +1,15 @@
 package mail
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	ProductID          = "com.ynx.mail"
+	ProductClientID    = "ynx-mail-v1"
+	BundleID           = "com.ynxweb4.mail"
+	CallbackURL        = "ynxmail://wallet-auth/callback"
 	RequiredScope      = "mail:account"
 	RecoveryScope      = "mail:recover"
 	MaxAttachmentBytes = 10 << 20
@@ -11,15 +17,38 @@ const (
 )
 
 type WalletProof struct {
-	Account   string   `json:"account"`
-	Handle    string   `json:"handle"`
-	Product   string   `json:"product"`
-	Scopes    []string `json:"scopes"`
-	Challenge string   `json:"challenge"`
-	DeviceKey string   `json:"device_key"`
-	PublicKey string   `json:"public_key"`
-	ExpiresAt int64    `json:"expires_at"`
-	Signature string   `json:"signature"`
+	Account   string              `json:"account"`
+	Handle    string              `json:"handle"`
+	Product   string              `json:"product"`
+	Scopes    []string            `json:"scopes"`
+	Challenge string              `json:"challenge"`
+	DeviceKey string              `json:"device_key"`
+	PublicKey string              `json:"public_key"`
+	ExpiresAt int64               `json:"expires_at"`
+	Signature string              `json:"signature"`
+	Central   *CentralWalletProof `json:"central,omitempty"`
+}
+
+// CentralWalletProof is the exact Wallet Auth v1 verifier input. The product
+// service never verifies wallet signatures itself and never accepts a session
+// assembled by the client.
+type CentralWalletProof struct {
+	RegistryEntry        json.RawMessage `json:"registryEntry"`
+	AuthorizationRequest json.RawMessage `json:"authorizationRequest"`
+	WalletApproval       json.RawMessage `json:"walletApproval"`
+	GatewayCompletion    json.RawMessage `json:"gatewayCompletion"`
+}
+
+type VerifiedWalletSession struct {
+	VerifierVersion string   `json:"verifierVersion"`
+	SessionBinding  string   `json:"sessionBinding"`
+	ProductClientID string   `json:"productClientId"`
+	BundleID        string   `json:"bundleId"`
+	RequestDigest   string   `json:"requestDigest"`
+	Account         string   `json:"account"`
+	Scopes          []string `json:"scopes"`
+	IssuedAt        string   `json:"issuedAt"`
+	ExpiresAt       string   `json:"expiresAt"`
 }
 
 type User struct {
@@ -140,15 +169,16 @@ type AuditEntry struct {
 }
 
 type State struct {
-	Users      map[string]User            `json:"users"`
-	Challenges map[string]Challenge       `json:"challenges"`
-	Sessions   map[string]Session         `json:"sessions"`
-	Drafts     map[string]Draft           `json:"drafts"`
-	Messages   map[string]Message         `json:"messages"`
-	Mailboxes  []MailboxItem              `json:"mailboxes"`
-	Blocks     map[string]map[string]bool `json:"blocks"`
-	Reports    map[string]AbuseReport     `json:"reports"`
-	AIJobs     map[string]AIJob           `json:"ai_jobs"`
-	Rate       map[string][]time.Time     `json:"rate"`
-	Audit      []AuditEntry               `json:"audit"`
+	Users          map[string]User            `json:"users"`
+	Challenges     map[string]Challenge       `json:"challenges"`
+	Sessions       map[string]Session         `json:"sessions"`
+	WalletRequests map[string]bool            `json:"wallet_requests"`
+	Drafts         map[string]Draft           `json:"drafts"`
+	Messages       map[string]Message         `json:"messages"`
+	Mailboxes      []MailboxItem              `json:"mailboxes"`
+	Blocks         map[string]map[string]bool `json:"blocks"`
+	Reports        map[string]AbuseReport     `json:"reports"`
+	AIJobs         map[string]AIJob           `json:"ai_jobs"`
+	Rate           map[string][]time.Time     `json:"rate"`
+	Audit          []AuditEntry               `json:"audit"`
 }

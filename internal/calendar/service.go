@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -51,6 +52,21 @@ func (s *Service) NewChallenge() (Challenge, error) {
 	err := s.store.update(func(st *State) error { st.Challenges[out.ID] = out; return nil })
 	return out, err
 }
+func centralRequestKey(proof WalletProof) string {
+	if proof.Central == nil || len(proof.Central.AuthorizationRequest) == 0 {
+		return ""
+	}
+	var value any
+	if json.Unmarshal(proof.Central.AuthorizationRequest, &value) != nil {
+		return "invalid"
+	}
+	canonical, e := json.Marshal(value)
+	if e != nil {
+		return "invalid"
+	}
+	sum := sha256.Sum256(canonical)
+	return hex.EncodeToString(sum[:])
+}
 func (s *Service) SignIn(ctx context.Context, p WalletProof) (string, User, error) {
 	now := s.now().UTC()
 	if p.Product != ProductID || len(p.Scopes) != 1 || p.Scopes[0] != RequiredScope {
@@ -74,6 +90,12 @@ func (s *Service) SignIn(ctx context.Context, p WalletProof) (string, User, erro
 		}
 		c.Used = true
 		st.Challenges[c.ID] = c
+		if key := centralRequestKey(p); key != "" {
+			if st.WalletRequests[key] {
+				return errors.New("central Wallet authorization request replayed")
+			}
+			st.WalletRequests[key] = true
+		}
 		hash := digest(p.Account)
 		for _, u := range st.Users {
 			if u.Handle == p.Handle && u.AccountHash != hash {
@@ -118,6 +140,12 @@ func (s *Service) Recover(ctx context.Context, p WalletProof) (string, User, err
 		}
 		c.Used = true
 		st.Challenges[c.ID] = c
+		if key := centralRequestKey(p); key != "" {
+			if st.WalletRequests[key] {
+				return errors.New("central Wallet authorization request replayed")
+			}
+			st.WalletRequests[key] = true
+		}
 		hash := digest(p.Account)
 		for _, u := range st.Users {
 			if u.Handle == p.Handle && u.AccountHash == hash {

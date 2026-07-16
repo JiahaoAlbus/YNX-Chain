@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Entrar com YNX Wallet</string>
+  <string name="inbox">Caixa de entrada</string>
+  <string name="search">Pesquisar e-mail</string>
+  <string name="compose">Escrever</string>
+  <string name="drafts">Rascunhos</string>
+  <string name="archive">Arquivo</string>
+  <string name="spam">Spam</string>
+  <string name="offline">Offline &#x2014; as altera&#xE7;&#xF5;es ficam neste dispositivo</string>
+  <string name="empty">Nenhuma mensagem</string>
+  <string name="retry">Tentar novamente</string>
+  <string name="privacy">Somente conversas selecionadas s&#xE3;o enviadas &#xE0; IA ap&#xF3;s aprova&#xE7;&#xE3;o.</string>
+  <string name="ai">Espa&#xE7;o de IA</string>
+  <string name="ai_language">Idioma de sa&#xED;da da IA</string>
+  <string name="approve">Aprovar contexto selecionado</string>
+  <string name="recover">Recuperar com YNX Wallet</string>
+  <string name="unavailable">Gateway indispon&#xED;vel</string>
+  <string name="security">A aprova&#xE7;&#xE3;o da Wallet nunca compartilha material de recupera&#xE7;&#xE3;o.</string>
+  <string name="attachment">Adicionar anexo (limite de 10 MB)</string>
+  <string name="send_preview">Revisar e enviar</string>
+  <string name="a11y_nav">Navega&#xE7;&#xE3;o de e-mail</string>
+  <string name="thread">Conversa</string>
+  <string name="delivery_failure">Falha na entrega — rascunho mantido</string>
+  <string name="block_sender">Bloquear remetente</string>
+  <string name="report_trust">Denunciar ao Trust</string>
+  <string name="appeal">Contestar denúncia</string>
+</resources>

@@ -1,22 +1,46 @@
 package calendar
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
-	ProductID     = "com.ynx.calendar"
-	RequiredScope = "calendar:account"
-	RecoveryScope = "calendar:recover"
+	ProductID       = "com.ynx.calendar"
+	ProductClientID = "ynx-calendar-v1"
+	BundleID        = "com.ynxweb4.calendar"
+	CallbackURL     = "ynxcalendar://wallet-auth/callback"
+	RequiredScope   = "calendar:account"
+	RecoveryScope   = "calendar:recover"
 )
 
 type WalletProof struct {
-	Account   string   `json:"account"`
-	Handle    string   `json:"handle"`
-	Product   string   `json:"product"`
-	Scopes    []string `json:"scopes"`
-	Challenge string   `json:"challenge"`
-	DeviceKey string   `json:"device_key"`
-	ExpiresAt int64    `json:"expires_at"`
-	Assertion string   `json:"assertion"`
+	Account   string              `json:"account"`
+	Handle    string              `json:"handle"`
+	Product   string              `json:"product"`
+	Scopes    []string            `json:"scopes"`
+	Challenge string              `json:"challenge"`
+	DeviceKey string              `json:"device_key"`
+	ExpiresAt int64               `json:"expires_at"`
+	Assertion string              `json:"assertion"`
+	Central   *CentralWalletProof `json:"central,omitempty"`
+}
+type CentralWalletProof struct {
+	RegistryEntry        json.RawMessage `json:"registryEntry"`
+	AuthorizationRequest json.RawMessage `json:"authorizationRequest"`
+	WalletApproval       json.RawMessage `json:"walletApproval"`
+	GatewayCompletion    json.RawMessage `json:"gatewayCompletion"`
+}
+type VerifiedWalletSession struct {
+	VerifierVersion string   `json:"verifierVersion"`
+	SessionBinding  string   `json:"sessionBinding"`
+	ProductClientID string   `json:"productClientId"`
+	BundleID        string   `json:"bundleId"`
+	RequestDigest   string   `json:"requestDigest"`
+	Account         string   `json:"account"`
+	Scopes          []string `json:"scopes"`
+	IssuedAt        string   `json:"issuedAt"`
+	ExpiresAt       string   `json:"expiresAt"`
 }
 type User struct {
 	ID          string    `json:"id"`
@@ -162,6 +186,7 @@ type State struct {
 	Users              map[string]User             `json:"users"`
 	Challenges         map[string]Challenge        `json:"challenges"`
 	Sessions           map[string]Session          `json:"sessions"`
+	WalletRequests     map[string]bool             `json:"wallet_requests"`
 	Events             map[string]Event            `json:"events"`
 	ReminderDeliveries map[string]ReminderDelivery `json:"reminder_deliveries"`
 	Changes            map[string]ChangePreview    `json:"changes"`

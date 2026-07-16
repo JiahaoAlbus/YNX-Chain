@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">Entrar com YNX Wallet</string>
+  <string name="today">Hoje</string>
+  <string name="create">Criar evento</string>
+  <string name="empty">Nenhum evento neste intervalo</string>
+  <string name="offline">Offline &#x2014; as altera&#xE7;&#xF5;es ficam na fila deste dispositivo</string>
+  <string name="invite">Convidar contatos pelo identificador</string>
+  <string name="timezone">Fuso hor&#xE1;rio</string>
+  <string name="repeat">Recorr&#xEA;ncia</string>
+  <string name="reminder">Lembrete</string>
+  <string name="conflict">Verificar conflitos</string>
+  <string name="review">Revisar altera&#xE7;&#xF5;es</string>
+  <string name="approve">Aprovar altera&#xE7;&#xE3;o</string>
+  <string name="recover">Recuperar com YNX Wallet</string>
+  <string name="privacy">Somente detalhes selecionados s&#xE3;o enviados &#xE0; IA ap&#xF3;s aprova&#xE7;&#xE3;o.</string>
+  <string name="ai">Assistente de agenda</string>
+  <string name="ai_language">Idioma de sa&#xED;da da IA</string>
+  <string name="unavailable">Gateway indispon&#xED;vel</string>
+  <string name="security">A aprova&#xE7;&#xE3;o da Wallet nunca compartilha material de recupera&#xE7;&#xE3;o.</string>
+  <string name="a11y_timeline">Linha do tempo do calend&#xE1;rio</string>
+  <string name="rsvp">Responder ao convite</string>
+  <string name="update">Atualizar evento</string>
+  <string name="cancel_event">Cancelar reunião</string>
+  <string name="share">Compartilhar calendário</string>
+  <string name="meeting_link">Link da reunião</string>
+</resources>

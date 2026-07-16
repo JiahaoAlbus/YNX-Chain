@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Calendar</string>
+  <string name="sign_in">YNX Wallet&#x3067;&#x30B5;&#x30A4;&#x30F3;&#x30A4;&#x30F3;</string>
+  <string name="today">&#x4ECA;&#x65E5;</string>
+  <string name="create">&#x4E88;&#x5B9A;&#x3092;&#x4F5C;&#x6210;</string>
+  <string name="empty">&#x3053;&#x306E;&#x671F;&#x9593;&#x306B;&#x4E88;&#x5B9A;&#x306F;&#x3042;&#x308A;&#x307E;&#x305B;&#x3093;</string>
+  <string name="offline">&#x30AA;&#x30D5;&#x30E9;&#x30A4;&#x30F3; &#x2014; &#x5909;&#x66F4;&#x306F;&#x3053;&#x306E;&#x7AEF;&#x672B;&#x3067;&#x5F85;&#x6A5F;&#x3057;&#x307E;&#x3059;</string>
+  <string name="invite">&#x30CF;&#x30F3;&#x30C9;&#x30EB;&#x540D;&#x3067;&#x9023;&#x7D61;&#x5148;&#x3092;&#x62DB;&#x5F85;</string>
+  <string name="timezone">&#x30BF;&#x30A4;&#x30E0;&#x30BE;&#x30FC;&#x30F3;</string>
+  <string name="repeat">&#x7E70;&#x308A;&#x8FD4;&#x3057;</string>
+  <string name="reminder">&#x30EA;&#x30DE;&#x30A4;&#x30F3;&#x30C0;&#x30FC;</string>
+  <string name="conflict">&#x7AF6;&#x5408;&#x3092;&#x78BA;&#x8A8D;</string>
+  <string name="review">&#x5909;&#x66F4;&#x3092;&#x78BA;&#x8A8D;</string>
+  <string name="approve">&#x5909;&#x66F4;&#x3092;&#x627F;&#x8A8D;</string>
+  <string name="recover">YNX Wallet&#x3067;&#x5FA9;&#x65E7;</string>
+  <string name="privacy">&#x627F;&#x8A8D;&#x5F8C;&#x3001;&#x9078;&#x629E;&#x3057;&#x305F;&#x4E88;&#x5B9A;&#x306E;&#x8A73;&#x7D30;&#x3060;&#x3051;&#x3092;AI&#x306B;&#x9001;&#x4FE1;&#x3057;&#x307E;&#x3059;&#x3002;</string>
+  <string name="ai">&#x30B9;&#x30B1;&#x30B8;&#x30E5;&#x30FC;&#x30EB;&#x30A2;&#x30B7;&#x30B9;&#x30BF;&#x30F3;&#x30C8;</string>
+  <string name="ai_language">AI&#x51FA;&#x529B;&#x8A00;&#x8A9E;</string>
+  <string name="unavailable">&#x30B2;&#x30FC;&#x30C8;&#x30A6;&#x30A7;&#x30A4;&#x3092;&#x5229;&#x7528;&#x3067;&#x304D;&#x307E;&#x305B;&#x3093;</string>
+  <string name="security">Wallet&#x306E;&#x627F;&#x8A8D;&#x3067;&#x5FA9;&#x65E7;&#x60C5;&#x5831;&#x304C;&#x5171;&#x6709;&#x3055;&#x308C;&#x308B;&#x3053;&#x3068;&#x306F;&#x3042;&#x308A;&#x307E;&#x305B;&#x3093;&#x3002;</string>
+  <string name="a11y_timeline">&#x30AB;&#x30EC;&#x30F3;&#x30C0;&#x30FC;&#x30BF;&#x30A4;&#x30E0;&#x30E9;&#x30A4;&#x30F3;</string>
+  <string name="rsvp">出欠を回答</string>
+  <string name="update">予定を更新</string>
+  <string name="cancel_event">会議をキャンセル</string>
+  <string name="share">カレンダーを共有</string>
+  <string name="meeting_link">会議リンク</string>
+</resources>
