@@ -13,6 +13,7 @@ make remote-smoke-transport-check
 make public-proof-evidence-check
 make public-proof-package-check
 make release-manifest-evidence-check
+make upgrade-source-release-evidence-check
 make host-key-approval-check-test
 make verify-testnet-check
 go test ./cmd/... ./internal/...

@@ -45,8 +45,8 @@ function runGate(name, blocker, env = {}) {
   });
 }
 
-function assertGateFails(name, blocker, expected) {
-  const result = runGate(name, blocker);
+function assertGateFails(name, blocker, expected, env = {}) {
+  const result = runGate(name, blocker, env);
   assert.notEqual(result.status, 0, `${name} should fail`);
   assert.match(`${result.stdout}\n${result.stderr}`, expected, `${name} should mention ${expected}`);
 }
@@ -56,6 +56,20 @@ const hostKeyAuditPath = path.join(workDir, "host-key-audit.txt");
 const legacyInventoryPath = path.join(workDir, "legacy-inventory.txt");
 const headCommit = currentGitCommit();
 const releaseCommit = headCommit.slice(0, 12);
+const upgradeSourceEvidencePath = path.join(workDir, "upgrade-source-release-evidence.json");
+const sourceCommit = "111111111111";
+writeJson(upgradeSourceEvidencePath, {
+  schema: "ynx-upgrade-source-release-evidence/v1",
+  generatedAt: new Date().toISOString(),
+  status: "passed",
+  target: { commit: releaseCommit, release: `ynx-chain-${releaseCommit}` },
+  source: { commit: sourceCommit, release: `ynx-chain-${sourceCommit}` },
+  nodes: ["primary", "singapore", "silicon-valley", "seoul"].map((role) => ({
+    role,
+    ok: true,
+    observed: { sourceCommit, sourceRelease: `ynx-chain-${sourceCommit}` },
+  })),
+});
 writeJson(remoteEvidencePath, {
   proofType: "remote-public-testnet-smoke",
   generatedAt: new Date().toISOString(),
@@ -170,6 +184,8 @@ writeJson(upgradeRemoteEvidencePath, {
     { name: "rpc.status.chain", ok: true },
     { name: "rpc.status.height.growth", ok: true },
     { name: "rpc.status.buildCommit", ok: false },
+    { name: "release.manifest.evidence.present", ok: false },
+    { name: "release.manifest.chaindChecksum", ok: false },
     { name: "web4.health.chain", ok: false },
     { name: "mutable.remote.actions", ok: false },
   ],
@@ -185,12 +201,15 @@ const upgradeReady = {
     sources: [], nodes: [],
     endpoints: [
       { name: "rpc.status.buildCommit", classification: "release-identity-missing" },
+      { name: "release.manifest.evidence.present", classification: "target-release-not-installed" },
+      { name: "release.manifest.chaindChecksum", classification: "target-release-not-installed" },
       { name: "web4.health.chain", classification: "legacy-chain" },
       { name: "mutable.remote.actions", classification: "gated-mutation-skipped" },
     ],
   },
 };
-const upgradeOk = runGate("restricted-upgrade", upgradeReady, { YNX_UPGRADE_DEPLOY: "1" });
+const upgradeEnv = { YNX_UPGRADE_DEPLOY: "1", YNX_UPGRADE_SOURCE_RELEASE_EVIDENCE_PATH: upgradeSourceEvidencePath };
+const upgradeOk = runGate("restricted-upgrade", upgradeReady, upgradeEnv);
 assert.equal(upgradeOk.status, 0, `restricted upgrade should pass known source/target differences: ${upgradeOk.stderr}`);
 assert.match(upgradeOk.stdout, /restricted upgrade mode/);
 
@@ -205,9 +224,25 @@ const unsafeUpgrade = runGate("unsafe-upgrade", {
     ...upgradeReady.sourceEvidence,
     remoteEvidence: { ...upgradeReady.sourceEvidence.remoteEvidence, path: unsafeUpgradeEvidencePath },
   },
-}, { YNX_UPGRADE_DEPLOY: "1" });
+}, upgradeEnv);
 assert.notEqual(unsafeUpgrade.status, 0, "upgrade mode must reject non-release failures");
 assert.match(`${unsafeUpgrade.stdout}\n${unsafeUpgrade.stderr}`, /unsafe failures/);
+
+assertGateFails("missing-upgrade-source-evidence", upgradeReady, /upgrade source release evidence: missing or unreadable/, {
+  YNX_UPGRADE_DEPLOY: "1",
+  YNX_UPGRADE_SOURCE_RELEASE_EVIDENCE_PATH: path.join(workDir, "missing-upgrade-source-release-evidence.json"),
+});
+
+const failedUpgradeSourceEvidencePath = path.join(workDir, "failed-upgrade-source-release-evidence.json");
+writeJson(failedUpgradeSourceEvidencePath, {
+  ...JSON.parse(fs.readFileSync(upgradeSourceEvidencePath, "utf8")),
+  status: "failed",
+  nodes: JSON.parse(fs.readFileSync(upgradeSourceEvidencePath, "utf8")).nodes.map((node) => node.role === "seoul" ? { ...node, ok: false } : node),
+});
+assertGateFails("failed-upgrade-source-evidence", upgradeReady, /seoul did not prove/, {
+  YNX_UPGRADE_DEPLOY: "1",
+  YNX_UPGRADE_SOURCE_RELEASE_EVIDENCE_PATH: failedUpgradeSourceEvidencePath,
+});
 
 assertGateFails("endpoint-blocker", {
   ...baseReady,
