@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AuthorizationRequest } from "@ynx-chain/wallet-auth";
-import { SecurityReviewController, type SecurityReviewProvider } from "./securityReview";
+import { GatewaySecurityReviewProvider, SecurityReviewController, type SecurityReviewProvider } from "./securityReview";
 
 const request={version:"1",nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",chainId:"ynx_6423-1",requestingProduct:"social",productClientId:"ynx-social-v1",bundleId:"com.ynxweb4.social",productDeviceAlgorithm:"p256-sha256",productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",callback:"ynxsocial://wallet-auth/callback",scopes:["account:read","profile:link"],purpose:"Link the selected account",issuedAt:"2026-07-15T11:59:00.000Z",expiresAt:"2026-07-15T12:04:00.000Z"} as AuthorizationRequest;
 const now=()=>new Date("2026-07-15T12:00:00.000Z");
@@ -9,7 +9,7 @@ const now=()=>new Date("2026-07-15T12:00:00.000Z");
 test("provider-backed security review covers preview, status, estimate, consent, stream, review, apply and audit",async()=>{
   const provider:SecurityReviewProvider={
     status:async()=>({available:true,provider:"review-provider",model:"risk-model",detail:"ready"}),
-    stream:async({context,onToken})=>{assert.deepEqual(Object.keys(context).sort(),["bundleId","chainId","expiresAt","productClientId","purpose","requestingProduct","scopes"]);onToken("Least privilege. ");onToken("No secret is shared.");},
+    stream:async({context,prompt,onToken})=>{assert.deepEqual(Object.keys(context).sort(),["bundleId","chainId","expiresAt","outputLanguage","productClientId","purpose","requestingProduct","scopes"]);assert.match(prompt,/English/);onToken("Least privilege. ");onToken("No secret is shared.");},
   };
   const controller=new SecurityReviewController(request,now);
   assert.equal(controller.preview().phase,"preview");
@@ -54,4 +54,20 @@ test("a user can cancel a live stream and retry only after fresh permission",asy
   assert.equal((await running).phase,"cancelled");
   assert.equal(controller.snapshot().audits.at(-1)?.action,"stream-cancelled");
   assert.equal(controller.retry().allowed,false);
+});
+
+test("Gateway review sends selected metadata in a POST body instead of a URL query",async()=>{
+  const original=globalThis.fetch;
+  let captured:{url:string;init:RequestInit}|undefined;
+  globalThis.fetch=(async(url:URL|string|Request,init?:RequestInit)=>{captured={url:String(url),init:init??{}};return new Response('event: token\ndata: {"token":"bounded"}\n\n',{status:200,headers:{"Content-Type":"text/event-stream"}})}) as typeof fetch;
+  try{
+    const provider=new GatewaySecurityReviewProvider("https://gateway.example/","session-token");
+    const tokens:string[]=[];
+    await provider.stream({prompt:"explain",context:{scope:"account:read"},signal:new AbortController().signal,onToken:(token)=>tokens.push(token)});
+    assert.equal(captured?.url,"https://gateway.example/ai/stream");
+    assert.equal(captured?.init.method,"POST");
+    assert.equal((captured?.init.headers as Record<string,string>)["Content-Type"],"application/json");
+    assert.deepEqual(JSON.parse(String(captured?.init.body)),{session:"wallet-security-review",prompt:"explain",context:{scope:"account:read"}});
+    assert.deepEqual(tokens,["bounded"]);
+  }finally{globalThis.fetch=original}
 });

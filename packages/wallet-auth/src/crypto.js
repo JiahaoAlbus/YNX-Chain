@@ -29,6 +29,9 @@ export function verifyAuthorization(response, expected) {
   if (parsed.requestDigest !== expected.requestDigest || exactKeys.some((key) => parsed[key] !== expected[key]) || parsed.grantedScopes.join("\n") !== expected.scopes.join("\n") || parsed.expiresAt > expected.expiresAt) {
     throw new WalletAuthError("BINDING_MISMATCH", "Wallet approval does not match the exact product request");
   }
+  const now = expected.now.getTime();
+  const issued = Date.parse(parsed.issuedAt);
+  if (issued < Date.parse(expected.issuedAt) || issued > now + 30_000) throw new WalletAuthError("INVALID_APPROVAL_TIME", "Wallet approval issue time is outside the request verification window");
   if (parsed.expiresAt <= expected.now.toISOString()) throw new WalletAuthError("EXPIRED", "Wallet approval has expired");
   const valid = secp256k1.verify(hexToBytes(parsed.walletSignature), sha256(utf8ToBytes(approvalSignBytes(unsignedApproval(parsed)))), hexToBytes(parsed.accountPublicKey), { prehash: false, format: "compact", lowS: true });
   if (!valid || walletIdentityFromPublicKey(parsed.accountPublicKey) !== parsed.account) throw new WalletAuthError("INVALID_SIGNATURE", "Wallet approval signature is invalid");

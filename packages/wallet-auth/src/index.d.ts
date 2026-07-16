@@ -4,12 +4,18 @@ export type AuthorizationRequest = Readonly<{version:"1";nonce:string;chainId:"y
 export type AuthorizationResponse = Readonly<{version:"1";requestDigest:string;nonce:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;callback:string;account:string;accountPublicKey:string;grantedScopes:readonly string[];purpose:string;issuedAt:string;expiresAt:string;walletSignature:string}>;
 export type GatewayChallenge = Readonly<{version:"1";challenge:string;requestDigest:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;account:string;scopes:readonly string[];issuedAt:string;expiresAt:string}>;
 export type GatewayCompletion = Readonly<{challenge:GatewayChallenge;deviceSignature:string}>;
+export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:string;requestingProduct:string;bundleId:string;callback:string;scopes:readonly string[];maxScopes:number}>;
+export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
+export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;requestDigest:string;account:string;scopes:readonly string[];issuedAt:string;expiresAt:string}>;
 export declare const WALLET_AUTH_VERSION:"1";
 export declare const YNX_NATIVE_CHAIN_ID:"ynx_6423-1";
 export declare const YNX_EVM_CHAIN_ID:6423;
 export declare const PRODUCT_DEVICE_ALGORITHM:"p256-sha256";
+export declare const CENTRAL_REGISTRY_SCHEMA_VERSION:2;
+export declare const CENTRAL_VERIFIER_VERSION:"wallet-auth-v1";
 export declare class WalletAuthError extends Error { readonly code:string }
 export declare function canonicalJSON(value:unknown):string;
+export declare function digestHex(domain:string,value:unknown):string;
 export declare function parseAuthorizationRequest(input:string|unknown, options:{now?:Date;registry:Record<string,ProductBinding>}):AuthorizationRequest;
 export declare function requestDigest(request:AuthorizationRequest):string;
 export declare function walletIdentity(secretHex:string):Readonly<{account:string;accountPublicKey:string}>;
@@ -25,3 +31,9 @@ export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;
 export declare function gatewayChallengeSignBytes(challenge:GatewayChallenge):string;
 export declare function signGatewayChallenge(challenge:GatewayChallenge,productDeviceSecret:string):GatewayCompletion;
 export declare function verifyGatewayCompletion(completion:GatewayCompletion,expected:AuthorizationResponse,at?:Date):Readonly<{sessionBinding:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;account:string;scopes:readonly string[];expiresAt:string}>;
+export declare function migrateCentralRegistryEntry(input:CentralRegistryEntryV1|CentralRegistryEntry):CentralRegistryEntry;
+export declare function parseCentralRegistryEntry(input:unknown):CentralRegistryEntry;
+export declare function registryParserBinding(input:CentralRegistryEntry):Readonly<Record<string,ProductBinding>>;
+export declare function verifyCentralWalletSession(input:Readonly<{registryEntry:CentralRegistryEntry;authorizationRequest:AuthorizationRequest;walletApproval:AuthorizationResponse;gatewayCompletion:GatewayCompletion}>,at?:Date):CentralWalletSession;
+export declare function parseCentralWalletSession(input:unknown):CentralWalletSession;
+export declare function assertCentralWalletSessionActive(session:CentralWalletSession,input:Readonly<{revokedSessionBindings:readonly string[];revokedRequestDigests:readonly string[]}>,at?:Date):CentralWalletSession;

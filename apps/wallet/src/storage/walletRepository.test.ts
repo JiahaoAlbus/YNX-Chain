@@ -60,3 +60,17 @@ test("rejects manifest, metadata and secret tampering", async () => {
   await assert.rejects(repository.load(),/verification/);
   assert.equal(manifest.accounts.length,1);
 });
+
+test("offline recovery reconstructs only the native account and never restores product sessions", async () => {
+  const lostDevice=new MemorySecureStorage(),replacementDevice=new MemorySecureStorage();
+  const original=new WalletRepository(lostDevice);
+  const before=await original.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true});
+  lostDevice.values.set("ynx.wallet.auth-nonces.v1",JSON.stringify([["used_nonce_abcdefghijklmnopqrstuvwxyz12","2026-07-15T12:04:00.000Z"]]));
+  lostDevice.values.set("ynx.wallet.authorization-audit.v1","[]");
+  const restored=await new WalletRepository(replacementDevice).addAccount({secretHex:SECRET_ONE,label:"Recovered",createdAt:"2026-07-16T12:00:00.000Z",backupConfirmed:true});
+  assert.equal(restored.accounts[0]?.account,before.accounts[0]?.account);
+  assert.equal(restored.accounts[0]?.accountPublicKey,before.accounts[0]?.accountPublicKey);
+  assert.equal(replacementDevice.values.has("ynx.wallet.auth-nonces.v1"),false);
+  assert.equal(replacementDevice.values.has("ynx.wallet.authorization-audit.v1"),false);
+  assert.equal([...replacementDevice.values.keys()].some((key)=>key.includes("session")),false);
+});

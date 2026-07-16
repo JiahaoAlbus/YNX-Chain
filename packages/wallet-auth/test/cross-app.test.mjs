@@ -32,6 +32,8 @@ test("callback interception cannot complete the product-device challenge", () =>
   const attackerSecret = Buffer.alloc(32, 0x24).toString("base64url");
   assert.throws(() => signGatewayChallenge(challenge, attackerSecret), (error) => error instanceof WalletAuthError && error.code === "DEVICE_MISMATCH");
   assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynxsocial:", "attacker:"), parsed.callback), /substituted/);
+  assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}&state=attacker`, parsed.callback), /substituted/);
+  assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}#attacker`, parsed.callback), /substituted/);
 });
 
 test("a product session cannot be reused across another App binding", () => {

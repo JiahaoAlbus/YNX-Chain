@@ -5,3 +5,4 @@ export * from "./crypto.js";
 export * from "./deep-link.js";
 export * from "./replay.js";
 export * from "./session.js";
+export * from "./integration.js";

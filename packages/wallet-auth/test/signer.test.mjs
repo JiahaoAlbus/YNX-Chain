@@ -29,6 +29,15 @@ test("tampered response does not verify", () => {
   assert.throws(() => verifyAuthorization({ ...response, callback: "attacker://wallet-auth/callback" }, { ...parsed, requestDigest: response.requestDigest, now: NOW }), /match/);
 });
 
+test("approval issue time must stay inside the request verification window", () => {
+  const parsed = parseAuthorizationRequest(request(), { now: NOW, registry: REGISTRY });
+  const early = signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: "2026-07-15T11:58:59.999Z" });
+  const future = signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: "2026-07-15T12:00:30.001Z" });
+  const expected = { ...parsed, requestDigest: requestDigest(parsed), now: NOW };
+  assert.throws(() => verifyAuthorization(early, expected), /outside the request verification window/);
+  assert.throws(() => verifyAuthorization(future, expected), /outside the request verification window/);
+});
+
 test("published signer vector is deterministic and verifies", async () => {
   const vector = JSON.parse(await readFile(new URL("../testdata/signer-v1.json", import.meta.url), "utf8"));
   const parsed = parseAuthorizationRequest(vector.request, { now: NOW, registry: REGISTRY });

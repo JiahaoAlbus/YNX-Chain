@@ -22,7 +22,7 @@ export type SecurityReviewProvider = {
 export class SecurityReviewController {
   private value: ReviewSnapshot;
   private aborter: AbortController | null = null;
-  constructor(request: AuthorizationRequest, private readonly now:()=>Date=()=>new Date()) {
+  constructor(request: AuthorizationRequest, private readonly now:()=>Date=()=>new Date(), private readonly outputLanguage="English") {
     this.value = freeze({ phase:"selected", request, provider:null, estimate:estimate(request), allowed:false, output:"", error:null, audits:[] });
   }
   snapshot():ReviewSnapshot { return this.value; }
@@ -40,7 +40,7 @@ export class SecurityReviewController {
     this.aborter = new AbortController();
     this.set({ phase:"streaming", output:"", error:null });
     try {
-      await provider.stream({ prompt:promptFor(this.value.request), context:safeContext(this.value.request), signal:this.aborter.signal, onToken:(token)=>this.set({output:this.value.output+token}) });
+      await provider.stream({ prompt:promptFor(this.value.request,this.outputLanguage), context:safeContext(this.value.request,this.outputLanguage), signal:this.aborter.signal, onToken:(token)=>this.set({output:this.value.output+token}) });
       if (this.aborter.signal.aborted) return this.set({ phase:"cancelled", audits:this.audit("stream-cancelled", "cancelled") });
       return this.set({ phase:"review", audits:this.audit("provider-result", "ready-for-review") });
     } catch (error) {
@@ -71,8 +71,7 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
     return Object.freeze({available,provider,model,detail:available?"Provider-backed review is ready":"Provider is not configured"});
   }
   async stream(input:{prompt:string;context:Readonly<Record<string,unknown>>;signal:AbortSignal;onToken:(token:string)=>void}):Promise<void> {
-    const query=new URLSearchParams({session:"wallet-security-review",q:`${input.prompt}\nContext: ${JSON.stringify(input.context)}`});
-    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream?${query}`,{signal:input.signal,headers:{Authorization:`Bearer ${this.productSessionToken}`,Accept:"text/event-stream"}});
+    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream`,{method:"POST",signal:input.signal,headers:{Authorization:`Bearer ${this.productSessionToken}`,Accept:"text/event-stream","Content-Type":"application/json"},body:JSON.stringify({session:"wallet-security-review",prompt:input.prompt,context:input.context})});
     if (!response.ok) throw new Error(`AI Gateway stream returned ${response.status}`);
     const text=await response.text();
     for (const block of text.split("\n\n")) {
@@ -84,6 +83,6 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
 }
 
 function estimate(request:AuthorizationRequest):ReviewEstimate { return Object.freeze({resourceUnits:Math.max(1,request.scopes.length),maximumMonetaryCostYNXT:0,contextClasses:Object.freeze(["requesting-app-identity","requested-scopes","purpose","expiry","network"]) }); }
-function safeContext(request:AuthorizationRequest):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt}); }
-function promptFor(_request:AuthorizationRequest):string { return "Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics."; }
+function safeContext(request:AuthorizationRequest,outputLanguage:string):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt,outputLanguage}); }
+function promptFor(_request:AuthorizationRequest,outputLanguage:string):string { return `Respond in ${outputLanguage}. Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics.`; }
 function freeze(value:any):ReviewSnapshot { return Object.freeze({...value,estimate:Object.freeze(value.estimate),audits:Object.freeze([...value.audits])}); }
