@@ -24,40 +24,54 @@ remote_work="/tmp/ynx-prometheus-install-$$"
 cleanup() { rm -rf "$work"; }
 trap cleanup EXIT
 
+binary_sha=""
+promtool_sha=""
 if [[ -n "$PROMETHEUS_ARCHIVE_PATH" ]]; then
   [[ -f "$PROMETHEUS_ARCHIVE_PATH" && ! -L "$PROMETHEUS_ARCHIVE_PATH" ]] || { echo "Prometheus archive cache must be a regular file"; exit 1; }
   cp "$PROMETHEUS_ARCHIVE_PATH" "$work/$PROMETHEUS_ARCHIVE"
-else
-  curl --fail --location --silent --show-error --max-time 900 \
-    --continue-at - --retry 4 --retry-all-errors --retry-delay 3 \
-    "$PROMETHEUS_URL" -o "$work/$PROMETHEUS_ARCHIVE"
+  printf '%s  %s\n' "$PROMETHEUS_ARCHIVE_SHA256" "$work/$PROMETHEUS_ARCHIVE" | shasum -a 256 -c -
+  tar -xzf "$work/$PROMETHEUS_ARCHIVE" -C "$work"
+  binary="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus"
+  promtool="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool"
+  [[ -x "$binary" && -x "$promtool" ]] || { echo "Prometheus archive is missing required binaries"; exit 1; }
+  binary_sha="$(shasum -a 256 "$binary" | awk '{print $1}')"
+  promtool_sha="$(shasum -a 256 "$promtool" | awk '{print $1}')"
 fi
-printf '%s  %s\n' "$PROMETHEUS_ARCHIVE_SHA256" "$work/$PROMETHEUS_ARCHIVE" | shasum -a 256 -c -
-tar -xzf "$work/$PROMETHEUS_ARCHIVE" -C "$work"
-binary="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/prometheus"
-promtool="$work/prometheus-${PROMETHEUS_VERSION}.linux-amd64/promtool"
-[[ -x "$binary" && -x "$promtool" ]] || { echo "Prometheus archive is missing required binaries"; exit 1; }
-sed "s#/etc/ynx/prometheus/ynx-alerts.yml#$PWD/infra/monitoring/ynx-alerts.yml#" \
-  infra/monitoring/prometheus-authoritative.yml >"$work/prometheus-local-check.yml"
-"$promtool" check config "$work/prometheus-local-check.yml"
-"$promtool" check rules infra/monitoring/ynx-alerts.yml
-binary_sha="$(shasum -a 256 "$binary" | awk '{print $1}')"
 
 remote="${PRIMARY_NODE_USER}@${PRIMARY_NODE_HOST}"
 ynx_transport_ssh monitoring-mkdir "$PRIMARY_NODE_SSH_KEY" "$remote" "umask 077 && mkdir -p '$remote_work'"
-ynx_transport_scp monitoring-binary "$PRIMARY_NODE_SSH_KEY" "$binary" "$remote" "$remote_work/ynx-prometheus"
+if [[ -n "$PROMETHEUS_ARCHIVE_PATH" ]]; then
+  ynx_transport_scp monitoring-binary "$PRIMARY_NODE_SSH_KEY" "$binary" "$remote" "$remote_work/ynx-prometheus"
+  ynx_transport_scp monitoring-promtool "$PRIMARY_NODE_SSH_KEY" "$promtool" "$remote" "$remote_work/promtool"
+fi
 ynx_transport_scp monitoring-config "$PRIMARY_NODE_SSH_KEY" infra/monitoring/prometheus-authoritative.yml "$remote" "$remote_work/prometheus.yml"
 ynx_transport_scp monitoring-rules "$PRIMARY_NODE_SSH_KEY" infra/monitoring/ynx-alerts.yml "$remote" "$remote_work/ynx-alerts.yml"
 ynx_transport_scp monitoring-unit "$PRIMARY_NODE_SSH_KEY" infra/monitoring/systemd/ynx-prometheus.service "$remote" "$remote_work/ynx-prometheus.service"
 
 ynx_transport_ssh monitoring-install "$PRIMARY_NODE_SSH_KEY" "$remote" \
-  "YNX_MONITORING_REMOTE_WORK='$remote_work' YNX_MONITORING_BINARY_SHA='$binary_sha' bash -s" <<'REMOTE'
+  "YNX_MONITORING_REMOTE_WORK='$remote_work' YNX_MONITORING_VERSION='$PROMETHEUS_VERSION' YNX_MONITORING_ARCHIVE='$PROMETHEUS_ARCHIVE' YNX_MONITORING_ARCHIVE_SHA='$PROMETHEUS_ARCHIVE_SHA256' YNX_MONITORING_URL='$PROMETHEUS_URL' YNX_MONITORING_BINARY_SHA='$binary_sha' YNX_MONITORING_PROMTOOL_SHA='$promtool_sha' bash -s" <<'REMOTE'
 set -euo pipefail
 work="${YNX_MONITORING_REMOTE_WORK:?}"
-expected_sha="${YNX_MONITORING_BINARY_SHA:?}"
+version="${YNX_MONITORING_VERSION:?}"
+archive="${YNX_MONITORING_ARCHIVE:?}"
+archive_sha="${YNX_MONITORING_ARCHIVE_SHA:?}"
 trap 'rm -rf "$work"' EXIT
-actual_sha="$(sha256sum "$work/ynx-prometheus" | awk '{print $1}')"
-[[ "$actual_sha" == "$expected_sha" ]] || { echo "remote Prometheus binary checksum mismatch"; exit 1; }
+if [[ -x "$work/ynx-prometheus" && -x "$work/promtool" ]]; then
+  [[ "$(sha256sum "$work/ynx-prometheus" | awk '{print $1}')" == "${YNX_MONITORING_BINARY_SHA:?}" ]] || { echo "remote Prometheus binary checksum mismatch"; exit 1; }
+  [[ "$(sha256sum "$work/promtool" | awk '{print $1}')" == "${YNX_MONITORING_PROMTOOL_SHA:?}" ]] || { echo "remote promtool checksum mismatch"; exit 1; }
+else
+  curl --fail --location --silent --show-error --max-time 900 \
+    --continue-at - --retry 4 --retry-all-errors --retry-delay 3 \
+    "${YNX_MONITORING_URL:?}" -o "$work/$archive"
+  printf '%s  %s\n' "$archive_sha" "$work/$archive" | sha256sum -c -
+  tar -xzf "$work/$archive" -C "$work"
+  install -m 0755 "$work/prometheus-${version}.linux-amd64/prometheus" "$work/ynx-prometheus"
+  install -m 0755 "$work/prometheus-${version}.linux-amd64/promtool" "$work/promtool"
+fi
+"$work/ynx-prometheus" --version 2>&1 | grep -Fq "version $version" || { echo "remote Prometheus version mismatch"; exit 1; }
+sed "s#/etc/ynx/prometheus/ynx-alerts.yml#$work/ynx-alerts.yml#" "$work/prometheus.yml" >"$work/prometheus-check.yml"
+"$work/promtool" check config "$work/prometheus-check.yml"
+"$work/promtool" check rules "$work/ynx-alerts.yml"
 ip -4 address show dev ynxwg0 | grep -Fq '10.77.42.1/32' || { echo "primary WireGuard monitoring address is absent"; exit 1; }
 for target in 10.77.42.2 10.77.42.3 10.77.42.4; do
   curl -fsS --max-time 5 "http://$target:6420/metrics" >/dev/null || { echo "WireGuard metrics target unavailable: $target"; exit 1; }
