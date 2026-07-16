@@ -27,3 +27,9 @@ Configuration is server/operator supplied; do not place secrets in the app:
   Chromium host implementation.
 - `YNX_AI_GATEWAY_URL` and `YNX_AI_GATEWAY_CLIENT_TOKEN`: permissioned Gateway
   connection. Provider tokens remain at the Gateway.
+
+Android uses the system WebView, iOS uses WKWebView, and the Windows feasibility
+host uses Chromium-backed WebView2. The shared Browser/Search contract exposes
+12 locale choices and an Arabic RTL path. Exact build, parse, signature, hash,
+and unproven distribution boundaries are recorded in
+[`PLATFORM_EVIDENCE.md`](PLATFORM_EVIDENCE.md).

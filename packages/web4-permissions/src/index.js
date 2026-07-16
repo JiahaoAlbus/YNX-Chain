@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+export * from "./contracts.js";
+export * from "./i18n.js";
 
 export const SITE_PERMISSIONS = Object.freeze([
   "camera",

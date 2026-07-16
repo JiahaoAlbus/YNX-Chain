@@ -1,0 +1,18 @@
+import Foundation
+enum L { static let tags=["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"];static let values:[String:[String]]=[
+"app":["YNX Browser","YNX 浏览器","YNX 瀏覽器","YNX ブラウザ","YNX 브라우저","Navegador YNX","Navigateur YNX","YNX Browser","Navegador YNX","Браузер YNX","متصفح YNX","Browser YNX"],
+"new":["New tab","新标签页","新增分頁","新しいタブ","새 탭","Nueva pestaña","Nouvel onglet","Neuer Tab","Nova aba","Новая вкладка","علامة تبويب جديدة","Tab baru"],
+"private":["Private tab","隐私标签页","私密分頁","プライベートタブ","비공개 탭","Pestaña privada","Onglet privé","Privater Tab","Aba privada","Приватная вкладка","علامة تبويب خاصة","Tab privat"],
+"history":["History","历史记录","瀏覽記錄","履歴","방문 기록","Historial","Historique","Verlauf","Histórico","История","السجل","Riwayat"],
+"bookmarks":["Bookmarks","书签","書籤","ブックマーク","북마크","Marcadores","Favoris","Lesezeichen","Favoritos","Закладки","الإشارات","Markah"],
+"downloads":["Downloads","下载","下載","ダウンロード","다운로드","Descargas","Téléchargements","Downloads","Downloads","Загрузки","التنزيلات","Unduhan"],
+"settings":["Settings","设置","設定","設定","설정","Ajustes","Réglages","Einstellungen","Configurações","Настройки","الإعدادات","Setelan"],
+"wallet":["Sign in with YNX Wallet","使用 YNX Wallet 登录","使用 YNX Wallet 登入","YNX Wallet でサインイン","YNX Wallet으로 로그인","Iniciar sesión con YNX Wallet","Se connecter avec YNX Wallet","Mit YNX Wallet anmelden","Entrar com YNX Wallet","Войти через YNX Wallet","تسجيل الدخول باستخدام YNX Wallet","Masuk dengan YNX Wallet"],
+"ai":["Page AI","页面 AI","頁面 AI","ページ AI","페이지 AI","IA de página","IA de page","Seiten-KI","IA da página","ИИ страницы","ذكاء الصفحة","AI halaman"],
+"permission":["Site permission","网站权限","網站權限","サイト権限","사이트 권한","Permiso del sitio","Autorisation du site","Website-Berechtigung","Permissão do site","Разрешение сайта","إذن الموقع","Izin situs"],
+"offline":["Offline — retry when a network is available","离线——网络恢复后重试","離線——網路恢復後重試","オフライン — 接続後に再試行","오프라인 — 연결 후 다시 시도","Sin conexión — reintenta con red","Hors ligne — réessayez avec le réseau","Offline — bei Netzwerk erneut versuchen","Offline — tente com rede","Нет сети — повторите после подключения","غير متصل — أعد المحاولة عند توفر الشبكة","Offline — coba lagi saat jaringan tersedia"],
+"privateBoundary":["Private mode does not save YNX history or permission decisions. Websites, networks, the OS and downloaded files may retain activity.","隐私模式不会保存 YNX 历史记录或权限决定。网站、网络、操作系统和下载文件仍可能保留活动。","私密模式不會儲存 YNX 瀏覽記錄或權限決定。網站、網路、作業系統及下載檔案仍可能保留活動。","プライベートモードは履歴や権限判断を保存しません。サイトや OS は活動を保持する場合があります。","비공개 모드는 기록이나 권한 결정을 저장하지 않습니다. 사이트와 OS는 활동을 보존할 수 있습니다.","El modo privado no guarda historial ni permisos. Sitios y sistema pueden conservar actividad.","Le mode privé ne conserve ni historique ni autorisations. Sites et système peuvent retenir l’activité.","Privatmodus speichert weder Verlauf noch Berechtigungen. Websites und System können Aktivitäten behalten.","O modo privado não salva histórico nem permissões. Sites e sistema podem reter atividade.","Приватный режим не сохраняет историю и разрешения. Сайты и ОС могут сохранять активность.","الوضع الخاص لا يحفظ السجل أو الأذونات. قد تحتفظ المواقع والنظام بالنشاط.","Mode privat tidak menyimpan riwayat atau izin. Situs dan sistem dapat menyimpan aktivitas."]
+];
+static func resolve(_ value:String)->String{if value.hasPrefix("zh-TW")||value.contains("Hant"){return "zh-Hant"};if value.hasPrefix("zh"){return "zh-Hans"};return tags.first{value.lowercased().hasPrefix($0.lowercased())} ?? "en"}
+static func text(_ locale:String,_ key:String)->String{guard let items=values[key],let i=tags.firstIndex(of:resolve(locale))else{return "[\(key)]"};return items[i]}
+}

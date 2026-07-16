@@ -1,0 +1,35 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+  A00000000000000000000001 = {isa = PBXBuildFile; fileRef = B00000000000000000000001; };
+  A00000000000000000000002 = {isa = PBXBuildFile; fileRef = B00000000000000000000002; };
+  A00000000000000000000003 = {isa = PBXBuildFile; fileRef = B00000000000000000000003; };
+  A00000000000000000000004 = {isa = PBXBuildFile; fileRef = B00000000000000000000004; };
+  A00000000000000000000005 = {isa = PBXBuildFile; fileRef = B00000000000000000000005; };
+  B00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXBrowserApp.swift; sourceTree = "<group>"; };
+  B00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserModel.swift; sourceTree = "<group>"; };
+  B00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserScreen.swift; sourceTree = "<group>"; };
+  B00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserWebView.swift; sourceTree = "<group>"; };
+  B00000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+  B00000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+  B00000000000000000000007 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = YNXBrowser.app; sourceTree = BUILT_PRODUCTS_DIR; };
+  C00000000000000000000001 = {isa = PBXGroup; children = (C00000000000000000000002,C00000000000000000000003); sourceTree = "<group>"; };
+  C00000000000000000000002 = {isa = PBXGroup; path = YNXBrowser; children = (B00000000000000000000001,B00000000000000000000002,B00000000000000000000003,B00000000000000000000004,B00000000000000000000005,B00000000000000000000006); sourceTree = "<group>"; };
+  C00000000000000000000003 = {isa = PBXGroup; name = Products; children = (B00000000000000000000007); sourceTree = "<group>"; };
+  D00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001,A00000000000000000000002,A00000000000000000000003,A00000000000000000000004,A00000000000000000000005); runOnlyForDeploymentPostprocessing = 0; };
+  D00000000000000000000002 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  D00000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  E00000000000000000000001 = {isa = PBXNativeTarget; buildConfigurationList = F00000000000000000000002; buildPhases = (D00000000000000000000001,D00000000000000000000002,D00000000000000000000003); buildRules = (); dependencies = (); name = YNXBrowser; productName = YNXBrowser; productReference = B00000000000000000000007; productType = "com.apple.product-type.application"; };
+  E00000000000000000000002 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {E00000000000000000000001 = {CreatedOnToolsVersion = 16.0;};};}; buildConfigurationList = F00000000000000000000001; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base); mainGroup = C00000000000000000000001; productRefGroup = C00000000000000000000003; projectDirPath = ""; projectRoot = ""; targets = (E00000000000000000000001); };
+  F00000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (F10000000000000000000001,F10000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  F00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (F20000000000000000000001,F20000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  F10000000000000000000001 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0;}; name = Debug; };
+  F10000000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 6.0;}; name = Release; };
+  F20000000000000000000001 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXBrowser/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.browser.ios; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Debug; };
+  F20000000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = YNXBrowser/Info.plist; MARKETING_VERSION = 0.2.0; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.browser.ios; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = "1,2";}; name = Release; };
+ };
+ rootObject = E00000000000000000000002;
+}

@@ -4,7 +4,7 @@ import WebKit
 struct TabRecord: Codable { let id: UUID; var url: String; var title: String; let isPrivate: Bool; var crashed: Bool }
 struct VisitRecord: Codable { let url: String; let title: String; let visitedAt: Date }
 
-@MainActor final class BrowserController: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, NSTextFieldDelegate {
+@MainActor final class BrowserController: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, NSTextFieldDelegate {
     private var window: NSWindow!
     private var address = NSTextField()
     private var tabPicker = NSPopUpButton()
@@ -19,14 +19,19 @@ struct VisitRecord: Codable { let url: String; let title: String; let visitedAt:
         NSApp.setActivationPolicy(.regular)
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1320, height: 860), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "YNX Browser · WebKit"
+        window.setFrameAutosaveName("com.ynxweb4.browser.macos.main-window")
+        window.delegate = self
         window.backgroundColor = .white
         window.center()
         buildChrome()
+        buildMenu()
         restoreTabs()
         if tabs.isEmpty { openTab(url: URL(string: "https://example.com")!, isPrivate: false) } else { activate(tabs.last!.id) }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
+
+    private func buildMenu() { let menu=NSMenu();let app=NSMenuItem();menu.addItem(app);let appMenu=NSMenu();appMenu.addItem(withTitle:"Clear Browsing Data…",action:#selector(clearData),keyEquivalent:"");appMenu.addItem(withTitle:"Check for Signed Updates…",action:#selector(checkUpdates),keyEquivalent:"");appMenu.addItem(.separator());appMenu.addItem(withTitle:"Quit YNX Browser",action:#selector(NSApplication.terminate(_:)),keyEquivalent:"q");app.submenu=appMenu;let file=NSMenuItem();menu.addItem(file);let fileMenu=NSMenu(title:"File");fileMenu.addItem(withTitle:"New Tab",action:#selector(newTabAction),keyEquivalent:"t");let privateItem=fileMenu.addItem(withTitle:"New Private Tab",action:#selector(privateTabAction),keyEquivalent:"n");privateItem.keyEquivalentModifierMask=[.command,.shift];file.submenu=fileMenu;NSApp.mainMenu=menu }
 
     private func buildChrome() {
         let root = NSView(); root.translatesAutoresizingMaskIntoConstraints = false; window.contentView = root
@@ -71,6 +76,8 @@ struct VisitRecord: Codable { let url: String; let title: String; let visitedAt:
     @objc private func newTabAction() { openTab(url: URL(string: "http://127.0.0.1:4313")!, isPrivate: false) }; @objc private func privateTabAction() { openTab(url: URL(string: "http://127.0.0.1:4313")!, isPrivate: true) }
     @objc private func selectTab() { let index = tabPicker.indexOfSelectedItem; if tabs.indices.contains(index) { activate(tabs[index].id) } }
     @objc private func bookmarkAction() { guard let tab = activeID.flatMap({ id in tabs.first(where: { $0.id == id }) }) else { return }; var values = defaults.array(forKey: "bookmarks") as? [[String:String]] ?? []; values.append(["url":tab.url,"title":tab.title]); defaults.set(values, forKey: "bookmarks") }
+    @objc private func clearData() { let alert=NSAlert();alert.messageText="Clear browsing data?";alert.informativeText="Cookies, cache, history, permissions and recovery state are cleared. Downloaded files remain.";alert.addButton(withTitle:"Clear");alert.addButton(withTitle:"Cancel");guard alert.runModal() == .alertFirstButtonReturn else{return};WKWebsiteDataStore.default().removeData(ofTypes:WKWebsiteDataStore.allWebsiteDataTypes(),modifiedSince:.distantPast){};defaults.removeObject(forKey:"history");defaults.removeObject(forKey:"tabs");security.stringValue="Local data cleared. Downloaded files remain." }
+    @objc private func checkUpdates() { showBoundary(title:"Signed update boundary",message:"No signed update feed is configured. Web pages and AI output cannot replace this app. Install only a notarized application bundle from the operator release channel.") }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
@@ -81,6 +88,11 @@ struct VisitRecord: Codable { let url: String; let title: String; let visitedAt:
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { guard let i = index(for: webView) else { return }; tabs[i].url = webView.url?.absoluteString ?? tabs[i].url; tabs[i].title = webView.title ?? webView.url?.host ?? "Untitled"; tabs[i].crashed = false; if !tabs[i].isPrivate { var visits = (try? JSONDecoder().decode([VisitRecord].self, from: defaults.data(forKey: "history") ?? Data())) ?? []; visits.insert(VisitRecord(url: tabs[i].url,title: tabs[i].title,visitedAt:Date()),at:0); if let data=try? JSONEncoder().encode(Array(visits.prefix(5000))){defaults.set(data,forKey:"history")} }; persistTabs(); refreshChrome(); security.stringValue = webView.url?.scheme == "https" ? "HTTPS transport · certificate validated by WebKit; inspect system trust details before sensitive actions" : "Not HTTPS · connection is not encrypted" }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { if let i=index(for:webView){tabs[i].crashed=true;persistTabs();refreshChrome()};webView.reload() }
     func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @MainActor (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) { let trust=challenge.protectionSpace.serverTrust; security.stringValue = trust == nil ? "Certificate trust unavailable" : "TLS certificate received for \(challenge.protectionSpace.host) · system trust evaluation applies"; completionHandler(.performDefaultHandling,nil) }
+    func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void) { let alert=NSAlert();alert.messageText="Site permission";alert.informativeText="Allow \(type == .camera ? "camera" : type == .microphone ? "microphone" : "camera and microphone") for exact origin \(origin.protocol)://\(origin.host):\(origin.port)?";alert.addButton(withTitle:"Allow once");alert.addButton(withTitle:"Deny");decisionHandler(alert.runModal() == .alertFirstButtonReturn ? .grant : .deny) }
+    func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) { let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;panel.beginSheetModal(for:window){completionHandler($0 == .OK ? panel.urls : nil)} }
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) { download.delegate=self }
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor @Sendable (URL?) -> Void) { let panel=NSSavePanel();panel.nameFieldStringValue=suggestedFilename;panel.beginSheetModal(for:window){ result in completionHandler(result == .OK ? panel.url : nil) } }
+    func downloadDidFinish(_ download: WKDownload) { security.stringValue="Download completed to the user-selected file." }
     private func showBoundary(title: String, message: String) { let alert=NSAlert();alert.messageText=title;alert.informativeText=message;alert.alertStyle = .warning;alert.addButton(withTitle:"Close");alert.runModal() }
     func applicationWillTerminate(_ notification: Notification) { tabs.removeAll(where: { $0.isPrivate }); persistTabs() }
 }
