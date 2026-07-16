@@ -7,7 +7,7 @@
 - Baseline commit: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`
 - Baseline source: refreshed `origin/main` on 2026-07-16. The isolated Wallet commits were rebased onto this exact commit before final verification and push.
 - Superseded pre-review branch tip: `bb8ef9924d71c1f991cb1facdfc06ab2d60045c8`
-- Corrected code/proof commit: `bf09b97cc2cdbef009d2fb7e438750a7a16fd7c3`
+- Corrected code/proof commit: `bf09b976b74a27e6d6489f071b8e6347ab156584`
 - Final branch-tip commit: reported to the integration controller after the handoff commit is created. A commit cannot contain its own hash.
 
 ## Changed paths
