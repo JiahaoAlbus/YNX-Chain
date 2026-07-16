@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">YNX Shop</string>
+    <string name="nav_catalog">Entdecken</string>
+    <string name="nav_cart">Warenkorb</string>
+    <string name="nav_orders">Bestellungen</string>
+    <string name="nav_account">Konto</string>
+    <string name="search_hint">Produkte und Kategorien suchen</string>
+    <string name="search">Suchen</string>
+    <string name="loading">Echte Datensätze werden geladen…</string>
+    <string name="empty_catalog">Keine veröffentlichten Produkte.</string>
+    <string name="retry">Erneut versuchen</string>
+    <string name="offline">Offline. Erfolg wird nicht simuliert.</string>
+    <string name="unavailable">Nicht verfügbar</string>
+    <string name="wallet_sign_in">Mit YNX Wallet anmelden</string>
+    <string name="wallet_active">Wallet-Sitzung aktiv</string>
+    <string name="wallet_security">Wallet signiert die Kontoautorisierung; die App signiert eine separate P-256-Geräteprüfung. Kein Wiederherstellungsschlüssel gelangt in Shop.</string>
+    <string name="privacy_boundary">Profil, Adresse und Bestellungen bleiben in Shop. KI erhält nur den vor der Freigabe gezeigten Kontext.</string>
+    <string name="payment_boundary">Eine Bestellung gilt nur mit exakt passendem, bestätigtem YNXT-Nachweis von Central Pay als bezahlt.</string>
+    <string name="add_cart">In den Warenkorb</string><string name="inventory">verfügbar</string><string name="cart_empty">Der Warenkorb ist leer.</string><string name="order_review">Bestellung prüfen</string><string name="recipient">Empfänger</string><string name="address">Adresse</string><string name="city">Stadt</string><string name="country">Land</string><string name="checkout">Bestand reservieren und zahlungsoffene Bestellung erstellen</string><string name="payment_pending">Zahlung ausstehend</string><string name="pay_handoff">In YNX Pay fortfahren</string><string name="check_payment">Abrechnung prüfen</string><string name="cancel_order">Bestellung stornieren</string><string name="confirm_delivery">Lieferung bestätigen</string><string name="write_review">Bewertung schreiben</string><string name="return_request">Rückgabe anfordern</string><string name="refund_request">Erstattung anfordern</string><string name="dispute">Streitfall eröffnen</string>
+    <string name="trust_unavailable">Trust-Falldienst nicht verfügbar; Nachweise bleiben erhalten.</string><string name="tax_unavailable">Steuerdienst nicht verfügbar</string><string name="logistics_unavailable">Externe Logistik nicht verfügbar</string><string name="ai_compare">KI-Vergleich</string><string name="ai_language">KI-Ausgabesprache</string><string name="ai_privacy">Die KI sieht nur den gewählten öffentlichen Katalog oder die Zusammenfassung einer eigenen Bestellung. Sie kann weder kaufen, erstatten, veröffentlichen noch Preise oder Richtlinien ändern.</string><string name="grant_permission">Einmal erlauben</string><string name="apply_draft">Entwurf übernehmen</string><string name="reject_draft">Ablehnen</string><string name="cancel">Abbrechen</string><string name="settings_language">App-Sprache</string><string name="security_error">Sicherheitsprüfung fehlgeschlagen.</string><string name="session_expired">Wallet-Sitzung abgelaufen oder widerrufen.</string><string name="queued_offline">Aktion mit Idempotenzschlüssel vorgemerkt; Bestellung oder Zahlung gilt erst nach Serverbestätigung.</string><string name="restore_pending">Ausstehende Aktionen wiederholen</string><string name="save_profile">Profil und Adresse speichern</string><string name="profile_saved">Profil gespeichert.</string><string name="no_orders">Noch keine Bestellungen.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">YNX Shop für ynx_6423-1 mit den exakt angezeigten Bereichen autorisieren. Läuft in vier Minuten ab.</string><string name="accessibility_status">Marktplatzstatus</string><string name="accessibility_language">Sprachauswahl</string><string name="accessibility_ai_language">Auswahl der KI-Ausgabesprache</string><plurals name="orders_count"><item quantity="one">%d Bestellung</item><item quantity="other">%d Bestellungen</item></plurals>
+</resources>

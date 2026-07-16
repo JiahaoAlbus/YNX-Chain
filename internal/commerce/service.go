@@ -267,7 +267,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 		s.s.Products[p.ID] = p
 	}
 	now := s.now()
-	o := Order{ID: newID("order"), Buyer: actor, StoreID: in.StoreID, Status: "payment_pending", Currency: NativeSymbol, Lines: lines, Address: in.Address, SubtotalYNXT: total, TotalYNXT: total, TaxStatus: "unavailable_no_tax_service", LogisticsStatus: "unavailable_no_logistics_provider", ReservationExpiresAt: now.Add(30 * time.Minute), CreatedAt: now, UpdatedAt: now}
+	o := Order{ID: newID("order"), Buyer: actor, StoreID: in.StoreID, Status: "payment_pending", Currency: NativeSymbol, Lines: lines, Address: in.Address, SubtotalYNXT: total, TotalYNXT: total, TaxStatus: "unavailable_no_tax_service", LogisticsStatus: "unavailable_no_logistics_provider", RefundStatus: "not_requested", TrustStatus: "not_requested", ReservationExpiresAt: now.Add(30 * time.Minute), CreatedAt: now, UpdatedAt: now}
 	s.s.Orders[o.ID] = o
 	s.recordIdempotencyLocked(actor, "order.create", in.IdempotencyKey, h, o.ID)
 	s.auditLocked(actor, "buyer", "order_created", "order", o.ID, "payment_pending", "inventory reserved; Pay invoice handoff required")
@@ -277,7 +277,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 	return o, nil
 }
 
-func (s *Store) BindInvoice(actor, orderID, invoiceID string) (Order, error) {
+func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (Order, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	o, ok := s.s.Orders[orderID]
@@ -287,13 +287,16 @@ func (s *Store) BindInvoice(actor, orderID, invoiceID string) (Order, error) {
 	if o.Buyer != actor {
 		return Order{}, ErrUnauthorized
 	}
-	if o.Status != "payment_pending" || invoiceID == "" {
+	if o.Status != "payment_pending" || handoff.InvoiceID == "" || handoff.IntentID == "" || handoff.Merchant == "" || handoff.PayoutAddress == "" {
 		return Order{}, ErrInvalidState
 	}
-	if o.InvoiceID != "" && o.InvoiceID != invoiceID {
+	if o.InvoiceID != "" && (o.InvoiceID != handoff.InvoiceID || o.PayIntentID != handoff.IntentID || o.PayMerchant != handoff.Merchant || o.PayPayoutAddress != handoff.PayoutAddress) {
 		return Order{}, ErrConflict
 	}
-	o.InvoiceID = invoiceID
+	o.InvoiceID = handoff.InvoiceID
+	o.PayIntentID = handoff.IntentID
+	o.PayMerchant = handoff.Merchant
+	o.PayPayoutAddress = handoff.PayoutAddress
 	o.UpdatedAt = s.now()
 	s.s.Orders[o.ID] = o
 	s.auditLocked(actor, "buyer", "pay_invoice_bound", "order", o.ID, "pending", "awaiting authoritative settlement")
@@ -313,7 +316,7 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	if o.Status == "paid" && o.Settlement != nil && o.Settlement.TransactionHash == e.TransactionHash {
 		return o, nil
 	}
-	if o.Status != "payment_pending" || o.InvoiceID == "" || e.InvoiceID != o.InvoiceID || e.Status != "paid" || e.TransactionHash == "" || e.BlockHeight == 0 || e.AmountYNXT != o.TotalYNXT {
+	if o.Status != "payment_pending" || o.InvoiceID == "" || e.InvoiceID != o.InvoiceID || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.PayoutAddress != o.PayPayoutAddress || e.Status != "paid" || e.Currency != NativeSymbol || len(e.TransactionHash) != 66 || !strings.HasPrefix(e.TransactionHash, "0x") || len(e.AuditHash) != 64 || e.Payer != o.Buyer || e.BlockHeight == 0 || e.AmountYNXT != o.TotalYNXT || e.ConfirmedAt.IsZero() {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
 	}
 	for _, line := range o.Lines {
@@ -334,6 +337,40 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	o.UpdatedAt = s.now()
 	s.s.Orders[o.ID] = o
 	s.auditLocked("pay-settlement-verifier", "system", "settlement_confirmed", "order", o.ID, "paid", e.TransactionHash)
+	if err := s.persistLocked(); err != nil {
+		return Order{}, err
+	}
+	return o, nil
+}
+
+func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Order, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	o, ok := s.s.Orders[orderID]
+	if !ok {
+		return Order{}, ErrNotFound
+	}
+	role := s.s.SellerRoles[o.StoreID][actor]
+	if role != "owner" && role != "manager" {
+		return Order{}, ErrUnauthorized
+	}
+	if o.Status == "refunded" && o.Refund != nil && o.Refund.ID == e.ID && o.Refund.TransactionHash == e.TransactionHash {
+		return o, nil
+	}
+	validTxHash := (len(e.TransactionHash) == 64 && !strings.HasPrefix(e.TransactionHash, "0x")) || (len(e.TransactionHash) == 66 && strings.HasPrefix(e.TransactionHash, "0x"))
+	if o.Status != "refund_approved" || o.Settlement == nil || e.ID == "" || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.Currency != NativeSymbol || e.Status != "recorded" || e.AmountYNXT != o.TotalYNXT || e.BlockHeight == 0 || e.RecordedAt.IsZero() || !validTxHash || len(e.AuditHash) != 64 || len(e.RequestHash) != 64 {
+		return Order{}, fmt.Errorf("%w: refund evidence mismatch", ErrInvalidState)
+	}
+	o.Refund = &e
+	o.RefundStatus = "recorded_by_authoritative_pay"
+	o.Status = "refunded"
+	if o.Resolution != nil {
+		o.Resolution.Status = "refunded"
+		o.Resolution.UpdatedAt = s.now()
+	}
+	o.UpdatedAt = s.now()
+	s.s.Orders[o.ID] = o
+	s.auditLocked(actor, role, "pay_refund_bound", "order", o.ID, "refunded", "exact committed Pay refund evidence attached")
 	if err := s.persistLocked(); err != nil {
 		return Order{}, err
 	}
@@ -433,7 +470,7 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	case "reviewed":
 		allowed = buyer && o.Status == "delivered" && review != nil && review.Rating >= 1 && review.Rating <= 5
 	case "return_approved", "return_rejected", "refund_approved", "refund_rejected":
-		allowed = (strings.HasPrefix(next, "return") && canResolveReturn && o.Status == "return_requested") || (strings.HasPrefix(next, "refund") && canApproveRefund && o.Status == "refund_requested")
+		allowed = (strings.HasPrefix(next, "return") && canResolveReturn && o.Status == "return_requested") || (strings.HasPrefix(next, "refund") && canApproveRefund && (o.Status == "refund_requested" || (next == "refund_approved" && o.Status == "refund_approved")))
 	}
 	if !allowed {
 		return Order{}, ErrInvalidState
@@ -454,8 +491,18 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 		shipment.Status = next
 		shipment.UpdatedAt = now
 		o.Shipment = shipment
+		o.LogisticsStatus = "seller_entered_unverified"
 	}
 	if res != nil {
+		if o.Resolution != nil {
+			if strings.TrimSpace(res.Reason) == "" {
+				res.Reason = o.Resolution.Reason
+			}
+			if strings.TrimSpace(res.Explanation) == "" {
+				res.Explanation = o.Resolution.Explanation
+			}
+			res.RequestedAt = o.Resolution.RequestedAt
+		}
 		res.Status = next
 		if res.RequestedAt.IsZero() {
 			res.RequestedAt = now
@@ -466,6 +513,16 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	if review != nil {
 		review.CreatedAt = now
 		o.Review = review
+	}
+	switch next {
+	case "refund_requested":
+		o.RefundStatus = "requested_no_transfer"
+	case "refund_approved":
+		o.RefundStatus = "approved_pending_authoritative_pay_refund"
+	case "refund_rejected":
+		o.RefundStatus = "rejected_no_transfer"
+	case "disputed":
+		o.TrustStatus = "pending_gateway_handoff"
 	}
 	o.Status = next
 	o.UpdatedAt = now

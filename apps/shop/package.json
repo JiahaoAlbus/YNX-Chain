@@ -1,1 +1,1 @@
-{"name":"@ynx/shop","private":true,"scripts":{"test":"node --test test/*.test.mjs","build":"node scripts/build.mjs","smoke":"node scripts/smoke.mjs"},"engines":{"node":">=20"}}
+{"name":"@ynx/shop","private":true,"scripts":{"test":"node --test test/*.test.mjs","build":"node scripts/build.mjs","smoke":"node scripts/smoke.mjs","native:verify":"node native/scripts/verify.mjs"},"engines":{"node":">=20"}}

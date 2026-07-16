@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Tienda YNX</string>
+    <string name="nav_catalog">Descubrir</string>
+    <string name="nav_cart">Carrito</string>
+    <string name="nav_orders">Pedidos</string>
+    <string name="nav_account">Cuenta</string>
+    <string name="search_hint">Buscar productos y categorías</string>
+    <string name="search">Buscar</string>
+    <string name="loading">Cargando registros reales…</string>
+    <string name="empty_catalog">No hay productos publicados.</string>
+    <string name="retry">Reintentar</string>
+    <string name="offline">Sin conexión. No se simula ningún éxito.</string>
+    <string name="unavailable">No disponible</string>
+    <string name="wallet_sign_in">Iniciar sesión con YNX Wallet</string>
+    <string name="wallet_active">Sesión Wallet activa</string>
+    <string name="wallet_security">Wallet firma la autorización de la cuenta y esta app firma un reto P-256 separado. Ninguna clave de recuperación entra en Shop.</string>
+    <string name="privacy_boundary">Perfil, dirección y pedidos permanecen en Shop. La IA solo recibe el contexto mostrado antes del permiso.</string>
+    <string name="payment_boundary">Un pedido solo se marca pagado con evidencia YNXT confirmada y exacta de Central Pay.</string>
+    <string name="add_cart">Añadir al carrito</string><string name="inventory">disponibles</string><string name="cart_empty">Tu carrito está vacío.</string><string name="order_review">Revisar pedido</string><string name="recipient">Destinatario</string><string name="address">Dirección</string><string name="city">Ciudad</string><string name="country">País</string><string name="checkout">Reservar inventario y crear pedido pendiente de pago</string><string name="payment_pending">Pago pendiente</string><string name="pay_handoff">Continuar en YNX Pay</string><string name="check_payment">Comprobar liquidación</string><string name="cancel_order">Cancelar pedido</string><string name="confirm_delivery">Confirmar entrega</string><string name="write_review">Escribir reseña</string><string name="return_request">Solicitar devolución</string><string name="refund_request">Solicitar reembolso</string><string name="dispute">Abrir disputa</string>
+    <string name="trust_unavailable">El servicio de casos Trust no está disponible; la evidencia se conserva.</string><string name="tax_unavailable">Servicio fiscal no disponible</string><string name="logistics_unavailable">Logística externa no disponible</string><string name="ai_compare">Comparación con IA</string><string name="ai_language">Idioma de salida de IA</string><string name="ai_privacy">La IA solo ve el catálogo público elegido o el resumen de un pedido propio. No puede comprar, reembolsar, publicar, cambiar precios ni políticas.</string><string name="grant_permission">Permitir una vez</string><string name="apply_draft">Aplicar borrador</string><string name="reject_draft">Rechazar</string><string name="cancel">Cancelar</string><string name="settings_language">Idioma de la app</string><string name="security_error">Falló la verificación de seguridad.</string><string name="session_expired">La sesión de Wallet caducó o fue revocada.</string><string name="queued_offline">Acción en cola con su clave idempotente; no se confirma pedido ni pago hasta la respuesta del servidor.</string><string name="restore_pending">Reintentar acciones pendientes</string><string name="save_profile">Guardar perfil y dirección</string><string name="profile_saved">Perfil guardado.</string><string name="no_orders">Aún no hay pedidos.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">Autoriza YNX Shop en ynx_6423-1 con los permisos exactos mostrados. Caduca en cuatro minutos.</string><string name="accessibility_status">Estado del marketplace</string><string name="accessibility_language">Selector de idioma</string><string name="accessibility_ai_language">Selector de idioma de salida de IA</string><plurals name="orders_count"><item quantity="one">%d pedido</item><item quantity="other">%d pedidos</item></plurals>
+</resources>

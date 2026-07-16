@@ -1,142 +1,222 @@
 package commerce
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
 
-type ChallengeInput struct {
-	Account, Callback, DeviceID, Purpose string
-	Scopes                               []string
-}
-type SessionInput struct{ ChallengeID, PublicKey, Signature, Role string }
+const (
+	ShopClientID     = "ynx-shop-v1"
+	ShopBundleID     = "com.ynxweb4.shop"
+	ShopCallback     = "ynxshop://wallet-auth/callback"
+	SellerClientID   = "ynx-seller-v1"
+	SellerBundleID   = "com.ynxweb4.seller-console"
+	SellerCallback   = "ynxseller://wallet-auth/callback"
+	DeviceAlgorithm  = "p256-sha256"
+	GatewayChainID   = "ynx_6423-1"
+	gatewayMaxBody   = 1 << 20
+	gatewayUserAgent = "ynx-shopd/1"
+)
 
-type AuthConfig struct {
-	AllowedCallbacks map[string]bool
-	SessionTTL       time.Duration
-}
+var (
+	ShopScopes   = []string{"account:read", "shop:orders:write", "shop:profile:write"}
+	SellerScopes = []string{"account:read", "shop:seller:operate"}
+)
 
-func (s *Store) CreateChallenge(in ChallengeInput, cfg AuthConfig) (WalletChallenge, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !consensus.IsNativeAddress(in.Account) {
-		return WalletChallenge{}, errors.New("canonical ynx1 account required")
-	}
-	if !cfg.AllowedCallbacks[in.Callback] || in.DeviceID == "" || len(in.DeviceID) > 128 {
-		return WalletChallenge{}, errors.New("callback and device binding must be allowlisted")
-	}
-	if in.Purpose == "" || len(in.Purpose) > 200 {
-		return WalletChallenge{}, errors.New("human-readable purpose required")
-	}
-	if len(in.Scopes) == 0 || len(in.Scopes) > 4 {
-		return WalletChallenge{}, errors.New("one to four scopes required")
-	}
-	allowed := map[string]bool{"shop.profile": true, "shop.orders": true, "shop.seller": true}
-	seen := map[string]bool{}
-	for _, scope := range in.Scopes {
-		if !allowed[scope] || seen[scope] {
-			return WalletChallenge{}, errors.New("unsupported or duplicate scope")
-		}
-		seen[scope] = true
-	}
-	now := s.now()
-	c := WalletChallenge{ID: newID("siwy"), Account: in.Account, Nonce: newID("nonce"), Product: "com.ynx.shop", Callback: in.Callback, DeviceID: in.DeviceID, Scopes: append([]string(nil), in.Scopes...), Purpose: in.Purpose, IssuedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
-	s.s.Challenges[c.ID] = c
-	s.auditLocked(in.Account, "buyer", "wallet_challenge_created", "auth", c.ID, "pending", "device and callback bound")
-	if err := s.persistLocked(); err != nil {
-		return WalletChallenge{}, err
-	}
-	return c, nil
+type ProductBinding struct {
+	RequestingProduct, ProductClientID, BundleID, Callback, Role string
+	Scopes                                                       []string
 }
 
-func challengeSignBytes(c WalletChallenge) []byte {
-	b, _ := json.Marshal(struct {
-		Domain, Version, Chain, Product, Account, Callback, DeviceID, Nonce, Purpose string
-		Scopes                                                                       []string
-		IssuedAt, ExpiresAt                                                          time.Time
-	}{"SIGN_IN_WITH_YNX_WALLET", "1", ChainName, c.Product, c.Account, c.Callback, c.DeviceID, c.Nonce, c.Purpose, c.Scopes, c.IssuedAt, c.ExpiresAt})
-	return b
+func ShopBinding() ProductBinding {
+	return ProductBinding{"shop", ShopClientID, ShopBundleID, ShopCallback, "buyer", append([]string(nil), ShopScopes...)}
+}
+func SellerBinding() ProductBinding {
+	return ProductBinding{"shop-seller", SellerClientID, SellerBundleID, SellerCallback, "seller", append([]string(nil), SellerScopes...)}
 }
 
-func (s *Store) CompleteSession(in SessionInput, cfg AuthConfig) (Session, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	c, ok := s.s.Challenges[in.ChallengeID]
-	if !ok {
-		return Session{}, ErrNotFound
-	}
-	now := s.now()
-	if c.Consumed || !c.ExpiresAt.After(now) {
-		return Session{}, fmtAuth("challenge expired or replayed")
-	}
-	if in.Role != "buyer" && in.Role != "seller" {
-		return Session{}, fmtAuth("invalid role")
-	}
-	pubBytes, err := hex.DecodeString(strings.TrimPrefix(in.PublicKey, "0x"))
-	if err != nil {
-		return Session{}, fmtAuth("invalid public key")
-	}
-	pub, err := secp256k1.ParsePubKey(pubBytes)
-	if err != nil {
-		return Session{}, fmtAuth("invalid public key")
-	}
-	derived, err := consensus.NativeAddress(pub.SerializeCompressed())
-	if err != nil || derived != c.Account {
-		return Session{}, fmtAuth("public key does not match account")
-	}
-	sigBytes, err := hex.DecodeString(strings.TrimPrefix(in.Signature, "0x"))
-	if err != nil {
-		return Session{}, fmtAuth("invalid signature")
-	}
-	sig, err := ecdsa.ParseDERSignature(sigBytes)
-	if err != nil {
-		return Session{}, fmtAuth("invalid signature")
-	}
-	digest := sha256.Sum256(challengeSignBytes(c))
-	if !sig.Verify(digest[:], pub) {
-		return Session{}, fmtAuth("signature verification failed")
-	}
-	if in.Role == "seller" {
-		permitted := false
-		for _, scope := range c.Scopes {
-			if scope == "shop.seller" {
-				permitted = true
-			}
-		}
-		if !permitted {
-			return Session{}, fmtAuth("seller scope not granted")
+type Principal struct {
+	Account, Role, ProductClientID, BundleID, SessionBinding string
+	Scopes                                                   []string
+	ExpiresAt                                                time.Time
+}
+
+func (p Principal) HasScope(scope string) bool {
+	for _, candidate := range p.Scopes {
+		if candidate == scope {
+			return true
 		}
 	}
-	c.Consumed = true
-	s.s.Challenges[c.ID] = c
-	ttl := cfg.SessionTTL
-	if ttl <= 0 {
-		ttl = 12 * time.Hour
-	}
-	sess := Session{Token: newID("session"), Account: c.Account, Role: in.Role, ExpiresAt: now.Add(ttl)}
-	s.s.Sessions[sess.Token] = sess
-	s.auditLocked(sess.Account, sess.Role, "session_created", "auth", sess.Token, "approved", "wallet signature verified")
-	if err := s.persistLocked(); err != nil {
-		return Session{}, err
-	}
-	return sess, nil
+	return false
 }
 
-func fmtAuth(message string) error { return errors.New("wallet authorization failed: " + message) }
-func (s *Store) Authenticate(token string) (Session, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	sess, ok := s.s.Sessions[token]
-	if !ok || !sess.ExpiresAt.After(s.now()) {
-		return Session{}, ErrUnauthorized
+type AuthGateway interface {
+	Available() bool
+	Verify(context.Context, string) (Principal, error)
+	Begin(context.Context, json.RawMessage) (json.RawMessage, error)
+	Complete(context.Context, json.RawMessage) (json.RawMessage, error)
+}
+
+// HTTPAuthGateway is a fail-closed adapter for the accepted Wallet Auth v1
+// product-session boundary. It never stores or logs the opaque bearer token.
+// The central Gateway owns Wallet approval verification, one-time replay state,
+// P-256 device proof verification, revocation and session expiry.
+type HTTPAuthGateway struct {
+	BaseURL, ServiceKey string
+	Client              *http.Client
+}
+
+func (g HTTPAuthGateway) Available() bool { return strings.TrimSpace(g.BaseURL) != "" }
+
+func (g HTTPAuthGateway) Verify(ctx context.Context, token string) (Principal, error) {
+	if !g.Available() {
+		return Principal{}, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable)
 	}
-	return sess, nil
+	if len(token) < 24 || len(token) > 4096 || strings.ContainsAny(token, "\r\n") {
+		return Principal{}, ErrUnauthorized
+	}
+	req, err := g.request(ctx, http.MethodPost, "/v1/product-sessions/introspect", nil)
+	if err != nil {
+		return Principal{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := g.client().Do(req)
+	if err != nil {
+		return Principal{}, fmt.Errorf("%w: central Wallet Gateway request failed", ErrUnavailable)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return Principal{}, ErrUnauthorized
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return Principal{}, fmt.Errorf("%w: central Wallet Gateway returned %d", ErrUnavailable, resp.StatusCode)
+	}
+	var raw struct {
+		Active          bool     `json:"active"`
+		SessionBinding  string   `json:"sessionBinding"`
+		ProductClientID string   `json:"productClientId"`
+		BundleID        string   `json:"bundleId"`
+		Account         string   `json:"account"`
+		Scopes          []string `json:"scopes"`
+		ExpiresAt       string   `json:"expiresAt"`
+	}
+	if err := decodeExact(resp.Body, &raw); err != nil {
+		return Principal{}, fmt.Errorf("central Wallet Gateway response invalid: %w", err)
+	}
+	if !raw.Active || !consensus.IsNativeAddress(raw.Account) || len(raw.SessionBinding) != 64 {
+		return Principal{}, ErrUnauthorized
+	}
+	expires, err := time.Parse(time.RFC3339Nano, raw.ExpiresAt)
+	if err != nil || !expires.After(time.Now().UTC()) {
+		return Principal{}, ErrUnauthorized
+	}
+	binding, ok := bindingFor(raw.ProductClientID)
+	if !ok || raw.BundleID != binding.BundleID || !exactScopes(raw.Scopes, binding.Scopes) {
+		return Principal{}, ErrUnauthorized
+	}
+	return Principal{Account: raw.Account, Role: binding.Role, ProductClientID: raw.ProductClientID, BundleID: raw.BundleID, SessionBinding: raw.SessionBinding, Scopes: append([]string(nil), raw.Scopes...), ExpiresAt: expires}, nil
+}
+
+func (g HTTPAuthGateway) Begin(ctx context.Context, body json.RawMessage) (json.RawMessage, error) {
+	return g.forward(ctx, "/v1/product-sessions/challenges", body)
+}
+func (g HTTPAuthGateway) Complete(ctx context.Context, body json.RawMessage) (json.RawMessage, error) {
+	return g.forward(ctx, "/v1/product-sessions", body)
+}
+
+func (g HTTPAuthGateway) forward(ctx context.Context, path string, body json.RawMessage) (json.RawMessage, error) {
+	if !g.Available() {
+		return nil, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable)
+	}
+	if len(body) == 0 || len(body) > gatewayMaxBody || !json.Valid(body) {
+		return nil, errors.New("canonical Wallet Gateway JSON required")
+	}
+	req, err := g.request(ctx, http.MethodPost, path, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := g.client().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: central Wallet Gateway request failed", ErrUnavailable)
+	}
+	defer resp.Body.Close()
+	data, readErr := io.ReadAll(io.LimitReader(resp.Body, gatewayMaxBody+1))
+	if readErr != nil || len(data) > gatewayMaxBody || !json.Valid(data) {
+		return nil, fmt.Errorf("%w: central Wallet Gateway returned invalid JSON", ErrUnavailable)
+	}
+	if resp.StatusCode == http.StatusConflict || resp.StatusCode == http.StatusGone {
+		return nil, fmt.Errorf("%w: Wallet approval or device challenge replay rejected", ErrConflict)
+	}
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("%w: central Wallet Gateway rejected the bound request", ErrUnauthorized)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%w: central Wallet Gateway returned %d", ErrUnavailable, resp.StatusCode)
+	}
+	return json.RawMessage(data), nil
+}
+
+func (g HTTPAuthGateway) request(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {
+	base, err := url.Parse(strings.TrimRight(g.BaseURL, "/"))
+	if err != nil || (base.Scheme != "https" && base.Hostname() != "127.0.0.1" && base.Hostname() != "localhost") {
+		return nil, fmt.Errorf("%w: central Wallet Gateway URL must use HTTPS", ErrUnavailable)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, base.String()+path, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", gatewayUserAgent)
+	if g.ServiceKey != "" {
+		req.Header.Set("X-YNX-Product-Key", g.ServiceKey)
+	}
+	return req, nil
+}
+func (g HTTPAuthGateway) client() *http.Client {
+	if g.Client != nil {
+		return g.Client
+	}
+	return &http.Client{Timeout: 8 * time.Second}
+}
+
+func bindingFor(clientID string) (ProductBinding, bool) {
+	for _, binding := range []ProductBinding{ShopBinding(), SellerBinding()} {
+		if binding.ProductClientID == clientID {
+			return binding, true
+		}
+	}
+	return ProductBinding{}, false
+}
+func exactScopes(actual, expected []string) bool {
+	if len(actual) != len(expected) || !sort.StringsAreSorted(actual) {
+		return false
+	}
+	for i := range expected {
+		if actual[i] != expected[i] {
+			return false
+		}
+	}
+	return true
+}
+func decodeExact(reader io.Reader, out any) error {
+	decoder := json.NewDecoder(io.LimitReader(reader, gatewayMaxBody))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("single JSON object required")
+	}
+	return nil
 }

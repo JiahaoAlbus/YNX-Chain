@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/commerce"
@@ -24,13 +23,7 @@ func main() {
 	if err := store.Recover(); err != nil {
 		log.Fatal(err)
 	}
-	callbacks := map[string]bool{"ynxshop://auth/callback": true, "http://127.0.0.1:8095/shop/auth/callback": true}
-	for _, v := range strings.Split(os.Getenv("YNX_SHOP_AUTH_CALLBACKS"), ",") {
-		if strings.TrimSpace(v) != "" {
-			callbacks[strings.TrimSpace(v)] = true
-		}
-	}
-	cfg := commerce.ServerConfig{Auth: commerce.AuthConfig{AllowedCallbacks: callbacks, SessionTTL: 12 * time.Hour}, Pay: commerce.HTTPPayVerifier{BaseURL: os.Getenv("YNX_SHOP_PAY_URL"), APIKey: os.Getenv("YNX_SHOP_PAY_KEY")}, AI: commerce.HTTPAIGateway{BaseURL: os.Getenv("YNX_SHOP_AI_URL"), APIKey: os.Getenv("YNX_SHOP_AI_KEY")}, BuyerAssets: http.Dir(*buyer), SellerAssets: http.Dir(*seller)}
+	cfg := commerce.ServerConfig{Auth: commerce.HTTPAuthGateway{BaseURL: os.Getenv("YNX_SHOP_GATEWAY_URL"), ServiceKey: os.Getenv("YNX_SHOP_GATEWAY_KEY")}, Pay: commerce.HTTPPayVerifier{BaseURL: os.Getenv("YNX_SHOP_PAY_URL"), APIKey: os.Getenv("YNX_SHOP_PAY_KEY"), MerchantID: os.Getenv("YNX_SHOP_PAY_MERCHANT_ID"), PayoutAddress: os.Getenv("YNX_SHOP_PAY_PAYOUT_ADDRESS")}, Trust: commerce.HTTPTrustGateway{BaseURL: os.Getenv("YNX_SHOP_TRUST_URL"), APIKey: os.Getenv("YNX_SHOP_TRUST_KEY"), PublicBaseURL: os.Getenv("YNX_SHOP_TRUST_PUBLIC_URL")}, AI: commerce.HTTPAIGateway{BaseURL: os.Getenv("YNX_SHOP_AI_URL"), APIKey: os.Getenv("YNX_SHOP_AI_KEY")}, BuyerAssets: http.Dir(*buyer), SellerAssets: http.Dir(*seller)}
 	srv := &http.Server{Addr: *addr, Handler: commerce.NewServer(store, cfg).Handler(), ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("ynx-shopd listening on %s", *addr)
 	log.Fatal(srv.ListenAndServe())

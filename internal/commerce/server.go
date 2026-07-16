@@ -13,8 +13,9 @@ import (
 const maxBody = 1 << 20
 
 type ServerConfig struct {
-	Auth                      AuthConfig
+	Auth                      AuthGateway
 	Pay                       HTTPPayVerifier
+	Trust                     TrustGateway
 	AI                        HTTPAIGateway
 	BuyerAssets, SellerAssets http.FileSystem
 }
@@ -33,8 +34,9 @@ func (s *Server) Handler() http.Handler { return s.security(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /api/capabilities", s.capabilities)
-	s.mux.HandleFunc("POST /api/auth/challenges", s.challenge)
-	s.mux.HandleFunc("POST /api/auth/sessions", s.session)
+	s.mux.HandleFunc("GET /api/auth/config", s.authConfig)
+	s.mux.HandleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
+	s.mux.HandleFunc("POST /api/auth/gateway/sessions", s.gatewaySession)
 	s.mux.HandleFunc("GET /api/products", s.products)
 	s.mux.HandleFunc("GET /api/products/{id}", s.product)
 	s.mux.HandleFunc("GET /api/stores/{id}", s.publicStore)
@@ -90,7 +92,11 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"ok": true, "service": "ynx-shopd", "chainId": ChainID, "chain": ChainName, "nativeSymbol": NativeSymbol, "persistence": s.store.path != ""})
 }
 func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"walletAuth": "signature_required", "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": "link_only", "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
+	wallet := "unavailable"
+	if s.cfg.Auth != nil && s.cfg.Auth.Available() {
+		wallet = "central_gateway"
+	}
+	write(w, 200, map[string]any{"walletAuth": wallet, "walletProtocol": "wallet-auth-v1+p256-sha256", "paySettlement": availability(s.cfg.Pay.BaseURL != "" && s.cfg.Pay.APIKey != "" && s.cfg.Pay.MerchantID != "" && s.cfg.Pay.PayoutAddress != ""), "logistics": "unavailable", "tax": "unavailable", "aiProvider": availability(s.cfg.AI.BaseURL != "" && s.cfg.AI.APIKey != ""), "trustEvidence": availability(s.cfg.Trust != nil && s.cfg.Trust.Available()), "protectedAIActions": []string{"publish_product", "change_price", "purchase", "refund", "change_seller_policy"}})
 }
 func availability(ok bool) string {
 	if ok {
@@ -134,12 +140,25 @@ func status(err error) int {
 		return 400
 	}
 }
-func (s *Server) auth(w http.ResponseWriter, r *http.Request, roles ...string) (Session, bool) {
+func (s *Server) auth(w http.ResponseWriter, r *http.Request, roles ...string) (Principal, bool) {
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
-	sess, err := s.store.Authenticate(token)
+	if s.cfg.Auth == nil {
+		fail(w, http.StatusServiceUnavailable, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable))
+		return Principal{}, false
+	}
+	sess, err := s.cfg.Auth.Verify(r.Context(), token)
 	if err != nil {
-		fail(w, 401, err)
-		return Session{}, false
+		code := status(err)
+		if errors.Is(err, ErrUnauthorized) {
+			code = http.StatusUnauthorized
+		}
+		fail(w, code, err)
+		return Principal{}, false
+	}
+	expected, bindingOK := bindingFor(sess.ProductClientID)
+	if !bindingOK || sess.Role != expected.Role || sess.BundleID != expected.BundleID || !exactScopes(sess.Scopes, expected.Scopes) {
+		fail(w, http.StatusForbidden, fmt.Errorf("%w: product session scope or binding mismatch", ErrUnauthorized))
+		return Principal{}, false
 	}
 	for _, role := range roles {
 		if sess.Role == role {
@@ -147,7 +166,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request, roles ...string) (
 		}
 	}
 	fail(w, 403, ErrUnauthorized)
-	return Session{}, false
+	return Principal{}, false
 }
 func (s *Server) rate(w http.ResponseWriter, r *http.Request, actor, action string) bool {
 	subject := actor
@@ -161,35 +180,56 @@ func (s *Server) rate(w http.ResponseWriter, r *http.Request, actor, action stri
 	return true
 }
 
-func (s *Server) challenge(w http.ResponseWriter, r *http.Request) {
+func (s *Server) authConfig(w http.ResponseWriter, r *http.Request) {
+	binding := ShopBinding()
+	if r.URL.Query().Get("surface") == "seller" {
+		binding = SellerBinding()
+	}
+	write(w, 200, map[string]any{"version": "1", "chainId": GatewayChainID, "requestingProduct": binding.RequestingProduct, "productClientId": binding.ProductClientID, "bundleId": binding.BundleID, "productDeviceAlgorithm": DeviceAlgorithm, "callback": binding.Callback, "scopes": binding.Scopes, "gateway": availability(s.cfg.Auth != nil && s.cfg.Auth.Available()), "sessionStorage": "platform_secure_storage_only"})
+}
+func (s *Server) gatewayChallenge(w http.ResponseWriter, r *http.Request) {
 	if !s.rate(w, r, "", "auth.challenge") {
 		return
 	}
-	var in ChallengeInput
-	if !decode(w, r, &in) {
+	if s.cfg.Auth == nil {
+		fail(w, http.StatusServiceUnavailable, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable))
 		return
 	}
-	v, err := s.store.CreateChallenge(in, s.cfg.Auth)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBody))
+	if err != nil {
+		fail(w, http.StatusBadRequest, err)
+		return
+	}
+	v, err := s.cfg.Auth.Begin(r.Context(), json.RawMessage(body))
 	if err != nil {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 201, map[string]any{"challenge": v, "signBytes": string(challengeSignBytes(v))})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, _ = w.Write(v)
 }
-func (s *Server) session(w http.ResponseWriter, r *http.Request) {
+func (s *Server) gatewaySession(w http.ResponseWriter, r *http.Request) {
 	if !s.rate(w, r, "", "auth.session") {
 		return
 	}
-	var in SessionInput
-	if !decode(w, r, &in) {
+	if s.cfg.Auth == nil {
+		fail(w, http.StatusServiceUnavailable, fmt.Errorf("%w: central Wallet Gateway is not configured", ErrUnavailable))
 		return
 	}
-	v, err := s.store.CompleteSession(in, s.cfg.Auth)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBody))
+	if err != nil {
+		fail(w, http.StatusBadRequest, err)
+		return
+	}
+	v, err := s.cfg.Auth.Complete(r.Context(), json.RawMessage(body))
 	if err != nil {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 201, v)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, _ = w.Write(v)
 }
 func (s *Server) products(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"products": s.store.Products(r.URL.Query().Get("q"), r.URL.Query().Get("category"))})
@@ -308,17 +348,17 @@ func (s *Server) payHandoff(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	invoice, deepLink, err := s.cfg.Pay.CreateInvoice(r.Context(), o, in.IdempotencyKey)
+	handoff, err := s.cfg.Pay.CreateInvoice(r.Context(), o, in.IdempotencyKey)
 	if err != nil {
 		fail(w, status(err), err)
 		return
 	}
-	o, err = s.store.BindInvoice(sess.Account, o.ID, invoice)
+	o, err = s.store.BindInvoice(sess.Account, o.ID, handoff)
 	if err != nil {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 201, map[string]any{"order": o, "invoiceId": invoice, "deepLink": deepLink, "status": "payment_pending"})
+	write(w, 201, map[string]any{"order": o, "invoiceId": handoff.InvoiceID, "intentId": handoff.IntentID, "deepLink": handoff.DeepLink, "merchant": handoff.Merchant, "payoutAddress": handoff.PayoutAddress, "status": "payment_pending"})
 }
 func (s *Server) confirmPayment(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer")
@@ -374,6 +414,31 @@ func (s *Server) orderTransition(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fail(w, status(err), err)
 		return
+	}
+	if in.Action == "disputed" && sess.Role == "buyer" {
+		if s.cfg.Trust == nil || !s.cfg.Trust.Available() {
+			v, err = s.store.BindTrustCase(sess.Account, v.ID, nil, true)
+		} else if evidence, trustErr := s.cfg.Trust.SubmitDispute(r.Context(), v, in.IdempotencyKey); trustErr != nil {
+			v, err = s.store.BindTrustCase(sess.Account, v.ID, nil, true)
+		} else {
+			v, err = s.store.BindTrustCase(sess.Account, v.ID, &evidence, false)
+		}
+		if err != nil {
+			fail(w, status(err), err)
+			return
+		}
+	}
+	if in.Action == "refund_approved" && sess.Role == "seller" {
+		evidence, refundErr := s.cfg.Pay.CreateRefund(r.Context(), v, in.IdempotencyKey)
+		if refundErr != nil {
+			fail(w, status(refundErr), refundErr)
+			return
+		}
+		v, err = s.store.BindRefundEvidence(sess.Account, v.ID, evidence)
+		if err != nil {
+			fail(w, status(err), err)
+			return
+		}
 	}
 	write(w, 200, v)
 }

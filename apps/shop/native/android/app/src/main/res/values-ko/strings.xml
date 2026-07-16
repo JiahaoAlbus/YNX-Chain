@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">YNX 쇼핑</string>
+    <string name="nav_catalog">둘러보기</string>
+    <string name="nav_cart">장바구니</string>
+    <string name="nav_orders">주문</string>
+    <string name="nav_account">계정</string>
+    <string name="search_hint">상품 및 카테고리 검색</string>
+    <string name="search">검색</string>
+    <string name="loading">실제 기록을 불러오는 중…</string>
+    <string name="empty_catalog">게시된 상품이 없습니다.</string>
+    <string name="retry">다시 시도</string>
+    <string name="offline">오프라인입니다. 성공으로 가장하지 않습니다.</string>
+    <string name="unavailable">사용 불가</string>
+    <string name="wallet_sign_in">YNX Wallet로 로그인</string>
+    <string name="wallet_active">Wallet 세션 활성</string>
+    <string name="wallet_security">Wallet은 계정 승인에만 서명하고 앱은 별도 P-256 기기 챌린지에 서명합니다. 복구 키는 Shop에 전달되지 않습니다.</string>
+    <string name="privacy_boundary">프로필, 주소, 주문은 Shop에 보관됩니다. AI는 권한 전에 표시된 컨텍스트만 받습니다.</string>
+    <string name="payment_boundary">중앙 Pay의 정확히 일치하는 확정 YNXT 증거가 있을 때만 결제 완료로 표시됩니다.</string>
+    <string name="add_cart">장바구니에 담기</string><string name="inventory">개 구매 가능</string><string name="cart_empty">장바구니가 비어 있습니다.</string><string name="order_review">주문 확인</string><string name="recipient">수령인</string><string name="address">주소</string><string name="city">도시</string><string name="country">국가 또는 지역</string><string name="checkout">재고를 예약하고 결제 대기 주문 만들기</string><string name="payment_pending">결제 대기</string><string name="pay_handoff">YNX Pay에서 계속</string><string name="check_payment">정산 확인</string><string name="cancel_order">주문 취소</string><string name="confirm_delivery">배송 완료 확인</string><string name="write_review">리뷰 작성</string><string name="return_request">반품 요청</string><string name="refund_request">환불 요청</string><string name="dispute">분쟁 제기</string>
+    <string name="trust_unavailable">Trust 사건 서비스를 사용할 수 없으며 증거는 보존됩니다.</string><string name="tax_unavailable">세금 서비스를 사용할 수 없음</string><string name="logistics_unavailable">외부 물류 서비스를 사용할 수 없음</string><string name="ai_compare">AI 비교</string><string name="ai_language">AI 출력 언어</string><string name="ai_privacy">AI는 선택한 공개 카탈로그 또는 본인 주문 요약만 봅니다. 구매, 환불, 게시, 가격 또는 정책 변경은 할 수 없습니다.</string><string name="grant_permission">이번 한 번 허용</string><string name="apply_draft">초안 적용</string><string name="reject_draft">거절</string><string name="cancel">취소</string><string name="settings_language">앱 언어</string><string name="security_error">보안 검증에 실패했습니다.</string><string name="session_expired">Wallet 세션이 만료되었거나 취소되었습니다.</string><string name="queued_offline">멱등성 키와 함께 대기 중이며 서버 확인 전에는 주문이나 결제 성공으로 표시하지 않습니다.</string><string name="restore_pending">대기 작업 다시 시도</string><string name="save_profile">프로필 및 주소 저장</string><string name="profile_saved">프로필이 저장되었습니다.</string><string name="no_orders">아직 주문이 없습니다.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">표시된 정확한 범위로 YNX Shop의 ynx_6423-1 사용을 승인합니다. 4분 후 만료됩니다.</string><string name="accessibility_status">마켓플레이스 상태</string><string name="accessibility_language">언어 선택기</string><string name="accessibility_ai_language">AI 출력 언어 선택기</string><plurals name="orders_count"><item quantity="other">주문 %d개</item></plurals>
+</resources>

@@ -2,18 +2,15 @@ package commerce
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
 
 func requestJSON(t *testing.T, client *http.Client, method, endpoint, token string, body any, want int, out any) {
@@ -49,22 +46,29 @@ func requestJSON(t *testing.T, client *http.Client, method, endpoint, token stri
 	}
 }
 
-func walletSession(t *testing.T, client *http.Client, base string, key *secp256k1.PrivateKey, account, role string) string {
-	t.Helper()
-	scopes := []string{"shop.profile", "shop.orders"}
+type testAuth struct{ principals map[string]Principal }
+
+func (a testAuth) Available() bool { return true }
+func (a testAuth) Verify(_ context.Context, token string) (Principal, error) {
+	p, ok := a.principals[token]
+	if !ok {
+		return Principal{}, ErrUnauthorized
+	}
+	return p, nil
+}
+func (a testAuth) Begin(context.Context, json.RawMessage) (json.RawMessage, error) {
+	return nil, errors.New("not used")
+}
+func (a testAuth) Complete(context.Context, json.RawMessage) (json.RawMessage, error) {
+	return nil, errors.New("not used")
+}
+
+func principal(account, role string) Principal {
+	binding := ShopBinding()
 	if role == "seller" {
-		scopes = append(scopes, "shop.seller")
+		binding = SellerBinding()
 	}
-	var created struct {
-		Challenge WalletChallenge
-		SignBytes string
-	}
-	requestJSON(t, client, http.MethodPost, base+"/api/auth/challenges", "", ChallengeInput{Account: account, Callback: "ynxshop://auth/callback", DeviceID: "test-device-" + role, Purpose: "Integration test sign in", Scopes: scopes}, http.StatusCreated, &created)
-	digest := sha256.Sum256(challengeSignBytes(created.Challenge))
-	signature := ecdsa.Sign(key, digest[:]).Serialize()
-	var session Session
-	requestJSON(t, client, http.MethodPost, base+"/api/auth/sessions", "", SessionInput{ChallengeID: created.Challenge.ID, PublicKey: hex.EncodeToString(key.PubKey().SerializeCompressed()), Signature: hex.EncodeToString(signature), Role: role}, http.StatusCreated, &session)
-	return session.Token
+	return Principal{Account: account, Role: role, ProductClientID: binding.ProductClientID, BundleID: binding.BundleID, SessionBinding: strings.Repeat("a", 64), Scopes: binding.Scopes, ExpiresAt: time.Now().UTC().Add(time.Hour)}
 }
 
 func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
@@ -72,9 +76,9 @@ func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sellerKey, sellerAccount := actor(t, 41)
-	buyerKey, buyerAccount := actor(t, 42)
-	supportKey, supportAccount := actor(t, 43)
+	_, sellerAccount := actor(t, 41)
+	_, buyerAccount := actor(t, 42)
+	_, supportAccount := actor(t, 43)
 	pay := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
@@ -83,18 +87,21 @@ func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/pay/invoices":
 			fmt.Fprint(w, "{\"id\":\"invoice_shop_1\"}")
 		case r.Method == http.MethodGet && r.URL.Path == "/pay/invoices/invoice_shop_1/settlement":
-			_ = json.NewEncoder(w).Encode(SettlementEvidence{InvoiceID: "invoice_shop_1", TransactionHash: "0x" + strings.Repeat("a", 64), Status: "paid", Payer: buyerAccount, AmountYNXT: 25, BlockHeight: 55, ConfirmedAt: time.Now().UTC()})
+			_ = json.NewEncoder(w).Encode(SettlementEvidence{InvoiceID: "invoice_shop_1", IntentID: "intent_shop_1", Merchant: "merchant_shop_1", PayoutAddress: sellerAccount, TransactionHash: "0x" + strings.Repeat("a", 64), Status: "paid", Payer: buyerAccount, Currency: NativeSymbol, AuditHash: strings.Repeat("b", 64), AmountYNXT: 25, BlockHeight: 55, ConfirmedAt: time.Now().UTC()})
+		case r.Method == http.MethodPost && r.URL.Path == "/pay/refunds":
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "refund_shop_1", "signer": sellerAccount, "merchant": "merchant_shop_1", "intentId": "intent_shop_1", "amount": 25, "currency": NativeSymbol, "reason": "approved return", "status": "recorded", "createdAt": time.Now().UTC(), "idempotencyKey": "shop-refund-transition-refund-approve", "requestHash": strings.Repeat("c", 64), "blockHeight": 56, "txHash": strings.Repeat("d", 64), "auditHash": strings.Repeat("e", 64)})
 		default:
 			http.NotFound(w, r)
 		}
 	}))
 	defer pay.Close()
-	server := httptest.NewServer(NewServer(store, ServerConfig{Auth: AuthConfig{AllowedCallbacks: map[string]bool{"ynxshop://auth/callback": true}}, Pay: HTTPPayVerifier{BaseURL: pay.URL, APIKey: "pay-test-key"}}).Handler())
+	auth := testAuth{principals: map[string]Principal{"seller-token-abcdefghijkl": principal(sellerAccount, "seller"), "buyer-token-abcdefghijklmn": principal(buyerAccount, "buyer"), "support-token-abcdefghijk": principal(supportAccount, "seller")}}
+	server := httptest.NewServer(NewServer(store, ServerConfig{Auth: auth, Pay: HTTPPayVerifier{BaseURL: pay.URL, APIKey: "pay-test-key", MerchantID: "merchant_shop_1", PayoutAddress: sellerAccount}}).Handler())
 	defer server.Close()
 	client := server.Client()
-	sellerToken := walletSession(t, client, server.URL, sellerKey, sellerAccount, "seller")
-	buyerToken := walletSession(t, client, server.URL, buyerKey, buyerAccount, "buyer")
-	supportToken := walletSession(t, client, server.URL, supportKey, supportAccount, "seller")
+	sellerToken := "seller-token-abcdefghijkl"
+	buyerToken := "buyer-token-abcdefghijklmn"
+	supportToken := "support-token-abcdefghijk"
 	var merchant StoreProfile
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores", sellerToken, CreateStoreInput{Name: "Loop Store", Policy: "Returns reviewed with evidence", TrustURL: "https://trust.example/case", IdempotencyKey: "http-store-key-1"}, http.StatusCreated, &merchant)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores/"+merchant.ID+"/activate", sellerToken, map[string]any{}, http.StatusOK, &merchant)
@@ -130,7 +137,7 @@ func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/orders/"+order.ID+"/transition", buyerToken, map[string]any{"Action": "refund_requested", "Reason": "approved return", "Explanation": "request Pay refund review", "IdempotencyKey": "transition-refund-01"}, http.StatusOK, &order)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/orders/"+order.ID+"/transition", supportToken, map[string]any{"Action": "refund_approved", "IdempotencyKey": "transition-refund-deny"}, http.StatusConflict, nil)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/orders/"+order.ID+"/transition", sellerToken, map[string]any{"Action": "refund_approved", "IdempotencyKey": "transition-refund-approve"}, http.StatusOK, &order)
-	if order.Status != "refund_approved" || order.Settlement == nil {
+	if order.Status != "refunded" || order.Settlement == nil || order.Refund == nil || order.Refund.BlockHeight != 56 {
 		t.Fatalf("resolution lost evidence: %+v", order)
 	}
 	var settlements struct{ Settlements []SettlementEvidence }
