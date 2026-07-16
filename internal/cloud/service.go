@@ -27,6 +27,8 @@ type Config struct {
 	Scanner        Scanner
 	WalletVerifier WalletVerifier
 	AIProvider     AIProvider
+	ObjectStore    ObjectStore
+	TrustSink      TrustSink
 	Now            func() time.Time
 }
 
@@ -55,6 +57,12 @@ func New(cfg Config) (*Service, error) {
 	}
 	if cfg.AIProvider == nil {
 		cfg.AIProvider = UnavailableAIProvider{}
+	}
+	if cfg.ObjectStore == nil {
+		cfg.ObjectStore = LocalObjectStore{Root: cfg.ObjectDir}
+	}
+	if cfg.TrustSink == nil {
+		cfg.TrustSink = LocalAuditTrustSink{}
 	}
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
@@ -94,11 +102,20 @@ func hashBytes(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToStri
 func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v) >= 20 && len(v) <= 96 }
 
 func (s *Service) persist(action, actor, objectID string, details map[string]any) error {
-	s.state.Audit = append(s.state.Audit, AuditEvent{ID: newID("audit"), Actor: actor, Action: action, ObjectID: objectID, At: s.cfg.Now(), Details: details})
+	event := AuditEvent{ID: newID("audit"), Actor: actor, Action: action, ObjectID: objectID, At: s.cfg.Now(), Details: details}
+	s.state.Audit = append(s.state.Audit, event)
 	if len(s.state.Audit) > 5000 {
 		s.state.Audit = append([]AuditEvent(nil), s.state.Audit[len(s.state.Audit)-5000:]...)
 	}
-	return saveState(s.cfg.StatePath, &s.state)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return err
+	}
+	trust := TrustEvent{Actor: actor, Action: action, ObjectID: objectID, At: event.At, Details: details}
+	if object, ok := s.state.Objects[objectID]; ok {
+		trust.Hash = object.Hash
+	}
+	go func() { _ = s.cfg.TrustSink.Record(context.Background(), trust) }()
+	return nil
 }
 
 func (s *Service) role(actor string, obj Object) string {
@@ -203,7 +220,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 	obj := Object{ID: newID("obj"), Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
-		path, err := writeBlob(s.cfg.ObjectDir, h, req.Content)
+		path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
 		if err != nil {
 			return Object{}, err
 		}
@@ -243,7 +260,7 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 		return Object{}, err
 	}
 	h := hashBytes(req.Content)
-	path, err := writeBlob(s.cfg.ObjectDir, h, req.Content)
+	path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
 	if err != nil {
 		return Object{}, err
 	}
@@ -323,7 +340,7 @@ func (s *Service) Content(actor, id string, version int) (Object, []byte, error)
 	}
 	for _, v := range versions {
 		if v.Number == version {
-			b, err := readBlob(v.BlobPath, v.Hash)
+			b, err := s.cfg.ObjectStore.Get(context.Background(), v.BlobPath, v.Hash)
 			return obj, b, err
 		}
 	}
@@ -542,7 +559,7 @@ func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
 		}
 		for _, version := range s.state.Versions[object.ID] {
 			if version.Number == object.Version {
-				body, err := readBlob(version.BlobPath, version.Hash)
+				body, err := s.cfg.ObjectStore.Get(context.Background(), version.BlobPath, version.Hash)
 				return object, body, err
 			}
 		}
@@ -761,7 +778,7 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, mode, instruction stri
 			s.mu.Unlock()
 			return AIJob{}, ErrNotFound
 		}
-		b, err := readBlob(selected.BlobPath, selected.Hash)
+		b, err := s.cfg.ObjectStore.Get(ctx, selected.BlobPath, selected.Hash)
 		if err != nil {
 			s.mu.Unlock()
 			return AIJob{}, err
@@ -883,13 +900,19 @@ func (s *Service) CreateSession(ctx context.Context, a WalletAssertion) (string,
 	if a.ChainID != ChainID || (a.Product != "cloud" && a.Product != "docs") || !validAccount(a.Account) || len(a.Scopes) == 0 || len(a.Scopes) > 8 {
 		return "", Session{}, ErrInvalid
 	}
-	expectedClient, expectedCallback := "com.ynx.cloud.web", "/cloud/auth/callback"
+	expectedClient, expectedBundle, expectedCallback := "com.ynx.cloud.web", "com.ynx.cloud.web", "/cloud/auth/callback"
 	allowed := map[string]bool{"files.read": true, "files.write": true, "permissions.manage": true, "audit.read": true, "ai.use": true}
 	if a.Product == "docs" {
-		expectedClient, expectedCallback = "com.ynx.docs.web", "/docs/auth/callback"
+		expectedClient, expectedBundle, expectedCallback = "com.ynx.docs.web", "com.ynx.docs.web", "/docs/auth/callback"
 		allowed["docs.read"], allowed["docs.edit"], allowed["docs.comment"] = true, true, true
 	}
-	if a.ClientID != expectedClient || a.Callback != expectedCallback {
+	if a.Product == "cloud" && a.ClientID == "ynx-cloud-mobile-v1" {
+		expectedClient, expectedBundle, expectedCallback = "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback"
+	}
+	if a.Product == "docs" && a.ClientID == "ynx-docs-mobile-v1" {
+		expectedClient, expectedBundle, expectedCallback = "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback"
+	}
+	if a.ClientID != expectedClient || a.BundleID != expectedBundle || a.Callback != expectedCallback {
 		return "", Session{}, ErrInvalid
 	}
 	seenScopes := map[string]bool{}
@@ -953,5 +976,5 @@ func (s *Service) RevokeSession(token string) error {
 func (s *Service) Health() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return map[string]any{"ok": true, "service": "ynx-cloudd", "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": "local bounded persistent storage; not production durability", "maxUploadBytes": MaxUploadBytes, "quotaBytes": s.cfg.QuotaBytes}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "quotaBytes": s.cfg.QuotaBytes}
 }

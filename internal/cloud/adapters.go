@@ -1,0 +1,244 @@
+package cloud
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+)
+
+type ObjectStore interface {
+	Put(context.Context, string, []byte) (string, error)
+	Get(context.Context, string, string) ([]byte, error)
+	Boundary() string
+}
+
+type LocalObjectStore struct{ Root string }
+
+func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (string, error) {
+	return writeBlob(s.Root, hash, body)
+}
+func (s LocalObjectStore) Get(_ context.Context, ref, hash string) ([]byte, error) {
+	return readBlob(ref, hash)
+}
+func (s LocalObjectStore) Boundary() string { return "bounded-local-filesystem-not-production-durable" }
+
+type RemoteObjectStore struct {
+	BaseURL, Token string
+	Client         *http.Client
+}
+
+func (s RemoteObjectStore) client() *http.Client {
+	if s.Client != nil {
+		return s.Client
+	}
+	return &http.Client{Timeout: 20 * time.Second}
+}
+func (s RemoteObjectStore) Put(ctx context.Context, hash string, body []byte) (string, error) {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return "", err
+	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPut, strings.TrimRight(s.BaseURL, "/")+"/objects/"+hash, bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	req.Header.Set("Content-Type", "application/octet-stream")
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("object store put returned %d", resp.StatusCode)
+	}
+	var out struct {
+		Ref  string `json:"ref"`
+		Hash string `json:"hash"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 32<<10)).Decode(&out); err != nil {
+		return "", err
+	}
+	if out.Ref == "" || out.Hash != hash {
+		return "", errors.New("object store response integrity mismatch")
+	}
+	return out.Ref, nil
+}
+func (s RemoteObjectStore) Get(ctx context.Context, ref, hash string) ([]byte, error) {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return nil, err
+	}
+	u := strings.TrimRight(s.BaseURL, "/") + "/objects/" + url.PathEscape(ref)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("object store get returned %d", resp.StatusCode)
+	}
+	b, err := io.ReadAll(io.LimitReader(resp.Body, MaxUploadBytes+1))
+	if err != nil || len(b) > MaxUploadBytes {
+		return nil, errors.New("object store response exceeds bound")
+	}
+	if hashBytes(b) != hash {
+		return nil, errors.New("object store response integrity mismatch")
+	}
+	return b, nil
+}
+func (s RemoteObjectStore) Boundary() string {
+	return "remote-contract-requires-operator-durability-evidence"
+}
+
+type RemoteWalletVerifier struct {
+	BaseURL, Token string
+	Client         *http.Client
+}
+
+func (v RemoteWalletVerifier) Verify(ctx context.Context, a WalletAssertion) error {
+	if err := validRemote(v.BaseURL, v.Token); err != nil {
+		return err
+	}
+	b, _ := json.Marshal(a)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet-auth/verify", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+v.Token)
+	req.Header.Set("Content-Type", "application/json")
+	client := v.Client
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Wallet verifier rejected assertion with %d", resp.StatusCode)
+	}
+	var out struct {
+		Active                                         bool `json:"active"`
+		Account, Product, ClientID, BundleID, Callback string
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 32<<10)).Decode(&out); err != nil {
+		return err
+	}
+	if !out.Active || out.Account != a.Account || out.Product != a.Product || out.ClientID != a.ClientID || out.BundleID != a.BundleID || out.Callback != a.Callback {
+		return errors.New("Wallet verifier response binding mismatch")
+	}
+	return nil
+}
+
+type RemoteAIProvider struct {
+	BaseURL, Token, Model string
+	Client                *http.Client
+}
+
+func (p RemoteAIProvider) Status(context.Context) (string, string, bool) {
+	return "YNX AI Gateway", p.Model, strings.HasPrefix(p.BaseURL, "https://") && p.Token != "" && p.Model != ""
+}
+func (p RemoteAIProvider) Complete(ctx context.Context, instruction string, contexts []AIContext) (string, error) {
+	if err := validRemote(p.BaseURL, p.Token); err != nil {
+		return "", err
+	}
+	payload, _ := json.Marshal(map[string]any{"instruction": instruction, "selectedContexts": contexts, "model": p.Model})
+	if len(payload) > 7500 {
+		return "", errors.New("selected AI context exceeds gateway request bound")
+	}
+	u := strings.TrimRight(p.BaseURL, "/") + "/ai/stream?session=cloud-docs&q=" + url.QueryEscape(string(payload))
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req.Header.Set("X-YNX-AI-Key", p.Token)
+	client := p.Client
+	if client == nil {
+		client = &http.Client{Timeout: 45 * time.Second}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("AI Gateway returned %d", resp.StatusCode)
+	}
+	var answer strings.Builder
+	scan := bufio.NewScanner(io.LimitReader(resp.Body, 1<<20))
+	for scan.Scan() {
+		line := scan.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		var token struct {
+			Text string `json:"text"`
+		}
+		if json.Unmarshal([]byte(strings.TrimPrefix(line, "data: ")), &token) == nil {
+			answer.WriteString(token.Text)
+		}
+	}
+	if err := scan.Err(); err != nil {
+		return "", err
+	}
+	if answer.Len() == 0 {
+		return "", errors.New("AI Gateway returned no provider-backed content")
+	}
+	return answer.String(), nil
+}
+
+type TrustEvent struct {
+	Actor, Action, ObjectID, Hash string         `json:"actor,omitempty"`
+	At                            time.Time      `json:"at"`
+	Details                       map[string]any `json:"details,omitempty"`
+}
+type TrustSink interface {
+	Record(context.Context, TrustEvent) error
+	Boundary() string
+}
+type LocalAuditTrustSink struct{}
+
+func (LocalAuditTrustSink) Record(context.Context, TrustEvent) error { return nil }
+func (LocalAuditTrustSink) Boundary() string                         { return "local-audit-only-no-public-trust-evidence" }
+
+type RemoteTrustSink struct {
+	BaseURL, Token string
+	Client         *http.Client
+}
+
+func (t RemoteTrustSink) Record(ctx context.Context, e TrustEvent) error {
+	if err := validRemote(t.BaseURL, t.Token); err != nil {
+		return err
+	}
+	b, _ := json.Marshal(e)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(t.BaseURL, "/")+"/v1/cloud/evidence", bytes.NewReader(b))
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	req.Header.Set("Content-Type", "application/json")
+	c := t.Client
+	if c == nil {
+		c = &http.Client{Timeout: 10 * time.Second}
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("Trust service returned %d", resp.StatusCode)
+	}
+	return nil
+}
+func (t RemoteTrustSink) Boundary() string { return "remote-trust-evidence-contract" }
+
+func validRemote(base, token string) error {
+	u, err := url.Parse(base)
+	loopback := u != nil && (u.Hostname() == "127.0.0.1" || u.Hostname() == "localhost")
+	if err != nil || (u.Scheme != "https" && !(u.Scheme == "http" && loopback)) || u.Host == "" || u.User != nil {
+		return errors.New("remote integration requires HTTPS or loopback HTTP URL")
+	}
+	if strings.TrimSpace(token) == "" {
+		return errors.New("remote integration token is required")
+	}
+	return nil
+}

@@ -113,6 +113,35 @@ func TestFileLifecyclePermissionsVersionsAndAI(t *testing.T) {
 	}
 }
 
+func TestNativeWalletBindingsRejectSubstitutionAndReplay(t *testing.T) {
+	s := testService(t, nil)
+	ctx := context.Background()
+	expires := time.Now().UTC().Add(4 * time.Minute).Format(time.RFC3339)
+	cases := []WalletAssertion{
+		{Product: "cloud", ClientID: "ynx-cloud-mobile-v1", BundleID: "com.ynxweb4.cloud", Callback: "ynxcloud://wallet-auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "native-cloud", ExpiresAt: expires, DevicePublicKey: "p256-cloud", Signature: "wallet-cloud"},
+		{Product: "docs", ClientID: "ynx-docs-mobile-v1", BundleID: "com.ynxweb4.docs", Callback: "ynxdocs://wallet-auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"docs.read"}, Nonce: "native-docs", ExpiresAt: expires, DevicePublicKey: "p256-docs", Signature: "wallet-docs"},
+	}
+	for _, assertion := range cases {
+		if _, _, err := s.CreateSession(ctx, assertion); err != nil {
+			t.Fatalf("valid native binding rejected for %s: %v", assertion.Product, err)
+		}
+		if _, _, err := s.CreateSession(ctx, assertion); err == nil || !strings.Contains(err.Error(), "replay") {
+			t.Fatalf("native replay accepted for %s: %v", assertion.Product, err)
+		}
+		tampered := assertion
+		tampered.Nonce += "-tampered"
+		tampered.BundleID = "com.attacker.substitute"
+		if _, _, err := s.CreateSession(ctx, tampered); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("bundle substitution was not rejected for %s: %v", assertion.Product, err)
+		}
+		tampered.BundleID = assertion.BundleID
+		tampered.Callback = "attacker://wallet-auth/callback"
+		if _, _, err := s.CreateSession(ctx, tampered); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("callback substitution was not rejected for %s: %v", assertion.Product, err)
+		}
+	}
+}
+
 func TestRestartIntegrityQuotaAndEncryptedAIBoundary(t *testing.T) {
 	dir := t.TempDir()
 	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), QuotaBytes: 32, WalletVerifier: acceptWallet{}, AIProvider: fakeAI{}}
@@ -179,7 +208,7 @@ func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	if _, err := s.ResolveLink(token); !errors.Is(err, ErrDenied) {
 		t.Fatalf("revoked link: %v", err)
 	}
-	assertion := WalletAssertion{Product: "cloud", ClientID: "com.ynx.cloud.web", Callback: "/cloud/auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "one", ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "device", Signature: "sig"}
+	assertion := WalletAssertion{Product: "cloud", ClientID: "com.ynx.cloud.web", BundleID: "com.ynx.cloud.web", Callback: "/cloud/auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "one", ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "device", Signature: "sig"}
 	token2, _, err := s.CreateSession(ctx, assertion)
 	if err != nil {
 		t.Fatal(err)
