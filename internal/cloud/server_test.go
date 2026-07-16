@@ -14,7 +14,7 @@ func TestServerAuthorizationScopeAndStrictJSON(t *testing.T) {
 	now := time.Now().UTC()
 	s := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
 	handler := NewServer(s).Handler()
-	a := WalletAssertion{Product: "cloud", ClientID: "com.ynx.cloud.web", Callback: "/cloud/auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "n", ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "d", Signature: "s"}
+	a := WalletAssertion{Product: "cloud", ClientID: "com.ynx.cloud.web", BundleID: "com.ynx.cloud.web", Callback: "/cloud/auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "n", ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "d", Signature: "s"}
 	token, _, err := s.CreateSession(context.Background(), a)
 	if err != nil {
 		t.Fatal(err)

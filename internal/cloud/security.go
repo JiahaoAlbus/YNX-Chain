@@ -41,6 +41,7 @@ func (BoundedScanner) Scan(_ context.Context, name, mimeType string, content []b
 type WalletAssertion struct {
 	Product         string   `json:"product"`
 	ClientID        string   `json:"clientId"`
+	BundleID        string   `json:"bundleId"`
 	Callback        string   `json:"callback"`
 	Account         string   `json:"account"`
 	ChainID         string   `json:"chainId"`

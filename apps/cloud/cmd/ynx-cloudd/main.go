@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -29,13 +30,28 @@ func main() {
 	devWallet := flag.Bool("dev-wallet", false, "enable explicit local-only Wallet test verifier")
 	flag.Parse()
 	verifier := cloud.WalletVerifier(cloud.UnavailableWalletVerifier{})
+	if u := os.Getenv("YNX_WALLET_VERIFY_URL"); u != "" {
+		verifier = cloud.RemoteWalletVerifier{BaseURL: u, Token: os.Getenv("YNX_WALLET_VERIFY_TOKEN")}
+	}
 	if *devWallet {
 		if !strings.HasPrefix(*addr, "127.0.0.1:") && !strings.HasPrefix(*addr, "localhost:") {
 			log.Fatal("-dev-wallet requires a loopback listen address")
 		}
 		verifier = devWalletVerifier{}
 	}
-	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier})
+	ai := cloud.AIProvider(cloud.UnavailableAIProvider{})
+	if u := os.Getenv("YNX_AI_GATEWAY_URL"); u != "" {
+		ai = cloud.RemoteAIProvider{BaseURL: u, Token: os.Getenv("YNX_AI_GATEWAY_TOKEN"), Model: os.Getenv("YNX_AI_MODEL")}
+	}
+	trust := cloud.TrustSink(cloud.LocalAuditTrustSink{})
+	if u := os.Getenv("YNX_TRUST_URL"); u != "" {
+		trust = cloud.RemoteTrustSink{BaseURL: u, Token: os.Getenv("YNX_TRUST_TOKEN")}
+	}
+	var objects cloud.ObjectStore = cloud.LocalObjectStore{Root: filepath.Join(*data, "objects")}
+	if u := os.Getenv("YNX_OBJECT_STORE_URL"); u != "" {
+		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN")}
+	}
+	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects})
 	if err != nil {
 		log.Fatal(err)
 	}

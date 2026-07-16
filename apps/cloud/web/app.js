@@ -12,8 +12,8 @@ async function startWallet(){
   const auth=$('#auth-state');
   try {
     let assertion;
-    if(window.ynxWallet?.requestSession){ assertion=await window.ynxWallet.requestSession({version:1,product:'cloud',clientId:'com.ynx.cloud.web',callback:'/cloud/auth/callback',chainId:'ynx_6423-1',scopes,purpose:'Access only your authorized Cloud files',expiresInSeconds:300}); }
-    else if(new URLSearchParams(location.search).get('dev')==='1'){ const account=prompt('Loopback smoke account (ynx1…)'); assertion={product:'cloud',clientId:'com.ynx.cloud.web',callback:'/cloud/auth/callback',account,chainId:'ynx_6423-1',scopes,nonce:crypto.randomUUID(),expiresAt:new Date(Date.now()+240000).toISOString(),devicePublicKey:'local-smoke-device',signature:'dev-signed'}; }
+    if(window.ynxWallet?.requestSession){ assertion=await window.ynxWallet.requestSession({version:1,product:'cloud',clientId:'com.ynx.cloud.web',bundleId:'com.ynx.cloud.web',callback:'/cloud/auth/callback',chainId:'ynx_6423-1',scopes,purpose:'Access only your authorized Cloud files',expiresInSeconds:300}); }
+    else if(new URLSearchParams(location.search).get('dev')==='1'){ const account=prompt('Loopback smoke account (ynx1…)'); assertion={product:'cloud',clientId:'com.ynx.cloud.web',bundleId:'com.ynx.cloud.web',callback:'/cloud/auth/callback',account,chainId:'ynx_6423-1',scopes,nonce:crypto.randomUUID(),expiresAt:new Date(Date.now()+240000).toISOString(),devicePublicKey:'local-smoke-device',signature:'dev-signed'}; }
     else throw new Error('YNX Wallet bridge is unavailable. Install or open the separate Wallet product; Cloud will not accept a recovery key.');
     const result=await api('/session',{method:'POST',body:JSON.stringify(assertion)}); state.token=result.token;sessionStorage.setItem('ynx.cloud.session',state.token);$('#auth-dialog').close();await load();
   } catch(e){auth.textContent=e.message;auth.classList.add('danger')}
