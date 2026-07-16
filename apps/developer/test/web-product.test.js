@@ -36,8 +36,14 @@ test("local servers expose only bounded same-origin YNX proxy prefixes", async (
 });
 
 test("localized UI and native desktop sources preserve language, permission and release boundaries", async () => {
-  const html=await read("index.html"), app=await read("app.js"), mac=await read("desktop/macos/main.swift"), windows=await read("desktop/windows/MainWindow.xaml.cs");
+  const html=await read("index.html"), app=await read("app.js"), mac=await read("desktop/macos/main.m"), windows=await read("desktop/windows/MainWindow.xaml.cs");
   assert.match(html,/locale-select/); assert.match(html,/ai-language/); assert.match(app,/DeveloperI18n/); assert.match(app,/DeveloperWalletSession/);
   for(const source of [mac,windows]) { assert.match(source,/Testnet Preview/); assert.match(source,/Check(?: for )?Updates/); assert.match(source,/window|Window/); }
   assert.match(mac,/New Project/); assert.match(windows,/owner-signed manifest/); assert.doesNotMatch(mac+windows,/production release is signed/i);
+});
+
+test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
+  const packageScript=await read("scripts/package-local-macos.sh"), verify=await read("scripts/verify-local-macos-package.sh");
+  assert.match(packageScript,/desktop\/macos\/main\.m/); assert.match(packageScript,/Resources\/runtime\/node/); assert.match(packageScript,/codesign --force --deep --sign -/);
+  assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/);
 });

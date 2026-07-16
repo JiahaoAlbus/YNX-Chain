@@ -8,6 +8,7 @@
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
     "desktop:sandbox-check": "node scripts/desktop-sandbox-check.mjs",
+    "desktop:windows-source-check": "node scripts/verify-windows-source.mjs",
     "live-check": "bash scripts/live-check.sh",
     "proxy-check": "bash scripts/proxy-check.sh",
     "test": "node --test test/*.test.js"

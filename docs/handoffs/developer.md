@@ -1,6 +1,6 @@
 # YNX Developer handoff
 
-## 2026-07-16 correction candidate
+## 2026-07-16 final desktop verification correction
 
 This section supersedes stale counts, artifact names and desktop launch claims
 later in the original handoff. The correction retains the previously accepted
@@ -25,14 +25,20 @@ workflows, and adds the integration gates requested by total control:
   critical vocabulary. Locale auto-detection/manual override/restart persistence,
   `Intl` date/number/plural handling, Arabic RTL, nonblank fallback and localized
   Wallet/private-key/deployment/privacy/recovery/update class language are tested.
-- macOS now has native File/Edit/Window/App menus, Cmd shortcuts, window-frame
-  restoration/reopen behavior, sandboxed task execution, and a fail-closed signed
-  update explanation. The package and bundle title explicitly say unsigned
-  **Testnet Preview** and use `com.ynxweb4.developer.testnetpreview`.
+- macOS now has native File/Window/App menus, Cmd shortcuts, window-frame
+  restoration/reopen behavior, sandboxed task execution, a bundled portable
+  arm64 Node runtime, and a fail-closed signed update explanation. The package
+  and bundle title explicitly say unsigned **Testnet Preview** and use
+  `com.ynxweb4.developer.testnetpreview`. The extracted ZIP now passes resource
+  self-test, strict ad-hoc signature classification, a real GUI cold start,
+  bundled child-server observation and child cleanup after App termination.
 - A native Windows WPF/WebView2 project supplies the same package identity,
-  menus/shortcuts, file actions, persistent window geometry, loopback server,
-  `asInvoker` permission manifest and unsigned-update refusal. It is source
-  delivery only on this macOS host; no Windows binary or cold launch is claimed.
+  menus/shortcuts, file actions, persistent window geometry, dynamically chosen
+  loopback port, bundled `Resources/runtime/node.exe` contract, startup readiness
+  failure handling, `asInvoker` permission manifest and unsigned-update refusal.
+  A dedicated structural source check verifies this boundary. It is source
+  delivery only on this macOS host; no Windows compile, binary, install, signature
+  or cold launch is claimed.
 
 ## Review identity
 
@@ -112,17 +118,18 @@ so the UI does not own security decisions.
 - `.ynx-developer-local/YNX Developer Testnet Preview.app`
 - `.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip`
 - tested ZIP SHA-256:
-  `19249d8cc6042151a8bf29bed34e1fa3d23682806a837dd6e081111543ad4b2e`
+  `5f89cc7497a9f2c294af705159a1c7d4afa6abfcfbfe9bda8741ec0d48ea6154`
 - code-sign classification: `Signature=adhoc`, `TeamIdentifier=not set`
 
-The macOS linker automatically adds an ad-hoc signature. This artifact has no
-Developer ID/team identity, notarization, installer signature, update signature,
-Windows binary, independent audit or distribution approval. It is the **unsigned
-Testnet Preview** class and is not a signed production desktop release. This
-host's AppleSystemPolicy rejected launching an ad-hoc/unknown-chain App from the
-worktree, so macOS installed cold launch remains pending; resource self-test,
-strict code-sign verification and ZIP hash passed. This failure is not presented
-as a successful launch.
+The macOS linker and packaging step apply only an ad-hoc signature. This artifact
+has no Developer ID/team identity, notarization, installer signature, update
+signature, Windows binary, independent audit or distribution approval. It is the
+**unsigned Testnet Preview** class and is not a signed production desktop release.
+On this macOS host, the verifier extracted the ZIP into a new temporary install
+directory, launched the real App process, observed its packaged Node child running
+`Resources/server.mjs`, terminated the App and verified child cleanup. This is
+local extracted-package cold-start evidence, not Gatekeeper distribution,
+notarization, installed production release or signed update evidence.
 
 The native command bridge accepts only `test` and `check`, validates project
 paths and sizes, writes only the approved project snapshot, launches Node without
@@ -167,7 +174,7 @@ Product-local checks:
 
 - `cd packages/developer-client && npm test` — 16 tests passed, including POST
   privacy, Wallet binding/replay/tamper, all locales, RTL and persistence.
-- `cd apps/developer && npm test` — 6 tests passed.
+- `cd apps/developer && npm test` — 7 tests passed.
 - `cd apps/developer && npm run check` — passed.
 - `cd apps/developer && npm run build` — passed.
 - `cd apps/developer && npm run live-check` — real local chain `6423` / `YNXT`,
@@ -177,6 +184,11 @@ Product-local checks:
   network and out-of-workspace writes denied.
 - `cd apps/developer && ./scripts/package-local-macos.sh` — built, resource
   self-test passed, strict ad-hoc classification verified and SHA-256 emitted.
+- `cd apps/developer && ./scripts/verify-local-macos-package.sh` — extracted ZIP
+  signature, bundled runtime, real App cold start and child cleanup passed.
+- `cd apps/developer && npm run desktop:windows-source-check` — WPF/WebView2,
+  identity, `asInvoker`, bundled runtime, loopback readiness, cleanup and
+  unsigned-update source boundaries passed; no Windows build was claimed.
 - In-app Browser desktop project create/reload and 390 px responsive interaction
   checks — passed after correcting the mobile AI activity-rail clipping issue.
 
@@ -186,17 +198,21 @@ Repository gates:
   selector metadata were generated with the pinned toolchain.
 - `make no-placeholder-check`, `make secret-scan`, `make env-check`, and
   `make objective-state-check` — passed.
-- `PATH='/usr/bin:/Applications/ChatGPT.app/Contents/Resources:/opt/homebrew/bin:/bin:/usr/sbin:/sbin' GOMAXPROCS=1 make preflight` — passed, including
-  Android/iOS Hermes bundles. The explicit PATH selects working system Python
-  3.9 while retaining Codex `rg` and Homebrew Node/Go; the default framework
-  Python 3.12 executable was killed by the host before tests could run, while
-  the same six Python SDK tests passed under `/usr/bin/python3`.
+- `PATH='/usr/bin:/Applications/ChatGPT.app/Contents/Resources:/opt/homebrew/bin:/bin:/usr/sbin:/sbin' make preflight` — passed in the repository's native
+  one-clean-local-chain-per-check model, including Android/iOS Hermes bundles.
+  The explicit PATH selects working system Python 3.9 while retaining Codex `rg`
+  and Homebrew Node/Go. An initial run with the previous optional
+  `GOMAXPROCS=1` setting exceeded a 15-second `go run` health window under host
+  load; after warming the Go cache, the unmodified full preflight passed without
+  that non-required single-core restriction.
 
 ## Incomplete/external boundaries
 
 - No signed macOS/Windows production release exists. Windows source was not
-  built on this macOS worktree. macOS cold launch was rejected by host execution
-  policy; no installed or cold-launch claim is made.
+  compiled or launched on this macOS worktree. The macOS extracted unsigned ZIP
+  cold-launched locally, but no Developer ID, notarized installer, Gatekeeper
+  distribution, signed updater, Windows build or installed production claim is
+  made.
 - No public Web deployment was performed. Static hosting must supply equivalent
   authenticated `/chain` and `/ai-gateway` routing.
 - No real provider-backed AI response was requested because no operator Gateway
