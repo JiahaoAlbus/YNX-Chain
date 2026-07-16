@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">YNX ショップ</string>
+    <string name="nav_catalog">見つける</string>
+    <string name="nav_cart">カート</string>
+    <string name="nav_orders">注文</string>
+    <string name="nav_account">アカウント</string>
+    <string name="search_hint">商品とカテゴリを検索</string>
+    <string name="search">検索</string>
+    <string name="loading">実データを読み込み中…</string>
+    <string name="empty_catalog">公開済みの商品はありません。</string>
+    <string name="retry">再試行</string>
+    <string name="offline">オフラインです。成功を装いません。</string>
+    <string name="unavailable">利用不可</string>
+    <string name="wallet_sign_in">YNX Wallet でサインイン</string>
+    <string name="wallet_active">Wallet セッション有効</string>
+    <string name="wallet_security">Wallet はアカウント承認だけに署名し、このアプリは別の P-256 デバイスチャレンジに署名します。復旧キーは Shop に渡りません。</string>
+    <string name="privacy_boundary">プロフィール、住所、注文は Shop 内に保持されます。AI には許可前に表示したコンテキストだけを渡します。</string>
+    <string name="payment_boundary">中央 Pay の完全一致する確定 YNXT 証拠がある場合のみ支払い済みになります。</string>
+    <string name="add_cart">カートに追加</string><string name="inventory">点在庫あり</string><string name="cart_empty">カートは空です。</string><string name="order_review">注文内容の確認</string><string name="recipient">受取人</string><string name="address">住所</string><string name="city">市区町村</string><string name="country">国・地域</string><string name="checkout">在庫を確保して支払待ち注文を作成</string><string name="payment_pending">支払い待ち</string><string name="pay_handoff">YNX Payで続ける</string><string name="check_payment">決済を確認</string><string name="cancel_order">注文をキャンセル</string><string name="confirm_delivery">配達を確認</string><string name="write_review">レビューを書く</string><string name="return_request">返品を申請</string><string name="refund_request">返金を申請</string><string name="dispute">異議申立てを開始</string>
+    <string name="trust_unavailable">Trustケースサービスは利用できません。証拠は保持されます。</string><string name="tax_unavailable">税務サービスは利用できません</string><string name="logistics_unavailable">外部物流サービスは利用できません</string><string name="ai_compare">AI比較</string><string name="ai_language">AI出力言語</string><string name="ai_privacy">AIが見るのは選択した公開カタログまたは所有注文の要約だけです。購入、返金、公開、価格変更、ポリシー変更はできません。</string><string name="grant_permission">今回のみ許可</string><string name="apply_draft">下書きを適用</string><string name="reject_draft">拒否</string><string name="cancel">キャンセル</string><string name="settings_language">アプリの言語</string><string name="security_error">セキュリティ検証に失敗しました。</string><string name="session_expired">Walletセッションは失効または取り消されました。</string><string name="queued_offline">冪等キー付きで待機中です。サーバー確認までは注文や支払いの成功と表示しません。</string><string name="restore_pending">保留中の操作を再試行</string><string name="save_profile">プロフィールと住所を保存</string><string name="profile_saved">プロフィールを保存しました。</string><string name="no_orders">注文はまだありません。</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">表示された正確な権限でYNX Shopのynx_6423-1利用を承認します。4分で失効します。</string><string name="accessibility_status">マーケットプレイスの状態</string><string name="accessibility_language">言語選択</string><string name="accessibility_ai_language">AI出力言語選択</string><plurals name="orders_count"><item quantity="other">%d件の注文</item></plurals>
+</resources>

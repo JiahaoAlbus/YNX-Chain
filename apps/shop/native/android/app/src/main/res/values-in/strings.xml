@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Toko YNX</string>
+    <string name="nav_catalog">Jelajahi</string>
+    <string name="nav_cart">Keranjang</string>
+    <string name="nav_orders">Pesanan</string>
+    <string name="nav_account">Akun</string>
+    <string name="search_hint">Cari produk dan kategori</string>
+    <string name="search">Cari</string>
+    <string name="loading">Memuat catatan nyata…</string>
+    <string name="empty_catalog">Belum ada produk yang diterbitkan.</string>
+    <string name="retry">Coba lagi</string>
+    <string name="offline">Luring. Keberhasilan tidak disimulasikan.</string>
+    <string name="unavailable">Tidak tersedia</string>
+    <string name="wallet_sign_in">Masuk dengan YNX Wallet</string>
+    <string name="wallet_active">Sesi Wallet aktif</string>
+    <string name="wallet_security">Wallet menandatangani persetujuan akun dan aplikasi menandatangani tantangan perangkat P-256 terpisah. Kunci pemulihan tidak masuk ke Shop.</string>
+    <string name="privacy_boundary">Profil, alamat, dan pesanan tetap di Shop. AI hanya menerima konteks yang ditampilkan sebelum izin.</string>
+    <string name="payment_boundary">Pesanan hanya dianggap dibayar setelah bukti YNXT Central Pay yang tepat dan terkonfirmasi.</string>
+    <string name="add_cart">Tambahkan ke keranjang</string><string name="inventory">tersedia</string><string name="cart_empty">Keranjang Anda kosong.</string><string name="order_review">Tinjau pesanan</string><string name="recipient">Penerima</string><string name="address">Alamat</string><string name="city">Kota</string><string name="country">Negara</string><string name="checkout">Cadangkan stok dan buat pesanan menunggu pembayaran</string><string name="payment_pending">Pembayaran tertunda</string><string name="pay_handoff">Lanjutkan di YNX Pay</string><string name="check_payment">Periksa penyelesaian</string><string name="cancel_order">Batalkan pesanan</string><string name="confirm_delivery">Konfirmasi pengiriman</string><string name="write_review">Tulis ulasan</string><string name="return_request">Minta pengembalian</string><string name="refund_request">Minta pengembalian dana</string><string name="dispute">Buka sengketa</string>
+    <string name="trust_unavailable">Layanan kasus Trust tidak tersedia; bukti tetap disimpan.</string><string name="tax_unavailable">Layanan pajak tidak tersedia</string><string name="logistics_unavailable">Logistik eksternal tidak tersedia</string><string name="ai_compare">Perbandingan AI</string><string name="ai_language">Bahasa keluaran AI</string><string name="ai_privacy">AI hanya melihat katalog publik terpilih atau ringkasan pesanan milik Anda. AI tidak dapat membeli, mengembalikan dana, menerbitkan, mengubah harga, atau kebijakan.</string><string name="grant_permission">Izinkan sekali</string><string name="apply_draft">Terapkan draf</string><string name="reject_draft">Tolak</string><string name="cancel">Batal</string><string name="settings_language">Bahasa aplikasi</string><string name="security_error">Verifikasi keamanan gagal.</string><string name="session_expired">Sesi Wallet kedaluwarsa atau dicabut.</string><string name="queued_offline">Tindakan diantrekan dengan kunci idempotensi; pesanan atau pembayaran tidak diklaim sampai konfirmasi server.</string><string name="restore_pending">Coba lagi tindakan tertunda</string><string name="save_profile">Simpan profil dan alamat</string><string name="profile_saved">Profil disimpan.</string><string name="no_orders">Belum ada pesanan.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">Izinkan YNX Shop di ynx_6423-1 dengan cakupan tepat yang ditampilkan. Kedaluwarsa dalam empat menit.</string><string name="accessibility_status">Status marketplace</string><string name="accessibility_language">Pemilih bahasa</string><string name="accessibility_ai_language">Pemilih bahasa keluaran AI</string><plurals name="orders_count"><item quantity="other">%d pesanan</item></plurals>
+</resources>

@@ -47,15 +47,25 @@ func Open(path string) (*Store, error) {
 	if err := json.Unmarshal(data, &st.s); err != nil {
 		return nil, fmt.Errorf("decode commerce state: %w", err)
 	}
-	st.normalize()
+	migrated := st.normalize()
+	if migrated {
+		st.mu.Lock()
+		err = st.persistLocked()
+		st.mu.Unlock()
+		if err != nil {
+			return nil, fmt.Errorf("migrate commerce state: %w", err)
+		}
+	}
 	return st, nil
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 1, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Sessions: map[string]Session{}, Challenges: map[string]WalletChallenge{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: 2, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
 }
 
-func (s *Store) normalize() {
+func (s *Store) normalize() bool {
+	migrated := s.s.Version < 2
+	s.s.Version = 2
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -64,12 +74,6 @@ func (s *Store) normalize() {
 	}
 	if s.s.Orders == nil {
 		s.s.Orders = map[string]Order{}
-	}
-	if s.s.Sessions == nil {
-		s.s.Sessions = map[string]Session{}
-	}
-	if s.s.Challenges == nil {
-		s.s.Challenges = map[string]WalletChallenge{}
 	}
 	if s.s.Idempotency == nil {
 		s.s.Idempotency = map[string]IdempotencyRecord{}
@@ -89,6 +93,7 @@ func (s *Store) normalize() {
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
 	}
+	return migrated
 }
 
 func (s *Store) persistLocked() error {

@@ -1,18 +1,19 @@
 package commerce
 
 import (
+	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
 
 func actor(t *testing.T, seed byte) (*secp256k1.PrivateKey, string) {
@@ -112,11 +113,12 @@ func TestPaidRequiresExactCommittedSettlementEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	o, err = s.BindInvoice(buyer, o.ID, "invoice_123")
+	handoff := PayInvoiceHandoff{IntentID: "intent_123", InvoiceID: "invoice_123", DeepLink: "ynxpay://invoice/invoice_123", Merchant: "merchant_shop", PayoutAddress: owner}
+	o, err = s.BindInvoice(buyer, o.ID, handoff)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bad := SettlementEvidence{InvoiceID: "invoice_123", TransactionHash: "0xdead", Status: "paid", AmountYNXT: 25, BlockHeight: 0}
+	bad := SettlementEvidence{InvoiceID: "invoice_123", IntentID: "intent_123", Merchant: "merchant_shop", PayoutAddress: owner, TransactionHash: "0xdead", Status: "paid", Payer: buyer, Currency: NativeSymbol, AuditHash: strings.Repeat("b", 64), AmountYNXT: 25, BlockHeight: 0, ConfirmedAt: time.Now().UTC()}
 	if _, err = s.ConfirmSettlement(o.ID, bad); !errors.Is(err, ErrInvalidState) {
 		t.Fatalf("uncommitted settlement accepted: %v", err)
 	}
@@ -126,7 +128,27 @@ func TestPaidRequiresExactCommittedSettlementEvidence(t *testing.T) {
 	}
 	good := bad
 	good.BlockHeight = 99
+	good.TransactionHash = "0x" + strings.Repeat("a", 64)
 	good.ConfirmedAt = time.Now().UTC()
+	for name, mutate := range map[string]func(*SettlementEvidence){
+		"invoice":  func(e *SettlementEvidence) { e.InvoiceID = "invoice_attacker" },
+		"intent":   func(e *SettlementEvidence) { e.IntentID = "intent_attacker" },
+		"merchant": func(e *SettlementEvidence) { e.Merchant = "merchant_attacker" },
+		"payout":   func(e *SettlementEvidence) { e.PayoutAddress = buyer },
+		"payer":    func(e *SettlementEvidence) { e.Payer = owner },
+		"currency": func(e *SettlementEvidence) { e.Currency = "FAKE" },
+		"amount":   func(e *SettlementEvidence) { e.AmountYNXT++ },
+		"audit":    func(e *SettlementEvidence) { e.AuditHash = "not-a-committed-audit-hash" },
+		"tx":       func(e *SettlementEvidence) { e.TransactionHash = "0xdead" },
+	} {
+		t.Run("reject_tampered_"+name, func(t *testing.T) {
+			candidate := good
+			mutate(&candidate)
+			if _, err := s.ConfirmSettlement(o.ID, candidate); !errors.Is(err, ErrInvalidState) {
+				t.Fatalf("tampered %s evidence accepted: %v", name, err)
+			}
+		})
+	}
 	paid, err := s.ConfirmSettlement(o.ID, good)
 	if err != nil {
 		t.Fatal(err)
@@ -144,29 +166,87 @@ func TestPaidRequiresExactCommittedSettlementEvidence(t *testing.T) {
 	}
 }
 
-func TestWalletChallengeBindsAccountCallbackScopeExpiryAndRejectsReplay(t *testing.T) {
+func TestRefundRequiresExactCommittedPayEvidence(t *testing.T) {
 	s, _ := Open("")
-	key, account := actor(t, 6)
-	cfg := AuthConfig{AllowedCallbacks: map[string]bool{"ynxshop://auth/callback": true}}
-	c, err := s.CreateChallenge(ChallengeInput{Account: account, Callback: "ynxshop://auth/callback", DeviceID: "device-A", Purpose: "Sign in to YNX Shop", Scopes: []string{"shop.profile", "shop.orders"}}, cfg)
+	_, owner := actor(t, 46)
+	_, buyer := actor(t, 47)
+	st, product := setupCatalog(t, s, owner, 1)
+	o, err := s.CreateOrder(buyer, orderInput(st, product, "refund-order-key-0001"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256.Sum256(challengeSignBytes(c))
-	sig := ecdsa.Sign(key, digest[:]).Serialize()
-	in := SessionInput{ChallengeID: c.ID, PublicKey: hex.EncodeToString(key.PubKey().SerializeCompressed()), Signature: hex.EncodeToString(sig), Role: "buyer"}
-	sess, err := s.CompleteSession(in, cfg)
+	o, err = s.BindInvoice(buyer, o.ID, PayInvoiceHandoff{IntentID: "intent_refund", InvoiceID: "invoice_refund", Merchant: "merchant_refund", PayoutAddress: owner})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if sess.Account != account || sess.Role != "buyer" {
-		t.Fatalf("wrong session: %+v", sess)
+	o, err = s.ConfirmSettlement(o.ID, SettlementEvidence{InvoiceID: o.InvoiceID, IntentID: o.PayIntentID, Merchant: o.PayMerchant, PayoutAddress: o.PayPayoutAddress, TransactionHash: "0x" + strings.Repeat("a", 64), Status: "paid", Payer: buyer, Currency: NativeSymbol, AuditHash: strings.Repeat("b", 64), AmountYNXT: o.TotalYNXT, BlockHeight: 80, ConfirmedAt: time.Now().UTC()})
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err = s.CompleteSession(in, cfg); err == nil {
-		t.Fatal("wallet challenge replay accepted")
+	o, err = s.transition(buyer, "buyer", o.ID, "refund_requested", nil, &Resolution{Kind: "refund", Reason: "approved return"}, nil, "refund-request-key-1")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err = s.CreateChallenge(ChallengeInput{Account: account, Callback: "https://attacker.invalid", DeviceID: "device-A", Purpose: "Sign in", Scopes: []string{"shop.profile"}}, cfg); err == nil {
-		t.Fatal("callback substitution accepted")
+	o, err = s.transition(owner, "seller", o.ID, "refund_approved", nil, &Resolution{Kind: "refund"}, nil, "refund-approve-key-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	good := RefundEvidence{ID: "refund_1", Signer: owner, Merchant: o.PayMerchant, IntentID: o.PayIntentID, Currency: NativeSymbol, Reason: "approved return", Status: "recorded", IdempotencyKey: "shop-refund-refund-approve-key-1", RequestHash: strings.Repeat("c", 64), TransactionHash: strings.Repeat("d", 64), AuditHash: strings.Repeat("e", 64), AmountYNXT: o.TotalYNXT, BlockHeight: 81, RecordedAt: time.Now().UTC()}
+	bad := good
+	bad.AmountYNXT++
+	if _, err := s.BindRefundEvidence(owner, o.ID, bad); !errors.Is(err, ErrInvalidState) {
+		t.Fatalf("tampered refund evidence accepted: %v", err)
+	}
+	refunded, err := s.BindRefundEvidence(owner, o.ID, good)
+	if err != nil || refunded.Status != "refunded" || refunded.RefundStatus != "recorded_by_authoritative_pay" || refunded.Refund == nil {
+		t.Fatalf("committed refund evidence not bound: %+v %v", refunded, err)
+	}
+}
+
+func TestIdempotencyTamperRejectedAfterRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "commerce.json")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, owner := actor(t, 44)
+	_, buyer := actor(t, 45)
+	st, p := setupCatalog(t, s, owner, 2)
+	input := orderInput(st, p, "restart-order-idempotency-1")
+	first, err := s.CreateOrder(buyer, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reloaded, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := reloaded.CreateOrder(buyer, input)
+	if err != nil || replay.ID != first.ID {
+		t.Fatalf("restart replay changed result: %v %+v", err, replay)
+	}
+	input.Items[0].Quantity = 2
+	if _, err := reloaded.CreateOrder(buyer, input); !errors.Is(err, ErrConflict) {
+		t.Fatalf("tampered restart replay accepted: %v", err)
+	}
+}
+
+func TestStateMigrationDropsLegacyPlaintextSessions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy.json")
+	legacy := map[string]any{"Version": 1, "Sessions": map[string]any{"plaintext-bearer": map[string]any{"Token": "plaintext-bearer"}}, "Challenges": map[string]any{"legacy": map[string]any{"Nonce": "secret"}}}
+	data, _ := json.Marshal(legacy)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(path); err != nil {
+		t.Fatal(err)
+	}
+	sanitized, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(sanitized, []byte("plaintext-bearer")) || bytes.Contains(sanitized, []byte("Challenges")) {
+		t.Fatalf("legacy auth material survived migration: %s", sanitized)
 	}
 }
 

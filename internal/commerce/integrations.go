@@ -17,17 +17,25 @@ type PayVerifier interface {
 	Settlement(context.Context, string) (SettlementEvidence, error)
 }
 type PayHandoff interface {
-	CreateInvoice(context.Context, Order, string) (string, string, error)
+	CreateInvoice(context.Context, Order, string) (PayInvoiceHandoff, error)
+}
+
+type PayInvoiceHandoff struct {
+	IntentID, InvoiceID, DeepLink, Merchant, PayoutAddress string
 }
 
 type HTTPPayVerifier struct {
-	BaseURL, APIKey string
-	Client          *http.Client
+	BaseURL, APIKey, MerchantID, PayoutAddress string
+	Client                                     *http.Client
 }
 
-func (v HTTPPayVerifier) CreateInvoice(ctx context.Context, o Order, idempotencyKey string) (string, string, error) {
-	if strings.TrimSpace(v.BaseURL) == "" || strings.TrimSpace(v.APIKey) == "" {
-		return "", "", fmt.Errorf("%w: Pay handoff is not configured", ErrUnavailable)
+func (v HTTPPayVerifier) CreateInvoice(ctx context.Context, o Order, idempotencyKey string) (PayInvoiceHandoff, error) {
+	if strings.TrimSpace(v.BaseURL) == "" || strings.TrimSpace(v.APIKey) == "" || strings.TrimSpace(v.MerchantID) == "" || strings.TrimSpace(v.PayoutAddress) == "" {
+		return PayInvoiceHandoff{}, fmt.Errorf("%w: Pay merchant contract is not configured", ErrUnavailable)
+	}
+	base, err := secureServiceBase(v.BaseURL, "Pay")
+	if err != nil {
+		return PayInvoiceHandoff{}, err
 	}
 	client := v.Client
 	if client == nil {
@@ -35,7 +43,7 @@ func (v HTTPPayVerifier) CreateInvoice(ctx context.Context, o Order, idempotency
 	}
 	call := func(path string, input any, out any) error {
 		body, _ := json.Marshal(input)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+path, bytes.NewReader(body))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+path, bytes.NewReader(body))
 		if err != nil {
 			return err
 		}
@@ -54,26 +62,30 @@ func (v HTTPPayVerifier) CreateInvoice(ctx context.Context, o Order, idempotency
 	var intent struct {
 		ID string `json:"id"`
 	}
-	if err := call("/pay/intents", map[string]any{"amount": o.TotalYNXT, "currency": NativeSymbol, "callbackUrl": "ynxshop://orders/" + o.ID, "idempotencyKey": "shop-intent-" + idempotencyKey}, &intent); err != nil {
-		return "", "", err
+	if err := call("/pay/intents", map[string]any{"merchant": v.MerchantID, "payoutAddress": v.PayoutAddress, "amount": o.TotalYNXT, "currency": NativeSymbol, "callbackUrl": "ynxshop://orders/" + o.ID, "idempotencyKey": "shop-intent-" + idempotencyKey}, &intent); err != nil {
+		return PayInvoiceHandoff{}, err
 	}
 	if intent.ID == "" {
-		return "", "", errors.New("Pay returned no intent id")
+		return PayInvoiceHandoff{}, errors.New("Pay returned no intent id")
 	}
 	var invoice struct {
 		ID string `json:"id"`
 	}
 	if err := call("/pay/invoices", map[string]any{"intentId": intent.ID, "dueInHours": 1, "idempotencyKey": "shop-invoice-" + idempotencyKey}, &invoice); err != nil {
-		return "", "", err
+		return PayInvoiceHandoff{}, err
 	}
 	if invoice.ID == "" {
-		return "", "", errors.New("Pay returned no invoice id")
+		return PayInvoiceHandoff{}, errors.New("Pay returned no invoice id")
 	}
-	return invoice.ID, "ynxpay://invoice/" + invoice.ID, nil
+	return PayInvoiceHandoff{IntentID: intent.ID, InvoiceID: invoice.ID, DeepLink: "ynxpay://invoice/" + invoice.ID, Merchant: v.MerchantID, PayoutAddress: v.PayoutAddress}, nil
 }
 func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (SettlementEvidence, error) {
 	if strings.TrimSpace(v.BaseURL) == "" || strings.TrimSpace(v.APIKey) == "" {
 		return SettlementEvidence{}, fmt.Errorf("%w: Pay verifier is not configured", ErrUnavailable)
+	}
+	base, err := secureServiceBase(v.BaseURL, "Pay")
+	if err != nil {
+		return SettlementEvidence{}, err
 	}
 	if _, err := url.PathUnescape(invoiceID); err != nil || strings.Contains(invoiceID, "/") {
 		return SettlementEvidence{}, errors.New("invalid invoice id")
@@ -82,7 +94,7 @@ func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (Sett
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(v.BaseURL, "/")+"/pay/invoices/"+url.PathEscape(invoiceID)+"/settlement", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/pay/invoices/"+url.PathEscape(invoiceID)+"/settlement", nil)
 	if err != nil {
 		return SettlementEvidence{}, err
 	}
@@ -99,10 +111,10 @@ func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (Sett
 		return SettlementEvidence{}, fmt.Errorf("%w: Pay verifier returned %d", ErrUnavailable, resp.StatusCode)
 	}
 	var raw struct {
-		InvoiceID, TransactionHash, Status, Payer string
-		Amount, AmountYNXT                        int64
-		BlockHeight                               uint64
-		ConfirmedAt, CreatedAt                    time.Time
+		InvoiceID, IntentID, Merchant, PayoutAddress, TransactionHash, Status, Payer, Currency, AuditHash string
+		Amount, AmountYNXT                                                                                int64
+		BlockHeight, BlockNumber                                                                          uint64
+		ConfirmedAt, CreatedAt                                                                            time.Time
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&raw); err != nil {
 		return SettlementEvidence{}, fmt.Errorf("invalid Pay settlement response: %w", err)
@@ -115,7 +127,63 @@ func (v HTTPPayVerifier) Settlement(ctx context.Context, invoiceID string) (Sett
 	if at.IsZero() {
 		at = raw.CreatedAt
 	}
-	return SettlementEvidence{InvoiceID: raw.InvoiceID, TransactionHash: raw.TransactionHash, Status: raw.Status, Payer: raw.Payer, AmountYNXT: amount, BlockHeight: raw.BlockHeight, ConfirmedAt: at}, nil
+	height := raw.BlockHeight
+	if height == 0 {
+		height = raw.BlockNumber
+	}
+	return SettlementEvidence{InvoiceID: raw.InvoiceID, IntentID: raw.IntentID, Merchant: raw.Merchant, PayoutAddress: raw.PayoutAddress, TransactionHash: raw.TransactionHash, Status: raw.Status, Payer: raw.Payer, Currency: raw.Currency, AuditHash: raw.AuditHash, AmountYNXT: amount, BlockHeight: height, ConfirmedAt: at}, nil
+}
+
+func (v HTTPPayVerifier) CreateRefund(ctx context.Context, o Order, idempotencyKey string) (RefundEvidence, error) {
+	if strings.TrimSpace(v.BaseURL) == "" || strings.TrimSpace(v.APIKey) == "" || strings.TrimSpace(v.MerchantID) == "" {
+		return RefundEvidence{}, fmt.Errorf("%w: Pay refund contract is not configured", ErrUnavailable)
+	}
+	base, err := secureServiceBase(v.BaseURL, "Pay")
+	if err != nil {
+		return RefundEvidence{}, err
+	}
+	if o.PayIntentID == "" || o.PayMerchant != v.MerchantID || o.TotalYNXT <= 0 || len(idempotencyKey) < 8 {
+		return RefundEvidence{}, ErrInvalidState
+	}
+	reason := "approved YNX Shop order refund"
+	if o.Resolution != nil && strings.TrimSpace(o.Resolution.Reason) != "" {
+		reason = strings.TrimSpace(o.Resolution.Reason)
+	}
+	body, _ := json.Marshal(map[string]any{"intentId": o.PayIntentID, "amount": o.TotalYNXT, "reason": reason, "idempotencyKey": "shop-refund-" + idempotencyKey})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/pay/refunds", bytes.NewReader(body))
+	if err != nil {
+		return RefundEvidence{}, err
+	}
+	req.Header.Set("X-YNX-Pay-Key", v.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+	client := v.Client
+	if client == nil {
+		client = &http.Client{Timeout: 10 * time.Second}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return RefundEvidence{}, fmt.Errorf("%w: Pay refund request failed", ErrUnavailable)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusConflict {
+		return RefundEvidence{}, ErrConflict
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return RefundEvidence{}, fmt.Errorf("%w: Pay refund returned %d", ErrUnavailable, resp.StatusCode)
+	}
+	var raw struct {
+		ID, Signer, Merchant, IntentID, Currency, Reason, Status, IdempotencyKey, RequestHash, TxHash, AuditHash string
+		Amount                                                                                                   int64
+		BlockHeight                                                                                              int64
+		CreatedAt                                                                                                time.Time
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&raw); err != nil {
+		return RefundEvidence{}, fmt.Errorf("invalid Pay refund response: %w", err)
+	}
+	if raw.BlockHeight <= 0 {
+		return RefundEvidence{}, errors.New("Pay refund response is not committed")
+	}
+	return RefundEvidence{ID: raw.ID, Signer: raw.Signer, Merchant: raw.Merchant, IntentID: raw.IntentID, Currency: raw.Currency, Reason: raw.Reason, Status: raw.Status, IdempotencyKey: raw.IdempotencyKey, RequestHash: raw.RequestHash, TransactionHash: raw.TxHash, AuditHash: raw.AuditHash, AmountYNXT: raw.Amount, BlockHeight: uint64(raw.BlockHeight), RecordedAt: raw.CreatedAt}, nil
 }
 
 type AIGateway interface {
@@ -130,8 +198,12 @@ func (v HTTPAIGateway) Generate(ctx context.Context, job AIJob) (string, error) 
 	if v.BaseURL == "" || v.APIKey == "" {
 		return "", fmt.Errorf("%w: AI provider is not configured", ErrUnavailable)
 	}
+	base, err := secureServiceBase(v.BaseURL, "AI")
+	if err != nil {
+		return "", err
+	}
 	payload, _ := json.Marshal(map[string]any{"workflow": job.Workflow, "contextClasses": job.ContextClasses, "contextSummary": job.ContextSummary, "allowedActions": job.AllowedActions, "estimateUnits": job.EstimateUnits})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/ai/generate", bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/ai/generate", bytes.NewReader(payload))
 	if err != nil {
 		return "", err
 	}
@@ -154,6 +226,14 @@ func (v HTTPAIGateway) Generate(ctx context.Context, job AIJob) (string, error) 
 		return "", errors.New("invalid AI provider response")
 	}
 	return out.Result, nil
+}
+
+func secureServiceBase(raw, name string) (string, error) {
+	base, err := url.Parse(strings.TrimRight(strings.TrimSpace(raw), "/"))
+	if err != nil || base.Host == "" || base.User != nil || (base.Scheme != "https" && base.Hostname() != "127.0.0.1" && base.Hostname() != "localhost") {
+		return "", fmt.Errorf("%w: %s URL must use HTTPS", ErrUnavailable, name)
+	}
+	return base.String(), nil
 }
 
 type AIInput struct {

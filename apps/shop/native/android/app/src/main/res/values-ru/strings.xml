@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Магазин YNX</string>
+    <string name="nav_catalog">Обзор</string>
+    <string name="nav_cart">Корзина</string>
+    <string name="nav_orders">Заказы</string>
+    <string name="nav_account">Аккаунт</string>
+    <string name="search_hint">Поиск товаров и категорий</string>
+    <string name="search">Поиск</string>
+    <string name="loading">Загрузка реальных записей…</string>
+    <string name="empty_catalog">Опубликованных товаров нет.</string>
+    <string name="retry">Повторить</string>
+    <string name="offline">Нет сети. Успех не имитируется.</string>
+    <string name="unavailable">Недоступно</string>
+    <string name="wallet_sign_in">Войти через YNX Wallet</string>
+    <string name="wallet_active">Сеанс Wallet активен</string>
+    <string name="wallet_security">Wallet подписывает разрешение аккаунта, а приложение — отдельный вызов устройства P-256. Ключ восстановления не попадает в Shop.</string>
+    <string name="privacy_boundary">Профиль, адрес и заказы остаются в Shop. ИИ получает только показанный до разрешения контекст.</string>
+    <string name="payment_boundary">Заказ считается оплаченным только при точном подтверждённом доказательстве YNXT от Central Pay.</string>
+    <string name="add_cart">Добавить в корзину</string><string name="inventory">в наличии</string><string name="cart_empty">Корзина пуста.</string><string name="order_review">Проверка заказа</string><string name="recipient">Получатель</string><string name="address">Адрес</string><string name="city">Город</string><string name="country">Страна</string><string name="checkout">Зарезервировать товар и создать заказ, ожидающий оплаты</string><string name="payment_pending">Ожидается оплата</string><string name="pay_handoff">Продолжить в YNX Pay</string><string name="check_payment">Проверить расчет</string><string name="cancel_order">Отменить заказ</string><string name="confirm_delivery">Подтвердить доставку</string><string name="write_review">Написать отзыв</string><string name="return_request">Запросить возврат</string><string name="refund_request">Запросить возмещение</string><string name="dispute">Открыть спор</string>
+    <string name="trust_unavailable">Сервис дел Trust недоступен; доказательства сохранены.</string><string name="tax_unavailable">Налоговый сервис недоступен</string><string name="logistics_unavailable">Внешняя логистика недоступна</string><string name="ai_compare">Сравнение с ИИ</string><string name="ai_language">Язык ответа ИИ</string><string name="ai_privacy">ИИ видит только выбранный публичный каталог или сводку вашего заказа. Он не может покупать, возвращать средства, публиковать, менять цену или правила.</string><string name="grant_permission">Разрешить один раз</string><string name="apply_draft">Применить черновик</string><string name="reject_draft">Отклонить</string><string name="cancel">Отмена</string><string name="settings_language">Язык приложения</string><string name="security_error">Проверка безопасности не пройдена.</string><string name="session_expired">Сеанс Wallet истек или отозван.</string><string name="queued_offline">Действие поставлено в очередь с ключом идемпотентности; заказ или оплата подтверждаются только сервером.</string><string name="restore_pending">Повторить ожидающие действия</string><string name="save_profile">Сохранить профиль и адрес</string><string name="profile_saved">Профиль сохранен.</string><string name="no_orders">Заказов пока нет.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">Разрешить YNX Shop работу в ynx_6423-1 с указанными точными правами. Срок — четыре минуты.</string><string name="accessibility_status">Состояние маркетплейса</string><string name="accessibility_language">Выбор языка</string><string name="accessibility_ai_language">Выбор языка ответа ИИ</string><plurals name="orders_count"><item quantity="one">%d заказ</item><item quantity="few">%d заказа</item><item quantity="many">%d заказов</item><item quantity="other">%d заказа</item></plurals>
+</resources>

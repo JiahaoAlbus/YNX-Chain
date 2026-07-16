@@ -74,43 +74,44 @@ type Review struct {
 	CreatedAt time.Time
 }
 
+type TrustCaseEvidence struct {
+	CaseID, Status, EvidenceURL, AppealURL, Source string
+	SubmittedAt                                    time.Time
+}
+
 type SettlementEvidence struct {
-	InvoiceID, TransactionHash, Status, Payer string
-	AmountYNXT                                int64
-	BlockHeight                               uint64
-	ConfirmedAt                               time.Time
+	InvoiceID, IntentID, Merchant, PayoutAddress, TransactionHash, Status, Payer, Currency, AuditHash string
+	AmountYNXT                                                                                        int64
+	BlockHeight                                                                                       uint64
+	ConfirmedAt                                                                                       time.Time
+}
+
+type RefundEvidence struct {
+	ID, Signer, Merchant, IntentID, Currency, Reason, Status, IdempotencyKey, RequestHash, TransactionHash, AuditHash string
+	AmountYNXT                                                                                                        int64
+	BlockHeight                                                                                                       uint64
+	RecordedAt                                                                                                        time.Time
 }
 
 type Order struct {
-	ID, Buyer, StoreID, Status, Currency, InvoiceID string
-	Lines                                           []OrderLine
-	Address                                         Address
-	SubtotalYNXT, ShippingYNXT, TaxYNXT, TotalYNXT  int64
-	TaxStatus, LogisticsStatus                      string
-	ReservationExpiresAt                            time.Time
-	Settlement                                      *SettlementEvidence
-	Shipment                                        *Shipment
-	Resolution                                      *Resolution
-	Review                                          *Review
-	CreatedAt, UpdatedAt                            time.Time
+	ID, Buyer, StoreID, Status, Currency, InvoiceID, PayIntentID, PayMerchant, PayPayoutAddress string
+	Lines                                                                                       []OrderLine
+	Address                                                                                     Address
+	SubtotalYNXT, ShippingYNXT, TaxYNXT, TotalYNXT                                              int64
+	TaxStatus, LogisticsStatus, RefundStatus, TrustStatus                                       string
+	ReservationExpiresAt                                                                        time.Time
+	Settlement                                                                                  *SettlementEvidence
+	Refund                                                                                      *RefundEvidence
+	Shipment                                                                                    *Shipment
+	Resolution                                                                                  *Resolution
+	Review                                                                                      *Review
+	TrustCase                                                                                   *TrustCaseEvidence
+	CreatedAt, UpdatedAt                                                                        time.Time
 }
 
 type AuditEvent struct {
 	ID, Actor, Role, Action, ObjectType, ObjectID, Outcome, Detail string
 	At                                                             time.Time
-}
-
-type Session struct {
-	Token, Account, Role string
-	ExpiresAt            time.Time
-}
-
-type WalletChallenge struct {
-	ID, Account, Nonce, Product, Callback, DeviceID string
-	Scopes                                          []string
-	Purpose                                         string
-	IssuedAt, ExpiresAt                             time.Time
-	Consumed                                        bool
 }
 
 type IdempotencyRecord struct {
@@ -133,8 +134,6 @@ type Snapshot struct {
 	Stores        map[string]StoreProfile
 	Products      map[string]Product
 	Orders        map[string]Order
-	Sessions      map[string]Session
-	Challenges    map[string]WalletChallenge
 	Idempotency   map[string]IdempotencyRecord
 	Audits        []AuditEvent
 	AIJobs        map[string]AIJob

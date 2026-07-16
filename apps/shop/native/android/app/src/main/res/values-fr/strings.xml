@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Boutique YNX</string>
+    <string name="nav_catalog">Découvrir</string>
+    <string name="nav_cart">Panier</string>
+    <string name="nav_orders">Commandes</string>
+    <string name="nav_account">Compte</string>
+    <string name="search_hint">Rechercher produits et catégories</string>
+    <string name="search">Rechercher</string>
+    <string name="loading">Chargement des données réelles…</string>
+    <string name="empty_catalog">Aucun produit publié.</string>
+    <string name="retry">Réessayer</string>
+    <string name="offline">Hors ligne. Aucun succès n’est simulé.</string>
+    <string name="unavailable">Indisponible</string>
+    <string name="wallet_sign_in">Se connecter avec YNX Wallet</string>
+    <string name="wallet_active">Session Wallet active</string>
+    <string name="wallet_security">Wallet signe l’autorisation du compte et l’app signe un défi P-256 séparé. Aucune clé de récupération n’entre dans Shop.</string>
+    <string name="privacy_boundary">Profil, adresse et commandes restent dans Shop. L’IA ne reçoit que le contexte affiché avant autorisation.</string>
+    <string name="payment_boundary">Une commande n’est payée qu’avec une preuve YNXT exacte et confirmée de Central Pay.</string>
+    <string name="add_cart">Ajouter au panier</string><string name="inventory">disponibles</string><string name="cart_empty">Votre panier est vide.</string><string name="order_review">Vérifier la commande</string><string name="recipient">Destinataire</string><string name="address">Adresse</string><string name="city">Ville</string><string name="country">Pays</string><string name="checkout">Réserver le stock et créer une commande en attente de paiement</string><string name="payment_pending">Paiement en attente</string><string name="pay_handoff">Continuer dans YNX Pay</string><string name="check_payment">Vérifier le règlement</string><string name="cancel_order">Annuler la commande</string><string name="confirm_delivery">Confirmer la livraison</string><string name="write_review">Écrire un avis</string><string name="return_request">Demander un retour</string><string name="refund_request">Demander un remboursement</string><string name="dispute">Ouvrir un litige</string>
+    <string name="trust_unavailable">Le service de dossier Trust est indisponible ; les preuves restent conservées.</string><string name="tax_unavailable">Service fiscal indisponible</string><string name="logistics_unavailable">Logistique externe indisponible</string><string name="ai_compare">Comparaison par IA</string><string name="ai_language">Langue de sortie IA</string><string name="ai_privacy">L’IA ne voit que le catalogue public sélectionné ou le résumé d’une commande possédée. Elle ne peut ni acheter, rembourser, publier, modifier un prix ou une politique.</string><string name="grant_permission">Autoriser une fois</string><string name="apply_draft">Appliquer le brouillon</string><string name="reject_draft">Rejeter</string><string name="cancel">Annuler</string><string name="settings_language">Langue de l’app</string><string name="security_error">La vérification de sécurité a échoué.</string><string name="session_expired">La session Wallet a expiré ou a été révoquée.</string><string name="queued_offline">Action mise en file avec sa clé d’idempotence ; aucune commande ni paiement n’est confirmé avant le serveur.</string><string name="restore_pending">Réessayer les actions en attente</string><string name="save_profile">Enregistrer le profil et l’adresse</string><string name="profile_saved">Profil enregistré.</string><string name="no_orders">Aucune commande pour le moment.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">Autorisez YNX Shop sur ynx_6423-1 avec les portées exactes affichées. Expire dans quatre minutes.</string><string name="accessibility_status">État du marché</string><string name="accessibility_language">Sélecteur de langue</string><string name="accessibility_ai_language">Sélecteur de langue de sortie IA</string><plurals name="orders_count"><item quantity="one">%d commande</item><item quantity="other">%d commandes</item></plurals>
+</resources>

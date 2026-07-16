@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Loja YNX</string>
+    <string name="nav_catalog">Descobrir</string>
+    <string name="nav_cart">Carrinho</string>
+    <string name="nav_orders">Pedidos</string>
+    <string name="nav_account">Conta</string>
+    <string name="search_hint">Buscar produtos e categorias</string>
+    <string name="search">Buscar</string>
+    <string name="loading">Carregando registros reais…</string>
+    <string name="empty_catalog">Nenhum produto publicado.</string>
+    <string name="retry">Tentar novamente</string>
+    <string name="offline">Offline. Nenhum sucesso é simulado.</string>
+    <string name="unavailable">Indisponível</string>
+    <string name="wallet_sign_in">Entrar com YNX Wallet</string>
+    <string name="wallet_active">Sessão Wallet ativa</string>
+    <string name="wallet_security">Wallet assina a autorização da conta e o app assina um desafio P-256 separado. Nenhuma chave de recuperação entra na Shop.</string>
+    <string name="privacy_boundary">Perfil, endereço e pedidos ficam na Shop. A IA recebe apenas o contexto exibido antes da permissão.</string>
+    <string name="payment_boundary">Um pedido só é pago com evidência YNXT exata e confirmada do Central Pay.</string>
+    <string name="add_cart">Adicionar ao carrinho</string><string name="inventory">disponíveis</string><string name="cart_empty">Seu carrinho está vazio.</string><string name="order_review">Revisar pedido</string><string name="recipient">Destinatário</string><string name="address">Endereço</string><string name="city">Cidade</string><string name="country">País</string><string name="checkout">Reservar estoque e criar pedido aguardando pagamento</string><string name="payment_pending">Pagamento pendente</string><string name="pay_handoff">Continuar no YNX Pay</string><string name="check_payment">Verificar liquidação</string><string name="cancel_order">Cancelar pedido</string><string name="confirm_delivery">Confirmar entrega</string><string name="write_review">Escrever avaliação</string><string name="return_request">Solicitar devolução</string><string name="refund_request">Solicitar reembolso</string><string name="dispute">Abrir disputa</string>
+    <string name="trust_unavailable">Serviço de casos Trust indisponível; as evidências permanecem preservadas.</string><string name="tax_unavailable">Serviço fiscal indisponível</string><string name="logistics_unavailable">Logística externa indisponível</string><string name="ai_compare">Comparação por IA</string><string name="ai_language">Idioma de saída da IA</string><string name="ai_privacy">A IA vê apenas o catálogo público selecionado ou o resumo de um pedido seu. Não pode comprar, reembolsar, publicar, alterar preço ou política.</string><string name="grant_permission">Permitir uma vez</string><string name="apply_draft">Aplicar rascunho</string><string name="reject_draft">Rejeitar</string><string name="cancel">Cancelar</string><string name="settings_language">Idioma do app</string><string name="security_error">Falha na verificação de segurança.</string><string name="session_expired">A sessão da Wallet expirou ou foi revogada.</string><string name="queued_offline">Ação enfileirada com chave de idempotência; nenhum pedido ou pagamento é confirmado antes do servidor.</string><string name="restore_pending">Tentar ações pendentes novamente</string><string name="save_profile">Salvar perfil e endereço</string><string name="profile_saved">Perfil salvo.</string><string name="no_orders">Ainda não há pedidos.</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">Autorize o YNX Shop em ynx_6423-1 com os escopos exatos mostrados. Expira em quatro minutos.</string><string name="accessibility_status">Status do marketplace</string><string name="accessibility_language">Seletor de idioma</string><string name="accessibility_ai_language">Seletor de idioma de saída da IA</string><plurals name="orders_count"><item quantity="one">%d pedido</item><item quantity="other">%d pedidos</item></plurals>
+</resources>

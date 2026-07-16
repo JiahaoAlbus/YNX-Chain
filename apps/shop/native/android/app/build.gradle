@@ -1,0 +1,32 @@
+plugins { id "com.android.application" }
+def shopApi = System.getenv("YNX_SHOP_API_URL") ?: "http://10.0.2.2:8095"
+android {
+    namespace "com.ynxweb4.shop"
+    compileSdk 36
+    defaultConfig {
+        applicationId "com.ynxweb4.shop"
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName "0.2.0"
+        buildConfigField "String", "API_BASE_URL", "\"" + shopApi + "\""
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders = [usesCleartextTraffic:"false"]
+    }
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+            manifestPlaceholders = [usesCleartextTraffic:"true"]
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    testOptions { unitTests.returnDefaultValues = true }
+}
+dependencies { testImplementation "junit:junit:4.13.2"; testImplementation "org.json:json:20250517" }

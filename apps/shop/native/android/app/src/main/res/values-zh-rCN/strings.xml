@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">YNX 商城</string>
+    <string name="nav_catalog">发现</string>
+    <string name="nav_cart">购物车</string>
+    <string name="nav_orders">订单</string>
+    <string name="nav_account">账户</string>
+    <string name="search_hint">搜索商品和分类</string>
+    <string name="search">搜索</string>
+    <string name="loading">正在加载真实记录…</string>
+    <string name="empty_catalog">暂无已发布商品。</string>
+    <string name="retry">重试</string>
+    <string name="offline">当前离线，不会模拟成功。</string>
+    <string name="unavailable">不可用</string>
+    <string name="wallet_sign_in">使用 YNX 钱包登录</string>
+    <string name="wallet_active">钱包会话已启用</string>
+    <string name="wallet_security">钱包只签署账户授权；本应用另行签署 P-256 设备挑战。恢复密钥不会进入商城。</string>
+    <string name="privacy_boundary">个人资料、地址和订单保留在商城内。AI 仅在授权前接收明确展示的上下文。</string>
+    <string name="payment_boundary">只有中央支付返回完全匹配且已提交的 YNXT 证据后，订单才会标记为已支付。</string>
+    <string name="add_cart">加入购物车</string><string name="inventory">件可售</string><string name="cart_empty">购物车为空。</string><string name="order_review">订单确认</string>
+    <string name="recipient">收件人</string><string name="address">地址</string><string name="city">城市</string><string name="country">国家或地区</string>
+    <string name="checkout">预留库存并创建待支付订单</string><string name="payment_pending">等待支付</string><string name="pay_handoff">前往 YNX Pay</string><string name="check_payment">检查结算</string>
+    <string name="cancel_order">取消订单</string><string name="confirm_delivery">确认收货</string><string name="write_review">撰写评价</string><string name="return_request">申请退货</string><string name="refund_request">申请退款</string><string name="dispute">发起争议</string>
+    <string name="trust_unavailable">Trust 案件服务不可用；证据仍会保留。</string><string name="tax_unavailable">税务服务不可用</string><string name="logistics_unavailable">外部物流服务不可用</string>
+    <string name="ai_compare">AI 辅助比较</string><string name="ai_language">AI 输出语言</string><string name="ai_privacy">AI 仅查看所选公开商品或本人订单摘要，不能购买、退款、发布商品、改价或修改政策。</string>
+    <string name="grant_permission">仅授权本次</string><string name="apply_draft">采用草稿</string><string name="reject_draft">拒绝</string><string name="cancel">取消</string><string name="settings_language">应用语言</string>
+    <string name="security_error">安全验证失败。</string><string name="session_expired">钱包会话已过期或撤销。</string><string name="queued_offline">操作已连同幂等键排队；服务器确认前不会声称订单或付款成功。</string><string name="restore_pending">重试待处理操作</string>
+    <string name="save_profile">保存资料和地址</string><string name="profile_saved">资料已保存。</string><string name="no_orders">暂无订单。</string>
+    <string name="ynxt_amount">%1$s YNXT</string>
+    <string name="signing_text">按所示精确权限授权 YNX 商城访问 ynx_6423-1；四分钟后过期。</string><string name="accessibility_status">商城状态</string><string name="accessibility_language">语言选择器</string><string name="accessibility_ai_language">AI 输出语言选择器</string><plurals name="orders_count"><item quantity="other">%d 个订单</item></plurals>
+</resources>
