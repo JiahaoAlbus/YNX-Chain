@@ -38,11 +38,11 @@ func TestPayClientRequiresCommittedReceiptAndWalletConfirmation(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == http.MethodGet {
-			fmt.Fprint(w, `{"Owner":"ynx1owner","State":"committed","amount_ynxt":5}`)
+			fmt.Fprint(w, `{"ID":"settlement_1","IntentID":"intent_1","InvoiceID":"receipt-1","Merchant":"ynx-video","PayoutAddress":"ynx1owner","Payer":"ynx1payer","Currency":"YNXT","TransactionHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","Status":"paid","AuditHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","Amount":5,"BlockNumber":9}`)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, `{"ID":"pay_1","State":"awaiting_wallet_confirmation"}`)
+		fmt.Fprint(w, `{"ID":"pay_1","Merchant":"ynx-video","PayoutAddress":"ynx1owner","Status":"created","Currency":"YNXT","Amount":5}`)
 	}))
 	defer server.Close()
 	client := PayClient{Endpoint: server.URL, Token: "pay-token", Client: server.Client()}

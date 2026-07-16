@@ -12,14 +12,6 @@ import (
 
 func main() {
 	root := required("YNX_VIDEO_DATA")
-	tokens := map[string]string{}
-	for _, pair := range strings.Split(required("YNX_VIDEO_SESSIONS"), ",") {
-		p := strings.SplitN(pair, "=", 2)
-		if len(p) != 2 || p[0] == "" || p[1] == "" {
-			log.Fatal("YNX_VIDEO_SESSIONS must be token=ynx1account pairs")
-		}
-		tokens[p[0]] = p[1]
-	}
 	moderators := map[string]bool{}
 	for _, account := range strings.Split(os.Getenv("YNX_VIDEO_MODERATORS"), ",") {
 		if account = strings.TrimSpace(account); account != "" {
@@ -36,7 +28,7 @@ func main() {
 	if os.Getenv("YNX_VIDEO_PAY_ENDPOINT") != "" {
 		pay = video.PayClient{Endpoint: os.Getenv("YNX_VIDEO_PAY_ENDPOINT"), Token: required("YNX_VIDEO_PAY_TOKEN")}
 	}
-	svc, err := video.NewService(video.Config{Root: root, MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
+	svc, err := video.NewService(video.Config{Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +36,13 @@ func main() {
 	if addr == "" {
 		addr = "127.0.0.1:8423"
 	}
-	srv := &http.Server{Addr: addr, Handler: video.NewServer(svc, video.StaticTokenAuth{Tokens: tokens, Moderators: moderators}).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
+	clients := map[string]video.GatewayClient{
+		"ynx-video-mobile-v1":       {BundleID: "com.ynxweb4.video", Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
+		"ynx-video-web-v1":          {BundleID: "com.ynxweb4.video.web", Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
+		"ynx-creator-studio-web-v1": {BundleID: "com.ynxweb4.creator-studio.web", Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
+	}
+	auth := video.GatewaySessionAuth{Service: svc, Key: []byte(required("YNX_VIDEO_GATEWAY_ATTESTATION_KEY")), Clients: clients, Moderators: moderators}
+	srv := &http.Server{Addr: addr, Handler: video.NewServer(svc, auth).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
 	log.Printf("YNX Video listening on %s", addr)
 	log.Fatal(srv.ListenAndServe())
 }

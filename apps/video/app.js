@@ -1,7 +1,8 @@
+import{walletAuthorizationURL}from"./wallet-auth.js";
 const API=localStorage.getItem("ynx.video.api")||"http://127.0.0.1:8423";
 const $=selector=>document.querySelector(selector);
 let current=null,lastWatchPosition=0;
-const session=()=>sessionStorage.getItem("ynx.video.session")||new URLSearchParams(location.hash.slice(1)).get("session");
+const session=()=>sessionStorage.getItem("ynx.video.session")||new URLSearchParams(location.hash.slice(1)).get("gateway_session");
 
 export async function api(path,options={}){
   const headers={...(options.headers||{})};if(session())headers.Authorization=`Bearer ${session()}`;
@@ -39,7 +40,7 @@ async function showChannel(channelID){try{const view=await api(`/v1/channels/${c
 async function showPlaylists(button){activate(button);try{const lists=await api("/v1/playlists");const box=$("#content");box.replaceChildren();if(!lists.length){empty("Playlists are empty");return}for(const list of lists){const ids=list.VideoIDs||list.video_ids||[];const article=document.createElement("article");article.className="card";article.innerHTML=`<div class="thumb">≡</div><h2>${esc(list.Name||list.name)}</h2><p class="meta">${ids.length} saved video(s)</p>`;box.append(article)}}catch(error){notice(error.message,true)}}
 async function showHistory(button){activate(button);try{const events=await api("/v1/history");const box=$("#content");box.replaceChildren();if(!events.length){empty("History is empty");return}for(const event of events){const article=document.createElement("article");article.className="card";article.innerHTML=`<h2>${esc(event.VideoID||event.video_id)}</h2><p>${event.Seconds||event.seconds} watched second(s)</p><p class="meta">${esc(event.CreatedAt||event.created_at)}</p>`;box.append(article)}}catch(error){notice(error.message,true)}}
 
-$("#signin").onclick=()=>{const callback=encodeURIComponent(location.origin+location.pathname);location.href=`ynxwallet://authorize?client=ynx.video.web&chain_id=6423&scopes=video.read%20video.interact&callback=${callback}`};
+$("#signin").onclick=async()=>{try{location.href=await walletAuthorizationURL({requestingProduct:"ynx-video",productClientId:"ynx-video-web-v1",bundleId:"com.ynxweb4.video.web",callback:"https://video.ynxweb4.com/wallet-auth/callback",scopes:["video.comment","video.history","video.read","video.report","video.subscribe"],purpose:"Sign in to watch, comment, report, subscribe, and persist personal history. Wallet keys never leave YNX Wallet."})}catch(error){notice(error.message,true)}};
 if(session()){sessionStorage.setItem("ynx.video.session",session());history.replaceState(null,"",location.pathname);$("#session").textContent="Wallet-authorized product session active. No account secret is stored here.";$("#signin").textContent="Wallet connected"}
 $("#search").onsubmit=event=>{event.preventDefault();loadVideos($("#query").value)};
 $("#close").onclick=async()=>{await flushWatch(false);$("#video").pause();$("#player").close()};
@@ -49,4 +50,5 @@ $("#playlist").onclick=async()=>{if(!current)return;try{let lists=await api("/v1
 $("#report").onclick=async()=>{const reason=prompt("Reason for human review");if(!reason)return;try{await api(`/v1/videos/${current.id}/reports`,json({reason,details:"Submitted from YNX Video viewer"}));notice("Report submitted for human review. No automatic takedown occurred.")}catch(error){notice(error.message,true)}};
 $("#comment").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/videos/${current.id}/comments`,json({body:event.target.elements[0].value}));event.target.reset();await loadComments();notice("Comment persisted.")}catch(error){notice(error.message,true)}};
 const nav=[...document.querySelectorAll("nav button")];nav.find(b=>b.dataset.view==="discover").onclick=event=>{activate(event.currentTarget);loadVideos()};nav.find(b=>b.dataset.view==="subscriptions").onclick=event=>showSubscriptions(event.currentTarget);nav.find(b=>b.dataset.view==="playlists").onclick=event=>showPlaylists(event.currentTarget);nav.find(b=>b.dataset.view==="history").onclick=event=>showHistory(event.currentTarget);
+$("#privacy").onclick=async()=>{if(!confirm("Delete your persisted watch history, subscriptions, playlists, and comment text? Minimal deletion audit evidence remains."))return;try{const result=await api("/v1/privacy/account-data",{method:"DELETE"});notice(`Viewer data deleted: ${Object.entries(result).map(([key,value])=>`${key} ${value}`).join(", ")}`);loadVideos()}catch(error){notice(error.message,true)}};
 const linkedVideo=new URLSearchParams(location.search).get("video");if(linkedVideo){api(`/v1/videos/${encodeURIComponent(linkedVideo)}`).then(openVideo).catch(error=>{notice(error.message,true);loadVideos()})}else loadVideos();

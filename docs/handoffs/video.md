@@ -1,104 +1,222 @@
 # YNX Video and Creator Studio handoff
 
-## Intake
+## Delivery identity and scope
 
 - Branch: `codex/ecosystem-video`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Video`
-- Branch start: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95` (`main` at thread start). This is newer than the objectives document's historical baseline `271197f`; no rebase was performed.
-- Commit: review the pushed branch HEAD reported by the product thread.
-- Owned paths changed: `apps/video/**`, `apps/creator-studio/**`, `internal/video/**`, `docs/handoffs/video.md`, and `docs/handoffs/video-evidence/**` only.
+- Returned candidate: `8dc10dcbc047299c8d322be7d9431fc5325b9416`
+- Corrected commit: use the pushed branch HEAD reported by this product thread.
+- Changed ownership only: `apps/video/**`, `apps/creator-studio/**`,
+  `internal/video/**`, `docs/handoffs/video.md`, and existing product evidence.
+- No central state/acceptance file, long-term objective, root `Makefile`, Gateway
+  registry/policy, deployment file, or other product directory was modified.
 
-## Delivered architecture
+The branch is an isolated candidate. It is not claimed merged, centrally
+registered, installed in a shared environment, deployed, publicly reachable,
+production signed, TestFlight/App Store/Google Play submitted, or partnered.
 
-`internal/video` is a deployable Go service with atomic JSON persistence and a
-bounded private object directory. It implements channel creation, upload,
-type/size/signature/rights checks, total derived-media account quota, malware scanner interface, real FFmpeg
-HLS plus progressive-fallback processing, processing state/retry/restart recovery, visibility review, search,
-authorized media delivery, subscriptions, playlists, history, comments,
-captions, thumbnails, reports, moderator takedown, creator appeal/review, event-derived
-analytics, derived monetization eligibility plus human review, verified Pay
-revenue records, Wallet-confirmed payout intents, revenue disputes and audit
-events. Strict JSON parsing, bearer product sessions, moderator separation,
-per-account rate limits, object path containment and replay rejection for Pay
-receipts and usage-allocation evidence are enforced. Health fails readiness when
-the configured scanner or FFmpeg executable cannot be resolved.
+## Corrected product architecture
 
-`apps/video` is a responsive viewer with Wallet deep-link sign-in, discovery,
-search, channel views, adaptive-HLS playback with progressive fallback, approved
-caption tracks, subscriptions, playlists, persisted watch/history events,
-comments and reporting. It displays loading, empty and service-failure states and
-never fills them with recommendations or counters.
+### Native YNX Video
 
-`apps/creator-studio` uses a separate side-navigation operations structure. It
-provides channel creation, upload/rights declaration, processing recovery,
-metadata/thumbnail/caption/visibility review, real analytics, moderation appeal,
-monetization eligibility, payout intent, revenue audit/dispute and a bounded AI
-workspace. AI exposes context/cost permission review, server-side NDJSON provider
-streaming, cancellation/retry, accept/reject, provenance, deletion and audit. It
-cannot publish, take down, claim rights, punish or enable monetization.
+`apps/video/android` is a native Java/Android application, not a WebView. It has
+independent package `com.ynxweb4.video`, `ynxvideo://wallet-auth/callback` and
+`ynxvideo://watch` entry points, a Klein-blue vector launcher icon, network-only
+permissions, HTTPS-by-default policy with emulator-loopback exception, native
+VideoView playback, reviewed-caption transcript display, search, subscriptions,
+playlists, history, comments, reporting, loading, empty, offline, unavailable,
+failure and retry states, TalkBack labels, and locale/AI-output-locale
+persistence. It generates/persists an Android Keystore P-256 product-device key
+and constructs the exact canonical Wallet v1 `request=<base64url JSON>` envelope.
 
-## Truth and security boundaries
+`apps/video/ios` is a full SwiftUI/Xcode project with independent bundle
+`com.ynxweb4.video`, `ynxvideo` callback/watch entry points, Keychain
+`WhenUnlockedThisDeviceOnly` P-256 product-device persistence, canonical Wallet
+v1 request creation, AVPlayer adaptive playback, search/library navigation,
+native subscriptions/comments/reporting/reviewed-caption transcript display,
+localized loading/empty/offline/unavailable/retry states and VoiceOver labels.
+The source and project parse, but this host lacks full Xcode, Simulator and Apple
+signing, so no iOS native build/archive/Simulator result is claimed. A release
+AppIcon asset is also pending release-owner artwork review.
 
-- The included MP4 is repository-owned: a generated Klein-blue frame and 642 Hz
-  tone. Its provenance and SHA-256 are in `internal/video/testdata/README.md`.
-- No source-controlled views, watch time, subscribers, revenue, recommendations,
-  copyright, partnerships or public availability are seeded or claimed.
-- Analytics are reductions over persisted watch/subscription/verified-receipt
-  records. Zero records means zero or an explicit empty state.
-- `YNX_VIDEO_SCANNER` is required; absent/unavailable scanning fails closed.
-- Media never publishes after scan/transcode failure. Interrupted jobs become
-  explicit retryable failures after restart.
-- Wallet secrets never enter either browser product. The temporary daemon
-  adapter consumes opaque product session tokens mapped to `ynx1...` principals.
-- AI and Pay provider tokens are server-side environment values only. Missing
-  integrations return honest unavailable errors.
-- Takedown and monetization changes require an account listed in
-  `YNX_VIDEO_MODERATORS`; creator appeals and revenue disputes remain persisted.
+The existing responsive `apps/video` Web viewer remains a secondary browser
+surface. Its legacy query-field Wallet link was removed. It now uses the same
+canonical Wallet v1 request and accepts only a `gateway_session` result from the
+central flow. It provides playback, approved captions, channels, subscriptions,
+playlists, history, comments, reporting, and viewer-data deletion; it does not
+replace either native project.
 
-## Verification performed
+### Web-first Creator Studio
 
-- `go test -race ./internal/video/...` — PASS, including repository-owned MP4 through
-  the installed FFmpeg binary to a real HLS playlist.
-- `go vet ./internal/video/...` — PASS.
-- `npm --prefix apps/video run check` — PASS.
-- `npm --prefix apps/video run smoke` — PASS.
-- `npm --prefix apps/creator-studio run check` — PASS.
-- `npm --prefix apps/creator-studio run smoke` — PASS.
-- `make env-check`, `make no-placeholder-check`, `make secret-scan` — PASS.
-- Headless Google Chrome cold loads — PASS at 1440x1000 for both products and at
-  a narrow 500x844 viewer width. The evidence run used a temporary data directory,
-  the repository-owned MP4, `/usr/bin/true` as an explicitly test-only scanner,
-  and real FFmpeg; it produced exactly one persisted view second/subscription and
-  zero revenue. Evidence files and hashes:
-  - `video-evidence/viewer-desktop.png`: `a1a19e8c503d7d2e1fd5f366fa1aeafdb5e4f7a0778d24dbb148a5d0214de615`
-  - `video-evidence/viewer-mobile.png`: `165569abf4e200ecd6f2b91b0202e2e778bc5ab91622f72ee14223539efa11f1`
-  - `video-evidence/studio-desktop.png`: `e564da14bd81dd836ec2230750afd00c82f054a7d0396e62a12d29eec136b28d`
-- `go test ./...` — NOT fully passing because the baseline lacks
+`apps/creator-studio` keeps a distinct operations information architecture. It
+covers channel recovery, bounded MP4/WebM upload, explicit owned-or-authorized
+declaration, persisted scanner/transcoder status, retry, title/description,
+thumbnail, reviewed WebVTT captions, visibility, event-derived analytics,
+reports/takedown notice/appeal, human-reviewed monetization eligibility,
+authoritative revenue records, Wallet-confirmed Pay intent, revenue dispute,
+and AI preparation/stream/cancel/retry/review/delete/audit. It uses the exact
+Creator Studio Wallet client/bundle/sorted-scope request rather than the old
+legacy deep link.
+
+## Service, persistence and recovery
+
+`internal/video` is the deployable product service:
+
+- atomic mode-0600 JSON persistence protected by a required HMAC integrity key;
+- SHA-256-linked, sequenced audit records verified on restart;
+- an actual `ObjectStorage` boundary with bounded relative keys, traversal and
+  absolute-path rejection, per-prefix usage, quota, cleanup, and local staging;
+- scanner and processor interfaces, fail-closed scanner readiness, real FFmpeg
+  HLS plus original fallback, processing state and explicit retry;
+- upload size/type/content-signature checks and total original+derivative quota;
+- restart conversion of interrupted scanning/transcoding/running AI jobs into
+  explicit recoverable failure states;
+- channel/search/playback authorization, captions, subscriptions, playlists,
+  history, comments, rate limits, reports, reviewer-only takedown, appeal,
+  monetization review, revenue/dispute, and privacy deletion;
+- analytics reduced only from persisted watch/subscription/authoritative Pay
+  records. Empty records remain zero/empty and are never filled with synthetic
+  views, watch time, subscribers, revenue, copyright, recommendations or deals.
+
+The repository media remains the only test media:
+`internal/video/testdata/ynx-owned-test.mp4`, generated as a Klein-blue frame and
+642 Hz tone. Its provenance and hash are in the adjacent README.
+
+## Wallet and central Gateway contract
+
+Reviewed source: `codex/ecosystem-wallet-auth` worktree at `51cf0da` and
+`packages/wallet-auth` protocol v1.
+
+The production daemon no longer accepts operator-created `token=account`
+mappings. Central Gateway requests must attest all shared verifier fields:
+`wallet-auth-v1`, `p256-sha256`, exact client, bundle, canonical YNX account,
+sorted exact scopes, session binding, bounded expiry, request timestamp, nonce,
+method/URI and request-body hash. The HMAC attestation is checked server-side;
+nonce consumption is persisted. Tests cover changed body/product/bundle/scope,
+stale or overlong session, cross-App use, exact replay, changed replay, and
+replay after restart.
+
+Product registrations expected at central integration:
+
+- `ynx-video-mobile-v1` / `com.ynxweb4.video` / viewer scopes;
+- `ynx-video-web-v1` / `com.ynxweb4.video.web` / viewer scopes;
+- `ynx-creator-studio-web-v1` /
+  `com.ynxweb4.creator-studio.web` / creator, AI proposal and Pay-intent scopes.
+
+Those entries are deliberately not written into central policy by this branch.
+Until the integration controller registers them and routes the Gateway, sign-in
+finishes as honest `unavailable`; a raw Wallet callback is never treated as a
+product session.
+
+## AI, Trust and Pay boundaries
+
+Reviewed sources: `codex/ecosystem-ai` at `5d8ff21`,
+`codex/ecosystem-trust-resource` at `ae210bf`, and `codex/ecosystem-pay` at
+`fd5016b`.
+
+- AI supports summary, chapters, captions, metadata, search assistance and
+  moderation explanation only. The owner selects metadata/caption context and
+  an independent output language, reviews estimated units, explicitly grants
+  permission, can cancel/retry, then accepts or rejects a suggestion. Provider,
+  model, output, partial/failure, decision and deletion are persisted/audited.
+  Accepting a suggestion does not mutate metadata, captions, visibility,
+  monetization or moderation. AI cannot publish, claim copyright, take down,
+  punish, approve revenue or execute a Pay intent.
+- Trust reports, takedown notice, explanations and creator appeals persist
+  locally with human reviewer boundaries. The authoritative signed Trust API is
+  `/trust/appeals`. This service does not use its own service signer to impersonate
+  a creator. A central per-user delegated signer/session route is still required
+  before a local appeal can be submitted as a Trust chain action; the local UI
+  never reports it as chain-submitted.
+- Pay now uses the accepted central `/pay/intents` and
+  `/pay/invoices/{id}/settlement` paths. Revenue requires matching paid YNXT
+  evidence across settlement/intent/invoice, payout address, amount,
+  transaction hash, block height and audit hash. Receipts and usage IDs are
+  single-allocation. Creator Pay records remain
+  `awaiting_wallet_confirmation`; intent creation is never called a payout.
+
+Provider/API tokens and integrity/attestation keys are required server-side
+environment values only. Missing AI, Pay, Trust delegation, Wallet registry or
+Gateway routes produce explicit unavailable states, never canned success.
+
+## Audited internationalization
+
+The shared native catalog has exact nonblank key parity for English, 简体中文,
+繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Русский,
+العربية and Bahasa Indonesia. Android/iOS choose the system locale, allow manual
+selection, persist it across restart, independently persist AI output language,
+and switch Arabic to RTL. Creator Studio has the same automatic/manual/AI locale
+controls and localized primary operations navigation.
+
+The automated audit checks 12-locale parity, nonblank fallback, Arabic script,
+critical privacy/payment/Wallet/offline/error semantics, Android/iOS exact
+Wallet bindings, RTL hooks, and date/number/currency/plural formatting paths.
+Security, privacy, payment and Wallet-confirmation text is not translated as a
+success claim. Full release linguistic/legal review remains required before
+publication.
+
+## Verification evidence
+
+Passed in this worktree on 2026-07-16:
+
+- `go test -race ./internal/video/...` — pass, including repository-owned MP4,
+  real installed FFmpeg, HLS output, object bounds, state tamper, audit chain,
+  Gateway replay/tamper/restart, authorization, privacy deletion, AI review and
+  authoritative Pay matching.
+- `go vet ./internal/video/...` — pass.
+- `npm --prefix apps/video run check` — pass, including 12-locale audit and
+  strict Wallet v1 browser client checks.
+- `npm --prefix apps/video run smoke` — pass, including served Wallet module.
+- `npm --prefix apps/creator-studio run check` — pass.
+- `npm --prefix apps/creator-studio run smoke` — pass, including shared catalog.
+- Android Java against SDK 36 `javac` — pass.
+- Android native `:app:assembleDebug` — pass; final debug/test-signed APK is
+  32,353 bytes, SHA-256
+  `76e379743a3c9d461eba796db6bb4677bbb4096d46a44d9e083854bd67ffe73b`.
+  The APK is ignored by Git.
+- `aapt2 dump badging` — independent package/version, SDK 26..36, launcher
+  activity, icon and only INTERNET/ACCESS_NETWORK_STATE permissions confirmed.
+- `xcrun swiftc -frontend -parse` — pass for both Swift sources.
+- `plutil -lint` — pass for Info.plist and Xcode project.
+- `git diff --check` — pass.
+- `go test ./...` — Video and all other available packages pass, except the
+  unchanged baseline `internal/bftgateway` and `internal/consensus` IDE tests,
+  which require ignored/missing
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
-  Failures are limited to existing `internal/bftgateway` and `internal/consensus`
-  IDE artifact tests; `internal/video` passes in the same run.
-- Playwright was not added as a new repository dependency. Browser evidence used
-  the installed Chrome headless runtime directly.
+  This branch did not generate or commit another product's contract artifact.
 
-## Required main-thread integration
+Android device evidence has an important qualification. An earlier corrected
+checkpoint installed successfully and produced `LaunchState: COLD`, resumed
+`com.ynxweb4.video/.MainActivity`, and `TotalTime: 17536 ms`. The emulator then
+showed a Pixel Launcher ANR. Subsequent attempts were blocked by multiple
+parallel product emulators and an SDK image stuck before PackageManager. No
+misleading screenshot is committed, and that earlier checkpoint is not claimed
+as final-APK cold-start proof. A clean final-APK install/cold-start rerun remains
+required when an isolated emulator is available.
 
-1. Replace `StaticTokenAuth` with the reviewed `codex/ecosystem-wallet-auth`
-   session verifier and register exact clients `ynx.video.web` and
-   `ynx.creator-studio.web`, callbacks and least-privilege scopes.
-2. Register the product-specific AI scope and reconcile the implemented
-   `POST /v1/video/stream` NDJSON adapter with the accepted central Gateway contract.
-3. Reconcile `PayClient` receipt and payout-intent paths with the accepted Pay
-   branch; committed receipt evidence must remain authoritative.
-4. Add reviewed Gateway routes, production origins/TLS, durable volume/backup,
-   ClamAV, FFmpeg, health monitoring and rollback. Current CORS is intentionally
-   restricted to the two local product origins.
-5. The main task may add central Makefile/check/deployment entries after review;
-   this branch intentionally did not modify central integration authority files.
+The existing `docs/handoffs/video-evidence/viewer-*.png` and
+`studio-desktop.png` are retained as Web visual evidence from the returned
+candidate only; they are not presented as native or new localization evidence.
 
-## External/incomplete claims
+## External blockers and no-claims list
 
-No public deployment, production object durability, production Wallet session,
-provider-backed AI result, creator monetization approval, YNXT payout, public
-catalog, app-store package, partnership or independent audit is claimed. Those
-states require the integration and external evidence above; the product reports
-their absence rather than simulating success.
+1. Central controller must register the three exact Wallet clients/callbacks/
+   scopes and accept the Gateway attestation route; no central registry change
+   is claimed here.
+2. Central AI Gateway must accept the product POST-body streaming contract,
+   approved model/provider/quota and video scopes. No live AI result is claimed.
+3. Trust needs a per-user delegated creator appeal signer/session contract. No
+   Trust chain appeal or automated moderation action is claimed.
+4. Pay deployment credentials and a real committed testnet settlement are
+   required for external revenue/payout evidence. No revenue or payout exists in
+   repository state.
+5. Android final APK still needs a clean isolated-emulator install/cold-start
+   rerun and production signing/release ownership. No Play submission is claimed.
+6. Full Xcode, Simulator, CocoaPods/toolchain if required, Apple signing,
+   reviewed AppIcon, device tests and archive are absent. No iOS build,
+   Simulator run, TestFlight or App Store readiness is claimed.
+7. Production durable/HA object storage, backup/restore drill, ClamAV operations,
+   FFmpeg worker isolation, TLS origins, monitoring, rollback and independent
+   security/privacy/accessibility/legal/linguistic review remain integration and
+   release work. This branch proves the interfaces and local recovery behavior,
+   not production operations.

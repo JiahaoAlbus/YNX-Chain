@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -137,7 +138,7 @@ func (p PayClient) VerifyReceipt(ctx context.Context, id, owner string, amount i
 	if p.Endpoint == "" || p.Token == "" {
 		return errors.New("Pay verifier is not configured")
 	}
-	u := strings.TrimRight(p.Endpoint, "/") + "/v1/receipts/" + url.PathEscape(id)
+	u := strings.TrimRight(p.Endpoint, "/") + "/pay/invoices/" + url.PathEscape(id) + "/settlement"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return err
@@ -152,14 +153,17 @@ func (p PayClient) VerifyReceipt(ctx context.Context, id, owner string, amount i
 		return fmt.Errorf("Pay receipt returned %s", res.Status)
 	}
 	var x struct {
-		Owner, State string
-		AmountYNXT   int64 `json:"amount_ynxt"`
+		ID, IntentID, InvoiceID, Merchant, PayoutAddress, Payer, Currency, TransactionHash, Status, AuditHash string
+		Amount                                                                                                int64
+		BlockNumber                                                                                           uint64
 	}
-	if err = json.NewDecoder(res.Body).Decode(&x); err != nil {
+	d := json.NewDecoder(io.LimitReader(res.Body, 2<<20))
+	d.DisallowUnknownFields()
+	if err = d.Decode(&x); err != nil {
 		return err
 	}
-	if x.Owner != owner || x.AmountYNXT != amount || x.State != "committed" {
-		return errors.New("Pay receipt evidence mismatch or not committed")
+	if x.InvoiceID != id || x.PayoutAddress != owner || x.Amount != amount || x.Currency != "YNXT" || x.Status != "paid" || x.BlockNumber == 0 || len(x.TransactionHash) != 66 || !strings.HasPrefix(x.TransactionHash, "0x") || len(x.AuditHash) != 64 || x.IntentID == "" || x.ID == "" {
+		return errors.New("authoritative Pay settlement evidence mismatch or not committed")
 	}
 	return nil
 }
@@ -167,8 +171,8 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount 
 	if p.Endpoint == "" || p.Token == "" {
 		return "", errors.New("Pay service is not configured")
 	}
-	body, _ := json.Marshal(map[string]any{"recipient": owner, "amount_ynxt": amount, "reference": ref, "requires_wallet_confirmation": true})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.Endpoint, "/")+"/v1/payout-intents", bytes.NewReader(body))
+	body, _ := json.Marshal(map[string]any{"merchant": "ynx-video", "payoutAddress": owner, "amount": amount, "idempotencyKey": ref})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.Endpoint, "/")+"/pay/intents", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -182,12 +186,17 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount 
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusCreated {
 		return "", fmt.Errorf("Pay intent returned %s", res.Status)
 	}
-	var x struct{ ID, State string }
-	if err = json.NewDecoder(res.Body).Decode(&x); err != nil {
+	var x struct {
+		ID, Merchant, PayoutAddress, Status, Currency string
+		Amount                                        int64
+	}
+	d := json.NewDecoder(io.LimitReader(res.Body, 2<<20))
+	d.DisallowUnknownFields()
+	if err = d.Decode(&x); err != nil {
 		return "", err
 	}
-	if x.ID == "" || x.State != "awaiting_wallet_confirmation" {
-		return "", errors.New("Pay intent did not preserve Wallet confirmation boundary")
+	if x.ID == "" || x.Merchant != "ynx-video" || x.PayoutAddress != owner || x.Amount != amount || x.Currency != "YNXT" || (x.Status != "created" && x.Status != "pending") {
+		return "", errors.New("central Pay intent did not preserve creator payout binding")
 	}
 	return x.ID, nil
 }

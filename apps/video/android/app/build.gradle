@@ -1,0 +1,15 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.ynxweb4.video'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.ynxweb4.video'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0-test'
+    }
+    buildFeatures { buildConfig = true }
+    sourceSets { main.assets.srcDirs = ['../../i18n'] }
+}

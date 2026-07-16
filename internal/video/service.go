@@ -32,6 +32,8 @@ type Config struct {
 	Processor                         Processor
 	AI                                AIProvider
 	Pay                               PayVerifier
+	Objects                           ObjectStorage
+	IntegrityKey                      []byte
 	MinMonetizationWatchSeconds       int64
 	MinMonetizationSubscribers        int64
 	Now                               func() time.Time
@@ -69,7 +71,14 @@ func NewService(cfg Config) (*Service, error) {
 	if cfg.Scanner == nil || cfg.Processor == nil {
 		return nil, errors.New("scanner and processor are required (fail closed)")
 	}
-	store, err := OpenStore(cfg.Root)
+	if cfg.Objects == nil {
+		objects, err := NewLocalObjectStorage(filepath.Join(cfg.Root, "objects"))
+		if err != nil {
+			return nil, err
+		}
+		cfg.Objects = objects
+	}
+	store, err := OpenStore(cfg.Root, cfg.IntegrityKey)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +122,10 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 		return nil, ErrQuota
 	}
 	key := videoID + "/captions-" + id("track") + ".vtt"
-	path := filepath.Join(s.cfg.Root, "objects", key)
+	path, err := s.cfg.Objects.Resolve(key)
+	if err != nil {
+		return nil, err
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, err
@@ -186,6 +198,43 @@ func (s *Service) Playlists(actor string) ([]Playlist, error) {
 		return nil
 	})
 	return out, err
+}
+
+func (s *Service) DeleteViewerData(actor string) (map[string]int, error) {
+	if actor == "" {
+		return nil, ErrUnauthorized
+	}
+	counts := map[string]int{"history": 0, "subscriptions": 0, "playlists": 0, "comments": 0}
+	err := s.store.update(func(st *State) error {
+		for key, event := range st.WatchEvents {
+			if event.Account == actor {
+				delete(st.WatchEvents, key)
+				counts["history"]++
+			}
+		}
+		for key, item := range st.Subscriptions {
+			if item.Account == actor {
+				delete(st.Subscriptions, key)
+				counts["subscriptions"]++
+			}
+		}
+		for key, item := range st.Playlists {
+			if item.Owner == actor {
+				delete(st.Playlists, key)
+				counts["playlists"]++
+			}
+		}
+		for _, item := range st.Comments {
+			if item.Author == actor {
+				item.Body = "[deleted by author]"
+				item.State = "deleted"
+				counts["comments"]++
+			}
+		}
+		s.audit(st, actor, "privacy.viewer_data.delete", "account", actor, fmt.Sprintf("history=%d subscriptions=%d playlists=%d comments=%d", counts["history"], counts["subscriptions"], counts["playlists"], counts["comments"]))
+		return nil
+	})
+	return counts, err
 }
 func (s *Service) Comments(actor, videoID string) ([]Comment, error) {
 	out := []Comment{}
@@ -341,7 +390,11 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		v.Status = "scanning"
 		v.Failure = ""
 		v.UpdatedAt = s.cfg.Now().UTC()
-		original = filepath.Join(s.cfg.Root, "objects", v.ObjectKey)
+		resolved, resolveErr := s.cfg.Objects.Resolve(v.ObjectKey)
+		if resolveErr != nil {
+			return resolveErr
+		}
+		original = resolved
 		s.audit(st, actor, "video.processing.retry", "video", videoID, "")
 		return nil
 	})
@@ -413,7 +466,10 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 		return ErrQuota
 	}
 	key := videoID + "/thumbnail." + ext
-	path := filepath.Join(s.cfg.Root, "objects", key)
+	path, err := s.cfg.Objects.Resolve(key)
+	if err != nil {
+		return err
+	}
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
@@ -687,7 +743,14 @@ func cleanText(v string, max int) (string, error) {
 	return v, nil
 }
 func (s *Service) audit(st *State, actor, action, typ, oid, detail string) {
-	st.Audit = append(st.Audit, AuditEvent{ID: id("audit"), Actor: actor, Action: action, ObjectType: typ, ObjectID: oid, Detail: detail, At: s.cfg.Now().UTC()})
+	payload := sha256.Sum256([]byte(strings.Join([]string{actor, action, typ, oid, detail}, "\n")))
+	previous := ""
+	if len(st.Audit) > 0 {
+		previous = st.Audit[len(st.Audit)-1].Hash
+	}
+	event := AuditEvent{ID: id("audit"), Actor: actor, Action: action, ObjectType: typ, ObjectID: oid, Detail: detail, At: s.cfg.Now().UTC(), Sequence: uint64(len(st.Audit) + 1), PayloadHash: hex.EncodeToString(payload[:]), PreviousHash: previous}
+	event.Hash = auditEventHash(event)
+	st.Audit = append(st.Audit, event)
 }
 
 func (s *Service) EnsureChannel(actor, handle, name string) (*Channel, error) {
@@ -765,11 +828,14 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		return nil, ErrQuota
 	}
 	vid := id("vid")
-	objDir := filepath.Join(s.cfg.Root, "objects", vid)
-	if err = os.Mkdir(objDir, 0700); err != nil {
+	objDir, err := s.cfg.Objects.EnsurePrefix(vid)
+	if err != nil {
 		return nil, err
 	}
-	original := filepath.Join(objDir, "original")
+	original, err := s.cfg.Objects.Resolve(vid + "/original")
+	if err != nil {
+		return nil, err
+	}
 	f, err := os.OpenFile(original, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, err
@@ -778,19 +844,19 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	n, copyErr := io.CopyN(io.MultiWriter(f, h), in.Reader, in.Size+1)
 	closeErr := f.Close()
 	if copyErr != nil && copyErr != io.EOF {
-		os.RemoveAll(objDir)
+		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, copyErr
 	}
 	if closeErr != nil {
-		os.RemoveAll(objDir)
+		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, closeErr
 	}
 	if n != in.Size {
-		os.RemoveAll(objDir)
+		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, errors.New("declared size does not match upload")
 	}
 	if err = verifyVideoSignature(original, in.ContentType); err != nil {
-		os.RemoveAll(objDir)
+		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, err
 	}
 	now := s.cfg.Now().UTC()
@@ -800,7 +866,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
 		return nil
 	}); err != nil {
-		os.RemoveAll(objDir)
+		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, err
 	}
 	if err = s.cfg.Scanner.Scan(ctx, original); err != nil {
@@ -886,21 +952,11 @@ func (s *Service) usageForOwner(owner string) (int64, error) {
 	}
 	var total int64
 	for _, id := range ids {
-		err := filepath.Walk(filepath.Join(s.cfg.Root, "objects", id), func(_ string, info os.FileInfo, err error) error {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			if info.Mode().IsRegular() {
-				total += info.Size()
-			}
-			return nil
-		})
+		usage, err := s.cfg.Objects.Usage(id)
 		if err != nil {
 			return 0, err
 		}
+		total += usage
 	}
 	return total, nil
 }
@@ -998,9 +1054,8 @@ func (s *Service) MediaPath(actor, objectKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(s.cfg.Root, "objects", objectKey)
-	root := filepath.Join(s.cfg.Root, "objects") + string(os.PathSeparator)
-	if !strings.HasPrefix(path, root) {
+	path, resolveErr := s.cfg.Objects.Resolve(objectKey)
+	if resolveErr != nil {
 		return "", ErrForbidden
 	}
 	if _, err := os.Stat(path); err != nil {
@@ -1205,9 +1260,17 @@ func (s *Service) Analytics(owner string) (Analytics, error) {
 }
 
 func (s *Service) PrepareAI(actor, videoID, kind string, classes []string) (*AIJob, error) {
+	return s.PrepareAIInLanguage(actor, videoID, kind, classes, "en")
+}
+
+func (s *Service) PrepareAIInLanguage(actor, videoID, kind string, classes []string, outputLanguage string) (*AIJob, error) {
 	allowed := map[string]bool{"summary": true, "chapters": true, "captions": true, "metadata": true, "search_assistance": true, "moderation_explanation": true}
 	if !allowed[kind] {
 		return nil, errors.New("unsupported AI workflow")
+	}
+	languages := map[string]bool{"en": true, "zh-CN": true, "zh-TW": true, "ja": true, "ko": true, "es": true, "fr": true, "de": true, "pt": true, "ru": true, "ar": true, "id": true}
+	if !languages[outputLanguage] {
+		return nil, errors.New("unsupported AI output language")
 	}
 	var job *AIJob
 	err := s.store.update(func(st *State) error {
@@ -1227,7 +1290,7 @@ func (s *Service) PrepareAI(actor, videoID, kind string, classes []string) (*AIJ
 			}
 		}
 		now := s.cfg.Now().UTC()
-		job = &AIJob{ID: id("ai"), Owner: actor, VideoID: videoID, Kind: kind, State: "awaiting_permission", ContextClasses: classes, ContextPreview: preview, EstimatedUnits: 1000, CreatedAt: now}
+		job = &AIJob{ID: id("ai"), Owner: actor, VideoID: videoID, Kind: kind, State: "awaiting_permission", ContextClasses: classes, ContextPreview: preview, OutputLanguage: outputLanguage, EstimatedUnits: 1000, CreatedAt: now}
 		st.AIJobs[job.ID] = job
 		s.audit(st, actor, "ai.prepare", "ai_job", job.ID, kind)
 		return nil
@@ -1264,7 +1327,7 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 	s.aiCancels[jobID] = cancel
 	s.aiMu.Unlock()
 	defer func() { cancel(); s.aiMu.Lock(); delete(s.aiCancels, jobID); s.aiMu.Unlock() }()
-	request := AIRequest{Kind: snapshot.Kind, VideoID: snapshot.VideoID, ContextPreview: snapshot.ContextPreview, ContextClasses: snapshot.ContextClasses}
+	request := AIRequest{Kind: snapshot.Kind, VideoID: snapshot.VideoID, ContextPreview: snapshot.ContextPreview, ContextClasses: snapshot.ContextClasses, OutputLanguage: snapshot.OutputLanguage}
 	var result AIResult
 	var runErr error
 	if streamer, ok := s.cfg.AI.(AIStreamer); ok {
@@ -1382,7 +1445,7 @@ func (s *Service) ReviewAI(actor, id string, apply bool) (*AIJob, error) {
 		now := s.cfg.Now().UTC()
 		j.ReviewedBy = actor
 		j.ReviewedAt = &now
-		j.Applied = apply
+		j.Accepted = apply
 		if apply {
 			j.State = "accepted_suggestion"
 		} else {

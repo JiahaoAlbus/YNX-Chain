@@ -37,7 +37,7 @@ func TestServerAuthStrictParsingAndModeratorBoundary(t *testing.T) {
 }
 
 func TestHealthFailsClosedWhenMediaDependenciesAreMissing(t *testing.T) {
-	s, err := NewService(Config{Root: t.TempDir(), Scanner: CommandScanner{Command: "ynx-missing-scanner"}, Processor: FFmpegProcessor{FFmpeg: "ynx-missing-ffmpeg"}})
+	s, err := NewService(Config{Root: t.TempDir(), IntegrityKey: []byte("test-video-integrity-key-32-bytes!!"), Scanner: CommandScanner{Command: "ynx-missing-scanner"}, Processor: FFmpegProcessor{FFmpeg: "ynx-missing-ffmpeg"}})
 	if err != nil {
 		t.Fatal(err)
 	}

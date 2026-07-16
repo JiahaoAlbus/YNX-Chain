@@ -26,8 +26,8 @@ type PayVerifier interface {
 }
 type DependencyChecker interface{ Check() error }
 type AIRequest struct {
-	Kind, VideoID, ContextPreview string
-	ContextClasses                []string
+	Kind, VideoID, ContextPreview, OutputLanguage string
+	ContextClasses                                []string
 }
 type AIResult struct {
 	Provider, Model, Text string

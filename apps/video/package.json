@@ -1,1 +1,1 @@
-{"name":"@ynx/video","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --test app.test.mjs","smoke":"node smoke.mjs"}}
+{"name":"@ynx/video","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --check wallet-auth.js && node --test app.test.mjs && node i18n-check.mjs","smoke":"node smoke.mjs","android:build":"gradle --offline --no-daemon -p android :app:assembleDebug"}}

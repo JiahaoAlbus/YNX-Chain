@@ -9,3 +9,4 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .row-actions { justify-content: flex-start; }
   header #signin { max-width: 155px; }
 }
+html[dir="rtl"] aside{left:auto;right:0}html[dir="rtl"] header,html[dir="rtl"] main{margin-left:0;margin-right:var(--side,260px)}.locale-controls{display:flex;gap:.6rem}.locale-controls label{font-size:.7rem;color:#475467}.locale-controls select{display:block;min-height:2.25rem;max-width:7rem}@media(max-width:760px){.locale-controls{order:3;width:100%}html[dir="rtl"] header,html[dir="rtl"] main{margin-right:0}}

@@ -81,7 +81,7 @@ func (testPay) CreatePayoutIntent(_ context.Context, owner string, amount int64,
 func fixture(t *testing.T, mutate func(*Config)) (*Service, *Channel) {
 	t.Helper()
 	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
-	cfg := Config{Root: t.TempDir(), MaxObjectBytes: 64, AccountQuotaBytes: 96, Scanner: testScanner{}, Processor: testProcessor{}, AI: testAI{}, Pay: testPay{}, Now: func() time.Time { return now }, MinMonetizationWatchSeconds: 1, MinMonetizationSubscribers: 1}
+	cfg := Config{Root: t.TempDir(), IntegrityKey: []byte("test-video-integrity-key-32-bytes!!"), MaxObjectBytes: 64, AccountQuotaBytes: 96, Scanner: testScanner{}, Processor: testProcessor{}, AI: testAI{}, Pay: testPay{}, Now: func() time.Time { return now }, MinMonetizationWatchSeconds: 1, MinMonetizationSubscribers: 1}
 	if mutate != nil {
 		mutate(&cfg)
 	}
@@ -155,6 +155,53 @@ func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 	v3, err := s3.Upload(context.Background(), c3.Owner, c3.ID, UploadInput{Title: "bad", Filename: "bad.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
 	if err == nil || v3.Status != "failed" {
 		t.Fatalf("scan failure did not fail closed: %+v %v", v3, err)
+	}
+}
+
+func TestViewerPrivacyDeletionKeepsMinimalAudit(t *testing.T) {
+	s, c := fixture(t, nil)
+	v := upload(t, s, c, "Privacy")
+	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+	viewer := "ynx1viewer"
+	if err := s.RecordWatch(viewer, v.ID, 3, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Subscribe(viewer, c.ID); err != nil {
+		t.Fatal(err)
+	}
+	p, err := s.CreatePlaylist(viewer, "Private list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.AddToPlaylist(viewer, p.ID, v.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.AddComment(viewer, v.ID, "remove me"); err != nil {
+		t.Fatal(err)
+	}
+	counts, err := s.DeleteViewerData(viewer)
+	if err != nil || counts["history"] != 1 || counts["subscriptions"] != 1 || counts["playlists"] != 1 || counts["comments"] != 1 {
+		t.Fatalf("privacy counts=%v err=%v", counts, err)
+	}
+	if history, _ := s.History(viewer); len(history) != 0 {
+		t.Fatal("history retained")
+	}
+	if subscriptions, _ := s.Subscriptions(viewer); len(subscriptions) != 0 {
+		t.Fatal("subscription retained")
+	}
+	if comments, _ := s.Comments(viewer, v.ID); len(comments) != 0 {
+		t.Fatal("deleted comment visible")
+	}
+	if err = s.store.read(func(st State) error {
+		last := st.Audit[len(st.Audit)-1]
+		if last.Action != "privacy.viewer_data.delete" || last.Actor != viewer {
+			t.Fatalf("minimal deletion audit missing: %+v", last)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -336,7 +383,7 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := NewService(Config{Root: t.TempDir(), MaxObjectBytes: 1 << 20, AccountQuotaBytes: 2 << 20, Scanner: testScanner{}, Processor: FFmpegProcessor{FFmpeg: "/opt/homebrew/bin/ffmpeg"}})
+	s, err := NewService(Config{Root: t.TempDir(), IntegrityKey: []byte("test-video-integrity-key-32-bytes!!"), MaxObjectBytes: 1 << 20, AccountQuotaBytes: 2 << 20, Scanner: testScanner{}, Processor: FFmpegProcessor{FFmpeg: "/opt/homebrew/bin/ffmpeg"}})
 	if err != nil {
 		t.Fatal(err)
 	}

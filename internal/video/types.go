@@ -114,16 +114,16 @@ type Dispute struct {
 }
 
 type AIJob struct {
-	ID, Owner, VideoID, Kind, State, Provider, Model, Failure string
-	ContextClasses                                            []string
-	ContextPreview                                            string
-	EstimatedUnits                                            int64
-	PermissionAt, CreatedAt                                   time.Time
-	Result                                                    string
-	Partial                                                   string
-	ReviewedBy                                                string
-	ReviewedAt                                                *time.Time
-	Applied                                                   bool
+	ID, Owner, VideoID, Kind, State, Provider, Model, Failure, OutputLanguage string
+	ContextClasses                                                            []string
+	ContextPreview                                                            string
+	EstimatedUnits                                                            int64
+	PermissionAt, CreatedAt                                                   time.Time
+	Result                                                                    string
+	Partial                                                                   string
+	ReviewedBy                                                                string
+	ReviewedAt                                                                *time.Time
+	Accepted                                                                  bool
 }
 
 type StudioSnapshot struct {
@@ -141,6 +141,15 @@ type StudioSnapshot struct {
 type AuditEvent struct {
 	ID, Actor, Action, ObjectType, ObjectID, Detail string
 	At                                              time.Time
+	Sequence                                        uint64 `json:"sequence"`
+	PayloadHash                                     string `json:"payload_hash,omitempty"`
+	PreviousHash                                    string `json:"previous_hash,omitempty"`
+	Hash                                            string `json:"hash,omitempty"`
+}
+
+type GatewayNonce struct {
+	Nonce, SessionBinding, RequestHash string
+	ConsumedAt                         time.Time
 }
 
 type State struct {
@@ -158,6 +167,8 @@ type State struct {
 	Disputes      map[string]*Dispute       `json:"disputes"`
 	AIJobs        map[string]*AIJob         `json:"ai_jobs"`
 	Audit         []AuditEvent              `json:"audit"`
+	GatewayNonces map[string]GatewayNonce   `json:"gateway_nonces"`
+	Integrity     string                    `json:"integrity,omitempty"`
 }
 
 type Analytics struct {

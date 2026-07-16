@@ -223,6 +223,9 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "GET" && path == "playlists":
 		out, err := s.service.Playlists(actor)
 		respond(w, out, err)
+	case r.Method == "DELETE" && path == "privacy/account-data":
+		out, err := s.service.DeleteViewerData(actor)
+		respond(w, out, err)
 	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "comments" && r.Method == "GET":
 		out, err := s.service.Comments(actor, parts[1])
 		respond(w, out, err)
@@ -293,11 +296,15 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			VideoID        string   `json:"video_id"`
 			Kind           string   `json:"kind"`
 			ContextClasses []string `json:"context_classes"`
+			OutputLanguage string   `json:"output_language"`
 		}
 		if decode(r, &in, w) {
 			return
 		}
-		out, err := s.service.PrepareAI(actor, in.VideoID, in.Kind, in.ContextClasses)
+		if in.OutputLanguage == "" {
+			in.OutputLanguage = "en"
+		}
+		out, err := s.service.PrepareAIInLanguage(actor, in.VideoID, in.Kind, in.ContextClasses, in.OutputLanguage)
 		respond(w, out, err)
 	case r.Method == "GET" && path == "ai/status":
 		write(w, 200, map[string]any{"configured": s.service.cfg.AI != nil, "mode": "server-side permissioned gateway", "automatic_actions": false})
