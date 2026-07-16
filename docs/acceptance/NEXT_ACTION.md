@@ -2,7 +2,7 @@
 
 Highest-priority bounded delivery (2026-07-16):
 
-Current single action: commit the locally verified upgrade source-release gate, collect a fresh four-node source manifest/binary audit bound to that exact target, and if the restricted gate passes, deploy the follower-replication, snapshot-v2 integrity, and fault-monitoring release through the ordinary authoritative path, followers first and primary last. Then prove v2 persistence, fresh exact convergence, and alertable recovery on all three followers before and after one bounded follower restart.
+Current single action: preserve deployed release `02f4ccd8770c`, configure one protected or node-local Prometheus scrape target for each authoritative follower, and prove a controlled follower alert becomes observable and clears after recovery. In parallel, diagnose intermittent direct public ingress without weakening timeouts and restore provider-backed AI only after the external account can return a real successful response.
 
 Why this is next:
 
@@ -10,7 +10,8 @@ Why this is next:
 - Current source now exposes the real replication lifecycle, `catchingUp`, freshness, exact source/local height and hash, lag, attempts, successes, failures, timestamps, bounded error evidence, Prometheus telemetry, alerts, and Grafana panels.
 - Current source now also seals the complete authoritative snapshot as v2, durably syncs replacement, permits one marker-free v1 migration, rejects later downgrade/corruption, and restores in-memory state when replication persistence fails.
 - Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass. Pinned Prometheus rule tests now prove that degraded, prolonged catch-up, lag, and consecutive-failure alerts fire after their configured hold time and clear after recovery.
-- This source is not yet deployed. A later 2026-07-16 read-only cycle observed public block growth and successful strict SSH on all four roles, including recovered Seoul access. The public release remains `0d31850f74b2`; exact-release mismatch and the absent not-yet-installed target manifest kept mutation blocked. The new local source-release audit closes that sequencing gap without weakening runtime or connectivity gates.
+- Authoritative snapshot-v2 runtime `02f4ccd8770c` is deployed on all four roles. Exact manifest/binary checks pass; every role has marker/version 2; all three followers passed fresh canonical convergence and read-only rejection; one Seoul restart proved lifecycle reset and authenticated recovery. The subsequent verifier race fix and bounded Explorer/AI waiting logic are local control-plane changes only and do not change the deployed chain runtime.
+- Singapore-routed exact-release mutation smoke passed Faucet-to-Explorer, Pay, governance/Anti-Illegal, Trust appeal/transparency, Resource, and IDE. Provider-backed AI remains blocked by upstream HTTP `429`, and direct public ingress remains intermittent. These are not independent proof.
 
 Files to touch:
 
@@ -20,13 +21,10 @@ Files to touch:
 
 Required execution and proof:
 
-- Run `upgrade-source-release-audit` against fresh strict-SSH evidence and require every role's live source release, installed manifest, and `ynx-chaind` checksum to match before the restricted deployment-readiness gate.
-- If the gate passes, create scoped backups including `devnet-state.json` and `devnet-state.integrity-version`, deploy and verify the three followers first, and deploy the primary last without starting any BFT transaction phase.
-- Require every upgraded role to persist snapshot v2 plus the exact integrity marker; treat any digest, marker, or migration error as a stop condition and preserve rollback evidence.
-- Require each follower to report `status=synced`, `catchingUp=false`, `fresh=true`, and exact source/local height and hash equality.
+- Preserve the four scoped predeploy backups and exact release/manifest/checksum evidence; do not rerun deployment while the current authoritative runtime remains healthy.
+- Require each follower to continue reporting `status=synced`, `catchingUp=false`, `fresh=true`, exact source/local height and hash equality, and canonical agreement with the primary at that height.
 - Configure and verify one protected or node-local Prometheus scrape target for each follower without exposing RPC or replication credentials.
-- Restart one follower only, verify it first returns to a catching-up lifecycle, then require a newly authenticated exact equality result.
-- During the controlled interruption, prove the expected follower alert becomes observable and clears after recovery.
+- Use a controlled follower interruption only after protected scrape targets are active; prove the expected alert becomes observable and clears after recovery.
 - Verify public block growth and transaction/receipt continuity after the restart.
 - If ingress or SSH remains unsafe, record the external blocker and continue local chain/BFT engineering without claiming remote proof.
 
