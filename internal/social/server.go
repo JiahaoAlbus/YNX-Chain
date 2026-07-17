@@ -163,6 +163,11 @@ type conversationInput struct {
 	Source         string `json:"source"`
 	Value          string `json:"value"`
 }
+type membershipInput struct {
+	IdempotencyKey string           `json:"idempotencyKey"`
+	Add            []discoveryInput `json:"add"`
+	Remove         []string         `json:"remove"`
+}
 type groupConversationInput struct {
 	IdempotencyKey string           `json:"idempotencyKey"`
 	Title          string           `json:"title"`
@@ -657,6 +662,29 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request, acto
 		if err == nil {
 			writeJSON(w, 200, map[string]any{"record": record})
 		}
+	case len(parts) == 3 && parts[2] == "members" && r.Method == http.MethodPost:
+		if s.resolver == nil {
+			writeError(w, 503, "discovery resolver unavailable")
+			return
+		}
+		var in membershipInput
+		if !decodeRequest(w, r, &in, 36*1024) {
+			return
+		}
+		members := make([]string, 0, len(in.Add))
+		for _, member := range in.Add {
+			target, resolveErr := s.resolver.ResolveDiscovery(member.Source, member.Value)
+			if resolveErr != nil {
+				writeServiceError(w, resolveErr)
+				return
+			}
+			members = append(members, target)
+		}
+		record, replay, err := s.service.ModifyGroupMembers(actor, conversationID, in.IdempotencyKey, members, in.Remove)
+		*returned = err
+		if err == nil {
+			writeJSON(w, 200, map[string]any{"record": record, "replayed": replay})
+		}
 	default:
 		writeError(w, 404, "social route not found")
 	}
@@ -666,7 +694,7 @@ func scopeForPath(path string) string {
 	switch {
 	case strings.HasPrefix(path, "ai/"):
 		return "social.ai"
-	case strings.HasPrefix(path, "conversation"):
+	case strings.HasPrefix(path, "conversations"):
 		return "social.messaging"
 	case strings.HasPrefix(path, "devices/"):
 		return "social.messaging"

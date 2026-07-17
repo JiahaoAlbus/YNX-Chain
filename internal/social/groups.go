@@ -68,6 +68,121 @@ func (s *Service) CreateGroupConversation(actor Session, title, idempotencyKey s
 	return record, false, s.saveOrRollbackLocked(before)
 }
 
+func (s *Service) ModifyGroupMembers(actor Session, groupID, idempotencyKey string, add, remove []string) (GroupConversation, bool, error) {
+	if !identifierPattern.MatchString(idempotencyKey) {
+		return GroupConversation{}, false, ErrInvalid
+	}
+	add = normalizeContacts(add)
+	remove = normalizeContacts(remove)
+	if len(add) == 0 && len(remove) == 0 {
+		return GroupConversation{}, false, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	group, ok := s.state.Groups[groupID]
+	if !ok {
+		return GroupConversation{}, false, ErrNotFound
+	}
+	if group.CreatedBy != actor.Account {
+		return GroupConversation{}, false, ErrUnauthorized
+	}
+	originalMembers := append([]string(nil), group.Members...)
+	membership := map[string]bool{}
+	for _, member := range group.Members {
+		membership[member] = true
+	}
+	members := append([]string(nil), group.Members...)
+	for _, member := range add {
+		member, err := nativewallet.NormalizeNativeAddress(member)
+		if err != nil || member == actor.Account || membership[member] {
+			if err != nil || member == actor.Account {
+				return GroupConversation{}, false, ErrInvalid
+			}
+			continue
+		}
+		if !s.contactLocked(actor.Account, member) || s.blockedLocked(actor.Account, member) {
+			return GroupConversation{}, false, fmt.Errorf("%w: every group member must be an accepted unblocked contact", ErrUnauthorized)
+		}
+		membership[member] = true
+		members = append(members, member)
+	}
+	for _, member := range remove {
+		member, err := nativewallet.NormalizeNativeAddress(member)
+		if err != nil || member == actor.Account || !membership[member] {
+			return GroupConversation{}, false, ErrInvalid
+		}
+		delete(membership, member)
+	}
+	if len(membership) < 2 {
+		return GroupConversation{}, false, fmt.Errorf("%w: groups must include at least 2 members", ErrConflict)
+	}
+	if len(membership) > 15 {
+		return GroupConversation{}, false, fmt.Errorf("%w: groups are limited to 15 members", ErrConflict)
+	}
+	next := append([]string(nil), group.Members[:0]...)
+	for member := range membership {
+		next = append(next, member)
+	}
+	sort.Strings(next)
+	digest := objectDigest(struct {
+		Action  string
+		GroupID string
+		Actor   string
+		Keep    []string
+	}{Action: "modifyGroupMembers", GroupID: groupID, Actor: actor.Account, Keep: next})
+	stateKey := idempotencyStateKey(actor.Account, idempotencyKey)
+	if previous, ok := s.state.Idempotency[stateKey]; ok {
+		if previous.Action != "group_members" || previous.Digest != digest {
+			return GroupConversation{}, false, ErrConflict
+		}
+		current, ok := s.state.Groups[previous.ObjectID]
+		if !ok {
+			return GroupConversation{}, false, ErrNotFound
+		}
+		return current, true, nil
+	}
+	activeDevices := 0
+	for _, device := range s.state.Devices {
+		if device.Status == "active" && membership[device.Account] {
+			activeDevices++
+		}
+	}
+	if activeDevices < len(next) || activeDevices > 32 {
+		return GroupConversation{}, false, fmt.Errorf("%w: every member needs an active device and the group may have at most 32 active devices", ErrConflict)
+	}
+	added := []string{}
+	removed := []string{}
+	for member := range membership {
+		if !contains(originalMembers, member) {
+			added = append(added, member)
+		}
+	}
+	for _, member := range originalMembers {
+		if !membership[member] {
+			removed = append(removed, member)
+		}
+	}
+	now := s.cfg.Now().UTC()
+	group.Members = next
+	group.UpdatedAt = now
+	before := cloneState(s.state)
+	s.state.Groups[groupID] = group
+	for _, member := range added {
+		s.notifyLocked(member, actor.Account, "group_member_added", groupID, now)
+	}
+	for _, member := range removed {
+		s.notifyLocked(member, actor.Account, "group_member_removed", groupID, now)
+	}
+	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "group_members", Digest: digest, ObjectID: groupID}
+	s.appendAuditLocked("group_members_modified", "group", groupID, actor.Account, objectDigest(struct {
+		Original []string
+		Next     []string
+		Added    []string
+		Removed  []string
+	}{Original: originalMembers, Next: next, Added: added, Removed: removed}), now)
+	return group, false, s.saveOrRollbackLocked(before)
+}
+
 func (s *Service) GroupConversations(actor Session) []GroupConversation {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -92,6 +207,19 @@ func (s *Service) GroupConversation(actor Session, id string) (GroupConversation
 		return GroupConversation{}, ErrUnauthorized
 	}
 	return record, nil
+}
+
+func normalizeContacts(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]bool{}
+	for _, value := range values {
+		if seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	return out
 }
 
 func (s *Service) GroupDevices(actor Session, id string) ([]ProductDevice, error) {

@@ -12,7 +12,7 @@ const products = {
     name: "YNX Social",
     slug: "ynx-social",
     scheme: "ynxsocial",
-    bundleIdentifier: "com.ynxweb4.social",
+    bundleIdentifier: "com.ynx.social",
   },
   wallet: {
     name: "YNX Wallet",

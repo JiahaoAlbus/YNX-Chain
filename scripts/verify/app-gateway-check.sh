@@ -21,6 +21,7 @@ go build -trimpath -o "$tmp/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
 chat_key="chat-app-gateway-check-key"
 square_key="square-app-gateway-check-key"
 pay_key="pay-app-gateway-check-key"
+social_key="social-app-gateway-check-key"
 common_gateway_env=(
   YNX_APP_GATEWAY_CHAT_URL=http://127.0.0.1:17435
   YNX_APP_GATEWAY_CHAT_API_KEY="$chat_key"
@@ -28,6 +29,8 @@ common_gateway_env=(
   YNX_APP_GATEWAY_SQUARE_API_KEY="$square_key"
   YNX_APP_GATEWAY_PAY_URL=http://127.0.0.1:17429
   YNX_APP_GATEWAY_PAY_API_KEY="$pay_key"
+  YNX_APP_GATEWAY_SOCIAL_URL=http://127.0.0.1:17438
+  YNX_APP_GATEWAY_SOCIAL_API_KEY="$social_key"
   YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
   YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
   YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -45,6 +48,8 @@ pids+=("$!")
 env YNX_SQUARE_API_KEY="$square_key" YNX_SQUARE_STATE_PATH="$tmp/square/state.json" YNX_SQUARE_HTTP_ADDR=127.0.0.1:17436 "$tmp/ynx-squared" >"$tmp/square.log" 2>&1 &
 pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-payd",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17429,"127.0.0.1")' >"$tmp/pay.log" 2>&1 &
+pids+=("$!")
+node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-social",remoteDeployed:false,truthfulStatus:"local-test"}))}).listen(17438,"127.0.0.1")' >"$tmp/social.log" 2>&1 &
 pids+=("$!")
 env "${common_gateway_env[@]}" YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:17437 "$tmp/ynx-app-gatewayd" >"$tmp/gateway.log" 2>&1 &
 pids+=("$!")

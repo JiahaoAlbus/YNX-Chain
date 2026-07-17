@@ -26,7 +26,7 @@ const social = JSON.parse(await readFile(socialPath, "utf8"));
 const wallet = JSON.parse(await readFile(walletPath, "utf8"));
 assert.deepEqual(
   [social.name, social.scheme, social.android.package, social.ios.bundleIdentifier, social.extra.product],
-  ["YNX Social", "ynxsocial", "com.ynxweb4.social", "com.ynxweb4.social", "social"],
+  ["YNX Social", "ynxsocial", "com.ynx.social", "com.ynx.social", "social"],
 );
 assert.deepEqual(
   [wallet.name, wallet.scheme, wallet.android.package, wallet.ios.bundleIdentifier, wallet.extra.product],
@@ -37,7 +37,7 @@ assert.equal(social.extra.internalAcceptanceShell, false);
 assert.equal(wallet.extra.internalAcceptanceShell, false);
 NODE
 
-rg -q 'nativeSocialBinding.*ynx-social://com\.ynxweb4\.social' internal/appgateway/gateway.go
+rg -q 'nativeSocialBinding.*ynx-social://com\.ynx\.social' internal/appgateway/gateway.go
 rg -q 'nativeWalletBinding.*ynx-wallet://com\.ynxweb4\.wallet' internal/appgateway/gateway.go
 rg -q 'case nativeSocialBinding' internal/appgateway/gateway.go
 rg -q 'case nativeWalletBinding' internal/appgateway/gateway.go

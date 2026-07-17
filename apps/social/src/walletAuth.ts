@@ -7,7 +7,7 @@ import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 export const REQUESTING_PRODUCT = "social";
 export const PRODUCT_CLIENT_ID = "ynx-social-v1";
 export const BUNDLE_ID = "com.ynx.social";
-export const CALLBACK = "ynxsocial://wallet-auth/callback";
+export const CALLBACK = "ynx-social://com.ynx.social";
 export const WALLET_SCOPES = Object.freeze(["account:read", "profile:link"]);
 export const PRODUCT_DEVICE_ALGORITHM = "p256-sha256";
 

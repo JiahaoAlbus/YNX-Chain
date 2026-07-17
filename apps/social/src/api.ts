@@ -14,6 +14,8 @@ export type AIJob = Readonly<{id:string;status:"awaiting_permission"|"streaming"
 export type Session = Readonly<{ token:string; session:Readonly<{id:string;account:string;deviceId:string;scopes:readonly string[];createdAt:string;expiresAt:string}>; profile?:Person }>;
 export type SocialProfile = Person & Readonly<{bio:string;followerCount:number;followingCount:number;postCount:number;privacy:Readonly<{discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:string;avatarUrl?:string;profileQrPayload?:string}>}>;
 export type PrivacySettings = SocialProfile["privacy"] & Readonly<{account?:string;updatedAt?:string}>;
+export type GroupDiscoveryInput = Readonly<{ idempotencyKey: string; source: "handle" | "contacts" | "qr" | "invite" | "recommendation"; value: string }>;
+export type GroupMembershipUpdateInput = Readonly<{ idempotencyKey: string; add: readonly GroupDiscoveryInput[]; remove: readonly string[] }>;
 
 export class SocialAPI {
   readonly base:string; private token:string|null;
@@ -36,6 +38,7 @@ export class SocialAPI {
   conversations(query=""){return this.request<{conversations:Conversation[]}>(`/social/v1/conversations?q=${encodeURIComponent(query)}`)}
   createConversation(source:"handle"|"contacts"|"qr"|"invite"|"recommendation",value:string,idempotencyKey:string){return this.request<{record:{id:string};replayed:boolean}>("/social/v1/conversations",{method:"POST",body:{source,value,idempotencyKey}})}
   createGroup(title:string,handles:readonly string[],idempotencyKey:string){return this.request<{record:{id:string};replayed:boolean}>("/social/v1/conversations/groups",{method:"POST",body:{title,idempotencyKey,members:handles.map((value,index)=>({source:"handle",value,idempotencyKey:`member-${index}`}))}})}
+  updateGroupMembers(id:string,body:GroupMembershipUpdateInput){return this.request<{record:ConversationDetail;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/members`,{method:"POST",body})}
   conversation(id:string){return this.request<{record:ConversationDetail}>(`/social/v1/conversations/${encodeURIComponent(id)}`)}
   conversationDevices(id:string){return this.request<{devices:ChatDevice[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/devices`)}
   messages(id:string){return this.request<{messages:ChatMessage[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`)}

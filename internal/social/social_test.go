@@ -305,6 +305,55 @@ func TestGroupConversationPersistentE2EEAuthorizationAndTamper(t *testing.T) {
 	}
 }
 
+func TestModifyGroupMembersOwnerAuthorizationAndReplay(t *testing.T) {
+	service, now := testService(t)
+	service.cfg.RateLimitMax = 100
+	alice := loginFixture(t, service, newFixture(t, 101), now)
+	bob, carol, dave := loginFixture(t, service, newFixture(t, 102), now), loginFixture(t, service, newFixture(t, 103), now), loginFixture(t, service, newFixture(t, 104), now)
+	request, _, err := service.RequestContact(alice, ContactRequestInput{IdempotencyKey: "gm-request-1", TargetAccount: bob.Account, Source: "handle"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.TransitionRequest(bob, request.ID, "accept"); err != nil {
+		t.Fatal(err)
+	}
+	request, _, err = service.RequestContact(alice, ContactRequestInput{IdempotencyKey: "gm-request-2", TargetAccount: carol.Account, Source: "handle"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.TransitionRequest(carol, request.ID, "accept"); err != nil {
+		t.Fatal(err)
+	}
+	request, _, err = service.RequestContact(alice, ContactRequestInput{IdempotencyKey: "gm-request-3", TargetAccount: dave.Account, Source: "handle"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.TransitionRequest(dave, request.ID, "accept"); err != nil {
+		t.Fatal(err)
+	}
+	group, _, err := service.CreateGroupConversation(alice, "owners", "group-membership", []string{bob.Account, dave.Account})
+	if err != nil || len(group.Members) != 3 {
+		t.Fatalf("create group %#v %v", group, err)
+	}
+	record, replay, err := service.ModifyGroupMembers(alice, group.ID, "group-membership-replay", []string{carol.Account}, nil)
+	if err != nil || replay || len(record.Members) != 4 {
+		t.Fatalf("add member %#v %v", record, err)
+	}
+	record, replay, err = service.ModifyGroupMembers(alice, group.ID, "group-membership-replay", []string{carol.Account}, nil)
+	if err != nil || !replay || len(record.Members) != 4 {
+		t.Fatalf("replay add %#v %v", record, err)
+	}
+	if _, _, err := service.ModifyGroupMembers(carol, group.ID, "group-membership-denied", []string{alice.Account}, nil); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("non-owner access=%v", err)
+	}
+	if _, _, err := service.ModifyGroupMembers(alice, group.ID, "group-membership-self", []string{alice.Account}, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("self add should fail %v", err)
+	}
+	if _, _, err := service.ModifyGroupMembers(alice, group.ID, "group-membership-empty", nil, nil); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("empty request should fail %v", err)
+	}
+}
+
 func TestMomentsVisibilityMediaInteractionsReportingAndTamper(t *testing.T) {
 	service, now := testService(t)
 	alice, bob, outsider := loginFixture(t, service, newFixture(t, 71), now), loginFixture(t, service, newFixture(t, 72), now), loginFixture(t, service, newFixture(t, 73), now)

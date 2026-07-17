@@ -34,7 +34,7 @@ assert.match(
   /No recovery key|never creates, imports, or receives your recovery key/i,
 );
 assert.match(wallet, /ynxwallet:\/\/authorize\?request=/);
-assert.match(wallet, /ynxsocial:\/\/wallet-auth\/callback/);
+assert.match(wallet, /ynx-social:\/\/com\.ynx\.social/);
 assert.doesNotMatch(wallet, /searchParams\.get\("assertion"\)/);
 assert.match(app, /CameraView/);
 assert.match(manifest, /android\.permission\.CAMERA/);

@@ -57,6 +57,7 @@ func main() {
 	cfg := appgateway.Config{
 		ChatURL: envOrDefault("YNX_APP_GATEWAY_CHAT_URL", "http://127.0.0.1:6435"), ChatAPIKey: os.Getenv("YNX_APP_GATEWAY_CHAT_API_KEY"),
 		SquareURL: envOrDefault("YNX_APP_GATEWAY_SQUARE_URL", "http://127.0.0.1:6436"), SquareAPIKey: os.Getenv("YNX_APP_GATEWAY_SQUARE_API_KEY"),
+		SocialURL: envOrDefault("YNX_APP_GATEWAY_SOCIAL_URL", "http://127.0.0.1:6434"), SocialAPIKey: os.Getenv("YNX_APP_GATEWAY_SOCIAL_API_KEY"),
 		PayURL: envOrDefault("YNX_APP_GATEWAY_PAY_URL", "http://127.0.0.1:6430"), PayAPIKey: os.Getenv("YNX_APP_GATEWAY_PAY_API_KEY"),
 		AllowedOrigins: splitCSV(os.Getenv("YNX_APP_GATEWAY_ALLOWED_ORIGINS")), MaxBodyBytes: maxBody, MaxResponseBytes: maxResponse,
 		RateLimitMax: rateMax, RateLimitWindow: rateWindow, StatePath: envOrDefault("YNX_APP_GATEWAY_STATE_PATH", "/var/lib/ynx-chain/app-gateway/state.json"),

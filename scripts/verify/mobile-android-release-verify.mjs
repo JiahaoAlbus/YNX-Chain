@@ -29,7 +29,7 @@ for (const file of tracked) {
 if (manifest.sourceTreeDigest !== treeHash.digest("hex")) fail("mobile source tree digest mismatch");
 const currentDirty = execFileSync("git", ["status", "--porcelain"], {encoding: "utf8"}).trim().length > 0;
 if (manifest.sourceTreeDirty !== currentDirty) fail("source dirty status differs from the current checkout");
-if (!["com.ynxweb4.mobile", "com.ynxweb4.social", "com.ynxweb4.wallet"].includes(manifest.packageName) || manifest.versionName !== "1.0.0" || manifest.versionCode !== 1) fail("application identity mismatch");
+if (!["com.ynxweb4.mobile", "com.ynx.social", "com.ynxweb4.wallet"].includes(manifest.packageName) || manifest.versionName !== "1.0.0" || manifest.versionCode !== 1) fail("application identity mismatch");
 if (!/^[0-9a-f]{64}$/.test(manifest.signerCertificateSHA256)) fail("invalid signer certificate digest");
 if (manifest.canonicalLogoSHA256 !== await hashFile("assets/brand/ynx-logo.png")) fail("canonical Logo digest mismatch");
 if (expectedMode === "owner-approved") {

@@ -12,7 +12,7 @@ case "$mode" in
 esac
 case "$product" in
   integration) package_name="com.ynxweb4.mobile" ;;
-  social) package_name="com.ynxweb4.social" ;;
+  social) package_name="com.ynx.social" ;;
   wallet) package_name="com.ynxweb4.wallet" ;;
   *) echo "YNX_MOBILE_PRODUCT must be integration, social, or wallet" >&2; exit 1 ;;
 esac

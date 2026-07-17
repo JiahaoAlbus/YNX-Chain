@@ -714,6 +714,10 @@ func alertSummary(kind string) string {
 		return "New comment on your moment"
 	case strings.HasPrefix(kind, "reaction_"):
 		return "New reaction to your moment"
+	case kind == "group_member_added":
+		return "Group member added"
+	case kind == "group_member_removed":
+		return "Group member removed"
 	case kind == "follow":
 		return "New follower"
 	case kind == "mention":

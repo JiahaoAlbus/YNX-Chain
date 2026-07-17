@@ -16,6 +16,7 @@ const (
 	testChatKey   = "chat-key-1234567890"
 	testSquareKey = "square-key-1234567890"
 	testPayKey    = "pay-key-123456789012"
+	testSocialKey = "social-key-123456789012"
 	testOrigin    = "https://www.ynxweb4.com"
 )
 
@@ -102,6 +103,107 @@ func TestGatewayProxiesAllowedRoutesWithoutLeakingCredentials(t *testing.T) {
 	}
 	if len(chat.requests) != 0 {
 		t.Fatalf("unexpected chat requests: %+v", chat.requests)
+	}
+}
+
+func TestGatewaySocialRoutesPolicy(t *testing.T) {
+	for _, item := range []struct {
+		method    string
+		path      string
+		public    bool
+		protected bool
+	}{
+		{http.MethodPost, "/social/v1/wallet/challenge", true, false},
+		{http.MethodPost, "/social/v1/wallet/login", true, false},
+		{http.MethodGet, "/social/v1/profile", false, true},
+		{http.MethodPut, "/social/v1/profile", false, true},
+		{http.MethodGet, "/social/v1/settings", false, true},
+		{http.MethodPut, "/social/v1/settings", false, true},
+		{http.MethodPost, "/social/v1/invites", false, true},
+		{http.MethodGet, "/social/v1/contacts", false, true},
+		{http.MethodPost, "/social/v1/contact-matches", false, true},
+		{http.MethodGet, "/social/v1/conversations", false, true},
+		{http.MethodPost, "/social/v1/conversations", false, true},
+		{http.MethodPost, "/social/v1/conversations/groups", false, true},
+		{http.MethodGet, "/social/v1/conversations/abc/messages", false, true},
+		{http.MethodGet, "/social/v1/conversations/abc/members", false, false},
+		{http.MethodGet, "/social/v1/conversations/abc/messages/msg_123/read", false, false},
+		{http.MethodPost, "/social/v1/conversations/abc/messages/msg_123/read", false, true},
+		{http.MethodPost, "/social/v1/conversations/abc/members", false, true},
+		{http.MethodGet, "/social/v1/feed", false, true},
+		{http.MethodPost, "/social/v1/feed", false, true},
+		{http.MethodGet, "/social/v1/feed/abc/comments", false, true},
+		{http.MethodPost, "/social/v1/feed/abc/comments", false, true},
+		{http.MethodPost, "/social/v1/feed/abc/reaction", false, true},
+		{http.MethodDelete, "/social/v1/feed/abc", false, true},
+		{http.MethodPost, "/social/v1/follows", false, true},
+		{http.MethodPost, "/social/v1/reports", false, true},
+		{http.MethodGet, "/social/v1/reports/abc", false, true},
+		{http.MethodPost, "/social/v1/reports/abc/appeal", false, true},
+		{http.MethodGet, "/social/v1/contact-requests", false, true},
+		{http.MethodPost, "/social/v1/contact-requests", false, true},
+		{http.MethodPost, "/social/v1/contact-requests/abc", false, true},
+		{http.MethodPost, "/social/v1/contacts/delete", false, true},
+		{http.MethodGet, "/social/v1/privacy/export", false, true},
+		{http.MethodDelete, "/social/v1/privacy/delete", false, true},
+		{http.MethodPost, "/social/v1/privacy/block", false, true},
+		{http.MethodPost, "/social/v1/privacy/mute", false, true},
+		{http.MethodPost, "/social/v1/media", false, true},
+		{http.MethodGet, "/social/v1/media/abc", false, true},
+		{http.MethodGet, "/social/v1/notifications", false, true},
+		{http.MethodPost, "/social/v1/notifications/abc/read", false, true},
+		{http.MethodPost, "/social/v1/devices/dev_123/rotate", false, true},
+		{http.MethodPost, "/social/v1/ai/jobs", false, true},
+		{http.MethodPost, "/social/v1/ai/jobs/abc", false, true},
+		{http.MethodPost, "/social/v1/ai/jobs/abc/stream", false, true},
+		{http.MethodPost, "/social/v1/session/revoke", false, true},
+		{http.MethodGet, "/social/v1/unknown", false, false},
+		{http.MethodGet, "/social/v1/conversations/../bad", false, false},
+	} {
+		if publicRouteAllowed("social", item.method, item.path) != item.public {
+			t.Fatalf("public route policy mismatch %s %s", item.method, item.path)
+		}
+		if protectedRouteAllowed("social", item.method, item.path) != item.protected {
+			t.Fatalf("protected route policy mismatch %s %s", item.method, item.path)
+		}
+	}
+}
+
+func TestGatewaySocialProxyAllowlist(t *testing.T) {
+	chat, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	square, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	social, socialServer := startUpstream(t, "social", "X-YNX-Social-Key", testSocialKey)
+	server := httptest.NewServer(NewServer(newTestGatewayWithSocial(t, chatServer.URL, squareServer.URL, socialServer.URL, 20)).Handler())
+	defer server.Close()
+
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/app/social/v1/wallet/challenge", strings.NewReader(`{"foo":"bar"}`))
+	request.Header.Set("Origin", testOrigin)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-YNX-Social-Key", "attacker-key")
+	request.Header.Set("Cookie", "session=must-not-pass")
+	request.Header.Set("Authorization", "Bearer must-not-pass")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("status %d: %s", response.StatusCode, readAll(response.Body))
+	}
+	social.mu.Lock()
+	defer social.mu.Unlock()
+	if len(social.requests) != 1 {
+		t.Fatalf("social requests: %+v", social.requests)
+	}
+	got := social.requests[0]
+	if got.Method != http.MethodPost || got.URI != "/social/v1/wallet/challenge" || got.ServiceKey != testSocialKey || got.Injected != "1" || got.Cookie != "" || got.Auth != "" {
+		t.Fatalf("unsafe proxy request: %+v", got)
+	}
+	if len(chat.requests) != 0 {
+		t.Fatalf("chat was unexpectedly reached: %+v", chat.requests)
+	}
+	if len(square.requests) != 0 {
+		t.Fatalf("square was unexpectedly reached: %+v", square.requests)
 	}
 }
 
@@ -251,7 +353,8 @@ func TestSquareProfileAndNotificationRoutePolicy(t *testing.T) {
 func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
 	square, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
-	gateway := newTestGateway(t, chatServer.URL, squareServer.URL, 2)
+	_, socialServer := startUpstream(t, "social", "X-YNX-Social-Key", testSocialKey)
+	gateway := newTestGatewayWithSocial(t, chatServer.URL, squareServer.URL, socialServer.URL, 2)
 	server := httptest.NewServer(NewServer(gateway).Handler())
 	defer server.Close()
 
@@ -264,7 +367,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 3 || !health.Upstreams["pay"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != nativeMobileClient || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 4 || !health.Upstreams["pay"].OK || !health.Upstreams["social"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 
@@ -283,7 +386,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 	}
 
 	square.large = true
-	other := newTestGateway(t, chatServer.URL, squareServer.URL, 20)
+	other := newTestGatewayWithSocial(t, chatServer.URL, squareServer.URL, socialServer.URL, 20)
 	other.cfg.MaxResponseBytes = 1024
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/app/square/feed", nil)
@@ -320,9 +423,24 @@ func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
 	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
 }
 
+func testConfigWithSocial(t *testing.T, chatURL, squareURL, socialURL string, rate int) Config {
+	t.Helper()
+	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
+	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, SocialURL: socialURL, SocialAPIKey: testSocialKey, PayURL: payServer.URL, PayAPIKey: testPayKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+}
+
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {
 	t.Helper()
 	gateway, err := New(testConfig(t, chatURL, squareURL, rate))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return gateway
+}
+
+func newTestGatewayWithSocial(t *testing.T, chatURL, squareURL, socialURL string, rate int) *Gateway {
+	t.Helper()
+	gateway, err := New(testConfigWithSocial(t, chatURL, squareURL, socialURL, rate))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -21,7 +21,7 @@ const (
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
-	Callback               = "ynxsocial://wallet-auth/callback"
+	Callback               = "ynx-social://com.ynx.social"
 	ProductDeviceAlgorithm = "p256-sha256"
 )
 
