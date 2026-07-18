@@ -4,9 +4,9 @@
 
 - Branch: `codex/ecosystem-video`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Video`
-- Implementation parent: `7a89550d4964ea38b854cbd03f18775494c2f513`.
+- Implementation commit: `33eaf45a148f5bf6449ab42adfc3e4e03e2857b9`.
 - Final evidence candidate: use the pushed branch HEAD reported by this product
-  thread; the final commit adds only handoff and install/build evidence.
+  thread; the final commit adds release truth, handoff and exact evidence only.
 - Changed ownership only: `apps/video/**`, `apps/creator-studio/**`,
   `internal/video/**`, `docs/handoffs/video.md`, and existing product evidence.
 - No central state/acceptance file, long-term objective, root `Makefile`, Gateway
@@ -15,6 +15,20 @@
 The branch is an isolated candidate. It is not claimed merged, centrally
 registered, installed in a shared environment, deployed, publicly reachable,
 production signed, TestFlight/App Store/Google Play submitted, or partnered.
+
+## 2026-07-18 closure update
+
+This update supersedes the older hashes and test dates below where they differ.
+The product now has exact Wallet/Gateway request attestation v2, mandatory durable
+idempotency for unsafe operations, verified backup/restore tooling, a loopback
+owned-media ClamAV/FFmpeg/HLS smoke, remediated responsive/RTL Web evidence, an
+installed API 36 Android debug APK lifecycle, and an unexecuted macOS Simulator CI
+workflow for feasible iOS evidence. Exact proof is indexed in
+`docs/handoffs/video-evidence/EVIDENCE_INDEX.md`.
+
+Central registration, staging/public deployment, production media durability,
+production signing, live AI/Trust/Pay actions and revenue remain false. The
+release manifests deliberately encode those false fields and empty URL lists.
 
 ## Corrected product architecture
 
@@ -89,13 +103,14 @@ Reviewed source: `codex/ecosystem-wallet-auth` worktree at `51cf0da` and
 `packages/wallet-auth` protocol v1.
 
 The production daemon no longer accepts operator-created `token=account`
-mappings. Central Gateway requests must attest all shared verifier fields:
-`wallet-auth-v1`, `p256-sha256`, exact client, bundle, canonical YNX account,
-sorted exact scopes, session binding, bounded expiry, request timestamp, nonce,
-method/URI and request-body hash. The HMAC attestation is checked server-side;
-nonce consumption is persisted. Tests cover changed body/product/bundle/scope,
-stale or overlong session, cross-App use, exact replay, changed replay, and
-replay after restart.
+mappings. Central Gateway requests must attest all shared verifier v2 fields:
+`wallet-auth-v1`, `ynx_6423-1`, `p256-sha256`, exact product/client/bundle/
+callback, canonical YNX account, sorted exact scopes, device public key, session
+binding, bounded expiry, request timestamp, nonce, method/URI and request-body
+digest. The `YNX_VIDEO_GATEWAY_REQUEST_V2` HMAC attestation is checked
+server-side; nonce consumption is persisted. Tests cover changed body/product/
+bundle/callback/scope, stale or overlong session, cross-App use, exact replay,
+changed replay and replay after restart.
 
 Product registrations expected at central integration:
 
@@ -158,7 +173,7 @@ publication.
 
 ## Verification evidence
 
-Passed in this worktree on 2026-07-16:
+Passed in this worktree on 2026-07-18:
 
 - `go test -race ./internal/video/...` — pass, including repository-owned MP4,
   real installed FFmpeg, HLS output, object bounds, state tamper, audit chain,
@@ -171,9 +186,9 @@ Passed in this worktree on 2026-07-16:
 - `npm --prefix apps/creator-studio run check` — pass.
 - `npm --prefix apps/creator-studio run smoke` — pass, including shared catalog.
 - Android Java against SDK 36 `javac` — pass.
-- Android native `:app:assembleDebug` — pass; final debug/test-signed APK is
-  32,353 bytes, SHA-256
-  `76e379743a3c9d461eba796db6bb4677bbb4096d46a44d9e083854bd67ffe73b`.
+- Android native clean `:app:assembleDebug` — pass; final debug/test-signed APK is
+  32,401 bytes, SHA-256
+  `c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe`.
   The APK is ignored by Git.
 - `aapt2 dump badging` — independent package/version, SDK 26..36, launcher
   activity, icon and only INTERNET/ACCESS_NETWORK_STATE permissions confirmed.
@@ -188,17 +203,19 @@ Passed in this worktree on 2026-07-16:
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
   This branch did not generate or commit another product's contract artifact.
 
-The final APK was installed on a clean, isolated `ynx_video_api36` API 36
-emulator through a dedicated ADB server. PackageManager returned `Success`.
+The final APK was installed on the shared `YNX_Proof_2` API 36 emulator.
+PackageManager returned `Success`.
 After package-data clear, log clear and force-stop, `am start -W -S` returned
 `Status: ok`, `LaunchState: COLD`, resumed
-`com.ynxweb4.video/.MainActivity`, and measured `TotalTime: 2427 ms` /
-`WaitTime: 2485 ms`. The process remained live and the post-launch error log had
+`com.ynxweb4.video/.MainActivity`, and measured `TotalTime: 19661 ms` /
+`WaitTime: 20762 ms`. The process remained live and the post-launch error log had
 no matching `FATAL EXCEPTION`, `AndroidRuntime`, or package crash. Exact install,
-launch, runtime, package, permission, hash and emulator provenance are committed
+launch, deep-link, restart, runtime, package, permission, hash and emulator
+provenance are committed
 under `docs/handoffs/video-evidence/android-final/`. This is debug/test-signed
 emulator evidence only; it is not production signing, physical-device, Play or
-independent evidence.
+independent evidence. The emulator was heavily loaded; an unrelated system ANR
+overlay was observed and is not represented as product performance evidence.
 
 The existing `docs/handoffs/video-evidence/viewer-*.png` and
 `studio-desktop.png` are retained as Web visual evidence from the returned
@@ -223,8 +240,9 @@ candidate only; they are not presented as native or new localization evidence.
 6. Full Xcode, Simulator, CocoaPods/toolchain if required, Apple signing,
    reviewed AppIcon, device tests and archive are absent. No iOS build,
    Simulator run, TestFlight or App Store readiness is claimed.
-7. Production durable/HA object storage, backup/restore drill, ClamAV operations,
-   FFmpeg worker isolation, TLS origins, monitoring, rollback and independent
-   security/privacy/accessibility/legal/linguistic review remain integration and
-   release work. This branch proves the interfaces and local recovery behavior,
-   not production operations.
+7. Local ClamAV/FFmpeg processing and backup/restore code/tests now pass, but
+   production durable/HA object storage, scheduled operator restore, worker
+   isolation, TLS origins, monitoring, rollback and independent security/privacy/
+   accessibility/legal/linguistic review remain integration and release work.
+   This branch proves local interfaces and recovery behavior, not production
+   operations.

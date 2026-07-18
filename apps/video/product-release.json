@@ -1,0 +1,48 @@
+{
+  "productId": "ynx-video",
+  "name": "YNX Video",
+  "branch": "codex/ecosystem-video",
+  "commit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "version": "0.2.0-testnet-preview",
+  "surfaces": ["web", "android", "ios-source"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "androidDebugApk": "c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe",
+    "ownedTestMedia": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+  },
+  "bytes": {
+    "androidDebugApk": 32401,
+    "ownedTestMedia": 12525
+  },
+  "signingClass": "Android debug/test key; iOS unsigned source only",
+  "minOS": {"androidApi": 26, "ios": "17.0"},
+  "installEvidence": {
+    "android": "docs/handoffs/video-evidence/android-final/",
+    "ios": "docs/handoffs/video-evidence/ios-feasibility.txt",
+    "boundary": "Android API 36 emulator only; iOS Simulator workflow is unexecuted on this host"
+  },
+  "centralIntegration": {
+    "status": "integration-request-only",
+    "registryCandidate": "internal/video/integration/registry-v2.json",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "knownLimitations": [
+    "No central Wallet/Gateway registration or deployed route",
+    "No staging or public deployment",
+    "No production durable object store or worker fleet evidence",
+    "No production signing, physical-device, TestFlight, Play or store release",
+    "No live provider AI, Trust delegated appeal, Pay settlement or revenue"
+  ],
+  "generatedAt": "2026-07-18T17:00:00Z"
+}

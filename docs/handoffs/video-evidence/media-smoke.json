@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-07-18T16:25:00Z",
+  "sourceCommit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "boundary": "loopback owned-media smoke; not staging or production",
+  "endpoint": "http://127.0.0.1:8423",
+  "scanner": "ClamAV 1.5.3 with fresh local signature database",
+  "processor": "FFmpeg 7.1.1",
+  "input": {
+    "path": "internal/video/testdata/ynx-owned-test.mp4",
+    "bytes": 12525,
+    "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+  },
+  "result": {
+    "ok": true,
+    "videoId": "vid_947a50069f4f606b67875cc4",
+    "variants": 2,
+    "comments": 1,
+    "idempotentReplayEffects": 1,
+    "revenueYnxt": 0
+  },
+  "truth": "No synthetic metrics, public traffic, production storage or revenue are claimed."
+}

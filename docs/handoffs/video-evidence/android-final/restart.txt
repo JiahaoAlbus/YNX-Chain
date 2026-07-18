@@ -1,0 +1,9 @@
+captured_at=2026-07-18T16:00:00Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+operation=force-stop followed by direct MainActivity restart
+topResumedActivity=com.ynxweb4.video/.MainActivity
+resumedActivity=com.ynxweb4.video/.MainActivity
+pid=18607
+window_present=true
+package_fatal_or_anr_matches=0
+boundary=am start -W timed out on the heavily loaded shared emulator; follow-up process/activity/window evidence proves resumed lifecycle, not a performance pass

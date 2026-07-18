@@ -1,3 +1,5 @@
-command=adb -P 5041 -s emulator-5582 install -r -t apps/video/android/app/build/outputs/apk/debug/app-debug.apk
+captured_at=2026-07-18T15:56:36Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+command=adb -s emulator-5580 install -r -t apps/video/android/app/build/outputs/apk/debug/app-debug.apk
 Performing Streamed Install
 Success

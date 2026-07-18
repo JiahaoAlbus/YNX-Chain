@@ -1,0 +1,6 @@
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+apk_sha256=c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe
+apk_bytes=32401
+signer_dn=C=US, O=Android, CN=Android Debug
+signer_certificate_sha256=d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e
+signing_class=debug/test only; not owner-custodied or production signed

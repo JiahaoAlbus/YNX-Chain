@@ -1,0 +1,40 @@
+{
+  "productId": "ynx-creator-studio",
+  "name": "YNX Creator Studio",
+  "branch": "codex/ecosystem-video",
+  "commit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "version": "0.2.0-testnet-preview",
+  "surfaces": ["web"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": "not applicable; unhosted Web source",
+  "minOS": {"browser": "current evergreen browser"},
+  "installEvidence": {
+    "web": "local smoke and responsive browser evidence only",
+    "boundary": "not deployed, hosted or installed as a central product"
+  },
+  "centralIntegration": {
+    "status": "integration-request-only",
+    "registryCandidate": "internal/video/integration/registry-v2.json",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "knownLimitations": [
+    "No central Wallet/Gateway registration or deployed route",
+    "No staging or public deployment",
+    "No live provider AI, Trust delegated appeal or Pay settlement",
+    "Analytics and revenue remain zero without authoritative persisted events"
+  ],
+  "generatedAt": "2026-07-18T17:00:00Z"
+}

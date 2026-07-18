@@ -1,5 +1,5 @@
-captured_at=2026-07-16T16:57:04Z
-source_commit=7a89550d4964ea38b854cbd03f18775494c2f513
+captured_at=2026-07-18T17:00:00Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
 source_branch=codex/ecosystem-video
 
 xcode-select -p
@@ -18,4 +18,6 @@ plutil -lint apps/video/ios/YNXVideo/Info.plist apps/video/ios/YNXVideo.xcodepro
 apps/video/ios/YNXVideo/Info.plist: OK
 apps/video/ios/YNXVideo.xcodeproj/project.pbxproj: OK
 
+ci_workflow=.github/workflows/video-ios-simulator.yml
+ci_status=committed but unexecuted; no Simulator result is claimed
 boundary=Source syntax and project metadata are feasible on this host. Full Xcode, Simulator, signing, archive and device evidence are unavailable and are not claimed.

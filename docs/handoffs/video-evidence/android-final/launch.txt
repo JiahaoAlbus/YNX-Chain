@@ -1,8 +1,9 @@
+captured_at=2026-07-18T15:57:00Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
 commands:
-  adb -P 5041 -s emulator-5582 shell pm clear com.ynxweb4.video
-  adb -P 5041 -s emulator-5582 logcat -c
-  adb -P 5041 -s emulator-5582 shell am force-stop com.ynxweb4.video
-  adb -P 5041 -s emulator-5582 shell am start -W -S -n com.ynxweb4.video/.MainActivity
+  adb -s emulator-5580 shell pm clear com.ynxweb4.video
+  adb -s emulator-5580 shell am force-stop com.ynxweb4.video
+  adb -s emulator-5580 shell am start -W -S -n com.ynxweb4.video/.MainActivity
 
 Success
 Stopping: com.ynxweb4.video
@@ -10,6 +11,6 @@ Starting: Intent { cmp=com.ynxweb4.video/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: com.ynxweb4.video/.MainActivity
-TotalTime: 2427
-WaitTime: 2485
+TotalTime: 19661
+WaitTime: 20762
 Complete

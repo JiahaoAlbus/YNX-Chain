@@ -1,0 +1,21 @@
+captured_at=2026-07-18T17:00:00Z
+source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+
+PASS go vet ./internal/video/...
+PASS go test -race ./internal/video/...
+PASS npm --prefix apps/video run check
+PASS npm --prefix apps/video run smoke
+PASS npm --prefix apps/creator-studio run check
+PASS npm --prefix apps/creator-studio run smoke
+PASS gradle --offline --no-daemon -p apps/video/android clean :app:assembleDebug
+PASS xcrun swiftc -frontend -parse apps/video/ios/YNXVideo/YNXVideoApp.swift apps/video/ios/YNXVideo/ContentView.swift
+PASS plutil -lint apps/video/ios/YNXVideo/Info.plist apps/video/ios/YNXVideo.xcodeproj/project.pbxproj
+PASS make env-check no-placeholder-check secret-scan static-check
+PASS git diff --check
+PASS exact release-bound ynx-video-api and video-recover builds
+PASS video-recover CLI backup/restore drill with identical state hashes
+PASS loopback ClamAV + FFmpeg + HLS + publish + playback + idempotent comment + analytics smoke
+
+FULL_REPO_BASELINE go test ./...
+FAIL internal/bftgateway and internal/consensus only: missing unchanged out-of-scope artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
+PASS internal/video in the same full-repo run

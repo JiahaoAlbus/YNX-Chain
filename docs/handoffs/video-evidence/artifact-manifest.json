@@ -1,0 +1,36 @@
+{
+  "schema": "ynx-video-local-artifacts-v1",
+  "sourceCommit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "release": "0.2.0-testnet-preview",
+  "generatedAt": "2026-07-18T17:00:00Z",
+  "hosted": false,
+  "artifacts": [
+    {
+      "name": "ynx-video-api",
+      "localPath": "/tmp/ynx-video-api-33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+      "bytes": 9532786,
+      "sha256": "319a443524de31777a395a1f7cc879a5e911f9e0f26ab6457961a36233ba9b87",
+      "signingClass": "unsigned local macOS build"
+    },
+    {
+      "name": "ynx-video-recover",
+      "localPath": "/tmp/ynx-video-recover-33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+      "bytes": 5813426,
+      "sha256": "319ea0e1e1a1330dd99dbb94f1d63d36bb1781c7843c838da7a321dba46f5058",
+      "signingClass": "unsigned local macOS build"
+    },
+    {
+      "name": "ynx-video-android-debug.apk",
+      "localPath": "apps/video/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 32401,
+      "sha256": "c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe",
+      "signingClass": "Android debug/test key"
+    }
+  ],
+  "buildIdentityVerified": {
+    "commit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+    "release": "0.2.0-testnet-preview",
+    "buildTime": "2026-07-18T17:00:00Z"
+  },
+  "boundary": "Local build manifest only. No artifact is hosted, production signed or store released."
+}
