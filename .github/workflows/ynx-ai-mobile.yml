@@ -32,7 +32,7 @@ jobs:
           node-version: "22"
           cache: pnpm
           cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
-      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
       - name: Install CocoaPods
         run: cd ios && pod install
@@ -95,7 +95,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
-      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
       - name: Build preview APK
         env:
