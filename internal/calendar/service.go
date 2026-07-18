@@ -185,6 +185,123 @@ func (s *Service) Revoke(token string) error {
 	})
 }
 
+func (s *Service) Account(token string) (User, error) {
+	var out User
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		user, ok := st.Users[sess.UserID]
+		if !ok {
+			return ErrUnauthorized
+		}
+		out = user
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) ExportAccount(token string) (AccountExport, error) {
+	var out AccountExport
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		user.AccountHash = ""
+		out = AccountExport{SchemaVersion: 1, ExportedAt: s.now().UTC(), User: user}
+		for _, event := range st.Events {
+			if canView(event, user.Handle, sess.UserID) {
+				out.Events = append(out.Events, event)
+			}
+		}
+		for _, change := range st.Changes {
+			if change.ActorID == sess.UserID {
+				out.Changes = append(out.Changes, change)
+			}
+		}
+		for _, reminder := range st.ReminderDeliveries {
+			if reminder.OwnerID == sess.UserID {
+				out.Reminders = append(out.Reminders, reminder)
+			}
+		}
+		for _, entry := range st.Audit {
+			if entry.ActorID == sess.UserID {
+				out.Audit = append(out.Audit, entry)
+			}
+		}
+		sort.Slice(out.Events, func(i, j int) bool { return out.Events[i].StartUTC.Before(out.Events[j].StartUTC) })
+		sort.Slice(out.Changes, func(i, j int) bool { return out.Changes[i].CreatedAt.Before(out.Changes[j].CreatedAt) })
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) DeleteAccount(token, confirmation string) error {
+	if confirmation != "DELETE CALENDAR ACCOUNT" {
+		return errors.New("exact destructive confirmation is required")
+	}
+	return s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		ownedEvents := map[string]bool{}
+		for id, event := range st.Events {
+			if event.OwnerID == sess.UserID {
+				ownedEvents[id] = true
+				delete(st.Events, id)
+				continue
+			}
+			invites := event.Invites[:0]
+			for _, invite := range event.Invites {
+				if invite.Handle != user.Handle {
+					invites = append(invites, invite)
+				}
+			}
+			shares := event.Shares[:0]
+			for _, share := range event.Shares {
+				if share.Handle != user.Handle {
+					shares = append(shares, share)
+				}
+			}
+			event.Invites, event.Shares = invites, shares
+			st.Events[id] = event
+		}
+		for id, change := range st.Changes {
+			if change.ActorID == sess.UserID || ownedEvents[change.EventID] {
+				delete(st.Changes, id)
+				for mutation, changeID := range st.Mutations {
+					if changeID == id {
+						delete(st.Mutations, mutation)
+					}
+				}
+			}
+		}
+		for id, reminder := range st.ReminderDeliveries {
+			if reminder.OwnerID == sess.UserID || ownedEvents[reminder.EventID] {
+				delete(st.ReminderDeliveries, id)
+			}
+		}
+		for id, job := range st.AIJobs {
+			if job.OwnerID == sess.UserID {
+				delete(st.AIJobs, id)
+			}
+		}
+		for hash, session := range st.Sessions {
+			if session.UserID == sess.UserID {
+				delete(st.Sessions, hash)
+			}
+		}
+		delete(st.Users, sess.UserID)
+		s.audit(st, sess.UserID, "account_deleted", "", map[string]any{"former_handle_hash": digest(user.Handle)})
+		return nil
+	})
+}
+
 func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, error) {
 	var out ChangePreview
 	err := s.store.update(func(st *State) error {
@@ -480,7 +597,7 @@ func (s *Service) Unshare(token, eventID, handle string) (Event, error) {
 }
 
 func (s *Service) Events(token string, from, to time.Time) ([]Occurrence, error) {
-	var out []Occurrence
+	out := []Occurrence{}
 	err := s.store.view(func(st State) error {
 		sess, e := s.session(&st, token)
 		if e != nil {
@@ -524,7 +641,7 @@ func (s *Service) Event(token, eventID string) (Event, error) {
 
 func (s *Service) ProcessReminders(now time.Time) ([]ReminderDelivery, error) {
 	now = now.UTC()
-	var out []ReminderDelivery
+	out := []ReminderDelivery{}
 	err := s.store.update(func(st *State) error {
 		for _, event := range st.Events {
 			if event.State != "scheduled" {
@@ -557,7 +674,7 @@ func (s *Service) ProcessReminders(now time.Time) ([]ReminderDelivery, error) {
 }
 
 func (s *Service) Notifications(token string) ([]ReminderDelivery, error) {
-	var out []ReminderDelivery
+	out := []ReminderDelivery{}
 	err := s.store.view(func(st State) error {
 		sess, e := s.session(&st, token)
 		if e != nil {
@@ -719,7 +836,7 @@ func (s *Service) AIJob(token, jobID string) (AIJob, error) {
 	return out, err
 }
 func (s *Service) Audit(token string) ([]AuditEntry, error) {
-	var out []AuditEntry
+	out := []AuditEntry{}
 	err := s.store.view(func(st State) error {
 		sess, e := s.session(&st, token)
 		if e != nil {

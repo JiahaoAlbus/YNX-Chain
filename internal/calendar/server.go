@@ -8,19 +8,28 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct{ service *Service }
 
+const sessionCookieName = "ynx_calendar_session"
+
 func NewHandler(service *Service) http.Handler {
+	return NewHandlerWithBuild(service, buildinfo.Info{})
+}
+func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	s := &Server{service: service}
+	build = buildinfo.Normalize(build)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "production_scheduling": false})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "production_scheduling": false, "build": build})
 	})
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
 	mux.HandleFunc("POST /v1/auth/recovery", s.recover)
+	mux.HandleFunc("GET /v1/auth/session", s.account)
 	mux.HandleFunc("DELETE /v1/auth/session", s.revoke)
 	mux.HandleFunc("GET /v1/events", s.events)
 	mux.HandleFunc("GET /v1/events/{id}", s.event)
@@ -38,6 +47,8 @@ func NewHandler(service *Service) http.Handler {
 	mux.HandleFunc("GET /v1/ai/jobs/{id}/stream", s.streamAI)
 	mux.HandleFunc("GET /v1/audit", s.audit)
 	mux.HandleFunc("GET /v1/reminders", s.reminders)
+	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
+	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
 	return headers(mux)
 }
 func (s *Server) challenge(w http.ResponseWriter, _ *http.Request) {
@@ -54,7 +65,8 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 		respond(w, nil, e)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"token": token, "user": user})
+	setSessionCookie(w, r, token)
+	writeJSON(w, http.StatusCreated, map[string]any{"session": "active", "user": user})
 }
 func (s *Server) recover(w http.ResponseWriter, r *http.Request) {
 	var v WalletProof
@@ -66,11 +78,19 @@ func (s *Server) recover(w http.ResponseWriter, r *http.Request) {
 		respond(w, nil, e)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"token": token, "user": user})
+	setSessionCookie(w, r, token)
+	writeJSON(w, http.StatusCreated, map[string]any{"session": "active", "user": user})
 }
 func (s *Server) revoke(w http.ResponseWriter, r *http.Request) {
 	e := s.service.Revoke(bearer(r))
+	if e == nil {
+		clearSessionCookie(w, r)
+	}
 	respond(w, map[string]bool{"revoked": e == nil}, e)
+}
+func (s *Server) account(w http.ResponseWriter, r *http.Request) {
+	user, e := s.service.Account(bearer(r))
+	respond(w, map[string]any{"session": "active", "user": user}, e)
 }
 func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	from, e := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
@@ -221,12 +241,44 @@ func (s *Server) reminders(w http.ResponseWriter, r *http.Request) {
 	out, e := s.service.Notifications(bearer(r))
 	respond(w, out, e)
 }
+func (s *Server) exportAccount(w http.ResponseWriter, r *http.Request) {
+	out, e := s.service.ExportAccount(bearer(r))
+	respond(w, out, e)
+}
+func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	var value struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if !decode(w, r, &value, 1024) {
+		return
+	}
+	e := s.service.DeleteAccount(bearer(r), value.Confirmation)
+	if e == nil {
+		clearSessionCookie(w, r)
+	}
+	respond(w, map[string]bool{"deleted": e == nil}, e)
+}
 func bearer(r *http.Request) string {
+	if cookie, e := r.Cookie(sessionCookieName); e == nil && strings.TrimSpace(cookie.Value) != "" {
+		return strings.TrimSpace(cookie.Value)
+	}
 	v := r.Header.Get("Authorization")
 	if !strings.HasPrefix(v, "Bearer ") {
 		return ""
 	}
 	return strings.TrimSpace(strings.TrimPrefix(v, "Bearer "))
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, token string) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", MaxAge: 8 * 60 * 60, HttpOnly: true, Secure: requestIsTLS(r), SameSite: http.SameSiteStrictMode})
+}
+
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: requestIsTLS(r), SameSite: http.SameSiteStrictMode})
+}
+
+func requestIsTLS(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
 }
 func decode(w http.ResponseWriter, r *http.Request, out any, limit int64) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, limit)

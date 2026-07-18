@@ -14,11 +14,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	mailservice "github.com/JiahaoAlbus/YNX-Chain/internal/mail"
 )
 
 //go:embed web/*
 var assets embed.FS
+var buildCommit = "unknown"
+var buildRelease = "local"
+var buildTime = "unknown"
 
 func main() {
 	dataDir := env("YNX_MAIL_DATA_DIR", "./var/mail")
@@ -33,7 +37,7 @@ func main() {
 	webFS, err := fs.Sub(assets, "web")
 	fatal(err)
 	mux := http.NewServeMux()
-	mux.Handle("/v1/", mailservice.NewHandler(service))
+	mux.Handle("/v1/", mailservice.NewHandlerWithBuild(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}))
 	mux.Handle("/", spa(http.FS(webFS)))
 	server := &http.Server{Addr: env("YNX_MAIL_ADDR", ":8095"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Mail listening on %s (internet-wide delivery is not enabled)", server.Addr)

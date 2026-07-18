@@ -1,1 +1,25 @@
-{"name":"@ynx/calendar","version":"0.2.0","private":true,"description":"Independent native-first YNX Calendar product and service","scripts":{"localize:native":"node tests/generate-native-localizations.mjs","test":"npm run localize:native && node --check web/app.js && node --test tests/*.test.mjs","build":"go build -o /tmp/ynx-calendard .","build:android":"cd native/android && ./gradlew --no-daemon :app:assembleDebug","check:ios":"swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj","smoke":"sh tests/smoke.sh"},"ynx":{"productClientId":"ynx-calendar-v1","bundleId":"com.ynxweb4.calendar","deepLink":"ynxcalendar://wallet-auth/callback","walletScope":"calendar:account","recoveryScope":"calendar:recover"}}
+{
+  "name": "@ynx/calendar",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Independent native-first YNX Calendar product and service",
+  "scripts": {
+    "localize:native": "node tests/generate-native-localizations.mjs",
+    "test": "npm run localize:native && node --check web/app.js && node --test tests/*.test.mjs",
+    "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-calendar-0.2.0-testnet-preview -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-calendard .",
+    "build:android": "cd native/android && ./gradlew --no-daemon :app:assembleDebug",
+    "browser:proof": "node tests/browser-proof.cjs",
+    "check:ios": "swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj",
+    "smoke": "sh tests/smoke.sh"
+  },
+  "ynx": {
+    "productClientId": "ynx-calendar-v1",
+    "bundleId": "com.ynxweb4.calendar",
+    "deepLink": "ynxcalendar://wallet-auth/callback",
+    "walletScope": "calendar:account",
+    "recoveryScope": "calendar:recover"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

@@ -28,10 +28,19 @@ client `ynx-mail-v1`, bundle `com.ynxweb4.mail`, the exact scope, account,
 request digest and P-256 product device. Product sessions contain only a hash of
 the Wallet account identifier and an opaque product token.
 
+The browser companion receives the opaque session only as a product-specific
+`HttpOnly`, `SameSite=Strict` cookie. Login/recovery JSON never returns the
+token, and the Web surface does not accept the legacy Wallet query callback.
+Native sign-in uses the canonical Wallet request envelope and remains
+`gateway_required` until the central registry/verifier is deployed.
+
 ## State and security boundaries
 
 - Drafts, messages, mailbox folders, delivery attempts, blocks, Trust cases,
-  AI approvals, rate windows and audit records are atomically persisted.
+  AI approvals, rate windows and audit records are atomically persisted inside
+  a versioned HMAC-authenticated envelope. Unknown fields, a missing key for an
+  existing state file or any tamper fail closed; the key and state use mode
+  `0600`.
 - Mail delivery is limited to existing local `@handle` identities. Domain-style
   or protocol recipients receive `internet_mail_delivery_not_supported`; they
   are never silently treated as delivered.
@@ -47,7 +56,8 @@ the Wallet account identifier and an opaque product token.
   multi-device recovery and ciphertext-only server persistence.
 - The spam classifier is a deterministic bounded rule set, not provider-backed
   AI. Rate limiting is persisted at five sends per account per minute.
-- AI context is limited to explicitly selected message IDs. Provider status and
+- AI context is limited to explicitly selected message IDs. Private context is
+  sent as authenticated JSON `POST /ai/stream`, never in the URL query. Provider status and
   cost are shown before approval; state streams over SSE; cancel propagates to
   the provider context; apply only creates/updates a draft and never sends.
 
@@ -74,6 +84,10 @@ go test ./internal/mail ./apps/mail
 ```
 
 Browser proof requires the bundled Playwright dependency exposed through
-`NODE_PATH`; the checked-in proof script launches its own ephemeral Wallet
+the product package; run `npm run browser:proof --prefix apps/mail`. The checked-in proof script launches its own ephemeral Wallet
 verifier and Mail server and writes desktop/mobile screenshots under
 `apps/mail/tests/artifacts/`.
+
+Account endpoints are `GET /v1/account/export` and `DELETE /v1/account`; deletion
+requires the exact phrase `DELETE MAIL ACCOUNT`, revokes sessions, removes live
+account content and retains only a minimal audit tombstone.

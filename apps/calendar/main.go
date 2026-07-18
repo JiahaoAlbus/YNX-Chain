@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	calendarservice "github.com/JiahaoAlbus/YNX-Chain/internal/calendar"
 	"io/fs"
 	"log"
@@ -14,6 +15,9 @@ import (
 
 //go:embed web/*
 var assets embed.FS
+var buildCommit = "unknown"
+var buildRelease = "local"
+var buildTime = "unknown"
 
 func main() {
 	dataDir := env("YNX_CALENDAR_DATA_DIR", "./var/calendar")
@@ -33,7 +37,7 @@ func main() {
 	webFS, err := fs.Sub(assets, "web")
 	fatal(err)
 	mux := http.NewServeMux()
-	mux.Handle("/v1/", calendarservice.NewHandler(service))
+	mux.Handle("/v1/", calendarservice.NewHandlerWithBuild(service, buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}))
 	mux.Handle("/", spa(http.FS(webFS)))
 	server := &http.Server{Addr: env("YNX_CALENDAR_ADDR", ":8096"), Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Calendar listening on %s (production scheduling is not claimed)", server.Addr)

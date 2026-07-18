@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,6 +23,71 @@ func (testVerifier) Verify(_ context.Context, p WalletProof) error {
 		return errors.New("invalid wallet assertion")
 	}
 	return nil
+}
+
+func TestCookieSessionDraftExportDeleteAndStoreTamper(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "mail.json")
+	svc, _ := newTestService(t, path)
+	token, user, _ := signIn(t, svc, "@alice", "ynx1alice")
+	draft, err := svc.SaveDraft(token, Draft{To: []string{"@alice"}, Subject: "export", Body: "retained draft"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	drafts, err := svc.Drafts(token)
+	if err != nil || len(drafts) != 1 || drafts[0].ID != draft.ID {
+		t.Fatalf("draft listing failed: %v %+v", err, drafts)
+	}
+	exported, err := svc.ExportAccount(token)
+	if err != nil || exported.User.Handle != user.Handle || exported.User.AccountHash != "" || len(exported.Drafts) != 1 {
+		t.Fatalf("account export failed: %v %+v", err, exported)
+	}
+	if err = svc.DeleteAccount(token, "DELETE"); err == nil {
+		t.Fatal("account deleted without exact confirmation")
+	}
+	if err = svc.DeleteAccount(token, "DELETE MAIL ACCOUNT"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.Account(token); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("deleted session remained active: %v", err)
+	}
+
+	path2 := filepath.Join(t.TempDir(), "mail-tamper.json")
+	svc2, _ := newTestService(t, path2)
+	_, _, _ = signIn(t, svc2, "@tamper", "ynx1tamper")
+	body, err := os.ReadFile(path2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body[len(body)/2] ^= 1
+	if err = os.WriteFile(path2, body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = NewStore(path2); err == nil {
+		t.Fatal("tampered Mail state was accepted")
+	}
+	if err = os.Remove(path2 + ".hmac-key"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = NewStore(path2); err == nil || !strings.Contains(err.Error(), "key is missing") {
+		t.Fatalf("missing state key did not fail closed: %v", err)
+	}
+}
+
+func TestHTTPLoginUsesHttpOnlyCookieWithoutTokenBody(t *testing.T) {
+	svc, _ := newTestService(t, "")
+	c, _ := svc.NewChallenge()
+	proof := WalletProof{Account: "ynx1cookie", Handle: "@cookie", Product: ProductID, Scopes: []string{RequiredScope}, Challenge: c.ID, DeviceKey: "device-binding-cookie", ExpiresAt: svc.now().Add(time.Minute).Unix(), Signature: "verified"}
+	body, _ := json.Marshal(proof)
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/sessions", strings.NewReader(string(body)))
+	rec := httptest.NewRecorder()
+	NewHandler(svc).ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated || strings.Contains(rec.Body.String(), `"token"`) {
+		t.Fatalf("unsafe login response: %d %s", rec.Code, rec.Body.String())
+	}
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteStrictMode || cookies[0].Name != sessionCookieName {
+		t.Fatalf("unsafe session cookie: %+v", cookies)
+	}
 }
 
 type testAI struct{ unavailable bool }

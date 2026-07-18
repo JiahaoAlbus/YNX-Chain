@@ -1,0 +1,77 @@
+name: Mail Calendar iOS proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/ecosystem-mail-calendar
+    paths:
+      - "apps/mail/native/ios/**"
+      - "apps/calendar/native/ios/**"
+      - ".github/workflows/mail-calendar-ios-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    name: ${{ matrix.name }} build install cold launch
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: YNX Mail
+            project: apps/mail/native/ios/YNXMail.xcodeproj
+            target: YNXMail
+            bundle: com.ynxweb4.mail
+          - name: YNX Calendar
+            project: apps/calendar/native/ios/YNXCalendar.xcodeproj
+            target: YNXCalendar
+            bundle: com.ynxweb4.calendar
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select simulator
+        id: simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | jq -r '[.devices[] | .[] | select(.name | startswith("iPhone"))][0].udid')
+          test -n "$udid"
+          test "$udid" != "null"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+      - name: Build unsigned Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "${{ matrix.project }}" \
+            -target "${{ matrix.target }}" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/${{ matrix.target }}-build" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Install and cold launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/${{ matrix.target }}-build/${{ matrix.target }}.app"
+          test -d "$app"
+          xcrun simctl install "${{ steps.simulator.outputs.udid }}" "$app"
+          xcrun simctl terminate "${{ steps.simulator.outputs.udid }}" "${{ matrix.bundle }}" 2>/dev/null || true
+          start=$(python3 -c 'import time; print(time.time())')
+          launch=$(xcrun simctl launch "${{ steps.simulator.outputs.udid }}" "${{ matrix.bundle }}")
+          end=$(python3 -c 'import time; print(time.time())')
+          elapsed=$(python3 -c "print(round(float('$end')-float('$start'), 3))")
+          mkdir -p "$RUNNER_TEMP/ios-proof"
+          xcrun simctl io "${{ steps.simulator.outputs.udid }}" screenshot "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-cold-launch.png"
+          printf '%s\n' "product=${{ matrix.name }}" "bundle=${{ matrix.bundle }}" "launch=$launch" "wall_seconds=$elapsed" "commit=$GITHUB_SHA" > "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-evidence.txt"
+          cat "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-evidence.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}-ios-simulator-proof
+          path: ${{ runner.temp }}/ios-proof/${{ matrix.target }}-*
+          if-no-files-found: error

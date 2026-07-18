@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -45,11 +44,19 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) err
 		return fmt.Errorf("wallet verification rejected with status %d", resp.StatusCode)
 	}
 	var session VerifiedWalletSession
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&session); err != nil {
+	responseBody, err := io.ReadAll(io.LimitReader(resp.Body, (64<<10)+1))
+	if err != nil || len(responseBody) > 64<<10 {
+		return errors.New("central wallet session response exceeds limit")
+	}
+	if err := decodeStrict(responseBody, &session); err != nil {
 		return fmt.Errorf("decode central wallet session: %w", err)
 	}
-	if session.VerifierVersion != "wallet-auth-v1" || session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Account != proof.Account || !exactScopes(session.Scopes, proof.Scopes) {
+	if session.VerifierVersion != "wallet-auth-v1" || session.SessionBinding == "" || session.RequestDigest == "" || session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Account != proof.Account || !exactScopes(session.Scopes, proof.Scopes) {
 		return errors.New("central wallet session binding mismatch")
+	}
+	issued, err := time.Parse(time.RFC3339Nano, session.IssuedAt)
+	if err != nil || issued.After(time.Now().UTC().Add(30*time.Second)) {
+		return errors.New("central wallet session issue time is invalid")
 	}
 	expires, err := time.Parse(time.RFC3339Nano, session.ExpiresAt)
 	if err != nil || !expires.After(time.Now().UTC()) {
@@ -97,12 +104,13 @@ func (a RemoteAI) Generate(ctx context.Context, kind string, messages []Message)
 	for _, m := range messages {
 		selected = append(selected, map[string]string{"id": m.ID, "subject": m.Subject, "body": m.Body, "sender": m.SenderHandle})
 	}
-	prompt, _ := json.Marshal(map[string]any{"product": ProductID, "workflow": kind, "selected_messages": selected})
-	u := strings.TrimRight(a.BaseURL, "/") + "/ai/stream?session=mail-approved-context&q=" + url.QueryEscape(string(prompt))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	prompt, _ := json.Marshal(map[string]any{"session": "mail-approved-context", "product": ProductID, "workflow": kind, "selected_messages": selected})
+	u := strings.TrimRight(a.BaseURL, "/") + "/ai/stream"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(prompt))
 	if err != nil {
 		return "", err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-YNX-AI-Key", a.Token)
 	client := a.Client
 	if client == nil {

@@ -1,5 +1,51 @@
 # Mail + Calendar handoff
 
+## 2026-07-18 independent hardening and evidence pass (authoritative)
+
+This section supersedes any older statement below that says the Web accepts a Wallet query callback, stores a browser bearer token, calls AI with private context in a URL, has current-run iOS evidence, or is centrally integrated/deployed.
+
+### Delivered in this pass
+
+- Merged current `origin/main` into `codex/ecosystem-mail-calendar` without discarding the declared minimum baseline.
+- Browser sessions are product-specific `HttpOnly`, `SameSite=Strict` cookies; login/recovery JSON does not expose the token, session restore uses `GET /v1/auth/session`, logout clears the cookie, and the Web companion contains no bearer/localStorage session or legacy query-field Wallet proof.
+- Disk state is an authenticated strict envelope: versioned JSON, independent mode-`0600` HMAC key, unknown-field/trailing-value rejection, atomic rename and authenticated previous snapshot. Tamper or a missing key with existing state fails closed.
+- Mail adds persistent draft listing/deletion, account export and exact-phrase deletion. Calendar adds account export/deletion and removes owned/invited/shared references safely. Both retain a minimal audit tombstone.
+- Remote Wallet responses are bounded and must include exact verifier version, session binding, request digest, product client, bundle, account, scopes, `issuedAt` and `expiresAt`.
+- Approved AI context moved from URL query parameters to authenticated JSON `POST /ai/stream`; this intentionally fails closed until the central change in `mail-calendar-central-integration.json` is merged and deployed.
+- Calendar now has working day/week/month views. Mail and Calendar add system typography, dark mode, high contrast, forced colors, account UI and RTL geometry. The per-product `UI_DESIGN_AUDIT.md` files record inspected screenshots and remaining visual gates.
+
+### Current-run verification
+
+| Gate | Result |
+| --- | --- |
+| `go test -race ./internal/mail ./internal/calendar` | pass |
+| `npm test --prefix apps/mail` | 5/5 pass |
+| `npm test --prefix apps/calendar` | 5/5 pass |
+| `npm run browser:proof --prefix apps/mail` | pass; 1440×900 light/dark, mobile, tablet, RTL and large-text artifacts; named controls; zero page errors |
+| `npm run browser:proof --prefix apps/calendar` | pass; the same matrix plus inspected day/week/month success artifacts |
+| Android Gradle builds | both `BUILD SUCCESSFUL`; debug/test signing only |
+| Android API 36 install/cold | emulator-5576: both install `Success`; Mail `COLD` 3900 ms, Calendar `COLD` 6297 ms |
+| Android callback resolution | `ynxmail://wallet-auth/callback` and `ynxcalendar://wallet-auth/callback` both resolve to their independent package |
+| iOS source/project | both Swift sources parse; both Info.plist and pbxproj lint |
+| iOS build/install/cold | not run on this host: `/Library/Developer/CommandLineTools` has no `xcodebuild` or `simctl` |
+
+Artifact SHA-256 values from this pass:
+
+- Mail debug APK: `c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f`.
+- Calendar debug APK: `f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030`.
+- Mail Android inspected screenshot: `5fdcbab4d2b0ecae3cffad980d6d9d9883e777e2b95f912e1ba861d3dcfe5e87`.
+- Calendar Android inspected screenshot: `b1ad3c6c95b29537f581f7d312fc20f8d05e96ef8bcfdeb588e2d2ee1d7a5139`.
+
+### Release truth
+
+- `integratedCentral=false`: the exact Wallet registry/verifier and AI POST integration are proposed, not merged into main or deployed.
+- `deployedStaging=false`, `deployedPublic=false`, `downloadHosted=false`: there is no remote URL/health, public release or hosted artifact proof.
+- iOS is source-valid on this machine but has no current-run Simulator install/cold-launch proof.
+- Native catalogs cover 12 locales and Arabic RTL. The Web companion mirrors RTL geometry but its Chinese copy is not fully translated, so product-wide localization is not marked complete.
+- Mail delivery is only between known local YNX handles. There is no SMTP/MX/DNS, internet reputation, external abuse operation or internet-wide mail delivery claim.
+
+The exact remaining central patch and acceptance sequence are in `docs/handoffs/mail-calendar-central-integration.json`; release state is machine-readable in each `product-release.json`; evidence routing is in `docs/handoffs/mail-calendar-evidence-index.md`.
+
 ## 2026-07-16 controller correction pass (authoritative)
 
 This section supersedes the earlier Web/PWA-first and placeholder integration

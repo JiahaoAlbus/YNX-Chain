@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -45,11 +44,19 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, proof WalletProof) err
 		return fmt.Errorf("wallet verification rejected with status %d", resp.StatusCode)
 	}
 	var session VerifiedWalletSession
-	if e := json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&session); e != nil {
+	responseBody, e := io.ReadAll(io.LimitReader(resp.Body, (64<<10)+1))
+	if e != nil || len(responseBody) > 64<<10 {
+		return errors.New("central wallet session response exceeds limit")
+	}
+	if e := decodeStrict(responseBody, &session); e != nil {
 		return fmt.Errorf("decode central wallet session: %w", e)
 	}
-	if session.VerifierVersion != "wallet-auth-v1" || session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Account != proof.Account || !sameScopes(session.Scopes, proof.Scopes) {
+	if session.VerifierVersion != "wallet-auth-v1" || session.SessionBinding == "" || session.RequestDigest == "" || session.ProductClientID != ProductClientID || session.BundleID != BundleID || session.Account != proof.Account || !sameScopes(session.Scopes, proof.Scopes) {
 		return errors.New("central wallet session binding mismatch")
+	}
+	issued, e := time.Parse(time.RFC3339Nano, session.IssuedAt)
+	if e != nil || issued.After(time.Now().UTC().Add(30*time.Second)) {
+		return errors.New("central wallet session issue time is invalid")
 	}
 	expires, e := time.Parse(time.RFC3339Nano, session.ExpiresAt)
 	if e != nil || !expires.After(time.Now().UTC()) {
@@ -95,12 +102,13 @@ func (a RemoteAI) Generate(ctx context.Context, kind string, events []Event) (st
 	for _, e := range events {
 		selected = append(selected, map[string]any{"id": e.ID, "title": e.Title, "start_utc": e.StartUTC, "end_utc": e.EndUTC, "time_zone": e.TimeZone})
 	}
-	prompt, _ := json.Marshal(map[string]any{"product": ProductID, "workflow": kind, "selected_events": selected})
-	u := strings.TrimRight(a.BaseURL, "/") + "/ai/stream?session=calendar-approved-context&q=" + url.QueryEscape(string(prompt))
-	req, e := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	prompt, _ := json.Marshal(map[string]any{"session": "calendar-approved-context", "product": ProductID, "workflow": kind, "selected_events": selected})
+	u := strings.TrimRight(a.BaseURL, "/") + "/ai/stream"
+	req, e := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(prompt))
 	if e != nil {
 		return "", e
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-YNX-AI-Key", a.Token)
 	client := a.Client
 	if client == nil {

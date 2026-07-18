@@ -8,23 +8,34 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Server struct{ service *Service }
 
+const sessionCookieName = "ynx_mail_session"
+
 func NewHandler(service *Service) http.Handler {
+	return NewHandlerWithBuild(service, buildinfo.Info{})
+}
+func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	s := &Server{service: service}
+	build = buildinfo.Normalize(build)
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "internet_delivery": false})
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "internet_delivery": false, "build": build})
 	})
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
 	mux.HandleFunc("POST /v1/auth/recovery", s.recover)
+	mux.HandleFunc("GET /v1/auth/session", s.account)
 	mux.HandleFunc("DELETE /v1/auth/session", s.revoke)
 	mux.HandleFunc("GET /v1/messages", s.inbox)
 	mux.HandleFunc("GET /v1/threads/{id}", s.thread)
+	mux.HandleFunc("GET /v1/drafts", s.drafts)
 	mux.HandleFunc("POST /v1/drafts", s.saveDraft)
+	mux.HandleFunc("DELETE /v1/drafts/{id}", s.deleteDraft)
 	mux.HandleFunc("POST /v1/drafts/{id}/send", s.send)
 	mux.HandleFunc("POST /v1/messages/{id}/move", s.move)
 	mux.HandleFunc("POST /v1/blocks", s.block)
@@ -38,6 +49,8 @@ func NewHandler(service *Service) http.Handler {
 	mux.HandleFunc("POST /v1/ai/jobs/{id}/review", s.reviewAI)
 	mux.HandleFunc("GET /v1/ai/jobs/{id}/stream", s.streamAI)
 	mux.HandleFunc("GET /v1/audit", s.audit)
+	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
+	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
 	return securityHeaders(mux)
 }
 
@@ -55,7 +68,8 @@ func (s *Server) signIn(w http.ResponseWriter, r *http.Request) {
 		respond(w, nil, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"token": token, "user": user})
+	setSessionCookie(w, r, token)
+	writeJSON(w, http.StatusCreated, map[string]any{"session": "active", "user": user})
 }
 func (s *Server) recover(w http.ResponseWriter, r *http.Request) {
 	var p WalletProof
@@ -67,11 +81,19 @@ func (s *Server) recover(w http.ResponseWriter, r *http.Request) {
 		respond(w, nil, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, map[string]any{"token": token, "user": user})
+	setSessionCookie(w, r, token)
+	writeJSON(w, http.StatusCreated, map[string]any{"session": "active", "user": user})
 }
 func (s *Server) revoke(w http.ResponseWriter, r *http.Request) {
 	err := s.service.Revoke(bearer(r))
+	if err == nil {
+		clearSessionCookie(w, r)
+	}
 	respond(w, map[string]bool{"revoked": err == nil}, err)
+}
+func (s *Server) account(w http.ResponseWriter, r *http.Request) {
+	user, err := s.service.Account(bearer(r))
+	respond(w, map[string]any{"session": "active", "user": user}, err)
 }
 func (s *Server) inbox(w http.ResponseWriter, r *http.Request) {
 	v, err := s.service.Inbox(bearer(r), r.URL.Query().Get("folder"), r.URL.Query().Get("q"))
@@ -88,6 +110,14 @@ func (s *Server) saveDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.service.SaveDraft(bearer(r), v)
 	respond(w, out, err)
+}
+func (s *Server) drafts(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.Drafts(bearer(r))
+	respond(w, out, err)
+}
+func (s *Server) deleteDraft(w http.ResponseWriter, r *http.Request) {
+	err := s.service.DeleteDraft(bearer(r), r.PathValue("id"))
+	respond(w, map[string]bool{"deleted": err == nil}, err)
 }
 func (s *Server) send(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.SendDraft(bearer(r), r.PathValue("id"))
@@ -212,13 +242,45 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Audit(bearer(r))
 	respond(w, out, err)
 }
+func (s *Server) exportAccount(w http.ResponseWriter, r *http.Request) {
+	out, err := s.service.ExportAccount(bearer(r))
+	respond(w, out, err)
+}
+func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	var value struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if !decode(w, r, &value, 1024) {
+		return
+	}
+	err := s.service.DeleteAccount(bearer(r), value.Confirmation)
+	if err == nil {
+		clearSessionCookie(w, r)
+	}
+	respond(w, map[string]bool{"deleted": err == nil}, err)
+}
 
 func bearer(r *http.Request) string {
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && strings.TrimSpace(cookie.Value) != "" {
+		return strings.TrimSpace(cookie.Value)
+	}
 	value := r.Header.Get("Authorization")
 	if !strings.HasPrefix(value, "Bearer ") {
 		return ""
 	}
 	return strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
+}
+
+func setSessionCookie(w http.ResponseWriter, r *http.Request, token string) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", MaxAge: 8 * 60 * 60, HttpOnly: true, Secure: requestIsTLS(r), SameSite: http.SameSiteStrictMode})
+}
+
+func clearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: requestIsTLS(r), SameSite: http.SameSiteStrictMode})
+}
+
+func requestIsTLS(r *http.Request) bool {
+	return r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
 }
 func decode(w http.ResponseWriter, r *http.Request, out any, limit int64) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, limit)

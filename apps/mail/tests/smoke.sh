@@ -11,5 +11,5 @@ PID=$!
 i=0
 until curl -fsS "http://127.0.0.1:$PORT/v1/health" | grep -q '"internet_delivery":false'; do i=$((i+1)); [ "$i" -lt 120 ] || { sed -n '1,120p' "$LOG"; exit 1; }; sleep 0.25; done
 curl -fsS "http://127.0.0.1:$PORT/" | grep -q 'YNX Mail'
-curl -fsS "http://127.0.0.1:$PORT/app.js" | grep -q 'mail:account'
+curl -fsS "http://127.0.0.1:$PORT/app.js" | grep -q 'canonical request envelope'
 echo "YNX Mail smoke passed on $PORT"

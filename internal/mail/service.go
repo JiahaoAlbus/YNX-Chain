@@ -202,6 +202,161 @@ func (s *Service) Revoke(token string) error {
 	})
 }
 
+func (s *Service) Account(token string) (User, error) {
+	var out User
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		user, ok := st.Users[sess.UserID]
+		if !ok {
+			return ErrUnauthorized
+		}
+		out = user
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) Drafts(token string) ([]Draft, error) {
+	out := []Draft{}
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		for _, draft := range st.Drafts {
+			if draft.OwnerID == sess.UserID {
+				out = append(out, draft)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) DeleteDraft(token, draftID string) error {
+	return s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		draft, ok := st.Drafts[draftID]
+		if !ok || draft.OwnerID != sess.UserID {
+			return errors.New("draft not found")
+		}
+		delete(st.Drafts, draftID)
+		s.audit(st, sess.UserID, "draft_deleted", draftID, nil)
+		return nil
+	})
+}
+
+func (s *Service) ExportAccount(token string) (AccountExport, error) {
+	var out AccountExport
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		user.AccountHash = ""
+		out = AccountExport{SchemaVersion: 1, ExportedAt: s.now().UTC(), User: user}
+		visible := map[string]bool{}
+		for _, box := range st.Mailboxes {
+			if box.OwnerID == sess.UserID {
+				visible[box.MessageID] = true
+			}
+		}
+		for _, draft := range st.Drafts {
+			if draft.OwnerID == sess.UserID {
+				out.Drafts = append(out.Drafts, draft)
+			}
+		}
+		for id, message := range st.Messages {
+			if visible[id] || message.SenderID == sess.UserID {
+				out.Messages = append(out.Messages, message)
+			}
+		}
+		for _, report := range st.Reports {
+			if report.ReporterID == sess.UserID {
+				out.Reports = append(out.Reports, report)
+			}
+		}
+		for _, entry := range st.Audit {
+			if entry.ActorID == sess.UserID {
+				out.Audit = append(out.Audit, entry)
+			}
+		}
+		sort.Slice(out.Drafts, func(i, j int) bool { return out.Drafts[i].UpdatedAt.Before(out.Drafts[j].UpdatedAt) })
+		sort.Slice(out.Messages, func(i, j int) bool { return out.Messages[i].CreatedAt.Before(out.Messages[j].CreatedAt) })
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) DeleteAccount(token, confirmation string) error {
+	if confirmation != "DELETE MAIL ACCOUNT" {
+		return errors.New("exact destructive confirmation is required")
+	}
+	return s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		for id, item := range st.Drafts {
+			if item.OwnerID == sess.UserID {
+				delete(st.Drafts, id)
+			}
+		}
+		boxes := st.Mailboxes[:0]
+		for _, item := range st.Mailboxes {
+			if item.OwnerID != sess.UserID {
+				boxes = append(boxes, item)
+			}
+		}
+		st.Mailboxes = boxes
+		for id, message := range st.Messages {
+			for index, recipient := range message.To {
+				if recipient == user.Handle {
+					message.To[index] = "@deleted"
+				}
+			}
+			for index, delivery := range message.Deliveries {
+				if delivery.Recipient == user.Handle {
+					message.Deliveries[index].Recipient = "@deleted"
+				}
+			}
+			if message.SenderID == sess.UserID {
+				message.SenderID = "deleted"
+				message.SenderHandle = "@deleted"
+				message.Subject = "[deleted]"
+				message.Body = ""
+				message.Attachments = nil
+				message.SenderSignature = ""
+			}
+			st.Messages[id] = message
+		}
+		for id, report := range st.Reports {
+			if report.ReporterID == sess.UserID {
+				report.ReporterID = "deleted"
+				st.Reports[id] = report
+			}
+		}
+		for hash, session := range st.Sessions {
+			if session.UserID == sess.UserID {
+				delete(st.Sessions, hash)
+			}
+		}
+		delete(st.Users, sess.UserID)
+		delete(st.Blocks, sess.UserID)
+		s.audit(st, sess.UserID, "account_deleted", "", map[string]any{"former_handle_hash": digest(user.Handle)})
+		return nil
+	})
+}
+
 func (s *Service) SaveDraft(token string, draft Draft) (Draft, error) {
 	now := s.now().UTC()
 	var out Draft
@@ -299,7 +454,7 @@ func (s *Service) Inbox(token, folder, query string) ([]Message, error) {
 	if folder == "" {
 		folder = "inbox"
 	}
-	var out []Message
+	out := []Message{}
 	err := s.store.view(func(st State) error {
 		sess, err := s.session(&st, token)
 		if err != nil {
@@ -322,7 +477,7 @@ func (s *Service) Inbox(token, folder, query string) ([]Message, error) {
 }
 
 func (s *Service) Thread(token, threadID string) ([]Message, error) {
-	var out []Message
+	out := []Message{}
 	err := s.store.view(func(st State) error {
 		sess, err := s.session(&st, token)
 		if err != nil {
@@ -501,7 +656,7 @@ func (s *Service) Appeal(token, reportID, text string) (AbuseReport, error) {
 	return out, err
 }
 func (s *Service) Cases(token string) ([]AbuseReport, error) {
-	var out []AbuseReport
+	out := []AbuseReport{}
 	err := s.store.view(func(st State) error {
 		sess, e := s.session(&st, token)
 		if e != nil {
@@ -666,7 +821,7 @@ func (s *Service) AIJob(token, jobID string) (AIJob, error) {
 }
 
 func (s *Service) Audit(token string) ([]AuditEntry, error) {
-	var out []AuditEntry
+	out := []AuditEntry{}
 	err := s.store.view(func(st State) error {
 		sess, e := s.session(&st, token)
 		if e != nil {

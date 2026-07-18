@@ -1,0 +1,39 @@
+{
+  "productId": "com.ynx.calendar",
+  "name": "YNX Calendar",
+  "branch": "codex/ecosystem-mail-calendar",
+  "commit": "${GIT_COMMIT}",
+  "version": "0.2.0-testnet-preview",
+  "surfaces": [
+    "android-native",
+    "ios-native",
+    "web-companion",
+    "go-api",
+    "macos-cli-web-companion"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": { "android": true, "ios": false, "desktop": true },
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "signingClass": {
+    "android": "debug-test-only",
+    "ios": "unsigned-local-parse-only",
+    "desktop": "unsigned-local"
+  },
+  "minOS": { "android": 26, "ios": "17.0", "macOS": "13.0" },
+  "installEvidence": [
+    "Android API 36 emulator-5576: install Success; COLD TotalTime 6297 ms; exact callback WARM TotalTime 1371 ms",
+    "iOS source parse and project/plist lint pass; current host has no Xcode/simctl, so no current-run install claim",
+    "Go desktop binary builds and embedded Web proof covers day/week/month plus 1440x960 and 390x844"
+  ],
+  "centralIntegration": "docs/handoffs/mail-calendar-central-integration.json",
+  "knownLimitations": [
+    "invitations and reminders are local YNX product state, not email/push/external-calendar delivery",
+    "central Wallet registry/verifier and AI POST route are not merged or deployed",
+    "no current-run iOS Simulator install, production signing, staging, public URL or hosted download"
+  ],
+  "generatedAt": "2026-07-18T20:30:00+08:00"
+}

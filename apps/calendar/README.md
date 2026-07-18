@@ -22,10 +22,17 @@ recovery scope, authorization request, P-256 device completion and expiry.
 Ordinary event, invite and sharing responses expose
 `@handle` values, never Wallet addresses.
 
+The browser companion uses a product-specific `HttpOnly`, `SameSite=Strict`
+cookie and never receives the opaque session token in JSON. Native sign-in uses
+the canonical Wallet request envelope and remains `gateway_required` until the
+central registry/verifier is merged and deployed.
+
 ## State and security boundaries
 
 - Events, recurrence, invitations, RSVP, sharing, reminders, mutation IDs,
-  change previews, AI approvals and audit records are atomically persisted.
+  change previews, AI approvals and audit records are atomically persisted in a
+  strict versioned HMAC envelope. Unknown fields, state tamper and a missing key
+  for existing state fail closed; key and state files use mode `0600`.
 - Create, update and cancel first create a `preview`; approval is a separate
   operation. Version checks reject stale offline writes. Every applied preview
   can be reverted if no later write has changed the event.
@@ -44,7 +51,8 @@ Ordinary event, invite and sharing responses expose
 - Reminder delivery is local-product evidence, not email or push delivery. A
   persisted scheduler records normal and restart-recovered late reminders and
   never duplicates an occurrence.
-- AI reads only selected event IDs. Provider/model/cost preview, approval, SSE
+- AI reads only selected event IDs. Approved private context uses authenticated
+  JSON `POST /ai/stream` and is never put in a URL query. Provider/model/cost preview, approval, SSE
   state, cancellation, review and audit are implemented. Applying an AI result
   retains a suggestion; it does not modify, invite, cancel or automate.
 
@@ -74,3 +82,8 @@ go test ./internal/calendar ./apps/calendar
 The browser-proof script launches ephemeral Calendar and Wallet-verifier
 processes and writes desktop/mobile screenshots under
 `apps/calendar/tests/artifacts/`.
+
+The Web companion includes working day/week/month views. Account endpoints are
+`GET /v1/account/export` and `DELETE /v1/account`; deletion requires the exact
+phrase `DELETE CALENDAR ACCOUNT`, revokes sessions, removes owned live state and
+retains a minimal audit tombstone.

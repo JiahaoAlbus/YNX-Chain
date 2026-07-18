@@ -1,72 +1,236 @@
 <!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#002FA7">
-  <meta name="description" content="YNX Mail — bounded, signed communication for YNX identities">
-  <title>YNX Mail</title>
-  <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <a class="skip" href="#reading-pane">跳到邮件正文</a>
-  <div id="offline" class="offline" role="status" hidden>离线模式 · 草稿保存在此设备，恢复网络后再发送</div>
-  <div class="shell" id="app" aria-busy="true">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="YNX Mail 首页"><span class="brand-mark">Y</span><span>YNX <b>Mail</b></span></a>
-      <label class="search"><span aria-hidden="true">⌕</span><span class="sr-only">搜索邮件</span><input id="search" type="search" placeholder="搜索主题、正文或联系人" autocomplete="off"></label>
-      <button id="ai-open" class="quiet" type="button" aria-controls="ai-panel" aria-expanded="false">AI 工作台</button>
-      <button id="account" class="avatar" type="button" aria-label="账户与退出">—</button>
-    </header>
-    <aside class="rail" aria-label="邮箱文件夹">
-      <button id="compose" class="compose" type="button"><span aria-hidden="true">＋</span> 写邮件</button>
-      <nav>
-        <button class="folder active" data-folder="inbox"><span>收件箱</span><strong id="inbox-count">0</strong></button>
-        <button class="folder" data-folder="archive"><span>归档</span></button>
-        <button class="folder" data-folder="spam"><span>垃圾邮件</span></button>
-        <button class="folder" data-folder="sent"><span>已发送</span></button>
-      </nav>
-      <div class="boundary"><b>投递边界</b><p>仅支持已验证的 YNX 联系人。本产品不声称互联网全域邮件投递。</p></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#002FA7" />
+    <meta
+      name="description"
+      content="YNX Mail — bounded, signed communication for YNX identities"
+    />
+    <title>YNX Mail</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#reading-pane">跳到邮件正文</a>
+    <div id="offline" class="offline" role="status" hidden>
+      离线模式 · 草稿保存在此设备，恢复网络后再发送
+    </div>
+    <div class="shell" id="app" aria-busy="true">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="YNX Mail 首页"
+          ><span class="brand-mark">Y</span><span>YNX <b>Mail</b></span></a
+        >
+        <label class="search"
+          ><span aria-hidden="true">⌕</span><span class="sr-only">搜索邮件</span
+          ><input
+            id="search"
+            type="search"
+            placeholder="搜索主题、正文或联系人"
+            autocomplete="off"
+        /></label>
+        <button
+          id="ai-open"
+          class="quiet"
+          type="button"
+          aria-controls="ai-panel"
+          aria-expanded="false"
+        >
+          AI 工作台
+        </button>
+        <button
+          id="account"
+          class="avatar"
+          type="button"
+          aria-label="账户与退出"
+        >
+          —
+        </button>
+      </header>
+      <aside class="rail" aria-label="邮箱文件夹">
+        <button id="compose" class="compose" type="button">
+          <span aria-hidden="true">＋</span> 写邮件
+        </button>
+        <nav>
+          <button class="folder active" data-folder="inbox">
+            <span>收件箱</span><strong id="inbox-count">0</strong>
+          </button>
+          <button class="folder" data-folder="archive">
+            <span>归档</span>
+          </button>
+          <button class="folder" data-folder="spam">
+            <span>垃圾邮件</span>
+          </button>
+          <button class="folder" data-folder="sent"><span>已发送</span></button>
+        </nav>
+        <div class="boundary">
+          <b>投递边界</b>
+          <p>仅支持已验证的 YNX 联系人。本产品不声称互联网全域邮件投递。</p>
+        </div>
+      </aside>
+      <main class="mail-grid">
+        <section class="message-list" aria-label="邮件列表">
+          <div class="list-head">
+            <div>
+              <span class="eyebrow" id="folder-label">收件箱</span>
+              <h1>通信流</h1>
+            </div>
+            <button id="refresh" class="icon" type="button" aria-label="刷新">
+              ↻
+            </button>
+          </div>
+          <div id="messages" role="list"></div>
+          <div id="empty" class="empty">
+            <span aria-hidden="true">✉</span>
+            <h2>这里很安静</h2>
+            <p>新邮件会安全地出现在这里。</p>
+          </div>
+        </section>
+        <article id="reading-pane" class="reader" tabindex="-1">
+          <div class="reader-empty">
+            <span class="seal">Y</span>
+            <h2>选择一封邮件开始阅读</h2>
+            <p>发件人身份和投递状态会在这里清晰显示。</p>
+          </div>
+        </article>
+      </main>
+    </div>
+
+    <dialog
+      id="compose-dialog"
+      class="compose-sheet"
+      aria-labelledby="compose-title"
+    >
+      <form id="compose-form">
+        <header>
+          <div>
+            <span class="eyebrow">新邮件</span>
+            <h2 id="compose-title">写给 YNX 联系人</h2>
+          </div>
+          <button
+            class="icon"
+            value="cancel"
+            formmethod="dialog"
+            aria-label="关闭"
+          >
+            ×
+          </button>
+        </header>
+        <label
+          >收件人
+          <input
+            id="to"
+            required
+            placeholder="@handle（多个用逗号分隔）"
+            autocomplete="off"
+        /></label>
+        <label
+          >主题
+          <input id="subject" maxlength="200" placeholder="清晰简短的主题"
+        /></label>
+        <label class="body-label"
+          ><span class="sr-only">正文</span
+          ><textarea
+            id="body"
+            required
+            maxlength="262144"
+            placeholder="开始写作…"
+          ></textarea>
+        </label>
+        <div
+          id="attachment-list"
+          class="attachment-list"
+          aria-live="polite"
+        ></div>
+        <footer>
+          <label class="attach"
+            >添加附件<input
+              id="attachments"
+              type="file"
+              multiple
+              hidden
+              aria-label="添加附件" /></label
+          ><span id="draft-state" role="status">尚未保存</span
+          ><button id="review-send" class="primary" type="submit">
+            预览并发送
+          </button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog
+      id="send-review"
+      class="review-dialog"
+      aria-labelledby="review-title"
+    >
+      <div class="review-card">
+        <span class="eyebrow">需要你的批准</span>
+        <h2 id="review-title">检查投递范围</h2>
+        <div id="review-content"></div>
+        <p class="warning">
+          发送后仅在 YNX Mail 内投递；失败收件人会保留明确状态。
+        </p>
+        <footer>
+          <button id="back-edit" class="quiet">返回编辑</button
+          ><button id="confirm-send" class="primary">批准发送</button>
+        </footer>
+      </div>
+    </dialog>
+
+    <aside id="ai-panel" class="ai-panel" aria-labelledby="ai-title" hidden>
+      <header>
+        <div>
+          <span class="eyebrow">权限化 AI</span>
+          <h2 id="ai-title">Mail 工作台</h2>
+        </div>
+        <button id="ai-close" class="icon" aria-label="关闭 AI 工作台">
+          ×
+        </button>
+      </header>
+      <p>
+        AI 只读取你勾选的当前邮件。它不会发送邮件、开启自动化或浏览其他邮箱。
+      </p>
+      <label
+        >任务<select id="ai-kind">
+          <option value="summarize">总结选中邮件</option>
+          <option value="draft_reply">起草回复</option>
+          <option value="translate">翻译</option>
+          <option value="organize">整理收件箱</option>
+        </select></label
+      >
+      <div id="ai-preview" class="permission-card">
+        先选择一封邮件，再查看将发送给 AI 的范围、provider、模型和成本。
+      </div>
+      <button id="ai-begin" class="primary" disabled>查看 AI 权限预览</button>
+      <div id="ai-result" aria-live="polite"></div>
     </aside>
-    <main class="mail-grid">
-      <section class="message-list" aria-label="邮件列表">
-        <div class="list-head"><div><span class="eyebrow" id="folder-label">收件箱</span><h1>通信流</h1></div><button id="refresh" class="icon" type="button" aria-label="刷新">↻</button></div>
-        <div id="messages" role="list"></div>
-        <div id="empty" class="empty"><span aria-hidden="true">✉</span><h2>这里很安静</h2><p>新邮件会安全地出现在这里。</p></div>
-      </section>
-      <article id="reading-pane" class="reader" tabindex="-1">
-        <div class="reader-empty"><span class="seal">Y</span><h2>选择一封邮件开始阅读</h2><p>发件人身份和投递状态会在这里清晰显示。</p></div>
-      </article>
-    </main>
-  </div>
 
-  <dialog id="compose-dialog" class="compose-sheet" aria-labelledby="compose-title">
-    <form id="compose-form">
-      <header><div><span class="eyebrow">新邮件</span><h2 id="compose-title">写给 YNX 联系人</h2></div><button class="icon" value="cancel" formmethod="dialog" aria-label="关闭">×</button></header>
-      <label>收件人 <input id="to" required placeholder="@handle（多个用逗号分隔）" autocomplete="off"></label>
-      <label>主题 <input id="subject" maxlength="200" placeholder="清晰简短的主题"></label>
-      <label class="body-label"><span class="sr-only">正文</span><textarea id="body" required maxlength="262144" placeholder="开始写作…"></textarea></label>
-      <div id="attachment-list" class="attachment-list" aria-live="polite"></div>
-      <footer><label class="attach">添加附件<input id="attachments" type="file" multiple hidden aria-label="添加附件"></label><span id="draft-state" role="status">尚未保存</span><button id="review-send" class="primary" type="submit">预览并发送</button></footer>
-    </form>
-  </dialog>
-
-  <dialog id="send-review" class="review-dialog" aria-labelledby="review-title"><div class="review-card"><span class="eyebrow">需要你的批准</span><h2 id="review-title">检查投递范围</h2><div id="review-content"></div><p class="warning">发送后仅在 YNX Mail 内投递；失败收件人会保留明确状态。</p><footer><button id="back-edit" class="quiet">返回编辑</button><button id="confirm-send" class="primary">批准发送</button></footer></div></dialog>
-
-  <aside id="ai-panel" class="ai-panel" aria-labelledby="ai-title" hidden>
-    <header><div><span class="eyebrow">权限化 AI</span><h2 id="ai-title">Mail 工作台</h2></div><button id="ai-close" class="icon" aria-label="关闭 AI 工作台">×</button></header>
-    <p>AI 只读取你勾选的当前邮件。它不会发送邮件、开启自动化或浏览其他邮箱。</p>
-    <label>任务<select id="ai-kind"><option value="summarize">总结选中邮件</option><option value="draft_reply">起草回复</option><option value="translate">翻译</option><option value="organize">整理收件箱</option></select></label>
-    <div id="ai-preview" class="permission-card">先选择一封邮件，再查看将发送给 AI 的范围、provider、模型和成本。</div>
-    <button id="ai-begin" class="primary" disabled>查看 AI 权限预览</button>
-    <div id="ai-result" aria-live="polite"></div>
-  </aside>
-
-  <section id="signin" class="signin" aria-labelledby="signin-title">
-    <div class="signin-card"><span class="brand-mark large">Y</span><span class="eyebrow">独立通信产品</span><h1 id="signin-title">让每一次发送都有身份边界。</h1><p>通过 YNX Wallet 授权 Mail 的独立设备会话。钱包密钥不会进入 Mail，联系人只显示 @handle。</p><button id="wallet-signin" class="primary">Sign in with YNX Wallet</button><button id="wallet-recover" class="quiet recovery">恢复已有 Mail 账户</button><p id="signin-state" role="status">需要 Mail 账户范围 · 最长 12 小时 · 可随时撤销</p><small>仅支持 YNX 内部投递；未配置 Wallet 验证服务时将明确失败。</small></div>
-  </section>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="/app.js" defer></script><script src="/reader-controls.js" defer></script>
-</body>
+    <section id="signin" class="signin" aria-labelledby="signin-title">
+      <div class="signin-card">
+        <span class="brand-mark large">Y</span
+        ><span class="eyebrow">独立通信产品</span>
+        <h1 id="signin-title">让每一次发送都有身份边界。</h1>
+        <p>
+          通过 YNX Wallet 授权 Mail 的独立设备会话。钱包密钥不会进入
+          Mail，联系人只显示 @handle。
+        </p>
+        <button id="wallet-signin" class="primary">
+          Sign in with YNX Wallet</button
+        ><button id="wallet-recover" class="quiet recovery">
+          恢复已有 Mail 账户
+        </button>
+        <p id="signin-state" role="status">
+          需要 Mail 账户范围 · 最长 12 小时 · 可随时撤销
+        </p>
+        <small>仅支持 YNX 内部投递；未配置 Wallet 验证服务时将明确失败。</small>
+      </div>
+    </section>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+    <script src="/reader-controls.js" defer></script>
+  </body>
 </html>

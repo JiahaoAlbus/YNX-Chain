@@ -182,6 +182,15 @@ type AuditEntry struct {
 	Metadata  map[string]any `json:"metadata,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 }
+type AccountExport struct {
+	SchemaVersion int                `json:"schema_version"`
+	ExportedAt    time.Time          `json:"exported_at"`
+	User          User               `json:"user"`
+	Events        []Event            `json:"events"`
+	Changes       []ChangePreview    `json:"changes"`
+	Reminders     []ReminderDelivery `json:"reminders"`
+	Audit         []AuditEntry       `json:"audit"`
+}
 type State struct {
 	Users              map[string]User             `json:"users"`
 	Challenges         map[string]Challenge        `json:"challenges"`

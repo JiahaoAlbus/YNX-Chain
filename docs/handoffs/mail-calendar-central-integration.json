@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "ownerBranch": "codex/ecosystem-mail-calendar",
+  "status": "proposed_not_merged_or_deployed",
+  "walletAuth": {
+    "verifier": {
+      "method": "POST",
+      "path": "/v1/wallet-auth/verify-session",
+      "request": [
+        "registryEntry",
+        "authorizationRequest",
+        "walletApproval",
+        "gatewayCompletion"
+      ],
+      "responseRequired": [
+        "verifierVersion",
+        "sessionBinding",
+        "requestDigest",
+        "productClientId",
+        "bundleId",
+        "account",
+        "scopes",
+        "issuedAt",
+        "expiresAt"
+      ]
+    },
+    "registryEntries": [
+      {
+        "clientId": "ynx-mail-v1",
+        "productId": "com.ynx.mail",
+        "bundleId": "com.ynxweb4.mail",
+        "callbacks": ["ynxmail://wallet-auth/callback"],
+        "scopes": ["mail:account", "mail:recover"],
+        "deviceAlgorithm": "p256-sha256"
+      },
+      {
+        "clientId": "ynx-calendar-v1",
+        "productId": "com.ynx.calendar",
+        "bundleId": "com.ynxweb4.calendar",
+        "callbacks": ["ynxcalendar://wallet-auth/callback"],
+        "scopes": ["calendar:account", "calendar:recover"],
+        "deviceAlgorithm": "p256-sha256"
+      }
+    ]
+  },
+  "aiGateway": {
+    "requiredChange": "add authenticated JSON POST without query-carried private context",
+    "method": "POST",
+    "path": "/ai/stream",
+    "requestContentType": "application/json",
+    "requestFields": ["model", "prompt"],
+    "responseContentType": "text/event-stream",
+    "security": [
+      "authorization required",
+      "64 KiB response event bound",
+      "no selected Mail or Calendar context in URL/query/logs"
+    ]
+  },
+  "acceptance": [
+    "merge registry entries and verifier route to main",
+    "deploy target Gateway and record exact commit plus health URL",
+    "run real Wallet sign-in and recovery for both products",
+    "deploy AI POST route and run preview-approve-cancel-review without exposing context in URL",
+    "only then set integratedCentral=true"
+  ]
+}

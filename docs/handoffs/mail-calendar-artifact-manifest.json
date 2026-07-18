@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-18T21:22:00+08:00",
+  "artifactsIgnoredByGit": true,
+  "reproduction": [
+    "npm run browser:proof --prefix apps/mail",
+    "npm run browser:proof --prefix apps/calendar",
+    "ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk ./gradlew --no-daemon :app:assembleDebug"
+  ],
+  "sha256": {
+    "apps/mail/tests/artifacts/mail-desktop.png": "ab95279f84633e8d5a708e9325063e3a527d81a8009fe76d679743fdc1a9c2a0",
+    "apps/mail/tests/artifacts/mail-desktop-dark.png": "fb8a691bad93c7f1e09dfc0fa8ec4058fb73f19ad0cca19339fcbf083e0b32f2",
+    "apps/mail/tests/artifacts/mail-mobile.png": "c7e92d23f34c46bab43517a7d66575d854cde54e5f5d74db3aa3dae9574332dc",
+    "apps/mail/tests/artifacts/mail-tablet.png": "fe672be1a025249145db3bb08586817a80736932dec1bb04a352ed83a4851461",
+    "apps/mail/tests/artifacts/mail-arabic-rtl.png": "569b31551793d1228888c17688dda2620016087d6db47f4cbd57c81ee3dae68f",
+    "apps/mail/tests/artifacts/mail-large-text.png": "198c23a382837eca05c18ec191935477e358d4a09bd720af7dd0da80c2584b02",
+    "apps/mail/tests/artifacts/mail-loading.png": "55f5a29946b362180d522d63e07e08baa1f8114c3f0a65e1bc5c77c0d64d6492",
+    "apps/mail/tests/artifacts/mail-failure.png": "a217c2937b18259f267c783912e76d63259f0d7038f691df768bd8bc932f0332",
+    "apps/mail/tests/artifacts/mail-empty.png": "721d4c2d45d3d92dc9217af1cbbb075c0062b938761a796540f6bca30d95955d",
+    "apps/calendar/tests/artifacts/calendar-desktop.png": "833a81db92dc265a4b6bedfc1a0da9d28bd1c3297208d69832bcc58068490fe9",
+    "apps/calendar/tests/artifacts/calendar-desktop-dark.png": "b84b51962c6ea83725b2e4cc891e0a485189ae44025cb4274969aee0d77ba5ab",
+    "apps/calendar/tests/artifacts/calendar-desktop-day.png": "455aa08fed3b45b5647e95b6a913306e0b75aaa222f729236ceef7939292875c",
+    "apps/calendar/tests/artifacts/calendar-desktop-month.png": "0d868f9dd157e7daf879fb6c0e5a1f98773d776f16618f72ca314ee09c464c88",
+    "apps/calendar/tests/artifacts/calendar-mobile.png": "e402bf8509b085ce94629e37d839f2ce9fb0f3b097377c858d4ec889a8af2aa3",
+    "apps/calendar/tests/artifacts/calendar-tablet.png": "abc2fd53692126e7793d8eaa4b19509126b58995d66f5356e151f34fdc9ec0d2",
+    "apps/calendar/tests/artifacts/calendar-arabic-rtl.png": "69251e6e799696b5bddacba04ce379c9165d1bc333c1cc7d9a6ea6b13bf5f033",
+    "apps/calendar/tests/artifacts/calendar-large-text.png": "fe8ee08c5682c4e37daa1b090acac15c57123195d39e55cbade9a33b5f39428a",
+    "apps/calendar/tests/artifacts/calendar-loading.png": "4585d48de6bfaeaf286f459437c01e0a1305fec359be693a93e0e99037a34139",
+    "apps/calendar/tests/artifacts/calendar-failure.png": "501d2d4031e484b455b1ff00a9a531526dfbfa63b7143e645ba921c7e6498915",
+    "apps/calendar/tests/artifacts/calendar-empty.png": "9cbe97a9a778c9d39fd0114ed260b66ab8fa9458e23277dd16402b5a37c432ce",
+    "apps/mail/tests/artifacts/mail-android-cold-start-current.png": "5fdcbab4d2b0ecae3cffad980d6d9d9883e777e2b95f912e1ba861d3dcfe5e87",
+    "apps/calendar/tests/artifacts/calendar-android-cold-start-current.png": "b1ad3c6c95b29537f581f7d312fc20f8d05e96ef8bcfdeb588e2d2ee1d7a5139",
+    "apps/mail/native/android/app/build/outputs/apk/debug/app-debug.apk": "c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f",
+    "apps/calendar/native/android/app/build/outputs/apk/debug/app-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030"
+  }
+}

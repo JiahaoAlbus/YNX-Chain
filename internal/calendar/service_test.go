@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,6 +20,70 @@ func (testVerifier) Verify(_ context.Context, p WalletProof) error {
 		return errors.New("invalid wallet proof")
 	}
 	return nil
+}
+
+func TestExportDeleteCookieAndStoreTamper(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "calendar.json")
+	svc := newTestService(t, path)
+	token, user, _ := signIn(t, svc, "@alice", "ynx1alice")
+	preview, err := svc.PreviewCreate(token, input("Export", "2026-09-01T09:00", "2026-09-01T10:00", "UTC", "export-1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ApproveChange(token, preview.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	exported, err := svc.ExportAccount(token)
+	if err != nil || exported.User.Handle != user.Handle || exported.User.AccountHash != "" || len(exported.Events) != 1 {
+		t.Fatalf("Calendar export failed: %v %+v", err, exported)
+	}
+	if err = svc.DeleteAccount(token, "DELETE"); err == nil {
+		t.Fatal("Calendar account deleted without exact confirmation")
+	}
+	if err = svc.DeleteAccount(token, "DELETE CALENDAR ACCOUNT"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.Account(token); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("deleted Calendar session remained active: %v", err)
+	}
+
+	path2 := filepath.Join(t.TempDir(), "calendar-tamper.json")
+	svc2 := newTestService(t, path2)
+	_, _, _ = signIn(t, svc2, "@tamper", "ynx1tamper")
+	body, err := os.ReadFile(path2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body[len(body)/2] ^= 1
+	if err = os.WriteFile(path2, body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = NewStore(path2); err == nil {
+		t.Fatal("tampered Calendar state was accepted")
+	}
+	if err = os.Remove(path2 + ".hmac-key"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = NewStore(path2); err == nil || !strings.Contains(err.Error(), "key is missing") {
+		t.Fatalf("missing Calendar state key did not fail closed: %v", err)
+	}
+}
+
+func TestHTTPLoginUsesHttpOnlyCookieWithoutTokenBody(t *testing.T) {
+	svc := newTestService(t, "")
+	c, _ := svc.NewChallenge()
+	proof := WalletProof{Account: "ynx1cookie", Handle: "@cookie", Product: ProductID, Scopes: []string{RequiredScope}, Challenge: c.ID, DeviceKey: "calendar-cookie-device", ExpiresAt: svc.now().Add(time.Minute).Unix(), Assertion: "verified"}
+	body, _ := json.Marshal(proof)
+	req := httptest.NewRequest(http.MethodPost, "/v1/auth/sessions", strings.NewReader(string(body)))
+	rec := httptest.NewRecorder()
+	NewHandler(svc).ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated || strings.Contains(rec.Body.String(), `"token"`) {
+		t.Fatalf("unsafe login response: %d %s", rec.Code, rec.Body.String())
+	}
+	cookies := rec.Result().Cookies()
+	if len(cookies) != 1 || !cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteStrictMode || cookies[0].Name != sessionCookieName {
+		t.Fatalf("unsafe session cookie: %+v", cookies)
+	}
 }
 
 type testAI struct{ unavailable bool }

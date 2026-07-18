@@ -1,1 +1,25 @@
-{"name":"@ynx/mail","version":"0.2.0","private":true,"description":"Independent native-first YNX Mail product and service","scripts":{"localize:native":"node tests/generate-native-localizations.mjs","test":"npm run localize:native && node --check web/app.js && node --check web/reader-controls.js && node --test tests/*.test.mjs","build":"go build -o /tmp/ynx-maild .","build:android":"cd native/android && ./gradlew --no-daemon :app:assembleDebug","check:ios":"swiftc -frontend -parse native/ios/YNXMail/YNXMailApp.swift && plutil -lint native/ios/YNXMail/Info.plist native/ios/YNXMail.xcodeproj/project.pbxproj","smoke":"sh tests/smoke.sh"},"ynx":{"productClientId":"ynx-mail-v1","bundleId":"com.ynxweb4.mail","deepLink":"ynxmail://wallet-auth/callback","walletScope":"mail:account","recoveryScope":"mail:recover"}}
+{
+  "name": "@ynx/mail",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Independent native-first YNX Mail product and service",
+  "scripts": {
+    "localize:native": "node tests/generate-native-localizations.mjs",
+    "test": "npm run localize:native && node --check web/app.js && node --check web/reader-controls.js && node --test tests/*.test.mjs",
+    "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-mail-0.2.0-testnet-preview -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-maild .",
+    "build:android": "cd native/android && ./gradlew --no-daemon :app:assembleDebug",
+    "browser:proof": "node tests/browser-proof.cjs",
+    "check:ios": "swiftc -frontend -parse native/ios/YNXMail/YNXMailApp.swift && plutil -lint native/ios/YNXMail/Info.plist native/ios/YNXMail.xcodeproj/project.pbxproj",
+    "smoke": "sh tests/smoke.sh"
+  },
+  "ynx": {
+    "productClientId": "ynx-mail-v1",
+    "bundleId": "com.ynxweb4.mail",
+    "deepLink": "ynxmail://wallet-auth/callback",
+    "walletScope": "mail:account",
+    "recoveryScope": "mail:recover"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}
