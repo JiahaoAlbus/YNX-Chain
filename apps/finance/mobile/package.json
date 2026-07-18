@@ -4,6 +4,7 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
+    "postinstall": "node scripts/patch-expo-modules-jsi.mjs",
     "start": "expo start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
