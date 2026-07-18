@@ -14,10 +14,13 @@
 !.env.ide.example
 !.env.monitoring.example
 !.env.deploy.example
+!.env.dex.example
 .host-key-approvals.json
 bin/
 dist/
 coverage/
+test-results/
+playwright-report/
 artifacts/
 cache/
 node_modules/

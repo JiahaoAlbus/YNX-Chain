@@ -1,0 +1,29 @@
+# YNX DEX operations
+
+## Local verification
+
+```bash
+npm ci
+npm run hardhat:build
+npm run dex:contracts:test
+npm test --prefix sdk/dex
+npm run build --prefix apps/dex
+npm test --prefix apps/dex
+npm run test:e2e --prefix apps/dex
+go test -race ./internal/dex ./cmd/ynx-dex-indexerd
+npm run dex:manifests:check
+npm run dex:package:all
+npm run dex:artifacts:verify
+```
+
+Start the API with random non-repository secrets and owner-selected state/cursor paths. Set `DEX_FACTORY_ADDRESS` and `DEX_INDEXER_START_BLOCK` only from a verified deployment manifest; otherwise the API starts without pretending to ingest chain data. Start the Web app through its same-origin reverse proxy. If AI explanation is enabled, `VITE_DEX_AI_GATEWAY_URL` must remain a same-origin proxy path such as `/ai`; cross-origin endpoints fail closed. `/health` reports product, chain and latest indexed block; `/version` reports exact build identity.
+
+## Testnet deployment
+
+Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee addresses and exact Testnet token allow-list, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token code, duplicate tokens and zero deployer balance. It writes a local mode-0600 manifest. Source/bytecode verification, pool creation, test liquidity, Wallet swap/LP proofs, Explorer links and Indexer consistency are separate required steps.
+
+## Recovery and rollback
+
+Contracts are immutable. Rollback means stop advertising the affected router/factory, preserve indexer/audit evidence, publish the incident, deploy a versioned replacement, migrate only through user-approved Wallet transactions and retain both manifests. State/cursor HMAC mismatch fails startup. A confirmed block-hash mismatch automatically rewinds a bounded depth, removes affected events/pool discovery and rescans; deeper or repeated conflicts require an owner-approved full rescan from the recorded deployment block, never manual state editing.
+
+`npm run dex:testnet:probe` writes a timestamped RPC observation. A timeout exits non-zero and records an unavailable probe; a successful chain-ID check still does not establish DEX deployment. The PWA packager creates a deterministic upload-ready tarball and SHA-256 manifest under `release/dex`; it does not host or production-sign it.

@@ -1,6 +1,10 @@
 export type Pool = { address:string; token0:string; token1:string; reserve0:string; reserve1:string; contractVersion:string; updatedBlock:number; updatedAt:string };
+export type Token = { chainId:6423; address:string; symbol:string; name:string; decimals:number; standard:"ERC-20"; reviewStatus:"owner-reviewed-testnet" };
 export type Position = { account:string; pool:string; netLpAmount:string; addedToken0:string; addedToken1:string; removedToken0:string; removedToken1:string };
 export type ChainEvent = { id:string; type:string; pool:string; account:string; amount0:string; amount1:string; fee0:string; fee1:string; blockNumber:number; txHash:string; timestamp:string };
 export type Analytics = { source:string; indexedEvents:number; pools:number; swaps:number; liquidityEvents:number; latestBlock:number };
+export type SpotPrice = { pool:string;token0:string;token1:string;price0Numerator:string;price0Denominator:string;price1Numerator:string;price1Denominator:string;updatedBlock:number };
+export type TWAP = { pool:string;token0:string;token1:string;price0AverageX112:string;price1AverageX112:string;intervalSeconds:number;fromBlock:number;toBlock:number };
+export type FeeSummary = { pool:string;token0:string;token1:string;swapFee0:string;swapFee1:string;claimedFee0:string;claimedFee1:string };
 export type Loadable<T> = { state:"loading" } | { state:"ready"; data:T; stale:boolean } | { state:"error"; message:string };
 export type Locale = "en"|"zh-CN"|"zh-TW"|"ja"|"ko"|"es"|"fr"|"de"|"pt"|"ru"|"ar"|"id";

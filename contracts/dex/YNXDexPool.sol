@@ -184,6 +184,9 @@ contract YNXDexPool {
 
     function sync() external lock {
         (uint256 balance0, uint256 balance1) = _availableBalances();
+        // A public sync may account for donations, but must never legitimize a
+        // negative rebase or confiscating token by writing losses into reserves.
+        if (balance0 < reserve0 || balance1 < reserve1) revert InvariantViolation();
         _update(balance0, balance1);
     }
 

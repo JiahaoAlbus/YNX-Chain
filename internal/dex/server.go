@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -40,6 +41,7 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, binding, accou
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json")
 	client := authorizer.Client
 	if client == nil {
 		client = &http.Client{Timeout: 3 * time.Second}
@@ -52,6 +54,22 @@ func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, binding, accou
 	if response.StatusCode != http.StatusOK {
 		return errors.New("central Wallet session rejected")
 	}
+	data, err := io.ReadAll(io.LimitReader(response.Body, 8<<10))
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Authorized      bool      `json:"authorized"`
+		SessionBinding  string    `json:"sessionBinding"`
+		Account         string    `json:"account"`
+		ProductClientID string    `json:"productClientId"`
+		BundleID        string    `json:"bundleId"`
+		Scopes          []string  `json:"scopes"`
+		ExpiresAt       time.Time `json:"expiresAt"`
+	}
+	if err := decodeExact(data, &result); err != nil || !result.Authorized || result.SessionBinding != binding || result.Account != account || result.ProductClientID != "ynx-dex-web-v1" || result.BundleID != "com.ynxweb4.dex.web" || !equalStrings(result.Scopes, scopes) || !result.ExpiresAt.After(time.Now()) {
+		return errors.New("central Wallet session binding mismatch")
+	}
 	return nil
 }
 
@@ -60,16 +78,32 @@ type Server struct {
 	build        buildinfo.Info
 	ingestionKey string
 	authorizer   SessionAuthorizer
+	tokens       []Token
 }
 
-func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer) (*Server, error) {
+func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, tokens ...Token) (*Server, error) {
 	if store == nil || len(ingestionKey) < 32 {
 		return nil, errors.New("store and 32-byte ingestion key are required")
 	}
 	if authorizer == nil {
 		authorizer = UnavailableAuthorizer{}
 	}
-	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer}, nil
+	seen := make(map[string]struct{}, len(tokens))
+	validated := append([]Token(nil), tokens...)
+	for _, token := range validated {
+		if err := token.Validate(); err != nil {
+			return nil, err
+		}
+		key := strings.ToLower(token.Address)
+		if _, exists := seen[key]; exists {
+			return nil, errors.New("duplicate token address")
+		}
+		seen[key] = struct{}{}
+	}
+	sort.Slice(validated, func(i, j int) bool {
+		return strings.ToLower(validated[i].Address) < strings.ToLower(validated[j].Address)
+	})
+	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer, tokens: validated}, nil
 }
 
 func (server *Server) Handler() http.Handler {
@@ -77,10 +111,14 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /version", server.version)
 	mux.HandleFunc("GET /v1/pools", server.pools)
+	mux.HandleFunc("GET /v1/tokens", server.tokensList)
 	mux.HandleFunc("GET /v1/swaps", server.events("swap"))
 	mux.HandleFunc("GET /v1/liquidity", server.events("liquidity-add", "liquidity-remove"))
 	mux.HandleFunc("GET /v1/transactions", server.events())
 	mux.HandleFunc("GET /v1/analytics", server.analytics)
+	mux.HandleFunc("GET /v1/prices", server.prices)
+	mux.HandleFunc("GET /v1/twap", server.twap)
+	mux.HandleFunc("GET /v1/fees", server.fees)
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
@@ -100,8 +138,20 @@ func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
 func (server *Server) pools(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": "indexed YNX Testnet EVM events"})
 }
+func (server *Server) tokensList(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.tokens, "chainId": ChainID, "mainnet": false, "source": "owner-reviewed Testnet token list"})
+}
 func (server *Server) analytics(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, server.store.Analytics())
+}
+func (server *Server) prices(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.SpotPrices(), "source": "raw indexed reserve ratios; not fiat prices"})
+}
+func (server *Server) twap(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.TWAPs(), "minimumIntervalSeconds": MinimumTWAPInterval, "source": "confirmed cumulative-price deltas; Q112 raw token ratios"})
+}
+func (server *Server) fees(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Fees(), "source": "indexed raw token fee amounts"})
 }
 
 func (server *Server) events(types ...string) http.HandlerFunc {
@@ -129,7 +179,7 @@ func (server *Server) events(types ...string) http.HandlerFunc {
 func (server *Server) positions(response http.ResponseWriter, request *http.Request) {
 	account := request.Header.Get("X-YNX-Account")
 	binding := request.Header.Get("X-YNX-Session-Binding")
-	if !nativePattern.MatchString(account) || len(binding) != 64 {
+	if !nativePattern.MatchString(account) || !sessionBindingPattern.MatchString(binding) {
 		writeError(response, http.StatusUnauthorized, "canonical Wallet session required")
 		return
 	}
@@ -194,4 +244,15 @@ func writeError(response http.ResponseWriter, status int, message string) {
 func writeJSON(response http.ResponseWriter, status int, value any) {
 	response.WriteHeader(status)
 	_ = json.NewEncoder(response).Encode(value)
+}
+func equalStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }

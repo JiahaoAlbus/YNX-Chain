@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 )
 
 type storePayload struct {
@@ -106,6 +107,29 @@ func (store *Store) Events() []Event {
 	return append([]Event(nil), store.state.Events...)
 }
 
+// Rewind removes events at and after a reorganization boundary and persists the
+// result atomically. Only the confirmed-block poller should call this method.
+func (store *Store) Rewind(fromBlock uint64) error {
+	if fromBlock == 0 {
+		return errors.New("rewind block must be positive")
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	next := store.state
+	next.Events = make([]Event, 0, len(store.state.Events))
+	for _, event := range store.state.Events {
+		if event.BlockNumber < fromBlock {
+			next.Events = append(next.Events, event)
+		}
+	}
+	next.Sequence = uint64(len(next.Events))
+	if err := store.persist(next); err != nil {
+		return err
+	}
+	store.state = next
+	return nil
+}
+
 func (store *Store) Pools() []Pool {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
@@ -177,6 +201,85 @@ func (store *Store) Analytics() Analytics {
 			result.LatestBlock = event.BlockNumber
 		}
 	}
+	return result
+}
+
+func (store *Store) SpotPrices() []SpotPrice {
+	pools := store.Pools()
+	result := make([]SpotPrice, 0, len(pools))
+	for _, pool := range pools {
+		if pool.Reserve0 == "" || pool.Reserve1 == "" || pool.Reserve0 == "0" || pool.Reserve1 == "0" {
+			continue
+		}
+		result = append(result, SpotPrice{Pool: pool.Address, Token0: pool.Token0, Token1: pool.Token1, Price0Numerator: pool.Reserve1, Price0Denominator: pool.Reserve0, Price1Numerator: pool.Reserve0, Price1Denominator: pool.Reserve1, UpdatedBlock: pool.UpdatedBlock})
+	}
+	return result
+}
+
+func (store *Store) TWAPs() []TWAP {
+	events := store.Events()
+	type observations struct{ previous, latest *Event }
+	byPool := map[string]observations{}
+	for index := range events {
+		event := &events[index]
+		if event.Price0Cumulative == "" || event.Price1Cumulative == "" {
+			continue
+		}
+		item := byPool[event.Pool]
+		item.previous, item.latest = item.latest, event
+		byPool[event.Pool] = item
+	}
+	result := make([]TWAP, 0, len(byPool))
+	for pool, item := range byPool {
+		if item.previous == nil || item.latest == nil || !item.latest.Timestamp.After(item.previous.Timestamp) {
+			continue
+		}
+		price0Before, _ := new(big.Int).SetString(item.previous.Price0Cumulative, 10)
+		price0After, _ := new(big.Int).SetString(item.latest.Price0Cumulative, 10)
+		price1Before, _ := new(big.Int).SetString(item.previous.Price1Cumulative, 10)
+		price1After, _ := new(big.Int).SetString(item.latest.Price1Cumulative, 10)
+		seconds := uint64(item.latest.Timestamp.Sub(item.previous.Timestamp) / time.Second)
+		if seconds < MinimumTWAPInterval || price0After.Cmp(price0Before) < 0 || price1After.Cmp(price1Before) < 0 {
+			continue
+		}
+		average0 := new(big.Int).Sub(price0After, price0Before)
+		average0.Div(average0, new(big.Int).SetUint64(seconds))
+		average1 := new(big.Int).Sub(price1After, price1Before)
+		average1.Div(average1, new(big.Int).SetUint64(seconds))
+		result = append(result, TWAP{Pool: pool, Token0: item.latest.Token0, Token1: item.latest.Token1, Price0AverageX112: average0.String(), Price1AverageX112: average1.String(), IntervalSeconds: seconds, FromBlock: item.previous.BlockNumber, ToBlock: item.latest.BlockNumber})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Pool < result[j].Pool })
+	return result
+}
+
+func (store *Store) Fees() []FeeSummary {
+	events := store.Events()
+	type totals struct {
+		token0, token1                   string
+		swap0, swap1, claimed0, claimed1 *big.Int
+	}
+	byPool := map[string]*totals{}
+	for _, event := range events {
+		item := byPool[event.Pool]
+		if item == nil {
+			item = &totals{event.Token0, event.Token1, new(big.Int), new(big.Int), new(big.Int), new(big.Int)}
+			byPool[event.Pool] = item
+		}
+		fee0, _ := new(big.Int).SetString(event.Fee0, 10)
+		fee1, _ := new(big.Int).SetString(event.Fee1, 10)
+		if event.Type == "swap" {
+			item.swap0.Add(item.swap0, fee0)
+			item.swap1.Add(item.swap1, fee1)
+		} else if event.Type == "protocol-fee-claimed" {
+			item.claimed0.Add(item.claimed0, fee0)
+			item.claimed1.Add(item.claimed1, fee1)
+		}
+	}
+	result := make([]FeeSummary, 0, len(byPool))
+	for pool, item := range byPool {
+		result = append(result, FeeSummary{pool, item.token0, item.token1, item.swap0.String(), item.swap1.String(), item.claimed0.String(), item.claimed1.String()})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Pool < result[j].Pool })
 	return result
 }
 

@@ -3,6 +3,7 @@
   "version": "0.1.0-testnet-preview.1",
   "type": "module",
   "private": true,
+  "files": ["src", "README.md", "LICENSE"],
   "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
   "scripts": { "test": "node --test", "check": "node --check src/index.js" },
   "engines": { "node": ">=20" },

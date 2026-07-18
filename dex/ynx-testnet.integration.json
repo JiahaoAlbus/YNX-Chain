@@ -34,6 +34,11 @@
       "address": null,
       "status": "required before swap UI integration"
     },
+    "quoter": {
+      "addressEnv": "DEX_QUOTER_ADDRESS",
+      "address": null,
+      "status": "required before independent quote verification"
+    },
     "multicall": {
       "addressEnv": "MULTICALL_ADDRESS",
       "address": null,
@@ -41,9 +46,12 @@
     }
   },
   "indexing": {
-    "eventCoverage": ["Transfer", "Approval", "PairCreated", "Swap", "Mint", "Burn", "Sync"],
+    "eventCoverage": ["PoolCreated", "Swap", "Mint", "Burn", "Sync", "ProtocolFeesClaimed", "LP Transfer correlation"],
     "logSource": "YNX Testnet EVM JSON-RPC",
-    "startBlockEnv": "DEX_INDEXER_START_BLOCK"
+    "startBlockEnv": "DEX_INDEXER_START_BLOCK",
+    "confirmationsEnv": "DEX_INDEXER_CONFIRMATIONS",
+    "cursorIntegrity": "HMAC-SHA-256",
+    "reorgRecovery": "rewind confirmed events and pool discovery, then rescan"
   },
   "verification": {
     "contractVerifierUrlEnv": "YNX_CONTRACT_VERIFIER_URL",
