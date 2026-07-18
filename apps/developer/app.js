@@ -1,7 +1,13 @@
-import {
-  AICodingAgent, CommandAudit, DeveloperI18n, DeveloperWalletSession, IndexedDBPersistence, ProjectWorkspace, SUPPORTED_LOCALES, WalletDeployment,
-  YNXChainClient, commandPreview, errorMessage, sourceDiagnostics
-} from "/client/index.js";
+import { AIBuildPersistence, AIBuildRun, GROK_BUILD_ACP } from "/client/ai-build.js";
+import { AICodingAgent } from "/client/ai.js";
+import { YNXChainClient } from "/client/chain-client.js";
+import { CommandAudit, commandPreview } from "/client/commands.js";
+import { sourceDiagnostics } from "/client/diagnostics.js";
+import { errorMessage } from "/client/errors.js";
+import { DeveloperI18n, SUPPORTED_LOCALES } from "/client/i18n.js?v=2";
+import { IndexedDBPersistence, ProjectWorkspace } from "/client/project.js";
+import { DeveloperWalletSession } from "/client/wallet-auth.js";
+import { WalletDeployment } from "/client/wallet.js";
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -14,7 +20,8 @@ const i18n = new DeveloperI18n();
 const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
 const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
-const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, deployReview: null, saveTimer: null };
+const aiBuildPersistence = new AIBuildPersistence(localStorage);
+const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, saveTimer: null };
 
 function toast(message) { const item = $("#toast"); item.textContent = message; item.classList.add("show"); setTimeout(() => item.classList.remove("show"), 2500); }
 function showError(error, target = $("#command-output")) { target.textContent = `[${error.code || "error"}] ${errorMessage(error)}`; toast(errorMessage(error)); }
@@ -30,9 +37,14 @@ function modal({ title, content, confirm = "Continue", danger = false }) {
 function field(label, input) { const wrap = node("label", "field"); wrap.append(node("span", "", label), input); return wrap; }
 
 async function bootstrap() {
-  configureLanguages(); bindNavigation(); bindActions();
+  applyTheme(localStorage.getItem("ynx.developer.theme") || "system");
+  document.documentElement.dataset.textSize=localStorage.getItem("ynx.developer.text-size")||"normal";
+  try { state.aiBuild = aiBuildPersistence.load(); } catch { aiBuildPersistence.clear(); }
+  configureLanguages(); bindNavigation(); bindActions(); syncResponsiveSurfaces(); addEventListener("resize",syncResponsiveSurfaces);
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
+  renderAIBuild();
+  $("#artifact-output").textContent=JSON.stringify({integration:GROK_BUILD_ACP,truthfulStatus:"adapter-contract-tested-local; official binary not bundled"},null,2);
   await Promise.allSettled([refreshNetwork(), refreshProvider()]);
 }
 
@@ -42,6 +54,9 @@ function configureLanguages() {
   $("#locale-select").value=i18n.locale; $("#ai-language").value=localStorage.getItem("ynx.developer.ai-language")||i18n.locale; applyLocale();
 }
 function applyLocale() { document.documentElement.lang=i18n.locale; document.documentElement.dir=i18n.dir; $$('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);}); }
+function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); }
+function toggleTheme() { const current=localStorage.getItem("ynx.developer.theme")||"system"; applyTheme(current === "system" ? "light" : current === "light" ? "dark" : "system"); toast(`Appearance: ${localStorage.getItem("ynx.developer.theme")}`); }
+function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");toast(large?"Large interface text enabled":"Standard interface text enabled");}
 
 async function loadProject(id) {
   state.project = await workspace.get(id); state.path = Object.keys(state.project.files).find((path) => path.endsWith(".sol")) || Object.keys(state.project.files)[0];
@@ -76,7 +91,7 @@ function renderDiagnostics() {
 }
 
 function renderContext() {
-  const context = $("#context-files"); context.replaceChildren(node("legend", "", "Approved context"));
+  const context = $("#context-files"); context.replaceChildren(node("legend", "", i18n.t("approvedContext")));
   if (!state.project) { context.append(node("p", "muted compact", "Open a project to select files.")); return; }
   for (const path of Object.keys(state.project.files).sort()) { const label = node("label"); const box = node("input"); box.type = "checkbox"; box.value = path; box.checked = path === state.path; box.addEventListener("change", updateEstimate); label.append(box, node("span", "", path)); context.append(label); }
   updateEstimate();
@@ -95,6 +110,33 @@ function updateEstimate() {
   catch { /* intent can remain incomplete while typing */ }
 }
 
+function saveAIBuild() { if (state.aiBuild) aiBuildPersistence.save(state.aiBuild); renderAIBuild(); }
+function renderAIBuild() {
+  const value=state.aiBuild?.snapshot(); const title=$("#ai-build-stage"); if(!title)return;
+  if(!value){title.textContent="Intent · waiting";$("#resume-ai-run").disabled=true;$("#export-ai-audit").disabled=true;return;}
+  title.textContent=`${value.stage.replace("-"," ")} · ${value.status}`; $("#resume-ai-run").disabled=!(["paused","failed"].includes(value.status)); $("#export-ai-audit").disabled=false;
+  const order=["intent","plan","diff","test","build","audit"]; const current=Math.max(0,order.indexOf(value.stage)); $$("#ai-stage-track span").forEach((item,index)=>item.classList.toggle("current",index===current));
+  $("#audit-output").textContent=state.aiBuild.exportAudit();
+}
+
+async function createAIBuildRun() {
+  if(!state.project)return toast("Open a project first.");
+  try {
+    const intent=$("#ai-intent").value.trim(); const run=new AIBuildRun({intent,provider:$("#model-select").value,model:$("#model-select").selectedOptions[0]?.textContent||"gateway-policy",outputLanguage:$("#ai-language").value});
+    const paths=selectedContext(); run.setPlan(["Explore only the approved project context","Propose a reviewable file diff","Run explicitly approved tests","Create a recoverable checkpoint","Package or deploy only after separate review"]);
+    const preview=node("div"); preview.append(node("p","muted compact","YNX AI Build will not write, execute, use network, install packages, reference secrets, commit, push or deploy without the matching approval."));
+    for(const step of run.snapshot().plan)preview.append(node("div","result-item",step.title));
+    if(!await modal({title:"Preview YNX AI Build plan",content:preview,confirm:"Approve plan"})){run.approvePlan("reject");state.aiBuild=run;saveAIBuild();return false;}
+    run.approvePlan("approve"); run.approveContext(paths); state.aiBuild=run; state.aiProposalId=null; saveAIBuild(); toast("AI Build plan and context approved."); return true;
+  } catch(error){showError(error,$("#ai-output"));return false;}
+}
+
+function exportAIBuildAudit(){if(!state.aiBuild)return;const blob=new Blob([state.aiBuild.exportAudit()],{type:"application/json"});const link=node("a");link.href=URL.createObjectURL(blob);link.download=`${state.aiBuild.snapshot().runId}-audit.json`;link.click();URL.revokeObjectURL(link.href);}
+
+function openPalette(){const dialog=$("#palette");dialog.showModal();$("#palette-query").value="";$("#palette-query").focus();}
+function setMobileSidebar(open){const sidebar=$(".sidebar"),mobile=matchMedia("(max-width:740px)").matches;sidebar.classList.toggle("mobile-open",mobile&&open);sidebar.inert=mobile&&!open;if(mobile)sidebar.setAttribute("aria-hidden",String(!open));else sidebar.removeAttribute("aria-hidden");}
+function syncResponsiveSurfaces(){setMobileSidebar($(".sidebar").classList.contains("mobile-open"));}
+
 async function renderSourceControl() {
   const list = $("#diff-list"); list.replaceChildren();
   if (!state.project) return;
@@ -110,8 +152,16 @@ async function renderSourceControl() {
 }
 
 function bindNavigation() {
-  $$(".activity-button[data-view]").forEach((button) => button.onclick = () => { $(".agent").classList.toggle("mobile-open", button.dataset.view === "agent"); $$(".activity-button").forEach((item) => item.classList.toggle("active", item === button)); if (button.dataset.view !== "agent") $$(".side-view").forEach((view) => view.classList.toggle("active", view.id === `view-${button.dataset.view}`)); if (button.dataset.view === "source") renderSourceControl(); });
+  $$(".activity-button[data-view]").forEach((button) => button.onclick = () => {
+    const mobile=matchMedia("(max-width:740px)").matches, agentView=button.dataset.view === "agent", wasActive=button.classList.contains("active");
+    if(agentView){ setMobileSidebar(false); $(".agent").classList.toggle("mobile-open",mobile?!$(".agent").classList.contains("mobile-open"):true); }
+    else { $(".agent").classList.remove("mobile-open"); $$(".side-view").forEach((view)=>view.classList.toggle("active",view.id===`view-${button.dataset.view}`)); if(mobile)setMobileSidebar(!(wasActive&&$(".sidebar").classList.contains("mobile-open"))); }
+    $$(".activity-button").forEach((item)=>item.classList.toggle("active",item===button));
+    if(button.dataset.view === "source")renderSourceControl();
+  });
   $("#close-agent").onclick = () => $("aside.agent").classList.remove("mobile-open");
+  $(".workspace").addEventListener("pointerdown",()=>{if(matchMedia("(max-width:740px)").matches)setMobileSidebar(false);});
+  document.addEventListener("keydown",(event)=>{if(event.key==="Escape"){setMobileSidebar(false);$(".agent").classList.remove("mobile-open");}});
   $$(".panel-tab").forEach((button) => button.onclick = () => { $$(".panel-tab").forEach((item) => item.classList.toggle("active", item === button)); $$(".panel-body").forEach((panel) => panel.classList.toggle("active", panel.id === `panel-${button.dataset.panel}`)); });
 }
 
@@ -124,6 +174,12 @@ function bindActions() {
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
+  $("#create-ai-run").onclick=createAIBuildRun; $("#resume-ai-run").onclick=()=>{try{state.aiBuild.resume();saveAIBuild();}catch(error){showError(error,$("#ai-output"));}}; $("#export-ai-audit").onclick=exportAIBuildAudit;
+  $("#theme-toggle").onclick=toggleTheme; $("#command-palette").onclick=openPalette;
+  $("#text-size-toggle").onclick=toggleTextSize;
+  $("#palette-query").oninput=()=>{const query=$("#palette-query").value.toLowerCase();$$(".command-list button").forEach((button)=>button.hidden=!button.textContent.toLowerCase().includes(query));};
+  $$(".command-list button").forEach((button)=>button.onclick=()=>{const command=button.dataset.command;if(command==="compile")compile();if(command==="test")runTask("test");if(command==="checkpoint")checkpoint();if(command==="ai")$(".agent").classList.add("mobile-open");if(command==="deploy")reviewDeployment();});
+  document.addEventListener("keydown",(event)=>{if((event.metaKey||event.ctrlKey)&&event.shiftKey&&event.key.toLowerCase()==="p"){event.preventDefault();openPalette();}});
   $("#locale-select").onchange=()=>{i18n.setLocale($("#locale-select").value);applyLocale();};
   $("#ai-language").onchange=()=>localStorage.setItem("ynx.developer.ai-language",$("#ai-language").value);
   $("#wallet-sign-in").onclick=signInWallet;
@@ -199,20 +255,26 @@ async function refreshNetwork() {
 }
 
 async function refreshProvider() {
-  const status = await ai.status(); const pill = $("#provider-status"); pill.textContent = status.available ? `${status.model} · ready` : "Unavailable"; pill.className = `provider ${status.available ? "available" : "unavailable"}`; $("#model-select").replaceChildren(new Option(status.model || "Gateway model unavailable"));
+  const status = await ai.status(); const pill = $("#provider-status"); pill.textContent = status.available ? `${status.model} · ready` : "Unavailable"; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
+  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX Gateway · ${status.model}`:"YNX Gateway · unavailable";
 }
 
 async function askAI() {
   if (!state.project) return toast("Open a project first.");
   try {
+    if(!state.aiBuild || ["completed","cancelled","reverted"].includes(state.aiBuild.snapshot().status))if(!await createAIBuildRun())return;
     state.aiPrepared = ai.prepare({ intent: $("#ai-intent").value, project: state.project, approvedPaths: selectedContext() });
     const review = node("div"); review.append(node("p", "muted compact", "Only these files leave the browser through the permissioned YNX AI Gateway:")); for (const item of state.aiPrepared.privacyPreview) review.append(node("div", "result-item", `${item.path} · ${item.bytes} bytes`)); review.append(node("p", "muted compact", `${state.aiPrepared.estimate.estimatedInputTokens} estimated input tokens. Provider cost is not known and will not be invented.`));
     if (!await modal({ title: "Approve AI context and estimated cost", content: review, confirm: "Stream from Gateway" })) return;
+    const network=state.aiBuild.requestPermission("network",{reason:"Send only the approved context through the selected provider interface",scope:{provider:$("#model-select").value,paths:state.aiPrepared.files.map((file)=>file.path)}}); state.aiBuild.decidePermission(network.requestId,"allow-once"); saveAIBuild();
     $("#ask-ai").disabled = true; $("#cancel-ai").disabled = false; $("#ai-output").textContent = "";
     state.aiResult = await ai.stream(state.aiPrepared, { accessToken: $("#gateway-token").value, model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
+    state.aiBuild.recordTool({name:"provider.stream",permission:"network",requestId:network.requestId,inputSummary:`${state.aiPrepared.files.length} approved files`,status:"passed",outputSummary:`${state.aiResult.output.length} output characters`});
+    const providerProposals=proposedFiles(state.aiResult.output); if(providerProposals.length){const proposal=state.aiBuild.proposeDiff(providerProposals.map((file)=>({path:file.path,before:state.project.files[file.path]??"",after:file.content})),"Provider-proposed bounded file changes");state.aiProposalId=proposal.id;} saveAIBuild();
     state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: state.aiResult.status, output: state.aiResult.output }); renderAIHistory();
     $("#apply-ai").disabled = false; $("#reject-ai").disabled = false;
   } catch (error) {
+    if(state.aiBuild && !["cancelled","completed","reverted"].includes(state.aiBuild.snapshot().status)){try{state.aiBuild.fail(error);saveAIBuild();}catch{/* provider error remains primary */}}
     showError(error, $("#ai-output"));
     if (state.project && state.aiPrepared) {
       try { state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: error.code || "provider-failed-retry-available", output: errorMessage(error) }); renderAIHistory(); } catch { /* primary provider error remains authoritative */ }
@@ -232,13 +294,18 @@ async function applyAI() {
     const reviewed = ai.review(state.aiResult, "apply"); const proposals = proposedFiles(reviewed.output);
     if (!proposals.length) throw Object.assign(new Error("Provider result has no machine-applicable `ynx-file path=...` blocks. Nothing was written."), { code: "diff_format_unsupported" });
     const content = node("div"); for (const proposal of proposals) content.append(node("div", "result-item", `${proposal.path} · ${proposal.content.split("\n").length} proposed lines`));
-    if (!await modal({ title: "Apply reviewed AI file diff", content, confirm: "Apply files" })) return;
+    if (!await modal({ title: "Review proposed AI file diff", content, confirm: "Approve diff" })) return;
+    if(state.aiBuild&&state.aiProposalId)state.aiBuild.reviewDiff(state.aiProposalId,"approve");
+    const permission=state.aiBuild?.requestPermission("write",{reason:"Apply the reviewed AI proposal",scope:{paths:proposals.map((item)=>item.path)}});
+    if(!await modal({title:"Allow one project write",content:"This one-time permission applies only the reviewed files shown above. It does not allow terminal, network, Git or deploy actions.",confirm:"Allow once"})){if(permission)state.aiBuild.decidePermission(permission.requestId,"deny");saveAIBuild();return;}
+    if(permission)state.aiBuild.decidePermission(permission.requestId,"allow-once");
     for (const proposal of proposals) state.project = await workspace.write(state.project.id, proposal.path, proposal.content, { origin: "ai", reviewed: true });
+    if(state.aiBuild&&state.aiProposalId&&permission){state.aiBuild.applyDiff(state.aiProposalId,permission.requestId,()=>{});state.aiBuild.checkpoint("AI diff applied — validation pending",state.project.files);saveAIBuild();}
     renderProject(); openFile(proposals[0].path); $("#apply-ai").disabled = true; $("#reject-ai").disabled = true; toast("Reviewed AI diff applied. Create a checkpoint after validation.");
   } catch (error) { showError(error, $("#ai-output")); }
 }
 
-function rejectAI() { try { state.aiResult = ai.review(state.aiResult, "reject"); $("#apply-ai").disabled = true; $("#reject-ai").disabled = true; $("#ai-output").textContent += "\n\n[Rejected — no files changed]"; } catch (error) { showError(error, $("#ai-output")); } }
+function rejectAI() { try { state.aiResult = ai.review(state.aiResult, "reject"); if(state.aiBuild&&state.aiProposalId){state.aiBuild.reviewDiff(state.aiProposalId,"reject");saveAIBuild();} $("#apply-ai").disabled = true; $("#reject-ai").disabled = true; $("#ai-output").textContent += "\n\n[Rejected — no files changed]"; } catch (error) { showError(error, $("#ai-output")); } }
 
 async function clearAIHistory() {
   if (!state.project || !(state.project.conversations ?? []).length) return;

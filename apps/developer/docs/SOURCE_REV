@@ -1,0 +1,6 @@
+repository=https://github.com/xai-org/grok-build
+commit=98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce
+tree=b40a1962cb8061b85c2354850ab4d5707f48414b
+upstream_source_rev=124d85bc5dc6e7805560215fcc6d5413944920e1
+version=0.2.102
+archive_sha256=5d9cd70fb23fa2d0ada9b05b8d381b73a50cf535d38a8f0ad00c9d1daf9db31f

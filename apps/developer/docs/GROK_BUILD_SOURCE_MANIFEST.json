@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "integrationName": "YNX AI Build optional ACP sidecar",
+  "repository": "https://github.com/xai-org/grok-build",
+  "commit": "98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce",
+  "tree": "b40a1962cb8061b85c2354850ab4d5707f48414b",
+  "sourceRev": "124d85bc5dc6e7805560215fcc6d5413944920e1",
+  "version": "0.2.102",
+  "vendored": false,
+  "bundled": false,
+  "archive": {
+    "command": "git archive --format=tar 98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce",
+    "sha256": "5d9cd70fb23fa2d0ada9b05b8d381b73a50cf535d38a8f0ad00c9d1daf9db31f"
+  },
+  "auditedFiles": [
+    {"path":"LICENSE","sha256":"116f7778b9802e569b7fa3a532b17bd80eb13c67837def01eed093d4ea472f28"},
+    {"path":"THIRD-PARTY-NOTICES","sha256":"7b7c315403c596f9b7a13bb562553ee4fd4c05da8672f95bcaa02a125eea2947"},
+    {"path":"third_party/NOTICE","sha256":"4122c27e9ad4b8e67e6f8a7869d11f389600a5d5f773fdec9d0b2ac9d7f21101"},
+    {"path":"Cargo.toml","sha256":"28a3ea7e1c859729a0c5cf77f87ff7f0ece319a576697b274917359e11be480b"},
+    {"path":"Cargo.lock","sha256":"7141e692962fea8a061136f67f1f8d51c7027cd1bb9f215b06f13c6105157bf5"},
+    {"path":"SOURCE_REV","sha256":"4190beb2590067094f179859965a1d18ac23991609d3c1afecd08f50385c2725"}
+  ],
+  "localSourceBuild": {
+    "completed": false,
+    "reason": "Rust 1.92, Cargo and DotSlash were not installed on the audited macOS host; protoc was present."
+  }
+}

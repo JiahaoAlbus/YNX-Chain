@@ -7,30 +7,33 @@
   <meta name="description" content="YNX Developer — bounded, evidence-first project, compile and Wallet deployment workflows for YNX Chain.">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg">
-  <link rel="stylesheet" href="/styles.css?v=2">
+  <link rel="stylesheet" href="/styles.css?v=11">
   <title>YNX Developer</title>
 </head>
 <body>
   <a class="skip" href="#editor">Skip to editor</a>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">&gt;_</span><span>YNX Developer</span><span class="surface-badge">WEB PRODUCT</span></div>
+      <div class="brand"><img class="brand-mark" src="/icon.svg" alt=""><span>YNX Developer</span><span class="surface-badge">WEB IDE</span></div>
       <div class="project-actions">
         <button id="create-project" class="button primary" data-i18n="newProject">New project</button>
         <button id="import-project" class="button" data-i18n="import">Import</button>
         <button id="export-project" class="button" data-i18n="export">Export</button>
         <select id="locale-select" class="select" aria-label="Interface language"></select>
+        <button id="command-palette" class="button" aria-label="Open command palette">Commands</button>
+        <button id="theme-toggle" class="button" aria-label="Switch color appearance">Appearance</button>
+        <button id="text-size-toggle" class="button" aria-label="Toggle large interface text">Text size</button>
       </div>
       <div class="network" id="network-status" role="status"><span class="status-dot unknown"></span><span>YNX Testnet · checking</span></div>
     </header>
 
     <nav class="activity" aria-label="Workspace views">
-      <button class="activity-button active" data-view="files" aria-label="Files"><span>▱</span><small>Files</small></button>
-      <button class="activity-button" data-view="search" aria-label="Search"><span>⌕</span><small>Search</small></button>
-      <button class="activity-button" data-view="source" aria-label="Source control"><span>⑂</span><small>Diff</small></button>
-      <button class="activity-button" data-view="deploy" aria-label="Deployment"><span>↑</span><small>Deploy</small></button>
-      <button class="activity-button" data-view="docs" aria-label="Documentation"><span>?</span><small>Docs</small></button>
-      <button id="mobile-agent" class="activity-button mobile-agent" data-view="agent" aria-label="Open AI Coding Agent"><span>✦</span><small>AI</small></button>
+      <button class="activity-button active" data-view="files" aria-label="Files"><span data-i18n="files">Files</span></button>
+      <button class="activity-button" data-view="search" aria-label="Search"><span data-i18n="search">Search</span></button>
+      <button class="activity-button" data-view="source" aria-label="Source control"><span data-i18n="diff">Diff</span></button>
+      <button class="activity-button" data-view="deploy" aria-label="Deployment"><span data-i18n="deploy">Deploy</span></button>
+      <button class="activity-button" data-view="docs" aria-label="Documentation"><span data-i18n="docs">Docs</span></button>
+      <button id="mobile-agent" class="activity-button mobile-agent" data-view="agent" aria-label="Open YNX AI Build"><span data-i18n="aiBuild">AI Build</span></button>
     </nav>
 
     <aside class="sidebar" aria-label="Project navigator">
@@ -79,41 +82,51 @@
     <main class="workspace">
       <div class="editor-toolbar">
         <div class="tabs"><button id="active-tab" class="tab active">Welcome</button></div>
-        <div class="run-actions"><span id="save-state">Saved</span><button id="compile" class="button primary">Compile</button><button id="run-tests" class="button">Run tests</button><button id="run-task" class="button">Tasks ▾</button></div>
+        <div class="run-actions"><span id="save-state">Saved</span><button id="compile" class="button primary" data-i18n="compile">Compile</button><button id="run-tests" class="button" data-i18n="runTests">Run tests</button><button id="run-task" class="button"><span data-i18n="tasks">Tasks</span> ▾</button></div>
       </div>
-      <section class="editor-area">
+      <section class="editor-area" aria-label="Editor">
         <div class="gutter" id="line-numbers" aria-hidden="true">1</div>
         <textarea id="editor" spellcheck="false" aria-label="Source editor" placeholder="Create or open a project to edit files."></textarea>
       </section>
       <section class="bottom-panel" aria-label="Output panel">
         <div class="panel-tabs" role="tablist">
-          <button class="panel-tab active" data-panel="problems">Problems <span id="problem-count">0</span></button>
-          <button class="panel-tab" data-panel="output">Output</button>
-          <button class="panel-tab" data-panel="terminal">Terminal</button>
-          <button class="panel-tab" data-panel="rpc">RPC Tools</button>
-          <button class="panel-tab" data-panel="receipts">Receipts & logs</button>
+          <button class="panel-tab active" data-panel="problems"><span data-i18n="problems">Problems</span> <span id="problem-count">0</span></button>
+          <button class="panel-tab" data-panel="output" data-i18n="output">Output</button>
+          <button class="panel-tab" data-panel="terminal" data-i18n="terminal">Terminal</button>
+          <button class="panel-tab" data-panel="rpc" data-i18n="rpcTools">RPC Tools</button>
+          <button class="panel-tab" data-panel="receipts" data-i18n="receipts">Receipts & logs</button>
+          <button class="panel-tab" data-panel="artifacts" data-i18n="artifacts">Artifacts</button>
+          <button class="panel-tab" data-panel="audit" data-i18n="audit">Audit</button>
         </div>
         <div id="panel-problems" class="panel-body active"><div id="diagnostics" class="diagnostics empty">No diagnostics. Open a Solidity file to analyze.</div></div>
         <div id="panel-output" class="panel-body"><pre id="command-output">Command output is evidence-backed. Nothing has run.</pre></div>
         <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: preview only</span><span>Unsigned local desktop package: allowlisted executor when installed</span><span>Signed production desktop release: not claimed</span></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
         <div id="panel-rpc" class="panel-body"><div class="rpc-row"><select id="rpc-method" class="select"><option>eth_chainId</option><option>eth_blockNumber</option><option>net_version</option><option>eth_getTransactionReceipt</option><option>eth_getLogs</option></select><input id="rpc-params" value="[]" aria-label="RPC parameters JSON"><button id="run-rpc" class="button primary">Run read-only RPC</button></div><pre id="rpc-output">RPC methods are allowlisted and read-only.</pre></div>
         <div id="panel-receipts" class="panel-body"><pre id="receipt-output">No authoritative deployment receipt, logs, or source match evidence loaded.</pre></div>
+        <div id="panel-artifacts" class="panel-body"><pre id="artifact-output">Artifact Center is empty. Local builds never imply hosted or signed releases.</pre></div>
+        <div id="panel-audit" class="panel-body"><pre id="audit-output">Audit timeline is empty.</pre></div>
       </section>
     </main>
 
-    <aside class="agent" aria-label="AI Coding Agent">
-      <div class="agent-heading"><div><span class="eyebrow">YNX AI GATEWAY</span><strong>AI Coding Agent</strong></div><span id="provider-status" class="provider unavailable">Unavailable</span><button id="close-agent" class="icon-button close-agent" aria-label="Close AI Coding Agent">×</button></div>
+    <aside class="agent" aria-label="YNX AI Build">
+      <div class="agent-heading"><div><span class="eyebrow">PERMISSIONED AGENT</span><strong>YNX AI Build</strong></div><span id="provider-status" class="provider unavailable">Unavailable</span><button id="close-agent" class="icon-button close-agent" aria-label="Close YNX AI Build">×</button></div>
       <div class="agent-scroll">
-        <div class="agent-note">The agent sees only checked files, cites source lines, proposes diffs and tests, and cannot write or run commands without review.</div>
-        <fieldset id="context-files" class="context"><legend>Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
-        <label class="field"><span>Model / provider</span><select id="model-select" class="select"><option>Gateway configured model</option></select></label>
+        <div class="agent-note">Plan first. Only approved context is sent. Write, execute, network, package, secret, Git and deploy actions require explicit permission.</div>
+        <div class="build-overview" aria-label="AI Build workflow">
+          <div><span class="eyebrow">WORKFLOW</span><strong id="ai-build-stage">Intent · waiting</strong></div>
+          <div class="stage-track" id="ai-stage-track"><span class="current">Intent</span><span>Plan</span><span>Diff</span><span>Test</span><span>Build</span><span>Audit</span></div>
+          <div class="agent-actions"><button id="create-ai-run" class="button primary" data-i18n="previewPlan">Preview plan</button><button id="resume-ai-run" class="button" data-i18n="resume" disabled>Resume</button><button id="export-ai-audit" class="button" data-i18n="exportAudit" disabled>Export audit</button></div>
+        </div>
+        <fieldset id="context-files" class="context"><legend data-i18n="approvedContext">Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
+        <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-gateway">YNX Gateway policy</option><option value="grok-build-acp">Approved Grok via ACP sidecar</option><option value="local-inference">Local inference (when configured)</option></select></label>
         <label class="field"><span data-i18n="aiLanguage">AI output language</span><select id="ai-language" class="select"></select></label>
         <label class="field"><span>Session-only Gateway access</span><input id="gateway-token" type="password" autocomplete="off" placeholder="Not persisted"></label>
         <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>
         <div id="cost-estimate" class="estimate"><span>Cost estimate</span><strong>Select context</strong><small>Provider billing is unavailable until reported.</small></div>
+        <div class="permission-matrix"><span class="eyebrow" data-i18n="permissions">Permissions</span><div>Read · context scoped</div><div>Write · review + allow once</div><div>Execute / network / package · allow once</div><div>Secrets / Git / deploy · separate approval</div></div>
         <div class="agent-actions"><button id="ask-ai" class="button primary full">Review context & stream</button><button id="cancel-ai" class="button full" disabled>Cancel stream</button></div>
         <pre id="ai-output" class="ai-output">No provider-backed result.</pre>
-        <div class="review-actions"><button id="apply-ai" class="button primary" disabled>Apply reviewed diff</button><button id="reject-ai" class="button" disabled>Reject</button></div>
+        <div class="review-actions"><button id="apply-ai" class="button primary" disabled>Approve & apply diff</button><button id="reject-ai" class="button" disabled>Reject proposal</button></div>
         <div class="pane-heading"><strong>Local conversation history</strong><button id="clear-ai-history" class="button">Clear</button></div>
         <div id="ai-history" class="result-list"><p class="muted compact">No saved AI results.</p></div>
       </div>
@@ -123,8 +136,9 @@
   </div>
 
   <dialog id="modal"><form method="dialog" id="modal-form"><div class="modal-heading"><strong id="modal-title">Action</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><div id="modal-content"></div><div class="modal-actions"><button value="cancel" class="button">Cancel</button><button id="modal-confirm" value="default" class="button primary">Continue</button></div></form></dialog>
+  <dialog id="palette"><form method="dialog"><div class="modal-heading"><strong>Command Palette</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><label class="field"><span>Find an action</span><input id="palette-query" autocomplete="off" placeholder="Compile, test, checkpoint, deploy review…"></label><div class="command-list"><button value="cancel" data-command="compile">Compile active Solidity file</button><button value="cancel" data-command="test">Run approved tests</button><button value="cancel" data-command="checkpoint">Create checkpoint</button><button value="cancel" data-command="ai">Open YNX AI Build</button><button value="cancel" data-command="deploy">Review Wallet-only deployment</button></div></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <input id="file-import" type="file" accept="application/json,.json" hidden>
-  <script type="module" src="/app.js?v=5"></script>
+  <script type="module" src="/app.js?v=12"></script>
 </body>
 </html>

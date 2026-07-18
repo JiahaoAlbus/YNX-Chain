@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "version": "0.2.0",
+  "artifacts": [
+    {
+      "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
+      "surface": "macOS arm64",
+      "path": "apps/developer/.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip",
+      "sha256": "fd9609d8e58e375a796adb3b0025703c9faf8cb655df35e13c9d754a9a245c7d",
+      "bytes": 38437736,
+      "signingClass": "adhoc-no-team-id",
+      "hosted": false,
+      "evidence": "Extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
+    },
+    {
+      "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "surface": "Windows x64",
+      "path": "apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "sha256": null,
+      "bytes": null,
+      "signingClass": "unsigned",
+      "hosted": false,
+      "evidence": "Generated and verified only by the Windows workflow; fill from the completed branch run before release metadata is finalized."
+    }
+  ]
+}

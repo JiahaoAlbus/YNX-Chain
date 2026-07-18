@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AIBuildPersistence, AIBuildRun, AI_BUILD_PERMISSIONS, GROK_BUILD_ACP,
   AICodingAgent, CommandAudit, DeveloperError, MemoryPersistence, ProjectWorkspace,
   DeveloperI18n, MESSAGES, SUPPORTED_LOCALES, DeveloperWalletSession, LocalNonceLedger, WalletDeployment, YNXChainClient, commandPreview, sourceDiagnostics
 } from "../src/index.js";
@@ -139,6 +140,47 @@ test("AI context is least privilege, cost is labeled estimate, permission is man
 test("AI context fails before network when the Gateway request limit would be exceeded", () => {
   const agent = new AICodingAgent();
   assert.throws(() => agent.prepare({ intent: "review source", project: { files: { "src/Large.sol": "x".repeat(8000) } }, approvedPaths: ["src/Large.sol"] }), (error) => error.code === "ai_context_too_large");
+});
+
+test("YNX AI Build gates plan, context, write, diff apply, checkpoint, resume and audit", () => {
+  let tick = Date.parse("2026-07-18T00:00:00.000Z");
+  const run = new AIBuildRun({ intent: "Add an owner-only reset with tests", provider: "ynx-gateway", model: "approved-grok", clock: () => ++tick });
+  run.setPlan(["Inspect approved contract", "Propose bounded diff", "Run tests"]);
+  assert.equal(run.snapshot().status, "review-required");
+  run.approvePlan("approve");
+  run.approveContext(["src/Counter.sol", "test/Counter.test.js"]);
+  const proposal = run.proposeDiff([{ path: "src/Counter.sol", before: "old", after: "new" }], "Owner-only reset");
+  run.reviewDiff(proposal.id, "approve");
+  const write = run.requestPermission("write", { reason: "Apply one reviewed file", scope: { paths: ["src/Counter.sol"] } });
+  run.decidePermission(write.requestId, "allow-once");
+  let applied;
+  run.applyDiff(proposal.id, write.requestId, (files) => { applied = files; });
+  assert.equal(applied[0].after, "new");
+  run.recordTest({ name: "Counter test", status: "passed", command: "node --test", evidence: "1 passed" });
+  const checkpoint = run.checkpoint("validated reset", { "src/Counter.sol": "new" });
+  run.pause("desktop restart");
+  const storageData = new Map();
+  const storage = { getItem: (key) => storageData.get(key) ?? null, setItem: (key, value) => storageData.set(key, value), removeItem: (key) => storageData.delete(key) };
+  const persistence = new AIBuildPersistence(storage); persistence.save(run);
+  const restored = persistence.load({ clock: () => ++tick }); restored.resume();
+  const revert = restored.requestPermission("write", { reason: "Restore reviewed checkpoint" }); restored.decidePermission(revert.requestId, "allow-once");
+  let reverted; restored.revert(checkpoint.id, revert.requestId, (files) => { reverted = files; });
+  assert.equal(reverted["src/Counter.sol"], "new");
+  const audit = JSON.parse(restored.exportAudit());
+  assert.ok(audit.events.some((entry) => entry.event === "diff.applied"));
+  assert.ok(audit.events.some((entry) => entry.event === "checkpoint.reverted"));
+  assert.deepEqual(AI_BUILD_PERMISSIONS, ["read","write","execute","network","package-install","secret-reference","git-commit","git-push","deploy"]);
+  assert.equal(GROK_BUILD_ACP.transport, "stdio"); assert.equal(GROK_BUILD_ACP.affiliationClaim, false);
+});
+
+test("YNX AI Build denies unapproved context and one-time permission reuse", () => {
+  const run = new AIBuildRun({ intent: "Review the contract safely" }); run.setPlan(["Review"]); run.approvePlan("approve"); run.approveContext(["src/A.sol"]);
+  assert.throws(() => run.proposeDiff([{ path: "secret.env", before: "present", after: "changed" }]), (error) => error.code === "context_scope_violation");
+  const permission = run.requestPermission("execute", { reason: "Run bounded tests" });
+  assert.throws(() => run.recordTool({ name: "test", permission: "execute", requestId: permission.requestId, status: "passed" }), (error) => error.code === "permission_not_granted");
+  run.decidePermission(permission.requestId, "allow-once");
+  run.recordTool({ name: "test", permission: "execute", requestId: permission.requestId, inputSummary: "node --test", status: "passed", outputSummary: "ok" });
+  assert.throws(() => run.recordTool({ name: "test-again", permission: "execute", requestId: permission.requestId, status: "passed" }), (error) => error.code === "permission_not_granted");
 });
 
 test("diagnostics explain unsupported compiler and syntax shape", () => {

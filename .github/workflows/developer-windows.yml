@@ -1,0 +1,47 @@
+name: Developer Windows package proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ecosystem-developer]
+    paths:
+      - "apps/developer/**"
+      - "packages/developer-client/**"
+      - ".github/workflows/developer-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package-and-cold-launch:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.17.0"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Client tests
+        working-directory: packages/developer-client
+        run: npm test
+      - name: Web and desktop boundary tests
+        working-directory: apps/developer
+        run: npm test
+      - name: Build portable Windows package
+        working-directory: apps/developer
+        run: ./scripts/package-windows.ps1
+      - name: Install and cold-launch portable package
+        working-directory: apps/developer
+        run: ./scripts/verify-windows-package.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-developer-testnet-preview-windows-x64-unsigned
+          path: |
+            apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip
+            apps/developer/.ynx-developer-windows/windows-package.json
+            apps/developer/.ynx-developer-windows/windows-install-evidence.json
+          if-no-files-found: error
+          retention-days: 14
