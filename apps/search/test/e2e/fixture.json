@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "revision": 7,
+  "sources": {
+    "ynx-docs": {
+      "id": "ynx-docs",
+      "url": "https://docs.ynxweb4.com/",
+      "origin": "https://docs.ynxweb4.com",
+      "label": "YNX reviewed docs",
+      "authorizationEvidence": "operator-source-approval-browser-search-2026-07",
+      "robotsPolicy": "respect",
+      "overrideEvidence": null,
+      "enabled": true,
+      "indexingStatus": "ready",
+      "lastAttemptAt": "2026-07-17T10:00:00.000Z",
+      "lastIndexedAt": "2026-07-17T10:00:00.000Z",
+      "lastError": null,
+      "documentCount": 2
+    }
+  },
+  "documents": {
+    "wallet-safety": {
+      "id": "wallet-safety",
+      "sourceId": "ynx-docs",
+      "url": "https://docs.ynxweb4.com/wallet/safety",
+      "title": "Review every Wallet authorization",
+      "text": "Wallet authorization requires an exact product, callback, scope, account, network and expiry review. The browser never signs and cannot report completion before Gateway verification.",
+      "contentType": "text/html",
+      "publishedAt": "2026-07-16T08:00:00.000Z",
+      "fetchedAt": "2026-07-17T10:00:00.000Z",
+      "indexedAt": "2026-07-17T10:00:00.000Z",
+      "contentDigest": "d5db4f22566da91dd4b4423a65b9469e983514fe781d0bf776ef06372c8264e3",
+      "indexReceipt": { "digest": "7d9ef087b4bb5af93355d8c45ba5bbf71ed8b04eefaf6c79cde6a16221127c92" },
+      "terms": ["wallet","authorization","requires","exact","product","callback","scope","account","network","and","expiry","review","the","browser","never","signs","cannot","report","completion","before","gateway","verification"]
+    },
+    "private-boundary": {
+      "id": "private-boundary",
+      "sourceId": "ynx-docs",
+      "url": "https://docs.ynxweb4.com/browser/private-boundary",
+      "title": "Private browsing boundaries",
+      "text": "Private browsing excludes local YNX history, crash recovery, permission persistence and AI context. Websites, networks, the operating system and downloaded files may still retain activity.",
+      "contentType": "text/html",
+      "publishedAt": "2026-07-15T08:00:00.000Z",
+      "fetchedAt": "2026-07-17T10:00:00.000Z",
+      "indexedAt": "2026-07-17T10:00:00.000Z",
+      "contentDigest": "1680ad426dd0bc0fefce520ee57e3746e00d7363a91da761be6d86733db58398",
+      "indexReceipt": { "digest": "11a27d77198bd6d40d2fd7ad3467c9b8d1d68861d8b918cf6c61a7c578db88b" },
+      "terms": ["private","browsing","excludes","local","ynx","history","crash","recovery","permission","persistence","and","context","websites","networks","the","operating","system","downloaded","files","may","still","retain","activity"]
+    }
+  },
+  "cases": {},
+  "aiAudit": [],
+  "privacyAudit": [],
+  "walletChallenges": {}
+}

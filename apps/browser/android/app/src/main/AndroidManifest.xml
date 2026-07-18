@@ -9,5 +9,6 @@
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
             <intent-filter android:autoVerify="false"><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="ynxbrowser" android:host="com.ynxweb4.browser" android:path="/auth/callback"/></intent-filter>
         </activity>
+        <activity android:name=".PrivateActivity" android:exported="false" android:process=":private" android:excludeFromRecents="true" android:label="YNX Browser Private" android:configChanges="locale|layoutDirection|screenSize|orientation|keyboardHidden" />
     </application>
 </manifest>

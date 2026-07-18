@@ -1,0 +1,52 @@
+[
+  {
+    "schemaVersion": 2,
+    "productClientId": "ynx-browser-android",
+    "requestingProduct": "browser",
+    "bundleId": "com.ynxweb4.browser",
+    "callbacks": ["ynxbrowser://com.ynxweb4.browser/auth/callback"],
+    "scopes": ["account:read", "browser:wallet-request"],
+    "maxScopes": 2,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  },
+  {
+    "schemaVersion": 2,
+    "productClientId": "ynx-browser-ios",
+    "requestingProduct": "browser",
+    "bundleId": "com.ynxweb4.browser.ios",
+    "callbacks": ["ynxbrowser://com.ynxweb4.browser.ios/auth/callback"],
+    "scopes": ["account:read", "browser:wallet-request"],
+    "maxScopes": 2,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  },
+  {
+    "schemaVersion": 2,
+    "productClientId": "ynx-browser-macos",
+    "requestingProduct": "browser",
+    "bundleId": "com.ynxweb4.browser.macos",
+    "callbacks": ["ynxbrowser://com.ynxweb4.browser.macos/auth/callback"],
+    "scopes": ["account:read", "browser:wallet-request"],
+    "maxScopes": 2,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  },
+  {
+    "schemaVersion": 2,
+    "productClientId": "ynx-browser-windows",
+    "requestingProduct": "browser",
+    "bundleId": "com.ynxweb4.browser.windows",
+    "callbacks": ["ynxbrowser://com.ynxweb4.browser.windows/auth/callback"],
+    "scopes": ["account:read", "browser:wallet-request"],
+    "maxScopes": 2,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  },
+  {
+    "schemaVersion": 2,
+    "productClientId": "ynx-search-web",
+    "requestingProduct": "search",
+    "bundleId": "com.ynxweb4.search.web",
+    "callbacks": ["https://search-staging.43.153.202.237.sslip.io/auth/callback"],
+    "scopes": ["account:read", "search:cases"],
+    "maxScopes": 2,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  }
+]

@@ -1,0 +1,191 @@
+name: Browser platform evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ecosystem-browser-search]
+    paths:
+      - "apps/browser/**"
+      - "packages/web4-permissions/**"
+      - ".github/workflows/browser-platform-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  android-install-cold-launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Android 36 image and build tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "emulator" "platform-tools" "system-images;android-36;google_apis;x86_64"
+      - name: Build stable Testnet Preview APK
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+        run: apps/browser/scripts/build-android.sh
+      - name: Boot isolated emulator
+        run: |
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name ynx_browser_ci --package "system-images;android-36;google_apis;x86_64"
+          nohup "$ANDROID_HOME/emulator/emulator" -avd ynx_browser_ci -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > android-emulator.log 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ] && break; sleep 2; done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
+      - name: Install, cold launch, restart, deep link and isolate Private process
+        run: |
+          mkdir -p apps/browser/evidence/platform/android
+          adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
+          adb shell am force-stop com.ynxweb4.browser
+          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 | tee apps/browser/evidence/platform/android/cold-launch.txt
+          sleep 4
+          adb shell pidof com.ynxweb4.browser | tee apps/browser/evidence/platform/android/pid-cold.txt
+          adb exec-out screencap -p > apps/browser/evidence/platform/android/cold-launch.png
+          adb shell am force-stop com.ynxweb4.browser
+          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/restart.txt
+          sleep 3
+          adb shell am start -a android.intent.action.VIEW -d 'ynxbrowser://com.ynxweb4.browser/auth/callback?response=malformed' com.ynxweb4.browser | tee apps/browser/evidence/platform/android/deep-link.txt
+          adb shell am start -n com.ynxweb4.browser/.PrivateActivity | tee apps/browser/evidence/platform/android/private-launch.txt
+          sleep 3
+          adb shell pidof com.ynxweb4.browser:private | tee apps/browser/evidence/platform/android/private-pid.txt
+          test -s apps/browser/evidence/platform/android/private-pid.txt
+          adb exec-out screencap -p > apps/browser/evidence/platform/android/private.png
+          adb shell am force-stop com.ynxweb4.browser
+          adb shell cmd locale set-app-locales com.ynxweb4.browser --user 0 ar
+          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/arabic-launch.txt
+          sleep 3
+          adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-rtl.png
+          adb shell settings put system font_scale 1.5
+          adb shell am force-stop com.ynxweb4.browser
+          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/large-text-launch.txt
+          sleep 3
+          adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-large-text.png
+          adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
+          sha256sum apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/sha256.txt
+          stat --printf='%s bytes\n' apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/size.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-browser-android-testnet-preview
+          path: |
+            apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk
+            apps/browser/evidence/platform/android
+            android-emulator.log
+          if-no-files-found: error
+
+  macos-package-cold-launch:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, ad-hoc sign and install Testnet Preview
+        run: |
+          npm --prefix apps/browser ci
+          npm --prefix apps/browser run build:macos
+          mkdir -p apps/browser/evidence/platform/macos "$RUNNER_TEMP/Applications"
+          ditto 'apps/browser/dist/macos/YNX Browser Testnet Preview.app' "$RUNNER_TEMP/Applications/YNX Browser Testnet Preview.app"
+          codesign --verify --deep --strict "$RUNNER_TEMP/Applications/YNX Browser Testnet Preview.app"
+          codesign -dv --verbose=4 "$RUNNER_TEMP/Applications/YNX Browser Testnet Preview.app" 2> apps/browser/evidence/platform/macos/codesign.txt
+      - name: Cold launch and restart
+        run: |
+          APP="$RUNNER_TEMP/Applications/YNX Browser Testnet Preview.app"
+          YNX_SEARCH_URL=https://search-staging.43.153.202.237.sslip.io "$APP/Contents/MacOS/YNXBrowserNative" > apps/browser/evidence/platform/macos/cold-launch.log 2>&1 &
+          PID=$!
+          sleep 6
+          kill -0 "$PID"
+          echo "pid=$PID running=true" > apps/browser/evidence/platform/macos/cold-launch.txt
+          screencapture -x apps/browser/evidence/platform/macos/cold-launch.png || true
+          kill "$PID"
+          wait "$PID" || true
+          YNX_BROWSER_EVIDENCE_STATE=private YNX_SEARCH_URL=https://search-staging.43.153.202.237.sslip.io "$APP/Contents/MacOS/YNXBrowserNative" > apps/browser/evidence/platform/macos/restart.log 2>&1 &
+          PID=$!
+          sleep 5
+          kill -0 "$PID"
+          echo "pid=$PID running=true" > apps/browser/evidence/platform/macos/restart.txt
+          screencapture -x apps/browser/evidence/platform/macos/private.png || true
+          kill "$PID"
+          wait "$PID" || true
+          shasum -a 256 apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/sha256.txt
+          stat -f '%z bytes' apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip > apps/browser/evidence/platform/macos/size.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-browser-macos-testnet-preview
+          path: |
+            apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip
+            apps/browser/evidence/platform/macos
+          if-no-files-found: error
+
+  ios-simulator-install-cold-launch:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select simulator and build
+        run: |
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for values in d.values() for x in values if x["name"].startswith("iPhone 16")))')
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
+          xcodebuild -project apps/browser/ios/YNXBrowser.xcodeproj -scheme YNXBrowser -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath "$RUNNER_TEMP/ynx-browser-ios" CODE_SIGNING_ALLOWED=NO build | tee ios-build.log
+      - name: Install, cold launch, restart and callback rejection
+        run: |
+          mkdir -p apps/browser/evidence/platform/ios apps/browser/dist/ios
+          xcrun simctl boot "$DEVICE" || true
+          open -a Simulator
+          xcrun simctl bootstatus "$DEVICE" -b
+          APP="$RUNNER_TEMP/ynx-browser-ios/Build/Products/Debug-iphonesimulator/YNXBrowser.app"
+          xcrun simctl install "$DEVICE" "$APP" | tee apps/browser/evidence/platform/ios/install.txt
+          xcrun simctl terminate "$DEVICE" com.ynxweb4.browser.ios || true
+          xcrun simctl launch "$DEVICE" com.ynxweb4.browser.ios | tee apps/browser/evidence/platform/ios/cold-launch.txt
+          sleep 4
+          xcrun simctl io "$DEVICE" screenshot apps/browser/evidence/platform/ios/cold-launch.png
+          xcrun simctl terminate "$DEVICE" com.ynxweb4.browser.ios
+          xcrun simctl launch "$DEVICE" com.ynxweb4.browser.ios | tee apps/browser/evidence/platform/ios/restart.txt
+          xcrun simctl openurl "$DEVICE" 'ynxbrowser://com.ynxweb4.browser.ios/auth/callback?response=malformed' | tee apps/browser/evidence/platform/ios/deep-link.txt
+          sleep 2
+          xcrun simctl io "$DEVICE" screenshot apps/browser/evidence/platform/ios/deep-link-rejected.png
+          ditto -c -k --sequesterRsrc --keepParent "$APP" apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip
+          shasum -a 256 apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/sha256.txt
+          stat -f '%z bytes' apps/browser/dist/ios/YNX-Browser-Testnet-Preview-iOS-Simulator.zip > apps/browser/evidence/platform/ios/size.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-browser-ios-simulator-testnet-preview
+          path: |
+            apps/browser/dist/ios
+            apps/browser/evidence/platform/ios
+            ios-build.log
+          if-no-files-found: error
+
+  windows-compile-package-cold-launch:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and package WebView2 app
+        shell: pwsh
+        run: |
+          dotnet restore apps/browser/windows/YNXBrowser.Windows/YNXBrowser.Windows.csproj
+          dotnet publish apps/browser/windows/YNXBrowser.Windows/YNXBrowser.Windows.csproj -c Release -r win-x64 --self-contained false -o apps/browser/dist/windows | Tee-Object windows-build.log
+          Compress-Archive -Path apps/browser/dist/windows/* -DestinationPath apps/browser/YNX-Browser-Testnet-Preview-Windows-x64.zip -Force
+      - name: Install-equivalent extraction and cold launch
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force apps/browser/evidence/platform/windows, "$env:RUNNER_TEMP/ynx-browser-installed" | Out-Null
+          Expand-Archive apps/browser/YNX-Browser-Testnet-Preview-Windows-x64.zip "$env:RUNNER_TEMP/ynx-browser-installed" -Force
+          $process = Start-Process "$env:RUNNER_TEMP/ynx-browser-installed/YNXBrowser.exe" -PassThru
+          Start-Sleep -Seconds 8
+          if ($process.HasExited) { throw "YNX Browser exited during cold launch" }
+          "pid=$($process.Id) running=true" | Set-Content apps/browser/evidence/platform/windows/cold-launch.txt
+          Get-FileHash apps/browser/YNX-Browser-Testnet-Preview-Windows-x64.zip -Algorithm SHA256 | Format-List | Out-File apps/browser/evidence/platform/windows/sha256.txt
+          (Get-Item apps/browser/YNX-Browser-Testnet-Preview-Windows-x64.zip).Length | Out-File apps/browser/evidence/platform/windows/size.txt
+          Stop-Process -Id $process.Id -Force
+          $restart = Start-Process "$env:RUNNER_TEMP/ynx-browser-installed/YNXBrowser.exe" -PassThru
+          Start-Sleep -Seconds 5
+          if ($restart.HasExited) { throw "YNX Browser exited during restart" }
+          "pid=$($restart.Id) running=true" | Set-Content apps/browser/evidence/platform/windows/restart.txt
+          Stop-Process -Id $restart.Id -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-browser-windows-testnet-preview
+          path: |
+            apps/browser/YNX-Browser-Testnet-Preview-Windows-x64.zip
+            apps/browser/evidence/platform/windows
+            windows-build.log
+          if-no-files-found: error

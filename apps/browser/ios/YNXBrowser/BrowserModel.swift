@@ -13,10 +13,10 @@ struct PersistedBrowser: Codable { var tabs:[BrowserTab];var history:[BrowserRec
     enum LibraryKind:String,Identifiable{case history,bookmarks,downloads;var id:String{rawValue}}
     struct AiPreview:Identifiable{let id=UUID();let url:String;let characters:Int;let provider:String}
     private let stateURL:URL;private var usedNonces=Set<String>();private var pendingNonce:String?
-    init(){let base=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("YNXBrowser",isDirectory:true);try?FileManager.default.createDirectory(at:base,withIntermediateDirectories:true);stateURL=base.appendingPathComponent("state.json");restore();if tabs.isEmpty{open("https://search.ynx.invalid",privateMode:false)}}
+    init(){let base=FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("YNXBrowser",isDirectory:true);try?FileManager.default.createDirectory(at:base,withIntermediateDirectories:true);stateURL=base.appendingPathComponent("state.json");restore();if tabs.isEmpty{open("https://search-staging.43.153.202.237.sslip.io",privateMode:false)}}
     var current:BrowserTab?{tabs.first{$0.id==active}}
     func open(_ url:String,privateMode:Bool){let tab=BrowserTab(url:url,title:privateMode ? L.text(locale,"private") : L.text(locale,"new"),isPrivate:privateMode);tabs.append(tab);active=tab.id;if privateMode{notice=L.text(locale,"privateBoundary")};persist()}
-    func close(_ id:UUID){tabs.removeAll{$0.id==id};if active==id{active=tabs.last?.id};if tabs.isEmpty{open("https://search.ynx.invalid",privateMode:false)};persist()}
+    func close(_ id:UUID){tabs.removeAll{$0.id==id};if active==id{active=tabs.last?.id};if tabs.isEmpty{open("https://search-staging.43.153.202.237.sslip.io",privateMode:false)};persist()}
     func navigated(_ id:UUID,url:String,title:String){guard let index=tabs.firstIndex(where:{$0.id==id})else{return};tabs[index].url=url;tabs[index].title=title;if !tabs[index].isPrivate{history.insert(BrowserRecord(title:title,url:url),at:0);history=Array(history.prefix(5000))};persist()}
     func processCrashed(_ id:UUID){guard let index=tabs.firstIndex(where:{$0.id==id})else{return};tabs[index].crashed=true;notice="WebKit content process recovered";persist()}
     func bookmark(){guard let tab=current else{return};bookmarks.insert(BrowserRecord(title:tab.title,url:tab.url),at:0);persist()}
