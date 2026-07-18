@@ -69,6 +69,32 @@
         { "expr": "ynx_faucet_success_total", "legendFormat": "success" },
         { "expr": "ynx_faucet_denied_total", "legendFormat": "denied" }
       ]
+    },
+    {
+      "type": "stat",
+      "title": "Follower Replication Health",
+      "gridPos": { "x": 0, "y": 22, "w": 8, "h": 5 },
+      "targets": [
+        { "expr": "ynx_chain_replication_fresh{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} fresh" },
+        { "expr": "ynx_chain_replication_catching_up{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} catching up" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Follower Replication Lag",
+      "gridPos": { "x": 8, "y": 22, "w": 8, "h": 7 },
+      "targets": [
+        { "expr": "ynx_chain_replication_lag_blocks{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} lag" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Follower Replication Failures",
+      "gridPos": { "x": 16, "y": 22, "w": 8, "h": 7 },
+      "targets": [
+        { "expr": "increase(ynx_chain_replication_failures_total{job=\"ynx-chaind\"}[5m])", "legendFormat": "{{instance}} failures" },
+        { "expr": "ynx_chain_replication_consecutive_failures{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} consecutive" }
+      ]
     }
   ]
 }

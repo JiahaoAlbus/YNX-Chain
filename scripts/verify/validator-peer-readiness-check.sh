@@ -90,6 +90,33 @@ for _ in {1..40}; do
 done
 PRIMARY_STATUS="$primary_status" SECONDARY_STATUS="$secondary_status" node -e 'const p=JSON.parse(process.env.PRIMARY_STATUS); const s=JSON.parse(process.env.SECONDARY_STATUS); if (p.height!==s.height || p.latestBlockHash!==s.latestBlockHash) { console.error(`replication did not converge: primary=${p.height}/${p.latestBlockHash} secondary=${s.height}/${s.latestBlockHash}`); process.exit(1); }'
 secondary_identity="$(curl -fsS http://127.0.0.1:6461/node/identity)"
-printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460") { console.error(`follower identity missing replication mode: ${JSON.stringify(data)}`); process.exit(1); }'
+printf '%s' "$secondary_identity" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.blockProductionEnabled || data.replicationMode !== "authoritative_follower" || data.replicationSource !== "http://127.0.0.1:6460" || !r.configured || r.status !== "synced" || r.catchingUp !== false || r.fresh !== true || r.localHeight !== r.sourceHeight || r.localBlockHash !== r.sourceBlockHash || r.consecutiveFailures !== 0 || r.successes < 1) { console.error(`follower identity missing verified replication state: ${JSON.stringify(data)}`); process.exit(1); }'
+
+secondary_status="$(curl -fsS http://127.0.0.1:6461/status)"
+printf '%s' "$secondary_status" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); const r=data.replication||{}; if (data.catchingUp !== false || r.status !== "synced" || r.localHeight !== data.height || r.localBlockHash !== data.latestBlockHash) { console.error(`follower status missing convergence proof: ${JSON.stringify(data)}`); process.exit(1); }'
+secondary_metrics=""
+# The producer can advance between the status and metrics requests. Poll until
+# one coherent metrics scrape observes the follower fully caught up.
+for _ in {1..40}; do
+  secondary_metrics="$(curl -fsS http://127.0.0.1:6461/metrics)"
+  if grep -Fq 'ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="synced"} 1' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_fresh{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' <<<"$secondary_metrics" \
+    && grep -Fq 'ynx_chain_replication_lag_blocks{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' <<<"$secondary_metrics"; then
+    break
+  fi
+  sleep 0.25
+done
+for metric in \
+  'ynx_chain_replication_configured{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' \
+  'ynx_chain_replication_status_info{network="testnet",chain_id="6423",native_symbol="YNXT",status="synced"} 1' \
+  'ynx_chain_replication_catching_up{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' \
+  'ynx_chain_replication_fresh{network="testnet",chain_id="6423",native_symbol="YNXT"} 1' \
+  'ynx_chain_replication_lag_blocks{network="testnet",chain_id="6423",native_symbol="YNXT"} 0' \
+  'ynx_chain_replication_consecutive_failures{network="testnet",chain_id="6423",native_symbol="YNXT"} 0'
+do
+  grep -Fq "$metric" <<<"$secondary_metrics" || { echo "follower metrics missing: $metric"; exit 1; }
+done
+grep -Eq 'ynx_chain_replication_successes_total\{[^}]+\} [1-9][0-9]*' <<<"$secondary_metrics" || { echo "follower metrics missing successful replication count"; exit 1; }
 
 echo "validator-peer-readiness-check passed: validator=$validator_address"

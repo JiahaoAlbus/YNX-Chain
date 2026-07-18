@@ -148,7 +148,7 @@ services:
       - ynx-resource-logs:/var/log/ynx-resource
 
   prometheus:
-    image: prom/prometheus:v2.55.1
+    image: prom/prometheus:v3.11.2
     depends_on:
       - ynx-chaind
       - ynx-indexerd

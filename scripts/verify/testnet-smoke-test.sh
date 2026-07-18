@@ -101,12 +101,18 @@ transparency_entries=$(printf '%s' "$transparency" | node -pe 'JSON.parse(fs.rea
 echo "Transparency report result: $transparency"
 pay_intent=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25,"idempotencyKey":"smoke-intent-key"}')
 intent_id=$(printf '%s' "$pay_intent" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).id')
-pay_intent_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":99,"idempotencyKey":"smoke-intent-key"}')
+pay_intent_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":25,"idempotencyKey":"smoke-intent-key"}')
 printf '%s\n%s' "$pay_intent" "$pay_intent_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id || second.amount !== 25) { console.error(`pay intent idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
+pay_intent_conflict_code=$(curl -sS -o "$work/pay-intent-conflict.json" -w '%{http_code}' -X POST http://127.0.0.1:6420/pay/intents -H 'content-type: application/json' -d '{"merchant":"merchant_smoke","amount":99,"idempotencyKey":"smoke-intent-key"}')
+[[ "$pay_intent_conflict_code" == "400" ]] || { echo "changed pay intent replay did not fail closed: HTTP $pay_intent_conflict_code"; cat "$work/pay-intent-conflict.json"; exit 1; }
+node -e 'const data=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); if (!String(data.error||"").includes("idempotencyKey")) process.exit(1)' "$work/pay-intent-conflict.json"
 echo "Pay API result: $pay_intent"
 invoice=$(curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12,\"idempotencyKey\":\"smoke-invoice-key\"}")
-invoice_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":36,\"idempotencyKey\":\"smoke-invoice-key\"}")
+invoice_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":12,\"idempotencyKey\":\"smoke-invoice-key\"}")
 printf '%s\n%s' "$invoice" "$invoice_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id) { console.error(`invoice idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
+invoice_conflict_code=$(curl -sS -o "$work/invoice-conflict.json" -w '%{http_code}' -X POST http://127.0.0.1:6420/pay/invoices -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"dueInHours\":36,\"idempotencyKey\":\"smoke-invoice-key\"}")
+[[ "$invoice_conflict_code" == "400" ]] || { echo "changed invoice replay did not fail closed: HTTP $invoice_conflict_code"; cat "$work/invoice-conflict.json"; exit 1; }
+node -e 'const data=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); if (!String(data.error||"").includes("idempotencyKey")) process.exit(1)' "$work/invoice-conflict.json"
 echo "Invoice result: $invoice"
 webhook=$(curl -fsS -X POST http://127.0.0.1:6420/pay/webhook-signatures -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"eventType\":\"payment_intent.created\",\"signingKey\":\"smoke-signing-key\",\"idempotencyKey\":\"smoke-webhook-key\"}")
 webhook_id=$(printf '%s' "$webhook" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).eventId')
@@ -114,8 +120,11 @@ printf '%s' "$webhook" | node -e 'const data=JSON.parse(require("fs").readFileSy
 curl -fsS "http://127.0.0.1:6420/pay/webhook-signatures/$webhook_id" >/dev/null
 echo "Webhook signature result: $webhook"
 refund=$(curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":5,\"reason\":\"smoke\",\"idempotencyKey\":\"smoke-refund-key\"}")
-refund_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":6,\"reason\":\"changed\",\"idempotencyKey\":\"smoke-refund-key\"}")
+refund_replay=$(curl -fsS -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":5,\"reason\":\"smoke\",\"idempotencyKey\":\"smoke-refund-key\"}")
 printf '%s\n%s' "$refund" "$refund_replay" | node -e 'const [first, second]=require("fs").readFileSync(0,"utf8").trim().split(/\n/).map(JSON.parse); if (first.id !== second.id || second.amount !== 5) { console.error(`refund idempotency failed: ${JSON.stringify({first, second})}`); process.exit(1); }'
+refund_conflict_code=$(curl -sS -o "$work/refund-conflict.json" -w '%{http_code}' -X POST http://127.0.0.1:6420/pay/refunds -H 'content-type: application/json' -d "{\"intentId\":\"$intent_id\",\"amount\":6,\"reason\":\"changed\",\"idempotencyKey\":\"smoke-refund-key\"}")
+[[ "$refund_conflict_code" == "400" ]] || { echo "changed refund replay did not fail closed: HTTP $refund_conflict_code"; cat "$work/refund-conflict.json"; exit 1; }
+node -e 'const data=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); if (!String(data.error||"").includes("idempotencyKey")) process.exit(1)' "$work/refund-conflict.json"
 echo "Refund record result: $refund"
 pay_events=$(curl -fsS "http://127.0.0.1:6420/pay/events?intentId=$intent_id")
 printf '%s' "$pay_events" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.events) || data.events.length !== 4 || data.events.some((event)=>!event.auditHash)) { console.error(`pay events audit failed: ${JSON.stringify(data)}`); process.exit(1); }'

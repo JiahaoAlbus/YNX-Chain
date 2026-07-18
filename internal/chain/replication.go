@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -10,6 +11,12 @@ import (
 )
 
 const MaxReplicationSnapshotBytes = 64 << 20
+
+const (
+	legacyDevnetSnapshotVersion = 1
+	devnetSnapshotVersion       = 2
+	devnetSnapshotHashDomain    = "YNX_CHAIN_DEVNET_SNAPSHOT_V2"
+)
 
 type ReplicationApplyResult struct {
 	Applied    bool      `json:"applied"`
@@ -21,7 +28,11 @@ type ReplicationApplyResult struct {
 func (d *Devnet) ReplicationSnapshotJSON() ([]byte, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return json.Marshal(d.snapshotLocked())
+	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(snapshot)
 }
 
 func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritativeRebase bool) (ReplicationApplyResult, error) {
@@ -53,19 +64,24 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 
 	localPeers := d.validatorPeers
 	localPeerSyncs := d.validatorPeerSyncs
+	rollback := d.snapshotLocked()
 	d.applySnapshotLocked(snapshot)
 	// Peer observations are node-local operational evidence, not replicated chain state.
 	d.validatorPeers = localPeers
 	d.validatorPeerSyncs = localPeerSyncs
 	if err := d.persistSnapshotLocked(); err != nil {
-		return ReplicationApplyResult{}, err
+		d.applySnapshotLocked(rollback)
+		if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
+			return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %v; persist rollback snapshot: %w", err, rollbackErr)
+		}
+		return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %w", err)
 	}
 	result.Applied = true
 	return result, nil
 }
 
 func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) error {
-	if snapshot.Version != 1 {
+	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion {
 		return fmt.Errorf("unsupported replication snapshot version %d", snapshot.Version)
 	}
 	if snapshot.Config.ChainID != cfg.ChainID || snapshot.Config.Slug != cfg.Slug {
@@ -74,6 +90,16 @@ func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) err
 	if len(snapshot.Blocks) == 0 {
 		return errors.New("replication snapshot has no blocks")
 	}
+	if err := validateDevnetSnapshotIntegrity(snapshot); err != nil {
+		return fmt.Errorf("validate replication snapshot integrity: %w", err)
+	}
+	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
+		return fmt.Errorf("validate replication Resource sponsor snapshot: %w", err)
+	}
+	return validateReplicationBlockHistory(snapshot, cfg)
+}
+
+func validateReplicationBlockHistory(snapshot devnetSnapshot, cfg NetworkConfig) error {
 	expectedGenesis := hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID))
 	for i, block := range snapshot.Blocks {
 		expectedHeight := uint64(i)
@@ -103,8 +129,57 @@ func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) err
 	return nil
 }
 
+func sealDevnetSnapshot(snapshot devnetSnapshot) (devnetSnapshot, error) {
+	snapshot.Version = devnetSnapshotVersion
+	snapshot.StateIntegrity = ""
+	integrity, err := devnetSnapshotIntegrity(snapshot)
+	if err != nil {
+		return devnetSnapshot{}, err
+	}
+	snapshot.StateIntegrity = integrity
+	return snapshot, nil
+}
+
+func validateDevnetSnapshotIntegrity(snapshot devnetSnapshot) error {
+	if snapshot.Version == legacyDevnetSnapshotVersion {
+		if snapshot.StateIntegrity != "" {
+			return errors.New("legacy devnet snapshot must not claim v2 state integrity")
+		}
+		return nil
+	}
+	if snapshot.Version != devnetSnapshotVersion {
+		return fmt.Errorf("unsupported devnet snapshot version %d", snapshot.Version)
+	}
+	actual, err := hex.DecodeString(snapshot.StateIntegrity)
+	if err != nil || len(actual) != sha256.Size {
+		return errors.New("devnet snapshot state integrity is invalid")
+	}
+	expectedHex, err := devnetSnapshotIntegrity(snapshot)
+	if err != nil {
+		return err
+	}
+	expected, _ := hex.DecodeString(expectedHex)
+	if !hmac.Equal(actual, expected) {
+		return errors.New("devnet snapshot state integrity mismatch")
+	}
+	return nil
+}
+
+func devnetSnapshotIntegrity(snapshot devnetSnapshot) (string, error) {
+	snapshot.StateIntegrity = ""
+	payload, err := json.Marshal(snapshot)
+	if err != nil {
+		return "", fmt.Errorf("encode devnet snapshot integrity document: %w", err)
+	}
+	digest := sha256.New()
+	_, _ = digest.Write([]byte(devnetSnapshotHashDomain))
+	_, _ = digest.Write([]byte{0})
+	_, _ = digest.Write(payload)
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
 func (d *Devnet) snapshotLocked() devnetSnapshot {
-	snapshot := devnetSnapshot{Version: 1, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, PaySettlements: d.paySettlements, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Pools: d.resourcePools, Sponsors: d.resourceSponsorships, SponsorIDs: d.resourceSponsorIdem, ActionRefs: d.resourceActionRefs, SponsorLog: d.resourceSponsorAudit, Contracts: d.contracts}
+	snapshot := devnetSnapshot{Version: devnetSnapshotVersion, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, PaySettlements: d.paySettlements, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Pools: d.resourcePools, Sponsors: d.resourceSponsorships, SponsorIDs: d.resourceSponsorIdem, ActionRefs: d.resourceActionRefs, SponsorLog: d.resourceSponsorAudit, Contracts: d.contracts}
 	snapshot.SponsorIntegrity = resourceSponsorSnapshotIntegrity(snapshot)
 	return snapshot
 }
