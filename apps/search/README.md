@@ -36,3 +36,15 @@ or bounded privacy into a stronger claim. The optional AI flow uses
 `YNX_AI_GATEWAY_CLIENT_TOKEN`; without both it returns an honest unavailable
 state. Context preview and explicit consent precede streaming, and citation
 metadata is rejected unless every URL belongs to the retrieved indexed set.
+
+## Staging operations
+
+`deploy/` contains the reviewed loopback-only systemd unit, Caddy route and
+environment template. The active Testnet Preview is:
+
+- UI: <https://search-staging.43.153.202.237.sslip.io>
+- health/version: <https://search-staging.43.153.202.237.sslip.io/api/health>
+
+It starts with an empty approved-source inventory. AI, Wallet Gateway and Trust
+remain unavailable until central operators provide their reviewed integrations;
+no secret is stored in this repository.

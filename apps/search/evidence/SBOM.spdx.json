@@ -1,0 +1,15 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "YNX-Search-0.2.0",
+  "documentNamespace": "https://ynxweb4.com/spdx/search/0.2.0/a368f2dc",
+  "creationInfo": {"created": "2026-07-18T19:17:20Z", "creators": ["Tool: npm-10", "Organization: YNX"]},
+  "packages": [
+    {"name":"@ynx/search","SPDXID":"SPDXRef-YNX-Search","versionInfo":"0.2.0","downloadLocation":"NOASSERTION","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION"},
+    {"name":"@playwright/test","SPDXID":"SPDXRef-Playwright-Test","versionInfo":"1.61.1","downloadLocation":"https://registry.npmjs.org/@playwright/test/-/test-1.61.1.tgz","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"DEVELOPMENT"},
+    {"name":"playwright","SPDXID":"SPDXRef-Playwright","versionInfo":"1.61.1","downloadLocation":"https://registry.npmjs.org/playwright/-/playwright-1.61.1.tgz","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"DEVELOPMENT"},
+    {"name":"playwright-core","SPDXID":"SPDXRef-Playwright-Core","versionInfo":"1.61.1","downloadLocation":"https://registry.npmjs.org/playwright-core/-/playwright-core-1.61.1.tgz","filesAnalyzed":false,"licenseConcluded":"Apache-2.0","licenseDeclared":"Apache-2.0","primaryPackagePurpose":"DEVELOPMENT"},
+    {"name":"fsevents","SPDXID":"SPDXRef-Fsevents","versionInfo":"2.3.2","downloadLocation":"https://registry.npmjs.org/fsevents/-/fsevents-2.3.2.tgz","filesAnalyzed":false,"licenseConcluded":"MIT","licenseDeclared":"MIT","primaryPackagePurpose":"DEVELOPMENT"}
+  ]
+}
