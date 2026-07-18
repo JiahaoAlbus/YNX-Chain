@@ -27,9 +27,11 @@ export function createCallbackURL(response) {
 }
 
 export function parseCallbackURL(url, expectedCallback) {
-  const parsed = new URL(url);
-  const expected = new URL(expectedCallback);
-  const response = parsed.searchParams.get("response");
+  let parsed, expected;
+  try { parsed = new URL(url); expected = new URL(expectedCallback); } catch { throw new WalletAuthError("INVALID_CALLBACK", "Wallet callback is invalid"); }
+  const keys = [...parsed.searchParams.keys()];
+  const response = keys.length === 1 && keys[0] === "response" ? parsed.searchParams.get("response") : null;
+  if (parsed.hash || parsed.username || parsed.password) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback route was substituted");
   parsed.search = "";
   if (!response || parsed.toString() !== expected.toString()) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback route was substituted");
   try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(response, "Wallet callback response"))); } catch { throw new WalletAuthError("INVALID_CALLBACK", "Callback response encoding is invalid"); }

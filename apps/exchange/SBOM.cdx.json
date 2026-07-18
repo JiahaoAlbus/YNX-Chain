@@ -1,0 +1,28 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:6b8cd65a-5f01-4e0f-98cd-ea8ee70f7a80",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-18T19:34:01Z",
+    "component": {"type": "application", "name": "YNX Exchange", "version": "0.1.0-testnet"}
+  },
+  "components": [
+    {"type":"library","name":"expo","version":"57.0.6","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo@57.0.6"},
+    {"type":"library","name":"expo-crypto","version":"57.0.1","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo-crypto@57.0.1"},
+    {"type":"library","name":"expo-linking","version":"57.0.3","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo-linking@57.0.3"},
+    {"type":"library","name":"expo-localization","version":"57.0.1","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo-localization@57.0.1"},
+    {"type":"library","name":"expo-secure-store","version":"57.0.1","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo-secure-store@57.0.1"},
+    {"type":"library","name":"expo-status-bar","version":"57.0.1","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/expo-status-bar@57.0.1"},
+    {"type":"library","name":"lucide-react-native","version":"1.24.0","licenses":[{"license":{"id":"ISC"}}],"purl":"pkg:npm/lucide-react-native@1.24.0"},
+    {"type":"library","name":"react","version":"19.2.3","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/react@19.2.3"},
+    {"type":"library","name":"react-native","version":"0.86.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/react-native@0.86.0"},
+    {"type":"library","name":"react-native-safe-area-context","version":"5.7.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/react-native-safe-area-context@5.7.0"},
+    {"type":"library","name":"react-native-svg","version":"15.15.4","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/react-native-svg@15.15.4"},
+    {"type":"library","name":"@noble/curves","version":"2.2.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/%40noble/curves@2.2.0"},
+    {"type":"library","name":"@noble/hashes","version":"2.2.0","licenses":[{"license":{"id":"MIT"}}],"purl":"pkg:npm/%40noble/hashes@2.2.0"},
+    {"type":"library","name":"github.com/decred/dcrd/dcrec/secp256k1/v4","version":"4.4.0","licenses":[{"license":{"id":"ISC"}}],"purl":"pkg:golang/github.com/decred/dcrd/dcrec/secp256k1/v4@v4.4.0"},
+    {"type":"library","name":"golang.org/x/crypto","version":"0.33.0","licenses":[{"license":{"id":"BSD-3-Clause"}}],"purl":"pkg:golang/golang.org/x/crypto@v0.33.0"},
+    {"type":"library","name":"golang.org/x/sys","version":"0.30.0","licenses":[{"license":{"id":"BSD-3-Clause"}}],"purl":"pkg:golang/golang.org/x/sys@v0.30.0"}
+  ]
+}

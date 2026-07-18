@@ -24,11 +24,11 @@ type Server struct {
 func NewServer(service *Service) *Server {
 	s := &Server{service: service, mux: http.NewServeMux()}
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/config", s.config)
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
-	s.mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
-	s.mux.HandleFunc("POST /v1/auth/sessions", s.session)
+	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
 	s.mux.HandleFunc("GET /v1/account", s.account)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
@@ -50,7 +50,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"status": "ok", "product": "YNX Exchange", "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
+	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
+}
+func (s *Server) version(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
 }
 func (s *Server) config(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "integrations": s.service.Integrations(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
@@ -59,29 +62,8 @@ func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
 }
 func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
-func (s *Server) challenge(w http.ResponseWriter, r *http.Request) {
-	var q struct {
-		Account  string   `json:"account"`
-		DeviceID string   `json:"deviceId"`
-		Scopes   []string `json:"scopes"`
-	}
-	if !decode(w, r, &q) {
-		return
-	}
-	v, err := s.service.CreateChallenge(q.Account, q.DeviceID, q.Scopes)
-	respond(w, v, err, 201)
-}
-func (s *Server) session(w http.ResponseWriter, r *http.Request) {
-	var q CompleteSessionRequest
-	if !decode(w, r, &q) {
-		return
-	}
-	v, token, err := s.service.CompleteSession(q)
-	if err != nil {
-		respond(w, nil, err, 201)
-		return
-	}
-	writeJSON(w, 201, map[string]any{"session": v, "token": token})
+func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
 }
 func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:read")

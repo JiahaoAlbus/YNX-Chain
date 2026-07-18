@@ -16,6 +16,8 @@ var (
 )
 
 const (
+	ProductID     = "ynx-exchange"
+	Version       = "0.1.0-testnet"
 	ChainID       = "ynx_6423-1"
 	EVMChainID    = 6423
 	NativeAsset   = "YNXT"
@@ -23,6 +25,9 @@ const (
 	DefaultMarket = "YNXT-YUSD_TEST"
 	AmountScale   = int64(1_000_000)
 )
+
+// BuildCommit is overridden by release builds with -ldflags -X.
+var BuildCommit = "development"
 
 type Config struct {
 	StatePath              string

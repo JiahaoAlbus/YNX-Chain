@@ -3,10 +3,11 @@ import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import {p256} from "@noble/curves/nist.js";
 import {bytesToHex,hexToBytes} from "@noble/hashes/utils.js";
-import {encodeBase64url,encodeRequestDeepLink,parseCallbackURL,requestDigest,signGatewayChallenge,verifyAuthorization,type AuthorizationRequest,type AuthorizationResponse} from "@ynx-chain/wallet-auth";
+import {encodeRequestDeepLink,parseCallbackURL,requestDigest,signGatewayChallenge,verifyAuthorization,type AuthorizationRequest,type AuthorizationResponse} from "@ynx-chain/wallet-auth";
 import {BUNDLE_ID,CALLBACK,CLIENT_ID,SCOPES} from "./wallet-config";
 
 const DEVICE="ynx-exchange-device-p256-v1", PENDING="ynx-exchange-wallet-request-v1", SESSION="ynx-exchange-central-session-v1";
+function encodeBase64url(bytes:Uint8Array){return btoa(String.fromCharCode(...bytes)).replace(/=+$/g,"").replace(/\+/g,"-").replace(/\//g,"_")}
 export type CentralSession={token:string;account:string;expiresAt:string;scopes:string[];sessionBinding:string};
 async function deviceSecret(){let value=await SecureStore.getItemAsync(DEVICE);if(value&&/^[0-9a-f]{64}$/.test(value)&&p256.utils.isValidSecretKey(hexToBytes(value)))return value;for(;;){const bytes=await Crypto.getRandomBytesAsync(32);if(p256.utils.isValidSecretKey(bytes)){value=bytesToHex(bytes);await SecureStore.setItemAsync(DEVICE,value);return value}}}
 export async function beginWalletSignIn(){const secret=await deviceSecret();const now=new Date();const request:AuthorizationRequest={version:"1",nonce:encodeBase64url(await Crypto.getRandomBytesAsync(24)),chainId:"ynx_6423-1",requestingProduct:"exchange",productClientId:CLIENT_ID,bundleId:BUNDLE_ID,productDeviceAlgorithm:"p256-sha256",productDeviceKey:encodeBase64url(p256.getPublicKey(hexToBytes(secret),true)),callback:CALLBACK,scopes:[...SCOPES],purpose:"Sign in to the YNX-owned deterministic testnet exchange; authorize only reviewed actions and never share a recovery key",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+5*60_000).toISOString()};await SecureStore.setItemAsync(PENDING,JSON.stringify(request));await Linking.openURL(encodeRequestDeepLink(request));return request}

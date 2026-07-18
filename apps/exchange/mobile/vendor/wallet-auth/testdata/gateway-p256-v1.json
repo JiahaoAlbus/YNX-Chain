@@ -1,0 +1,27 @@
+{
+  "productDeviceSecret": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI",
+  "challenge": {
+    "version": "1",
+    "challenge": "gateway_challenge_abcdefghijklmnop",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": ["account:read", "profile:link"],
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:03:00.000Z"
+  },
+  "signBytes": "YNX_PRODUCT_SESSION_CHALLENGE_V1\n{\"account\":\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\",\"bundleId\":\"com.ynx.social\",\"challenge\":\"gateway_challenge_abcdefghijklmnop\",\"expiresAt\":\"2026-07-15T12:03:00.000Z\",\"issuedAt\":\"2026-07-15T12:00:00.000Z\",\"productClientId\":\"ynx-social-v1\",\"productDeviceAlgorithm\":\"p256-sha256\",\"productDeviceKey\":\"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv\",\"requestDigest\":\"325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930\",\"scopes\":[\"account:read\",\"profile:link\"],\"version\":\"1\"}",
+  "deviceSignature": "MEUCIQD8TpvGiHp6gQKaWdpNABXMtLHW3VXwplfQoNuTbYP4TAIgJLAZeRAVnGEkmoLOhONHKHWwp-3g19WCYpOv9f3AFds",
+  "session": {
+    "sessionBinding": "2eea97bc49dcc721376b8d56612bec77c2ee37d47ef85f5d7e1c67abeee89703",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": ["account:read", "profile:link"],
+    "expiresAt": "2026-07-15T12:03:00.000Z"
+  }
+}

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>YNX Quant Lab</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#workspace" data-i18n="research">Research</a>
+    <header>
+      <div>
+        <p class="eyebrow">YNX QUANT LAB</p>
+        <h1 data-i18n="tagline">Research, paper & testnet</h1>
+      </div>
+      <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
+    </header>
+    <div class="shell">
+      <aside>
+        <nav aria-label="Quant Lab">
+          <button class="active" data-view="research" data-i18n="research">Research</button
+          ><button data-view="strategies" data-i18n="strategies">Strategies</button
+          ><button data-view="experiments" data-i18n="experiments">Experiments</button
+          ><button data-view="paper" data-i18n="paper">Paper</button
+          ><button data-view="testnet" data-i18n="testnet">Testnet</button
+          ><button data-view="risk" data-i18n="risk">Risk</button
+          ><button data-view="audit" data-i18n="audit">Audit</button>
+        </nav>
+        <footer>
+          <label for="locale" data-i18n="language">Language</label
+          ><select id="locale">
+            <option value="en">English</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="pt">Português</option>
+            <option value="ru">Русский</option>
+            <option value="ar">العربية</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </footer>
+      </aside>
+      <main id="workspace">
+        <div class="toolbar">
+          <div>
+            <strong id="view-title">Research</strong
+            ><small
+              data-i18n="pipeline">Authoritative adapters → event engine → risk → broker →
+              reconciliation</small
+            >
+          </div>
+          <button id="refresh" data-i18n="refresh">Refresh</button>
+        </div>
+        <section id="research" class="view active">
+          <div class="split">
+            <div>
+              <h2 data-i18n="runTitle">Run a reproducible experiment</h2>
+              <p class="lead" data-i18n="runLead">
+                Out-of-sample by construction. Fees, slippage, participation,
+                gaps and partial fills are explicit assumptions.
+              </p>
+              <form id="backtest">
+                <div class="fields">
+                  <label
+                    >Strategy name<input
+                      id="strategy"
+                      value="Transparent MA crossover"
+                      maxlength="80" /></label
+                  ><label
+                    >Random seed<input
+                      id="seed"
+                      type="number"
+                      value="7" /></label
+                  ><label
+                    >Fast window<input
+                      id="fast"
+                      type="number"
+                      value="3"
+                      min="2" /></label
+                  ><label
+                    >Slow window<input
+                      id="slow"
+                      type="number"
+                      value="8"
+                      min="3" /></label
+                  ><label
+                    >Fee (bps)<input
+                      id="fee"
+                      type="number"
+                      value="10"
+                      min="0" /></label
+                  ><label
+                    >Slippage (bps)<input
+                      id="slippage"
+                      type="number"
+                      value="5"
+                      min="0"
+                  /></label>
+                </div>
+                <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
+              </form>
+            </div>
+            <aside class="inspector">
+              <h3 data-i18n="leakage">Leakage guard</h3>
+              <dl>
+                <div>
+                  <dt>Feature time</dt>
+                  <dd>t−1 only</dd>
+                </div>
+                <div>
+                  <dt>Train split</dt>
+                  <dd>First 50%</dd>
+                </div>
+                <div>
+                  <dt>Evaluation</dt>
+                  <dd>Held-out 50%</dd>
+                </div>
+                <div>
+                  <dt>Baselines</dt>
+                  <dd>No-trade + buy/hold</dd>
+                </div>
+                <div>
+                  <dt data-i18n="liveFunds">Live funds</dt>
+                  <dd class="danger" data-i18n="disabled">Disabled</dd>
+                </div>
+              </dl>
+            </aside>
+          </div>
+        </section>
+        <section id="strategies" class="view">
+          <h2 data-i18n="tournament">Strategy tournament</h2>
+          <p class="lead">
+            Baseline → Candidate → Champion / Challenger. Rejected and retired
+            records remain auditable.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Family</th>
+                  <th>Stage</th>
+                  <th>Source hash</th>
+                  <th>License</th>
+                </tr>
+              </thead>
+              <tbody id="strategy-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="experiments" class="view">
+          <h2 data-i18n="experiments">Experiments</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Created</th>
+                  <th>Strategy</th>
+                  <th>OOS return</th>
+                  <th>Buy/hold</th>
+                  <th>Drawdown</th>
+                  <th>Trades</th>
+                  <th>Partial</th>
+                  <th>Sensitivity</th>
+                  <th>Data gaps</th>
+                </tr>
+              </thead>
+              <tbody id="experiment-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        <section id="paper" class="view">
+          <div class="split">
+            <div>
+              <h2 data-i18n="paperBroker">Paper broker</h2>
+              <p class="lead" data-i18n="paperLead">
+                Simulated balance with volume participation and partial-fill
+                assumptions. No order reaches the Exchange API.
+              </p>
+              <form id="paper-order">
+                <div class="fields">
+                  <label
+                    >Side<select id="side">
+                      <option>buy</option>
+                      <option>sell</option>
+                    </select></label
+                  ><label
+                    >Amount<input
+                      id="paper-amount"
+                      type="number"
+                      value="2000000" /></label
+                  >
+                </div>
+                <button class="primary" data-i18n="paperAction">Submit simulated signal</button>
+              </form>
+            </div>
+            <aside class="inspector" id="paper-state"></aside>
+          </div>
+        </section>
+        <section id="testnet" class="view">
+          <h2 data-i18n="mandate">Bounded testnet mandate</h2>
+          <div class="notice">
+            <strong data-i18n="failClosed">Fail closed</strong>
+            <p data-i18n="mandateBoundary">
+              Requires a canonical Wallet-signed mandate binding strategy hash,
+              market, notional, position, daily loss and expiry. No central
+              registration is present, so testnet execution is unavailable.
+              Real-money auto-trading is structurally disabled.
+            </p>
+          </div>
+        </section>
+        <section id="risk" class="view">
+          <h2 data-i18n="riskRecovery">Risk & recovery</h2>
+          <p class="lead" data-i18n="riskLead">
+            Reconciliation mismatch activates the persistent kill switch.
+            Restart never clears it.
+          </p>
+          <button id="reconcile" class="secondary">
+            <span data-i18n="reconcile">Reconcile exact local paper state</span></button
+          ><button id="kill" class="destructive" data-i18n="kill">Activate kill switch</button>
+        </section>
+        <section id="audit" class="view">
+          <h2 data-i18n="auditChain">Append-only audit chain</h2>
+          <ol id="audit-rows" class="timeline"></ol>
+        </section>
+        <div id="toast" role="status" aria-live="polite"></div>
+      </main>
+    </div>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

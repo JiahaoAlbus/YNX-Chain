@@ -515,8 +515,8 @@ func TestHTTPStrictParsingScopeAndSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != 400 {
-		t.Fatalf("strict parse status=%d", resp.StatusCode)
+	if resp.StatusCode != 404 {
+		t.Fatalf("legacy auth route must be absent, status=%d", resp.StatusCode)
 	}
 	resp.Body.Close()
 }
@@ -598,4 +598,54 @@ func TestIndexerChainReaderUsesCommittedHeightAndExactUnitConversion(t *testing.
 	if !transfer.Committed || transfer.Confirmations != 3 || transfer.AmountMicro != 7*AmountScale || transfer.To != bob {
 		t.Fatalf("transfer=%+v", transfer)
 	}
+}
+
+func TestPublicMarketTapeContainsOnlyActualMatches(t *testing.T) {
+	s, chain, _ := newTestService(t)
+	a := accountSession(t, s, alice, "alice-tape", "exchange:read", "exchange:trade", "exchange:deposit")
+	b := accountSession(t, s, bob, "bob-tape", "exchange:read", "exchange:trade", "exchange:deposit")
+	confirmDeposit(t, s, chain, a, "aaaabbbbcccc0001", 2*AmountScale)
+	confirmDeposit(t, s, chain, b, "aaaabbbbcccc0002", 2*AmountScale)
+	_, _ = s.CreditTestQuote(adminKey, alice, 10*AmountScale, "tape-credit-a")
+	_, _ = s.CreditTestQuote(adminKey, bob, 10*AmountScale, "tape-credit-b")
+	if got := s.PublicTrades(100); len(got) != 0 {
+		t.Fatalf("empty venue invented trades: %+v", got)
+	}
+	if _, e := place(t, s, a, "sell", AmountScale, AmountScale, "tape-sell"); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := place(t, s, b, "buy", AmountScale, AmountScale, "tape-buy"); e != nil {
+		t.Fatal(e)
+	}
+	got := s.PublicTrades(100)
+	if len(got) != 1 || got[0].Buyer != bob || got[0].Seller != alice || got[0].PriceMicro != AmountScale {
+		t.Fatalf("tape=%+v", got)
+	}
+}
+
+func FuzzOrderAuthorizationPayloadIsCanonicalAndBound(f *testing.F) {
+	f.Add(int64(1_000_000), int64(2_000_000), "seed-idempotency", byte(0))
+	f.Add(int64(9_223_372), int64(44), "unicode-订单", byte(1))
+	f.Fuzz(func(t *testing.T, price, amount int64, idempotency string, sideBit byte) {
+		if len(idempotency) > 256 {
+			idempotency = idempotency[:256]
+		}
+		side := "buy"
+		if sideBit%2 == 1 {
+			side = "sell"
+		}
+		req := PlaceOrderRequest{Market: DefaultMarket, Side: side, Type: "limit", PriceMicro: price, AmountMicro: amount, IdempotencyKey: idempotency}
+		first := OrderAuthorizationPayload(alice, req)
+		second := OrderAuthorizationPayload(alice, req)
+		if string(first) != string(second) || digest(first) != digest(second) {
+			t.Fatal("canonical payload or digest is nondeterministic")
+		}
+		if amount != int64(^uint64(0)>>1) {
+			changed := req
+			changed.AmountMicro++
+			if digest(first) == digest(OrderAuthorizationPayload(alice, changed)) {
+				t.Fatal("amount mutation did not change authorization digest")
+			}
+		}
+	})
 }

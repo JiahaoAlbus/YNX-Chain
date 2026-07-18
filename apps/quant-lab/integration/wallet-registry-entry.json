@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 3,
+  "productId": "quant-lab",
+  "displayName": "YNX Quant Lab",
+  "reviewState": "pending-review",
+  "enabled": false,
+  "productClientId": "ynx-quant-lab-v1",
+  "requestingProduct": "quant-lab",
+  "bundleId": "com.ynxweb4.quantlab",
+  "callbacks": [
+    "ynxquant://wallet-auth/callback"
+  ],
+  "scopes": [
+    "quant:audit:read",
+    "quant:paper",
+    "quant:research",
+    "quant:testnet-mandate"
+  ],
+  "maxScopes": 4,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ],
+  "sessionDurationSeconds": 300,
+  "revocationPolicy": {
+    "session": true,
+    "approval": true,
+    "device": true,
+    "accountAllDevices": true
+  }
+}

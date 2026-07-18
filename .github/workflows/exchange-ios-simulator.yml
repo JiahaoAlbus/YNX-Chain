@@ -1,0 +1,80 @@
+name: exchange-ios-simulator
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/exchange/mobile/**"
+      - ".github/workflows/exchange-ios-simulator.yml"
+  push:
+    branches: [main, "codex/**"]
+    paths:
+      - "apps/exchange/mobile/**"
+      - ".github/workflows/exchange-ios-simulator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-install-launch:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/exchange/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/exchange/mobile/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run i18n-check
+      - name: Install CocoaPods dependencies
+        run: npx pod-install ios
+      - name: Build unsigned iOS Simulator app
+        run: |
+          xcodebuild \
+            -workspace ios/YNXExchange.xcworkspace \
+            -scheme YNXExchange \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee build/ios-xcodebuild.log
+      - name: Install, cold launch, and deliver Wallet callback
+        run: |
+          set -euo pipefail
+          APP="build/ios/Build/Products/Release-iphonesimulator/YNXExchange.app"
+          test -d "$APP"
+          DEVICE="$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | test("iPhone"))][0].udid')"
+          test -n "$DEVICE"
+          xcrun simctl boot "$DEVICE" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl terminate "$DEVICE" com.ynxweb4.exchange 2>/dev/null || true
+          xcrun simctl launch --console-pty "$DEVICE" com.ynxweb4.exchange > build/ios-launch.log 2>&1 &
+          LAUNCH_PID=$!
+          sleep 5
+          kill "$LAUNCH_PID" 2>/dev/null || true
+          xcrun simctl openurl "$DEVICE" "ynxexchange://wallet-auth/callback"
+          sleep 2
+          xcrun simctl io "$DEVICE" screenshot build/ios-simulator.png
+          xcrun simctl get_app_container "$DEVICE" com.ynxweb4.exchange app > build/ios-installed-container.txt
+          shasum -a 256 "$APP/YNXExchange" > build/ios-app.sha256
+      - name: Upload reproducible iOS evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-exchange-ios-simulator-${{ github.sha }}
+          path: |
+            apps/exchange/mobile/build/ios/Build/Products/Release-iphonesimulator/YNXExchange.app
+            apps/exchange/mobile/build/ios-xcodebuild.log
+            apps/exchange/mobile/build/ios-launch.log
+            apps/exchange/mobile/build/ios-simulator.png
+            apps/exchange/mobile/build/ios-installed-container.txt
+            apps/exchange/mobile/build/ios-app.sha256
+          if-no-files-found: error
+          retention-days: 14

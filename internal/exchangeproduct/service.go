@@ -141,6 +141,28 @@ func (s *Service) Networks() []AssetNetwork {
 	}
 }
 
+func (s *Service) PublicTrades(limit int) []Trade {
+	if limit < 1 || limit > 1000 {
+		limit = 1000
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	items := make([]Trade, 0, len(s.state.Trades))
+	for _, trade := range s.state.Trades {
+		items = append(items, trade)
+	}
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].CreatedAt.Equal(items[j].CreatedAt) {
+			return items[i].ID < items[j].ID
+		}
+		return items[i].CreatedAt.Before(items[j].CreatedAt)
+	})
+	if len(items) > limit {
+		items = items[len(items)-limit:]
+	}
+	return items
+}
+
 func WalletChallengePayload(c WalletChallenge) []byte {
 	return []byte(strings.Join([]string{"ynx-sign-in-v1", c.ID, c.Nonce, c.Account, c.DeviceID, c.ClientID, c.Callback, strings.Join(c.Scopes, ","), c.ChainID, c.Purpose, c.IssuedAt.Format(time.RFC3339), c.ExpiresAt.Format(time.RFC3339)}, "\n"))
 }
@@ -202,21 +224,10 @@ func (s *Service) CompleteSession(req CompleteSessionRequest) (WalletSession, st
 
 func (s *Service) Authenticate(token, scope string) (WalletSession, error) {
 	raw := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	s.mu.Lock()
-	session, ok := s.state.Sessions[hashText(raw)]
-	s.mu.Unlock()
-	if !ok || !session.RevokedAt.IsZero() || !s.cfg.Now().Before(session.ExpiresAt) {
-		if s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
-			return WalletSession{}, ErrUnauthorized
-		}
-		return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
+	if raw == "" || s.cfg.Gateway == nil || s.cfg.GatewayClientID == "" {
+		return WalletSession{}, ErrUnauthorized
 	}
-	for _, v := range session.Scopes {
-		if v == scope || (scope == "exchange:deposit" && v == "exchange:trade") || (scope == "exchange:withdrawal-review" && v == "exchange:withdraw") {
-			return session, nil
-		}
-	}
-	return WalletSession{}, ErrForbidden
+	return s.cfg.Gateway.Authorize(raw, scope, s.cfg.GatewayClientID)
 }
 
 func OrderAuthorizationPayload(account string, req PlaceOrderRequest) []byte {

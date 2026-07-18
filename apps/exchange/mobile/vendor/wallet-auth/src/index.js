@@ -6,3 +6,6 @@ export * from "./deep-link.js";
 export * from "./replay.js";
 export * from "./session.js";
 export * from "./integration.js";
+export * from "./registry.js";
+export * from "./lifecycle.js";
+export * from "./native-transfer.js";

@@ -29,6 +29,9 @@ export function verifyAuthorization(response, expected) {
   if (parsed.requestDigest !== expected.requestDigest || exactKeys.some((key) => parsed[key] !== expected[key]) || parsed.grantedScopes.join("\n") !== expected.scopes.join("\n") || parsed.expiresAt > expected.expiresAt) {
     throw new WalletAuthError("BINDING_MISMATCH", "Wallet approval does not match the exact product request");
   }
+  const now = expected.now.getTime();
+  const issued = Date.parse(parsed.issuedAt);
+  if (issued < Date.parse(expected.issuedAt) || issued > now + 30_000) throw new WalletAuthError("INVALID_APPROVAL_TIME", "Wallet approval issue time is outside the request verification window");
   if (parsed.expiresAt <= expected.now.toISOString()) throw new WalletAuthError("EXPIRED", "Wallet approval has expired");
   const valid = secp256k1.verify(hexToBytes(parsed.walletSignature), sha256(utf8ToBytes(approvalSignBytes(unsignedApproval(parsed)))), hexToBytes(parsed.accountPublicKey), { prehash: false, format: "compact", lowS: true });
   if (!valid || walletIdentityFromPublicKey(parsed.accountPublicKey) !== parsed.account) throw new WalletAuthError("INVALID_SIGNATURE", "Wallet approval signature is invalid");
@@ -39,6 +42,22 @@ export function walletIdentityFromPublicKey(publicKeyHex) {
   const point = secp256k1.Point.fromBytes(hexToBytes(publicKeyHex));
   const digest = keccak_256(point.toBytes(false).slice(1));
   return encodeYNX(digest.slice(-20));
+}
+
+export function evmAddressFromYNX(account) {
+  if (typeof account !== "string" || account !== account.toLowerCase() || !account.startsWith("ynx1")) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account is invalid");
+  const encoded = account.slice(4);
+  const values = [...encoded].map((character) => CHARSET.indexOf(character));
+  if (values.length !== 38 || values.some((value) => value < 0) || polymod([...hrpExpand("ynx"), ...values]) !== 1) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account checksum is invalid");
+  const data = values.slice(0, -6);
+  const payload = convertBitsStrict(data, 5, 8);
+  if (payload.length !== 20) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account payload is invalid");
+  return `0x${bytesToHex(Uint8Array.from(payload))}`;
+}
+
+export function ynxAddressFromEVM(address) {
+  if (typeof address !== "string" || !/^0x[0-9a-f]{40}$/.test(address)) throw new WalletAuthError("INVALID_ACCOUNT", "EVM compatibility address is invalid");
+  return encodeYNX(hexToBytes(address.slice(2)));
 }
 
 function validSecret(value) {
@@ -65,6 +84,19 @@ function convertBits(data, fromBits, toBits, pad) {
     while (bits >= toBits) { bits -= toBits; result.push((accumulator >> bits) & maxValue); }
   }
   if (pad && bits > 0) result.push((accumulator << (toBits - bits)) & maxValue);
+  return result;
+}
+
+function convertBitsStrict(data, fromBits, toBits) {
+  let accumulator = 0, bits = 0;
+  const result = [], maxValue = (1 << toBits) - 1, maxAccumulator = (1 << (fromBits + toBits - 1)) - 1;
+  for (const value of data) {
+    if (!Number.isInteger(value) || value < 0 || value >= (1 << fromBits)) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account data is invalid");
+    accumulator = ((accumulator << fromBits) | value) & maxAccumulator;
+    bits += fromBits;
+    while (bits >= toBits) { bits -= toBits; result.push((accumulator >> bits) & maxValue); }
+  }
+  if (bits >= fromBits || ((accumulator << (toBits - bits)) & maxValue) !== 0) throw new WalletAuthError("INVALID_ACCOUNT", "YNX account padding is invalid");
   return result;
 }
 
