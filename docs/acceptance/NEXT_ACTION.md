@@ -1,42 +1,55 @@
 # Next Action
 
-Highest-priority bounded delivery (2026-07-15):
+Highest-priority bounded delivery (2026-07-16):
 
-Current single action: deploy the persistent Social handle and product-scoped Gateway release, then build and install separate test-only YNX Social and YNX Wallet Android Release packages. Prove that Social uses username/QR discovery and has no Wallet/Pay/Network navigation, while Wallet has no Feed/Chat navigation.
+Current single action: preserve deployed release `02f4ccd8770c` and protected Prometheus, harden the now-layered direct public ingress diagnosis without weakening timeouts, and prove repeated zero-failure direct-route chain/API continuity from multiple non-primary regions. Restore provider-backed AI only after the external account can return a real successful response.
 
 Why this is next:
 
-- The user rejected the mixed super-App architecture. The current integration binary is now explicitly internal-only.
-- Unique Social handles, public resolution, Chat profile display, separate package identities, and Gateway route isolation are implemented and locally tested.
-- Remote Square/Gateway still run release `09598d2cbcd7`, so the new Social package cannot yet complete a product-bound ownership session or resolve handles remotely.
-- Installed proof is required before either standalone package can be described as usable. Production signing, stores, and complete benchmark parity remain later gates.
+- The public chain still depends on one producer and three authenticated read-only followers while the approval-gated BFT transition remains intentionally inactive.
+- Current source now exposes the real replication lifecycle, `catchingUp`, freshness, exact source/local height and hash, lag, attempts, successes, failures, timestamps, bounded error evidence, Prometheus telemetry, alerts, and Grafana panels.
+- Current source now also seals the complete authoritative snapshot as v2, durably syncs replacement, permits one marker-free v1 migration, rejects later downgrade/corruption, and restores in-memory state when replication persistence fails.
+- Local lifecycle, degraded recovery, persisted-state restart, exact convergence, race, smoke, and verification checks pass. Prometheus 3.11.2 is now deployed on the primary's WireGuard address with four distinct targets; a controlled Seoul outage made the expected metrics-down alert pending, firing, and cleared after recovery.
+- Authoritative snapshot-v2 runtime `02f4ccd8770c` is deployed on all four roles. Exact manifest/binary checks pass; every role has marker/version 2; all three followers passed fresh canonical convergence and read-only rejection; one Seoul restart proved lifecycle reset and authenticated recovery. The subsequent verifier race fix and bounded Explorer/AI waiting logic are local control-plane changes only and do not change the deployed chain runtime.
+- Post-drill convergence passed for all followers, including restarted Seoul at height `200947`, and public RPC grew from `200969` to `200971`. Fresh direct path diagnosis found no Caddy restart, listener backlog, backend failure, host pressure, or local `:443` rate limit. Primary and Singapore direct cycles each passed 50/50 reads with block growth; Silicon Valley passed 49/50 before one RPC TLS timeout, then passed 20/20 TLS 1.2, 20/20 TLS 1.3, and 20/20 HTTPS RPC retries. The workstation is ineligible as a direct vantage because SingLinkVPN resolves YNX names into `198.18.0.0/15` and routes traffic through `utun4`. Provider-backed AI remains blocked by upstream HTTP `429`. None of this is independent proof.
+- A later Singapore check also passed 5/5 REST transaction, 5/5 Explorer
+  transaction, 5/5 EVM transaction, 5/5 successful EVM receipt, and 5/5 exact
+  release reads for the committed Exchange reference while height grew `204647`
+  to `204653`. Silicon Valley could not repeat this check because three strict
+  SSH attempts timed out at the banner before any API request. Seoul then
+  repeated all five groups 5/5 while height grew `215973` to `215988`, completing
+  bounded operator-controlled continuity from two non-primary regions. The next
+  ingress gap is an independent public vantage or redundant ingress plus
+  resolution of the observed Silicon Valley path instability, not another
+  Singapore or Seoul rerun.
 
 Files to touch:
 
-- `internal/square`, `cmd/ynx-squared`
-- `internal/appgateway`, `cmd/ynx-app-gatewayd`
-- `apps/mobile`
-- `scripts/package/mobile-android-release.sh`
-- `scripts/verify/mobile-product-split-check.sh`
-- API and acceptance documentation only after matching evidence exists
+- ingress and reverse-proxy configuration, health checks, and bounded diagnostics
+- `scripts/deploy`, `scripts/verify`
+- API, operations, and acceptance documentation only after matching evidence exists
 
-Required implementation and verification:
+Required execution and proof:
 
-- Preserve existing Square state, audit integrity, profiles, notifications, posts, comments, reactions, follows, reports, and rollback evidence during scoped deployment.
-- Deploy exact source-built Square and Gateway binaries with existing server-only credentials and no authoritative-chain restart.
-- Verify exact remote build IDs, public handle route behavior, private-route denial, product client binding, healthy Chat/Square/Pay upstreams, and zero leaked sessions.
-- Build externally test-signed Social and Wallet APK/AAB artifacts with exact provenance and no production-signing claim.
-- Install both new package IDs on the connected Pixel without deleting the internal package or unrelated phone data.
-- Verify Social and Wallet foreground identity, navigation separation, embedded Hermes, no fatal log, and truthful unavailable/locked states.
+- Preserve the four scoped predeploy backups and exact release/manifest/checksum evidence; do not rerun deployment while the current authoritative runtime remains healthy.
+- Require each follower to continue reporting `status=synced`, `catchingUp=false`, `fresh=true`, exact source/local height and hash equality, and canonical agreement with the primary at that height.
+- Preserve the protected four-target Prometheus service and require all targets to remain `up=1` during ingress work.
+- Correlate direct-route failures with DNS, TLS, ingress/reverse-proxy, and backend health evidence; do not hide failures with larger timeouts or retries that exceed existing bounded policy.
+- Prove repeated direct-route exact-release reads, block growth, and transaction/receipt continuity after the restart. Operator-routed Singapore evidence remains a diagnostic fallback, not direct or independent proof.
+- If ingress or SSH remains unsafe, record the external blocker and continue local chain/BFT engineering without claiming remote proof.
 
 Validation commands:
 
 - `go test ./...`
-- `make square-api-check`
-- `make app-gateway-check`
-- `make app-account-ownership-check`
-- `make mobile-check`
-- `make mobile-product-split-check`
+- `go test -race ./internal/chain ./cmd/ynx-chaind`
+- `make validator-peer-readiness-check`
+- `make monitoring-check`
+- `make replication-alert-check`
+- `make deploy-source-integrity-check`
+- `make verify-testnet-check`
+- `make replication-compression-check`
+- `make public-ingress-path-check`
+- `make smoke-test`
 - `make test`
 - `make no-placeholder-check`
 - `make secret-scan`
@@ -46,14 +59,19 @@ Validation commands:
 
 Completion standard:
 
-- Remote Square/Gateway exact release and scoped backup are verified without state loss.
-- Separate Social and Wallet test-only Release packages are installed and render their own product workflows on Pixel.
-- Social account discovery accepts `@handle`/Social QR and never asks the user for a wallet address.
-- No mainnet, production signing, store acceptance, exchange listing, stablecoin support, wallet default support, partnership, benchmark parity, or independent proof is inferred.
+- Exact release identity and scoped backup evidence exist on all four authoritative roles.
+- Every role has persisted a valid snapshot v2 and downgrade marker without losing the pre-upgrade backup.
+- All followers expose fresh exact source/local equality, and one follower repeats it after a controlled restart.
+- All three follower scrape targets remain protected and distinguishable after the completed observed-and-cleared interruption drill.
+- Multiple bounded direct-ingress cycles pass exact-release reads, public chain growth, and transaction/receipt continuity without zero-status fetch failures.
+- No BFT cutover, mainnet launch, exchange listing, issuer support, wallet default support, partnership, or independent proof is inferred.
 
 Explicitly not doing:
 
-- Do not restore the mixed super-App as the consumer architecture.
-- Do not create empty Exchange, Shop, AI, Monitor, Browser, Bank, desktop, groups, media, or moments screens.
+- Do not execute any BFT freeze, signer installation, dependency transition, ingress cutover, or public rollback phase without the required external approval.
 - Do not expand bounded EVM/IDE except to preserve passing tests.
+- Do not merge product branches out of dependency order.
+- Continue reviewing the 15 clean registered ecosystem worktrees against
+  `docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md`; the original tasks own
+  product rework, native/installable artifacts, and 12-language/RTL closure.
 - Do not modify or replace the long-term goal file.

@@ -435,6 +435,11 @@ grep -Fq "ynx-app-gatewayd\\ --check-config" "$dry_run_out" || { echo "dry-run o
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*seoul.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing seoul local service check"; exit 1; }
+expected_deploy_sequence=$'YNX_DEPLOY_SEQUENCE=1 role=singapore\nYNX_DEPLOY_SEQUENCE=2 role=silicon-valley\nYNX_DEPLOY_SEQUENCE=3 role=seoul\nYNX_DEPLOY_SEQUENCE=4 role=primary'
+actual_deploy_sequence="$(grep '^YNX_DEPLOY_SEQUENCE=' "$dry_run_out")"
+[[ "$actual_deploy_sequence" == "$expected_deploy_sequence" ]] || { echo "authoritative deploy must upgrade all followers before primary"; exit 1; }
+grep -Fq "devnet-state.integrity-version" "$dry_run_out" || { echo "dry-run output missing snapshot v2 integrity marker verification"; exit 1; }
+grep -Fq "stateIntegrity" "$dry_run_out" || { echo "dry-run output missing snapshot v2 digest verification"; exit 1; }
 if grep -Fq "/home/ubuntu/.ynx-v2" "$dry_run_out" || grep -Fq "/root/.ynx-v2" "$dry_run_out" || grep -Fq "/var/lib/ynx-ops-observer" "$dry_run_out"; then
   echo "scoped YNX Chain predeploy backup must not copy unrelated legacy runtime data"
   exit 1
