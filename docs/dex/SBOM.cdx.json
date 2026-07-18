@@ -1,0 +1,32 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:fa2e03ac-925b-4f34-82d4-1de000000001",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-18T08:00:00Z",
+    "component": { "type": "application", "bom-ref": "pkg:generic/ynx-dex@0.1.0-testnet-preview.1", "name": "YNX DEX", "version": "0.1.0-testnet-preview.1" },
+    "tools": { "components": [
+      { "type": "application", "name": "Node.js", "version": "24.5.0" },
+      { "type": "application", "name": "Go", "version": "1.25.7" },
+      { "type": "application", "name": "solc", "version": "0.8.24" }
+    ] }
+  },
+  "components": [
+    { "type": "library", "bom-ref": "pkg:npm/hardhat@3.9.0", "name": "hardhat", "version": "3.9.0", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/ethers@6.17.0", "name": "ethers", "version": "6.17.0", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/%40nomicfoundation/hardhat-ethers@4.0.13", "group": "@nomicfoundation", "name": "hardhat-ethers", "version": "4.0.13", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/react@19.2.7", "name": "react", "version": "19.2.7", "scope": "required", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/react-dom@19.2.7", "name": "react-dom", "version": "19.2.7", "scope": "required", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/vite@7.3.6", "name": "vite", "version": "7.3.6", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/vitest@3.2.7", "name": "vitest", "version": "3.2.7", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/%40playwright/test@1.61.1", "group": "@playwright", "name": "test", "version": "1.61.1", "scope": "optional", "licenses": [{"license":{"id":"Apache-2.0"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/typescript@5.9.3", "name": "typescript", "version": "5.9.3", "scope": "optional", "licenses": [{"license":{"id":"Apache-2.0"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/jsdom@27.4.0", "name": "jsdom", "version": "27.4.0", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:npm/%40vitejs/plugin-react@5.2.0", "group": "@vitejs", "name": "plugin-react", "version": "5.2.0", "scope": "optional", "licenses": [{"license":{"id":"MIT"}}] },
+    { "type": "library", "bom-ref": "pkg:golang/github.com/decred/dcrd/dcrec/secp256k1/v4", "group": "github.com/decred/dcrd/dcrec", "name": "secp256k1/v4", "scope": "required", "licenses": [{"license":{"id":"ISC"}}] }
+  ],
+  "vulnerabilities": [
+    { "id": "GHSA-xcpc-8h2w-3j85", "source": {"name":"GitHub Advisory Database","url":"https://github.com/advisories/GHSA-xcpc-8h2w-3j85"}, "ratings": [{"severity":"high"}], "affects": [{"ref":"pkg:npm/hardhat@3.9.0"}], "analysis": {"state":"exploitable","detail":"Dev-only Hardhat dependency resolves adm-zip below 0.6.0. No upstream npm fix was available on 2026-07-18. Runtime images must exclude contract tooling."} }
+  ]
+}

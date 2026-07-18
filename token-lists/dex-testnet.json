@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "chainId": 6423,
+  "mainnet": false,
+  "tokens": [],
+  "status": "no-owner-reviewed-test-tokens"
+}

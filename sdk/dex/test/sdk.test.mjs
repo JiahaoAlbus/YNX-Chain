@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DexSdkError, amountIn, amountOut, assertFreshQuote, buildSwapExactInputTx,
   maximumInput, minimumOutput, parsePool, quoteExactInput, quoteExactOutput,
+  parseFeeSummary, parsePosition, parseSpotPrice, parseTWAP, priceImpactBps,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -16,6 +17,7 @@ test("exact-input routing chooses the best deterministic route", () => {
   const quote = quoteExactInput({ amountIn: 10_000n, tokenIn: A.address, tokenOut: C.address, pools, now });
   assert.deepEqual(quote.path, [A.address, B.address, C.address]);
   assert(quote.amountOut > 0n);
+  const spot=(10_000n*1_000_000n/1_000_000n)*2_000_000n/1_000_000n;assert.equal(priceImpactBps(quote),Number((spot-quote.amountOut)*10_000n/spot));
   assert.equal(assertFreshQuote(quote, { now: new Date("2026-07-18T06:00:10.000Z") }), quote);
 });
 
@@ -54,4 +56,12 @@ test("schema, stale, unsupported and liquidity errors are explicit", () => {
   const quote = quoteExactInput({ amountIn: 1_000n, tokenIn: A.address, tokenOut: B.address, pools, now });
   assert.throws(() => assertFreshQuote(quote, { now: new Date("2026-07-18T06:01:00.000Z") }), (error) => error.code === "STALE_QUOTE");
   assert.throws(() => amountOut(1n, 0n, 1n), (error) => error.code === "INVALID_AMOUNT");
+});
+
+test("position, raw price, TWAP and fee API schemas reject substitutions",()=>{
+ const position=parsePosition({account:"ynx1abcdefghijklmnopqrstuv",pool:address(11),netLpAmount:"10",addedToken0:"20",addedToken1:"30",removedToken0:"1",removedToken1:"2"});assert.equal(position.pool,address(11));
+ const spot=parseSpotPrice({pool:address(11),token0:A.address,token1:B.address,price0Numerator:"2",price0Denominator:"1",price1Numerator:"1",price1Denominator:"2",updatedBlock:10});assert.equal(spot.updatedBlock,10);
+ const twap=parseTWAP({pool:address(11),token0:A.address,token1:B.address,price0AverageX112:"100",price1AverageX112:"50",intervalSeconds:60,fromBlock:10,toBlock:12});assert.equal(twap.intervalSeconds,60);
+ const fees=parseFeeSummary({pool:address(11),token0:A.address,token1:B.address,swapFee0:"3",swapFee1:"0",claimedFee0:"1",claimedFee1:"0"});assert.equal(fees.swapFee0,"3");
+ assert.throws(()=>parsePosition({...position,scope:"admin"}),error=>error.code==="INVALID_SCHEMA");assert.throws(()=>parseTWAP({...twap,toBlock:10}),error=>error.code==="INVALID_TWAP");
 });

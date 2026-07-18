@@ -1,4 +1,6 @@
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const NATIVE_ACCOUNT = /^ynx1[0-9a-z]{20,80}$/;
+const INTEGER = /^-?[0-9]{1,78}$/;
 const MAX_HOPS = 4;
 const BPS = 10_000n;
 
@@ -24,6 +26,30 @@ export function parsePool(value) {
   const updatedAt = new Date(value.updatedAt);
   if (!Number.isFinite(updatedAt.valueOf())) fail("INVALID_POOL", "invalid pool timestamp");
   return Object.freeze({ ...value, address: value.address.toLowerCase(), token0, token1, reserve0, reserve1, updatedAt: updatedAt.toISOString() });
+}
+
+export function parsePosition(value) {
+  exactObject(value, ["account", "addedToken0", "addedToken1", "netLpAmount", "pool", "removedToken0", "removedToken1"]);
+  if ((!NATIVE_ACCOUNT.test(value.account) && !ADDRESS.test(value.account)) || !ADDRESS.test(value.pool)) fail("INVALID_POSITION", "invalid position identity");
+  for (const field of ["netLpAmount", "addedToken0", "addedToken1", "removedToken0", "removedToken1"]) if (!INTEGER.test(value[field])) fail("INVALID_POSITION", "invalid position amount");
+  return Object.freeze({ ...value, account: value.account.toLowerCase(), pool: value.pool.toLowerCase() });
+}
+
+export function parseSpotPrice(value) {
+  exactObject(value, ["pool", "price0Denominator", "price0Numerator", "price1Denominator", "price1Numerator", "token0", "token1", "updatedBlock"]);
+  if (![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)) || !Number.isSafeInteger(value.updatedBlock) || value.updatedBlock<1) fail("INVALID_PRICE", "invalid price identity");
+  for (const field of ["price0Denominator","price0Numerator","price1Denominator","price1Numerator"]) positiveBigInt(value[field]);
+  return Object.freeze({ ...value, pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase() });
+}
+
+export function parseTWAP(value) {
+  exactObject(value,["fromBlock","intervalSeconds","pool","price0AverageX112","price1AverageX112","toBlock","token0","token1"]);
+  if (![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)) || !Number.isSafeInteger(value.fromBlock) || !Number.isSafeInteger(value.toBlock) || value.fromBlock<1 || value.toBlock<=value.fromBlock || !Number.isSafeInteger(value.intervalSeconds) || value.intervalSeconds<1) fail("INVALID_TWAP","invalid TWAP identity or interval");
+  positiveBigInt(value.price0AverageX112,true);positiveBigInt(value.price1AverageX112,true);return Object.freeze({...value,pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase()});
+}
+
+export function parseFeeSummary(value) {
+  exactObject(value,["claimedFee0","claimedFee1","pool","swapFee0","swapFee1","token0","token1"]);if(![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)))fail("INVALID_FEES","invalid fee identity");for(const field of ["claimedFee0","claimedFee1","swapFee0","swapFee1"])positiveBigInt(value[field],true);return Object.freeze({...value,pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase()});
 }
 
 export function amountOut(amountIn, reserveIn, reserveOut, feeBps = 30) {
@@ -76,13 +102,10 @@ export function maximumInput(amount, slippageBps) {
 }
 
 export function priceImpactBps(quote) {
-  const first = quote.steps[0];
-  const last = quote.steps[quote.steps.length - 1];
-  const spotNumerator = first.reserveOut * last.amountIn;
-  const spotDenominator = first.reserveIn;
-  if (spotNumerator === 0n) return 0;
-  const expected = spotNumerator / spotDenominator;
-  return Number((expected > last.amountOut ? (expected - last.amountOut) * BPS / expected : 0n));
+  let expected = quote.amountIn;
+  for (const step of quote.steps) expected = expected * step.reserveOut / step.reserveIn;
+  if (expected === 0n) return 0;
+  return Number((expected > quote.amountOut ? (expected - quote.amountOut) * BPS / expected : 0n));
 }
 
 export function buildSwapExactInputTx({ router, quote, recipient, slippageBps, deadline, chainId = 6423 }) {

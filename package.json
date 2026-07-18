@@ -9,6 +9,9 @@
     "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
     "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
     "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
+    "dex:testnet:probe": "node ./scripts/dex/probe-testnet.mjs",
+    "dex:package:all": "npm run hardhat:build && npm run package:pwa --prefix apps/dex && node ./scripts/dex/package-all.mjs",
+    "dex:artifacts:verify": "node ./scripts/dex/verify-artifacts.mjs",
     "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
   },
   "devDependencies": {

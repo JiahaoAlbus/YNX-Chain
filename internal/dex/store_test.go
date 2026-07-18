@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -75,6 +76,56 @@ func TestConcurrentAppendIsAtomic(t *testing.T) {
 	}
 }
 
+func TestEventWithoutReserveSnapshotPreservesLatestPoolReserves(t *testing.T) {
+	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	syncEvent := fixture(1, "sync")
+	if _, err := store.Append(syncEvent); err != nil {
+		t.Fatal(err)
+	}
+	claim := fixture(2, "protocol-fee-claimed")
+	claim.Reserve0, claim.Reserve1 = "", ""
+	if _, err := store.Append(claim); err != nil {
+		t.Fatal(err)
+	}
+	pools := store.Pools()
+	if len(pools) != 1 || pools[0].Reserve0 != syncEvent.Reserve0 || pools[0].Reserve1 != syncEvent.Reserve1 {
+		t.Fatalf("reserves overwritten: %#v", pools)
+	}
+}
+
+func TestStorePricesFeesAndTWAPUseOnlyRawIndexedAmounts(t *testing.T) {
+	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	first := fixture(1, "sync")
+	first.Timestamp = time.Now().Add(-2 * time.Minute).UTC()
+	first.Price0Cumulative, first.Price1Cumulative = "1000", "2000"
+	second := fixture(2, "sync")
+	second.Timestamp = first.Timestamp.Add(60 * time.Second)
+	second.Price0Cumulative, second.Price1Cumulative = "7000", "5000"
+	swap := fixture(3, "swap")
+	swap.Timestamp = second.Timestamp.Add(time.Second)
+	swap.Fee0, swap.Fee1 = "30", "0"
+	claim := fixture(4, "protocol-fee-claimed")
+	claim.Timestamp = swap.Timestamp.Add(time.Second)
+	claim.Fee0, claim.Fee1, claim.Reserve0, claim.Reserve1 = "5", "0", "", ""
+	for _, event := range []Event{first, second, swap, claim} {
+		if _, err := store.Append(event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	prices := store.SpotPrices()
+	if len(prices) != 1 || prices[0].Price0Numerator != "20000" || prices[0].Price0Denominator != "10000" {
+		t.Fatalf("prices=%#v", prices)
+	}
+	twaps := store.TWAPs()
+	if len(twaps) != 1 || twaps[0].Price0AverageX112 != "100" || twaps[0].Price1AverageX112 != "50" || twaps[0].IntervalSeconds != 60 {
+		t.Fatalf("twaps=%#v", twaps)
+	}
+	fees := store.Fees()
+	if len(fees) != 1 || fees[0].SwapFee0 != "30" || fees[0].ClaimedFee0 != "5" {
+		t.Fatalf("fees=%#v", fees)
+	}
+}
+
 type allowSession struct{}
 
 func (allowSession) Authorize(_ context.Context, binding, account string, scopes []string) error {
@@ -86,7 +137,8 @@ func (allowSession) Authorize(_ context.Context, binding, account string, scopes
 
 func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
-	server, err := NewServer(store, buildinfo.Info{Commit: "abc123", Release: "test"}, strings.Repeat("k", 32), allowSession{})
+	token := Token{ChainID: ChainID, Address: "0x0000000000000000000000000000000000000002", Symbol: "TWO", Name: "Test Token Two", Decimals: 18, Standard: "ERC-20", ReviewStatus: "owner-reviewed-testnet"}
+	server, err := NewServer(store, buildinfo.Info{Commit: "abc123", Release: "test"}, strings.Repeat("k", 32), allowSession{}, token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,5 +182,70 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if !strings.Contains(response.Body.String(), "YNX Testnet EVM events") {
 		t.Fatal("analytics source is not explicit")
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/tokens", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"reviewStatus":"owner-reviewed-testnet"`) || !strings.Contains(response.Body.String(), `"mainnet":false`) {
+		t.Fatalf("tokens %d %s", response.Code, response.Body.String())
+	}
+	for path, source := range map[string]string{"/v1/prices": "raw indexed reserve ratios", "/v1/twap": "cumulative-price deltas", "/v1/fees": "raw token fee amounts"} {
+		request = httptest.NewRequest(http.MethodGet, path, nil)
+		response = httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), source) {
+			t.Fatalf("%s %d %s", path, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestServerRejectsUnreviewedAndDuplicateTokenMetadata(t *testing.T) {
+	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	valid := Token{ChainID: ChainID, Address: "0x00000000000000000000000000000000000000ab", Symbol: "ONE", Name: "Test Token One", Decimals: 18, Standard: "ERC-20", ReviewStatus: "owner-reviewed-testnet"}
+	invalid := valid
+	invalid.ReviewStatus = "self-reported"
+	if _, err := NewServer(store, buildinfo.Info{}, strings.Repeat("k", 32), nil, invalid); err == nil {
+		t.Fatal("unreviewed token accepted")
+	}
+	duplicate := valid
+	duplicate.Address = "0x00000000000000000000000000000000000000AB"
+	if _, err := NewServer(store, buildinfo.Info{}, strings.Repeat("k", 32), nil, valid, duplicate); err == nil {
+		t.Fatal("case-insensitive duplicate token accepted")
+	}
+}
+
+func TestRemoteAuthorizerRequiresExactCentralBindingResponse(t *testing.T) {
+	binding := strings.Repeat("A", 64)
+	account := "ynx1abcdefghijklmnopqrstuv"
+	scopes := []string{"account:read", "dex:positions:read"}
+	var mode atomic.Value
+	mode.Store("valid")
+	upstream := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if body["sessionBinding"] != binding || body["account"] != account {
+			t.Error("request binding missing")
+		}
+		value := map[string]any{"authorized": true, "sessionBinding": binding, "account": account, "productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "scopes": scopes, "expiresAt": time.Now().Add(time.Minute).UTC()}
+		if mode.Load().(string) == "substitute" {
+			value["bundleId"] = "com.ynxweb4.exchange.web"
+		}
+		if mode.Load().(string) == "unknown" {
+			value["extra"] = true
+		}
+		writeJSON(response, http.StatusOK, value)
+	}))
+	defer upstream.Close()
+	authorizer := RemoteAuthorizer{URL: upstream.URL}
+	if err := authorizer.Authorize(context.Background(), binding, account, scopes); err != nil {
+		t.Fatalf("valid binding rejected: %v", err)
+	}
+	for _, next := range []string{"substitute", "unknown"} {
+		mode.Store(next)
+		if err := authorizer.Authorize(context.Background(), binding, account, scopes); err == nil {
+			t.Fatalf("%s response accepted", next)
+		}
 	}
 }
