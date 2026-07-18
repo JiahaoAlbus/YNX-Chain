@@ -31,8 +31,9 @@ struct VideoRecord: Identifiable, Decodable {
 
     init() {
         let system = Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
-        locale = UserDefaults.standard.string(forKey: "ynx.video.locale") ?? Self.supported.first(where: { system.hasPrefix($0) }) ?? "en"
-        aiLocale = UserDefaults.standard.string(forKey: "ynx.video.ai-locale") ?? locale
+        let selectedLocale = UserDefaults.standard.string(forKey: "ynx.video.locale") ?? Self.supported.first(where: { system.hasPrefix($0) }) ?? "en"
+        locale = selectedLocale
+        aiLocale = UserDefaults.standard.string(forKey: "ynx.video.ai-locale") ?? selectedLocale
         if let url = Bundle.main.url(forResource: "catalog", withExtension: "json"), let data = try? Data(contentsOf: url), let decoded = try? JSONDecoder().decode([String:[String:String]].self, from: data) { catalog = decoded }
     }
 
@@ -90,7 +91,7 @@ final class ProductDeviceKey {
         let query:[String:Any]=[kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccount as String:account,kSecReturnData as String:true,kSecMatchLimit as String:kSecMatchLimitOne]
         var item:CFTypeRef?
         if SecItemCopyMatching(query as CFDictionary,&item)==errSecSuccess,let data=item as? Data,let restored=try? P256.Signing.PrivateKey(rawRepresentation:data){key=restored;return}
-        guard let created=try? P256.Signing.PrivateKey() else{key=nil;return}; key=created
+        let created=P256.Signing.PrivateKey(); key=created
         let add:[String:Any]=[kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccount as String:account,kSecAttrAccessible as String:kSecAttrAccessibleWhenUnlockedThisDeviceOnly,kSecValueData as String:created.rawRepresentation]
         SecItemDelete(query as CFDictionary); SecItemAdd(add as CFDictionary,nil)
     }
