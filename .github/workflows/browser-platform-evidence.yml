@@ -25,60 +25,59 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Install Android 36 image and build tools
+      - name: Install Android 36 platform and build tools
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "emulator" "platform-tools" "system-images;android-36;google_apis;x86_64"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - name: Build stable Testnet Preview APK
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         run: apps/browser/scripts/build-android.sh
-      - name: Boot isolated emulator
-        run: |
-          export PATH="$ANDROID_HOME/platform-tools:$PATH"
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name ynx_browser_ci --package "system-images;android-36;google_apis;x86_64"
-          nohup "$ANDROID_HOME/emulator/emulator" -avd ynx_browser_ci -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > android-emulator.log 2>&1 &
-          adb wait-for-device
-          for i in $(seq 1 120); do [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ] && break; sleep 2; done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
       - name: Install, cold launch, restart, deep link and isolate Private process
-        run: |
-          export PATH="$ANDROID_HOME/platform-tools:$PATH"
-          mkdir -p apps/browser/evidence/platform/android
-          adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
-          adb shell am force-stop com.ynxweb4.browser
-          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 | tee apps/browser/evidence/platform/android/cold-launch.txt
-          sleep 4
-          adb shell pidof com.ynxweb4.browser | tee apps/browser/evidence/platform/android/pid-cold.txt
-          adb exec-out screencap -p > apps/browser/evidence/platform/android/cold-launch.png
-          adb shell am force-stop com.ynxweb4.browser
-          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/restart.txt
-          sleep 3
-          adb shell am start -a android.intent.action.VIEW -d 'ynxbrowser://com.ynxweb4.browser/auth/callback?response=malformed' com.ynxweb4.browser | tee apps/browser/evidence/platform/android/deep-link.txt
-          adb shell am start -n com.ynxweb4.browser/.PrivateActivity | tee apps/browser/evidence/platform/android/private-launch.txt
-          sleep 3
-          adb shell pidof com.ynxweb4.browser:private | tee apps/browser/evidence/platform/android/private-pid.txt
-          test -s apps/browser/evidence/platform/android/private-pid.txt
-          adb exec-out screencap -p > apps/browser/evidence/platform/android/private.png
-          adb shell am force-stop com.ynxweb4.browser
-          adb shell cmd locale set-app-locales com.ynxweb4.browser --user 0 ar
-          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/arabic-launch.txt
-          sleep 3
-          adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-rtl.png
-          adb shell settings put system font_scale 1.5
-          adb shell am force-stop com.ynxweb4.browser
-          adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/large-text-launch.txt
-          sleep 3
-          adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-large-text.png
-          adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
-          sha256sum apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/sha256.txt
-          stat --printf='%s bytes\n' apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/size.txt
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect
+          script: |
+            export PATH="$ANDROID_HOME/platform-tools:$PATH"
+            mkdir -p apps/browser/evidence/platform/android
+            adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 | tee apps/browser/evidence/platform/android/cold-launch.txt
+            sleep 4
+            adb shell pidof com.ynxweb4.browser | tee apps/browser/evidence/platform/android/pid-cold.txt
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/cold-launch.png
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/restart.txt
+            sleep 3
+            adb shell am start -a android.intent.action.VIEW -d 'ynxbrowser://com.ynxweb4.browser/auth/callback?response=malformed' com.ynxweb4.browser | tee apps/browser/evidence/platform/android/deep-link.txt
+            adb shell am start -n com.ynxweb4.browser/.PrivateActivity | tee apps/browser/evidence/platform/android/private-launch.txt
+            sleep 3
+            adb shell pidof com.ynxweb4.browser:private | tee apps/browser/evidence/platform/android/private-pid.txt
+            test -s apps/browser/evidence/platform/android/private-pid.txt
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/private.png
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell cmd locale set-app-locales com.ynxweb4.browser --user 0 ar
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/arabic-launch.txt
+            sleep 3
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-rtl.png
+            adb shell settings put system font_scale 1.5
+            adb shell am force-stop com.ynxweb4.browser
+            adb shell monkey -p com.ynxweb4.browser -c android.intent.category.LAUNCHER 1 > apps/browser/evidence/platform/android/large-text-launch.txt
+            sleep 3
+            adb exec-out screencap -p > apps/browser/evidence/platform/android/arabic-large-text.png
+            adb shell dumpsys package com.ynxweb4.browser > apps/browser/evidence/platform/android/package.txt
+            sha256sum apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/sha256.txt
+            stat --printf='%s bytes\n' apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk > apps/browser/evidence/platform/android/size.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ynx-browser-android-testnet-preview
           path: |
             apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk
             apps/browser/evidence/platform/android
-            android-emulator.log
           if-no-files-found: error
 
   macos-package-cold-launch:
