@@ -1,75 +1,88 @@
-# YNX Shop handoff
+# YNX Shop and Seller Console handoff
 
-## Source
+Updated: 2026-07-18
 
-- Branch: `codex/ecosystem-shop`
-- Baseline: `271197feb48fd362292fb2210887edf3109ce4f7`
-- Initial implementation commit: `8caa94ebb683396e8dd3a140e361b407ffb107fb`
-- Final implementation and handoff: branch tip containing this document (use `git rev-parse codex/ecosystem-shop`)
-- Owned paths: `apps/shop/**`, `apps/seller-console/**`, `internal/commerce/**`, this handoff
+Branch: `codex/ecosystem-shop`
 
-## Delivered architecture
+Release source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
 
-`internal/commerce` is a standalone commerce domain and HTTP service (`go run ./internal/commerce/cmd/shopd`). It persists one versioned JSON snapshot with mode `0600`, fsyncs a temporary file, and atomically renames it. All inventory reservations, order transitions, idempotency records, roles and audit records share a mutex-protected transaction boundary. Startup calls `Recover`, releasing expired unpaid reservations deterministically.
+Minimum preserved baseline: `ef0456a6111ed9bc59fcd6c34d9a8739713e0865`
 
-The buyer surface under `apps/shop` is an API-driven application rather than a navigation shell. It covers Wallet sign-in, persistent profile/address APIs, search/category/price/in-stock filters, product variants/live available quantity, persistent cart APIs, order review, inventory reservation, YNX Pay handoff, payment pending/confirmation, shipment/delivery, cancellation, review, return/refund request and dispute states, plus Trust links and explicit capability status.
+## Current truth matrix
 
-The separate seller surface under `apps/seller-console` exposes working views for Wallet-scoped onboarding, store profile/policy, catalog drafts, explicit publication, variants, concurrency-safe inventory, order/fulfillment transitions, seller-entered shipment updates, return/refund decisions, authoritative settlement records, owner/manager/fulfillment/support roles and audit history. Fulfillment, support and refund decisions are permissioned separately; support cannot approve a refund transfer decision.
+| Product | Local implementation/tests | Installed | Central | Staging | Public/store |
+| --- | --- | --- | --- | --- | --- |
+| YNX Shop Web/PWA | complete / pass | browser runtime verified | not integrated | deployed | not released |
+| YNX Shop Android | complete / pass | API 36 install, two cold starts, restart and deep links pass | not integrated | APK hosted | not production signed/store released |
+| YNX Shop iOS | source/contract/locales complete; runnable CI present | not installed locally (no full Xcode) | not integrated | not installed | not signed/store released |
+| Seller Console Web | complete / pass | browser runtime verified | not integrated | deployed | not released |
+| Commerce API | complete / race + repository tests pass | systemd active, restart proof pass | Trust configured; Wallet/Pay/AI incomplete | deployed | not public release |
 
-The service API rejects unknown JSON fields, limits bodies and field lengths, applies global and subject/action rate windows, uses 8-128 character persistent idempotency keys (including HTTP state transitions), returns the original result for an exact replay, rejects replay with changed request hashes, checks buyer/seller ownership on every private record, and emits immutable audit events. Security headers include a same-origin CSP, no-sniff, no-referrer and no-store.
+Exact machine-readable states are in `apps/shop/product-release.json` and `apps/seller-console/product-release.json`. `integratedCentral`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false.
 
-## Payment truth boundary
+## Delivered product closure
 
-Checkout creates a Pay intent and invoice only through configured `YNX_SHOP_PAY_URL` / `YNX_SHOP_PAY_KEY`, bound to the configured merchant and payout address. An order remains `payment_pending` until `GET /pay/invoices/{id}/settlement` returns exact evidence matching invoice, intent, merchant, payout account, payer, YNXT amount/currency, transaction hash, audit hash and positive committed block height. Only then are reserved units consumed and the order marked `paid`. Replays are idempotent. Missing Pay configuration returns HTTP 503 `unavailable`; it never creates a local paid state.
+`internal/commerce` owns one authenticated, atomic snapshot for stores, products/media/variants/revisions, real inventory and reservations, profiles/addresses, persistent carts, orders, timelines, roles, audit, settlements, AI jobs, idempotency records, and rate windows. Startup recovery deterministically releases expired unpaid reservations. HMAC tamper/wrong-key startup fails; a verified `.bak` can be restored only with the same key.
 
-Refund approval is also a Pay boundary, not a local money-movement claim. An owner or manager approval calls `POST /pay/refunds`; the order stays `refund_approved` / `approved_pending_authoritative_pay_refund` if Pay is unavailable. It becomes `refunded` only after the returned refund ID, intent, merchant, exact total, YNXT currency, `recorded` status, transaction hash, audit/request hashes, timestamp and committed block height all match. The evidence is persisted on the order and audited; support-role users cannot approve or retry the refund.
+Buyer surfaces cover Search, Category, Product, Bag, Checkout, Orders, profile/address, reservation, Pay handoff, payment-pending/committed-paid, cancel, seller-entered shipment, delivery, review, return, refund request, dispute, and restart recovery. Product publication requires HTTPS image media and alternative text.
 
-Tax calculation and external logistics-provider integration are reported as `unavailable`. Seller-entered carrier/tracking data is labeled as a manual fulfillment update, not external carrier proof. A buyer dispute submits only a bounded SHA-256 evidence digest and non-sensitive summary to configured Trust `POST /api/actions`; raw buyer address, payment history, account and explanation do not cross the adapter. Returned case/evidence/appeal links are persisted and audited. If Trust is absent or rejects the handoff, the dispute remains durable with `unavailable_no_trust_gateway`; Shop never lets Trust move YNXT or decide Pay settlement.
+Seller covers onboarding, profile/policy, drafts, edit history, explicit publish/unpublish, inventory, order inspection, fulfillment timelines, returns/refunds, settlements, staff, roles, and audit. Roles are owner, manager, fulfillment, support, and viewer. Support cannot approve a money action; viewer is read-only.
 
-## Wallet and AI boundaries
+Concurrent no-oversell, reservation expiry/release, exact idempotent replay, changed-replay rejection, restart, authorization, and audit are tested. AI workflows cover catalog creation, search comparison, support draft, fulfillment triage, and return explanation with explicit context/estimate/permission/review/cancel/retry/delete boundaries. AI cannot publish, price, purchase, refund, change inventory, or change policy.
 
-Shop no longer owns or persists bearer sessions. Web and native clients use Wallet Auth v1 with separate `ynx-shop-v1` / `com.ynxweb4.shop` and `ynx-seller-v1` / `com.ynxweb4.seller-console` bindings, exact sorted least-privilege scopes, `ynx_6423-1`, callback, localized purpose, nonce, four-minute approval expiry and a non-exportable P-256 product-device key. `ynx-shopd` proxies approval/device proofs to the central Gateway and introspects every bearer; it fail-closes on revocation, expiry, cross-product bundle, scope, account, session-binding or unknown-field mismatch. Legacy snapshot migration drops old plaintext sessions/challenges. Web bearer state is memory-only; native sessions use Android Keystore-backed encrypted preferences or iOS Keychain. Recovery keys never cross into Shop.
+## Wallet, Pay, and Trust boundaries
 
-The buyer delivery now includes responsive Web plus independent native Android and iOS projects under `apps/shop/native`. Android provides catalog/search, encrypted cart/profile/offline mutation queue, checkout, Pay deep links, order/refund/dispute lifecycle, Wallet device proof, AI review and 12 audited locale resources. iOS provides the corresponding SwiftUI/API/Keychain/Wallet contract with a privacy manifest and 12-locale string catalog. Seller operations remain a separate responsive console rather than being embedded in the buyer App.
+Web bearer state is memory-only; legacy plaintext session/challenge snapshot data is dropped. Native secrets use Android Keystore-encrypted preferences or iOS Keychain. Recovery keys never enter Shop.
 
-AI workflows are `catalog_creation`, `search_comparison`, `support_draft`, `fulfillment_triage` and `return_explanation`. Each requires an allowed context class, privacy summary, unit estimate and explicit permission; records provider status, result/failure and audit; supports cancel, retry by new job, apply-draft or reject. Allowed actions are draft-only. AI cannot publish, price, purchase, refund or change policy. Missing provider configuration is an explicit failure, not a canned response.
+Shop and Seller have separate v2 registry entries:
 
-## Verification evidence
+- Shop: `ynx-shop-v1`, `com.ynxweb4.shop`, `ynxshop://wallet-auth/callback`, buyer scopes.
+- Seller: `ynx-seller-v1`, `com.ynxweb4.seller-console`, `ynxseller://wallet-auth/callback`, seller scopes.
 
-- `go test -race ./internal/commerce/...` — pass. Covers concurrent no-oversell reservation, persistence/restart recovery, exact Pay settlement and refund evidence, central Wallet introspection/proxy tamper/replay rejection, legacy plaintext-session removal, Trust privacy boundary, authorization/lifecycle and AI permission/provider/review boundaries.
-- `go test ./...` — pass. Includes the full repository and an authenticated HTTP workflow covering seller onboarding/roles/catalog/publication/inventory, buyer cart/order, Pay handoff and exact committed settlement/refund, shipment/delivery/review/return, role denial, settlements, idempotent replay and strict JSON validation.
-- `npm test && npm run build` in `apps/shop` — pass; build emitted ignored `dist/`.
-- `npm test && npm run build` in `apps/seller-console` — pass; build emitted ignored `dist/`.
-- `npm run native:verify` in `apps/shop` — pass; verifies Android/iOS bindings, privacy contracts and exactly 12 complete locale catalogs including Arabic RTL.
-- Android `assembleDebug` and `testDebugUnitTest` with JDK 17 / installed SDK — pass. Debug APK SHA-256: `7db990d0ccf7c6727a4a6609b1ae33deb336e5b05523de8e22d9c8c7ff502157`.
-- Android install/cold launch on `emulator-5562` — pass: package `com.ynxweb4.shop.debug`, `LaunchState: COLD`, activity resumed with a live process.
-- iOS plist, privacy manifest, Xcode project and native contract/i18n static checks — pass. Simulator compilation is not claimed because this machine has Command Line Tools but no full Xcode installation.
-- Cold-start `ynx-shopd` plus `npm run smoke -- --base-url http://127.0.0.1:18095` in both Web apps — pass for health, capabilities and catalog. Smoke also accepts `YNX_SHOP_URL`.
-- Browser verification — buyer and seller at 1440x1000 and 390x844; no console errors or horizontal overflow. Responsive viewport screenshots were reviewed visually.
-- `npm run hardhat:build && npm run contracts:selectors` — pass. The root package has no `npm test` script; app tests and Go tests are the applicable suites. Generated artifacts and `node_modules` are ignored and not committed.
-- `make no-placeholder-check` — pass.
-- `make secret-scan` — pass.
-- `make env-check` — pass.
-- `git diff --check` — pass.
+Every authenticated request requires central product-session introspection and exact P-256 device/session/product/scope/account binding. The deployed central Gateway does not yet contain these entries, so staging Wallet authentication reports unavailable and never falls back to a local bearer. Exact patches and owner actions are in `docs/handoffs/shop-central-integration.md`.
 
-Screenshot evidence:
+Pay is authoritative for both paid and refunded. Shop validates exact invoice/intent/merchant/payout/payer/YNXT amount/currency/transaction/audit/block evidence. A Shop-specific merchant payout is not provisioned, so staging Pay stays unavailable rather than using a guessed payout or fake settlement.
 
-- `apps/shop/evidence/buyer-desktop.jpg`
-- `apps/shop/evidence/buyer-mobile.jpg`
-- `apps/seller-console/evidence/seller-mobile.jpg`
-- `apps/seller-console/evidence/seller-desktop.jpg`
+Trust staging is configured against the authenticated Trust service. Shop sends only one order-bound SHA-256 digest and a non-sensitive summary; raw address/payment/explanation data stays local. Trust links/cases cannot move YNXT or decide settlement. Tax and carrier providers remain unavailable; shipment data is manual-unverified.
 
-## Exact integration requests
+## UI and localization
 
-1. Register the exact Shop and Seller client/bundle/callback/scope tuples in the deployed central Gateway and point `YNX_SHOP_GATEWAY_URL` / `YNX_SHOP_GATEWAY_KEY` at its Wallet Auth v1 product-session API. The adapter contract is implemented and tested against a strict fake; no live Gateway endpoint or credential is present in this worktree.
-2. Point `YNX_SHOP_PAY_URL` at reviewed `ynx-payd` and provide `YNX_SHOP_PAY_KEY`, `YNX_SHOP_PAY_MERCHANT_ID` and canonical `YNX_SHOP_PAY_PAYOUT_ADDRESS` via deployment secrets. Settlement and refund schemas must preserve the exact fields validated by the adapter.
-3. Register Shop-specific AI scopes for the five workflows and map the current `/ai/generate` adapter to the reviewed Gateway contract. No provider secret belongs in either Web bundle.
-4. Point `YNX_SHOP_TRUST_URL`, `YNX_SHOP_TRUST_KEY` and `YNX_SHOP_TRUST_PUBLIC_URL` at the reviewed Trust action/case service. Supply tax and logistics providers only when real; until then preserve `unavailable` and seller-entered-unverified labels.
-5. Add deployment service wiring outside this branch's ownership after review. No public deployment or store acceptance is claimed here.
+The Shop giant blue hero and Seller KPI card wall were removed. Buyer is image/title/price/choice first; Seller uses sidebar, table, inventory editor, role-aware toolbar, and timelines. Both support system light/dark, reduced motion, increased contrast, responsive mobile, 12 locales, Arabic RTL, and a separate AI output-language preference.
 
-## Known external gaps
+Real current-run visual evidence, before/after comparisons, generated-asset disclosure, overflow checks, and remaining authenticated-state limitations are in `UI_DESIGN_AUDIT.md` and `docs/handoffs/shop-evidence-index.md`.
 
-- Live central Wallet client registration and deployed endpoint/credential are not present in this worktree; auth therefore reports `unavailable` until supplied and never falls back to local bearer issuance.
-- Pay merchant credentials and a deployed endpoint are not present in this worktree; payment and refund transitions fail closed until supplied.
-- AI provider quota/credentials, tax service, carrier API and reviewed Trust evidence service are external inputs.
-- This branch proves responsive Web products, a deployable Go service, an installed debug Android buyer App and an iOS project/static contract. It does not claim iOS simulator/device installation, production signing/store acceptance, live merchant acceptance, mainnet readiness or public launch.
+## Staging and artifacts
+
+- Buyer: `https://web4.ynxweb4.com/shop-staging/`
+- Seller: `https://web4.ynxweb4.com/seller-staging/`
+- Health: `https://web4.ynxweb4.com/shop-api-staging/health`
+- Version: `https://web4.ynxweb4.com/shop-api-staging/version`
+- Android: `https://web4.ynxweb4.com/shop-staging/ynx-shop-0.2.0-testnet-preview.apk`
+- Linux/Web/API bundle: `https://web4.ynxweb4.com/shop-staging/ynx-shop-release-38e2f68.tar.gz`
+
+Health/version report version `0.2.0-testnet-preview`, commit `38e2f68deb91d5f26e5aeec2318e260cd0742115`, persistence true, and integrity protection true. The service runs as `ynx` on loopback port 18095 behind the existing Web4 TLS host. Restart preserved the authenticated state SHA-256 exactly.
+
+APK SHA-256 is `0df56042b944f74540be437e314f6331afcb4f9674342d63b1922fbdab7c435f`, size 78,639 bytes, min API 26, signed with an ephemeral RSA-3072 Testnet Preview certificate using APK v2/v3. It is not production signed. Full hashes/signature metadata are in `docs/handoffs/shop-artifact-manifest.json`.
+
+## Verification completed
+
+- `go test -race ./internal/commerce/... -count=1` — pass.
+- `go test ./...` — pass.
+- Buyer `npm test`, build, and `native:verify` — pass.
+- Seller `npm test` and build — pass.
+- Android `testDebugUnitTest`, `assembleDebug`, `assembleRelease` — pass with JDK 17 / SDK 36.
+- Android signed APK install, two force-stop cold starts, Wallet and order deep-link delivery — pass on isolated read-only API 36 AVD.
+- `go mod verify` — pass. Web runtime dependency trees are empty. Linked-binary SBOM contains 35 components with only MIT/Apache/BSD/ISC licenses and no unknown license entry.
+- `make no-placeholder-check`, `make secret-scan`, `make env-check`, `git diff --check` — pass.
+- Remote Caddy/API/buyer/seller/artifact smoke and service restart — pass.
+- iOS simulator is not claimed locally. `.github/workflows/shop-native.yml` performs macOS simulator build/install/launch/deep-link and uploads the simulator artifact.
+- Repository-wide `make preflight` was run twice through its Shop-independent gates. Both attempts stopped at `make faucet-check` because the shared local faucet fixture never became healthy on `127.0.0.1:6428`; an existing user-owned `ynx-chaind` process/state on the adjacent local testnet was preserved and not terminated. All Shop/Seller gates listed above passed independently.
+
+## Exact remaining blockers
+
+1. Central Gateway owner must review/merge/deploy the two exact registry v2 entries and provide the authenticated introspection endpoint/service key. Until then no real Wallet-authenticated staging order can exist.
+2. Pay owner must provision a Shop merchant and canonical payout address and review the current Pay adapter against the deployed Pay release. Until then real Testnet order settlement/refund acceptance cannot run.
+3. Full Xcode or a completed GitHub Actions run is required for iOS simulator artifact/install evidence.
+4. AI provider credentials/quota, tax provider, and carrier provider remain external. Their unavailable labels are intentional.
+
+Because blockers 1–3 prevent the requested central and complete native acceptance, this handoff does not claim the entire cross-product goal is complete even though the owned code, staging deployment, Android preview, documentation, and local/runtime gates are delivered.
