@@ -2,11 +2,11 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/ecosystem-dex",
-  "commit": "pending",
+  "commit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
-  "implementedLocal": false,
-  "testedLocal": false,
+  "implementedLocal": true,
+  "testedLocal": true,
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
@@ -20,9 +20,17 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
-  "signingClass": "unsigned-local-source",
+  "sha256": {
+    "artifactManifest": "8621bfd0e33d8b92c5d58cab7e5930a30a5d2a55dd9940fa350e5fe476f991a2",
+    "webPwaBundle": "dbe1e72ecb68bddf53b5770f495d96ffb615bd7f81e2370fe63ecf42fb676b07",
+    "javascriptSdkPackage": "0e5ca016fe26dd7f54e3954c90e95052e0475ce7416149470ed382fc0489993e"
+  },
+  "bytes": {
+    "artifactManifest": 3650,
+    "webPwaBundle": 318536,
+    "javascriptSdkPackage": 5501
+  },
+  "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
   "installEvidence": [],
   "centralIntegration": {
@@ -37,7 +45,7 @@
     "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
     "No independent third-party smart-contract audit has been completed.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
-    "The current Web UI exposes truthful empty/read-only product surfaces while transaction workflows continue implementation."
+    "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-18T08:00:00.000Z"
+  "generatedAt": "2026-07-18T20:07:56.000Z"
 }

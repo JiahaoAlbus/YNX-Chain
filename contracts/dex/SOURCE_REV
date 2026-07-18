@@ -1,0 +1,9 @@
+YNX DEX clean-room constant-product implementation
+repository: https://github.com/JiahaoAlbus/YNX-Chain.git
+source commit: 3214c584c9032d6b6b3753df6b2450d4ac739189
+source paths: contracts/dex/**
+compiler: solc 0.8.24
+optimizer: enabled, 200 runs
+EVM target: shanghai
+license: MIT SPDX identifiers in each source file
+third-party source copied: none
