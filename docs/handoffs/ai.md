@@ -7,7 +7,8 @@
 - Starting point: `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`
 - Previous implementation: `5fa7e7795881e67cbf94d69a680726fc6e73fa0e`
 - Previous handoff: `5d8ff216e777872785ee282e8591fb27dc5da2f9`
-- Delivery commit: the final pushed branch tip containing this handoff.
+- Release source commit: `859f340632932d4c98395f9ef11733bbb526092c`.
+  The final pushed branch tip adds only this immutable source-commit pointer.
 
 ## Changed paths
 

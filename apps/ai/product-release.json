@@ -2,7 +2,7 @@
   "productId": "ynx-ai",
   "name": "YNX AI",
   "branch": "codex/ecosystem-ai",
-  "commit": "pending-release-commit",
+  "commit": "859f340632932d4c98395f9ef11733bbb526092c",
   "version": "1.0.0-testnet-preview",
   "surfaces": [
     "web",
