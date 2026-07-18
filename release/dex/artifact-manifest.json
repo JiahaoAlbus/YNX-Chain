@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "version": "0.1.0-testnet-preview.1",
+  "sourceBaseCommit": "3214c584c9032d6b6b3753df6b2450d4ac739189",
+  "mainnet": false,
+  "audited": false,
+  "productionLiquidity": false,
+  "claims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "artifacts": [
+    {
+      "type": "web-pwa-upload-bundle",
+      "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
+      "sha256": "dbe1e72ecb68bddf53b5770f495d96ffb615bd7f81e2370fe63ecf42fb676b07",
+      "sizeBytes": 318536
+    },
+    {
+      "type": "javascript-sdk-npm-package",
+      "file": "ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
+      "sha256": "0e5ca016fe26dd7f54e3954c90e95052e0475ce7416149470ed382fc0489993e",
+      "sizeBytes": 5501
+    },
+    {
+      "type": "contract-source-and-build-manifest",
+      "compiler": "solc-0.8.24",
+      "files": [
+        {
+          "path": "contracts/dex/YNXDexFactory.sol",
+          "sha256": "50de7f09d8313b9b88ce670631daf663497a2ceae37e429bc0337caa235dea4e",
+          "sizeBytes": 5653
+        },
+        {
+          "path": "contracts/dex/YNXDexPool.sol",
+          "sha256": "fbc9115a3d99d713ba8aef7d92bc39d4141892f2ae972ac23be682809b9b4a00",
+          "sizeBytes": 11784
+        },
+        {
+          "path": "contracts/dex/YNXDexRouter.sol",
+          "sha256": "36cb4261e3c3195552c41b1a84927adc72329c604c2c8ad3ea23266c9b511487",
+          "sizeBytes": 7263
+        },
+        {
+          "path": "contracts/dex/YNXDexQuoter.sol",
+          "sha256": "ac9e42323e2e6e32203fa7378ae92443846a7323a8c77e3e4f0555d569f49f54",
+          "sizeBytes": 1195
+        },
+        {
+          "path": "contracts/dex/SOURCE_REV",
+          "sha256": "73791f4ca63092795d807d33b30e518166ac7802e4f17ab4032788b67821d847",
+          "sizeBytes": 349
+        },
+        {
+          "path": "contracts/dex/THIRD_PARTY_NOTICES.md",
+          "sha256": "e5b80f6d9ac246476948d373a41c6d0c58204763143d25d21272fe42914d261c",
+          "sizeBytes": 960
+        },
+        {
+          "path": "contracts/dex/LICENSE",
+          "sha256": "3f266069edf35c5c922e5c970d5e66b3e9857e2f76c5d8b5a1e7488b8a3e4540",
+          "sizeBytes": 1079
+        },
+        {
+          "path": "artifacts/contracts/dex/YNXDexFactory.sol/YNXDexFactory.json",
+          "sha256": "4708571c157c6c585ab45684e25ce828ee6adff445b99164f6ab873c8528c2da",
+          "sizeBytes": 57084
+        },
+        {
+          "path": "artifacts/contracts/dex/YNXDexPool.sol/YNXDexPool.json",
+          "sha256": "e336a689da18710a50542b8fd6a3fcbc21fd3e0233de1f0f09e7cf67bb07773d",
+          "sizeBytes": 48408
+        },
+        {
+          "path": "artifacts/contracts/dex/YNXDexRouter.sol/YNXDexRouter.json",
+          "sha256": "af314d34215f97d9835c44e1cfaaa1a385e5c603b5bd8016f9787641184b2523",
+          "sizeBytes": 27923
+        },
+        {
+          "path": "artifacts/contracts/dex/YNXDexQuoter.sol/YNXDexQuoter.json",
+          "sha256": "6246b4b80c5d5538f5b17b6740a1302084f1f636995289f89930a1e84bf23347",
+          "sizeBytes": 6406
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Artifacts are local upload candidates only.",
+    "Local implementation and test claims are backed by the handoff verification suite; they do not imply installation or deployment.",
+    "Generated contract build files are hashed evidence and are not a deployment or verification result.",
+    "No artifact is hosted or production-signed."
+  ]
+}
