@@ -11,14 +11,14 @@ const vector = JSON.parse(readFileSync(new URL("../testdata/central-lifecycle-v1
 
 const registryEntry = migrateCentralRegistryEntry({
   schemaVersion: 1, productClientId: "ynx-social-v1", requestingProduct: "social",
-  bundleId: "com.ynxweb4.social", callback: "ynxsocial://wallet-auth/callback",
+  bundleId: "com.ynx.social", callback: "ynx-social://com.ynx.social",
   scopes: ["account:read", "profile:link"], maxScopes: 2,
 });
 
 function completionInput() {
   const authorizationRequest = parseAuthorizationRequest(request(), {
     now: NOW,
-    registry: { "ynx-social-v1": { requestingProduct: "social", bundleId: "com.ynxweb4.social", callbacks: registryEntry.callbacks, scopes: registryEntry.scopes, maxScopes: 2 } },
+    registry: { "ynx-social-v1": { requestingProduct: "social", bundleId: "com.ynx.social", callbacks: registryEntry.callbacks, scopes: registryEntry.scopes, maxScopes: 2 } },
   });
   const walletApproval = signAuthorization(authorizationRequest, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
   const challenge = createGatewayChallenge(walletApproval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
@@ -26,7 +26,7 @@ function completionInput() {
 }
 
 function context(overrides = {}) {
-  return { productClientId: "ynx-social-v1", bundleId: "com.ynxweb4.social", productDeviceKey: PRODUCT_DEVICE_KEY, requiredScopes: ["account:read"], ...overrides };
+  return { productClientId: "ynx-social-v1", bundleId: "com.ynx.social", productDeviceKey: PRODUCT_DEVICE_KEY, requiredScopes: ["account:read"], ...overrides };
 }
 
 test("completion consumes nonce, request and challenge atomically and survives restart", () => {

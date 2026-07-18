@@ -1,10 +1,10 @@
 apply plugin: "com.android.application"
 
 android {
-  namespace "com.ynxweb4.social"
+  namespace "com.ynx.social"
   compileSdk 36
   defaultConfig {
-    applicationId "com.ynxweb4.social"
+    applicationId "com.ynx.social"
     minSdk 24
     targetSdk 36
     versionCode 1

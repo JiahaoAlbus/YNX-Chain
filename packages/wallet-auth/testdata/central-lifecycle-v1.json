@@ -10,11 +10,11 @@
     "audit": "YNX_WALLET_CENTRAL_AUDIT_V1"
   },
   "expected": {
-    "requestDigest": "8af8ac0dd31e2aa874ef95d9c22c1aae25d1f42bf661b0427c9553aecc7f701d",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
     "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
-    "sessionBinding": "beec070fdca1db91121e47d5c753866ec3ef3201c8771d66a6db133855036fb1",
-    "approvalDigest": "46b50f5be454e153c9b9c6d05847a12612d7286374d6a5ed8f62cb6ecce1e6a5",
-    "deviceBinding": "07eff374aaed2431cc53c04ea767b25e1bf74cab1386b83574bc69e922e9b815",
-    "firstAuditHash": "733bcfdf96718422d8583fc8b0fb443e2bf8601bded31c8d1a1e1bec4a409a9c"
+    "sessionBinding": "2eea97bc49dcc721376b8d56612bec77c2ee37d47ef85f5d7e1c67abeee89703",
+    "approvalDigest": "65769c25ede95684a6c55318b9098d53e75c1da608bb26047ef29fefa5e318df",
+    "deviceBinding": "fee337c81228076733bc82dfb514c6ec15f6447d029399b8fe59abcf98ae2a10",
+    "firstAuditHash": "d964fdcb37a0b6d9ccdf949c9c1d9e34871e28ca3ee27b8b498fb1fd9a51f83a"
   }
 }

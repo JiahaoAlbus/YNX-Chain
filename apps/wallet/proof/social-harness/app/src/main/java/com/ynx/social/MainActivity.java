@@ -1,4 +1,4 @@
-package com.ynxweb4.social;
+package com.ynx.social;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -47,7 +47,7 @@ import org.json.JSONObject;
 public final class MainActivity extends Activity {
   private static final String BLUE="#002FA7";
   private static final String DEVICE_ALGORITHM="p256-sha256";
-  private static final String CALLBACK="ynxsocial://wallet-auth/callback";
+  private static final String CALLBACK="ynx-social://com.ynx.social";
   private static final String PREFERENCES="ynx-social-wallet-auth-proof";
   private static final String PENDING_REQUEST="pending-request";
   private static final DateTimeFormatter MILLIS=new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
@@ -67,7 +67,7 @@ public final class MainActivity extends Activity {
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setGravity(Gravity.CENTER_HORIZONTAL);root.setPadding(64,120,64,64);root.setBackgroundColor(Color.WHITE);
     root.addView(text("CROSS-APP PROOF",14,Color.parseColor(BLUE)));
     TextView title=text("YNX Social",34,Color.rgb(16,24,40));title.setPadding(0,24,0,18);root.addView(title);
-    TextView identity=text("Package com.ynxweb4.social\nProduct client ynx-social-v1\nP-256 device key remains in Android Keystore",16,Color.rgb(102,112,133));identity.setGravity(Gravity.CENTER);root.addView(identity);
+    TextView identity=text("Package com.ynx.social\nProduct client ynx-social-v1\nP-256 device key remains in Android Keystore",16,Color.rgb(102,112,133));identity.setGravity(Gravity.CENTER);root.addView(identity);
     Button button=new Button(this);button.setText("Sign in with YNX Wallet");button.setContentDescription("Social starts Sign in with YNX Wallet");button.setTextColor(Color.WHITE);button.setBackgroundColor(Color.parseColor(BLUE));LinearLayout.LayoutParams buttonParams=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,140);buttonParams.setMargins(0,70,0,42);root.addView(button,buttonParams);button.setOnClickListener(view->startWallet());
     status=text("Ready. Social owns its P-256 device private key; Wallet owns the account key.",16,Color.rgb(52,64,84));status.setGravity(Gravity.CENTER);root.addView(status);
     replayButton=new Button(this);replayButton.setText("Replay exact Wallet callback");replayButton.setContentDescription("Replay exact Wallet callback");replayButton.setVisibility(View.GONE);replayButton.setOnClickListener(view->handle(getIntent()));LinearLayout.LayoutParams replayParams=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,140);replayParams.setMargins(0,42,0,0);root.addView(replayButton,replayParams);
@@ -91,7 +91,7 @@ public final class MainActivity extends Activity {
   private void handle(Intent intent){
     Uri uri=intent.getData();if(uri==null)return;
     try{
-      if(!"ynxsocial".equals(uri.getScheme())||!"wallet-auth".equals(uri.getHost())||!"/callback".equals(uri.getPath())||uri.getFragment()!=null||!uri.getQueryParameterNames().equals(Set.of("response")))throw new SecurityException("callback route substituted");
+      if(!"ynx-social".equals(uri.getScheme())||!"com.ynx.social".equals(uri.getHost())||(uri.getPath()!=null&&!uri.getPath().isEmpty())||uri.getFragment()!=null||!uri.getQueryParameterNames().equals(Set.of("response")))throw new SecurityException("callback route substituted");
       String encoded=uri.getQueryParameter("response");if(encoded==null)throw new IllegalArgumentException("response missing");
       JSONObject response=new JSONObject(new String(Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING),StandardCharsets.UTF_8));
       JSONObject request=pendingRequest();

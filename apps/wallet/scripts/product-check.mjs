@@ -17,7 +17,7 @@ assert.equal(config.userInterfaceStyle,"automatic");
 assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);
 for(const required of ["Sign in with YNX Wallet","Requesting App","App identity","Permissions","Purpose","Valid until","Approve","Reject"])assert.equal(`${source}\n${i18n}`.includes(required),true,`missing ${required}`);
-for(const required of ["AI security explanation","authorizationAudit.append","approval-revoked"])assert.equal(`${source}\n${audit}`.includes(required),true,`missing ${required}`);
+for(const required of ["AI security explanation","authorizationAudit.append","approval-revoked"])assert.equal(`${source}\n${i18n}\n${audit}`.includes(required),true,`missing ${required}`);
 for(const required of ["useColorScheme","isReduceMotionEnabled","isHighTextContrastEnabled","Text follows the device font scale"])assert.equal(source.includes(required),true,`missing adaptive UI contract ${required}`);
 for(const required of ["WELCOME","Create a new Wallet","Import account","Recover Wallet","WALLET LOCKED","NATIVE ACCOUNT","Assets","Activity","Receive YNXT","Send Review","Connected Apps","Sessions","Devices","Recovery","Security","Authorization Audit","Network"])assert.equal(`${source}\n${i18n}`.toLowerCase().includes(required.toLowerCase()),true,`missing Wallet IA surface ${required}`);
 for(const locale of ["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"])assert.equal(i18n.includes(`\"${locale}\"`)||i18n.includes(`${locale}:`),true,`missing locale ${locale}`);
