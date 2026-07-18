@@ -1,4 +1,10 @@
 {
+  "schemaVersion": 2,
+  "productId": "ynx-dex",
+  "mainnet": false,
+  "audited": false,
+  "productionLiquidity": false,
+  "deploymentStatus": "not-deployed",
   "network": {
     "name": "YNX Testnet",
     "chainId": 6423,
@@ -15,18 +21,22 @@
   "deployments": {
     "wrappedYNXT": {
       "addressEnv": "WRAPPED_YNXT_ADDRESS",
+      "address": null,
       "status": "required before liquidity pool launch"
     },
     "factory": {
       "addressEnv": "DEX_FACTORY_ADDRESS",
+      "address": null,
       "status": "required before DEX indexing"
     },
     "router": {
       "addressEnv": "DEX_ROUTER_ADDRESS",
+      "address": null,
       "status": "required before swap UI integration"
     },
     "multicall": {
       "addressEnv": "MULTICALL_ADDRESS",
+      "address": null,
       "status": "required before portfolio and analytics indexing"
     }
   },

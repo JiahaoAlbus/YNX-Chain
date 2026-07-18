@@ -9,6 +9,9 @@
     "hardhat:build": "hardhat build",
     "hardhat:test:wallet": "hardhat run ./scripts/contracts/test-smart-account-hardhat.js",
     "hardhat:deploy:wallet-smart-account": "hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --network ynxTestnet",
+    "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
+    "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
+    "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
     "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
   },
   "devDependencies": {

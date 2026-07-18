@@ -1,0 +1,43 @@
+{
+  "productId": "ynx-dex",
+  "name": "YNX DEX",
+  "branch": "codex/ecosystem-dex",
+  "commit": "pending",
+  "version": "0.1.0-testnet-preview.1",
+  "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
+  "implementedLocal": false,
+  "testedLocal": false,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "mainnet": false,
+  "audited": false,
+  "productionLiquidity": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "signingClass": "unsigned-local-source",
+  "minOS": { "web": "modern browser with ES2022 and PWA support" },
+  "installEvidence": [],
+  "centralIntegration": {
+    "walletClient": "ynx-dex-web-v1",
+    "bundleId": "com.ynxweb4.dex.web",
+    "status": "candidate-not-in-central-registry",
+    "registryManifest": "apps/dex/wallet-client.json",
+    "gatewayIntrospection": "required-and-fail-closed"
+  },
+  "knownLimitations": [
+    "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
+    "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
+    "No independent third-party smart-contract audit has been completed.",
+    "Staging, public deployment, hosted download, production signing, and store release are absent.",
+    "The current Web UI exposes truthful empty/read-only product surfaces while transaction workflows continue implementation."
+  ],
+  "generatedAt": "2026-07-18T08:00:00.000Z"
+}

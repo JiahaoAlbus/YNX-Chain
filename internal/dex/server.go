@@ -1,0 +1,197 @@
+package dex
+
+import (
+	"bytes"
+	"context"
+	"crypto/subtle"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+)
+
+type SessionAuthorizer interface {
+	Authorize(ctx context.Context, sessionBinding, account string, scopes []string) error
+}
+
+type UnavailableAuthorizer struct{}
+
+func (UnavailableAuthorizer) Authorize(context.Context, string, string, []string) error {
+	return errors.New("central Wallet session introspection unavailable")
+}
+
+type RemoteAuthorizer struct {
+	URL    string
+	Client *http.Client
+}
+
+func (authorizer RemoteAuthorizer) Authorize(ctx context.Context, binding, account string, scopes []string) error {
+	if authorizer.URL == "" {
+		return errors.New("central Wallet session introspection unavailable")
+	}
+	body, _ := json.Marshal(map[string]any{"sessionBinding": binding, "account": account, "productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "requiredScopes": scopes})
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, authorizer.URL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	client := authorizer.Client
+	if client == nil {
+		client = &http.Client{Timeout: 3 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return errors.New("central Wallet session rejected")
+	}
+	return nil
+}
+
+type Server struct {
+	store        *Store
+	build        buildinfo.Info
+	ingestionKey string
+	authorizer   SessionAuthorizer
+}
+
+func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer) (*Server, error) {
+	if store == nil || len(ingestionKey) < 32 {
+		return nil, errors.New("store and 32-byte ingestion key are required")
+	}
+	if authorizer == nil {
+		authorizer = UnavailableAuthorizer{}
+	}
+	return &Server{store: store, build: buildinfo.Normalize(info), ingestionKey: ingestionKey, authorizer: authorizer}, nil
+}
+
+func (server *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", server.health)
+	mux.HandleFunc("GET /version", server.version)
+	mux.HandleFunc("GET /v1/pools", server.pools)
+	mux.HandleFunc("GET /v1/swaps", server.events("swap"))
+	mux.HandleFunc("GET /v1/liquidity", server.events("liquidity-add", "liquidity-remove"))
+	mux.HandleFunc("GET /v1/transactions", server.events())
+	mux.HandleFunc("GET /v1/analytics", server.analytics)
+	mux.HandleFunc("GET /v1/account/positions", server.positions)
+	mux.HandleFunc("POST /internal/v1/events", server.ingest)
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		response.Header().Set("Content-Type", "application/json")
+		response.Header().Set("Cache-Control", "no-store")
+		response.Header().Set("X-Content-Type-Options", "nosniff")
+		mux.ServeHTTP(response, request)
+	})
+}
+
+func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"status": "ok", "productId": "ynx-dex", "chainId": ChainID, "source": "indexed YNX Testnet EVM events", "latestBlock": server.store.Analytics().LatestBlock})
+}
+func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, server.build)
+}
+func (server *Server) pools(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Pools(), "source": "indexed YNX Testnet EVM events"})
+}
+func (server *Server) analytics(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, server.store.Analytics())
+}
+
+func (server *Server) events(types ...string) http.HandlerFunc {
+	allowed := map[string]bool{}
+	for _, value := range types {
+		allowed[value] = true
+	}
+	return func(response http.ResponseWriter, request *http.Request) {
+		limit, ok := boundedLimit(request.URL)
+		if !ok {
+			writeError(response, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		all := server.store.Events()
+		result := make([]Event, 0, limit)
+		for i := len(all) - 1; i >= 0 && len(result) < limit; i-- {
+			if len(allowed) == 0 || allowed[all[i].Type] {
+				result = append(result, all[i])
+			}
+		}
+		writeJSON(response, http.StatusOK, map[string]any{"items": result, "source": "indexed YNX Testnet EVM events"})
+	}
+}
+
+func (server *Server) positions(response http.ResponseWriter, request *http.Request) {
+	account := request.Header.Get("X-YNX-Account")
+	binding := request.Header.Get("X-YNX-Session-Binding")
+	if !nativePattern.MatchString(account) || len(binding) != 64 {
+		writeError(response, http.StatusUnauthorized, "canonical Wallet session required")
+		return
+	}
+	if err := server.authorizer.Authorize(request.Context(), binding, account, []string{"account:read", "dex:positions:read"}); err != nil {
+		writeError(response, http.StatusForbidden, "Wallet session rejected or unavailable")
+		return
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"items": server.store.Positions(account), "account": account})
+}
+
+func (server *Server) ingest(response http.ResponseWriter, request *http.Request) {
+	key := request.Header.Get("X-YNX-DEX-Indexer-Key")
+	if len(key) != len(server.ingestionKey) || subtle.ConstantTimeCompare([]byte(key), []byte(server.ingestionKey)) != 1 {
+		writeError(response, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	request.Body = http.MaxBytesReader(response, request.Body, 32<<10)
+	data, err := io.ReadAll(request.Body)
+	if err != nil {
+		writeError(response, http.StatusRequestEntityTooLarge, "body too large")
+		return
+	}
+	var event Event
+	if err := decodeExact(data, &event); err != nil {
+		writeError(response, http.StatusBadRequest, "invalid event schema")
+		return
+	}
+	created, err := server.store.Append(event)
+	if err != nil {
+		writeError(response, http.StatusConflict, err.Error())
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	writeJSON(response, status, map[string]any{"accepted": true, "created": created, "eventId": event.ID})
+}
+
+func boundedLimit(input *url.URL) (int, bool) {
+	values, ok := input.Query()["limit"]
+	if !ok {
+		return 100, true
+	}
+	if len(values) != 1 {
+		return 0, false
+	}
+	switch values[0] {
+	case "25":
+		return 25, true
+	case "50":
+		return 50, true
+	case "100":
+		return 100, true
+	default:
+		return 0, false
+	}
+}
+func writeError(response http.ResponseWriter, status int, message string) {
+	writeJSON(response, status, map[string]string{"error": strings.TrimSpace(message)})
+}
+func writeJSON(response http.ResponseWriter, status int, value any) {
+	response.WriteHeader(status)
+	_ = json.NewEncoder(response).Encode(value)
+}
