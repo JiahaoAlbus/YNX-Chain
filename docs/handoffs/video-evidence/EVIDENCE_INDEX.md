@@ -5,7 +5,8 @@
 - `test-gates.txt`: exact local gates and the unchanged full-repo baseline failure.
 - `artifact-manifest.json`: exact local build hashes, sizes and signing classes.
 - `android-final/`: exact debug APK install, launch, deep link, restart and signing.
-- `ios-feasibility.txt`: local Swift/project checks and the unexecuted CI boundary.
+- `ios-feasibility.txt`, `ios-simulator-deep-link.png`: successful remote Simulator
+  build/install/cold/restart and registered-scheme dialog, with explicit limits.
 - `UI_DESIGN_AUDIT.md`, `ui-audit-current/`, `ui-audit-after/`: baseline and remediated Web evidence.
 - `SBOM_AND_LICENSE.md`: source dependency, tool and owned-media boundary.
 

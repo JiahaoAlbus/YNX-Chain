@@ -1,20 +1,20 @@
 {
   "schema": "ynx-video-local-artifacts-v1",
-  "sourceCommit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "sourceCommit": "b29745c884a1271bf5b01a0cde47b07653fb7371",
   "release": "0.2.0-testnet-preview",
-  "generatedAt": "2026-07-18T17:00:00Z",
+  "generatedAt": "2026-07-18T19:40:00Z",
   "hosted": false,
   "artifacts": [
     {
       "name": "ynx-video-api",
-      "localPath": "/tmp/ynx-video-api-33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+      "localPath": "/tmp/ynx-video-api-b29745c884a1271bf5b01a0cde47b07653fb7371",
       "bytes": 9532786,
-      "sha256": "319a443524de31777a395a1f7cc879a5e911f9e0f26ab6457961a36233ba9b87",
+      "sha256": "1d2b747123fd933ebaca49db551bfbc934ce2dc20c289705e120630997b72fe2",
       "signingClass": "unsigned local macOS build"
     },
     {
       "name": "ynx-video-recover",
-      "localPath": "/tmp/ynx-video-recover-33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+      "localPath": "/tmp/ynx-video-recover-b29745c884a1271bf5b01a0cde47b07653fb7371",
       "bytes": 5813426,
       "sha256": "319ea0e1e1a1330dd99dbb94f1d63d36bb1781c7843c838da7a321dba46f5058",
       "signingClass": "unsigned local macOS build"
@@ -25,12 +25,19 @@
       "bytes": 32401,
       "sha256": "c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe",
       "signingClass": "Android debug/test key"
+    },
+    {
+      "name": "YNXVideo-simulator.zip",
+      "localPath": "/tmp/ynx-video-ios-evidence-29658077678/ynx-video-ios-simulator-evidence-b29745c884a1271bf5b01a0cde47b07653fb7371/YNXVideo-simulator.zip",
+      "bytes": 240734,
+      "sha256": "265a045cfa0b80af0a240388e95b49f4adfb75b1ff0ffd23de6c7aed09fc2baf",
+      "signingClass": "ad-hoc/linker-signed iOS Simulator build"
     }
   ],
   "buildIdentityVerified": {
-    "commit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+    "commit": "b29745c884a1271bf5b01a0cde47b07653fb7371",
     "release": "0.2.0-testnet-preview",
-    "buildTime": "2026-07-18T17:00:00Z"
+    "buildTime": "2026-07-18T19:40:00Z"
   },
   "boundary": "Local build manifest only. No artifact is hosted, production signed or store released."
 }

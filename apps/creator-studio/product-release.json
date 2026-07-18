@@ -2,7 +2,7 @@
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
   "branch": "codex/ecosystem-video",
-  "commit": "33eaf45a148f5bf6449ab42adfc3e4e03e2857b9",
+  "commit": "b29745c884a1271bf5b01a0cde47b07653fb7371",
   "version": "0.2.0-testnet-preview",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -36,5 +36,5 @@
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue remain zero without authoritative persisted events"
   ],
-  "generatedAt": "2026-07-18T17:00:00Z"
+  "generatedAt": "2026-07-18T19:40:00Z"
 }

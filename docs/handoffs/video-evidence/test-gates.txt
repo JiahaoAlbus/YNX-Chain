@@ -1,5 +1,6 @@
 captured_at=2026-07-18T17:00:00Z
-source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+local_core_source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+final_candidate_commit=b29745c884a1271bf5b01a0cde47b07653fb7371
 
 PASS go vet ./internal/video/...
 PASS go test -race ./internal/video/...
@@ -14,6 +15,7 @@ PASS make env-check no-placeholder-check secret-scan static-check
 PASS git diff --check
 PASS exact release-bound ynx-video-api and video-recover builds
 PASS video-recover CLI backup/restore drill with identical state hashes
+PASS GitHub Actions run 29658077678: Xcode build, Simulator install, cold launch, registered URL-scheme dialog, restart and evidence upload at b29745c884a1271bf5b01a0cde47b07653fb7371
 PASS loopback ClamAV + FFmpeg + HLS + publish + playback + idempotent comment + analytics smoke
 
 FULL_REPO_BASELINE go test ./...

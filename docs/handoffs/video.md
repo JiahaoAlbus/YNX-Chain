@@ -4,7 +4,7 @@
 
 - Branch: `codex/ecosystem-video`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Chain Video`
-- Implementation commit: `33eaf45a148f5bf6449ab42adfc3e4e03e2857b9`.
+- Implementation commit: `b29745c884a1271bf5b01a0cde47b07653fb7371`.
 - Final evidence candidate: use the pushed branch HEAD reported by this product
   thread; the final commit adds release truth, handoff and exact evidence only.
 - Changed ownership only: `apps/video/**`, `apps/creator-studio/**`,
@@ -22,8 +22,8 @@ This update supersedes the older hashes and test dates below where they differ.
 The product now has exact Wallet/Gateway request attestation v2, mandatory durable
 idempotency for unsafe operations, verified backup/restore tooling, a loopback
 owned-media ClamAV/FFmpeg/HLS smoke, remediated responsive/RTL Web evidence, an
-installed API 36 Android debug APK lifecycle, and an unexecuted macOS Simulator CI
-workflow for feasible iOS evidence. Exact proof is indexed in
+installed API 36 Android debug APK lifecycle, and a successful macOS Simulator CI
+build/install/cold/deep-link-dialog/restart evidence run. Exact proof is indexed in
 `docs/handoffs/video-evidence/EVIDENCE_INDEX.md`.
 
 Central registration, staging/public deployment, production media durability,
@@ -50,9 +50,12 @@ and constructs the exact canonical Wallet v1 `request=<base64url JSON>` envelope
 v1 request creation, AVPlayer adaptive playback, search/library navigation,
 native subscriptions/comments/reporting/reviewed-caption transcript display,
 localized loading/empty/offline/unavailable/retry states and VoiceOver labels.
-The source and project parse, but this host lacks full Xcode, Simulator and Apple
-signing, so no iOS native build/archive/Simulator result is claimed. A release
-AppIcon asset is also pending release-owner artwork review.
+This host lacks full Xcode and Apple signing. GitHub Actions run `29658077678` on
+commit `b29745c884a1271bf5b01a0cde47b07653fb7371` nevertheless built the universal
+Simulator app, installed it, cold-launched it, presented the registered-scheme
+Open dialog, restarted it and uploaded temporary evidence. The dialog was not
+accepted; production signing/archive/device/TestFlight/App Store are not claimed.
+A release AppIcon asset remains pending release-owner artwork review.
 
 The existing responsive `apps/video` Web viewer remains a secondary browser
 surface. Its legacy query-field Wallet link was removed. It now uses the same
@@ -237,9 +240,10 @@ candidate only; they are not presented as native or new localization evidence.
    and store submission remain absent. The committed proof is an API 36
    debug/test-signed emulator install and cold start only; no Play submission is
    claimed.
-6. Full Xcode, Simulator, CocoaPods/toolchain if required, Apple signing,
-   reviewed AppIcon, device tests and archive are absent. No iOS build,
-   Simulator run, TestFlight or App Store readiness is claimed.
+6. A remote Xcode Simulator build/install/cold/restart run now passes. Apple
+   production signing, reviewed AppIcon, archive, physical-device testing,
+   accepted deep-link navigation, TestFlight and App Store readiness remain
+   absent and are not claimed.
 7. Local ClamAV/FFmpeg processing and backup/restore code/tests now pass, but
    production durable/HA object storage, scheduled operator restore, worker
    isolation, TLS origins, monitoring, rollback and independent security/privacy/

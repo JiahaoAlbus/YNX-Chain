@@ -1,5 +1,5 @@
 captured_at=2026-07-18T17:00:00Z
-source_commit=33eaf45a148f5bf6449ab42adfc3e4e03e2857b9
+source_commit=b29745c884a1271bf5b01a0cde47b07653fb7371
 source_branch=codex/ecosystem-video
 
 xcode-select -p
@@ -19,5 +19,18 @@ apps/video/ios/YNXVideo/Info.plist: OK
 apps/video/ios/YNXVideo.xcodeproj/project.pbxproj: OK
 
 ci_workflow=.github/workflows/video-ios-simulator.yml
-ci_status=committed but unexecuted; no Simulator result is claimed
-boundary=Source syntax and project metadata are feasible on this host. Full Xcode, Simulator, signing, archive and device evidence are unavailable and are not claimed.
+ci_run=https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658077678
+ci_status=success
+ci_head=b29745c884a1271bf5b01a0cde47b07653fb7371
+xcode_build=success
+simulator_install=success
+cold_launch_pid=36741
+cold_launch_milliseconds=6805
+url_scheme=open_dialog_presented
+restart_pid=37405
+minimum_os=17.0
+simulator_zip_bytes=240734
+simulator_zip_sha256=265a045cfa0b80af0a240388e95b49f4adfb75b1ff0ffd23de6c7aed09fc2baf
+deep_link_screenshot_sha256=a508c1e0a17e9b2dce906bbec0dd7666ac88df60d19ebe1747e86cbee338ea28
+signing=ad-hoc/linker-signed Simulator; no TeamIdentifier
+boundary=CI proves an unsigned/ad-hoc Simulator build, install, cold launch, registered URL-scheme Open dialog, restart and temporary artifact. The dialog was not accepted, and Apple production signing, archive, physical device, TestFlight and App Store are not claimed.
