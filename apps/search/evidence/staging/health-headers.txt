@@ -1,4 +1,4 @@
-HTTP/2 200 
+HTTP/2 200
 alt-svc: h3=":443"; ma=2592000
 cache-control: no-store
 content-security-policy: default-src 'none'; frame-ancestors 'none'
