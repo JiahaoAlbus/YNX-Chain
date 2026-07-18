@@ -18,6 +18,13 @@
   "deployedStaging": false,
   "deployedPublic": false,
   "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
   "signingClass": {
     "android": "debug-test-only",
     "ios": "unsigned-simulator-ci",

@@ -7,6 +7,8 @@
     "localize:native": "node tests/generate-native-localizations.mjs",
     "test": "npm run localize:native && node --check web/app.js && node --test tests/*.test.mjs",
     "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-calendar-0.2.0-testnet-preview -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-calendard .",
+    "package:desktop": "sh scripts/package-desktop.sh",
+    "proof:desktop": "sh tests/desktop-install-proof.sh",
     "build:android": "cd native/android && ./gradlew --no-daemon :app:assembleDebug",
     "browser:proof": "node tests/browser-proof.cjs",
     "check:ios": "swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj",

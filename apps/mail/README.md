@@ -78,6 +78,8 @@ the message sender.
 npm test --prefix apps/mail
 npm run build --prefix apps/mail
 npm run smoke --prefix apps/mail
+npm run package:desktop --prefix apps/mail
+npm run proof:desktop --prefix apps/mail
 npm run build:android --prefix apps/mail
 npm run check:ios --prefix apps/mail
 go test ./internal/mail ./apps/mail
@@ -91,3 +93,9 @@ verifier and Mail server and writes desktop/mobile screenshots under
 Account endpoints are `GET /v1/account/export` and `DELETE /v1/account`; deletion
 requires the exact phrase `DELETE MAIL ACCOUNT`, revokes sessions, removes live
 account content and retains only a minimal audit tombstone.
+
+`package:desktop` creates an unsigned macOS/Linux archive with the exact Git
+commit, build time, install instructions, Go build SBOM and the applicable
+`golang.org/x/crypto` license. `proof:desktop` extracts that archive into a clean
+install directory, starts the packaged binary, verifies the embedded Web UI and
+health/version boundary, stops it, restarts it, and emits a JSON evidence file.

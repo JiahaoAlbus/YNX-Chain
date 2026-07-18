@@ -25,10 +25,12 @@ jobs:
             project: apps/mail/native/ios/YNXMail.xcodeproj
             target: YNXMail
             bundle: com.ynxweb4.mail
+            callback: ynxmail://wallet-auth/callback
           - name: YNX Calendar
             project: apps/calendar/native/ios/YNXCalendar.xcodeproj
             target: YNXCalendar
             bundle: com.ynxweb4.calendar
+            callback: ynxcalendar://wallet-auth/callback
     steps:
       - uses: actions/checkout@v4
       - name: Select simulator
@@ -68,7 +70,11 @@ jobs:
           elapsed=$(python3 -c "print(round(float('$end')-float('$start'), 3))")
           mkdir -p "$RUNNER_TEMP/ios-proof"
           xcrun simctl io "${{ steps.simulator.outputs.udid }}" screenshot "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-cold-launch.png"
-          printf '%s\n' "product=${{ matrix.name }}" "bundle=${{ matrix.bundle }}" "launch=$launch" "wall_seconds=$elapsed" "commit=$GITHUB_SHA" > "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-evidence.txt"
+          xcrun simctl openurl "${{ steps.simulator.outputs.udid }}" "${{ matrix.callback }}?response=invalid-proof"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-unsigned-simulator.app.zip"
+          app_sha=$(shasum -a 256 "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-unsigned-simulator.app.zip" | awk '{print $1}')
+          app_bytes=$(stat -f %z "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-unsigned-simulator.app.zip")
+          printf '%s\n' "product=${{ matrix.name }}" "bundle=${{ matrix.bundle }}" "launch=$launch" "wall_seconds=$elapsed" "callback=${{ matrix.callback }}" "callback_resolution=success" "commit=$GITHUB_SHA" "app_sha256=$app_sha" "app_bytes=$app_bytes" "signing_class=unsigned-simulator" > "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-evidence.txt"
           cat "$RUNNER_TEMP/ios-proof/${{ matrix.target }}-evidence.txt"
       - uses: actions/upload-artifact@v4
         with:

@@ -74,6 +74,8 @@ AI: `preview` -> `running` -> `review | failed | cancelled` ->
 npm test --prefix apps/calendar
 npm run build --prefix apps/calendar
 npm run smoke --prefix apps/calendar
+npm run package:desktop --prefix apps/calendar
+npm run proof:desktop --prefix apps/calendar
 npm run build:android --prefix apps/calendar
 npm run check:ios --prefix apps/calendar
 go test ./internal/calendar ./apps/calendar
@@ -87,3 +89,9 @@ The Web companion includes working day/week/month views. Account endpoints are
 `GET /v1/account/export` and `DELETE /v1/account`; deletion requires the exact
 phrase `DELETE CALENDAR ACCOUNT`, revokes sessions, removes owned live state and
 retains a minimal audit tombstone.
+
+`package:desktop` creates an unsigned macOS/Linux archive with the exact Git
+commit, build time, install instructions and Go build SBOM. `proof:desktop`
+extracts that archive into a clean install directory, starts the packaged
+binary, verifies the embedded Web UI and health/version boundary, stops it,
+restarts it, and emits a JSON evidence file.
