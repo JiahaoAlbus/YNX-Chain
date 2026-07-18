@@ -14,20 +14,21 @@ var (
 )
 
 type Config struct {
-	StatePath        string
-	MediaDir         string
-	MaxUploadBytes   int64
-	AIGatewayURL     string
-	AIGatewayKey     string
-	WalletSessionURL string
-	WalletVerifyURL  string
-	WalletGatewayKey string
-	PayGatewayURL    string
-	PayGatewayKey    string
-	TrustGatewayURL  string
-	TrustGatewayKey  string
-	HTTPClient       *http.Client
-	Now              func() time.Time
+	StatePath          string
+	MediaDir           string
+	MaxUploadBytes     int64
+	AIGatewayURL       string
+	AIGatewayKey       string
+	WalletChallengeURL string
+	WalletSessionURL   string
+	WalletVerifyURL    string
+	WalletGatewayKey   string
+	PayGatewayURL      string
+	PayGatewayKey      string
+	TrustGatewayURL    string
+	TrustGatewayKey    string
+	HTTPClient         *http.Client
+	Now                func() time.Time
 }
 
 type Profile struct {

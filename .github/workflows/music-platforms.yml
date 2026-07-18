@@ -1,0 +1,47 @@
+name: music-platforms
+
+on:
+  push:
+    branches: [codex/ecosystem-music]
+    paths: ["apps/music/**", "internal/music/**", ".github/workflows/music-platforms.yml"]
+  pull_request:
+    paths: ["apps/music/**", "internal/music/**", ".github/workflows/music-platforms.yml"]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "17"}
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: "9.2.1"}
+      - run: gradle --no-daemon testDebugUnitTest assembleDebug assembleRelease
+        working-directory: apps/music/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-music-android-preview
+          path: apps/music/android/app/build/outputs/apk/**/*.apk
+
+  ios-simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusic -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -derivedDataPath "$RUNNER_TEMP/YNXMusicDerived" CODE_SIGNING_ALLOWED=NO build
+      - run: |
+          xcrun simctl boot 'iPhone 16 Pro' || true
+          xcrun simctl bootstatus 'iPhone 16 Pro' -b
+          xcrun simctl install booted "$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
+          xcrun simctl launch booted com.ynxweb4.music
+          sleep 5
+          xcrun simctl openurl booted 'ynxmusic://auth/callback?unexpected=tamper'
+          xcrun simctl io booted screenshot "$RUNNER_TEMP/ynx-music-ios.png"
+          xcrun simctl terminate booted com.ynxweb4.music
+          xcrun simctl launch booted com.ynxweb4.music
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-music-ios-simulator-evidence
+          path: |
+            ${{ runner.temp }}/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app
+            ${{ runner.temp }}/ynx-music-ios.png

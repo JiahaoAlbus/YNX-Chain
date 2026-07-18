@@ -11,7 +11,7 @@ import junit.framework.TestCase;
 public final class ContractInstrumentedTest extends TestCase {
     public void testWalletContractIsExactAndShortLived() throws Exception {
         long now=System.currentTimeMillis();
-        Uri uri=CentralContracts.walletAuthorization(CentralContracts.nonce(),now);
+        Uri uri=CentralContracts.walletAuthorization(CentralContracts.nonce(),now).uri;
         assertEquals("ynxwallet",uri.getScheme()); assertEquals("authorize",uri.getHost());
         JSONObject q=new JSONObject(new String(Base64.decode(uri.getQueryParameter("request"),Base64.URL_SAFE|Base64.NO_PADDING|Base64.NO_WRAP),StandardCharsets.UTF_8));
         assertEquals("1",q.getString("version")); assertEquals("ynx_6423-1",q.getString("chainId"));
@@ -29,6 +29,16 @@ public final class ContractInstrumentedTest extends TestCase {
         assertEquals("requires_wallet_review",pay.getQueryParameter("status"));
         try { CentralContracts.trustCase("report","track","valid reason","sha256:abc",""); fail("empty idempotency accepted"); } catch(IllegalArgumentException expected){}
         assertEquals("open_case",CentralContracts.trustCase("report","track","valid reason","sha256:abc","case-1").getString("type"));
+        assertEquals("appeal",CentralContracts.trustCase("appeal","track","valid appeal","sha256:def","case-2").getString("requestedAction"));
+    }
+
+    public void testWalletApprovalBindingTamperFailsClosed() throws Exception {
+        CentralContracts.AuthorizationLaunch launch=CentralContracts.walletAuthorization(CentralContracts.nonce(),System.currentTimeMillis());
+        JSONObject approval=new JSONObject(launch.request.toString());
+        approval.put("requestDigest","a".repeat(64)).put("account","ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").put("accountPublicKey","02"+"b".repeat(64)).put("grantedScopes",approval.remove("scopes")).put("walletSignature","c".repeat(128));
+        approval.put("bundleId","com.ynxweb4.other");
+        String encoded=Base64.encodeToString(approval.toString().getBytes(StandardCharsets.UTF_8),Base64.URL_SAFE|Base64.NO_PADDING|Base64.NO_WRAP);
+        try { CentralContracts.walletApproval(encoded,launch.request); fail("cross-app approval accepted"); } catch(SecurityException expected){}
     }
 
 }

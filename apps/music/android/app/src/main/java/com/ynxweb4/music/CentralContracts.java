@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
+import java.security.Signature;
 import java.security.SecureRandom;
 import java.security.spec.ECGenParameterSpec;
 import java.time.Instant;
@@ -16,6 +17,8 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Iterator;
+import java.util.TreeSet;
 
 /** Exact product-side contracts. Central services remain the verification authority. */
 public final class CentralContracts {
@@ -28,7 +31,12 @@ public final class CentralContracts {
     public static final List<String> SCOPES = List.of("music.creator", "music.library", "music.playback", "music.profile");
     private CentralContracts() {}
 
-    public static Uri walletAuthorization(String nonce, long nowMillis) throws Exception {
+    public static final class AuthorizationLaunch {
+        public final Uri uri; public final JSONObject request;
+        AuthorizationLaunch(Uri uri, JSONObject request) { this.uri=uri; this.request=request; }
+    }
+
+    public static AuthorizationLaunch walletAuthorization(String nonce, long nowMillis) throws Exception {
         if (!nonce.matches("[A-Za-z0-9_-]{32,64}")) throw new IllegalArgumentException("nonce");
         ArrayList<String> sorted = new ArrayList<>(SCOPES); Collections.sort(sorted);
         JSONObject request = new JSONObject();
@@ -41,7 +49,37 @@ public final class CentralContracts {
         request.put("issuedAt", millis.format(Instant.ofEpochMilli(nowMillis)));
         request.put("expiresAt", millis.format(Instant.ofEpochMilli(nowMillis + 5 * 60_000L)));
         String encoded = Base64.encodeToString(request.toString().getBytes(StandardCharsets.UTF_8), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-        return Uri.parse("ynxwallet://authorize?request=" + encoded);
+        return new AuthorizationLaunch(Uri.parse("ynxwallet://authorize?request=" + encoded), request);
+    }
+
+    public static JSONObject walletApproval(String encoded, JSONObject request) throws Exception {
+        byte[] raw=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);
+        JSONObject approval=new JSONObject(new String(raw,StandardCharsets.UTF_8));
+        for(String key:List.of("nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"))
+            if(!request.getString(key).equals(approval.optString(key)))throw new SecurityException("Wallet approval binding mismatch: "+key);
+        if(!request.getJSONArray("scopes").toString().equals(approval.optJSONArray("grantedScopes").toString()))throw new SecurityException("Wallet scope mismatch");
+        return approval;
+    }
+
+    public static JSONObject gatewayCompletion(JSONObject challenge) throws Exception {
+        if(!CLIENT.equals(challenge.getString("productClientId"))||!BUNDLE.equals(challenge.getString("bundleId"))||!devicePublicKey().equals(challenge.getString("productDeviceKey")))throw new SecurityException("Gateway challenge device binding mismatch");
+        Signature signature=Signature.getInstance("SHA256withECDSA");
+        KeyStore ks=KeyStore.getInstance("AndroidKeyStore");ks.load(null);
+        signature.initSign((java.security.PrivateKey)ks.getKey("ynx_music_device_v1",null));
+        signature.update(("YNX_PRODUCT_SESSION_CHALLENGE_V1\n"+canonical(challenge)).getBytes(StandardCharsets.UTF_8));
+        String proof=Base64.encodeToString(signature.sign(),Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);
+        return new JSONObject().put("challenge",challenge).put("deviceSignature",proof);
+    }
+
+    public static String productDeviceKey() throws Exception { return devicePublicKey(); }
+
+    private static String canonical(Object value) throws Exception {
+        if(value==JSONObject.NULL)return "null";
+        if(value instanceof JSONObject){JSONObject o=(JSONObject)value;StringBuilder b=new StringBuilder("{");boolean first=true;TreeSet<String> keys=new TreeSet<>();Iterator<String> i=o.keys();while(i.hasNext())keys.add(i.next());for(String key:keys){if(!first)b.append(',');first=false;b.append(JSONObject.quote(key)).append(':').append(canonical(o.get(key)));}return b.append('}').toString();}
+        if(value instanceof JSONArray){JSONArray a=(JSONArray)value;StringBuilder b=new StringBuilder("[");for(int i=0;i<a.length();i++){if(i>0)b.append(',');b.append(canonical(a.get(i)));}return b.append(']').toString();}
+        if(value instanceof String)return JSONObject.quote((String)value);
+        if(value instanceof Boolean||value instanceof Number)return value.toString();
+        throw new IllegalArgumentException("unsupported canonical JSON value");
     }
 
     public static JSONObject aiRequest(String kind, String intent, JSONArray trackIds, String language) throws Exception {
@@ -55,7 +93,7 @@ public final class CentralContracts {
     }
 
     public static JSONObject trustCase(String kind, String trackId, String reason, String evidenceRef, String idempotencyKey) throws Exception {
-        if (!List.of("report", "takedown", "dispute").contains(kind) || reason.trim().length() < 5 || idempotencyKey.isBlank()) throw new IllegalArgumentException("Trust case");
+        if (!List.of("report", "takedown", "dispute", "appeal").contains(kind) || reason.trim().length() < 5 || idempotencyKey.isBlank()) throw new IllegalArgumentException("Trust case");
         JSONObject evidence = new JSONObject().put("source", "ynx-music").put("digest", evidenceRef).put("summary", reason).put("collectedAt", Instant.now().toString()).put("visibleToSubject", true);
         return new JSONObject().put("type", "open_case").put("idempotencyKey", idempotencyKey).put("subject", trackId).put("requestScope", "music.rights").put("purpose", reason).put("requestedAction", kind).put("evidence", new JSONArray().put(evidence));
     }

@@ -1,143 +1,55 @@
-# YNX Music native rework handoff
+# YNX Music 0.3.0 Testnet Preview handoff
 
-## Scope and truth status
+## Truthful release state
 
-- Branch: `codex/ecosystem-music`; final commit is the branch head reported to integration.
-- Ownership stayed inside `apps/music/**`, `internal/music/**`, and this handoff.
-- No root Makefile, long-term objective, central acceptance state, or other product directory was changed.
-- This is a review candidate. It is not centrally merged, deployed, store-signed, installed for users, published, or production-ready.
-- Public builds contain no bundled audio. Tests may generate repository-owned PCM tones at runtime; no commercial catalog, artist, label, stream, listener, chart, earnings, royalty, or rights claim is fabricated.
+| State | Value | Evidence |
+|---|---:|---|
+| implemented-local | true | Native Android/iOS, Go service, embedded Web and central patch |
+| tested-local | true | Go unit/integration/race/tamper/replay/restart, contract, locale, Swift parse, Gradle/lint/instrumentation |
+| installed-local | Android true; iOS false | API 36 APK install/cold/restart/deep-link; iOS requires committed macOS CI/full Xcode |
+| integrated-central | false | Exact registry/operations delivered; central owner has not merged/deployed them |
+| deployed-staging | true after release deployment record | `web4.ynxweb4.com/music/` path and exact build health |
+| deployed-public | false | Staging is not a production Music release |
+| download-hosted | false | Upload-ready artifacts exist locally; no immutable release URL |
+| production-signed | false | Android preview uses SDK debug signing; release APK is unsigned; iOS unsigned |
+| store-released | false | No Play/App Store submission or approval |
 
-## Native products
+No bundled commercial music, real artist/listener/chart/income/royalty claim, public licensed catalog or production streaming is present.
 
-Android is a native Java app (`com.ynxweb4.music`) with a foreground `MediaPlayer`/`MediaSession` service, notification controls, wake lock, authenticated Range media, atomic local JSON, Android Keystore session encryption, P-256 product-device key, offline WAV verification, queue advance, five-second position recovery, search, catalog, track/artist/album detail, favorites, queue, playlists, history, download state, profile privacy/explicit settings, creator onboarding/upload/release, Trust rights disputes, Pay review deep links and an explainable/disableable AI proposal plus explicit apply/reject workflow.
+## Product and canonical session
 
-iOS is a native SwiftUI project (`apps/music/ios/YNXMusic.xcodeproj`, bundle `com.ynxweb4.music`) using `AVPlayer`, playback `AVAudioSession`, `MPRemoteCommandCenter`, Keychain `WhenUnlockedThisDeviceOnly`, atomic Application Support state, authorized offline WAV validation, file-import creator onboarding/upload/release, search/detail/library/history/queue/favorites/playlist creation, privacy/explicit settings, Trust disputes, Pay review deep links, explainable/disableable AI with apply/reject, background audio and the same Wallet callback. The project parses on this host, but full Xcode/iOS Simulator SDK is absent; launch and signing evidence are therefore pending rather than claimed.
+YNX Music is independent: product `ynx-music`, client `ynx-music-v1`, package/bundle `com.ynxweb4.music`, callback `ynxmusic://auth/callback`, chain `ynx_6423-1`, and sorted least-privilege scopes `music.creator`, `music.library`, `music.playback`, `music.profile`.
 
-The existing responsive Web is retained only as a backend/operator surface. It is not the mobile deliverable.
+Android and iOS create a device-bound P-256 key, send the exact 13-field Wallet request, accept exactly one callback query item named `response`, bind the Wallet approval to the request, request a central Gateway challenge, sign `YNX_PRODUCT_SESSION_CHALLENGE_V1\n + canonicalJSON(challenge)` as P-256 DER, and submit request + approval + completion. Protected API/media calls carry only `X-YNX-App-Session` and `X-YNX-Product-Device-Key`; central introspection binds identity, key, scope, expiry and revocation. Exact completion replay and unknown fields are rejected. Legacy Music challenge routes, bearer tokens, local session minting, query-field auth and browser session storage are gone.
 
-## Exact central contracts
+The authoritative Wallet/Auth v2 registry entry, endpoint shapes, merge checks and false-until-deployed status are in `apps/music/central/`. The branch deliberately does not claim central integration.
 
-Wallet:
+## Listener and creator workflows
 
-- Version `1`, chain `ynx_6423-1`, product client `ynx-music-v1`, bundle/package `com.ynxweb4.music`, callback `ynxmusic://auth/callback`.
-- Product-device algorithm is `p256-sha256` with a canonical compressed P-256 key; scopes are sorted `music.creator`, `music.library`, `music.playback`, `music.profile`; lifetime is at most five minutes.
-- Native apps open `ynxwallet://authorize?request=<base64url JSON>`. Music sends the opaque Wallet response plus expected nonce to `POST /api/auth/wallet-v1/session`.
-- The backend does not mint or self-assert central sessions. It calls the exact operator-configured `YNX_MUSIC_WALLET_SESSION_URL`, and protected requests that are not legacy Web sessions are checked through `YNX_MUSIC_WALLET_VERIFY_URL`. Missing central configuration fails closed. A consumed Wallet response digest is persisted and replay returns `409`.
+Listener surfaces cover Home/Search, artist/album filtering and track evidence, Library, Favorites, private History, Queue, Playlists, Now Playing, Offline/Downloads and Profile/privacy/explicit settings. Android uses MediaPlayer + MediaSession foreground playback, notification/lock controls, Range authorization, queue advance and five-second restart position. iOS uses AVPlayer + AudioSession + RemoteCommandCenter, background audio, queue and atomic restart state.
 
-AI:
+Creator Studio is outside listener tabs. It supports onboarding, owned/licensed declaration, WAV/artwork upload, mandatory provenance/evidence/territories, private draft, release, takedown and Trust report/dispute/appeal with audit. Drafts are visible only to their owner and do not leak into catalog queries. Tests generate a repository-owned PCM tone at runtime and verify its WAV/hash boundary; the product distributes no test audio.
 
-- Provider keys remain server-side. Only playlist, metadata, discovery, creator-description and royalty-explanation proposals are accepted.
-- Context is restricted to authorized owned/favorite track IDs. Provider, model, selected context, estimate, state, streamed result and human apply/reject are audited. Mobile AI can be disabled and has a separately persisted output language. Unavailable Gateway produces an error; no fallback is presented as AI.
+Revenue allocation requires completed authenticated usage plus an external source record. Pay creates only `requires_wallet_review`; without a future authoritative committed receipt nothing becomes paid or a royalty. AI supports playlist recommendation/organization, metadata, creator description, discovery and royalty explanation, with explicit context/permission/provider/model/estimate, stream/disconnect cancellation, apply/reject and audit. AI cannot publish, pay, delete, penalize or change permissions.
 
-Pay:
+## Security and persistence
 
-- Music creates only `requires_wallet_review` intent state. The exact configured Pay endpoint receives asset `YNXT`, integer micros, recipient, product intent ID and a required idempotency key.
-- Central response must remain `requires_wallet_review` and provide an `ynxpay://settlement/review` URI. Altering a request under an existing idempotency key is rejected. Music never marks it paid; `committedReceipt` remains empty until a later authoritative receipt contract is integrated.
+The daemon uses strict JSON decoding, bounded request/upload/response sizes, per-client rate limits, ownership and scope checks, replay/idempotency protection, atomic mode-0600 persistence, SHA-256 integrity and a hash-chained audit log. State tamper and wrong owner fail closed. Central provider keys remain server-only. Web is read-only without a native product session and stores no credentials.
 
-Trust:
+## Platforms, evidence and artifacts
 
-- Report/takedown/dispute submits `open_case`, scope `music.rights`, purpose, requested action, subject and provenance/evidence to the exact configured Trust action endpoint with a required idempotency key.
-- Local audit state distinguishes an open local case from `submitted_to_trust`; replay with changed content is rejected. Missing Trust configuration is an honest `503` with the local case reference, not a fabricated central case.
+Android min SDK is 28 and target SDK 35. The Testnet Preview APK is debug-signed and installable; the release variant is intentionally unsigned. Clean cold launch, restart, tampered deep-link failure, Arabic RTL, large text, dark/light and instrumentation evidence is indexed in `apps/music/EVIDENCE_INDEX.md`.
 
-The daemon receives these boundaries only through server-side environment variables: `YNX_MUSIC_WALLET_SESSION_URL`, `YNX_MUSIC_WALLET_VERIFY_URL`, `YNX_MUSIC_WALLET_GATEWAY_KEY`, `YNX_MUSIC_AI_GATEWAY_URL`, `YNX_MUSIC_AI_GATEWAY_KEY`, `YNX_MUSIC_PAY_GATEWAY_URL`, `YNX_MUSIC_PAY_GATEWAY_KEY`, `YNX_MUSIC_TRUST_GATEWAY_URL`, and `YNX_MUSIC_TRUST_GATEWAY_KEY`. Endpoint URLs are complete operator-reviewed routes; Music deliberately does not guess central URL paths.
+This host lacks full Xcode (`xcode-select` is CommandLineTools). Swift parse and plist validation are local evidence only; `.github/workflows/music-platforms.yml` performs a real iOS Simulator build, install, cold launch, tampered deep link, screenshot, restart and artifact upload on macOS 15. Until that CI run is green, iOS `installedLocal` remains false.
 
-## Persistence, rights and media
+The Darwin/Linux daemon artifacts are operator services, not native desktop music clients. Web desktop light/dark screenshots prove responsive staging behavior but do not upgrade desktop installation status.
 
-- Backend state is mode-`0600` atomic JSON with SHA-256 integrity and a hash-chained audit log; tampering fails restart/integrity checks.
-- Upload accepts bounded PCM WAV and optional PNG/JPEG artwork. Owned/licensed basis, territories, evidence and audio provenance are mandatory; artwork provenance is mandatory when artwork exists. Draft media remains private and appears only in the creator's authenticated `creatorTracks` snapshot until explicit release.
-- Native downloads are private app files, validated as RIFF/WAV and atomically replaced. There is no DRM or offline-license-expiry claim.
-- Position is persisted every five seconds and on pause/release; native platform background controls operate the same player. Queue and current position survive process restart.
-- Completed usage requires the existing threshold and idempotent player session reference. It is authenticated client evidence, not proof of a unique listener or independently verified audience.
-- Revenue needs completed usage plus an external source record. No royalty rate is inferred.
+## Ownership requests and blockers
 
-## Internationalization and accessibility
+1. Wallet/Auth owner: merge `apps/music/central/wallet-registry-v2.json`, implement the exact challenge/session/introspection operations, run canonical failure vectors and deploy. Only then set `integratedCentral=true`.
+2. Owner-controlled release accounts: provide Android production keystore, Apple distribution identity/profiles and Play/App Store accounts if production signing/store release is desired.
+3. Distribution owner: publish immutable artifacts and checksums to GitHub Release/object storage. Current GitHub CLI credentials are invalid, so `downloadHosted=false`.
+4. Rights/business owner: provide licensed catalog/CDN/territory agreements and independent rights review before any public catalog or production streaming claim.
+5. Pay owner: define and deploy a signed, replay-safe committed-receipt ingestion contract before any `paid` state exists.
 
-One audited catalog supplies 12 locales: English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia. Android resources are the source and `apps/music/shared/i18n.json` is bundled into iOS.
-
-The app auto-detects system language, supports manual switching, persists the choice across restart, keeps AI output language independent, falls back to nonblank English keys, localizes number/date output, and forces Arabic RTL. The audit compares exact key sets, nonblank/layout bounds, Arabic script and minimum legal/payment/auth/privacy semantics. Native controls have visible labels/content descriptions and status uses an accessibility live region; iOS uses semantic SwiftUI controls and dynamic system typography.
-
-## Verification evidence
-
-Passed in this worktree:
-
-```text
-go test ./internal/music
-go test ./internal/music ./apps/music/cmd/ynx-musicd
-go test ./...
-go vet ./internal/music ./apps/music/...
-bash apps/music/scripts/smoke.sh
-node apps/music/scripts/i18n-audit.mjs --write
-node apps/music/scripts/i18n-audit.mjs
-  12 locales x 55 keys; Arabic RTL enabled
-swiftc -parse apps/music/ios/YNXMusic/YNXMusicApp.swift
-plutil -lint apps/music/ios/YNXMusic/Info.plist
-plutil -lint apps/music/ios/YNXMusic/YNXMusic.entitlements
-plutil -lint apps/music/ios/YNXMusic.xcodeproj/project.pbxproj
-```
-
-Go coverage includes signed authorization, central Wallet unavailable/exchange/replay rejection, HTTP Range playback, rights, explicit filtering, private-draft creator visibility with public-catalog non-leakage, restart recovery, usage replay, allocation authorization, settlement duplication, AI context and provider streaming/review, state integrity and security headers. The full repository Go suite also passed.
-
-Android build/install evidence is recorded below after the final verification run. The APK and generated build directories are gitignored and are not committed.
-
-```text
-JAVA_HOME=$(/usr/libexec/java_home -v 24) ANDROID_HOME=$HOME/Library/Android/sdk \
-  gradle --offline --no-daemon -p apps/music/android \
-  :app:assembleDebug :app:assembleDebugAndroidTest
-BUILD SUCCESSFUL
-
-app-debug.apk
-sha256 c3770c443ed786bddafdff408e13a2d95a4275dc257e21bacfa04763cfa79b37
-
-app-debug-androidTest.apk
-sha256 7565234d94f94a0894e3a026801af0eadd584447c2e7c1f06b768db29bda0daf
-```
-
-API 36 device evidence passed after waiting for Android package services rather than treating `sys.boot_completed=1` alone as readiness:
-
-```text
-adb -s emulator-5562 install -r -t app-debug.apk
-Success
-adb -s emulator-5562 install -r -t app-debug-androidTest.apk
-Success
-adb -s emulator-5562 shell am instrument -w \
-  com.ynxweb4.music.test/android.test.InstrumentationTestRunner
-OK (2 tests), 3.341s
-
-adb -s emulator-5554 shell am start -W -S \
-  -n com.ynxweb4.music/.MainActivity
-Status: ok; LaunchState: COLD; TotalTime: 4739 ms; PID 28211
-
-adb -s 127.0.0.1:5555 shell am start -W -S \
-  -n com.ynxweb4.music/.MainActivity
-Status: ok; LaunchState: COLD; TotalTime: 3824 ms; PID 28481
-```
-
-The shared AVDs produced unrelated system ANR overlays (`Pixel Launcher`, `System UI`, `Digital Wellbeing`) that obstructed a clean UI Automator hierarchy capture. This does not invalidate the successful Music install/instrumentation/cold-start records, but screenshot/accessibility-dump evidence is not claimed.
-
-Feasible desktop/operator artifact evidence (not a native Music desktop client and not production streaming):
-
-```text
-go build -trimpath -o /tmp/ynx-musicd-darwin-arm64 ./apps/music/cmd/ynx-musicd
-sha256 4e83cc6ee6ec5b372bf7eaef4dee711106efaa00e1e67af97f1c80230411e800
-GOOS=windows GOARCH=amd64 go build -trimpath \
-  -o /tmp/ynx-musicd-windows-amd64.exe ./apps/music/cmd/ynx-musicd
-sha256 d5ebfa41a5e63f957f3f41f4edd70695c0fb2a02aea9eee80d10352b599430c2
-```
-
-## Honest pending and external blockers
-
-- Full Xcode is absent (`xcode-select` points to `/Library/Developer/CommandLineTools`; `xcodebuild -version` rejects it). iOS Simulator launch, archive, signing, TestFlight and App Store evidence are pending.
-- Android APK install, runtime contract instrumentation and cold launch passed on API 36 AVDs. Clean screenshot/UI Automator evidence remains pending because shared AVD system processes generated blocking ANR overlays; physical-device and release-signing checks also remain external.
-- Central Wallet client registry acceptance and real endpoint/key provisioning are external integration work. Until provided, the native login correctly reports unavailable.
-- Pay committed-receipt ingestion is not defined by the accepted central contract yet. No settlement can become paid in this branch.
-- No licensed public catalog, CDN/object storage, independent rights audit, collecting-society integration, production anti-fraud proof, Play signing, Play Store, TestFlight, App Store, public deployment or partner approval is claimed.
-- There is no native desktop Music client. The embedded responsive operator surface and reproducible Darwin/Windows daemon builds are the only desktop-feasible evidence and must not be described as a Spotify-class desktop app.
-
-## Integration requests
-
-1. Review/register the exact Wallet client, package/bundle, callback and scopes; provision exact session exchange and introspection routes.
-2. Provision least-privilege Music AI, Pay intent and Trust action server credentials and routes.
-3. Define a signed, replay-safe Pay committed-receipt callback before allowing any `paid` state.
-4. Run the iOS project on a host with full Xcode and an installed iOS 17+ Simulator; separately perform signing only with authorized certificates.
-5. Integration authority may add central build/deploy wiring after reviewing this branch; this product branch intentionally did not change central files.
+Release metadata, exact hashes, staging health, rollback boundary and remaining limits are in `apps/music/product-release.json`, `apps/music/ARTIFACT_MANIFEST.json`, `apps/music/EVIDENCE_INDEX.md`, `apps/music/RELEASE_NOTES.md` and `apps/music/docs/OPERATIONS.md`.

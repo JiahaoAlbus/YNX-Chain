@@ -658,15 +658,18 @@ func (s *Service) OpenCase(actor, kind, trackID, reason, evidence string) (Case,
 	if err != nil {
 		return Case{}, err
 	}
-	if kind != "report" && kind != "takedown" && kind != "dispute" || len(strings.TrimSpace(reason)) < 5 {
+	if kind != "report" && kind != "takedown" && kind != "dispute" && kind != "appeal" || len(strings.TrimSpace(reason)) < 5 {
 		return Case{}, ErrInvalid
 	}
 	if trackID != "" {
 		s.mu.RLock()
-		_, ok := s.state.Tracks[trackID]
+		track, ok := s.state.Tracks[trackID]
 		s.mu.RUnlock()
 		if !ok {
 			return Case{}, ErrNotFound
+		}
+		if (kind == "takedown" || kind == "appeal") && track.Owner != actor {
+			return Case{}, ErrUnauthorized
 		}
 	}
 	c := Case{ID: newID("case"), Kind: kind, TrackID: trackID, OpenedBy: actor, Reason: strings.TrimSpace(reason), EvidenceRef: strings.TrimSpace(evidence), Status: "open", CreatedAt: s.cfg.Now().UTC()}

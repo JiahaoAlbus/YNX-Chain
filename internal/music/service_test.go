@@ -174,6 +174,23 @@ func TestAIContextIsBoundedToOwnedOrFavoriteTracks(t *testing.T) {
 	}
 }
 
+func TestTrustAppealIsAuditedAndOwned(t *testing.T) {
+	s := testService(t)
+	creator := testAccount(t, 13)
+	other := testAccount(t, 14)
+	track := publishTrack(t, s, creator, false)
+	appeal, err := s.OpenCase(creator, "appeal", track.ID, "appeal with contrary rights evidence", "sha256:appeal-evidence")
+	if err != nil || appeal.Kind != "appeal" || appeal.Status != "open" {
+		t.Fatalf("appeal not created: %#v %v", appeal, err)
+	}
+	if _, err := s.OpenCase(other, "appeal", track.ID, "attempt cross-owner appeal", "sha256:other"); err != ErrUnauthorized {
+		t.Fatalf("cross-owner appeal was accepted: %v", err)
+	}
+	if err := s.VerifyIntegrity(); err != nil {
+		t.Fatalf("appeal audit persistence failed: %v", err)
+	}
+}
+
 func TestTamperedStateFailsClosed(t *testing.T) {
 	s := testService(t)
 	actor := testAccount(t, 10)

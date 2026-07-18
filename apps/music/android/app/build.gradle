@@ -7,10 +7,10 @@ android {
         applicationId "com.ynxweb4.music"
         minSdk 28
         targetSdk 35
-        versionCode 2
-        versionName "0.2.0-testnet"
+        versionCode 3
+        versionName "0.3.0-testnet"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
-        buildConfigField "String", "DEFAULT_API", '"http://10.0.2.2:6436"'
+        buildConfigField "String", "DEFAULT_API", '"https://web4.ynxweb4.com/music"'
     }
     buildFeatures { buildConfig true }
     buildTypes {
