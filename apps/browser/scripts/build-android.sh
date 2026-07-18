@@ -11,6 +11,7 @@ fi
 TOOLS="$SDK/build-tools/36.0.0"
 PLATFORM="$SDK/platforms/android-36/android.jar"
 BUILD="$PROJECT/.manual-build"
+DIST="$ROOT/dist/android"
 rm -rf "$BUILD"
 mkdir -p "$BUILD/generated" "$BUILD/classes" "$BUILD/dex"
 
@@ -23,10 +24,13 @@ cp "$BUILD/base.apk" "$BUILD/with-dex.apk"
 (cd "$BUILD/dex" && zip -q -u "$BUILD/with-dex.apk" classes.dex)
 "$TOOLS/zipalign" -f 4 "$BUILD/with-dex.apk" "$BUILD/aligned.apk"
 
-KEYSTORE="${YNX_ANDROID_DEBUG_KEYSTORE:-$BUILD/debug.keystore}"
+KEYSTORE="${YNX_ANDROID_TESTNET_KEYSTORE:-$PROJECT/testnet-signing/YNX_BROWSER_PUBLIC_TEST_ONLY.keystore}"
 if [[ ! -f "$KEYSTORE" ]]; then
-  keytool -genkeypair -keystore "$KEYSTORE" -storepass android -alias androiddebugkey -keypass android -dname "CN=YNX Browser Debug,O=YNX Development,C=CN" -keyalg RSA -keysize 2048 -validity 30 >/dev/null 2>&1
+  mkdir -p "$(dirname "$KEYSTORE")"
+  keytool -genkeypair -keystore "$KEYSTORE" -storepass android -alias ynxbrowserpreview -keypass android -dname "CN=YNX Browser Testnet Preview,O=YNX Development,C=CN" -keyalg RSA -keysize 3072 -validity 3650 >/dev/null 2>&1
 fi
-"$TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass pass:android --key-pass pass:android --out "$BUILD/ynx-browser-debug.apk" "$BUILD/aligned.apk"
-"$TOOLS/apksigner" verify --verbose "$BUILD/ynx-browser-debug.apk"
-echo "$BUILD/ynx-browser-debug.apk"
+mkdir -p "$DIST"
+"$TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-key-alias ynxbrowserpreview --ks-pass pass:android --key-pass pass:android --out "$DIST/YNX-Browser-Testnet-Preview-Android.apk" "$BUILD/aligned.apk"
+"$TOOLS/apksigner" verify --verbose --print-certs "$DIST/YNX-Browser-Testnet-Preview-Android.apk"
+shasum -a 256 "$DIST/YNX-Browser-Testnet-Preview-Android.apk"
+echo "$DIST/YNX-Browser-Testnet-Preview-Android.apk"

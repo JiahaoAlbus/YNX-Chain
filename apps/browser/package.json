@@ -8,7 +8,7 @@
     "test": "node --test",
     "smoke": "node scripts/smoke.mjs",
     "check": "npm test && npm run smoke && npm run build:macos",
-    "build:macos": "swift build -c release --package-path native"
+    "build:macos": "bash scripts/build-macos-app.sh"
   },
   "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
 }
