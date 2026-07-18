@@ -1,177 +1,113 @@
-# YNX Wallet and Wallet Auth handoff
+# YNX Wallet and canonical Wallet Auth handoff
 
-## Git identity
+Handoff date: 2026-07-18. Owned branch: `codex/ecosystem-wallet-auth`. Worktree: `/Users/huangjiahao/Desktop/YNX Chain Wallet Auth`.
 
-- Branch: `codex/ecosystem-wallet-auth`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Chain Wallet Auth`
-- Baseline commit: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`
-- Baseline source: refreshed `origin/main` on 2026-07-16. The isolated Wallet commits were rebased onto this exact commit before final verification and push.
-- Superseded pre-review branch tip: `bb8ef9924d71c1f991cb1facdfc06ab2d60045c8`
-- Corrected code/proof commit: `bf09b976b74a27e6d6489f071b8e6347ab156584`
-- Current return-work code commit: `e114f7999b528e05ff485fb7c1f3374a2b150ac7`.
-- Final branch-tip commit: reported to the integration controller after the handoff commit is created. A commit cannot contain its own hash.
+## Git and ownership
 
-## Changed paths
+- Preserved starting/remote branch tip: `efe827f467107e23482289a5b1f69ac9ff83e694`.
+- Merge base: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`.
+- Compatibility reference observed on `origin/main`: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
+- Product source/evidence commit: `9fc011341e16678af3bd9e8cd403af0c90607a2f`. The final release-record/handoff branch tip is reported to the controller because a commit cannot contain its own hash.
+- Owned changes are limited to `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. No central acceptance file, long-term objective, root Makefile or other product source was modified.
 
-- `apps/wallet/**`: independent Expo/React Native Wallet, generated Android and iOS native projects, lifecycle, secure storage, authorization UI, AI security review, tests and emulator evidence.
-- `packages/wallet-auth/**`: strict version 1 protocol parser, canonicalization, deep links, account signer/verifier, replay store, product-device Gateway challenge/session binding, types, vectors and tests.
-- `docs/handoffs/wallet-auth.md`: this integration contract.
-- No central Gateway policy, registry, root Makefile, acceptance document, long-term objective or other product directory was changed.
+## Honest delivery state
 
-## Latest main compatibility
+| State | Value | Evidence/boundary |
+|---|---:|---|
+| implemented-local | true | Independent Wallet plus canonical SDK, registry and lifecycle code |
+| tested-local | true | Wallet 23/23, SDK 30/30, typecheck/product-check/bundles and root `make test` pass |
+| installed-local | Android true; iOS false | API 36 phone and 2076×2152 foldable installed/cold-launched; host lacks full Xcode |
+| integrated-central | false | Version 3 candidate exists; not merged into/deployed by central Gateway |
+| deployed-staging | false | No staging endpoint or version health exists |
+| deployed-public | false | No product public deployment exists; public chain RPC use is not product deployment |
+| download-hosted | false | APK is local/ignored and has no immutable download URL |
+| production-signed | false | Android is local test-signed; no Apple product archive |
+| store-released | false | No store submission or approval |
 
-- Compatibility target fetched on 2026-07-17: `origin/main` `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
-- The branch merge-base remains the recorded baseline `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`. Main changes since that baseline do not touch `apps/wallet/**`, `packages/wallet-auth/**`, or this handoff.
-- `git merge-tree` reported no conflict markers between the current Wallet branch and that main tip. The branch was not rebased or merged because main's intervening changes are central operations/acceptance work outside Wallet ownership; integration control can apply the Wallet commits onto the current main without an owned-path conflict.
+## Product identity and information architecture
 
-## Product and network identity
+- Product ID: `wallet`; Android/iOS ID: `com.ynxweb4.wallet`; scheme: `ynxwallet`.
+- Network: native `ynx_6423-1`, EVM compatibility chain ID `6423`, native asset `YNXT`.
+- Default address is `ynx1...`; `0x...` is accepted only at the internal wire/conversion boundary or an explicitly labelled EVM compatibility view.
+- Wallet surfaces are Welcome/Create/Import/Recover, Locked Home, Accounts, Assets/Activity, Receive, biometric Send Review, Authorization Review, Connected Apps, Sessions, Devices, Recovery, Security, Audit and Network. There is no Social, Pay, Shop, DEX or other business navigation.
 
-- Product name: `YNX Wallet`
-- Android package: `com.ynxweb4.wallet`
-- iOS bundle identifier: `com.ynxweb4.wallet`
-- Wallet scheme: `ynxwallet`
-- Native network: `ynx_6423-1`
-- EVM compatibility chain ID: `6423`
-- Native asset: `YNXT`
-- Native account display: `ynx1...`; `0x...` is mentioned only as an explicit EVM compatibility view.
-- The Wallet has no Social Feed, Shop, Pay or Exchange bottom navigation.
+## Self-custody and native transfer
 
-## Wallet lifecycle and storage model
+- secp256k1 account creation/import, strict 64-hex recovery material, deterministic `ynx1` derivation, multiple accounts, explicit switch, removal confirmation and offline lost-device recovery.
+- Public manifest and each secret use separate strict storage entries. Secrets use `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; process restart/background starts locked. Strong biometrics gate unlock, import, recovery, signing, authorization, revocation and deletion. New recovery material disables capture and requires exact backup confirmation.
+- Restart re-derives every public identity; unknown/missing/mismatched/tampered storage fails closed. Migration discards the legacy cross-product device secret.
+- Native transfer is exact version 1 / chain 6423 / type transfer / fee 1, canonical JSON, current authoritative nonce, compressed secp256k1 public key and deterministic low-S DER signature. The JS vector equals the Go vector and rejects account/field/JSON/signature tamper.
+- Live testnet proof used the public scalar-1 test vector only: signed hash `0x7bdf19361936215c8bc753696ce61d78ed089f755eac2d8af5cbfbcb1fdc94b2`, amount 1, fee 1, nonce 2. The authoritative account then returned balance 87 and nonce 2.
 
-- Creates secp256k1 accounts and derives native `ynx1` accounts.
-- Imports a strict 64-hex recovery key behind strong system biometrics.
-- Prevents screen capture while showing new recovery material and requires the exact `BACKED UP` confirmation before persistence.
-- Always starts locked, locks on background, and requires strong biometrics without device-credential fallback for unlock, authorization, import, recovery access and deletion.
-- Supports multiple accounts, deterministic account ordering, selected-account switching, native-address copy, a chain/asset-bound QR URI, account removal confirmation, and lost-device recovery guidance.
-- Manifest schema is version 2. Public account metadata is stored in one strict manifest. Each secret is stored under a separate `WHEN_UNLOCKED_THIS_DEVICE_ONLY` Keychain/Keystore entry.
-- Migration consumes the old `ynx.mobile.identity.v1` identity, validates the account key, deliberately discards its cross-product device secret, writes v2 storage and removes the old entry.
-- Restart validates every referenced secret against its native address, rejects unknown/tampered fields and returns only a locked runtime state.
-- Offline recovery imports only the native account key on a replacement device. Replay records, product device keys, product sessions and authorization audit history are intentionally device-local and are not reconstructed from the recovery key.
-- Authorization decisions are stored without secrets in a strict, persistent SHA-256 hash chain. Intent approval is recorded before key access/signing, callback return is recorded separately, explicit rejection is recorded, and biometric revocation appends an approval-digest tombstone. Unknown fields, reordered chain links, binding edits and hash tamper fail closed.
+## Canonical protocol candidate
 
-## Internationalization
+Transport remains `ynxwallet://authorize?request=<base64url(canonical JSON)>`. The strict pipeline is:
 
-- Runtime locales: English, Simplified Chinese, Traditional Chinese, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Arabic and Bahasa Indonesia.
-- System locale is detected on first launch. Manual selection is available from the native Wallet header and is persisted in device-only secure storage across restart.
-- Authorization identity, permission, purpose, expiry, approve/reject, privacy, recovery, audit/revoke and core accessibility copy are locale keyed. No translation key may be blank. Arabic applies RTL layout direction.
-- Dates use `Intl.DateTimeFormat`; numbers and YNXT amounts use `Intl.NumberFormat`; plural selection uses `Intl.PluralRules`. The locale test covers all twelve catalogs, persistence, locale detection, RTL, missing keys and bounded label lengths.
-- AI output language is an independent selector. It is included in the safe provider context and prompt, while Wallet keys, recovery material, signing and approval remain outside the provider interface.
+1. Authorization Request
+2. Wallet Approval
+3. Product Device Challenge
+4. Gateway Completion
+5. Product Session
+6. Introspection
+7. Revocation
 
-## Sign in with YNX Wallet protocol version 1
+The final session binds version, chain, product, client, bundle, callback, device algorithm/key/binding, account, exact ordered scopes, nonce, purpose, request digest, approval digest, session binding, issue and expiry time. Unknown fields, callback state/substitution, scope expansion/reorder, wrong product/account/device, expiry, replay, tamper and cross-App reuse fail closed.
 
-Transport request: `ynxwallet://authorize?request=<base64url(canonical JSON)>`.
+`CentralWalletSessionStore` is a runnable reference for an atomic completion: nonce/request/challenge consumption and session/audit creation occur in one state transition. Restart validates snapshot shape, consumption coverage and audit hash continuity. Introspection requires the exact client, bundle, device and requested scopes.
 
-The parser requires exactly these fields and rejects missing or unknown fields:
+Revocation boundaries are:
 
-1. `version`
-2. `nonce`
-3. `chainId`
-4. `requestingProduct`
-5. `productClientId`
-6. `bundleId`
-7. `productDeviceAlgorithm`
-8. `productDeviceKey`
-9. `callback`
-10. `scopes`
-11. `purpose`
-12. `issuedAt`
-13. `expiresAt`
+- session binding: one session;
+- approval digest: all sessions derived from one Wallet approval;
+- product device binding: all sessions for that exact product device;
+- account logout watermark: every account session issued at/before the all-devices logout.
 
-Rules:
+## Version 3 central registry candidate
 
-- `version` must be `1`; `chainId` must be `ynx_6423-1`.
-- `productDeviceAlgorithm` must be `p256-sha256`. `productDeviceKey` is the 33-byte compressed SEC1 P-256 public key encoded as unpadded canonical base64url; a hash or opaque key identifier is not accepted.
-- Lifetime is positive and no more than five minutes; issued time cannot be materially in the future.
-- Product registry binding is exact for requesting product, client ID, bundle/package ID, callback and an ordered allow-list of scopes.
-- Scope lists must be unique, sorted and non-empty; an unknown or over-broad scope fails closed.
-- Request digest is SHA-256 over canonical JSON. The Wallet approval repeats and signs every security binding, the chosen native account, granted scopes and expiry.
-- The callback is created only from the request's already-validated callback origin. Callback substitution and product/bundle/device mismatch fail verification.
-- Callback envelopes require the exact sole `response` query field and no fragment, credentials or mutable callback query state. Extra query fields fail closed.
-- Wallet nonce consumption is persistent and one-time. Product callback nonce consumption is also one-time. A product-device challenge is bound to request digest, client, bundle, device algorithm/key, account, exact ordered scopes, issue time and expiry.
-- The Gateway challenge and completion use exact schemas with no unknown fields. Challenge time is canonical millisecond ISO UTC, must be issued within the Wallet approval lifetime, must still be live at verification, and can never expire later than the Wallet approval.
-- Device signing bytes are exactly `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge JSON>`. `p256-sha256` means SHA-256 with ECDSA P-256 and a canonical DER-encoded signature. The shared verifier accepts Android Keystore DER signatures and validates the compressed SEC1 public key.
-- `verifyGatewayCompletion` compares challenge scopes byte-for-byte in canonical order with `grantedScopes` and refuses scope escalation, reorder, substitution and session-expiry extension even when the product key holder re-signs the mutated challenge.
-- A session result is product-client and bundle limited. Cross-App session reuse fails.
-- Wallet signs only the account-side approval. Product device private keys stay in their product; Wallet private keys and recovery material are never returned.
+`packages/wallet-auth/central-registry.json` contains exactly 25 sorted products: Wallet, Social, Pay, Merchant Console, Card, Exchange, Shop, Seller Console, Developer, Explorer, Monitor, AI, Trust Center, Resource Market, Music, Video, Creator Studio, Cloud, Docs, Browser, Search, Finance, Mail, Calendar and DEX.
 
-## Central verifier and registry interface
+Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. All entries are `pending-review` and disabled; schema validation refuses enablement without `approved` review status. The Wallet locally reviews only the exact observed Social, Pay and Card tuples while the central candidate remains disabled.
 
-- Exact runnable contract: `packages/wallet-auth/CENTRAL_INTEGRATION.md`.
-- Registry v2 fields are exactly `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callbacks`, `scopes`, `maxScopes`, and `productDeviceAlgorithms`. The local Wallet uses this same parsed v2 entry rather than a second ad-hoc registry shape.
-- `migrateCentralRegistryEntry` converts the exact legacy single-callback v1 entry to v2 and is idempotent for v2. Unknown migration fields, unsupported algorithms, unsorted lists and invalid limits fail closed.
-- Central Gateway calls `verifyCentralWalletSession({registryEntry, authorizationRequest, walletApproval, gatewayCompletion}, now)`. That single call verifies registry/request, Wallet secp256k1 approval and account derivation, then the P-256 product-device completion; it returns versioned, request-digest-bound product session claims.
-- The integrated verifier also requires the Wallet approval issue time to fall inside the authorization request and verification clock-skew window; early or future approvals fail closed even when correctly signed.
-- Before each use, Gateway calls `assertCentralWalletSessionActive(session, {revokedSessionBindings, revokedRequestDigests}, now)`. The first list revokes one session; the second revokes every session derived from a Wallet approval. Expiry and revocation are mandatory fail-closed checks.
+`registry-conflict-evidence.json` records the observed Social identity/callback conflict and the legacy central Ed25519/session contract. It does not claim a deployment. Exact migration, verification and rollout requirements are in `CENTRAL_INTEGRATION.md`.
 
-## Signer vector
+## Cross-App evidence
 
-Canonical vector: `packages/wallet-auth/testdata/signer-v1.json`.
+- Existing Android proof uses separate `com.ynxweb4.social` and `com.ynxweb4.wallet` packages: Wallet reviewed the request; Social verified the Wallet approval and completed a non-exportable Android Keystore P-256 device challenge; callback replay was rejected persistently.
+- New shared tests complete the exact Pay and Card tuples through Wallet approval, device challenge and product-bound session. Tests reject callback interception, approval/request substitution, scope expansion/reorder, expiry extension, cross-App token use and wrong device/account/introspection.
+- A central deployment and second installed Pay/Card binary are not claimed. The shared vectors/SDK are the integration contract until the controller merges and deploys the lifecycle.
 
-- Request digest: `8af8ac0dd31e2aa874ef95d9c22c1aae25d1f42bf661b0427c9553aecc7f701d`
-- Test account secret: scalar `1` (test vector only)
-- Account: `ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80`
-- Compressed public key: `0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798`
-- Compact signature: `abefbb30a7e6ac1adfc2ef13d89b71e984b9c07d70db6e7a3f4209ab02c3b2190048628314f5c67eb25f2976421a64cf00f39ea3cbabdface812f2a0b68a2ab5`
+## Localization, accessibility and visual evidence
 
-Canonical product-device vector: `packages/wallet-auth/testdata/gateway-p256-v1.json`.
+Runtime catalogs: en, zh-CN, zh-TW, ja, ko, es, fr, de, pt, ru, ar and id. Device locale detection/manual persistence, Arabic RTL, `Intl` dates/numbers/YNXT/plurals, system light/dark, high-text-contrast palettes, reduced-motion sheets, font scaling, screen-reader labels/roles/state and touch targets are tested.
 
-- Algorithm: `p256-sha256`
-- Compressed SEC1 public key: `AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv`
-- Challenge/session vector proves the exact canonical signing domain, DER signature and shared Gateway verification result.
+New installed evidence includes English phone/light, Arabic main/selector RTL, dark + 1.3× font + RTL and a 2076×2152 foldable/unfolded surface. Existing authorization, product-session and replay-rejection evidence remains. Hashes/sizes are in `apps/wallet/artifact-manifest.json`; design findings are in `UI_DESIGN_AUDIT.md`.
 
-## Threat model and fail-closed boundaries
+## Verification performed
 
-- Malicious requester: exact schema plus registry binding rejects network, callback, product, bundle and scope substitution.
-- Replay: Wallet persistence rejects a reused authorization nonce after restart; the product rejects a reused callback; Gateway completion is bound to a short-lived challenge.
-- Callback interceptor: a callback alone cannot complete the product-device challenge because the interceptor does not hold the registered product device private key. This is covered by protocol tests; the emulator also showed Android's competing callback chooser before the intended test product completed its Keystore challenge.
-- Cross-App theft: product sessions include exact client and bundle binding and cannot be reused by another App.
-- Malicious product-key holder: a valid product device key cannot widen or reorder scopes, substitute a scope, extend challenge/session expiry, change algorithm/key encoding or add schema fields; every mutation fails before session issuance.
-- Storage corruption: unknown manifest fields, mismatched account metadata, missing secrets and key/address mismatches fail closed.
-- Device loss: only the offline recovery key restores accounts. Product device keys and sessions are deliberately not restored.
-- JavaScript memory: an approved operation necessarily materializes the selected secret as a short-lived JS string; this implementation does not claim hardware-backed transaction signing. Production hardening should move signing into a native non-exportable key module where chain compatibility permits.
-- Production signing: the checked Android release artifact uses the generated test signing configuration. A production keystore and Apple signing identity are intentionally not stored in the repository.
+- `packages/wallet-auth npm test`: 30/30 pass; `npm pack --dry-run` includes central docs, registry, conflict report, schemas and vectors.
+- `apps/wallet npm run check`: typecheck, 23/23 tests, product boundary check, Android/iOS Hermes exports pass.
+- `apps/wallet npm audit --omit=dev --audit-level=high`: pass with no high/critical; ten moderate Expo build-tool findings documented. SDK audit: zero findings.
+- `npm run hardhat:build && npm run contracts:selectors && go test ./...`: pass after generating the repository's ignored contract fixtures.
+- root `make test`: pass.
+- root `make preflight`: pass after using the host's working `/usr/bin/python3` and creating the ignored `tmp/` directory required by the existing Exchange fixture; the default third-party Python installation is killed by macOS before startup.
+- Android SDK 36 / Java 17 `assembleRelease`: pass, 352 tasks. APK is 78,028,122 bytes, SHA-256 `444df6d9801297092d9a03dd682104fe41462c22c1d2856776ad43236c46278b`.
+- API 36 phone install: success; cold launch 2140/2274 ms and second cold launch 477/513 ms, focused MainActivity verified.
+- Pixel 9 Pro Fold install: success; 2076×2152, cold launch 15082/15742 ms.
+- iOS: Android/iOS Hermes exports pass; all iOS plists pass `plutil`; workflow YAML parses. Local `xcodebuild`/`simctl`/CocoaPods are unavailable because only CommandLineTools is installed. `.github/workflows/wallet-ios.yml` is the runnable macOS 15 unsigned Simulator build and artifact workflow.
+- Dependency/license boundary and failed-closed CycloneDX generation are documented in `DEPENDENCY_REVIEW.md`. Package locks are the complete machine-readable inventory.
+- `git diff --check`, owned-path, secret/placeholder and final worktree checks are rerun before push.
 
-## AI-native security review
+## Artifact record
 
-The selected authorization request is the only eligible input. The flow contains request selection, data preview, provider/model status, resource and maximum monetary estimate, explicit user permission, streaming, cancel, result review, apply/reject, audit, retry and provider-unavailable handling.
+- Android release APK: local only, test-signed, min API 24, 78,028,122 bytes, SHA-256 `444df6d9801297092d9a03dd682104fe41462c22c1d2856776ad43236c46278b`.
+- Android Hermes: 4,438,800 bytes, SHA-256 `ccdc93108e483974b7e7d47b7661f2c9b12eab185d65b57a80afb0930b7a7e8d`.
+- iOS Hermes: 4,433,193 bytes, SHA-256 `f2f68dc6ee2805ba2befb8c521a546a623781f656dd07db1e19f356ad10bd65a`.
+- Artifact URLs: none. Staging/public/health/version URLs: none.
 
-The runtime provider is injected through the product Gateway session contract; there is no embedded provider secret or canned success. Its interface contains request metadata only and sends that selected context in an authenticated POST JSON body, never a URL query. It cannot receive a Wallet key or recovery material, sign, approve, send a transaction, alter permissions or bypass biometrics.
+## Controller integration requests and external blockers
 
-## Validation output
-
-- `packages/wallet-auth`: `npm test` — 21 tests passed. Covers parser, Android/iOS deep links, exact request/callback/challenge/completion schemas, canonical P-256 vector, central registry v1-to-v2 migration, integrated central verifier, approval issue-time bounds, session/approval revocation, expiry, product/callback/bundle substitution, scope escalation/reorder/substitution, deterministic Wallet signer vector, tamper, callback interception, replay and cross-App session reuse.
-- `apps/wallet`: `npm run typecheck` — passed.
-- `apps/wallet`: `npm test` — 20 tests passed. Covers accessibility, 12-locale completeness/persistence/RTL/formatting/layout bounds, independent AI output language, authenticated POST-body AI transport, AI success/cancel/unavailable/retry/audit, persistent authorization intent/reject/revoke audit and tamper, replay persistence/tamper, restart locking, account switching, create/import, storage migration, deterministic restart, offline replacement-device recovery and storage tamper.
-- `apps/wallet`: `npm run product-check` — passed for independent IDs, network/asset identity, bounded authorization UI, audit/revocation, twelve locales, route isolation and accessibility labels.
-- Android Hermes export — passed, 4,384,114 bytes.
-- iOS Hermes export — passed, 4,378,423 bytes.
-- Android native `assembleRelease` with SDK 36 / Java 17 — passed, 352 Gradle tasks, 77,983,526-byte APK.
-- Android Social proof harness `assembleDebug` — passed, 31 Gradle tasks, 3,296,249-byte APK, including Bouncy Castle primitives used only to equivalently verify the Wallet secp256k1 approval inside the proof product.
-- Committed Android emulator cold-launch evidence from the P-256 correction run — `LaunchState: COLD`, `TotalTime: 450 ms`; persisted account opened locked and required biometrics.
-- Android emulator cross-App proof was reproduced after correction. Separate `com.ynxweb4.social` launched `com.ynxweb4.wallet`; Wallet displayed the bound request and the user approved with an enrolled emulator fingerprint. Before nonce consumption, Social recomputed the request digest, checked every response binding and scope, verified the Wallet compact secp256k1 signature, and derived/checked the `ynx1` account from the approval public key. It then created the exact shared challenge schema and signing domain, signed with a non-exportable Android Keystore P-256 key, and ran an equivalent verifier over algorithm, compressed SEC1 key, bindings, scopes, approval-bounded lifetime and DER signature. Only then did it display a product-limited `ynx-social-v1` session. Exact verified callback replay was rejected from persistent product storage.
-- The current return-work APK installed successfully on API 36 `emulator-5554`. A force-stop followed by exact MainActivity launch returned `Status: ok`, `LaunchState: COLD`, `TotalTime: 27602 ms`, `WaitTime: 28807 ms`, and `topResumedActivity=com.ynxweb4.wallet/.MainActivity`. The overloaded emulator then raised unrelated Digital Wellbeing and System UI ANR dialogs, so this run records the command evidence but does not claim a clean refreshed post-launch screenshot or cross-App interaction; the prior committed authorization, Gateway session and replay screenshots remain the latest clean cross-App evidence.
-- iOS native project and bundle ID/deep-link configuration remain present; `Info.plist`, Expo.plist, entitlements and workspace plist pass `plutil -lint`, and the iOS Hermes export passes. A native Simulator/IPA build still cannot run because this host exposes only `/Library/Developer/CommandLineTools`; `xcodebuild` requires full Xcode, `simctl` is absent, and CocoaPods is not installed. Simulator/Xcode evidence is therefore pending, not claimed.
-- No Go file changed, so `go test ./...` was not required by this task.
-
-## Artifact hashes
-
-Artifacts are local build outputs and intentionally ignored; reproducible evidence screenshots are committed.
-
-- Android test-signed release APK `apps/wallet/android/app/build/outputs/apk/release/app-release.apk`: `74444a519d81d426986e7cdf0f80dc0d1f5fb35fffd73da0655a0c7d64509da6`
-- Social proof APK `apps/wallet/proof/social-harness/app/build/outputs/apk/debug/app-debug.apk`: `8234bdb7fed6694d03e91888b4843024f5becab5b27a116eef1a200061660bae`
-- Android Hermes bundle: `ad83d43fffaa82687b1e2dd9217b2d89099d3b5854f0a482f87260f90fa56a00`
-- iOS Hermes bundle: `13eb1c5f06211c064bb7af4131e43127d1c8e47ca6d2295ecb38e6f120acb020`
-- Cold-launch proof: `811341e9a21d34c671168775a3466ee796e208b4e335ea95e9198d76efd2e18c`
-- Authorization proof: `44189c275db96e1e1fd276895e7d15f4d15ceb11271b5229ebf24a0fd809d7cc`
-- Product-session proof: `5fd5334ad3f4d06051a4eee43e05cf66e6b092e3181980125ed2ae2ddca7dd76`
-- Replay-rejected proof: `207ed99095ed77d9274dfad6159fe5f29ee6ec027a96a20759f0d6c63052c7ce`
-
-## Incomplete items and integration requests
-
-1. Central registry: apply the exact v2 entry in `packages/wallet-auth/CENTRAL_INTEGRATION.md` for Wallet `com.ynxweb4.wallet` and the reviewed Social client/bundle/callback/scope allow-list. This branch supplies code and migration tests but does not claim central registry deployment.
-2. Central Gateway: use `verifyCentralWalletSession` and `assertCentralWalletSessionActive`, persist approval-digest revocation tombstones, and make challenge/replay consume plus session write transactional. Do not call only the lower-level device verifier or fork the canonical signing domains.
-3. Social: the currently installed parallel Social build observed on the emulator used package `com.ynx.social` and a legacy query-field authorization URL. It was correctly rejected by this strict Wallet. Social must adopt the canonical `request=<base64url JSON>` envelope and registry identity before integration.
-4. AI Gateway runtime: inject an authenticated Wallet product session, provider base URL, approved model policy and authoritative usage/fee estimate. The UI fails honestly as unavailable until this exists.
-5. Release engineering: provide Android production signing, Apple signing/provisioning, full Xcode/CocoaPods CI, physical-device biometric checks, an IPA/archive, store metadata and distribution endpoints.
-6. Security hardening: commission an external audit, add native non-exportable signing where compatible, add device-integrity policy, backup UX localization and a recovery drill before any mainnet claim.
-7. Revocation transport: Wallet now creates a biometric, persistent approval-digest revocation record. Central Gateway must provide the authenticated sync endpoint and retry contract before cross-device revocation can be claimed online; until then the UI record is a local revocation intent and central verification tests prove the required enforcement semantics.
+1. Review the version 3 registry conflicts and exact 25-product entries, approve only verified tuples, merge the shared package into the central Gateway and deploy the atomic lifecycle/introspection/revocation store. Until verified remotely, `integratedCentral` remains false.
+2. Have each product adopt the canonical request/callback/challenge/completion SDK; remove legacy query-field login and custom/local session verifiers. Exercise installed Wallet↔product flows against the deployed central lifecycle.
+3. Provide owner-controlled Android production keystore, Apple signing/provisioning and store accounts; execute the included iOS CI on macOS, perform physical-device biometric/screen-reader/recovery drills and host immutable artifacts. Until then hosted/signed/store states remain false.
+4. Commission external mobile/cryptographic review and decide whether a chain-compatible native non-exportable transaction signer/device-integrity policy is required before mainnet.
+5. Normalize the Expo dependency tree so a complete CycloneDX SBOM can be generated without `ESBOMPROBLEMS`; do not publish an incomplete SBOM.

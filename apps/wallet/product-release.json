@@ -1,0 +1,49 @@
+{
+  "productId": "wallet",
+  "name": "YNX Wallet",
+  "branch": "codex/ecosystem-wallet-auth",
+  "commit": "9fc011341e16678af3bd9e8cd403af0c90607a2f",
+  "version": "1.0.0-testnet-preview",
+  "surfaces": ["android", "ios"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": {"android": true, "ios": false},
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "androidReleaseApk": "444df6d9801297092d9a03dd682104fe41462c22c1d2856776ad43236c46278b",
+    "androidHermes": "ccdc93108e483974b7e7d47b7661f2c9b12eab185d65b57a80afb0930b7a7e8d",
+    "iosHermes": "f2f68dc6ee2805ba2befb8c521a546a623781f656dd07db1e19f356ad10bd65a"
+  },
+  "bytes": {"androidReleaseApk": 78028122, "androidHermes": 4438800, "iosHermes": 4433193},
+  "signingClass": {"android": "local-test-signed", "ios": "unsigned-Hermes-export-only"},
+  "minOS": {"android": "API 24", "ios": "15.1"},
+  "installEvidence": {
+    "android": "API 36 emulator-5576 install success; MainActivity cold launch 2140 ms / wait 2274 ms and second cold launch 477 ms / wait 513 ms; focused activity verified. Pixel 9 Pro Fold 2076x2152 cold launch 15082 ms / wait 15742 ms.",
+    "ios": "Not installed: host has CommandLineTools only. Runnable macOS 15 Simulator workflow is .github/workflows/wallet-ios.yml."
+  },
+  "centralIntegration": {
+    "candidateSchema": 3,
+    "registryProducts": 25,
+    "localExactProductsTested": ["social", "pay", "card"],
+    "candidateImplemented": true,
+    "gatewayMerged": false,
+    "registryDeployed": false,
+    "lifecycleDeployed": false
+  },
+  "knownLimitations": [
+    "Central registry and Gateway lifecycle are candidates in this branch and are not merged or deployed.",
+    "No staging/public deployment, public artifact URL, production signing or store release exists.",
+    "Native iOS Simulator build/install requires the provided macOS CI or a host with full Xcode and CocoaPods.",
+    "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
+    "CycloneDX generation is blocked by Expo dependency-tree ESBOMPROBLEMS; package-lock.json is the machine-readable dependency inventory."
+  ],
+  "generatedAt": "2026-07-18T21:05:00+08:00"
+}

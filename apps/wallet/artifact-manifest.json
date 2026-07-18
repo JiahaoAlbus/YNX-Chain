@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet",
+  "version": "1.0.0-testnet-preview",
+  "sourceCommit": "9fc011341e16678af3bd9e8cd403af0c90607a2f",
+  "artifacts": [
+    {"name":"android-release-apk","path":"android/app/build/outputs/apk/release/app-release.apk","committed":false,"bytes":78028122,"sha256":"444df6d9801297092d9a03dd682104fe41462c22c1d2856776ad43236c46278b","signingClass":"local-test-signed","minOS":"API 24"},
+    {"name":"android-hermes","path":"dist-android/_expo/static/js/android/index-0b5ba9d66601c21b308c1bd50b37b401.hbc","committed":false,"bytes":4438800,"sha256":"ccdc93108e483974b7e7d47b7661f2c9b12eab185d65b57a80afb0930b7a7e8d","signingClass":"unsigned-build-output","minOS":"API 24"},
+    {"name":"ios-hermes","path":"dist-ios/_expo/static/js/ios/index-87828d55137eabd4c1183a7be4b05715.hbc","committed":false,"bytes":4433193,"sha256":"f2f68dc6ee2805ba2befb8c521a546a623781f656dd07db1e19f356ad10bd65a","signingClass":"unsigned-build-output","minOS":"iOS 15.1"},
+    {"name":"phone-light-empty","path":"proof/ynx-wallet-locked-current.png","committed":true,"bytes":135160,"sha256":"36f8abc2dca529a854aea09010d90e431bce0afd3a42974614937c3045c6560f"},
+    {"name":"arabic-main-rtl","path":"proof/ynx-wallet-arabic-main.png","committed":true,"bytes":138824,"sha256":"e4e1f09eb6c82ac4f19713c626f3ce56d9c5d99450fa2dbf5f40d812e93e6a53"},
+    {"name":"arabic-language-selector","path":"proof/ynx-wallet-arabic-rtl.png","committed":true,"bytes":122548,"sha256":"242d037ba8fa3a1dcdb72955323e6772c1f800a778df2443ba1f9e2453940872"},
+    {"name":"dark-large-text-rtl","path":"proof/ynx-wallet-dark-large-text-rtl.png","committed":true,"bytes":174025,"sha256":"f8dde761924b9d3c13d20b5b7f98048c64e19bc27adabfe624eabde16b0702ee"},
+    {"name":"fold-large-screen","path":"proof/ynx-wallet-fold-large-screen.png","committed":true,"bytes":144991,"sha256":"95c511540e42ef55b192c456cda61f0e03802dee556f4f8c2040577b1c91219a"},
+    {"name":"authorization-review","path":"proof/ynx-wallet-authorization.png","committed":true,"bytes":208896,"sha256":"44189c275db96e1e1fd276895e7d15f4d15ceb11271b5229ebf24a0fd809d7cc"},
+    {"name":"social-product-session","path":"proof/ynx-social-product-session.png","committed":true,"bytes":145400,"sha256":"5fd5334ad3f4d06051a4eee43e05cf66e6b092e3181980125ed2ae2ddca7dd76"},
+    {"name":"social-replay-rejected","path":"proof/ynx-social-replay-rejected.png","committed":true,"bytes":107074,"sha256":"207ed99095ed77d9274dfad6159fe5f29ee6ec027a96a20759f0d6c63052c7ce"}
+  ],
+  "publicArtifactUrls": [],
+  "generatedAt": "2026-07-18T21:05:00+08:00"
+}
