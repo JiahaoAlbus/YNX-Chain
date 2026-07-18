@@ -6,6 +6,9 @@
     "contracts:check": "bash ./scripts/verify/contract-tooling-check.sh",
     "contracts:selectors": "node ./scripts/contracts/generate-selector-metadata.mjs",
     "hardhat:build": "hardhat build",
+    "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
+    "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
+    "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
     "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
   },
   "devDependencies": {

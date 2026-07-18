@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-dex-web-v1",
+  "requestingProduct": "dex",
+  "bundleId": "com.ynxweb4.dex.web",
+  "callbacks": ["https://dex.ynxweb4.com/wallet-auth/callback"],
+  "scopes": ["account:read", "dex:positions:read", "dex:transaction:request"],
+  "maxScopes": 3,
+  "productDeviceAlgorithms": ["p256-sha256"],
+  "integrationStatus": "candidate-not-in-central-registry"
+}
