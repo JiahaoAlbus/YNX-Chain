@@ -51,6 +51,9 @@ jobs:
         working-directory: packages/wallet-auth
       - run: npm ci
         working-directory: apps/finance/mobile
+      - name: Create local test-only Android signing key
+        run: keytool -genkeypair -storetype PKCS12 -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android -dname "CN=YNX Finance Local Test,O=YNX Testnet,C=US" -keyalg RSA -keysize 2048 -validity 10000
+        working-directory: apps/finance/mobile
       - run: ./gradlew assembleRelease --no-daemon
         working-directory: apps/finance/mobile/android
       - uses: actions/upload-artifact@v4
@@ -63,6 +66,8 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Select Swift 6.2 toolchain
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer && xcodebuild -version && swift --version
       - uses: actions/setup-node@v4
         with: {node-version: '24'}
       - run: npm ci
