@@ -1,8 +1,44 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#002FA7"><title>YNX Video</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="responsive.css"></head>
-<body><a class="skip" href="#main">Skip to videos</a>
-<header><a class="brand" href="#" aria-label="YNX Video home"><span>Y</span> YNX Video</a><form id="search"><input id="query" type="search" maxlength="140" placeholder="Search published videos" aria-label="Search published videos"><button>Search</button></form><button id="signin" class="outline">Sign in with YNX Wallet</button></header>
-<nav aria-label="Library"><button data-view="discover" class="active">Discover</button><button data-view="subscriptions">Subscriptions</button><button data-view="playlists">Playlists</button><button data-view="history">History</button><button id="privacy">Delete my viewer data</button></nav>
-<main id="main"><section class="intro"><div><p class="eyebrow">Independent video network</p><h1>Watch what people chose to publish.</h1><p>Search and viewing data come directly from the YNX Video service. Empty means empty—there are no invented recommendations or counters.</p></div><div id="session" class="session">Wallet session required for history, comments and subscriptions.</div></section><div id="notice" role="status" aria-live="polite"></div><section id="content" class="grid" aria-busy="true"></section></main>
-<dialog id="player"><button id="close" aria-label="Close player">Close</button><video id="video" controls playsinline preload="metadata"></video><h2 id="player-title"></h2><p id="player-state"></p><div class="actions"><button id="channel">View channel</button><button id="subscribe">Subscribe</button><button id="playlist">Add to playlist</button><button id="report" class="danger">Report</button></div><section aria-label="Comments"><h3>Comments</h3><div id="comments"></div><form id="comment"><label>Comment<textarea maxlength="2000" required></textarea></label><button>Post comment</button></form></section></dialog>
-<script type="module" src="app.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f8f9fb">
+  <title>YNX Video</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="responsive.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to videos</a>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="YNX Video home"><strong>YNX</strong><span>Video</span></a>
+    <form id="search" role="search"><label class="sr-only" for="query">Search published videos</label><input id="query" type="search" maxlength="140" placeholder="Search videos, channels, or topics" data-i18n-placeholder="search"><button type="submit" data-i18n="search">Search videos</button></form>
+    <div class="header-actions"><label><span class="sr-only" data-i18n="language">Language</span><select id="locale" aria-label="Language"></select></label><button id="signin" class="outline" data-i18n="signIn">Sign in with YNX Wallet</button></div>
+  </header>
+  <div class="shell">
+    <nav aria-label="Library">
+      <button data-view="discover" class="active" data-i18n="discover">Discover</button>
+      <button data-view="subscriptions" data-i18n="subscriptions">Subscriptions</button>
+      <button data-view="playlists" data-i18n="playlists">Playlists</button>
+      <button data-view="history" data-i18n="history">History</button>
+      <button id="privacy" class="privacy-action" data-i18n="settings">Settings</button>
+    </nav>
+    <main id="main">
+      <section class="page-heading" aria-labelledby="page-title">
+        <div><p class="eyebrow">YNX VIDEO</p><h1 id="page-title" data-i18n="discover">Discover</h1><p class="lede" data-i18n="noMetrics">No synthetic views, revenue, subscribers, copyright, or recommendations.</p></div>
+        <div id="session" class="session" data-i18n="privacy">Wallet approval never transfers keys or recovery material to YNX Video.</div>
+      </section>
+      <div id="notice" role="status" aria-live="polite"></div>
+      <section id="content" class="grid" aria-busy="true" aria-label="Published videos"><div class="skeleton" aria-hidden="true"></div><div class="skeleton" aria-hidden="true"></div><div class="skeleton" aria-hidden="true"></div></section>
+    </main>
+  </div>
+  <dialog id="player" aria-labelledby="player-title">
+    <div class="dialog-bar"><p>Now playing</p><button id="close" class="outline" aria-label="Close player">Close</button></div>
+    <video id="video" controls playsinline preload="metadata"></video>
+    <h2 id="player-title"></h2><p id="player-state" class="meta"></p>
+    <div class="actions"><button id="channel">View channel</button><button id="subscribe">Subscribe</button><button id="playlist">Add to playlist</button><button id="report" class="danger">Report</button></div>
+    <section aria-label="Comments" class="comments"><h3>Comments</h3><div id="comments"></div><form id="comment"><label>Comment<textarea maxlength="2000" required></textarea></label><button>Post comment</button></form></section>
+  </dialog>
+  <script type="module" src="i18n.js"></script><script type="module" src="app.js"></script>
+</body>
+</html>

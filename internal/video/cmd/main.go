@@ -7,7 +7,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
+)
+
+var (
+	buildCommit  = "unknown"
+	buildRelease = "local"
+	buildTime    = "unknown"
 )
 
 func main() {
@@ -28,7 +35,7 @@ func main() {
 	if os.Getenv("YNX_VIDEO_PAY_ENDPOINT") != "" {
 		pay = video.PayClient{Endpoint: os.Getenv("YNX_VIDEO_PAY_ENDPOINT"), Token: required("YNX_VIDEO_PAY_TOKEN")}
 	}
-	svc, err := video.NewService(video.Config{Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
+	svc, err := video.NewService(video.Config{Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,12 +44,13 @@ func main() {
 		addr = "127.0.0.1:8423"
 	}
 	clients := map[string]video.GatewayClient{
-		"ynx-video-mobile-v1":       {BundleID: "com.ynxweb4.video", Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
-		"ynx-video-web-v1":          {BundleID: "com.ynxweb4.video.web", Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
-		"ynx-creator-studio-web-v1": {BundleID: "com.ynxweb4.creator-studio.web", Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
+		"ynx-video-mobile-v1":       {Product: "ynx-video", BundleID: "com.ynxweb4.video", Callbacks: []string{"ynxvideo://wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
+		"ynx-video-web-v1":          {Product: "ynx-video", BundleID: "com.ynxweb4.video.web", Callbacks: []string{"https://video.ynxweb4.com/wallet-auth/callback"}, Scopes: []string{"video.comment", "video.history", "video.read", "video.report", "video.subscribe"}},
+		"ynx-creator-studio-web-v1": {Product: "ynx-creator-studio", BundleID: "com.ynxweb4.creator-studio.web", Callbacks: []string{"https://creator.video.ynxweb4.com/wallet-auth/callback"}, Scopes: []string{"ai.video.propose", "pay.payout.intent", "video.creator", "video.read"}},
 	}
 	auth := video.GatewaySessionAuth{Service: svc, Key: []byte(required("YNX_VIDEO_GATEWAY_ATTESTATION_KEY")), Clients: clients, Moderators: moderators}
-	srv := &http.Server{Addr: addr, Handler: video.NewServer(svc, auth).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
+	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
+	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
 	log.Printf("YNX Video listening on %s", addr)
 	log.Fatal(srv.ListenAndServe())
 }

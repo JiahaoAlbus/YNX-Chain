@@ -1,0 +1,79 @@
+name: YNX Video iOS Simulator Evidence
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/video/ios/**"
+      - ".github/workflows/video-ios-simulator.yml"
+  push:
+    branches: ["codex/ecosystem-video"]
+    paths:
+      - "apps/video/ios/**"
+      - ".github/workflows/video-ios-simulator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  simulator-install:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      - name: Build unsigned Simulator application
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project apps/video/ios/YNXVideo.xcodeproj \
+            -scheme YNXVideo \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/YNXVideoDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build | tee "$RUNNER_TEMP/xcodebuild.log"
+      - name: Install, cold launch, deep link, and restart
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/YNXVideoDerivedData/Build/Products/Release-iphonesimulator/YNXVideo.app"
+          test -d "$APP"
+          DEVICE_ID="$(xcrun simctl list devices available -j | /usr/bin/python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in d.values() for x in r if x["isAvailable"] and x["name"].startswith("iPhone")))')"
+          xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
+          open -a Simulator
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl uninstall "$DEVICE_ID" com.ynxweb4.video 2>/dev/null || true
+          xcrun simctl install "$DEVICE_ID" "$APP"
+          xcrun simctl terminate "$DEVICE_ID" com.ynxweb4.video 2>/dev/null || true
+          START_NS="$(/usr/bin/python3 -c 'import time; print(time.time_ns())')"
+          xcrun simctl launch "$DEVICE_ID" com.ynxweb4.video | tee "$RUNNER_TEMP/cold-launch.txt"
+          END_NS="$(/usr/bin/python3 -c 'import time; print(time.time_ns())')"
+          echo "coldLaunchMilliseconds=$(( (END_NS-START_NS)/1000000 ))" >> "$RUNNER_TEMP/cold-launch.txt"
+          xcrun simctl openurl "$DEVICE_ID" 'ynxvideo://watch?id=owned-ci-media'
+          sleep 2
+          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/deep-link.png"
+          xcrun simctl terminate "$DEVICE_ID" com.ynxweb4.video
+          xcrun simctl launch "$DEVICE_ID" com.ynxweb4.video | tee "$RUNNER_TEMP/restart.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$RUNNER_TEMP/YNXVideo-simulator.zip"
+          shasum -a 256 "$RUNNER_TEMP/YNXVideo-simulator.zip" | tee "$RUNNER_TEMP/sha256.txt"
+          stat -f 'bytes=%z' "$RUNNER_TEMP/YNXVideo-simulator.zip" | tee "$RUNNER_TEMP/bytes.txt"
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" | sed 's/^/minimumOS=/' | tee "$RUNNER_TEMP/minimum-os.txt"
+          codesign -dv --verbose=4 "$APP" > "$RUNNER_TEMP/signing.txt" 2>&1 || echo 'signingClass=unsigned-simulator' > "$RUNNER_TEMP/signing.txt"
+      - name: Upload evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-video-ios-simulator-evidence-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/YNXVideo-simulator.zip
+            ${{ runner.temp }}/xcodebuild.log
+            ${{ runner.temp }}/cold-launch.txt
+            ${{ runner.temp }}/restart.txt
+            ${{ runner.temp }}/deep-link.png
+            ${{ runner.temp }}/sha256.txt
+            ${{ runner.temp }}/bytes.txt
+            ${{ runner.temp }}/minimum-os.txt
+            ${{ runner.temp }}/signing.txt

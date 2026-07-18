@@ -90,6 +90,9 @@ func normalize(s *State) {
 	if s.GatewayNonces == nil {
 		s.GatewayNonces = map[string]GatewayNonce{}
 	}
+	if s.Idempotency == nil {
+		s.Idempotency = map[string]IdempotencyRecord{}
+	}
 }
 func (s *Store) read(fn func(State) error) error {
 	s.mu.RLock()

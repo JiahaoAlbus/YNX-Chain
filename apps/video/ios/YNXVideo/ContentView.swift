@@ -48,7 +48,7 @@ struct VideoRecord: Identifiable, Decodable {
         state = .loading
         var request = URLRequest(url: gateway.appending(path: "/v1/videos").appending(queryItems: [URLQueryItem(name:"q",value:query)]))
         request.setValue("application/json",forHTTPHeaderField:"Accept")
-        if let gatewaySession { request.setValue("Bearer \(gatewaySession)",forHTTPHeaderField:"Authorization") }
+        if let gatewaySession { request.setValue(gatewaySession,forHTTPHeaderField:"X-YNX-App-Session") }
         do {
             let (data,response)=try await URLSession.shared.data(for:request)
             guard let http=response as? HTTPURLResponse else { state = .unavailable; return }
@@ -60,7 +60,7 @@ struct VideoRecord: Identifiable, Decodable {
 
     func loadLibrary(_ path:String,label:String) async {
         state = .loading
-        var request=URLRequest(url:gateway.appending(path:path));request.setValue("application/json",forHTTPHeaderField:"Accept");if let gatewaySession{request.setValue("Bearer \(gatewaySession)",forHTTPHeaderField:"Authorization")}
+        var request=URLRequest(url:gateway.appending(path:path));request.setValue("application/json",forHTTPHeaderField:"Accept");if let gatewaySession{request.setValue(gatewaySession,forHTTPHeaderField:"X-YNX-App-Session")}
         do { let(data,response)=try await URLSession.shared.data(for:request);guard let http=response as? HTTPURLResponse,http.statusCode==200 else{state = .unavailable;return};guard let array=try JSONSerialization.jsonObject(with:data) as? [[String:Any]] else{state = .failure("Invalid service response");return};let rows=array.map{String(describing:$0["Name"] ?? $0["name"] ?? $0["VideoID"] ?? $0["video_id"] ?? "record")};state=rows.isEmpty ? .empty:.library(label,rows) }
         catch let error as URLError where error.code == .notConnectedToInternet { state = .offline }
         catch { state = .failure(error.localizedDescription) }
@@ -77,7 +77,7 @@ struct VideoRecord: Identifiable, Decodable {
     }
 
     func handle(url: URL) { guard url.scheme=="ynxvideo",url.host=="wallet-auth" else{return}; gatewaySession=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="gateway_session"})?.value; state = gatewaySession == nil ? .unavailable : .loading; if gatewaySession != nil { Task{await load()} } }
-    func mutate(_ path:String,body:[String:Any]) async { do { var request=URLRequest(url:gateway.appending(path:path));request.httpMethod="POST";request.httpBody=try JSONSerialization.data(withJSONObject:body);request.setValue("application/json",forHTTPHeaderField:"Content-Type");if let gatewaySession{request.setValue("Bearer \(gatewaySession)",forHTTPHeaderField:"Authorization")};let(_,response)=try await URLSession.shared.data(for:request);guard let http=response as? HTTPURLResponse,http.statusCode>=200,http.statusCode<300 else{operationMessage=text("unavailable");return};operationMessage=text("loading") } catch { operationMessage=error.localizedDescription } }
+    func mutate(_ path:String,body:[String:Any]) async { do { var request=URLRequest(url:gateway.appending(path:path));request.httpMethod="POST";request.httpBody=try JSONSerialization.data(withJSONObject:body);request.setValue("application/json",forHTTPHeaderField:"Content-Type");request.setValue(UUID().uuidString,forHTTPHeaderField:"Idempotency-Key");if let gatewaySession{request.setValue(gatewaySession,forHTTPHeaderField:"X-YNX-App-Session")};let(_,response)=try await URLSession.shared.data(for:request);guard let http=response as? HTTPURLResponse,http.statusCode>=200,http.statusCode<300 else{operationMessage=text("unavailable");return};operationMessage=text("loading") } catch { operationMessage=error.localizedDescription } }
     func transcript(_ track:VideoRecord.Caption) async ->String { guard track.human_approved else{return text("unavailable")};do{let(data,response)=try await URLSession.shared.data(from:gateway.appending(path:"/media/\(track.object_key)"));guard (response as? HTTPURLResponse)?.statusCode==200 else{return text("unavailable")};return String(decoding:data,as:UTF8.self).split(separator:"\n").filter{!$0.contains("-->")&&$0!="WEBVTT"}.joined(separator:"\n")}catch{return error.localizedDescription} }
     private func random(_ count:Int)->String { var bytes=[UInt8](repeating:0,count:count); _=SecRandomCopyBytes(kSecRandomDefault,count,&bytes); return Data(bytes).base64EncodedString().replacingOccurrences(of:"+",with:"-").replacingOccurrences(of:"/",with:"_").replacingOccurrences(of:"=",with:"") }
 }

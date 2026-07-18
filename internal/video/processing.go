@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 )
@@ -34,21 +35,35 @@ type AIResult struct {
 	Units                 int64
 }
 
-type CommandScanner struct{ Command string }
+type CommandScanner struct {
+	Command, Database string
+}
 
 func (s CommandScanner) Check() error {
 	if s.Command == "" {
 		return errors.New("malware scanner unavailable")
 	}
-	_, err := exec.LookPath(s.Command)
-	return err
+	if _, err := exec.LookPath(s.Command); err != nil {
+		return err
+	}
+	if s.Database != "" {
+		if info, err := os.Stat(s.Database); err != nil || !info.IsDir() {
+			return errors.New("malware signature database unavailable")
+		}
+	}
+	return nil
 }
 
 func (s CommandScanner) Scan(ctx context.Context, path string) error {
 	if s.Command == "" {
 		return errors.New("malware scanner unavailable")
 	}
-	if out, err := exec.CommandContext(ctx, s.Command, "--no-summary", path).CombinedOutput(); err != nil {
+	args := []string{"--no-summary"}
+	if s.Database != "" {
+		args = append(args, "--database="+s.Database)
+	}
+	args = append(args, path)
+	if out, err := exec.CommandContext(ctx, s.Command, args...).CombinedOutput(); err != nil {
 		return fmt.Errorf("malware scan failed: %w: %s", err, string(out))
 	}
 	return nil

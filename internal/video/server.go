@@ -1,6 +1,9 @@
 package video
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Authenticator interface {
@@ -48,10 +53,14 @@ type Server struct {
 	mu           sync.Mutex
 	rates        map[string]rateEntry
 	maxPerMinute int
+	build        buildinfo.Info
 }
 
 func NewServer(s *Service, a Authenticator) *Server {
-	return &Server{service: s, auth: a, rates: map[string]rateEntry{}, maxPerMinute: 120}
+	return NewServerWithBuild(s, a, buildinfo.Info{})
+}
+func NewServerWithBuild(s *Service, a Authenticator, build buildinfo.Info) *Server {
+	return &Server{service: s, auth: a, rates: map[string]rateEntry{}, maxPerMinute: 120, build: buildinfo.Normalize(build)}
 }
 func (s *Server) Handler() http.Handler { return http.HandlerFunc(s.serve) }
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
@@ -62,14 +71,14 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	if origin == "http://127.0.0.1:4173" || origin == "http://127.0.0.1:4174" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Vary", "Origin")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Idempotency-Key, X-YNX-App-Session")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 	}
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if r.URL.Path == "/health" {
+	if r.Method == http.MethodGet && r.URL.Path == "/health" {
 		failures := []string{}
 		for name, dependency := range map[string]any{"scanner": s.service.cfg.Scanner, "processor": s.service.cfg.Processor} {
 			if checker, ok := dependency.(DependencyChecker); ok {
@@ -82,12 +91,16 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		if len(failures) > 0 {
 			status = http.StatusServiceUnavailable
 		}
-		write(w, status, map[string]any{"ok": len(failures) == 0, "service": "ynx-video", "dependencies": failures, "truth": "no synthetic metrics"})
+		write(w, status, map[string]any{"ok": len(failures) == 0, "service": "ynx-video", "dependencies": failures, "truth": "no synthetic metrics", "build": s.build})
+		return
+	}
+	if r.Method == http.MethodGet && r.URL.Path == "/version" {
+		write(w, http.StatusOK, map[string]any{"service": "ynx-video", "build": s.build})
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/media/") {
 		actor := ""
-		if r.Header.Get("Authorization") != "" {
+		if r.Header.Get("Authorization") != "" || r.Header.Get("X-YNX-Gateway-Signature") != "" {
 			actor, _ = s.auth.Account(r)
 		}
 		path, err := s.service.MediaPath(actor, strings.TrimPrefix(r.URL.Path, "/media/"))
@@ -100,17 +113,36 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, path)
 		return
 	}
+	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
+	parts := strings.Split(path, "/")
+	if r.Method == http.MethodGet && s.publicRead(w, path, parts) {
+		return
+	}
 	actor, err := s.auth.Account(r)
 	if err != nil {
 		problem(w, 401, err)
 		return
 	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		record, replay, reserveErr := s.reserveIdempotency(actor, r)
+		if reserveErr != nil {
+			problem(w, http.StatusConflict, reserveErr)
+			return
+		}
+		if replay {
+			w.Header().Set("Content-Type", record.ContentType)
+			w.WriteHeader(record.Status)
+			_, _ = io.WriteString(w, record.ResponseBody)
+			return
+		}
+		capture := &captureResponseWriter{ResponseWriter: w, status: http.StatusOK, limit: 4 << 20}
+		w = capture
+		defer s.completeIdempotency(actor, r.Header.Get("Idempotency-Key"), capture)
+	}
 	if !s.allow(actor) {
 		problem(w, 429, errors.New("rate limit exceeded"))
 		return
 	}
-	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
-	parts := strings.Split(path, "/")
 	switch {
 	case r.Method == "POST" && path == "channels":
 		var in struct{ Handle, Name string }
@@ -331,6 +363,118 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		problem(w, 404, ErrNotFound)
 	}
+}
+
+type captureResponseWriter struct {
+	http.ResponseWriter
+	status, limit int
+	body          bytes.Buffer
+	overflow      bool
+}
+
+func (w *captureResponseWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *captureResponseWriter) Write(body []byte) (int, error) {
+	if !w.overflow {
+		remaining := w.limit - w.body.Len()
+		if len(body) <= remaining {
+			_, _ = w.body.Write(body)
+		} else {
+			w.overflow = true
+			w.body.Reset()
+		}
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func (w *captureResponseWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+func (s *Server) reserveIdempotency(actor string, r *http.Request) (IdempotencyRecord, bool, error) {
+	key := r.Header.Get("Idempotency-Key")
+	if len(key) < 16 || len(key) > 128 {
+		return IdempotencyRecord{}, false, errors.New("Idempotency-Key must be 16..128 characters")
+	}
+	for _, character := range key {
+		if !((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9') || strings.ContainsRune("._:-", character)) {
+			return IdempotencyRecord{}, false, errors.New("Idempotency-Key contains unsupported characters")
+		}
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.service.cfg.MaxObjectBytes+(10<<20)+1))
+	if err != nil || int64(len(body)) > s.service.cfg.MaxObjectBytes+(10<<20) {
+		return IdempotencyRecord{}, false, errors.New("request body exceeds idempotency bound")
+	}
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	digest := sha256.Sum256(append([]byte(r.Method+"\n"+r.URL.RequestURI()+"\n"), body...))
+	requestHash := hex.EncodeToString(digest[:])
+	index := actor + "\n" + key
+	var result IdempotencyRecord
+	var replay bool
+	err = s.service.store.update(func(state *State) error {
+		if existing, ok := state.Idempotency[index]; ok {
+			if existing.Actor != actor || existing.Method != r.Method || existing.Path != r.URL.RequestURI() || existing.RequestHash != requestHash {
+				return errors.New("idempotency key was reused with a different request")
+			}
+			if existing.State != "complete" {
+				return errors.New("idempotent request is incomplete; operator recovery is required")
+			}
+			result, replay = existing, true
+			return nil
+		}
+		result = IdempotencyRecord{Actor: actor, Key: key, Method: r.Method, Path: r.URL.RequestURI(), RequestHash: requestHash, State: "running", CreatedAt: s.service.cfg.Now().UTC()}
+		state.Idempotency[index] = result
+		s.service.audit(state, actor, "idempotency.reserve", "request", key, requestHash)
+		return nil
+	})
+	return result, replay, err
+}
+
+func (s *Server) completeIdempotency(actor, key string, response *captureResponseWriter) {
+	index := actor + "\n" + key
+	_ = s.service.store.update(func(state *State) error {
+		record, ok := state.Idempotency[index]
+		if !ok || record.State != "running" {
+			return errors.New("idempotency reservation is missing")
+		}
+		if response.overflow {
+			record.State = "recovery_required"
+		} else {
+			record.State = "complete"
+			record.Status = response.status
+			record.ContentType = response.Header().Get("Content-Type")
+			record.ResponseBody = response.body.String()
+		}
+		record.CompletedAt = s.service.cfg.Now().UTC()
+		state.Idempotency[index] = record
+		s.service.audit(state, actor, "idempotency."+record.State, "request", key, record.RequestHash)
+		return nil
+	})
+}
+
+func (s *Server) publicRead(w http.ResponseWriter, path string, parts []string) bool {
+	switch {
+	case path == "videos":
+		out, err := s.service.Search("", "")
+		respond(w, out, err)
+	case len(parts) == 2 && parts[0] == "videos":
+		out, err := s.service.Video("", parts[1])
+		respond(w, out, err)
+	case len(parts) == 2 && parts[0] == "channels":
+		out, err := s.service.Channel("", parts[1])
+		respond(w, out, err)
+	case len(parts) == 3 && parts[0] == "videos" && parts[2] == "comments":
+		out, err := s.service.Comments("", parts[1])
+		respond(w, out, err)
+	default:
+		return false
+	}
+	return true
 }
 func (s *Server) streamAI(w http.ResponseWriter, r *http.Request, actor, jobID string) {
 	flusher, ok := w.(http.Flusher)

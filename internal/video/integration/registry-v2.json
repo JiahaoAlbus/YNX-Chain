@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "walletRegistrySchemaVersion": 2,
+  "sourceProtocol": "@ynx-chain/wallet-auth wallet-auth-v1",
+  "products": [
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-creator-studio-web-v1",
+      "requestingProduct": "ynx-creator-studio",
+      "bundleId": "com.ynxweb4.creator-studio.web",
+      "callbacks": [
+        "https://creator.video.ynxweb4.com/wallet-auth/callback"
+      ],
+      "scopes": [
+        "ai.video.propose",
+        "pay.payout.intent",
+        "video.creator",
+        "video.read"
+      ],
+      "maxScopes": 4,
+      "productDeviceAlgorithms": [
+        "p256-sha256"
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-video-mobile-v1",
+      "requestingProduct": "ynx-video",
+      "bundleId": "com.ynxweb4.video",
+      "callbacks": [
+        "ynxvideo://wallet-auth/callback"
+      ],
+      "scopes": [
+        "video.comment",
+        "video.history",
+        "video.read",
+        "video.report",
+        "video.subscribe"
+      ],
+      "maxScopes": 5,
+      "productDeviceAlgorithms": [
+        "p256-sha256"
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-video-web-v1",
+      "requestingProduct": "ynx-video",
+      "bundleId": "com.ynxweb4.video.web",
+      "callbacks": [
+        "https://video.ynxweb4.com/wallet-auth/callback"
+      ],
+      "scopes": [
+        "video.comment",
+        "video.history",
+        "video.read",
+        "video.report",
+        "video.subscribe"
+      ],
+      "maxScopes": 5,
+      "productDeviceAlgorithms": [
+        "p256-sha256"
+      ]
+    }
+  ]
+}

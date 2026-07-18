@@ -126,6 +126,13 @@ type AIJob struct {
 	Accepted                                                                  bool
 }
 
+type IdempotencyRecord struct {
+	Actor, Key, Method, Path, RequestHash, State string
+	Status                                       int
+	ContentType, ResponseBody                    string
+	CreatedAt, CompletedAt                       time.Time
+}
+
 type StudioSnapshot struct {
 	Videos        []Video         `json:"videos"`
 	Analytics     Analytics       `json:"analytics"`
@@ -153,22 +160,23 @@ type GatewayNonce struct {
 }
 
 type State struct {
-	Videos        map[string]*Video         `json:"videos"`
-	Channels      map[string]*Channel       `json:"channels"`
-	Subscriptions map[string]Subscription   `json:"subscriptions"`
-	Playlists     map[string]*Playlist      `json:"playlists"`
-	Comments      map[string]*Comment       `json:"comments"`
-	WatchEvents   map[string]WatchEvent     `json:"watch_events"`
-	Reports       map[string]*Report        `json:"reports"`
-	Appeals       map[string]*Appeal        `json:"appeals"`
-	Monetization  map[string]*Monetization  `json:"monetization"`
-	PayoutIntents map[string]*PayoutIntent  `json:"payout_intents"`
-	Revenue       map[string]*RevenueRecord `json:"revenue"`
-	Disputes      map[string]*Dispute       `json:"disputes"`
-	AIJobs        map[string]*AIJob         `json:"ai_jobs"`
-	Audit         []AuditEvent              `json:"audit"`
-	GatewayNonces map[string]GatewayNonce   `json:"gateway_nonces"`
-	Integrity     string                    `json:"integrity,omitempty"`
+	Videos        map[string]*Video            `json:"videos"`
+	Channels      map[string]*Channel          `json:"channels"`
+	Subscriptions map[string]Subscription      `json:"subscriptions"`
+	Playlists     map[string]*Playlist         `json:"playlists"`
+	Comments      map[string]*Comment          `json:"comments"`
+	WatchEvents   map[string]WatchEvent        `json:"watch_events"`
+	Reports       map[string]*Report           `json:"reports"`
+	Appeals       map[string]*Appeal           `json:"appeals"`
+	Monetization  map[string]*Monetization     `json:"monetization"`
+	PayoutIntents map[string]*PayoutIntent     `json:"payout_intents"`
+	Revenue       map[string]*RevenueRecord    `json:"revenue"`
+	Disputes      map[string]*Dispute          `json:"disputes"`
+	AIJobs        map[string]*AIJob            `json:"ai_jobs"`
+	Audit         []AuditEvent                 `json:"audit"`
+	GatewayNonces map[string]GatewayNonce      `json:"gateway_nonces"`
+	Idempotency   map[string]IdempotencyRecord `json:"idempotency"`
+	Integrity     string                       `json:"integrity,omitempty"`
 }
 
 type Analytics struct {

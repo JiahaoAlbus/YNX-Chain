@@ -35,6 +35,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
+import java.util.UUID;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
@@ -165,7 +166,8 @@ public final class MainActivity extends Activity {
         String base = prefs.getString("gateway", "http://10.0.2.2:8423");
         HttpURLConnection connection = (HttpURLConnection) new URL(base + path).openConnection();
         connection.setConnectTimeout(8000); connection.setReadTimeout(12000); connection.setRequestMethod(method); connection.setRequestProperty("Accept", "application/json");
-        if (gatewaySession != null) connection.setRequestProperty("Authorization", "Bearer " + gatewaySession);
+        if (gatewaySession != null) connection.setRequestProperty("X-YNX-App-Session", gatewaySession);
+        if (!"GET".equals(method) && !"HEAD".equals(method)) connection.setRequestProperty("Idempotency-Key", UUID.randomUUID().toString());
         if(payload!=null){byte[] body=payload.toString().getBytes(StandardCharsets.UTF_8);connection.setDoOutput(true);connection.setRequestProperty("Content-Type","application/json");connection.setFixedLengthStreamingMode(body.length);try(OutputStream output=connection.getOutputStream()){output.write(body);}}
         int code = connection.getResponseCode();
         InputStream stream = code >= 200 && code < 300 ? connection.getInputStream() : connection.getErrorStream();

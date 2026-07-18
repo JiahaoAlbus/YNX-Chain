@@ -1,12 +1,28 @@
-.row small { display: block; color: #667085; margin-top: 5px; overflow-wrap: anywhere; }
-.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.row-actions button { padding: 7px 9px; font-size: .76rem; }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-.meta { color: #667085; }
-#ai-provider { margin-bottom: 18px; }
-@media (max-width: 800px) {
-  .row-actions { justify-content: flex-start; }
-  header #signin { max-width: 155px; }
+@media(max-width:850px){body{display:block;padding-bottom:66px}
+aside{position:fixed;z-index:8;bottom:0;left:0;right:0;height:66px;padding:5px 6px max(5px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);display:block}
+.brand,.boundary{display:none}
+nav{display:flex;overflow-x:auto;gap:2px;margin:0;scrollbar-width:none}
+nav button{flex:0 0 auto;min-width:84px;padding:10px 8px;text-align:center;font-size:.72rem;white-space:nowrap}
+header{min-height:116px;padding:12px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+header>div:first-child{margin:0}
+.locale-controls{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:1fr 1fr}
+.locale-controls select{min-width:0}
+#signin{grid-column:2;grid-row:1;padding:8px 10px;font-size:.75rem;max-width:130px}
+main{padding:24px 16px 42px}
+.metrics{grid-template-columns:1fr 1fr}
+.metrics article:nth-child(2){border-inline-end:0}
+.metrics article:nth-child(-n+2){border-bottom:1px solid var(--line)}
+.row{grid-template-columns:1fr}
+.row-actions button{width:auto}
+.table{padding:4px 14px}
+.bar{align-items:flex-start}
+pre{font-size:.78rem}
 }
-html[dir="rtl"] aside{left:auto;right:0}html[dir="rtl"] header,html[dir="rtl"] main{margin-left:0;margin-right:var(--side,260px)}.locale-controls{display:flex;gap:.6rem}.locale-controls label{font-size:.7rem;color:#475467}.locale-controls select{display:block;min-height:2.25rem;max-width:7rem}@media(max-width:760px){.locale-controls{order:3;width:100%}html[dir="rtl"] header,html[dir="rtl"] main{margin-right:0}}
+@media(max-width:420px){h1{font-size:1.2rem}
+.metrics{grid-template-columns:1fr}
+.metrics article{border-inline-end:0!important;border-bottom:1px solid var(--line)!important}
+.metrics article:last-child{border-bottom:0!important}
+.callout,form{padding:17px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}
+}
