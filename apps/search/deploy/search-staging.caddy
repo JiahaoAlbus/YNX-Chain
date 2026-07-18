@@ -1,0 +1,4 @@
+search-staging.43.153.202.237.sslip.io {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:18096
+}
