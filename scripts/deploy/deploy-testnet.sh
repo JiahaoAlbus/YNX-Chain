@@ -111,6 +111,7 @@ fi
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
+  ynx_require_clean_worktree
   node scripts/verify/deploy-readiness-gate.mjs
 fi
 
@@ -974,6 +975,11 @@ ynx_prepare_release_on_node() {
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; set +a; /usr/local/bin/ynx-chaind --check-config >/dev/null'"
 }
 
+ynx_verify_authoritative_state_v2() {
+  local role="$1" user="$2" host="$3" key="$4"
+  ynx_node_ssh "$role" "$user" "$host" "$key" "sudo test -s /var/lib/ynx-chain/testnet/devnet-state.json && sudo test -s /var/lib/ynx-chain/testnet/devnet-state.integrity-version && sudo grep -Fxq '2' /var/lib/ynx-chain/testnet/devnet-state.integrity-version && sudo grep -Eq '\"version\": 2' /var/lib/ynx-chain/testnet/devnet-state.json && sudo grep -Eq '\"stateIntegrity\": \"[0-9a-f]{64}\"' /var/lib/ynx-chain/testnet/devnet-state.json"
+}
+
 ynx_install_primary_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local expected_services=""
@@ -1025,6 +1031,7 @@ ynx_install_primary_node() {
     echo "App Gateway deployment remains disabled; release package contains ynx-app-gatewayd but no remote service is installed"
   fi
   ynx_node_ssh "$role" "$user" "$host" "$key" "${expected_services}bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' full"
+  ynx_verify_authoritative_state_v2 "$role" "$user" "$host" "$key"
 }
 
 ynx_install_validator_node() {
@@ -1032,6 +1039,7 @@ ynx_install_validator_node() {
   ynx_prepare_release_on_node "$role" "$user" "$host" "$key"
   ynx_node_ssh "$role" "$user" "$host" "$key" "sudo systemctl daemon-reload && sudo systemctl enable ynx-chaind && sudo systemctl restart ynx-chaind && sudo systemctl --no-pager --full status ynx-chaind"
   ynx_node_ssh "$role" "$user" "$host" "$key" "bash '$remote_dir/scripts/check-local-services.sh' '$role' '$commit' '$release' '$CHAIN_ID' validator"
+  ynx_verify_authoritative_state_v2 "$role" "$user" "$host" "$key"
 }
 
 ynx_precheck_node_access "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY"
@@ -1039,10 +1047,14 @@ ynx_precheck_node_access "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_S
 ynx_precheck_node_access "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY"
 ynx_precheck_node_access "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY"
 
-ynx_install_primary_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY"
+echo "YNX_DEPLOY_SEQUENCE=1 role=singapore"
 ynx_install_validator_node "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY"
+echo "YNX_DEPLOY_SEQUENCE=2 role=silicon-valley"
 ynx_install_validator_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY"
+echo "YNX_DEPLOY_SEQUENCE=3 role=seoul"
 ynx_install_validator_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY"
+echo "YNX_DEPLOY_SEQUENCE=4 role=primary"
+ynx_install_primary_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY"
 
 echo "deployment command path completed for $release"
 echo "primary full stack plus validator nodes install path completed; run make verify-testnet against the deployed public domains"
