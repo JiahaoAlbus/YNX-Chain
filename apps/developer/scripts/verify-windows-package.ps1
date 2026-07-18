@@ -13,7 +13,7 @@ $exe = Join-Path $bundle "YNXDeveloper.TestnetPreview.exe"
 $resources = Join-Path $bundle "Resources"
 if (!(Test-Path $exe)) { throw "Packaged executable is missing" }
 
-$selfTest = Start-Process $exe -ArgumentList @("--self-test", $resources, $evidence) -Wait -PassThru
+$selfTest = Start-Process $exe -ArgumentList @("--self-test", "`"$resources`"", "`"$evidence`"") -Wait -PassThru
 if ($selfTest.ExitCode -ne 0 -or !(Test-Path $evidence)) { throw "Packaged self-test failed with exit $($selfTest.ExitCode)" }
 
 $desktop = Start-Process $exe -PassThru
