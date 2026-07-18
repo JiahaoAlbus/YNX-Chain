@@ -12,9 +12,11 @@ npm run check
 npm start
 ```
 
-`npm run build:macos` creates an unsigned local release binary at
-`native/.build/release/YNXBrowserNative`. It is development evidence, not a
-signed or distributed update. Private mode prevents YNX Browser from persisting
+`npm run build:macos` creates an ad-hoc-signed Testnet Preview app and zip under
+`dist/macos/`. It is development evidence, not a Developer ID signed, notarized,
+or production update. `ANDROID_SDK_ROOT=... scripts/build-android.sh` produces
+the Android Testnet Preview APK with the documented public disposable key.
+Private mode prevents YNX Browser from persisting
 its history, permission decisions and download records, but it cannot prevent
 websites, networks, the OS, extensions or downloaded files from retaining data.
 The phishing boundary matches only an operator-supplied blocklist and is not a
@@ -28,8 +30,12 @@ Configuration is server/operator supplied; do not place secrets in the app:
 - `YNX_AI_GATEWAY_URL` and `YNX_AI_GATEWAY_CLIENT_TOKEN`: permissioned Gateway
   connection. Provider tokens remain at the Gateway.
 
-Android uses the system WebView, iOS uses WKWebView, and the Windows feasibility
-host uses Chromium-backed WebView2. The shared Browser/Search contract exposes
+Android uses the system WebView in a separate `:private` process for private
+browsing, iOS uses WKWebView, and Windows uses Chromium-backed WebView2. The
+shared Browser/Search contract exposes
 12 locale choices and an Arabic RTL path. Exact build, parse, signature, hash,
 and unproven distribution boundaries are recorded in
 [`PLATFORM_EVIDENCE.md`](PLATFORM_EVIDENCE.md).
+
+The default new-tab/Search URL is the bounded Testnet Preview at
+<https://search-staging.43.153.202.237.sslip.io>. It is not a global index.

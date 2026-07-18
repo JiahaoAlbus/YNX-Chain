@@ -10,7 +10,7 @@ import { createTrustReferral, validateWalletAuthorizationV1 } from "../../../pac
 
 const dataPath=process.env.YNX_SEARCH_DATA_PATH??join(process.cwd(),"var","search-index.json");
 const store=new SearchStore(dataPath),port=Number(process.env.PORT??4313),publicDir=join(import.meta.dirname,"public"),sharedI18n=fileURLToPath(new URL("../../../packages/web4-permissions/src/i18n.js",import.meta.url));
-const build={commit:process.env.YNX_BUILD_COMMIT??"development",builtAt:process.env.YNX_BUILD_TIME??null,releaseChannel:process.env.YNX_RELEASE_CHANNEL??"local"};
+const build={version:process.env.YNX_BUILD_VERSION??"0.2.0",commit:process.env.YNX_BUILD_COMMIT??"development",builtAt:process.env.YNX_BUILD_TIME??null,releaseChannel:process.env.YNX_RELEASE_CHANNEL??"local"};
 const securityHeaders={"x-content-type-options":"nosniff","x-frame-options":"DENY","referrer-policy":"no-referrer","permissions-policy":"camera=(), microphone=(), geolocation=(), payment=(), usb=()","cross-origin-resource-policy":"same-origin"};
 function json(res,status,value){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; frame-ancestors 'none'",...securityHeaders});res.end(JSON.stringify(value))}
 async function body(req){let text="";for await(const chunk of req){text+=chunk;if(text.length>1_000_000)throw new Error("request body too large")}return text?JSON.parse(text):{}}

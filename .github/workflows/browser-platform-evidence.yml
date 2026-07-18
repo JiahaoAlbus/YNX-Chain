@@ -5,7 +5,14 @@ on:
   push:
     branches: [codex/ecosystem-browser-search]
     paths:
-      - "apps/browser/**"
+      - "apps/browser/android/**"
+      - "apps/browser/ios/**"
+      - "apps/browser/native/**"
+      - "apps/browser/windows/**"
+      - "apps/browser/scripts/**"
+      - "apps/browser/test/**"
+      - "apps/browser/package.json"
+      - "apps/browser/package-lock.json"
       - "packages/web4-permissions/**"
       - ".github/workflows/browser-platform-evidence.yml"
 
@@ -123,6 +130,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Select simulator and build
         run: |
+          set -o pipefail
           DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for values in d.values() for x in values if x["name"].startswith("iPhone 16")))')
           echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
           xcodebuild -project apps/browser/ios/YNXBrowser.xcodeproj -scheme YNXBrowser -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=$DEVICE" -derivedDataPath "$RUNNER_TEMP/ynx-browser-ios" CODE_SIGNING_ALLOWED=NO build | tee ios-build.log
