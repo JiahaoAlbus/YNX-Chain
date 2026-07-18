@@ -8,10 +8,15 @@ struct BrowserWebView:UIViewRepresentable{
     func makeUIView(context:Context)->WKWebView{let config=WKWebViewConfiguration();config.websiteDataStore=tab.isPrivate ? .nonPersistent():.default();config.defaultWebpagePreferences.allowsContentJavaScript=true;let web=WKWebView(frame:.zero,configuration:config);web.navigationDelegate=context.coordinator;web.uiDelegate=context.coordinator;web.allowsBackForwardNavigationGestures=true;context.coordinator.bind(web);if let url=URL(string:tab.url){web.load(URLRequest(url:url))};return web}
     func updateUIView(_ web:WKWebView,context:Context){}
     @MainActor final class Coordinator:NSObject,WKNavigationDelegate,WKUIDelegate,WKDownloadDelegate{
-        let tab:BrowserTab;weak var model:BrowserModel?;weak var web:WKWebView?;var observers:[NSObjectProtocol]=[]
+        let tab:BrowserTab;weak var model:BrowserModel?;weak var web:WKWebView?
         init(tab:BrowserTab,model:BrowserModel){self.tab=tab;self.model=model}
-        func bind(_ web:WKWebView){self.web=web;let center=NotificationCenter.default;for(name,action)in[(Notification.Name.ynxBack,{web.goBack()}),(.ynxForward,{web.goForward()}),(.ynxReload,{web.reload()})]{observers.append(center.addObserver(forName:name,object:tab.id,queue:.main){_ in action()})};observers.append(center.addObserver(forName:.ynxNavigate,object:tab.id,queue:.main){note in if let value=note.userInfo?["value"]as?String,let url=URL(string:value){web.load(URLRequest(url:url))}});observers.append(center.addObserver(forName:.ynxAi,object:tab.id,queue:.main){[weak self]_ in web.evaluateJavaScript("(document.body && document.body.innerText || '').slice(0,50000)"){value,_ in Task{@MainActor in self?.model?.prepareAi(characters:(value as?String)?.count ?? 0)}}})}
-        deinit{for observer in observers{NotificationCenter.default.removeObserver(observer)}}
+        func bind(_ web:WKWebView){self.web=web;let center=NotificationCenter.default;center.addObserver(self,selector:#selector(goBack),name:.ynxBack,object:tab.id);center.addObserver(self,selector:#selector(goForward),name:.ynxForward,object:tab.id);center.addObserver(self,selector:#selector(reload),name:.ynxReload,object:tab.id);center.addObserver(self,selector:#selector(navigate),name:.ynxNavigate,object:tab.id);center.addObserver(self,selector:#selector(runAi),name:.ynxAi,object:tab.id)}
+        deinit{NotificationCenter.default.removeObserver(self)}
+        @objc private func goBack(){_ = web?.goBack()}
+        @objc private func goForward(){_ = web?.goForward()}
+        @objc private func reload(){web?.reload()}
+        @objc private func navigate(_ note:Notification){if let value=note.userInfo?["value"]as?String,let url=URL(string:value){web?.load(URLRequest(url:url))}}
+        @objc private func runAi(){web?.evaluateJavaScript("(document.body && document.body.innerText || '').slice(0,50000)"){[weak self] value,_ in self?.model?.prepareAi(characters:(value as?String)?.count ?? 0)}}
         func webView(_ webView:WKWebView,didFinish navigation:WKNavigation!){Task{@MainActor in model?.navigated(tab.id,url:webView.url?.absoluteString ?? tab.url,title:webView.title ?? webView.url?.host ?? "Untitled")}}
         func webViewWebContentProcessDidTerminate(_ webView:WKWebView){Task{@MainActor in model?.processCrashed(tab.id)};webView.reload()}
         func webView(_ webView:WKWebView,decidePolicyFor navigationAction:WKNavigationAction,decisionHandler:@escaping @MainActor @Sendable(WKNavigationActionPolicy)->Void){guard let url=navigationAction.request.url else{decisionHandler(.cancel);return};if url.scheme=="ynxwallet"{UIApplication.shared.open(url);decisionHandler(.cancel);return};decisionHandler(.allow)}
