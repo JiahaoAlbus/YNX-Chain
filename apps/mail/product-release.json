@@ -2,7 +2,7 @@
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
   "branch": "codex/ecosystem-mail-calendar",
-  "commit": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
+  "commit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
   "version": "0.2.0-testnet-preview",
   "surfaces": [
     "android-native",
@@ -17,14 +17,44 @@
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
-  "downloadHosted": false,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "publicUrls": [],
   "healthUrls": [],
-  "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "artifactUrls": [
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-mail-0.2.0-testnet-preview-android-debug.apk",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-mail-android-e227-evidence.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-mail-android-cold-e227.png",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXMail-unsigned-simulator.app.zip",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXMail-evidence.txt",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXMail-cold-launch.png",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-mail-0.2.0-testnet-preview-darwin-arm64.tar.gz",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-mail-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/SHA256SUMS.txt"
+  ],
+  "sha256": {
+    "ynx-mail-0.2.0-testnet-preview-android-debug.apk": "c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f",
+    "ynx-mail-android-e227-evidence.json": "9fabd922964e13e6245b50eebbd2db2acdf75f86b007d742fefdbdcace9b3aa9",
+    "ynx-mail-android-cold-e227.png": "487a206826300befb2085e5eec84a9b51db2052fde85d72b649f65500e400739",
+    "YNXMail-unsigned-simulator.app.zip": "75e88806fbfa653fcdf9987211797f1ed49fbc567ee16afd93905e2137cdd0be",
+    "YNXMail-evidence.txt": "38fde9ff9ad183e7ffb363bdd18357cc14f05937ebe73bffa260ace29304ff3c",
+    "YNXMail-cold-launch.png": "ff7053674e90399ec25fdb8e0ad41e9ac096ce6ccacfdfc3e7b8967919ea9cde",
+    "ynx-mail-0.2.0-testnet-preview-darwin-arm64.tar.gz": "d339e60cbb63c97589049355cb5c617ae4d6de7887dd8d5ed795052189da9e1f",
+    "ynx-mail-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "145e666d63be61817ea0ae51c1c3734a2184f450e373d5604548a1b3c901e03d",
+    "SHA256SUMS.txt": "3c86750f13d73ed9aa55e1e373af1eda5942aafb3450101a177439ce067d4c6d"
+  },
+  "bytes": {
+    "ynx-mail-0.2.0-testnet-preview-android-debug.apk": 6405207,
+    "ynx-mail-android-e227-evidence.json": 721,
+    "ynx-mail-android-cold-e227.png": 158167,
+    "YNXMail-unsigned-simulator.app.zip": 387434,
+    "YNXMail-evidence.txt": 332,
+    "YNXMail-cold-launch.png": 211682,
+    "ynx-mail-0.2.0-testnet-preview-darwin-arm64.tar.gz": 2742119,
+    "ynx-mail-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": 461,
+    "SHA256SUMS.txt": 1730
+  },
   "signingClass": {
     "android": "debug-test-only",
     "ios": "unsigned-simulator-ci",
@@ -32,16 +62,16 @@
   },
   "minOS": { "android": 26, "ios": "17.0", "macOS": "13.0" },
   "installEvidence": [
-    "Android API 36 emulator-5576: install Success; COLD TotalTime 3900 ms; exact callback WARM TotalTime 498 ms",
-    "GitHub Actions 29646181372: unsigned iOS Simulator build/install/cold launch success; PID 7130; 3.884 s; inspected screenshot SHA-256 9076cb300f7e03fbb4b4be23de8afd1d96259e05a7d6c03cbdf57bff81f0c110",
-    "Go desktop binary builds and embedded Web proof covers 1440x960 and 390x844"
+    "Android API 36 emulator-5560: both package IDs installed together; Mail install Success, COLD 14891 ms, restart COLD 9527 ms, exact callback resolved in 2913 ms",
+    "GitHub Actions 29652770138: unsigned iOS Simulator build/install/cold launch success; PID 4204; 1.172 s; exact callback resolution success; inspected screenshot SHA-256 ff7053674e90399ec25fdb8e0ad41e9ac096ce6ccacfdfc3e7b8967919ea9cde",
+    "macOS arm64 archive extracted into a clean install directory; packaged service COLD 3.941 s, stop/restart 0.022 s, embedded Web and exact health commit verified"
   ],
   "centralIntegration": "docs/handoffs/mail-calendar-central-integration.json",
   "knownLimitations": [
     "YNX-known-handle delivery only; no SMTP, MX, DNS, IP reputation, abuse desk or internet-wide delivery",
     "central Wallet registry/verifier and AI POST route are not merged or deployed",
-    "no production signing, staging, public URL or hosted public download",
+    "no production signing, staging Web/API, public product URL or store release",
     "state is authenticated against tamper but message bodies and attachments are not E2EE"
   ],
-  "generatedAt": "2026-07-18T21:35:00+08:00"
+  "generatedAt": "2026-07-19T01:20:59+08:00"
 }

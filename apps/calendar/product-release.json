@@ -2,7 +2,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/ecosystem-mail-calendar",
-  "commit": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
+  "commit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
   "version": "0.2.0-testnet-preview",
   "surfaces": [
     "android-native",
@@ -17,14 +17,44 @@
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
-  "downloadHosted": false,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "publicUrls": [],
   "healthUrls": [],
-  "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "artifactUrls": [
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-android-debug.apk",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-android-e227-evidence.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-android-cold-e227.png",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-unsigned-simulator.app.zip",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-evidence.txt",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/YNXCalendar-cold-launch.png",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json",
+    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f/SHA256SUMS.txt"
+  ],
+  "sha256": {
+    "ynx-calendar-0.2.0-testnet-preview-android-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030",
+    "ynx-calendar-android-e227-evidence.json": "a0d58b6d6fad9ba7d17c3ad3f17865dff99c4c97985e3366a6078e1f76b3ea90",
+    "ynx-calendar-android-cold-e227.png": "df221bcb720a3243e803a97ced02099e357643c45e230d656b1b7bc24195c2e9",
+    "YNXCalendar-unsigned-simulator.app.zip": "8fdff73f0ceead7db2f4901c75bd0b9bc95aec05c99347d289a506bdd9fbc00b",
+    "YNXCalendar-evidence.txt": "f05a3d0ee13b9fa08a84cce31b492fff698dbd65bbc394516b8b5e4eaf6c4bce",
+    "YNXCalendar-cold-launch.png": "ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71",
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "b7a978558fba392bc61f821d9a7dd40001e54a2d75b3835da4cd23f6868cd854",
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "d3f4daa41a2290b6235e0d6961457e62ef7ec7dd4701c48f915d31b01909d0ce",
+    "SHA256SUMS.txt": "3c86750f13d73ed9aa55e1e373af1eda5942aafb3450101a177439ce067d4c6d"
+  },
+  "bytes": {
+    "ynx-calendar-0.2.0-testnet-preview-android-debug.apk": 6404458,
+    "ynx-calendar-android-e227-evidence.json": 731,
+    "ynx-calendar-android-cold-e227.png": 125092,
+    "YNXCalendar-unsigned-simulator.app.zip": 328099,
+    "YNXCalendar-evidence.txt": 348,
+    "YNXCalendar-cold-launch.png": 180373,
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 2743299,
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": 473,
+    "SHA256SUMS.txt": 1730
+  },
   "signingClass": {
     "android": "debug-test-only",
     "ios": "unsigned-simulator-ci",
@@ -32,15 +62,15 @@
   },
   "minOS": { "android": 26, "ios": "17.0", "macOS": "13.0" },
   "installEvidence": [
-    "Android API 36 emulator-5576: install Success; COLD TotalTime 6297 ms; exact callback WARM TotalTime 1371 ms",
-    "GitHub Actions 29646181372: unsigned iOS Simulator build/install/cold launch success; PID 8640; 1.454 s; inspected screenshot SHA-256 9b4b6daddf4bfb9b6c00db57fdeacec98c8225d73843e336e42e77e25eb31d4e",
-    "Go desktop binary builds and embedded Web proof covers day/week/month plus 1440x960 and 390x844"
+    "Android API 36 emulator-5560: both package IDs installed together; Calendar install Success, COLD 7477 ms, restart COLD 2851 ms, exact callback resolved in 811 ms",
+    "GitHub Actions 29652770138: unsigned iOS Simulator build/install/cold launch success; PID 67181; 2.36 s; exact callback resolution success; inspected screenshot SHA-256 ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71",
+    "macOS arm64 archive extracted into a clean install directory; packaged service COLD 3.534 s, stop/restart 0.035 s, embedded Web and exact health commit verified"
   ],
   "centralIntegration": "docs/handoffs/mail-calendar-central-integration.json",
   "knownLimitations": [
     "invitations and reminders are local YNX product state, not email/push/external-calendar delivery",
     "central Wallet registry/verifier and AI POST route are not merged or deployed",
-    "no production signing, staging, public URL or hosted public download"
+    "no production signing, staging Web/API, public product URL or store release"
   ],
-  "generatedAt": "2026-07-18T21:35:00+08:00"
+  "generatedAt": "2026-07-19T01:20:59+08:00"
 }

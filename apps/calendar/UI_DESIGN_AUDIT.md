@@ -26,7 +26,7 @@ Status: local candidate, not release-complete. The current run used the checked-
 - `tests/artifacts/calendar-large-text.png` — 390×844 at 125% root text.
 - `tests/artifacts/calendar-loading.png`, `calendar-failure.png`, `calendar-empty.png` — controlled loading, API failure and empty states.
 - `tests/artifacts/calendar-android-cold-start-current.png` — installed native Android shell after a separately recorded cold launch.
-- GitHub Actions run `29646181372`, artifact `YNXCalendar-ios-simulator-proof` — independently built, installed and cold-launched unsigned iOS Simulator app; downloaded screenshot inspected, SHA-256 `9b4b6daddf4bfb9b6c00db57fdeacec98c8225d73843e336e42e77e25eb31d4e`.
+- GitHub Actions run `29652770138`, hosted `YNXCalendar-unsigned-simulator.app.zip` and `YNXCalendar-cold-launch.png` — independently built, installed, cold-launched and deep-link resolved; downloaded screenshot inspected, SHA-256 `ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71`.
 
 ## Findings fixed in this pass
 
@@ -40,4 +40,4 @@ Status: local candidate, not release-complete. The current run used the checked-
 
 - Native catalogs contain all 12 locales and Arabic RTL. The Web companion mirrors RTL geometry but its Chinese interface copy is not fully translated; localization acceptance remains incomplete.
 - Mobile week view intentionally scrolls horizontally; a dedicated compact multi-day mode remains a polish opportunity.
-- No staging URL, public URL, production signing or hosted download exists; iOS evidence is unsigned Simulator CI evidence only.
+- Immutable unsigned preview downloads now exist. No staging URL, public product URL, production signing or store release exists; iOS evidence is Simulator-only.

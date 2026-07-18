@@ -1,12 +1,17 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-07-18T21:35:00+08:00",
-  "testedImplementationCommit": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
-  "iosProofRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646181372",
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-19T01:20:59+08:00",
+  "testedImplementationCommit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+  "iosProofRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29652770138",
+  "hostedRelease": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+  "hostedReleaseTag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+  "githubAssetDigestsVerified": true,
   "artifactsIgnoredByGit": true,
   "reproduction": [
     "npm run browser:proof --prefix apps/mail",
     "npm run browser:proof --prefix apps/calendar",
+    "npm run proof:desktop --prefix apps/mail",
+    "npm run proof:desktop --prefix apps/calendar",
     "ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk ./gradlew --no-daemon :app:assembleDebug"
   ],
   "sha256": {
@@ -30,13 +35,31 @@
     "apps/calendar/tests/artifacts/calendar-loading.png": "4585d48de6bfaeaf286f459437c01e0a1305fec359be693a93e0e99037a34139",
     "apps/calendar/tests/artifacts/calendar-failure.png": "501d2d4031e484b455b1ff00a9a531526dfbfa63b7143e645ba921c7e6498915",
     "apps/calendar/tests/artifacts/calendar-empty.png": "9cbe97a9a778c9d39fd0114ed260b66ab8fa9458e23277dd16402b5a37c432ce",
-    "apps/mail/tests/artifacts/mail-android-cold-start-current.png": "5fdcbab4d2b0ecae3cffad980d6d9d9883e777e2b95f912e1ba861d3dcfe5e87",
-    "apps/calendar/tests/artifacts/calendar-android-cold-start-current.png": "b1ad3c6c95b29537f581f7d312fc20f8d05e96ef8bcfdeb588e2d2ee1d7a5139",
+    "hosted/ynx-mail-android-cold-e227.png": "487a206826300befb2085e5eec84a9b51db2052fde85d72b649f65500e400739",
+    "hosted/ynx-calendar-android-cold-e227.png": "df221bcb720a3243e803a97ced02099e357643c45e230d656b1b7bc24195c2e9",
     "apps/mail/native/android/app/build/outputs/apk/debug/app-debug.apk": "c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f",
     "apps/calendar/native/android/app/build/outputs/apk/debug/app-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030",
-    "github-actions/YNXMail-ios-simulator-proof/YNXMail-evidence.txt": "d6e36b6e5b054622e739c0bd0258e06dc2b1fe43e062376365c4a90e964568d7",
-    "github-actions/YNXMail-ios-simulator-proof/YNXMail-cold-launch.png": "9076cb300f7e03fbb4b4be23de8afd1d96259e05a7d6c03cbdf57bff81f0c110",
-    "github-actions/YNXCalendar-ios-simulator-proof/YNXCalendar-evidence.txt": "9ee4b46cec9b7b0642a3fe3e462cad6cfbf9227ff22f1e26fb4986d1f9254f72",
-    "github-actions/YNXCalendar-ios-simulator-proof/YNXCalendar-cold-launch.png": "9b4b6daddf4bfb9b6c00db57fdeacec98c8225d73843e336e42e77e25eb31d4e"
-  }
+    "hosted/YNXMail-unsigned-simulator.app.zip": "75e88806fbfa653fcdf9987211797f1ed49fbc567ee16afd93905e2137cdd0be",
+    "hosted/YNXMail-evidence.txt": "38fde9ff9ad183e7ffb363bdd18357cc14f05937ebe73bffa260ace29304ff3c",
+    "hosted/YNXMail-cold-launch.png": "ff7053674e90399ec25fdb8e0ad41e9ac096ce6ccacfdfc3e7b8967919ea9cde",
+    "hosted/YNXCalendar-unsigned-simulator.app.zip": "8fdff73f0ceead7db2f4901c75bd0b9bc95aec05c99347d289a506bdd9fbc00b",
+    "hosted/YNXCalendar-evidence.txt": "f05a3d0ee13b9fa08a84cce31b492fff698dbd65bbc394516b8b5e4eaf6c4bce",
+    "hosted/YNXCalendar-cold-launch.png": "ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71",
+    "hosted/ynx-mail-0.2.0-testnet-preview-darwin-arm64.tar.gz": "d339e60cbb63c97589049355cb5c617ae4d6de7887dd8d5ed795052189da9e1f",
+    "hosted/ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "b7a978558fba392bc61f821d9a7dd40001e54a2d75b3835da4cd23f6868cd854",
+    "hosted/SHA256SUMS.txt": "3c86750f13d73ed9aa55e1e373af1eda5942aafb3450101a177439ce067d4c6d"
+  },
+  "hostedBytes": {
+    "ynx-mail-0.2.0-testnet-preview-android-debug.apk": 6405207,
+    "ynx-calendar-0.2.0-testnet-preview-android-debug.apk": 6404458,
+    "YNXMail-unsigned-simulator.app.zip": 387434,
+    "YNXCalendar-unsigned-simulator.app.zip": 328099,
+    "ynx-mail-0.2.0-testnet-preview-darwin-arm64.tar.gz": 2742119,
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 2743299,
+    "SHA256SUMS.txt": 1730
+  },
+  "fullHostedAssetRecords": [
+    "apps/mail/product-release.json",
+    "apps/calendar/product-release.json"
+  ]
 }

@@ -1,5 +1,61 @@
 # Mail + Calendar handoff
 
+## 2026-07-19 packaged Testnet Preview evidence (authoritative)
+
+This section supersedes older artifact, install, iOS-run and download-hosting
+statements below. Product behavior/security statements from the 2026-07-18
+section remain authoritative.
+
+### Exact candidate and hosted release
+
+- Tested and packaged commit: `e227c4f0505537b19f4588ea26478c54518f0a4c`.
+- Immutable prerelease: `ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f` at
+  `https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f`.
+- GitHub reports every asset as `uploaded` with a server-side `sha256:` digest
+  matching the local `SHA256SUMS.txt`; direct download smoke reproduced the
+  desktop archive digest.
+- `downloadHosted=true`. This only means immutable Testnet Preview artifacts
+  are hosted. It does not mean staging, public product deployment, production
+  signing or store release.
+
+### Current platform evidence
+
+| Surface | Mail | Calendar |
+| --- | --- | --- |
+| Android API 36 | debug APK 6,405,207 bytes; install `Success`; `COLD` 14,891 ms; stop/restart `COLD` 9,527 ms; exact callback resolves in 2,913 ms | debug APK 6,404,458 bytes; install `Success`; `COLD` 7,477 ms; stop/restart `COLD` 2,851 ms; exact callback resolves in 811 ms |
+| iOS Simulator CI | run `29652770138`; unsigned app 387,434 bytes; install/cold 1.172 s; PID 4204; exact callback resolution success | same run; unsigned app 328,099 bytes; install/cold 2.36 s; PID 67181; exact callback resolution success |
+| macOS arm64 desktop | unsigned archive 2,742,119 bytes; clean extraction/install; `COLD` 3.941 s; stop/restart 0.022 s; exact health commit and boundary verified | unsigned archive 2,743,299 bytes; clean extraction/install; `COLD` 3.534 s; stop/restart 0.035 s; exact health commit and boundary verified |
+
+Both Android package IDs were installed together on dedicated
+`YNX_MAIL_API_36` / `emulator-5560` and launched independently. Both iOS
+screenshots were downloaded and visually inspected. Desktop packages contain
+install instructions and a binary-derived Go SBOM; Mail also embeds the
+applicable `golang.org/x/crypto` BSD license.
+
+### Current release state
+
+| State | Mail | Calendar | Evidence |
+| --- | --- | --- | --- |
+| implemented-local | true | true | product and service source at packaged commit |
+| tested-local | true | true | Go race/domain, Node/UI/locale/release-schema, browser and smoke gates |
+| installed-local | Android/iOS/desktop true | Android/iOS/desktop true | platform evidence above |
+| integrated-central | false | false | central manifest is proposed; no main merge/deployed verifier or live Wallet/AI flow |
+| deployed-staging | false | false | no persistent Web/API staging health URL |
+| deployed-public | false | false | no public product deployment or cross-region proof |
+| download-hosted | true | true | immutable GitHub prerelease assets, SHA-256 and sizes |
+| production-signed | false | false | Android debug, iOS Simulator unsigned, desktop unsigned |
+| store-released | false | false | no Play/App Store submission or approval |
+
+The active Google Cloud account requires interactive reauthentication, so the
+repository-supported long-running deployment path cannot be used
+non-interactively. Vercel is authenticated, but its stateless/ephemeral
+filesystem is not accepted as durable Mail/Calendar state; no static or
+ephemeral mock was promoted as API staging. Central registry/verifier and AI
+POST deployment remain controlled by the main integration owner. Native
+catalogs cover all 12 required locales and Arabic RTL; the Web companion is not
+yet product-wide 12-language complete. Mail remains known-YNX-handle only and
+does not claim internet-wide delivery.
+
 ## 2026-07-18 independent hardening and evidence pass (authoritative)
 
 This section supersedes any older statement below that says the Web accepts a Wallet query callback, stores a browser bearer token, calls AI with private context in a URL, lacks current-run iOS evidence, or is centrally integrated/deployed.
