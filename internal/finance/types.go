@@ -20,6 +20,7 @@ type Category struct {
 	Name      string    `json:"name"`
 	Color     string    `json:"color"`
 	CreatedAt time.Time `json:"createdAt"`
+	Source    string    `json:"source"`
 }
 
 type Budget struct {
@@ -31,6 +32,7 @@ type Budget struct {
 	StartsAt   time.Time `json:"startsAt"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	Source     string    `json:"source"`
 }
 
 type Reminder struct {
@@ -43,6 +45,16 @@ type Reminder struct {
 	Enabled    bool      `json:"enabled"`
 	CreatedAt  time.Time `json:"createdAt"`
 	UpdatedAt  time.Time `json:"updatedAt"`
+	Source     string    `json:"source"`
+}
+
+type Note struct {
+	ID        string    `json:"id"`
+	RecordID  string    `json:"recordId,omitempty"`
+	Body      string    `json:"body"`
+	Source    string    `json:"source"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Privacy struct {
@@ -91,6 +103,7 @@ type AccountState struct {
 	Categories      []Category                `json:"categories"`
 	Budgets         []Budget                  `json:"budgets"`
 	Reminders       []Reminder                `json:"reminders"`
+	Notes           []Note                    `json:"notes"`
 	Privacy         Privacy                   `json:"privacy"`
 	Classifications map[string]Classification `json:"classifications"`
 	AIJobs          []AIJob                   `json:"aiJobs"`

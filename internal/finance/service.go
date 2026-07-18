@@ -34,7 +34,7 @@ func (s *Service) AddCategory(account, name, color, idempotencyKey string) (Cate
 		return Category{}, errors.New("category name or color is invalid")
 	}
 	now := time.Now().UTC()
-	category := Category{ID: newID("cat"), Name: name, Color: strings.ToUpper(color), CreatedAt: now}
+	category := Category{ID: newID("cat"), Name: name, Color: strings.ToUpper(color), CreatedAt: now, Source: "user"}
 	err := s.Store.Update(account, "category.created", category.ID, func(state *AccountState) error {
 		if existing := state.Idempotency[idempotencyKey]; existing != "" {
 			for _, value := range state.Categories {
@@ -69,7 +69,7 @@ func (s *Service) AddBudget(account, name, categoryID string, limit int64, perio
 		return Budget{}, errors.New("budget fields are invalid")
 	}
 	now := time.Now().UTC()
-	budget := Budget{ID: newID("budget"), Name: name, CategoryID: categoryID, LimitYNXT: limit, Period: period, StartsAt: startsAt.UTC(), CreatedAt: now, UpdatedAt: now}
+	budget := Budget{ID: newID("budget"), Name: name, CategoryID: categoryID, LimitYNXT: limit, Period: period, StartsAt: startsAt.UTC(), CreatedAt: now, UpdatedAt: now, Source: "user"}
 	err := s.Store.Update(account, "budget.created", budget.ID, func(state *AccountState) error {
 		if existing := state.Idempotency[idempotencyKey]; existing != "" {
 			for _, value := range state.Budgets {
@@ -130,7 +130,7 @@ func (s *Service) AddReminder(account, title, schedule, sourceRef string, amount
 		return Reminder{}, errors.New("reminder fields are invalid")
 	}
 	now := time.Now().UTC()
-	reminder := Reminder{ID: newID("reminder"), Title: title, Schedule: schedule, SourceRef: strings.TrimSpace(sourceRef), AmountYNXT: amount, NextDueAt: next.UTC(), Enabled: true, CreatedAt: now, UpdatedAt: now}
+	reminder := Reminder{ID: newID("reminder"), Title: title, Schedule: schedule, SourceRef: strings.TrimSpace(sourceRef), AmountYNXT: amount, NextDueAt: next.UTC(), Enabled: true, CreatedAt: now, UpdatedAt: now, Source: "user"}
 	err := s.Store.Update(account, "reminder.created", reminder.ID, func(state *AccountState) error {
 		if existing := state.Idempotency[idempotencyKey]; existing != "" {
 			for _, value := range state.Reminders {
@@ -152,6 +152,83 @@ func (s *Service) AddReminder(account, title, schedule, sourceRef string, amount
 		return nil
 	})
 	return reminder, err
+}
+
+func (s *Service) AddNote(account, recordID, body, idempotencyKey string, activity []Activity) (Note, error) {
+	body = strings.TrimSpace(body)
+	recordID = strings.TrimSpace(recordID)
+	if body == "" || len(body) > 1000 || !idempotencyPattern.MatchString(idempotencyKey) {
+		return Note{}, errors.New("note body or idempotency key is invalid")
+	}
+	if recordID != "" {
+		owned := false
+		for _, item := range activity {
+			if item.ID == recordID {
+				owned = true
+				break
+			}
+		}
+		if !owned {
+			return Note{}, errors.New("note record is not owned by this account")
+		}
+	}
+	now := time.Now().UTC()
+	note := Note{ID: newID("note"), RecordID: recordID, Body: body, Source: "user", CreatedAt: now, UpdatedAt: now}
+	err := s.Store.Update(account, "note.created", note.ID, func(state *AccountState) error {
+		if existing := state.Idempotency[idempotencyKey]; existing != "" {
+			for _, value := range state.Notes {
+				if value.ID == existing {
+					note = value
+					return nil
+				}
+			}
+			return errors.New("idempotency record is inconsistent")
+		}
+		if len(state.Notes) >= 512 {
+			return errors.New("note limit reached")
+		}
+		state.Notes = append(state.Notes, note)
+		state.Idempotency[idempotencyKey] = note.ID
+		return nil
+	})
+	return note, err
+}
+
+func (s *Service) DeleteNote(account, id string) error {
+	return s.Store.Update(account, "note.deleted", id, func(state *AccountState) error {
+		for i := range state.Notes {
+			if state.Notes[i].ID == id {
+				state.Notes = append(state.Notes[:i], state.Notes[i+1:]...)
+				return nil
+			}
+		}
+		return errors.New("note not found")
+	})
+}
+
+func (s *Service) BudgetProgress(account string, portfolio Portfolio, at time.Time) []map[string]any {
+	state := s.Store.Account(account)
+	result := make([]map[string]any, 0, len(state.Budgets))
+	for _, budget := range state.Budgets {
+		from := budget.StartsAt
+		if budget.Period == "monthly" {
+			from = time.Date(at.Year(), at.Month(), 1, 0, 0, 0, 0, time.UTC)
+		} else {
+			from = at.AddDate(0, 0, -int(at.Weekday()+6)%7)
+		}
+		spent := int64(0)
+		for _, item := range portfolio.Activity {
+			if item.Direction == "outgoing" && item.Category == budget.CategoryID && !item.Timestamp.Before(from) && !item.Timestamp.After(at) {
+				spent += item.Amount + item.Fee
+			}
+		}
+		remaining := budget.LimitYNXT - spent
+		if remaining < 0 {
+			remaining = 0
+		}
+		result = append(result, map[string]any{"budgetId": budget.ID, "spentYnxt": spent, "remainingYnxt": remaining, "limitYnxt": budget.LimitYNXT, "periodStart": from, "asOf": at, "source": "owned Explorer activity plus user-reviewed categories"})
+	}
+	return result
 }
 
 func (s *Service) SetPrivacy(account string, privacy Privacy) error {

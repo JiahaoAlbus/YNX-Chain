@@ -1,37 +1,43 @@
 # YNX Finance
 
-YNX Finance is a separate, read-only personal-finance product for owned YNXT
-activity, authorized Pay receipts, budgets, reminders, statements and exports.
-It is not a bank, custodian, broker, investment adviser, lender, insurer or
-yield product.
+YNX Finance 1.2.0 is an independent, read-only YNXT personal-finance product. It reads account evidence from Explorer and authorized receipts from Pay, then keeps private planning records such as categories, notes, budgets and reminders. It is not a bank, custodian, broker, adviser, lender, insurer, card product or yield product.
 
-## Trust boundary
+## Canonical Wallet boundary
 
-- Sign-in begins in YNX Wallet. Finance exchanges a five-minute, one-time,
-  Gateway-signed assertion bound to `ynx_6423-1`, the `finance` product, the
-  exact client, device, account and least-privilege scopes for a short Finance
-  session. A browser-supplied address is never accepted as identity.
-- Balance and activity come from `ynx-explorerd` at request time. Pay receipts
-  come from the configured authenticated Pay API and are filtered to the
-  authorized account. Upstream errors remain unavailable states.
-- Finance stores only account-scoped categories, budgets, recurring reminders,
-  classifications, privacy preferences and audit records. State writes are
-  atomic and use mode `0600`.
-- AI context requires the privacy toggle, exact owned-record selection and
-  per-request consent. Gateway output is a reviewable draft; it cannot sign,
-  transfer, trade, borrow, lend, stake, freeze or change account control.
+The native app builds the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, opens `ynxwallet://authorize`, verifies the Wallet callback, signs the central Gateway product-device challenge and accepts only the resulting opaque product session. The Go API introspects every bearer session at the Gateway. There is no address login, local HMAC assertion, browser fallback session, Wallet secret or recovery-material path.
 
-## Run and verify
+Central integration is intentionally **not complete**. The exact registry entry and deterministic vector are under `integration/wallet-auth/`, but the central registry merge, deployed persistent Gateway and installed Wallet approval test remain external gates. Until those gates pass, sign-in fails closed.
 
-Copy the values from `.env.example` into an operator-managed environment. Do
-not commit real keys. Then run:
+## Data and approval boundaries
+
+- YNXT balance and activity are live Explorer evidence. Activity coverage is explicitly the latest 100 indexed records; complete history and an opening balance are not claimed.
+- Pay receipts require a configured authenticated Pay API. A missing or invalid key produces an unavailable state, never placeholder receipts.
+- Categories, notes, budgets, reminders, privacy preferences and audit records are account-scoped local Finance data with provenance.
+- AI can draft categories, fee explanations and budgets only from selected owned records with privacy permission and per-request consent. Apply or reject is always explicit; AI cannot move assets or change account controls.
+- Reports identify YNXT and the public testnet, carry source coverage and are expressly not bank, tax or legal statements.
+
+## Run
+
+Copy `.env.example` into an operator-managed secret environment. Start the Go API and the canonical edge Gateway separately:
 
 ```bash
 go run ./apps/finance/cmd/server
-npm test --prefix apps/finance
-bash apps/finance/scripts/smoke.sh
+npm ci --prefix packages/wallet-auth
+npm ci --prefix apps/finance/gateway
+npm start --prefix apps/finance/gateway
 ```
 
-The default listen address is `127.0.0.1:6436`. Production ingress, TLS,
-Wallet client registration, AI scope registration and Pay read credentials are
-central integration responsibilities documented in the handoff.
+The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. Production needs TLS ingress, persistent Gateway replay/revocation storage, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
+
+## Verify
+
+```bash
+go test ./internal/finance ./apps/finance/cmd/server
+npm test --prefix packages/wallet-auth
+npm test --prefix apps/finance/gateway
+npm test --prefix apps/finance
+npm run smoke --prefix apps/finance
+npm run check --prefix apps/finance/mobile
+```
+
+See `product-release.json`, `STATUS_MATRIX.md`, `SECURITY_RECOVERY_AUDIT.md`, `UI_DESIGN_AUDIT.md` and `docs/handoffs/finance.md` for the exact evidence and remaining central gates.

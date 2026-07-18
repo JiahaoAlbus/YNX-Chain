@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-07-18T14:03:25Z",
+  "explorer": {
+    "healthURL": "https://explorer.ynxweb4.com/health",
+    "healthHTTP": 200,
+    "service": "ynx-explorerd",
+    "network": "YNX Testnet",
+    "chainId": 6423,
+    "nativeSymbol": "YNXT",
+    "rpcHeight": 306446,
+    "indexedHeight": 285750,
+    "syncLagBlocks": 20696,
+    "indexedTxCount": 47,
+    "buildCommit": "02f4ccd8770c",
+    "publicTransactionsHTTP": 200,
+    "truth": "The source is real and reachable, but lagged; Finance exposes latest-100 coverage and never claims complete history."
+  },
+  "pay": {
+    "healthURL": "https://pay.ynxweb4.com/health",
+    "healthHTTP": 200,
+    "service": "ynx-payd",
+    "network": "YNX Testnet",
+    "chainId": 6423,
+    "nativeSymbol": "YNXT",
+    "merchantConfigured": true,
+    "upstreamOK": true,
+    "buildCommit": "02f4ccd8770c",
+    "eventsHTTP": 401,
+    "eventsError": "valid Pay API key required",
+    "apiGatewayEventsHTTP": 401,
+    "apiGatewayError": "Pay routes require the authenticated YNX Pay Gateway",
+    "truth": "Health is real. Authorized receipt retrieval is not claimed because no operator Pay key was available."
+  }
+}

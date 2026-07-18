@@ -1,17 +1,14 @@
 package finance
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -19,8 +16,6 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	WalletCallback string
-	WalletClientID string
 	AllowedOrigins []string
 	WebDir         string
 }
@@ -38,9 +33,6 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if service == nil || service.Store == nil || service.Upstreams == nil || service.AI == nil || auth == nil {
 		return nil, errors.New("finance server dependencies are incomplete")
 	}
-	if _, err := url.ParseRequestURI(cfg.WalletCallback); err != nil || !strings.Contains(cfg.WalletCallback, "://") {
-		return nil, errors.New("registered wallet callback is required")
-	}
 	if err := validateSupportLinks(service.Support); err != nil {
 		return nil, err
 	}
@@ -53,22 +45,25 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
-	s.mux.HandleFunc("GET /api/auth/request", s.authRequest)
-	s.mux.HandleFunc("POST /api/auth/session", s.authSession)
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
+	s.mux.HandleFunc("GET /api/activity", s.protected("finance.portfolio.read", s.activityPage))
 	s.mux.HandleFunc("GET /api/profile", s.protected("finance.portfolio.read", s.profile))
 	s.mux.HandleFunc("POST /api/categories", s.protected("finance.profile.write", s.createCategory))
 	s.mux.HandleFunc("PUT /api/activity/{id}/category", s.protected("finance.profile.write", s.classifyActivity))
 	s.mux.HandleFunc("POST /api/budgets", s.protected("finance.profile.write", s.createBudget))
 	s.mux.HandleFunc("POST /api/reminders", s.protected("finance.profile.write", s.createReminder))
+	s.mux.HandleFunc("POST /api/notes", s.protected("finance.profile.write", s.createNote))
+	s.mux.HandleFunc("DELETE /api/notes/{id}", s.protected("finance.profile.write", s.deleteNote))
 	s.mux.HandleFunc("PUT /api/privacy", s.protected("finance.profile.write", s.updatePrivacy))
 	s.mux.HandleFunc("GET /api/statements", s.protected("finance.portfolio.read", s.statement))
+	s.mux.HandleFunc("GET /api/monthly-review", s.protected("finance.portfolio.read", s.monthlyReview))
 	s.mux.HandleFunc("GET /api/export", s.protected("finance.portfolio.read", s.export))
 	s.mux.HandleFunc("GET /api/audit", s.protected("finance.portfolio.read", s.audit))
 	s.mux.HandleFunc("GET /api/support", s.protected("finance.portfolio.read", s.support))
 	s.mux.HandleFunc("GET /api/protocol-risk", s.protected("finance.portfolio.read", s.protocolRisk))
+	s.mux.HandleFunc("DELETE /api/account", s.protected("finance.profile.write", s.deleteAccount))
 	s.mux.HandleFunc("POST /api/ai/jobs", s.protected("finance.ai.draft", s.startAI))
 	s.mux.HandleFunc("GET /api/ai/jobs/{id}", s.protected("finance.ai.draft", s.getAI))
 	s.mux.HandleFunc("DELETE /api/ai/jobs/{id}", s.protected("finance.ai.draft", s.deleteAI))
@@ -103,34 +98,7 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
-}
-
-func (s *Server) authRequest(w http.ResponseWriter, _ *http.Request) {
-	nonceBytes := make([]byte, 24)
-	_, _ = rand.Read(nonceBytes)
-	now := time.Now().UTC()
-	request := map[string]any{"version": "1", "nonce": base64.RawURLEncoding.EncodeToString(nonceBytes), "chainId": ChainID, "requestingProduct": Product, "productClientId": s.cfg.WalletClientID, "callback": s.cfg.WalletCallback, "scopes": []string{"finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"}, "purpose": "Read your YNXT activity and manage your private Finance plan. Finance cannot sign or move assets.", "issuedAt": now, "expiresAt": now.Add(5 * time.Minute)}
-	raw, _ := json.Marshal(request)
-	writeJSON(w, http.StatusOK, map[string]any{"request": request, "deepLink": "ynxwallet://authorize?request=" + url.QueryEscape(base64.RawURLEncoding.EncodeToString(raw))})
-}
-
-func (s *Server) authSession(w http.ResponseWriter, r *http.Request) {
-	if !s.originAllowed(r) {
-		writeError(w, http.StatusForbidden, "origin_not_allowed", "Request origin is not registered")
-		return
-	}
-	var input SignedWalletAssertion
-	if err := decodeStrict(w, r, &input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
-		return
-	}
-	session, err := s.auth.Complete(input)
-	if err != nil {
-		writeError(w, http.StatusUnauthorized, "wallet_assertion_rejected", err.Error())
-		return
-	}
-	writeJSON(w, http.StatusCreated, session)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
 }
 
 type handler func(http.ResponseWriter, *http.Request, Session)
@@ -188,11 +156,51 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
 func (s *Server) overview(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
 	portfolio := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
-	writeJSON(w, http.StatusOK, map[string]any{"portfolio": portfolio, "profile": state, "alerts": s.service.Alerts(session.Account, portfolio), "support": s.service.Support, "boundaries": productBoundaries()})
+	writeJSON(w, http.StatusOK, map[string]any{"portfolio": portfolio, "profile": state, "budgetProgress": s.service.BudgetProgress(session.Account, portfolio, time.Now().UTC()), "alerts": s.service.Alerts(session.Account, portfolio), "support": s.service.Support, "boundaries": productBoundaries()})
 }
 func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
 	writeJSON(w, http.StatusOK, s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications))
+}
+
+func (s *Server) activityPage(w http.ResponseWriter, r *http.Request, session Session) {
+	state := s.service.Store.Account(session.Account)
+	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	limit := 25
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 100 {
+			writeError(w, 400, "invalid_limit", "limit must be between 1 and 100")
+			return
+		}
+		limit = parsed
+	}
+	offset := 0
+	if raw := r.URL.Query().Get("cursor"); raw != "" {
+		decoded, err := base64.RawURLEncoding.DecodeString(raw)
+		if err != nil {
+			writeError(w, 400, "invalid_cursor", "cursor is invalid")
+			return
+		}
+		parsed, err := strconv.Atoi(string(decoded))
+		if err != nil || parsed < 0 {
+			writeError(w, 400, "invalid_cursor", "cursor is invalid")
+			return
+		}
+		offset = parsed
+	}
+	if offset > len(p.Activity) {
+		offset = len(p.Activity)
+	}
+	end := offset + limit
+	if end > len(p.Activity) {
+		end = len(p.Activity)
+	}
+	next := ""
+	if end < len(p.Activity) {
+		next = base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(end)))
+	}
+	writeJSON(w, 200, map[string]any{"items": p.Activity[offset:end], "nextCursor": next, "coverage": p.ExplorerStatus.Coverage, "completeHistory": false, "sourceStatus": p.ExplorerStatus, "asOf": p.AsOf})
 }
 func (s *Server) profile(w http.ResponseWriter, _ *http.Request, session Session) {
 	writeJSON(w, http.StatusOK, s.service.Store.Account(session.Account))
@@ -255,6 +263,38 @@ func (s *Server) createReminder(w http.ResponseWriter, r *http.Request, session 
 	}
 	writeJSON(w, 201, value)
 }
+
+func (s *Server) createNote(w http.ResponseWriter, r *http.Request, session Session) {
+	var input struct {
+		RecordID       string `json:"recordId"`
+		Body           string `json:"body"`
+		IdempotencyKey string `json:"idempotencyKey"`
+	}
+	if err := decodeStrict(w, r, &input); err != nil {
+		writeError(w, 400, "invalid_request", err.Error())
+		return
+	}
+	state := s.service.Store.Account(session.Account)
+	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	if input.RecordID != "" && !p.ExplorerStatus.Available {
+		writeError(w, 503, "source_unavailable", "Explorer evidence is unavailable; linked note was not created")
+		return
+	}
+	note, err := s.service.AddNote(session.Account, input.RecordID, input.Body, input.IdempotencyKey, p.Activity)
+	if err != nil {
+		writeError(w, 422, "note_rejected", err.Error())
+		return
+	}
+	writeJSON(w, 201, note)
+}
+
+func (s *Server) deleteNote(w http.ResponseWriter, r *http.Request, session Session) {
+	if err := s.service.DeleteNote(session.Account, r.PathValue("id")); err != nil {
+		writeError(w, 404, "note_not_found", err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
 func (s *Server) updatePrivacy(w http.ResponseWriter, r *http.Request, session Session) {
 	var input Privacy
 	if err := decodeStrict(w, r, &input); err != nil {
@@ -301,6 +341,48 @@ func (s *Server) statement(w http.ResponseWriter, r *http.Request, session Sessi
 	writeJSON(w, 200, map[string]any{"account": session.Account, "network": ChainID, "symbol": "YNXT", "from": from, "toExclusive": to, "activity": activities, "payReceipts": receipts, "totals": map[string]int64{"incomingYnxt": incoming, "outgoingYnxt": outgoing, "feesYnxt": fees}, "currentBalanceYnxt": portfolio.BalanceYNXT, "openingBalance": "unavailable: activity endpoint is bounded and no fiat valuation is inferred", "sourceStatus": map[string]SourceStatus{"explorer": portfolio.ExplorerStatus, "pay": portfolio.PayStatus}})
 }
 
+func (s *Server) monthlyReview(w http.ResponseWriter, r *http.Request, session Session) {
+	now := time.Now().UTC()
+	year, month := now.Year(), int(now.Month())
+	if raw := r.URL.Query().Get("year"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 2020 || parsed > 2200 {
+			writeError(w, 400, "invalid_year", "year is invalid")
+			return
+		}
+		year = parsed
+	}
+	if raw := r.URL.Query().Get("month"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 12 {
+			writeError(w, 400, "invalid_month", "month is invalid")
+			return
+		}
+		month = parsed
+	}
+	from := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	to := from.AddDate(0, 1, 0)
+	state := s.service.Store.Account(session.Account)
+	p := s.service.Upstreams.Portfolio(r.Context(), session.Account, state.Classifications)
+	incoming, outgoing, fees := int64(0), int64(0), int64(0)
+	count := 0
+	byCategory := map[string]int64{}
+	for _, item := range p.Activity {
+		if item.Timestamp.Before(from) || !item.Timestamp.Before(to) {
+			continue
+		}
+		count++
+		fees += item.Fee
+		if item.Direction == "incoming" {
+			incoming += item.Amount
+		} else {
+			outgoing += item.Amount
+			byCategory[item.Category] += item.Amount + item.Fee
+		}
+	}
+	writeJSON(w, 200, map[string]any{"period": from.Format("2006-01"), "from": from, "toExclusive": to, "network": ChainID, "symbol": "YNXT", "activityCount": count, "totals": map[string]int64{"incomingYnxt": incoming, "outgoingYnxt": outgoing, "feesYnxt": fees}, "categorySpendYnxt": byCategory, "budgetProgress": s.service.BudgetProgress(session.Account, p, to.Add(-time.Nanosecond)), "sourceStatus": map[string]SourceStatus{"explorer": p.ExplorerStatus, "pay": p.PayStatus}, "legal": "Source-bounded personal review; not a bank statement, fiat valuation, tax advice, or investment advice."})
+}
+
 func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session) {
 	format := r.URL.Query().Get("format")
 	if format == "" {
@@ -335,6 +417,26 @@ func (s *Server) support(w http.ResponseWriter, _ *http.Request, _ Session) {
 }
 func (s *Server) protocolRisk(w http.ResponseWriter, _ *http.Request, _ Session) {
 	writeJSON(w, 200, map[string]any{"enabled": false, "message": "No optional investment, lending, staking, custody, brokerage, or cross-chain module is enabled.", "requiredDisclosureFields": []string{"counterparty", "custody", "contract", "principalLossRisk", "fee", "liquidityRisk", "jurisdictionRisk", "signatureBoundary"}, "signatureBoundary": "Finance may prepare a review intent only. YNX Wallet must show and sign any future supported protocol action; Finance cannot sign."})
+}
+
+func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request, session Session) {
+	var input struct {
+		Confirmation string `json:"confirmation"`
+	}
+	if err := decodeStrict(w, r, &input); err != nil {
+		writeError(w, 400, "invalid_request", err.Error())
+		return
+	}
+	if input.Confirmation != "DELETE FINANCE DATA" {
+		writeError(w, 422, "confirmation_required", "confirmation must exactly equal DELETE FINANCE DATA")
+		return
+	}
+	if err := s.service.Store.DeleteAccount(session.Account); err != nil {
+		writeError(w, 500, "persistence_failed", err.Error())
+		return
+	}
+	s.auth.Revoke(r.Header.Get("Authorization"))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session) {

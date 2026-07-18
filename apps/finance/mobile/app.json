@@ -1,1 +1,26 @@
-{"expo":{"name":"YNX Finance","slug":"ynx-finance","version":"1.1.0","orientation":"portrait","scheme":"ynxfinance","userInterfaceStyle":"light","icon":"./assets/icon.png","ios":{"supportsTablet":true,"bundleIdentifier":"com.ynxweb4.finance","buildNumber":"2","infoPlist":{"CFBundleAllowMixedLocalizations":true}},"android":{"package":"com.ynxweb4.finance","versionCode":2,"permissions":[],"adaptiveIcon":{"foregroundImage":"./assets/icon.png","backgroundColor":"#FFFFFF"},"intentFilters":[{"action":"VIEW","autoVerify":false,"data":[{"scheme":"ynxfinance","host":"wallet-auth","pathPrefix":"/callback"}],"category":["BROWSABLE","DEFAULT"]}]},"plugins":["expo-secure-store"],"extra":{"product":"finance","productClientId":"ynx-finance-v1","network":"ynx_6423-1","asset":"YNXT","custody":"none","bank":"none","brokerage":"none","crossChainBalances":"unsupported"}}}
+{
+  "expo": {
+    "name": "YNX Finance",
+    "slug": "ynx-finance",
+    "version": "1.2.0",
+    "orientation": "portrait",
+    "scheme": "ynxfinance",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.finance",
+      "buildNumber": "3",
+      "infoPlist": {"CFBundleAllowMixedLocalizations": true}
+    },
+    "android": {
+      "package": "com.ynxweb4.finance",
+      "versionCode": 3,
+      "permissions": [],
+      "adaptiveIcon": {"foregroundImage": "./assets/icon.png", "backgroundColor": "#FFFFFF"},
+      "intentFilters": [{"action": "VIEW", "autoVerify": false, "data": [{"scheme": "ynxfinance", "host": "wallet-auth", "pathPrefix": "/callback"}], "category": ["BROWSABLE", "DEFAULT"]}]
+    },
+    "plugins": ["expo-secure-store"],
+    "extra": {"product": "finance", "productClientId": "ynx-finance-v1", "network": "ynx_6423-1", "asset": "YNXT", "custody": "none", "bank": "none", "brokerage": "none", "crossChainBalances": "unsupported"}
+  }
+}

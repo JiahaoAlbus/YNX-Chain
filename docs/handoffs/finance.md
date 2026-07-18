@@ -1,67 +1,76 @@
 # YNX Finance handoff
 
-## Scope and identity
+## Scope
 
-- Branch: `codex/ecosystem-finance`; rework starts from `06868310ed4f03abe2e84d4f3a69c0a65101cb10`.
-- Native rework implementation commit: `9a18de44545236f00698542138ba61408c5fc6cd`; final handoff commit is the branch SHA reported after push.
-- Owned paths only: `apps/finance/**`, `internal/finance/**`, this handoff.
-- Native product: `com.ynxweb4.finance`, scheme `ynxfinance`, callback `ynxfinance://wallet-auth/callback`, client `ynx-finance-v1`.
-- No central state, root Makefile, long-term objective, acceptance state, or another product directory was edited.
+- Branch: `codex/ecosystem-finance`
+- Version: `1.2.0`
+- Native identity: `com.ynxweb4.finance`
+- Scheme/callback: `ynxfinance`, `ynxfinance://wallet-auth/callback`
+- Product client: `ynx-finance-v1`
+- Network/asset: public YNX Testnet `ynx_6423-1`, YNXT
+- Boundary: read-only portfolio and private planning; no banking, custody, brokerage, lending, insurance, card, fiat, yield or asset-signing claim.
 
-## Delivered rework
+## Delivered
 
-- Android/iOS Expo React Native app plus generated native Gradle and Xcode projects. Web/PWA remains as an additional surface and was not substituted for mobile.
-- Native overview, categorized activity, categories, monthly budgets, recurring reminders, source-bounded statements, JSON export/versioned import, privacy, alerts, support/dispute evidence, offline cache/retry/recovery, and AI draft approval/rejection.
-- Native activity classification is now wired to the server's owned-Explorer-evidence route; Pay receipts retain transaction/dispute evidence; privacy toggles, audit loading, support links, JSON and CSV report export are operable rather than display-only.
-- SecureStore persistence for locale, independent AI locale, Gateway URL, session, offline evidence cache, pending Wallet request and P-256 product-device secret. Language and offline state survive process restart.
-- Exact Wallet v1 request fields, sorted Finance scopes, five-minute lifetime, native bundle/callback binding, request digest validation, P-256 device proof, exact callback route and central-session-only behavior. No local session or Wallet secret fallback exists.
-- New server activity-classification route verifies that the record came from the authorized account's currently available Explorer evidence and that the category exists before persisting an audited user classification.
-- AI adapter now calls the actual central `/health` and authenticated `/ai/stream` SSE interface. It no longer invents `/v1/finance/*` routes or a fake price estimate. Output language is allow-listed; output stays a reviewable draft and can never execute, transfer, trade, borrow, lend, stake, freeze, or change account control.
-- Explorer and Pay records retain explicit source, coverage/error, timestamps, tx hashes and dispute links. Offline cache is visibly marked non-live. Empty/unavailable states replace invented balances or receipts.
-- 12 audited locales: English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia. System detection, manual persistence, `Intl` money/date formatting, Arabic RTL root direction, independent AI output locale, and localized core error/offline/legal/accessibility copy are implemented. Tests reject blank keys and English legal fallback.
-- Product boundary is shown in the signed-out and overview/settings flows: not a bank, custodian, broker, adviser, insurer, lender or yield product; no asset movement or promised return. No fiat, APY, card, credit, insurance, custody, leverage or unsupported cross-chain balance is generated.
+The branch now contains an Android/iOS React Native product, Go Finance API, Web feasibility companion and a canonical Finance edge Gateway. The native app covers Wallet entry, real-source YNXT overview/activity, authorized Pay receipts and dispute links, categories, private notes, user/approved-AI classification, monthly budgets and progress, recurring reminders, reports, CSV/JSON export, versioned planning import, privacy, account deletion, support, recovery and account audit.
 
-## Source traceability
+AI accepts only explicitly selected owned evidence after privacy permission and per-request consent. Categorization, fee explanation and budget output remain review drafts until Apply; Reject, Cancel and Delete are visible. No provider failure fallback invents advice or money.
 
-| User object | Authoritative source | Persisted provenance / limitation |
+Twelve locale packs are present: English, 简体中文, 繁體中文, 日本語, 한국어, Español, Français, Deutsch, Português, Русский, العربية and Bahasa Indonesia. System/manual locale and theme persist; Arabic applies RTL; dates and YNXT amounts use locale formatters; AI language is independent. Public release still requires professional legal/privacy translation review.
+
+## Canonical Wallet integration
+
+Legacy Finance HMAC/local session routes were removed. Native code delegates request/deep-link/callback verification/digest/device proof to `@ynx-chain/wallet-auth`. The edge Gateway invokes the exact central verifier, binds product/bundle/account/device/scopes/expiry, prevents replay and exposes introspection/revocation behind an internal key. The Go API introspects every bearer token and accepts no caller-provided address identity.
+
+Exact merge input and deterministic vector live in `apps/finance/integration/wallet-auth/`. Their manifest deliberately says:
+
+- `registryMerged=false`
+- `gatewayDeployed=false`
+- `walletApprovalTestedOnInstalledBuild=false`
+
+Therefore `integratedCentral=false`. The current central Wallet branch registers Social only; Finance correctly fails closed. Local Gateway replay/revocation state is memory-backed and must become persistent/shared before deployment.
+
+## Source truth
+
+| Object | Source | Provenance and limitation |
 |---|---|---|
-| YNXT balance/activity | `ynx-explorerd` account response | account match, `source`, block, timestamp, latest-100 coverage, source status/as-of |
-| Pay receipt | central `/pay/events` | owned-party match, event ID/status/amount/tx hash/time/dispute URL, Pay source status |
-| Category/classification | explicit user or approved AI draft | category ID, record ID, `source=user` or approved draft, update time, audit event |
-| Budget/reminder | explicit user, import, or approved AI draft | category/source reference, period/due time, idempotency key, audit event |
-| Statement/export | current Explorer/Pay evidence plus persisted plan | source statuses and bounded-opening-balance warning; never called a bank statement |
-| Offline view | encrypted platform cache of last accepted overview | `savedAt` envelope and visible “offline snapshot — not live” banner |
+| YNXT balance/activity | real Explorer account endpoint | account match, source/as-of/block/tx; latest 100 indexed records; complete history/opening balance not claimed |
+| Pay receipt | authenticated real `/pay/events` | owned-party filter, event/status/amount/tx/time/dispute; unavailable without key; no placeholders |
+| Category/note/budget/reminder | explicit user, import or applied AI draft | `source` plus account-scoped audit; planning only |
+| Statement/monthly review/export | current Explorer/Pay evidence plus planning state | YNXT/Testnet/coverage markers; not a bank, tax or legal statement |
+| Offline view | last accepted encrypted-platform cache | visible saved-at and not-live labeling |
 
-## Security and recovery
+Remote smoke on 2026-07-18 proved Explorer health and public transaction access, and Pay health. Explorer reported height 306,446, indexed height 285,750 and 20,696-block lag. Pay receipt endpoints returned the expected 401 without an operator credential. This proves failure closure, not authorized receipt success; see `artifacts/finance/remote-source-smoke.json`.
 
-- Existing atomic `0600` JSON persistence, temp-write/rename, strict JSON/body bounds, origin controls, scoped bearer sessions, rate limit, audit log, idempotency and Wallet replay/tamper rejection remain intact.
-- Native Wallet request and product-device key survive restart; exact callback and digest bindings reject substitution. Central completion is mandatory.
-- AI context accepts only explicitly selected account-owned Explorer record IDs after privacy permission and per-request consent. Provider failure has no canned/fake fallback.
-- Import requires `ynx-finance-export-v1`, imports only validated planning records, and does not overwrite server evidence. Export warning identifies sensitive planning content.
-- Optional protocol module remains disabled. A future module must expose counterparty, custody, contract, principal-loss risk, fee, liquidity risk, jurisdiction risk and signature boundary before review; Wallet is the only possible signer.
+## Verification
 
-## Verification evidence (2026-07-16 final rerun)
-
-- `go test ./...` — passed across the repository after the Finance Go changes.
 - `go test ./internal/finance ./apps/finance/cmd/server` — passed.
-- `npm test` and `npm run smoke` in `apps/finance` — passed.
-- Native `npm run typecheck` — passed.
-- Native `npm test` — locale/format/RTL, canonical signing, complete workflow, AI approval and truthful-claim contracts passed.
-- Native `npm run bundle-check` — Android and iOS Hermes bundles generated (631/633 modules); `dist` is ignored and not committed.
-- `npx expo prebuild --no-install` — complete Android and iOS native projects generated.
-- Android `assembleDebug` and `assembleRelease` passed with Android Studio JBR and an explicit local SDK path. The release variant embeds the Hermes bundle and is locally debug-signed only; no production-signing claim is made.
-- Release APK SHA-256: `006d5ffc592f14abed9b81c8afe3efdd884a4e3adccbada9adae98a4a7886221`. The ignored APK installed successfully on `emulator-5562`; `pm path` resolved `com.ynxweb4.finance`; the package registered the exact `ynxfinance://wallet-auth/callback` route.
-- Independent release cold start passed without Metro: `am start -W` returned `Status: ok`, `LaunchState: COLD`, `Activity: com.ynxweb4.finance/.MainActivity`, `TotalTime: 6590`, `WaitTime: 6768`. A screenshot was visually inspected after dismissing a shared-emulator System UI ANR; the native signed-out legal boundary and Wallet entry rendered, with no `Unable to load script` or fatal app log.
-- The emulator's installed Wallet resolves `ynxwallet://authorize` to `com.ynxweb4.wallet.MainActivity`, proving the Finance handoff intent is routable. That Wallet build rendered blank after handoff and the central Finance registry is absent, so end-to-end Wallet approval/session completion is truthfully not claimed.
-- Web feasibility ran the real `apps/finance/cmd/server` on loopback with temporary non-production configuration. `/health` returned `custody:none`, `portfolio:read-only`, `nativeSymbol:YNXT`; `/` returned 200 with CSP, Permissions-Policy and the visible non-bank/non-custodial boundary.
-- `git diff --check` — passed.
-- Full Xcode and `simctl` are not installed (`xcode-select` resolves to CommandLineTools), so iOS Simulator execution and production signing remain truthfully pending. The Xcode project and iOS bundle export exist; there is no TestFlight/App Store claim.
+- Shared Wallet package — 21/21 passed.
+- Finance edge Gateway — 2/2 passed, including canonical completion, revoke, tamper and replay.
+- Finance contract suite — 6/6 passed; smoke passed.
+- Native TypeScript — typecheck passed; 6/6 tests passed for workflows, AI approval, exact Wallet delegation, 12 locales, formats and Arabic RTL.
+- Android/iOS Hermes bundle export — passed (2,523/2,521 modules in the current native build).
+- Android `assembleRelease` — passed (352 tasks). Final APK size 77,371,822 bytes; SHA-256 `37208e56e96357371b19afc290d82d68adf1f0596213dbcd777341a949915f4e`.
+- Final Android APK install — `com.ynxweb4.finance`, version 1.2.0/code 3, exact callback registered. Independent launch without Metro on `emulator-5580` returned `Status: ok`, `LaunchState: COLD`, `Activity: com.ynxweb4.finance/.MainActivity`, `TotalTime: 16313`, `WaitTime: 17320`.
+- Android light/dark screenshots were visually inspected. A shared System UI ANR dialog was excluded from accepted evidence and is not attributed to Finance.
+- Web signed-out companion was inspected in the in-app Browser at 1440×900 and 390×844. The product boundary, no-fallback Wallet state and responsive layout passed.
+- Local `/health` returned version 1.2.0, `custody:none`, `portfolio:read-only`; CSP, Permissions Policy, no-referrer and nosniff headers were present.
+- `npm audit --omit=dev` reports 10 moderate Expo/tooling advisories, no high/critical. The incompatible automated Expo downgrade was not applied; see the security audit.
+- `git diff --check` and workflow YAML parsing passed.
 
-## Central/external blockers and exact requests
+## Exact release state
 
-1. Wallet central registry must add `ynx-finance-v1`, product `finance`, bundle `com.ynxweb4.finance`, callback `ynxfinance://wallet-auth/callback`, algorithm `p256-sha256`, and sorted scopes `finance.ai.draft`, `finance.pay.read`, `finance.portfolio.read`, `finance.profile.write`. The Wallet branch's current local registry contains only Social, so Finance sign-in must presently show unavailable.
-2. Central Gateway must expose the shared Wallet protocol challenge/completion routes `/wallet-auth/sessions` and `/wallet-auth/sessions/complete`, call the shared exact verifier, return a Finance-scoped token, persist replay/revocation state, and route that token to Finance. No HMAC or provider secret belongs in the mobile app.
-3. Deploy-time Finance needs real Explorer, Pay and AI Gateway URLs/credentials via secret manager, reviewed support/privacy/dispute URLs, TLS ingress and a backed-up state volume. No secret or real `.env` is committed.
-4. Explorer must add cursor-paginated account history before a complete historical statement can be claimed. Current coverage stays latest 100 and opening balance stays unavailable.
-5. Full Xcode plus an Apple signing team/certificates are external requirements for Simulator/device evidence and signed IPA. Google Play, TestFlight, store publication, production deployment and central merge are not claimed.
-6. The Android release proof uses the generated debug keystore solely for local installability. Owner-controlled release signing, Play Console upload and store review remain external and are not claimed.
+`implementedLocal=true`, `testedLocal=true`, Android `installedLocal=true`. iOS local install, central integration, functional staging API, public deployment, production signing and store release are false. The APK is local-test-signed only. A Web preview attempt was not counted as deployment unless a reachable URL and `/api/health` evidence are later recorded. See `apps/finance/product-release.json` for machine-readable status.
+
+## Remaining external gates
+
+1. Merge the exact Finance registry v2 entry into the canonical central Wallet branch; deploy the persistent Gateway; pass installed Finance → Wallet approval → device proof → introspection → scoped Finance API → revoke on both Android and iOS.
+2. Provide a secret-managed Finance Pay read key and pass an owned receipt/dispute smoke. Never place the key in the client or repository.
+3. Deploy the Go API behind TLS with persistent backed-up storage, source credentials, rate monitoring and reviewed support/privacy/dispute destinations; run backup/restore evidence.
+4. Run the macOS CI Simulator build/install/cold launch, then obtain owner-controlled iOS and Android production signing. No TestFlight, App Store or Play claim until actual console evidence exists.
+5. Resolve or accept with owner sign-off the current moderate Expo tooling advisories, and professionally review legal/privacy translations.
+6. Add Explorer cursor history before changing the latest-100 coverage or claiming complete statements.
+
+## Acceptance recommendation
+
+Accept as a locally implemented and Android-installed Testnet candidate. Do not describe it as centrally integrated, production deployed, production signed, publicly downloadable or store released until the corresponding evidence changes the status manifest.

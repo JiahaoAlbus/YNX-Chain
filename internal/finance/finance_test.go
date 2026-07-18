@@ -3,9 +3,6 @@ package finance
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -28,20 +25,17 @@ func (f fakeAI) Stream(_ context.Context, _ AIRequest, emit func(string)) (map[s
 	return f.result, nil
 }
 
-func TestWalletAssertionRejectsReplayAndTamper(t *testing.T) {
-	store, _ := OpenStore("")
-	auth, _ := NewAuthenticator(strings.Repeat("s", 32), "finance-web", store)
-	signed := testAssertion(t, strings.Repeat("s", 32), "nonce-1234567890123456")
-	if _, err := auth.Complete(signed); err != nil {
+func TestCentralSessionFailsClosedOnProductTamper(t *testing.T) {
+	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(testCentralSession(map[string]any{"bundleId": "evil.bundle"}))
+	}))
+	defer central.Close()
+	auth, err := NewAuthenticator(central.URL, strings.Repeat("i", 32), "ynx-finance-v1", "com.ynxweb4.finance")
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := auth.Complete(signed); err == nil || !strings.Contains(err.Error(), "already been used") {
-		t.Fatalf("expected replay rejection, got %v", err)
-	}
-	signed = testAssertion(t, strings.Repeat("s", 32), "nonce-2234567890123456")
-	signed.Assertion.Account = "ynx1tampered"
-	if _, err := auth.Complete(signed); err == nil || !strings.Contains(err.Error(), "signature") {
-		t.Fatalf("expected tamper rejection, got %v", err)
+	if _, err := auth.Verify("Bearer central-token", "finance.portfolio.read"); err == nil || !strings.Contains(err.Error(), "binding") {
+		t.Fatalf("expected product binding rejection, got %v", err)
 	}
 }
 
@@ -72,12 +66,8 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	upstreams, _ := NewUpstreams(explorer.URL, pay.URL, "pay-secret", "https://support.example/disputes")
 	service := &Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
-	auth, _ := NewAuthenticator(strings.Repeat("s", 32), "finance-web", store)
-	server, err := NewServer(service, auth, ServerConfig{WalletCallback: "ynxfinance://auth/callback", WalletClientID: "finance-web", AllowedOrigins: []string{"https://finance.example"}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	session, err := auth.Complete(testAssertion(t, strings.Repeat("s", 32), "nonce-3234567890123456"))
+	auth, session := testAuthenticator(t, "central-token-main")
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +89,21 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	requestJSON(t, ts.URL+"/api/budgets", http.MethodPost, map[string]any{"name": "Monthly essentials", "categoryId": category.ID, "limitYnxt": 100, "period": "monthly", "startsAt": time.Now().UTC(), "idempotencyKey": "budget-test-key-000001"}, session.Token, "https://finance.example", 201, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
+	var note Note
+	requestJSON(t, ts.URL+"/api/notes", http.MethodPost, map[string]any{"recordId": "tx-owned", "body": "Reviewed settlement evidence", "idempotencyKey": "note-test-key-0000001"}, session.Token, "https://finance.example", 201, &note)
+	if note.RecordID != "tx-owned" || note.Source != "user" {
+		t.Fatalf("note provenance is incomplete: %+v", note)
+	}
+	var page map[string]any
+	requestJSON(t, ts.URL+"/api/activity?limit=1", http.MethodGet, nil, session.Token, "", 200, &page)
+	if page["completeHistory"] != false || page["coverage"] == "" || len(page["items"].([]any)) != 1 {
+		t.Fatalf("activity page lacks truthful coverage: %#v", page)
+	}
+	var monthly map[string]any
+	requestJSON(t, ts.URL+"/api/monthly-review", http.MethodGet, nil, session.Token, "", 200, &monthly)
+	if monthly["symbol"] != "YNXT" || monthly["legal"] == "" {
+		t.Fatalf("monthly review lacks amount/legal semantics: %#v", monthly)
+	}
 	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/privacy", http.MethodPut, map[string]any{"includePayInStatements": true, "allowAiActivityContext": true, "alertsEnabled": true}, session.Token, "https://finance.example", 200, &map[string]any{})
 	var job AIJob
@@ -127,8 +132,27 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(reopened.Account(testAccount).Budgets) != 1 || len(reopened.Account(testAccount).AIJobs) != 1 {
+	if len(reopened.Account(testAccount).Budgets) != 1 || len(reopened.Account(testAccount).AIJobs) != 1 || len(reopened.Account(testAccount).Notes) != 1 {
 		t.Fatal("account state did not survive restart")
+	}
+}
+
+func TestDeleteAccountRemovesPrivateStateAndRetainsMinimalAudit(t *testing.T) {
+	store, _ := OpenStore("")
+	service := &Service{Store: store}
+	if _, err := service.AddCategory(testAccount, "Private", "#002FA7", "delete-category-key-01"); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.DeleteAccount(testAccount); err != nil {
+		t.Fatal(err)
+	}
+	state := store.Account(testAccount)
+	if len(state.Categories) != 0 || len(state.Notes) != 0 || len(state.Budgets) != 0 {
+		t.Fatalf("private state survived deletion: %+v", state)
+	}
+	audit := store.Audit(testAccount)
+	if len(audit) != 1 || audit[0].Action != "account.deleted" || audit[0].ObjectID != "" || audit[0].Details != nil {
+		t.Fatalf("deletion audit contains unexpected data: %+v", audit)
 	}
 }
 
@@ -138,9 +162,8 @@ func TestUnavailableSourcesStayUnavailableAndOriginFailsClosed(t *testing.T) {
 	store, _ := OpenStore("")
 	up, _ := NewUpstreams(explorer.URL, "", "", "")
 	service := &Service{Store: store, Upstreams: up, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
-	auth, _ := NewAuthenticator(strings.Repeat("s", 32), "finance-web", store)
-	server, _ := NewServer(service, auth, ServerConfig{WalletCallback: "ynxfinance://auth/callback", WalletClientID: "finance-web", AllowedOrigins: []string{"https://finance.example"}})
-	session, _ := auth.Complete(testAssertion(t, strings.Repeat("s", 32), "nonce-4234567890123456"))
+	auth, session := testAuthenticator(t, "central-token-unavailable")
+	server, _ := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}})
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
 	var p Portfolio
@@ -203,14 +226,32 @@ func TestAIBudgetDraftOnlyAppliesAfterReview(t *testing.T) {
 	}
 }
 
-func testAssertion(t *testing.T, secret, nonce string) SignedWalletAssertion {
+func testCentralSession(overrides map[string]any) map[string]any {
+	value := map[string]any{"verifierVersion": "wallet-auth-v1", "sessionBinding": strings.Repeat("a", 64), "productClientId": "ynx-finance-v1", "bundleId": "com.ynxweb4.finance", "requestDigest": strings.Repeat("b", 64), "account": testAccount, "scopes": []string{"finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"}, "issuedAt": time.Now().UTC().Add(-time.Minute).Format(time.RFC3339), "expiresAt": time.Now().UTC().Add(time.Hour).Format(time.RFC3339)}
+	for key, item := range overrides {
+		value[key] = item
+	}
+	return value
+}
+func testAuthenticator(t *testing.T, token string) (*Authenticator, Session) {
 	t.Helper()
-	now := time.Now().UTC()
-	a := WalletAssertion{Version: "1", Nonce: nonce, ChainID: ChainID, Product: Product, ClientID: "finance-web", DeviceID: "device-12345678", Account: testAccount, Scopes: []string{"finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"}, IssuedAt: now, ExpiresAt: now.Add(4 * time.Minute)}
-	raw, _ := json.Marshal(a)
-	mac := hmac.New(sha256.New, []byte(secret))
-	_, _ = mac.Write(raw)
-	return SignedWalletAssertion{Assertion: a, Signature: base64.RawURLEncoding.EncodeToString(mac.Sum(nil))}
+	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/wallet-auth/revoke" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.URL.Path != "/wallet-auth/introspect" || r.Header.Get("X-YNX-Finance-Internal-Key") != strings.Repeat("i", 32) || r.Header.Get("Authorization") != "Bearer "+token {
+			http.Error(w, "rejected", http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(testCentralSession(nil))
+	}))
+	t.Cleanup(central.Close)
+	auth, err := NewAuthenticator(central.URL, strings.Repeat("i", 32), "ynx-finance-v1", "com.ynxweb4.finance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return auth, Session{Token: token, Account: testAccount, Scopes: []string{"finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"}, ExpiresAt: time.Now().Add(time.Hour)}
 }
 func requestJSON(t *testing.T, endpoint, method string, body any, token, origin string, want int, out any) {
 	t.Helper()

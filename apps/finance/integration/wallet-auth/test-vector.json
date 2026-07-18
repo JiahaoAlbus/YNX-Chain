@@ -1,0 +1,75 @@
+{
+  "registryEntry": {
+    "schemaVersion": 2,
+    "productClientId": "ynx-finance-v1",
+    "requestingProduct": "finance",
+    "bundleId": "com.ynxweb4.finance",
+    "callbacks": ["ynxfinance://wallet-auth/callback"],
+    "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+    "maxScopes": 4,
+    "productDeviceAlgorithms": ["p256-sha256"]
+  },
+  "request": {
+    "version": "1",
+    "nonce": "finance_nonce_abcdefghijklmnopqrstu",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "finance",
+    "productClientId": "ynx-finance-v1",
+    "bundleId": "com.ynxweb4.finance",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxfinance://wallet-auth/callback",
+    "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+    "purpose": "Read verified YNXT and Pay evidence and manage a private Finance plan; Finance cannot sign or move assets.",
+    "issuedAt": "2026-07-18T08:00:00.000Z",
+    "expiresAt": "2026-07-18T08:05:00.000Z"
+  },
+  "requestDigest": "d3b4b27a62fbc309b575980c82a7371009770689348f7393cf9a5941446dd638",
+  "approval": {
+    "version": "1",
+    "requestDigest": "d3b4b27a62fbc309b575980c82a7371009770689348f7393cf9a5941446dd638",
+    "nonce": "finance_nonce_abcdefghijklmnopqrstu",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "finance",
+    "productClientId": "ynx-finance-v1",
+    "bundleId": "com.ynxweb4.finance",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxfinance://wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "grantedScopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+    "purpose": "Read verified YNXT and Pay evidence and manage a private Finance plan; Finance cannot sign or move assets.",
+    "issuedAt": "2026-07-18T08:01:00.000Z",
+    "expiresAt": "2026-07-18T08:05:00.000Z",
+    "walletSignature": "502b1762a9502c0ab35a34843e085fd318204398a3166d1870050d605847094f72289ede87e330aed50ad36809e28e987006f3bb37e7ecf025bdf1a33fa82337"
+  },
+  "completion": {
+    "challenge": {
+      "version": "1",
+      "challenge": "finance_gateway_challenge_abcdefgh",
+      "requestDigest": "d3b4b27a62fbc309b575980c82a7371009770689348f7393cf9a5941446dd638",
+      "productClientId": "ynx-finance-v1",
+      "bundleId": "com.ynxweb4.finance",
+      "productDeviceAlgorithm": "p256-sha256",
+      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+      "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+      "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+      "issuedAt": "2026-07-18T08:01:30.000Z",
+      "expiresAt": "2026-07-18T08:04:00.000Z"
+    },
+    "deviceSignature": "MEQCIFFJb76x5pFod5YxbFKZiWLBazLNMFYBcBLmOKOOcr_eAiAjD__tQDYyLxxdrGIaTH_SfsxLjV1N_uJACuTJM6haAA"
+  },
+  "session": {
+    "verifierVersion": "wallet-auth-v1",
+    "sessionBinding": "c3ea763c11b0ebf0a8aeb8d5fdda7f61fa808ecd076589856de2460519eb629c",
+    "productClientId": "ynx-finance-v1",
+    "bundleId": "com.ynxweb4.finance",
+    "productDeviceAlgorithm": "p256-sha256",
+    "requestDigest": "d3b4b27a62fbc309b575980c82a7371009770689348f7393cf9a5941446dd638",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+    "issuedAt": "2026-07-18T08:01:30.000Z",
+    "expiresAt": "2026-07-18T08:04:00.000Z"
+  }
+}

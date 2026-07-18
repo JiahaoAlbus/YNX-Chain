@@ -326,7 +326,7 @@ func (s *Service) DecideAI(account, id, decision string) error {
 				if name == "" || len(name) > 64 || !categoryExists(*state, category) || (period != "weekly" && period != "monthly") || limit <= 0 {
 					return errors.New("AI budget draft contains invalid or unauthorized fields")
 				}
-				state.Budgets = append(state.Budgets, Budget{ID: newID("budget"), Name: name, CategoryID: category, LimitYNXT: limit, Period: period, StartsAt: now, CreatedAt: now, UpdatedAt: now})
+				state.Budgets = append(state.Budgets, Budget{ID: newID("budget"), Name: name, CategoryID: category, LimitYNXT: limit, Period: period, StartsAt: now, CreatedAt: now, UpdatedAt: now, Source: "ai-reviewed"})
 			}
 			for i := range state.AIJobs {
 				if state.AIJobs[i].ID == id {

@@ -88,10 +88,26 @@ func (s *Store) Audit(account string) []AuditEvent {
 	return out
 }
 
+// DeleteAccount removes private planning state while retaining a minimal,
+// non-content-bearing deletion audit record for security accountability.
+func (s *Store) DeleteAccount(account string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.state.Accounts, account)
+	kept := s.state.Audit[:0]
+	for _, event := range s.state.Audit {
+		if event.Account != account {
+			kept = append(kept, event)
+		}
+	}
+	s.state.Audit = append(kept, AuditEvent{ID: newID("audit"), Account: account, Action: "account.deleted", CreatedAt: time.Now().UTC()})
+	return s.saveLocked()
+}
+
 func (s *Store) accountLocked(account string) AccountState {
 	state, ok := s.state.Accounts[account]
 	if !ok {
-		state = AccountState{Categories: []Category{}, Budgets: []Budget{}, Reminders: []Reminder{}, Classifications: map[string]Classification{}, AIJobs: []AIJob{}, Idempotency: map[string]string{}, Privacy: Privacy{IncludePayInStatements: true, AlertsEnabled: true}}
+		state = AccountState{Categories: []Category{}, Budgets: []Budget{}, Reminders: []Reminder{}, Notes: []Note{}, Classifications: map[string]Classification{}, AIJobs: []AIJob{}, Idempotency: map[string]string{}, Privacy: Privacy{IncludePayInStatements: true, AlertsEnabled: true}}
 	}
 	if state.Classifications == nil {
 		state.Classifications = map[string]Classification{}

@@ -19,7 +19,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	auth, err := finance.NewAuthenticator(required("YNX_FINANCE_WALLET_ASSERTION_SECRET"), required("YNX_FINANCE_WALLET_CLIENT_ID"), store)
+	auth, err := finance.NewAuthenticator(required("YNX_FINANCE_WALLET_GATEWAY_URL"), required("YNX_FINANCE_INTERNAL_KEY"), "ynx-finance-v1", "com.ynxweb4.finance")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +28,7 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{WalletCallback: required("YNX_FINANCE_WALLET_CALLBACK"), WalletClientID: required("YNX_FINANCE_WALLET_CLIENT_ID"), AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir})
 	if err != nil {
 		log.Fatal(err)
 	}

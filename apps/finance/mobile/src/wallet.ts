@@ -1,6 +1,33 @@
-import * as Crypto from 'expo-crypto';import * as Linking from 'expo-linking';import * as SecureStore from 'expo-secure-store';import {p256} from '@noble/curves/nist.js';import {bytesToHex,hexToBytes,utf8ToBytes} from '@noble/hashes/utils.js';import {sha256} from '@noble/hashes/sha2.js';import {canonical} from './protocol';
-const KEY='ynx.finance.device.p256.v1',PENDING='ynx.finance.wallet.pending.v1';
-const b64=(v:Uint8Array|string)=>{const bytes=typeof v==='string'?new TextEncoder().encode(v):v;return btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
-async function device(){let secret=await SecureStore.getItemAsync(KEY);if(!secret){secret=bytesToHex(Crypto.getRandomBytes(32));await SecureStore.setItemAsync(KEY,secret)}return {secret,key:b64(p256.getPublicKey(hexToBytes(secret),true))}}
-export async function startWallet(){const d=await device(),now=new Date(),expires=new Date(now.getTime()+240000);const request={version:'1',nonce:b64(Crypto.getRandomBytes(32)),chainId:'ynx_6423-1',requestingProduct:'finance',productClientId:'ynx-finance-v1',bundleId:'com.ynxweb4.finance',productDeviceAlgorithm:'p256-sha256',productDeviceKey:d.key,callback:'ynxfinance://wallet-auth/callback',scopes:['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write'],purpose:'Read verified YNXT and Pay evidence and manage this device’s private Finance plan. Finance cannot sign or move assets.',issuedAt:now.toISOString(),expiresAt:expires.toISOString()};await SecureStore.setItemAsync(PENDING,JSON.stringify(request));await Linking.openURL(`ynxwallet://authorize?request=${b64(JSON.stringify(request))}`)}
-export async function completeWallet(url:string,gatewayBase:string){const parsed=new URL(url);if(parsed.protocol!=='ynxfinance:'||parsed.hostname!=='wallet-auth'||parsed.pathname!=='/callback'||[...parsed.searchParams.keys()].join()!=='response')throw new Error('Wallet callback route rejected');const raw=parsed.searchParams.get('response');if(!raw)throw new Error('Wallet response missing');const approval=JSON.parse(decodeURIComponent(escape(atob(raw.replace(/-/g,'+').replace(/_/g,'/')))));const request=JSON.parse((await SecureStore.getItemAsync(PENDING))||'null');if(!request)throw new Error('Pending Wallet request missing after restart');for(const k of ['nonce','chainId','requestingProduct','productClientId','bundleId','productDeviceAlgorithm','productDeviceKey','callback','purpose'])if(approval[k]!==request[k])throw new Error(`Wallet ${k} binding rejected`);const digest=bytesToHex(sha256(utf8ToBytes(`YNX_WALLET_AUTH_REQUEST_V1\n${canonical(request)}`)));if(approval.requestDigest!==digest)throw new Error('Wallet request digest rejected');const response=await fetch(gatewayBase+'/wallet-auth/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorizationRequest:request,walletApproval:approval})});if(!response.ok)throw new Error(`Central Gateway unavailable (${response.status}); no local or fake session created`);const challenge=await response.json(),d=await device();const signature=p256.sign(utf8ToBytes(`YNX_PRODUCT_SESSION_CHALLENGE_V1\n${canonical(challenge)}`),hexToBytes(d.secret),{format:'der'});const done=await fetch(gatewayBase+'/wallet-auth/sessions/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorizationRequest:request,walletApproval:approval,gatewayCompletion:{challenge,deviceSignature:b64(signature)}})});if(!done.ok)throw new Error(`Central Gateway device proof rejected (${done.status})`);await SecureStore.deleteItemAsync(PENDING);return done.json()}
+import * as Crypto from 'expo-crypto';
+import * as Linking from 'expo-linking';
+import * as SecureStore from 'expo-secure-store';
+import {p256} from '@noble/curves/nist.js';
+import {decodeBase64url,encodeBase64url,encodeRequestDeepLink,parseCallbackURL,requestDigest,signGatewayChallenge,verifyAuthorization,type AuthorizationRequest} from '@ynx-chain/wallet-auth';
+
+const KEY='ynx.finance.device.p256.v2',PENDING='ynx.finance.wallet.pending.v1';
+
+async function device(){
+  let secret=await SecureStore.getItemAsync(KEY);
+  if(!secret){secret=encodeBase64url(Crypto.getRandomBytes(32));await SecureStore.setItemAsync(KEY,secret)}
+  return {secret:secret!,key:encodeBase64url(p256.getPublicKey(decodeBase64url(secret!,'product device secret'),true))};
+}
+
+export async function startWallet(){
+  const d=await device(),now=new Date(),expires=new Date(now.getTime()+240_000);
+  const request:AuthorizationRequest={version:'1',nonce:encodeBase64url(Crypto.getRandomBytes(32)),chainId:'ynx_6423-1',requestingProduct:'finance',productClientId:'ynx-finance-v1',bundleId:'com.ynxweb4.finance',productDeviceAlgorithm:'p256-sha256',productDeviceKey:d.key,callback:'ynxfinance://wallet-auth/callback',scopes:['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write'],purpose:'Read verified YNXT and Pay evidence and manage this device’s private Finance plan. Finance cannot sign or move assets.',issuedAt:now.toISOString(),expiresAt:expires.toISOString()};
+  await SecureStore.setItemAsync(PENDING,JSON.stringify(request));
+  await Linking.openURL(encodeRequestDeepLink(request));
+}
+
+export async function completeWallet(url:string,gatewayBase:string){
+  const request=JSON.parse((await SecureStore.getItemAsync(PENDING))||'null') as AuthorizationRequest|null;
+  if(!request)throw new Error('Pending Wallet request missing after restart');
+  const approval=verifyAuthorization(parseCallbackURL(url,request.callback),{...request,requestDigest:requestDigest(request),now:new Date()});
+  const response=await fetch(gatewayBase.replace(/\/$/,'')+'/wallet-auth/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorizationRequest:request,walletApproval:approval})});
+  if(!response.ok)throw new Error(`Central Gateway unavailable (${response.status}); no local session created and no fake session created`);
+  const challenge=await response.json(),d=await device(),gatewayCompletion=signGatewayChallenge(challenge,d.secret);
+  const done=await fetch(gatewayBase.replace(/\/$/,'')+'/wallet-auth/sessions/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({authorizationRequest:request,walletApproval:approval,gatewayCompletion})});
+  if(!done.ok)throw new Error(`Central Gateway device proof rejected (${done.status})`);
+  await SecureStore.deleteItemAsync(PENDING);
+  return done.json();
+}

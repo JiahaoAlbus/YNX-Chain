@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Finance",
+  "version": "1.2.0",
+  "branch": "codex/ecosystem-finance",
+  "generatedAt": "2026-07-18T14:03:25Z",
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": {
+    "android": true,
+    "ios": false
+  },
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "signingClass": {
+    "android": "local-test-signed",
+    "ios": "unsigned-simulator-target"
+  },
+  "minimumOS": {
+    "androidApi": 24,
+    "ios": "16.4"
+  },
+  "identifiers": {
+    "bundleId": "com.ynxweb4.finance",
+    "scheme": "ynxfinance",
+    "callback": "ynxfinance://wallet-auth/callback",
+    "productClientId": "ynx-finance-v1"
+  },
+  "androidInstallEvidence": {
+    "device": "emulator-5580",
+    "versionCode": 3,
+    "versionName": "1.2.0",
+    "launchState": "COLD",
+    "activity": "com.ynxweb4.finance/.MainActivity",
+    "totalTimeMs": 16313,
+    "waitTimeMs": 17320,
+    "apkBytes": 77371822,
+    "sha256": "37208e56e96357371b19afc290d82d68adf1f0596213dbcd777341a949915f4e"
+  },
+  "centralWallet": {
+    "registryMerged": false,
+    "gatewayDeployed": false,
+    "installedApprovalTested": false,
+    "failClosed": true,
+    "manifest": "integration/wallet-auth/integration-manifest.json"
+  },
+  "sourceSmoke": {
+    "explorerHealth": true,
+    "explorerPublicTransactions": true,
+    "payHealth": true,
+    "payAuthorizedReceipts": false,
+    "payFailure": "Remote endpoint correctly returned HTTP 401 because no authorized Pay read key was available."
+  },
+  "knownLimitations": [
+    "Central Finance registry, persistent Gateway deployment and installed Wallet approval are not complete.",
+    "Authorized remote Pay receipt smoke is blocked on an operator-provided Pay read credential.",
+    "Explorer reports indexer lag and Finance truthfully bounds activity to the latest 100 indexed records.",
+    "The local edge Gateway uses in-memory replay and revocation state; production requires persistent shared storage.",
+    "iOS local install is unavailable because this host has CommandLineTools rather than full Xcode; CI Simulator evidence is pending.",
+    "The Android APK uses a local test signature and is not a production or store artifact.",
+    "The Web surface is a signed-out feasibility companion and has no registered Web Wallet client."
+  ]
+}

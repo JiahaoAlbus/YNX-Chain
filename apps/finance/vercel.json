@@ -1,0 +1,19 @@
+{
+  "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {"key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"},
+        {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()"},
+        {"key": "Referrer-Policy", "value": "no-referrer"},
+        {"key": "X-Content-Type-Options", "value": "nosniff"}
+      ]
+    }
+  ],
+  "rewrites": [
+    {"source": "/", "destination": "/web/index.html"},
+    {"source": "/app.js", "destination": "/web/app.js"},
+    {"source": "/styles.css", "destination": "/web/styles.css"}
+  ]
+}

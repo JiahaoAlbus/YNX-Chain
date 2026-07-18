@@ -1,161 +1,132 @@
 package finance
 
 import (
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
 
 var allowedScopes = map[string]bool{
-	"finance.ai.draft":       true,
-	"finance.pay.read":       true,
-	"finance.portfolio.read": true,
-	"finance.profile.write":  true,
-}
-
-type WalletAssertion struct {
-	Version   string    `json:"version"`
-	Nonce     string    `json:"nonce"`
-	ChainID   string    `json:"chainId"`
-	Product   string    `json:"product"`
-	ClientID  string    `json:"clientId"`
-	DeviceID  string    `json:"deviceId"`
-	Account   string    `json:"account"`
-	Scopes    []string  `json:"scopes"`
-	IssuedAt  time.Time `json:"issuedAt"`
-	ExpiresAt time.Time `json:"expiresAt"`
-}
-
-type SignedWalletAssertion struct {
-	Assertion WalletAssertion `json:"assertion"`
-	Signature string          `json:"signature"`
+	"finance.ai.draft": true, "finance.pay.read": true,
+	"finance.portfolio.read": true, "finance.profile.write": true,
 }
 
 type Session struct {
-	Token     string    `json:"token"`
-	Account   string    `json:"account"`
-	Scopes    []string  `json:"scopes"`
-	DeviceID  string    `json:"deviceId"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	Token          string    `json:"-"`
+	Verifier       string    `json:"verifierVersion"`
+	SessionBinding string    `json:"sessionBinding"`
+	ProductClient  string    `json:"productClientId"`
+	BundleID       string    `json:"bundleId"`
+	RequestDigest  string    `json:"requestDigest"`
+	Account        string    `json:"account"`
+	Scopes         []string  `json:"scopes"`
+	ExpiresAt      time.Time `json:"expiresAt"`
 }
 
+// Authenticator accepts only opaque sessions issued by the canonical Wallet
+// Gateway. It deliberately has no local assertion or fallback session.
 type Authenticator struct {
-	mu       sync.RWMutex
-	secret   []byte
-	clientID string
-	store    *Store
-	sessions map[string]Session
-	now      func() time.Time
+	introspectionURL, revocationURL, internalKey, clientID, bundleID string
+	client                                                           *http.Client
+	now                                                              func() time.Time
 }
 
-func NewAuthenticator(secret, clientID string, store *Store) (*Authenticator, error) {
-	if len(secret) < 32 {
-		return nil, errors.New("finance wallet assertion secret must be at least 32 bytes")
+func NewAuthenticator(gatewayURL, internalKey, clientID, bundleID string) (*Authenticator, error) {
+	if _, err := requireHTTPURL(gatewayURL); err != nil {
+		return nil, fmt.Errorf("Wallet Gateway URL: %w", err)
 	}
-	if strings.TrimSpace(clientID) == "" {
-		return nil, errors.New("finance wallet client id is required")
+	if len(internalKey) < 32 {
+		return nil, errors.New("Finance internal Gateway key must be at least 32 bytes")
 	}
-	return &Authenticator{secret: []byte(secret), clientID: clientID, store: store, sessions: map[string]Session{}, now: time.Now}, nil
-}
-
-func (a *Authenticator) Complete(signed SignedWalletAssertion) (Session, error) {
-	raw, err := json.Marshal(signed.Assertion)
-	if err != nil {
-		return Session{}, err
+	if clientID != "ynx-finance-v1" || bundleID != "com.ynxweb4.finance" {
+		return nil, errors.New("canonical Finance client or bundle binding is invalid")
 	}
-	want := hmac.New(sha256.New, a.secret)
-	_, _ = want.Write(raw)
-	got, err := base64.RawURLEncoding.DecodeString(signed.Signature)
-	if err != nil || !hmac.Equal(got, want.Sum(nil)) {
-		return Session{}, errors.New("wallet assertion signature is invalid")
-	}
-	v := signed.Assertion
-	now := a.now().UTC()
-	if v.Version != "1" || v.ChainID != ChainID || v.Product != Product || v.ClientID != a.clientID {
-		return Session{}, errors.New("wallet assertion product or network binding is invalid")
-	}
-	_, err = accountaddress.Normalize(v.Account)
-	if err != nil || !strings.HasPrefix(strings.ToLower(v.Account), "ynx1") {
-		return Session{}, errors.New("wallet assertion account must be a native ynx1 address")
-	}
-	account := strings.ToLower(v.Account)
-	if len(v.Nonce) < 16 || len(v.Nonce) > 128 || len(v.DeviceID) < 8 || len(v.DeviceID) > 128 {
-		return Session{}, errors.New("wallet assertion nonce or device binding is invalid")
-	}
-	if v.IssuedAt.After(now.Add(30*time.Second)) || now.Sub(v.IssuedAt) > 5*time.Minute || !v.ExpiresAt.After(now) || v.ExpiresAt.Sub(v.IssuedAt) > 5*time.Minute {
-		return Session{}, errors.New("wallet assertion is expired or exceeds five minutes")
-	}
-	if err := validateScopes(v.Scopes); err != nil {
-		return Session{}, err
-	}
-	if !contains(v.Scopes, "finance.portfolio.read") {
-		return Session{}, errors.New("wallet assertion lacks portfolio read scope")
-	}
-	if err := a.store.UseNonce(v.Nonce, v.ExpiresAt); err != nil {
-		return Session{}, err
-	}
-	session := Session{Token: randomToken(), Account: account, Scopes: append([]string(nil), v.Scopes...), DeviceID: v.DeviceID, ExpiresAt: now.Add(30 * time.Minute)}
-	a.mu.Lock()
-	a.sessions[session.Token] = session
-	a.mu.Unlock()
-	return session, nil
+	base := strings.TrimRight(gatewayURL, "/")
+	return &Authenticator{introspectionURL: base + "/wallet-auth/introspect", revocationURL: base + "/wallet-auth/revoke", internalKey: internalKey, clientID: clientID, bundleID: bundleID, client: &http.Client{Timeout: 5 * time.Second}, now: time.Now}, nil
 }
 
 func (a *Authenticator) Verify(header, scope string) (Session, error) {
 	token := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
-	if token == "" || token == header {
-		return Session{}, errors.New("bearer session required")
+	if token == "" || token == header || len(token) > 2048 {
+		return Session{}, errors.New("canonical bearer session required")
 	}
-	a.mu.RLock()
-	session, ok := a.sessions[token]
-	a.mu.RUnlock()
-	if !ok || !session.ExpiresAt.After(a.now().UTC()) {
-		return Session{}, errors.New("session is missing or expired")
+	req, _ := http.NewRequest(http.MethodPost, a.introspectionURL, bytes.NewReader([]byte("{}")))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Finance-Internal-Key", a.internalKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return Session{}, fmt.Errorf("central Wallet session unavailable: %w", err)
 	}
-	if scope != "" && !contains(session.Scopes, scope) {
-		return Session{}, fmt.Errorf("session lacks %s scope", scope)
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return Session{}, errors.New("central Wallet session is missing, expired, or revoked")
 	}
-	return session, nil
+	var raw struct {
+		Verifier       string   `json:"verifierVersion"`
+		SessionBinding string   `json:"sessionBinding"`
+		ProductClient  string   `json:"productClientId"`
+		BundleID       string   `json:"bundleId"`
+		RequestDigest  string   `json:"requestDigest"`
+		Account        string   `json:"account"`
+		Scopes         []string `json:"scopes"`
+		IssuedAt       string   `json:"issuedAt"`
+		ExpiresAt      string   `json:"expiresAt"`
+	}
+	dec := json.NewDecoder(resp.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&raw); err != nil {
+		return Session{}, errors.New("central Wallet session response is invalid")
+	}
+	expiresAt, err := time.Parse(time.RFC3339, raw.ExpiresAt)
+	if err != nil || !expiresAt.After(a.now().UTC()) || raw.Verifier != "wallet-auth-v1" || raw.ProductClient != a.clientID || raw.BundleID != a.bundleID || len(raw.SessionBinding) != 64 || len(raw.RequestDigest) != 64 {
+		return Session{}, errors.New("central Wallet session binding is invalid")
+	}
+	_, err = accountaddress.Normalize(raw.Account)
+	if err != nil || !strings.HasPrefix(strings.ToLower(raw.Account), "ynx1") {
+		return Session{}, errors.New("central Wallet session account is invalid")
+	}
+	account := strings.ToLower(raw.Account)
+	if err := validateScopes(raw.Scopes); err != nil {
+		return Session{}, err
+	}
+	if !contains(raw.Scopes, "finance.portfolio.read") || (scope != "" && !contains(raw.Scopes, scope)) {
+		return Session{}, fmt.Errorf("central Wallet session lacks %s scope", scope)
+	}
+	return Session{Token: token, Verifier: raw.Verifier, SessionBinding: raw.SessionBinding, ProductClient: raw.ProductClient, BundleID: raw.BundleID, RequestDigest: raw.RequestDigest, Account: account, Scopes: raw.Scopes, ExpiresAt: expiresAt}, nil
 }
 
 func (a *Authenticator) Revoke(header string) {
 	token := strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
-	a.mu.Lock()
-	delete(a.sessions, token)
-	a.mu.Unlock()
+	if token == "" || token == header {
+		return
+	}
+	req, _ := http.NewRequest(http.MethodPost, a.revocationURL, bytes.NewReader([]byte("{}")))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("X-YNX-Finance-Internal-Key", a.internalKey)
+	resp, err := a.client.Do(req)
+	if err == nil {
+		resp.Body.Close()
+	}
 }
 
 func validateScopes(scopes []string) error {
 	if len(scopes) == 0 || len(scopes) > len(allowedScopes) {
-		return errors.New("wallet assertion scopes are empty or too broad")
+		return errors.New("central Wallet scopes are empty or too broad")
 	}
-	copyScopes := append([]string(nil), scopes...)
-	sort.Strings(copyScopes)
 	for i, scope := range scopes {
-		if !allowedScopes[scope] || scope != copyScopes[i] || (i > 0 && scope == scopes[i-1]) {
-			return errors.New("wallet assertion scopes must be allowed, unique and sorted")
+		if !allowedScopes[scope] || (i > 0 && scopes[i-1] >= scope) {
+			return errors.New("central Wallet scopes must be allowed, unique, and sorted")
 		}
 	}
 	return nil
 }
-
-func randomToken() string {
-	b := make([]byte, 32)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
 func contains(values []string, value string) bool {
 	for _, candidate := range values {
 		if candidate == value {
