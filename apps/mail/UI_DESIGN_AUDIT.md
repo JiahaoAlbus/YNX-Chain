@@ -24,6 +24,7 @@ Status: local candidate, not release-complete. The current run used the checked-
 - `tests/artifacts/mail-large-text.png` — 390×844 at 125% root text.
 - `tests/artifacts/mail-loading.png`, `mail-failure.png`, `mail-empty.png` — controlled loading, API failure and empty states.
 - `tests/artifacts/mail-android-cold-start-current.png` — installed native Android shell after a separately recorded cold launch.
+- GitHub Actions run `29646181372`, artifact `YNXMail-ios-simulator-proof` — independently built, installed and cold-launched unsigned iOS Simulator app; downloaded screenshot inspected, SHA-256 `9076cb300f7e03fbb4b4be23de8afd1d96259e05a7d6c03cbdf57bff81f0c110`.
 
 ## Findings fixed in this pass
 
@@ -37,4 +38,4 @@ Status: local candidate, not release-complete. The current run used the checked-
 
 - The native clients are functional native shells but do not yet match the richer Web information density.
 - Native catalogs contain all 12 locales and Arabic RTL. The Web companion currently mirrors RTL geometry for Arabic but its Chinese interface copy is not fully translated; this is not marked localized-complete.
-- No current-run iOS Simulator screenshot, staging URL, public URL, production signing or hosted download exists.
+- No staging URL, public URL, production signing or hosted download exists; iOS evidence is unsigned Simulator CI evidence only.

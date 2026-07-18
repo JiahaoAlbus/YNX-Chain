@@ -17,6 +17,6 @@ Release state: local candidate only. Central integration, staging/public deploym
 
 - Two independent Android and iOS identities, exact Wallet callbacks and 12 native locales including Arabic RTL.
 - Web companions cover light/dark, mobile/tablet, RTL geometry, large text, loading, failure, empty and success states; Calendar additionally proves day/week/month.
-- Android debug APKs built, installed together and cold-launched independently on API 36. iOS source/project validation passes locally; Simulator build/install/cold-launch is delegated to the checked-in macOS CI proof because this host has CommandLineTools only.
+- Android debug APKs built, installed together and cold-launched independently on API 36. iOS source/project validation passes locally, and GitHub Actions run `29646181372` independently built, installed and cold-launched both unsigned Simulator apps with inspected screenshot artifacts.
 
 See `mail-calendar-evidence-index.md`, `mail-calendar-artifact-manifest.json`, each `product-release.json` and each `UI_DESIGN_AUDIT.md` for evidence and limitations.

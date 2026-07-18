@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-18T21:22:00+08:00",
+  "generatedAt": "2026-07-18T21:35:00+08:00",
+  "testedImplementationCommit": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
+  "iosProofRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646181372",
   "artifactsIgnoredByGit": true,
   "reproduction": [
     "npm run browser:proof --prefix apps/mail",
@@ -31,6 +33,10 @@
     "apps/mail/tests/artifacts/mail-android-cold-start-current.png": "5fdcbab4d2b0ecae3cffad980d6d9d9883e777e2b95f912e1ba861d3dcfe5e87",
     "apps/calendar/tests/artifacts/calendar-android-cold-start-current.png": "b1ad3c6c95b29537f581f7d312fc20f8d05e96ef8bcfdeb588e2d2ee1d7a5139",
     "apps/mail/native/android/app/build/outputs/apk/debug/app-debug.apk": "c01f7766c2c3c7e728136fff28329bb1989dbe54aedac90b6a7960171efd5d2f",
-    "apps/calendar/native/android/app/build/outputs/apk/debug/app-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030"
+    "apps/calendar/native/android/app/build/outputs/apk/debug/app-debug.apk": "f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030",
+    "github-actions/YNXMail-ios-simulator-proof/YNXMail-evidence.txt": "d6e36b6e5b054622e739c0bd0258e06dc2b1fe43e062376365c4a90e964568d7",
+    "github-actions/YNXMail-ios-simulator-proof/YNXMail-cold-launch.png": "9076cb300f7e03fbb4b4be23de8afd1d96259e05a7d6c03cbdf57bff81f0c110",
+    "github-actions/YNXCalendar-ios-simulator-proof/YNXCalendar-evidence.txt": "9ee4b46cec9b7b0642a3fe3e462cad6cfbf9227ff22f1e26fb4986d1f9254f72",
+    "github-actions/YNXCalendar-ios-simulator-proof/YNXCalendar-cold-launch.png": "9b4b6daddf4bfb9b6c00db57fdeacec98c8225d73843e336e42e77e25eb31d4e"
   }
 }

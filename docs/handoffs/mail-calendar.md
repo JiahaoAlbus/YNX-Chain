@@ -2,7 +2,7 @@
 
 ## 2026-07-18 independent hardening and evidence pass (authoritative)
 
-This section supersedes any older statement below that says the Web accepts a Wallet query callback, stores a browser bearer token, calls AI with private context in a URL, has current-run iOS evidence, or is centrally integrated/deployed.
+This section supersedes any older statement below that says the Web accepts a Wallet query callback, stores a browser bearer token, calls AI with private context in a URL, lacks current-run iOS evidence, or is centrally integrated/deployed.
 
 ### Delivered in this pass
 
@@ -27,7 +27,7 @@ This section supersedes any older statement below that says the Web accepts a Wa
 | Android API 36 install/cold | emulator-5576: both install `Success`; Mail `COLD` 3900 ms, Calendar `COLD` 6297 ms |
 | Android callback resolution | `ynxmail://wallet-auth/callback` and `ynxcalendar://wallet-auth/callback` both resolve to their independent package |
 | iOS source/project | both Swift sources parse; both Info.plist and pbxproj lint |
-| iOS build/install/cold | not run on this host: `/Library/Developer/CommandLineTools` has no `xcodebuild` or `simctl` |
+| iOS build/install/cold | pass in GitHub Actions run `29646181372` at implementation commit `3c2ef1e7984e328756bba8ef95a6ca08259e728d`: independent unsigned Simulator build/install/cold launch for Mail and Calendar; artifacts downloaded and screenshots inspected |
 
 Artifact SHA-256 values from this pass:
 
@@ -35,12 +35,14 @@ Artifact SHA-256 values from this pass:
 - Calendar debug APK: `f233c3b8c68ca06e9776e1b231fabd8d21db2fb71455649306f621eb2b8fa030`.
 - Mail Android inspected screenshot: `5fdcbab4d2b0ecae3cffad980d6d9d9883e777e2b95f912e1ba861d3dcfe5e87`.
 - Calendar Android inspected screenshot: `b1ad3c6c95b29537f581f7d312fc20f8d05e96ef8bcfdeb588e2d2ee1d7a5139`.
+- Mail iOS inspected screenshot: `9076cb300f7e03fbb4b4be23de8afd1d96259e05a7d6c03cbdf57bff81f0c110`; evidence text: `d6e36b6e5b054622e739c0bd0258e06dc2b1fe43e062376365c4a90e964568d7`.
+- Calendar iOS inspected screenshot: `9b4b6daddf4bfb9b6c00db57fdeacec98c8225d73843e336e42e77e25eb31d4e`; evidence text: `9ee4b46cec9b7b0642a3fe3e462cad6cfbf9227ff22f1e26fb4986d1f9254f72`.
 
 ### Release truth
 
 - `integratedCentral=false`: the exact Wallet registry/verifier and AI POST integration are proposed, not merged into main or deployed.
 - `deployedStaging=false`, `deployedPublic=false`, `downloadHosted=false`: there is no remote URL/health, public release or hosted artifact proof.
-- iOS is source-valid on this machine but has no current-run Simulator install/cold-launch proof.
+- iOS has current-run unsigned Simulator build/install/cold-launch proof in GitHub Actions run `29646181372`; this is not production signing, TestFlight or App Store evidence.
 - Native catalogs cover 12 locales and Arabic RTL. The Web companion mirrors RTL geometry but its Chinese copy is not fully translated, so product-wide localization is not marked complete.
 - Mail delivery is only between known local YNX handles. There is no SMTP/MX/DNS, internet reputation, external abuse operation or internet-wide mail delivery claim.
 
