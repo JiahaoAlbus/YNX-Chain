@@ -1,0 +1,14 @@
+handle /shop-staging/* {
+  uri replace /shop-staging /shop
+  reverse_proxy 127.0.0.1:18095
+}
+
+handle /seller-staging/* {
+  uri replace /seller-staging /seller
+  reverse_proxy 127.0.0.1:18095
+}
+
+handle /shop-api-staging/* {
+  uri strip_prefix /shop-api-staging
+  reverse_proxy 127.0.0.1:18095
+}

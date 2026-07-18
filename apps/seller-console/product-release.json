@@ -1,0 +1,59 @@
+{
+  "productId": "ynx-seller-console",
+  "name": "YNX Seller Console",
+  "branch": "codex/ecosystem-shop",
+  "commit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
+  "version": "0.2.0-testnet-preview",
+  "surfaces": ["web"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": true,
+  "deployedPublic": false,
+  "downloadHosted": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [
+    "https://web4.ynxweb4.com/seller-staging/"
+  ],
+  "healthUrls": [
+    "https://web4.ynxweb4.com/shop-api-staging/health",
+    "https://web4.ynxweb4.com/shop-api-staging/version"
+  ],
+  "artifactUrls": [
+    "https://web4.ynxweb4.com/shop-staging/ynx-shop-release-38e2f68.tar.gz"
+  ],
+  "sha256": {
+    "linuxWebApiBundle": "dd2ac7aed00e5de3de8ad90f15b03a5f4c92a07c37464c9166075e818f9af527",
+    "linuxAmd64Shopd": "cf0063e9a645a58370044d00010594acb6298f637f17fc040ac0606c079f1dc8"
+  },
+  "bytes": {
+    "linuxWebApiBundle": 8644930,
+    "linuxAmd64Shopd": 19177656
+  },
+  "signingClass": "not-applicable-web",
+  "minOS": {
+    "web": "current evergreen browser"
+  },
+  "installEvidence": {
+    "web": {
+      "installed": false,
+      "reason": "Seller Console is a browser surface; staging deployment and remote smoke are the applicable runtime evidence."
+    }
+  },
+  "centralIntegration": {
+    "walletRegistryPatch": "internal/commerce/integration/seller-registry-v2.json",
+    "walletRegisteredDeployed": false,
+    "rolesImplemented": ["owner", "manager", "fulfillment", "support", "viewer"],
+    "auditImplemented": true,
+    "payBoundaryImplemented": true,
+    "trustBoundaryImplemented": true
+  },
+  "knownLimitations": [
+    "The deployed central Gateway does not yet contain the separate Seller v2 product registration, so sign-in and authenticated staging operations fail closed.",
+    "The shared Shop Pay merchant and payout configuration is not provisioned; refund approval cannot become refunded without authoritative committed Pay evidence.",
+    "Tax and carrier providers are intentionally unavailable; seller shipment entries remain manual-unverified."
+  ],
+  "generatedAt": "2026-07-18T14:11:03Z"
+}
