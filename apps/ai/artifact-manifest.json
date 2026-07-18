@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-ai",
+  "version": "1.0.0-testnet-preview",
+  "artifacts": [
+    {
+      "name": "YNX AI Android Testnet Preview",
+      "path": "apps/ai/mobile/android/app/build/outputs/apk/release/app-release.apk",
+      "mediaType": "application/vnd.android.package-archive",
+      "sha256": "feca84462a0ae16237bac4c783683958ecf590105345e8f0b205acb9f36501a5",
+      "bytes": 69735849,
+      "signingClass": "test-signed Android Debug certificate",
+      "downloadHosted": false,
+      "uploadReady": true
+    },
+    {
+      "name": "YNX AI iOS Simulator",
+      "path": "apps/ai/mobile/ios/YNXAI-simulator.zip",
+      "mediaType": "application/zip",
+      "sha256": null,
+      "bytes": null,
+      "signingClass": "unsigned Simulator",
+      "downloadHosted": false,
+      "uploadReady": false,
+      "producer": ".github/workflows/ynx-ai-mobile.yml"
+    }
+  ]
+}

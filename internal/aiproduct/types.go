@@ -92,6 +92,10 @@ type ActionRecord struct {
 	Scope             string    `json:"scope"`
 	Description       string    `json:"description"`
 	PayloadPreview    string    `json:"payloadPreview"`
+	Target            string    `json:"target"`
+	Risk              string    `json:"risk"`
+	Evidence          []string  `json:"evidence"`
+	Provider          string    `json:"provider"`
 	Status            string    `json:"status"`
 	GatewayID         string    `json:"gatewayId,omitempty"`
 	PermissionID      string    `json:"permissionId,omitempty"`

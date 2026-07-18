@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-ai",
+  "walletAuth": {
+    "status": "not-integrated-central",
+    "canonicalPackage": "@ynx-chain/wallet-auth",
+    "canonicalSourceBranch": "origin/codex/ecosystem-wallet-auth",
+    "registryEntry": "wallet-registry-entry.json",
+    "vector": "wallet-auth-vector.json",
+    "requiredVerifier": "verifyCentralWalletSession",
+    "requiredSessionGuard": "assertCentralWalletSessionActive",
+    "productionBehaviorUntilIntegrated": "fail-closed"
+  },
+  "aiGateway": {
+    "status": "not-integrated-central",
+    "requiredRoute": "POST /ai/stream",
+    "requestMediaType": "application/json",
+    "forbiddenTransport": "prompt in URL/query/log",
+    "patch": "central-ai-gateway-post.patch"
+  },
+  "claims": {
+    "integratedCentral": false,
+    "generationLive": false,
+    "reason": "Neither the canonical AI registry entry nor POST-body Gateway route exists on origin/main, and no provider-backed successful staging output is evidenced."
+  }
+}

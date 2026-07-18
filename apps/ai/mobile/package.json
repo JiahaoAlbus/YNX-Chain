@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts src/**/*.test.ts",
-    "product-check": "node scripts/product-check.mjs && node scripts/i18n-layout-check.mjs",
+    "product-check": "node scripts/product-check.mjs && node scripts/i18n-layout-check.mjs && node ../scripts/release-check.mjs",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run typecheck && npm test && npm run product-check && npm run bundle-check"
   },

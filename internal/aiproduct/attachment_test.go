@@ -2,6 +2,7 @@ package aiproduct
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -60,8 +61,12 @@ func TestAttachmentCipherTamperIsRejected(t *testing.T) {
 	_ = json.Unmarshal(raw, &doc)
 	attachments := doc["attachments"].(map[string]any)[c.ID].([]any)
 	item := attachments[0].(map[string]any)
-	cipher := item["cipher"].(string)
-	item["cipher"] = cipher[:len(cipher)-1] + "A"
+	ciphertext, err := base64.RawStdEncoding.DecodeString(item["cipher"].(string))
+	if err != nil || len(ciphertext) == 0 {
+		t.Fatalf("invalid fixture ciphertext: %v", err)
+	}
+	ciphertext[len(ciphertext)/2] ^= 0x01
+	item["cipher"] = base64.RawStdEncoding.EncodeToString(ciphertext)
 	mutated, _ := json.Marshal(doc)
 	if err := os.WriteFile(path, mutated, 0o600); err != nil {
 		t.Fatal(err)
@@ -83,5 +88,13 @@ func TestAttachmentRejectsOversizeAndUnsupportedType(t *testing.T) {
 	}
 	if _, err := store.AddAttachment("ynx1owner", c.ID, "run.sh", "application/x-sh", []byte("rm -rf /")); err == nil {
 		t.Fatal("unsupported attachment type accepted")
+	}
+	for i := 0; i < 8; i++ {
+		if _, err := store.AddAttachment("ynx1owner", c.ID, "bounded.txt", "text/plain", []byte("bounded")); err != nil {
+			t.Fatalf("attachment %d rejected before quantity bound: %v", i, err)
+		}
+	}
+	if _, err := store.AddAttachment("ynx1owner", c.ID, "ninth.txt", "text/plain", []byte("too many")); err == nil {
+		t.Fatal("ninth attachment was accepted")
 	}
 }

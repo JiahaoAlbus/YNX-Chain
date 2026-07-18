@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-ai",
+  "generatedAt": "2026-07-19T01:55:00+08:00",
+  "evidence": [
+    {
+      "requirement": "Wallet replay/tamper/restart/revoke local fixture behavior",
+      "source": "internal/aiproduct/formal_auth_test.go and internal/aiproduct/server_test.go",
+      "status": "tested-local-fixture-only",
+      "centralClaim": false
+    },
+    {
+      "requirement": "Production auth fail-closed before canonical integration",
+      "source": "TestProductionModeFailsClosedWithoutCanonicalAuth",
+      "status": "tested-local"
+    },
+    {
+      "requirement": "POST-body SSE, cancel, provider unavailable and 429 truth",
+      "source": "internal/aiproduct/server_test.go; internal/aiproduct/provider_stream_test.go; apps/ai/mobile/src/api.test.ts",
+      "status": "tested-local"
+    },
+    {
+      "requirement": "Encrypted persistence, attachment bounds/tamper, search and branch",
+      "source": "internal/aiproduct/attachment_test.go; TestConversationSearchAndEncryptedBranch",
+      "status": "tested-local"
+    },
+    {
+      "requirement": "12 locales and Arabic RTL formatting primitives",
+      "source": "apps/ai/mobile/src/i18n/catalog.test.ts; scripts/i18n-layout-check.mjs",
+      "status": "tested-local-static-and-unit"
+    },
+    {
+      "requirement": "Web responsive light/dark and fail-closed sign-in",
+      "source": "interactive in-app browser at local http://127.0.0.1:8096 on 2026-07-18",
+      "status": "inspected-local-not-durable-screenshot"
+    },
+    {
+      "requirement": "Android build, manifest, hash and signing class",
+      "source": "artifact-manifest.json; Gradle BUILD SUCCESSFUL; aapt/apksigner output",
+      "status": "built-verified-installed-cold-launched-restarted-and-deep-linked-on-task-owned-api36"
+    },
+    {
+      "requirement": "iOS Simulator build/install/cold launch/deep link/hash",
+      "source": ".github/workflows/ynx-ai-mobile.yml",
+      "status": "runnable-ci-not-yet-run"
+    },
+    {
+      "requirement": "Central Wallet/Gateway/provider",
+      "source": "apps/ai/integration/central-integration.json",
+      "status": "not-integrated-central"
+    }
+  ]
+}

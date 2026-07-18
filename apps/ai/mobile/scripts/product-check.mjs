@@ -19,7 +19,10 @@ assert.doesNotMatch(app,/WebView|react-native-webview/);
 assert.match(api,/xhr\.open\("POST"/);
 assert.match(api,/walletUrl/);
 assert.doesNotMatch(api,/\?prompt=|searchParams\.set\(["']prompt/);
-assert.doesNotMatch(manifest+debugManifest+optimizedManifest,/READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|SYSTEM_ALERT_WINDOW/);
+assert.doesNotMatch(manifest+debugManifest+optimizedManifest,/SYSTEM_ALERT_WINDOW/);
+for(const permission of ["READ_EXTERNAL_STORAGE","WRITE_EXTERNAL_STORAGE"]){
+  assert.match(manifest,new RegExp(`<uses-permission[^>]+${permission}[^>]+tools:node="remove"`),`${permission} must be removed from the merged manifest`);
+}
 assert.doesNotMatch(app+api,/OPENAI_API_KEY|ANTHROPIC_API_KEY|sk-[A-Za-z0-9]/);
 const nativeDirs=await Promise.all(["android","ios"].map(async value=>{try{return (await readdir(new URL(`../${value}`,import.meta.url))).length>0}catch{return false}}));
 if(process.env.REQUIRE_NATIVE_PROJECTS==="1") assert.ok(nativeDirs.every(Boolean),"Android and iOS native projects are required");

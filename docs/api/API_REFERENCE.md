@@ -266,3 +266,18 @@ AI Gateway permission and audit:
 - `POST /ai/actions/{id}/reject`, `GET /ai/actions?sessionId=...`, and `GET /ai/actions/{id}` expose auditable review state without bypassing YNX Chain Law.
 - BFT compatibility also exposes `GET /ai/permissions` and `GET /ai/audit`. BFT mutation responses carry signer, committed transaction hash, block height, block-time timestamps, and record audit hashes. The BFT Gateway verifies Comet hash, block membership, action type, signer, nonce, record ID, and final ABCI state before returning success.
 - Remote public proof must show independent gateway health and release identity, authenticated SSE with request/session evidence, a sensitive action proposal remaining non-executable until a matching scoped permission approval, then active permission audit, approved executable state, and audited gateway lookup/list on public endpoints.
+
+YNX AI independent product API (local implementation; not centrally deployed):
+
+- `GET /healthz` is process liveness and build/truth metadata. It currently reports `integratedCentral=false` and `generationLive=false`.
+- `GET /api/meta` returns product `ynx-ai`, network `ynx_6423-1`, bundle callback/scopes, build identity, fixture-auth state, and the provider truth boundary.
+- Production-default auth registers no product-local login endpoints. Setting `YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=1` exposes the legacy/formal fixture routes for isolated tests only; this mode is forbidden in staging/production.
+- `GET /api/conversations?archived=false&q=...` lists or searches title and encrypted message content after account-bound authentication. Search text is bounded to 120 characters.
+- `POST /api/conversations`, `GET/PATCH/DELETE /api/conversations/{id}`, `GET /api/conversations/{id}/export`, and `POST /api/conversations/{id}/branch` implement create/select/rename/archive/delete/export and independently encrypted branch creation.
+- Attachment list/create/delete routes are nested under `/api/conversations/{id}/attachments`; text/plain, Markdown, and JSON are limited to 256 KiB each and eight per conversation.
+- `POST /api/conversations/{id}/generate` accepts one bounded JSON body with `generationId`, prompt or `continueFrom`, provider/model selection, included/excluded context, output language, and selected attachment IDs. It calls only Gateway `POST /ai/stream`, returns SSE, and never substitutes content for unavailable/429/empty/interrupted provider responses.
+- `POST /api/generations/{id}/cancel` cancels only a currently registered generation.
+- `/api/permissions` and `/api/actions` require exact permission boundaries. Action preview requires scope, target, payload, risk, evidence and provider. Review persists reject or `approved_not_executed`; chain action approval still requires a separate Wallet transaction review/signature.
+- `/api/privacy`, `/api/privacy/data`, `/api/audit`, `/api/usage`, and `/api/appeals` expose retention/context controls, confirmed delete-all, local linked audit, estimated usage with truthful unknown fields, and Trust appeal references.
+
+This API is not `integrated-central`. The exact Wallet registry/vector and central POST-body Gateway patches are under `apps/ai/integration/`.

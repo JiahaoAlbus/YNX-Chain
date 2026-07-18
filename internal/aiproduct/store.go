@@ -204,6 +204,43 @@ func (s *Store) ListConversations(account string, archived bool) []Conversation 
 	return out
 }
 
+func (s *Store) SearchConversations(account, query string, archived bool) ([]Conversation, error) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		return s.ListConversations(account, archived), nil
+	}
+	if len([]rune(query)) > 120 {
+		return nil, errors.New("search query exceeds 120 characters")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.purgeLocked()
+	out := []Conversation{}
+	for _, c := range s.state.Conversations {
+		if c.Account != account || c.Archived != archived {
+			continue
+		}
+		matched := strings.Contains(strings.ToLower(c.Title), query)
+		if !matched {
+			for _, stored := range s.state.Messages[c.ID] {
+				plain, err := s.decrypt(account, stored)
+				if err != nil {
+					return nil, err
+				}
+				if strings.Contains(strings.ToLower(plain), query) {
+					matched = true
+					break
+				}
+			}
+		}
+		if matched {
+			out = append(out, c)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out, nil
+}
+
 func (s *Store) Conversation(account, id string) (Conversation, []Message, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -266,6 +303,63 @@ func (s *Store) DeleteConversation(account, id string) error {
 	delete(s.state.Conversations, id)
 	s.auditLocked(account, "conversation_deleted", id, "encrypted content and metadata removed")
 	return s.saveLocked()
+}
+
+// BranchConversation creates a new encrypted conversation containing messages up
+// to and including throughMessageID. Every message receives a fresh identifier
+// and AEAD nonce so the branch cannot alias ciphertext or later mutations.
+func (s *Store) BranchConversation(account, id, throughMessageID, title string) (Conversation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	source, ok := s.state.Conversations[id]
+	if !ok || source.Account != account {
+		return Conversation{}, os.ErrNotExist
+	}
+	items := s.state.Messages[id]
+	limit := len(items)
+	if throughMessageID != "" {
+		limit = -1
+		for i, item := range items {
+			if item.ID == throughMessageID {
+				limit = i + 1
+				break
+			}
+		}
+		if limit < 0 {
+			return Conversation{}, errors.New("branch message not found")
+		}
+	}
+	if title = boundedText(title, 120); title == "" {
+		title = boundedText(source.Title+" — branch", 120)
+	}
+	now := s.now().UTC()
+	p := s.policyLocked(account)
+	branch := Conversation{ID: randomID("conv"), Account: account, Title: title, CreatedAt: now, UpdatedAt: now, RetentionDays: p.RetentionDays}
+	s.state.Conversations[branch.ID] = branch
+	for _, stored := range items[:limit] {
+		plain, err := s.decrypt(account, stored)
+		if err != nil {
+			delete(s.state.Conversations, branch.ID)
+			delete(s.state.Messages, branch.ID)
+			return Conversation{}, err
+		}
+		m := stored.Message
+		m.ID, m.ConversationID, m.CreatedAt = randomID("msg"), branch.ID, now
+		nonce, cipherText, err := s.encrypt(account, branch.ID, m.ID, plain)
+		if err != nil {
+			delete(s.state.Conversations, branch.ID)
+			delete(s.state.Messages, branch.ID)
+			return Conversation{}, err
+		}
+		s.state.Messages[branch.ID] = append(s.state.Messages[branch.ID], storedMessage{Message: m, Nonce: nonce, Cipher: cipherText})
+		branch.MessageCount++
+	}
+	if branch.MessageCount > 0 {
+		branch.LastPreview = "Branched messages encrypted"
+	}
+	s.state.Conversations[branch.ID] = branch
+	s.auditLocked(account, "conversation_branched", branch.ID, fmt.Sprintf("source=%s messages=%d", id, branch.MessageCount))
+	return branch, s.saveLocked()
 }
 
 func (s *Store) AddAttachment(account, conversationID, name, mimeType string, data []byte) (Attachment, error) {
@@ -466,6 +560,16 @@ func (s *Store) Permissions(account string) []PermissionRecord {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
 	return out
+}
+func (s *Store) PermissionByGatewayID(account, gatewayID string) (PermissionRecord, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, record := range s.state.Permissions {
+		if record.Account == account && record.GatewayID == gatewayID {
+			return record, true
+		}
+	}
+	return PermissionRecord{}, false
 }
 func (s *Store) SaveAction(record ActionRecord) error {
 	s.mu.Lock()

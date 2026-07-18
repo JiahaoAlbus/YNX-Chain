@@ -1,0 +1,113 @@
+name: YNX AI mobile release evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ecosystem-ai]
+    paths:
+      - "apps/ai/mobile/**"
+      - ".github/workflows/ynx-ai-mobile.yml"
+  pull_request:
+    paths:
+      - "apps/ai/mobile/**"
+      - ".github/workflows/ynx-ai-mobile.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/ai/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Install CocoaPods
+        run: cd ios && pod install
+      - name: Select and boot an available iOS Simulator
+        id: simulator
+        run: |
+          UDID=$(xcrun simctl list devices available --json | jq -r '[.devices[][] | select(.isAvailable == true)][0].udid')
+          test -n "$UDID" -a "$UDID" != "null"
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+      - name: Build unsigned Simulator app
+        run: |
+          xcodebuild \
+            -workspace ios/YNXAI.xcworkspace \
+            -scheme YNXAI \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath ios/build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Install, cold launch, restart, and deep-link
+        run: |
+          APP=ios/build/DerivedData/Build/Products/Release-iphonesimulator/YNXAI.app
+          test -d "$APP"
+          xcrun simctl install "${{ steps.simulator.outputs.udid }}" "$APP"
+          xcrun simctl terminate "${{ steps.simulator.outputs.udid }}" com.ynxweb4.ai 2>/dev/null || true
+          xcrun simctl launch "${{ steps.simulator.outputs.udid }}" com.ynxweb4.ai
+          xcrun simctl terminate "${{ steps.simulator.outputs.udid }}" com.ynxweb4.ai
+          xcrun simctl launch "${{ steps.simulator.outputs.udid }}" com.ynxweb4.ai
+          xcrun simctl openurl "${{ steps.simulator.outputs.udid }}" "ynxai://wallet-auth/callback?fixture=invalid"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" ios/YNXAI-simulator.zip
+          shasum -a 256 ios/YNXAI-simulator.zip | tee ios/YNXAI-simulator.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-ai-ios-simulator-${{ github.sha }}
+          path: |
+            apps/ai/mobile/ios/YNXAI-simulator.zip
+            apps/ai/mobile/ios/YNXAI-simulator.sha256
+          if-no-files-found: error
+
+  android-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/ai/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Build preview APK
+        env:
+          NODE_ENV: production
+        run: cd android && ./gradlew :app:assembleRelease --console=plain
+      - name: Verify manifest, signing class, and hash
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          test -f "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee android/app-release-signing.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee android/app-release-badging.txt
+          shasum -a 256 "$APK" | tee android/app-release.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-ai-android-preview-${{ github.sha }}
+          path: |
+            apps/ai/mobile/android/app/build/outputs/apk/release/app-release.apk
+            apps/ai/mobile/android/app-release-signing.txt
+            apps/ai/mobile/android/app-release-badging.txt
+            apps/ai/mobile/android/app-release.sha256
+          if-no-files-found: error

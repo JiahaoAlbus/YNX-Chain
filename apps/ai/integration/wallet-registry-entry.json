@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-ai-v1",
+  "requestingProduct": "ai",
+  "bundleId": "com.ynxweb4.ai",
+  "callbacks": [
+    "ynxai://wallet-auth/callback"
+  ],
+  "scopes": [
+    "ai:actions",
+    "ai:attachments",
+    "ai:conversations",
+    "ai:data-control",
+    "ai:generate",
+    "ai:permissions"
+  ],
+  "maxScopes": 6,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ]
+}

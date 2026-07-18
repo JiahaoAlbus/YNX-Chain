@@ -1,0 +1,69 @@
+{
+  "productId": "ynx-ai",
+  "name": "YNX AI",
+  "branch": "codex/ecosystem-ai",
+  "commit": "pending-release-commit",
+  "version": "1.0.0-testnet-preview",
+  "surfaces": [
+    "web",
+    "android",
+    "ios"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "installedPlatforms": [
+    "android",
+    "web-local"
+  ],
+  "notInstalledPlatforms": [
+    "ios"
+  ],
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "generationLive": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "androidTestnetPreviewApk": "feca84462a0ae16237bac4c783683958ecf590105345e8f0b205acb9f36501a5",
+    "iosSimulatorZip": null
+  },
+  "bytes": {
+    "androidTestnetPreviewApk": 69735849,
+    "iosSimulatorZip": null
+  },
+  "signingClass": {
+    "android": "test-signed: Android Debug certificate; not production-signed",
+    "ios": "unsigned Simulator build via runnable macOS CI; no local Xcode",
+    "web": "not applicable"
+  },
+  "minOS": {
+    "android": "API 24",
+    "ios": "iOS 16.4",
+    "web": "modern evergreen browser"
+  },
+  "installEvidence": {
+    "android": "Current APK feca8446...501a5 installed on the task-owned API 36 emulator-5582. Package metadata, ordinary cold launch, force-stop/restart, exact callback deep link cold launch, top-resumed MainActivity, and live process were verified.",
+    "ios": "Not installed locally: host has Command Line Tools only. .github/workflows/ynx-ai-mobile.yml performs build/install/cold launch/restart/deep link and hash on macOS.",
+    "web": "Local process /healthz and responsive light/dark browser rendering verified; no remote staging URL."
+  },
+  "centralIntegration": {
+    "walletAuth": "not integrated; exact schema-v2 entry/vector/patch supplied under apps/ai/integration; production local-auth routes fail closed by default",
+    "aiGateway": "not integrated; origin/main exposes GET query-prompt route while product requires POST JSON body",
+    "provider": "no provider-backed successful staging output evidenced; generationLive=false"
+  },
+  "knownLimitations": [
+    "Canonical Wallet Auth AI registry and verifier are not merged or deployed.",
+    "Central AI Gateway POST-body stream contract is not merged or deployed.",
+    "No staging/public URL, hosted download, production signing, or store release exists.",
+    "No true provider success is claimed; current central provider evidence reports quota/rate-limit failure.",
+    "Local host lacks Xcode; iOS evidence depends on the runnable CI workflow and is not yet a successful run.",
+    "Durable screenshot coverage is incomplete; browser light/dark/mobile failure states were inspected interactively."
+  ],
+  "generatedAt": "2026-07-19T01:55:00+08:00"
+}

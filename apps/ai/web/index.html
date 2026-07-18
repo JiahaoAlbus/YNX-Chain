@@ -7,6 +7,7 @@
   <title>YNX AI</title>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/actions.css">
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
   <div id="signin" class="auth-shell">
@@ -15,6 +16,7 @@
       <p class="eyebrow">YNX AI · permissioned intelligence</p>
       <h1 id="auth-title">Bring your Wallet.<br>Keep your authority.</h1>
       <p class="lede">Sign in proves account and device control. It never grants signing, transfer, publishing, sending, permission changes, or freezing authority.</p>
+      <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
       <form id="challenge-form" class="auth-grid">
         <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
         <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
@@ -55,6 +57,7 @@
         <button id="new-conversation" class="icon-button" aria-label="New conversation">＋</button>
       </header>
       <div class="session-tabs" role="tablist"><button class="active" data-archive="false">Active</button><button data-archive="true">Archive</button></div>
+      <label class="search-label"><span>Search</span><input id="conversation-search" type="search" maxlength="120" placeholder="Title or encrypted content"></label>
       <div id="conversation-list" class="conversation-list"></div>
       <div class="account-chip"><span class="live-dot"></span><div><strong id="account-label">ynx1…</strong><small>Wallet-bound session</small></div></div>
     </aside>
@@ -63,7 +66,7 @@
       <header class="topbar">
         <div><p id="conversation-kicker" class="eyebrow">No conversation selected</p><h1 id="conversation-title">A clear boundary for every answer.</h1></div>
         <div class="topbar-actions">
-          <div id="conversation-actions" class="conversation-actions hidden"><button id="rename-conversation" class="text-button">Rename</button><button id="archive-conversation" class="text-button">Archive</button><button id="export-conversation" class="text-button">Export</button><button id="delete-conversation" class="text-button danger-text">Delete</button></div>
+          <div id="conversation-actions" class="conversation-actions hidden"><button id="rename-conversation" class="text-button">Rename</button><button id="branch-conversation" class="text-button">Branch</button><button id="archive-conversation" class="text-button">Archive</button><button id="export-conversation" class="text-button">Export</button><button id="delete-conversation" class="text-button danger-text">Delete</button></div>
           <div class="provider-pill"><span id="provider-dot" class="status-dot"></span><div><strong id="provider-label">Checking provider</strong><small id="model-label">Quota unknown</small></div></div>
         </div>
       </header>

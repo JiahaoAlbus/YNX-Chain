@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 type Config struct {
@@ -28,6 +30,8 @@ type Config struct {
 	OutputUSDPerMillion     float64
 	ResourceUnitsPerKTokens int64
 	GenerationTimeout       time.Duration
+	Build                   buildinfo.Info
+	AllowLocalFixtureAuth   bool
 }
 
 type Server struct {
@@ -42,6 +46,7 @@ type Server struct {
 }
 
 func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
+	cfg.Build = buildinfo.Normalize(cfg.Build)
 	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
 	parsed, err := url.Parse(cfg.GatewayURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || parsed.User != nil {
@@ -70,12 +75,15 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
-	s.mux.HandleFunc("POST /api/auth/challenges", s.handleChallenge)
-	s.mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleVerify)
-	s.mux.HandleFunc("POST /api/auth/wallet/requests", s.handleFormalWalletRequest)
-	s.mux.HandleFunc("POST /api/auth/wallet/approvals", s.handleFormalWalletApproval)
-	s.mux.HandleFunc("POST /api/auth/wallet/sessions", s.handleFormalWalletSession)
+	if s.cfg.AllowLocalFixtureAuth {
+		s.mux.HandleFunc("POST /api/auth/challenges", s.handleChallenge)
+		s.mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleVerify)
+		s.mux.HandleFunc("POST /api/auth/wallet/requests", s.handleFormalWalletRequest)
+		s.mux.HandleFunc("POST /api/auth/wallet/approvals", s.handleFormalWalletApproval)
+		s.mux.HandleFunc("POST /api/auth/wallet/sessions", s.handleFormalWalletSession)
+	}
 	s.mux.HandleFunc("POST /api/auth/revoke", s.authed("", s.handleRevoke))
 	s.mux.HandleFunc("GET /api/provider", s.authed("ai:generate", s.handleProvider))
 	s.mux.HandleFunc("GET /api/usage", s.authed("ai:data-control", s.handleUsage))
@@ -84,6 +92,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationGet))
 	s.mux.HandleFunc("PATCH /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationPatch))
 	s.mux.HandleFunc("DELETE /api/conversations/{id}", s.authed("ai:conversations", s.handleConversationDelete))
+	s.mux.HandleFunc("POST /api/conversations/{id}/branch", s.authed("ai:conversations", s.handleConversationBranch))
 	s.mux.HandleFunc("GET /api/conversations/{id}/attachments", s.authed("ai:attachments", s.handleAttachmentList))
 	s.mux.HandleFunc("POST /api/conversations/{id}/attachments", s.authed("ai:attachments", s.handleAttachmentCreate))
 	s.mux.HandleFunc("DELETE /api/conversations/{id}/attachments/{attachmentId}", s.authed("ai:attachments", s.handleAttachmentDelete))
@@ -158,7 +167,11 @@ func (s *Server) allow(key string, limit int, now time.Time) bool {
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "build": s.cfg.Build, "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": "production canonical integration pending; sign-in fails closed unless explicit local fixture mode is enabled", "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "build": s.cfg.Build, "integratedCentral": false, "generationLive": false, "status": "local product process healthy; canonical Wallet/Gateway deployment not claimed"})
 }
 func (s *Server) handleChallenge(w http.ResponseWriter, r *http.Request) {
 	var in ChallengeInput
@@ -252,23 +265,32 @@ func (s *Server) gatewayRequest(ctx context.Context, method, path string, body a
 func (s *Server) providerStatus(ctx context.Context) map[string]any {
 	resp, err := s.gatewayRequest(ctx, http.MethodGet, "/health", nil)
 	if err != nil {
-		return map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway is unreachable", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
+		return s.providerTruth(map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway is unreachable"})
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return map[string]any{"available": false, "status": "rate_limited", "error": "AI provider quota reached (429)", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
+		return s.providerTruth(map[string]any{"available": false, "status": "rate_limited", "error": "AI provider quota reached (429)"})
 	}
 	var health map[string]any
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&health); err != nil {
-		return map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway returned an invalid health response", "quotaKnown": false, "quota": "not reported by provider", "provider": s.cfg.ProviderName}
+		return s.providerTruth(map[string]any{"available": false, "status": "unavailable", "error": "YNX AI Gateway returned an invalid health response"})
 	}
 	available := resp.StatusCode == http.StatusOK && health["ok"] == true
 	health["available"] = available
 	health["status"] = map[bool]string{true: "available", false: "unavailable"}[available]
-	health["quotaKnown"] = false
-	health["quota"] = "not reported by provider"
-	health["provider"] = s.cfg.ProviderName
-	return health
+	return s.providerTruth(health)
+}
+
+func (s *Server) providerTruth(status map[string]any) map[string]any {
+	status["provider"] = s.cfg.ProviderName
+	status["quotaKnown"] = false
+	status["quota"] = "not reported by provider"
+	status["capabilitiesKnown"] = false
+	status["capabilities"] = []string{}
+	status["modelCatalogKnown"] = false
+	status["usageMetadataKnown"] = false
+	status["streamTransport"] = "product supports SSE; provider capability catalog not reported by Gateway"
+	return status
 }
 func (s *Server) handleProvider(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	status := s.providerStatus(r.Context())
@@ -288,7 +310,28 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request, session Pro
 
 func (s *Server) handleConversationList(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	archived, _ := strconv.ParseBool(r.URL.Query().Get("archived"))
-	writeJSON(w, http.StatusOK, map[string]any{"conversations": s.store.ListConversations(session.Account, archived)})
+	conversations, err := s.store.SearchConversations(session.Account, r.URL.Query().Get("q"), archived)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"conversations": conversations})
+}
+
+func (s *Server) handleConversationBranch(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	var in struct {
+		ThroughMessageID string `json:"throughMessageId"`
+		Title            string `json:"title"`
+	}
+	if !decodeJSON(w, r, &in, 8<<10) {
+		return
+	}
+	branch, err := s.store.BranchConversation(session.Account, r.PathValue("id"), boundedText(in.ThroughMessageID, 120), in.Title)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, branch)
 }
 func (s *Server) handleConversationCreate(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	var in struct {
@@ -397,6 +440,7 @@ type generationInput struct {
 	RetryOf         string   `json:"retryOf"`
 	OutputLanguage  string   `json:"outputLanguage"`
 	AttachmentIDs   []string `json:"attachmentIds,omitempty"`
+	ContinueFrom    string   `json:"continueFrom,omitempty"`
 }
 
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session ProductSession) {
@@ -406,6 +450,18 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	}
 	in.GenerationID = boundedText(in.GenerationID, 100)
 	in.Prompt = strings.TrimSpace(in.Prompt)
+	in.ContinueFrom = boundedText(in.ContinueFrom, 120)
+	if in.Prompt == "" && in.ContinueFrom != "" {
+		_, messages, err := s.store.Conversation(session.Account, r.PathValue("id"))
+		if err == nil {
+			for _, message := range messages {
+				if message.ID == in.ContinueFrom && message.Role == "assistant" && message.Status == "complete" {
+					in.Prompt = "Continue the previous response without repeating it."
+					break
+				}
+			}
+		}
+	}
 	if in.GenerationID == "" || in.Prompt == "" {
 		writeError(w, http.StatusBadRequest, "generationId and prompt are required")
 		return
@@ -428,6 +484,10 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	policy := s.store.Policy(session.Account)
 	if err := validateContext(policy, in.IncludedContext, in.ExcludedContext); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(cleanList(in.AttachmentIDs)) > 0 && !listContains(cleanList(in.IncludedContext), "selected_files") {
+		writeError(w, http.StatusBadRequest, "attachmentIds require selected_files in includedContext")
 		return
 	}
 	attachments, err := s.store.AttachmentContexts(session.Account, r.PathValue("id"), in.AttachmentIDs)
@@ -465,7 +525,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	payload := map[string]any{"session": r.PathValue("id"), "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments}
+	payload := map[string]any{"session": r.PathValue("id"), "prompt": in.Prompt, "outputLanguage": in.OutputLanguage, "includedContext": cleanList(in.IncludedContext), "excludedContext": cleanList(in.ExcludedContext), "attachments": attachments, "continueFrom": in.ContinueFrom}
 	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
 	if err != nil {
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)
@@ -495,40 +555,13 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	}
 	writeSSE(w, "metadata", map[string]any{"generationId": in.GenerationID, "provider": s.cfg.ProviderName, "model": model, "actualUsageReported": false})
 	flusher.Flush()
-	scanner := bufio.NewScanner(resp.Body)
-	scanner.Buffer(make([]byte, 4096), 1<<20)
-	event := ""
 	answer := strings.Builder{}
-	requestID := ""
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "event:") {
-			event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-			continue
-		}
-		if !strings.HasPrefix(line, "data:") {
-			continue
-		}
-		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-		switch event {
-		case "metadata":
-			var meta map[string]any
-			_ = json.Unmarshal([]byte(data), &meta)
-			requestID, _ = meta["requestId"].(string)
-		case "token":
-			var token struct {
-				Text string `json:"text"`
-			}
-			if json.Unmarshal([]byte(data), &token) == nil && token.Text != "" {
-				answer.WriteString(token.Text)
-				writeSSE(w, "token", token)
-				flusher.Flush()
-			}
-		case "done":
-			event = "done"
-		}
-	}
-	if err := scanner.Err(); err != nil || ctx.Err() != nil {
+	stream, streamErr := consumeProviderSSE(resp.Body, func(text string) {
+		answer.WriteString(text)
+		writeSSE(w, "token", map[string]string{"text": text})
+		flusher.Flush()
+	})
+	if streamErr != nil || ctx.Err() != nil {
 		s.streamFailureAfterStart(w, flusher, "Generation interrupted. Retry is available; no completion was claimed.", in.GenerationID)
 		return
 	}
@@ -537,7 +570,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	cost := s.estimateCost(in.Prompt, answer.String())
-	assistant := Message{Role: "assistant", Content: answer.String(), Status: "complete", Provider: s.cfg.ProviderName, Model: model, RequestID: requestID, RetryOf: in.RetryOf, IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), Cost: cost}
+	assistant := Message{Role: "assistant", Content: answer.String(), Status: "complete", Provider: s.cfg.ProviderName, Model: model, RequestID: stream.RequestID, RetryOf: in.RetryOf, IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), Cost: cost}
 	saved, err := s.store.AddMessage(session.Account, r.PathValue("id"), assistant)
 	if err != nil {
 		s.streamFailureAfterStart(w, flusher, "Response arrived but encrypted persistence failed.", in.GenerationID)
@@ -545,6 +578,91 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	}
 	writeSSE(w, "done", map[string]any{"generationId": in.GenerationID, "messageId": saved.ID, "cost": cost})
 	flusher.Flush()
+}
+
+type providerStreamResult struct {
+	RequestID string
+}
+
+func consumeProviderSSE(reader io.Reader, onToken func(string)) (providerStreamResult, error) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 4096), 1<<20)
+	event := ""
+	data := []string{}
+	terminal := false
+	result := providerStreamResult{}
+	deliver := func() error {
+		if event == "" && len(data) == 0 {
+			return nil
+		}
+		if terminal {
+			return errors.New("provider stream contained data after terminal event")
+		}
+		joined := strings.Join(data, "\n")
+		switch event {
+		case "metadata":
+			var meta struct {
+				RequestID string `json:"requestId"`
+			}
+			if json.Unmarshal([]byte(joined), &meta) != nil || strings.TrimSpace(meta.RequestID) == "" {
+				return errors.New("provider stream metadata is invalid")
+			}
+			result.RequestID = boundedText(meta.RequestID, 160)
+		case "token":
+			var token struct {
+				Text string `json:"text"`
+			}
+			if json.Unmarshal([]byte(joined), &token) != nil || token.Text == "" {
+				return errors.New("provider stream token is invalid")
+			}
+			onToken(token.Text)
+		case "done":
+			if joined != "" {
+				var value any
+				if json.Unmarshal([]byte(joined), &value) != nil {
+					return errors.New("provider stream terminal event is invalid")
+				}
+			}
+			terminal = true
+		case "error":
+			return errors.New("provider stream returned an error event")
+		default:
+			return errors.New("provider stream event is unsupported")
+		}
+		return nil
+	}
+	for scanner.Scan() {
+		line := strings.TrimSuffix(scanner.Text(), "\r")
+		if line == "" {
+			if err := deliver(); err != nil {
+				return providerStreamResult{}, err
+			}
+			event, data = "", data[:0]
+			continue
+		}
+		if strings.HasPrefix(line, ":") {
+			continue
+		}
+		if strings.HasPrefix(line, "event:") {
+			event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			continue
+		}
+		if strings.HasPrefix(line, "data:") {
+			data = append(data, strings.TrimSpace(strings.TrimPrefix(line, "data:")))
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return providerStreamResult{}, err
+	}
+	if event != "" || len(data) != 0 {
+		if err := deliver(); err != nil {
+			return providerStreamResult{}, err
+		}
+	}
+	if !terminal || result.RequestID == "" {
+		return providerStreamResult{}, errors.New("provider stream ended without metadata and done")
+	}
+	return result, nil
 }
 
 func (s *Server) streamFailure(w http.ResponseWriter, message, generationID string) {
@@ -644,11 +762,15 @@ func (s *Server) handlePermissionList(w http.ResponseWriter, r *http.Request, se
 
 func (s *Server) handleActionCreate(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	var in struct {
-		ConversationID string `json:"conversationId"`
-		Kind           string `json:"kind"`
-		Scope          string `json:"scope"`
-		Description    string `json:"description"`
-		PayloadPreview string `json:"payloadPreview"`
+		ConversationID string   `json:"conversationId"`
+		Kind           string   `json:"kind"`
+		Scope          string   `json:"scope"`
+		Description    string   `json:"description"`
+		PayloadPreview string   `json:"payloadPreview"`
+		Target         string   `json:"target"`
+		Risk           string   `json:"risk"`
+		Evidence       []string `json:"evidence"`
+		Provider       string   `json:"provider"`
 	}
 	if !decodeJSON(w, r, &in, 32<<10) {
 		return
@@ -660,6 +782,25 @@ func (s *Server) handleActionCreate(w http.ResponseWriter, r *http.Request, sess
 	if boundedText(in.Description, 500) == "" || boundedText(in.Scope, 80) == "" {
 		writeError(w, http.StatusBadRequest, "scope and description are required")
 		return
+	}
+	if boundedText(in.Target, 240) == "" || boundedText(in.PayloadPreview, 1000) == "" || boundedText(in.Provider, 120) == "" {
+		writeError(w, http.StatusBadRequest, "target, provider, and exact payloadPreview are required")
+		return
+	}
+	if in.Risk != "low" && in.Risk != "medium" && in.Risk != "high" && in.Risk != "critical" {
+		writeError(w, http.StatusBadRequest, "risk must be low, medium, high, or critical")
+		return
+	}
+	if len(in.Evidence) > 12 {
+		writeError(w, http.StatusBadRequest, "at most 12 evidence references are allowed")
+		return
+	}
+	evidence := cleanList(in.Evidence)
+	for _, item := range evidence {
+		if len([]rune(item)) > 240 {
+			writeError(w, http.StatusBadRequest, "evidence reference exceeds 240 characters")
+			return
+		}
 	}
 	payload := map[string]any{"sessionId": in.ConversationID, "requester": session.Account, "scope": in.Scope, "actionType": in.Kind, "description": in.Description, "expiryHours": 1}
 	resp, err := s.gatewayRequest(r.Context(), http.MethodPost, "/ai/actions", payload)
@@ -678,7 +819,7 @@ func (s *Server) handleActionCreate(w http.ResponseWriter, r *http.Request, sess
 		return
 	}
 	gatewayID, _ := gateway["id"].(string)
-	record := ActionRecord{ID: randomID("action"), Account: session.Account, ConversationID: in.ConversationID, Kind: in.Kind, Scope: in.Scope, Description: boundedText(in.Description, 500), PayloadPreview: boundedText(in.PayloadPreview, 1000), Status: "pending_review", GatewayID: gatewayID, WalletStillNeeded: in.Kind == "chain_action", CreatedAt: time.Now().UTC()}
+	record := ActionRecord{ID: randomID("action"), Account: session.Account, ConversationID: in.ConversationID, Kind: in.Kind, Scope: boundedText(in.Scope, 80), Description: boundedText(in.Description, 500), PayloadPreview: boundedText(in.PayloadPreview, 1000), Target: boundedText(in.Target, 240), Risk: in.Risk, Evidence: evidence, Provider: boundedText(in.Provider, 120), Status: "pending_review", GatewayID: gatewayID, WalletStillNeeded: in.Kind == "chain_action", CreatedAt: time.Now().UTC()}
 	if err := s.store.SaveAction(record); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -710,6 +851,11 @@ func (s *Server) handleActionReview(w http.ResponseWriter, r *http.Request, sess
 	if in.Decision == "approve" {
 		if in.PermissionGatewayID == "" {
 			writeError(w, http.StatusBadRequest, "explicit permissionGatewayId is required for approval")
+			return
+		}
+		permission, found := s.store.PermissionByGatewayID(session.Account, in.PermissionGatewayID)
+		if !found || permission.Status != "active" || !permission.ExpiresAt.After(time.Now().UTC()) || permission.Scope != record.Scope || permission.SessionID != record.ConversationID {
+			writeError(w, http.StatusForbidden, "active unexpired permission for this account, conversation, and exact scope is required")
 			return
 		}
 		payload["permissionId"] = in.PermissionGatewayID
@@ -817,6 +963,14 @@ func cleanList(values []string) []string {
 		}
 	}
 	return out
+}
+func listContains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 func supportedOutputLanguage(value string) bool {
 	switch value {

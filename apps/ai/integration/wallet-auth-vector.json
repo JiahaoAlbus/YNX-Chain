@@ -1,0 +1,27 @@
+{
+  "description": "AI-specific canonical request digest vector. Evaluate with verifier time 2030-01-01T00:00:01.000Z.",
+  "canonicalPackageRef": "origin/codex/ecosystem-wallet-auth:packages/wallet-auth",
+  "request": {
+    "version": "1",
+    "nonce": "0123456789abcdefghijklmnopqrstuv",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "ai",
+    "productClientId": "ynx-ai-v1",
+    "bundleId": "com.ynxweb4.ai",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "A2sX0fLhLEJH-Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW",
+    "callback": "ynxai://wallet-auth/callback",
+    "scopes": [
+      "ai:actions",
+      "ai:attachments",
+      "ai:conversations",
+      "ai:data-control",
+      "ai:generate",
+      "ai:permissions"
+    ],
+    "purpose": "Sign in to YNX AI. No signing, transfer, publish, send, permission-change, freeze, or recovery authority.",
+    "issuedAt": "2030-01-01T00:00:00.000Z",
+    "expiresAt": "2030-01-01T00:05:00.000Z"
+  },
+  "expectedRequestDigest": "53117be0f029c70dd7013aafc018d23180fb1b60b61a9556bc6453d231a858bc"
+}

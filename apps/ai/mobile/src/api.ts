@@ -16,14 +16,16 @@ async function request<T>(path:string,init:RequestInit={},session?:Session):Prom
   return (response.status===204?undefined:await response.json()) as T;
 }
 export const api={
+  meta:()=>request<{integratedCentral:boolean;localFixtureAuthEnabled:boolean;walletAuthMode:string}>("/api/meta"),
   createWalletRequest:(productDeviceKey:string)=>request<{request:unknown;requestDigest:string;walletUrl:string}>("/api/auth/wallet/requests",{method:"POST",body:JSON.stringify({productDeviceKey})}),
   approveWallet:(response:unknown)=>request<{challenge:import("./walletProtocol").GatewayChallenge}>("/api/auth/wallet/approvals",{method:"POST",body:JSON.stringify({response})}),
   completeWallet:(completion:unknown)=>request<{token:string;deviceId:string;account:string;scopes:string[]}>("/api/auth/wallet/sessions",{method:"POST",body:JSON.stringify(completion)}),
-  conversations:(session:Session,archived=false)=>request<{conversations:Conversation[]}>(`/api/conversations?archived=${archived}`,{},session),
+  conversations:(session:Session,archived=false,query="")=>request<{conversations:Conversation[]}>(`/api/conversations?archived=${archived}&q=${encodeURIComponent(query)}`,{},session),
   createConversation:(session:Session,title:string)=>request<Conversation>("/api/conversations",{method:"POST",body:JSON.stringify({title})},session),
   conversation:(session:Session,id:string)=>request<{conversation:Conversation;messages:Message[]}>(`/api/conversations/${encodeURIComponent(id)}`,{},session),
   patchConversation:(session:Session,id:string,value:{title?:string;archived?:boolean})=>request<Conversation>(`/api/conversations/${encodeURIComponent(id)}`,{method:"PATCH",body:JSON.stringify(value)},session),
   deleteConversation:(session:Session,id:string)=>request<void>(`/api/conversations/${encodeURIComponent(id)}?confirm=delete`,{method:"DELETE"},session),
+  branchConversation:(session:Session,id:string,throughMessageId:string,title:string)=>request<Conversation>(`/api/conversations/${encodeURIComponent(id)}/branch`,{method:"POST",body:JSON.stringify({throughMessageId,title})},session),
   provider:(session:Session)=>request<Record<string,unknown>>("/api/provider",{},session),
   usage:(session:Session)=>request<{usage:Usage;quotaKnown:boolean;quota:string;warning:string}>("/api/usage",{},session),
   permissions:(session:Session)=>request<{permissions:Permission[]}>("/api/permissions",{},session),
@@ -40,11 +42,17 @@ export const api={
 };
 
 export type StreamCallbacks={onMetadata:(value:unknown)=>void;onToken:(text:string)=>void;onDone:(value:unknown)=>void;onError:(error:Error)=>void};
+export function createSSEParser(callbacks:StreamCallbacks){
+  let pending="",terminal=false;
+  const deliver=(block:string)=>{let event="",data="";for(const rawLine of block.split(/\r?\n/)){const line=rawLine.endsWith("\r")?rawLine.slice(0,-1):rawLine;if(line.startsWith("event:"))event=line.slice(6).trim();else if(line.startsWith("data:"))data+=(data?"\n":"")+line.slice(5).trimStart();}if(!data||terminal)return;try{const value=JSON.parse(data);if(event==="token")callbacks.onToken(value.text||"");else if(event==="metadata")callbacks.onMetadata(value);else if(event==="done"){terminal=true;callbacks.onDone(value);}else if(event==="error"){terminal=true;callbacks.onError(new Error(value.error||"PROVIDER_UNAVAILABLE"));}}catch(error){terminal=true;callbacks.onError(error instanceof Error?error:new Error("INVALID_SSE_JSON"));}};
+  const push=(chunk:string)=>{pending+=chunk;let match=pending.match(/\r?\n\r?\n/);while(match&&match.index!==undefined){deliver(pending.slice(0,match.index));pending=pending.slice(match.index+match[0].length);match=pending.match(/\r?\n\r?\n/);}};
+  const finish=()=>{if(pending.trim())deliver(pending);pending="";return terminal;};
+  return {push,finish,isTerminal:()=>terminal};
+}
 export function streamGeneration(session:Session,conversationId:string,body:Record<string,unknown>,callbacks:StreamCallbacks){
-  const xhr=new XMLHttpRequest();let cursor=0,pending="",terminal=false;
-  const deliver=(block:string)=>{let event="",data="";for(const line of block.split("\n")){if(line.startsWith("event:"))event=line.slice(6).trim();else if(line.startsWith("data:"))data+=(data?"\n":"")+line.slice(5).trimStart();}if(!data)return;try{const value=JSON.parse(data);if(event==="token")callbacks.onToken(value.text||"");else if(event==="metadata")callbacks.onMetadata(value);else if(event==="done"){terminal=true;callbacks.onDone(value);}else if(event==="error"){terminal=true;callbacks.onError(new Error(value.error||"PROVIDER_UNAVAILABLE"));}}catch{}};
-  const parse=()=>{pending+=xhr.responseText.slice(cursor);cursor=xhr.responseText.length;let boundary=pending.indexOf("\n\n");while(boundary>=0){deliver(pending.slice(0,boundary));pending=pending.slice(boundary+2);boundary=pending.indexOf("\n\n");}};
+  const xhr=new XMLHttpRequest();let cursor=0;const parser=createSSEParser(callbacks);
+  const parse=()=>{parser.push(xhr.responseText.slice(cursor));cursor=xhr.responseText.length;};
   xhr.open("POST",`${API_BASE}/api/conversations/${encodeURIComponent(conversationId)}/generate`);
-  xhr.setRequestHeader("Authorization",`Bearer ${session.token}`);xhr.setRequestHeader("X-YNX-Device-ID",session.deviceId);xhr.setRequestHeader("Content-Type","application/json");xhr.onprogress=parse;xhr.onload=()=>{parse();if(pending.trim())deliver(pending);if(!terminal&&xhr.status>=400)callbacks.onError(Object.assign(new Error(xhr.responseText||`HTTP_${xhr.status}`),{status:xhr.status}));};xhr.onerror=()=>{if(!terminal)callbacks.onError(new Error("OFFLINE"));};xhr.ontimeout=()=>{if(!terminal)callbacks.onError(new Error("TIMEOUT"));};xhr.timeout=50000;xhr.send(JSON.stringify(body));
+  xhr.setRequestHeader("Authorization",`Bearer ${session.token}`);xhr.setRequestHeader("X-YNX-Device-ID",session.deviceId);xhr.setRequestHeader("Content-Type","application/json");xhr.onprogress=parse;xhr.onload=()=>{parse();const terminal=parser.finish();if(!terminal&&xhr.status>=400)callbacks.onError(Object.assign(new Error(xhr.responseText||`HTTP_${xhr.status}`),{status:xhr.status}));else if(!terminal)callbacks.onError(new Error("STREAM_ENDED_WITHOUT_TERMINAL_EVENT"));};xhr.onerror=()=>{if(!parser.isTerminal())callbacks.onError(new Error("OFFLINE"));};xhr.ontimeout=()=>{if(!parser.isTerminal())callbacks.onError(new Error("TIMEOUT"));};xhr.timeout=50000;xhr.send(JSON.stringify(body));
   return {abort:()=>xhr.abort()};
 }

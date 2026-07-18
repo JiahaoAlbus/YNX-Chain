@@ -103,7 +103,7 @@ func testProduct(t *testing.T, gateway string) (*Store, *httptest.Server) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := NewServer(Config{GatewayURL: gateway, GatewayKey: testGatewayKey, ExactWalletCallback: FormalCallback, TrustURL: "https://trust.example/appeals", ProviderName: "fixture provider", GenerationTimeout: 2 * time.Second}, store, nil)
+	server, err := NewServer(Config{GatewayURL: gateway, GatewayKey: testGatewayKey, ExactWalletCallback: FormalCallback, TrustURL: "https://trust.example/appeals", ProviderName: "fixture provider", GenerationTimeout: 2 * time.Second, AllowLocalFixtureAuth: true}, store, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,6 +181,40 @@ func TestWalletChallengeIsExactSingleUseAndRevocable(t *testing.T) {
 	}
 	if _, err := store.Authenticate(session.Token, session.DeviceID); err == nil {
 		t.Fatal("revoked session remained active")
+	}
+}
+
+func TestProductionModeFailsClosedWithoutCanonicalAuth(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, err := NewStore(filepath.Join(t.TempDir(), "state.json"), bytes.Repeat([]byte{4}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := NewServer(Config{GatewayURL: gateway.URL, GatewayKey: testGatewayKey, ExactWalletCallback: FormalCallback}, store, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := httptest.NewServer(server.Handler())
+	defer product.Close()
+	for _, path := range []string{"/api/auth/challenges", "/api/auth/wallet/requests", "/api/auth/wallet/approvals", "/api/auth/wallet/sessions"} {
+		response, err := http.Post(product.URL+path, "application/json", strings.NewReader(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusMethodNotAllowed && response.StatusCode != http.StatusNotFound {
+			t.Fatalf("local fixture auth route %s was exposed in production mode: %d", path, response.StatusCode)
+		}
+	}
+	meta, err := http.Get(product.URL + "/api/meta")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer meta.Body.Close()
+	raw, _ := io.ReadAll(meta.Body)
+	if !bytes.Contains(raw, []byte(`"localFixtureAuthEnabled":false`)) || !bytes.Contains(raw, []byte(`"integratedCentral":false`)) {
+		t.Fatalf("meta did not disclose fail-closed auth boundary: %s", raw)
 	}
 }
 
@@ -272,7 +306,7 @@ func TestActionApprovalRecordsReviewButNeverExecution(t *testing.T) {
 	permissionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/permissions", map[string]any{"conversationId": "conv-review", "scope": "chain:transfer-draft", "purpose": "review exact transfer draft", "expiryHours": 1}, session, http.StatusCreated)
 	var permission PermissionRecord
 	_ = json.Unmarshal(permissionRaw, &permission)
-	actionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/actions", map[string]any{"conversationId": "conv-review", "kind": "chain_action", "scope": "chain:transfer-draft", "description": "Transfer 1 YNXT to selected account", "payloadPreview": "to=ynx1recipient amount=1 YNXT"}, session, http.StatusCreated)
+	actionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/actions", map[string]any{"conversationId": "conv-review", "kind": "chain_action", "scope": "chain:transfer-draft", "description": "Transfer 1 YNXT to selected account", "payloadPreview": "to=ynx1recipient amount=1 YNXT", "target": "ynx1recipient", "risk": "high", "evidence": []string{"conversation:conv-review", "user-entered:exact-payload"}, "provider": "YNX AI Gateway"}, session, http.StatusCreated)
 	var action ActionRecord
 	_ = json.Unmarshal(actionRaw, &action)
 	review := authedJSON(t, http.MethodPost, product.URL+"/api/actions/"+action.ID+"/review", map[string]any{"decision": "approve", "permissionGatewayId": permission.GatewayID}, session, http.StatusOK)
@@ -280,9 +314,102 @@ func TestActionApprovalRecordsReviewButNeverExecution(t *testing.T) {
 		t.Fatalf("approval blurred execution boundary: %s", review)
 	}
 	record, ok := store.Action(session.Account, action.ID)
-	if !ok || record.Status != "approved_not_executed" || !record.WalletStillNeeded {
+	if !ok || record.Status != "approved_not_executed" || !record.WalletStillNeeded || record.Target != "ynx1recipient" || record.Risk != "high" || len(record.Evidence) != 2 {
 		t.Fatalf("unexpected action record: %+v", record)
 	}
+}
+
+func TestActionApprovalRejectsMismatchedOrExpiredPermission(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	permissionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/permissions", map[string]any{"conversationId": "conv-other", "scope": "read:selected", "purpose": "read another conversation", "expiryHours": 1}, session, http.StatusCreated)
+	var permission PermissionRecord
+	_ = json.Unmarshal(permissionRaw, &permission)
+	actionRaw := authedJSON(t, http.MethodPost, product.URL+"/api/actions", map[string]any{"conversationId": "conv-review", "kind": "tool", "scope": "read:selected", "description": "Read selected item", "payloadPreview": "id=1", "target": "record:1", "risk": "low", "provider": "YNX AI Gateway"}, session, http.StatusCreated)
+	var action ActionRecord
+	_ = json.Unmarshal(actionRaw, &action)
+	authedJSON(t, http.MethodPost, product.URL+"/api/actions/"+action.ID+"/review", map[string]any{"decision": "approve", "permissionGatewayId": permission.GatewayID}, session, http.StatusForbidden)
+
+	permission.SessionID = "conv-review"
+	permission.ExpiresAt = time.Now().Add(-time.Minute)
+	if err := store.SavePermission(permission); err != nil {
+		t.Fatal(err)
+	}
+	authedJSON(t, http.MethodPost, product.URL+"/api/actions/"+action.ID+"/review", map[string]any{"decision": "approve", "permissionGatewayId": permission.GatewayID}, session, http.StatusForbidden)
+}
+
+func TestAttachmentsRequireExplicitSelectedFilesContext(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	conversationRaw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Files"}, session, http.StatusCreated)
+	var conversation Conversation
+	_ = json.Unmarshal(conversationRaw, &conversation)
+	if _, err := store.SetPolicy(session.Account, DataPolicy{RetentionDays: 30, SaveEncryptedBody: true, AllowedContextTypes: []string{"conversation", "selected_files"}}); err != nil {
+		t.Fatal(err)
+	}
+	attachment, err := store.AddAttachment(session.Account, conversation.ID, "evidence.txt", "text/plain", []byte("selected evidence"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	authedJSON(t, http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/generate", map[string]any{"generationId": "files-without-context", "prompt": "Summarize", "includedContext": []string{"conversation"}, "attachmentIds": []string{attachment.ID}}, session, http.StatusBadRequest)
+	_, messages, err := store.Conversation(session.Account, conversation.ID)
+	if err != nil || len(messages) != 0 {
+		t.Fatalf("rejected attachment context persisted messages: %+v err=%v", messages, err)
+	}
+}
+
+func TestConversationSearchAndEncryptedBranch(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	raw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations", map[string]any{"title": "Alpha research"}, session, http.StatusCreated)
+	var conversation Conversation
+	_ = json.Unmarshal(raw, &conversation)
+	first, err := store.AddMessage(session.Account, conversation.ID, Message{Role: "user", Content: "private beta evidence", Status: "complete"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := authedJSON(t, http.MethodGet, product.URL+"/api/conversations?q=beta", nil, session, http.StatusOK); !bytes.Contains(got, []byte(conversation.ID)) {
+		t.Fatalf("message search did not find encrypted content: %s", got)
+	}
+	branchRaw := authedJSON(t, http.MethodPost, product.URL+"/api/conversations/"+conversation.ID+"/branch", map[string]any{"throughMessageId": first.ID, "title": "Beta branch"}, session, http.StatusCreated)
+	var branch Conversation
+	_ = json.Unmarshal(branchRaw, &branch)
+	if branch.ID == conversation.ID || branch.MessageCount != 1 {
+		t.Fatalf("unexpected branch: %+v", branch)
+	}
+	_, messages, err := store.Conversation(session.Account, branch.ID)
+	if err != nil || len(messages) != 1 || messages[0].Content != "private beta evidence" || messages[0].ID == first.ID {
+		t.Fatalf("branched messages are not independent: %+v err=%v", messages, err)
+	}
+	state, _ := os.ReadFile(store.path)
+	if bytes.Contains(state, []byte("private beta evidence")) {
+		t.Fatal("branch leaked plaintext into persistent state")
+	}
+}
+
+func TestActionPreviewRequiresRiskTargetEvidenceBounds(t *testing.T) {
+	gateway := newGatewayFixture(t, true)
+	defer gateway.Close()
+	store, product := testProduct(t, gateway.URL)
+	defer product.Close()
+	session := authenticate(t, product.URL, store, newTestIdentity(t))
+	base := map[string]any{"conversationId": "conv-review", "kind": "tool", "scope": "read:selected", "description": "Read selected item", "payloadPreview": "id=1", "target": "record:1", "risk": "invalid", "provider": "YNX AI Gateway"}
+	authedJSON(t, http.MethodPost, product.URL+"/api/actions", base, session, http.StatusBadRequest)
+	base["risk"] = "low"
+	base["target"] = ""
+	authedJSON(t, http.MethodPost, product.URL+"/api/actions", base, session, http.StatusBadRequest)
+	base["target"] = "record:1"
+	base["provider"] = ""
+	authedJSON(t, http.MethodPost, product.URL+"/api/actions", base, session, http.StatusBadRequest)
 }
 
 func TestContextPolicyDeletionAndRestart(t *testing.T) {

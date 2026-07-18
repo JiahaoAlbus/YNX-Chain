@@ -17,9 +17,58 @@
   conversations and attachments, POST-body Gateway orchestration, SSE/cancel,
   provider/quota truth states, permissions/actions, usage, audit and privacy.
 - `docs/handoffs/ai.md`: this integration record.
+- `.github/workflows/ynx-ai-mobile.yml`: reproducible Android preview and iOS
+  Simulator build/install/runtime evidence jobs.
 
 No long-term goal, acceptance-state file, root `Makefile`, central Gateway policy,
 or another product path was changed.
+
+## 2026-07-18 release-truth update
+
+The release contract was expanded after the prior handoff. The authoritative
+machine-readable status is `apps/ai/product-release.json`; it intentionally does
+not promote local implementation into central integration or deployment.
+
+- Production-default auth no longer exposes either legacy or product-local
+  verifier routes. They are registered only with the explicit local-only switch
+  `YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=1`. The canonical shared verifier is not on
+  `origin/main`, so production sign-in currently fails closed.
+- `apps/ai/integration/` now contains the exact schema-v2 `ynx-ai-v1` registry
+  entry, AI-specific digest vector, Wallet registry patch, central POST-body
+  Gateway patch, and machine-readable integration state. These are owner merge
+  inputs; `integratedCentral=false` until deployed and remotely proven.
+- Conversations now add encrypted title/body search, an independently encrypted
+  branch with fresh message IDs/nonces, and continue-from-assistant semantics.
+  Attachments enforce both 256 KiB size and eight-item quantity bounds.
+- Action preview now requires scope, target, exact payload, risk, evidence and
+  provider, then preserves the existing approve/reject/
+  `approved_not_executed`/Wallet-required lifecycle.
+- Public `/healthz` and `/api/meta` expose build and truth flags. Both say
+  `integratedCentral=false` and `generationLive=false`; they never infer provider
+  success from a handler or configured credential.
+- Release artifacts and audits were added: `artifact-manifest.json`,
+  `evidence-index.json`, `RELEASE_NOTES.md`, `UI_DESIGN_AUDIT.md`, and runnable
+  Android/iOS jobs in `.github/workflows/ynx-ai-mobile.yml`.
+- `sbom.cdx.json` contains 811 transitive Go/npm CycloneDX components;
+  `DEPENDENCY_REVIEW.md` records the production license groups and review
+  boundary. Both central owner patches were regenerated as valid unified diffs
+  and passed `git apply --check` against their source branches.
+- The final Android manifest removes read/write external storage permissions,
+  disables backup, retains only the exact Wallet callback filter, and builds at
+  minSdk 24 / targetSdk 36. The current preview APK hash is
+  `feca84462a0ae16237bac4c783683958ecf590105345e8f0b205acb9f36501a5`,
+  size 69,735,849 bytes, signed by an Android Debug certificate. It is not
+  production-signed or hosted.
+- The current APK hash was streamed-installed on task-owned API-36
+  `emulator-5582`. Ordinary cold launch, force-stop/restart, exact Wallet
+  callback deep link cold launch, top-resumed `MainActivity`, package version,
+  install time and live process state were verified.
+- This host still lacks full Xcode. The new CI job is runnable and performs a
+  real Simulator build/install/cold launch/restart/deep-link/hash sequence, but
+  it is not a passing-run claim.
+- Local browser inspection covered actual 1440×900 light/dark and 390×844
+  responsive/fail-closed states. Durable full screenshot coverage, Arabic,
+  large-text, tablet, loading/empty/failure/success visual evidence remains open.
 
 ## Architecture and completed workflow
 
@@ -27,13 +76,13 @@ The Go product server owns persistence and the server-side AI Gateway key. Both
 the existing embedded Web client and the independent native client call this
 server; neither receives provider or Gateway credentials.
 
-- Formal Sign in with YNX Wallet uses the Task 1 request/approval/challenge
+- In explicit local fixture mode, Sign in with YNX Wallet uses the Task 1 request/approval/challenge
   shapes, canonical JSON domains, exact `ynx_6423-1` network, product client
   `ynx-ai-v1`, bundle `com.ynxweb4.ai`, callback
   `ynxai://wallet-auth/callback`, sorted exact scopes, five-minute one-time
   request, secp256k1 Wallet proof, and a separate P-256 product-device proof.
   Sessions, product device keys, locale, output language, and last conversation
-  survive restart in platform secure storage; server sessions survive restart
+  survive restart in platform secure storage; fixture server sessions survive restart
   as token hashes and remain revocable.
 - Conversations support create, select, rename, archive, delete, copy, export,
   retry and encrypted restart persistence. Text/Markdown/JSON attachments are
@@ -80,18 +129,24 @@ server; neither receives provider or Gateway credentials.
   Release validation showed only INTERNET, SecureStore biometric permissions and
   the package-local dynamic-receiver permission.
 
-## Verification evidence (2026-07-16/17 CST)
+## Verification evidence (2026-07-18/19 CST)
 
 Passed:
 
 ```text
-go vet ./internal/aiproduct ./apps/ai
+go vet ./...
 go test ./...
+go test -race ./internal/aiproduct
+go test ./internal/aiproduct -run '^$' -fuzz FuzzBoundedTextAndCleanListInvariants -fuzztime=3s
 bash apps/ai/scripts/smoke.sh
-pnpm run check                         # mobile typecheck, 5 tests, policy checks, Android+iOS bundles
-NODE_ENV=production ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk \
+pnpm run check                         # typecheck, 7 tests, policies, Android+iOS bundles
+JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+  NODE_ENV=production ANDROID_HOME=/Users/huangjiahao/Library/Android/sdk \
   ANDROID_SDK_ROOT=/Users/huangjiahao/Library/Android/sdk \
-  apps/ai/mobile/android/gradlew assembleRelease
+  apps/ai/mobile/android/gradlew --no-daemon --max-workers=2 \
+  -Dkotlin.compiler.execution.strategy=in-process :app:assembleRelease
+make secret-scan
+make no-placeholder-check
 git diff --check
 ```
 
@@ -99,13 +154,24 @@ The Web smoke built the Go binary, cold-started it with a non-provider endpoint,
 loaded the embedded UI and metadata, and verified provider-unavailable truth
 copy. The mobile bundle check generated Hermes bundles for Android and iOS.
 
-Android native evidence on API 36 emulator `emulator-5562`:
+The repository-level `make ai-gateway-check` was attempted three times. The
+first two attempts exceeded its fixed 20-second `go run` startup window under
+concurrent native builds. After warming the Go cache, the Gateway started, but
+the check correctly failed because a pre-existing service on
+`127.0.0.1:6420` accepted a direct `/ai/actions` bypass with HTTP 201 instead of
+the required upstream-auth HTTP 401. This is central devnet state outside the AI
+product branch; it is not recorded as passed and was not mutated or hidden.
+
+Current Android native evidence for APK `feca8446…501a5` on task-owned API 36
+`emulator-5582`:
 
 ```text
-adb install -r --no-streaming app-release.apk -> Success
-am start -W com.ynxweb4.ai/.MainActivity -> LaunchState: COLD, Status: ok
-ResumedActivity -> com.ynxweb4.ai/.MainActivity
-UIAutomator -> YNX AI, Wallet purpose/boundary copy, enabled Sign in with YNX Wallet button
+adb install -r app-release.apk -> Performing Streamed Install / Success
+ordinary launch, force-stop/restart -> MainActivity resumed
+am start -W -a android.intent.action.VIEW \
+  -d 'ynxai://wallet-auth/callback?error=cancelled' com.ynxweb4.ai \
+  -> LaunchState: COLD, Status: ok
+dumpsys activity activities -> topResumedActivity com.ynxweb4.ai/.MainActivity
 ```
 
 The first debug install attempt exposed a development-bundle dependency and one
@@ -115,9 +181,11 @@ emulator with no fatal/runtime script error.
 
 ## Exact incomplete external items and integration requests
 
-1. **Wallet registry integration:** Task 1's current Wallet registry contains
-   only Social. The integration owner must add exact client `ynx-ai-v1`, product
-   `ynx-ai`, bundle `com.ynxweb4.ai`, callback
+1. **Wallet registry integration:** Task 1's central document already has a
+   disabled/pending-review AI tuple, but its three scopes do not match this
+   product and the Wallet-side reviewed allow-list omits AI. The integration
+   owner must review the supplied valid patch for exact client `ynx-ai-v1`,
+   product `ai`, bundle `com.ynxweb4.ai`, callback
    `ynxai://wallet-auth/callback`, and scopes `ai:actions`, `ai:attachments`,
    `ai:conversations`, `ai:data-control`, `ai:generate`, `ai:permissions` before
    a real cross-App Wallet approval can succeed. This branch does not bypass the

@@ -82,6 +82,17 @@ make bft-ai-action-check
 
 `ynx-ai-gatewayd` requires provider and public access keys in both modes. Keep `YNX_AI_GATEWAY_UPSTREAM_MODE=authoritative` for the current rollback-compatible public runtime; its chain routes require the separate upstream key. Candidate `bft` mode requires a canonical signer address and exactly one process-local raw key source, preferably a mode-`0600` key file. It serializes nonce query/sign/broadcast, never forwards key material, and rejects inconsistent commit or ABCI record evidence. `make bft-ai-action-check` covers the signed BFT mutation path locally; it does not authorize public routing.
 
+YNX AI independent product release operations:
+
+- Treat `apps/ai/product-release.json` as the status source. Do not infer staging, central integration, provider liveness, hosted download, production signing, or store release from a feature branch or local artifact.
+- Keep `YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH` unset/`0` outside isolated tests. The server deliberately fails closed until canonical Wallet Auth integration is deployed.
+- Start the local server only with an absolute state path, a 32-byte content key, a private Gateway URL/key, and the exact callback. `/healthz` proves only the local process/build truth fields.
+- A production promotion gate must require `integratedCentral=true` from deployed canonical registry/session introspection, central `POST /ai/stream`, and remote smoke; never edit the product manifest to bypass that evidence.
+- Provider output is live only after non-empty provider-backed Gateway SSE succeeds. A configured key/model, local fixture response, handler test, 429, or provider-unavailable response leaves `generationLive=false`.
+- Build Android with `NODE_ENV=production` and explicit SDK paths. Record APK hash, bytes, min/target SDK and the actual certificate DN/digest. An Android Debug certificate is test-signed, never production-signed.
+- This host lacks Xcode. Run `.github/workflows/ynx-ai-mobile.yml` on macOS and retain the iOS Simulator artifact/hash plus install/cold-launch/restart/deep-link logs before marking iOS tested or installed.
+- Before release, run Go tests/vet/race, mobile typecheck/tests/product checks/bundles, Web smoke, secret/placeholder/license/SBOM checks, `git diff --check`, then reconcile every field in product-release/artifact/evidence/UI audit files.
+
 Pay Gateway readiness:
 
 ```bash
