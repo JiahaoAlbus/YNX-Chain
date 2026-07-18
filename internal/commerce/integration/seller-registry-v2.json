@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-seller-v1",
+  "requestingProduct": "shop-seller",
+  "bundleId": "com.ynxweb4.seller-console",
+  "callbacks": ["ynxseller://wallet-auth/callback"],
+  "scopes": ["account:read", "shop:seller:operate"],
+  "maxScopes": 2,
+  "productDeviceAlgorithms": ["p256-sha256"]
+}

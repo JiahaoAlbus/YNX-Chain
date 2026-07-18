@@ -87,6 +87,7 @@ function localizedPurpose(surface) {
 }
 
 async function requestJSON(path, options = {}) {
+  if (location.pathname.startsWith('/seller-staging/') && path.startsWith('/api')) path = '/shop-api-staging' + path;
   const response = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
   const value = await response.json().catch(() => ({ error: 'Invalid server response' }));
   if (!response.ok) throw new Error(value.error || ('Request failed ' + response.status));

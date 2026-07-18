@@ -129,7 +129,7 @@ func (s *Store) PublicStore(id string) (PublicStore, error) {
 func (s *Store) SellerProducts(actor, storeID string) ([]Product, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "fulfillment", "support"); err != nil {
+	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "fulfillment", "support", "viewer"); err != nil {
 		return nil, err
 	}
 	out := []Product{}
@@ -150,9 +150,9 @@ func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	if !consensus.IsNativeAddress(account) || account == actor {
 		return errors.New("valid distinct account required")
 	}
-	allowed := map[string]bool{"manager": true, "fulfillment": true, "support": true}
+	allowed := map[string]bool{"manager": true, "fulfillment": true, "support": true, "viewer": true}
 	if !allowed[role] {
-		return errors.New("role must be manager, fulfillment or support")
+		return errors.New("role must be manager, fulfillment, support or viewer")
 	}
 	s.s.SellerRoles[storeID][account] = role
 	s.auditLocked(actor, "seller", "seller_role_set", "store", storeID, "approved", account+":"+role)
@@ -161,7 +161,7 @@ func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 func (s *Store) SellerRoles(actor, storeID string) (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(storeID, actor, "owner", "manager"); err != nil {
+	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "viewer"); err != nil {
 		return nil, err
 	}
 	out := map[string]string{}
@@ -188,7 +188,7 @@ func (s *Store) SellerAudit(actor string) ([]AuditEvent, error) {
 	defer s.mu.Unlock()
 	owned := map[string]bool{}
 	for storeID, roles := range s.s.SellerRoles {
-		if roles[actor] == "owner" || roles[actor] == "manager" {
+		if roles[actor] == "owner" || roles[actor] == "manager" || roles[actor] == "viewer" {
 			owned[storeID] = true
 		}
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"log"
 	"net/http"
@@ -15,8 +16,32 @@ func main() {
 	state := flag.String("state", "tmp/shop/state.json", "persistent state path")
 	buyer := flag.String("buyer-assets", "apps/shop", "buyer web assets")
 	seller := flag.String("seller-assets", "apps/seller-console", "seller web assets")
+	restoreBackup := flag.Bool("restore-backup", false, "restore the last verified state backup before starting")
 	flag.Parse()
-	store, err := commerce.Open(*state)
+	var integrityKey []byte
+	if value := os.Getenv("YNX_SHOP_STATE_HMAC_KEY"); value != "" {
+		var err error
+		integrityKey, err = hex.DecodeString(value)
+		if err != nil || len(integrityKey) < 32 {
+			log.Fatal("YNX_SHOP_STATE_HMAC_KEY must be at least 64 hexadecimal characters")
+		}
+	}
+	if *restoreBackup {
+		if len(integrityKey) == 0 {
+			log.Fatal("backup restoration requires YNX_SHOP_STATE_HMAC_KEY")
+		}
+		if err := commerce.RestoreCommerceBackup(*state, integrityKey); err != nil {
+			log.Fatal(err)
+		}
+	}
+	var store *commerce.Store
+	var err error
+	if len(integrityKey) > 0 {
+		store, err = commerce.OpenWithIntegrity(*state, integrityKey)
+	} else {
+		store, err = commerce.Open(*state)
+		log.Print("warning: YNX_SHOP_STATE_HMAC_KEY is unset; local unsigned state mode only")
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

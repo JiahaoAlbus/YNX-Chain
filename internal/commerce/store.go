@@ -1,12 +1,15 @@
 package commerce
 
 import (
+	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,14 +28,32 @@ var (
 )
 
 type Store struct {
-	mu   sync.Mutex
-	path string
-	now  func() time.Time
-	s    Snapshot
+	mu           sync.Mutex
+	path         string
+	integrityKey []byte
+	now          func() time.Time
+	s            Snapshot
 }
 
 func Open(path string) (*Store, error) {
-	st := &Store{path: path, now: func() time.Time { return time.Now().UTC() }}
+	return open(path, nil)
+}
+
+func OpenWithIntegrity(path string, key []byte) (*Store, error) {
+	if len(key) < 32 {
+		return nil, errors.New("commerce state integrity key must be at least 32 bytes")
+	}
+	return open(path, append([]byte(nil), key...))
+}
+
+type persistedEnvelope struct {
+	Version  int             `json:"version"`
+	Snapshot json.RawMessage `json:"snapshot"`
+	HMAC     string          `json:"hmac"`
+}
+
+func open(path string, integrityKey []byte) (*Store, error) {
+	st := &Store{path: path, integrityKey: integrityKey, now: func() time.Time { return time.Now().UTC() }}
 	st.s = emptySnapshot()
 	if path == "" {
 		return st, nil
@@ -44,7 +65,7 @@ func Open(path string) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read commerce state: %w", err)
 	}
-	if err := json.Unmarshal(data, &st.s); err != nil {
+	if err := decodePersisted(data, integrityKey, &st.s); err != nil {
 		return nil, fmt.Errorf("decode commerce state: %w", err)
 	}
 	migrated := st.normalize()
@@ -57,6 +78,38 @@ func Open(path string) (*Store, error) {
 		}
 	}
 	return st, nil
+}
+
+func decodePersisted(data, key []byte, out *Snapshot) error {
+	if len(key) == 0 {
+		return json.Unmarshal(data, out)
+	}
+	var envelope persistedEnvelope
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&envelope); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("single integrity envelope required")
+	}
+	if envelope.Version != 1 || len(envelope.Snapshot) == 0 || len(envelope.HMAC) != 64 {
+		return errors.New("invalid commerce state integrity envelope")
+	}
+	want, err := hex.DecodeString(envelope.HMAC)
+	if err != nil {
+		return errors.New("invalid commerce state HMAC encoding")
+	}
+	mac := hmac.New(sha256.New, key)
+	var canonical bytes.Buffer
+	if err := json.Compact(&canonical, envelope.Snapshot); err != nil {
+		return errors.New("invalid commerce state snapshot")
+	}
+	_, _ = mac.Write(canonical.Bytes())
+	if !hmac.Equal(want, mac.Sum(nil)) {
+		return errors.New("commerce state HMAC mismatch")
+	}
+	return json.Unmarshal(envelope.Snapshot, out)
 }
 
 func emptySnapshot() Snapshot {
@@ -100,14 +153,39 @@ func (s *Store) persistLocked() error {
 	if s.path == "" {
 		return nil
 	}
-	data, err := json.MarshalIndent(s.s, "", "  ")
+	snapshot, err := json.Marshal(s.s)
 	if err != nil {
 		return err
+	}
+	data := snapshot
+	if len(s.integrityKey) > 0 {
+		mac := hmac.New(sha256.New, s.integrityKey)
+		_, _ = mac.Write(snapshot)
+		data, err = json.MarshalIndent(persistedEnvelope{Version: 1, Snapshot: snapshot, HMAC: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+		if err != nil {
+			return err
+		}
+	} else {
+		data, err = json.MarshalIndent(s.s, "", "  ")
+		if err != nil {
+			return err
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
 	}
-	tmp := s.path + ".tmp"
+	if current, readErr := os.ReadFile(s.path); readErr == nil {
+		if err := atomicWrite(s.path+".bak", current); err != nil {
+			return fmt.Errorf("write commerce backup: %w", err)
+		}
+	} else if !errors.Is(readErr, os.ErrNotExist) {
+		return readErr
+	}
+	return atomicWrite(s.path, data)
+}
+
+func atomicWrite(path string, data []byte) error {
+	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, append(data, '\n'), 0o600); err != nil {
 		return err
 	}
@@ -122,7 +200,19 @@ func (s *Store) persistLocked() error {
 	if err = f.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path)
+	return os.Rename(tmp, path)
+}
+
+func RestoreCommerceBackup(path string, key []byte) error {
+	backup, err := os.ReadFile(path + ".bak")
+	if err != nil {
+		return fmt.Errorf("read commerce backup: %w", err)
+	}
+	var snapshot Snapshot
+	if err := decodePersisted(backup, key, &snapshot); err != nil {
+		return fmt.Errorf("verify commerce backup: %w", err)
+	}
+	return atomicWrite(path, bytes.TrimSpace(backup))
 }
 
 func newID(prefix string) string {
@@ -157,6 +247,10 @@ func (s *Store) recordIdempotencyLocked(actor, route, key, hash, objectID string
 }
 func (s *Store) auditLocked(actor, role, action, typ, id, outcome, detail string) {
 	s.s.Audits = append(s.s.Audits, AuditEvent{ID: newID("audit"), Actor: actor, Role: role, Action: action, ObjectType: typ, ObjectID: id, Outcome: outcome, Detail: detail, At: s.now()})
+}
+
+func (s *Store) orderEventLocked(order *Order, actor, role, action, status, detail string) {
+	order.Timeline = append(order.Timeline, OrderEvent{ID: newID("event"), Actor: actor, Role: role, Action: action, Status: status, Detail: detail, At: s.now()})
 }
 
 func (s *Store) Allow(subject, action string, limit int, window time.Duration) bool {
@@ -246,6 +340,7 @@ func (s *Store) recoverExpiredLocked() bool {
 		}
 		o.Status = "expired"
 		o.UpdatedAt = now
+		s.orderEventLocked(&o, "reservation-recovery", "system", "reservation_expired", "expired", "unpaid inventory reservation released")
 		s.s.Orders[id] = o
 		s.auditLocked(o.Buyer, "buyer", "reservation_expired", "order", id, "released", "unpaid inventory reservation released")
 		changed = true

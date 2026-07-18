@@ -1,0 +1,69 @@
+name: shop-native
+
+on:
+  pull_request:
+    paths:
+      - "apps/shop/native/**"
+      - ".github/workflows/shop-native.yml"
+  push:
+    branches: [main, codex/ecosystem-shop]
+    paths:
+      - "apps/shop/native/**"
+      - ".github/workflows/shop-native.yml"
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/shop/native/android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-shop-android-unsigned
+          path: |
+            apps/shop/native/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/shop/native/android/app/build/outputs/apk/release/app-release-unsigned.apk
+
+  ios-simulator:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: apps/shop/native/ios
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project YNXShop.xcodeproj \
+            -scheme YNXShop \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath "$RUNNER_TEMP/YNXShopDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee "$RUNNER_TEMP/ynx-shop-ios-build.log"
+      - name: Boot, install, launch, and exercise deep link
+        run: |
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for runtime in d.values() for x in runtime if x["name"].startswith("iPhone") and x["isAvailable"]))')"
+          xcrun simctl boot "$DEVICE_ID" || true
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          APP_PATH="$RUNNER_TEMP/YNXShopDerivedData/Build/Products/Debug-iphonesimulator/YNXShop.app"
+          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+          xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.ynxweb4.shop
+          xcrun simctl openurl "$DEVICE_ID" "ynxshop://wallet-auth/callback"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RUNNER_TEMP/YNXShop-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-shop-ios-simulator
+          path: |
+            ${{ runner.temp }}/YNXShop-simulator.zip
+            ${{ runner.temp }}/ynx-shop-ios-build.log

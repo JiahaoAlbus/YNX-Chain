@@ -1,16 +1,46 @@
 package commerce
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
+
+func TestShopRegistryV2EntriesMatchRuntimeBindings(t *testing.T) {
+	type registry struct {
+		SchemaVersion           int      `json:"schemaVersion"`
+		ProductClientID         string   `json:"productClientId"`
+		RequestingProduct       string   `json:"requestingProduct"`
+		BundleID                string   `json:"bundleId"`
+		Callbacks               []string `json:"callbacks"`
+		Scopes                  []string `json:"scopes"`
+		MaxScopes               int      `json:"maxScopes"`
+		ProductDeviceAlgorithms []string `json:"productDeviceAlgorithms"`
+	}
+	for filename, binding := range map[string]ProductBinding{"integration/shop-registry-v2.json": ShopBinding(), "integration/seller-registry-v2.json": SellerBinding()} {
+		data, err := os.ReadFile(filename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var entry registry
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&entry); err != nil {
+			t.Fatalf("%s: %v", filename, err)
+		}
+		if entry.SchemaVersion != 2 || entry.ProductClientID != binding.ProductClientID || entry.RequestingProduct != binding.RequestingProduct || entry.BundleID != binding.BundleID || len(entry.Callbacks) != 1 || entry.Callbacks[0] != binding.Callback || !exactScopes(entry.Scopes, binding.Scopes) || entry.MaxScopes != len(binding.Scopes) || len(entry.ProductDeviceAlgorithms) != 1 || entry.ProductDeviceAlgorithms[0] != DeviceAlgorithm {
+			t.Fatalf("registry/runtime mismatch for %s: %+v %+v", filename, entry, binding)
+		}
+	}
+}
 
 func TestCentralGatewayIntrospectionRejectsTamperExpiryAndCrossProduct(t *testing.T) {
 	_, account := actor(t, 61)
