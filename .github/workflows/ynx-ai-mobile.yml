@@ -39,7 +39,7 @@ jobs:
       - name: Select and boot an available iOS Simulator
         id: simulator
         run: |
-          UDID=$(xcrun simctl list devices available --json | jq -r '[.devices[][] | select(.isAvailable == true)][0].udid')
+          UDID=$(xcrun simctl list devices available --json | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.isAvailable == true)][0].udid')
           test -n "$UDID" -a "$UDID" != "null"
           xcrun simctl boot "$UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$UDID" -b
@@ -97,6 +97,18 @@ jobs:
       - uses: android-actions/setup-android@v3
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Generate test-only Android signing key
+        run: |
+          keytool -genkeypair -v \
+            -storetype PKCS12 \
+            -keystore android/app/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,OU=Android,O=Unknown,L=Unknown,ST=Unknown,C=US"
       - name: Build preview APK
         env:
           NODE_ENV: production
