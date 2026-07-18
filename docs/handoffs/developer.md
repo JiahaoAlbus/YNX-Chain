@@ -1,5 +1,65 @@
 # YNX Developer handoff
 
+## 2026-07-18 YNX AI Build and real Windows proof correction
+
+This section supersedes older Windows-source-only, package hash, version, UI and
+test-count statements below while preserving the accepted Wallet-only and
+bounded-chain boundaries.
+
+- Release candidate source commit:
+  `c6b4affc03b3255100516c34483096f445c46753` on
+  `codex/ecosystem-developer`; release-record commits follow without changing the
+  shipped product code.
+- YNX AI Build now persists the full intent/plan/review/explore/context/edit/diff/
+  test/build/fix/package/deploy-review/checkpoint/revert/audit lifecycle. Read,
+  write, execute, network, package install, secret reference, Git commit, Git
+  push and deploy are independent permissions. One-time grants cannot be reused.
+- The optional official `xai-org/grok-build` integration is pinned at
+  `98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce`, source revision
+  `124d85bc5dc6e7805560215fcc6d5413944920e1`, upstream `0.2.102`, and deterministic
+  archive SHA-256 `5d9cd70f...f9db31f`. No upstream source or binary is bundled.
+  The shell-free `grok agent stdio` ACP adapter verifies an operator-approved
+  binary checksum/version and denies agent permission requests by default.
+- The Web IDE uses a VS Code-class dense information structure without copying
+  branding or assets: 48 px toolbar, 52 px activity rail, 260 px navigator,
+  flexible editor/bottom console and 360 px AI inspector. UI scale is 13/12/11
+  px plus 13 px editor, with a tested large mode. Mobile becomes a horizontal
+  switcher and inert drawers rather than a squeezed desktop grid.
+- True-viewport Browser evidence covers desktop light/dark 1440×900, mobile
+  390×844, Arabic RTL, large text, empty, in-flight real compile loading, real
+  compile success and provider-unavailable failure. Final captures report no
+  page-width overflow and are listed in `apps/developer/docs/UI_DESIGN_AUDIT.md`.
+- Critical workbench, console and AI controls are localized across all 12
+  supported locales. Arabic direction, fallback, persistence, dates, numbers and
+  plural selection are tested.
+- The macOS 0.2.0 arm64 unsigned Testnet Preview was rebuilt and twice passed
+  extracted self-test/cold-launch/child-cleanup verification after fixing a
+  shutdown race with `waitUntilExit`. ZIP SHA-256:
+  `60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836`,
+  `38437737` bytes, `Signature=adhoc`, no Team ID.
+- Real Windows run `29658166198` on `windows-latest` compiled the self-contained
+  WPF/WebView2 x64 App, bundled Node `22.17.0`, packaged and extracted the ZIP,
+  ran its resource self-test, cold-launched the App, observed the bundled Node
+  server, closed the main window and verified child cleanup. ZIP SHA-256:
+  `2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991`,
+  `106319108` bytes. It is unsigned; the 14-day CI artifact is not a public
+  immutable download.
+- Current truth matrix: implemented-local **true**, tested-local **true**,
+  installed-local **true**; integrated-central, deployed-staging,
+  deployed-public, download-hosted, production-signed and store-released are all
+  **false**. Exact machine-readable truth is in
+  `apps/developer/product-release.json`.
+- Client tests: 18 passed. Web/desktop tests: 14 passed. macOS sandbox: 2 passed.
+  Live chain check returned chain 6423, pinned Solidity 0.8.24 and real artifact
+  evidence while rejecting mutating RPC. Repository preflight result is recorded
+  in the final release-record commit.
+
+External boundaries remain unchanged: the central Wallet registry/provider and
+canonical Gateway deployment are not merged or deployed, no Wallet signature or
+remote deploy was fabricated, no public Web staging exists, no production
+provider credential was supplied, and no production signing/hosting/store
+authority exists.
+
 ## 2026-07-16 final desktop verification correction
 
 This section supersedes stale counts, artifact names and desktop launch claims

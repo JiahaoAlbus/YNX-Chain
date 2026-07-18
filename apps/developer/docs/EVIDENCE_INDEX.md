@@ -21,6 +21,8 @@ The audited images and their state explanations are listed in
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
+- Successful Windows host run:
+  `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658166198`
 
 ## Supply chain
 

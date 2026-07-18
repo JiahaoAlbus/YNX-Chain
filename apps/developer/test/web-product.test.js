@@ -73,3 +73,11 @@ test("release evidence includes UI audit, SBOM and exact upstream source record"
   assert.match(integration,/5d9cd70fb23fa2d0ada9b05b8d381b73a50cf535d38a8f0ad00c9d1daf9db31f/);
   assert.match(sbom,/CycloneDX/);assert.match(sbom,/grok-build/);assert.match(sbom,/"ynx:bundled","value":"false"/);
 });
+
+test("product release truth separates local proof from central, deployment and signing states",async()=>{
+  const release=JSON.parse(await read("product-release.json"));
+  for(const key of ["productId","name","branch","commit","version","surfaces","implementedLocal","testedLocal","installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","publicUrls","healthUrls","artifactUrls","sha256","bytes","signingClass","minOS","installEvidence","centralIntegration","knownLimitations","generatedAt"])assert.ok(Object.hasOwn(release,key),`missing ${key}`);
+  assert.equal(release.implementedLocal,true);assert.equal(release.testedLocal,true);assert.equal(release.installedLocal,true);
+  for(const key of ["integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased"])assert.equal(release[key],false,key);
+  assert.deepEqual(release.publicUrls,[]);assert.deepEqual(release.healthUrls,[]);assert.deepEqual(release.artifactUrls,[]);
+});

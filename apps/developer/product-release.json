@@ -1,0 +1,66 @@
+{
+  "productId": "ynx-developer-v1",
+  "name": "YNX Developer / YNX AI Build",
+  "branch": "codex/ecosystem-developer",
+  "commit": "c6b4affc03b3255100516c34483096f445c46753",
+  "version": "0.2.0",
+  "surfaces": ["web-ide", "macos-arm64-testnet-preview", "windows-x64-testnet-preview", "ynx-ai-build"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "macosArm64UnsignedZip": "60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836",
+    "windowsX64UnsignedZip": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991"
+  },
+  "bytes": {
+    "macosArm64UnsignedZip": 38437737,
+    "windowsX64UnsignedZip": 106319108
+  },
+  "signingClass": {
+    "macos": "adhoc-no-team-id",
+    "windows": "unsigned-no-authenticode"
+  },
+  "minOS": {
+    "macos": "13.0 arm64",
+    "windows": "x64 WPF host with WebView2 Runtime",
+    "web": "current standards browser with IndexedDB"
+  },
+  "installEvidence": [
+    {
+      "surface": "macos-arm64-testnet-preview",
+      "class": "local-extracted-zip",
+      "result": "resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
+    },
+    {
+      "surface": "windows-x64-testnet-preview",
+      "class": "windows-ci-portable-extract",
+      "result": "compile, package, resource self-test, WPF cold launch, bundled server observation and child cleanup passed",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29658166198"
+    }
+  ],
+  "centralIntegration": {
+    "status": "not-integrated",
+    "walletRegistry": "exact ynx-developer-v1 binding is delivered in the handoff but is not merged/deployed centrally",
+    "aiGateway": "Developer uses bounded POST-body transport; canonical main remains outside this branch",
+    "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass"
+  },
+  "knownLimitations": [
+    "No public Web staging or public deployment URL exists.",
+    "No immutable public artifact URL exists; the Windows CI artifact expires after 14 days and the macOS ZIP is local only.",
+    "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
+    "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
+    "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
+    "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
+    "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
+  ],
+  "generatedAt": "2026-07-18T19:43:29Z"
+}

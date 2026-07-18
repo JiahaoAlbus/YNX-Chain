@@ -17,11 +17,11 @@
       "name": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
       "surface": "Windows x64",
       "path": "apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
-      "sha256": null,
-      "bytes": null,
+      "sha256": "2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991",
+      "bytes": 106319108,
       "signingClass": "unsigned",
       "hosted": false,
-      "evidence": "Generated and verified only by the Windows workflow; fill from the completed branch run before release metadata is finalized."
+      "evidence": "Windows workflow run 29658166198 compiled and packaged the WPF/WebView2 App on windows-latest, extracted the portable ZIP, passed resource self-test, cold-launched the real App, observed bundled node.exe running server.mjs, closed the main window and verified child cleanup. The CI artifact expires after 14 days and is not a public immutable download."
     }
   ]
 }
