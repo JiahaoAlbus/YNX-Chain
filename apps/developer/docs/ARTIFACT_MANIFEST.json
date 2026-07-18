@@ -7,8 +7,8 @@
       "name": "ynx-developer-testnet-preview-macos-unsigned.zip",
       "surface": "macOS arm64",
       "path": "apps/developer/.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip",
-      "sha256": "fd9609d8e58e375a796adb3b0025703c9faf8cb655df35e13c9d754a9a245c7d",
-      "bytes": 38437736,
+      "sha256": "60f5e420e7a64e1db937809946f7d4706fdf718f781f039289d4b3f95b7b8836",
+      "bytes": 38437737,
       "signingClass": "adhoc-no-team-id",
       "hosted": false,
       "evidence": "Extracted resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed on macOS."
