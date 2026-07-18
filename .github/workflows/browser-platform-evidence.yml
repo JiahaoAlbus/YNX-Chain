@@ -27,6 +27,7 @@ jobs:
         run: apps/browser/scripts/build-android.sh
       - name: Boot isolated emulator
         run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name ynx_browser_ci --package "system-images;android-36;google_apis;x86_64"
           nohup "$ANDROID_HOME/emulator/emulator" -avd ynx_browser_ci -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > android-emulator.log 2>&1 &
           adb wait-for-device
@@ -34,6 +35,7 @@ jobs:
           test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1
       - name: Install, cold launch, restart, deep link and isolate Private process
         run: |
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           mkdir -p apps/browser/evidence/platform/android
           adb install -r apps/browser/dist/android/YNX-Browser-Testnet-Preview-Android.apk | tee apps/browser/evidence/platform/android/install.txt
           adb shell am force-stop com.ynxweb4.browser
