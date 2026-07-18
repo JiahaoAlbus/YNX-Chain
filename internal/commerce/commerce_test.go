@@ -36,7 +36,7 @@ func setupCatalog(t *testing.T, s *Store, owner string, inventory int64) (StoreP
 	if _, err = s.ActivateStore(owner, st.ID); err != nil {
 		t.Fatal(err)
 	}
-	p, err := s.CreateProduct(owner, CreateProductInput{StoreID: st.ID, Title: "Field kit", Description: "Durable test kit", Category: "outdoor", IdempotencyKey: "product-key-001", Variants: []Variant{{Name: "Blue", SKU: "KIT-BLU", PriceYNXT: 25, Inventory: inventory}}})
+	p, err := s.CreateProduct(owner, CreateProductInput{StoreID: st.ID, Title: "Field kit", Description: "Durable test kit", Category: "outdoor", Media: []MediaAsset{{URL: "https://media.example/field-kit.jpg", AltText: "Blue field kit", Kind: "image"}}, IdempotencyKey: "product-key-001", Variants: []Variant{{Name: "Blue", SKU: "KIT-BLU", PriceYNXT: 25, Inventory: inventory}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -250,6 +250,47 @@ func TestStateMigrationDropsLegacyPlaintextSessions(t *testing.T) {
 	}
 }
 
+func TestAuthenticatedStateFailsClosedAndRestoresVerifiedBackup(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "commerce-authenticated.json")
+	key := bytes.Repeat([]byte{0x42}, 32)
+	s, err := OpenWithIntegrity(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, owner := actor(t, 55)
+	if _, err = s.CreateStore(owner, CreateStoreInput{Name: "Integrity store", Policy: "Verified returns", IdempotencyKey: "integrity-store-1"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.CreateStore(owner, CreateStoreInput{Name: "Backup trigger", Policy: "Verified returns", IdempotencyKey: "integrity-store-2"}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data[len(data)/2] ^= 1
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := OpenWithIntegrity(path, key); err == nil || !strings.Contains(err.Error(), "HMAC mismatch") {
+		t.Fatalf("tampered state did not fail closed: %v", err)
+	}
+	if err := RestoreCommerceBackup(path, key); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := OpenWithIntegrity(path, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(restored.SellerStores(owner)) != 1 {
+		t.Fatalf("verified backup was not restored: %+v", restored.SellerStores(owner))
+	}
+	wrongKey := bytes.Repeat([]byte{0x24}, 32)
+	if _, err := OpenWithIntegrity(path, wrongKey); err == nil {
+		t.Fatal("state opened with wrong integrity key")
+	}
+}
+
 type fakeAI struct {
 	result string
 	err    error
@@ -327,5 +368,33 @@ func TestOrderAuthorizationAndLifecycle(t *testing.T) {
 	product, _ := s.Product(p.ID)
 	if product.Variants[0].Reserved != 0 {
 		t.Fatal("cancel did not release inventory")
+	}
+}
+
+func TestCatalogRevisionHistoryAndViewerReadOnlyRole(t *testing.T) {
+	s, _ := Open("")
+	_, owner := actor(t, 70)
+	_, viewer := actor(t, 71)
+	st, product := setupCatalog(t, s, owner, 3)
+	if err := s.SetSellerRole(owner, st.ID, viewer, "viewer"); err != nil {
+		t.Fatal(err)
+	}
+	if rows, err := s.SellerProducts(viewer, st.ID); err != nil || len(rows) != 1 {
+		t.Fatalf("viewer could not read catalog: %v %+v", err, rows)
+	}
+	if _, err := s.SetInventory(viewer, InventoryInput{StoreID: st.ID, ProductID: product.ID, VariantID: product.Variants[0].ID, Inventory: 4, IdempotencyKey: "viewer-inventory-1"}); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("viewer mutated inventory: %v", err)
+	}
+	in := UpdateProductInput{Title: "Field kit v2", Description: "Documented edit", Category: "outdoor", Media: product.Media, Variants: product.Variants, IdempotencyKey: "catalog-update-1"}
+	updated, err := s.UpdateProduct(owner, product.ID, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Revision < 3 || len(updated.EditHistory) < 3 || updated.EditHistory[len(updated.EditHistory)-1].Action != "updated" {
+		t.Fatalf("catalog edit history missing: %+v", updated)
+	}
+	in.Title = "tampered retry"
+	if _, err := s.UpdateProduct(owner, product.ID, in); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed catalog replay accepted: %v", err)
 	}
 }

@@ -12,6 +12,9 @@ import (
 
 const maxBody = 1 << 20
 
+var BuildVersion = "0.2.0-testnet-preview"
+var BuildCommit = "development"
+
 type ServerConfig struct {
 	Auth                      AuthGateway
 	Pay                       HTTPPayVerifier
@@ -33,6 +36,7 @@ func NewServer(store *Store, cfg ServerConfig) *Server {
 func (s *Server) Handler() http.Handler { return s.security(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /api/capabilities", s.capabilities)
 	s.mux.HandleFunc("GET /api/auth/config", s.authConfig)
 	s.mux.HandleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
@@ -58,7 +62,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.mux.HandleFunc("POST /api/seller/products", s.createProduct)
 	s.mux.HandleFunc("GET /api/seller/products", s.sellerProducts)
+	s.mux.HandleFunc("PUT /api/seller/products/{id}", s.updateProduct)
 	s.mux.HandleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)
+	s.mux.HandleFunc("POST /api/seller/products/{id}/unpublish", s.unpublishProduct)
 	s.mux.HandleFunc("POST /api/seller/inventory", s.inventory)
 	s.mux.HandleFunc("GET /api/seller/audit", s.audit)
 	s.mux.HandleFunc("GET /api/seller/settlements", s.settlements)
@@ -79,7 +85,7 @@ func (s *Server) security(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data: https:")
 		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet && !s.store.Allow(r.RemoteAddr, "http.mutation", 240, time.Minute) {
 			fail(w, http.StatusTooManyRequests, errors.New("mutation rate limit exceeded"))
@@ -89,7 +95,10 @@ func (s *Server) security(next http.Handler) http.Handler {
 	})
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"ok": true, "service": "ynx-shopd", "chainId": ChainID, "chain": ChainName, "nativeSymbol": NativeSymbol, "persistence": s.store.path != ""})
+	write(w, 200, map[string]any{"ok": true, "service": "ynx-shopd", "version": BuildVersion, "commit": BuildCommit, "chainId": ChainID, "chain": ChainName, "nativeSymbol": NativeSymbol, "persistence": s.store.path != "", "integrityProtected": len(s.store.integrityKey) > 0})
+}
+func (s *Server) version(w http.ResponseWriter, r *http.Request) {
+	write(w, 200, map[string]any{"service": "ynx-shopd", "version": BuildVersion, "commit": BuildCommit, "chain": ChainName, "nativeSymbol": NativeSymbol})
 }
 func (s *Server) capabilities(w http.ResponseWriter, r *http.Request) {
 	wallet := "unavailable"
@@ -549,12 +558,40 @@ func (s *Server) sellerProducts(w http.ResponseWriter, r *http.Request) {
 	}
 	write(w, 200, map[string]any{"products": v})
 }
+func (s *Server) updateProduct(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in UpdateProductInput
+	if !decode(w, r, &in) {
+		return
+	}
+	v, err := s.store.UpdateProduct(sess.Account, r.PathValue("id"), in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, v)
+}
 func (s *Server) publishProduct(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
 	if !ok {
 		return
 	}
 	v, err := s.store.PublishProduct(sess.Account, r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, v)
+}
+func (s *Server) unpublishProduct(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	v, err := s.store.UnpublishProduct(sess.Account, r.PathValue("id"))
 	if err != nil {
 		fail(w, status(err), err)
 		return

@@ -1,0 +1,41 @@
+{
+  "Version": 2,
+  "Stores": {
+    "store_visual_fixture": {
+      "ID": "store_visual_fixture",
+      "Owner": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+      "Name": "Field Notes Supply",
+      "Description": "Local visual acceptance fixture. Not a live merchant.",
+      "Policy": "Visual fixture only. Production returns require evidence and seller review.",
+      "TrustURL": "",
+      "SettlementAccount": "",
+      "Status": "active",
+      "CreatedAt": "2026-07-18T00:00:00Z",
+      "UpdatedAt": "2026-07-18T00:00:00Z"
+    }
+  },
+  "Products": {
+    "product_visual_fixture": {
+      "ID": "product_visual_fixture",
+      "StoreID": "store_visual_fixture",
+      "Title": "Field repair kit",
+      "Description": "Compact repair essentials organized for a day outside.",
+      "Category": "outdoor",
+      "Published": true,
+      "Media": [{"URL":"/shop/evidence/visual-fixture-field-kit.png","AltText":"Navy field repair kit with bottle, flashlight, multitool, and cord","Kind":"image"}],
+      "Variants": [{"ID":"variant_visual_fixture","Name":"Navy","SKU":"VISUAL-ONLY","PriceYNXT":25,"Inventory":8,"Reserved":1}],
+      "Revision": 2,
+      "EditHistory": [],
+      "CreatedAt": "2026-07-18T00:00:00Z",
+      "UpdatedAt": "2026-07-18T00:00:00Z"
+    }
+  },
+  "Orders": {},
+  "Idempotency": {},
+  "Audits": [],
+  "AIJobs": {},
+  "BuyerProfiles": {},
+  "Carts": {},
+  "SellerRoles": {},
+  "RequestWindow": {}
+}

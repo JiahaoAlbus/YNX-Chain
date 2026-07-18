@@ -107,7 +107,7 @@ func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores/"+merchant.ID+"/activate", sellerToken, map[string]any{}, http.StatusOK, &merchant)
 	requestJSON(t, client, http.MethodPut, server.URL+"/api/seller/stores/"+merchant.ID+"/roles", sellerToken, map[string]any{"Account": supportAccount, "Role": "support"}, http.StatusOK, nil)
 	var product Product
-	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/products", sellerToken, CreateProductInput{StoreID: merchant.ID, Title: "Field kit", Description: "Verified", Category: "outdoor", Variants: []Variant{{Name: "Blue", SKU: "HTTP-BLUE", PriceYNXT: 25, Inventory: 1}}, IdempotencyKey: "http-product-key-1"}, http.StatusCreated, &product)
+	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/products", sellerToken, CreateProductInput{StoreID: merchant.ID, Title: "Field kit", Description: "Verified", Category: "outdoor", Media: []MediaAsset{{URL: "https://media.example/field-kit.jpg", AltText: "Blue field kit", Kind: "image"}}, Variants: []Variant{{Name: "Blue", SKU: "HTTP-BLUE", PriceYNXT: 25, Inventory: 1}}, IdempotencyKey: "http-product-key-1"}, http.StatusCreated, &product)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/products/"+product.ID+"/publish", sellerToken, map[string]any{}, http.StatusOK, &product)
 	requestJSON(t, client, http.MethodPut, server.URL+"/api/cart", buyerToken, map[string]any{"Items": []CartItem{{ProductID: product.ID, VariantID: product.Variants[0].ID, Quantity: 1}}}, http.StatusOK, nil)
 	var order Order

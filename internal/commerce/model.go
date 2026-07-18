@@ -37,10 +37,27 @@ type Variant struct {
 	Reserved      int64
 }
 
+type MediaAsset struct {
+	URL, AltText, Kind string
+}
+
+type ProductRevision struct {
+	Revision                     int64
+	Actor, Action, RequestHash   string
+	Title, Description, Category string
+	Media                        []MediaAsset
+	Variants                     []Variant
+	Published                    bool
+	At                           time.Time
+}
+
 type Product struct {
 	ID, StoreID, Title, Description, Category string
 	Published                                 bool
+	Media                                     []MediaAsset
 	Variants                                  []Variant
+	Revision                                  int64
+	EditHistory                               []ProductRevision
 	CreatedAt, UpdatedAt                      time.Time
 }
 
@@ -106,7 +123,13 @@ type Order struct {
 	Resolution                                                                                  *Resolution
 	Review                                                                                      *Review
 	TrustCase                                                                                   *TrustCaseEvidence
+	Timeline                                                                                    []OrderEvent
 	CreatedAt, UpdatedAt                                                                        time.Time
+}
+
+type OrderEvent struct {
+	ID, Actor, Role, Action, Status, Detail string
+	At                                      time.Time
 }
 
 type AuditEvent struct {

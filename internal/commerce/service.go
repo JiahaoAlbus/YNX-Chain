@@ -14,7 +14,13 @@ import (
 type CreateStoreInput struct{ Name, Description, Policy, TrustURL, SettlementAccount, IdempotencyKey string }
 type CreateProductInput struct {
 	StoreID, Title, Description, Category, IdempotencyKey string
+	Media                                                 []MediaAsset
 	Variants                                              []Variant
+}
+type UpdateProductInput struct {
+	Title, Description, Category, IdempotencyKey string
+	Media                                        []MediaAsset
+	Variants                                     []Variant
 }
 type InventoryInput struct {
 	StoreID, ProductID, VariantID string
@@ -107,6 +113,9 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 	if strings.TrimSpace(in.Title) == "" || len(in.Title) > 160 || len(in.Description) > 5000 || len(in.Category) > 80 || len(in.Variants) == 0 || len(in.Variants) > 50 {
 		return Product{}, errors.New("title and variants required")
 	}
+	if err := validateMedia(in.Media); err != nil {
+		return Product{}, err
+	}
 	for i := range in.Variants {
 		v := &in.Variants[i]
 		if v.ID == "" {
@@ -125,10 +134,83 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 		return s.s.Products[h], nil
 	}
 	now := s.now()
-	p := Product{ID: newID("product"), StoreID: in.StoreID, Title: in.Title, Description: in.Description, Category: in.Category, Variants: in.Variants, CreatedAt: now, UpdatedAt: now}
+	p := Product{ID: newID("product"), StoreID: in.StoreID, Title: strings.TrimSpace(in.Title), Description: in.Description, Category: strings.TrimSpace(in.Category), Media: append([]MediaAsset(nil), in.Media...), Variants: in.Variants, Revision: 1, CreatedAt: now, UpdatedAt: now}
+	p.EditHistory = append(p.EditHistory, productRevision(p, actor, "created", requestHash(in), now))
 	s.s.Products[p.ID] = p
 	s.recordIdempotencyLocked(actor, "product.create", in.IdempotencyKey, h, p.ID)
 	s.auditLocked(actor, "seller", "catalog_draft_created", "product", p.ID, "draft", "not published")
+	if err := s.persistLocked(); err != nil {
+		return Product{}, err
+	}
+	return p, nil
+}
+
+func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.s.Products[id]
+	if !ok {
+		return Product{}, ErrNotFound
+	}
+	if err := s.requireSellerLocked(p.StoreID, actor, "owner", "manager"); err != nil {
+		return Product{}, err
+	}
+	if strings.TrimSpace(in.Title) == "" || len(in.Title) > 160 || len(in.Description) > 5000 || len(in.Category) > 80 || len(in.Variants) == 0 || len(in.Variants) > 50 {
+		return Product{}, errors.New("title and variants required")
+	}
+	if err := validateMedia(in.Media); err != nil {
+		return Product{}, err
+	}
+	byID := map[string]Variant{}
+	for _, current := range p.Variants {
+		byID[current.ID] = current
+	}
+	seenSKU := map[string]bool{}
+	for i := range in.Variants {
+		v := &in.Variants[i]
+		if v.ID == "" {
+			v.ID = newID("variant")
+		}
+		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenSKU[v.SKU] {
+			return Product{}, errors.New("valid unique variant name, SKU, price and inventory required")
+		}
+		seenSKU[v.SKU] = true
+		if current, exists := byID[v.ID]; exists {
+			if v.Inventory < current.Reserved {
+				return Product{}, ErrInventory
+			}
+			v.Reserved = current.Reserved
+		} else {
+			v.Reserved = 0
+		}
+	}
+	for id, current := range byID {
+		found := false
+		for _, next := range in.Variants {
+			found = found || next.ID == id
+		}
+		if !found && current.Reserved > 0 {
+			return Product{}, fmt.Errorf("%w: reserved variant cannot be removed", ErrInventory)
+		}
+	}
+	h, replay, err := s.idempotencyLocked(actor, "product.update."+id, in.IdempotencyKey, in)
+	if err != nil {
+		return Product{}, err
+	}
+	if replay {
+		return s.s.Products[h], nil
+	}
+	p.Title = strings.TrimSpace(in.Title)
+	p.Description = in.Description
+	p.Category = strings.TrimSpace(in.Category)
+	p.Media = append([]MediaAsset(nil), in.Media...)
+	p.Variants = in.Variants
+	p.Revision++
+	p.UpdatedAt = s.now()
+	p.EditHistory = append(p.EditHistory, productRevision(p, actor, "updated", requestHash(in), p.UpdatedAt))
+	s.s.Products[id] = p
+	s.recordIdempotencyLocked(actor, "product.update."+id, in.IdempotencyKey, h, id)
+	s.auditLocked(actor, "seller", "catalog_updated", "product", id, "approved", fmt.Sprintf("revision=%d", p.Revision))
 	if err := s.persistLocked(); err != nil {
 		return Product{}, err
 	}
@@ -149,14 +231,66 @@ func (s *Store) PublishProduct(actor, id string) (Product, error) {
 	if st.Status != "active" {
 		return Product{}, errors.New("active store required")
 	}
+	if len(p.Media) == 0 {
+		return Product{}, errors.New("at least one reviewed product image is required before publication")
+	}
 	p.Published = true
+	p.Revision++
 	p.UpdatedAt = s.now()
+	p.EditHistory = append(p.EditHistory, productRevision(p, actor, "published", requestHash(id), p.UpdatedAt))
 	s.s.Products[id] = p
 	s.auditLocked(actor, "seller", "product_published", "product", id, "approved", "explicit seller action")
 	if err := s.persistLocked(); err != nil {
 		return Product{}, err
 	}
 	return p, nil
+}
+
+func (s *Store) UnpublishProduct(actor, id string) (Product, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.s.Products[id]
+	if !ok {
+		return Product{}, ErrNotFound
+	}
+	if err := s.requireSellerLocked(p.StoreID, actor, "owner", "manager"); err != nil {
+		return Product{}, err
+	}
+	if !p.Published {
+		return p, nil
+	}
+	p.Published = false
+	p.Revision++
+	p.UpdatedAt = s.now()
+	p.EditHistory = append(p.EditHistory, productRevision(p, actor, "unpublished", requestHash(id), p.UpdatedAt))
+	s.s.Products[id] = p
+	s.auditLocked(actor, "seller", "product_unpublished", "product", id, "approved", fmt.Sprintf("revision=%d", p.Revision))
+	if err := s.persistLocked(); err != nil {
+		return Product{}, err
+	}
+	return p, nil
+}
+
+func validateMedia(media []MediaAsset) error {
+	if len(media) > 12 {
+		return errors.New("product media exceeds 12 assets")
+	}
+	seen := map[string]bool{}
+	for _, asset := range media {
+		if asset.Kind != "image" || len(asset.URL) > 1000 || strings.TrimSpace(asset.AltText) == "" || len(asset.AltText) > 240 || seen[asset.URL] {
+			return errors.New("product media requires unique HTTPS image URLs and bounded alt text")
+		}
+		parsed, err := url.Parse(asset.URL)
+		if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
+			return errors.New("product media URL must be absolute HTTPS without credentials or fragment")
+		}
+		seen[asset.URL] = true
+	}
+	return nil
+}
+
+func productRevision(p Product, actor, action, digest string, at time.Time) ProductRevision {
+	return ProductRevision{Revision: p.Revision, Actor: actor, Action: action, RequestHash: digest, Title: p.Title, Description: p.Description, Category: p.Category, Media: append([]MediaAsset(nil), p.Media...), Variants: append([]Variant(nil), p.Variants...), Published: p.Published, At: at}
 }
 
 func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
@@ -268,6 +402,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (Order, error) {
 	}
 	now := s.now()
 	o := Order{ID: newID("order"), Buyer: actor, StoreID: in.StoreID, Status: "payment_pending", Currency: NativeSymbol, Lines: lines, Address: in.Address, SubtotalYNXT: total, TotalYNXT: total, TaxStatus: "unavailable_no_tax_service", LogisticsStatus: "unavailable_no_logistics_provider", RefundStatus: "not_requested", TrustStatus: "not_requested", ReservationExpiresAt: now.Add(30 * time.Minute), CreatedAt: now, UpdatedAt: now}
+	s.orderEventLocked(&o, actor, "buyer", "order_created", "payment_pending", "inventory reserved; authoritative Pay evidence required")
 	s.s.Orders[o.ID] = o
 	s.recordIdempotencyLocked(actor, "order.create", in.IdempotencyKey, h, o.ID)
 	s.auditLocked(actor, "buyer", "order_created", "order", o.ID, "payment_pending", "inventory reserved; Pay invoice handoff required")
@@ -298,6 +433,7 @@ func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (O
 	o.PayMerchant = handoff.Merchant
 	o.PayPayoutAddress = handoff.PayoutAddress
 	o.UpdatedAt = s.now()
+	s.orderEventLocked(&o, actor, "buyer", "pay_handoff_created", "payment_pending", "invoice bound; payment is not yet committed")
 	s.s.Orders[o.ID] = o
 	s.auditLocked(actor, "buyer", "pay_invoice_bound", "order", o.ID, "pending", "awaiting authoritative settlement")
 	if err := s.persistLocked(); err != nil {
@@ -335,6 +471,7 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	o.Status = "paid"
 	o.Settlement = &e
 	o.UpdatedAt = s.now()
+	s.orderEventLocked(&o, "pay-settlement-verifier", "system", "settlement_confirmed", "paid", e.TransactionHash)
 	s.s.Orders[o.ID] = o
 	s.auditLocked("pay-settlement-verifier", "system", "settlement_confirmed", "order", o.ID, "paid", e.TransactionHash)
 	if err := s.persistLocked(); err != nil {
@@ -369,6 +506,7 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 		o.Resolution.UpdatedAt = s.now()
 	}
 	o.UpdatedAt = s.now()
+	s.orderEventLocked(&o, actor, role, "pay_refund_bound", "refunded", e.TransactionHash)
 	s.s.Orders[o.ID] = o
 	s.auditLocked(actor, role, "pay_refund_bound", "order", o.ID, "refunded", "exact committed Pay refund evidence attached")
 	if err := s.persistLocked(); err != nil {
@@ -526,6 +664,7 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	}
 	o.Status = next
 	o.UpdatedAt = now
+	s.orderEventLocked(&o, actor, role, "order_transition", next, "explicit authorized action")
 	s.s.Orders[id] = o
 	if len(idempotencyKeys) > 0 {
 		s.recordIdempotencyLocked(actor, "order.transition."+id, idempotencyKeys[0], requestDigest, id)
