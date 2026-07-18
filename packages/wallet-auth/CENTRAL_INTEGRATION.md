@@ -1,31 +1,48 @@
-# Central Gateway integration contract
+# Central Wallet Auth integration contract
 
-This document defines the exact interface implemented by `@ynx-chain/wallet-auth`. It is an integration request, not evidence that central Gateway or registry deployment has occurred.
+This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
-## Registry schema v2
+## Canonical registry
 
-The registry entry is exact JSON; unknown or missing fields fail closed:
+`central-registry.json` is the only 25-product candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `1`, chain `ynx_6423-1`, exactly 25 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks.
+
+Each product registration uses exact schema v3 fields:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "productId": "social",
+  "displayName": "YNX Social",
+  "reviewState": "pending-review",
+  "enabled": false,
   "productClientId": "ynx-social-v1",
   "requestingProduct": "social",
-  "bundleId": "com.ynxweb4.social",
-  "callbacks": ["ynxsocial://wallet-auth/callback"],
+  "bundleId": "com.ynx.social",
+  "callbacks": ["ynx-social://com.ynx.social"],
   "scopes": ["account:read", "profile:link"],
   "maxScopes": 2,
-  "productDeviceAlgorithms": ["p256-sha256"]
+  "productDeviceAlgorithms": ["p256-sha256"],
+  "sessionDurationSeconds": 240,
+  "revocationPolicy": {"session":true,"approval":true,"device":true,"accountAllDevices":true}
 }
 ```
 
-Arrays must be non-empty where required, unique, sorted, and canonical. The only version 1 product-device algorithm is `p256-sha256`; its key is a canonical unpadded base64url 33-byte compressed SEC1 P-256 point. Central registry is responsible for publishing this entry atomically with the product bundle/package and callback allow-list.
+`reviewState` is `approved`, `pending-review`, or `disabled`; `enabled` must be true exactly when approved. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard scope, callback, client, or bundle is allowed.
 
-Legacy schema v1 has exact fields `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callback`, `scopes`, and `maxScopes`. Call `migrateCentralRegistryEntry(v1)` once; it converts the single callback to `callbacks` and binds `productDeviceAlgorithms` to `p256-sha256`. It rejects extra fields and is idempotent for v2.
+Schema v2 remains the exact protocol projection consumed by the verifier: `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callbacks`, `scopes`, `maxScopes`, and `productDeviceAlgorithms`. `migrateCentralRegistryEntry` converts the exact legacy single-callback v1 shape to v2 and rejects extra fields.
 
-## Verifier transaction
+`registry-conflict-evidence.json` records known identity and central implementation conflicts. It must be reviewed with the owning product worktrees before any product is marked approved.
 
-The Gateway must call one entry point after receiving the product's device-signed completion:
+## Canonical envelope and verifier
+
+Authorization transport is `ynxwallet://authorize?request=<base64url(canonical JSON)>`. The response callback has exactly one `response` query field. The canonical request and approval bind:
+
+- `ynx_6423-1`, requesting product, client ID, bundle/package, callback;
+- compressed P-256 product device public key and algorithm;
+- native `ynx1` account and secp256k1 account public key;
+- exact ordered scopes, nonce, human-readable purpose, request digest, issue time, and expiry.
+
+After Wallet approval, Gateway issues the exact short-lived challenge. The product device signs `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge JSON>` with ECDSA P-256/SHA-256 and canonical DER encoding. Gateway then calls:
 
 ```ts
 const session = verifyCentralWalletSession({
@@ -36,31 +53,39 @@ const session = verifyCentralWalletSession({
 }, now);
 ```
 
-The input object and every nested protocol object use exact schemas. The call performs, in order:
+The returned session additionally binds `sessionBinding`, `approvalDigest`, and `deviceBinding`. It can be accepted only by the exact client, bundle, product device key, and granted scopes.
 
-1. Parse the v2 registry and authorization request against the exact product, bundle, callback, algorithm, scope allow-list, issue time, expiry, and `ynx_6423-1` network.
-2. Recompute the request digest and verify the Wallet compact secp256k1 approval, native `ynx1` account derivation, bindings, scopes, and lifetime.
-3. Verify the Android-compatible SHA-256/ECDSA P-256 DER product-device proof over `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge JSON>`.
-4. Require exact request digest, client, bundle, algorithm/key, account, ordered scopes, and an expiry no later than the Wallet approval.
-5. Return product-limited session claims. No Wallet secret or recovery material is accepted by this interface.
+## Transactional lifecycle
 
-Before every session use, call:
+`CentralWalletSessionStore` is the executable reference lifecycle. `complete` verifies the whole envelope, then consumes nonce, request digest, and Gateway challenge and writes the session as one state transition. Any error restores the prior snapshot. A restart revalidates exact snapshot fields, consumed-record coverage, session schemas, and the hash-chained audit log.
+
+Gateway should implement the same transaction in its durable database, not use this in-memory reference as production storage:
+
+1. Lock/read the reviewed enabled registration and revocation state.
+2. Verify Wallet approval and product-device proof.
+3. Reject an already consumed nonce, request digest, challenge, or session binding.
+4. Persist all three consumption tombstones, the session, and audit event atomically.
+5. Commit; never emit a session before commit.
+
+Before each use, either call `store.introspect(sessionBinding, exactContext, now)` or:
 
 ```ts
 assertCentralWalletSessionActive(session, {
   revokedSessionBindings,
-  revokedRequestDigests,
+  revokedApprovalDigests,
+  revokedDeviceBindings,
+  accountLogoutRecords,
 }, now);
 ```
 
-`revokedSessionBindings` revokes one product session. `revokedRequestDigests` revokes the Wallet approval and every session derived from it. Both arrays are exact, sorted 64-character lowercase hex digests. Expired and revoked sessions fail closed.
+The four controls revoke one session, every session from one approval, every session on one product device, or every session for an account issued at/before an all-devices logout. Lists and records are exact, sorted, unique, and bounded. Expiry, future issuance, cross-App reuse, missing scopes, and every revocation fail closed.
 
-The registry read, challenge consume, replay consume, session write, and revocation read must occur in one central transactional boundary. A callback must not create a session before both the Wallet approval and device proof have passed this shared verifier. Do not fork the canonical JSON implementation or signing domains.
+## Required central rollout
 
-## Migration and rollout
+1. Resolve `registry-conflict-evidence.json` with each product owner; approve exact tuples individually.
+2. Import this package without forking canonical JSON, digest domains, schemas, or vectors.
+3. Implement durable transactional challenge/session/revocation persistence and authenticated endpoints for completion, introspection, session revoke, approval revoke, device revoke, and account all-devices logout.
+4. Run all package tests and vectors in central Gateway CI, including replay, restart, audit tamper, callback interception, scope mutation, cross-App reuse, and all four revocations.
+5. Deploy registry and verifier atomically to staging, record registry version/hash and deployment evidence, then run real Wallet↔product tests.
 
-1. Load v1 entries through `migrateCentralRegistryEntry`; compare the v2 output with the reviewed product inventory.
-2. Dual-read v1/v2 registry storage but emit v2 only. Do not accept Ed25519 or SPKI hashes under `p256-sha256`.
-3. Run `packages/wallet-auth/test/integration.test.mjs`, signer vectors, replay, tamper, scope, expiry, callback interception, and cross-App tests in Gateway CI.
-4. Deploy the shared package and v2 registry atomically; reject unknown verifier versions.
-5. After all clients are v2, remove the v1 storage reader. Keep the migration test and published vectors permanently.
+Until those steps are complete, truthful status is `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.

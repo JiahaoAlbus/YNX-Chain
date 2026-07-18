@@ -1,4 +1,4 @@
-export type ProductBinding = Readonly<{requestingProduct:string; bundleId:string; callbacks:readonly string[]; scopes:readonly string[]; maxScopes?:number}>;
+export type ProductBinding = Readonly<{requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes?:number}>;
 export type ProductDeviceAlgorithm = "p256-sha256";
 export type AuthorizationRequest = Readonly<{version:"1";nonce:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;callback:string;scopes:readonly string[];purpose:string;issuedAt:string;expiresAt:string}>;
 export type AuthorizationResponse = Readonly<{version:"1";requestDigest:string;nonce:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;callback:string;account:string;accountPublicKey:string;grantedScopes:readonly string[];purpose:string;issuedAt:string;expiresAt:string;walletSignature:string}>;
@@ -6,26 +6,40 @@ export type GatewayChallenge = Readonly<{version:"1";challenge:string;requestDig
 export type GatewayCompletion = Readonly<{challenge:GatewayChallenge;deviceSignature:string}>;
 export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:string;requestingProduct:string;bundleId:string;callback:string;scopes:readonly string[];maxScopes:number}>;
 export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
-export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;requestDigest:string;account:string;scopes:readonly string[];issuedAt:string;expiresAt:string}>;
+export type CentralReviewState = "approved"|"pending-review"|"disabled";
+export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"> & {schemaVersion:3;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
+export type CentralRegistryDocument = Readonly<{registryVersion:1;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
+export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
+export type CentralRevocationState = Readonly<{revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[]}>;
+export type CentralWalletStoreSnapshot = Readonly<{schemaVersion:1;consumedNonces:readonly string[];consumedRequestDigests:readonly string[];consumedChallenges:readonly string[];sessions:readonly CentralWalletSession[];revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[];audit:readonly Readonly<{sequence:number;type:string;subject:string;at:string;previousHash:string|null;hash:string}>[]}>;
+export type SignedNativeTransfer=Readonly<{version:1;chainId:6423;type:"transfer";from:string;to:string;amount:number;fee:1;nonce:number;publicKey:string;signature:string}>;
 export declare const WALLET_AUTH_VERSION:"1";
 export declare const YNX_NATIVE_CHAIN_ID:"ynx_6423-1";
 export declare const YNX_EVM_CHAIN_ID:6423;
 export declare const PRODUCT_DEVICE_ALGORITHM:"p256-sha256";
 export declare const CENTRAL_REGISTRY_SCHEMA_VERSION:2;
 export declare const CENTRAL_VERIFIER_VERSION:"wallet-auth-v1";
-export declare class WalletAuthError extends Error { readonly code:string }
+export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION:1;
+export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:3;
+export declare const NATIVE_TRANSACTION_DOMAIN:"YNX_NATIVE_TX_V1";
+export declare const NATIVE_TRANSACTION_CHAIN_ID:6423;
+export declare const NATIVE_TRANSACTION_FEE_YNXT:1;
+export declare class WalletAuthError extends Error {readonly code:string}
 export declare function canonicalJSON(value:unknown):string;
 export declare function digestHex(domain:string,value:unknown):string;
-export declare function parseAuthorizationRequest(input:string|unknown, options:{now?:Date;registry:Record<string,ProductBinding>}):AuthorizationRequest;
+export declare function parseAuthorizationRequest(input:string|unknown,options:{now?:Date;registry:Record<string,ProductBinding>}):AuthorizationRequest;
 export declare function requestDigest(request:AuthorizationRequest):string;
 export declare function walletIdentity(secretHex:string):Readonly<{account:string;accountPublicKey:string}>;
+export declare function walletIdentityFromPublicKey(publicKeyHex:string):string;
+export declare function evmAddressFromYNX(account:string):string;
+export declare function ynxAddressFromEVM(address:string):string;
 export declare function signAuthorization(request:AuthorizationRequest,input:{accountSecret:string;account?:string;issuedAt:string}):AuthorizationResponse;
 export declare function verifyAuthorization(response:unknown,expected:AuthorizationRequest&{requestDigest:string;now:Date}):AuthorizationResponse;
 export declare function encodeRequestDeepLink(request:AuthorizationRequest):string;
 export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",options:{now?:Date;registry:Record<string,ProductBinding>}):Readonly<{platform:string;request:AuthorizationRequest}>;
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
-export declare class OneTimeNonceStore { constructor(records?:readonly [string,string][]); consume(request:AuthorizationRequest,at?:Date):void; snapshot():readonly [string,string][] }
+export declare class OneTimeNonceStore {constructor(records?:readonly [string,string][]);consume(request:AuthorizationRequest,at?:Date):void;snapshot():readonly [string,string][]}
 export declare function createGatewayChallenge(approval:AuthorizationResponse,input:{challenge:string;expiresAt:string},at?:Date):GatewayChallenge;
 export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;
 export declare function gatewayChallengeSignBytes(challenge:GatewayChallenge):string;
@@ -36,4 +50,26 @@ export declare function parseCentralRegistryEntry(input:unknown):CentralRegistry
 export declare function registryParserBinding(input:CentralRegistryEntry):Readonly<Record<string,ProductBinding>>;
 export declare function verifyCentralWalletSession(input:Readonly<{registryEntry:CentralRegistryEntry;authorizationRequest:AuthorizationRequest;walletApproval:AuthorizationResponse;gatewayCompletion:GatewayCompletion}>,at?:Date):CentralWalletSession;
 export declare function parseCentralWalletSession(input:unknown):CentralWalletSession;
-export declare function assertCentralWalletSessionActive(session:CentralWalletSession,input:Readonly<{revokedSessionBindings:readonly string[];revokedRequestDigests:readonly string[]}>,at?:Date):CentralWalletSession;
+export declare function centralApprovalDigest(approval:AuthorizationResponse):string;
+export declare function centralDeviceBinding(requestOrSession:Pick<CentralWalletSession,"chainId"|"requestingProduct"|"productClientId"|"bundleId"|"callback"|"productDeviceAlgorithm"|"productDeviceKey">,account:string):string;
+export declare function assertCentralWalletSessionActive(session:CentralWalletSession,input:CentralRevocationState,at?:Date):CentralWalletSession;
+export declare function parseCentralRegistryDocument(input:unknown):CentralRegistryDocument;
+export declare function parseCentralProductRegistration(input:unknown):CentralProductRegistration;
+export declare function centralProtocolEntry(registration:CentralProductRegistration,options?:{requireEnabled?:boolean}):CentralRegistryEntry;
+export declare function centralRegistrationByProduct(document:CentralRegistryDocument,productId:string,options?:{requireEnabled?:boolean}):CentralProductRegistration;
+export declare class CentralWalletSessionStore {
+  constructor(snapshot?:CentralWalletStoreSnapshot);
+  complete(input:Readonly<{registryEntry:CentralRegistryEntry;authorizationRequest:AuthorizationRequest;walletApproval:AuthorizationResponse;gatewayCompletion:GatewayCompletion}>,at?:Date):CentralWalletSession;
+  introspect(sessionBinding:string,context:Readonly<{productClientId:string;bundleId:string;productDeviceKey:string;requiredScopes:readonly string[]}>,at?:Date):Readonly<{active:true;session:CentralWalletSession}>;
+  revokeSession(sessionBinding:string,at?:Date):string;
+  revokeApproval(approvalDigest:string,at?:Date):string;
+  revokeDevice(deviceBinding:string,at?:Date):string;
+  logoutAllDevices(account:string,at?:Date):Readonly<{account:string;before:string}>;
+  revocationState():CentralRevocationState;
+  snapshot():CentralWalletStoreSnapshot;
+}
+export declare function parseCentralWalletStoreSnapshot(input:unknown):CentralWalletStoreSnapshot;
+export declare function createSignedNativeTransfer(input:Readonly<{accountSecret:string;to:string;amount:number;nonce:number}>):Readonly<{transaction:SignedNativeTransfer;payload:string;hash:string}>;
+export declare function parseSignedNativeTransfer(input:string|unknown):SignedNativeTransfer;
+export declare function nativeTransferSignJSON(transaction:Omit<SignedNativeTransfer,"signature">|SignedNativeTransfer):string;
+export declare function nativeTransferHash(payload:string):string;

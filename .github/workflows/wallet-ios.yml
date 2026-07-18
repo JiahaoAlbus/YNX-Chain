@@ -1,0 +1,44 @@
+name: wallet-ios
+
+on:
+  push:
+    branches: [main, codex/ecosystem-wallet-auth]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+  pull_request:
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+
+jobs:
+  simulator-build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            packages/wallet-auth/package-lock.json
+            apps/wallet/package-lock.json
+      - run: npm ci
+        working-directory: packages/wallet-auth
+      - run: npm test
+        working-directory: packages/wallet-auth
+      - run: npm ci
+        working-directory: apps/wallet
+      - run: npm run check
+        working-directory: apps/wallet
+      - run: npx pod-install ios
+        working-directory: apps/wallet
+      - name: Build unsigned iOS Simulator app
+        working-directory: apps/wallet
+        run: >-
+          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet
+          -configuration Release -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO clean build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-wallet-ios-simulator
+          path: ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/YNXWallet.app
+          if-no-files-found: error

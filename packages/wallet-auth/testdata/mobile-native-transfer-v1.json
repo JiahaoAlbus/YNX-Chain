@@ -1,0 +1,8 @@
+{
+  "accountSecret": "0000000000000000000000000000000000000000000000000000000000000001",
+  "toEVM": "0xffffffffffffffffffffffffffffffffffffffff",
+  "amount": 25,
+  "nonce": 7,
+  "payload": "{\"version\":1,\"chainId\":6423,\"type\":\"transfer\",\"from\":\"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf\",\"to\":\"0xffffffffffffffffffffffffffffffffffffffff\",\"amount\":25,\"fee\":1,\"nonce\":7,\"publicKey\":\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\",\"signature\":\"3044022004b8478c28720b546b401b30b36703be0f32e02f82d5207da71cfac1791b31e5022038abc26e98f8a44fbed32ce294e4143be29a00b3b0ce3004ba09b830cbf00bf9\"}",
+  "hash": "0x5bd5da6a2960e6afed4e39ec739e833894fba1f2921952f725c56cebdd89dc03"
+}

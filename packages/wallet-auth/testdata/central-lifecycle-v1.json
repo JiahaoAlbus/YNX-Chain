@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "description": "Cross-language expected outputs for signer-v1.json plus gateway-p256-v1.json.",
+  "domains": {
+    "request": "YNX_WALLET_AUTH_REQUEST_V1",
+    "approval": "YNX_WALLET_AUTH_APPROVAL_V1",
+    "gatewayChallenge": "YNX_PRODUCT_SESSION_CHALLENGE_V1",
+    "approvalDigest": "YNX_WALLET_AUTH_APPROVAL_DIGEST_V1",
+    "deviceBinding": "YNX_WALLET_PRODUCT_DEVICE_BINDING_V1",
+    "audit": "YNX_WALLET_CENTRAL_AUDIT_V1"
+  },
+  "expected": {
+    "requestDigest": "8af8ac0dd31e2aa874ef95d9c22c1aae25d1f42bf661b0427c9553aecc7f701d",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "sessionBinding": "beec070fdca1db91121e47d5c753866ec3ef3201c8771d66a6db133855036fb1",
+    "approvalDigest": "46b50f5be454e153c9b9c6d05847a12612d7286374d6a5ed8f62cb6ecce1e6a5",
+    "deviceBinding": "07eff374aaed2431cc53c04ea767b25e1bf74cab1386b83574bc69e922e9b815",
+    "firstAuditHash": "733bcfdf96718422d8583fc8b0fb443e2bf8601bded31c8d1a1e1bec4a409a9c"
+  }
+}

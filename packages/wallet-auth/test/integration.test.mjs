@@ -40,12 +40,15 @@ test("central verifier validates registry, Wallet approval, and device proof in 
   const gatewayCompletion = signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET);
   const session = verifyCentralWalletSession({ registryEntry, authorizationRequest: parsed, walletApproval: approval, gatewayCompletion }, NOW);
   assert.equal(session.verifierVersion, "wallet-auth-v1");
-  assert.deepEqual(assertCentralWalletSessionActive(session, { revokedSessionBindings: [], revokedRequestDigests: [] }, NOW), session);
-  assert.throws(() => assertCentralWalletSessionActive(session, { revokedSessionBindings: [session.sessionBinding], revokedRequestDigests: [] }, NOW), code("REVOKED"));
-  assert.throws(() => assertCentralWalletSessionActive(session, { revokedSessionBindings: [], revokedRequestDigests: [session.requestDigest] }, NOW), code("REVOKED"));
-  assert.throws(() => assertCentralWalletSessionActive(session, { revokedSessionBindings: [], revokedRequestDigests: [] }, new Date("2026-07-15T12:03:00.000Z")), code("EXPIRED"));
-  assert.throws(() => assertCentralWalletSessionActive({ ...session, account: "ynx1tampered" }, { revokedSessionBindings: [], revokedRequestDigests: [] }, NOW), code("INVALID_REGISTRY"));
-  assert.throws(() => assertCentralWalletSessionActive({ ...session, unknown: true }, { revokedSessionBindings: [], revokedRequestDigests: [] }, NOW), code("UNKNOWN_OR_MISSING_FIELD"));
+  const active = { revokedSessionBindings: [], revokedApprovalDigests: [], revokedDeviceBindings: [], accountLogoutRecords: [] };
+  assert.deepEqual(assertCentralWalletSessionActive(session, active, NOW), session);
+  assert.throws(() => assertCentralWalletSessionActive(session, { ...active, revokedSessionBindings: [session.sessionBinding] }, NOW), code("REVOKED"));
+  assert.throws(() => assertCentralWalletSessionActive(session, { ...active, revokedApprovalDigests: [session.approvalDigest] }, NOW), code("REVOKED"));
+  assert.throws(() => assertCentralWalletSessionActive(session, { ...active, revokedDeviceBindings: [session.deviceBinding] }, NOW), code("REVOKED"));
+  assert.throws(() => assertCentralWalletSessionActive(session, { ...active, accountLogoutRecords: [{ account: session.account, before: session.issuedAt }] }, NOW), code("REVOKED"));
+  assert.throws(() => assertCentralWalletSessionActive(session, active, new Date("2026-07-15T12:03:00.000Z")), code("EXPIRED"));
+  assert.throws(() => assertCentralWalletSessionActive({ ...session, account: "ynx1tampered" }, active, NOW), code("INVALID_REGISTRY"));
+  assert.throws(() => assertCentralWalletSessionActive({ ...session, unknown: true }, active, NOW), code("UNKNOWN_OR_MISSING_FIELD"));
 });
 
 test("central integration rejects registry migration tamper and approval substitution", () => {
