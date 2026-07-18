@@ -10,11 +10,12 @@ Remove-Item $outRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $publish -ItemType Directory -Force | Out-Null
 
 Push-Location $app
-try { npm run build } finally { Pop-Location }
+try { npm run build; if ($LASTEXITCODE -ne 0) { throw "Web build failed with exit $LASTEXITCODE" } } finally { Pop-Location }
 
 dotnet publish (Join-Path $app "desktop/windows/YNXDeveloper.TestnetPreview.csproj") `
   --configuration Release --runtime win-x64 --self-contained true `
   --output $publish /p:PublishSingleFile=false /p:DebugType=None /p:DebugSymbols=false
+if ($LASTEXITCODE -ne 0) { throw "Windows publish failed with exit $LASTEXITCODE" }
 
 Copy-Item $publish $stage -Recurse
 $resources = Join-Path $stage "Resources"

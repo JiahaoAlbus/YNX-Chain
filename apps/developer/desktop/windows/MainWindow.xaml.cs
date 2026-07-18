@@ -83,8 +83,8 @@ public partial class MainWindow : Window
     void Reload(object s, RoutedEventArgs e) => Browser.Reload();
     void Exit(object s, RoutedEventArgs e) => Close();
     void CheckUpdates(object s, RoutedEventArgs e) => MessageBox.Show("This unsigned Testnet Preview never downloads or installs updates automatically. A production updater must verify an owner-signed manifest and package.", "Signed update boundary", MessageBoxButton.OK, MessageBoxImage.Information);
-    void About(object s, RoutedEventArgs e) => MessageBox.Show("Unsigned Windows Testnet Preview source. Not production signed, installed, cold-launched, or released.", "YNX Developer", MessageBoxButton.OK, MessageBoxImage.Information);
-    void RestoreWindow() { try { var value = JsonSerializer.Deserialize<WindowStateRecord>(File.ReadAllText(statePath)); if (value != null) { Left = value.Left; Top = value.Top; Width = Math.Max(960, value.Width); Height = Math.Max(640, value.Height); } } catch { }
+    void About(object s, RoutedEventArgs e) => MessageBox.Show("Unsigned Windows Testnet Preview. Not production signed or released.", "YNX Developer", MessageBoxButton.OK, MessageBoxImage.Information);
+    void RestoreWindow() { try { var value = JsonSerializer.Deserialize<WindowStateRecord>(File.ReadAllText(statePath)); if (value != null) { Left = value.Left; Top = value.Top; Width = Math.Max(960, value.Width); Height = Math.Max(640, value.Height); } } catch { } }
     void Stop(object? sender, CancelEventArgs e) { Directory.CreateDirectory(Path.GetDirectoryName(statePath)!); File.WriteAllText(statePath, JsonSerializer.Serialize(new WindowStateRecord(Left, Top, Width, Height))); try { if (server is { HasExited: false }) server.Kill(true); } catch { } }
     record WindowStateRecord(double Left, double Top, double Width, double Height);
 }
