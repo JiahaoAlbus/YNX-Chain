@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "522b998077b5f150b86ab56f0a2f62a3a5005b82",
+  "commit": "00815a0d90de1361528e072e1135cf497870f1c0",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -21,7 +21,7 @@
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"522b998077b5f150b86ab56f0a2f62a3a5005b82"},
-    "sponsoredUserOperation": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "sponsoredUserOperation": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"00815a0d90de1361528e072e1135cf497870f1c0"},
     "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "capitalReview": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
