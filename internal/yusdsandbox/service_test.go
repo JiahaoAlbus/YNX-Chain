@@ -1,7 +1,9 @@
 package yusdsandbox
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,6 +66,61 @@ func TestReserveMintOutageRedemptionAndRestart(t *testing.T) {
 	}
 	if mode := mustMode(t, path); mode != 0o600 {
 		t.Fatalf("state mode=%o", mode)
+	}
+}
+
+func TestBackupRestoreDrill(t *testing.T) {
+	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
+	root := t.TempDir()
+	statePath := filepath.Join(root, "active", "yusd.json")
+	service, err := New(Config{StatePath: statePath, APIKey: "test-yusd-api-key-123456", Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	evidence := strings.Repeat("d", 64)
+	account := "0x4444444444444444444444444444444444444444"
+	if _, err := service.DepositReserve(MutationRequest{IdempotencyKey: "restore-reserve-0001", Amount: 900_000_000, EvidenceHash: evidence}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Mint(MutationRequest{IdempotencyKey: "restore-mint-000001", Amount: 500_000_000, Account: account, EvidenceHash: evidence}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Redeem(MutationRequest{IdempotencyKey: "restore-redeem-001", Amount: 125_000_000, Account: account, EvidenceHash: evidence}); err != nil {
+		t.Fatal(err)
+	}
+	wantSnapshot, wantRedemptions, wantAudit := service.Snapshot(), service.Redemptions(), service.Audit()
+
+	backup, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupDigest := fmt.Sprintf("%x", sha256.Sum256(backup))
+	restorePath := filepath.Join(root, "restored", "yusd.json")
+	if err := os.MkdirAll(filepath.Dir(restorePath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(restorePath, backup, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	restoredBytes, err := os.ReadFile(restorePath)
+	if err != nil || fmt.Sprintf("%x", sha256.Sum256(restoredBytes)) != backupDigest {
+		t.Fatalf("restored backup digest mismatch: %v", err)
+	}
+	restored, err := New(Config{StatePath: restorePath, APIKey: "test-yusd-api-key-123456", Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := restored.Snapshot(); got != wantSnapshot {
+		t.Fatalf("snapshot changed after restore: want=%+v got=%+v", wantSnapshot, got)
+	}
+	if got := restored.Redemptions(); fmt.Sprint(got) != fmt.Sprint(wantRedemptions) {
+		t.Fatalf("redemptions changed after restore: want=%+v got=%+v", wantRedemptions, got)
+	}
+	if got := restored.Audit(); fmt.Sprint(got) != fmt.Sprint(wantAudit) {
+		t.Fatalf("audit changed after restore: want=%+v got=%+v", wantAudit, got)
+	}
+	if mode := mustMode(t, restorePath); mode != 0o600 {
+		t.Fatalf("restored state mode=%o", mode)
 	}
 }
 

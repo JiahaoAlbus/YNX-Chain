@@ -83,3 +83,51 @@ func TestEconomicsDisclosureKeepsCandidateAndReleaseClaimsFalse(t *testing.T) {
 		}
 	}
 }
+
+func TestEconomicsDisclosureRequestIDHealthAndMetrics(t *testing.T) {
+	commit := strings.Repeat("c", 40)
+	server := NewServerWithBuild(nil, buildinfo.Info{Commit: commit, Release: "test", BuildTime: "2026-07-22T00:00:00Z"})
+	handler := server.Handler()
+
+	disclosure := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/api/economics/disclosure", nil)
+	request.Header.Set("X-Request-ID", "economics-test-request-0001")
+	handler.ServeHTTP(disclosure, request)
+	if disclosure.Code != http.StatusOK || disclosure.Header().Get("X-Request-ID") != "economics-test-request-0001" {
+		t.Fatalf("request ID was not propagated: status=%d id=%q", disclosure.Code, disclosure.Header().Get("X-Request-ID"))
+	}
+	var body struct {
+		RequestID string `json:"requestId"`
+	}
+	if err := json.NewDecoder(disclosure.Body).Decode(&body); err != nil || body.RequestID != "economics-test-request-0001" {
+		t.Fatalf("response request ID mismatch: body=%+v err=%v", body, err)
+	}
+
+	health := httptest.NewRecorder()
+	invalidIDRequest := httptest.NewRequest(http.MethodGet, "/api/economics/health", nil)
+	invalidIDRequest.Header.Set("X-Request-ID", "bad id")
+	handler.ServeHTTP(health, invalidIDRequest)
+	if health.Code != http.StatusOK || !economicsRequestIDPattern.MatchString(health.Header().Get("X-Request-ID")) {
+		t.Fatalf("health boundary or generated request ID invalid: status=%d id=%q", health.Code, health.Header().Get("X-Request-ID"))
+	}
+	var healthBody struct {
+		OK      bool           `json:"ok"`
+		Failure bool           `json:"failure"`
+		Build   buildinfo.Info `json:"build"`
+	}
+	if err := json.NewDecoder(health.Body).Decode(&healthBody); err != nil || !healthBody.OK || healthBody.Failure || healthBody.Build.Commit != commit {
+		t.Fatalf("health response mismatch: body=%+v err=%v", healthBody, err)
+	}
+
+	metrics := server.economicsMetricsPrometheus()
+	for _, expected := range []string{
+		"ynx_explorer_economics_disclosure_requests_total 1",
+		"ynx_explorer_economics_disclosure_errors_total 0",
+		"ynx_explorer_economics_disclosure_latency_seconds_count 1",
+		"ynx_explorer_economics_disclosure_latency_seconds_bucket{le=\"+Inf\"} 1",
+	} {
+		if !strings.Contains(metrics, expected) {
+			t.Fatalf("metrics missing %q:\n%s", expected, metrics)
+		}
+	}
+}

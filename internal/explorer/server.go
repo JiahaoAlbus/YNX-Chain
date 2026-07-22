@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -22,6 +23,11 @@ type Server struct {
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
 	streamRunning bool
+
+	economicsRequests       atomic.Uint64
+	economicsErrors         atomic.Uint64
+	economicsLatencyNanos   atomic.Uint64
+	economicsLatencyBuckets [6]atomic.Uint64
 }
 
 type streamEvent struct {
@@ -59,6 +65,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
 	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
+	s.mux.HandleFunc("GET /api/economics/health", s.handleEconomicsHealth)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
@@ -371,6 +378,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "# HELP ynx_explorer_transactions_total Transactions visible through the indexer.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_explorer_transactions_total gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_explorer_transactions_total{%s} %d\n", labels, summary.IndexedTxCount)
+	_, _ = fmt.Fprint(w, s.economicsMetricsPrometheus())
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

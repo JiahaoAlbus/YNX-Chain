@@ -1,9 +1,13 @@
 package explorer
 
 import (
+	"crypto/rand"
 	_ "embed"
+	"encoding/hex"
 	"html"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +16,8 @@ import (
 
 var economicsReferenceAsOf = time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
 var economicsReferenceResult, economicsReferenceError = economics.SimulateMacroStress(economics.DefaultMacroStressPolicy(), economics.DefaultCandidatePolicy(), economics.ReferenceMacroStressInputs(economicsReferenceAsOf))
+var economicsRequestIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
+var economicsLatencyBounds = []time.Duration{time.Millisecond, 5 * time.Millisecond, 10 * time.Millisecond, 50 * time.Millisecond, 100 * time.Millisecond, 500 * time.Millisecond}
 
 //go:embed assets/economics-og.png
 var economicsOGPNG []byte
@@ -68,9 +74,15 @@ func writeEconomicsPage(w http.ResponseWriter, r *http.Request, page string) {
 	_, _ = w.Write([]byte(replacer.Replace(economicsPageHTML)))
 }
 
-func (s *Server) handleEconomicsDisclosure(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleEconomicsDisclosure(w http.ResponseWriter, r *http.Request) {
+	started := time.Now()
+	requestID := economicsRequestID(r)
+	w.Header().Set("X-Request-ID", requestID)
+	s.economicsRequests.Add(1)
+	defer func() { s.observeEconomicsLatency(time.Since(started)) }()
 	if economicsReferenceError != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"source": "ynx-economics-reference-model", "asOf": economicsReferenceAsOf, "version": economics.MacroStressVersion, "coverage": "reference-scenario", "failure": true, "error": "economics reference model unavailable"})
+		s.economicsErrors.Add(1)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"source": "ynx-economics-reference-model", "asOf": economicsReferenceAsOf, "version": economics.MacroStressVersion, "coverage": "reference-scenario", "failure": true, "error": "economics reference model unavailable", "requestId": requestID})
 		return
 	}
 	scenarios := make([]publicMacroScenario, 0, len(economicsReferenceResult.Scenarios))
@@ -78,7 +90,7 @@ func (s *Server) handleEconomicsDisclosure(w http.ResponseWriter, _ *http.Reques
 		scenarios = append(scenarios, publicMacroScenario{Name: scenario.Name, Iterations: scenario.Iterations, GatePassBPS: scenario.MainnetReadinessGatePassBPS, NetSupplyChangeP50YNXT: scenario.NetSupplyChangeYNXT.P50, ValidatorNetP50YNXT: scenario.ValidatorNetYNXT.P50, TreasuryRunwayP50Months: scenario.TreasuryRunwayMonths.P50, StableReserveRatioP50BPS: scenario.StableReserveRatioBPS.P50})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"schemaVersion": 1, "source": "ynx-chain-source-and-reference-model", "asOf": economicsReferenceAsOf, "version": 1, "coverage": "current-source-policy-plus-1000-iteration-reference-scenarios", "confidence": "source-defined-policy-and-assumption-driven-simulation", "failure": false,
+		"schemaVersion": 1, "source": "ynx-chain-source-and-reference-model", "asOf": economicsReferenceAsOf, "version": 1, "coverage": "current-source-policy-plus-1000-iteration-reference-scenarios", "confidence": "source-defined-policy-and-assumption-driven-simulation", "failure": false, "requestId": requestID,
 		"sourceCommit":   s.build.Commit,
 		"current":        map[string]any{"network": "YNX Testnet", "nativeSymbol": "YNXT", "feePolicy": "fixed-fee-v1", "transferFeeYNXT": 1, "applicationActionFeeYNXT": 1, "burnActive": false, "dynamicIssuanceActive": false, "stakingRewardsActive": false, "slashingActive": false, "treasuryTransferExecution": false},
 		"candidates":     map[string]any{"dynamicIssuance": "simulation_only", "perLaneFeeMarket": "simulation_only", "liquidStaking": "simulation_only", "safetyModule": "simulation_only", "serviceSecurityPools": "simulation_only", "yusd": "test_unit_sandbox_only", "treasuryStress": "simulation_only", "macroStress": "simulation_only"},
@@ -86,6 +98,59 @@ func (s *Server) handleEconomicsDisclosure(w http.ResponseWriter, _ *http.Reques
 		"macroScenarios": scenarios,
 		"risk":           map[string]bool{"guaranteedAPY": false, "guaranteedPrice": false, "guaranteedPeg": false, "externalReserveAttested": false, "mainnetReady": false},
 	})
+}
+
+func (s *Server) handleEconomicsHealth(w http.ResponseWriter, r *http.Request) {
+	requestID := economicsRequestID(r)
+	w.Header().Set("X-Request-ID", requestID)
+	ok := economicsReferenceError == nil
+	status := http.StatusOK
+	if !ok {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{"ok": ok, "service": "ynx-economics-disclosure", "source": "ynx-economics-reference-model", "asOf": economicsReferenceAsOf, "version": economics.MacroStressVersion, "coverage": "process-local-reference-model", "failure": !ok, "requestId": requestID, "build": s.build})
+}
+
+func economicsRequestID(r *http.Request) string {
+	if candidate := strings.TrimSpace(r.Header.Get("X-Request-ID")); economicsRequestIDPattern.MatchString(candidate) {
+		return candidate
+	}
+	value := make([]byte, 12)
+	if _, err := rand.Read(value); err == nil {
+		return "econ_" + hex.EncodeToString(value)
+	}
+	return "econ_request_unavailable"
+}
+
+func (s *Server) observeEconomicsLatency(elapsed time.Duration) {
+	s.economicsLatencyNanos.Add(uint64(elapsed))
+	for i, bound := range economicsLatencyBounds {
+		if elapsed <= bound {
+			s.economicsLatencyBuckets[i].Add(1)
+		}
+	}
+}
+
+func (s *Server) economicsMetricsPrometheus() string {
+	var output strings.Builder
+	output.WriteString("# HELP ynx_explorer_economics_disclosure_requests_total Economics disclosure requests served.\n# TYPE ynx_explorer_economics_disclosure_requests_total counter\n")
+	output.WriteString("ynx_explorer_economics_disclosure_requests_total " + formatUint(s.economicsRequests.Load()) + "\n")
+	output.WriteString("# HELP ynx_explorer_economics_disclosure_errors_total Economics disclosure requests that failed.\n# TYPE ynx_explorer_economics_disclosure_errors_total counter\n")
+	output.WriteString("ynx_explorer_economics_disclosure_errors_total " + formatUint(s.economicsErrors.Load()) + "\n")
+	output.WriteString("# HELP ynx_explorer_economics_disclosure_latency_seconds Request latency buckets.\n# TYPE ynx_explorer_economics_disclosure_latency_seconds histogram\n")
+	for i, bound := range economicsLatencyBounds {
+		output.WriteString("ynx_explorer_economics_disclosure_latency_seconds_bucket{le=\"" + formatDurationSeconds(bound) + "\"} " + formatUint(s.economicsLatencyBuckets[i].Load()) + "\n")
+	}
+	output.WriteString("ynx_explorer_economics_disclosure_latency_seconds_bucket{le=\"+Inf\"} " + formatUint(s.economicsRequests.Load()) + "\n")
+	output.WriteString("ynx_explorer_economics_disclosure_latency_seconds_sum " + strconv.FormatFloat(float64(s.economicsLatencyNanos.Load())/float64(time.Second), 'f', 6, 64) + "\n")
+	output.WriteString("ynx_explorer_economics_disclosure_latency_seconds_count " + formatUint(s.economicsRequests.Load()) + "\n")
+	return output.String()
+}
+
+func formatUint(value uint64) string { return strconv.FormatUint(value, 10) }
+
+func formatDurationSeconds(value time.Duration) string {
+	return strconv.FormatFloat(value.Seconds(), 'f', 3, 64)
 }
 
 const economicsPageHTML = `<!doctype html>
