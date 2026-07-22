@@ -12,18 +12,23 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
 
 type storeState struct {
-	Schema          string            `json:"schema"`
-	Generation      uint64            `json:"generation"`
-	NonceDomain     string            `json:"nonceDomain"`
-	LatestSequences map[string]uint64 `json:"latestSequences"`
-	Observations    []Observation     `json:"observations"`
-	Corrections     []Correction      `json:"corrections"`
-	EventChainHash  string            `json:"eventChainHash"`
+	Schema           string            `json:"schema"`
+	StoreVersion     int               `json:"storeVersion,omitempty"`
+	Generation       uint64            `json:"generation"`
+	NonceDomain      string            `json:"nonceDomain"`
+	LatestSequences  map[string]uint64 `json:"latestSequences"`
+	Observations     []Observation     `json:"observations"`
+	Corrections      []Correction      `json:"corrections"`
+	NormalizedEvents []NormalizedEvent `json:"normalizedEvents,omitempty"`
+	AggregateEvents  []AggregateEvent  `json:"aggregateEvents,omitempty"`
+	ControlEvents    []ControlEvent    `json:"controlEvents,omitempty"`
+	EventChainHash   string            `json:"eventChainHash"`
 }
 
 type storeEnvelope struct {
@@ -43,7 +48,8 @@ func OpenStore(path string, key []byte, nonceDomain string) (*Store, error) {
 		return nil, errors.New("state path, 32-byte integrity key, and nonce domain are required")
 	}
 	store := &Store{path: path, key: append([]byte(nil), key...)}
-	store.state = storeState{Schema: SchemaVersion, NonceDomain: nonceDomain, LatestSequences: map[string]uint64{}, Observations: []Observation{}, Corrections: []Correction{}}
+	store.state = storeState{Schema: SchemaVersion, StoreVersion: StoreVersion, NonceDomain: nonceDomain, LatestSequences: map[string]uint64{}, Observations: []Observation{}, Corrections: []Correction{}, NormalizedEvents: []NormalizedEvent{}, AggregateEvents: []AggregateEvent{}, ControlEvents: []ControlEvent{}}
+	store.state.EventChainHash = eventChain(store.state)
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return store, nil
@@ -62,10 +68,19 @@ func OpenStore(path string, key []byte, nonceDomain string) (*Store, error) {
 	if err != nil || !hmac.Equal([]byte(expected), []byte(envelope.Integrity)) {
 		return nil, errors.New("oracle state integrity verification failed")
 	}
-	if eventChain(envelope.State.Observations, envelope.State.Corrections) != envelope.State.EventChainHash {
+	legacy := envelope.State.StoreVersion == 0
+	if legacy && legacyEventChain(envelope.State.Observations, envelope.State.Corrections) != envelope.State.EventChainHash {
+		return nil, errors.New("oracle legacy event chain verification failed")
+	}
+	if !legacy && (envelope.State.StoreVersion != StoreVersion || eventChain(envelope.State) != envelope.State.EventChainHash) {
 		return nil, errors.New("oracle event chain verification failed")
 	}
 	store.state = envelope.State
+	if legacy {
+		if err := store.migrateV1ToV2(data); err != nil {
+			return nil, err
+		}
+	}
 	return store, nil
 }
 
@@ -91,9 +106,10 @@ func (store *Store) Ingest(observation Observation, provider Provider) (bool, er
 	}
 	next := cloneState(store.state)
 	next.Observations = append(next.Observations, observation)
+	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, ""))
 	next.LatestSequences[observation.ReporterID] = observation.Sequence
 	next.Generation++
-	next.EventChainHash = eventChain(next.Observations, next.Corrections)
+	next.EventChainHash = eventChain(next)
 	if err := store.persist(next); err != nil {
 		return false, err
 	}
@@ -135,14 +151,94 @@ func (store *Store) Correct(correction Correction, provider Provider) error {
 	}
 	next := cloneState(store.state)
 	next.Corrections = append(next.Corrections, correction)
+	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID))
 	next.LatestSequences[correction.Corrected.ReporterID] = correction.Corrected.Sequence
 	next.Generation++
-	next.EventChainHash = eventChain(next.Observations, next.Corrections)
+	next.EventChainHash = eventChain(next)
 	if err := store.persist(next); err != nil {
 		return err
 	}
 	store.state = next
 	return nil
+}
+
+func (store *Store) AppendAggregate(price Price) (bool, error) {
+	if price.Schema != SchemaVersion || price.Market == "" || !price.Type.Valid() || price.Version == "" || price.ProducedAt.IsZero() {
+		return false, errInvalid
+	}
+	lineageBytes, lineageErr := hex.DecodeString(price.LineageHash)
+	if lineageErr != nil || len(lineageBytes) != sha256.Size || len(price.ObservationIDs) == 0 || len(price.ObservationIDs) != len(price.ObservationHash) {
+		return false, errInvalid
+	}
+	event := newAggregateEvent(price)
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	for _, existing := range store.state.AggregateEvents {
+		if existing.ID == event.ID {
+			if existing.Hash == event.Hash {
+				return false, nil
+			}
+			return false, errors.New("aggregate lineage conflicts with persisted event")
+		}
+	}
+	next := cloneState(store.state)
+	next.AggregateEvents = append(next.AggregateEvents, event)
+	next.Generation++
+	next.EventChainHash = eventChain(next)
+	if err := store.persist(next); err != nil {
+		return false, err
+	}
+	store.state = next
+	return true, nil
+}
+
+func (store *Store) LatestGood(market string, kind DataType) (Price, bool) {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	for index := len(store.state.AggregateEvents) - 1; index >= 0; index-- {
+		price := store.state.AggregateEvents[index].Price
+		if price.Market == market && price.Type == kind && price.Quality.Status == "good" && !price.Quality.Stale && !price.Quality.CircuitBreaker {
+			return price, true
+		}
+	}
+	return Price{}, false
+}
+
+func (store *Store) ApplyControl(event ControlEvent) error {
+	if event.Schema != SchemaVersion || event.ID == "" || (event.Action != "pause" && event.Action != "resume") ||
+		strings.TrimSpace(event.Reason) == "" || strings.TrimSpace(event.Actor) == "" || event.AuditID == "" ||
+		event.EffectiveAt.IsZero() || event.CreatedAt.IsZero() || event.EffectiveAt.Before(event.CreatedAt) || event.Hash != event.calculatedHash() {
+		return errInvalid
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	for _, existing := range store.state.ControlEvents {
+		if existing.ID == event.ID {
+			return errors.New("control event replay rejected")
+		}
+	}
+	next := cloneState(store.state)
+	next.ControlEvents = append(next.ControlEvents, event)
+	next.Generation++
+	next.EventChainHash = eventChain(next)
+	if err := store.persist(next); err != nil {
+		return err
+	}
+	store.state = next
+	return nil
+}
+
+func (store *Store) ControlState(asOf time.Time) (paused bool, reason, auditID string) {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	for _, event := range store.state.ControlEvents {
+		if event.EffectiveAt.After(asOf) {
+			continue
+		}
+		paused = event.Action == "pause"
+		reason, auditID = event.Reason, event.AuditID
+	}
+	return paused, reason, auditID
 }
 
 func (store *Store) Replay(market string, kind DataType, asOf time.Time) []Observation {
@@ -256,10 +352,13 @@ func cloneState(state storeState) storeState {
 	}
 	copyState.Observations = append([]Observation(nil), state.Observations...)
 	copyState.Corrections = append([]Correction(nil), state.Corrections...)
+	copyState.NormalizedEvents = append([]NormalizedEvent(nil), state.NormalizedEvents...)
+	copyState.AggregateEvents = append([]AggregateEvent(nil), state.AggregateEvents...)
+	copyState.ControlEvents = append([]ControlEvent(nil), state.ControlEvents...)
 	return copyState
 }
 
-func eventChain(observations []Observation, corrections []Correction) string {
+func legacyEventChain(observations []Observation, corrections []Correction) string {
 	current := make([]byte, sha256.Size)
 	for _, observation := range observations {
 		digest := sha256.Sum256(append(append([]byte(nil), current...), []byte("observation:"+observation.Hash)...))
@@ -271,6 +370,62 @@ func eventChain(observations []Observation, corrections []Correction) string {
 		current = digest[:]
 	}
 	return hex.EncodeToString(current)
+}
+
+func eventChain(state storeState) string {
+	current := make([]byte, sha256.Size)
+	normalized := state.NormalizedEvents
+	if normalized == nil {
+		normalized = []NormalizedEvent{}
+	}
+	aggregates := state.AggregateEvents
+	if aggregates == nil {
+		aggregates = []AggregateEvent{}
+	}
+	controls := state.ControlEvents
+	if controls == nil {
+		controls = []ControlEvent{}
+	}
+	sections := []any{state.Observations, normalized, state.Corrections, controls, aggregates}
+	for _, section := range sections {
+		data, _ := json.Marshal(section)
+		digest := sha256.Sum256(append(append([]byte(nil), current...), data...))
+		current = digest[:]
+	}
+	return hex.EncodeToString(current)
+}
+
+func (store *Store) migrateV1ToV2(original []byte) error {
+	backup := store.path + ".v1.backup"
+	file, err := os.OpenFile(backup, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create pre-migration backup: %w", err)
+	}
+	if _, err := file.Write(original); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	next := cloneState(store.state)
+	next.StoreVersion = StoreVersion
+	next.NormalizedEvents = make([]NormalizedEvent, 0, len(next.Observations)+len(next.Corrections))
+	for _, observation := range next.Observations {
+		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, ""))
+	}
+	for _, correction := range next.Corrections {
+		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID))
+	}
+	next.AggregateEvents = []AggregateEvent{}
+	next.ControlEvents = []ControlEvent{}
+	next.Generation++
+	next.EventChainHash = eventChain(next)
+	if err := store.persist(next); err != nil {
+		return fmt.Errorf("persist v2 migration: %w", err)
+	}
+	store.state = next
+	return nil
 }
 
 func decodeStrict(data []byte, target any) error {

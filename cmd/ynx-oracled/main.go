@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,6 +34,7 @@ func main() {
 
 func run() error {
 	listen := flag.String("listen", "127.0.0.1:6470", "HTTP listen address")
+	metricsListen := flag.String("metrics-listen", "127.0.0.1:9470", "internal metrics listen address; empty disables")
 	statePath := flag.String("state", "var/oracle/state.json", "integrity-protected state path")
 	registryPath := flag.String("providers", "", "versioned provider registry JSON path")
 	nonceDomain := flag.String("nonce-domain", "ynx-oracle-testnet-v1", "signed observation nonce domain")
@@ -62,11 +64,26 @@ func run() error {
 		return err
 	}
 	server := &http.Server{Addr: *listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	var metricsServer *http.Server
+	if *metricsListen != "" {
+		host, _, splitErr := net.SplitHostPort(*metricsListen)
+		ip := net.ParseIP(host)
+		if splitErr != nil || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
+			return errors.New("--metrics-listen must bind to loopback")
+		}
+		metricsServer = &http.Server{Addr: *metricsListen, Handler: handler.MetricsHandler(), ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 8 << 10}
+	}
 	shutdown, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	result := make(chan error, 1)
+	result := make(chan error, 2)
 	go func() { result <- server.ListenAndServe() }()
+	if metricsServer != nil {
+		go func() { result <- metricsServer.ListenAndServe() }()
+	}
 	logger.Info("oracle listening", "address", *listen, "product_id", oracle.ProductID, "version", oracle.Version, "provider_count", len(providers))
+	if metricsServer != nil {
+		logger.Info("oracle metrics listening", "address", *metricsListen)
+	}
 	select {
 	case err := <-result:
 		if !errors.Is(err, http.ErrServerClosed) {
@@ -76,6 +93,11 @@ func run() error {
 	case <-shutdown.Done():
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		if metricsServer != nil {
+			if err := metricsServer.Shutdown(ctx); err != nil {
+				return err
+			}
+		}
 		return server.Shutdown(ctx)
 	}
 }

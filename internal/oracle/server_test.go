@@ -3,6 +3,7 @@ package oracle
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -73,6 +74,62 @@ func TestPriceAPIRequiresQualityAndReturnsLastGoodAsStale(t *testing.T) {
 	}
 }
 
+func TestAggregatesAreDurableAndLastGoodSurvivesServiceRestart(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	reporters := []testReporter{reporter(t, "source-a", 1_000_000, now), reporter(t, "source-b", 1_000_000, now), reporter(t, "source-c", 1_000_000, now)}
+	service := testService(t, &now, reporters...)
+	for index, item := range reporters {
+		if _, err := service.Ingest(item.observation(t, 1, 1_000_000+int64(index*100), now.Add(-time.Second))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	state := service.store.Snapshot()
+	if len(state.NormalizedEvents) != 3 || len(state.AggregateEvents) != 3 || state.AggregateEvents[2].Price.Quality.Status != "good" {
+		t.Fatalf("durable pipeline incomplete: normalized=%d aggregates=%+v", len(state.NormalizedEvents), state.AggregateEvents)
+	}
+	restarted, err := NewService(service.store, []Provider{reporters[0].provider, reporters[1].provider, reporters[2].provider}, DefaultPolicy(), func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Minute)
+	price, err := restarted.Price("YNXT/YUSD_TEST", SpotPrice)
+	if err == nil || price.Quality.Status != "last_good_stale" || !price.Quality.Stale || !price.Quality.CircuitBreaker {
+		t.Fatalf("restart lost last-good fallback: price=%+v err=%v", price, err)
+	}
+}
+
+func TestEmergencyPauseBlocksPublicationButNotIngestion(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	reporters := []testReporter{reporter(t, "source-a", 1_000_000, now), reporter(t, "source-b", 1_000_000, now), reporter(t, "source-c", 1_000_000, now)}
+	service := testService(t, &now, reporters...)
+	for index, item := range reporters {
+		if _, err := service.Ingest(item.observation(t, 1, 1_000_000+int64(index*100), now.Add(-time.Second))); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pause := ControlEvent{Schema: SchemaVersion, ID: "control-pause-1", Action: "pause", Reason: "provider collusion investigation", Actor: "oracle-governance", AuditID: "audit-pause-1", EffectiveAt: now, CreatedAt: now}
+	pause.Hash = pause.calculatedHash()
+	if err := service.ApplyControl(pause); err != nil {
+		t.Fatal(err)
+	}
+	price, err := service.Price("YNXT/YUSD_TEST", SpotPrice)
+	if !errors.Is(err, ErrEmergencyPause) || price.Quality.Status != "emergency_pause" || !price.Quality.Stale || !price.Quality.CircuitBreaker {
+		t.Fatalf("paused price=%+v err=%v", price, err)
+	}
+	health := service.Health()
+	if health.Status != "paused" || !health.EmergencyPaused || health.PauseAuditID != pause.AuditID {
+		t.Fatalf("paused health=%+v", health)
+	}
+	observation := reporters[0].observation(t, 2, 1_000_050, now)
+	observation.ID = "source-a-during-pause"
+	data, _ := observation.signingBytes()
+	observation.SignatureHex = signHex(reporters[0].private, data)
+	observation.Hash, _ = observation.CalculatedHash()
+	if created, err := service.Ingest(observation); err != nil || !created {
+		t.Fatalf("diagnostic ingestion blocked: created=%v err=%v", created, err)
+	}
+}
+
 func TestObservationAPIRejectsUnknownFieldsAndUnregisteredProvider(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	registered := reporter(t, "source-a", 1_000_000, now)
@@ -132,6 +189,25 @@ func TestProviderIngestionRateLimitFailsClosed(t *testing.T) {
 	}
 }
 
+func TestIngestionRateLimitUses429AndInternalErrorsAreRedacted(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	registered := reporter(t, "source-a", 1_000_000, now)
+	service := testService(t, &now, registered)
+	service.rate[registered.provider.ID] = rateBucket{tokens: 0, updated: now}
+	server, _ := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	observation := registered.observation(t, 1, 1_000_000, now)
+	body, _ := json.Marshal(observation)
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/internal/v1/observations", bytes.NewReader(body)))
+	if response.Code != http.StatusTooManyRequests || !strings.Contains(response.Body.String(), "provider rate limit exceeded") {
+		t.Fatalf("rate response=%d %s", response.Code, response.Body.String())
+	}
+	redacted := publicError(fmt.Errorf("%w: write /private/operator/state", ErrPersistence))
+	if redacted != "internal persistence failure" || strings.Contains(redacted, "/private/") {
+		t.Fatalf("persistence leak: %q", redacted)
+	}
+}
+
 func TestHealthTruthfullyReportsSourceLimitation(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	service := testService(t, &now, reporter(t, "source-a", 1_000_000, now))
@@ -147,5 +223,29 @@ func TestHealthTruthfullyReportsSourceLimitation(t *testing.T) {
 	}
 	if health.Status != "degraded" || health.SourceLimitation == "" || health.ProviderCount != 1 || health.MinimumSources != 3 {
 		t.Fatalf("false health: %+v", health)
+	}
+}
+
+func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	service := testService(t, &now, reporter(t, "source-a", 1_000_000, now))
+	server, _ := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	request.Header.Set("traceparent", "00-11111111111111111111111111111111-2222222222222222-01")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	traceParent := response.Header().Get("traceparent")
+	if !strings.HasPrefix(traceParent, "00-11111111111111111111111111111111-") || len(traceParent) != 55 {
+		t.Fatalf("trace correlation missing: %q", traceParent)
+	}
+	publicMetrics := httptest.NewRecorder()
+	server.ServeHTTP(publicMetrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if publicMetrics.Code != http.StatusNotFound {
+		t.Fatalf("metrics exposed on public mux: %d", publicMetrics.Code)
+	}
+	metrics := httptest.NewRecorder()
+	server.MetricsHandler().ServeHTTP(metrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
+	if metrics.Code != http.StatusOK || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_requests_total 2") || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_request_errors_total 2") {
+		t.Fatalf("metrics=%d %s", metrics.Code, metrics.Body.String())
 	}
 }

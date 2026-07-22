@@ -48,9 +48,12 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 			rejected = append(rejected, observation.ProviderID)
 			continue
 		}
-		if previous, ok := unique[observation.ProviderID]; ok && !observation.ObservedAt.After(previous.observation.ObservedAt) {
-			rejected = append(rejected, observation.ID)
-			continue
+		if previous, ok := unique[observation.ProviderID]; ok {
+			if observation.ObservedAt.Before(previous.observation.ObservedAt) || (observation.ObservedAt.Equal(previous.observation.ObservedAt) && observation.Sequence <= previous.observation.Sequence) {
+				rejected = append(rejected, observation.ID)
+				continue
+			}
+			rejected = append(rejected, previous.observation.ID)
 		}
 		weight := provider.WeightPPM
 		if observation.Liquidity > 0 {
@@ -69,6 +72,8 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 		result := failedPrice(now, policy, "all observations rejected as stale, future-dated, inactive, or incompatible")
 		result.Market, result.Type, result.Scale = market, kind, scale
 		result.Quality.RejectedSources = rejected
+		result.ObservationIDs, result.ObservationHash = observationReferences(observations)
+		result.LineageHash = lineage(observations, policy.Version)
 		return result, errors.New(result.Quality.Failure)
 	}
 
@@ -90,7 +95,11 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 	}
 	items = filtered
 	if len(items) == 0 {
-		return failedPrice(now, policy, "outlier rejection removed every observation"), errors.New("outlier rejection removed every observation")
+		result := failedPrice(now, policy, "outlier rejection removed every observation")
+		result.Market, result.Type, result.Scale = market, kind, scale
+		result.ObservationIDs, result.ObservationHash = observationReferences(observations)
+		result.LineageHash = lineage(observations, policy.Version)
+		return result, errors.New("outlier rejection removed every observation")
 	}
 	value := weightedMedian(items)
 	minimum, maximum := items[0].observation.Value, items[0].observation.Value
@@ -143,6 +152,15 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 		return result, errors.New(failure)
 	}
 	return result, nil
+}
+
+func observationReferences(observations []Observation) ([]string, []string) {
+	ids, hashes := make([]string, 0, len(observations)), make([]string, 0, len(observations))
+	for _, observation := range observations {
+		ids = append(ids, observation.ID)
+		hashes = append(hashes, observation.Hash)
+	}
+	return ids, hashes
 }
 
 func failedPrice(now time.Time, policy Policy, failure string) Price {

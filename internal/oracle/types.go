@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	SchemaVersion = "ynx.oracle.v1"
-	PolicyVersion = "weighted-median-mad-v1"
-	ProductID     = "ynx-oracle-market-data"
-	Version       = "0.1.0-testnet"
+	SchemaVersion     = "ynx.oracle.v1"
+	PolicyVersion     = "weighted-median-mad-v1"
+	NormalizerVersion = "observation-normalizer-v1"
+	StoreVersion      = 2
+	ProductID         = "ynx-oracle-market-data"
+	Version           = "0.1.0-testnet"
 )
 
 var (
@@ -224,6 +226,92 @@ type Price struct {
 	ObservationIDs  []string  `json:"observationIds"`
 	ObservationHash []string  `json:"observationHashes"`
 	LineageHash     string    `json:"lineageHash"`
+}
+
+type NormalizedEvent struct {
+	Schema            string    `json:"schema"`
+	ID                string    `json:"id"`
+	ObservationID     string    `json:"observationId"`
+	CorrectionID      string    `json:"correctionId,omitempty"`
+	ProviderID        string    `json:"providerId"`
+	Market            string    `json:"market"`
+	Type              DataType  `json:"type"`
+	Value             int64     `json:"value"`
+	Scale             int64     `json:"scale"`
+	Liquidity         int64     `json:"liquidity,omitempty"`
+	Volume24H         int64     `json:"volume24h,omitempty"`
+	ObservedAt        time.Time `json:"observedAt"`
+	ReceivedAt        time.Time `json:"receivedAt"`
+	Source            string    `json:"source"`
+	SourceVersion     string    `json:"sourceVersion"`
+	ObservationHash   string    `json:"observationHash"`
+	NormalizerVersion string    `json:"normalizerVersion"`
+	Hash              string    `json:"hash"`
+}
+
+func normalizeObservation(observation Observation, correctionID string) NormalizedEvent {
+	event := NormalizedEvent{
+		Schema: SchemaVersion, ID: "normalized_" + observation.Hash, ObservationID: observation.ID,
+		CorrectionID: correctionID, ProviderID: observation.ProviderID, Market: observation.Market,
+		Type: observation.Type, Value: observation.Value, Scale: observation.Scale,
+		Liquidity: observation.Liquidity, Volume24H: observation.Volume24H,
+		ObservedAt: observation.ObservedAt.UTC(), ReceivedAt: observation.ReceivedAt.UTC(),
+		Source: observation.Source, SourceVersion: observation.SourceVersion,
+		ObservationHash: observation.Hash, NormalizerVersion: NormalizerVersion,
+	}
+	data, _ := json.Marshal(struct {
+		Schema, ID, ObservationID, CorrectionID, ProviderID, Market string
+		Type                                                        DataType
+		Value, Scale, Liquidity, Volume24H                          int64
+		ObservedAt, ReceivedAt                                      time.Time
+		Source, SourceVersion, ObservationHash, NormalizerVersion   string
+	}{event.Schema, event.ID, event.ObservationID, event.CorrectionID, event.ProviderID, event.Market,
+		event.Type, event.Value, event.Scale, event.Liquidity, event.Volume24H, event.ObservedAt,
+		event.ReceivedAt, event.Source, event.SourceVersion, event.ObservationHash, event.NormalizerVersion})
+	digest := sha256.Sum256(data)
+	event.Hash = hex.EncodeToString(digest[:])
+	return event
+}
+
+type AggregateEvent struct {
+	Schema    string    `json:"schema"`
+	ID        string    `json:"id"`
+	Price     Price     `json:"price"`
+	CreatedAt time.Time `json:"createdAt"`
+	Hash      string    `json:"hash"`
+}
+
+type ControlEvent struct {
+	Schema      string    `json:"schema"`
+	ID          string    `json:"id"`
+	Action      string    `json:"action"`
+	Reason      string    `json:"reason"`
+	Actor       string    `json:"actor"`
+	AuditID     string    `json:"auditId"`
+	EffectiveAt time.Time `json:"effectiveAt"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Hash        string    `json:"hash"`
+}
+
+func (event ControlEvent) calculatedHash() string {
+	data, _ := json.Marshal(struct {
+		Schema, ID, Action, Reason, Actor, AuditID string
+		EffectiveAt, CreatedAt                     time.Time
+	}{event.Schema, event.ID, event.Action, event.Reason, event.Actor, event.AuditID, event.EffectiveAt.UTC(), event.CreatedAt.UTC()})
+	digest := sha256.Sum256(data)
+	return hex.EncodeToString(digest[:])
+}
+
+func newAggregateEvent(price Price) AggregateEvent {
+	event := AggregateEvent{Schema: SchemaVersion, ID: "aggregate_" + price.LineageHash, Price: price, CreatedAt: price.ProducedAt.UTC()}
+	data, _ := json.Marshal(struct {
+		Schema, ID string
+		Price      Price
+		CreatedAt  time.Time
+	}{event.Schema, event.ID, event.Price, event.CreatedAt})
+	digest := sha256.Sum256(data)
+	event.Hash = hex.EncodeToString(digest[:])
+	return event
 }
 
 func lineage(observations []Observation, policyVersion string) string {

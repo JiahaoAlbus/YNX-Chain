@@ -2,9 +2,17 @@ package oracle
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
+)
+
+var (
+	ErrEmergencyPause        = errors.New("oracle publication is emergency paused")
+	ErrProviderRateLimit     = errors.New("provider rate limit exceeded")
+	ErrProviderNotRegistered = errors.New("provider is not registered")
+	ErrPersistence           = errors.New("oracle persistence failed")
 )
 
 type Service struct {
@@ -68,33 +76,46 @@ func (service *Service) Ingest(observation Observation) (bool, error) {
 		}
 		if bucket.tokens < 1 {
 			service.mu.Unlock()
-			return false, errors.New("provider rate limit exceeded")
+			return false, ErrProviderRateLimit
 		}
 		bucket.tokens--
 		service.rate[observation.ProviderID] = bucket
 	}
 	service.mu.Unlock()
 	if !exists {
-		return false, errors.New("provider is not registered")
+		return false, ErrProviderNotRegistered
 	}
-	return service.store.Ingest(observation, provider)
+	created, err := service.store.Ingest(observation, provider)
+	if err != nil || !created {
+		return created, err
+	}
+	_, aggregateErr := service.aggregateAndPersist(observation.Market, observation.Type)
+	if errors.Is(aggregateErr, ErrPersistence) {
+		return true, aggregateErr
+	}
+	return true, nil
 }
 
 func (service *Service) Correct(correction Correction) error {
+	correction.Corrected.ReceivedAt = service.now().UTC()
 	service.mu.RLock()
 	provider, exists := service.providers[correction.Corrected.ProviderID]
 	service.mu.RUnlock()
 	if !exists {
-		return errors.New("provider is not registered")
+		return ErrProviderNotRegistered
 	}
-	return service.store.Correct(correction, provider)
+	if err := service.store.Correct(correction, provider); err != nil {
+		return err
+	}
+	_, aggregateErr := service.aggregateAndPersist(correction.Corrected.Market, correction.Corrected.Type)
+	if errors.Is(aggregateErr, ErrPersistence) {
+		return aggregateErr
+	}
+	return nil
 }
 
-func (service *Service) Price(market string, kind DataType) (Price, error) {
+func (service *Service) aggregateAndPersist(market string, kind DataType) (Price, error) {
 	now := service.now().UTC()
-	if !marketPattern.MatchString(market) || !kind.Valid() {
-		return Price{}, errInvalid
-	}
 	observations := service.store.Replay(market, kind, now.Add(service.policy.MaximumFutureSkew))
 	service.mu.RLock()
 	providers := make(map[string]Provider, len(service.providers))
@@ -103,6 +124,41 @@ func (service *Service) Price(market string, kind DataType) (Price, error) {
 	}
 	service.mu.RUnlock()
 	price, err := Aggregate(now, observations, providers, service.policy)
+	if price.Market != "" && price.Type.Valid() && price.LineageHash != "" {
+		if _, persistErr := service.store.AppendAggregate(price); persistErr != nil {
+			return price, fmt.Errorf("%w: aggregate event: %v", ErrPersistence, persistErr)
+		}
+	}
+	key := market + "|" + string(kind)
+	service.mu.Lock()
+	if err == nil {
+		service.lastGood[key] = price
+	}
+	service.mu.Unlock()
+	return price, err
+}
+
+func (service *Service) Price(market string, kind DataType) (Price, error) {
+	now := service.now().UTC()
+	if !marketPattern.MatchString(market) || !kind.Valid() {
+		return Price{}, errInvalid
+	}
+	if paused, reason, _ := service.store.ControlState(now); paused {
+		previous, exists := service.store.LatestGood(market, kind)
+		if !exists {
+			previous = failedPrice(now, service.policy, ErrEmergencyPause.Error())
+			previous.Market, previous.Type = market, kind
+		} else {
+			previous.ProducedAt = now
+		}
+		previous.Quality.Status = "emergency_pause"
+		previous.Quality.Stale = true
+		previous.Quality.CircuitBreaker = true
+		previous.Quality.Failure = ErrEmergencyPause.Error()
+		previous.Quality.SourceLimitation = reason
+		return previous, ErrEmergencyPause
+	}
+	price, err := service.aggregateAndPersist(market, kind)
 	key := market + "|" + string(kind)
 	service.mu.Lock()
 	defer service.mu.Unlock()
@@ -110,7 +166,11 @@ func (service *Service) Price(market string, kind DataType) (Price, error) {
 		service.lastGood[key] = price
 		return price, nil
 	}
-	if previous, exists := service.lastGood[key]; exists {
+	previous, exists := service.lastGood[key]
+	if !exists {
+		previous, exists = service.store.LatestGood(market, kind)
+	}
+	if exists {
 		previous.ProducedAt = now
 		previous.Quality.Status = "last_good_stale"
 		previous.Quality.Stale = true
@@ -120,6 +180,10 @@ func (service *Service) Price(market string, kind DataType) (Price, error) {
 		return previous, err
 	}
 	return price, err
+}
+
+func (service *Service) ApplyControl(event ControlEvent) error {
+	return service.store.ApplyControl(event)
 }
 
 func (service *Service) Providers() []Provider {
@@ -151,6 +215,9 @@ type Health struct {
 	MinimumSources      int       `json:"minimumSources"`
 	SourceLimitation    string    `json:"sourceLimitation,omitempty"`
 	AsOf                time.Time `json:"asOf"`
+	EmergencyPaused     bool      `json:"emergencyPaused"`
+	PauseReason         string    `json:"pauseReason,omitempty"`
+	PauseAuditID        string    `json:"pauseAuditId,omitempty"`
 }
 
 func (service *Service) Health() Health {
@@ -166,5 +233,13 @@ func (service *Service) Health() Health {
 		status = "degraded"
 		limitation = "fewer than the policy-required active independent providers"
 	}
-	return Health{status, ProductID, Version, SchemaVersion, service.policy.Version, len(providers), active, service.policy.MinimumSources, limitation, service.now().UTC()}
+	now := service.now().UTC()
+	paused, reason, auditID := service.store.ControlState(now)
+	if paused {
+		status = "paused"
+		limitation = "authoritative publication is disabled by an audited emergency control event"
+	}
+	return Health{Status: status, ProductID: ProductID, Version: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version,
+		ProviderCount: len(providers), ActiveProviderCount: active, MinimumSources: service.policy.MinimumSources,
+		SourceLimitation: limitation, AsOf: now, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
 }

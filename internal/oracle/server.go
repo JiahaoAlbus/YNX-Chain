@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -18,6 +19,28 @@ type Server struct {
 	service *Service
 	logger  *slog.Logger
 	mux     *http.ServeMux
+	metrics *Metrics
+}
+
+var traceParentPattern = regexp.MustCompile(`^00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$`)
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (writer *statusWriter) WriteHeader(status int) {
+	if writer.status != 0 {
+		return
+	}
+	writer.status = status
+	writer.ResponseWriter.WriteHeader(status)
+}
+func (writer *statusWriter) Write(data []byte) (int, error) {
+	if writer.status == 0 {
+		writer.WriteHeader(http.StatusOK)
+	}
+	return writer.ResponseWriter.Write(data)
 }
 
 func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
@@ -27,7 +50,7 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	server := &Server{service: service, logger: logger, mux: http.NewServeMux()}
+	server := &Server{service: service, logger: logger, mux: http.NewServeMux(), metrics: &Metrics{}}
 	server.mux.HandleFunc("GET /health", server.health)
 	server.mux.HandleFunc("GET /version", server.version)
 	server.mux.HandleFunc("GET /prices", server.price)
@@ -43,12 +66,30 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	if !safeID(requestID) {
 		requestID = randomID("request")
 	}
+	traceID := ""
+	if match := traceParentPattern.FindStringSubmatch(request.Header.Get("traceparent")); len(match) == 4 && match[1] != strings.Repeat("0", 32) && match[2] != strings.Repeat("0", 16) {
+		traceID = match[1]
+	}
+	if traceID == "" {
+		traceID = randomHex(16)
+	}
+	spanID := randomHex(8)
+	response.Header().Set("traceparent", "00-"+traceID+"-"+spanID+"-01")
+	tracked := &statusWriter{ResponseWriter: response}
+	started := time.Now()
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			errorID := randomID("error")
-			server.logger.Error("oracle request panic", "request_id", requestID, "error_id", errorID)
-			writeJSON(response, http.StatusInternalServerError, map[string]string{"error": "internal failure", "errorId": errorID})
+			server.logger.Error("oracle request panic", "request_id", requestID, "trace_id", traceID, "span_id", spanID, "error_id", errorID)
+			if tracked.status == 0 {
+				writeJSON(tracked, http.StatusInternalServerError, map[string]string{"error": "internal failure", "errorId": errorID})
+			}
 		}
+		status := tracked.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		server.metrics.observe(status, time.Since(started))
 	}()
 	response.Header().Set("X-Request-ID", requestID)
 	response.Header().Set("Cache-Control", "no-store")
@@ -58,10 +99,11 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	response.Header().Set("X-Frame-Options", "DENY")
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
-	started := time.Now()
-	server.mux.ServeHTTP(response, request)
-	server.logger.Info("oracle request", "request_id", requestID, "method", request.Method, "path", request.URL.Path, "duration_ms", time.Since(started).Milliseconds())
+	server.mux.ServeHTTP(tracked, request)
+	server.logger.Info("oracle request", "request_id", requestID, "trace_id", traceID, "span_id", spanID, "method", request.Method, "path", request.URL.Path, "status", tracked.status, "duration_ms", time.Since(started).Milliseconds())
 }
+
+func (server *Server) MetricsHandler() http.Handler { return server.metrics.Handler() }
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 	health := server.service.Health()
@@ -81,6 +123,7 @@ func (server *Server) price(response http.ResponseWriter, request *http.Request)
 	kind := DataType(request.URL.Query().Get("type"))
 	price, err := server.service.Price(market, kind)
 	if err != nil {
+		server.metrics.priceUnsafe.Add(1)
 		status := http.StatusServiceUnavailable
 		if errors.Is(err, errInvalid) {
 			status = http.StatusBadRequest
@@ -88,6 +131,7 @@ func (server *Server) price(response http.ResponseWriter, request *http.Request)
 		writeJSON(response, status, map[string]any{"price": price, "error": publicError(err), "errorId": randomID("error")})
 		return
 	}
+	server.metrics.priceGood.Add(1)
 	writeJSON(response, http.StatusOK, price)
 }
 
@@ -96,6 +140,7 @@ func (server *Server) providers(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (server *Server) replay(response http.ResponseWriter, request *http.Request) {
+	server.metrics.replayRequests.Add(1)
 	asOf, err := time.Parse(time.RFC3339Nano, request.URL.Query().Get("asOf"))
 	if err != nil {
 		writeFailure(response, http.StatusBadRequest, "invalid replay timestamp")
@@ -118,9 +163,20 @@ func (server *Server) ingest(response http.ResponseWriter, request *http.Request
 	}
 	created, err := server.service.Ingest(observation)
 	if err != nil {
-		writeFailure(response, http.StatusUnauthorized, publicError(err))
+		server.metrics.ingestRejected.Add(1)
+		status := http.StatusUnauthorized
+		switch {
+		case errors.Is(err, ErrProviderRateLimit):
+			status = http.StatusTooManyRequests
+		case errors.Is(err, errInvalid):
+			status = http.StatusBadRequest
+		case errors.Is(err, ErrPersistence):
+			status = http.StatusInternalServerError
+		}
+		writeFailure(response, status, publicError(err))
 		return
 	}
+	server.metrics.ingestAccepted.Add(1)
 	status := http.StatusOK
 	if created {
 		status = http.StatusCreated
@@ -157,12 +213,25 @@ func publicError(err error) string {
 	switch {
 	case errors.Is(err, errInvalid):
 		return "invalid request"
+	case errors.Is(err, ErrProviderRateLimit):
+		return "provider rate limit exceeded"
+	case errors.Is(err, ErrProviderNotRegistered):
+		return "observation rejected"
+	case errors.Is(err, ErrEmergencyPause):
+		return ErrEmergencyPause.Error()
+	case errors.Is(err, ErrPersistence):
+		return "internal persistence failure"
 	default:
 		message := err.Error()
 		if strings.Contains(message, "signature") || strings.Contains(message, "hash") || strings.Contains(message, "sequence") || strings.Contains(message, "provider") {
 			return "observation rejected"
 		}
-		return message
+		for _, allowed := range []string{"no observations", "all observations rejected as stale, future-dated, inactive, or incompatible", "outlier rejection removed every observation", "price is not safe for authoritative consumption"} {
+			if message == allowed {
+				return message
+			}
+		}
+		return "request failed"
 	}
 }
 
@@ -179,7 +248,11 @@ func safeID(value string) bool {
 }
 
 func randomID(prefix string) string {
-	data := make([]byte, 12)
+	return prefix + "_" + randomHex(12)
+}
+
+func randomHex(bytes int) string {
+	data := make([]byte, bytes)
 	_, _ = rand.Read(data)
-	return prefix + "_" + hex.EncodeToString(data)
+	return hex.EncodeToString(data)
 }

@@ -24,6 +24,10 @@ func TestStoreRejectsReplayAndPersistsIntegrity(t *testing.T) {
 	if err != nil || !created {
 		t.Fatalf("ingest created=%v err=%v", created, err)
 	}
+	state := store.Snapshot()
+	if state.StoreVersion != StoreVersion || len(state.NormalizedEvents) != 1 || state.NormalizedEvents[0].ObservationID != first.ID || len(state.NormalizedEvents[0].Hash) != 64 {
+		t.Fatalf("normalized event missing: %+v", state)
+	}
 	created, err = store.Ingest(first, source.provider)
 	if err != nil || created {
 		t.Fatalf("idempotent replay created=%v err=%v", created, err)
@@ -82,6 +86,9 @@ func TestCorrectionPreservesOriginalAndHistoricalReplay(t *testing.T) {
 	if len(snapshot.Observations) != 1 || len(snapshot.Corrections) != 1 || snapshot.Observations[0].Value != original.Value {
 		t.Fatalf("correction overwrote history: %+v", snapshot)
 	}
+	if len(snapshot.NormalizedEvents) != 2 || snapshot.NormalizedEvents[1].CorrectionID != correction.ID || snapshot.NormalizedEvents[1].ObservationID != corrected.ID {
+		t.Fatalf("corrected normalized event missing: %+v", snapshot.NormalizedEvents)
+	}
 }
 
 func TestBackupRestoreDrill(t *testing.T) {
@@ -100,6 +107,73 @@ func TestBackupRestoreDrill(t *testing.T) {
 	restored, err := OpenStore(backup, key, "ynx-oracle-testnet-v1")
 	if err != nil || restored.Snapshot().EventChainHash != store.Snapshot().EventChainHash {
 		t.Fatalf("restore drill err=%v restored=%+v", err, restored)
+	}
+}
+
+func TestV1StoreMigratesWithBackupAndReopen(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	source := reporter(t, "source-a", 1_000_000, now)
+	path := filepath.Join(t.TempDir(), "legacy.json")
+	key := []byte(strings.Repeat("k", 32))
+	legacyStore, _ := OpenStore(filepath.Join(t.TempDir(), "unused.json"), key, "ynx-oracle-testnet-v1")
+	observation := source.observation(t, 1, 1_000_000, now)
+	legacy := storeState{Schema: SchemaVersion, Generation: 1, NonceDomain: "ynx-oracle-testnet-v1",
+		LatestSequences: map[string]uint64{observation.ReporterID: 1}, Observations: []Observation{observation}, Corrections: []Correction{}}
+	legacy.EventChainHash = legacyEventChain(legacy.Observations, legacy.Corrections)
+	data, err := legacyStore.envelope(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, key, "ynx-oracle-testnet-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := migrated.Snapshot()
+	if state.StoreVersion != StoreVersion || len(state.NormalizedEvents) != 1 || state.Generation != 2 {
+		t.Fatalf("migration incomplete: %+v", state)
+	}
+	if _, err := os.Stat(path + ".v1.backup"); err != nil {
+		t.Fatalf("migration backup: %v", err)
+	}
+	if _, err := OpenStore(path, key, "ynx-oracle-testnet-v1"); err != nil {
+		t.Fatalf("reopen migrated state: %v", err)
+	}
+}
+
+func TestEmergencyControlEventsAreDurableAndReplaySafe(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "state.json")
+	key := []byte(strings.Repeat("k", 32))
+	store, _ := OpenStore(path, key, "ynx-oracle-testnet-v1")
+	pause := ControlEvent{Schema: SchemaVersion, ID: "control-pause-1", Action: "pause", Reason: "cross-source divergence incident", Actor: "oracle-governance", AuditID: "audit-pause-1", EffectiveAt: now, CreatedAt: now}
+	pause.Hash = pause.calculatedHash()
+	if err := store.ApplyControl(pause); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ApplyControl(pause); err == nil {
+		t.Fatal("control replay accepted")
+	}
+	paused, reason, auditID := store.ControlState(now)
+	if !paused || reason != pause.Reason || auditID != pause.AuditID {
+		t.Fatalf("pause state=%v %q %q", paused, reason, auditID)
+	}
+	reopened, err := OpenStore(path, key, "ynx-oracle-testnet-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if paused, _, _ := reopened.ControlState(now); !paused {
+		t.Fatal("pause lost after restart")
+	}
+	resume := ControlEvent{Schema: SchemaVersion, ID: "control-resume-1", Action: "resume", Reason: "independent sources recovered and incident review approved", Actor: "oracle-governance", AuditID: "audit-resume-1", EffectiveAt: now.Add(time.Minute), CreatedAt: now.Add(time.Minute)}
+	resume.Hash = resume.calculatedHash()
+	if err := reopened.ApplyControl(resume); err != nil {
+		t.Fatal(err)
+	}
+	if paused, _, _ := reopened.ControlState(now.Add(time.Minute)); paused {
+		t.Fatal("resume did not clear pause")
 	}
 }
 

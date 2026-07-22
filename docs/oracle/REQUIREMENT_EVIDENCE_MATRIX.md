@@ -10,7 +10,7 @@ This matrix prevents implementation, test, installation, integration, deployment
 | Aggregation | Liquidity-aware weighted median, MAD outlier rejection, staleness/future rejection, divergence, coverage, confidence, and circuit breaker | Implemented and locally tested; production bake-off pending |
 | Minimum independent sources | Default policy requires three; health and price APIs fail closed or report explicit limitation | Implemented and locally tested; real sources pending |
 | Last good value | Returned only with `stale=true`, circuit breaker, failure, and settlement prohibition | Implemented and locally tested |
-| Raw/normalized/aggregate storage | Integrity-protected immutable raw observations exist; normalization and durable aggregate events are pending | Partial |
+| Raw/normalized/aggregate storage | Raw observations, deterministic normalized events, durable aggregate decisions, corrections, and controls share a versioned integrity/event-chain envelope | Implemented and locally tested |
 | Corrections | Original is retained and correction carries reason, effective time, actor, audit ID, and signed corrected observation | Implemented and locally tested |
 | Historical replay | Replays original or corrected view as of an explicit time; backup/restore drill passes | Implemented and locally tested |
 | Public APIs | `/health`, `/version`, `/prices`, provider registry, replay, and signed ingestion handlers exist | Implemented and locally tested; public deployment pending |
@@ -22,7 +22,7 @@ This matrix prevents implementation, test, installation, integration, deployment
 | Finance, Pay, Explorer, Monitor, Bridge | Integration manifests and test vectors pending | Pending |
 | Provider outage/manipulation/depeg/reorg simulations | Core stale/outlier/divergence tests exist; full scenario suite pending | Partial |
 | SLO/capacity and unit economics | Pending measured evidence | Pending |
-| Observability and incident operations | Structured request logs, request/error IDs, health/version exist; metrics, traces, alerts, dashboards, runbooks pending | Partial |
+| Observability and incident operations | Structured trace-correlated logs, request/error IDs, health/version, isolated Prometheus metrics, operations and incident procedures exist; central alerts/dashboard/status integration pending | Partial |
 | Security and supply chain | Core cryptographic boundary tests exist; threat model, SBOM, scans, provenance, reproducibility pending | Partial |
 | Web/PWA docs and 12-language accessibility | Pending | Pending |
 | Public metadata and release record | Pending | Pending |

@@ -20,7 +20,7 @@
       "additionalProperties": false,
       "required": ["status", "stale", "sourceCount", "requiredSourceCount", "rejectedSources", "divergencePpm", "confidencePpm", "coveragePpm", "circuitBreaker"],
       "properties": {
-        "status": {"enum": ["good", "limited_sources", "circuit_breaker", "last_good_stale", "unavailable"]},
+        "status": {"enum": ["good", "limited_sources", "circuit_breaker", "last_good_stale", "emergency_pause", "unavailable"]},
         "stale": {"type": "boolean"},
         "sourceCount": {"type": "integer", "minimum": 0},
         "requiredSourceCount": {"type": "integer", "minimum": 1},
