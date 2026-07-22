@@ -140,7 +140,7 @@ func (service *Service) aggregateAndPersist(market string, kind DataType) (Price
 
 func (service *Service) Price(market string, kind DataType) (Price, error) {
 	now := service.now().UTC()
-	if !marketPattern.MatchString(market) || !kind.Valid() {
+	if !marketPattern.MatchString(market) || !kind.Scalar() {
 		return Price{}, errInvalid
 	}
 	if paused, reason, _ := service.store.ControlState(now); paused {
@@ -204,12 +204,61 @@ func (service *Service) Replay(market string, kind DataType, asOf time.Time) ([]
 	return service.store.Replay(market, kind, asOf), nil
 }
 
+type MarketDataFeed struct {
+	Schema      string            `json:"schema"`
+	Market      string            `json:"market"`
+	Type        DataType          `json:"type"`
+	Source      string            `json:"source"`
+	Version     string            `json:"version"`
+	AsOf        time.Time         `json:"asOf"`
+	ProducedAt  time.Time         `json:"producedAt"`
+	SourceCount int               `json:"sourceCount"`
+	CoveragePPM int64             `json:"coveragePpm"`
+	Stale       bool              `json:"stale"`
+	Failure     string            `json:"failure,omitempty"`
+	Items       []NormalizedEvent `json:"items"`
+}
+
+func (service *Service) LiveData(market string, kind DataType, limit int) (MarketDataFeed, error) {
+	now := service.now().UTC()
+	feed := MarketDataFeed{Schema: SchemaVersion, Market: market, Type: kind, Source: "YNX Oracle normalized signed provider events", Version: NormalizerVersion, ProducedAt: now, Items: []NormalizedEvent{}}
+	if !marketPattern.MatchString(market) || !kind.Structured() || limit < 1 || limit > 1000 {
+		feed.Failure = "invalid request"
+		return feed, errInvalid
+	}
+	feed.Items = service.store.Normalized(market, kind, now, limit)
+	providers := map[string]struct{}{}
+	for _, event := range feed.Items {
+		providers[event.ProviderID] = struct{}{}
+		if event.ObservedAt.After(feed.AsOf) {
+			feed.AsOf = event.ObservedAt
+		}
+	}
+	feed.SourceCount = len(providers)
+	if feed.SourceCount > 0 {
+		feed.CoveragePPM = 1_000_000
+	}
+	if len(feed.Items) == 0 {
+		feed.Stale = true
+		feed.Failure = "no normalized events"
+		return feed, errors.New(feed.Failure)
+	}
+	if now.Sub(feed.AsOf) > service.policy.MaximumAge {
+		feed.Stale = true
+		feed.Failure = "normalized feed is stale"
+		return feed, errors.New(feed.Failure)
+	}
+	return feed, nil
+}
+
 type Health struct {
 	Status              string    `json:"status"`
 	ProductID           string    `json:"productId"`
 	Version             string    `json:"version"`
 	Schema              string    `json:"schema"`
 	PolicyVersion       string    `json:"policyVersion"`
+	NormalizerVersion   string    `json:"normalizerVersion"`
+	StoreVersion        int       `json:"storeVersion"`
 	ProviderCount       int       `json:"providerCount"`
 	ActiveProviderCount int       `json:"activeProviderCount"`
 	MinimumSources      int       `json:"minimumSources"`
@@ -239,7 +288,7 @@ func (service *Service) Health() Health {
 		status = "paused"
 		limitation = "authoritative publication is disabled by an audited emergency control event"
 	}
-	return Health{Status: status, ProductID: ProductID, Version: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version,
+	return Health{Status: status, ProductID: ProductID, Version: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version, NormalizerVersion: NormalizerVersion, StoreVersion: StoreVersion,
 		ProviderCount: len(providers), ActiveProviderCount: active, MinimumSources: service.policy.MinimumSources,
 		SourceLimitation: limitation, AsOf: now, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
 }

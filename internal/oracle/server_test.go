@@ -249,3 +249,39 @@ func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
 		t.Fatalf("metrics=%d %s", metrics.Code, metrics.Body.String())
 	}
 }
+
+func TestStructuredLiveFeedIsNormalizedAndExplicitlyStale(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	source := reporter(t, "source-a", 1_000_000, now)
+	service := testService(t, &now, source)
+	observation := structuredBase(source, 1, CLOBOrderBook, now.Add(-time.Second))
+	observation.OrderBook = &OrderBookSnapshot{Sequence: 10, Bids: []DepthLevel{{Price: 100, Amount: 5}}, Asks: []DepthLevel{{Price: 101, Amount: 6}}}
+	observation = source.signed(t, observation)
+	if created, err := service.Ingest(observation); err != nil || !created {
+		t.Fatalf("created=%v err=%v", created, err)
+	}
+	state := service.store.Snapshot()
+	if len(state.NormalizedEvents) != 1 || len(state.AggregateEvents) != 0 {
+		t.Fatalf("structured pipeline state=%+v", state)
+	}
+	server, _ := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	request := httptest.NewRequest(http.MethodGet, "/v1/market-data?market=BTC/USD&type=clob_order_book&limit=10", nil)
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var feed MarketDataFeed
+	if err := json.Unmarshal(response.Body.Bytes(), &feed); err != nil {
+		t.Fatal(err)
+	}
+	if feed.Source == "" || feed.Version != NormalizerVersion || feed.AsOf.IsZero() || feed.CoveragePPM != 1_000_000 || feed.Stale || len(feed.Items) != 1 || feed.Items[0].OrderBook == nil {
+		t.Fatalf("feed=%+v", feed)
+	}
+	now = now.Add(time.Minute)
+	response = httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), `"stale":true`) {
+		t.Fatalf("stale=%d %s", response.Code, response.Body.String())
+	}
+}

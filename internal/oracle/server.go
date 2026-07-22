@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -57,6 +58,7 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	server.mux.HandleFunc("GET /v1/prices", server.price)
 	server.mux.HandleFunc("GET /v1/providers", server.providers)
 	server.mux.HandleFunc("GET /v1/replay", server.replay)
+	server.mux.HandleFunc("GET /v1/market-data", server.marketData)
 	server.mux.HandleFunc("POST /internal/v1/observations", server.ingest)
 	return server, nil
 }
@@ -115,7 +117,7 @@ func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"productId": ProductID, "version": Version, "schema": SchemaVersion, "policyVersion": server.service.policy.Version, "commit": BuildCommit})
+	writeJSON(response, http.StatusOK, map[string]any{"productId": ProductID, "version": Version, "schema": SchemaVersion, "policyVersion": server.service.policy.Version, "normalizerVersion": NormalizerVersion, "storeVersion": StoreVersion, "commit": BuildCommit})
 }
 
 func (server *Server) price(response http.ResponseWriter, request *http.Request) {
@@ -153,6 +155,28 @@ func (server *Server) replay(response http.ResponseWriter, request *http.Request
 		return
 	}
 	writeJSON(response, http.StatusOK, map[string]any{"schema": SchemaVersion, "source": "YNX Oracle reproducible historical replay", "asOf": asOf.UTC(), "items": items})
+}
+
+func (server *Server) marketData(response http.ResponseWriter, request *http.Request) {
+	limit := 100
+	if raw := request.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeFailure(response, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = parsed
+	}
+	feed, err := server.service.LiveData(request.URL.Query().Get("market"), DataType(request.URL.Query().Get("type")), limit)
+	if err != nil {
+		status := http.StatusServiceUnavailable
+		if errors.Is(err, errInvalid) {
+			status = http.StatusBadRequest
+		}
+		writeJSON(response, status, map[string]any{"feed": feed, "error": publicError(err), "errorId": randomID("error")})
+		return
+	}
+	writeJSON(response, http.StatusOK, feed)
 }
 
 func (server *Server) ingest(response http.ResponseWriter, request *http.Request) {
@@ -226,7 +250,7 @@ func publicError(err error) string {
 		if strings.Contains(message, "signature") || strings.Contains(message, "hash") || strings.Contains(message, "sequence") || strings.Contains(message, "provider") {
 			return "observation rejected"
 		}
-		for _, allowed := range []string{"no observations", "all observations rejected as stale, future-dated, inactive, or incompatible", "outlier rejection removed every observation", "price is not safe for authoritative consumption"} {
+		for _, allowed := range []string{"no observations", "all observations rejected as stale, future-dated, inactive, or incompatible", "outlier rejection removed every observation", "price is not safe for authoritative consumption", "no normalized events", "normalized feed is stale"} {
 			if message == allowed {
 				return message
 			}

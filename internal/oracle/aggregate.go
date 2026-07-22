@@ -38,6 +38,9 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 		return failedPrice(now, policy, "no observations"), errors.New("no observations")
 	}
 	market, kind, scale := observations[0].Market, observations[0].Type, observations[0].Scale
+	if !kind.Scalar() {
+		return Price{}, errors.New("structured market data cannot be price-aggregated")
+	}
 	rejected := make([]string, 0)
 	unique := make(map[string]weightedObservation)
 	latest := time.Time{}

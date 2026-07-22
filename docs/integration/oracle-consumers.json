@@ -7,6 +7,7 @@
     "GET /health",
     "GET /version",
     "GET /prices?market={market}&type={type}",
+    "GET /v1/market-data?market={market}&type={structured_type}&limit={1..1000}",
     "GET /v1/providers",
     "GET /v1/replay?market={market}&type={type}&asOf={rfc3339}"
   ],
@@ -24,6 +25,16 @@
     "quality.confidencePpm meets the consumer threshold",
     "quality.coveragePpm meets the consumer threshold",
     "lineageHash and every observation hash are valid SHA-256 hex values"
+  ],
+  "structuredFeedChecks": [
+    "type is one of ohlcv, trades, clob_order_book, dex_pool_state, or provider_status",
+    "source == YNX Oracle normalized signed provider events",
+    "version == observation-normalizer-v1",
+    "asOf is not future-dated or older than the consumer maximum age",
+    "stale == false and failure is empty",
+    "coveragePpm meets the consumer policy",
+    "each item carries providerId, source, sourceVersion, observedAt, receivedAt, effectiveAt, observationHash, normalizerVersion, and hash",
+    "structured feeds are raw/normalized evidence and must never be substituted for an aggregated settlement price"
   ],
   "consumers": {
     "chainCore": {"interface": "system module delivery of value, scale, asOf, policyVersion, quality, lineageHash", "ownerAction": "implement consensus validation and governance activation"},

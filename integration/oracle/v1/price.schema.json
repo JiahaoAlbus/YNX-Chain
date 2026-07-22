@@ -8,7 +8,7 @@
   "properties": {
     "schema": {"const": "ynx.oracle.v1"},
     "market": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._/-]{2,63}$"},
-    "type": {"type": "string"},
+    "type": {"enum": ["spot_price", "index_price", "mark_price", "funding_reference", "fx", "stablecoin_price", "stablecoin_reserve_ratio", "stablecoin_depeg", "dex_twap", "interest_rate_candidate"]},
     "value": {"type": "integer", "minimum": 1},
     "scale": {"type": "integer", "minimum": 1},
     "source": {"type": "string", "minLength": 1},

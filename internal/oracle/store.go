@@ -72,12 +72,19 @@ func OpenStore(path string, key []byte, nonceDomain string) (*Store, error) {
 	if legacy && legacyEventChain(envelope.State.Observations, envelope.State.Corrections) != envelope.State.EventChainHash {
 		return nil, errors.New("oracle legacy event chain verification failed")
 	}
-	if !legacy && (envelope.State.StoreVersion != StoreVersion || eventChain(envelope.State) != envelope.State.EventChainHash) {
+	if !legacy && envelope.State.StoreVersion != 2 && envelope.State.StoreVersion != StoreVersion {
+		return nil, errors.New("unsupported oracle store version")
+	}
+	if !legacy && eventChain(envelope.State) != envelope.State.EventChainHash {
 		return nil, errors.New("oracle event chain verification failed")
 	}
 	store.state = envelope.State
 	if legacy {
-		if err := store.migrateV1ToV2(data); err != nil {
+		if err := store.migrateV1ToV3(data); err != nil {
+			return nil, err
+		}
+	} else if store.state.StoreVersion == 2 {
+		if err := store.migrateV2ToV3(data); err != nil {
 			return nil, err
 		}
 	}
@@ -106,7 +113,7 @@ func (store *Store) Ingest(observation Observation, provider Provider) (bool, er
 	}
 	next := cloneState(store.state)
 	next.Observations = append(next.Observations, observation)
-	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, ""))
+	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, "", observation.ObservedAt))
 	next.LatestSequences[observation.ReporterID] = observation.Sequence
 	next.Generation++
 	next.EventChainHash = eventChain(next)
@@ -151,7 +158,7 @@ func (store *Store) Correct(correction Correction, provider Provider) error {
 	}
 	next := cloneState(store.state)
 	next.Corrections = append(next.Corrections, correction)
-	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID))
+	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID, correction.EffectiveAt))
 	next.LatestSequences[correction.Corrected.ReporterID] = correction.Corrected.Sequence
 	next.Generation++
 	next.EventChainHash = eventChain(next)
@@ -267,6 +274,27 @@ func (store *Store) Replay(market string, kind DataType, asOf time.Time) []Obser
 		}
 		return result[i].ObservedAt.Before(result[j].ObservedAt)
 	})
+	return result
+}
+
+func (store *Store) Normalized(market string, kind DataType, asOf time.Time, limit int) []NormalizedEvent {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	result := make([]NormalizedEvent, 0)
+	for _, event := range store.state.NormalizedEvents {
+		if event.Market == market && event.Type == kind && !event.EffectiveAt.After(asOf) {
+			result = append(result, event)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].EffectiveAt.Equal(result[j].EffectiveAt) {
+			return result[i].ID < result[j].ID
+		}
+		return result[i].EffectiveAt.Before(result[j].EffectiveAt)
+	})
+	if len(result) > limit {
+		result = result[len(result)-limit:]
+	}
 	return result
 }
 
@@ -395,27 +423,18 @@ func eventChain(state storeState) string {
 	return hex.EncodeToString(current)
 }
 
-func (store *Store) migrateV1ToV2(original []byte) error {
-	backup := store.path + ".v1.backup"
-	file, err := os.OpenFile(backup, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return fmt.Errorf("create pre-migration backup: %w", err)
-	}
-	if _, err := file.Write(original); err != nil {
-		_ = file.Close()
-		return err
-	}
-	if err := file.Close(); err != nil {
+func (store *Store) migrateV1ToV3(original []byte) error {
+	if err := store.writeMigrationBackup(original, ".v1.backup"); err != nil {
 		return err
 	}
 	next := cloneState(store.state)
 	next.StoreVersion = StoreVersion
 	next.NormalizedEvents = make([]NormalizedEvent, 0, len(next.Observations)+len(next.Corrections))
 	for _, observation := range next.Observations {
-		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, ""))
+		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, "", observation.ObservedAt))
 	}
 	for _, correction := range next.Corrections {
-		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID))
+		next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(correction.Corrected, correction.ID, correction.EffectiveAt))
 	}
 	next.AggregateEvents = []AggregateEvent{}
 	next.ControlEvents = []ControlEvent{}
@@ -426,6 +445,52 @@ func (store *Store) migrateV1ToV2(original []byte) error {
 	}
 	store.state = next
 	return nil
+}
+
+func (store *Store) migrateV2ToV3(original []byte) error {
+	if err := store.writeMigrationBackup(original, ".v2.backup"); err != nil {
+		return err
+	}
+	next := cloneState(store.state)
+	next.StoreVersion = StoreVersion
+	for index := range next.NormalizedEvents {
+		event := next.NormalizedEvents[index]
+		effectiveAt := event.ObservedAt
+		if event.CorrectionID != "" {
+			for _, correction := range next.Corrections {
+				if correction.ID == event.CorrectionID {
+					effectiveAt = correction.EffectiveAt
+					break
+				}
+			}
+		}
+		event.EffectiveAt = effectiveAt.UTC()
+		dataEvent := event
+		dataEvent.Hash = ""
+		data, _ := json.Marshal(dataEvent)
+		digest := sha256.Sum256(data)
+		event.Hash = hex.EncodeToString(digest[:])
+		next.NormalizedEvents[index] = event
+	}
+	next.Generation++
+	next.EventChainHash = eventChain(next)
+	if err := store.persist(next); err != nil {
+		return fmt.Errorf("persist v3 migration: %w", err)
+	}
+	store.state = next
+	return nil
+}
+
+func (store *Store) writeMigrationBackup(original []byte, suffix string) error {
+	file, err := os.OpenFile(store.path+suffix, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create pre-migration backup: %w", err)
+	}
+	if _, err := file.Write(original); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
 }
 
 func decodeStrict(data []byte, target any) error {

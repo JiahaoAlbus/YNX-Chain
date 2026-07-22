@@ -14,6 +14,7 @@ This matrix prevents implementation, test, installation, integration, deployment
 | Corrections | Original is retained and correction carries reason, effective time, actor, audit ID, and signed corrected observation | Implemented and locally tested |
 | Historical replay | Replays original or corrected view as of an explicit time; backup/restore drill passes | Implemented and locally tested |
 | Public APIs | `/health`, `/version`, `/prices`, provider registry, replay, and signed ingestion handlers exist | Implemented and locally tested; public deployment pending |
+| Structured market data | Strict signed OHLCV, trade batches, CLOB books, DEX pool states, and provider-health payloads normalize into a source/version/asOf/coverage/stale live feed and are prohibited from scalar price aggregation | Implemented and locally tested |
 | Consumer validation SDK | Go SDK rejects schema mismatch, stale/future data, unsafe quality, insufficient sources, low confidence, malformed lineage, remote plain HTTP, and clients without timeouts | Implemented and locally tested; additional languages pending |
 | Chain system module/precompile | Integration contract and implementation pending | Pending |
 | Exchange index/mark/funding | Adapter and test vectors pending | Pending |

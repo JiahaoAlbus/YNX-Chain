@@ -2,7 +2,9 @@ package oracle
 
 import (
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -140,6 +142,47 @@ func TestV1StoreMigratesWithBackupAndReopen(t *testing.T) {
 	}
 	if _, err := OpenStore(path, key, "ynx-oracle-testnet-v1"); err != nil {
 		t.Fatalf("reopen migrated state: %v", err)
+	}
+}
+
+func TestV2StoreMigratesStructuredEffectiveTimeWithBackup(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	source := reporter(t, "source-a", 1_000_000, now)
+	path := filepath.Join(t.TempDir(), "v2.json")
+	key := []byte(strings.Repeat("k", 32))
+	helper, _ := OpenStore(filepath.Join(t.TempDir(), "unused.json"), key, "ynx-oracle-testnet-v1")
+	observation := source.observation(t, 1, 1_000_000, now)
+	normalized := normalizeObservation(observation, "", observation.ObservedAt)
+	normalized.EffectiveAt = time.Time{}
+	normalizedCopy := normalized
+	normalizedCopy.Hash = ""
+	normalizedData, _ := json.Marshal(normalizedCopy)
+	digest := sha256.Sum256(normalizedData)
+	normalized.Hash = hex.EncodeToString(digest[:])
+	v2 := storeState{Schema: SchemaVersion, StoreVersion: 2, Generation: 2, NonceDomain: "ynx-oracle-testnet-v1",
+		LatestSequences: map[string]uint64{observation.ReporterID: 1}, Observations: []Observation{observation}, Corrections: []Correction{},
+		NormalizedEvents: []NormalizedEvent{normalized}, AggregateEvents: []AggregateEvent{}, ControlEvents: []ControlEvent{}}
+	v2.EventChainHash = eventChain(v2)
+	data, err := helper.envelope(v2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, key, "ynx-oracle-testnet-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := migrated.Snapshot()
+	if state.StoreVersion != StoreVersion || state.Generation != 3 || len(state.NormalizedEvents) != 1 || !state.NormalizedEvents[0].EffectiveAt.Equal(observation.ObservedAt) {
+		t.Fatalf("v3 state=%+v", state)
+	}
+	if _, err := os.Stat(path + ".v2.backup"); err != nil {
+		t.Fatalf("v2 backup: %v", err)
+	}
+	if _, err := OpenStore(path, key, "ynx-oracle-testnet-v1"); err != nil {
+		t.Fatalf("reopen v3: %v", err)
 	}
 }
 
