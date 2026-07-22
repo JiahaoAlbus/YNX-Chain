@@ -16,6 +16,7 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 
 - `contracts/dex`: versioned factory, immutable pool, bounded router, read-only quoter, adversarial test tokens and integration runner.
 - `contracts/dex/YNXStrategyVault.sol`: immutable per-user owner/engine boundary with typed Router methods, exact approvals, mandate/oracle limits, pause/revoke/kill and owner-only recovery. Vault v1 has no fee-transfer path.
+- `contracts/dex/YNXProtectedDexFactory.sol` and `YNXLPProtection.sol`: separate protected CPMM deployment type with immutable Oracle binding, bounded component-level dynamic fees, delayed configuration, depeg swap circuit breaker and unconditional proportional LP exit.
 - `sdk/dex`: strict ESM SDK for token/pool/Vault/FairFlow parsing, deterministic exact-in/out routing, slippage, typed Vault and Intent requests, exact canonical Wallet approval digests, injected submission and confirmed receipt/event reconciliation. It contains no signer, solver or automatic strategy loop.
 - `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v3 event state, confirmed Pool/Vault/FairFlow EVM poller, address-bound cursor migration, shared reorg rewind/rescan, source-labelled Vault/FairFlow APIs, public pool reads, protected positions and strict token-list API.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
@@ -50,6 +51,7 @@ npm run hardhat:build
 npm run dex:contracts:test
 npm run dex:vault:test
 npm run dex:fairflow:test
+npm run dex:lp-protection:test
 npm test --prefix sdk/dex
 go test -race ./internal/dex ./cmd/ynx-dex-indexerd
 npm ci --prefix apps/dex

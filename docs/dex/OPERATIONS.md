@@ -8,6 +8,7 @@ npm run hardhat:build
 npm run dex:contracts:test
 npm run dex:vault:test
 npm run dex:fairflow:test
+npm run dex:lp-protection:test
 npm test --prefix sdk/dex
 npm run build --prefix apps/dex
 npm test --prefix apps/dex
@@ -26,7 +27,7 @@ Set `DEX_STRATEGY_VAULT_ADDRESS` and `DEX_FAIRFLOW_ADDRESS` only from the same v
 
 ## Testnet deployment
 
-Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee/FairFlow treasury addresses, exact Testnet token allow-list, public minimum solver bond, user vault owner, limited Quant engine address and reviewed on-chain vault oracle, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens, invalid bond and zero deployer balance. It deploys the Vault paused and unconfigured plus an empty FairFlow registry with no batches or solver claims, then writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, pool creation, solver funding/onboarding, test liquidity, Wallet mandate review, swap/LP/Vault/FairFlow proofs, Explorer links and Indexer consistency are separate required steps.
+Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee/FairFlow treasury addresses, exact Testnet token allow-list, public minimum solver bond, user vault owner, limited Quant engine address, reviewed Vault oracle and reviewed LP Protection Oracle adapter, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens, invalid bond and zero deployer balance. It deploys the protected CPMM Factory with immutable Oracle binding, the Vault paused and unconfigured, plus an empty FairFlow registry with no batches or solver claims, then writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, Oracle/sourceHash review, pool creation, solver funding/onboarding, test liquidity, Wallet mandate review, swap/LP/Vault/FairFlow proofs, Explorer links and Indexer consistency are separate required steps.
 
 ## Recovery and rollback
 

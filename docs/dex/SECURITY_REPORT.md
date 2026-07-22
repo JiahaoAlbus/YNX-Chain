@@ -18,6 +18,7 @@ Local engineering candidate; Testnet-only; not independently audited. `mainnet=f
 - AI risk explanation sends only selected quote context after permission through a same-origin canonical gateway, rejects cross-origin providers, validates an NDJSON stream, supports cancellation and review, and hash-chains local audit entries. It has no signing/submission capability and returns honest unavailable/429/timeout/empty/interrupted errors.
 - Browser bundles contain no Wallet/provider/deployer/database secret and never receive a Wallet private key or recovery material.
 - FairFlow keeps user tokens in Wallets until one atomic settlement, requires all active Intents, verifies uniform-price outputs and public surplus scores on-chain, nets CoW flows, exact-checks token deltas, locks native solver bonds and exposes cancellation, timeout and direct self-trade slashing. Its narrower boundaries are documented in `FAIRFLOW_SECURITY.md`.
+- Protected CPMM pools immutably bind a pool-enforced LP policy with source-labelled Oracle freshness/depeg checks and bounded volatility, depth, divergence, directional-flow and JIT fee components. Configuration changes require two days; swap circuit breakers never block proportional LP exit. The exact limitations are in `LP_PROTECTION_SECURITY.md`.
 
 ## Verified local tests
 
@@ -26,6 +27,7 @@ Local engineering candidate; Testnet-only; not independently audited. `mainnet=f
 - Indexer restart, HMAC tamper, conflicting replay, 40 concurrent atomic writes, strict request/token schemas, ingestion and Wallet authorization, plus confirmed fake-EVM discovery/decoding, cursor restart and block-hash reorganization recovery under the race detector.
 - Web production build and 16 unit/integration tests for empty/error truth, SDK quote review, Wallet fail-closed behavior, AI stream/429/empty/cancel/cross-origin/audit tamper, twelve locale catalogs and Arabic RTL. Ten Chromium E2E project cases pass and two project-inapplicable cases skip across desktop/mobile quote, pool/liquidity, AI unavailable, offline Service Worker cold reload, responsive overflow and labelled visual evidence.
 - FairFlow uniform batch settlement, 32 score differential vectors, commit/reveal tamper, solver competition, CoW/external-inventory accounting, atomic rollback, cancellation abort, non-reveal/timeout slashing and proven direct self-trade fraud.
+- LP Protection component accounting, 32 differential vectors, 16 stateful constant-product invariants, exact-input/output routing, Oracle/depeg chaos, delayed config, taxed-token rollback and depeg-time LP exit.
 
 ## Open security work
 
@@ -36,5 +38,6 @@ Local engineering candidate; Testnet-only; not independently audited. `mainnet=f
 - Canonical Wallet verifier/registry integration and cross-product replay/tamper vectors on the integrated commit.
 - Dependency advisory: the current Hardhat 3.9.0 development toolchain resolves `adm-zip <0.6.0` and npm reports a high-severity crafted-ZIP denial-of-service advisory with no available upstream fix. It is dev-only and excluded from runtime images; release must reassess or replace the toolchain.
 - FairFlow Sybil/collusion analysis, external-route proof, cross-chain settlement, partial fills, independent Solver operation, real Testnet batches and economic audit remain open. A solver-funded rebate is not attributable MEV evidence by itself.
+- LP Protection Oracle adapter review, real-market calibration, LVR-aware auction, inventory/range guidance, independent economic audit and real-node toxic-flow/JIT validation remain open. Transparent heuristic scores are not proof of MEV or LVR elimination.
 
 No audit, MEV elimination or mainnet safety claim is made.

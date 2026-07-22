@@ -9,6 +9,7 @@
     "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
     "dex:vault:test": "hardhat run ./scripts/dex/vault-test.mjs --network dexTest",
     "dex:fairflow:test": "hardhat run ./scripts/dex/fairflow-test.mjs --network dexTest",
+    "dex:lp-protection:test": "hardhat run ./scripts/dex/lp-protection-test.mjs --network dexTest",
     "dex:release:test": "node --test ./scripts/dex/source-base.test.mjs",
     "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
     "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",

@@ -49,6 +49,16 @@
       "address": null,
       "status": "required before Intent or Solver activation; treasury and minimum native bond must match the verified deployment manifest"
     },
+    "lpProtection": {
+      "addressEnv": "derived from DEX_FACTORY_ADDRESS",
+      "address": null,
+      "status": "required protected-factory child contract; must match factory.lpProtection() and verified source"
+    },
+    "lpProtectionOracle": {
+      "addressEnv": "DEX_LP_PROTECTION_ORACLE_ADDRESS",
+      "address": null,
+      "status": "owner-reviewed on-chain adapter required; upstream source, heartbeat and depeg semantics must be published"
+    },
     "multicall": {
       "addressEnv": "MULTICALL_ADDRESS",
       "address": null,
