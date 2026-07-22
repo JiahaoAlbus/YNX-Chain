@@ -35,8 +35,8 @@ func TestLegacyV1MigrationBackupAndRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	var v2 persistentState
-	if json.Unmarshal(current, &v2) != nil || v2.SchemaVersion != 2 || !verifyStoredState(current, v2) {
-		t.Fatal("migrated v2 state is invalid")
+	if json.Unmarshal(current, &v2) != nil || v2.SchemaVersion != CurrentStateSchemaVersion || !verifyStoredState(current, v2) {
+		t.Fatal("migrated current state is invalid")
 	}
 	rollback := filepath.Join(dir, "rollback-v1.json")
 	if err := RollbackStateToV1(path, rollback); err != nil {
@@ -52,6 +52,48 @@ func TestLegacyV1MigrationBackupAndRollback(t *testing.T) {
 	}
 	if err := RollbackStateToV1(path, rollback); err == nil {
 		t.Fatal("rollback overwrote existing destination")
+	}
+}
+
+func TestV2ToV3ProductMigrationAndLegacyRollbackHash(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	state := newState()
+	state.Objects["doc"] = Object{ID: "doc", Owner: owner, Kind: KindDoc, Name: "d"}
+	state.Objects["file"] = Object{ID: "file", Owner: owner, Kind: KindFile, Name: "f"}
+	if err := writeLegacyState(path, 2, state); err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(Config{StatePath: path, ObjectDir: filepath.Join(dir, "objects")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.state.SchemaVersion != 3 || s.state.Objects["doc"].Product != "docs" || s.state.Objects["file"].Product != "cloud" {
+		t.Fatalf("migration: %#v", s.state.Objects)
+	}
+	if _, err := os.Stat(path + ".v2.bak"); err != nil {
+		t.Fatal(err)
+	}
+	rollback := filepath.Join(dir, "v2.json")
+	if err := writeLegacyState(rollback, 2, s.state); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(rollback)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var legacy persistentStateV2
+	if err = json.Unmarshal(raw, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	stored := legacy.IntegrityHash
+	legacy.IntegrityHash = ""
+	compact, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hashBytes(compact) != stored {
+		t.Fatal("legacy binary struct would reject rollback hash")
 	}
 }
 

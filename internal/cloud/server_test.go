@@ -204,3 +204,56 @@ func TestBackpressureRejectsWithoutQueueing(t *testing.T) {
 		t.Fatalf("backpressure metric %d", rejected)
 	}
 }
+
+func TestCloudAndDocsObjectBoundariesFailClosed(t *testing.T) {
+	s := testService(t, nil)
+	ctx := context.Background()
+	cloudObject, err := s.Create(ctx, owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "cloud.bin", Content: []byte("cloud")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := s.Create(ctx, owner, CreateObjectRequest{Product: "docs", Kind: KindDoc, Name: "doc.txt", Content: []byte("docs")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewServer(s).Handler()
+	cloudEnvelope := testWalletEnvelope(t, s, "cloud", "product-cloud", []string{"files.read", "files.write"})
+	cloudToken, _, err := s.CreateSession(ctx, cloudEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	docsEnvelope := testWalletEnvelope(t, s, "docs", "product-docs", []string{"documents.read", "documents.write"})
+	docsToken, _, err := s.CreateSession(ctx, docsEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct{ token, id string }{{cloudToken, doc.ID}, {docsToken, cloudObject.ID}} {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/objects/"+tc.id, nil)
+		req.Header.Set("Authorization", "Bearer "+tc.token)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != 403 {
+			t.Fatalf("cross-product object %s returned %d %s", tc.id, rr.Code, rr.Body.String())
+		}
+	}
+	for _, tc := range []struct{ token, want string }{{cloudToken, cloudObject.ID}, {docsToken, doc.ID}} {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/objects?limit=10", nil)
+		req.Header.Set("Authorization", "Bearer "+tc.token)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != 200 {
+			t.Fatalf("list: %d %s", rr.Code, rr.Body.String())
+		}
+		var page ObjectPage
+		if json.NewDecoder(rr.Body).Decode(&page) != nil || len(page.Items) != 1 || page.Items[0].ID != tc.want {
+			t.Fatalf("product list: %#v", page)
+		}
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/objects", bytes.NewBufferString(`{"kind":"doc","name":"forbidden","content":""}`))
+	req.Header.Set("Authorization", "Bearer "+cloudToken)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != 400 {
+		t.Fatalf("cloud created Docs object: %d %s", rr.Code, rr.Body.String())
+	}
+}
