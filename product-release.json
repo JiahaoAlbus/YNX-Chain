@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "8a793b4562790834a67c3e4ee491ce089341d549",
+  "commit": "4547d3e48f59c2d14ee8034c3e8676d58181f32f",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,14 +21,14 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "69fd0e90bd3153a2a331dbf5770ab9072103616809a88e3b2906ccb12801e164",
-    "webPwaBundle": "dbe1e72ecb68bddf53b5770f495d96ffb615bd7f81e2370fe63ecf42fb676b07",
-    "javascriptSdkPackage": "0e5ca016fe26dd7f54e3954c90e95052e0475ce7416149470ed382fc0489993e"
+    "artifactManifest": "b6a0cd9efd2392112955a209490fb426914ea92e19328105f1ebbe6b6890b2d6",
+    "webPwaBundle": "bc4c39ace680a3d84d5329aed6c9e025cfde357a41f81c17af9105139355bd80",
+    "javascriptSdkPackage": "624983e9feb6598146e1ebd0c442047a7b021ae301421af559a1330cef200999"
   },
   "bytes": {
     "artifactManifest": 4070,
-    "webPwaBundle": 318536,
-    "javascriptSdkPackage": 5501
+    "webPwaBundle": 321250,
+    "javascriptSdkPackage": 9038
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
@@ -59,6 +59,15 @@
       "deployedPublic": false,
       "scope": "immutable owner/engine vault, typed swap and liquidity methods, mandate limits, oracle/depeg checks, pause/revoke/kill, emergency exit, no fee charging",
       "evidence": "npm run dex:vault:test"
+    },
+    "executionAdapter": {
+      "sourceCommit": "4547d3e48f59c2d14ee8034c3e8676d58181f32f",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "integratedCentral": false,
+      "deployedPublic": false,
+      "scope": "typed Vault requests, exact Wallet approval digest, injected engine transport, confirmed receipt reconciliation",
+      "evidence": "npm test --prefix sdk/dex"
     }
   },
   "centralIntegration": {
@@ -76,5 +85,5 @@
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-22T15:00:00.000Z"
+  "generatedAt": "2026-07-22T15:30:00.000Z"
 }

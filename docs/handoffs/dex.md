@@ -16,7 +16,7 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 
 - `contracts/dex`: versioned factory, immutable pool, bounded router, read-only quoter, adversarial test tokens and integration runner.
 - `contracts/dex/YNXStrategyVault.sol`: immutable per-user owner/engine boundary with typed Router methods, exact approvals, mandate/oracle limits, pause/revoke/kill and owner-only recovery. Vault v1 has no fee-transfer path.
-- `sdk/dex`: strict ESM SDK for token/pool parsing, deterministic exact-in/out routing, slippage, price impact, freshness and transaction builders.
+- `sdk/dex`: strict ESM SDK for token/pool/Vault parsing, deterministic exact-in/out routing, slippage, typed Vault requests, exact canonical Wallet approval digest, injected engine submission and confirmed receipt reconciliation. It contains no signer or automatic strategy loop.
 - `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected event state, confirmed EVM poller, reorg rewind/rescan, public read API, protected positions API and strict token-list API.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
 - AI risk explanation: context selection, explicit permission, same-origin canonical-gateway enforcement, provider/model/status/cost, strict NDJSON streaming/cancel, review, local apply/reject and SHA-256 hash-chained browser audit. It cannot build, sign, submit or mutate a transaction.
