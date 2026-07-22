@@ -7,6 +7,7 @@ The final-objective requirement matrix and 2026-07-22 revalidation record are in
 - Protocol source revision: `contracts/dex/SOURCE_REV`
 - Engine evaluation: `docs/dex/DEX_ENGINE_EVALUATION.md`
 - Contract integration runner: `scripts/dex/contract-test.mjs`
+- Strategy Vault security boundary and adversarial/property runner: `docs/dex/STRATEGY_VAULT_SECURITY.md`, `scripts/dex/vault-test.mjs`
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
 - Indexer recovery/security tests: `internal/dex/store_test.go`
 - Confirmed EVM polling/reorg tests: `internal/dex/evm_ingester_test.go`

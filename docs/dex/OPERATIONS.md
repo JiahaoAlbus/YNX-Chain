@@ -6,6 +6,7 @@
 npm ci
 npm run hardhat:build
 npm run dex:contracts:test
+npm run dex:vault:test
 npm test --prefix sdk/dex
 npm run build --prefix apps/dex
 npm test --prefix apps/dex
@@ -20,7 +21,7 @@ Start the API with random non-repository secrets and owner-selected state/cursor
 
 ## Testnet deployment
 
-Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee addresses and exact Testnet token allow-list, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token code, duplicate tokens and zero deployer balance. It writes a local mode-0600 manifest. Source/bytecode verification, pool creation, test liquidity, Wallet swap/LP proofs, Explorer links and Indexer consistency are separate required steps.
+Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee addresses, exact Testnet token allow-list, user vault owner, limited Quant engine address and reviewed on-chain vault oracle, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens and zero deployer balance. It deploys the Vault paused and unconfigured and writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, pool creation, test liquidity, Wallet mandate review, swap/LP/Vault proofs, Explorer links and Indexer consistency are separate required steps.
 
 ## Recovery and rollback
 

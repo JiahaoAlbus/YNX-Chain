@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-dex",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b",
+  "sourceBaseCommit": "8a793b4562790834a67c3e4ee491ce089341d549",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -55,9 +55,14 @@
           "sizeBytes": 1195
         },
         {
+          "path": "contracts/dex/YNXStrategyVault.sol",
+          "sha256": "31d18f9fbaf2a46dd25ff4cda8f7bc49765ea25053c4bf3cb058979328ed68f8",
+          "sizeBytes": 19683
+        },
+        {
           "path": "contracts/dex/SOURCE_REV",
-          "sha256": "73791f4ca63092795d807d33b30e518166ac7802e4f17ab4032788b67821d847",
-          "sizeBytes": 349
+          "sha256": "21c57b0e8c249f393ec188a4d99555b009dd471a63ef238ffd5a7546c6a40581",
+          "sizeBytes": 582
         },
         {
           "path": "contracts/dex/THIRD_PARTY_NOTICES.md",
@@ -88,6 +93,11 @@
           "path": "artifacts/contracts/dex/YNXDexQuoter.sol/YNXDexQuoter.json",
           "sha256": "7e55d8b4a900f146d5542423412814b1e827b3340e8ddd58211a3550f668efef",
           "sizeBytes": 6408
+        },
+        {
+          "path": "artifacts/contracts/dex/YNXStrategyVault.sol/YNXStrategyVault.json",
+          "sha256": "5e9ccdde4f3841a973feff553f2cc4a9fde1a8f379ababe6df94d992ee800673",
+          "sizeBytes": 88634
         }
       ]
     }

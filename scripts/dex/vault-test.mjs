@@ -188,6 +188,8 @@ await assert.rejects(
 );
 const exitBeforeA = await tokenA.balanceOf(owner.address);
 const exitBeforeB = await tokenB.balanceOf(owner.address);
+const exitStale = BigInt((await ethers.provider.getBlock("latest")).timestamp) - 86_400n;
+await setPrices(unit, unit, 2n * unit, 0, exitStale);
 await (await vault.connect(owner).emergencyExit(owner.address)).wait();
 assert((await tokenA.balanceOf(owner.address)) > exitBeforeA, "emergency exit returns token A without oracle dependence");
 assert((await tokenB.balanceOf(owner.address)) > exitBeforeB, "emergency exit returns token B without oracle dependence");

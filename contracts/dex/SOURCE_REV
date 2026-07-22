@@ -1,7 +1,9 @@
 YNX DEX clean-room constant-product implementation
 repository: https://github.com/JiahaoAlbus/YNX-Chain.git
 source commit: 3214c584c9032d6b6b3753df6b2450d4ac739189
-source paths: contracts/dex/**
+constant-product source commit: 3214c584c9032d6b6b3753df6b2450d4ac739189
+strategy-vault source commit: 8a793b4562790834a67c3e4ee491ce089341d549
+source paths: contracts/dex/YNXDexFactory.sol, YNXDexPool.sol, YNXDexRouter.sol, YNXDexQuoter.sol, YNXStrategyVault.sol
 compiler: solc 0.8.24
 optimizer: enabled, 200 runs
 EVM target: shanghai

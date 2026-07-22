@@ -15,6 +15,7 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 ## Delivered surfaces
 
 - `contracts/dex`: versioned factory, immutable pool, bounded router, read-only quoter, adversarial test tokens and integration runner.
+- `contracts/dex/YNXStrategyVault.sol`: immutable per-user owner/engine boundary with typed Router methods, exact approvals, mandate/oracle limits, pause/revoke/kill and owner-only recovery. Vault v1 has no fee-transfer path.
 - `sdk/dex`: strict ESM SDK for token/pool parsing, deterministic exact-in/out routing, slippage, price impact, freshness and transaction builders.
 - `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected event state, confirmed EVM poller, reorg rewind/rescan, public read API, protected positions API and strict token-list API.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
@@ -47,6 +48,7 @@ The poller checks chain 6423, scans only confirmed bounded ranges, discovers poo
 npm ci
 npm run hardhat:build
 npm run dex:contracts:test
+npm run dex:vault:test
 npm test --prefix sdk/dex
 go test -race ./internal/dex ./cmd/ynx-dex-indexerd
 npm ci --prefix apps/dex

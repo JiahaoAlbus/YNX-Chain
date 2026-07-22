@@ -39,6 +39,11 @@
       "address": null,
       "status": "required before independent quote verification"
     },
+    "strategyVault": {
+      "addressEnv": "DEX_STRATEGY_VAULT_ADDRESS",
+      "address": null,
+      "status": "required before Quant execution; owner must configure mandate on-chain after deployment"
+    },
     "multicall": {
       "addressEnv": "MULTICALL_ADDRESS",
       "address": null,
