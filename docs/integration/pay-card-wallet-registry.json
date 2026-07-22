@@ -15,8 +15,8 @@
       "requestingProduct": "pay",
       "bundleId": "com.ynxweb4.pay",
       "callbacks": ["ynxpay://wallet-auth/callback"],
-      "scopes": ["account:read", "pay:case:create", "pay:settlement:submit"],
-      "maxScopes": 3,
+      "scopes": ["account:read", "pay:case:create", "pay:settlement:submit", "pay:sponsorship:request"],
+      "maxScopes": 4,
       "productDeviceAlgorithms": ["p256-sha256"]
     },
     {
