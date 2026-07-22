@@ -149,3 +149,44 @@ func TestInvalidCorrelationIDIsReplacedAndMetricsExposeAlertSignals(t *testing.T
 		}
 	}
 }
+
+func TestHostileHTTPAndWebSocketProbesFailClosedWithoutInternalErrors(t *testing.T) {
+	service, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	server := httptest.NewServer(NewObservedRoleServer(service, "all", io.Discard))
+	defer server.Close()
+
+	hostileOrigin, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/risk/kill", strings.NewReader(`{"reason":"must not run"}`))
+	hostileOrigin.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	hostileOrigin.Header.Set("Origin", "https://hostile.invalid")
+	response, err := server.Client().Do(hostileOrigin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusForbidden || service.Snapshot()["paper"].(PaperState).KillSwitch {
+		t.Fatalf("origin status=%d", response.StatusCode)
+	}
+
+	oversized, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/risk/kill", strings.NewReader(strings.Repeat("x", (8<<20)+1)))
+	oversized.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	response, err = server.Client().Do(oversized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusBadRequest || !strings.Contains(string(body), `"error":"invalid_json"`) || strings.Contains(strings.ToLower(string(body)), "too large") {
+		t.Fatalf("oversized status=%d body=%s", response.StatusCode, body)
+	}
+
+	headers := http.Header{}
+	headers.Set("Origin", "https://hostile.invalid")
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
+	connection, handshake, err := websocket.DefaultDialer.Dial(wsURL, headers)
+	if connection != nil {
+		_ = connection.Close()
+	}
+	if err == nil || handshake == nil || handshake.StatusCode != http.StatusForbidden {
+		t.Fatalf("websocket err=%v response=%v", err, handshake)
+	}
+}

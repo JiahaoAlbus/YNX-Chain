@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "evidenceDate": "2026-07-23",
+  "artifactSourceCommit": "c140404cbfaca5f01a2db05af3d9a544652ac8f6",
+  "sourceChecks": {
+    "goVetPassed": true,
+    "releaseForbiddenContentScanPassed": true,
+    "hostileHttpWebSocketTestsPassed": true,
+    "externalSastScannerAvailable": false,
+    "cveDatabaseScannerAvailable": false
+  },
+  "artifactChecks": {
+    "scanner": "ynx-archive-safety-v1",
+    "pathTraversalChecked": true,
+    "symlinksChecked": true,
+    "duplicateEntriesChecked": true,
+    "compressionBombChecked": true,
+    "executableAllowlistChecked": true,
+    "credentialPatternsChecked": true,
+    "artifacts": [
+      {
+        "name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip",
+        "bytes": 7361745,
+        "sha256": "8d9d9c16af94ad5156f3c6babfb7b287e9dc6d22ab622340f4138a25b44ee201",
+        "entries": 29,
+        "uncompressedBytes": 17823131,
+        "passed": true
+      },
+      {
+        "name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip",
+        "bytes": 8095087,
+        "sha256": "f67fad932b6851b22a327faf98217e3070e3cd256e1f9e0495c9e4eb55f58e6b",
+        "entries": 9,
+        "uncompressedBytes": 19266485,
+        "passed": true
+      }
+    ]
+  },
+  "containerImageBuilt": false,
+  "containerScanPassed": false,
+  "externalVulnerabilityScanPassed": false,
+  "productionArtifactScanPassed": false,
+  "limitations": [
+    "No CVE database scanner is installed",
+    "No container daemon or image is available to scan",
+    "Local ZIP structural and credential checks are not malware certification",
+    "Artifacts are candidates with test-only or no signing, not production releases"
+  ]
+}

@@ -29,6 +29,9 @@
   user Applications directory, then cold-launched with API/version and frontend
   checks; this is test signing, not production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
+- hostile Origin, oversized JSON and cross-origin WebSocket DAST probes: pass
+- local ZIP structural/credential scan: both candidates pass; external CVE,
+  malware and container scanners unavailable, so those states remain false
 
 Desktop artifacts built from source commit
 `c140404cbfaca5f01a2db05af3d9a544652ac8f6`:

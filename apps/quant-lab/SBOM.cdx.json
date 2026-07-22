@@ -19,6 +19,10 @@
     {"name":"ynx.pythonRuntimeDependencies","value":"none"},
     {"name":"ynx.typescriptRuntimeDependencies","value":"none"},
     {"name":"ynx.containerBuildVerified","value":"false"},
+    {"name":"ynx.localGoVetPassed","value":"true"},
+    {"name":"ynx.localArchiveSafetyScanPassed","value":"true"},
+    {"name":"ynx.externalVulnerabilityScanPassed","value":"false"},
+    {"name":"ynx.containerScanPassed","value":"false"},
     {"name":"ynx.engineEvaluationOnly","value":"NautilusTrader, LEAN, vectorbt, Freqtrade/FreqAI, Hummingbot, Backtrader, TA-Lib, pandas-ta, Polars, NumPy, Pandas, CCXT"}
   ]
 }

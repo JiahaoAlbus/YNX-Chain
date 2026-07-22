@@ -12,6 +12,7 @@ runtime_targets=(
   apps/quant-lab/k8s
   apps/quant-lab/public-product-metadata.json
   apps/quant-lab/product-release.json
+  apps/quant-lab/security-verification.json
   cmd/ynx-quantd
   cmd/ynx-quant-worker
   cmd/ynx-quant-paperd
@@ -33,6 +34,7 @@ fi
 
 jq -e '.productId == "ynx-quant-lab" and .implementedLocal == true and .deployedPublic == false' apps/quant-lab/product-release.json >/dev/null
 jq -e '.productId == "ynx-quant-lab" and (.downloads | type == "array")' apps/quant-lab/public-product-metadata.json >/dev/null
+jq -e '.productId == "ynx-quant-lab" and .artifactChecks.scanner == "ynx-archive-safety-v1" and .containerScanPassed == false and .externalVulnerabilityScanPassed == false' apps/quant-lab/security-verification.json >/dev/null
 
 go test ./internal/quantlab ./internal/quantworker ./internal/quantpackage ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
@@ -49,6 +51,7 @@ node --test apps/quant-lab/sdk/typescript/index.test.mjs
 python_bin=${YNX_PYTHON_BIN:-python3}
 PYTHONPATH=apps/quant-lab/sdk/python/src "$python_bin" -m unittest discover \
   -s apps/quant-lab/sdk/python/tests -p 'test_*.py' -v
+"$python_bin" apps/quant-lab/tests/test_archive_scanner.py -v
 
 docker compose -f apps/quant-lab/compose.yaml config --quiet
 ruby -e 'require "yaml"; YAML.load_stream(File.read("apps/quant-lab/k8s/quant-candidate.yaml"))'
@@ -74,6 +77,7 @@ if [[ -f "$mac_archive" && -f "$windows_archive" ]]; then
   if command -v codesign >/dev/null 2>&1; then
     codesign --verify --deep --strict "$desktop_output/macos/YNX Quant Lab.app"
   fi
+  "$python_bin" apps/quant-lab/scripts/scan-desktop-archive.py "$mac_archive" "$windows_archive" >/dev/null
 fi
 
 if [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then

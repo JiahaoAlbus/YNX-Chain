@@ -17,3 +17,14 @@ evaluation-only components. Testnet brokerage, Wallet mandates, and live
 connectivity remain fail-closed adapter interfaces; real-funds automation is
 disabled. Final artifact generation must use a build-produced SBOM, dependency
 vulnerability review, lockfile diff review, image scan, and provenance record.
+
+Local security verification uses Go vet, hostile HTTP/WebSocket tests, the
+release forbidden-content/credential scan and `ynx-archive-safety-v1`. The
+archive scanner rejects traversal, symlinks, duplicate paths, compression-bomb
+ratios, unexpected executables and embedded credential patterns. It passed the
+two candidate archives recorded in `security-verification.json`.
+
+`govulncheck`, gosec, Semgrep, Trivy, Grype, Syft, OSV-Scanner, Gitleaks and
+ShellCheck are unavailable in the current environment. No CVE-database, malware
+certification, container-image or production-artifact scan is therefore
+claimed. Those remain release gates rather than being converted into a pass.

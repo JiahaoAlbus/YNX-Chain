@@ -25,7 +25,7 @@ backup/signing/deployment systems.
 | API cross-origin abuse | loopback preview boundary and same-origin WebSocket check | canonical product/device/session auth for public writes |
 | venue sequence/reconciliation failure | durable idempotency reservation, broker proof, fresh-oracle/venue-health pre-trade gate, signed leverage/drawdown/liquidity/depeg/concentration/cancel/API/VaR/ES/slippage/gas/frequency/loss limits, overflow rejection, reconciliation-triggered kill switch | canonical risk feed and real adapter sequence/snapshot/retry tests |
 | data leakage/look-ahead/survivorship | ordered timestamps, OOS split, deterministic hash, gap handling | full dataset catalog/correction/delisting corpus |
-| dependency/build compromise | lockfiles, SBOM, notices, pinned build image, review scripts | CI provenance, SAST/DAST/container scan and signed artifacts |
+| dependency/build compromise | lockfiles, SBOM, notices, pinned build image, Go vet, hostile HTTP/WebSocket probes, forbidden-content gate, ZIP traversal/symlink/duplicate/compression/executable/credential scan | CVE-backed SAST/dependency scan, container scan, CI provenance and production-signed artifacts |
 
 Public deployment remains prohibited until canonical Auth/Gateway integration,
 adapter sandbox evidence, artifact scanning/provenance, and incident monitoring
