@@ -19,6 +19,7 @@ Evidence baseline: source commit `7b3c5f427c1751b8d5f43833e281811dd81f76bb` plus
 | AI selected-file boundary | yes | local | service/client tests | configured gateway staging |
 | Export/delete | partial | local | verified portable ZIP; dedup reference-counted physical delete; pending/retry tests | provisioned-provider erasure proof and full-account deletion |
 | Logs, IDs, public/restricted health, metrics | partial | local | server observability tests and `OBSERVABILITY.md` | persistent histograms, traces, dashboard, alerts |
+| Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
 | Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |
 
 No row marked “local” proves staging, public deployment, production durability, production signing, or store release.
