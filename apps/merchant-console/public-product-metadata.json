@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "productId": "pay-merchant",
+  "name": "YNX Merchant Console",
+  "aliases": ["YNX Merchant", "YNX Pay Merchant"],
+  "canonicalRoute": "/merchant-console",
+  "title": "YNX Merchant Console — Testnet payment operations",
+  "metaDescription": "Operate YNX Testnet invoices, settlement evidence, webhooks, reconciliation, refunds, disputes and merchant access controls.",
+  "h1": "YNX Merchant Console",
+  "status": "local-development",
+  "features": ["Wallet-bound merchant RBAC", "Signed invoices", "Authoritative settlement evidence", "Webhook operations", "Reconciliation export", "Refund and dispute records"],
+  "risks": ["Testnet only", "No public deployment", "Provider and capital integrations are incomplete", "Settlement is not guaranteed"],
+  "downloadArtifacts": [],
+  "screenshots": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "structuredDataSuggestion": {"type": "SoftwareApplication", "applicationCategory": "BusinessApplication", "operatingSystem": "Web"}
+}
