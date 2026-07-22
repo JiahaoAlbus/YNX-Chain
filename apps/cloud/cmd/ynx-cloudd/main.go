@@ -76,11 +76,18 @@ func main() {
 	devWallet := flag.Bool("dev-wallet", false, "enable explicit local-only Wallet test verifier")
 	backupDir := flag.String("backup", "", "create a verified recovery backup in this new directory and exit")
 	restoreDir := flag.String("restore", "", "restore this verified recovery backup into the new data directory and exit")
+	rollbackV1 := flag.String("rollback-state-v1", "", "write a verified schema-v1 rollback state to this new file and exit")
 	maxConcurrent := flag.Int("max-concurrent", 128, "maximum in-flight HTTP requests before fail-fast backpressure")
 	requestsPerMinute := flag.Int("requests-per-minute", 120, "fixed-window requests per direct TCP client")
 	flag.Parse()
-	if *backupDir != "" && *restoreDir != "" {
-		log.Fatal("-backup and -restore are mutually exclusive")
+	operations := 0
+	for _, value := range []string{*backupDir, *restoreDir, *rollbackV1} {
+		if value != "" {
+			operations++
+		}
+	}
+	if operations > 1 {
+		log.Fatal("-backup, -restore and -rollback-state-v1 are mutually exclusive")
 	}
 	if *backupDir != "" {
 		manifest, err := cloud.CreateRecoveryBackup(*data, *backupDir, "operator-backup-of-configured-object-store", time.Now())
@@ -96,6 +103,13 @@ func main() {
 			log.Fatal(err)
 		}
 		log.Printf("recovery restore verified: %d files into %s", len(manifest.Files), *data)
+		return
+	}
+	if *rollbackV1 != "" {
+		if err := cloud.RollbackStateToV1(filepath.Join(*data, "state.json"), *rollbackV1); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("schema-v1 rollback state written to %s; current state was not modified", *rollbackV1)
 		return
 	}
 	verifier := cloud.WalletVerifier(cloud.UnavailableWalletVerifier{})

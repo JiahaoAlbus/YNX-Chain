@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -8,11 +9,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
+const CurrentStateSchemaVersion = 2
+
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}}
+	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -27,15 +31,134 @@ func loadState(path string) (persistentState, error) {
 	if err := json.Unmarshal(b, &state); err != nil {
 		return persistentState{}, fmt.Errorf("decode cloud state: %w", err)
 	}
-	if state.SchemaVersion != 1 || state.IntegrityHash == "" {
+	if (state.SchemaVersion != 1 && state.SchemaVersion != CurrentStateSchemaVersion) || state.IntegrityHash == "" {
 		return persistentState{}, errors.New("cloud state schema or integrity hash is invalid")
+	}
+	if !verifyStoredState(b, state) {
+		return persistentState{}, errors.New("cloud state integrity verification failed")
+	}
+	if state.SchemaVersion == 1 {
+		if err := writeMigrationBackup(path, b); err != nil {
+			return persistentState{}, fmt.Errorf("backup v1 state before migration: %w", err)
+		}
+		normalize(&state)
+		state.SchemaVersion = CurrentStateSchemaVersion
+		if err := saveState(path, &state); err != nil {
+			return persistentState{}, fmt.Errorf("persist v1 to v2 migration: %w", err)
+		}
+	} else {
+		normalize(&state)
+	}
+	return state, nil
+}
+
+func writeMigrationBackup(path string, b []byte) error {
+	backup := path + ".v1.bak"
+	f, err := os.OpenFile(backup, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if errors.Is(err, os.ErrExist) {
+		existing, readErr := os.ReadFile(backup)
+		if readErr != nil {
+			return readErr
+		}
+		var state persistentState
+		if json.Unmarshal(existing, &state) != nil || state.SchemaVersion != 1 {
+			return errors.New("existing v1 migration backup is invalid")
+		}
+		if !verifyStoredState(existing, state) {
+			return errors.New("existing v1 migration backup integrity failed")
+		}
+		if !bytes.Equal(existing, b) {
+			return errors.New("existing v1 migration backup does not match migration source")
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err = f.Write(b); err != nil {
+		f.Close()
+		os.Remove(backup)
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		f.Close()
+		os.Remove(backup)
+		return err
+	}
+	return f.Close()
+}
+
+func RollbackStateToV1(source, destination string) error {
+	if strings.TrimSpace(source) == "" || strings.TrimSpace(destination) == "" || source == destination {
+		return errors.New("distinct source and destination are required")
+	}
+	if _, err := os.Stat(destination); !errors.Is(err, os.ErrNotExist) {
+		if err == nil {
+			return errors.New("rollback destination already exists")
+		}
+		return err
+	}
+	b, err := os.ReadFile(source)
+	if err != nil {
+		return err
+	}
+	var state persistentState
+	if err = json.Unmarshal(b, &state); err != nil {
+		return err
+	}
+	if state.SchemaVersion != CurrentStateSchemaVersion {
+		return errors.New("rollback source is not current schema")
 	}
 	want, err := stateIntegrity(state)
 	if err != nil || want != state.IntegrityHash {
-		return persistentState{}, errors.New("cloud state integrity verification failed")
+		return errors.New("rollback source integrity verification failed")
 	}
 	normalize(&state)
-	return state, nil
+	state.SchemaVersion = 1
+	state.IntegrityHash = ""
+	return saveState(destination, &state)
+}
+
+func verifyStoredState(raw []byte, state persistentState) bool {
+	want, err := stateIntegrity(state)
+	if err == nil && want == state.IntegrityHash {
+		return true
+	}
+	key := []byte(`"integrityHash"`)
+	at := bytes.LastIndex(raw, key)
+	if at < 0 {
+		return false
+	}
+	colon := bytes.IndexByte(raw[at+len(key):], ':')
+	if colon < 0 {
+		return false
+	}
+	start := at + len(key) + colon + 1
+	for start < len(raw) && (raw[start] == ' ' || raw[start] == '\n' || raw[start] == '\r' || raw[start] == '\t') {
+		start++
+	}
+	if start >= len(raw) || raw[start] != '"' {
+		return false
+	}
+	end := start + 1
+	for end < len(raw) {
+		if raw[end] == '"' && raw[end-1] != '\\' {
+			break
+		}
+		end++
+	}
+	if end >= len(raw) {
+		return false
+	}
+	candidate := append([]byte(nil), raw[:start]...)
+	candidate = append(candidate, '"', '"')
+	candidate = append(candidate, raw[end+1:]...)
+	var compact bytes.Buffer
+	if json.Compact(&compact, candidate) != nil {
+		return false
+	}
+	sum := sha256.Sum256(compact.Bytes())
+	return hex.EncodeToString(sum[:]) == state.IntegrityHash
 }
 
 func normalize(s *persistentState) {
