@@ -17,6 +17,15 @@
 - Fault test: provider failure leaves invoice pending and membership permissions fail closed.
 - Microbenchmarks: RBAC 14.52 ns/op, webhook signing material 280.2 ns/op, settlement evidence validation 16.60 ns/op. These are component benchmarks, not end-to-end capacity claims.
 
+## Provider, capital and migration verification (2026-07-22)
+
+- Provider catalog covers all nine required categories and requires source/version/environment/capability metadata.
+- Provider tests prove raw credential-shaped input rejection, server-side evidence-only health, persisted unavailable state, cross-state disable, and no success without an adapter.
+- Capital tests prove all 14 services carry Provider/cost/risk/term/non-guarantee disclosure and that missing cost/reserve/net values remain null/unavailable.
+- Snapshot v1 migrates to v2 with an initialized Provider map; unsupported future versions fail closed.
+- Re-run fuzz totals: RBAC 42,125 executions, Webhook 17,790 executions, Settlement 50,809 executions after seed coverage; all passed.
+- Frontend CycloneDX SBOM and path-sanitized Go dependency inventory are recorded under `artifacts/sbom/`.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.

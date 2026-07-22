@@ -12,7 +12,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-var merchantPermissions = []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members"}
+var merchantPermissions = []string{"read", "invoice", "reconcile", "case", "refund", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test"}
 
 func FuzzMerchantRBACFailsClosed(f *testing.F) {
 	for _, role := range []string{"owner", "finance", "developer", "support", "viewer", "", "OWNER", "admin", "owner\x00"} {
@@ -167,7 +167,7 @@ func BenchmarkSettlementEvidenceValidation(b *testing.B) {
 func settlementFixture() (Invoice, Merchant, chain.PaySettlement) {
 	merchant := Merchant{ID: "mrc_truth", CentralMerchantID: "central_truth", PayoutAddress: "ynx1truthdestination"}
 	invoice := Invoice{CentralID: "inv_truth", IntentID: "intent_truth", MerchantID: merchant.ID, PayoutAddress: merchant.PayoutAddress, Amount: 42, Asset: NativeAsset}
-	evidence := chain.PaySettlement{ID: "set_truth", InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, Merchant: merchant.CentralMerchantID, PayoutAddress: invoice.PayoutAddress, Amount: invoice.Amount, Currency: invoice.Asset, Status: "paid", TransactionHash: "0x" + strings.Repeat("a", 64), BlockNumber: 1, AuditHash: strings.Repeat("b", 64)}
+	evidence := chain.PaySettlement{ID: "set_truth", InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, Merchant: merchant.CentralMerchantID, PayoutAddress: invoice.PayoutAddress, Amount: invoice.Amount, Currency: invoice.Asset, Status: "paid", TransactionHash: "0x" + strings.Repeat("a", 64), BlockNumber: 1, AuditHash: strings.Repeat("b", 64), IdempotencyKey: "merchant-resilience-01"}
 	return invoice, merchant, evidence
 }
 

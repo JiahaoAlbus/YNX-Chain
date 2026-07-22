@@ -244,7 +244,7 @@ func encodeStoreSnapshot(snapshot Snapshot, integrityKey []byte) ([]byte, error)
 	if len(integrityKey) < 32 {
 		return nil, errors.New("pay product integrity key must contain at least 32 bytes")
 	}
-	if snapshot.Version != 1 {
+	if snapshot.Version != SnapshotVersion {
 		return nil, fmt.Errorf("unsupported pay product snapshot version %d", snapshot.Version)
 	}
 	payload, err := json.Marshal(snapshot)

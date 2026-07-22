@@ -99,7 +99,7 @@ func TestStoreFixtureMigrationBackupRestoreAndRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !backup.Verified || backup.DurationNanos <= 0 || backup.Bytes <= 0 || backup.SHA256 == "" || backup.SnapshotVersion != 1 {
+	if !backup.Verified || backup.DurationNanos <= 0 || backup.Bytes <= 0 || backup.SHA256 == "" || backup.SnapshotVersion != SnapshotVersion {
 		t.Fatalf("backup receipt is incomplete: %+v", backup)
 	}
 	info, err := os.Stat(canonicalBackupPath)
@@ -188,7 +188,7 @@ func TestStoreRestoreRejectsCorruptionWrongKeyAndFutureVersionWithoutMutation(t 
 	}
 
 	future := emptySnapshot()
-	future.Version = 2
+	future.Version = SnapshotVersion + 1
 	payload, err := json.Marshal(future)
 	if err != nil {
 		t.Fatal(err)

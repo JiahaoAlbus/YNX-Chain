@@ -1,8 +1,8 @@
 # Migration and compatibility
 
-Current state schema is envelope version 1 and snapshot version 1. The store verifies an HMAC before decoding, uses strict JSON decoding, writes a temporary file, then atomically renames it.
+Current state schema is envelope version 1 and snapshot version 2. The store verifies an HMAC before decoding, uses strict JSON decoding, writes a temporary file, then atomically renames it.
 
-The current forward migration removes obsolete product-local `walletChallenges` and `walletSessions`; canonical Gateway sessions are reconstructed and never migrated. Missing Merchant RBAC maps are normalized to empty maps. Unknown fields fail closed.
+The current forward migration accepts snapshot v1, removes obsolete product-local `walletChallenges` and `walletSessions`, initializes the Provider Hub map, and writes v2 on the next mutation. Canonical Gateway sessions are reconstructed and never migrated. Missing Merchant RBAC maps are normalized to empty maps. Unknown fields and future snapshot versions fail closed. `TestSnapshotV1MigratesProvidersAndFutureVersionFails` proves both directions.
 
 Release gates still open:
 

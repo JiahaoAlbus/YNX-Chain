@@ -15,8 +15,9 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Refund/dispute request and Trust evidence reference | yes | yes | `wallet.go`; `TestGatewayBoundPaymentCreatesPayerCases` | Official Trust adapter verification |
 | AI explanation/draft authority boundary | yes | yes | AI cancellation and non-execution tests | Official AI Gateway credential and cost evidence |
 | 12 locales and Arabic RTL | yes | yes | `i18n.js`; `npm test` locale completeness | Current-build browser/A11y matrix |
-| Provider Integration Hub | no | no | No provider registry is exposed by the current API | Implement official adapter contracts and honest health |
-| Capital tools and transparent fee waterfall | no | no | Current API exposes only YNXT invoice fee and authoritative settlement | Implement versioned capital schemas/providers without implied guarantees |
+| Provider Integration Hub | partial | yes | Nine-category versioned catalog, credential-reference-only configuration, server-side probe contract, failure/disable/audit tests and UI | Implement and remotely verify each official production adapter |
+| Capital tools and transparent fee waterfall | partial | yes | Evidence-only `capital-v1` API/UI; 14 disclosed capabilities; unknown reserves/costs/net remain unavailable | Implement authorized providers and complete authoritative fee records |
+| Snapshot v1 to v2 migration | yes | yes | `TestSnapshotV1MigratesProvidersAndFutureVersionFails` | Add full CLI backup/restore/rollback drill |
 | Backup/restore drill | partial | no | Integrity-protected atomic local store exists | Add operator command, destructive-restore guard and drill log |
 | Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |
 

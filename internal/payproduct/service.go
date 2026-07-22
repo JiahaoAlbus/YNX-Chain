@@ -40,6 +40,7 @@ type Config struct {
 	CentralMerchantID   string
 	PayAPI              PayAPI
 	AI                  AIProvider
+	ProviderProbe       ProviderProbe
 	Sponsorship         SponsorshipProvider
 	SponsorPolicy       SponsorPolicy
 	Bridge              BridgeProvider
@@ -53,6 +54,7 @@ type Service struct {
 	store               *Store
 	pay                 PayAPI
 	ai                  AIProvider
+	providerProbe       ProviderProbe
 	sponsorship         SponsorshipProvider
 	sponsorPolicy       SponsorPolicy
 	bridge              BridgeProvider
@@ -110,7 +112,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, quantEvidenceKeys: quantEvidenceKeys, quantEvidenceMaxAge: quantEvidenceMaxAge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -452,7 +454,7 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || (invoice.ExpectedPayer != "" && (v.Payer != invoice.ExpectedPayer || invoice.ExpectedPayerHash != hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
+	if !validSettlementEvidence(invoice, merchant, v) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
@@ -463,6 +465,16 @@ func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.P
 	}
 	_ = s.queueWebhook(merchant, "invoice.committed", invoice.ID)
 	return invoice, nil
+}
+
+func validSettlementEvidence(invoice Invoice, merchant Merchant, v chain.PaySettlement) bool {
+	return v.ID != "" && v.Status == "paid" && v.BlockNumber != 0 &&
+		v.InvoiceID == invoice.CentralID && v.IntentID == invoice.IntentID &&
+		v.Merchant == merchant.CentralMerchantID && v.PayoutAddress == invoice.PayoutAddress &&
+		v.Amount == invoice.Amount && v.Currency == NativeAsset &&
+		(invoice.ExpectedPayer == "" || (v.Payer == invoice.ExpectedPayer && invoice.ExpectedPayerHash == hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) &&
+		strings.HasPrefix(v.TransactionHash, "0x") && len(v.TransactionHash) == 66 &&
+		len(v.AuditHash) == 64 && identifierRE.MatchString(v.IdempotencyKey)
 }
 func (s *Service) saveInvoice(invoice Invoice, action string) error {
 	return s.store.Update(func(data *Snapshot) error {
@@ -763,6 +775,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 		for k, v := range data.AIRuns {
 			if v.MerchantID == merchantID {
 				out.AIRuns[k] = v
+			}
+		}
+		for k, v := range data.Providers {
+			if v.MerchantID == merchantID {
+				out.Providers[k] = publicProviderConnection(v)
 			}
 		}
 		for k, v := range data.Sponsorships {

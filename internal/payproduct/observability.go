@@ -511,7 +511,7 @@ func (s *Service) Readiness(ctx context.Context) ReadinessReport {
 	}
 
 	storeStatus := DependencyReadiness{Name: "store", Required: true, Configured: true, Ready: true, Status: "verified"}
-	if verification, err := VerifyStoreBackup(s.store.path, s.key); err != nil || !verification.Verified || verification.SnapshotVersion != 1 {
+	if verification, err := VerifyStoreBackup(s.store.path, s.key); err != nil || !verification.Verified || verification.SnapshotVersion != SnapshotVersion {
 		storeStatus.Ready = false
 		storeStatus.Status = "unavailable"
 	}
