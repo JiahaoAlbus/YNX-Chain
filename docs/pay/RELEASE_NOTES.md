@@ -12,4 +12,6 @@ Added authoritative partial/full refund completion. Payer requests remain non-fi
 
 Added a typed settlement-asset registry and `GET /v1/settlement-assets`. Native YNXT, Testnet stablecoins and fiat are separate classes. Stablecoin enablement requires an exact YNX contract, decimals, provider and legal approval, healthy status, attestations, limits, pause/depeg controls and complete provenance. YUSD additionally requires reserve, mint/burn, redemption and supply-reconciliation evidence. Circle's official lists do not currently include YNX chain ID 6423, so USDC/CCTP is explicitly unavailable and has no configured or inferred contract address.
 
+Completed the local webhook dead-letter lifecycle. Five failed attempts now enter a terminal `dead_letter` state and are excluded from automatic retries. Owner/developer manual replay requires a reason and idempotency key, creates a newly signed delivery ID linked to the original, and records the Wallet-authenticated actor in audit. Existing stored `failed` deliveries migrate to `dead_letter` without being silently retried.
+
 This is not a public release. Central Gateway integration, current device installation proof, fresh Testnet payment/refund/sponsorship evidence, hosted downloads, production signing and store release are not complete.

@@ -1,10 +1,12 @@
 # YNX Pay migration and compatibility
 
+Legacy webhook deliveries stored with status `failed` are normalized to `dead_letter` when the integrity-protected store is opened. Their prior update time becomes `deadLetteredAt`, any scheduled retry is cleared, and operators must use the audited manual replay endpoint, which creates a new delivery ID. Existing delivered, pending and retrying records are unchanged.
+
 ## Current formats
 
 - Disk envelope version: 1, HMAC-SHA-256 integrity protected.
 - Snapshot version: 1.
-- Invoice version: 1, merchant Ed25519 signed.
+- Invoice versions: v1 legacy and v2 current, both merchant Ed25519 signed; v2 binds the complete fee breakdown.
 - Wallet/Gateway protocol version: 1.
 - Canonical Wallet registry schema: 2.
 
@@ -25,4 +27,3 @@ Payment, settlement and audit records are retained according to the approved leg
 ## Service termination
 
 Before shutdown: stop new invoices, preserve receipt lookup, export merchant ledgers, drain or dead-letter webhooks, publish the final support/status path, allow refund/dispute evidence export, revoke Gateway registrations and retain verifiable receipt hashes for the approved period.
-

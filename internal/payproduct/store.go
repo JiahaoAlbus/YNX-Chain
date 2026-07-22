@@ -99,6 +99,15 @@ func (s *Store) normalize() {
 	if s.data.Deliveries == nil {
 		s.data.Deliveries = e.Deliveries
 	}
+	for id, delivery := range s.data.Deliveries {
+		if delivery.Status == "failed" {
+			at := delivery.UpdatedAt.UTC()
+			delivery.Status = "dead_letter"
+			delivery.DeadLetteredAt = &at
+			delivery.NextAttemptAt = time.Time{}
+			s.data.Deliveries[id] = delivery
+		}
+	}
 	if s.data.AIRuns == nil {
 		s.data.AIRuns = e.AIRuns
 	}

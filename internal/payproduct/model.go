@@ -156,20 +156,24 @@ type Dispute struct {
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
 type WebhookDelivery struct {
-	ID            string    `json:"id"`
-	MerchantID    string    `json:"merchantId"`
-	EventType     string    `json:"eventType"`
-	ObjectID      string    `json:"objectId"`
-	Endpoint      string    `json:"endpoint"`
-	PayloadHash   string    `json:"payloadHash"`
-	Signature     string    `json:"signature"`
-	SecretVersion int       `json:"secretVersion"`
-	Attempt       int       `json:"attempt"`
-	Status        string    `json:"status"`
-	HTTPStatus    int       `json:"httpStatus,omitempty"`
-	NextAttemptAt time.Time `json:"nextAttemptAt,omitempty"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID                 string     `json:"id"`
+	MerchantID         string     `json:"merchantId"`
+	EventType          string     `json:"eventType"`
+	ObjectID           string     `json:"objectId"`
+	Endpoint           string     `json:"endpoint"`
+	PayloadHash        string     `json:"payloadHash"`
+	Signature          string     `json:"signature"`
+	SecretVersion      int        `json:"secretVersion"`
+	Attempt            int        `json:"attempt"`
+	Status             string     `json:"status"`
+	HTTPStatus         int        `json:"httpStatus,omitempty"`
+	NextAttemptAt      time.Time  `json:"nextAttemptAt,omitempty"`
+	DeadLetteredAt     *time.Time `json:"deadLetteredAt,omitempty"`
+	ParentDeliveryID   string     `json:"parentDeliveryId,omitempty"`
+	ManualReplayReason string     `json:"manualReplayReason,omitempty"`
+	ReplayedBy         string     `json:"replayedBy,omitempty"`
+	CreatedAt          time.Time  `json:"createdAt"`
+	UpdatedAt          time.Time  `json:"updatedAt"`
 }
 type AuditEntry struct {
 	ID         string    `json:"id"`

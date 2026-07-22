@@ -50,3 +50,9 @@ RFC3339Nano timestamp and payload hash. Receivers must validate
 `X-YNX-Delivery-ID`, `X-YNX-Timestamp`, `X-YNX-Payload-SHA256`,
 `X-YNX-Signature-Version` and `X-YNX-Signature`, then reject reused delivery
 IDs. Delivery attempts, retry state and secret version are persistent.
+After five failed attempts a delivery becomes terminal `dead_letter` and is no
+longer selected by the automatic retry worker. `POST
+/v1/merchant/webhooks/{id}/retry` accepts `reason` and `idempotencyKey` only
+for an owner/developer session; it creates and signs a new delivery ID linked
+to the original and records the Wallet actor in audit. It never changes invoice
+or settlement state.

@@ -1,5 +1,9 @@
 # API Reference
 
+## Pay product webhook replay
+
+`POST /v1/merchant/webhooks/{deliveryId}/retry` is an authenticated owner/developer operation for terminal `dead_letter` deliveries only. The JSON body is `{ "reason": "...", "idempotencyKey": "..." }`. A successful request creates a separately signed delivery with a new delivery ID, `parentDeliveryId`, replay actor and reason, then attempts delivery. Pending/retrying records remain controlled by exponential backoff; paid state is never affected.
+
 Core: `GET /health`, `GET /status`, `GET /node/identity`, `GET /metrics`, `GET /blocks/latest`, `GET /txs/{hash}`, `GET /accounts/{address}`, `GET /validators`, `GET /validators/peers`, `GET /validators/peer-sync`, `POST /validators/{address}/heartbeat`, `POST /validators/{address}/peers/observe`, `POST /validators/{address}/peer-sync`.
 
 Account inputs accept canonical 20-byte EVM `0x...` addresses and their checksummed Bech32 `ynx1...` aliases where wallet accounts are used by account, Faucet, transfer, stake, resource, and Trust-trace routes. The server normalizes both representations to lowercase `0x...` before state lookup or mutation. This does not change EVM JSON-RPC, which continues to require EVM addresses. See `docs/ecosystem/ADDRESS_FORMATS.md`.
