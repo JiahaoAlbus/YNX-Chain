@@ -8,7 +8,9 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Dynamic issuance in consensus | false | false | false | false | false | false | false | false | false | Formula is simulation-only; no consensus migration or state event exists |
 | Current fixed-fee consensus ledger and API | true | true | false | false | false | false | false | false | false | Committed state v8, ABCI and Gateway queries on this branch; not merged or deployed |
 | EIP-1559/per-lane fee and burn policy | false | false | false | false | false | false | false | false | false | No governed activation, base-fee adjustment, per-lane market, priority fee, or burn exists |
-| Validator/delegator staking lifecycle | false | false | false | false | false | false | false | false | false | Existing state has balances/voting power only |
+| Validator/delegator delegation, unbonding and withdrawal | true | true | false | false | false | false | false | false | false | Committed state v9 and signed Gateway routes; branch-local only |
+| Staking rewards and validator commission distribution | false | false | false | false | false | false | false | false | false | Commission is disclosed but reward source is explicitly inactive |
+| Jail, Slashing, appeals and live performance | false | false | false | false | false | false | false | false | false | Disabled pending real governance authority and live telemetry |
 | Liquid staking candidate | false | false | false | false | false | false | false | false | false | Requires audited contracts and stress/queue/slash/depeg evidence |
 | Safety Module and service security pools | false | false | false | false | false | false | false | false | false | No consensus state or contracts recovered |
 | Stablecoin issuer review control plane | true | true | false | false | false | false | false | false | false | Existing `make stablecoin-issuer-check`; intent-only, execution disabled |

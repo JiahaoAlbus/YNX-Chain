@@ -46,6 +46,9 @@ const (
 	ActionResourceSponsor     = "resource_sponsorship_consume"
 	ActionIDEContractDeploy   = "ide_contract_deploy"
 	ActionIDEContractCall     = "ide_contract_call"
+	ActionStakeDelegate       = "stake_delegate"
+	ActionStakeUnbond         = "stake_unbond"
+	ActionStakeWithdraw       = "stake_withdraw"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -74,6 +77,9 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionResourceSponsor:     {},
 	ActionIDEContractDeploy:   {},
 	ActionIDEContractCall:     {},
+	ActionStakeDelegate:       {},
+	ActionStakeUnbond:         {},
+	ActionStakeWithdraw:       {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -208,7 +214,7 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 	if isResourceSponsorAction(action) {
 		tx.Fee = 0
 	}
-	if isResourceAction(action) || isIDEAction(action) {
+	if isResourceAction(action) || isIDEAction(action) || isStakingAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -266,7 +272,7 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 	if tx.Fee != expectedFee {
 		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
-	if isResourceAction(tx.Action) || isIDEAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isStakingAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
 			return errors.New("Resource and IDE application actions must not charge AI, Pay, or Trust units")
 		}
@@ -455,6 +461,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isIDEAction(action) {
 			return canonicalIDEActionPayload(action, raw)
+		}
+		if isStakingAction(action) {
+			return canonicalStakingActionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}
