@@ -89,6 +89,9 @@ func loadState(path string) (persistentState, error) {
 	if state.SchemaVersion == 2 {
 		return loadLegacyStateV2(state)
 	}
+	if state.SchemaVersion == 3 {
+		return loadLegacyStateV3(state)
+	}
 	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
@@ -112,6 +115,20 @@ func loadState(path string) (persistentState, error) {
 }
 
 func loadLegacyStateV2(state persistentState) (persistentState, error) {
+	if state.SchemaVersion != 2 {
+		return persistentState{}, errors.New("bridge v2 state schema is invalid")
+	}
+	return migrateLegacyState(state, false)
+}
+
+func loadLegacyStateV3(state persistentState) (persistentState, error) {
+	if state.SchemaVersion != 3 {
+		return persistentState{}, errors.New("bridge v3 state schema is invalid")
+	}
+	return migrateLegacyState(state, true)
+}
+
+func migrateLegacyState(state persistentState, preserveDataRequests bool) (persistentState, error) {
 	got := state.Integrity
 	state.Integrity = ""
 	expected, err := stateDigest(state)
@@ -124,13 +141,37 @@ func loadLegacyStateV2(state persistentState) (persistentState, error) {
 	if err := validateAuditChain(state.Audit); err != nil {
 		return persistentState{}, err
 	}
+	for _, transfer := range state.Transfers {
+		if len(transfer.Lifecycle) != 0 {
+			return persistentState{}, errors.New("bridge legacy state contains unsupported lifecycle data")
+		}
+	}
 	state.SchemaVersion = SchemaVersion
 	if state.Reconciliations == nil {
 		state.Reconciliations = map[string]Reconciliation{}
 	}
-	state.DataRequests = map[string]DataRequest{}
+	if !preserveDataRequests {
+		state.DataRequests = map[string]DataRequest{}
+	} else if state.DataRequests == nil {
+		state.DataRequests = map[string]DataRequest{}
+	}
+	for id, transfer := range state.Transfers {
+		migrateLifecycle(&transfer)
+		state.Transfers[id] = transfer
+	}
 	state.Integrity = ""
 	return state, nil
+}
+
+func migrateLifecycle(transfer *Transfer) {
+	if len(transfer.Lifecycle) != 0 || transfer.Phase == "" {
+		return
+	}
+	at := transfer.UpdatedAt
+	if at == "" {
+		at = transfer.CreatedAt
+	}
+	transfer.Lifecycle = []LifecycleEvent{{Sequence: 1, Phase: transfer.Phase, At: at, EvidenceRef: transfer.OutcomeEvidenceRef, ReasonCode: transfer.FailureReasonCode, Source: "schema-migration", Coverage: "migration-current-phase-only"}}
 }
 
 func loadLegacyStateV1(raw []byte) (persistentState, error) {

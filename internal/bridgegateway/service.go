@@ -87,21 +87,28 @@ func New(cfg Config) (*Service, error) {
 	service := &Service{cfg: normalized, maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state, seen: map[string][]time.Time{}}
 	migrated := false
 	for id, transfer := range service.state.Transfers {
-		if transfer.Phase != "" {
-			continue
+		transferMigrated := false
+		if transfer.Phase == "" {
+			switch transfer.Status {
+			case "pending_attestations":
+				transfer.Phase = "source_submitted"
+			case "ready_for_local_finalization":
+				transfer.Phase = "source_finalized"
+			case "finalized_local":
+				transfer.Phase = "proof_attestation"
+			default:
+				return nil, fmt.Errorf("bridge persisted transfer %s has unknown legacy status", id)
+			}
+			transferMigrated = true
 		}
-		switch transfer.Status {
-		case "pending_attestations":
-			transfer.Phase = "source_submitted"
-		case "ready_for_local_finalization":
-			transfer.Phase = "source_finalized"
-		case "finalized_local":
-			transfer.Phase = "proof_attestation"
-		default:
-			return nil, fmt.Errorf("bridge persisted transfer %s has unknown legacy status", id)
+		if len(transfer.Lifecycle) == 0 {
+			migrateLifecycle(&transfer)
+			transferMigrated = true
 		}
-		service.state.Transfers[id] = transfer
-		migrated = true
+		if transferMigrated {
+			service.state.Transfers[id] = transfer
+			migrated = true
+		}
 	}
 	if _, err := service.validateStateLocked(); err != nil {
 		return nil, err
@@ -237,6 +244,7 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 		RequiredConfirmations: policy.MinConfirmations, RequiredAttestations: s.cfg.Threshold, Attestations: map[string]Attestation{},
 		CreatedAt: now, UpdatedAt: now, NotBefore: notBefore, LargeTransferDelayApplied: largeDelayApplied, ExternalSubmissionEnabled: false,
 	}
+	appendLifecycle(&transfer, "source_submitted", now, "source:"+normalized.SourceTxHash, "source-event-recorded", "coordinator-source-event")
 	before := cloneState(s.state)
 	s.state.Transfers[id] = transfer
 	s.state.SourceEvents[eventKey] = id
@@ -293,9 +301,11 @@ func (s *Service) AddAttestation(transferID string, request AttestationRequest) 
 	transfer.SourceBlockHash = request.SourceBlockHash
 	transfer.Phase = "source_accepted"
 	transfer.Attestations[relayer] = Attestation{Relayer: relayer, SourceBlockHash: request.SourceBlockHash, Confirmations: request.Confirmations, PayloadHash: payloadHash, Signature: request.Signature, AttestedAt: now}
+	appendLifecycle(&transfer, "source_accepted", now, "block:"+request.SourceBlockHash, "minimum-finality-observed", "relayer-attestation")
 	if len(transfer.Attestations) >= transfer.RequiredAttestations {
 		transfer.Status = "ready_for_local_finalization"
 		transfer.Phase = "source_finalized"
+		appendLifecycle(&transfer, "source_finalized", now, "block:"+request.SourceBlockHash, "threshold-attestations-reached", "relayer-quorum")
 	}
 	transfer.UpdatedAt = now
 	s.state.Transfers[transferID] = transfer
@@ -351,6 +361,7 @@ func (s *Service) Finalize(transferID string, request FinalizeRequest) (Mutation
 	transfer.FinalizationID = "brf_" + hashText(transfer.ID + "|" + request.IdempotencyKey)[:24]
 	transfer.FinalizedAt, transfer.UpdatedAt = now, now
 	transfer.ExternalSubmissionEnabled = false
+	appendLifecycle(&transfer, "proof_attestation", now, "audit:"+transfer.FinalizationID, "local-finalization-only", "local-coordinator")
 	s.state.Transfers[transferID] = transfer
 	s.state.FinalizeIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: transferID}
 	appendAudit(&s.state, now, "transfer_finalized_local", transferID, digest)
@@ -422,6 +433,7 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 		if transfer.Phase != "failed" {
 			return MutationResult{}, fmt.Errorf("%w: only failed transfers can retry", ErrConflict)
 		}
+		appendLifecycle(&transfer, "retry", s.cfg.Now().UTC().Format(timeFormat), request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
 		transfer.Phase, transfer.PreviousPhase, transfer.FailureReasonCode = transfer.PreviousPhase, "", ""
 	} else {
 		valid := (request.Outcome == "failed" && transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery") ||
@@ -438,6 +450,9 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 	}
 	transfer.OutcomeEvidenceRef = request.EvidenceRef
 	transfer.UpdatedAt = s.cfg.Now().UTC().Format(timeFormat)
+	if request.Outcome != "retry" {
+		appendLifecycle(&transfer, request.Outcome, transfer.UpdatedAt, request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
+	}
 	before := cloneState(s.state)
 	s.state.Transfers[transferID] = transfer
 	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: transferID}
@@ -846,13 +861,26 @@ func cloneTransfer(value Transfer) Transfer {
 	return clone
 }
 
+func appendLifecycle(transfer *Transfer, phase, at, evidenceRef, reasonCode, source string) {
+	transfer.Lifecycle = append(transfer.Lifecycle, LifecycleEvent{
+		Sequence: uint64(len(transfer.Lifecycle) + 1), Phase: phase, At: at,
+		EvidenceRef: evidenceRef, ReasonCode: reasonCode, Source: source,
+		Coverage: "coordinator-recorded-event-not-independent-chain-proof",
+	})
+}
+
+func validLifecycleTimestamp(value string) bool {
+	_, err := time.Parse(time.RFC3339Nano, value)
+	return err == nil
+}
+
 func (s *Service) validateStateLocked() (bool, error) {
 	for eventKey, transferID := range s.state.SourceEvents {
 		if _, ok := s.state.Transfers[transferID]; !ok || strings.TrimSpace(eventKey) == "" {
 			return false, errors.New("bridge source-event index is inconsistent")
 		}
 	}
-	allowedPhases := map[string]bool{"source_submitted": true, "source_accepted": true, "source_finalized": true, "proof_attestation": true, "destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true}
+	allowedPhases := map[string]bool{"source_submitted": true, "source_accepted": true, "source_finalized": true, "proof_attestation": true, "destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true, "retry": true}
 	exposure := map[string]uint64{}
 	userExposure := map[string]uint64{}
 	dailyVolume := map[string]uint64{}
@@ -866,6 +894,16 @@ func (s *Service) validateStateLocked() (bool, error) {
 		}
 		if !allowedPhases[transfer.Phase] {
 			return false, errors.New("bridge persisted transfer has an invalid lifecycle phase")
+		}
+		if len(transfer.Lifecycle) == 0 {
+			return false, errors.New("bridge persisted transfer lifecycle is missing")
+		}
+		for i, event := range transfer.Lifecycle {
+			invalidEvidence := event.EvidenceRef != "" && !identifierPattern.MatchString(event.EvidenceRef)
+			invalidReason := event.ReasonCode != "" && !identifierPattern.MatchString(event.ReasonCode)
+			if event.Sequence != uint64(i+1) || !allowedPhases[event.Phase] || !validLifecycleTimestamp(event.At) || invalidEvidence || invalidReason || !identifierPattern.MatchString(event.Source) || !identifierPattern.MatchString(event.Coverage) {
+				return false, errors.New("bridge persisted transfer lifecycle is invalid")
+			}
 		}
 		amount, err := strconv.ParseUint(transfer.Amount, 10, 64)
 		if err != nil || amount == 0 {

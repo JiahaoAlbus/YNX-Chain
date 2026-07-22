@@ -61,7 +61,7 @@ node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1]));if(!d.r
 
 body='{"idempotencyKey":"bridge-check-create-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceEventIndex":7,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"100","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
 created="$(curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
-transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.phase!=="source_submitted"||d.transfer?.externalSubmissionEnabled!==false)throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
+transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const e=d.transfer?.lifecycle?.[0];if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.phase!=="source_submitted"||d.transfer?.externalSubmissionEnabled!==false||e?.sequence!==1||e?.phase!=="source_submitted"||e?.source!=="coordinator-source-event"||e?.coverage!=="coordinator-recorded-event-not-independent-chain-proof")throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
 account='0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
 curl -fsS "$url/bridge/data-exports/$account" -H "X-YNX-Bridge-Key: $api_key" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.schemaVersion!==1||d.source!=="ynx-bridge-coordinator"||d.transfers?.length!==1||d.deletionRequests?.length!==0)throw new Error(`bad data export ${JSON.stringify(d)}`)'
 deletion="$(curl -fsS -X POST "$url/bridge/data-deletion-requests" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "{\"idempotencyKey\":\"bridge-check-delete-request-001\",\"account\":\"$account\",\"reason\":\"account-closure\"}")"
@@ -104,7 +104,7 @@ wait "$pid" 2>/dev/null || true
 pid=""
 start_bridge
 persisted="$(curl -fsS "$url/bridge/transfers/$transfer_id" -H "X-YNX-Bridge-Key: $api_key")"
-printf '%s' "$persisted" | TRANSFER_ID="$transfer_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.id!==process.env.TRANSFER_ID||d.status!=="pending_attestations"||d.amount!=="100")throw new Error(`restart mismatch ${JSON.stringify(d)}`)'
+printf '%s' "$persisted" | TRANSFER_ID="$transfer_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.id!==process.env.TRANSFER_ID||d.status!=="pending_attestations"||d.amount!=="100"||d.lifecycle?.length!==1)throw new Error(`restart mismatch ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/data-exports/$account" -H "X-YNX-Bridge-Key: $api_key" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.transfers?.length!==1||d.deletionRequests?.length!==1||d.deletionRequests[0].status!=="safety_hold")throw new Error(`data request restart mismatch ${JSON.stringify(d)}`)'
 
 metrics="$(curl -fsS "$url/metrics")"
@@ -120,4 +120,4 @@ grep -Fq "ynx_bridge_reconciliation_timestamp_seconds{" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: fail-closed route catalog, persistent intents, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"
+echo "bridge-api-check passed: fail-closed route catalog, persistent lifecycle timeline, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"

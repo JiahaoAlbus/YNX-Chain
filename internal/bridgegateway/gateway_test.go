@@ -378,7 +378,7 @@ func TestBridgeDataExportRetentionAndIdentityRedaction(t *testing.T) {
 	}
 }
 
-func TestBridgeV2StateMigratesToDataLifecycleSchema(t *testing.T) {
+func TestBridgeV2StateMigratesToCurrentSchema(t *testing.T) {
 	b := newTestBridge(t)
 	state := cloneState(b.service.state)
 	state.SchemaVersion = 2
@@ -400,8 +400,8 @@ func TestBridgeV2StateMigratesToDataLifecycleSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("valid v2 state migration failed: %v", err)
 	}
-	if migrated.state.SchemaVersion != 3 || migrated.state.DataRequests == nil || migrated.state.Integrity == "" {
-		t.Fatalf("v2 state not migrated to v3: %+v", migrated.state)
+	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.DataRequests == nil || migrated.state.Integrity == "" {
+		t.Fatalf("v2 state not migrated to current schema: %+v", migrated.state)
 	}
 	state.Integrity = "sha256:" + strings.Repeat("0", 64)
 	raw, _ = json.Marshal(state)
@@ -410,6 +410,58 @@ func TestBridgeV2StateMigratesToDataLifecycleSchema(t *testing.T) {
 	}
 	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
 		t.Fatalf("tampered v2 state expected integrity rejection, got %v", err)
+	}
+}
+
+func TestBridgeV3StateMigratesLifecycleWithHonestCoverage(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("v3-lifecycle-migrate-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	injectedLifecycle := append([]LifecycleEvent(nil), transfer.Lifecycle...)
+	transfer.Lifecycle = nil
+	state.Transfers[transfer.ID] = transfer
+	state.SchemaVersion = 3
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v3 lifecycle migration failed: %v", err)
+	}
+	got := migrated.state.Transfers[transfer.ID]
+	if migrated.state.SchemaVersion != SchemaVersion || len(got.Lifecycle) != 1 || got.Lifecycle[0].Phase != "source_submitted" || got.Lifecycle[0].Source != "schema-migration" || got.Lifecycle[0].Coverage != "migration-current-phase-only" {
+		t.Fatalf("v3 lifecycle migration overclaimed history: %+v", got.Lifecycle)
+	}
+	state.SchemaVersion = 3
+	transfer.Lifecycle = injectedLifecycle
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "unsupported lifecycle data") {
+		t.Fatalf("legacy schema lifecycle injection accepted: %v", err)
+	}
+}
+
+func TestBridgeResealedInvalidLifecycleIsRejected(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("invalid-lifecycle-state-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	transfer.Lifecycle[0].Sequence = 2
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "lifecycle is invalid") {
+		t.Fatalf("resealed invalid lifecycle accepted: %v", err)
 	}
 }
 
@@ -500,6 +552,16 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	if err != nil || confirmed.Transfer.Phase != "destination_confirmed" {
 		t.Fatalf("confirmed phase: %+v %v", confirmed, err)
 	}
+	wantLifecycle := []string{"source_submitted", "source_accepted", "source_accepted", "source_finalized", "proof_attestation", "failed", "retry", "destination_mint_release", "destination_confirmed"}
+	if len(confirmed.Transfer.Lifecycle) != len(wantLifecycle) {
+		t.Fatalf("lifecycle length: got=%+v want=%+v", confirmed.Transfer.Lifecycle, wantLifecycle)
+	}
+	for i, phase := range wantLifecycle {
+		event := confirmed.Transfer.Lifecycle[i]
+		if event.Sequence != uint64(i+1) || event.Phase != phase || event.Coverage != "coordinator-recorded-event-not-independent-chain-proof" {
+			t.Fatalf("lifecycle event %d: %+v", i, event)
+		}
+	}
 
 	if _, err := New(b.cfg); err != nil {
 		t.Fatalf("restart rejected lifecycle state: %v", err)
@@ -529,14 +591,14 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 		t.Fatalf("valid v1 state migration failed: %v", err)
 	}
 	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.MutationIdempotency == nil || migrated.state.Integrity == "" {
-		t.Fatalf("v1 state not resealed as v3: %+v", migrated.state)
+		t.Fatalf("v1 state not resealed as current schema: %+v", migrated.state)
 	}
 	persisted, err := os.ReadFile(b.state)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schemaVersion": 3`) {
-		t.Fatalf("migrated state not persisted as v3: %s", persisted)
+	if !strings.Contains(string(persisted), `"schemaVersion": 4`) {
+		t.Fatalf("migrated state not persisted as v4: %s", persisted)
 	}
 
 	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)

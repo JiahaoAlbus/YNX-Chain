@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SchemaVersion       = 3
+	SchemaVersion       = 4
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )
@@ -388,6 +388,16 @@ type Attestation struct {
 	AttestedAt      string `json:"attestedAt"`
 }
 
+type LifecycleEvent struct {
+	Sequence    uint64 `json:"sequence"`
+	Phase       string `json:"phase"`
+	At          string `json:"at"`
+	EvidenceRef string `json:"evidenceRef,omitempty"`
+	ReasonCode  string `json:"reasonCode,omitempty"`
+	Source      string `json:"source"`
+	Coverage    string `json:"coverage"`
+}
+
 type Transfer struct {
 	ID                        string                 `json:"id"`
 	Status                    string                 `json:"status"`
@@ -416,6 +426,7 @@ type Transfer struct {
 	OutcomeEvidenceRef        string                 `json:"outcomeEvidenceRef,omitempty"`
 	FailureReasonCode         string                 `json:"failureReasonCode,omitempty"`
 	PreviousPhase             string                 `json:"previousPhase,omitempty"`
+	Lifecycle                 []LifecycleEvent       `json:"lifecycle"`
 	ExternalSubmissionEnabled bool                   `json:"externalSubmissionEnabled"`
 	SenderRedacted            bool                   `json:"senderRedacted,omitempty"`
 	RecipientRedacted         bool                   `json:"recipientRedacted,omitempty"`
