@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Bridge",
+  "releaseClass": "local-engineering-candidate",
+  "sourceCommit": null,
+  "sourceCommitRequiredBeforeRelease": true,
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "externalSubmissionEnabled": false,
+  "officialStablecoinRouteAvailable": false,
+  "artifacts": [],
+  "publicUrls": [],
+  "transactionEvidence": [],
+  "remainingReleaseInputs": [
+    "accepted canonical Gateway integration",
+    "approved provider or proof-based route",
+    "verified source and destination contracts",
+    "secure signer path and threshold ceremony",
+    "funded Testnet assets and gas",
+    "support, privacy, security, and status URLs",
+    "public deployment authority"
+  ]
+}

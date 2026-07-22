@@ -10,5 +10,6 @@
 - Added semantic startup rejection for invalid phases, over-limit exposure, inconsistent accounting, and changed truth-source labels.
 - Added eight-product consumer integration contracts and destination-confirmed availability vectors.
 - Recorded the official stablecoin transfer candidate as unavailable because YNX was not listed in the inspected official CCTP testnet contract reference.
+- Added Bridge-specific threat, security-boundary, third-party, reproducible-build, SPDX SBOM, public metadata, and machine release-state gates.
 
 External submission remains disabled. This candidate is not installed, staged, public, production-signed, issuer-supported, funded, or independently audited.

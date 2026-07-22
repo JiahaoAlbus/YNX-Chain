@@ -4,6 +4,8 @@ const read = (path) => JSON.parse(readFileSync(path, "utf8"));
 const manifest = read("docs/bridge/consumer-integration-manifest.json");
 const vectors = read("docs/bridge/consumer-lifecycle-vectors.json");
 const provider = read("docs/bridge/provider-status.json");
+const metadata = read("docs/bridge/public-product-metadata.json");
+const release = read("docs/bridge/product-release.json");
 const fail = (message) => { throw new Error(message); };
 
 if (manifest.schemaVersion !== 1 || manifest.currentIntegrationState !== "handoff_only_not_integrated") fail("manifest integration state is invalid");
@@ -18,6 +20,9 @@ for (const vector of vectors.vectors) {
   if (vector.assetAvailable !== confirmed || vector.mayPay !== confirmed || vector.mayCreditExchange !== confirmed) fail(`availability overclaim in ${vector.id}`);
 }
 if (provider.provider !== "Circle" || provider.product !== "CCTP" || provider.ynxListedOnInspectedReference !== false || provider.ynxRouteStatus !== "unavailable" || provider.credentialsPresent !== false || provider.contractsConfigured !== false || provider.testedRemote !== false || provider.deployedPublic !== false) fail("provider status overclaims availability");
-const serialized = JSON.stringify({manifest,vectors,provider});
+if (metadata.canonicalRoute !== "/bridge" || metadata.status !== "local-engineering-candidate" || metadata.downloads.length !== 0 || metadata.supportUrl !== null || metadata.privacyUrl !== null || metadata.securityUrl !== null || metadata.statusUrl !== null) fail("public metadata overclaims release support");
+for (const key of ["installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","externalSubmissionEnabled","officialStablecoinRouteAvailable"]) if (release[key] !== false) fail(`release state ${key} must remain false`);
+if (release.sourceCommit !== null || release.sourceCommitRequiredBeforeRelease !== true || release.artifacts.length !== 0 || release.publicUrls.length !== 0 || release.transactionEvidence.length !== 0) fail("release record contains unsupported evidence");
+const serialized = JSON.stringify({manifest,vectors,provider,metadata,release});
 for (const forbidden of ["Codex", "Worktree", "/Users/", "localhost", "127.0.0.1"]) if (serialized.includes(forbidden)) fail(`public handoff contains forbidden internal value ${forbidden}`);
 console.log("bridge integration check passed: eight consumer contracts, destination-confirmed availability gate, protected credential boundary, and unavailable CCTP status");

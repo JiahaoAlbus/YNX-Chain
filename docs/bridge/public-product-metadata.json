@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "YNX Bridge",
+  "aliases": ["YNX Interoperability"],
+  "canonicalRoute": "/bridge",
+  "title": "YNX Bridge | Cross-chain Evidence and Recovery",
+  "metaDescription": "Review YNX cross-chain route availability, lifecycle evidence, exposure limits, reconciliation, and recovery status.",
+  "h1": "YNX Bridge",
+  "brand": {"primary":"#002FA7","background":"#FFFFFF","logoPath":"/assets/ynx-logo.png","iconPath":"/assets/ynx-logo.png"},
+  "features": [
+    "explicit source and destination lifecycle",
+    "replay-resistant relayer attestations",
+    "pause and route exposure controls",
+    "source-qualified public reconciliation",
+    "failure, retry, recovery, and dispute evidence"
+  ],
+  "risks": [
+    "no external Bridge route is currently enabled",
+    "operator reconciliation is not independent proof",
+    "provider, contract, finality, signer, and liquidity risk require route-specific review"
+  ],
+  "status": "local-engineering-candidate",
+  "screenshots": [],
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "structuredDataSuggestion": {"type":"SoftwareApplication","applicationCategory":"DeveloperApplication","operatingSystem":"Linux server"},
+  "faq": [
+    {"question":"Is YNX Bridge live?","answer":"No. The current coordinator is a local engineering candidate and external submission is disabled."},
+    {"question":"When is a transferred asset available?","answer":"Only after destination confirmation. A quote, source acceptance, source finality, attestation, or provider callback is insufficient."},
+    {"question":"Is CCTP available for YNX?","answer":"No YNX route was listed in the inspected official CCTP testnet contract reference as of 2026-07-22, so the route is unavailable."},
+    {"question":"How are failures handled?","answer":"The lifecycle records failure, retry, refund or recovery, and dispute evidence without hiding an unresolved state."}
+  ]
+}
