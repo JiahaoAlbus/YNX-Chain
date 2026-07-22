@@ -15,6 +15,7 @@
 | Backup and restore with rollback preservation | Yes | Yes | No remote drill |
 | Public appeal/correction archive and executed resolution | Yes | Yes | No public deployment |
 | Health, metrics, request/error IDs, structured logs | Yes | Yes | No installed dashboard or alerts |
+| Reproducible local binaries, SBOM, and license notice | Yes | Yes | No production signing or hosting |
 | BFT protocol execution and chain receipts | No | No | No |
 | Explorer, Monitor, and Trust evidence integration | No | No | No |
 | Standalone `/governance` UI and 12-language accessibility | No | No | No |
