@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "oracleSchema": "ynx.oracle.v1",
+  "policyVersion": "weighted-median-mad-v1",
+  "normalizerVersion": "observation-normalizer-v1",
+  "sourceCommit": "8f1bd1c75707470a93870c22334f98d7459ea094",
+  "authorityBoundary": {
+    "oracleOwns": ["provider registry", "signed observation validation", "normalization", "aggregate quality", "lineage", "corrections", "historical replay"],
+    "doesNotOwn": ["wallet identity", "authentication", "chain consensus", "balances", "orders", "settlement", "mint or burn", "bridge release", "financial advice"],
+    "gatewayRule": "Public reads may be anonymous and rate-limited. Internal ingestion requires the canonical Gateway/service boundary in addition to a valid registered reporter signature; the signature never replaces network admission control.",
+    "consensusRule": "Consensus code must never call the HTTP API. A Chain module must commit an already-validated versioned Oracle record through deterministic state transition and governance rules."
+  },
+  "contracts": {
+    "priceSchema": "integration/oracle/v1/price.schema.json",
+    "observationSchema": "integration/oracle/v1/observation.schema.json",
+    "marketDataSchema": "integration/oracle/v1/market-data-feed.schema.json",
+    "testVectors": "integration/oracle/v1/consumer-test-vectors.json",
+    "goSdk": "sdk/oracle/go/client.go"
+  },
+  "owners": [
+    { "product": "Chain Core", "consume": ["spot_price", "index_price", "stablecoin_price"], "deliver": "deterministic module record containing value, scale, asOf, policyVersion, quality, and lineageHash", "mustReject": ["HTTP during consensus", "stale or breaker value", "fewer than three sources", "unknown policy version"], "acceptanceEvidence": ["state-transition vector", "upgrade/rollback height", "Explorer record"] },
+    { "product": "Exchange", "consume": ["index_price", "mark_price", "funding_reference"], "deliver": "versioned reference adapter separate from venue trades and order authority", "mustReject": ["single venue as index", "last-good stale for liquidation", "hidden fallback"], "acceptanceEvidence": ["index/mark/funding vector", "liquidation breaker drill"] },
+    { "product": "DEX", "consume": ["dex_twap", "spot_price"], "produce": ["dex_pool_state"], "deliver": "confirmed pool observations with chain ID, block height/hash, reserves, and reporter signature", "mustReject": ["same-height replacement without correction", "unconfirmed or stale block", "pool state as aggregated fiat price"], "acceptanceEvidence": ["reorg vector", "TWAP window vector"] },
+    { "product": "Quant", "consume": ["spot_price", "ohlcv", "trades", "clob_order_book"], "deliver": "Oracle reference facts alongside unchanged raw Exchange trades", "mustReject": ["paper/static trades in live mode", "structured feed substituted for settlement price"], "acceptanceEvidence": ["live/history parity vector", "source lineage display"] },
+    { "product": "Stablecoin", "consume": ["stablecoin_price", "stablecoin_reserve_ratio", "stablecoin_depeg"], "deliver": "separate price, reserve-evidence, and depeg signals", "mustReject": ["Oracle value as mint/burn authority", "assumed parity", "reserve ratio without issuer evidence"], "acceptanceEvidence": ["depeg vector", "mint/burn authority separation review"] },
+    { "product": "Finance and Pay", "consume": ["spot_price", "fx", "interest_rate_candidate", "stablecoin_price"], "deliver": "quote/display adapter whose expiry derives from asOf", "mustReject": ["expired quote", "guaranteed return", "hidden spread or fee"], "acceptanceEvidence": ["quote expiry vector", "fee disclosure review"] },
+    { "product": "Explorer and Monitor", "consume": ["provider_status", "data_correction", "price quality"], "deliver": "lineage/correction views and alerts for source, stale, divergence, breaker, provider and policy changes", "mustReject": ["green status without fresh evidence", "credential exposure"], "acceptanceEvidence": ["public record URL", "alert delivery and recovery timestamps"] },
+    { "product": "Gateway, Wallet and Auth", "consume": ["public read routing", "optional display"], "deliver": "canonical rate limits, service admission, request ID propagation, and display-only wallet integration", "mustReject": ["provider identity as YNX user identity", "Oracle overriding balances or permissions", "browser access to internal ingestion"], "acceptanceEvidence": ["gateway route test", "auth boundary review", "CORS denial for ingestion"] },
+    { "product": "Bridge", "consume": ["spot_price", "stablecoin_price"], "deliver": "governance-approved risk-limit input only", "mustReject": ["Oracle price as release proof", "stale value", "source limitation"], "acceptanceEvidence": ["limit vector", "breaker halt drill"] }
+  ],
+  "acceptanceRule": "Each owner must return the named evidence against the exact source commit. Presence of files alone does not set integratedCentral=true."
+}

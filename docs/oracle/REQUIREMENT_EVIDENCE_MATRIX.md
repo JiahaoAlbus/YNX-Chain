@@ -16,11 +16,11 @@ This matrix prevents implementation, test, installation, integration, deployment
 | Public APIs | `/health`, `/version`, `/prices`, provider registry, replay, and signed ingestion handlers exist | Implemented and locally tested; public deployment pending |
 | Structured market data | Strict signed OHLCV, trade batches, CLOB books, DEX pool states, and provider-health payloads normalize into a source/version/asOf/coverage/stale live feed and are prohibited from scalar price aggregation | Implemented and locally tested |
 | Consumer validation SDK | Go SDK rejects schema mismatch, stale/future data, unsafe quality, insufficient sources, low confidence, malformed lineage, remote plain HTTP, and clients without timeouts | Implemented and locally tested; additional languages pending |
-| Chain system module/precompile | Integration contract and implementation pending | Pending |
-| Exchange index/mark/funding | Adapter and test vectors pending | Pending |
+| Chain system module/precompile | Deterministic no-HTTP consensus handoff and rejection vectors exist; module implementation pending | Handoff ready; implementation pending |
+| Exchange index/mark/funding | Authority boundary and rejection vectors exist; product adapter and liquidation drill pending | Handoff ready; implementation pending |
 | DEX Oracle/TWAP | Existing source semantics recovered; canonical adapter pending | Partial |
 | Quant live/history | Existing consumer semantics recovered; canonical adapter pending | Partial |
-| Finance, Pay, Explorer, Monitor, Bridge | Integration manifests and test vectors pending | Pending |
+| Finance, Pay, Explorer, Monitor, Bridge, Gateway, Wallet/Auth | Owner-specific authority boundaries, required outputs, rejection conditions, and acceptance evidence are machine-readable | Handoff ready; owner acceptance pending |
 | Provider outage/manipulation/depeg/reorg simulations | Explicit tests cover stale/offline data, outlier manipulation, cross-source divergence, thin sources, truthful depeg values, same-height DEX replacement, provider deactivation, and historical replay | Implemented and locally tested; live failover pending |
 | SLO/capacity and unit economics | Bounded in-process p50/p95/p99/throughput/error measurements, conservative Testnet objectives, storage assumptions, external gaps, and cost/scale model are documented | Local baseline complete; staging/WAN/provider evidence pending |
 | Observability and incident operations | Structured trace-correlated logs, request/error IDs, health/version, isolated Prometheus metrics, operations and incident procedures exist; central alerts/dashboard/status integration pending | Partial |

@@ -9,6 +9,8 @@
   `config/oracle/provider-candidates.json`
 - Consumer schemas: `integration/oracle/v1/`,
   `docs/integration/oracle-consumers.json`
+- Cross-product acceptance: `integration/oracle/v1/consumer-handoff.json`,
+  `integration/oracle/v1/consumer-test-vectors.json`
 - Migration/backup: `MIGRATION_COMPATIBILITY.md`, `OPERATIONS.md`
 - Observability: `OBSERVABILITY.md`
 - Performance/capacity: `SLO_CAPACITY_PLAN.md`

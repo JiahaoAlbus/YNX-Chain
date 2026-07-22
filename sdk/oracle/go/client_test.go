@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,6 +16,72 @@ func validPrice(now time.Time) Price {
 		Source: "YNX Oracle aggregated provider observations", Version: "weighted-median-mad-v1", AsOf: now.Add(-time.Second), ProducedAt: now,
 		Quality:        Quality{Status: "good", SourceCount: 3, RequiredSourceCount: 3, ConfidencePPM: 990_000, CoveragePPM: 1_000_000},
 		ObservationIDs: []string{"a", "b", "c"}, ObservationHash: []string{strings.Repeat("a", 64), strings.Repeat("b", 64), strings.Repeat("c", 64)}, LineageHash: strings.Repeat("d", 64)}
+}
+
+func TestMachineReadableConsumerVectors(t *testing.T) {
+	data, err := os.ReadFile("../../../integration/oracle/v1/consumer-test-vectors.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var vectors struct {
+		ConsumerPolicy struct {
+			RequestedMarket      string    `json:"requestedMarket"`
+			RequestedType        string    `json:"requestedType"`
+			Now                  time.Time `json:"now"`
+			MaximumAgeSeconds    int       `json:"maximumAgeSeconds"`
+			MinimumConfidencePPM int64     `json:"minimumConfidencePpm"`
+			MinimumCoveragePPM   int64     `json:"minimumCoveragePpm"`
+		} `json:"consumerPolicy"`
+		Base  map[string]any `json:"base"`
+		Cases []struct {
+			ID      string `json:"id"`
+			Accept  bool   `json:"accept"`
+			Changes []struct {
+				Path  string `json:"path"`
+				Value any    `json:"value"`
+			} `json:"changes"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(data, &vectors); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range vectors.Cases {
+		t.Run(test.ID, func(t *testing.T) {
+			encoded, _ := json.Marshal(vectors.Base)
+			var candidate map[string]any
+			if err := json.Unmarshal(encoded, &candidate); err != nil {
+				t.Fatal(err)
+			}
+			for _, change := range test.Changes {
+				applyFixtureChange(t, candidate, change.Path, change.Value)
+			}
+			encoded, _ = json.Marshal(candidate)
+			var price Price
+			decoder := json.NewDecoder(strings.NewReader(string(encoded)))
+			decoder.DisallowUnknownFields()
+			if err := decoder.Decode(&price); err != nil {
+				t.Fatal(err)
+			}
+			err := price.ValidateFor(vectors.ConsumerPolicy.RequestedMarket, vectors.ConsumerPolicy.RequestedType, "weighted-median-mad-v1", vectors.ConsumerPolicy.Now, time.Duration(vectors.ConsumerPolicy.MaximumAgeSeconds)*time.Second, vectors.ConsumerPolicy.MinimumConfidencePPM, vectors.ConsumerPolicy.MinimumCoveragePPM)
+			if (err == nil) != test.Accept {
+				t.Fatalf("accept=%v err=%v", test.Accept, err)
+			}
+		})
+	}
+}
+
+func applyFixtureChange(t *testing.T, target map[string]any, pointer string, value any) {
+	t.Helper()
+	parts := strings.Split(strings.TrimPrefix(pointer, "/"), "/")
+	current := target
+	for _, part := range parts[:len(parts)-1] {
+		next, ok := current[part].(map[string]any)
+		if !ok {
+			t.Fatalf("invalid fixture pointer %q", pointer)
+		}
+		current = next
+	}
+	current[parts[len(parts)-1]] = value
 }
 
 func TestValidateRejectsEveryUnsafeConsumerState(t *testing.T) {

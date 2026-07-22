@@ -77,6 +77,26 @@ func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConf
 	return nil
 }
 
+// ValidateFor binds intrinsic price quality to the exact consumer request and
+// accepted aggregation policy. Consumers should prefer this method over
+// Validate whenever the requested market/type are known.
+func (price Price) ValidateFor(requestedMarket, requestedType, expectedVersion string, now time.Time, maximumAge time.Duration, minimumConfidencePPM, minimumCoveragePPM int64) error {
+	if requestedMarket == "" || requestedType == "" || expectedVersion == "" ||
+		price.Market != requestedMarket || price.Type != requestedType || price.Version != expectedVersion {
+		return errors.New("oracle response does not match the consumer request or policy")
+	}
+	if minimumCoveragePPM < 0 || minimumCoveragePPM > 1_000_000 {
+		return errors.New("oracle consumer coverage policy is invalid")
+	}
+	if err := price.Validate(now, maximumAge, minimumConfidencePPM); err != nil {
+		return err
+	}
+	if price.Quality.CoveragePPM < minimumCoveragePPM {
+		return errors.New("oracle coverage is below consumer policy")
+	}
+	return nil
+}
+
 type Client struct {
 	baseURL *url.URL
 	http    *http.Client

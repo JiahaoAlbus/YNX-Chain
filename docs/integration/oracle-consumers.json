@@ -51,6 +51,9 @@
     "sdk/oracle/go/client.go",
     "docs/integration/oracle-consumers.json",
     "integration/oracle/v1/price.schema.json",
-    "integration/oracle/v1/observation.schema.json"
+    "integration/oracle/v1/observation.schema.json",
+    "integration/oracle/v1/market-data-feed.schema.json",
+    "integration/oracle/v1/consumer-handoff.json",
+    "integration/oracle/v1/consumer-test-vectors.json"
   ]
 }
