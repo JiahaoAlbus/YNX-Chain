@@ -127,15 +127,22 @@ type SettlementEvidence struct {
 }
 
 type RefundRequest struct {
-	ID         string    `json:"id"`
-	InvoiceID  string    `json:"invoiceId"`
-	MerchantID string    `json:"merchantId"`
-	Payer      string    `json:"payer"`
-	Amount     int64     `json:"amount"`
-	Reason     string    `json:"reason"`
-	Status     string    `json:"status"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	ID                    string                       `json:"id"`
+	InvoiceID             string                       `json:"invoiceId"`
+	MerchantID            string                       `json:"merchantId"`
+	Payer                 string                       `json:"payer"`
+	Amount                int64                        `json:"amount"`
+	Reason                string                       `json:"reason"`
+	Status                string                       `json:"status"`
+	ApprovedBy            string                       `json:"approvedBy,omitempty"`
+	AuthorizationDigest   string                       `json:"authorizationDigest,omitempty"`
+	RefundTransactionHash string                       `json:"refundTransactionHash,omitempty"`
+	CentralRefundID       string                       `json:"centralRefundId,omitempty"`
+	SubmittedAt           *time.Time                   `json:"submittedAt,omitempty"`
+	Evidence              *AuthoritativeRefundEvidence `json:"evidence,omitempty"`
+	Failure               string                       `json:"failure,omitempty"`
+	CreatedAt             time.Time                    `json:"createdAt"`
+	UpdatedAt             time.Time                    `json:"updatedAt"`
 }
 type Dispute struct {
 	ID            string    `json:"id"`
@@ -280,9 +287,13 @@ type Analytics struct {
 	InvoiceCount       int       `json:"invoiceCount"`
 	CommittedCount     int       `json:"committedCount"`
 	GrossYNXT          int64     `json:"grossYnxt"`
+	RefundedYNXT       int64     `json:"refundedYnxt"`
+	NetYNXT            int64     `json:"netYnxt"`
 	RefundRequestCount int       `json:"refundRequestCount"`
 	DisputeCount       int       `json:"disputeCount"`
 	FailedWebhookCount int       `json:"failedWebhookCount"`
 	GeneratedAt        time.Time `json:"generatedAt"`
 	Source             string    `json:"source"`
+	AsOf               time.Time `json:"asOf"`
+	Version            int       `json:"version"`
 }

@@ -8,4 +8,6 @@ Added an optional HTTPS paymaster adapter. It is disabled unless an operator sup
 
 Added an optional HTTPS bridge/interop adapter and explainable route engine. Native, active-sponsored and external candidates disclose normalized cost, fees, FX, bridge risk, time, finality, health and evidence source. External routes require an explicit user risk ceiling. The bridge lifecycle cannot skip normal stages, and destination confirmation only makes funds eligible for a later Wallet-approved YNX payment; it never marks an invoice paid.
 
+Added authoritative partial/full refund completion. Payer requests remain non-financial records. Submission requires an owner/finance merchant session and an exact merchant-Wallet signature bound to the request, payer, amount, asset and refund transaction. Aggregate active refunds cannot exceed the paid amount. `refunded` appears only after a matching committed central Pay receipt; the original payment receipt remains immutable.
+
 This is not a public release. Central Gateway integration, current device installation proof, fresh Testnet payment/refund/sponsorship evidence, hosted downloads, production signing and store release are not complete.
