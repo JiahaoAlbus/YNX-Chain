@@ -1,0 +1,170 @@
+package oracle
+
+import (
+	"errors"
+	"sort"
+	"sync"
+	"time"
+)
+
+type Service struct {
+	mu        sync.RWMutex
+	store     *Store
+	providers map[string]Provider
+	policy    Policy
+	now       func() time.Time
+	lastGood  map[string]Price
+	rate      map[string]rateBucket
+}
+
+type rateBucket struct {
+	tokens  float64
+	updated time.Time
+}
+
+func NewService(store *Store, providers []Provider, policy Policy, now func() time.Time) (*Service, error) {
+	if store == nil {
+		return nil, errors.New("oracle store required")
+	}
+	if now == nil {
+		now = time.Now
+	}
+	registry := make(map[string]Provider, len(providers))
+	for _, provider := range providers {
+		if err := provider.Validate(); err != nil {
+			return nil, err
+		}
+		if _, exists := registry[provider.ID]; exists {
+			return nil, errors.New("duplicate provider ID")
+		}
+		registry[provider.ID] = provider
+	}
+	if len(registry) == 0 {
+		return nil, errors.New("at least one explicit provider registry entry required")
+	}
+	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
+		return nil, errors.New("provider rate policy is invalid")
+	}
+	return &Service{store: store, providers: registry, policy: policy, now: now, lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+}
+
+func (service *Service) Ingest(observation Observation) (bool, error) {
+	now := service.now().UTC()
+	observation.ReceivedAt = now
+	service.mu.Lock()
+	provider, exists := service.providers[observation.ProviderID]
+	if exists {
+		bucket := service.rate[observation.ProviderID]
+		if bucket.updated.IsZero() {
+			bucket.tokens = service.policy.ProviderBurst
+			bucket.updated = now
+		}
+		if now.After(bucket.updated) {
+			bucket.tokens += now.Sub(bucket.updated).Seconds() * service.policy.ProviderUpdatesPerSecond
+			if bucket.tokens > service.policy.ProviderBurst {
+				bucket.tokens = service.policy.ProviderBurst
+			}
+			bucket.updated = now
+		}
+		if bucket.tokens < 1 {
+			service.mu.Unlock()
+			return false, errors.New("provider rate limit exceeded")
+		}
+		bucket.tokens--
+		service.rate[observation.ProviderID] = bucket
+	}
+	service.mu.Unlock()
+	if !exists {
+		return false, errors.New("provider is not registered")
+	}
+	return service.store.Ingest(observation, provider)
+}
+
+func (service *Service) Correct(correction Correction) error {
+	service.mu.RLock()
+	provider, exists := service.providers[correction.Corrected.ProviderID]
+	service.mu.RUnlock()
+	if !exists {
+		return errors.New("provider is not registered")
+	}
+	return service.store.Correct(correction, provider)
+}
+
+func (service *Service) Price(market string, kind DataType) (Price, error) {
+	now := service.now().UTC()
+	if !marketPattern.MatchString(market) || !kind.Valid() {
+		return Price{}, errInvalid
+	}
+	observations := service.store.Replay(market, kind, now.Add(service.policy.MaximumFutureSkew))
+	service.mu.RLock()
+	providers := make(map[string]Provider, len(service.providers))
+	for key, value := range service.providers {
+		providers[key] = value
+	}
+	service.mu.RUnlock()
+	price, err := Aggregate(now, observations, providers, service.policy)
+	key := market + "|" + string(kind)
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	if err == nil {
+		service.lastGood[key] = price
+		return price, nil
+	}
+	if previous, exists := service.lastGood[key]; exists {
+		previous.ProducedAt = now
+		previous.Quality.Status = "last_good_stale"
+		previous.Quality.Stale = true
+		previous.Quality.CircuitBreaker = true
+		previous.Quality.Failure = err.Error()
+		previous.Quality.SourceLimitation = "last known good value is informational only and unsafe for settlement"
+		return previous, err
+	}
+	return price, err
+}
+
+func (service *Service) Providers() []Provider {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	result := make([]Provider, 0, len(service.providers))
+	for _, provider := range service.providers {
+		result = append(result, provider)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func (service *Service) Replay(market string, kind DataType, asOf time.Time) ([]Observation, error) {
+	if !marketPattern.MatchString(market) || !kind.Valid() || asOf.IsZero() || asOf.After(service.now().Add(service.policy.MaximumFutureSkew)) {
+		return nil, errInvalid
+	}
+	return service.store.Replay(market, kind, asOf), nil
+}
+
+type Health struct {
+	Status              string    `json:"status"`
+	ProductID           string    `json:"productId"`
+	Version             string    `json:"version"`
+	Schema              string    `json:"schema"`
+	PolicyVersion       string    `json:"policyVersion"`
+	ProviderCount       int       `json:"providerCount"`
+	ActiveProviderCount int       `json:"activeProviderCount"`
+	MinimumSources      int       `json:"minimumSources"`
+	SourceLimitation    string    `json:"sourceLimitation,omitempty"`
+	AsOf                time.Time `json:"asOf"`
+}
+
+func (service *Service) Health() Health {
+	providers := service.Providers()
+	active := 0
+	for _, provider := range providers {
+		if provider.Status == "active" {
+			active++
+		}
+	}
+	status, limitation := "ok", ""
+	if active < service.policy.MinimumSources {
+		status = "degraded"
+		limitation = "fewer than the policy-required active independent providers"
+	}
+	return Health{status, ProductID, Version, SchemaVersion, service.policy.Version, len(providers), active, service.policy.MinimumSources, limitation, service.now().UTC()}
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "sourceCommit": null,
+  "implementedLocal": false,
+  "testedLocal": false,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "evidence": [],
+  "limitations": [
+    "Real provider registry and provider access are not configured.",
+    "No staging or public Oracle deployment is available.",
+    "Cross-product and Chain Core integration has not yet been completed."
+  ]
+}

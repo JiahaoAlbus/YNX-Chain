@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:oracle:v1:price",
+  "title": "YNX Oracle aggregated price",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "market", "type", "value", "scale", "source", "version", "asOf", "producedAt", "quality", "observationIds", "observationHashes", "lineageHash"],
+  "properties": {
+    "schema": {"const": "ynx.oracle.v1"},
+    "market": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._/-]{2,63}$"},
+    "type": {"type": "string"},
+    "value": {"type": "integer", "minimum": 1},
+    "scale": {"type": "integer", "minimum": 1},
+    "source": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "asOf": {"type": "string", "format": "date-time"},
+    "producedAt": {"type": "string", "format": "date-time"},
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "stale", "sourceCount", "requiredSourceCount", "rejectedSources", "divergencePpm", "confidencePpm", "coveragePpm", "circuitBreaker"],
+      "properties": {
+        "status": {"enum": ["good", "limited_sources", "circuit_breaker", "last_good_stale", "unavailable"]},
+        "stale": {"type": "boolean"},
+        "sourceCount": {"type": "integer", "minimum": 0},
+        "requiredSourceCount": {"type": "integer", "minimum": 1},
+        "rejectedSources": {"type": "array", "items": {"type": "string"}},
+        "sourceLimitation": {"type": "string"},
+        "divergencePpm": {"type": "integer", "minimum": 0},
+        "confidencePpm": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "coveragePpm": {"type": "integer", "minimum": 0, "maximum": 1000000},
+        "circuitBreaker": {"type": "boolean"},
+        "failure": {"type": "string"}
+      }
+    },
+    "observationIds": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "observationHashes": {"type": "array", "items": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "lineageHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

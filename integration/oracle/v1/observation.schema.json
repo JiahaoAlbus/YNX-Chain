@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:oracle:v1:observation",
+  "title": "YNX Oracle signed provider observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "providerId", "reporterId", "sequence", "nonceDomain", "market", "type", "value", "scale", "observedAt", "source", "sourceVersion", "signatureHex", "hash"],
+  "properties": {
+    "schema": {"const": "ynx.oracle.v1"},
+    "id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "providerId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "reporterId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]{2,127}$"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "nonceDomain": {"type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]{2,127}$"},
+    "market": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._/-]{2,63}$"},
+    "type": {"type": "string"},
+    "value": {"type": "integer", "minimum": 1},
+    "scale": {"type": "integer", "minimum": 1},
+    "liquidity": {"type": "integer", "minimum": 0},
+    "volume24h": {"type": "integer", "minimum": 0},
+    "observedAt": {"type": "string", "format": "date-time"},
+    "receivedAt": {"type": "string", "format": "date-time", "readOnly": true},
+    "source": {"type": "string", "minLength": 1},
+    "sourceVersion": {"type": "string", "minLength": 1},
+    "signatureHex": {"type": "string", "pattern": "^[a-f0-9]{128}$"},
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

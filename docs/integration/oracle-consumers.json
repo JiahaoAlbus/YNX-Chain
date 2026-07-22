@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "oracleSchema": "ynx.oracle.v1",
+  "policyVersion": "weighted-median-mad-v1",
+  "publicReadEndpoints": [
+    "GET /health",
+    "GET /version",
+    "GET /prices?market={market}&type={type}",
+    "GET /v1/providers",
+    "GET /v1/replay?market={market}&type={type}&asOf={rfc3339}"
+  ],
+  "signedIngestionEndpoint": "POST /internal/v1/observations",
+  "requiredConsumerChecks": [
+    "schema == ynx.oracle.v1",
+    "market and type equal the requested values",
+    "source and version are non-empty and accepted",
+    "asOf is not future-dated or older than the consumer maximum age",
+    "quality.status == good",
+    "quality.stale == false",
+    "quality.circuitBreaker == false",
+    "quality.failure is empty",
+    "quality.sourceCount >= quality.requiredSourceCount",
+    "quality.confidencePpm meets the consumer threshold",
+    "quality.coveragePpm meets the consumer threshold",
+    "lineageHash and every observation hash are valid SHA-256 hex values"
+  ],
+  "consumers": {
+    "chainCore": {"interface": "system module delivery of value, scale, asOf, policyVersion, quality, lineageHash", "ownerAction": "implement consensus validation and governance activation"},
+    "exchange": {"types": ["index_price", "mark_price", "funding_reference"], "ownerAction": "replace any venue-local price fact with validated Oracle responses"},
+    "dex": {"types": ["dex_pool_state", "dex_twap", "spot_price"], "ownerAction": "publish confirmed pool observations and consume canonical values only where fiat/reference pricing is required"},
+    "quant": {"types": ["spot_price", "ohlcv", "trades", "clob_order_book", "historical_replay"], "ownerAction": "preserve raw Exchange trades while switching cross-venue reference facts to Oracle"},
+    "finance": {"types": ["spot_price", "fx", "interest_rate_candidate"], "ownerAction": "validate source and quality before display or calculations"},
+    "pay": {"types": ["fx", "stablecoin_price", "stablecoin_depeg"], "ownerAction": "bind quote expiry to asOf and fail closed on unsafe quality"},
+    "stablecoin": {"types": ["stablecoin_price", "stablecoin_reserve_ratio", "stablecoin_depeg"], "ownerAction": "keep price, reserve evidence, and mint/burn authority separate"},
+    "explorerMonitor": {"types": ["provider_status", "data_correction"], "ownerAction": "display source lineage and alert on stale, divergence, breaker, correction, or provider changes"},
+    "bridge": {"types": ["spot_price", "stablecoin_price"], "ownerAction": "use validated values for limits/risk only under Bridge governance"}
+  },
+  "mergeArtifacts": [
+    "sdk/oracle/go/client.go",
+    "docs/integration/oracle-consumers.json",
+    "integration/oracle/v1/price.schema.json",
+    "integration/oracle/v1/observation.schema.json"
+  ]
+}
