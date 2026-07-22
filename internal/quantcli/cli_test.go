@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
 )
 
 func TestReadsAndExplicitlyApprovedMutations(t *testing.T) {
@@ -26,6 +29,27 @@ func TestReadsAndExplicitlyApprovedMutations(t *testing.T) {
 	}
 	if err := cli.Run([]string{"kill", "--approve", "operator test"}); err != nil || method != "POST" || path != "/v1/risk/kill" {
 		t.Fatalf("kill method=%s path=%s err=%v", method, path, err)
+	}
+}
+
+func TestBackupRequiresApprovalAndProducesVerifiedRecord(t *testing.T) {
+	root := t.TempDir()
+	statePath := filepath.Join(root, "state.json")
+	backupPath := filepath.Join(root, "backup.json")
+	service, _ := quantlab.New(quantlab.Config{StatePath: statePath})
+	if _, err := service.Kill("CLI backup fixture"); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	cli := CLI{StatePath: statePath, Out: &out}
+	if err := cli.Run([]string{"backup", backupPath}); err != ErrUsage {
+		t.Fatalf("unapproved=%v", err)
+	}
+	if err := cli.Run([]string{"backup", "--approve", backupPath}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"sha256"`) || !strings.Contains(out.String(), `"schema": 1`) {
+		t.Fatalf("record=%s", out.String())
 	}
 }
 

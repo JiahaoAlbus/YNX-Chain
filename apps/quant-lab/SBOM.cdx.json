@@ -1,18 +1,24 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:f7864e31-a673-4651-95ef-c0f28fac5d8d",
-  "version": 1,
+  "serialNumber": "urn:uuid:8ec11e5c-778a-4c71-a72a-faf3915ffb84",
+  "version": 2,
   "metadata": {
-    "timestamp": "2026-07-18T19:34:01Z",
-    "component": {"type": "application", "name": "YNX Quant Lab", "version": "0.1.0-testnet"}
+    "timestamp": "2026-07-22T14:30:00Z",
+    "component": {"type": "application", "name": "YNX Quant Lab", "version": "0.2.0-testnet-candidate"}
   },
   "components": [
     {"type":"framework","name":"Go standard library","version":"1.25.7","licenses":[{"license":{"id":"BSD-3-Clause"}}]},
-    {"type":"library","name":"playwright","version":"1.58.2","scope":"optional","licenses":[{"license":{"id":"Apache-2.0"}}],"purl":"pkg:npm/playwright@1.58.2"}
+    {"type":"library","name":"gorilla/websocket","version":"1.5.3","scope":"required","licenses":[{"license":{"id":"BSD-2-Clause"}}],"purl":"pkg:golang/github.com/gorilla/websocket@v1.5.3"},
+    {"type":"library","name":"playwright","version":"1.58.2","scope":"optional","licenses":[{"license":{"id":"Apache-2.0"}}],"purl":"pkg:npm/playwright@1.58.2"},
+    {"type":"container","name":"gcr.io/distroless/static-debian12","version":"nonroot-tag","scope":"optional","licenses":[{"license":{"id":"Apache-2.0"}}]},
+    {"type":"container","name":"golang","version":"1.25.0-bookworm","scope":"optional","licenses":[{"license":{"id":"BSD-3-Clause"}}]}
   ],
   "properties": [
     {"name":"ynx.runtimeThirdPartyEnginesBundled","value":"false"},
-    {"name":"ynx.engineEvaluationOnly","value":"NautilusTrader, Freqtrade/FreqAI, LEAN"}
+    {"name":"ynx.pythonRuntimeDependencies","value":"none"},
+    {"name":"ynx.typescriptRuntimeDependencies","value":"none"},
+    {"name":"ynx.containerBuildVerified","value":"false"},
+    {"name":"ynx.engineEvaluationOnly","value":"NautilusTrader, LEAN, vectorbt, Freqtrade/FreqAI, Hummingbot, Backtrader, TA-Lib, pandas-ta, Polars, NumPy, Pandas, CCXT"}
   ]
 }

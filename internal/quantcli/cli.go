@@ -11,14 +11,17 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
 )
 
 var ErrUsage = errors.New("usage")
 
 type CLI struct {
-	BaseURL string
-	Client  *http.Client
-	Out     io.Writer
+	BaseURL   string
+	StatePath string
+	Client    *http.Client
+	Out       io.Writer
 }
 
 func (c CLI) Run(args []string) error {
@@ -48,6 +51,16 @@ func (c CLI) Run(args []string) error {
 			return ErrUsage
 		}
 		method, path, payload = http.MethodPost, "/v1/testnet/mandates/"+url.PathEscape(args[2])+"/revoke", map[string]string{"actor": args[3]}
+	case "backup":
+		if len(args) != 3 || args[1] != "--approve" {
+			return ErrUsage
+		}
+		return c.localStateOperation("backup", args[2])
+	case "restore":
+		if len(args) != 3 || args[1] != "--approve" {
+			return ErrUsage
+		}
+		return c.localStateOperation("restore", args[2])
 	default:
 		return ErrUsage
 	}
@@ -89,6 +102,29 @@ func (c CLI) Run(args []string) error {
 	}
 	pretty, _ := json.MarshalIndent(value, "", "  ")
 	_, err = fmt.Fprintln(c.Out, string(pretty))
+	return err
+}
+
+func (c CLI) localStateOperation(operation, path string) error {
+	statePath := strings.TrimSpace(c.StatePath)
+	if statePath == "" {
+		return errors.New("YNX_QUANT_STATE_PATH is required for local state operations")
+	}
+	service, err := quantlab.New(quantlab.Config{StatePath: statePath})
+	if err != nil {
+		return err
+	}
+	var record quantlab.BackupRecord
+	if operation == "backup" {
+		record, err = service.Backup(path)
+	} else {
+		record, err = service.Restore(path)
+	}
+	if err != nil {
+		return err
+	}
+	encoded, _ := json.MarshalIndent(record, "", "  ")
+	_, err = fmt.Fprintln(c.Out, string(encoded))
 	return err
 }
 

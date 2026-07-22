@@ -8,10 +8,10 @@ import (
 )
 
 func main() {
-	cli := quantcli.CLI{BaseURL: os.Getenv("YNX_QUANT_API_URL"), Out: os.Stdout}
+	cli := quantcli.CLI{BaseURL: os.Getenv("YNX_QUANT_API_URL"), StatePath: os.Getenv("YNX_QUANT_STATE_PATH"), Out: os.Stdout}
 	if err := cli.Run(os.Args[1:]); err != nil {
 		if errors.Is(err, quantcli.ErrUsage) {
-			fmt.Fprintln(os.Stderr, "usage: ynx-quant-cli health | snapshot | kill --approve REASON | revoke-mandate --approve DIGEST ACTOR")
+			fmt.Fprintln(os.Stderr, "usage: ynx-quant-cli health | snapshot | kill --approve REASON | revoke-mandate --approve DIGEST ACTOR | backup --approve DESTINATION | restore --approve SOURCE")
 		} else {
 			fmt.Fprintln(os.Stderr, err)
 		}

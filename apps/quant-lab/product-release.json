@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "version": "0.2.0-testnet-candidate",
+  "releaseClass": "local-testnet-candidate",
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifacts": [],
+  "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "Docker image build and install", "desktop packages and installation", "public deployment and immutable hosted downloads"]
+}

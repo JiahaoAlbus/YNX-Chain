@@ -209,3 +209,41 @@ func TestIndependentServicesDoNotOverwriteSharedState(t *testing.T) {
 		t.Fatal("risk service overwrote research state")
 	}
 }
+
+func TestBackupRestoreDrillRejectsTamperAndRestoresState(t *testing.T) {
+	root := t.TempDir()
+	statePath := filepath.Join(root, "state.json")
+	backupPath := filepath.Join(root, "backup", "state.backup.json")
+	service, _ := New(Config{StatePath: statePath})
+	if _, err := service.RunBacktest(request()); err != nil {
+		t.Fatal(err)
+	}
+	record, err := service.Backup(backupPath)
+	if err != nil || record.SHA256 == "" || record.Bytes <= 0 || record.Schema != StateSchema {
+		t.Fatalf("backup=%+v err=%v", record, err)
+	}
+	if _, err := service.Kill("restore drill mutation"); err != nil {
+		t.Fatal(err)
+	}
+	if !service.Snapshot()["paper"].(PaperState).KillSwitch {
+		t.Fatal("mutation missing")
+	}
+	if _, err := service.Restore(backupPath); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := service.Snapshot()
+	if snapshot["paper"].(PaperState).KillSwitch {
+		t.Fatal("backup state was not restored")
+	}
+	if len(snapshot["experiments"].(map[string]Experiment)) != 1 {
+		t.Fatal("experiment missing after restore")
+	}
+
+	tampered := filepath.Join(root, "tampered.json")
+	data, _ := os.ReadFile(backupPath)
+	data[len(data)/2] ^= 1
+	_ = os.WriteFile(tampered, data, 0600)
+	if _, err := service.Restore(tampered); err != ErrForbidden {
+		t.Fatalf("tampered restore=%v", err)
+	}
+}

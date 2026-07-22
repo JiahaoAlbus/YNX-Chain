@@ -24,6 +24,7 @@ var (
 const (
 	ProductID           = "ynx-quant-lab"
 	Version             = "0.1.0-testnet"
+	StateSchema         = 1
 	StageDraft          = "Draft"
 	StageResearch       = "Research"
 	StageBacktest       = "Backtest"
@@ -155,6 +156,13 @@ type AuditEvent struct {
 	Action, ObjectID, Digest, PreviousHash, Hash string
 	CreatedAt                                    time.Time
 }
+type BackupRecord struct {
+	Path      string    `json:"path"`
+	SHA256    string    `json:"sha256"`
+	Bytes     int64     `json:"bytes"`
+	Schema    int       `json:"schema"`
+	CreatedAt time.Time `json:"createdAt"`
+}
 type state struct {
 	Schema        int                     `json:"schema"`
 	Sequence      int64                   `json:"sequence"`
@@ -180,7 +188,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	s := state{Schema: 1, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}}
+	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}}
 	s.TestnetOrders = map[string]TestnetOrder{}
 	s.Idempotency = map[string]string{}
 	b, err := os.ReadFile(cfg.StatePath)
@@ -683,6 +691,63 @@ func (s *Service) Snapshot() map[string]any {
 	}
 }
 
+func (s *Service) Backup(destination string) (BackupRecord, error) {
+	destination = filepath.Clean(strings.TrimSpace(destination))
+	if destination == "." || destination == filepath.Clean(s.cfg.StatePath) {
+		return BackupRecord{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return BackupRecord{}, err
+	}
+	defer release()
+	b, err := json.MarshalIndent(s.state, "", "  ")
+	if err != nil {
+		return BackupRecord{}, err
+	}
+	if err := writeAtomic(destination, b); err != nil {
+		return BackupRecord{}, err
+	}
+	info, err := os.Stat(destination)
+	if err != nil {
+		return BackupRecord{}, err
+	}
+	return BackupRecord{Path: destination, SHA256: hashBytes(b), Bytes: info.Size(), Schema: s.state.Schema, CreatedAt: s.cfg.Now()}, nil
+}
+
+func (s *Service) Restore(source string) (BackupRecord, error) {
+	source = filepath.Clean(strings.TrimSpace(source))
+	b, err := os.ReadFile(source)
+	if err != nil || len(b) == 0 || len(b) > 64<<20 {
+		return BackupRecord{}, ErrInvalid
+	}
+	var restored state
+	if json.Unmarshal(b, &restored) != nil || restored.Schema != StateSchema || !verifyIntegrity(restored) {
+		return BackupRecord{}, ErrForbidden
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return BackupRecord{}, err
+	}
+	defer release()
+	previous := s.state
+	s.state = restored
+	s.audit("state_restored", "state", hashBytes(b))
+	if err := s.save(); err != nil {
+		s.state = previous
+		return BackupRecord{}, err
+	}
+	info, err := os.Stat(s.cfg.StatePath)
+	if err != nil {
+		return BackupRecord{}, err
+	}
+	return BackupRecord{Path: source, SHA256: hashBytes(b), Bytes: info.Size(), Schema: restored.Schema, CreatedAt: s.cfg.Now()}, nil
+}
+
 func (s *Service) lockAndReload() (func(), error) {
 	lockPath := s.cfg.StatePath + ".lock"
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
@@ -751,14 +816,17 @@ func (s *Service) save() error {
 	s.state.Integrity = ""
 	s.state.Integrity = hash(s.state)
 	b, _ := json.MarshalIndent(s.state, "", "  ")
-	if err := os.MkdirAll(filepath.Dir(s.cfg.StatePath), 0700); err != nil {
+	return writeAtomic(s.cfg.StatePath, b)
+}
+func writeAtomic(path string, b []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	tmp := s.cfg.StatePath + ".tmp"
+	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, b, 0600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.cfg.StatePath)
+	return os.Rename(tmp, path)
 }
 func verifyIntegrity(s state) bool {
 	got := s.Integrity
@@ -769,6 +837,10 @@ func hash(v any) string {
 	b, _ := json.Marshal(v)
 	h := sha256.Sum256(b)
 	return hex.EncodeToString(h[:])
+}
+func hashBytes(value []byte) string {
+	digest := sha256.Sum256(value)
+	return hex.EncodeToString(digest[:])
 }
 func abs(v int64) int64 {
 	if v < 0 {

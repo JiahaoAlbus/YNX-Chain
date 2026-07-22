@@ -1,0 +1,29 @@
+# Feature completion evidence
+
+Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
+
+| Requirement | State | Direct evidence |
+| --- | --- | --- |
+| deterministic event/OOS backtest | tested local | `internal/quantlab/service_test.go` determinism, split, walk-forward, sensitivity, regime tests |
+| actual YNX market tape boundary | tested local | market adapter tests reject malformed/non-authoritative or insufficient history |
+| paper partial fills/reconciliation | tested local | paper service tests and browser evidence |
+| risk kill switch | tested local | mismatch, persistence, browser, and multi-daemon smoke tests |
+| lifecycle | tested local | sequential transition, risk evidence, and Wallet-mandate tests |
+| bounded Testnet adapter contract | implemented/tested with injected test double | expiry, notional, position, replay, idempotency, and broker-proof tests; no deployed broker claim |
+| mandate revoke | tested local | immediate, idempotent, restart-persistent revoke tests |
+| REST and WebSocket | tested local | HTTP strict-schema/role tests and metadata-bearing WebSocket test |
+| CLI | tested local | approval and loopback gates; backup record test |
+| Python/TypeScript SDK | built/tested local | Python unit tests and wheel build; Node tests and package dry-run |
+| worker sandbox boundary | tested local | built-in schema only, payload hash, tamper rejection; arbitrary source execution absent |
+| state backup/restore | tested local | atomic backup, restore drill, schema/integrity and tamper rejection |
+| web accessibility/i18n | tested local | 12 catalog parity, Arabic RTL, 390 px overflow, light/dark browser evidence |
+| independent daemons | built/smoked local | core, worker, paper, risk, web, CLI builds; cross-process risk propagation smoke |
+| Docker Compose | schema parsed only | Docker daemon unavailable; image build/installation false |
+| Kubernetes | candidate YAML parsed only | no cluster apply, rollout, persistence, or recovery evidence |
+| macOS/Windows desktop | not achieved | no desktop artifact or install/cold-start proof |
+| canonical Gateway/Wallet integration | not achieved | handoff records only; local writes remain loopback preview |
+| real Exchange/DEX Testnet | not achieved | no transaction hash, fill, vault receipt, revoke propagation, or emergency-exit receipt |
+| public web/download | not achieved | no verified public endpoint or immutable hosted artifact |
+
+Passing local tests cannot promote any final-column item to deployed, installed,
+integrated, signed, hosted, or released.
