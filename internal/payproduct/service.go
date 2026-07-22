@@ -525,7 +525,10 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	} else {
 		d.Status = "retrying"
 		if d.Attempt >= 5 {
-			d.Status = "failed"
+			deadLetteredAt := s.now().UTC()
+			d.Status = "dead_letter"
+			d.DeadLetteredAt = &deadLetteredAt
+			d.NextAttemptAt = time.Time{}
 		} else {
 			d.NextAttemptAt = s.now().Add(time.Duration(1<<min(d.Attempt, 6)) * time.Minute)
 		}
@@ -540,6 +543,71 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 		return nil
 	})
 	return d, err
+}
+
+func (s *Service) ManualReplayWebhook(actor MerchantPrincipal, deliveryID, reason, key string) (WebhookDelivery, error) {
+	if actor.Role != "owner" && actor.Role != "developer" {
+		return WebhookDelivery{}, errors.New("owner or developer role required for webhook replay")
+	}
+	reason = strings.TrimSpace(reason)
+	if len(reason) < 8 || len(reason) > 500 {
+		return WebhookDelivery{}, errors.New("manual replay reason must contain 8 to 500 characters")
+	}
+	key, err := validKey(key)
+	if err != nil {
+		return WebhookDelivery{}, err
+	}
+	s.mutation.Lock()
+	defer s.mutation.Unlock()
+	var original WebhookDelivery
+	var merchant Merchant
+	if err := s.store.View(func(data Snapshot) error {
+		var ok bool
+		original, ok = data.Deliveries[deliveryID]
+		if !ok || original.MerchantID != actor.Merchant.ID {
+			return errors.New("webhook delivery not found")
+		}
+		if original.Status != "dead_letter" {
+			return errors.New("only a dead-letter webhook can be manually replayed")
+		}
+		merchant = data.Merchants[original.MerchantID]
+		return nil
+	}); err != nil {
+		return WebhookDelivery{}, err
+	}
+	requestHash := hashJSON(map[string]string{"deliveryId": deliveryID, "reason": reason})
+	var replay WebhookDelivery
+	var found bool
+	if err := s.store.View(func(data Snapshot) error {
+		if record, ok := data.Idempotency["webhook-replay:"+actor.Merchant.ID+":"+key]; ok {
+			if record.RequestHash != requestHash {
+				return errors.New("idempotency key reused with different webhook replay")
+			}
+			replay, found = data.Deliveries[record.ObjectID]
+		}
+		return nil
+	}); err != nil || found {
+		return replay, err
+	}
+	now := s.now().UTC()
+	payload, _ := json.Marshal(map[string]any{"event": original.EventType, "objectId": original.ObjectID, "merchantId": original.MerchantID, "occurredAt": now})
+	secret, err := s.open(merchant.WebhookSecretCipher)
+	if err != nil {
+		return WebhookDelivery{}, errors.New("webhook signing secret unavailable")
+	}
+	id := "whd_" + hashString(original.ID, key, now.Format(time.RFC3339Nano))[:20]
+	payloadHash := hexSHA(payload)
+	replay = WebhookDelivery{ID: id, MerchantID: original.MerchantID, EventType: original.EventType, ObjectID: original.ObjectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(id, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", ParentDeliveryID: original.ID, ManualReplayReason: reason, ReplayedBy: actor.Account, CreatedAt: now, UpdatedAt: now}
+	if replay.Endpoint == "" {
+		return WebhookDelivery{}, errors.New("merchant webhook endpoint is unavailable")
+	}
+	err = s.store.Update(func(data *Snapshot) error {
+		data.Deliveries[id] = replay
+		data.Idempotency["webhook-replay:"+actor.Merchant.ID+":"+key] = IdempotencyRecord{Scope: "webhook-replay", Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
+		appendAudit(data, actor.Merchant.ID, actor.Account, "webhook.manual-replay", id, "queued", "dead-letter "+original.ID+"; reason: "+reason, now)
+		return nil
+	})
+	return replay, err
 }
 
 func webhookSigningMaterial(id string, timestamp time.Time, payloadHash string) []byte {
@@ -596,7 +664,7 @@ func (s *Service) Analytics(merchantID string) (Analytics, error) {
 			}
 		}
 		for _, v := range data.Deliveries {
-			if v.MerchantID == merchantID && v.Status == "failed" {
+			if v.MerchantID == merchantID && (v.Status == "dead_letter" || v.Status == "failed") {
 				out.FailedWebhookCount++
 			}
 		}

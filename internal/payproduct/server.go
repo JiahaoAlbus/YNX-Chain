@@ -5,7 +5,6 @@ import (
 	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"sort"
@@ -322,22 +321,24 @@ func (s *Server) rotate(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, map[string]string{"status": "rotated", "secretDelivery": "server-side secret manager only"}, err)
 }
 func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
-	p, _, ok := s.merchantAuth(w, r, "webhook")
+	p, body, ok := s.merchantAuth(w, r, "webhook")
 	if !ok {
 		return
 	}
-	state, err := s.service.SnapshotForMerchant(p.Merchant.ID)
-	if err == nil {
-		if _, ok := state.Deliveries[r.PathValue("id")]; !ok {
-			err = errors.New("webhook delivery not found")
-		}
+	var in struct {
+		Reason         string `json:"reason"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	queued, err := s.service.ManualReplayWebhook(p, r.PathValue("id"), in.Reason, in.IdempotencyKey)
 	if err != nil {
 		respond(w, 0, nil, err)
 		return
 	}
-	out, err := s.service.Deliver(r.Context(), r.PathValue("id"))
-	respond(w, 200, out, err)
+	out, err := s.service.Deliver(r.Context(), queued.ID)
+	respond(w, 201, out, err)
 }
 func (s *Server) submitRefund(w http.ResponseWriter, r *http.Request) {
 	p, body, ok := s.merchantAuth(w, r, "refund")
