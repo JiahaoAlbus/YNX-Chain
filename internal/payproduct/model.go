@@ -7,7 +7,7 @@ const (
 	EVMChainID     = 6423
 	NativeAsset    = "YNXT"
 	NativeFeeYNXT  = int64(1)
-	InvoiceVersion = 1
+	InvoiceVersion = 2
 )
 
 type Merchant struct {
@@ -73,6 +73,7 @@ type Invoice struct {
 	Asset              string              `json:"asset"`
 	Network            string              `json:"network"`
 	Fee                int64               `json:"fee"`
+	FeeBreakdown       FeeBreakdown        `json:"feeBreakdown"`
 	Status             string              `json:"status"`
 	ExpiresAt          time.Time           `json:"expiresAt"`
 	CreatedAt          time.Time           `json:"createdAt"`
@@ -83,18 +84,46 @@ type Invoice struct {
 	Settlement         *SettlementEvidence `json:"settlement,omitempty"`
 }
 
+type FeeBreakdown struct {
+	NetworkFee   int64     `json:"networkFee"`
+	ProviderCost int64     `json:"providerCost"`
+	ProtocolFee  int64     `json:"protocolFee"`
+	Burn         int64     `json:"burn"`
+	Treasury     int64     `json:"treasury"`
+	MerchantNet  int64     `json:"merchantNet"`
+	SponsorCost  int64     `json:"sponsorCost"`
+	UserRebate   int64     `json:"userRebate"`
+	Source       string    `json:"source"`
+	AsOf         time.Time `json:"asOf"`
+	Version      int       `json:"version"`
+}
+
 type SettlementEvidence struct {
-	ID              string    `json:"id"`
-	TransactionHash string    `json:"transactionHash"`
-	BlockNumber     uint64    `json:"blockNumber"`
-	Payer           string    `json:"payer"`
-	PayoutAddress   string    `json:"payoutAddress"`
-	Amount          int64     `json:"amount"`
-	Asset           string    `json:"asset"`
-	Status          string    `json:"status"`
-	AuditHash       string    `json:"auditHash"`
-	CommittedAt     time.Time `json:"committedAt"`
-	Source          string    `json:"source"`
+	ID               string    `json:"id"`
+	ChainID          string    `json:"chainId"`
+	TransactionHash  string    `json:"transactionHash"`
+	BlockNumber      uint64    `json:"blockNumber"`
+	Finality         string    `json:"finality"`
+	Payer            string    `json:"payer"`
+	Payee            string    `json:"payee"`
+	PayoutAddress    string    `json:"payoutAddress"`
+	Amount           int64     `json:"amount"`
+	Asset            string    `json:"asset"`
+	InvoiceID        string    `json:"invoiceId"`
+	CentralInvoiceID string    `json:"centralInvoiceId"`
+	IntentID         string    `json:"intentId"`
+	IntentDigest     string    `json:"intentDigest,omitempty"`
+	RequestNonce     string    `json:"requestNonce,omitempty"`
+	IdempotencyKey   string    `json:"idempotencyKey"`
+	ReceiptID        string    `json:"receiptId"`
+	Status           string    `json:"status"`
+	AuditHash        string    `json:"auditHash"`
+	AuditID          string    `json:"auditId"`
+	CommittedAt      time.Time `json:"committedAt"`
+	Source           string    `json:"source"`
+	SourceAsOf       time.Time `json:"sourceAsOf"`
+	SourceVersion    int       `json:"sourceVersion"`
+	Confidence       string    `json:"confidence"`
 }
 
 type RefundRequest struct {

@@ -109,6 +109,14 @@ func (s *Service) SubmitSignedSettlement(ctx context.Context, session WalletSess
 	if err != nil {
 		return Invoice{}, err
 	}
+	if settled.Settlement == nil {
+		return Invoice{}, errors.New("authoritative settlement receipt is missing")
+	}
+	settled.Settlement.IntentDigest = intentDigest
+	settled.Settlement.RequestNonce = result.RequestID
+	if err := s.saveInvoice(settled, "invoice.wallet-proof-bound"); err != nil {
+		return Invoice{}, err
+	}
 	err = s.store.Update(func(data *Snapshot) error {
 		mapKey := "wallet-payment-result:" + result.TransactionHash
 		if current, exists := data.Idempotency[mapKey]; exists && (current.RequestHash != requestHash || current.ObjectID != invoiceID) {

@@ -335,7 +335,8 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	if central.DueAt.Before(expiry) {
 		expiry = central.DueAt
 	}
-	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, Status: "pending", ExpiresAt: expiry, CreatedAt: s.now(), SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
+	createdAt := s.now()
+	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, FeeBreakdown: FeeBreakdown{NetworkFee: NativeFeeYNXT, MerchantNet: amount, Source: "ynx-pay-fee-policy", AsOf: createdAt, Version: 1}, Status: "pending", ExpiresAt: expiry, CreatedAt: createdAt, SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
 	privateText, err := s.open(merchant.InvoiceSigningPrivateCipher)
 	if err != nil {
 		return Invoice{}, errors.New("merchant invoice signing key unavailable")
@@ -404,11 +405,12 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 {
+	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
-	invoice.Settlement = &SettlementEvidence{ID: v.ID, TransactionHash: v.TransactionHash, BlockNumber: v.BlockNumber, Payer: v.Payer, PayoutAddress: v.PayoutAddress, Amount: v.Amount, Asset: v.Currency, Status: "committed", AuditHash: v.AuditHash, CommittedAt: v.CreatedAt, Source: "authoritative-central-pay-api"}
+	auditID := "aud_" + hashString(invoice.MerchantID, "invoice.committed", invoice.ID, v.CreatedAt.Format(time.RFC3339Nano))[:20]
+	invoice.Settlement = &SettlementEvidence{ID: v.ID, ChainID: ChainID, TransactionHash: v.TransactionHash, BlockNumber: v.BlockNumber, Finality: "committed", Payer: v.Payer, Payee: v.PayoutAddress, PayoutAddress: v.PayoutAddress, Amount: v.Amount, Asset: v.Currency, InvoiceID: invoice.ID, CentralInvoiceID: v.InvoiceID, IntentID: v.IntentID, IdempotencyKey: v.IdempotencyKey, ReceiptID: v.ID, Status: "committed", AuditHash: v.AuditHash, AuditID: auditID, CommittedAt: v.CreatedAt, Source: "authoritative-central-pay-api", SourceAsOf: v.CreatedAt, SourceVersion: 1, Confidence: "authoritative"}
 	if err := s.saveInvoice(invoice, "invoice.committed"); err != nil {
 		return Invoice{}, err
 	}
@@ -715,7 +717,11 @@ func publicMerchant(m Merchant) Merchant {
 	return m
 }
 func invoiceSigningMaterial(v Invoice) []byte {
-	return []byte(strings.Join([]string{"YNX_PAY_INVOICE_V1", fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm}, "|"))
+	if v.Version == 1 {
+		return []byte(strings.Join([]string{"YNX_PAY_INVOICE_V1", fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm}, "|"))
+	}
+	fee := v.FeeBreakdown
+	return []byte(strings.Join([]string{"YNX_PAY_INVOICE_V2", fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), fmt.Sprint(fee.NetworkFee), fmt.Sprint(fee.ProviderCost), fmt.Sprint(fee.ProtocolFee), fmt.Sprint(fee.Burn), fmt.Sprint(fee.Treasury), fmt.Sprint(fee.MerchantNet), fmt.Sprint(fee.SponsorCost), fmt.Sprint(fee.UserRebate), fee.Source, fee.AsOf.UTC().Format(time.RFC3339Nano), fmt.Sprint(fee.Version), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm}, "|"))
 }
 func appendAudit(data *Snapshot, merchant, actor, action, object, outcome, detail string, at time.Time) {
 	data.Audit = append(data.Audit, AuditEntry{ID: "aud_" + hashString(merchant, action, object, at.Format(time.RFC3339Nano))[:20], MerchantID: merchant, Actor: actor, Action: action, ObjectID: object, Outcome: outcome, Detail: detail, At: at})
