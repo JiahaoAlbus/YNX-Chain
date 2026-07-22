@@ -21,8 +21,11 @@ Configuration:
 Independent binaries:
 
 - `go run ./cmd/ynx-quantd` — authoritative REST and WebSocket API
-- `go run ./cmd/ynx-quant-worker` — SHA-256-verified deterministic built-in
-  backtest job worker; it never runs arbitrary source or host commands
+- `go run ./cmd/ynx-quant-worker` — signed deterministic built-in backtest job
+  worker; it never runs arbitrary source or host commands. Every job requires an
+  Ed25519 signature, exact source/artifact hashes, scan evidence, dependency
+  allowlist, bounded CPU/memory/wall/input declarations, and zero host/network,
+  Wallet-key, or provider-secret permissions.
 - `go run ./cmd/ynx-quant-paperd` — paper-only mutation boundary
 - `go run ./cmd/ynx-quant-riskd` — risk, mandate, revocation, and bounded
   Testnet boundary
@@ -34,6 +37,14 @@ All state-writing daemons coordinate through an atomic cross-process lock and
 reload the integrity-protected state before mutation. A timeout fails closed.
 The WebSocket endpoint is `/v1/stream`; every envelope declares source, time,
 version, and authority confidence.
+
+Worker trust configuration uses public strategy-signing keys only:
+
+- `YNX_QUANT_STRATEGY_KEYRING` — strict JSON public-key keyring path
+- `YNX_QUANT_DEPENDENCY_ALLOWLIST` — strict JSON dependency version/hash map
+
+If either file is absent, package verification has no trusted signer and every
+job fails closed. These are strategy-artifact signing keys, never Wallet keys.
 
 The standalone SDKs are under `apps/quant-lab/sdk/python` and
 `apps/quant-lab/sdk/typescript`. Neither SDK can sign, hold Wallet keys,

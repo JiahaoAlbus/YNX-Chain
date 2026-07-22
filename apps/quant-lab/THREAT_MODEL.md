@@ -18,7 +18,7 @@ backup/signing/deployment systems.
 | --- | --- | --- |
 | forged/widened/replayed mandate | exact strategy/market/limit/expiry binding, verifier interface, replay/idempotency tests | canonical Gateway and Wallet verifier integration |
 | revoked or expired execution | persistent revocation and expiry checks before submit | remote revoke propagation drill |
-| strategy escape or malware | worker accepts only schema-bound built-in strategy requests with SHA-256 payload match; no source execution | container/WASM sandbox for future user code |
+| strategy escape or malware | worker accepts only signed schema-bound built-in packages; exact source/artifact hashes, scan evidence, dependency allowlist, deterministic limits, and zero host/network/key/secret permissions; no source execution | container/WASM sandbox for future user code |
 | secret or Wallet-key exposure | no key fields or signing route; scanners; adapters receive bounded proof only | deployed secret manager and redacted telemetry test |
 | state overwrite/tamper | integrity hash, atomic writes, cross-process lock, tamper tests | transactional database and replica failover |
 | path/symlink attack on worker spool | fixed operator-configured roots, constrained job IDs, regular-file requirement | `openat`/no-follow hardening and container mount policy |

@@ -21,6 +21,7 @@ runtime_targets=(
   cmd/ynx-quant-desktop
   internal/quantlab
   internal/quantworker
+  internal/quantpackage
   internal/quantcli
 )
 
@@ -33,11 +34,11 @@ fi
 jq -e '.productId == "ynx-quant-lab" and .implementedLocal == true and .deployedPublic == false' apps/quant-lab/product-release.json >/dev/null
 jq -e '.productId == "ynx-quant-lab" and (.downloads | type == "array")' apps/quant-lab/public-product-metadata.json >/dev/null
 
-go test ./internal/quantlab ./internal/quantworker ./internal/quantapp ./internal/quantcli \
+go test ./internal/quantlab ./internal/quantworker ./internal/quantpackage ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
   ./cmd/ynx-quant-riskd ./cmd/ynx-quant-web ./cmd/ynx-quant-cli
 go test ./cmd/ynx-quant-desktop
-go vet ./internal/quantlab ./internal/quantworker ./internal/quantapp ./internal/quantcli \
+go vet ./internal/quantlab ./internal/quantworker ./internal/quantpackage ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
   ./cmd/ynx-quant-riskd ./cmd/ynx-quant-web ./cmd/ynx-quant-cli
 go vet ./cmd/ynx-quant-desktop

@@ -1,15 +1,19 @@
 package quantworker
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/quantpackage"
 )
 
 func validRequest() quantlab.BacktestRequest {
@@ -29,10 +33,15 @@ func TestSignedDeterministicJobAndTamperRejection(t *testing.T) {
 	request := validRequest()
 	payload, _ := json.Marshal(request)
 	hash := sha256.Sum256(payload)
-	job := Job{Schema: 1, ID: "job-001", PayloadHash: hex.EncodeToString(hash[:]), Request: request}
+	artifactHash := hex.EncodeToString(hash[:])
+	publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
+	manifest := quantpackage.Manifest{Schema: 1, PackageID: "worker-ma", Version: "1.0.0", Runtime: "ynx-built-in-ma-v1", SourceSHA256: quantpackage.HashString(request.Strategy.Source + "\n" + request.Strategy.SourceCommit), ArtifactSHA256: artifactHash, Permissions: quantpackage.Permissions{}, Limits: quantpackage.Limits{CPUMilliseconds: 5_000, MemoryBytes: 128 << 20, WallMilliseconds: 10_000, MaxInputBars: 100_000}, DeterministicClock: true, CheckpointRecovery: true, Scan: quantpackage.ScanEvidence{SecretScanPassed: true, MalwareScanPassed: true, ScannerVersion: "test-scanner-1", EvidenceSHA256: strings.Repeat("a", 64)}, SignerKeyID: "test-signer"}
+	manifest = quantpackage.Sign(manifest, privateKey)
+	job := Job{Schema: 1, ID: "job-001", PayloadHash: artifactHash, Request: request, Package: manifest}
+	worker := Worker{Inbox: inbox, Outbox: outbox, Service: service, PackageVerifier: quantpackage.Verifier{TrustedSigners: map[string]ed25519.PublicKey{"test-signer": publicKey}, DependencyAllowlist: map[string]map[string]string{}}}
 	encoded, _ := json.Marshal(job)
 	_ = os.WriteFile(filepath.Join(inbox, "job.json"), encoded, 0600)
-	result, err := (Worker{Inbox: inbox, Outbox: outbox, Service: service}).RunOne()
+	result, err := worker.RunOne()
 	if err != nil || result.Status != "completed" || result.Experiment.ID == "" {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
@@ -44,7 +53,7 @@ func TestSignedDeterministicJobAndTamperRejection(t *testing.T) {
 	job.PayloadHash = "0000000000000000000000000000000000000000000000000000000000000000"
 	encoded, _ = json.Marshal(job)
 	_ = os.WriteFile(filepath.Join(inbox, "tampered.json"), encoded, 0600)
-	if _, err = (Worker{Inbox: inbox, Outbox: outbox, Service: service}).RunOne(); err != quantlab.ErrForbidden {
+	if _, err = worker.RunOne(); err != quantlab.ErrForbidden {
 		t.Fatalf("tamper=%v", err)
 	}
 }

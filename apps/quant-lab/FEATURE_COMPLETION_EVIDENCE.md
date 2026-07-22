@@ -14,7 +14,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | REST and WebSocket | tested local | HTTP strict-schema/role tests and metadata-bearing WebSocket test |
 | CLI | tested local | approval and loopback gates; backup record test |
 | Python/TypeScript SDK | built/tested local | Python unit tests and wheel build; Node tests and package dry-run |
-| worker sandbox boundary | tested local | built-in schema only, payload hash, tamper rejection; arbitrary source execution absent |
+| worker sandbox boundary | tested local | Ed25519 package signature, source/artifact hashes, scan evidence, dependency allowlist, resource bounds, zero host/network/key/secret permission, payload tamper rejection; arbitrary source execution absent |
 | state backup/restore | tested local | atomic backup, restore drill, schema/integrity and tamper rejection |
 | web accessibility/i18n | tested local | 12 catalog parity, Arabic RTL, 390 px overflow, light/dark browser evidence |
 | independent daemons | built/smoked local | core, worker, paper, risk, web, CLI builds; cross-process risk propagation smoke |

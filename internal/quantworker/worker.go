@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/quantpackage"
 )
 
 type Job struct {
@@ -19,6 +20,7 @@ type Job struct {
 	ID          string                   `json:"id"`
 	PayloadHash string                   `json:"payloadHash"`
 	Request     quantlab.BacktestRequest `json:"request"`
+	Package     quantpackage.Manifest    `json:"package"`
 }
 
 type Result struct {
@@ -31,9 +33,10 @@ type Result struct {
 }
 
 type Worker struct {
-	Inbox   string
-	Outbox  string
-	Service *quantlab.Service
+	Inbox           string
+	Outbox          string
+	Service         *quantlab.Service
+	PackageVerifier quantpackage.Verifier
 }
 
 var ErrNoJob = errors.New("no job")
@@ -74,6 +77,10 @@ func (w Worker) RunOne() (Result, error) {
 	canonical, _ := json.Marshal(job.Request)
 	digest := sha256.Sum256(canonical)
 	if !strings.EqualFold(job.PayloadHash, hex.EncodeToString(digest[:])) {
+		return Result{}, quantlab.ErrForbidden
+	}
+	sourceIdentity := job.Request.Strategy.Source + "\n" + job.Request.Strategy.SourceCommit
+	if err := w.PackageVerifier.Verify(job.Package, job.PayloadHash, sourceIdentity, len(job.Request.Bars)); err != nil {
 		return Result{}, quantlab.ErrForbidden
 	}
 	experiment, err := w.Service.RunBacktest(job.Request)
