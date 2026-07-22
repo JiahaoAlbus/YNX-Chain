@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "6d75c60864c61c02ed57b736b69b250765aa07d1",
+  "commit": "574f28500819f091e369c1900db09bab50bda649",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -19,18 +19,22 @@
   "artifactUrls": [],
   "sha256": {
     "dist/index.html": "efa86c39e42aa2e191fc1eed4e9b66c9db9532302bb2a014b24d31073a395c27",
-    "dist/app.js": "091cb1805e4bb9d7d863588150b177f67c3d3eaf70d2e8e5df45ae76dd8098e2",
-    "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881"
+    "dist/app.js": "6f046b72ea72935208d41f5741a5030bd03d4019d15bc3ed0421cd39085ad95b",
+    "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
+    "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
+    "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d"
   },
   "bytes": {
     "dist/index.html": 922,
-    "dist/app.js": 119329,
-    "dist/styles.css": 5918
+    "dist/app.js": 127003,
+    "dist/styles.css": 5918,
+    "artifacts/sbom/frontend.cdx.json": 7276,
+    "artifacts/sbom/backend-modules.json": 57262
   },
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Provider Hub, capital tools, restore drill, end-to-end capacity and public Testnet evidence remain incomplete."],
+  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Official provider adapters/credentials, executable capital services, restore drill, end-to-end capacity and public Testnet evidence remain incomplete."],
   "generatedAt": "2026-07-22T00:00:00+08:00"
 }
