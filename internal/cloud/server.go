@@ -223,6 +223,12 @@ func (s *Server) auth(next authed) http.HandlerFunc {
 			writeError(w, 401, "session expired or revoked")
 			return
 		}
+		if id := r.PathValue("id"); id != "" && strings.HasPrefix(r.URL.Path, "/api/v1/objects/") {
+			if err := s.service.CheckObjectProduct(session.Account, id, session.Product); err != nil {
+				writeError(w, 403, "object is outside the authenticated product boundary")
+				return
+			}
+		}
 		next(w, r, session)
 	}
 }
@@ -294,7 +300,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request, a Session) {
 		}
 		limit = parsed
 	}
-	page, err := s.service.ListPage(a.Account, ListOptions{ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view"), Limit: limit, Cursor: r.URL.Query().Get("cursor")})
+	page, err := s.service.ListPage(a.Account, ListOptions{Product: a.Product, ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view"), Limit: limit, Cursor: r.URL.Query().Get("cursor")})
 	writeResult(w, page, err)
 }
 func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
@@ -305,6 +311,7 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	if !decode(w, r, &req, MaxUploadBytes*2) {
 		return
 	}
+	req.Product = a.Product
 	obj, err := s.service.Create(r.Context(), a.Account, req)
 	if err != nil {
 		writeServiceError(w, err)
@@ -328,7 +335,7 @@ func (s *Server) initiateMultipart(w http.ResponseWriter, r *http.Request, a Ses
 	if !decode(w, r, &req, 32<<10) {
 		return
 	}
-	u, err := s.service.InitiateMultipart(a.Account, CreateObjectRequest{ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
+	u, err := s.service.InitiateMultipart(a.Account, CreateObjectRequest{Product: a.Product, ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -407,7 +414,7 @@ func (s *Server) initiateDirectUpload(w http.ResponseWriter, r *http.Request, a 
 	if !decode(w, r, &req, 32<<10) {
 		return
 	}
-	u, plan, err := s.service.InitiateDirectUpload(r.Context(), a.Account, CreateObjectRequest{ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
+	u, plan, err := s.service.InitiateDirectUpload(r.Context(), a.Account, CreateObjectRequest{Product: a.Product, ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -658,7 +665,7 @@ func (s *Server) decideAccess(w http.ResponseWriter, r *http.Request, a Session)
 	if !decode(w, r, &req, 1024) {
 		return
 	}
-	v, err := s.service.DecideAccess(a.Account, r.PathValue("request"), req.Decision)
+	v, err := s.service.DecideAccess(a.Account, a.Product, r.PathValue("request"), req.Decision)
 	writeResult(w, v, err)
 }
 
@@ -702,21 +709,21 @@ func (s *Server) presence(w http.ResponseWriter, r *http.Request, a Session) {
 	writeResult(w, v, err)
 }
 func (s *Server) quota(w http.ResponseWriter, r *http.Request, a Session) {
-	used, limit := s.service.Quota(a.Account)
+	used, limit := s.service.Quota(a.Account, a.Product)
 	writeJSON(w, 200, map[string]any{"usedBytes": used, "limitBytes": limit, "claim": "bounded local product quota; not unlimited storage"})
 }
 func (s *Server) audit(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "audit.read") {
 		return
 	}
-	v, err := s.service.Audit(a.Account)
+	v, err := s.service.Audit(a.Account, a.Product)
 	writeResult(w, v, err)
 }
 func (s *Server) exportData(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
-	body, manifest, err := s.service.ExportOwnedData(r.Context(), a.Account)
+	body, manifest, err := s.service.ExportOwnedData(r.Context(), a.Account, a.Product)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -732,14 +739,14 @@ func (s *Server) deletions(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
-	v, err := s.service.BlobDeletions(a.Account)
+	v, err := s.service.BlobDeletions(a.Account, a.Product)
 	writeResult(w, v, err)
 }
 func (s *Server) retryDeletion(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
-	v, err := s.service.RetryBlobDeletion(r.Context(), a.Account, r.PathValue("deletion"))
+	v, err := s.service.RetryBlobDeletion(r.Context(), a.Account, a.Product, r.PathValue("deletion"))
 	writeResult(w, v, err)
 }
 func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a Session) {
@@ -762,7 +769,7 @@ func (s *Server) aiJob(w http.ResponseWriter, r *http.Request, a Session) {
 	if !decode(w, r, &req, 64<<10) {
 		return
 	}
-	v, err := s.service.CreateAIJob(r.Context(), a.Account, req.Mode, req.Instruction, req.ObjectIDs, req.Versions, req.Consent)
+	v, err := s.service.CreateAIJob(r.Context(), a.Account, a.Product, req.Mode, req.Instruction, req.ObjectIDs, req.Versions, req.Consent)
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -773,14 +780,14 @@ func (s *Server) aiGet(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "ai.use") {
 		return
 	}
-	v, err := s.service.GetAIJob(a.Account, r.PathValue("job"))
+	v, err := s.service.GetAIJob(a.Account, a.Product, r.PathValue("job"))
 	writeResult(w, v, err)
 }
 func (s *Server) aiCancel(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "ai.use") {
 		return
 	}
-	v, err := s.service.CancelAIJob(a.Account, r.PathValue("job"))
+	v, err := s.service.CancelAIJob(a.Account, a.Product, r.PathValue("job"))
 	writeResult(w, v, err)
 }
 func (s *Server) aiReview(w http.ResponseWriter, r *http.Request, a Session) {
@@ -793,7 +800,7 @@ func (s *Server) aiReview(w http.ResponseWriter, r *http.Request, a Session) {
 	if !decode(w, r, &req, 1024) {
 		return
 	}
-	v, err := s.service.ReviewAI(a.Account, r.PathValue("job"), req.Decision)
+	v, err := s.service.ReviewAI(a.Account, a.Product, r.PathValue("job"), req.Decision)
 	writeResult(w, v, err)
 }
 

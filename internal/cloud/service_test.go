@@ -103,12 +103,12 @@ func TestFileLifecyclePermissionsVersionsAndAI(t *testing.T) {
 	if _, err := s.AddComment(viewer, doc.ID, 2, "Please review", []string{owner}); err != nil {
 		t.Fatal(err)
 	}
-	job, err := s.CreateAIJob(ctx, owner, "summarize", "Summarize", []string{doc.ID}, []int{2}, true)
+	job, err := s.CreateAIJob(ctx, owner, "docs", "summarize", "Summarize", []string{doc.ID}, []int{2}, true)
 	if err != nil || job.Status != "queued" || len(job.Citations) != 1 {
 		t.Fatalf("AI job: %#v %v", job, err)
 	}
 	for i := 0; i < 100; i++ {
-		job, err = s.GetAIJob(owner, job.ID)
+		job, err = s.GetAIJob(owner, "docs", job.ID)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -120,7 +120,7 @@ func TestFileLifecyclePermissionsVersionsAndAI(t *testing.T) {
 	if job.Status != "review" {
 		t.Fatalf("AI job did not reach review: %#v", job)
 	}
-	if _, err := s.ReviewAI(owner, job.ID, "applied"); err != nil {
+	if _, err := s.ReviewAI(owner, "docs", job.ID, "applied"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.RevokeGrant(owner, folder.ID, grant.ID); err != nil {
@@ -261,7 +261,7 @@ func TestPortableExportAndLegalHold(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	archive, manifest, err := s.ExportOwnedData(ctx, owner)
+	archive, manifest, err := s.ExportOwnedData(ctx, owner, "cloud")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func TestPhysicalDeleteReferenceCountingAndPendingTruth(t *testing.T) {
 	if _, err = os.Stat(blob); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("final unreferenced blob retained: %v", err)
 	}
-	deletions, err := s.BlobDeletions(owner)
+	deletions, err := s.BlobDeletions(owner, "cloud")
 	if err != nil || len(deletions) != 1 || deletions[0].Status != "completed" || deletions[0].Ref != "" {
 		t.Fatalf("completed deletion evidence: %#v %v", deletions, err)
 	}
@@ -439,15 +439,15 @@ func TestPhysicalDeleteReferenceCountingAndPendingTruth(t *testing.T) {
 	if !errors.As(err, &pending) || pending.Count != 1 {
 		t.Fatalf("pending result: %v", err)
 	}
-	deletions, err = s.BlobDeletions(owner)
+	deletions, err = s.BlobDeletions(owner, "cloud")
 	if err != nil || len(deletions) != 1 || deletions[0].Status != "pending" || deletions[0].LastError == "" {
 		t.Fatalf("pending evidence: %#v %v", deletions, err)
 	}
-	retried, err := s.RetryBlobDeletion(context.Background(), owner, deletions[0].ID)
+	retried, err := s.RetryBlobDeletion(context.Background(), owner, "cloud", deletions[0].ID)
 	if err != nil || retried.Status != "pending" || retried.Attempts != 2 || retried.Ref != "" {
 		t.Fatalf("retry evidence: %#v %v", retried, err)
 	}
-	if _, err := s.RetryBlobDeletion(context.Background(), viewer, deletions[0].ID); !errors.Is(err, ErrDenied) {
+	if _, err := s.RetryBlobDeletion(context.Background(), viewer, "cloud", deletions[0].ID); !errors.Is(err, ErrDenied) {
 		t.Fatalf("foreign retry: %v", err)
 	}
 }
@@ -506,7 +506,7 @@ func TestRestartIntegrityQuotaAndEncryptedAIBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := restarted.CreateAIJob(context.Background(), owner, "summarize", "read", []string{encrypted.ID}, []int{1}, true); err == nil {
+	if _, err := restarted.CreateAIJob(context.Background(), owner, "cloud", "summarize", "read", []string{encrypted.ID}, []int{1}, true); err == nil {
 		t.Fatal("encrypted file must not enter AI")
 	}
 	versions, _ := restarted.Versions(owner, file.ID)
@@ -583,7 +583,7 @@ func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.DecideAccess(owner, req.ID, "approved"); err != nil {
+	if _, err := s.DecideAccess(owner, "cloud", req.ID, "approved"); err != nil {
 		t.Fatal(err)
 	}
 	link, token, err := s.CreateLink(owner, file.ID, "viewer", now.Add(time.Hour))
@@ -615,5 +615,59 @@ func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	}
 	if _, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "evil.txt", MIME: "text/plain", Content: []byte("EICAR-STANDARD-ANTIVIRUS-TEST-FILE")}); err == nil {
 		t.Fatal("malware interface should reject")
+	}
+}
+
+func TestCrossProductSecondarySurfacesFailClosed(t *testing.T) {
+	s := testService(t, nil)
+	ctx := context.Background()
+	cloudFile, err := s.Create(ctx, owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "cloud.txt", MIME: "text/plain", Content: []byte("cloud")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := s.Create(ctx, owner, CreateObjectRequest{Product: "docs", Kind: KindDoc, Name: "docs.txt", MIME: "text/plain", Content: []byte("docs")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if used, _ := s.Quota(owner, "cloud"); used != 5 {
+		t.Fatalf("cloud quota leaked: %d", used)
+	}
+	if used, _ := s.Quota(owner, "docs"); used != 4 {
+		t.Fatalf("docs quota leaked: %d", used)
+	}
+	_, cloudExport, err := s.ExportOwnedData(ctx, owner, "cloud")
+	if err != nil || len(cloudExport.Objects) != 1 || cloudExport.Objects[0].ID != cloudFile.ID {
+		t.Fatalf("cloud export crossed product: %#v %v", cloudExport.Objects, err)
+	}
+	if _, err := s.CreateAIJob(ctx, owner, "cloud", "summarize", "read", []string{doc.ID}, []int{1}, true); !errors.Is(err, ErrDenied) {
+		t.Fatalf("AI accepted cross-product object: %v", err)
+	}
+	request, err := s.RequestAccess(viewer, doc.ID, "viewer", "review")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DecideAccess(owner, "cloud", request.ID, "approved"); !errors.Is(err, ErrDenied) {
+		t.Fatalf("cross-product access decision accepted: %v", err)
+	}
+	cloudAudit, err := s.Audit(owner, "cloud")
+	if err != nil || len(cloudAudit) == 0 {
+		t.Fatalf("cloud audit missing: %v", err)
+	}
+	for _, event := range cloudAudit {
+		if auditProduct(event, s.state.Objects) != "cloud" {
+			t.Fatalf("cloud audit leaked product: %#v", event)
+		}
+	}
+	if _, err := s.SetTrash(owner, doc.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteObject(owner, doc.ID); err != nil {
+		t.Fatal(err)
+	}
+	if deletions, err := s.BlobDeletions(owner, "cloud"); err != nil || len(deletions) != 0 {
+		t.Fatalf("cloud deletion list leaked docs: %#v %v", deletions, err)
+	}
+	if deletions, err := s.BlobDeletions(owner, "docs"); err != nil || len(deletions) != 1 {
+		t.Fatalf("docs deletion list missing: %#v %v", deletions, err)
 	}
 }

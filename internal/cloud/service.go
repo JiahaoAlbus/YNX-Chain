@@ -121,6 +121,14 @@ func hashBytes(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToStri
 func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v) >= 20 && len(v) <= 96 }
 
 func (s *Service) persist(action, actor, objectID string, details map[string]any) error {
+	if details == nil {
+		details = map[string]any{}
+	}
+	if _, exists := details["product"]; !exists {
+		if object, ok := s.state.Objects[objectID]; ok {
+			details["product"] = object.Product
+		}
+	}
 	event := AuditEvent{ID: newID("audit"), Actor: actor, Action: action, ObjectID: objectID, At: s.cfg.Now(), Details: details}
 	s.state.Audit = append(s.state.Audit, event)
 	if len(s.state.Audit) > 5000 {
@@ -210,6 +218,22 @@ func validateArtifact(a *Artifact) error {
 	return nil
 }
 
+func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
+	if product == "" {
+		if kind == KindDoc {
+			return "docs", nil
+		}
+		return "cloud", nil
+	}
+	if product == "cloud" && (kind == KindFile || kind == KindFolder) {
+		return product, nil
+	}
+	if product == "docs" && kind == KindDoc {
+		return product, nil
+	}
+	return "", ErrInvalid
+}
+
 func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequest) (Object, error) {
 	if !validAccount(actor) || validateName(req.Name) != nil || validateArtifact(req.Artifact) != nil {
 		return Object{}, ErrInvalid
@@ -217,6 +241,11 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 	if req.Kind != KindFolder && req.Kind != KindFile && req.Kind != KindDoc {
 		return Object{}, ErrInvalid
 	}
+	product, err := normalizeObjectProduct(req.Product, req.Kind)
+	if err != nil {
+		return Object{}, err
+	}
+	req.Product = product
 	if req.Kind == KindFolder && len(req.Content) != 0 {
 		return Object{}, ErrInvalid
 	}
@@ -247,7 +276,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		}
 	}
 	now := s.cfg.Now()
-	obj := Object{ID: newID("obj"), Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact}
+	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
 		path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
@@ -264,7 +293,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now}}
 	}
 	s.state.Objects[obj.ID] = obj
-	if err := s.persist("object.create", actor, obj.ID, map[string]any{"kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
+	if err := s.persist("object.create", actor, obj.ID, map[string]any{"product": obj.Product, "kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
 		return Object{}, err
 	}
 	return obj, nil
@@ -277,6 +306,11 @@ func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expec
 	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
 		return MultipartUpload{}, ErrInvalid
 	}
+	product, err := normalizeObjectProduct(req.Product, KindFile)
+	if err != nil {
+		return MultipartUpload{}, err
+	}
+	req.Product = product
 	if req.Encryption.ClientSide {
 		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
 			return MultipartUpload{}, ErrInvalid
@@ -296,9 +330,9 @@ func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expec
 		}
 	}
 	now := s.cfg.Now()
-	u := MultipartUpload{ID: newID("upload"), Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, Status: "active", Parts: map[int]MultipartPart{}, CreatedAt: now, UpdatedAt: now}
+	u := MultipartUpload{ID: newID("upload"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, Status: "active", Parts: map[int]MultipartPart{}, CreatedAt: now, UpdatedAt: now}
 	s.state.MultipartUploads[u.ID] = u
-	if err := s.persist("multipart.initiate", actor, "", map[string]any{"uploadId": u.ID, "expectedSize": expectedSize, "expectedHash": expectedHash}); err != nil {
+	if err := s.persist("multipart.initiate", actor, "", map[string]any{"product": u.Product, "uploadId": u.ID, "expectedSize": expectedSize, "expectedHash": expectedHash}); err != nil {
 		delete(s.state.MultipartUploads, u.ID)
 		return MultipartUpload{}, err
 	}
@@ -335,7 +369,7 @@ func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number
 	u.Parts[number] = p
 	u.UpdatedAt = s.cfg.Now()
 	s.state.MultipartUploads[id] = u
-	if err := s.persist("multipart.part", actor, "", map[string]any{"uploadId": id, "part": number, "size": len(body), "hash": claimedHash}); err != nil {
+	if err := s.persist("multipart.part", actor, "", map[string]any{"product": u.Product, "uploadId": id, "part": number, "size": len(body), "hash": claimedHash}); err != nil {
 		return MultipartPart{}, err
 	}
 	return p, nil
@@ -365,7 +399,7 @@ func (s *Service) CancelMultipart(actor, id string) error {
 		return ErrDenied
 	}
 	delete(s.state.MultipartUploads, id)
-	return s.persist("multipart.cancel", actor, "", map[string]any{"uploadId": id, "parts": len(u.Parts)})
+	return s.persist("multipart.cancel", actor, "", map[string]any{"product": u.Product, "uploadId": id, "parts": len(u.Parts)})
 }
 
 func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, ordered []int) (Object, error) {
@@ -421,7 +455,7 @@ func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, order
 		failed()
 		return Object{}, errors.New("multipart final integrity mismatch")
 	}
-	obj, err := s.Create(ctx, actor, CreateObjectRequest{ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Content: body, Encryption: u.Encryption, Artifact: u.Artifact})
+	obj, err := s.Create(ctx, actor, CreateObjectRequest{Product: u.Product, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Content: body, Encryption: u.Encryption, Artifact: u.Artifact})
 	if err != nil {
 		failed()
 		return Object{}, err
@@ -447,6 +481,11 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
 		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
 	}
+	product, productErr := normalizeObjectProduct(req.Product, KindFile)
+	if productErr != nil {
+		return DirectUpload{}, DirectUploadPlan{}, productErr
+	}
+	req.Product = product
 	if req.MIME == "" {
 		req.MIME = "application/octet-stream"
 	}
@@ -471,11 +510,11 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 		return DirectUpload{}, DirectUploadPlan{}, err
 	}
 	now := s.cfg.Now()
-	u := DirectUpload{ID: newID("direct"), Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, ProviderRef: plan.Ref, Status: "awaiting-upload", CreatedAt: now, UpdatedAt: now, ExpiresAt: plan.ExpiresAt}
+	u := DirectUpload{ID: newID("direct"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, ProviderRef: plan.Ref, Status: "awaiting-upload", CreatedAt: now, UpdatedAt: now, ExpiresAt: plan.ExpiresAt}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.state.DirectUploads[u.ID] = u
-	if err := s.persist("direct.initiate", actor, "", map[string]any{"directUploadId": u.ID, "size": expectedSize, "hash": expectedHash, "expiresAt": plan.ExpiresAt}); err != nil {
+	if err := s.persist("direct.initiate", actor, "", map[string]any{"product": u.Product, "directUploadId": u.ID, "size": expectedSize, "hash": expectedHash, "expiresAt": plan.ExpiresAt}); err != nil {
 		delete(s.state.DirectUploads, u.ID)
 		return DirectUpload{}, DirectUploadPlan{}, err
 	}
@@ -558,7 +597,7 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 		return Object{}, err
 	}
 	now := s.cfg.Now()
-	obj := Object{ID: newID("obj"), Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
+	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
 	s.state.Objects[obj.ID] = obj
 	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now}}
 	u.Status = "completed"
@@ -600,7 +639,7 @@ func (s *Service) CancelDirectUpload(ctx context.Context, actor, id string) (Dir
 		u.Status = "canceled"
 	}
 	s.state.DirectUploads[id] = u
-	if persistErr := s.persist("direct.cancel", actor, "", map[string]any{"directUploadId": id, "status": u.Status}); persistErr != nil {
+	if persistErr := s.persist("direct.cancel", actor, "", map[string]any{"product": u.Product, "directUploadId": id, "status": u.Status}); persistErr != nil {
 		return DirectUpload{}, persistErr
 	}
 	if err != nil {
@@ -659,6 +698,9 @@ func (s *Service) List(actor string, opt ListOptions) ([]Object, error) {
 	q := strings.ToLower(strings.TrimSpace(opt.Query))
 	out := []Object{}
 	for _, obj := range s.state.Objects {
+		if opt.Product != "" && obj.Product != opt.Product {
+			continue
+		}
 		if rank(s.role(actor, obj)) == 0 {
 			continue
 		}
@@ -712,6 +754,9 @@ func (s *Service) ListPage(actor string, opt ListOptions) (ObjectPage, error) {
 	scanned := 0
 	for _, obj := range s.state.Objects {
 		scanned++
+		if opt.Product != "" && obj.Product != opt.Product {
+			continue
+		}
 		if rank(s.role(actor, obj)) == 0 {
 			continue
 		}
@@ -757,6 +802,22 @@ func (s *Service) ListPage(actor string, opt ListOptions) (ObjectPage, error) {
 		next = items[len(items)-1].ID
 	}
 	return ObjectPage{Items: items, NextCursor: next, Limit: opt.Limit, Scanned: scanned}, nil
+}
+
+func (s *Service) CheckObjectProduct(actor, id, product string) error {
+	if product != "cloud" && product != "docs" {
+		return ErrDenied
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 1)
+	if err != nil {
+		return err
+	}
+	if obj.Product != product {
+		return ErrDenied
+	}
+	return nil
 }
 
 func objectBefore(a, b Object) bool {
@@ -931,7 +992,7 @@ func (s *Service) DeleteObject(actor, id string) error {
 	delete(s.state.Comments, id)
 	delete(s.state.Versions, id)
 	delete(s.state.Objects, id)
-	if err := s.persist("object.delete", actor, id, map[string]any{"kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "physicalDeletion": "attempted only after final content reference"}); err != nil {
+	if err := s.persist("object.delete", actor, id, map[string]any{"product": obj.Product, "kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "physicalDeletion": "attempted only after final content reference"}); err != nil {
 		var restored persistentState
 		if json.Unmarshal(before, &restored) == nil {
 			s.state = restored
@@ -953,7 +1014,7 @@ func (s *Service) DeleteObject(actor, id string) error {
 	pending := 0
 	for _, v := range unique {
 		now := s.cfg.Now()
-		d := BlobDeletion{ID: newID("deletion"), Owner: actor, Hash: v.Hash, Ref: v.BlobPath, Status: "completed", Attempts: 1, RequestedAt: now, UpdatedAt: now}
+		d := BlobDeletion{ID: newID("deletion"), Product: obj.Product, Owner: actor, Hash: v.Hash, Ref: v.BlobPath, Status: "completed", Attempts: 1, RequestedAt: now, UpdatedAt: now}
 		if err := s.cfg.ObjectStore.Delete(context.Background(), v.BlobPath, v.Hash); err != nil {
 			d.Status = "pending"
 			d.LastError = "provider deletion failed; operator retry required"
@@ -962,7 +1023,7 @@ func (s *Service) DeleteObject(actor, id string) error {
 		s.state.BlobDeletions[d.ID] = d
 	}
 	if len(unique) > 0 {
-		if err := s.persist("blob.delete", actor, id, map[string]any{"eligible": len(unique), "pending": pending}); err != nil {
+		if err := s.persist("blob.delete", actor, id, map[string]any{"product": obj.Product, "eligible": len(unique), "pending": pending}); err != nil {
 			return err
 		}
 	}
@@ -972,15 +1033,15 @@ func (s *Service) DeleteObject(actor, id string) error {
 	return nil
 }
 
-func (s *Service) BlobDeletions(actor string) ([]BlobDeletion, error) {
-	if !validAccount(actor) {
+func (s *Service) BlobDeletions(actor, product string) ([]BlobDeletion, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
 		return nil, ErrInvalid
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := []BlobDeletion{}
 	for _, d := range s.state.BlobDeletions {
-		if d.Owner == actor {
+		if d.Owner == actor && d.Product == product {
 			copy := d
 			copy.Ref = ""
 			copy.LastError = strings.TrimSpace(copy.LastError)
@@ -991,14 +1052,17 @@ func (s *Service) BlobDeletions(actor string) ([]BlobDeletion, error) {
 	return out, nil
 }
 
-func (s *Service) RetryBlobDeletion(ctx context.Context, actor, id string) (BlobDeletion, error) {
+func (s *Service) RetryBlobDeletion(ctx context.Context, actor, product, id string) (BlobDeletion, error) {
+	if product != "cloud" && product != "docs" {
+		return BlobDeletion{}, ErrInvalid
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d, ok := s.state.BlobDeletions[id]
 	if !ok {
 		return BlobDeletion{}, ErrNotFound
 	}
-	if d.Owner != actor {
+	if d.Owner != actor || d.Product != product {
 		return BlobDeletion{}, ErrDenied
 	}
 	if d.Status == "completed" {
@@ -1015,23 +1079,23 @@ func (s *Service) RetryBlobDeletion(ctx context.Context, actor, id string) (Blob
 		d.LastError = ""
 	}
 	s.state.BlobDeletions[id] = d
-	if err := s.persist("blob.delete.retry", actor, "", map[string]any{"deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
+	if err := s.persist("blob.delete.retry", actor, "", map[string]any{"product": d.Product, "deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
 		return BlobDeletion{}, err
 	}
 	d.Ref = ""
 	return d, nil
 }
 
-func (s *Service) ExportOwnedData(ctx context.Context, actor string) ([]byte, ExportManifest, error) {
-	if !validAccount(actor) {
+func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([]byte, ExportManifest, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
 		return nil, ExportManifest{}, ErrInvalid
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
+	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Product: product, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
 	owned := map[string]bool{}
 	for _, obj := range s.state.Objects {
-		if obj.Owner == actor {
+		if obj.Owner == actor && obj.Product == product {
 			manifest.Objects = append(manifest.Objects, obj)
 			owned[obj.ID] = true
 		}
@@ -1043,7 +1107,7 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor string) ([]byte, Ex
 		}
 	}
 	for _, e := range s.state.Audit {
-		if e.Actor == actor || owned[e.ObjectID] {
+		if auditProduct(e, s.state.Objects) == product && (e.Actor == actor || owned[e.ObjectID]) {
 			manifest.Audit = append(manifest.Audit, e)
 		}
 	}
@@ -1088,7 +1152,7 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor string) ([]byte, Ex
 	if err = zw.Close(); err != nil {
 		return nil, ExportManifest{}, err
 	}
-	if err := s.persist("data.export", actor, "", map[string]any{"objects": len(manifest.Objects), "versions": len(manifest.Versions), "bytes": out.Len()}); err != nil {
+	if err := s.persist("data.export", actor, "", map[string]any{"product": product, "objects": len(manifest.Objects), "versions": len(manifest.Versions), "bytes": out.Len()}); err != nil {
 		return nil, ExportManifest{}, err
 	}
 	return out.Bytes(), manifest, nil
@@ -1248,7 +1312,7 @@ func (s *Service) RequestAccess(actor, id, role, message string) (AccessRequest,
 	}
 	return r, nil
 }
-func (s *Service) DecideAccess(actor, requestID, decision string) (AccessRequest, error) {
+func (s *Service) DecideAccess(actor, product, requestID, decision string) (AccessRequest, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r, ok := s.state.AccessRequests[requestID]
@@ -1257,6 +1321,9 @@ func (s *Service) DecideAccess(actor, requestID, decision string) (AccessRequest
 	}
 	if _, err := s.require(actor, r.ObjectID, 3); err != nil {
 		return AccessRequest{}, err
+	}
+	if obj := s.state.Objects[r.ObjectID]; obj.Product != product {
+		return AccessRequest{}, ErrDenied
 	}
 	if r.Status != "pending" || (decision != "approved" && decision != "denied") {
 		return AccessRequest{}, ErrInvalid
@@ -1348,12 +1415,28 @@ func (s *Service) Presence(actor, id, label string) ([]Presence, error) {
 	return out, nil
 }
 
-func (s *Service) Audit(actor string) ([]AuditEvent, error) {
+func auditProduct(event AuditEvent, objects map[string]Object) string {
+	if object, ok := objects[event.ObjectID]; ok {
+		return object.Product
+	}
+	if product, ok := event.Details["product"].(string); ok {
+		return product
+	}
+	return ""
+}
+
+func (s *Service) Audit(actor, product string) ([]AuditEvent, error) {
+	if product != "cloud" && product != "docs" {
+		return nil, ErrInvalid
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	out := []AuditEvent{}
 	for i := len(s.state.Audit) - 1; i >= 0 && len(out) < 200; i-- {
 		e := s.state.Audit[i]
+		if auditProduct(e, s.state.Objects) != product {
+			continue
+		}
 		if e.Actor == actor {
 			out = append(out, e)
 			continue
@@ -1366,14 +1449,31 @@ func (s *Service) Audit(actor string) ([]AuditEvent, error) {
 	}
 	return out, nil
 }
-func (s *Service) usedLocked(actor string) int64 {
+func (s *Service) usedLockedProduct(actor, product string) int64 {
 	var total int64
 	seen := map[string]bool{}
 	for _, o := range s.state.Objects {
-		if o.Owner != actor || o.Kind == KindFolder {
+		if o.Owner != actor || o.Product != product || o.Kind == KindFolder {
 			continue
 		}
 		for _, version := range s.state.Versions[o.ID] {
+			if !seen[version.Hash] {
+				seen[version.Hash] = true
+				total += version.Size
+			}
+		}
+	}
+	return total
+}
+
+func (s *Service) usedLocked(actor string) int64 {
+	var total int64
+	seen := map[string]bool{}
+	for _, object := range s.state.Objects {
+		if object.Owner != actor || object.Kind == KindFolder {
+			continue
+		}
+		for _, version := range s.state.Versions[object.ID] {
 			if !seen[version.Hash] {
 				seen[version.Hash] = true
 				total += version.Size
@@ -1396,17 +1496,20 @@ func (s *Service) additionalLocked(actor, hash string, size int64) int64 {
 	}
 	return size
 }
-func (s *Service) Quota(actor string) (used, limit int64) {
+func (s *Service) Quota(actor, product string) (used, limit int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.usedLocked(actor), s.cfg.QuotaBytes
+	return s.usedLockedProduct(actor, product), s.cfg.QuotaBytes
 }
 
 func (s *Service) AIStatus(ctx context.Context) map[string]any {
 	provider, model, ok := s.cfg.AIProvider.Status(ctx)
 	return map[string]any{"provider": provider, "model": model, "available": ok, "boundary": "selected file versions only; encrypted content excluded"}
 }
-func (s *Service) CreateAIJob(ctx context.Context, actor, mode, instruction string, ids []string, versions []int, consent bool) (AIJob, error) {
+func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruction string, ids []string, versions []int, consent bool) (AIJob, error) {
+	if product != "cloud" && product != "docs" {
+		return AIJob{}, ErrInvalid
+	}
 	if !consent || len(ids) == 0 || len(ids) > 12 || len(ids) != len(versions) || len(instruction) > 4000 {
 		return AIJob{}, ErrInvalid
 	}
@@ -1422,6 +1525,10 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, mode, instruction stri
 		if err != nil {
 			s.mu.Unlock()
 			return AIJob{}, err
+		}
+		if obj.Product != product {
+			s.mu.Unlock()
+			return AIJob{}, ErrDenied
 		}
 		if obj.Encryption.ClientSide {
 			s.mu.Unlock()
@@ -1452,12 +1559,12 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, mode, instruction stri
 		citations = append(citations, fmt.Sprintf("%s@v%d", id, v))
 	}
 	provider, model, available := s.cfg.AIProvider.Status(ctx)
-	job := AIJob{ID: newID("ai"), Actor: actor, Mode: mode, ObjectIDs: append([]string(nil), ids...), Versions: append([]int(nil), versions...), Instruction: instruction, Provider: provider, Model: model, Estimate: len(instruction) / 4, ConsentAt: s.cfg.Now(), Status: "queued", Citations: citations}
+	job := AIJob{ID: newID("ai"), Product: product, Actor: actor, Mode: mode, ObjectIDs: append([]string(nil), ids...), Versions: append([]int(nil), versions...), Instruction: instruction, Provider: provider, Model: model, Estimate: len(instruction) / 4, ConsentAt: s.cfg.Now(), Status: "queued", Citations: citations}
 	for _, c := range contexts {
 		job.Estimate += len(c.Content) / 4
 	}
 	s.state.AIJobs[job.ID] = job
-	_ = s.persist("ai.consent", actor, "", map[string]any{"jobId": job.ID, "mode": mode, "contexts": citations, "estimatedUnits": job.Estimate})
+	_ = s.persist("ai.consent", actor, "", map[string]any{"product": product, "jobId": job.ID, "mode": mode, "contexts": citations, "estimatedUnits": job.Estimate})
 	jobCtx, cancel := context.WithCancel(context.Background())
 	s.cancels[job.ID] = cancel
 	s.mu.Unlock()
@@ -1502,27 +1609,27 @@ func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, c
 	s.mu.Unlock()
 }
 
-func (s *Service) GetAIJob(actor, id string) (AIJob, error) {
+func (s *Service) GetAIJob(actor, product, id string) (AIJob, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.state.AIJobs[id]
 	if !ok {
 		return AIJob{}, ErrNotFound
 	}
-	if job.Actor != actor {
+	if job.Actor != actor || job.Product != product {
 		return AIJob{}, ErrDenied
 	}
 	return job, nil
 }
 
-func (s *Service) CancelAIJob(actor, id string) (AIJob, error) {
+func (s *Service) CancelAIJob(actor, product, id string) (AIJob, error) {
 	s.mu.Lock()
 	job, ok := s.state.AIJobs[id]
 	if !ok {
 		s.mu.Unlock()
 		return AIJob{}, ErrNotFound
 	}
-	if job.Actor != actor || (job.Status != "queued" && job.Status != "running") {
+	if job.Actor != actor || job.Product != product || (job.Status != "queued" && job.Status != "running") {
 		s.mu.Unlock()
 		return AIJob{}, ErrDenied
 	}
@@ -1530,21 +1637,21 @@ func (s *Service) CancelAIJob(actor, id string) (AIJob, error) {
 	job.Error = "canceled by user"
 	s.state.AIJobs[id] = job
 	cancel := s.cancels[id]
-	_ = s.persist("ai.canceled", actor, "", map[string]any{"jobId": id})
+	_ = s.persist("ai.canceled", actor, "", map[string]any{"product": product, "jobId": id})
 	s.mu.Unlock()
 	if cancel != nil {
 		cancel()
 	}
 	return job, nil
 }
-func (s *Service) ReviewAI(actor, id, decision string) (AIJob, error) {
+func (s *Service) ReviewAI(actor, product, id, decision string) (AIJob, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	j, ok := s.state.AIJobs[id]
 	if !ok {
 		return AIJob{}, ErrNotFound
 	}
-	if j.Actor != actor || j.Status != "review" || (decision != "applied" && decision != "rejected") {
+	if j.Actor != actor || j.Product != product || j.Status != "review" || (decision != "applied" && decision != "rejected") {
 		return AIJob{}, ErrDenied
 	}
 	now := s.cfg.Now()
@@ -1555,7 +1662,7 @@ func (s *Service) ReviewAI(actor, id, decision string) (AIJob, error) {
 		j.RejectedAt = &now
 	}
 	s.state.AIJobs[id] = j
-	if err := s.persist("ai."+decision, actor, "", map[string]any{"jobId": id}); err != nil {
+	if err := s.persist("ai."+decision, actor, "", map[string]any{"product": product, "jobId": id}); err != nil {
 		return AIJob{}, err
 	}
 	return j, nil

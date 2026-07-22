@@ -29,6 +29,7 @@ type Encryption struct {
 
 type Object struct {
 	ID         string     `json:"id"`
+	Product    string     `json:"product"`
 	Owner      string     `json:"owner"`
 	ParentID   string     `json:"parentId,omitempty"`
 	Kind       ObjectKind `json:"kind"`
@@ -62,6 +63,7 @@ type MultipartPart struct {
 
 type MultipartUpload struct {
 	ID           string                `json:"id"`
+	Product      string                `json:"product"`
 	Owner        string                `json:"owner"`
 	ParentID     string                `json:"parentId,omitempty"`
 	Name         string                `json:"name"`
@@ -78,6 +80,7 @@ type MultipartUpload struct {
 
 type BlobDeletion struct {
 	ID          string    `json:"id"`
+	Product     string    `json:"product"`
 	Owner       string    `json:"owner"`
 	Hash        string    `json:"hash"`
 	Ref         string    `json:"ref,omitempty"`
@@ -90,6 +93,7 @@ type BlobDeletion struct {
 
 type DirectUpload struct {
 	ID           string     `json:"id"`
+	Product      string     `json:"product"`
 	Owner        string     `json:"owner"`
 	ParentID     string     `json:"parentId,omitempty"`
 	Name         string     `json:"name"`
@@ -198,6 +202,7 @@ type AuditEvent struct {
 
 type AIJob struct {
 	ID          string     `json:"id"`
+	Product     string     `json:"product"`
 	Actor       string     `json:"actor"`
 	Mode        string     `json:"mode"`
 	ObjectIDs   []string   `json:"objectIds"`
@@ -259,6 +264,7 @@ type persistentState struct {
 }
 
 type ListOptions struct {
+	Product  string
 	ParentID string
 	Query    string
 	View     string
@@ -274,6 +280,7 @@ type ObjectPage struct {
 }
 
 type CreateObjectRequest struct {
+	Product    string     `json:"-"`
 	ParentID   string     `json:"parentId"`
 	Kind       ObjectKind `json:"kind"`
 	Name       string     `json:"name"`
@@ -302,6 +309,7 @@ type ExportManifest struct {
 	Source        string       `json:"source"`
 	AsOf          time.Time    `json:"asOf"`
 	Owner         string       `json:"owner"`
+	Product       string       `json:"product"`
 	Objects       []Object     `json:"objects"`
 	Versions      []Version    `json:"versions"`
 	Grants        []Grant      `json:"grants"`
