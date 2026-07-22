@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
+  "commit": "30c9e9d2577e02a13f3f91d0b71f4cce45dc008f",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,12 +21,12 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "cac63331efdc16aa32332f1dd0129335e0186b884b38b5e9e3bc24d84047bbb0",
+    "artifactManifest": "f6b145ea0734f135a396faee7653ebd96b29a1efa009ed1d9aeab26bca8a68c4",
     "webPwaBundle": "2acb74b276a09c9184966a08ff040e8de734e06af3eab1767bd32609772dafac",
     "javascriptSdkPackage": "f7940575581b0c0454062a1690f43c3d6561953d7776bec2cae714a092eb1a67"
   },
   "bytes": {
-    "artifactManifest": 4071,
+    "artifactManifest": 4477,
     "webPwaBundle": 323517,
     "javascriptSdkPackage": 11895
   },
@@ -61,7 +61,7 @@
       "evidence": "npm run dex:vault:test"
     },
     "executionAdapter": {
-      "sourceCommit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
+      "sourceCommit": "30c9e9d2577e02a13f3f91d0b71f4cce45dc008f",
       "implementedLocal": true,
       "testedLocal": true,
       "integratedCentral": false,
@@ -70,12 +70,22 @@
       "evidence": "npm test --prefix sdk/dex"
     },
     "vaultIndexer": {
-      "sourceCommit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
+      "sourceCommit": "30c9e9d2577e02a13f3f91d0b71f4cce45dc008f",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedPublic": false,
       "scope": "confirmed ActionExecuted ingestion, Vault-bound cursor v2, state migration, shared reorg recovery, source-labelled API",
       "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
+    },
+    "fairFlow": {
+      "sourceCommit": "30c9e9d2577e02a13f3f91d0b71f4cce45dc008f",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "indexedLocal": false,
+      "integratedCentral": false,
+      "deployedPublic": false,
+      "scope": "on-chain Intent lifecycle, uniform clearing price, solver-funded rebate, commit/reveal competition, verified surplus score, CoW net settlement, exact external inventory, cancellation abort, native bond/reputation, non-reveal/timeout and proven direct self-trade slashing",
+      "evidence": "npm run dex:fairflow:test"
     }
   },
   "centralIntegration": {
@@ -88,6 +98,7 @@
   "knownLimitations": [
     "The final DEX objective is not implemented or fully tested locally; recovered 0.1 candidate coverage is recorded separately.",
     "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
+    "FairFlow is a local unaudited candidate: Indexer/SDK/UI, Sybil and collusion controls, partial fills, external-route proof and cross-chain settlement are absent.",
     "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
     "No independent third-party smart-contract audit has been completed.",
     "CPMM LP fees are embedded in reserves; there is no separate LP collect method, and compound/rebalance require caller-supplied amounts plus sequential Wallet approvals.",
