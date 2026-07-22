@@ -57,7 +57,8 @@ const records = artifacts.map((artifact) => fileRecord(outDir, artifact.name));
 records.push(fileRecord(outDir, "governance-sbom.cdx.json"));
 records.push(fileRecord(outDir, "THIRD_PARTY_NOTICES.md"));
 for (const artifact of artifacts) {
-  fs.writeFileSync(path.join(outDir, `${artifact.name}.go-version.txt`), execFileSync("go", ["version", "-m", path.join(outDir, artifact.name)], { encoding: "utf8" }), { mode: 0o600 });
+  const buildInfo = execFileSync("go", ["version", "-m", path.join(outDir, artifact.name)], { encoding: "utf8" });
+  fs.writeFileSync(path.join(outDir, `${artifact.name}.go-version.txt`), normalizeBuildInfo(buildInfo, artifact.name), { mode: 0o600 });
   records.push(fileRecord(outDir, `${artifact.name}.go-version.txt`));
 }
 records.sort((a, b) => a.file.localeCompare(b.file));
@@ -85,6 +86,11 @@ function directLicense(modulePath) {
   if (modulePath === "github.com/decred/dcrd/dcrec/secp256k1/v4") return "ISC";
   if (modulePath === "golang.org/x/crypto") return "BSD-3-Clause";
   return "NOASSERTION";
+}
+function normalizeBuildInfo(value, artifactName) {
+  const lines = value.split("\n");
+  lines[0] = lines[0].replace(/^.*?: /, `${artifactName}: `);
+  return lines.join("\n");
 }
 function fileRecord(directory, file) {
   const body = fs.readFileSync(path.join(directory, file));
