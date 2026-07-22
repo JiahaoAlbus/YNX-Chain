@@ -14,7 +14,7 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Reconciliation CSV | yes | yes | `server.go`; authenticated reconciliation route | Golden CSV/schema compatibility test |
 | Refund/dispute request and Trust evidence reference | yes | yes | `wallet.go`; `TestGatewayBoundPaymentCreatesPayerCases` | Official Trust adapter verification |
 | AI explanation/draft authority boundary | yes | yes | AI cancellation and non-execution tests | Official AI Gateway credential and cost evidence |
-| 12 locales and Arabic RTL | yes | yes | `i18n.js`; `npm test` locale completeness | Current-build browser/A11y matrix |
+| 12 locales, RTL and accessibility | partial | yes-local | Localized authentication/authority surface, valid skip targets, focus retention, RTL layout rules, 10 frontend tests and focused 1280x720/390x844 browser checks | Translate authenticated operational copy; full zoom/keyboard/screen-reader/rules/screenshot matrix |
 | Provider Integration Hub | partial | yes | Nine-category versioned catalog, credential-reference-only configuration, server-side probe contract, failure/disable/audit tests and UI | Implement and remotely verify each official production adapter |
 | Capital tools and transparent fee waterfall | partial | yes | Evidence-only `capital-v1` API/UI; 14 disclosed capabilities; unknown reserves/costs/net remain unavailable | Implement authorized providers and complete authoritative fee records |
 | Snapshot v1 to v2 migration | yes | yes | `TestSnapshotV1MigratesProvidersAndFutureVersionFails` | Add full CLI backup/restore/rollback drill |

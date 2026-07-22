@@ -18,16 +18,18 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "dist/index.html": "efa86c39e42aa2e191fc1eed4e9b66c9db9532302bb2a014b24d31073a395c27",
-    "dist/app.js": "6f046b72ea72935208d41f5741a5030bd03d4019d15bc3ed0421cd39085ad95b",
+    "dist/index.html": "e1a4818843b06e6f72247f864e6257532f7cd4e39fbb632b9c11852921e81a5e",
+    "dist/app.js": "59bdf760465b047d0085dc4781a6bdcad74100c4c041846e586d6bf5eff3c1c9",
     "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
+    "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
     "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
     "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d"
   },
   "bytes": {
-    "dist/index.html": 922,
-    "dist/app.js": 127003,
+    "dist/index.html": 1040,
+    "dist/app.js": 128655,
     "dist/styles.css": 5918,
+    "dist/a11y.css": 328,
     "artifacts/sbom/frontend.cdx.json": 7276,
     "artifacts/sbom/backend-modules.json": 57262
   },
@@ -36,6 +38,6 @@
   "installEvidence": [],
   "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete."],
+  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Authenticated business views retain untranslated English copy; full 12-language, screen-reader, keyboard, zoom and automated accessibility-rule acceptance is incomplete.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete."],
   "generatedAt": "2026-07-22T00:00:00+08:00"
 }

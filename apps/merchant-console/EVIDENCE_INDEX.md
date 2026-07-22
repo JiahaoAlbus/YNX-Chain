@@ -46,6 +46,14 @@
 - Post-change fuzz rerun passed: RBAC 38,756 executions, Webhook 13,485 executions and Settlement 30,818 executions after baseline coverage.
 - Scope limitation: no OpenTelemetry collector, durable exporter, alert delivery, staging dashboard or measured SLO is claimed.
 
+## Focused UI, RTL and accessibility verification
+
+- Current production bundle loaded over local HTTP in the in-app Chromium browser at 1280x720 desktop and 390x844 mobile.
+- Direct DOM/style observations: one main landmark and H1, valid `#main` skip target, no page-level horizontal overflow, Arabic `lang=ar` and `dir=rtl`, localized Arabic skip/sign-in/privacy text, and 46px visible form controls.
+- Changing Arabic to Simplified Chinese retained focus on the locale control and exposed a 3px focus outline; skip text and document direction changed with the locale.
+- `npm run check` passed 10/10 tests and rebuilt the production bundle; `npm audit --omit=dev` reported zero vulnerabilities.
+- Scope limitation: this is not a WCAG conformance claim. Authenticated views retain untranslated English copy and the full screen-reader/keyboard/zoom/rules/screenshot matrix remains open.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.

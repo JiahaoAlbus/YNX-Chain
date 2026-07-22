@@ -11,5 +11,6 @@
 - Added frontend CycloneDX SBOM and backend module inventory.
 - Added an independent backup/verify/restore CLI with exact source commit, nested integrity checks, non-overwrite behavior, running-service exclusion, exact-current-SHA confirmation, automatic rollback preservation and verified local drill evidence.
 - Added correlated request/trace/error IDs, redacted structured request logs, outbound trace propagation and a fail-closed process-local metrics snapshot.
+- Fixed skip targets across render states, localized critical authentication navigation, retained focus after language changes, exposed active navigation semantics, and added RTL/focus regression tests.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.
