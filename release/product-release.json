@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "ynx-product-release/v1",
+  "product": "YNX Governance",
+  "canonicalRoute": "/governance",
+  "releaseChannel": "local-development",
+  "implementedLocal": false,
+  "testedLocal": false,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "externalExecutionEnabled": false,
+  "knownMissingEvidence": [
+    "central Gateway integration",
+    "BFT execution receipts",
+    "standalone UI",
+    "remote backup drill",
+    "capacity measurements",
+    "staging and public deployment",
+    "signed hosted artifacts"
+  ]
+}

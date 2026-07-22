@@ -1,0 +1,24 @@
+[Unit]
+Description=YNX Governance control plane
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+ExecStart=/usr/local/bin/ynx-governanced --config /etc/ynx-chain/governance/config.json
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-chain/governance
+ReadOnlyPaths=/etc/ynx-chain/governance
+UMask=0077
+LimitNOFILE=4096
+TimeoutStopSec=10s
+
+[Install]
+WantedBy=multi-user.target

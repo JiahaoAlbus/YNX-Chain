@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "ynx-governance-bft-test-vectors/v1",
+  "chainId": 6423,
+  "receiptVectors": [
+    {
+      "name": "verified execution receipt",
+      "input": {
+        "txHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "blockHeight": 11,
+        "blockHash": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "stateRoot": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "manifestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source": "ynx-bft-consensus",
+        "version": "ynx-governance-execution-receipt/v1",
+        "outcome": "verified",
+        "asOf": "2026-07-22T11:04:00Z",
+        "auditHash": "1d10f0c1dd58ded1195c6dcecef9e177555242e03d288d0ed78a45dce15360aa"
+      },
+      "expected": "accepted"
+    },
+    {
+      "name": "state root changed after receipt signing",
+      "mutation": "replace stateRoot without recomputing auditHash",
+      "expected": "rejected"
+    },
+    {
+      "name": "rollback reuses failed manifest",
+      "mutation": "set rollback manifestHash equal to execution manifestHash",
+      "expected": "rejected"
+    }
+  ],
+  "consensusVectorsRequiredFromChainCore": [
+    "four applications produce identical AppHash",
+    "exact transaction replay is idempotent",
+    "changed nonce replay is rejected",
+    "wrong chain, product, device, scope, expiry, and signer are rejected",
+    "proposal-to-vote-to-timelock-to-execution persists across restart",
+    "failed canary plus rollback produces identical state on every validator"
+  ]
+}

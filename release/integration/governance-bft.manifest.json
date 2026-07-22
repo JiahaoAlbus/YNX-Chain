@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "ynx-governance-bft-integration/v1",
+  "owner": "governance",
+  "consumer": "chain-core-consensus",
+  "nonceDomain": "ynx-governance-action/v1",
+  "canonicalEncoding": "RFC8785-compatible canonical JSON before secp256k1 signing",
+  "actions": [
+    "governance_proposal_create",
+    "governance_deposit",
+    "governance_simulation_record",
+    "governance_conflict_disclose",
+    "governance_electorate_submit",
+    "governance_electorate_approve",
+    "governance_voting_open",
+    "governance_vote_cast",
+    "governance_vote_finalize",
+    "governance_proposal_cancel",
+    "governance_execution_begin",
+    "governance_execution_verify",
+    "governance_role_assign",
+    "governance_role_remove",
+    "governance_emergency_create",
+    "governance_emergency_approve",
+    "governance_emergency_close"
+  ],
+  "envelopeRequiredFields": [
+    "domain",
+    "chainId",
+    "action",
+    "signer",
+    "accountNonce",
+    "product",
+    "deviceId",
+    "sessionId",
+    "expiresAt",
+    "payloadHash",
+    "payload",
+    "signature"
+  ],
+  "validation": [
+    "chainId equals 6423",
+    "domain equals ynx-governance-action/v1",
+    "product equals governance",
+    "signature owns signer account",
+    "account nonce is exact next nonce",
+    "payload hash matches canonical payload",
+    "session and role evidence are unexpired",
+    "action permission and object scope are authorized",
+    "duplicate transaction replay is idempotent",
+    "changed reuse of nonce is rejected",
+    "state transition and AppHash are deterministic"
+  ],
+  "executionReceipt": {
+    "schemaVersion": "ynx-governance-execution-receipt/v1",
+    "requiredFields": [
+      "txHash",
+      "blockHeight",
+      "blockHash",
+      "stateRoot",
+      "manifestHash",
+      "source",
+      "version",
+      "outcome",
+      "asOf",
+      "auditHash"
+    ],
+    "source": "ynx-bft-consensus",
+    "allowedOutcomes": ["verified", "failed", "verified_rollback"]
+  },
+  "status": {
+    "governanceAdapterImplementedLocal": true,
+    "chainCoreActionsImplemented": false,
+    "consensusDeterminismTested": false,
+    "testnetReceiptObserved": false,
+    "integratedCentral": false,
+    "deployedPublic": false
+  }
+}

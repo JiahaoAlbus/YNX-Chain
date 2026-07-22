@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/governance/bft-integration-v1.json",
+  "title": "YNX Governance BFT integration manifest",
+  "type": "object",
+  "required": ["schemaVersion", "owner", "consumer", "nonceDomain", "actions", "envelopeRequiredFields", "validation", "executionReceipt", "status"],
+  "properties": {
+    "schemaVersion": {"const": "ynx-governance-bft-integration/v1"},
+    "owner": {"const": "governance"},
+    "consumer": {"const": "chain-core-consensus"},
+    "nonceDomain": {"const": "ynx-governance-action/v1"},
+    "canonicalEncoding": {"type": "string"},
+    "actions": {"type": "array", "minItems": 17, "uniqueItems": true, "items": {"type": "string"}},
+    "envelopeRequiredFields": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "validation": {"type": "array", "items": {"type": "string"}},
+    "executionReceipt": {"type": "object"},
+    "status": {
+      "type": "object",
+      "properties": {
+        "governanceAdapterImplementedLocal": {"type": "boolean"},
+        "chainCoreActionsImplemented": {"type": "boolean"},
+        "consensusDeterminismTested": {"type": "boolean"},
+        "testnetReceiptObserved": {"type": "boolean"},
+        "integratedCentral": {"type": "boolean"},
+        "deployedPublic": {"type": "boolean"}
+      }
+    }
+  }
+}
