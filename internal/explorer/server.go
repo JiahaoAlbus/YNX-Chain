@@ -51,10 +51,14 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /ynxt", s.handleYNXTWeb)
+	s.mux.HandleFunc("GET /economics", s.handleEconomicsWeb)
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
+	s.mux.HandleFunc("GET /assets/economics-og.png", s.handleEconomicsOG)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
+	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)

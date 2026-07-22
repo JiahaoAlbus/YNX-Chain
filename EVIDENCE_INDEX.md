@@ -15,6 +15,11 @@ All paths are repository-relative and refer to the current source commit only af
 | Issuance/burn/net supply, validator and Treasury distributions | `internal/economics/macro_stress.go`, `macro_stress_test.go` | `make macro-stress-check` |
 | Stable reserve/depeg, liquidity/Sybil, governance and Bridge/Oracle stress | `economics/examples/macro-stress.json` | `go run ./cmd/ynx-macro-stress-sim -input economics/examples/macro-stress.json` |
 | Mainnet gate pass-rate and non-forecast boundary | `economics/MACRO_STRESS_MODEL.md` | Inspect `forecast=false`, `mainnetReady=false`, and scenario gate rates |
+| `/ynxt` and `/economics` canonical dashboard routes | `internal/explorer/economics_web.go`, `economics_web_test.go` | `make economics-public-ui-check` |
+| Source/as-of/version/coverage economics API and truthful release/risk flags | `internal/explorer/economics_web.go`, `economics_web_test.go` | `make economics-public-ui-check` |
+| Twelve locales, Arabic RTL, runtime failures and risk semantics | `internal/explorer/economics_web.go`, `UI_DESIGN_AUDIT.md` | `make economics-public-ui-check` |
+| Keyboard, reduced motion, light/dark and 390px containment | `internal/explorer/economics_web.go`, `UI_DESIGN_AUDIT.md` | `make economics-public-ui-check` |
+| Economics Website/SEO integration contract | `docs/coordination/WEBSITE_ECONOMICS_HANDOFF.md` | Review canonical route, metadata, FAQ and acceptance sections |
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |

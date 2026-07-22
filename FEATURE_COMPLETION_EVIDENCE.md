@@ -22,7 +22,7 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Treasury governance, custody and transfer execution | false | false | false | false | false | false | false | false | false | No multisig authority, custody evidence, governed budget, or transfer route |
 | Low/Medium/High seeded macro and agent-ledger stress model | true | true | false | false | false | false | false | false | false | Supply, validator, Treasury, stable reserve, liquidity/Sybil, governance, Bridge/Oracle and readiness distributions; assumptions only |
 | Calibrated production economic forecast | false | false | false | false | false | false | false | false | false | No production telemetry, independent calibration, market-price model, custody/legal evidence, or scale validation |
-| Public economics dashboard and `/ynxt` `/economics` handoff | false | false | false | false | false | false | false | false | false | Metadata and Website handoff not yet built |
+| Public economics dashboard and `/ynxt` `/economics` handoff | true | true | false | false | false | false | false | false | false | Explorer routes, source API, 12 locales/RTL/accessibility, social asset and Website handoff; no central integration or deployment |
 
 ## Current verification
 
@@ -34,3 +34,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make security-pools-candidate-check` — pass; race-enabled isolation, governance, waterfall, slash/cooldown and exit-path tests plus reproducible stress scenario.
 - `make fee-market-candidate-check` — pass; race-enabled lane adjustment, cap rejection, burn/split conservation, sponsorship and audit-hash tests plus reproducible scenario.
 - `make macro-stress-check` — pass; 1,000 seeded iterations per Low/Medium/High scenario with deterministic percentile and named-failure coverage.
+- `make economics-public-ui-check` — pass; canonical routes, source disclosure, release/risk truth, 12 locales, RTL, focus, reduced motion, mobile containment and social asset.
