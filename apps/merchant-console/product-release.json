@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "00c84b26e215e4ab267c531fb95131e79e9796dd",
+  "commit": "fa5c61ae83fe90a9f4a26a69cb8647b3bb82ebdf",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
