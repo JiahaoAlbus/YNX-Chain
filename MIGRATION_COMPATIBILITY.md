@@ -37,3 +37,9 @@ Current evidence covers local migration and restart tests only. No staging or pu
 UserOperation remains an additive version-1 candidate format. Existing signed native transfer and application-action envelope versions remain unchanged. StrategyMandate, StrategyVault, delegation, unbonding, and withdrawal use signed application actions and v10 ABCI persistence; no existing account is silently reinterpreted.
 
 Smart Account activation still requires a future committed-state version with explicit account, session, paymaster, recovery, and audit collections; canonical genesis/migration defaults; old-client query compatibility; replay vectors; and state-root differential tests. Rollback must restore the pre-activation binary/state pair. A newer state must never be written by an older binary.
+
+## YUSD sandbox state v1
+
+The YUSD sandbox uses an independent schema-version-1 JSON state file and never reads or writes consensus or stablecoin-issuer state. Startup validates the whole-file integrity hash, audit chain, reserve liabilities, account supply, redemptions, daily limits, and idempotency records before serving. No earlier YUSD sandbox schema exists, so no migration is claimed. A future schema change must use an explicit offline converter and retain the original file and binary for rollback; old binaries must not write newer schema files.
+
+Restart persistence and tamper rejection are tested locally. An operator stop/copy/hash/restore drill has not yet been recorded, and no staging or public YUSD sandbox state exists.
