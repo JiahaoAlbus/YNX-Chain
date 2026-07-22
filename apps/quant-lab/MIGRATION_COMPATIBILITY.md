@@ -19,6 +19,12 @@ There is no schema `2` migration yet, so no forward-migration claim is made.
 Future migrations require `1 → N` and `N → 1` fixtures, interruption recovery,
 old-client response tests, and explicit irreversible-field review.
 
+Schema `1` gained optional `executionLedger` and `adapterSequences` fields. An
+older schema-1 file is decoded into a fresh state value, checked against its
+exact historical integrity envelope, and initializes both maps empty. Its next
+atomic mutation writes the extended envelope. A fixture proves this compatibility
+path; integrity mismatches remain rejected.
+
 ## Rollback and restore
 
 `ynx-quant-cli restore --approve <source>` validates size, schema, and integrity,
@@ -37,5 +43,6 @@ Local users can export the complete integrity-protected state with
 `ynx-quant-cli export --approve <destination>`. Full local deletion requires the
 exact confirmation `DELETE ALL LOCAL QUANT DATA`; it removes experiments,
 strategies, paper state, mandates, orders, and idempotency records, retaining only
-a non-identifying digest tombstone. Multi-user account-scoped deletion remains a
+the audit tombstone. Durable adapter reservations, results and sequences are
+deleted as user execution data. Multi-user account-scoped deletion remains a
 Gateway/identity integration requirement and is not claimed.

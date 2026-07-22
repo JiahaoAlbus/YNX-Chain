@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -99,10 +100,43 @@ func TestTamperAndRestartReject(t *testing.T) {
 	s, _ := New(Config{StatePath: p})
 	_, _ = s.RunBacktest(request())
 	b, _ := os.ReadFile(p)
-	b[len(b)/2] ^= 1
+	var document map[string]any
+	if json.Unmarshal(b, &document) != nil {
+		t.Fatal("decode state")
+	}
+	document["sequence"] = document["sequence"].(float64) + 1
+	b, _ = json.Marshal(document)
 	_ = os.WriteFile(p, b, 0600)
 	if _, e := New(Config{StatePath: p}); e == nil {
 		t.Fatal("tamper accepted")
+	}
+}
+
+func TestLegacySchemaOneIntegrityLoadsAndInitializesExecutionLedger(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy.json")
+	legacy := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Paper: PaperState{Cash: 100_000_000_000}, Mandates: map[string]Mandate{}, TestnetOrders: map[string]TestnetOrder{}, Idempotency: map[string]string{}}
+	legacy.Integrity = legacyIntegrityHash(legacy)
+	encoded, _ := json.Marshal(legacy)
+	var document map[string]any
+	_ = json.Unmarshal(encoded, &document)
+	delete(document, "executionLedger")
+	delete(document, "adapterSequences")
+	encoded, _ = json.Marshal(document)
+	var roundTrip state
+	_ = json.Unmarshal(encoded, &roundTrip)
+	if roundTrip.Integrity != legacyIntegrityHash(roundTrip) {
+		t.Fatalf("legacy fixture hash mismatch got=%s want=%s", roundTrip.Integrity, legacyIntegrityHash(roundTrip))
+	}
+	if err := os.WriteFile(path, encoded, 0600); err != nil {
+		t.Fatal(err)
+	}
+	service, err := New(Config{StatePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := service.Snapshot()
+	if snapshot["executionLedger"] == nil || snapshot["adapterSequences"] == nil {
+		t.Fatal("legacy execution maps not initialized")
 	}
 }
 
@@ -308,7 +342,12 @@ func TestBackupRestoreDrillRejectsTamperAndRestoresState(t *testing.T) {
 
 	tampered := filepath.Join(root, "tampered.json")
 	data, _ := os.ReadFile(backupPath)
-	data[len(data)/2] ^= 1
+	var document map[string]any
+	if json.Unmarshal(data, &document) != nil {
+		t.Fatal("decode backup")
+	}
+	document["sequence"] = document["sequence"].(float64) + 1
+	data, _ = json.Marshal(document)
 	_ = os.WriteFile(tampered, data, 0600)
 	if _, err := service.Restore(tampered); err != ErrForbidden {
 		t.Fatalf("tampered restore=%v", err)
@@ -334,6 +373,9 @@ func TestDeleteAllLocalDataRequiresExactConfirmationAndLeavesTombstone(t *testin
 	snapshot := service.Snapshot()
 	if len(snapshot["experiments"].(map[string]Experiment)) != 0 || len(snapshot["strategies"].(map[string]StrategySpec)) != 0 || len(snapshot["testnetOrders"].(map[string]TestnetOrder)) != 0 {
 		t.Fatal("user records remain")
+	}
+	if len(snapshot["executionLedger"].(map[string]ExecutionLedgerRecord)) != 0 || len(snapshot["adapterSequences"].(map[string]int64)) != 0 {
+		t.Fatal("execution records remain")
 	}
 	if snapshot["paper"].(PaperState).KillSwitch {
 		t.Fatal("paper state remains")

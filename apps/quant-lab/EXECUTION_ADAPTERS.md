@@ -36,9 +36,12 @@ Current status: `PaperExecutionAdapter` and `ShadowExecutionAdapter` implement
 the common contract locally. Paper translates authoritative matched-trade price
 and volume into an explicitly simulated fill. Shadow emits
 `observed_no_submit`, zero fill and no order ID. Both reject stale/future feeds,
-tampered idempotency replay and sequence gaps. The bounded Testnet broker
-interface also has injected risk-observation tests. Adapter ledgers are
-process-local candidates and are not restart-durable yet.
+tampered idempotency replay and sequence gaps. Reservations and completed
+results use the integrity-protected authoritative state, so completed replay is
+stable across restart. An interrupted reservation is retained as
+`reserved_outcome_unknown` and refuses duplicate execution until operator
+reconciliation. The bounded Testnet broker interface also has injected
+risk-observation tests.
 
 `ExchangeExecutionAdapter` and `DEXExecutionAdapter` are capability-narrowing
 interfaces only. No shipped implementation can submit to either venue. Canonical

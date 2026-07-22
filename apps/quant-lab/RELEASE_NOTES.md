@@ -7,8 +7,9 @@ This release introduces an independent research, Paper and bounded Testnet Previ
 - Persistent Paper Broker, reconciliation, audit chain and kill switch.
 - Versioned venue-neutral execution intent with tested Paper and non-submitting
   Shadow adapters, idempotent replay, sequence-gap rejection and explicit
-  source/as-of/coverage/confidence evidence. Exchange and DEX implementations
-  are not shipped.
+  source/as-of/coverage/confidence evidence. Adapter reservation/result evidence
+  survives restart, while interrupted unknown outcomes refuse duplicate
+  execution. Exchange and DEX implementations are not shipped.
 - Wallet-signed bounded Testnet mandate boundary with expiry, notional,
   position, daily-loss, slippage, gas and order-frequency limits; fresh oracle
   and venue-health observations; replay rejection; and idempotent broker proof.

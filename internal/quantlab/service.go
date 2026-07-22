@@ -234,18 +234,30 @@ type DeletionRecord struct {
 	PreviousDigest string    `json:"previousDigest"`
 	Schema         int       `json:"schema"`
 }
+type ExecutionLedgerRecord struct {
+	Adapter      ExecutionAdapterKind `json:"adapter"`
+	RequestID    string               `json:"requestId"`
+	IntentDigest string               `json:"intentDigest"`
+	Sequence     int64                `json:"sequence"`
+	Status       string               `json:"status"`
+	Result       ExecutionResult      `json:"result"`
+	ReservedAt   time.Time            `json:"reservedAt"`
+	CompletedAt  time.Time            `json:"completedAt,omitempty"`
+}
 type state struct {
-	Schema        int                      `json:"schema"`
-	Sequence      int64                    `json:"sequence"`
-	Experiments   map[string]Experiment    `json:"experiments"`
-	Strategies    map[string]StrategySpec  `json:"strategies"`
-	Datasets      map[string]DatasetRecord `json:"datasets"`
-	Paper         PaperState               `json:"paper"`
-	Mandates      map[string]Mandate       `json:"mandates"`
-	TestnetOrders map[string]TestnetOrder  `json:"testnetOrders"`
-	Idempotency   map[string]string        `json:"idempotency"`
-	Audit         []AuditEvent             `json:"audit"`
-	Integrity     string                   `json:"integrity"`
+	Schema           int                              `json:"schema"`
+	Sequence         int64                            `json:"sequence"`
+	Experiments      map[string]Experiment            `json:"experiments"`
+	Strategies       map[string]StrategySpec          `json:"strategies"`
+	Datasets         map[string]DatasetRecord         `json:"datasets"`
+	Paper            PaperState                       `json:"paper"`
+	Mandates         map[string]Mandate               `json:"mandates"`
+	TestnetOrders    map[string]TestnetOrder          `json:"testnetOrders"`
+	Idempotency      map[string]string                `json:"idempotency"`
+	ExecutionLedger  map[string]ExecutionLedgerRecord `json:"executionLedger"`
+	AdapterSequences map[string]int64                 `json:"adapterSequences"`
+	Audit            []AuditEvent                     `json:"audit"`
+	Integrity        string                           `json:"integrity"`
 }
 type Service struct {
 	mu    sync.Mutex
@@ -260,14 +272,16 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}}
+	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}, ExecutionLedger: map[string]ExecutionLedgerRecord{}, AdapterSequences: map[string]int64{}}
 	s.TestnetOrders = map[string]TestnetOrder{}
 	s.Idempotency = map[string]string{}
 	b, err := os.ReadFile(cfg.StatePath)
 	if err == nil {
-		if json.Unmarshal(b, &s) != nil || !verifyIntegrity(s) {
+		var loaded state
+		if json.Unmarshal(b, &loaded) != nil || !verifyIntegrity(loaded) {
 			return nil, fmt.Errorf("state integrity: %w", ErrForbidden)
 		}
+		s = loaded
 		if s.TestnetOrders == nil {
 			s.TestnetOrders = map[string]TestnetOrder{}
 		}
@@ -276,6 +290,12 @@ func New(cfg Config) (*Service, error) {
 		}
 		if s.Idempotency == nil {
 			s.Idempotency = map[string]string{}
+		}
+		if s.ExecutionLedger == nil {
+			s.ExecutionLedger = map[string]ExecutionLedgerRecord{}
+		}
+		if s.AdapterSequences == nil {
+			s.AdapterSequences = map[string]int64{}
 		}
 	} else if !os.IsNotExist(err) {
 		return nil, err
@@ -908,6 +928,8 @@ func (s *Service) Snapshot() map[string]any {
 		"strategies":       s.state.Strategies,
 		"experiments":      s.state.Experiments,
 		"testnetOrders":    s.state.TestnetOrders,
+		"executionLedger":  s.state.ExecutionLedger,
+		"adapterSequences": s.state.AdapterSequences,
 		"audit":            s.state.Audit,
 	}
 }
@@ -948,6 +970,12 @@ func (s *Service) Restore(source string) (BackupRecord, error) {
 	if json.Unmarshal(b, &restored) != nil || restored.Schema != StateSchema || !verifyIntegrity(restored) {
 		return BackupRecord{}, ErrForbidden
 	}
+	if restored.ExecutionLedger == nil {
+		restored.ExecutionLedger = map[string]ExecutionLedgerRecord{}
+	}
+	if restored.AdapterSequences == nil {
+		restored.AdapterSequences = map[string]int64{}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, err := s.lockAndReload()
@@ -986,14 +1014,16 @@ func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error
 	}
 	now := s.cfg.Now()
 	s.state = state{
-		Schema:        StateSchema,
-		Experiments:   map[string]Experiment{},
-		Strategies:    map[string]StrategySpec{},
-		Datasets:      map[string]DatasetRecord{},
-		Paper:         PaperState{Cash: 100_000_000_000, UpdatedAt: now},
-		Mandates:      map[string]Mandate{},
-		TestnetOrders: map[string]TestnetOrder{},
-		Idempotency:   map[string]string{},
+		Schema:           StateSchema,
+		Experiments:      map[string]Experiment{},
+		Strategies:       map[string]StrategySpec{},
+		Datasets:         map[string]DatasetRecord{},
+		Paper:            PaperState{Cash: 100_000_000_000, UpdatedAt: now},
+		Mandates:         map[string]Mandate{},
+		TestnetOrders:    map[string]TestnetOrder{},
+		Idempotency:      map[string]string{},
+		ExecutionLedger:  map[string]ExecutionLedgerRecord{},
+		AdapterSequences: map[string]int64{},
 	}
 	s.audit("all_local_user_data_deleted", "local-state", previousDigest)
 	if err := s.save(); err != nil {
@@ -1056,6 +1086,12 @@ func (s *Service) reload() error {
 	if latest.Idempotency == nil {
 		latest.Idempotency = map[string]string{}
 	}
+	if latest.ExecutionLedger == nil {
+		latest.ExecutionLedger = map[string]ExecutionLedgerRecord{}
+	}
+	if latest.AdapterSequences == nil {
+		latest.AdapterSequences = map[string]int64{}
+	}
 	s.state = latest
 	return nil
 }
@@ -1088,7 +1124,30 @@ func writeAtomic(path string, b []byte) error {
 func verifyIntegrity(s state) bool {
 	got := s.Integrity
 	s.Integrity = ""
-	return got != "" && got == hash(s)
+	if got != "" && got == hash(s) {
+		return true
+	}
+	// State schema 1 predates the durable execution ledger. Accept its exact
+	// historical hash once, then the next atomic save upgrades the integrity
+	// envelope with the new fields.
+	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && got == legacyIntegrityHash(s)
+}
+
+func legacyIntegrityHash(s state) string {
+	legacy := struct {
+		Schema        int                      `json:"schema"`
+		Sequence      int64                    `json:"sequence"`
+		Experiments   map[string]Experiment    `json:"experiments"`
+		Strategies    map[string]StrategySpec  `json:"strategies"`
+		Datasets      map[string]DatasetRecord `json:"datasets"`
+		Paper         PaperState               `json:"paper"`
+		Mandates      map[string]Mandate       `json:"mandates"`
+		TestnetOrders map[string]TestnetOrder  `json:"testnetOrders"`
+		Idempotency   map[string]string        `json:"idempotency"`
+		Audit         []AuditEvent             `json:"audit"`
+		Integrity     string                   `json:"integrity"`
+	}{s.Schema, s.Sequence, s.Experiments, s.Strategies, s.Datasets, s.Paper, s.Mandates, s.TestnetOrders, s.Idempotency, s.Audit, ""}
+	return hash(legacy)
 }
 func hash(v any) string {
 	b, _ := json.Marshal(v)

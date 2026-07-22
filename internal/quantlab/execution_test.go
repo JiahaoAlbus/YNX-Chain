@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -66,7 +67,8 @@ func TestPaperAdapterLimitStaleFeedAndReconciliationFailClosed(t *testing.T) {
 func TestShadowAdapterNeverSubmitsOrFills(t *testing.T) {
 	now := time.Date(2026, 7, 22, 1, 0, 0, 0, time.UTC)
 	market := adapterMarket{tick: MarketTick{Price: 1_000_000, Volume: 5_000_000, Source: "ynx-exchange-authoritative-match-tape", At: now}}
-	adapter := &ShadowExecutionAdapter{Market: market, Now: func() time.Time { return now }}
+	service, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), Now: func() time.Time { return now }})
+	adapter := &ShadowExecutionAdapter{Service: service, Market: market, Now: func() time.Time { return now }}
 	result, err := adapter.Execute(context.Background(), adapterIntent(now, "shadow-request-1", 1))
 	if err != nil || result.Status != "observed_no_submit" || result.Filled != 0 || result.OrderID != "" || result.Coverage != "market observation only; no order submitted" {
 		t.Fatalf("result=%+v err=%v", result, err)
@@ -74,5 +76,71 @@ func TestShadowAdapterNeverSubmitsOrFills(t *testing.T) {
 	reconciliation, err := adapter.Reconcile(context.Background(), ReconciliationRequest{})
 	if err != nil || reconciliation.FailureCode != "no_custody_or_position" || reconciliation.AuthoritativePosition != 0 {
 		t.Fatalf("reconciliation=%+v err=%v", reconciliation, err)
+	}
+}
+
+func TestAdapterReplaySurvivesRestartAndPendingOutcomeFailsClosed(t *testing.T) {
+	now := time.Date(2026, 7, 22, 1, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "state.json")
+	market := adapterMarket{tick: MarketTick{Price: 1_000_000, Volume: 5_000_000, Source: "ynx-exchange-authoritative-match-tape", At: now}}
+	service, _ := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	intent := adapterIntent(now, "restart-request-1", 1)
+	first, err := (&ShadowExecutionAdapter{Service: service, Market: market, Now: func() time.Time { return now }}).Execute(context.Background(), intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := (&ShadowExecutionAdapter{Service: restarted, Market: market, Now: func() time.Time { return now }}).Execute(context.Background(), intent)
+	if err != nil || replayed != first {
+		t.Fatalf("restart replay=%+v err=%v", replayed, err)
+	}
+	snapshot := restarted.Snapshot()
+	if len(snapshot["executionLedger"].(map[string]ExecutionLedgerRecord)) != 1 || snapshot["adapterSequences"].(map[string]int64)[string(AdapterShadow)] != 1 {
+		t.Fatal("durable execution ledger missing")
+	}
+	pending := adapterIntent(now, "pending-request-1", 2)
+	if _, ok, _, err := restarted.reserveExecution(AdapterShadow, pending); err != nil || ok {
+		t.Fatalf("reserve ok=%t err=%v", ok, err)
+	}
+	afterPending, _ := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	if _, err = (&ShadowExecutionAdapter{Service: afterPending, Market: market, Now: func() time.Time { return now }}).Execute(context.Background(), pending); err != ErrUnavailable {
+		t.Fatalf("pending retry=%v", err)
+	}
+}
+
+func TestConcurrentAdapterReservationsAllowOnlyOneSequenceWinner(t *testing.T) {
+	now := time.Date(2026, 7, 22, 1, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "state.json")
+	first, _ := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	second, _ := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	intents := []OrderIntent{adapterIntent(now, "concurrent-request-1", 1), adapterIntent(now, "concurrent-request-2", 1)}
+	services := []*Service{first, second}
+	errors := make([]error, 2)
+	var wait sync.WaitGroup
+	for index := range services {
+		wait.Add(1)
+		go func(index int) {
+			defer wait.Done()
+			_, _, _, errors[index] = services[index].reserveExecution(AdapterShadow, intents[index])
+		}(index)
+	}
+	wait.Wait()
+	successes, conflicts := 0, 0
+	for _, err := range errors {
+		if err == nil {
+			successes++
+		} else if err == ErrConflict {
+			conflicts++
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("errors=%v", errors)
+	}
+	restarted, err := New(Config{StatePath: path})
+	if err != nil || len(restarted.Snapshot()["executionLedger"].(map[string]ExecutionLedgerRecord)) != 1 {
+		t.Fatalf("ledger err=%v", err)
 	}
 }
