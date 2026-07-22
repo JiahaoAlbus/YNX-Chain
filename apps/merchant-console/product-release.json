@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "WORKTREE_PENDING_COMMIT",
+  "commit": "6d75c60864c61c02ed57b736b69b250765aa07d1",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -17,8 +17,16 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "sha256": {
+    "dist/index.html": "efa86c39e42aa2e191fc1eed4e9b66c9db9532302bb2a014b24d31073a395c27",
+    "dist/app.js": "091cb1805e4bb9d7d863588150b177f67c3d3eaf70d2e8e5df45ae76dd8098e2",
+    "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881"
+  },
+  "bytes": {
+    "dist/index.html": 922,
+    "dist/app.js": 119329,
+    "dist/styles.css": 5918
+  },
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
