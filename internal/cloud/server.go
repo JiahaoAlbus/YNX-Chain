@@ -285,8 +285,17 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
-	objects, err := s.service.List(a.Account, ListOptions{ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view")})
-	writeResult(w, objects, err)
+	limit := 0
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			writeError(w, 400, "invalid page limit")
+			return
+		}
+		limit = parsed
+	}
+	page, err := s.service.ListPage(a.Account, ListOptions{ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view"), Limit: limit, Cursor: r.URL.Query().Get("cursor")})
+	writeResult(w, page, err)
 }
 func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {

@@ -3,6 +3,7 @@ package cloud
 import (
 	"archive/zip"
 	"bytes"
+	"container/heap"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -687,6 +688,91 @@ func (s *Service) List(actor string, opt ListOptions) ([]Object, error) {
 	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
 	return out, nil
 }
+
+func (s *Service) ListPage(actor string, opt ListOptions) (ObjectPage, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if opt.Limit == 0 {
+		opt.Limit = 200
+	}
+	if opt.Limit < 1 || opt.Limit > 1000 {
+		return ObjectPage{}, ErrInvalid
+	}
+	q := strings.ToLower(strings.TrimSpace(opt.Query))
+	var cursor Object
+	if opt.Cursor != "" {
+		var ok bool
+		cursor, ok = s.state.Objects[opt.Cursor]
+		if !ok || rank(s.role(actor, cursor)) == 0 {
+			return ObjectPage{}, ErrInvalid
+		}
+	}
+	candidates := &objectPageHeap{}
+	heap.Init(candidates)
+	scanned := 0
+	for _, obj := range s.state.Objects {
+		scanned++
+		if rank(s.role(actor, obj)) == 0 {
+			continue
+		}
+		switch opt.View {
+		case "trash":
+			if obj.TrashedAt == nil {
+				continue
+			}
+		case "starred":
+			if obj.TrashedAt != nil || !obj.Starred {
+				continue
+			}
+		case "recent":
+			if obj.TrashedAt != nil {
+				continue
+			}
+		default:
+			if obj.TrashedAt != nil || obj.ParentID != opt.ParentID {
+				continue
+			}
+		}
+		if q != "" && !strings.Contains(strings.ToLower(obj.Name), q) {
+			continue
+		}
+		if opt.Cursor != "" && !objectBefore(cursor, obj) {
+			continue
+		}
+		if candidates.Len() < opt.Limit+1 {
+			heap.Push(candidates, obj)
+		} else if objectBefore(obj, (*candidates)[0]) {
+			heap.Pop(candidates)
+			heap.Push(candidates, obj)
+		}
+	}
+	items := append([]Object(nil), (*candidates)...)
+	sort.Slice(items, func(i, j int) bool { return objectBefore(items[i], items[j]) })
+	more := len(items) > opt.Limit
+	if more {
+		items = items[:opt.Limit]
+	}
+	next := ""
+	if more && len(items) > 0 {
+		next = items[len(items)-1].ID
+	}
+	return ObjectPage{Items: items, NextCursor: next, Limit: opt.Limit, Scanned: scanned}, nil
+}
+
+func objectBefore(a, b Object) bool {
+	if !a.UpdatedAt.Equal(b.UpdatedAt) {
+		return a.UpdatedAt.After(b.UpdatedAt)
+	}
+	return a.ID < b.ID
+}
+
+type objectPageHeap []Object
+
+func (h objectPageHeap) Len() int           { return len(h) }
+func (h objectPageHeap) Less(i, j int) bool { return objectBefore(h[j], h[i]) }
+func (h objectPageHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *objectPageHeap) Push(x any)        { *h = append(*h, x.(Object)) }
+func (h *objectPageHeap) Pop() any          { old := *h; n := len(old); x := old[n-1]; *h = old[:n-1]; return x }
 
 func (s *Service) Get(actor, id string) (Object, error) {
 	s.mu.Lock()
