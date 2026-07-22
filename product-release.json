@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "4547d3e48f59c2d14ee8034c3e8676d58181f32f",
+  "commit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,14 +21,14 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "b6a0cd9efd2392112955a209490fb426914ea92e19328105f1ebbe6b6890b2d6",
-    "webPwaBundle": "bc4c39ace680a3d84d5329aed6c9e025cfde357a41f81c17af9105139355bd80",
-    "javascriptSdkPackage": "624983e9feb6598146e1ebd0c442047a7b021ae301421af559a1330cef200999"
+    "artifactManifest": "62fa32f25dfac6ebed5f1c1742f581e455a4f662eeb0f800774bda53d4938d46",
+    "webPwaBundle": "f40e82dcdebec7e675b9df3a1e90453e11b07de9ed43d706f1e762b042b30c3a",
+    "javascriptSdkPackage": "9300c51571467ab06a84d0ce5885986623c82134371dcd584de7e9d6ac93fb81"
   },
   "bytes": {
     "artifactManifest": 4070,
-    "webPwaBundle": 321250,
-    "javascriptSdkPackage": 9038
+    "webPwaBundle": 321820,
+    "javascriptSdkPackage": 9861
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
@@ -61,13 +61,21 @@
       "evidence": "npm run dex:vault:test"
     },
     "executionAdapter": {
-      "sourceCommit": "4547d3e48f59c2d14ee8034c3e8676d58181f32f",
+      "sourceCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
       "implementedLocal": true,
       "testedLocal": true,
       "integratedCentral": false,
       "deployedPublic": false,
       "scope": "typed Vault requests, exact Wallet approval digest, injected engine transport, confirmed receipt reconciliation",
       "evidence": "npm test --prefix sdk/dex"
+    },
+    "vaultIndexer": {
+      "sourceCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "deployedPublic": false,
+      "scope": "confirmed ActionExecuted ingestion, Vault-bound cursor v2, state migration, shared reorg recovery, source-labelled API",
+      "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
     }
   },
   "centralIntegration": {
@@ -85,5 +93,5 @@
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-22T15:30:00.000Z"
+  "generatedAt": "2026-07-22T16:00:00.000Z"
 }

@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "4547d3e48f59c2d14ee8034c3e8676d58181f32f",
+  "sourceBaseCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "bc4c39ace680a3d84d5329aed6c9e025cfde357a41f81c17af9105139355bd80",
-  "sizeBytes": 321250,
+  "sha256": "f40e82dcdebec7e675b9df3a1e90453e11b07de9ed43d706f1e762b042b30c3a",
+  "sizeBytes": 321820,
   "contentFileCount": 9,
   "content": [
     {
@@ -35,8 +35,8 @@
     },
     {
       "path": "assets/index-DoXwOYUV.js.map",
-      "sha256": "28319ddabaf605daa0c118e5ecb94b4101a8bfce413fddda24db4425e45447c4",
-      "sizeBytes": 1037641
+      "sha256": "527b718bbc0a40f4f57e29b0ec544b0fc3568e1c0dded47cee58d65a5f518ff2",
+      "sizeBytes": 1040480
     },
     {
       "path": "icon-maskable.svg",
@@ -66,6 +66,6 @@
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "bc4c39ace680a3d84d5329aed6c9e025cfde357a41f81c17af9105139355bd80"
+    "expectedSha256": "f40e82dcdebec7e675b9df3a1e90453e11b07de9ed43d706f1e762b042b30c3a"
   }
 }

@@ -6,4 +6,6 @@ The final branch additionally adds a non-upgradeable Strategy Vault source candi
 
 The JavaScript SDK adds a limited Execution Adapter. It does not contain keys or an automatic strategy loop: submission requires an exact request digest from canonical Wallet introspection and an explicitly injected engine transport, returns an unconfirmed state, then requires confirmed event reconciliation.
 
+Indexer schema/cursor v2 adds confirmed Strategy Vault `ActionExecuted` ingestion, Vault-address binding, source-labelled reconciliation records and shared pool/Vault reorg recovery. Authenticated schema-v1 state and cursor files migrate only after exact rollback backups are preserved; enabling Vault indexing from a legacy cursor forces a deployment-block rescan.
+
 This is not a deployed release. The observed public RPC identifies YNX Testnet chain 6423, but no verified contract addresses, reviewed tokens, pools, liquidity, Wallet swap/LP proof, staging/public URL, hosted artifact, production signature, store review or independent audit exists. All corresponding central/deployment/distribution flags remain false.
