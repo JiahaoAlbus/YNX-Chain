@@ -19,6 +19,8 @@ npm run dex:artifacts:verify
 
 Start the API with random non-repository secrets and owner-selected state/cursor paths. Set `DEX_FACTORY_ADDRESS` and `DEX_INDEXER_START_BLOCK` only from a verified deployment manifest; otherwise the API starts without pretending to ingest chain data. Start the Web app through its same-origin reverse proxy. If AI explanation is enabled, `VITE_DEX_AI_GATEWAY_URL` must remain a same-origin proxy path such as `/ai`; cross-origin endpoints fail closed. `/health` reports product, chain and latest indexed block; `/version` reports exact build identity.
 
+Set `DEX_STRATEGY_VAULT_ADDRESS` only from the same verified deployment manifest. Cursor v2 binds that address and rejects substitution. Enabling it from a v1 cursor preserves a mode-0600 backup and rewinds to `DEX_INDEXER_START_BLOCK` so earlier Vault actions are not skipped. The versioned `/v1/vault/actions` API exposes confirmed actions only and must not be used as a substitute for direct current-state RPC reads.
+
 ## Testnet deployment
 
 Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee addresses, exact Testnet token allow-list, user vault owner, limited Quant engine address and reviewed on-chain vault oracle, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens and zero deployer balance. It deploys the Vault paused and unconfigured and writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, pool creation, test liquidity, Wallet mandate review, swap/LP/Vault proofs, Explorer links and Indexer consistency are separate required steps.
@@ -26,5 +28,7 @@ Copy `.env.dex.example` outside the repository, provide the real RPC, deployer k
 ## Recovery and rollback
 
 Contracts are immutable. Rollback means stop advertising the affected router/factory, preserve indexer/audit evidence, publish the incident, deploy a versioned replacement, migrate only through user-approved Wallet transactions and retain both manifests. State/cursor HMAC mismatch fails startup. A confirmed block-hash mismatch automatically rewinds a bounded depth, removes affected events/pool discovery and rescans; deeper or repeated conflicts require an owner-approved full rescan from the recorded deployment block, never manual state editing.
+
+The schema-v2 forward migration and isolated v1 rollback procedure are defined in `MIGRATION_COMPATIBILITY.md`. Never start old and new binaries against the same writable state or cursor paths.
 
 `npm run dex:testnet:probe` writes a timestamped RPC observation. A timeout exits non-zero and records an unavailable probe; a successful chain-ID check still does not establish DEX deployment. The PWA packager creates a deterministic upload-ready tarball and SHA-256 manifest under `release/dex`; it does not host or production-sign it.

@@ -3,6 +3,7 @@ const NATIVE_ACCOUNT = /^ynx1[0-9a-z]{20,80}$/;
 const INTEGER = /^-?[0-9]{1,78}$/;
 const MAX_HOPS = 4;
 const BPS = 10_000n;
+const VAULT_SELECTORS = Object.freeze({ swapExactInput:"0x8c2d6232", swapExactOutput:"0x211bc4b4", addLiquidity:"0x1beed26c", removeLiquidity:"0xc87f59fd" });
 
 export class DexSdkError extends Error {
   constructor(code, message) { super(message); this.name = "DexSdkError"; this.code = code; }
@@ -226,6 +227,22 @@ export function reconcileVaultAction({ request, receipt, latestBlock, minConfirm
   return Object.freeze({ source: "confirmed YNX Testnet EVM receipt", asOf: asOf.toISOString(), version: "ynx-vault-reconciliation-v1", coverage: "ActionExecuted identity, nonce, method, status, destination, and confirmations", confidence: "confirmed-on-chain", failure: null, transactionHash: receipt.transactionHash.toLowerCase(), blockNumber: receipt.blockNumber, confirmations, vault: request.to, nonceDomain: request.nonceDomain, actionNonce: String(action.nonce), method: action.method, beforeValue: String(action.beforeValue), afterValue: String(action.afterValue) });
 }
 
+export function parseIndexedVaultAction(value) {
+  exactObject(value,["actionNonce","afterValue","asOf","beforeValue","blockHash","blockNumber","confidence","coverage","failure","logIndex","method","methodSelector","nonceDomain","source","transactionHash","vault","version"]);
+  if (!ADDRESS.test(value.vault)||!/^0x[0-9a-fA-F]{64}$/.test(value.nonceDomain)||!/^0x[0-9a-fA-F]{64}$/.test(value.transactionHash)||!/^0x[0-9a-fA-F]{64}$/.test(value.blockHash)||!/^0x[0-9a-fA-F]{8}$/.test(value.methodSelector)) fail("INVALID_INDEXED_ACTION","invalid indexed action identity");
+  if (VAULT_SELECTORS[value.method]!==value.methodSelector.toLowerCase()||!Number.isSafeInteger(value.blockNumber)||value.blockNumber<1||!Number.isSafeInteger(value.logIndex)||value.logIndex<0) fail("INVALID_INDEXED_ACTION","invalid indexed action method or block");
+  positiveBigInt(value.actionNonce,true);positiveBigInt(value.beforeValue,true);positiveBigInt(value.afterValue,true);
+  const asOf=new Date(value.asOf);if(!Number.isFinite(asOf.valueOf())||value.source!=="confirmed YNX Testnet EVM logs"||value.version!=="ynx-vault-action-v1"||value.confidence!=="confirmed-on-chain"||!bounded(value.coverage,20,500)||value.failure!==null) fail("INVALID_INDEXED_ACTION","indexed action provenance is not authoritative");
+  return Object.freeze({...value,vault:value.vault.toLowerCase(),nonceDomain:value.nonceDomain.toLowerCase(),transactionHash:value.transactionHash.toLowerCase(),blockHash:value.blockHash.toLowerCase(),methodSelector:value.methodSelector.toLowerCase(),actionNonce:String(value.actionNonce),beforeValue:String(value.beforeValue),afterValue:String(value.afterValue),asOf:asOf.toISOString()});
+}
+
+export function reconcileIndexedVaultAction({request,action}) {
+  action=parseIndexedVaultAction(action);
+  exactObject(request,["approvalRequired","args","authority","chainId","executor","functionName","nonceDomain","sourceStateAsOf","to","value"]);
+  if(request.chainId!==6423||request.to!==action.vault||request.nonceDomain!==action.nonceDomain||request.functionName!==action.method||String(request.args[0])!==action.actionNonce) fail("RECEIPT_MISMATCH","indexed action does not match request");
+  return Object.freeze({source:action.source,asOf:action.asOf,version:"ynx-vault-indexed-reconciliation-v1",coverage:action.coverage,confidence:action.confidence,failure:null,transactionHash:action.transactionHash,blockHash:action.blockHash,blockNumber:action.blockNumber,logIndex:action.logIndex,vault:action.vault,nonceDomain:action.nonceDomain,actionNonce:action.actionNonce,method:action.method,beforeValue:action.beforeValue,afterValue:action.afterValue});
+}
+
 export async function digestVaultRequest(request) {
   exactObject(request, ["approvalRequired", "args", "authority", "chainId", "executor", "functionName", "nonceDomain", "sourceStateAsOf", "to", "value"]);
   const payload = JSON.stringify([request.chainId,request.to,request.executor,request.functionName,request.args,request.value,request.authority,request.approvalRequired,request.nonceDomain,request.sourceStateAsOf]);
@@ -243,7 +260,7 @@ export async function submitApprovedVaultRequest({ request, approval, sendTransa
   if (String(approval.actionNonce)!==String(request.args[0])) fail("APPROVAL_MISMATCH","approval nonce does not match request");
   const asOf=new Date(approval.asOf);const expiresAt=new Date(approval.expiresAt);
   if (!Number.isFinite(asOf.valueOf())||!Number.isFinite(expiresAt.valueOf())||asOf>now||expiresAt<=now) fail("APPROVAL_EXPIRED","approval timing is invalid");
-  if (!new Set(["swapExactInput","swapExactOutput","addLiquidity","removeLiquidity"]).has(request.functionName)||request.authority!=="limited-engine-session"||request.approvalRequired!==true) fail("INVALID_TRANSACTION","request is not an engine vault action");
+  if (!VAULT_SELECTORS[request.functionName]||request.authority!=="limited-engine-session"||request.approvalRequired!==true) fail("INVALID_TRANSACTION","request is not an engine vault action");
   const result=await sendTransaction(request);
   exactObject(result,["provider","submittedAt","transactionHash"]);
   if (!bounded(result.provider,1,80)||!/^0x[0-9a-fA-F]{64}$/.test(result.transactionHash)||!Number.isFinite(new Date(result.submittedAt).valueOf())) fail("INVALID_SUBMISSION","transport returned invalid submission evidence");

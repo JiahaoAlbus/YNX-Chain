@@ -8,6 +8,7 @@ import {
   buildVaultAddLiquidityTx, buildVaultRemoveLiquidityTx, buildVaultSwapExactInputTx,
   buildVaultSwapExactOutputTx, parseVaultState, reconcileVaultAction,
   digestVaultRequest, submitApprovedVaultRequest,
+  parseIndexedVaultAction, reconcileIndexedVaultAction,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -82,6 +83,17 @@ test("receipt reconciliation binds destination, nonce, method and confirmations"
   assert.equal(proof.confirmations,12);assert.equal(proof.confidence,"confirmed-on-chain");assert.equal(proof.failure,null);
   assert.throws(()=>reconcileVaultAction({request,receipt:{...receipt,events:[{...receipt.events[0],nonce:"8"}]},latestBlock:111}),error=>error.code==="RECEIPT_MISMATCH");
   assert.throws(()=>reconcileVaultAction({request,receipt,latestBlock:110,minConfirmations:12}),error=>error.code==="UNCONFIRMED_RECEIPT");
+});
+
+test("indexed reconciliation accepts only source-labelled matching Vault actions",()=>{
+  const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);
+  const quote=quoteExactInput({amountIn:1000n,tokenIn:A.address,tokenOut:B.address,pools,now:current});
+  const request=buildVaultSwapExactInputTx({state,quote,slippageBps:50,deadline:nowSeconds+300,now:current});
+  const action={actionNonce:"7",afterValue:"9999",asOf:current.toISOString(),beforeValue:"10000",blockHash:`0x${"ef".repeat(32)}`,blockNumber:100,confidence:"confirmed-on-chain",coverage:"ActionExecuted vault, nonce domain, action nonce, method, values, transaction, block and log identity",failure:null,logIndex:3,method:"swapExactInput",methodSelector:"0x8c2d6232",nonceDomain:state.nonceDomain,source:"confirmed YNX Testnet EVM logs",transactionHash:`0x${"ab".repeat(32)}`,vault:state.vault,version:"ynx-vault-action-v1"};
+  assert.equal(parseIndexedVaultAction(action).methodSelector,"0x8c2d6232");
+  const proof=reconcileIndexedVaultAction({request,action});assert.equal(proof.version,"ynx-vault-indexed-reconciliation-v1");assert.equal(proof.failure,null);
+  assert.throws(()=>reconcileIndexedVaultAction({request,action:{...action,nonceDomain:`0x${"00".repeat(32)}`}}),error=>error.code==="RECEIPT_MISMATCH");
+  assert.throws(()=>parseIndexedVaultAction({...action,source:"cache"}),error=>error.code==="INVALID_INDEXED_ACTION");
 });
 
 test("submission requires an exact canonical Wallet approval and explicit transport", async()=>{

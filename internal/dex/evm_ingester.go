@@ -26,6 +26,7 @@ import (
 type EVMPollerConfig struct {
 	RPCURL        string
 	Factory       string
+	StrategyVault string
 	StartBlock    uint64
 	Confirmations uint64
 	BlockRange    uint64
@@ -45,6 +46,7 @@ type poolIdentity struct {
 
 type pollCursor struct {
 	SchemaVersion int            `json:"schemaVersion"`
+	StrategyVault string         `json:"strategyVault,omitempty"`
 	NextBlock     uint64         `json:"nextBlock"`
 	LastBlockHash string         `json:"lastBlockHash"`
 	Pools         []poolIdentity `json:"pools"`
@@ -86,12 +88,23 @@ var eventTopics = map[string]string{
 	"sync":         eventTopic("Sync(uint112,uint112)"),
 	"fees":         eventTopic("ProtocolFeesClaimed(address,uint256,uint256)"),
 	"transfer":     eventTopic("Transfer(address,address,uint256)"),
+	"vault-action": eventTopic("ActionExecuted(uint256,bytes4,uint256,uint256)"),
 }
 var cumulativePriceSelector = functionSelector("currentCumulativePrices()")
+var nonceDomainSelector = functionSelector("nonceDomain()")
+var vaultMethods = map[string]string{
+	strings.ToLower(functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)")):                "swapExactInput",
+	strings.ToLower(functionSelector("swapExactOutput(uint256,uint256,uint256,address[],uint256)")):               "swapExactOutput",
+	strings.ToLower(functionSelector("addLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)")):    "addLiquidity",
+	strings.ToLower(functionSelector("removeLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)")): "removeLiquidity",
+}
 
 func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if store == nil || strings.TrimSpace(cfg.RPCURL) == "" || !addressPattern.MatchString(cfg.Factory) || cfg.StartBlock == 0 {
 		return nil, errors.New("store, RPC URL, factory, and positive start block are required")
+	}
+	if cfg.StrategyVault != "" && (!addressPattern.MatchString(cfg.StrategyVault) || strings.EqualFold(cfg.StrategyVault, cfg.Factory)) {
+		return nil, errors.New("strategy vault must be a distinct valid address")
 	}
 	if len(cfg.CursorSecret) < 32 || strings.TrimSpace(cfg.CursorPath) == "" {
 		return nil, errors.New("cursor path and 32-byte cursor secret are required")
@@ -114,7 +127,7 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 12 * time.Second}
 	}
-	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 1, NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
+	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 2, StrategyVault: strings.ToLower(cfg.StrategyVault), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
 	if err := poller.loadCursor(); err != nil {
 		return nil, err
 	}
@@ -212,7 +225,18 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	all := append(createdEvents, events...)
+	vaultEvents := []Event{}
+	if poller.cfg.StrategyVault != "" {
+		vaultLogs, readErr := poller.getLogs(ctx, poller.cursor.NextBlock, end, poller.cfg.StrategyVault)
+		if readErr != nil {
+			return false, readErr
+		}
+		vaultEvents, err = poller.decodeVaultLogs(ctx, vaultLogs)
+		if err != nil {
+			return false, err
+		}
+	}
+	all := append(append(createdEvents, events...), vaultEvents...)
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].BlockNumber == all[j].BlockNumber {
 			return all[i].LogIndex < all[j].LogIndex
@@ -234,6 +258,62 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func (poller *EVMPoller) decodeVaultLogs(ctx context.Context, logs []evmLog) ([]Event, error) {
+	result := make([]Event, 0, len(logs))
+	for _, log := range logs {
+		if log.Removed || len(log.Topics) == 0 {
+			continue
+		}
+		if !strings.EqualFold(log.Address, poller.cfg.StrategyVault) {
+			return nil, errors.New("vault log address mismatch")
+		}
+		if !strings.EqualFold(log.Topics[0], eventTopics["vault-action"]) {
+			continue
+		}
+		block, index, err := validateLog(log)
+		if err != nil || len(log.Topics) != 3 {
+			return nil, errors.New("invalid ActionExecuted log")
+		}
+		words, err := dataWords(log.Data)
+		if err != nil || len(words) != 2 {
+			return nil, errors.New("invalid ActionExecuted data")
+		}
+		nonce, err := topicUintDecimal(log.Topics[1])
+		if err != nil {
+			return nil, errors.New("invalid ActionExecuted nonce")
+		}
+		selector, err := topicBytes4(log.Topics[2])
+		if err != nil {
+			return nil, errors.New("invalid ActionExecuted method")
+		}
+		method, ok := vaultMethods[strings.ToLower(selector)]
+		if !ok {
+			return nil, errors.New("unsupported ActionExecuted method")
+		}
+		timestamp, err := poller.blockTime(ctx, block)
+		if err != nil {
+			return nil, err
+		}
+		nonceDomain, err := poller.nonceDomain(ctx, block)
+		if err != nil {
+			return nil, err
+		}
+		event := Event{
+			ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID,
+			ContractVersion: "ynx-strategy-vault-v1", BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash),
+			TxHash: strings.ToLower(log.TxHash), LogIndex: index, Type: "vault-action", Timestamp: timestamp,
+			Vault: strings.ToLower(log.Address), NonceDomain: nonceDomain, ActionNonce: nonce, Method: method,
+			MethodSelector: strings.ToLower(selector),
+			BeforeValue:    wordDecimal(words[0]), AfterValue: wordDecimal(words[1]),
+		}
+		if err := event.Validate(); err != nil {
+			return nil, fmt.Errorf("decoded vault event validation: %w", err)
+		}
+		result = append(result, event)
+	}
+	return result, nil
 }
 
 func (poller *EVMPoller) recoverReorg(ctx context.Context) error {
@@ -455,6 +535,18 @@ func (poller *EVMPoller) cumulativePrices(ctx context.Context, pool string, bloc
 	return wordDecimal(words[0]), wordDecimal(words[1]), nil
 }
 
+func (poller *EVMPoller) nonceDomain(ctx context.Context, block uint64) (string, error) {
+	var encoded string
+	if err := poller.rpc(ctx, "eth_call", []any{map[string]string{"to": poller.cfg.StrategyVault, "data": nonceDomainSelector}, hexQuantity(block)}, &encoded); err != nil {
+		return "", err
+	}
+	words, err := dataWords(encoded)
+	if err != nil || len(words) != 1 {
+		return "", errors.New("invalid nonceDomain eth_call response")
+	}
+	return "0x" + strings.ToLower(words[0]), nil
+}
+
 func (poller *EVMPoller) rpc(ctx context.Context, method string, params any, output any) error {
 	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": "ynx-dex", "method": method, "params": params})
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, poller.cfg.RPCURL, bytes.NewReader(body))
@@ -507,13 +599,29 @@ func (poller *EVMPoller) loadCursor() error {
 	payload, _ := json.Marshal(envelope.Cursor)
 	mac := hmac.New(sha256.New, poller.cfg.CursorSecret)
 	_, _ = mac.Write(payload)
-	if envelope.Cursor.SchemaVersion != 1 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
+	if (envelope.Cursor.SchemaVersion != 1 && envelope.Cursor.SchemaVersion != 2) || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
 		return errors.New("EVM cursor integrity verification failed")
 	}
 	for _, pool := range envelope.Cursor.Pools {
 		if !addressPattern.MatchString(pool.Address) || !addressPattern.MatchString(pool.Token0) || !addressPattern.MatchString(pool.Token1) || pool.CreatedBlock < poller.cfg.StartBlock {
 			return errors.New("invalid pool in EVM cursor")
 		}
+	}
+	if envelope.Cursor.SchemaVersion == 2 && !strings.EqualFold(envelope.Cursor.StrategyVault, poller.cfg.StrategyVault) {
+		return errors.New("EVM cursor strategy vault binding mismatch")
+	}
+	if envelope.Cursor.SchemaVersion == 1 {
+		if err := preserveLegacyState(poller.cfg.CursorPath+".schema-v1.bak", data); err != nil {
+			return fmt.Errorf("preserve EVM cursor schema v1 rollback: %w", err)
+		}
+		envelope.Cursor.SchemaVersion = 2
+		envelope.Cursor.StrategyVault = strings.ToLower(poller.cfg.StrategyVault)
+		if poller.cfg.StrategyVault != "" {
+			envelope.Cursor.NextBlock = poller.cfg.StartBlock
+			envelope.Cursor.LastBlockHash = ""
+		}
+		poller.cursor = envelope.Cursor
+		return poller.persistCursor()
 	}
 	poller.cursor = envelope.Cursor
 	return nil
@@ -599,6 +707,26 @@ func topicAddress(topic string) string {
 		return ""
 	}
 	return "0x" + raw[24:]
+}
+func topicUintDecimal(topic string) (string, error) {
+	raw := strings.TrimPrefix(topic, "0x")
+	if len(raw) != 64 {
+		return "", errors.New("invalid uint topic")
+	}
+	if _, err := hex.DecodeString(raw); err != nil {
+		return "", err
+	}
+	return wordDecimal(raw), nil
+}
+func topicBytes4(topic string) (string, error) {
+	raw := strings.TrimPrefix(topic, "0x")
+	if len(raw) != 64 || strings.Trim(raw[8:], "0") != "" {
+		return "", errors.New("invalid bytes4 topic")
+	}
+	if _, err := hex.DecodeString(raw); err != nil {
+		return "", err
+	}
+	return "0x" + strings.ToLower(raw[:8]), nil
 }
 func isZeroAddress(value string) bool {
 	return strings.EqualFold(value, "0x0000000000000000000000000000000000000000")

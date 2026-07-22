@@ -51,12 +51,15 @@
     }
   },
   "indexing": {
-    "eventCoverage": ["PoolCreated", "Swap", "Mint", "Burn", "Sync", "ProtocolFeesClaimed", "LP Transfer correlation"],
+    "eventCoverage": ["PoolCreated", "Swap", "Mint", "Burn", "Sync", "ProtocolFeesClaimed", "LP Transfer correlation", "Strategy Vault ActionExecuted"],
     "logSource": "YNX Testnet EVM JSON-RPC",
     "startBlockEnv": "DEX_INDEXER_START_BLOCK",
     "confirmationsEnv": "DEX_INDEXER_CONFIRMATIONS",
     "cursorIntegrity": "HMAC-SHA-256",
-    "reorgRecovery": "rewind confirmed events and pool discovery, then rescan"
+    "reorgRecovery": "rewind confirmed pool and Vault events plus pool discovery, then rescan",
+    "stateSchemaVersion": 2,
+    "cursorSchemaVersion": 2,
+    "vaultAddressEnv": "DEX_STRATEGY_VAULT_ADDRESS"
   },
   "verification": {
     "contractVerifierUrlEnv": "YNX_CONTRACT_VERIFIER_URL",

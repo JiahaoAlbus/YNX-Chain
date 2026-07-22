@@ -120,12 +120,40 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/twap", server.twap)
 	mux.HandleFunc("GET /v1/fees", server.fees)
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
+	mux.HandleFunc("GET /v1/vault/actions", server.vaultActions)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Content-Type", "application/json")
 		response.Header().Set("Cache-Control", "no-store")
 		response.Header().Set("X-Content-Type-Options", "nosniff")
 		mux.ServeHTTP(response, request)
+	})
+}
+
+func (server *Server) vaultActions(response http.ResponseWriter, request *http.Request) {
+	vault := strings.ToLower(strings.TrimSpace(request.URL.Query().Get("vault")))
+	if !addressPattern.MatchString(vault) {
+		writeError(response, http.StatusBadRequest, "valid vault address required")
+		return
+	}
+	limit, ok := boundedLimit(request.URL)
+	if !ok {
+		writeError(response, http.StatusBadRequest, "invalid limit")
+		return
+	}
+	all := server.store.VaultActions(vault)
+	start := 0
+	if len(all) > limit {
+		start = len(all) - limit
+	}
+	items := append([]VaultAction(nil), all[start:]...)
+	for left, right := 0, len(items)-1; left < right; left, right = left+1, right-1 {
+		items[left], items[right] = items[right], items[left]
+	}
+	writeJSON(response, http.StatusOK, map[string]any{
+		"items": items, "vault": vault, "source": "confirmed YNX Testnet EVM logs",
+		"asOf": time.Now().UTC(), "version": "ynx-vault-actions-api-v1", "confidence": "confirmed-on-chain",
+		"coverage": "ActionExecuted events only; mandate configuration and current balances require direct RPC reads", "failure": nil,
 	})
 }
 

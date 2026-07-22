@@ -11,6 +11,7 @@ The final-objective requirement matrix and 2026-07-22 revalidation record are in
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
 - Indexer recovery/security tests: `internal/dex/store_test.go`
 - Confirmed EVM polling/reorg tests: `internal/dex/evm_ingester_test.go`
+- State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
 - Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
 - Desktop/mobile/offline E2E: `apps/dex/e2e/dex.spec.ts`
 - Deployment guard: `scripts/dex/deploy-testnet.mjs`

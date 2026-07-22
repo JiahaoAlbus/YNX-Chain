@@ -15,7 +15,7 @@ Updated 2026-07-22 for `codex/final-dex`. A checked local subset is not evidence
 | Concentrated liquidity / StableSwap / weighted candidate | not implemented | No authoritative source or tests found. | Contracts, SDK/indexer/UI integration, invariant/fuzz/differential/chaos evidence. |
 | FairFlow / solver competition / batch auction | not implemented | No authoritative source or tests found. | Intent lifecycle, bonds/reputation/slashing, best-execution proof, fallback and adversarial evidence. |
 | Strategy Vault | implemented and locally tested; not deployed or audited | `YNXStrategyVault.sol` at source commit `8a793b4562790834a67c3e4ee491ce089341d549`; `npm run dex:vault:test` passes integration/adversarial/property coverage with 32 stateful vectors and a local maximum observed swap gas of 265341. | Independent audit, formal invariant campaign, verified Testnet bytecode, Wallet-reviewed mandate, real Quant session and Explorer/indexer reconciliation. |
-| Quant execution adapter | partially implemented and locally tested | `sdk/dex` parses authoritative Vault state; builds typed swap/add/remove/pause/emergency requests; requires an exact canonical Wallet approval digest before invoking an injected engine transport; and reconciles confirmed `ActionExecuted` receipts. SDK tests pass 10 cases. | Live canonical Wallet introspection, gas/oracle/risk endpoint integration, collect/compound/rebalance orchestration, indexer Vault events and end-to-end DCA/TWAP/LP evidence. |
+| Quant execution adapter | partially implemented and locally tested | `sdk/dex` parses authoritative Vault state; builds typed swap/add/remove/pause/emergency requests; requires an exact canonical Wallet approval digest before invoking an injected engine transport; and reconciles direct or indexed confirmed `ActionExecuted` evidence. Indexer schema/cursor v2 binds the Vault address, migrates authenticated v1 state and rewinds/reorgs Vault actions with pool events. SDK tests pass 11 cases; Go race tests pass. | Live canonical Wallet introspection, gas/oracle/risk endpoint integration, collect/compound/rebalance orchestration and end-to-end DCA/TWAP/LP evidence. |
 | LP protection / launch auction / protocol-owned liquidity | not implemented | No authoritative source or tests found. | On-chain mechanisms, public accounting schemas, risk and adversarial evidence. |
 | Real YNX Testnet | not deployed | The retained RPC probe proves chain identity only and records `dexDeploymentObserved=false`. | Deploy/verify, reviewed tokens, pools, liquidity, swaps/LP/Vault receipts, Explorer/indexer/UI consistency, public micro-site. |
 
@@ -27,7 +27,7 @@ The authoritative machine-readable status is `product-release.json`. The final o
 
 - Solidity 0.8.24 compilation: pass.
 - Contract integration and arithmetic differential vectors: pass.
-- SDK deterministic/property/security tests: 10 pass.
+- SDK deterministic/property/security tests: 11 pass.
 - Indexer race/restart/tamper/reorg tests: pass.
 - Web build and component/integration tests: 16 pass.
 - Chromium desktop/mobile E2E: 10 pass, 2 skipped because the cases are project-inapplicable.

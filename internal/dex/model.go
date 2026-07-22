@@ -16,6 +16,7 @@ var (
 	amountPattern         = regexp.MustCompile(`^-?[0-9]{1,78}$`)
 	nativePattern         = regexp.MustCompile(`^ynx1[0-9a-z]{20,80}$`)
 	sessionBindingPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{64}$`)
+	selectorPattern       = regexp.MustCompile(`^0x[0-9a-fA-F]{8}$`)
 )
 
 type Event struct {
@@ -41,17 +42,33 @@ type Event struct {
 	Price0Cumulative string    `json:"price0Cumulative,omitempty"`
 	Price1Cumulative string    `json:"price1Cumulative,omitempty"`
 	Timestamp        time.Time `json:"timestamp"`
+	Vault            string    `json:"vault,omitempty"`
+	NonceDomain      string    `json:"nonceDomain,omitempty"`
+	ActionNonce      string    `json:"actionNonce,omitempty"`
+	Method           string    `json:"method,omitempty"`
+	MethodSelector   string    `json:"methodSelector,omitempty"`
+	BeforeValue      string    `json:"beforeValue,omitempty"`
+	AfterValue       string    `json:"afterValue,omitempty"`
 }
 
 func (event Event) Validate() error {
 	if len(event.ID) < 16 || len(event.ID) > 128 || strings.TrimSpace(event.ID) != event.ID {
 		return errors.New("invalid event id")
 	}
-	if event.ChainID != ChainID || event.ContractVersion != "ynx-dex-cpmm-v1" {
+	if event.ChainID != ChainID {
 		return errors.New("wrong chain or contract version")
 	}
 	if event.BlockNumber == 0 || !hashPattern.MatchString(event.BlockHash) || !hashPattern.MatchString(event.TxHash) {
 		return errors.New("invalid block or transaction identity")
+	}
+	if event.ContractVersion == "ynx-strategy-vault-v1" {
+		return event.validateVaultAction()
+	}
+	if event.ContractVersion != "ynx-dex-cpmm-v1" {
+		return errors.New("wrong chain or contract version")
+	}
+	if event.Vault != "" || event.NonceDomain != "" || event.ActionNonce != "" || event.Method != "" || event.MethodSelector != "" || event.BeforeValue != "" || event.AfterValue != "" {
+		return errors.New("pool event contains vault fields")
 	}
 	switch event.Type {
 	case "pool-created", "sync", "swap", "liquidity-add", "liquidity-remove", "protocol-fee-claimed":
@@ -91,6 +108,34 @@ func (event Event) Validate() error {
 	return nil
 }
 
+func (event Event) validateVaultAction() error {
+	if event.Type != "vault-action" || !addressPattern.MatchString(event.Vault) || !hashPattern.MatchString(event.NonceDomain) || !selectorPattern.MatchString(event.MethodSelector) {
+		return errors.New("invalid vault action identity")
+	}
+	expectedSelectors := map[string]string{
+		"swapExactInput":  functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)"),
+		"swapExactOutput": functionSelector("swapExactOutput(uint256,uint256,uint256,address[],uint256)"),
+		"addLiquidity":    functionSelector("addLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)"),
+		"removeLiquidity": functionSelector("removeLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)"),
+	}
+	expected, ok := expectedSelectors[event.Method]
+	if !ok || !strings.EqualFold(expected, event.MethodSelector) {
+		return errors.New("unsupported vault action method")
+	}
+	for _, amount := range []string{event.ActionNonce, event.BeforeValue, event.AfterValue} {
+		if !amountPattern.MatchString(amount) || strings.HasPrefix(amount, "-") {
+			return errors.New("invalid vault action amount")
+		}
+	}
+	if event.Pool != "" || event.Token0 != "" || event.Token1 != "" || event.Account != "" || event.Amount0 != "" || event.Amount1 != "" || event.LPAmount != "" || event.Fee0 != "" || event.Fee1 != "" || event.Reserve0 != "" || event.Reserve1 != "" || event.Price0Cumulative != "" || event.Price1Cumulative != "" {
+		return errors.New("vault action contains pool fields")
+	}
+	if event.Timestamp.IsZero() || event.Timestamp.After(time.Now().Add(2*time.Minute)) {
+		return errors.New("invalid timestamp")
+	}
+	return nil
+}
+
 type Pool struct {
 	Address         string    `json:"address"`
 	Token0          string    `json:"token0"`
@@ -119,6 +164,27 @@ type Analytics struct {
 	Swaps           int    `json:"swaps"`
 	LiquidityEvents int    `json:"liquidityEvents"`
 	LatestBlock     uint64 `json:"latestBlock"`
+	VaultActions    int    `json:"vaultActions"`
+}
+
+type VaultAction struct {
+	Vault           string    `json:"vault"`
+	NonceDomain     string    `json:"nonceDomain"`
+	ActionNonce     string    `json:"actionNonce"`
+	Method          string    `json:"method"`
+	MethodSelector  string    `json:"methodSelector"`
+	BeforeValue     string    `json:"beforeValue"`
+	AfterValue      string    `json:"afterValue"`
+	TransactionHash string    `json:"transactionHash"`
+	BlockHash       string    `json:"blockHash"`
+	BlockNumber     uint64    `json:"blockNumber"`
+	LogIndex        uint64    `json:"logIndex"`
+	AsOf            time.Time `json:"asOf"`
+	Source          string    `json:"source"`
+	Version         string    `json:"version"`
+	Confidence      string    `json:"confidence"`
+	Coverage        string    `json:"coverage"`
+	Failure         *string   `json:"failure"`
 }
 
 // Token is owner-reviewed Testnet metadata used to interpret raw pool amounts.

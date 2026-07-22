@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -39,7 +40,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if len(secret) < 32 {
 		return nil, errors.New("DEX state HMAC secret must contain at least 32 bytes")
 	}
-	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 1, Events: []Event{}}}
+	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 2, Events: []Event{}}}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return store, nil
@@ -51,7 +52,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if err := decodeExact(data, &envelope); err != nil {
 		return nil, fmt.Errorf("decode DEX state: %w", err)
 	}
-	if envelope.Payload.SchemaVersion != 1 || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
+	if (envelope.Payload.SchemaVersion != 1 && envelope.Payload.SchemaVersion != 2) || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
 		return nil, errors.New("DEX state integrity verification failed")
 	}
 	for _, event := range envelope.Payload.Events {
@@ -62,8 +63,43 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if envelope.Payload.Sequence != uint64(len(envelope.Payload.Events)) {
 		return nil, errors.New("DEX state sequence mismatch")
 	}
+	if envelope.Payload.SchemaVersion == 1 {
+		if err := preserveLegacyState(path+".schema-v1.bak", data); err != nil {
+			return nil, fmt.Errorf("preserve DEX schema v1 rollback: %w", err)
+		}
+		envelope.Payload.SchemaVersion = 2
+		if err := store.persist(envelope.Payload); err != nil {
+			return nil, fmt.Errorf("migrate DEX state to schema v2: %w", err)
+		}
+	}
 	store.state = envelope.Payload
 	return store, nil
+}
+
+func preserveLegacyState(path string, data []byte) error {
+	existing, err := os.ReadFile(path)
+	if err == nil {
+		if !bytes.Equal(existing, data) {
+			return errors.New("existing rollback backup differs from source state")
+		}
+		return nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	return file.Close()
 }
 
 func (store *Store) Append(event Event) (bool, error) {
@@ -135,6 +171,9 @@ func (store *Store) Pools() []Pool {
 	defer store.mu.RUnlock()
 	latest := map[string]Pool{}
 	for _, event := range store.state.Events {
+		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+			continue
+		}
 		pool := latest[event.Pool]
 		pool.Address, pool.Token0, pool.Token1 = event.Pool, event.Token0, event.Token1
 		pool.ContractVersion, pool.UpdatedBlock, pool.UpdatedAt = event.ContractVersion, event.BlockNumber, event.Timestamp
@@ -151,12 +190,35 @@ func (store *Store) Pools() []Pool {
 	return result
 }
 
+func (store *Store) VaultActions(vault string) []VaultAction {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	result := make([]VaultAction, 0)
+	for _, event := range store.state.Events {
+		if event.ContractVersion != "ynx-strategy-vault-v1" || !strings.EqualFold(event.Vault, vault) {
+			continue
+		}
+		result = append(result, VaultAction{
+			Vault: event.Vault, NonceDomain: event.NonceDomain, ActionNonce: event.ActionNonce, Method: event.Method, MethodSelector: event.MethodSelector,
+			BeforeValue: event.BeforeValue, AfterValue: event.AfterValue, TransactionHash: event.TxHash,
+			BlockHash: event.BlockHash, BlockNumber: event.BlockNumber, LogIndex: event.LogIndex, AsOf: event.Timestamp,
+			Source: "confirmed YNX Testnet EVM logs", Version: "ynx-vault-action-v1", Confidence: "confirmed-on-chain",
+			Coverage: "ActionExecuted vault, nonce domain, action nonce, method, values, transaction, block and log identity",
+			Failure:  nil,
+		})
+	}
+	return result
+}
+
 func (store *Store) Positions(account string) []Position {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
 	type totals struct{ lp, add0, add1, remove0, remove1 *big.Int }
 	byPool := map[string]*totals{}
 	for _, event := range store.state.Events {
+		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+			continue
+		}
 		if event.Account != account || (event.Type != "liquidity-add" && event.Type != "liquidity-remove") {
 			continue
 		}
@@ -191,6 +253,9 @@ func (store *Store) Analytics() Analytics {
 	pools := store.Pools()
 	result := Analytics{Source: "YNX Testnet EVM events", IndexedEvents: len(events), Pools: len(pools)}
 	for _, event := range events {
+		if event.ContractVersion == "ynx-strategy-vault-v1" {
+			result.VaultActions++
+		}
 		if event.Type == "swap" {
 			result.Swaps++
 		}
@@ -222,6 +287,9 @@ func (store *Store) TWAPs() []TWAP {
 	byPool := map[string]observations{}
 	for index := range events {
 		event := &events[index]
+		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+			continue
+		}
 		if event.Price0Cumulative == "" || event.Price1Cumulative == "" {
 			continue
 		}
@@ -260,6 +328,9 @@ func (store *Store) Fees() []FeeSummary {
 	}
 	byPool := map[string]*totals{}
 	for _, event := range events {
+		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+			continue
+		}
 		item := byPool[event.Pool]
 		if item == nil {
 			item = &totals{event.Token0, event.Token1, new(big.Int), new(big.Int), new(big.Int), new(big.Int)}

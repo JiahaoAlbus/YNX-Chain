@@ -25,6 +25,51 @@ func fixture(index uint64, kind string) Event {
 	return Event{ID: fmt.Sprintf("event-abcdefghijkl-%d", index), ChainID: 6423, ContractVersion: "ynx-dex-cpmm-v1", BlockNumber: 100 + index, BlockHash: fmt.Sprintf("0x%064x", 100+index), TxHash: fmt.Sprintf("0x%064x", 200+index), LogIndex: index, Type: kind, Pool: "0x0000000000000000000000000000000000000011", Account: "ynx1abcdefghijklmnopqrstuv", Token0: "0x0000000000000000000000000000000000000001", Token1: "0x0000000000000000000000000000000000000002", Amount0: "100", Amount1: "200", LPAmount: "50", Fee0: "1", Fee1: "0", Reserve0: "10000", Reserve1: "20000", Timestamp: time.Now().Add(-time.Minute).UTC()}
 }
 
+func vaultFixture(index uint64) Event {
+	return Event{ID: fmt.Sprintf("vault-action-abcdef-%d", index), ChainID: ChainID, ContractVersion: "ynx-strategy-vault-v1", BlockNumber: 200 + index, BlockHash: fmt.Sprintf("0x%064x", 300+index), TxHash: fmt.Sprintf("0x%064x", 400+index), LogIndex: index, Type: "vault-action", Timestamp: time.Now().Add(-time.Minute).UTC(), Vault: "0x00000000000000000000000000000000000000f2", NonceDomain: fmt.Sprintf("0x%064x", 500), ActionNonce: fmt.Sprintf("%d", index), Method: "swapExactInput", MethodSelector: functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)"), BeforeValue: "10000", AfterValue: "9999"}
+}
+
+func TestVaultActionsPersistReconcileAndRewindWithoutPollutingPools(t *testing.T) {
+	legacyJSON, _ := json.Marshal(fixture(1, "swap"))
+	if bytes.Contains(legacyJSON, []byte(`"vault"`)) || bytes.Contains(legacyJSON, []byte(`"nonceDomain"`)) {
+		t.Fatal("empty Vault fields changed legacy event serialization")
+	}
+	path := filepath.Join(t.TempDir(), "state.json")
+	store, err := OpenStore(path, testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	action := vaultFixture(7)
+	tamperedMethod := action
+	tamperedMethod.MethodSelector = functionSelector("swapExactOutput(uint256,uint256,uint256,address[],uint256)")
+	if err := tamperedMethod.Validate(); err == nil {
+		t.Fatal("method/selector substitution accepted")
+	}
+	if created, err := store.Append(action); err != nil || !created {
+		t.Fatalf("append %v %v", created, err)
+	}
+	if len(store.Pools()) != 0 || len(store.Positions(action.Vault)) != 0 || len(store.Fees()) != 0 {
+		t.Fatal("vault action polluted pool projections")
+	}
+	actions := store.VaultActions(strings.ToUpper(action.Vault[:2]) + action.Vault[2:])
+	if len(actions) != 1 || actions[0].ActionNonce != "7" || actions[0].Method != "swapExactInput" || actions[0].Failure != nil || actions[0].Confidence != "confirmed-on-chain" {
+		t.Fatalf("actions=%#v", actions)
+	}
+	if store.Analytics().VaultActions != 1 {
+		t.Fatal("vault analytics missing")
+	}
+	restarted, err := OpenStore(path, testSecret)
+	if err != nil || len(restarted.VaultActions(action.Vault)) != 1 {
+		t.Fatalf("restart %v", err)
+	}
+	if _, err := restarted.Append(func() Event { value := action; value.AfterValue = "1"; return value }()); err == nil {
+		t.Fatal("conflicting vault replay accepted")
+	}
+	if err := restarted.Rewind(action.BlockNumber); err != nil || len(restarted.VaultActions(action.Vault)) != 0 {
+		t.Fatalf("rewind %v", err)
+	}
+}
+
 func TestStoreRestartReplayTamperAndConflict(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state.json")
 	store, err := OpenStore(path, testSecret)
@@ -52,6 +97,37 @@ func TestStoreRestartReplayTamperAndConflict(t *testing.T) {
 	_ = os.WriteFile(path, data, 0o600)
 	if _, err = OpenStore(path, testSecret); err == nil {
 		t.Fatal("tampered store accepted")
+	}
+}
+
+func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	legacyStore := &Store{path: path, secret: append([]byte(nil), testSecret...)}
+	payload := storePayload{SchemaVersion: 1, Sequence: 1, Events: []Event{fixture(1, "swap")}}
+	legacy := storeEnvelope{Payload: payload, Integrity: legacyStore.integrity(payload)}
+	data, _ := json.MarshalIndent(legacy, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.state.SchemaVersion != 2 || len(migrated.Events()) != 1 {
+		t.Fatalf("migrated=%#v", migrated.state)
+	}
+	backup, err := os.ReadFile(path + ".schema-v1.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("rollback backup %v", err)
+	}
+	info, err := os.Stat(path + ".schema-v1.bak")
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("rollback mode %v %v", info, err)
+	}
+	var current storeEnvelope
+	currentData, _ := os.ReadFile(path)
+	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 2 {
+		t.Fatalf("current schema %v %#v", err, current.Payload)
 	}
 }
 
@@ -151,6 +227,27 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusCreated {
 		t.Fatalf("ingest %d %s", response.Code, response.Body.String())
+	}
+	vaultAction := vaultFixture(7)
+	vaultData, _ := json.Marshal(vaultAction)
+	request = httptest.NewRequest(http.MethodPost, "/internal/v1/events", bytes.NewReader(vaultData))
+	request.Header.Set("X-YNX-DEX-Indexer-Key", strings.Repeat("k", 32))
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("vault ingest %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/vault/actions?vault="+vaultAction.Vault+"&limit=25", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"confidence":"confirmed-on-chain"`) || !strings.Contains(response.Body.String(), `"failure":null`) || !strings.Contains(response.Body.String(), `"actionNonce":"7"`) {
+		t.Fatalf("vault actions %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/vault/actions?vault=bad", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("bad vault query %d", response.Code)
 	}
 	bad := map[string]any{}
 	_ = json.Unmarshal(data, &bad)
