@@ -27,6 +27,7 @@ type EVMPollerConfig struct {
 	RPCURL        string
 	Factory       string
 	StrategyVault string
+	FairFlow      string
 	StartBlock    uint64
 	Confirmations uint64
 	BlockRange    uint64
@@ -47,6 +48,7 @@ type poolIdentity struct {
 type pollCursor struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	StrategyVault string         `json:"strategyVault,omitempty"`
+	FairFlow      string         `json:"fairFlow,omitempty"`
 	NextBlock     uint64         `json:"nextBlock"`
 	LastBlockHash string         `json:"lastBlockHash"`
 	Pools         []poolIdentity `json:"pools"`
@@ -81,14 +83,24 @@ type evmBlock struct {
 }
 
 var eventTopics = map[string]string{
-	"pool-created": eventTopic("PoolCreated(address,address,address,uint256)"),
-	"mint":         eventTopic("Mint(address,uint256,uint256,address)"),
-	"burn":         eventTopic("Burn(address,uint256,uint256,address)"),
-	"swap":         eventTopic("Swap(address,address,uint256,uint256,address)"),
-	"sync":         eventTopic("Sync(uint112,uint112)"),
-	"fees":         eventTopic("ProtocolFeesClaimed(address,uint256,uint256)"),
-	"transfer":     eventTopic("Transfer(address,address,uint256)"),
-	"vault-action": eventTopic("ActionExecuted(uint256,bytes4,uint256,uint256)"),
+	"pool-created":            eventTopic("PoolCreated(address,address,address,uint256)"),
+	"mint":                    eventTopic("Mint(address,uint256,uint256,address)"),
+	"burn":                    eventTopic("Burn(address,uint256,uint256,address)"),
+	"swap":                    eventTopic("Swap(address,address,uint256,uint256,address)"),
+	"sync":                    eventTopic("Sync(uint112,uint112)"),
+	"fees":                    eventTopic("ProtocolFeesClaimed(address,uint256,uint256)"),
+	"transfer":                eventTopic("Transfer(address,address,uint256)"),
+	"vault-action":            eventTopic("ActionExecuted(uint256,bytes4,uint256,uint256)"),
+	"fair-batch-opened":       eventTopic("BatchOpened(uint64,address,address,uint256,uint256,uint256,uint256)"),
+	"fair-intent-submitted":   eventTopic("IntentSubmitted(bytes32,uint64,address,bool,uint256,uint256,uint256,uint256)"),
+	"fair-intent-cancelled":   eventTopic("IntentCancelled(bytes32,uint64,address,bool)"),
+	"fair-solution-committed": eventTopic("SolutionCommitted(uint64,address,bytes32)"),
+	"fair-solution-revealed":  eventTopic("SolutionRevealed(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
+	"fair-winner-finalized":   eventTopic("WinnerFinalized(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
+	"fair-intent-settled":     eventTopic("IntentSettled(bytes32,uint64,address,uint256,uint256,uint256,uint256)"),
+	"fair-batch-settled":      eventTopic("BatchSettled(uint64,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bytes32)"),
+	"fair-batch-failed":       eventTopic("BatchFailed(uint64,address,bytes32,uint256)"),
+	"fair-solver-slashed":     eventTopic("SolverSlashed(uint64,address,bytes32,uint256)"),
 }
 var cumulativePriceSelector = functionSelector("currentCumulativePrices()")
 var nonceDomainSelector = functionSelector("nonceDomain()")
@@ -105,6 +117,9 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	}
 	if cfg.StrategyVault != "" && (!addressPattern.MatchString(cfg.StrategyVault) || strings.EqualFold(cfg.StrategyVault, cfg.Factory)) {
 		return nil, errors.New("strategy vault must be a distinct valid address")
+	}
+	if cfg.FairFlow != "" && (!addressPattern.MatchString(cfg.FairFlow) || strings.EqualFold(cfg.FairFlow, cfg.Factory) || strings.EqualFold(cfg.FairFlow, cfg.StrategyVault)) {
+		return nil, errors.New("FairFlow must be a distinct valid address")
 	}
 	if len(cfg.CursorSecret) < 32 || strings.TrimSpace(cfg.CursorPath) == "" {
 		return nil, errors.New("cursor path and 32-byte cursor secret are required")
@@ -127,7 +142,7 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 12 * time.Second}
 	}
-	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 2, StrategyVault: strings.ToLower(cfg.StrategyVault), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
+	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 3, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
 	if err := poller.loadCursor(); err != nil {
 		return nil, err
 	}
@@ -236,6 +251,17 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 			return false, err
 		}
 	}
+	fairFlowEvents := []FairFlowEvent{}
+	if poller.cfg.FairFlow != "" {
+		fairLogs, readErr := poller.getLogs(ctx, poller.cursor.NextBlock, end, poller.cfg.FairFlow)
+		if readErr != nil {
+			return false, readErr
+		}
+		fairFlowEvents, err = poller.decodeFairFlowLogs(ctx, fairLogs)
+		if err != nil {
+			return false, err
+		}
+	}
 	all := append(append(createdEvents, events...), vaultEvents...)
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].BlockNumber == all[j].BlockNumber {
@@ -245,6 +271,11 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 	})
 	for _, event := range all {
 		if _, err := poller.store.Append(event); err != nil {
+			return false, err
+		}
+	}
+	for _, event := range fairFlowEvents {
+		if _, err := poller.store.AppendFairFlow(event); err != nil {
 			return false, err
 		}
 	}
@@ -313,6 +344,118 @@ func (poller *EVMPoller) decodeVaultLogs(ctx context.Context, logs []evmLog) ([]
 		}
 		result = append(result, event)
 	}
+	return result, nil
+}
+
+func (poller *EVMPoller) decodeFairFlowLogs(ctx context.Context, logs []evmLog) ([]FairFlowEvent, error) {
+	result := make([]FairFlowEvent, 0, len(logs))
+	for _, log := range logs {
+		if log.Removed || len(log.Topics) == 0 {
+			continue
+		}
+		if !strings.EqualFold(log.Address, poller.cfg.FairFlow) {
+			return nil, errors.New("FairFlow log address mismatch")
+		}
+		kind := ""
+		expectedTopics, expectedWords := 0, 0
+		switch {
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-batch-opened"]):
+			kind, expectedTopics, expectedWords = "batch-opened", 4, 4
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-intent-submitted"]):
+			kind, expectedTopics, expectedWords = "intent-submitted", 4, 5
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-intent-cancelled"]):
+			kind, expectedTopics, expectedWords = "intent-cancelled", 4, 1
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-solution-committed"]):
+			kind, expectedTopics, expectedWords = "solution-committed", 3, 1
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-solution-revealed"]):
+			kind, expectedTopics, expectedWords = "solution-revealed", 3, 5
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-winner-finalized"]):
+			kind, expectedTopics, expectedWords = "winner-finalized", 3, 5
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-intent-settled"]):
+			kind, expectedTopics, expectedWords = "intent-settled", 4, 4
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-batch-settled"]):
+			kind, expectedTopics, expectedWords = "batch-settled", 3, 9
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-batch-failed"]):
+			kind, expectedTopics, expectedWords = "batch-failed", 3, 2
+		case strings.EqualFold(log.Topics[0], eventTopics["fair-solver-slashed"]):
+			kind, expectedTopics, expectedWords = "solver-slashed", 4, 1
+		default:
+			continue
+		}
+		block, index, err := validateLog(log)
+		if err != nil || len(log.Topics) != expectedTopics {
+			return nil, fmt.Errorf("invalid FairFlow %s log", kind)
+		}
+		words, err := dataWords(log.Data)
+		if err != nil || len(words) != expectedWords {
+			return nil, fmt.Errorf("invalid FairFlow %s data", kind)
+		}
+		timestamp, err := poller.blockTime(ctx, block)
+		if err != nil {
+			return nil, err
+		}
+		event := FairFlowEvent{ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID, ContractVersion: "ynx-fairflow-v1", FairFlow: strings.ToLower(log.Address), BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash), TransactionHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Details: map[string]string{}, AsOf: timestamp, Source: "confirmed YNX Testnet EVM logs", Version: "ynx-fairflow-event-v1", Confidence: "confirmed-on-chain", Coverage: "Confirmed FairFlow event identity and stage-specific indexed/data fields", Failure: nil}
+		if kind == "batch-opened" {
+			event.BatchID, err = topicUintDecimal(log.Topics[1])
+			if err != nil {
+				return nil, err
+			}
+			event.Details = map[string]string{"token0": strings.ToLower(topicAddress(log.Topics[2])), "token1": strings.ToLower(topicAddress(log.Topics[3])), "intentEnd": wordDecimal(words[0]), "commitEnd": wordDecimal(words[1]), "revealEnd": wordDecimal(words[2]), "settleEnd": wordDecimal(words[3])}
+		} else if kind == "intent-submitted" || kind == "intent-cancelled" || kind == "intent-settled" {
+			event.IntentID = strings.ToLower(log.Topics[1])
+			event.BatchID, err = topicUintDecimal(log.Topics[2])
+			event.Actor = strings.ToLower(topicAddress(log.Topics[3]))
+			if err != nil {
+				return nil, err
+			}
+			switch kind {
+			case "intent-submitted":
+				boolean, boolErr := wordBoolean(words[0])
+				if boolErr != nil {
+					return nil, boolErr
+				}
+				event.Details = map[string]string{"zeroForOne": boolean, "sellAmount": wordDecimal(words[1]), "minBuyAmount": wordDecimal(words[2]), "validTo": wordDecimal(words[3]), "nonce": wordDecimal(words[4])}
+			case "intent-cancelled":
+				boolean, boolErr := wordBoolean(words[0])
+				if boolErr != nil {
+					return nil, boolErr
+				}
+				event.Details = map[string]string{"batchAborted": boolean}
+			case "intent-settled":
+				event.Details = map[string]string{"sellAmount": wordDecimal(words[0]), "baseBuyAmount": wordDecimal(words[1]), "solverFundedRebate": wordDecimal(words[2]), "priceImprovement": wordDecimal(words[3])}
+			}
+		} else {
+			event.BatchID, err = topicUintDecimal(log.Topics[1])
+			event.Actor = strings.ToLower(topicAddress(log.Topics[2]))
+			if err != nil {
+				return nil, err
+			}
+			switch kind {
+			case "solution-committed":
+				event.Details = map[string]string{"commitment": wordHash(words[0])}
+			case "solution-revealed":
+				event.Details = map[string]string{"priceX96": wordDecimal(words[0]), "rebateBps": wordDecimal(words[1]), "scoreToken0": wordDecimal(words[2]), "routeHash": wordHash(words[3]), "executionDigest": wordHash(words[4])}
+			case "winner-finalized":
+				event.Details = map[string]string{"priceX96": wordDecimal(words[0]), "rebateBps": wordDecimal(words[1]), "scoreToken0": wordDecimal(words[2]), "routeHash": wordHash(words[3]), "bestExecutionDigest": wordHash(words[4])}
+			case "batch-settled":
+				event.Details = map[string]string{"userInput0": wordDecimal(words[0]), "userInput1": wordDecimal(words[1]), "userOutput0": wordDecimal(words[2]), "userOutput1": wordDecimal(words[3]), "externalInput0": wordDecimal(words[4]), "externalInput1": wordDecimal(words[5]), "solverOutput0": wordDecimal(words[6]), "solverOutput1": wordDecimal(words[7]), "bestExecutionDigest": wordHash(words[8])}
+			case "batch-failed":
+				event.Details = map[string]string{"reason": wordHash(words[0]), "slashedBond": wordDecimal(words[1])}
+			case "solver-slashed":
+				event.Details = map[string]string{"reason": strings.ToLower(log.Topics[3]), "amount": wordDecimal(words[0])}
+			}
+		}
+		if err := event.Validate(); err != nil {
+			return nil, fmt.Errorf("decoded FairFlow event validation: %w", err)
+		}
+		result = append(result, event)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].BlockNumber == result[j].BlockNumber {
+			return result[i].LogIndex < result[j].LogIndex
+		}
+		return result[i].BlockNumber < result[j].BlockNumber
+	})
 	return result, nil
 }
 
@@ -599,7 +742,7 @@ func (poller *EVMPoller) loadCursor() error {
 	payload, _ := json.Marshal(envelope.Cursor)
 	mac := hmac.New(sha256.New, poller.cfg.CursorSecret)
 	_, _ = mac.Write(payload)
-	if (envelope.Cursor.SchemaVersion != 1 && envelope.Cursor.SchemaVersion != 2) || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
+	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 3 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
 		return errors.New("EVM cursor integrity verification failed")
 	}
 	for _, pool := range envelope.Cursor.Pools {
@@ -607,16 +750,21 @@ func (poller *EVMPoller) loadCursor() error {
 			return errors.New("invalid pool in EVM cursor")
 		}
 	}
-	if envelope.Cursor.SchemaVersion == 2 && !strings.EqualFold(envelope.Cursor.StrategyVault, poller.cfg.StrategyVault) {
+	if envelope.Cursor.SchemaVersion >= 2 && !strings.EqualFold(envelope.Cursor.StrategyVault, poller.cfg.StrategyVault) {
 		return errors.New("EVM cursor strategy vault binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion == 1 {
-		if err := preserveLegacyState(poller.cfg.CursorPath+".schema-v1.bak", data); err != nil {
-			return fmt.Errorf("preserve EVM cursor schema v1 rollback: %w", err)
+	if envelope.Cursor.SchemaVersion == 3 && !strings.EqualFold(envelope.Cursor.FairFlow, poller.cfg.FairFlow) {
+		return errors.New("EVM cursor FairFlow binding mismatch")
+	}
+	if envelope.Cursor.SchemaVersion < 3 {
+		legacyVersion := envelope.Cursor.SchemaVersion
+		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", poller.cfg.CursorPath, legacyVersion), data); err != nil {
+			return fmt.Errorf("preserve EVM cursor schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Cursor.SchemaVersion = 2
+		envelope.Cursor.SchemaVersion = 3
 		envelope.Cursor.StrategyVault = strings.ToLower(poller.cfg.StrategyVault)
-		if poller.cfg.StrategyVault != "" {
+		envelope.Cursor.FairFlow = strings.ToLower(poller.cfg.FairFlow)
+		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "")) || (legacyVersion == 2 && poller.cfg.FairFlow != "") {
 			envelope.Cursor.NextBlock = poller.cfg.StartBlock
 			envelope.Cursor.LastBlockHash = ""
 		}
@@ -699,6 +847,17 @@ func wordDecimal(word string) string {
 	value := new(big.Int)
 	value.SetString(word, 16)
 	return value.String()
+}
+func wordHash(word string) string { return "0x" + strings.ToLower(word) }
+func wordBoolean(word string) (string, error) {
+	value := wordDecimal(word)
+	if value == "0" {
+		return "false", nil
+	}
+	if value == "1" {
+		return "true", nil
+	}
+	return "", errors.New("invalid ABI boolean")
 }
 func wordAddress(word string) string { return "0x" + word[24:] }
 func topicAddress(topic string) string {

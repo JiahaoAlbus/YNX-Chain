@@ -29,6 +29,47 @@ func vaultFixture(index uint64) Event {
 	return Event{ID: fmt.Sprintf("vault-action-abcdef-%d", index), ChainID: ChainID, ContractVersion: "ynx-strategy-vault-v1", BlockNumber: 200 + index, BlockHash: fmt.Sprintf("0x%064x", 300+index), TxHash: fmt.Sprintf("0x%064x", 400+index), LogIndex: index, Type: "vault-action", Timestamp: time.Now().Add(-time.Minute).UTC(), Vault: "0x00000000000000000000000000000000000000f2", NonceDomain: fmt.Sprintf("0x%064x", 500), ActionNonce: fmt.Sprintf("%d", index), Method: "swapExactInput", MethodSelector: functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)"), BeforeValue: "10000", AfterValue: "9999"}
 }
 
+func fairFlowFixture(index uint64) FairFlowEvent {
+	return FairFlowEvent{ID: fmt.Sprintf("fairflow-event-abcd-%d", index), ChainID: ChainID, ContractVersion: "ynx-fairflow-v1", FairFlow: "0x00000000000000000000000000000000000000f4", BlockNumber: 300 + index, BlockHash: fmt.Sprintf("0x%064x", 500+index), TransactionHash: fmt.Sprintf("0x%064x", 600+index), LogIndex: index, Type: "winner-finalized", BatchID: "3", Actor: "0x00000000000000000000000000000000000000a1", Details: map[string]string{"priceX96": "158456325028528675187087900672", "rebateBps": "100", "scoreToken0": "55", "routeHash": fmt.Sprintf("0x%064x", 700), "bestExecutionDigest": fmt.Sprintf("0x%064x", 701)}, AsOf: time.Now().Add(-time.Minute).UTC(), Source: "confirmed YNX Testnet EVM logs", Version: "ynx-fairflow-event-v1", Confidence: "confirmed-on-chain", Coverage: "Confirmed FairFlow event identity and stage-specific indexed/data fields", Failure: nil}
+}
+
+func TestFairFlowEventsPersistRejectSubstitutionAndRewind(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	store, err := OpenStore(path, testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := fairFlowFixture(1)
+	if created, err := store.AppendFairFlow(event); err != nil || !created {
+		t.Fatalf("append %v %v", created, err)
+	}
+	if len(store.Pools()) != 0 || len(store.VaultActions(event.FairFlow)) != 0 {
+		t.Fatal("FairFlow polluted pool or Vault projections")
+	}
+	if len(store.FairFlowEvents(event.FairFlow)) != 1 || store.Analytics().FairFlowEvents != 1 {
+		t.Fatal("FairFlow projection missing")
+	}
+	tampered := event
+	tampered.Details = map[string]string{}
+	if err := tampered.Validate(); err == nil {
+		t.Fatal("detail substitution accepted")
+	}
+	if _, err := store.AppendFairFlow(func() FairFlowEvent {
+		value := event
+		value.Details = map[string]string{"priceX96": "1", "rebateBps": "100", "scoreToken0": "55", "routeHash": fmt.Sprintf("0x%064x", 700), "bestExecutionDigest": fmt.Sprintf("0x%064x", 701)}
+		return value
+	}()); err == nil {
+		t.Fatal("conflicting replay accepted")
+	}
+	restarted, err := OpenStore(path, testSecret)
+	if err != nil || len(restarted.FairFlowEvents(event.FairFlow)) != 1 {
+		t.Fatalf("restart %v", err)
+	}
+	if err := restarted.Rewind(event.BlockNumber); err != nil || len(restarted.FairFlowEvents(event.FairFlow)) != 0 {
+		t.Fatalf("rewind %v", err)
+	}
+}
+
 func TestVaultActionsPersistReconcileAndRewindWithoutPollutingPools(t *testing.T) {
 	legacyJSON, _ := json.Marshal(fixture(1, "swap"))
 	if bytes.Contains(legacyJSON, []byte(`"vault"`)) || bytes.Contains(legacyJSON, []byte(`"nonceDomain"`)) {
@@ -113,7 +154,7 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.state.SchemaVersion != 2 || len(migrated.Events()) != 1 {
+	if migrated.state.SchemaVersion != 3 || len(migrated.Events()) != 1 || len(migrated.FairFlowEvents("")) != 0 {
 		t.Fatalf("migrated=%#v", migrated.state)
 	}
 	backup, err := os.ReadFile(path + ".schema-v1.bak")
@@ -126,8 +167,31 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	}
 	var current storeEnvelope
 	currentData, _ := os.ReadFile(path)
-	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 2 {
+	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 3 {
 		t.Fatalf("current schema %v %#v", err, current.Payload)
+	}
+}
+
+func TestStoreMigratesAuthenticatedSchemaV2AndPreservesRollback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	legacyStore := &Store{path: path, secret: append([]byte(nil), testSecret...)}
+	payload := storePayload{SchemaVersion: 2, Sequence: 1, Events: []Event{vaultFixture(2)}}
+	legacy := storeEnvelope{Payload: payload, Integrity: legacyStore.integrity(payload)}
+	data, _ := json.MarshalIndent(legacy, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, testSecret)
+	if err != nil || migrated.state.SchemaVersion != 3 {
+		t.Fatalf("migration %v %#v", err, migrated)
+	}
+	backup, err := os.ReadFile(path + ".schema-v2.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("backup %v", err)
+	}
+	info, err := os.Stat(path + ".schema-v2.bak")
+	if err != nil || info.Mode().Perm() != 0o600 {
+		t.Fatalf("mode %v %v", info, err)
 	}
 }
 
@@ -248,6 +312,22 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("bad vault query %d", response.Code)
+	}
+	fairEvent := fairFlowFixture(9)
+	if _, err := store.AppendFairFlow(fairEvent); err != nil {
+		t.Fatal(err)
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/fairflow/events?fairFlow="+fairEvent.FairFlow+"&batchId=3&limit=25", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"type":"winner-finalized"`) || !strings.Contains(response.Body.String(), `"confidence":"confirmed-on-chain"`) || !strings.Contains(response.Body.String(), `"failure":null`) {
+		t.Fatalf("FairFlow API %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/fairflow/events?fairFlow=bad", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("bad FairFlow query %d", response.Code)
 	}
 	bad := map[string]any{}
 	_ = json.Unmarshal(data, &bad)

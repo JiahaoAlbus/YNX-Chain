@@ -16,8 +16,8 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 
 - `contracts/dex`: versioned factory, immutable pool, bounded router, read-only quoter, adversarial test tokens and integration runner.
 - `contracts/dex/YNXStrategyVault.sol`: immutable per-user owner/engine boundary with typed Router methods, exact approvals, mandate/oracle limits, pause/revoke/kill and owner-only recovery. Vault v1 has no fee-transfer path.
-- `sdk/dex`: strict ESM SDK for token/pool/Vault parsing, deterministic exact-in/out routing, slippage, typed Vault requests, exact canonical Wallet approval digest, injected engine submission and confirmed receipt reconciliation. It contains no signer or automatic strategy loop.
-- `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v2 event state, confirmed Pool/Vault EVM poller, Vault-bound cursor migration, shared reorg rewind/rescan, source-labelled Vault actions API, public pool reads, protected positions and strict token-list API.
+- `sdk/dex`: strict ESM SDK for token/pool/Vault/FairFlow parsing, deterministic exact-in/out routing, slippage, typed Vault and Intent requests, exact canonical Wallet approval digests, injected submission and confirmed receipt/event reconciliation. It contains no signer, solver or automatic strategy loop.
+- `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v3 event state, confirmed Pool/Vault/FairFlow EVM poller, address-bound cursor migration, shared reorg rewind/rescan, source-labelled Vault/FairFlow APIs, public pool reads, protected positions and strict token-list API.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
 - AI risk explanation: context selection, explicit permission, same-origin canonical-gateway enforcement, provider/model/status/cost, strict NDJSON streaming/cancel, review, local apply/reject and SHA-256 hash-chained browser audit. It cannot build, sign, submit or mutate a transaction.
 - `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. It is unsigned and not hosted.
@@ -29,7 +29,7 @@ Candidate file: `apps/dex/wallet-client.json`.
 - `productClientId`: `ynx-dex-web-v1`
 - `bundleId`: `com.ynxweb4.dex.web`
 - callback: `https://dex.ynxweb4.com/wallet-auth/callback`
-- scopes: `account:read`, `dex:positions:read`, `dex:transaction:request`
+- scopes: `account:read`, `dex:fairflow:intent`, `dex:positions:read`, `dex:transaction:request`
 - required device algorithm: `p256-sha256`
 
 The local adapter binds the exact client, bundle, callback, chain, scopes, nonce, digest and expiry and rejects substitutions. Positions call central introspection and fail closed when it is missing. No central Wallet, Auth, Gateway, registry or policy file was changed on this branch.
@@ -49,6 +49,7 @@ npm ci
 npm run hardhat:build
 npm run dex:contracts:test
 npm run dex:vault:test
+npm run dex:fairflow:test
 npm test --prefix sdk/dex
 go test -race ./internal/dex ./cmd/ynx-dex-indexerd
 npm ci --prefix apps/dex

@@ -8,9 +8,10 @@ The final-objective requirement matrix and 2026-07-22 revalidation record are in
 - Engine evaluation: `docs/dex/DEX_ENGINE_EVALUATION.md`
 - Contract integration runner: `scripts/dex/contract-test.mjs`
 - Strategy Vault security boundary and adversarial/property runner: `docs/dex/STRATEGY_VAULT_SECURITY.md`, `scripts/dex/vault-test.mjs`
+- FairFlow contract, lifecycle and economic boundary: `docs/dex/FAIRFLOW_SECURITY.md`, `scripts/dex/fairflow-test.mjs`
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
-- Indexer recovery/security tests: `internal/dex/store_test.go`
-- Confirmed EVM polling/reorg tests: `internal/dex/evm_ingester_test.go`
+- Indexer recovery/security tests, including FairFlow persistence/API/migration: `internal/dex/store_test.go`
+- Confirmed EVM polling/reorg and all-stage FairFlow ABI tests: `internal/dex/evm_ingester_test.go`
 - State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
 - Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
 - Desktop/mobile/offline E2E: `apps/dex/e2e/dex.spec.ts`

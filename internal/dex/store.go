@@ -19,9 +19,10 @@ import (
 )
 
 type storePayload struct {
-	SchemaVersion int     `json:"schemaVersion"`
-	Sequence      uint64  `json:"sequence"`
-	Events        []Event `json:"events"`
+	SchemaVersion  int             `json:"schemaVersion"`
+	Sequence       uint64          `json:"sequence"`
+	Events         []Event         `json:"events"`
+	FairFlowEvents []FairFlowEvent `json:"fairFlowEvents,omitempty"`
 }
 
 type storeEnvelope struct {
@@ -40,7 +41,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if len(secret) < 32 {
 		return nil, errors.New("DEX state HMAC secret must contain at least 32 bytes")
 	}
-	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 2, Events: []Event{}}}
+	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 3, Events: []Event{}, FairFlowEvents: []FairFlowEvent{}}}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return store, nil
@@ -52,7 +53,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if err := decodeExact(data, &envelope); err != nil {
 		return nil, fmt.Errorf("decode DEX state: %w", err)
 	}
-	if (envelope.Payload.SchemaVersion != 1 && envelope.Payload.SchemaVersion != 2) || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
+	if (envelope.Payload.SchemaVersion < 1 || envelope.Payload.SchemaVersion > 3) || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
 		return nil, errors.New("DEX state integrity verification failed")
 	}
 	for _, event := range envelope.Payload.Events {
@@ -60,16 +61,23 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 			return nil, fmt.Errorf("invalid persisted event: %w", err)
 		}
 	}
-	if envelope.Payload.Sequence != uint64(len(envelope.Payload.Events)) {
+	for _, event := range envelope.Payload.FairFlowEvents {
+		if err := event.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid persisted FairFlow event: %w", err)
+		}
+	}
+	if envelope.Payload.Sequence != uint64(len(envelope.Payload.Events)+len(envelope.Payload.FairFlowEvents)) {
 		return nil, errors.New("DEX state sequence mismatch")
 	}
-	if envelope.Payload.SchemaVersion == 1 {
-		if err := preserveLegacyState(path+".schema-v1.bak", data); err != nil {
-			return nil, fmt.Errorf("preserve DEX schema v1 rollback: %w", err)
+	if envelope.Payload.SchemaVersion < 3 {
+		legacyVersion := envelope.Payload.SchemaVersion
+		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", path, legacyVersion), data); err != nil {
+			return nil, fmt.Errorf("preserve DEX schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Payload.SchemaVersion = 2
+		envelope.Payload.SchemaVersion = 3
+		envelope.Payload.FairFlowEvents = []FairFlowEvent{}
 		if err := store.persist(envelope.Payload); err != nil {
-			return nil, fmt.Errorf("migrate DEX state to schema v2: %w", err)
+			return nil, fmt.Errorf("migrate DEX state to schema v3: %w", err)
 		}
 	}
 	store.state = envelope.Payload
@@ -129,12 +137,59 @@ func (store *Store) Append(event Event) (bool, error) {
 		}
 		return next.Events[i].BlockNumber < next.Events[j].BlockNumber
 	})
-	next.Sequence = uint64(len(next.Events))
+	next.Sequence = uint64(len(next.Events) + len(next.FairFlowEvents))
 	if err := store.persist(next); err != nil {
 		return false, err
 	}
 	store.state = next
 	return true, nil
+}
+
+func (store *Store) AppendFairFlow(event FairFlowEvent) (bool, error) {
+	if err := event.Validate(); err != nil {
+		return false, err
+	}
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	for _, existing := range store.state.FairFlowEvents {
+		if existing.ID == event.ID {
+			left, _ := json.Marshal(existing)
+			right, _ := json.Marshal(event)
+			if bytes.Equal(left, right) {
+				return false, nil
+			}
+			return false, errors.New("FairFlow event replay conflicts with persisted event")
+		}
+		if existing.BlockNumber == event.BlockNumber && existing.LogIndex == event.LogIndex && existing.BlockHash != event.BlockHash {
+			return false, errors.New("chain reorganization conflict requires explicit recovery")
+		}
+	}
+	next := store.state
+	next.FairFlowEvents = append(append([]FairFlowEvent(nil), store.state.FairFlowEvents...), event)
+	sort.Slice(next.FairFlowEvents, func(i, j int) bool {
+		if next.FairFlowEvents[i].BlockNumber == next.FairFlowEvents[j].BlockNumber {
+			return next.FairFlowEvents[i].LogIndex < next.FairFlowEvents[j].LogIndex
+		}
+		return next.FairFlowEvents[i].BlockNumber < next.FairFlowEvents[j].BlockNumber
+	})
+	next.Sequence = uint64(len(next.Events) + len(next.FairFlowEvents))
+	if err := store.persist(next); err != nil {
+		return false, err
+	}
+	store.state = next
+	return true, nil
+}
+
+func (store *Store) FairFlowEvents(fairFlow string) []FairFlowEvent {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	result := make([]FairFlowEvent, 0)
+	for _, event := range store.state.FairFlowEvents {
+		if fairFlow == "" || strings.EqualFold(event.FairFlow, fairFlow) {
+			result = append(result, event)
+		}
+	}
+	return result
 }
 
 func (store *Store) Events() []Event {
@@ -158,7 +213,13 @@ func (store *Store) Rewind(fromBlock uint64) error {
 			next.Events = append(next.Events, event)
 		}
 	}
-	next.Sequence = uint64(len(next.Events))
+	next.FairFlowEvents = make([]FairFlowEvent, 0, len(store.state.FairFlowEvents))
+	for _, event := range store.state.FairFlowEvents {
+		if event.BlockNumber < fromBlock {
+			next.FairFlowEvents = append(next.FairFlowEvents, event)
+		}
+	}
+	next.Sequence = uint64(len(next.Events) + len(next.FairFlowEvents))
 	if err := store.persist(next); err != nil {
 		return err
 	}
@@ -266,6 +327,7 @@ func (store *Store) Analytics() Analytics {
 			result.LatestBlock = event.BlockNumber
 		}
 	}
+	result.FairFlowEvents = len(store.FairFlowEvents(""))
 	return result
 }
 

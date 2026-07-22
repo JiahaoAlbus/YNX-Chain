@@ -121,6 +121,7 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/fees", server.fees)
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
 	mux.HandleFunc("GET /v1/vault/actions", server.vaultActions)
+	mux.HandleFunc("GET /v1/fairflow/events", server.fairFlowEvents)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Content-Type", "application/json")
@@ -128,6 +129,32 @@ func (server *Server) Handler() http.Handler {
 		response.Header().Set("X-Content-Type-Options", "nosniff")
 		mux.ServeHTTP(response, request)
 	})
+}
+
+func (server *Server) fairFlowEvents(response http.ResponseWriter, request *http.Request) {
+	fairFlow := strings.ToLower(strings.TrimSpace(request.URL.Query().Get("fairFlow")))
+	if !addressPattern.MatchString(fairFlow) {
+		writeError(response, http.StatusBadRequest, "valid FairFlow address required")
+		return
+	}
+	batchID := strings.TrimSpace(request.URL.Query().Get("batchId"))
+	if batchID != "" && (!amountPattern.MatchString(batchID) || strings.HasPrefix(batchID, "-") || batchID == "0") {
+		writeError(response, http.StatusBadRequest, "invalid batch id")
+		return
+	}
+	limit, ok := boundedLimit(request.URL)
+	if !ok {
+		writeError(response, http.StatusBadRequest, "invalid limit")
+		return
+	}
+	all := server.store.FairFlowEvents(fairFlow)
+	items := make([]FairFlowEvent, 0, limit)
+	for i := len(all) - 1; i >= 0 && len(items) < limit; i-- {
+		if batchID == "" || all[i].BatchID == batchID {
+			items = append(items, all[i])
+		}
+	}
+	writeJSON(response, http.StatusOK, map[string]any{"items": items, "fairFlow": fairFlow, "batchId": batchID, "source": "confirmed YNX Testnet EVM logs", "asOf": time.Now().UTC(), "version": "ynx-fairflow-events-api-v1", "confidence": "confirmed-on-chain", "coverage": "FairFlow lifecycle events only; current allowances, token balances and solver bond availability require direct RPC reads", "failure": nil})
 }
 
 func (server *Server) vaultActions(response http.ResponseWriter, request *http.Request) {

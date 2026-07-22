@@ -262,6 +262,72 @@ export function buildVaultRebalancePlan({ state, remove, target, now = new Date(
   return Object.freeze({ source: "caller-supplied bounded Vault actions", asOf: now.toISOString(), version: "ynx-vault-rebalance-plan-v1", operation: "rebalance", automaticExecution: false, strategySelection: false, capitalAllocation: false, firstRequest, continuation: Object.freeze({ requires: "confirmed ActionExecuted plus fresh Vault state and a new canonical Wallet approval", functionName: "addLiquidity", tokenA: target.tokenA.toLowerCase(), tokenB: target.tokenB.toLowerCase() }), failure: null });
 }
 
+export function parseFairFlowState(value) {
+  exactObject(value,["activeIntentCount","asOf","batchId","chainId","commitEnd","failure","fairFlow","intentDomain","intentEnd","revealEnd","settleEnd","source","status","token0","token1","user","userNonce","version"]);
+  if(value.chainId!==6423||value.source!=="YNX Testnet EVM RPC"||value.version!=="ynx-fairflow-state-v1"||value.failure!==null||!ADDRESS.test(value.fairFlow)||!ADDRESS.test(value.user)||!ADDRESS.test(value.token0)||!ADDRESS.test(value.token1)||value.token0.toLowerCase()>=value.token1.toLowerCase()||!/^0x[0-9a-fA-F]{64}$/.test(value.intentDomain)) fail("INVALID_FAIRFLOW_STATE","invalid FairFlow state identity");
+  if(!["accepting","finalized","settled","aborted","failed"].includes(value.status)) fail("INVALID_FAIRFLOW_STATE","invalid FairFlow batch status");
+  const asOf=new Date(value.asOf);if(!Number.isFinite(asOf.valueOf()))fail("INVALID_FAIRFLOW_STATE","invalid FairFlow state timestamp");
+  const numeric={};for(const field of ["activeIntentCount","batchId","commitEnd","intentEnd","revealEnd","settleEnd","userNonce"])numeric[field]=positiveBigInt(value[field],field==="activeIntentCount"||field==="userNonce");
+  if(numeric.commitEnd<=numeric.intentEnd||numeric.revealEnd<=numeric.commitEnd||numeric.settleEnd<=numeric.revealEnd)fail("INVALID_FAIRFLOW_STATE","invalid FairFlow schedule");
+  return Object.freeze({...value,...numeric,asOf:asOf.toISOString(),fairFlow:value.fairFlow.toLowerCase(),intentDomain:value.intentDomain.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase(),user:value.user.toLowerCase()});
+}
+
+export function buildSubmitFairFlowIntentTx({state,sellToken,sellAmount,minBuyAmount,validTo,now=new Date()}) {
+  state=assertFreshFairFlowState(state,now);
+  const nowSeconds=BigInt(Math.floor(now.valueOf()/1000));
+  if(state.status!=="accepting"||nowSeconds>=state.intentEnd)fail("FAIRFLOW_NOT_ACCEPTING","FairFlow Intent window is closed");
+  if(!ADDRESS.test(sellToken)||![state.token0,state.token1].includes(sellToken.toLowerCase()))fail("INVALID_TOKEN","sell token is not in the FairFlow batch");
+  const expiry=positiveBigInt(validTo);if(expiry<state.settleEnd)fail("INVALID_DEADLINE","Intent validity must cover the settlement window");
+  return fairFlowRequest(state,"submitIntent",[state.batchId.toString(),sellToken.toLowerCase(),positiveBigInt(sellAmount).toString(),positiveBigInt(minBuyAmount).toString(),expiry.toString()]);
+}
+
+export function buildCancelFairFlowIntentTx({state,intentId,owner,now=new Date()}) {
+  state=assertFreshFairFlowState(state,now);
+  if(!/^0x[0-9a-fA-F]{64}$/.test(intentId)||!ADDRESS.test(owner)||owner.toLowerCase()!==state.user)fail("UNAUTHORIZED_FAIRFLOW_REQUEST","only the Intent owner may cancel");
+  if(state.status==="settled")fail("FAIRFLOW_ALREADY_SETTLED","settled Intent cannot be cancelled");
+  return fairFlowRequest(state,"cancelIntent",[intentId.toLowerCase()]);
+}
+
+export function parseIndexedFairFlowEvent(value) {
+  exactObject(value,["actor","asOf","batchId","blockHash","blockNumber","chainId","confidence","contractVersion","coverage","details","failure","fairFlow","id","intentId","logIndex","source","transactionHash","type","version"]);
+  if(value.chainId!==6423||value.contractVersion!=="ynx-fairflow-v1"||value.source!=="confirmed YNX Testnet EVM logs"||value.version!=="ynx-fairflow-event-v1"||value.confidence!=="confirmed-on-chain"||value.failure!==null||!bounded(value.coverage,20,500)||!ADDRESS.test(value.fairFlow)||!/^0x[0-9a-fA-F]{64}$/.test(value.blockHash)||!/^0x[0-9a-fA-F]{64}$/.test(value.transactionHash)||!Number.isSafeInteger(value.blockNumber)||value.blockNumber<1||!Number.isSafeInteger(value.logIndex)||value.logIndex<0)fail("INVALID_FAIRFLOW_EVENT","invalid FairFlow event identity or provenance");
+  positiveBigInt(value.batchId);const asOf=new Date(value.asOf);if(!Number.isFinite(asOf.valueOf()))fail("INVALID_FAIRFLOW_EVENT","invalid FairFlow event timestamp");
+  const schemas={"batch-opened":["commitEnd","intentEnd","revealEnd","settleEnd","token0","token1"],"intent-submitted":["minBuyAmount","nonce","sellAmount","validTo","zeroForOne"],"intent-cancelled":["batchAborted"],"solution-committed":["commitment"],"solution-revealed":["executionDigest","priceX96","rebateBps","routeHash","scoreToken0"],"winner-finalized":["bestExecutionDigest","priceX96","rebateBps","routeHash","scoreToken0"],"intent-settled":["baseBuyAmount","priceImprovement","sellAmount","solverFundedRebate"],"batch-settled":["bestExecutionDigest","externalInput0","externalInput1","solverOutput0","solverOutput1","userInput0","userInput1","userOutput0","userOutput1"],"batch-failed":["reason","slashedBond"],"solver-slashed":["amount","reason"]};
+  const schema=schemas[value.type];if(!schema)fail("INVALID_FAIRFLOW_EVENT","unsupported FairFlow event type");exactObject(value.details,schema);
+  const intentType=["intent-submitted","intent-cancelled","intent-settled"].includes(value.type);if(intentType!==/^0x[0-9a-fA-F]{64}$/.test(value.intentId))fail("INVALID_FAIRFLOW_EVENT","invalid Intent event identity");
+  if(value.type==="batch-opened"){if(value.actor!==""||!ADDRESS.test(value.details.token0)||!ADDRESS.test(value.details.token1)||value.details.token0.toLowerCase()>=value.details.token1.toLowerCase())fail("INVALID_FAIRFLOW_EVENT","invalid batch tokens");}else if(!ADDRESS.test(value.actor))fail("INVALID_FAIRFLOW_EVENT","invalid FairFlow actor");
+  for(const [key,item] of Object.entries(value.details)){if(["token0","token1"].includes(key)){if(!ADDRESS.test(item))fail("INVALID_FAIRFLOW_EVENT","invalid token detail");}else if(["commitment","executionDigest","routeHash","bestExecutionDigest","reason"].includes(key)){if(!/^0x[0-9a-fA-F]{64}$/.test(item))fail("INVALID_FAIRFLOW_EVENT","invalid digest detail");}else if(["zeroForOne","batchAborted"].includes(key)){if(!["true","false"].includes(item))fail("INVALID_FAIRFLOW_EVENT","invalid boolean detail");}else positiveBigInt(item,true);}
+  return Object.freeze({...value,fairFlow:value.fairFlow.toLowerCase(),actor:value.actor.toLowerCase(),intentId:value.intentId.toLowerCase(),blockHash:value.blockHash.toLowerCase(),transactionHash:value.transactionHash.toLowerCase(),asOf:asOf.toISOString(),details:Object.freeze({...value.details})});
+}
+
+export async function digestFairFlowRequest(request) {
+  validateFairFlowRequest(request);
+  const payload=JSON.stringify([request.chainId,request.to,request.executor,request.functionName,request.args,request.value,request.authority,request.approvalRequired,request.intentDomain,request.userNonce,request.batchToken0,request.batchToken1,request.sourceStateAsOf]);
+  const digest=await globalThis.crypto.subtle.digest("SHA-256",new TextEncoder().encode(payload));return `0x${Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("")}`;
+}
+
+export async function submitApprovedFairFlowRequest({request,approval,sendTransaction,now=new Date()}) {
+  validateFairFlowRequest(request);if(typeof sendTransaction!=="function")fail("INVALID_TRANSPORT","an explicit canonical Wallet transport is required");
+  exactObject(approval,["approved","asOf","chainId","expiresAt","failure","fairFlow","intentDomain","productClientId","requestDigest","revoked","scopes","source","user","userNonce"]);
+  if(approval.approved!==true||approval.revoked!==false||approval.failure!==null||approval.chainId!==6423||approval.productClientId!=="ynx-dex-web-v1"||approval.source!=="canonical YNX Wallet introspection")fail("INVALID_APPROVAL","canonical Wallet approval is not active");
+  if(!ADDRESS.test(approval.fairFlow)||!ADDRESS.test(approval.user)||!/^0x[0-9a-fA-F]{64}$/.test(approval.intentDomain)||approval.fairFlow.toLowerCase()!==request.to||approval.user.toLowerCase()!==request.executor||approval.intentDomain.toLowerCase()!==request.intentDomain||String(approval.userNonce)!==request.userNonce)fail("APPROVAL_MISMATCH","approval identity does not match FairFlow request");
+  if(!Array.isArray(approval.scopes)||approval.scopes.length!==1||approval.scopes[0]!=="dex:fairflow:intent")fail("APPROVAL_SCOPE","FairFlow approval scope must be exact");
+  if(!/^0x[0-9a-fA-F]{64}$/.test(approval.requestDigest)||approval.requestDigest.toLowerCase()!==await digestFairFlowRequest(request))fail("APPROVAL_MISMATCH","approval digest does not match FairFlow request");
+  const asOf=new Date(approval.asOf),expiresAt=new Date(approval.expiresAt);if(!Number.isFinite(asOf.valueOf())||!Number.isFinite(expiresAt.valueOf())||asOf>now||expiresAt<=now)fail("APPROVAL_EXPIRED","approval timing is invalid");
+  const result=await sendTransaction(request);exactObject(result,["provider","submittedAt","transactionHash"]);if(!bounded(result.provider,1,80)||!/^0x[0-9a-fA-F]{64}$/.test(result.transactionHash)||!Number.isFinite(new Date(result.submittedAt).valueOf()))fail("INVALID_SUBMISSION","transport returned invalid submission evidence");
+  return Object.freeze({status:"submitted-unconfirmed",source:"canonical YNX Wallet transport",asOf:new Date(result.submittedAt).toISOString(),version:"ynx-fairflow-submission-v1",failure:null,provider:result.provider,transactionHash:result.transactionHash.toLowerCase(),fairFlow:request.to,user:request.executor,userNonce:request.userNonce,requestDigest:approval.requestDigest.toLowerCase(),method:request.functionName});
+}
+
+export function reconcileIndexedFairFlowRequest({request,event}) {
+  validateFairFlowRequest(request);event=parseIndexedFairFlowEvent(event);
+  if(event.fairFlow!==request.to||event.actor!==request.executor)fail("RECEIPT_MISMATCH","FairFlow event identity does not match request");
+  if(request.functionName==="submitIntent"){
+    const expectedDirection=request.args[1]===request.batchToken0?"true":"false";
+    if(event.type!=="intent-submitted"||event.batchId!==request.args[0]||event.details.zeroForOne!==expectedDirection||event.details.sellAmount!==request.args[2]||event.details.minBuyAmount!==request.args[3]||event.details.validTo!==request.args[4])fail("RECEIPT_MISMATCH","IntentSubmitted event does not match request");
+  }else if(event.type!=="intent-cancelled"||event.intentId!==request.args[0])fail("RECEIPT_MISMATCH","IntentCancelled event does not match request");
+  return Object.freeze({source:event.source,asOf:event.asOf,version:"ynx-fairflow-indexed-reconciliation-v1",coverage:event.coverage,confidence:event.confidence,failure:null,transactionHash:event.transactionHash,blockHash:event.blockHash,blockNumber:event.blockNumber,logIndex:event.logIndex,fairFlow:event.fairFlow,user:event.actor,batchId:event.batchId,intentId:event.intentId,method:request.functionName});
+}
+
 export function buildPauseVaultTx({ state, requestedBy }) {
   state = parseVaultState(state);
   if (!ADDRESS.test(requestedBy) || ![state.owner, state.engine].includes(requestedBy.toLowerCase())) fail("UNAUTHORIZED_VAULT_REQUEST", "pause requires owner or engine");
@@ -408,6 +474,9 @@ function validateVaultDeadline(deadline, state, now) {
 }
 function validateVaultTokens(tokenA, tokenB) { if (!ADDRESS.test(tokenA) || !ADDRESS.test(tokenB) || tokenA.toLowerCase() === tokenB.toLowerCase()) fail("INVALID_TOKEN", "invalid vault token pair"); }
 function vaultRequest(state, functionName, args, authority) { return Object.freeze({ chainId: 6423, to: state.vault, executor:authority==="owner"?state.owner:state.engine, functionName, args: Object.freeze(args), value: "0", authority, approvalRequired: true, nonceDomain: state.nonceDomain, sourceStateAsOf: state.asOf }); }
+function assertFreshFairFlowState(state,now,maxAgeMs=15_000){state=parseFairFlowState(state);const age=now.valueOf()-new Date(state.asOf).valueOf();if(!Number.isInteger(maxAgeMs)||maxAgeMs<1||age<0||age>maxAgeMs)fail("STALE_FAIRFLOW_STATE","FairFlow state is stale or from the future");return state;}
+function fairFlowRequest(state,functionName,args){return Object.freeze({chainId:6423,to:state.fairFlow,executor:state.user,functionName,args:Object.freeze(args),value:"0",authority:"user-wallet",approvalRequired:true,intentDomain:state.intentDomain,userNonce:state.userNonce.toString(),batchToken0:state.token0,batchToken1:state.token1,sourceStateAsOf:state.asOf});}
+function validateFairFlowRequest(request){exactObject(request,["approvalRequired","args","authority","batchToken0","batchToken1","chainId","executor","functionName","intentDomain","sourceStateAsOf","to","userNonce","value"]);if(request.chainId!==6423||!ADDRESS.test(request.to)||!ADDRESS.test(request.executor)||!ADDRESS.test(request.batchToken0)||!ADDRESS.test(request.batchToken1)||request.batchToken0>=request.batchToken1||!/^0x[0-9a-fA-F]{64}$/.test(request.intentDomain)||request.authority!=="user-wallet"||request.approvalRequired!==true||request.value!=="0"||!Number.isFinite(new Date(request.sourceStateAsOf).valueOf())||!Array.isArray(request.args))fail("INVALID_FAIRFLOW_REQUEST","invalid FairFlow request identity");positiveBigInt(request.userNonce,true);if(request.functionName==="submitIntent"){if(request.args.length!==5||!ADDRESS.test(request.args[1])||![request.batchToken0,request.batchToken1].includes(request.args[1]))fail("INVALID_FAIRFLOW_REQUEST","invalid submitIntent request");for(const index of [0,2,3,4])positiveBigInt(request.args[index]);}else if(request.functionName==="cancelIntent"){if(request.args.length!==1||!/^0x[0-9a-fA-F]{64}$/.test(request.args[0]))fail("INVALID_FAIRFLOW_REQUEST","invalid cancelIntent request");}else fail("INVALID_FAIRFLOW_REQUEST","unsupported FairFlow method");return request;}
 function validateFee(value) { if (!Number.isInteger(value) || value < 0 || value > 100) fail("INVALID_FEE", "fee must be 0..100 bps"); }
 function validateSlippage(value) { if (!Number.isInteger(value) || value < 1 || value > 5_000) fail("INVALID_SLIPPAGE", "slippage must be 1..5000 bps"); }
 function validateTxCommon(router, recipient, deadline, chainId) {

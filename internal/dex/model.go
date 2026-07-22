@@ -165,6 +165,7 @@ type Analytics struct {
 	LiquidityEvents int    `json:"liquidityEvents"`
 	LatestBlock     uint64 `json:"latestBlock"`
 	VaultActions    int    `json:"vaultActions"`
+	FairFlowEvents  int    `json:"fairFlowEvents"`
 }
 
 type VaultAction struct {
@@ -185,6 +186,93 @@ type VaultAction struct {
 	Confidence      string    `json:"confidence"`
 	Coverage        string    `json:"coverage"`
 	Failure         *string   `json:"failure"`
+}
+
+type FairFlowEvent struct {
+	ID              string            `json:"id"`
+	ChainID         uint64            `json:"chainId"`
+	ContractVersion string            `json:"contractVersion"`
+	FairFlow        string            `json:"fairFlow"`
+	BlockNumber     uint64            `json:"blockNumber"`
+	BlockHash       string            `json:"blockHash"`
+	TransactionHash string            `json:"transactionHash"`
+	LogIndex        uint64            `json:"logIndex"`
+	Type            string            `json:"type"`
+	BatchID         string            `json:"batchId"`
+	Actor           string            `json:"actor"`
+	IntentID        string            `json:"intentId"`
+	Details         map[string]string `json:"details"`
+	AsOf            time.Time         `json:"asOf"`
+	Source          string            `json:"source"`
+	Version         string            `json:"version"`
+	Confidence      string            `json:"confidence"`
+	Coverage        string            `json:"coverage"`
+	Failure         *string           `json:"failure"`
+}
+
+func (event FairFlowEvent) Validate() error {
+	if len(event.ID) < 16 || len(event.ID) > 128 || event.ChainID != ChainID || event.ContractVersion != "ynx-fairflow-v1" || !addressPattern.MatchString(event.FairFlow) || event.BlockNumber == 0 || !hashPattern.MatchString(event.BlockHash) || !hashPattern.MatchString(event.TransactionHash) {
+		return errors.New("invalid FairFlow event identity")
+	}
+	if !amountPattern.MatchString(event.BatchID) || strings.HasPrefix(event.BatchID, "-") || event.BatchID == "0" || event.AsOf.IsZero() || event.AsOf.After(time.Now().Add(2*time.Minute)) {
+		return errors.New("invalid FairFlow batch or timestamp")
+	}
+	if event.Source != "confirmed YNX Testnet EVM logs" || event.Version != "ynx-fairflow-event-v1" || event.Confidence != "confirmed-on-chain" || len(event.Coverage) < 20 || event.Failure != nil {
+		return errors.New("invalid FairFlow provenance")
+	}
+	expected := map[string][]string{
+		"batch-opened":       {"commitEnd", "intentEnd", "revealEnd", "settleEnd", "token0", "token1"},
+		"intent-submitted":   {"minBuyAmount", "nonce", "sellAmount", "validTo", "zeroForOne"},
+		"intent-cancelled":   {"batchAborted"},
+		"solution-committed": {"commitment"},
+		"solution-revealed":  {"executionDigest", "priceX96", "rebateBps", "routeHash", "scoreToken0"},
+		"winner-finalized":   {"bestExecutionDigest", "priceX96", "rebateBps", "routeHash", "scoreToken0"},
+		"intent-settled":     {"baseBuyAmount", "priceImprovement", "sellAmount", "solverFundedRebate"},
+		"batch-settled":      {"bestExecutionDigest", "externalInput0", "externalInput1", "solverOutput0", "solverOutput1", "userInput0", "userInput1", "userOutput0", "userOutput1"},
+		"batch-failed":       {"reason", "slashedBond"},
+		"solver-slashed":     {"amount", "reason"},
+	}
+	keys, ok := expected[event.Type]
+	if !ok || len(event.Details) != len(keys) {
+		return errors.New("unsupported FairFlow event type or details")
+	}
+	for _, key := range keys {
+		if _, ok := event.Details[key]; !ok {
+			return errors.New("missing FairFlow event detail")
+		}
+	}
+	intentType := event.Type == "intent-submitted" || event.Type == "intent-cancelled" || event.Type == "intent-settled"
+	if intentType != hashPattern.MatchString(event.IntentID) {
+		return errors.New("invalid FairFlow intent identity")
+	}
+	if event.Type == "batch-opened" {
+		if event.Actor != "" || !addressPattern.MatchString(event.Details["token0"]) || !addressPattern.MatchString(event.Details["token1"]) || strings.ToLower(event.Details["token0"]) >= strings.ToLower(event.Details["token1"]) {
+			return errors.New("invalid FairFlow batch tokens")
+		}
+	} else if !addressPattern.MatchString(event.Actor) {
+		return errors.New("invalid FairFlow actor")
+	}
+	for key, value := range event.Details {
+		switch key {
+		case "token0", "token1":
+			if !addressPattern.MatchString(value) {
+				return errors.New("invalid FairFlow token")
+			}
+		case "commitment", "executionDigest", "routeHash", "bestExecutionDigest", "reason":
+			if !hashPattern.MatchString(value) {
+				return errors.New("invalid FairFlow digest")
+			}
+		case "zeroForOne", "batchAborted":
+			if value != "true" && value != "false" {
+				return errors.New("invalid FairFlow boolean")
+			}
+		default:
+			if !amountPattern.MatchString(value) || strings.HasPrefix(value, "-") {
+				return errors.New("invalid FairFlow amount")
+			}
+		}
+	}
+	return nil
 }
 
 // Token is owner-reviewed Testnet metadata used to interpret raw pool amounts.

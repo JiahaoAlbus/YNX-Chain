@@ -4,8 +4,8 @@
   "requestingProduct": "dex",
   "bundleId": "com.ynxweb4.dex.web",
   "callbacks": ["https://dex.ynxweb4.com/wallet-auth/callback"],
-  "scopes": ["account:read", "dex:positions:read", "dex:transaction:request"],
-  "maxScopes": 3,
+  "scopes": ["account:read", "dex:fairflow:intent", "dex:positions:read", "dex:transaction:request"],
+  "maxScopes": 4,
   "productDeviceAlgorithms": ["p256-sha256"],
   "integrationStatus": "candidate-not-in-central-registry"
 }

@@ -23,6 +23,7 @@ func TestCursorMigratesV1AndRewindsWhenVaultIndexingIsEnabled(t *testing.T) {
 	path := filepath.Join(directory, "cursor.json")
 	factory := "0x00000000000000000000000000000000000000f1"
 	vault := "0x00000000000000000000000000000000000000f2"
+	fairFlow := "0x00000000000000000000000000000000000000f4"
 	legacy := pollCursor{SchemaVersion: 1, NextBlock: 50, LastBlockHash: fmt.Sprintf("0x%064x", 49), Pools: []poolIdentity{{Address: "0x0000000000000000000000000000000000000011", Token0: "0x0000000000000000000000000000000000000001", Token1: "0x0000000000000000000000000000000000000002", CreatedBlock: 10}}}
 	payload, _ := json.Marshal(legacy)
 	mac := hmac.New(sha256.New, testSecret)
@@ -32,12 +33,12 @@ func TestCursorMigratesV1AndRewindsWhenVaultIndexingIsEnabled(t *testing.T) {
 		t.Fatal(err)
 	}
 	store, _ := OpenStore(filepath.Join(directory, "state.json"), testSecret)
-	cfg := EVMPollerConfig{RPCURL: "http://rpc.invalid", Factory: factory, StrategyVault: vault, StartBlock: 10, CursorPath: path, CursorSecret: testSecret}
+	cfg := EVMPollerConfig{RPCURL: "http://rpc.invalid", Factory: factory, StrategyVault: vault, FairFlow: fairFlow, StartBlock: 10, CursorPath: path, CursorSecret: testSecret}
 	poller, err := NewEVMPoller(store, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if poller.cursor.SchemaVersion != 2 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.StrategyVault != vault {
+	if poller.cursor.SchemaVersion != 3 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.StrategyVault != vault || poller.cursor.FairFlow != fairFlow {
 		t.Fatalf("cursor=%#v", poller.cursor)
 	}
 	backup, err := os.ReadFile(path + ".schema-v1.bak")
@@ -49,11 +50,45 @@ func TestCursorMigratesV1AndRewindsWhenVaultIndexingIsEnabled(t *testing.T) {
 	if _, err := NewEVMPoller(store, other); err == nil || !strings.Contains(err.Error(), "binding mismatch") {
 		t.Fatalf("vault substitution accepted: %v", err)
 	}
+	other = cfg
+	other.FairFlow = "0x00000000000000000000000000000000000000f5"
+	if _, err := NewEVMPoller(store, other); err == nil || !strings.Contains(err.Error(), "binding mismatch") {
+		t.Fatalf("FairFlow substitution accepted: %v", err)
+	}
+}
+
+func TestCursorMigratesV2AndRewindsWhenFairFlowIndexingIsEnabled(t *testing.T) {
+	directory := t.TempDir()
+	path := filepath.Join(directory, "cursor.json")
+	factory := "0x00000000000000000000000000000000000000f1"
+	vault := "0x00000000000000000000000000000000000000f2"
+	fairFlow := "0x00000000000000000000000000000000000000f4"
+	legacy := pollCursor{SchemaVersion: 2, StrategyVault: vault, NextBlock: 75, LastBlockHash: fmt.Sprintf("0x%064x", 74), Pools: []poolIdentity{}}
+	payload, _ := json.Marshal(legacy)
+	mac := hmac.New(sha256.New, testSecret)
+	_, _ = mac.Write(payload)
+	data, _ := json.MarshalIndent(cursorEnvelope{Cursor: legacy, Integrity: hex.EncodeToString(mac.Sum(nil))}, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, _ := OpenStore(filepath.Join(directory, "state.json"), testSecret)
+	poller, err := NewEVMPoller(store, EVMPollerConfig{RPCURL: "http://rpc.invalid", Factory: factory, StrategyVault: vault, FairFlow: fairFlow, StartBlock: 10, CursorPath: path, CursorSecret: testSecret})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if poller.cursor.SchemaVersion != 3 || poller.cursor.NextBlock != 10 || poller.cursor.LastBlockHash != "" || poller.cursor.FairFlow != fairFlow {
+		t.Fatalf("cursor=%#v", poller.cursor)
+	}
+	backup, err := os.ReadFile(path + ".schema-v2.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("backup %v", err)
+	}
 }
 
 func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 	factory := "0x00000000000000000000000000000000000000f1"
 	vault := "0x00000000000000000000000000000000000000f2"
+	fairFlow := "0x00000000000000000000000000000000000000f4"
 	pool := "0x0000000000000000000000000000000000000011"
 	token0 := "0x0000000000000000000000000000000000000001"
 	token1 := "0x0000000000000000000000000000000000000002"
@@ -65,7 +100,7 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 		}
 		return fmt.Sprintf("0x%064x", number+offset)
 	}
-	txFactory, txLP, txVault := fmt.Sprintf("0x%064x", 91), fmt.Sprintf("0x%064x", 92), fmt.Sprintf("0x%064x", 93)
+	txFactory, txLP, txVault, txFair := fmt.Sprintf("0x%064x", 91), fmt.Sprintf("0x%064x", 92), fmt.Sprintf("0x%064x", 93), fmt.Sprintf("0x%064x", 94)
 	vaultMethod := functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)")
 	var reorganized atomic.Bool
 	rpc := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
@@ -98,6 +133,8 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 					result = []evmLog{{Address: factory, Topics: []string{eventTopics["pool-created"], abiAddress(token0), abiAddress(token1)}, Data: "0x" + abiWordAddress(pool) + abiUint(1), BlockNumber: "0xa", BlockHash: blockHash(10, false), TxHash: txFactory, LogIndex: "0x0"}}
 				} else if strings.EqualFold(address, vault) && !reorganized.Load() {
 					result = []evmLog{{Address: vault, Topics: []string{eventTopics["vault-action"], "0x" + abiUint(7), abiBytes4(vaultMethod)}, Data: "0x" + abiUint(10_000) + abiUint(9_999), BlockNumber: "0x12", BlockHash: blockHash(18, false), TxHash: txVault, LogIndex: "0x3"}}
+				} else if strings.EqualFold(address, fairFlow) && !reorganized.Load() {
+					result = []evmLog{{Address: fairFlow, Topics: []string{eventTopics["fair-winner-finalized"], "0x" + abiUint(3), abiAddress(account)}, Data: "0x" + abiUint(2) + abiUint(100) + abiUint(55) + abiUint(700) + abiUint(701), BlockNumber: "0x12", BlockHash: blockHash(18, false), TxHash: txFair, LogIndex: "0x4"}}
 				} else {
 					result = []evmLog{}
 				}
@@ -131,7 +168,7 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := EVMPollerConfig{RPCURL: rpc.URL, Factory: factory, StrategyVault: vault, StartBlock: 10, Confirmations: 2, BlockRange: 9, ReorgDepth: 4, CursorPath: filepath.Join(directory, "cursor.json"), CursorSecret: testSecret}
+	cfg := EVMPollerConfig{RPCURL: rpc.URL, Factory: factory, StrategyVault: vault, FairFlow: fairFlow, StartBlock: 10, Confirmations: 2, BlockRange: 9, ReorgDepth: 4, CursorPath: filepath.Join(directory, "cursor.json"), CursorSecret: testSecret}
 	poller, err := NewEVMPoller(store, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -143,6 +180,10 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 	if len(store.Events()) != 4 {
 		t.Fatalf("events=%d", len(store.Events()))
 	}
+	fairEvents := store.FairFlowEvents(fairFlow)
+	if len(fairEvents) != 1 || fairEvents[0].Type != "winner-finalized" || fairEvents[0].BatchID != "3" || fairEvents[0].Details["rebateBps"] != "100" || fairEvents[0].Details["bestExecutionDigest"] != fmt.Sprintf("0x%064x", 701) {
+		t.Fatalf("FairFlow events=%#v", fairEvents)
+	}
 	actions := store.VaultActions(vault)
 	if len(actions) != 1 || actions[0].ActionNonce != "7" || actions[0].Method != "swapExactInput" || actions[0].NonceDomain != fmt.Sprintf("0x%064x", 777) {
 		t.Fatalf("vault actions=%#v", actions)
@@ -152,7 +193,7 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 		t.Fatalf("positions=%#v", positions)
 	}
 	restarted, err := NewEVMPoller(store, cfg)
-	if err != nil || restarted.cursor.NextBlock != 19 || len(restarted.cursor.Pools) != 1 {
+	if err != nil || restarted.cursor.NextBlock != 19 || len(restarted.cursor.Pools) != 1 || restarted.cursor.FairFlow != fairFlow {
 		t.Fatalf("restart=%#v %v", restarted, err)
 	}
 	reorganized.Store(true)
@@ -163,11 +204,86 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 	if events := store.Events(); len(events) != 1 || events[0].Type != "pool-created" {
 		t.Fatalf("reorg events=%#v", events)
 	}
+	if len(store.FairFlowEvents(fairFlow)) != 0 {
+		t.Fatal("reorg retained FairFlow events")
+	}
 	data, _ := os.ReadFile(cfg.CursorPath)
 	data = bytes.Replace(data, []byte(`"nextBlock": 19`), []byte(`"nextBlock": 22`), 1)
 	_ = os.WriteFile(cfg.CursorPath, data, 0o600)
 	if _, err := NewEVMPoller(store, cfg); err == nil || !strings.Contains(err.Error(), "integrity") {
 		t.Fatalf("tampered cursor accepted: %v", err)
+	}
+}
+
+func TestDecodeEveryFairFlowLifecycleEventAndRejectMalformedBoolean(t *testing.T) {
+	fairFlow := "0x00000000000000000000000000000000000000f4"
+	token0 := "0x0000000000000000000000000000000000000001"
+	token1 := "0x0000000000000000000000000000000000000002"
+	actor := "0x00000000000000000000000000000000000000a1"
+	intentID := fmt.Sprintf("0x%064x", 501)
+	reason := fmt.Sprintf("0x%064x", 502)
+	blockHash := fmt.Sprintf("0x%064x", 503)
+	timestamp := time.Now().Add(-time.Minute).Unix()
+	rpc := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		var call struct {
+			Method string `json:"method"`
+			ID     any    `json:"id"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&call); err != nil {
+			t.Error(err)
+			return
+		}
+		if call.Method != "eth_getBlockByNumber" {
+			t.Errorf("unexpected method %s", call.Method)
+		}
+		_ = json.NewEncoder(response).Encode(map[string]any{"jsonrpc": "2.0", "id": call.ID, "result": evmBlock{Hash: blockHash, Timestamp: fmt.Sprintf("0x%x", timestamp)}})
+	}))
+	defer rpc.Close()
+	store, err := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	poller, err := NewEVMPoller(store, EVMPollerConfig{RPCURL: rpc.URL, Factory: "0x00000000000000000000000000000000000000f1", FairFlow: fairFlow, StartBlock: 1, CursorPath: filepath.Join(t.TempDir(), "cursor.json"), CursorSecret: testSecret})
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchTopic := "0x" + abiUint(7)
+	transaction := func(index uint64) string { return fmt.Sprintf("0x%064x", 600+index) }
+	log := func(index uint64, topics []string, words ...string) evmLog {
+		return evmLog{Address: fairFlow, Topics: topics, Data: "0x" + strings.Join(words, ""), BlockNumber: "0xb", BlockHash: blockHash, TxHash: transaction(index), LogIndex: fmt.Sprintf("0x%x", index)}
+	}
+	logs := []evmLog{
+		log(0, []string{eventTopics["fair-batch-opened"], batchTopic, abiAddress(token0), abiAddress(token1)}, abiUint(10), abiUint(20), abiUint(30), abiUint(40)),
+		log(1, []string{eventTopics["fair-intent-submitted"], intentID, batchTopic, abiAddress(actor)}, abiUint(1), abiUint(100), abiUint(95), abiUint(40), abiUint(9)),
+		log(2, []string{eventTopics["fair-intent-cancelled"], intentID, batchTopic, abiAddress(actor)}, abiUint(0)),
+		log(3, []string{eventTopics["fair-solution-committed"], batchTopic, abiAddress(actor)}, abiUint(701)),
+		log(4, []string{eventTopics["fair-solution-revealed"], batchTopic, abiAddress(actor)}, abiUint(2), abiUint(100), abiUint(55), abiUint(702), abiUint(703)),
+		log(5, []string{eventTopics["fair-winner-finalized"], batchTopic, abiAddress(actor)}, abiUint(2), abiUint(100), abiUint(55), abiUint(702), abiUint(703)),
+		log(6, []string{eventTopics["fair-intent-settled"], intentID, batchTopic, abiAddress(actor)}, abiUint(100), abiUint(200), abiUint(2), abiUint(3)),
+		log(7, []string{eventTopics["fair-batch-settled"], batchTopic, abiAddress(actor)}, abiUint(1), abiUint(2), abiUint(3), abiUint(4), abiUint(5), abiUint(6), abiUint(7), abiUint(8), abiUint(703)),
+		log(8, []string{eventTopics["fair-batch-failed"], batchTopic, abiAddress(actor)}, strings.TrimPrefix(reason, "0x"), abiUint(50)),
+		log(9, []string{eventTopics["fair-solver-slashed"], batchTopic, abiAddress(actor), reason}, abiUint(50)),
+	}
+	events, err := poller.decodeFairFlowLogs(context.Background(), logs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantTypes := []string{"batch-opened", "intent-submitted", "intent-cancelled", "solution-committed", "solution-revealed", "winner-finalized", "intent-settled", "batch-settled", "batch-failed", "solver-slashed"}
+	if len(events) != len(wantTypes) {
+		t.Fatalf("events=%d", len(events))
+	}
+	for index, kind := range wantTypes {
+		if events[index].Type != kind || events[index].BatchID != "7" || events[index].LogIndex != uint64(index) {
+			t.Fatalf("event[%d]=%#v", index, events[index])
+		}
+	}
+	if events[0].Details["token0"] != token0 || events[1].Details["zeroForOne"] != "true" || events[2].Details["batchAborted"] != "false" || events[5].Details["bestExecutionDigest"] != fmt.Sprintf("0x%064x", 703) || events[9].Details["reason"] != reason {
+		t.Fatalf("decoded details=%#v %#v %#v %#v %#v", events[0], events[1], events[2], events[5], events[9])
+	}
+	malformed := logs[1]
+	malformed.Data = "0x" + abiUint(2) + abiUint(100) + abiUint(95) + abiUint(40) + abiUint(9)
+	if _, err := poller.decodeFairFlowLogs(context.Background(), []evmLog{malformed}); err == nil || !strings.Contains(err.Error(), "boolean") {
+		t.Fatalf("malformed boolean accepted: %v", err)
 	}
 }
 
@@ -178,6 +294,9 @@ func TestEVMPollerRejectsWrongChainAndUnsafeConfig(t *testing.T) {
 	}
 	if _, err := NewEVMPoller(store, EVMPollerConfig{RPCURL: "http://rpc", Factory: "0x0000000000000000000000000000000000000001", StrategyVault: "bad", StartBlock: 1, CursorPath: "x", CursorSecret: testSecret}); err == nil {
 		t.Fatal("bad strategy vault accepted")
+	}
+	if _, err := NewEVMPoller(store, EVMPollerConfig{RPCURL: "http://rpc", Factory: "0x0000000000000000000000000000000000000001", FairFlow: "bad", StartBlock: 1, CursorPath: "x", CursorSecret: testSecret}); err == nil {
+		t.Fatal("bad FairFlow accepted")
 	}
 	rpc := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(response).Encode(map[string]any{"jsonrpc": "2.0", "id": "ynx-dex", "result": "0x1"})

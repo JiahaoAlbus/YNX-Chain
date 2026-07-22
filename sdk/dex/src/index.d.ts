@@ -10,6 +10,9 @@ export interface VaultTransactionRequest extends TransactionRequest { executor:A
 export interface VaultReconciliation { source:"confirmed YNX Testnet EVM receipt";asOf:string;version:"ynx-vault-reconciliation-v1";coverage:string;confidence:"confirmed-on-chain";failure:null;transactionHash:`0x${string}`;blockNumber:number;confirmations:number;vault:Address;nonceDomain:`0x${string}`;actionNonce:string;method:string;beforeValue:string;afterValue:string }
 export interface IndexedVaultAction { vault:Address;nonceDomain:`0x${string}`;actionNonce:string;method:string;methodSelector:`0x${string}`;beforeValue:string;afterValue:string;transactionHash:`0x${string}`;blockHash:`0x${string}`;blockNumber:number;logIndex:number;asOf:string;source:"confirmed YNX Testnet EVM logs";version:"ynx-vault-action-v1";confidence:"confirmed-on-chain";coverage:string;failure:null }
 export interface ExecutionSnapshot { chainId:6423;vault:Address;source:"YNX Testnet RPC + owner-reviewed oracle";version:"ynx-execution-snapshot-v1";confidence:"preflight-observed";coverage:string;failure:null;asOf:string;gas:{estimatedGas:bigint;gasPrice:bigint;estimatedFeeNative:bigint;provider:string};fees:{hiddenSpreadBps:0;performanceFeeBps:0;protocolFeeShareBps:number;venueFeeBps:number};oracle:{address:Address;deviationBps:number;updatedAt:string};risk:{dailyLossBps:number;drawdownBps:number;priceImpactBps:number;slippageBps:number;tradeValue:bigint;vaultValue:bigint} }
+export interface FairFlowState { chainId:6423;fairFlow:Address;intentDomain:`0x${string}`;user:Address;userNonce:bigint;batchId:bigint;token0:Address;token1:Address;intentEnd:bigint;commitEnd:bigint;revealEnd:bigint;settleEnd:bigint;activeIntentCount:bigint;status:"accepting"|"finalized"|"settled"|"aborted"|"failed";source:"YNX Testnet EVM RPC";asOf:string;version:"ynx-fairflow-state-v1";failure:null }
+export interface FairFlowTransactionRequest extends TransactionRequest { executor:Address;authority:"user-wallet";approvalRequired:true;intentDomain:`0x${string}`;userNonce:string;batchToken0:Address;batchToken1:Address;sourceStateAsOf:string }
+export interface IndexedFairFlowEvent { id:string;chainId:6423;contractVersion:"ynx-fairflow-v1";fairFlow:Address;blockNumber:number;blockHash:`0x${string}`;transactionHash:`0x${string}`;logIndex:number;type:string;batchId:string;actor:string;intentId:string;details:Readonly<Record<string,string>>;asOf:string;source:"confirmed YNX Testnet EVM logs";version:"ynx-fairflow-event-v1";confidence:"confirmed-on-chain";coverage:string;failure:null }
 export interface Position { account: string; pool: Address; netLpAmount: string; addedToken0: string; addedToken1: string; removedToken0: string; removedToken1: string }
 export interface SpotPrice { pool:Address;token0:Address;token1:Address;price0Numerator:string;price0Denominator:string;price1Numerator:string;price1Denominator:string;updatedBlock:number }
 export interface TWAP { pool:Address;token0:Address;token1:Address;price0AverageX112:string;price1AverageX112:string;intervalSeconds:number;fromBlock:number;toBlock:number }
@@ -46,6 +49,13 @@ export declare function describePoolFeeCollection(input:{poolType:string}):Reado
 export declare function buildVaultCollectFeesTx(input:{poolType:string}):never;
 export declare function buildVaultCompoundTx(input:Record<string,unknown>):VaultTransactionRequest;
 export declare function buildVaultRebalancePlan(input:{state:unknown;remove:Record<string,unknown>;target:{tokenA:Address;tokenB:Address};now?:Date}):Readonly<Record<string,unknown>>;
+export declare function parseFairFlowState(value:unknown):Readonly<FairFlowState>;
+export declare function buildSubmitFairFlowIntentTx(input:Record<string,unknown>):FairFlowTransactionRequest;
+export declare function buildCancelFairFlowIntentTx(input:Record<string,unknown>):FairFlowTransactionRequest;
+export declare function parseIndexedFairFlowEvent(value:unknown):Readonly<IndexedFairFlowEvent>;
+export declare function digestFairFlowRequest(request:FairFlowTransactionRequest):Promise<`0x${string}`>;
+export declare function submitApprovedFairFlowRequest(input:Record<string,unknown>):Promise<Readonly<Record<string,unknown>>>;
+export declare function reconcileIndexedFairFlowRequest(input:Record<string,unknown>):Readonly<Record<string,unknown>>;
 export declare function buildPauseVaultTx(input: Record<string, unknown>): VaultTransactionRequest;
 export declare function buildEmergencyExitTx(input: Record<string, unknown>): VaultTransactionRequest;
 export declare function reconcileVaultAction(input: Record<string, unknown>): Readonly<VaultReconciliation>;

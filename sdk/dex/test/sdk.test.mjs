@@ -11,6 +11,9 @@ import {
   parseIndexedVaultAction, reconcileIndexedVaultAction,
   attributeQuoteFees, buildVaultCollectFeesTx, buildVaultCompoundTx,
   buildVaultRebalancePlan, describePoolFeeCollection, parseExecutionSnapshot,
+  buildCancelFairFlowIntentTx, buildSubmitFairFlowIntentTx, digestFairFlowRequest,
+  parseFairFlowState, parseIndexedFairFlowEvent, reconcileIndexedFairFlowRequest,
+  submitApprovedFairFlowRequest,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -96,6 +99,32 @@ test("fee, collect, compound, and rebalance semantics do not invent automation",
   const plan=buildVaultRebalancePlan({state,remove:{tokenA:A.address,tokenB:B.address,liquidity:50n,amountAMin:1n,amountBMin:1n,deadline},target:{tokenA:A.address,tokenB:B.address},now:current});assert.equal(plan.firstRequest.functionName,"removeLiquidity");assert.equal(plan.automaticExecution,false);assert.match(plan.continuation.requires,/fresh Vault state/);
 });
 
+test("FairFlow Intent requests bind fresh on-chain state and canonical Wallet approval",async()=>{
+  const current=new Date();const nowSeconds=BigInt(Math.floor(current.valueOf()/1000));const state=fairFlowState(current,nowSeconds);
+  assert.equal(parseFairFlowState(state).userNonce,9n);
+  const request=buildSubmitFairFlowIntentTx({state,sellToken:A.address,sellAmount:100n,minBuyAmount:190n,validTo:nowSeconds+400n,now:current});
+  assert.equal(request.functionName,"submitIntent");assert.equal(request.args[0],"3");assert.equal(request.batchToken0,A.address);assert.equal(request.authority,"user-wallet");assert.equal(request.approvalRequired,true);
+  assert(!Object.hasOwn(request,"privateKey")&&!Object.hasOwn(request,"signature"));
+  const requestDigest=await digestFairFlowRequest(request);let submissions=0;
+  const approval={approved:true,asOf:current.toISOString(),chainId:6423,expiresAt:new Date(current.valueOf()+60_000).toISOString(),failure:null,fairFlow:state.fairFlow,intentDomain:state.intentDomain,productClientId:"ynx-dex-web-v1",requestDigest,revoked:false,scopes:["dex:fairflow:intent"],source:"canonical YNX Wallet introspection",user:state.user,userNonce:"9"};
+  const submitted=await submitApprovedFairFlowRequest({request,approval,now:current,sendTransaction:async(candidate)=>{submissions++;assert.equal(candidate,request);return{provider:"canonical YNX Wallet",submittedAt:current.toISOString(),transactionHash:`0x${"aa".repeat(32)}`}}});
+  assert.equal(submitted.status,"submitted-unconfirmed");assert.equal(submitted.failure,null);assert.equal(submissions,1);
+  await assert.rejects(submitApprovedFairFlowRequest({request,approval:{...approval,scopes:["dex:transaction:request"]},now:current,sendTransaction:async()=>{submissions++;}}),error=>error.code==="APPROVAL_SCOPE");assert.equal(submissions,1);
+  await assert.rejects(submitApprovedFairFlowRequest({request,approval:{...approval,requestDigest:`0x${"00".repeat(32)}`},now:current,sendTransaction:async()=>{submissions++;}}),error=>error.code==="APPROVAL_MISMATCH");assert.equal(submissions,1);
+  const cancel=buildCancelFairFlowIntentTx({state:{...state,status:"finalized"},intentId:`0x${"12".repeat(32)}`,owner:state.user,now:current});assert.equal(cancel.functionName,"cancelIntent");
+  assert.throws(()=>buildSubmitFairFlowIntentTx({state:{...state,asOf:new Date(current.valueOf()-60_000).toISOString()},sellToken:A.address,sellAmount:1n,minBuyAmount:1n,validTo:nowSeconds+400n,now:current}),error=>error.code==="STALE_FAIRFLOW_STATE");
+  assert.throws(()=>buildSubmitFairFlowIntentTx({state:{...state,status:"failed"},sellToken:A.address,sellAmount:1n,minBuyAmount:1n,validTo:nowSeconds+400n,now:current}),error=>error.code==="FAIRFLOW_NOT_ACCEPTING");
+});
+
+test("FairFlow indexed events are strict and reconcile exact Intent semantics",()=>{
+  const current=new Date();const nowSeconds=BigInt(Math.floor(current.valueOf()/1000));const state=fairFlowState(current,nowSeconds);const request=buildSubmitFairFlowIntentTx({state,sellToken:A.address,sellAmount:100n,minBuyAmount:190n,validTo:nowSeconds+400n,now:current});
+  const event={actor:state.user,asOf:current.toISOString(),batchId:"3",blockHash:`0x${"ab".repeat(32)}`,blockNumber:100,chainId:6423,confidence:"confirmed-on-chain",contractVersion:"ynx-fairflow-v1",coverage:"Confirmed FairFlow event identity and stage-specific indexed/data fields",details:{minBuyAmount:"190",nonce:"9",sellAmount:"100",validTo:String(nowSeconds+400n),zeroForOne:"true"},failure:null,fairFlow:state.fairFlow,id:`0x${"cd".repeat(32)}:4`,intentId:`0x${"ef".repeat(32)}`,logIndex:4,source:"confirmed YNX Testnet EVM logs",transactionHash:`0x${"cd".repeat(32)}`,type:"intent-submitted",version:"ynx-fairflow-event-v1"};
+  assert.equal(parseIndexedFairFlowEvent(event).details.zeroForOne,"true");const proof=reconcileIndexedFairFlowRequest({request,event});assert.equal(proof.intentId,event.intentId);assert.equal(proof.failure,null);
+  assert.throws(()=>reconcileIndexedFairFlowRequest({request,event:{...event,details:{...event.details,zeroForOne:"false"}}}),error=>error.code==="RECEIPT_MISMATCH");
+  assert.throws(()=>parseIndexedFairFlowEvent({...event,source:"cache"}),error=>error.code==="INVALID_FAIRFLOW_EVENT");
+  assert.throws(()=>parseIndexedFairFlowEvent({...event,details:{...event.details,hiddenPriority:"1"}}),error=>error.code==="INVALID_SCHEMA");
+});
+
 test("receipt reconciliation binds destination, nonce, method and confirmations", () => {
   const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);
   const quote=quoteExactInput({amountIn:1000n,tokenIn:A.address,tokenOut:B.address,pools,now:current});
@@ -146,6 +175,7 @@ test("constant-product rounding never drains reserves across deterministic prope
 });
 
 function vaultState(asOf,expiresAt){return {actionNonce:"7",asOf,chainId:6423,configured:true,engine:address(202),failure:null,killed:false,mandate:{depegToleranceBps:"100",expiresAt:String(expiresAt),feeAsset:address(0),feeRecipient:address(0),maxDailyLossBps:"1000",maxDrawdownBps:"2000",maxGasPrice:"100000000000",maxImpactBps:"500",maxSlippageBps:"100",maxTradeValue:"1000000",maxVaultValue:"10000000",minActionInterval:"60",oracleMaxAge:"300",performanceFeeBps:"0"},nonceDomain:`0x${"12".repeat(32)}`,oracle:address(204),owner:address(201),paused:false,revoked:false,router:address(203),source:"YNX Testnet EVM RPC",vault:address(200),version:"ynx-strategy-vault-v1"}}
+function fairFlowState(current,nowSeconds){return {activeIntentCount:"2",asOf:current.toISOString(),batchId:"3",chainId:6423,commitEnd:String(nowSeconds+200n),failure:null,fairFlow:address(210),intentDomain:`0x${"34".repeat(32)}`,intentEnd:String(nowSeconds+100n),revealEnd:String(nowSeconds+300n),settleEnd:String(nowSeconds+360n),source:"YNX Testnet EVM RPC",status:"accepting",token0:A.address,token1:B.address,user:address(211),userNonce:"9",version:"ynx-fairflow-state-v1"}}
 
 test("schema, stale, unsupported and liquidity errors are explicit", () => {
   assert.throws(() => parsePool({ ...pools[0], unknown: true }), (error) => error instanceof DexSdkError && error.code === "INVALID_SCHEMA");
