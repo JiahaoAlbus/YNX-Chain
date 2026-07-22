@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-control-android-installed",
+  "generatedAt": "2026-07-22T16:40:03.000Z",
+  "sourceCommit": "04979406f95530a1b205ff1fe485730af8031fe6",
+  "environment": {
+    "platform": "Android emulator",
+    "model": "sdk_gphone64_arm64",
+    "apiLevel": 36,
+    "androidRelease": "16",
+    "physicalSize": "1080x2400",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "versionCode": 1
+  },
+  "sourceFiles": [
+    {"path":"apps/wallet/App.tsx","sha256":"acf3b3d1e8c6e6f8c9a3fa53fe07999e4b271213405d8db7baa64e1f4e507db2"},
+    {"path":"apps/wallet/app.json","sha256":"fccada1cb193ad46e0f422e5d5bffd2c0ee7c9180a4760088b984dc9bfa7a313"},
+    {"path":"apps/wallet/android/app/build.gradle","sha256":"5d8748394b7e4b93871b01213041e533656f47a483b165be8aec092744240bd3"},
+    {"path":"apps/wallet/plugins/withYnxAndroidReleaseSigning.js","sha256":"39c953ac74964f485757e53fc71e0f2af843229aab0707aa2c19e729f0e1d943"}
+  ],
+  "runtime": {
+    "nativeShellApkSha256": "7fa807cb92c595ee187d3b072b86f685e3cc4b659afa87a891193d35812db069",
+    "nativeShellApkBytes": 155548308,
+    "javascriptDelivery": "local Metro development server over adb reverse",
+    "installCommandClass": "adb install -r; existing app data was not cleared",
+    "coldLaunchTotalMs": 999,
+    "coldLaunchWaitMs": 1042,
+    "topResumedActivity": "com.ynxweb4.wallet/.MainActivity",
+    "strongFingerprintEnrolled": true,
+    "strongBiometricUnlockCompleted": true,
+    "fatalReactNativeLogObservedAfterRender": false
+  },
+  "uiAssertions": {
+    "smartAccountCapitalSheetRendered": true,
+    "missingRuntimeEvidenceUnavailable": true,
+    "nonGuaranteeVisible": true,
+    "aiExplainOnlyVisible": true,
+    "allFifteenCurrentCapitalTypesVisible": true,
+    "internalValidationErrorHidden": true,
+    "fakePositionOrSuccessShown": false
+  },
+  "screenshot": {
+    "path": "apps/wallet/proof/ynx-wallet-control-android-current.png",
+    "bytes": 214222,
+    "sha256": "10b856d8382a046080a974bd1c361cdba678daf87ed75c312ca9de8a6462d03f"
+  },
+  "releaseSigningChecks": {
+    "debugStandardUserKeystoreValidationPassed": true,
+    "partialReleaseCredentialConfigurationRejected": true,
+    "releaseInheritsDebugSigning": false
+  },
+  "claims": {
+    "installedAndroidCurrentControlSurface": true,
+    "standaloneApkContainsCurrentJavascript": false,
+    "hostedCurrentArtifact": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "publicRuntimeSnapshot": false,
+    "publicSmartAccountReady": false,
+    "capitalPosition": false,
+    "explorerProof": false
+  }
+}

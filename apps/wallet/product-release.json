@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "00815a0d90de1361528e072e1135cf497870f1c0",
+  "commit": "04979406f95530a1b205ff1fe485730af8031fe6",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -23,7 +23,7 @@
     "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"522b998077b5f150b86ab56f0a2f62a3a5005b82"},
     "sponsoredUserOperation": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"00815a0d90de1361528e072e1135cf497870f1c0"},
     "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
-    "capitalReview": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "capitalReview": {"implementedLocal":true,"testedLocal":true,"installedAndroid":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"04979406f95530a1b205ff1fe485730af8031fe6"},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
   },
   "publicUrls": [],
@@ -42,7 +42,7 @@
   "signingClass": {"android": "local-test-signed", "ios": "unsigned-simulator-build"},
   "minOS": {"android": "API 24", "ios": "15.1"},
   "installEvidence": {
-    "android": "API 36 emulator-5576 install success; MainActivity cold launch 2140 ms / wait 2274 ms and second cold launch 477 ms / wait 513 ms; focused activity verified. Pixel 9 Pro Fold 2076x2152 cold launch 15082 ms / wait 15742 ms.",
+    "android": "Prior API 36 installation evidence remains. Current Smart Account/Capital source 0497940 additionally used an installed debug native shell with Metro-delivered JavaScript on Android 16/API 36: cold launch 999/1042 ms, strong simulated fingerprint unlock, focused MainActivity and fail-closed control UI verified. This is not a standalone current APK claim.",
     "ios": "GitHub Actions macOS 15 / Xcode 26.3 run 29646381701 built, booted an iPhone Simulator, installed the unsigned Release app, cold-launched com.ynxweb4.wallet, resolved ynxwallet://authorize, captured the fail-closed rejection UI and uploaded the app/evidence artifact."
   },
   "centralIntegration": {
@@ -62,5 +62,5 @@
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "CycloneDX 1.6 review SBOM is reproducible and contains 431 runtime components, but four Expo override ELSPROBLEMS keep release-grade SBOM completeness false; package-lock.json remains authoritative."
   ],
-  "generatedAt": "2026-07-22T22:20:00+08:00"
+  "generatedAt": "2026-07-23T00:40:03+08:00"
 }
