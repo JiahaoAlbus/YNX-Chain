@@ -10,6 +10,7 @@ Status date: 2026-07-22.
 | Relayer quorum and replay rejection | true | true | false | false | false | false |
 | Lifecycle, failure, retry, recovery, dispute | true | true | false | false | false | false |
 | Append-only source-qualified lifecycle timeline and v3 migration | true | true | false | false | false | false |
+| Settlement-aware exposure accounting across disputes and v4 migration | true | true | false | false | false | false |
 | Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
 | Fail-closed route catalog and provider disclosure | true | true | false | false | false | false |

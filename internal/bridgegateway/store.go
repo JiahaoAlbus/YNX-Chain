@@ -92,6 +92,9 @@ func loadState(path string) (persistentState, error) {
 	if state.SchemaVersion == 3 {
 		return loadLegacyStateV3(state)
 	}
+	if state.SchemaVersion == 4 {
+		return loadLegacyStateV4(state)
+	}
 	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
@@ -128,6 +131,40 @@ func loadLegacyStateV3(state persistentState) (persistentState, error) {
 	return migrateLegacyState(state, true)
 }
 
+func loadLegacyStateV4(state persistentState) (persistentState, error) {
+	if state.SchemaVersion != 4 {
+		return persistentState{}, errors.New("bridge v4 state schema is invalid")
+	}
+	got := state.Integrity
+	state.Integrity = ""
+	expected, err := stateDigest(state)
+	if err != nil || got != expected {
+		return persistentState{}, errors.New("bridge state integrity mismatch")
+	}
+	if state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
+		return persistentState{}, errors.New("bridge v4 state schema is invalid")
+	}
+	if err := validateAuditChain(state.Audit); err != nil {
+		return persistentState{}, err
+	}
+	state.SchemaVersion = SchemaVersion
+	if state.Reconciliations == nil {
+		state.Reconciliations = map[string]Reconciliation{}
+	}
+	if state.DataRequests == nil {
+		state.DataRequests = map[string]DataRequest{}
+	}
+	for id, transfer := range state.Transfers {
+		if len(transfer.Lifecycle) == 0 {
+			return persistentState{}, errors.New("bridge v4 transfer lifecycle is missing")
+		}
+		migrateExposureStatus(&transfer)
+		state.Transfers[id] = transfer
+	}
+	state.Integrity = ""
+	return state, nil
+}
+
 func migrateLegacyState(state persistentState, preserveDataRequests bool) (persistentState, error) {
 	got := state.Integrity
 	state.Integrity = ""
@@ -157,10 +194,23 @@ func migrateLegacyState(state persistentState, preserveDataRequests bool) (persi
 	}
 	for id, transfer := range state.Transfers {
 		migrateLifecycle(&transfer)
+		migrateExposureStatus(&transfer)
 		state.Transfers[id] = transfer
 	}
 	state.Integrity = ""
 	return state, nil
+}
+
+func migrateExposureStatus(transfer *Transfer) {
+	transfer.ExposureStatus = "open"
+	for _, event := range transfer.Lifecycle {
+		switch event.Phase {
+		case "destination_confirmed":
+			transfer.ExposureStatus = "destination-confirmed"
+		case "refund_recovery":
+			transfer.ExposureStatus = "refund-recovered"
+		}
+	}
 }
 
 func migrateLifecycle(transfer *Transfer) {

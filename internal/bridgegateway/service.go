@@ -105,6 +105,10 @@ func New(cfg Config) (*Service, error) {
 			migrateLifecycle(&transfer)
 			transferMigrated = true
 		}
+		if transfer.ExposureStatus == "" {
+			migrateExposureStatus(&transfer)
+			transferMigrated = true
+		}
 		if transferMigrated {
 			service.state.Transfers[id] = transfer
 			migrated = true
@@ -203,7 +207,7 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 			}
 			dailyTotal += value
 		}
-		if existing.Phase == "destination_confirmed" || existing.Phase == "refund_recovery" {
+		if !transferExposureOpen(existing) {
 			continue
 		}
 		if ^uint64(0)-outstanding < value {
@@ -242,7 +246,7 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 		DestinationChain: normalized.DestinationChain, DestinationAsset: normalized.DestinationAsset, Amount: normalized.Amount,
 		Sender: normalized.Sender, Recipient: normalized.Recipient, AssetBoundary: policy.AssetBoundary,
 		RequiredConfirmations: policy.MinConfirmations, RequiredAttestations: s.cfg.Threshold, Attestations: map[string]Attestation{},
-		CreatedAt: now, UpdatedAt: now, NotBefore: notBefore, LargeTransferDelayApplied: largeDelayApplied, ExternalSubmissionEnabled: false,
+		CreatedAt: now, UpdatedAt: now, NotBefore: notBefore, LargeTransferDelayApplied: largeDelayApplied, ExposureStatus: "open", ExternalSubmissionEnabled: false,
 	}
 	appendLifecycle(&transfer, "source_submitted", now, "source:"+normalized.SourceTxHash, "source-event-recorded", "coordinator-source-event")
 	before := cloneState(s.state)
@@ -436,7 +440,7 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 		appendLifecycle(&transfer, "retry", s.cfg.Now().UTC().Format(timeFormat), request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
 		transfer.Phase, transfer.PreviousPhase, transfer.FailureReasonCode = transfer.PreviousPhase, "", ""
 	} else {
-		valid := (request.Outcome == "failed" && transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery") ||
+		valid := (request.Outcome == "failed" && transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" && transfer.Phase != "dispute") ||
 			(request.Outcome == "destination_mint_release" && transfer.Phase == "proof_attestation") ||
 			(request.Outcome == "destination_confirmed" && transfer.Phase == "destination_mint_release") ||
 			(request.Outcome == "refund_recovery" && transfer.Phase == "failed") || request.Outcome == "dispute"
@@ -447,6 +451,12 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 			transfer.PreviousPhase, transfer.FailureReasonCode = transfer.Phase, request.ReasonCode
 		}
 		transfer.Phase = request.Outcome
+		if request.Outcome == "destination_confirmed" {
+			transfer.ExposureStatus = "destination-confirmed"
+		}
+		if request.Outcome == "refund_recovery" {
+			transfer.ExposureStatus = "refund-recovered"
+		}
 	}
 	transfer.OutcomeEvidenceRef = request.EvidenceRef
 	transfer.UpdatedAt = s.cfg.Now().UTC().Format(timeFormat)
@@ -666,7 +676,7 @@ func (s *Service) dataRetentionStateLocked(account string) (int, int, time.Time)
 			continue
 		}
 		matched++
-		if transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" {
+		if transferExposureOpen(transfer) || transfer.Phase == "dispute" {
 			outstanding++
 			continue
 		}
@@ -700,7 +710,7 @@ func (s *Service) Transparency() Transparency {
 		entry := RouteExposure{Route: s.policies[key], CoordinatorOutstanding: "0"}
 		var amount uint64
 		for _, transfer := range s.state.Transfers {
-			if routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset) != key || transfer.Phase == "destination_confirmed" || transfer.Phase == "refund_recovery" {
+			if routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset) != key || !transferExposureOpen(transfer) {
 				continue
 			}
 			value, _ := strconv.ParseUint(transfer.Amount, 10, 64)
@@ -874,6 +884,10 @@ func validLifecycleTimestamp(value string) bool {
 	return err == nil
 }
 
+func transferExposureOpen(transfer Transfer) bool {
+	return transfer.ExposureStatus == "open"
+}
+
 func (s *Service) validateStateLocked() (bool, error) {
 	for eventKey, transferID := range s.state.SourceEvents {
 		if _, ok := s.state.Transfers[transferID]; !ok || strings.TrimSpace(eventKey) == "" {
@@ -895,6 +909,25 @@ func (s *Service) validateStateLocked() (bool, error) {
 		if !allowedPhases[transfer.Phase] {
 			return false, errors.New("bridge persisted transfer has an invalid lifecycle phase")
 		}
+		terminalPhase := ""
+		for _, event := range transfer.Lifecycle {
+			if event.Phase == "destination_confirmed" || event.Phase == "refund_recovery" {
+				if terminalPhase != "" && terminalPhase != event.Phase {
+					return false, errors.New("bridge persisted transfer has conflicting exposure resolution")
+				}
+				terminalPhase = event.Phase
+			}
+		}
+		expectedExposure := "open"
+		if terminalPhase == "destination_confirmed" {
+			expectedExposure = "destination-confirmed"
+		}
+		if terminalPhase == "refund_recovery" {
+			expectedExposure = "refund-recovered"
+		}
+		if transfer.ExposureStatus != expectedExposure {
+			return false, errors.New("bridge persisted transfer exposure status is inconsistent")
+		}
 		if len(transfer.Lifecycle) == 0 {
 			return false, errors.New("bridge persisted transfer lifecycle is missing")
 		}
@@ -909,7 +942,7 @@ func (s *Service) validateStateLocked() (bool, error) {
 		if err != nil || amount == 0 {
 			return false, errors.New("bridge persisted transfer amount is invalid")
 		}
-		if transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" {
+		if transferExposureOpen(transfer) {
 			if ^uint64(0)-exposure[key] < amount {
 				return false, errors.New("bridge persisted route exposure overflows")
 			}

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SchemaVersion       = 4
+	SchemaVersion       = 5
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )
@@ -427,6 +427,7 @@ type Transfer struct {
 	FailureReasonCode         string                 `json:"failureReasonCode,omitempty"`
 	PreviousPhase             string                 `json:"previousPhase,omitempty"`
 	Lifecycle                 []LifecycleEvent       `json:"lifecycle"`
+	ExposureStatus            string                 `json:"exposureStatus"`
 	ExternalSubmissionEnabled bool                   `json:"externalSubmissionEnabled"`
 	SenderRedacted            bool                   `json:"senderRedacted,omitempty"`
 	RecipientRedacted         bool                   `json:"recipientRedacted,omitempty"`

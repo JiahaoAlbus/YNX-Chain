@@ -465,6 +465,36 @@ func TestBridgeResealedInvalidLifecycleIsRejected(t *testing.T) {
 	}
 }
 
+func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("v4-settled-dispute-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	appendLifecycle(&transfer, "destination_confirmed", transfer.UpdatedAt, "receipt:migrated-destination-001", "finalized-receipt", "operator-submitted-evidence")
+	appendLifecycle(&transfer, "dispute", transfer.UpdatedAt, "case:migrated-dispute-001", "recipient-appeal", "operator-submitted-evidence")
+	transfer.Phase = "dispute"
+	transfer.ExposureStatus = ""
+	state.Transfers[transfer.ID] = transfer
+	state.SchemaVersion = 4
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("v4 settled dispute migration failed: %v", err)
+	}
+	got := migrated.state.Transfers[transfer.ID]
+	if got.ExposureStatus != "destination-confirmed" || got.Phase != "dispute" {
+		t.Fatalf("v4 migration reopened settled dispute: %+v", got)
+	}
+	if exposure := migrated.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
+		t.Fatalf("migrated settled dispute counted as exposure: %+v", exposure)
+	}
+}
+
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
@@ -552,12 +582,23 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	if err != nil || confirmed.Transfer.Phase != "destination_confirmed" {
 		t.Fatalf("confirmed phase: %+v %v", confirmed, err)
 	}
-	wantLifecycle := []string{"source_submitted", "source_accepted", "source_accepted", "source_finalized", "proof_attestation", "failed", "retry", "destination_mint_release", "destination_confirmed"}
-	if len(confirmed.Transfer.Lifecycle) != len(wantLifecycle) {
-		t.Fatalf("lifecycle length: got=%+v want=%+v", confirmed.Transfer.Lifecycle, wantLifecycle)
+	disputed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-dispute-001", Outcome: "dispute", EvidenceRef: "case:destination-dispute-001", ReasonCode: "recipient-appeal"})
+	if err != nil || disputed.Transfer.Phase != "dispute" || disputed.Transfer.ExposureStatus != "destination-confirmed" {
+		t.Fatalf("settled dispute phase or exposure: %+v %v", disputed, err)
+	}
+	transparency := b.service.Transparency()
+	if transparency.Routes[0].CoordinatorOutstanding != "0" || transparency.Routes[0].TransferCount != 0 {
+		t.Fatalf("settled dispute reopened exposure: %+v", transparency.Routes[0])
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-fail-dispute-001", Outcome: "failed", EvidenceRef: "case:destination-dispute-001", ReasonCode: "invalid-regression"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("dispute regressed to failed: %v", err)
+	}
+	wantLifecycle := []string{"source_submitted", "source_accepted", "source_accepted", "source_finalized", "proof_attestation", "failed", "retry", "destination_mint_release", "destination_confirmed", "dispute"}
+	if len(disputed.Transfer.Lifecycle) != len(wantLifecycle) {
+		t.Fatalf("lifecycle length: got=%+v want=%+v", disputed.Transfer.Lifecycle, wantLifecycle)
 	}
 	for i, phase := range wantLifecycle {
-		event := confirmed.Transfer.Lifecycle[i]
+		event := disputed.Transfer.Lifecycle[i]
 		if event.Sequence != uint64(i+1) || event.Phase != phase || event.Coverage != "coordinator-recorded-event-not-independent-chain-proof" {
 			t.Fatalf("lifecycle event %d: %+v", i, event)
 		}
@@ -568,6 +609,35 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	}
 	if got := b.service.Health(buildinfo.Info{}); got.Safety.Paused {
 		t.Fatalf("health retained cleared pause: %+v", got)
+	}
+}
+
+func TestBridgeRefundRecoveryResolvesExposureAndRejectsConflictingSettlement(t *testing.T) {
+	b := newTestBridge(t)
+	created, err := b.service.CreateTransfer(validCreate("refund-recovery-flow-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	failed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "refund-failed-001", Outcome: "failed", EvidenceRef: "audit:source-rejected-001", ReasonCode: "source-rejected"})
+	if err != nil || failed.Transfer.ExposureStatus != "open" {
+		t.Fatalf("refund failure setup: %+v %v", failed, err)
+	}
+	refunded, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "refund-recovered-001", Outcome: "refund_recovery", EvidenceRef: "receipt:source-refund-001", ReasonCode: "refund-confirmed"})
+	if err != nil || refunded.Transfer.Phase != "refund_recovery" || refunded.Transfer.ExposureStatus != "refund-recovered" {
+		t.Fatalf("refund recovery: %+v %v", refunded, err)
+	}
+	if exposure := b.service.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
+		t.Fatalf("refunded transfer remained exposed: %+v", exposure)
+	}
+	state := cloneState(b.service.state)
+	transfer := state.Transfers[created.Transfer.ID]
+	appendLifecycle(&transfer, "destination_confirmed", transfer.UpdatedAt, "receipt:conflicting-terminal-001", "invalid-terminal", "operator-submitted-evidence")
+	state.Transfers[transfer.ID] = transfer
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "conflicting exposure resolution") {
+		t.Fatalf("conflicting terminal settlement accepted: %v", err)
 	}
 }
 
@@ -597,8 +667,8 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schemaVersion": 4`) {
-		t.Fatalf("migrated state not persisted as v4: %s", persisted)
+	if !strings.Contains(string(persisted), `"schemaVersion": 5`) {
+		t.Fatalf("migrated state not persisted as v5: %s", persisted)
 	}
 
 	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)

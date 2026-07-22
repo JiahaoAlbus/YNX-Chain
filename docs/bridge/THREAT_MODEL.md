@@ -19,6 +19,7 @@ Data-rights controls treat premature deletion as an asset-safety and audit-evasi
 | Stolen service credential | Constant-time check, no credential persistence/logging, consumer denial | API-key auth is not the final canonical Gateway integration |
 | Single relayer compromise | Distinct keys and threshold quorum | Production signer/HSM/MPC ceremony absent |
 | Excess exposure | Per-transfer, UTC-daily, user-outstanding, and provider/route-outstanding limits plus persistent pause | Limits need route-specific economic and legal approval |
+| Settled transfer reopened by later dispute | Exposure resolution is independent from current lifecycle phase; migration derives it only from terminal evidence and rejects conflicting resolution | Operator evidence is still not independent destination proof |
 | Large transfer rushed after proof | Persisted not-before time blocks local finalization after quorum | Delay does not replace destination signer review |
 | State tamper | Full-state digest, semantic startup validation, hash-chained audit | Digest is not a keyed signature or independent database audit |
 | False reserve claim | Source labels, evidence references, visible difference, no automatic healthy result | Operator reference is not independent proof |

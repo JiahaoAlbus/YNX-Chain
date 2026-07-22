@@ -11,4 +11,4 @@ rg -Fq '## Service cessation and user exit' docs/bridge/DATA_LIFECYCLE.md
 rg -Fq 'pseudonymized, not anonymous' docs/bridge/DATA_LIFECYCLE.md
 ! rg -n -i 'delete.*source.event|delete.*audit|anonymous data' docs/bridge/DATA_LIFECYCLE.md internal/bridgegateway
 
-echo "bridge-data-lifecycle-check passed: v2/v3-to-v4 migration, lifecycle evidence, export, active safety hold, retention, idempotent identity redaction, restart, tamper rejection, and cessation runbook"
+echo "bridge-data-lifecycle-check passed: v2/v3/v4-to-v5 migration, lifecycle and exposure evidence, export, active safety hold, retention, idempotent identity redaction, restart, tamper rejection, and cessation runbook"
