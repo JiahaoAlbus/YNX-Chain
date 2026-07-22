@@ -125,8 +125,62 @@ func TestCommittedStateMigratesVersion8WithoutInventingAssetRecords(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.Version != 9 || len(migrated.FeeEvents) != 1 || len(migrated.StrategyMandates)+len(migrated.StrategyVaults)+len(migrated.AssetAuditEvents) != 0 {
+	if migrated.Version != CommittedStateVersion || len(migrated.FeeEvents) != 1 || len(migrated.StrategyMandates)+len(migrated.StrategyVaults)+len(migrated.AssetAuditEvents) != 0 {
 		t.Fatalf("v8 migration changed history or invented asset records: %+v", migrated)
+	}
+}
+
+func TestCommittedStateMigratesVersion9PreservingAssetRecords(t *testing.T) {
+	ownerKey := deterministicPrivateKey(184)
+	owner := mustNativeAddress(t, ownerKey)
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(owner, 10); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	app, err := NewApplication(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blockTime := time.Date(2026, 7, 23, 2, 0, 0, 0, time.UTC)
+	strategyHash := sha256.Sum256([]byte("strategy/v9-migration/v1"))
+	raw := signedAssetAction(t, ownerKey, ActionStrategyMandateCreate, StrategyMandateCreatePayload{
+		ID: "mandate-v9", EngineIdentity: "engine-v9", StrategyHash: hex.EncodeToString(strategyHash[:]), StrategyVersion: 1,
+		Venues: []string{"venue-1"}, Assets: []string{"ynxt"}, Markets: []string{"ynxt/usd"}, Methods: []string{assetauth.MethodPlaceOrder},
+		CapitalLimitYNXT: 5, PositionLimitYNXT: 5, MaxLeverageBPS: 10_000, MaxSlippageBPS: 100,
+		DailyLossLimitYNXT: 1, DrawdownLimitBPS: 1_000, ValidAfter: blockTime, ExpiresAt: blockTime.Add(24 * time.Hour), NonceDomain: "quant/v9",
+	}, 1)
+	height := int64(migration.Height) + 1
+	result, err := app.FinalizeBlock(context.Background(), &abcitypes.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: [][]byte{raw}})
+	if err != nil || result.TxResults[0].Code != 0 {
+		t.Fatalf("v9 fixture asset action failed: %+v %v", result, err)
+	}
+	if _, err := app.Commit(context.Background(), &abcitypes.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	legacy := app.committed
+	legacy.Version = 9
+	legacy.StakeDelegations, legacy.Unbondings = nil, nil
+	legacy.AppHash, err = legacy.calculateHashFor("YNX_ABCI_STATE_V9", 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyHash := legacy.AppHash
+	payload, _ := json.Marshal(legacy)
+	path := filepath.Join(t.TempDir(), "state-v9.json")
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := loadCommittedState(path, migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Version != CommittedStateVersion || len(migrated.StrategyMandates) != 1 || migrated.StrategyMandates[0].ID != "mandate-v9" || len(migrated.AssetAuditEvents) != 1 || len(migrated.StakeDelegations)+len(migrated.Unbondings) != 0 || migrated.AppHash == legacyHash {
+		t.Fatalf("v9 migration lost asset records or invented staking state: %+v", migrated)
 	}
 }
 

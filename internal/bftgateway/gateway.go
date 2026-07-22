@@ -38,6 +38,7 @@ var implementedCapabilities = []string{
 	"evm-transaction-receipts-and-logs",
 	"ide-contract-state-transitions",
 	"quant-mandate-and-vault-state-transitions",
+	"staking-delegation-and-exit-state-transitions",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -299,6 +300,14 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("POST /quant/vaults/{id}/withdraw", g.handleQuantMutation)
 	g.mux.HandleFunc("POST /quant/vaults/{id}/emergency-exit", g.handleQuantMutation)
 	g.mux.HandleFunc("GET /quant/audit", g.handleQuantAudit)
+	g.mux.HandleFunc("POST /staking/delegations", g.handleStakingMutation)
+	g.mux.HandleFunc("GET /staking/delegations", g.handleStakeDelegations)
+	g.mux.HandleFunc("GET /staking/delegations/{id}", g.handleStakeDelegation)
+	g.mux.HandleFunc("POST /staking/unbondings", g.handleStakingMutation)
+	g.mux.HandleFunc("GET /staking/unbondings", g.handleUnbondings)
+	g.mux.HandleFunc("GET /staking/unbondings/{id}", g.handleUnbonding)
+	g.mux.HandleFunc("POST /staking/withdrawals", g.handleStakingMutation)
+	g.mux.HandleFunc("GET /staking/summary", g.handleStakingSummary)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)

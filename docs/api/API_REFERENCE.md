@@ -261,7 +261,7 @@ Quant mandate and strategy-vault state:
 - `POST /quant/vaults` creates a vault bound to an existing mandate owned by the signer. Deposit, owner-only withdrawal, and owner-only full close use `/quant/vaults/{id}/deposit`, `/withdraw`, and `/emergency-exit`; reads use `GET /quant/vaults` and `GET /quant/vaults/{id}`.
 - Every mutation charges the committed application-action fee, consumes the signer nonce only on success, moves traceable YNXT lots together with balances, conserves total supply across accounts and vaults, and appends an AppHash-bound audit event. A rejected action cannot leak a fee, nonce, balance, lot, or partial record mutation into the block.
 - `GET /quant/audit` returns the committed audit ledger. All Quant responses expose `source`, `asOf`, `version`, `coverage`, and `failure`; mutation success is returned only after the Gateway verifies Comet transaction evidence and matches the final ABCI record and audit event by action, signer, transaction hash, and record ID.
-- This is branch-local application version 11 / committed-state v9 evidence. It has not been activated on the public four-node runtime, and it does not claim an external exchange adapter, managed-fund deployment, or public vault transaction.
+- This is branch-local application version 12 / committed-state v10 evidence. It has not been activated on the public four-node runtime, and it does not claim an external exchange adapter, managed-fund deployment, or public vault transaction.
 
 AI Gateway permission and audit:
 

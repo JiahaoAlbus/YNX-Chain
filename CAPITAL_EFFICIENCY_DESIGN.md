@@ -10,7 +10,7 @@ An owner may revoke or kill immediately. Expiry is exclusive: an action at the e
 
 ## Strategy vault and exchange boundary
 
-The DEX `StrategyVault` accepts deposits, but normal withdrawal and emergency exit are owner-only. The configured mandate identifies trading authority; it does not grant custody authority. Emergency exit closes the vault, returns the full recorded balance through an audit-bound event, and prevents later deposits or withdrawals. Application version 11 persists mandates, vault balances, traceable YNXT lots, and audit events in committed-state v9. Gateway mutations are signed and are acknowledged only after matching Comet and ABCI evidence.
+The DEX `StrategyVault` accepts deposits, but normal withdrawal and emergency exit are owner-only. The configured mandate identifies trading authority; it does not grant custody authority. Emergency exit closes the vault, returns the full recorded balance through an audit-bound event, and prevents later deposits or withdrawals. Application version 12 persists mandates, vault balances, traceable YNXT lots, audit events, delegation records, and queued-unbonding liabilities in committed-state v10. Gateway mutations are signed and are acknowledged only after matching Comet and ABCI evidence.
 
 An exchange integration must use a dedicated subaccount/API credential for trading only, with exchange-side withdrawal disabled. The chain schema cannot prove an external exchange applied that setting, so adapter evidence must include official API capability, account identifier, scope response, test order/cancel, rejected withdrawal, expiry/revocation, and credential-rotation records without exposing the credential.
 

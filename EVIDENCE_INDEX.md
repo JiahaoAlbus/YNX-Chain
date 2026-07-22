@@ -9,7 +9,10 @@ All paths are repository-relative and refer to the current source commit only af
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |
-| v7 to v8 and v8 to v9 migration boundaries | `internal/consensus/state.go`, `MIGRATION_COMPATIBILITY.md` | `go test ./internal/consensus -run 'MigratesVersion(7|8)'` |
+| v7/v8/v9 to v10 migration boundaries | `internal/consensus/state.go`, `MIGRATION_COMPATIBILITY.md`, migration tests | `go test ./internal/consensus -run 'MigratesVersion'` |
+| Delegation, unbonding liability, maturity and withdrawal | `internal/consensus/staking_action.go`, `staking_application.go`, `staking_action_test.go` | `go test ./internal/consensus -run Staking` |
+| Staking Gateway and truthful no-yield boundary | `internal/bftgateway/staking.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
+| Rejected-transaction atomicity | `internal/consensus/application.go`, early-withdrawal/retry path in `staking_action_test.go` | `go test ./internal/consensus -run StakingDelegation` |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 | Chain Core recovery and deployed-runtime boundary | `CURRENT_RECOVERY_AUDIT.md`, `release/recovery-evidence.json` | strict SSH audit, exact-release four-node verifier, bounded public ingress diagnostic |
 | StreamBFT shadow candidate | `internal/streambft`, `docs/architecture/STREAMBFT_CANDIDATE.md`, `docs/formal/streambft` | `make streambft-candidate-check` |

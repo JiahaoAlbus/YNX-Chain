@@ -12,7 +12,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
-const quantAPIVersion = "abci-state-v9"
+const quantAPIVersion = "abci-state-v10"
 
 func (g *Gateway) handleQuantMutation(w http.ResponseWriter, r *http.Request) {
 	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
