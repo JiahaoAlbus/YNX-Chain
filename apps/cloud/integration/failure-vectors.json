@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "chainId": "ynx_6423-1",
+  "vectors": [
+    {"id": "cloud-callback-substitution", "product": "cloud", "mutation": "callback=attacker://wallet-auth/callback", "expected": "reject"},
+    {"id": "docs-cross-app-client", "product": "docs", "mutation": "productClientId=ynx-cloud-mobile-v1", "expected": "reject"},
+    {"id": "cloud-scope-escalation", "product": "cloud", "mutation": "append documents.write", "expected": "reject"},
+    {"id": "docs-scope-escalation", "product": "docs", "mutation": "append permissions.manage", "expected": "reject"},
+    {"id": "replay-request-digest", "product": "cloud", "mutation": "complete the same envelope twice", "expected": "first accept; second reject"},
+    {"id": "expired-approval", "product": "docs", "mutation": "verification time after expiresAt", "expected": "reject"},
+    {"id": "tampered-device-signature", "product": "cloud", "mutation": "flip one DER signature bit", "expected": "reject"},
+    {"id": "verifier-unavailable", "product": "docs", "mutation": "central verifier timeout", "expected": "503; no local session"}
+  ],
+  "executableCoverage": "go test ./internal/cloud and mobile wallet tests"
+}

@@ -12,7 +12,7 @@ import (
 )
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -66,11 +66,17 @@ func normalize(s *persistentState) {
 	if s.Sessions == nil {
 		s.Sessions = map[string]Session{}
 	}
+	if s.WalletChallenges == nil {
+		s.WalletChallenges = map[string]PendingWalletChallenge{}
+	}
 	if s.Nonces == nil {
 		s.Nonces = map[string]time.Time{}
 	}
 	if s.Audit == nil {
 		s.Audit = []AuditEvent{}
+	}
+	if s.MultipartUploads == nil {
+		s.MultipartUploads = map[string]MultipartUpload{}
 	}
 }
 

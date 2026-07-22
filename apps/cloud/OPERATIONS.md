@@ -1,0 +1,35 @@
+# YNX Cloud and Docs operations
+
+## Local service
+
+```sh
+YNX_WALLET_VERIFY_URL=https://wallet-auth.example.invalid \
+YNX_WALLET_VERIFY_TOKEN=operator-secret \
+go run ./apps/cloud/cmd/ynx-cloudd -addr 127.0.0.1:8092 -data /absolute/operator/data
+```
+
+The service refuses to manufacture sessions when the central verifier is absent. `-dev-wallet` is accepted only on loopback and exists solely for canonical protocol tests. Never expose it on a remote listener.
+
+Health is `GET /health`. It reports bounded local durability honestly. Cloud UI is `/cloud/`, Docs UI is `/docs/`, and the shared audited API is `/api/v1/`. The products keep separate Wallet product/client/bundle/callback bindings and sessions.
+
+## Backup drill
+
+Stop writers or take a filesystem snapshot, then run:
+
+```sh
+go run ./apps/cloud/cmd/ynx-cloudd -data /absolute/operator/data -backup /absolute/new-backup
+go run ./apps/cloud/cmd/ynx-cloudd -data /absolute/new-restore -restore /absolute/new-backup
+```
+
+Start the service on the new restore directory, verify `/health`, sign in through the canonical Wallet flow, download known objects, compare `X-Content-SHA256`, inspect quota and audit, then switch traffic. Keep the previous directory read-only until the rollback window closes.
+
+## Failure boundaries
+
+- Wallet verifier unavailable: no new session; existing unexpired sessions remain bounded to their exact grants.
+- AI provider unavailable, 429, timeout, empty, cancel, or interruption: job records an honest failure; source content and permissions remain unchanged.
+- Scanner unavailable/rejects: upload fails; no metadata commit.
+- State or blob hash mismatch: service fails closed; restore the last verified backup into a new directory.
+- Quota exceeded: upload/save fails before commit; user may delete or export data.
+- Conflict: Docs returns 409 with current version/content; user chooses keep-local-as-new-document or use-server.
+
+There is no replicated object store, KMS, antivirus service, public TLS deployment, production signer, store account, or central registry approval in this branch.

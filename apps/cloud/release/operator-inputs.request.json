@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "status": "not-ready-to-request",
+  "reason": "Autonomous engineering and verification remain incomplete; external inputs must be requested only after they are the sole blockers.",
+  "requests": []
+}

@@ -1,0 +1,63 @@
+name: Cloud and Docs iOS Simulator
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/cloud/mobile/**"
+      - "apps/docs/mobile/**"
+      - ".github/workflows/cloud-docs-ios-simulator.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  simulator-build:
+    runs-on: macos-15
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - product: cloud
+            scheme: YNXCloud
+            project: YNXCloud.xcodeproj
+          - product: docs
+            scheme: YNXDocs
+            project: YNXDocs.xcodeproj
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.product }}/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: apps/${{ matrix.product }}/mobile/pnpm-lock.yaml
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck && pnpm test && pnpm run i18n-check
+      - run: pod install --project-directory=ios
+      - name: Build unsigned Simulator app
+        run: >-
+          xcodebuild
+          -workspace ios/${{ matrix.scheme }}.xcworkspace
+          -scheme ${{ matrix.scheme }}
+          -configuration Release
+          -sdk iphonesimulator
+          -derivedDataPath build/ios-derived
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Package evidence
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "build/ios-derived/Build/Products/Release-iphonesimulator/${{ matrix.scheme }}.app" "build/${{ matrix.scheme }}-simulator.zip"
+          shasum -a 256 "build/${{ matrix.scheme }}-simulator.zip" > "build/${{ matrix.scheme }}-simulator.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-${{ matrix.product }}-ios-simulator-${{ github.sha }}
+          path: |
+            apps/${{ matrix.product }}/mobile/build/${{ matrix.scheme }}-simulator.zip
+            apps/${{ matrix.product }}/mobile/build/${{ matrix.scheme }}-simulator.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-18T19:40:00Z",
+  "artifacts": [
+    {
+      "productId": "docs",
+      "surface": "android",
+      "version": "1.0.0",
+      "path": "apps/docs/release/YNX-Docs-1.0.0-testnet-preview.apk",
+      "sha256": "5c0935ab908c4bf9488f954cfece51d748018211f5332ff51b1a29f28a5e5699",
+      "bytes": 69674639,
+      "signingClass": "Android debug certificate; Testnet Preview only",
+      "minOS": "Android 7.0 / API 24",
+      "downloadHosted": false,
+      "artifactUrl": null
+    }
+  ]
+}
