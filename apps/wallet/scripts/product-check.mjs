@@ -23,7 +23,7 @@ for(const required of ["WELCOME","Create a new Wallet","Import account","Recover
 for(const locale of ["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"])assert.equal(i18n.includes(`\"${locale}\"`)||i18n.includes(`${locale}:`),true,`missing locale ${locale}`);
 assert.ok((source.match(/accessibilityLabel=/g)??[]).length>=14,"Wallet controls need explicit accessibility labels");
 for(const file of ["RECOVERY.md","REFERENCE.md","PARITY.md","WEB4_IDENTITY.md","FEATURE_COMPLETION_EVIDENCE.md","CAPITAL_DESIGN.md","API_REGISTRY.md","MIGRATION_COMPATIBILITY.md","SLO_CAPACITY_PLAN.md","UNIT_ECONOMICS.md","OBSERVABILITY.md","THIRD_PARTY_NOTICES.md","PRODUCT_KPIS.md","public-product-metadata.json"])await access(new URL(`../${file}`,import.meta.url));
-for(const file of ["../../../packages/wallet-auth/integration/gateway-integration.manifest.json","../../../packages/wallet-auth/integration/gateway-state.schema.json","../../../packages/wallet-auth/testdata/product-session-http-proof-v1.json","../proof/gateway-benchmark-local.json"])await access(new URL(file,import.meta.url));
+for(const file of ["../../../packages/wallet-auth/integration/gateway-integration.manifest.json","../../../packages/wallet-auth/integration/gateway-state.schema.json","../../../packages/wallet-auth/testdata/product-session-http-proof-v1.json","../proof/gateway-benchmark-local.json","../proof/smart-account-hardhat-local.json"])await access(new URL(file,import.meta.url));
 const metadata=JSON.parse(await readFile(new URL("../public-product-metadata.json",import.meta.url),"utf8"));
 assert.equal(metadata.productId,"wallet");
 assert.equal(metadata.canonicalRoute,"/wallet");
