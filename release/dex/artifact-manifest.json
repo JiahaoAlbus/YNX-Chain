@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-dex",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
+  "sourceBaseCommit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -21,14 +21,14 @@
     {
       "type": "web-pwa-upload-bundle",
       "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-      "sha256": "f40e82dcdebec7e675b9df3a1e90453e11b07de9ed43d706f1e762b042b30c3a",
-      "sizeBytes": 321820
+      "sha256": "2acb74b276a09c9184966a08ff040e8de734e06af3eab1767bd32609772dafac",
+      "sizeBytes": 323517
     },
     {
       "type": "javascript-sdk-npm-package",
       "file": "ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
-      "sha256": "9300c51571467ab06a84d0ce5885986623c82134371dcd584de7e9d6ac93fb81",
-      "sizeBytes": 9861
+      "sha256": "f7940575581b0c0454062a1690f43c3d6561953d7776bec2cae714a092eb1a67",
+      "sizeBytes": 11895
     },
     {
       "type": "contract-source-and-build-manifest",

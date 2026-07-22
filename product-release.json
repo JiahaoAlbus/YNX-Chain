@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
+  "commit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,14 +21,14 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "62fa32f25dfac6ebed5f1c1742f581e455a4f662eeb0f800774bda53d4938d46",
-    "webPwaBundle": "f40e82dcdebec7e675b9df3a1e90453e11b07de9ed43d706f1e762b042b30c3a",
-    "javascriptSdkPackage": "9300c51571467ab06a84d0ce5885986623c82134371dcd584de7e9d6ac93fb81"
+    "artifactManifest": "cac63331efdc16aa32332f1dd0129335e0186b884b38b5e9e3bc24d84047bbb0",
+    "webPwaBundle": "2acb74b276a09c9184966a08ff040e8de734e06af3eab1767bd32609772dafac",
+    "javascriptSdkPackage": "f7940575581b0c0454062a1690f43c3d6561953d7776bec2cae714a092eb1a67"
   },
   "bytes": {
-    "artifactManifest": 4070,
-    "webPwaBundle": 321820,
-    "javascriptSdkPackage": 9861
+    "artifactManifest": 4071,
+    "webPwaBundle": 323517,
+    "javascriptSdkPackage": 11895
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
@@ -61,16 +61,16 @@
       "evidence": "npm run dex:vault:test"
     },
     "executionAdapter": {
-      "sourceCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
+      "sourceCommit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
       "implementedLocal": true,
       "testedLocal": true,
       "integratedCentral": false,
       "deployedPublic": false,
-      "scope": "typed Vault requests, exact Wallet approval digest, injected engine transport, confirmed receipt reconciliation",
+      "scope": "typed Vault requests, exact Wallet approval digest, injected engine transport, direct/indexed reconciliation, fail-closed gas/fee/oracle/risk snapshots, explicit CPMM collect capability, bounded compound and stepwise rebalance",
       "evidence": "npm test --prefix sdk/dex"
     },
     "vaultIndexer": {
-      "sourceCommit": "074aeb283333e8314b588ab4e34e2dd2f608ad52",
+      "sourceCommit": "c715553a56aadae5ecad0e60fda23ef1b6f3707f",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedPublic": false,
@@ -90,6 +90,7 @@
     "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
     "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
     "No independent third-party smart-contract audit has been completed.",
+    "CPMM LP fees are embedded in reserves; there is no separate LP collect method, and compound/rebalance require caller-supplied amounts plus sequential Wallet approvals.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
