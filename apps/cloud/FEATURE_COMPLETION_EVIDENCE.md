@@ -21,7 +21,7 @@ Evidence baseline: local source commit `09b46ffd8ee7194be5006f0d77ef63212c60144e
 | Export/delete | partial | local | product-scoped verified portable ZIP; product-scoped dedup deletion queue; pending/retry tests | provisioned-provider erasure proof and full-account deletion |
 | Retention/legal hold | yes, control-plane | local | future-expiry validation, active-window denial, post-expiry deletion, indefinite legal-hold tests | provider-native object-lock proof |
 | Service cessation user exit | yes, control-plane | local | HTTP exit-mode test proves sign-in/read/export/trash/delete remain while new writes return 423 | announced remote exit drill and support/status evidence |
-| Logs, IDs, public/restricted health, metrics | partial | local | server observability tests and `OBSERVABILITY.md` | persistent histograms, traces, dashboard, alerts |
+| Logs, IDs, health, readiness, metrics, traces | partial | local | integrity-checked persistent RED bins, normalized routes, correlated bounded traces, fail-closed readiness, evaluated alerts, machine-readable dashboard and tests | provider child spans, distributed export/aggregation, hosted dashboard/paging/status integration |
 | Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
 | State migration and rollback | partial | local | legacy v1/v2/v3 fixtures, byte-identical backups, product and schema-v4 usage migration, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |
 | Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |

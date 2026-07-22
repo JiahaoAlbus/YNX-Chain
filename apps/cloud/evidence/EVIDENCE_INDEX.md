@@ -9,6 +9,7 @@
 - Client SDK: `../sdk/index.js`, `../sdk/index.d.ts`, and `../tests/sdk.test.mjs` prove short-lived token callbacks, exact API routing, product validation, error correlation, and bounded idempotent retry behavior.
 - Usage/economics: schema-v4 migration plus service/server tests prove product-isolated persisted ingress, delivered range egress, scan, and AI counters; `../UNIT_ECONOMICS.md` records exact coverage and the unconfigured zero-charge boundary.
 - Retention/exit: service tests prove retention validation and time-gated deletion; server tests plus `../OPERATIONS.md` prove the local user-exit mode preserves export/deletion while blocking new mutations.
+- Observability: `internal/cloud/telemetry_test.go`, server tests, `../OBSERVABILITY.md`, and `../observability/*.json` prove integrity-checked persistent RED bins, normalized routes, correlated bounded traces, authenticated readiness, and local alert evaluation.
 - Real API smoke: `scripts/canonical-smoke.mjs` and `scripts/smoke.sh` cover canonical sessions, upload/download/hash, same-name collision, share/revoke, trash/delete, quota/audit, Docs save/conflict/comment/presence, backup, and restore.
 - Object-store contract: `OBJECT_STORAGE_CONTRACT.md` and `internal/cloud/recovery.go`.
 - Web runtime images: `screenshots/cloud-desktop-empty-en.png`, `cloud-desktop-success-en.png`, `cloud-desktop-dark-en.png`, `cloud-mobile-rtl-ar.png`.

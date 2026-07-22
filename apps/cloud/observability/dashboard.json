@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "ynx-cloud-local-red",
+  "title": "YNX Cloud local RED and capacity dashboard",
+  "source": "GET /api/v1/metrics",
+  "authenticationScope": "audit.read",
+  "refreshSeconds": 30,
+  "coverage": "One integrity-checked control-plane replica; not a hosted or public status dashboard.",
+  "panels": [
+    {"id": "route-rate", "title": "Requests by normalized route", "field": "routes.*.requests", "unit": "requests"},
+    {"id": "route-errors", "title": "Errors by normalized route", "field": "routes.*.errors", "unit": "errors", "criticalRatio": 0.05, "minimumRequests": 20},
+    {"id": "route-latency", "title": "Persistent route latency histogram", "field": "routes.*.latencyBuckets", "unit": "milliseconds", "warningP95Milliseconds": 1000},
+    {"id": "response-bytes", "title": "Response bytes by normalized route", "field": "routes.*.responseBytes", "unit": "bytes"},
+    {"id": "saturation", "title": "Concurrency and rejection saturation", "fields": ["inflight", "maxConcurrent", "rejections"], "unit": "requests"},
+    {"id": "telemetry-durability", "title": "Telemetry persistence", "field": "telemetryPersistence.healthy", "unit": "boolean"}
+  ]
+}

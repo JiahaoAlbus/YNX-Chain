@@ -37,6 +37,7 @@ type Config struct {
 	ReleaseCommit  string
 	ReleaseVersion string
 	ExitMode       bool
+	TelemetryPath  string
 	Now            func() time.Time
 }
 
@@ -66,6 +67,9 @@ func New(cfg Config) (*Service, error) {
 	if cfg.ObjectDir == "" {
 		cfg.ObjectDir = filepath.Join(filepath.Dir(cfg.StatePath), "objects")
 	}
+	if cfg.TelemetryPath == "" {
+		cfg.TelemetryPath = filepath.Join(filepath.Dir(cfg.StatePath), "telemetry.json")
+	}
 	if cfg.QuotaBytes <= 0 {
 		cfg.QuotaBytes = 64 << 20
 	}
@@ -92,6 +96,11 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	service := &Service{cfg: cfg, state: state, cancels: map[string]context.CancelFunc{}}
+	if service.state.IntegrityHash == "" {
+		if err := saveState(cfg.StatePath, &service.state); err != nil {
+			return nil, err
+		}
+	}
 	recovered := false
 	for id, job := range service.state.AIJobs {
 		if job.Status == "queued" || job.Status == "running" {
@@ -1931,6 +1940,21 @@ func (s *Service) Health() map[string]any {
 	}
 	_, direct := s.cfg.ObjectStore.(DirectUploadStore)
 	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "mode": s.serviceMode(), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "directUploads": len(s.state.DirectUploads), "presignedDirectUploadAvailable": direct, "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "maxDirectUploadBytes": MaxDirectUploadBytes, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+}
+
+func (s *Service) Readiness() (bool, map[string]bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	want, err := stateIntegrity(s.state)
+	stateOK := err == nil && want == s.state.IntegrityHash
+	_, walletUnavailable := s.cfg.WalletVerifier.(UnavailableWalletVerifier)
+	checks := map[string]bool{
+		"stateIntegrity":      stateOK,
+		"walletVerifierBound": !walletUnavailable,
+		"objectStoreBound":    s.cfg.ObjectStore != nil,
+		"scannerBound":        s.cfg.Scanner != nil,
+	}
+	return stateOK && !walletUnavailable && s.cfg.ObjectStore != nil && s.cfg.Scanner != nil, checks
 }
 
 func (s *Service) serviceMode() string {

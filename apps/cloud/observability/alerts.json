@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "GET /api/v1/metrics alerts",
+  "evaluation": "Performed synchronously by ynx-cloudd from persistent local telemetry.",
+  "deliveryStatus": "not-configured",
+  "rules": [
+    {"id": "telemetry-persistence", "severity": "critical", "condition": "telemetryPersistence.healthy == false", "for": "immediate", "operatorAction": "Stop readiness traffic, preserve the corrupt file, restore the last verified telemetry backup or repair storage, then restart."},
+    {"idPrefix": "route-error-rate:", "severity": "critical", "condition": "errors / requests > 0.05 when requests >= 20", "for": "persistent observation window", "operatorAction": "Inspect bounded traces and provider health; enter user-exit mode if data-control operations are unsafe."},
+    {"idPrefix": "route-p95-latency:", "severity": "warning", "condition": "histogram p95 > 1000ms when requests >= 20", "for": "persistent observation window", "operatorAction": "Inspect route saturation and provider latency before changing concurrency limits."},
+    {"id": "backpressure", "severity": "warning", "condition": "rejections.backpressure > 0", "for": "immediate", "operatorAction": "Inspect inflight saturation; do not raise limits without load evidence."}
+  ]
+}

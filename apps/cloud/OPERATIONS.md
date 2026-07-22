@@ -12,6 +12,8 @@ The service refuses to manufacture sessions when the central verifier is absent.
 
 Health is `GET /health`. It reports bounded local durability honestly. Cloud UI is `/cloud/`, Docs UI is `/docs/`, and the shared audited API is `/api/v1/`. The products keep separate Wallet product/client/bundle/callback bindings and sessions.
 
+Use authenticated `/api/v1/ready` for traffic admission, `/api/v1/metrics` for persistent RED/saturation/alert state, and `/api/v1/traces` for the bounded 200-request diagnostic window. All require an `audit.read` product session. If readiness reports telemetry persistence false, stop admitting traffic, preserve `telemetry.json` for diagnosis, verify storage permissions/capacity, and restore only from verified recovery evidence. Do not treat public liveness as provider readiness. Alert definitions and operator actions are versioned under `observability/`; delivery is not configured and must not be described as paging.
+
 ## User-exit mode
 
 Before planned service cessation, announce the export deadline through the approved support/status channels, create and verify a recovery backup, retain object-provider read/delete credentials, and start the same release with `-user-exit-mode`. Public and restricted health report `mode: user-exit`.

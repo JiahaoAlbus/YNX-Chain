@@ -25,6 +25,9 @@ type Server struct {
 	inflight      chan struct{}
 	clients       map[string]clientWindow
 	rejections    map[string]int64
+	telemetry     telemetryState
+	telemetryOK   bool
+	telemetryErr  string
 }
 
 type ServerLimits struct {
@@ -46,13 +49,21 @@ func NewServerWithLimits(service *Service, limits ServerLimits) *Server {
 	if limits.RequestsPerMinute < 1 {
 		limits.RequestsPerMinute = 120
 	}
-	return &Server{service: service, startedAt: service.cfg.Now(), requests: map[string]int64{}, latencyMillis: map[string]int64{}, limits: limits, inflight: make(chan struct{}, limits.MaxConcurrent), clients: map[string]clientWindow{}, rejections: map[string]int64{}}
+	now := service.cfg.Now()
+	telemetry, err := loadTelemetry(service.cfg.TelemetryPath, now)
+	server := &Server{service: service, startedAt: now, requests: map[string]int64{}, latencyMillis: map[string]int64{}, limits: limits, inflight: make(chan struct{}, limits.MaxConcurrent), clients: map[string]clientWindow{}, rejections: map[string]int64{}, telemetry: telemetry, telemetryOK: err == nil}
+	if err != nil {
+		server.telemetry = newTelemetryState(now)
+		server.telemetryErr = "telemetry integrity or availability check failed"
+	}
+	return server
 }
 
 type observedWriter struct {
 	http.ResponseWriter
-	status int
-	bytes  int
+	status  int
+	bytes   int
+	errorID string
 }
 
 type payloadCountingWriter struct {
@@ -68,7 +79,8 @@ func (w *payloadCountingWriter) Write(body []byte) (int, error) {
 
 func (w *observedWriter) WriteHeader(status int) {
 	if status >= 400 {
-		w.Header().Set("X-Error-ID", newID("error"))
+		w.errorID = newID("error")
+		w.Header().Set("X-Error-ID", w.errorID)
 	}
 	w.status = status
 	w.ResponseWriter.WriteHeader(status)
@@ -84,20 +96,46 @@ func (w *observedWriter) Write(b []byte) (int, error) {
 func (s *Server) observe(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started := time.Now()
+		observedAt := s.service.cfg.Now()
 		requestID := newID("request")
+		traceID := newID("trace")
 		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set("X-Trace-ID", traceID)
 		ow := &observedWriter{ResponseWriter: w}
 		defer func() {
 			if ow.status == 0 {
 				ow.status = 200
 			}
 			duration := time.Since(started)
-			key := fmt.Sprintf("%s %s %d", r.Method, r.URL.Path, ow.status)
+			route := strings.TrimPrefix(r.Pattern, r.Method+" ")
+			if route == "" {
+				route = "unmatched"
+			}
+			key := fmt.Sprintf("%s %s %d", r.Method, route, ow.status)
+			routeKey := r.Method + " " + route
 			s.mu.Lock()
 			s.requests[key]++
 			s.latencyMillis[key] += duration.Milliseconds()
+			metric := s.telemetry.Routes[routeKey]
+			if metric.LatencyBuckets == nil {
+				metric.LatencyBuckets = map[string]int64{}
+			}
+			metric.Requests++
+			if ow.status >= 400 {
+				metric.Errors++
+			}
+			metric.ResponseBytes += int64(ow.bytes)
+			metric.TotalLatencyMillis += duration.Milliseconds()
+			metric.LatencyBuckets[latencyBucket(duration.Milliseconds())]++
+			s.telemetry.Routes[routeKey] = metric
+			s.telemetry.UpdatedAt = s.service.cfg.Now()
+			s.telemetry.RecentTraces = append(s.telemetry.RecentTraces, traceRecord{TraceID: traceID, RequestID: requestID, ErrorID: ow.errorID, Method: r.Method, Route: route, Status: ow.status, ResponseBytes: ow.bytes, StartedAt: observedAt, DurationMs: duration.Milliseconds()})
+			if len(s.telemetry.RecentTraces) > 200 {
+				s.telemetry.RecentTraces = append([]traceRecord(nil), s.telemetry.RecentTraces[len(s.telemetry.RecentTraces)-200:]...)
+			}
+			s.persistTelemetryLocked()
 			s.mu.Unlock()
-			record := map[string]any{"level": "info", "event": "http.request", "requestId": requestID, "method": r.Method, "path": r.URL.Path, "status": ow.status, "bytes": ow.bytes, "durationMs": duration.Milliseconds()}
+			record := map[string]any{"level": "info", "event": "http.request", "traceId": traceID, "requestId": requestID, "errorId": ow.errorID, "method": r.Method, "route": route, "status": ow.status, "bytes": ow.bytes, "durationMs": duration.Milliseconds()}
 			encoded, _ := json.Marshal(record)
 			log.Print(string(encoded))
 		}()
@@ -110,6 +148,7 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		}
 		if window.Count >= s.limits.RequestsPerMinute {
 			s.rejections["rate_limit"]++
+			s.telemetry.Rejections["rate_limit"]++
 			s.mu.Unlock()
 			w.Header().Set("Retry-After", strconv.Itoa(max(1, 60-int(now.Sub(window.StartedAt).Seconds()))))
 			writeError(ow, http.StatusTooManyRequests, "client request rate exceeded; retry after the advertised interval")
@@ -132,11 +171,22 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		default:
 			s.mu.Lock()
 			s.rejections["backpressure"]++
+			s.telemetry.Rejections["backpressure"]++
 			s.mu.Unlock()
 			w.Header().Set("Retry-After", "1")
 			writeError(ow, http.StatusServiceUnavailable, "server concurrency capacity reached; retry with backoff")
 		}
 	})
+}
+
+func (s *Server) persistTelemetryLocked() {
+	if !s.telemetryOK {
+		return
+	}
+	if err := saveTelemetry(s.service.cfg.TelemetryPath, &s.telemetry); err != nil {
+		s.telemetryOK = false
+		s.telemetryErr = "telemetry persistence failed"
+	}
 }
 func directClient(remote string) string {
 	host, _, err := net.SplitHostPort(remote)
@@ -154,7 +204,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /api/v1/health", s.auth(s.detailedHealth))
+	mux.HandleFunc("GET /api/v1/ready", s.auth(s.readiness))
 	mux.HandleFunc("GET /api/v1/metrics", s.auth(s.metrics))
+	mux.HandleFunc("GET /api/v1/traces", s.auth(s.traces))
 	mux.HandleFunc("POST /api/v1/session", s.session)
 	mux.HandleFunc("POST /api/v1/session/challenge", s.sessionChallenge)
 	mux.HandleFunc("DELETE /api/v1/session", s.auth(s.revokeSession))
@@ -230,7 +282,33 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	writeJSON(w, 200, map[string]any{"schemaVersion": 1, "source": "ynx-cloudd in-process counters", "asOf": s.service.cfg.Now(), "startedAt": s.startedAt, "requests": s.requests, "totalLatencyMillis": s.latencyMillis, "rejections": s.rejections, "inflight": len(s.inflight), "maxConcurrent": s.limits.MaxConcurrent, "requestsPerMinutePerDirectClient": s.limits.RequestsPerMinute, "clientIdentityBoundary": "direct TCP peer; X-Forwarded-For is not trusted", "coverage": "current process only; reset on restart"})
+	writeJSON(w, 200, map[string]any{"schemaVersion": 2, "source": "ynx-cloudd persistent RED telemetry", "asOf": s.service.cfg.Now(), "firstObservedAt": s.telemetry.FirstObserved, "routes": s.telemetry.Routes, "rejections": s.telemetry.Rejections, "alerts": evaluateAlerts(s.telemetry, s.telemetryOK), "telemetryPersistence": map[string]any{"healthy": s.telemetryOK, "error": s.telemetryErr}, "inflight": len(s.inflight), "maxConcurrent": s.limits.MaxConcurrent, "requestsPerMinutePerDirectClient": s.limits.RequestsPerMinute, "clientIdentityBoundary": "direct TCP peer; X-Forwarded-For is not trusted", "latencyHistogramBoundsMillis": latencyBoundsMillis, "coverage": "integrity-checked local persistence across process restart; single replica only"})
+}
+
+func (s *Server) traces(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "audit.read") {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	writeJSON(w, 200, map[string]any{"schemaVersion": 1, "source": "ynx-cloudd bounded request traces", "asOf": s.service.cfg.Now(), "traces": s.telemetry.RecentTraces, "limit": 200, "coverage": "control-plane HTTP spans with normalized routes; provider child spans are not yet instrumented"})
+}
+
+func (s *Server) readiness(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "audit.read") {
+		return
+	}
+	ready, checks := s.service.Readiness()
+	s.mu.Lock()
+	telemetryOK := s.telemetryOK
+	s.mu.Unlock()
+	checks["telemetryPersistence"] = telemetryOK
+	ready = ready && telemetryOK
+	status := http.StatusOK
+	if !ready {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{"schemaVersion": 1, "ready": ready, "source": "ynx-cloudd authenticated readiness", "asOf": s.service.cfg.Now(), "mode": s.service.serviceMode(), "checks": checks})
 }
 
 type authed func(http.ResponseWriter, *http.Request, Session)
