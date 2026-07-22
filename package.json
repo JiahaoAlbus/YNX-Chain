@@ -7,6 +7,7 @@
     "contracts:selectors": "node ./scripts/contracts/generate-selector-metadata.mjs",
     "hardhat:build": "hardhat build",
     "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
+    "dex:vault:test": "hardhat run ./scripts/dex/vault-test.mjs --network dexTest",
     "dex:release:test": "node --test ./scripts/dex/source-base.test.mjs",
     "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
     "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
