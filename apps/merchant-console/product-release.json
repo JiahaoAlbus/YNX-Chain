@@ -23,7 +23,9 @@
     "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
     "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
     "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
-    "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d"
+    "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d",
+    "artifacts/sbom/backend.cdx.json": "512441688ca876cac0fe247aac6fe182ef478a66deeca48e71cc63a8b32e9167",
+    "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12"
   },
   "bytes": {
     "dist/index.html": 1040,
@@ -31,7 +33,9 @@
     "dist/styles.css": 5918,
     "dist/a11y.css": 328,
     "artifacts/sbom/frontend.cdx.json": 7276,
-    "artifacts/sbom/backend-modules.json": 57262
+    "artifacts/sbom/backend-modules.json": 57262,
+    "artifacts/sbom/backend.cdx.json": 260459,
+    "artifacts/vendor/wallet-auth-verification.json": 2863
   },
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},

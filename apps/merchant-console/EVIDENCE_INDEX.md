@@ -68,6 +68,13 @@
 - Fault test proves a metadata-address DNS rebinding result makes zero transport calls and persists a retrying attempt rather than success.
 - Destination-syntax fuzz passed 41,606 executions in two seconds after seven seed cases, adding 83 coverage-interesting inputs.
 
+## Supply-chain artifacts
+
+- Deterministic generator produced a path-free CycloneDX 1.5 backend SBOM with 312 components and 313 dependency nodes; two consecutive generations were byte-identical.
+- Backend SBOM metadata binds current `go.mod` and `go.sum` SHA-256 values, and frontend tests reject stale input hashes, missing dependency references and local paths.
+- Vendor verification binds the exact 11,181-byte Wallet Auth archive and all 13 member hashes. It truthfully records missing source provenance and license as `unverified` / `NOASSERTION`.
+- `npm run check` passed 12/12 tests after adding the supply-chain gates; `npm audit --omit=dev` reported zero vulnerabilities.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.

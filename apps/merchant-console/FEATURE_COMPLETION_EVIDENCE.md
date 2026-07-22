@@ -20,6 +20,7 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Snapshot v1 to v2 migration | yes | yes | Forward migration/future rejection tests plus guarded local backup/restore/rollback drill | Production-sized staging migration/rollback evidence |
 | Backup/verify/restore/rollback | yes-local | yes | Recovery CLI, nested HMAC verification, exact-SHA guard, store lock, rollback copy and `evidence/backup-restore-drill.json` | Repeat with production-sized staging copy and remote operator evidence |
 | Request observability and runtime metrics | yes-local | yes | Correlated request/trace/error IDs, redacted JSON logs, outbound trace propagation, fail-closed monitor endpoint and race-tested bounded metrics | Add OpenTelemetry/exporter, durable business metrics, alerts and staging dashboard |
+| Supply-chain inventory and verification | partial | yes-local | Frontend/backend CycloneDX, deterministic Go generator, exact vendor member manifest, source-input/hash/path tests | Resolve Wallet Auth provenance/license; approved scanners, signed provenance and hosted immutable artifacts |
 | Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |
 
 The product is not release-complete while any remaining gate above is open.
