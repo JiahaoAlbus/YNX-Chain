@@ -33,6 +33,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/invoices/{id}/settlements", s.settlement)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/refund-requests", s.refund)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/disputes", s.dispute)
+	s.mux.HandleFunc("POST /v1/invoices/{id}/sponsorship-quotes", s.sponsorshipQuote)
+	s.mux.HandleFunc("POST /v1/sponsorships/{id}/receipts", s.sponsorshipReceipt)
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
@@ -158,6 +160,44 @@ func (s *Server) dispute(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := s.service.CreateDispute(session, r.PathValue("id"), in.Reason, in.IdempotencyKey, in.TrustEvidence)
 	respond(w, 201, out, err)
+}
+func (s *Server) sponsorshipQuote(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	var in SponsorshipInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.RequestSponsorship(r.Context(), session, r.PathValue("id"), in)
+	respond(w, 201, out, err)
+}
+func (s *Server) sponsorshipReceipt(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	var in struct {
+		UserOperationHash string `json:"userOperationHash"`
+	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.ConfirmSponsorship(r.Context(), session, r.PathValue("id"), in.UserOperationHash)
+	respond(w, 200, out, err)
 }
 func (s *Server) merchantState(w http.ResponseWriter, r *http.Request) {
 	p, _, ok := s.merchantAuth(w, r, "read")

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,7 +31,16 @@ func main() {
 	if base := strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_AI_URL")); base != "" {
 		ai = &payproduct.HTTPAIProvider{BaseURL: base, APIKey: required("YNX_PAY_PRODUCT_AI_KEY"), Model: required("YNX_PAY_PRODUCT_AI_MODEL"), Client: &http.Client{Timeout: 60 * time.Second}}
 	}
-	service, err := payproduct.New(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), PayAPI: pay, AI: ai})
+	var sponsorship payproduct.SponsorshipProvider
+	var sponsorPolicy payproduct.SponsorPolicy
+	if base := strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_PAYMASTER_URL")); base != "" {
+		sponsorship, err = payproduct.NewHTTPSponsorshipProvider(base, required("YNX_PAY_PRODUCT_PAYMASTER_KEY"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		sponsorPolicy = payproduct.SponsorPolicy{Sponsor: required("YNX_PAY_PRODUCT_SPONSOR_ID"), DailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_DAILY_BUDGET"), PerUserDailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_USER_DAILY_BUDGET"), PerMerchantDailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_MERCHANT_DAILY_BUDGET"), MaximumQuoteLifetime: 5 * time.Minute}
+	}
+	service, err := payproduct.New(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), PayAPI: pay, AI: ai, Sponsorship: sponsorship, SponsorPolicy: sponsorPolicy})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,6 +55,13 @@ func main() {
 	server := &http.Server{Addr: addr, Handler: payproduct.NewServer(service).Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("ynx-pay-product listening on %s", addr)
 	log.Fatal(server.ListenAndServe())
+}
+func positiveInt(name string) int64 {
+	v, err := strconv.ParseInt(required(name), 10, 64)
+	if err != nil || v <= 0 {
+		log.Fatalf("%s must be a positive integer", name)
+	}
+	return v
 }
 func required(name string) string {
 	v := strings.TrimSpace(os.Getenv(name))

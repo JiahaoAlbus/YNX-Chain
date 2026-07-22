@@ -16,9 +16,9 @@ import {
 import type { AuthorizationRequest as CanonicalAuthorizationRequest, AuthorizationResponse as CanonicalAuthorizationResponse, GatewayChallenge as CanonicalGatewayChallenge, GatewayCompletion as CanonicalGatewayCompletion } from "@ynx-chain/wallet-auth";
 
 export const PRODUCT_CLIENT_ID="ynx-pay-v1",BUNDLE_ID="com.ynxweb4.pay",CALLBACK="ynxpay://wallet-auth/callback",PAYMENT_CALLBACK="ynxpay://payment-result";
-export const SCOPES=Object.freeze(["account:read","pay:case:create","pay:settlement:submit"]);
+export const SCOPES=Object.freeze(["account:read","pay:case:create","pay:settlement:submit","pay:sponsorship:request"]);
 const CHAIN_ID="ynx_6423-1",PAYMENT_INTENT_DOMAIN="YNX_PAY_SIGNED_INTENT_V1",PAYMENT_RESULT_DOMAIN="YNX_PAY_WALLET_RESULT_V1",MAX_LIFETIME_MS=5*60_000;
-const REGISTRY=Object.freeze({schemaVersion:2 as const,productClientId:PRODUCT_CLIENT_ID,requestingProduct:"pay",bundleId:BUNDLE_ID,callbacks:Object.freeze([CALLBACK]),scopes:SCOPES,maxScopes:3,productDeviceAlgorithms:Object.freeze(["p256-sha256" as const])});
+const REGISTRY=Object.freeze({schemaVersion:2 as const,productClientId:PRODUCT_CLIENT_ID,requestingProduct:"pay",bundleId:BUNDLE_ID,callbacks:Object.freeze([CALLBACK]),scopes:SCOPES,maxScopes:4,productDeviceAlgorithms:Object.freeze(["p256-sha256" as const])});
 
 export type AuthorizationRequest=CanonicalAuthorizationRequest;
 export type AuthorizationResponse=CanonicalAuthorizationResponse;

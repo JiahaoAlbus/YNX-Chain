@@ -55,5 +55,5 @@ func (s *Service) VerifyPayGateway(r *http.Request, body []byte) (WalletSession,
 	if err != nil {
 		return WalletSession{}, err
 	}
-	return WalletSession{ID: sessionID, Account: account, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, SessionBinding: sessionBinding, Scopes: scopes, ExpiresAt: expires}, nil
+	return WalletSession{ID: sessionID, Account: account, DeviceID: deviceID, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, SessionBinding: sessionBinding, Scopes: scopes, ExpiresAt: expires}, nil
 }

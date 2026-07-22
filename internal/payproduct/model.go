@@ -206,12 +206,53 @@ type NonceRecord struct {
 type WalletSession struct {
 	ID                     string    `json:"id"`
 	Account                string    `json:"account"`
+	DeviceID               string    `json:"deviceId"`
 	ProductClientID        string    `json:"productClientId"`
 	BundleID               string    `json:"bundleId"`
 	ProductDeviceAlgorithm string    `json:"productDeviceAlgorithm"`
 	SessionBinding         string    `json:"sessionBinding"`
 	Scopes                 []string  `json:"scopes"`
 	ExpiresAt              time.Time `json:"expiresAt"`
+}
+
+type SponsorshipQuote struct {
+	ID                 string                `json:"id"`
+	InvoiceID          string                `json:"invoiceId"`
+	MerchantID         string                `json:"merchantId"`
+	Account            string                `json:"account"`
+	DeviceID           string                `json:"deviceId"`
+	SmartAccount       string                `json:"smartAccount"`
+	Mode               string                `json:"mode"`
+	Asset              string                `json:"asset"`
+	Paymaster          string                `json:"paymaster"`
+	CallDataHash       string                `json:"callDataHash"`
+	MaximumSponsorCost int64                 `json:"maximumSponsorCost"`
+	Sponsor            string                `json:"sponsor"`
+	Attribution        string                `json:"attribution"`
+	Status             string                `json:"status"`
+	IssuedAt           time.Time             `json:"issuedAt"`
+	ExpiresAt          time.Time             `json:"expiresAt"`
+	Source             string                `json:"source"`
+	SourceAsOf         time.Time             `json:"sourceAsOf"`
+	SourceVersion      int                   `json:"sourceVersion"`
+	Failure            string                `json:"failure,omitempty"`
+	Receipt            *UserOperationReceipt `json:"receipt,omitempty"`
+}
+
+type UserOperationReceipt struct {
+	UserOperationHash string    `json:"userOperationHash"`
+	TransactionHash   string    `json:"transactionHash"`
+	BlockNumber       uint64    `json:"blockNumber"`
+	ChainID           string    `json:"chainId"`
+	Sender            string    `json:"sender"`
+	Paymaster         string    `json:"paymaster"`
+	CallDataHash      string    `json:"callDataHash"`
+	ActualSponsorCost int64     `json:"actualSponsorCost"`
+	Success           bool      `json:"success"`
+	Finality          string    `json:"finality"`
+	Source            string    `json:"source"`
+	SourceAsOf        time.Time `json:"sourceAsOf"`
+	SourceVersion     int       `json:"sourceVersion"`
 }
 
 type Snapshot struct {
@@ -228,6 +269,7 @@ type Snapshot struct {
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
+	Sponsorships    map[string]SponsorshipQuote       `json:"sponsorships"`
 	Audit           []AuditEntry                      `json:"audit"`
 }
 

@@ -40,7 +40,7 @@ var (
 	walletAccountPattern   = regexp.MustCompile(`^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$`)
 )
 
-var walletScopes = []string{"account:read", "pay:case:create", "pay:settlement:submit"}
+var walletScopes = []string{"account:read", "pay:case:create", "pay:settlement:submit", "pay:sponsorship:request"}
 
 type SignedPaymentIntent struct {
 	Version          string `json:"version"`

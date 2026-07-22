@@ -10,7 +10,7 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Refund request and dispute | partial | request/evidence workflows pass; authoritative refund transaction lifecycle incomplete |
 | Webhook signature/retry/audit | partial | signature and retry tests pass; explicit dead-letter/manual resolution coverage incomplete |
 | Tip, split and recurring draft | missing | no complete persisted API/UI workflow |
-| Smart account and sponsorship | missing | no authoritative UserOperation/paymaster adapter or receipt |
+| Smart account and sponsorship | partial | fail-closed HTTPS adapter, device/account/merchant budgets, first-payment eligibility, attribution, call-data binding and authoritative UserOperation receipt tests pass locally; no configured public paymaster or live receipt |
 | Stablecoin settlement | unavailable | no reviewed official Testnet asset/provider configuration |
 | Cross-chain entry | missing | no complete quote-to-destination-confirmation adapter |
 | Explainable payment routing | missing | no persisted route quote and Wallet-approved selection |
@@ -20,4 +20,3 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Migration/restore | partial | versioned integrity store exists; full fixture migration and timed restore drill missing |
 | Observability/SLO | missing deployed evidence | requirements documented; metrics/traces/dashboard not verified |
 | Public `/pay`, hosted artifacts | missing | no direct deployment or immutable download evidence |
-
