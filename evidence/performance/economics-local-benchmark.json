@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "source": "local-loopback-economics-disclosure-benchmark",
+  "asOf": "2026-07-22T15:57:21.86731Z",
+  "version": 1,
+  "coverage": "single-process-loopback-not-public-capacity",
+  "sourceCommit": "9b5ed34efd7b62c88bed6150a2f38bf9b862e768",
+  "environment": {
+    "goVersion": "go1.25.7",
+    "goarch": "arm64",
+    "goos": "darwin",
+    "logicalCPU": 8
+  },
+  "endpoint": "/api/economics/disclosure",
+  "firstRequestLatencyMicros": 964,
+  "warmupRequests": 50,
+  "measuredRequests": 2000,
+  "concurrentWorkers": 16,
+  "wallTimeMillis": 68,
+  "throughputRequestsPerSecond": 29106.9270032908,
+  "latency": {
+    "minimumMicros": 50,
+    "p50Micros": 436,
+    "p95Micros": 1178,
+    "p99Micros": 1471,
+    "maximumMicros": 1941
+  },
+  "errors": 0,
+  "errorRateBps": 0,
+  "responseBytes": 1828,
+  "totalAllocatedBytes": 50022952,
+  "allocatedBytesPerRequest": 25011,
+  "queueMeasurement": {
+    "available": false,
+    "reason": "read-only handler has no application queue"
+  },
+  "storageGrowth": {
+    "bytes": 0,
+    "reason": "read-only endpoint does not persist request state"
+  },
+  "providerLatency": {
+    "available": false,
+    "reason": "reference model has no third-party provider call"
+  },
+  "rateLimit": {
+    "boundary": "public ingress rate limiting not deployed",
+    "configured": false
+  },
+  "failure": false
+}

@@ -30,4 +30,4 @@ Current evidence covers local migration and restart tests only. No staging or pu
 
 The YUSD sandbox uses an independent schema-version-1 JSON state file and never reads or writes consensus or stablecoin-issuer state. Startup validates the whole-file integrity hash, audit chain, reserve liabilities, account supply, redemptions, daily limits, and idempotency records before serving. No earlier YUSD sandbox schema exists, so no migration is claimed. A future schema change must use an explicit offline converter and retain the original file and binary for rollback; old binaries must not write newer schema files.
 
-Restart persistence and tamper rejection are tested locally. An operator stop/copy/hash/restore drill has not yet been recorded, and no staging or public YUSD sandbox state exists.
+Restart persistence, tamper rejection and a local copy/hash/restore drill are tested by `make yusd-restore-drill`. The drill restores into a fresh mode-0600 path and compares the complete snapshot, queued redemptions and audit chain. It is not an off-host, encrypted, timed, staging or public recovery test; those claims remain false.

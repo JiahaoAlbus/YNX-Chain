@@ -23,6 +23,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Low/Medium/High seeded macro and agent-ledger stress model | true | true | false | false | false | false | false | false | false | Supply, validator, Treasury, stable reserve, liquidity/Sybil, governance, Bridge/Oracle and readiness distributions; assumptions only |
 | Calibrated production economic forecast | false | false | false | false | false | false | false | false | false | No production telemetry, independent calibration, market-price model, custody/legal evidence, or scale validation |
 | Public economics dashboard and `/ynxt` `/economics` handoff | true | true | false | false | false | false | false | false | false | Explorer routes, source API, 12 locales/RTL/accessibility, social asset and Website handoff; no central integration or deployment |
+| Economics observability and local capacity evidence | true | true | false | false | false | false | false | false | false | Request ID, process health, Prometheus counters/histogram and exact-commit local benchmark; no traces, hosted alerts, public monitor or scale proof |
+| YUSD local backup/restore correctness | true | true | false | false | false | false | false | false | false | Digest-preserving fresh-path restore compares full snapshot, queued redemptions, audit and mode; no off-host/staging timed recovery |
 
 ## Current verification
 
@@ -36,3 +38,5 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make macro-stress-check` — pass; 1,000 seeded iterations per Low/Medium/High scenario with deterministic percentile and named-failure coverage.
 - `make economics-public-ui-check` — pass; canonical routes, source disclosure, release/risk truth, 12 locales, RTL, focus, reduced motion, mobile containment and social asset.
 - `make economics-public-package-check` — pass; canonical metadata, 12 locales, release booleans, exact implementation commit and social-asset hash/bytes.
+- `make yusd-restore-drill` — pass; local mode-0600 copy/hash/restore with state, queue and audit equality.
+- `go run ./cmd/ynx-economics-bench -source-commit 9b5ed34efd7b62c88bed6150a2f38bf9b862e768 -requests 2000 -concurrency 16` — pass; direct values and limits are recorded in `evidence/performance/economics-local-benchmark.json`.
