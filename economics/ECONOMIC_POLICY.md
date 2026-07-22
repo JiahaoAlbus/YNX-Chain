@@ -39,3 +39,5 @@ These are review parameters, not promises. No APY, token price, fee volume, liqu
 go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json
 go test ./internal/economics ./cmd/ynx-economics-sim
 ```
+
+The separately bounded liquid-staking stress model is documented in `LIQUID_STAKING_CANDIDATE.md`; it is not part of the issuance policy or active consensus.
