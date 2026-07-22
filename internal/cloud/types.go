@@ -201,16 +201,19 @@ type AuditEvent struct {
 }
 
 type UsageCounters struct {
-	Owner        string    `json:"owner"`
-	Product      string    `json:"product"`
-	IngressBytes int64     `json:"ingressBytes"`
-	EgressBytes  int64     `json:"egressBytes"`
-	ScanBytes    int64     `json:"scanBytes"`
-	AIInputUnits int64     `json:"aiInputUnits"`
-	AIJobs       int64     `json:"aiJobs"`
-	BackupBytes  int64     `json:"backupBytes"`
-	ReplicaBytes int64     `json:"replicaBytes"`
-	UpdatedAt    time.Time `json:"updatedAt"`
+	Owner                 string    `json:"owner"`
+	Product               string    `json:"product"`
+	IngressBytes          int64     `json:"ingressBytes"`
+	EgressBytes           int64     `json:"egressBytes"`
+	ScanBytes             int64     `json:"scanBytes"`
+	AIInputUnits          int64     `json:"aiInputUnits"`
+	AIJobs                int64     `json:"aiJobs"`
+	BackupBytes           int64     `json:"backupBytes"`
+	ReplicaBytes          int64     `json:"replicaBytes"`
+	StorageByteSeconds    int64     `json:"storageByteSeconds"`
+	StorageMeteredAt      time.Time `json:"storageMeteredAt,omitempty"`
+	StorageCoverageStarts time.Time `json:"storageCoverageStartsAt,omitempty"`
+	UpdatedAt             time.Time `json:"updatedAt"`
 }
 
 type UsageReport struct {

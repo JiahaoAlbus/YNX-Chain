@@ -710,3 +710,45 @@ func TestCrossProductSecondarySurfacesFailClosed(t *testing.T) {
 		t.Fatalf("docs deletion list missing: %#v %v", deletions, err)
 	}
 }
+
+func TestStorageByteSecondsAreProductScopedPersistentAndTransitionExact(t *testing.T) {
+	now := time.Date(2026, 7, 23, 0, 0, 0, 0, time.UTC)
+	s := testService(t, func(cfg *Config) { cfg.Now = func() time.Time { return now } })
+	ctx := context.Background()
+	cloudFile, err := s.Create(ctx, owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "meter.bin", Content: []byte("12345")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Create(ctx, owner, CreateObjectRequest{Product: "docs", Kind: KindDoc, Name: "meter.txt", Content: []byte("abc")}); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(10 * time.Second)
+	cloudUsage, err := s.Usage(owner, "cloud")
+	if err != nil || cloudUsage.Counters.StorageByteSeconds != 50 {
+		t.Fatalf("cloud byte-seconds: %#v %v", cloudUsage, err)
+	}
+	docsUsage, err := s.Usage(owner, "docs")
+	if err != nil || docsUsage.Counters.StorageByteSeconds != 30 {
+		t.Fatalf("docs byte-seconds: %#v %v", docsUsage, err)
+	}
+	if _, err = s.SetTrash(owner, cloudFile.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(5 * time.Second)
+	if err = s.DeleteObject(owner, cloudFile.ID); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(20 * time.Second)
+	cloudUsage, err = s.Usage(owner, "cloud")
+	if err != nil || cloudUsage.StorageBytes != 0 || cloudUsage.Counters.StorageByteSeconds != 75 {
+		t.Fatalf("post-delete byte-seconds: %#v %v", cloudUsage, err)
+	}
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted, err := restarted.Usage(owner, "cloud")
+	if err != nil || persisted.Counters.StorageByteSeconds != 75 || persisted.Counters.StorageCoverageStarts != time.Date(2026, 7, 23, 0, 0, 0, 0, time.UTC) {
+		t.Fatalf("persistent byte-seconds: %#v %v", persisted, err)
+	}
+}

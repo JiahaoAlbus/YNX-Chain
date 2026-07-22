@@ -8,7 +8,7 @@ Evidence baseline: local source commit `9e23df2ef9012c7f52d1fc6ed9ac7e02a1410c87
 | Download, Range, preview, checksum | yes | local | content tests, HTTP `ServeContent`, canonical smoke | CDN benchmark |
 | Versions and restore | yes | local | service tests and canonical smoke | remote migration drill |
 | ACL, expiring links, revoke | yes | local | service/server tests and failure vectors | central Wallet staging |
-| Quota, usage, and audit | partial | local | product-scoped persistent ingress/egress/scan/AI counters, exact current storage, zero-charge report, service/server tests | storage byte-hours, attributable backup/replication, provider invoice and approved pricing |
+| Quota, usage, and audit | partial | local | schema-v5 product-scoped persistent ingress/egress/scan/AI counters and exact storage byte-seconds, exact current storage, zero-charge report, migration/service/server tests | attributable backup/replication, provider invoice, approved pricing and reviewed byte-hour rounding |
 | Offline queue and conflict UI | yes | local | Web/native tests; Docs 409 smoke | multi-device staging |
 | Backup/restore | yes | local | `scripts/smoke.sh`, `internal/cloud/recovery.go` | cross-region drill |
 | Quant/product artifact metadata | yes | local | typed object metadata and multipart lifecycle test | staging consumer proof |

@@ -97,7 +97,7 @@ func TestV2ToCurrentProductMigrationAndLegacyRollbackHash(t *testing.T) {
 	}
 }
 
-func TestV3ToV4UsageMigrationKeepsExactBackup(t *testing.T) {
+func TestV3ToCurrentUsageMigrationKeepsExactBackup(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")
 	state := newState()
@@ -129,7 +129,7 @@ func TestV3ToV4UsageMigrationKeepsExactBackup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.state.SchemaVersion != 4 || s.state.Usage == nil {
+	if s.state.SchemaVersion != CurrentStateSchemaVersion || s.state.Usage == nil {
 		t.Fatalf("usage migration: schema=%d usage=%#v", s.state.SchemaVersion, s.state.Usage)
 	}
 	backup, err := os.ReadFile(path + ".v3.bak")
@@ -138,6 +138,36 @@ func TestV3ToV4UsageMigrationKeepsExactBackup(t *testing.T) {
 	}
 	if string(backup) != string(raw) {
 		t.Fatal("v3 migration backup is not byte-identical")
+	}
+}
+
+func TestV4ToV5StorageTimeMigrationDoesNotInventHistory(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	state := newState()
+	state.SchemaVersion = 4
+	state.Usage[usageKey(owner, "cloud")] = UsageCounters{Owner: owner, Product: "cloud", IngressBytes: 42}
+	if err := saveState(path, &state); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(Config{StatePath: path, ObjectDir: filepath.Join(dir, "objects")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	usage := s.state.Usage[usageKey(owner, "cloud")]
+	if s.state.SchemaVersion != 5 || usage.IngressBytes != 42 || usage.StorageByteSeconds != 0 || !usage.StorageMeteredAt.IsZero() {
+		t.Fatalf("v4 storage-time migration invented or lost usage: schema=%d usage=%#v", s.state.SchemaVersion, usage)
+	}
+	backup, err := os.ReadFile(path + ".v4.bak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(backup) != string(raw) {
+		t.Fatal("v4 migration backup is not byte-identical")
 	}
 }
 

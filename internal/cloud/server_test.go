@@ -99,7 +99,8 @@ func TestServerRangeDownload(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer "+token)
 	rr = httptest.NewRecorder()
 	NewServer(s).Handler().ServeHTTP(rr, req)
-	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), `"source":"ynx-cloudd-local-meter"`) {
+	var report UsageReport
+	if rr.Code != http.StatusOK || json.Unmarshal(rr.Body.Bytes(), &report) != nil || report.SchemaVersion != 2 || report.Counters.StorageCoverageStarts.IsZero() {
 		t.Fatalf("usage endpoint: %d %s", rr.Code, rr.Body.String())
 	}
 }
