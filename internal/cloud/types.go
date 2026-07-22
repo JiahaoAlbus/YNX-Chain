@@ -3,12 +3,13 @@ package cloud
 import "time"
 
 const (
-	ChainID           = "ynx_6423-1"
-	EVMChainID        = 6423
-	NativeSymbol      = "YNXT"
-	MaxUploadBytes    = 8 << 20
-	MaxMultipartBytes = 64 << 20
-	MaxMultipartParts = 256
+	ChainID              = "ynx_6423-1"
+	EVMChainID           = 6423
+	NativeSymbol         = "YNXT"
+	MaxUploadBytes       = 8 << 20
+	MaxMultipartBytes    = 64 << 20
+	MaxMultipartParts    = 256
+	MaxDirectUploadBytes = int64(5 << 30)
 )
 
 type ObjectKind string
@@ -85,6 +86,42 @@ type BlobDeletion struct {
 	RequestedAt time.Time `json:"requestedAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	LastError   string    `json:"lastError,omitempty"`
+}
+
+type DirectUpload struct {
+	ID           string     `json:"id"`
+	Owner        string     `json:"owner"`
+	ParentID     string     `json:"parentId,omitempty"`
+	Name         string     `json:"name"`
+	MIME         string     `json:"mime"`
+	Encryption   Encryption `json:"encryption"`
+	Artifact     *Artifact  `json:"artifact,omitempty"`
+	ExpectedSize int64      `json:"expectedSize"`
+	ExpectedHash string     `json:"expectedHash"`
+	ProviderRef  string     `json:"providerRef,omitempty"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
+	ExpiresAt    time.Time  `json:"expiresAt"`
+}
+
+type DirectUploadRequest struct {
+	Hash string `json:"hash"`
+	Size int64  `json:"size"`
+	MIME string `json:"mime"`
+}
+type DirectUploadPlan struct {
+	Method    string            `json:"method"`
+	URL       string            `json:"url"`
+	Headers   map[string]string `json:"headers"`
+	Ref       string            `json:"ref"`
+	ExpiresAt time.Time         `json:"expiresAt"`
+}
+type DirectUploadVerification struct {
+	Verified   bool   `json:"verified"`
+	Hash       string `json:"hash"`
+	Size       int64  `json:"size"`
+	ScanStatus string `json:"scanStatus"`
 }
 
 type Version struct {
@@ -217,6 +254,7 @@ type persistentState struct {
 	Audit            []AuditEvent                      `json:"audit"`
 	MultipartUploads map[string]MultipartUpload        `json:"multipartUploads"`
 	BlobDeletions    map[string]BlobDeletion           `json:"blobDeletions"`
+	DirectUploads    map[string]DirectUpload           `json:"directUploads"`
 	IntegrityHash    string                            `json:"integrityHash"`
 }
 

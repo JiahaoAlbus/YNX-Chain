@@ -12,7 +12,7 @@ import (
 )
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}}
+	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -80,6 +80,9 @@ func normalize(s *persistentState) {
 	}
 	if s.BlobDeletions == nil {
 		s.BlobDeletions = map[string]BlobDeletion{}
+	}
+	if s.DirectUploads == nil {
+		s.DirectUploads = map[string]DirectUpload{}
 	}
 }
 

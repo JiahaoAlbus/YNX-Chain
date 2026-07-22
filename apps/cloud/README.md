@@ -55,3 +55,10 @@ verified physical erasure.
 Content-addressed reference counting prevents deletion while another object
 version still uses the same hash. A provider failure returns `202 Accepted` with
 `physicalDeletion: pending` after logical deletion, never a false erasure claim.
+
+Remote providers may implement short-lived presigned direct uploads through
+`POST /api/v1/direct-uploads`, owner-visible status, completion, and cancellation.
+Cloud registers no object until the provider verifies exact hash, byte size, and
+accepted scan status. Signed URLs and internal provider refs are redacted from
+client-visible records. The Web UI uses this path for 8–64 MiB files; the 5 GiB
+API ceiling is a contract maximum and not a local-browser capacity claim.

@@ -85,6 +85,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/v1/multipart/{upload}/parts/{part}", s.auth(s.putMultipartPart))
 	mux.HandleFunc("POST /api/v1/multipart/{upload}/complete", s.auth(s.completeMultipart))
 	mux.HandleFunc("DELETE /api/v1/multipart/{upload}", s.auth(s.cancelMultipart))
+	mux.HandleFunc("POST /api/v1/direct-uploads", s.auth(s.initiateDirectUpload))
+	mux.HandleFunc("GET /api/v1/direct-uploads/{upload}", s.auth(s.getDirectUpload))
+	mux.HandleFunc("POST /api/v1/direct-uploads/{upload}/complete", s.auth(s.completeDirectUpload))
+	mux.HandleFunc("DELETE /api/v1/direct-uploads/{upload}", s.auth(s.cancelDirectUpload))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
 	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
@@ -308,6 +312,54 @@ func (s *Server) cancelMultipart(w http.ResponseWriter, r *http.Request, a Sessi
 		return
 	}
 	w.WriteHeader(204)
+}
+func (s *Server) initiateDirectUpload(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	var req struct {
+		ParentID     string     `json:"parentId"`
+		Name         string     `json:"name"`
+		MIME         string     `json:"mime"`
+		Encryption   Encryption `json:"encryption"`
+		Artifact     *Artifact  `json:"artifact"`
+		ExpectedSize int64      `json:"expectedSize"`
+		ExpectedHash string     `json:"expectedHash"`
+	}
+	if !decode(w, r, &req, 32<<10) {
+		return
+	}
+	u, plan, err := s.service.InitiateDirectUpload(r.Context(), a.Account, CreateObjectRequest{ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, map[string]any{"upload": u, "plan": plan})
+}
+func (s *Server) getDirectUpload(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	v, err := s.service.GetDirectUpload(a.Account, r.PathValue("upload"))
+	writeResult(w, v, err)
+}
+func (s *Server) completeDirectUpload(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	v, err := s.service.CompleteDirectUpload(r.Context(), a.Account, r.PathValue("upload"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (s *Server) cancelDirectUpload(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	v, err := s.service.CancelDirectUpload(r.Context(), a.Account, r.PathValue("upload"))
+	writeResult(w, v, err)
 }
 func (s *Server) get(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
@@ -715,8 +767,15 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func securityHeaders(next http.Handler) http.Handler {
+	return securityHeadersWithConnectOrigin(next, "")
+}
+func securityHeadersWithConnectOrigin(next http.Handler, directOrigin string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+		connect := "'self'"
+		if origin, err := validatedUploadOrigin(directOrigin); err == nil {
+			connect += " " + origin
+		}
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src "+connect+"; object-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
@@ -726,3 +785,6 @@ func securityHeaders(next http.Handler) http.Handler {
 
 // SecureHandler applies the same browser security boundary to product-local static files.
 func SecureHandler(next http.Handler) http.Handler { return securityHeaders(next) }
+func SecureHandlerWithDirectUploadOrigin(next http.Handler, origin string) http.Handler {
+	return securityHeadersWithConnectOrigin(next, origin)
+}
