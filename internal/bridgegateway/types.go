@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	SchemaVersion       = 5
+	SchemaVersion       = 6
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )

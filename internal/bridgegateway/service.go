@@ -479,6 +479,8 @@ func (s *Service) Reconcile(request ReconciliationRequest) (Reconciliation, bool
 	request.SourceChain, request.DestinationChain = normalizeName(request.SourceChain), normalizeName(request.DestinationChain)
 	request.SourceAsset, request.DestinationAsset = normalizeAsset(request.SourceAsset), normalizeAsset(request.DestinationAsset)
 	request.EvidenceRef, request.ObservedAt = strings.TrimSpace(request.EvidenceRef), strings.TrimSpace(request.ObservedAt)
+	request.Locked, request.Burned = strings.TrimSpace(request.Locked), strings.TrimSpace(request.Burned)
+	request.Minted, request.Released = strings.TrimSpace(request.Minted), strings.TrimSpace(request.Released)
 	if !idempotencyPattern.MatchString(request.IdempotencyKey) || !identifierPattern.MatchString(request.EvidenceRef) {
 		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation identity is invalid", ErrInvalid)
 	}
@@ -486,9 +488,10 @@ func (s *Service) Reconcile(request ReconciliationRequest) (Reconciliation, bool
 	if err != nil || observedAt.After(s.cfg.Now().UTC()) {
 		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation observedAt is invalid", ErrInvalid)
 	}
+	request.ObservedAt = observedAt.UTC().Format(timeFormat)
 	values := make([]uint64, 4)
 	for i, raw := range []string{request.Locked, request.Burned, request.Minted, request.Released} {
-		values[i], err = strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
+		values[i], err = strconv.ParseUint(raw, 10, 64)
 		if err != nil {
 			return Reconciliation{}, false, fmt.Errorf("%w: reconciliation amounts must be uint64 decimal strings", ErrInvalid)
 		}
@@ -517,10 +520,19 @@ func (s *Service) Reconcile(request ReconciliationRequest) (Reconciliation, bool
 		if existing.Digest != digest || existing.TransferID != key {
 			return Reconciliation{}, false, fmt.Errorf("%w: mutation key reused with changed input", ErrConflict)
 		}
-		return s.state.Reconciliations[key], true, nil
+		result, ok := s.state.ReconciliationResults[request.IdempotencyKey]
+		if !ok {
+			if s.state.ReconciliationReplayUnavailable[request.IdempotencyKey] {
+				return Reconciliation{}, false, fmt.Errorf("%w: pre-v6 reconciliation replay result is unavailable", ErrConflict)
+			}
+			return Reconciliation{}, false, errors.New("bridge reconciliation replay evidence is missing")
+		}
+		return result, true, nil
 	}
 	before := cloneState(s.state)
 	s.state.Reconciliations[key] = record
+	s.state.ReconciliationResults[request.IdempotencyKey] = record
+	delete(s.state.ReconciliationReplayUnavailable, request.IdempotencyKey)
 	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: key}
 	appendAudit(&s.state, record.RecordedAt, "reconciliation_recorded", key, digest)
 	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
@@ -1134,31 +1146,52 @@ func (s *Service) validateStateLocked() (bool, error) {
 	}
 	for key, record := range s.state.Reconciliations {
 		policy, ok := s.policies[key]
-		if !ok || routeKey(record.Route.SourceChain, record.Route.DestinationChain, record.Route.SourceAsset, record.Route.DestinationAsset) != key || routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset) != key {
+		if !ok || record.Route != policy || routeKey(record.Route.SourceChain, record.Route.DestinationChain, record.Route.SourceAsset, record.Route.DestinationAsset) != key {
 			return false, errors.New("bridge reconciliation uses an unsupported route")
 		}
-		values := make([]uint64, 7)
-		for i, raw := range []string{record.Locked, record.Burned, record.Minted, record.Released, record.OutstandingSupply, record.ReserveBacking, record.Difference} {
-			value, err := strconv.ParseUint(raw, 10, 64)
-			if err != nil {
-				return false, errors.New("bridge reconciliation amount is invalid")
+		if err := validateReconciliationRecord(record); err != nil {
+			return false, err
+		}
+	}
+	for idempotencyKey, mutation := range s.state.MutationIdempotency {
+		if _, isRoute := s.policies[mutation.TransferID]; !isRoute {
+			continue
+		}
+		result, hasResult := s.state.ReconciliationResults[idempotencyKey]
+		unavailable := s.state.ReconciliationReplayUnavailable[idempotencyKey]
+		if hasResult == unavailable {
+			return false, errors.New("bridge reconciliation replay evidence is inconsistent")
+		}
+		if !hasAuditEvidence(s.state.Audit, "reconciliation_recorded", mutation.TransferID, mutation.Digest) {
+			return false, errors.New("bridge reconciliation replay audit evidence is missing")
+		}
+		if hasResult {
+			key := routeKey(result.Route.SourceChain, result.Route.DestinationChain, result.Route.SourceAsset, result.Route.DestinationAsset)
+			if key != mutation.TransferID || result.Route != s.policies[key] {
+				return false, errors.New("bridge reconciliation replay references the wrong route")
 			}
-			values[i] = value
+			if err := validateReconciliationRecord(result); err != nil {
+				return false, err
+			}
+			replayedRequest := ReconciliationRequest{IdempotencyKey: idempotencyKey, SourceChain: result.Route.SourceChain, DestinationChain: result.Route.DestinationChain, SourceAsset: result.Route.SourceAsset, DestinationAsset: result.Route.DestinationAsset, Locked: result.Locked, Burned: result.Burned, Minted: result.Minted, Released: result.Released, EvidenceRef: result.EvidenceRef, ObservedAt: result.ObservedAt}
+			if mutation.Digest != digestJSON(replayedRequest) {
+				return false, errors.New("bridge reconciliation replay digest is inconsistent")
+			}
 		}
-		if values[1] > values[2] || values[3] > values[0] || values[4] != values[2]-values[1] || values[5] != values[0]-values[3] {
-			return false, errors.New("bridge reconciliation accounting is inconsistent")
+	}
+	for idempotencyKey, result := range s.state.ReconciliationResults {
+		mutation, ok := s.state.MutationIdempotency[idempotencyKey]
+		if !ok || routeKey(result.Route.SourceChain, result.Route.DestinationChain, result.Route.SourceAsset, result.Route.DestinationAsset) != mutation.TransferID {
+			return false, errors.New("bridge reconciliation replay result is orphaned")
 		}
-		difference := values[4]
-		if values[5] >= values[4] {
-			difference = values[5] - values[4]
-		} else {
-			difference = values[4] - values[5]
+	}
+	for idempotencyKey, unavailable := range s.state.ReconciliationReplayUnavailable {
+		mutation, ok := s.state.MutationIdempotency[idempotencyKey]
+		if !unavailable || !ok {
+			return false, errors.New("bridge legacy reconciliation replay marker is invalid")
 		}
-		if values[6] != difference || record.Balanced != (difference == 0) || record.Source != "operator-submitted-evidence" || record.Verification != "reference-recorded-not-independently-verified" {
-			return false, errors.New("bridge reconciliation truth boundary is invalid")
-		}
-		if _, err := time.Parse(time.RFC3339Nano, record.ObservedAt); err != nil {
-			return false, errors.New("bridge reconciliation observed time is invalid")
+		if _, isRoute := s.policies[mutation.TransferID]; !isRoute {
+			return false, errors.New("bridge legacy reconciliation replay marker is orphaned")
 		}
 	}
 	for id, request := range s.state.DataRequests {
@@ -1196,6 +1229,36 @@ func (s *Service) validateStateLocked() (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func validateReconciliationRecord(record Reconciliation) error {
+	values := make([]uint64, 7)
+	for i, raw := range []string{record.Locked, record.Burned, record.Minted, record.Released, record.OutstandingSupply, record.ReserveBacking, record.Difference} {
+		value, err := strconv.ParseUint(raw, 10, 64)
+		if err != nil {
+			return errors.New("bridge reconciliation amount is invalid")
+		}
+		values[i] = value
+	}
+	if values[1] > values[2] || values[3] > values[0] || values[4] != values[2]-values[1] || values[5] != values[0]-values[3] {
+		return errors.New("bridge reconciliation accounting is inconsistent")
+	}
+	difference := values[4]
+	if values[5] >= values[4] {
+		difference = values[5] - values[4]
+	} else {
+		difference = values[4] - values[5]
+	}
+	if values[6] != difference || record.Balanced != (difference == 0) || record.Source != "operator-submitted-evidence" || record.Verification != "reference-recorded-not-independently-verified" {
+		return errors.New("bridge reconciliation truth boundary is invalid")
+	}
+	if _, err := time.Parse(time.RFC3339Nano, record.ObservedAt); err != nil {
+		return errors.New("bridge reconciliation observed time is invalid")
+	}
+	if _, err := time.Parse(time.RFC3339Nano, record.RecordedAt); err != nil {
+		return errors.New("bridge reconciliation recorded time is invalid")
+	}
+	return nil
 }
 
 func (s *Service) validatePersistedAttestations(transfer Transfer) error {

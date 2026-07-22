@@ -16,17 +16,19 @@ type idempotencyRecord struct {
 }
 
 type persistentState struct {
-	SchemaVersion       int                          `json:"schemaVersion"`
-	Transfers           map[string]Transfer          `json:"transfers"`
-	SourceEvents        map[string]string            `json:"sourceEvents"`
-	CreateIdempotency   map[string]idempotencyRecord `json:"createIdempotency"`
-	FinalizeIdempotency map[string]idempotencyRecord `json:"finalizeIdempotency"`
-	MutationIdempotency map[string]idempotencyRecord `json:"mutationIdempotency"`
-	Safety              SafetyState                  `json:"safety"`
-	Reconciliations     map[string]Reconciliation    `json:"reconciliations,omitempty"`
-	DataRequests        map[string]DataRequest       `json:"dataRequests,omitempty"`
-	Audit               []AuditEvent                 `json:"audit"`
-	Integrity           string                       `json:"integrity"`
+	SchemaVersion                   int                          `json:"schemaVersion"`
+	Transfers                       map[string]Transfer          `json:"transfers"`
+	SourceEvents                    map[string]string            `json:"sourceEvents"`
+	CreateIdempotency               map[string]idempotencyRecord `json:"createIdempotency"`
+	FinalizeIdempotency             map[string]idempotencyRecord `json:"finalizeIdempotency"`
+	MutationIdempotency             map[string]idempotencyRecord `json:"mutationIdempotency"`
+	Safety                          SafetyState                  `json:"safety"`
+	Reconciliations                 map[string]Reconciliation    `json:"reconciliations,omitempty"`
+	ReconciliationResults           map[string]Reconciliation    `json:"reconciliationResults,omitempty"`
+	ReconciliationReplayUnavailable map[string]bool              `json:"reconciliationReplayUnavailable,omitempty"`
+	DataRequests                    map[string]DataRequest       `json:"dataRequests,omitempty"`
+	Audit                           []AuditEvent                 `json:"audit"`
+	Integrity                       string                       `json:"integrity"`
 }
 
 type legacyTransferV1 struct {
@@ -67,7 +69,7 @@ type legacyStateV1 struct {
 func newPersistentState() persistentState {
 	return persistentState{
 		SchemaVersion: SchemaVersion, Transfers: map[string]Transfer{}, SourceEvents: map[string]string{},
-		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Reconciliations: map[string]Reconciliation{}, DataRequests: map[string]DataRequest{}, Audit: []AuditEvent{},
+		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Reconciliations: map[string]Reconciliation{}, ReconciliationResults: map[string]Reconciliation{}, ReconciliationReplayUnavailable: map[string]bool{}, DataRequests: map[string]DataRequest{}, Audit: []AuditEvent{},
 	}
 }
 
@@ -95,7 +97,10 @@ func loadState(path string) (persistentState, error) {
 	if state.SchemaVersion == 4 {
 		return loadLegacyStateV4(state)
 	}
-	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.Audit == nil {
+	if state.SchemaVersion == 5 {
+		return loadLegacyStateV5(state)
+	}
+	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
 	got := state.Integrity
@@ -107,6 +112,12 @@ func loadState(path string) (persistentState, error) {
 	state.Integrity = got
 	if state.Reconciliations == nil {
 		state.Reconciliations = map[string]Reconciliation{}
+	}
+	if state.ReconciliationResults == nil {
+		state.ReconciliationResults = map[string]Reconciliation{}
+	}
+	if state.ReconciliationReplayUnavailable == nil {
+		state.ReconciliationReplayUnavailable = map[string]bool{}
 	}
 	if state.DataRequests == nil {
 		state.DataRequests = map[string]DataRequest{}
@@ -151,6 +162,8 @@ func loadLegacyStateV4(state persistentState) (persistentState, error) {
 	if state.Reconciliations == nil {
 		state.Reconciliations = map[string]Reconciliation{}
 	}
+	state.ReconciliationResults = map[string]Reconciliation{}
+	state.ReconciliationReplayUnavailable = legacyReconciliationReplayKeys(state)
 	if state.DataRequests == nil {
 		state.DataRequests = map[string]DataRequest{}
 	}
@@ -160,6 +173,35 @@ func loadLegacyStateV4(state persistentState) (persistentState, error) {
 		}
 		migrateExposureStatus(&transfer)
 		state.Transfers[id] = transfer
+	}
+	state.Integrity = ""
+	return state, nil
+}
+
+func loadLegacyStateV5(state persistentState) (persistentState, error) {
+	if state.SchemaVersion != 5 {
+		return persistentState{}, errors.New("bridge v5 state schema is invalid")
+	}
+	got := state.Integrity
+	state.Integrity = ""
+	expected, err := stateDigest(state)
+	if err != nil || got != expected {
+		return persistentState{}, errors.New("bridge state integrity mismatch")
+	}
+	if state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
+		return persistentState{}, errors.New("bridge v5 state schema is invalid")
+	}
+	if err := validateAuditChain(state.Audit); err != nil {
+		return persistentState{}, err
+	}
+	state.SchemaVersion = SchemaVersion
+	if state.Reconciliations == nil {
+		state.Reconciliations = map[string]Reconciliation{}
+	}
+	state.ReconciliationResults = map[string]Reconciliation{}
+	state.ReconciliationReplayUnavailable = legacyReconciliationReplayKeys(state)
+	if state.DataRequests == nil {
+		state.DataRequests = map[string]DataRequest{}
 	}
 	state.Integrity = ""
 	return state, nil
@@ -187,6 +229,8 @@ func migrateLegacyState(state persistentState, preserveDataRequests bool) (persi
 	if state.Reconciliations == nil {
 		state.Reconciliations = map[string]Reconciliation{}
 	}
+	state.ReconciliationResults = map[string]Reconciliation{}
+	state.ReconciliationReplayUnavailable = legacyReconciliationReplayKeys(state)
 	if !preserveDataRequests {
 		state.DataRequests = map[string]DataRequest{}
 	} else if state.DataRequests == nil {
@@ -199,6 +243,16 @@ func migrateLegacyState(state persistentState, preserveDataRequests bool) (persi
 	}
 	state.Integrity = ""
 	return state, nil
+}
+
+func legacyReconciliationReplayKeys(state persistentState) map[string]bool {
+	result := map[string]bool{}
+	for idempotencyKey, record := range state.MutationIdempotency {
+		if _, ok := state.Reconciliations[record.TransferID]; ok {
+			result[idempotencyKey] = true
+		}
+	}
+	return result
 }
 
 func migrateExposureStatus(transfer *Transfer) {

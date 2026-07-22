@@ -1,5 +1,6 @@
 # Bridge Release Notes
 
+- Added persistence schema v6 with exact reconciliation replay responses. Older keys keep their original record after newer route observations and restart; migrated pre-v6 keys whose original response cannot be reconstructed fail closed.
 - Added public `/bridge/status` and SDK validation that separate local coordinator health from unavailable external Bridge/provider/public/support/refund/emergency-exit states.
 - Re-verify all persisted relayer signatures, source block/finality bindings, payload hashes, audit evidence, quorum status, finalization identity, and source-event indexes at startup. Changed trust-root keys and resealed forged quorum state fail closed.
 - Added public `/bridge/assets` token-allowlist metadata and SDK support, with exact Testnet stablecoin, wrapped test asset, YNXT candidate, and other candidate classes. Unknown contracts/metadata and all asset execution remain explicitly unavailable.

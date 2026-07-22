@@ -14,6 +14,7 @@ Status date: 2026-07-23.
 | Settlement-aware exposure accounting across disputes and v4 migration | true | true | false | false | false | false |
 | Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
+| Exact persisted reconciliation replay and v1-v5 migration | true | true | false | false | false | false |
 | Fail-closed route catalog and provider disclosure | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
@@ -44,7 +45,7 @@ Status date: 2026-07-23.
 - `make no-placeholder-check`
 - `make secret-scan`
 
-The API check launches the compiled daemon and exercises public fail-closed route/asset catalogs, unauthorized rejection, create replay/conflict, persistent restart and semantic state validation, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure. Focused race tests additionally reseal forged quorum/signature/index/audit states and require startup rejection.
+The API check launches the compiled daemon and exercises public fail-closed route/asset catalogs, unauthorized rejection, create replay/conflict, persistent restart and semantic state validation, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure. Focused race tests additionally prove exact reconciliation replay across newer observations and restart, fail-closed v5 migration, and rejection of forged replay/accounting/timestamp, quorum, signature, index, and audit state.
 
 ## Missing completion evidence
 

@@ -856,8 +856,8 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schemaVersion": 5`) {
-		t.Fatalf("migrated state not persisted as v5: %s", persisted)
+	if !strings.Contains(string(persisted), `"schemaVersion": 6`) {
+		t.Fatalf("migrated state not persisted as v6: %s", persisted)
 	}
 
 	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)
@@ -933,6 +933,101 @@ func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.
 	}
 	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "accounting is inconsistent") && !strings.Contains(err.Error(), "truth boundary is invalid") {
 		t.Fatalf("resealed inconsistent reconciliation accepted: %v", err)
+	}
+}
+
+func TestBridgeReconciliationReplayReturnsOriginalPersistedResult(t *testing.T) {
+	b := newTestBridge(t)
+	firstRequest := ReconciliationRequest{IdempotencyKey: "reconcile-exact-replay-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "700", Burned: "100", Minted: "900", Released: "300", EvidenceRef: "report:operator-cycle-replay-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	first, replayed, err := b.service.Reconcile(firstRequest)
+	if err != nil || replayed || first.Balanced {
+		t.Fatalf("first reconciliation failed: %+v replay=%v err=%v", first, replayed, err)
+	}
+	*b.clock = b.now.Add(time.Minute)
+	secondRequest := firstRequest
+	secondRequest.IdempotencyKey = "reconcile-exact-replay-002"
+	secondRequest.Minted = "500"
+	secondRequest.EvidenceRef = "report:operator-cycle-replay-002"
+	secondRequest.ObservedAt = b.now.Format(time.RFC3339Nano)
+	second, replayed, err := b.service.Reconcile(secondRequest)
+	if err != nil || replayed || !second.Balanced {
+		t.Fatalf("second reconciliation failed: %+v replay=%v err=%v", second, replayed, err)
+	}
+	replayedFirst, replayed, err := b.service.Reconcile(firstRequest)
+	if err != nil || !replayed || !reflect.DeepEqual(replayedFirst, first) {
+		t.Fatalf("older reconciliation replay changed: got=%+v want=%+v replay=%v err=%v", replayedFirst, first, replayed, err)
+	}
+	if status := b.service.ProductStatus(buildinfo.Info{}); status.Reconciliation.State != "operator-observed-balanced" {
+		t.Fatalf("latest balanced reconciliation was not authoritative: %+v", status.Reconciliation)
+	}
+	restarted, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayedFirst, replayed, err = restarted.Reconcile(firstRequest)
+	if err != nil || !replayed || !reflect.DeepEqual(replayedFirst, first) {
+		t.Fatalf("persisted reconciliation replay changed: got=%+v want=%+v replay=%v err=%v", replayedFirst, first, replayed, err)
+	}
+
+	invalidTime := cloneState(restarted.state)
+	for key, record := range invalidTime.Reconciliations {
+		record.RecordedAt = "invalid"
+		invalidTime.Reconciliations[key] = record
+	}
+	if err := saveState(b.state, &invalidTime); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "recorded time is invalid") {
+		t.Fatalf("invalid reconciliation recorded time accepted: %v", err)
+	}
+
+	swapped := cloneState(restarted.state)
+	swappedResult := swapped.ReconciliationResults[firstRequest.IdempotencyKey]
+	swappedResult.Locked = "800"
+	swappedResult.ReserveBacking = "500"
+	swappedResult.Difference = "300"
+	swapped.ReconciliationResults[firstRequest.IdempotencyKey] = swappedResult
+	if err := saveState(b.state, &swapped); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "replay digest is inconsistent") {
+		t.Fatalf("semantically valid substituted replay result accepted: %v", err)
+	}
+
+	tampered := cloneState(restarted.state)
+	result := tampered.ReconciliationResults[firstRequest.IdempotencyKey]
+	result.Balanced = true
+	tampered.ReconciliationResults[firstRequest.IdempotencyKey] = result
+	if err := saveState(b.state, &tampered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "truth boundary is invalid") {
+		t.Fatalf("tampered reconciliation replay result accepted: %v", err)
+	}
+}
+
+func TestBridgeV5ReconciliationReplayMigratesFailClosed(t *testing.T) {
+	b := newTestBridge(t)
+	request := ReconciliationRequest{IdempotencyKey: "reconcile-v5-replay-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "400", Burned: "0", Minted: "400", Released: "0", EvidenceRef: "report:v5-cycle-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	if _, _, err := b.service.Reconcile(request); err != nil {
+		t.Fatal(err)
+	}
+	state := cloneState(b.service.state)
+	state.SchemaVersion = 5
+	state.ReconciliationResults = nil
+	state.ReconciliationReplayUnavailable = nil
+	if err := saveState(b.state, &state); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("v5 reconciliation state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != SchemaVersion || !migrated.state.ReconciliationReplayUnavailable[request.IdempotencyKey] {
+		t.Fatalf("v5 replay boundary was not preserved: %+v", migrated.state)
+	}
+	if _, replayed, err := migrated.Reconcile(request); !errors.Is(err, ErrConflict) || replayed || !strings.Contains(err.Error(), "pre-v6") {
+		t.Fatalf("v5 replay did not fail closed: replay=%v err=%v", replayed, err)
 	}
 }
 
