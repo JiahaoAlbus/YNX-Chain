@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -139,6 +141,45 @@ func TestFileLifecyclePermissionsVersionsAndAI(t *testing.T) {
 	}
 	if _, err := s.RestoreVersion(owner, doc.ID, 1); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestStableBoundedObjectPagination(t *testing.T) {
+	s := testService(t, nil)
+	now := s.cfg.Now()
+	s.mu.Lock()
+	for i := 0; i < 7; i++ {
+		id := fmt.Sprintf("obj_%02d", i)
+		s.state.Objects[id] = Object{ID: id, Owner: owner, Kind: KindFile, Name: id, UpdatedAt: now.Add(time.Duration(6-i) * time.Second)}
+	}
+	s.mu.Unlock()
+	cursor := ""
+	seen := []string{}
+	for {
+		page, err := s.ListPage(owner, ListOptions{Limit: 3, Cursor: cursor})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Items) > 3 || page.Scanned != 7 {
+			t.Fatalf("page bounds: %#v", page)
+		}
+		for _, obj := range page.Items {
+			seen = append(seen, obj.ID)
+		}
+		if page.NextCursor == "" {
+			break
+		}
+		cursor = page.NextCursor
+	}
+	want := []string{"obj_00", "obj_01", "obj_02", "obj_03", "obj_04", "obj_05", "obj_06"}
+	if !reflect.DeepEqual(seen, want) {
+		t.Fatalf("pages %v want %v", seen, want)
+	}
+	if _, err := s.ListPage(owner, ListOptions{Limit: 1001}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("oversized page: %v", err)
+	}
+	if _, err := s.ListPage(owner, ListOptions{Limit: 3, Cursor: "missing"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("missing cursor: %v", err)
 	}
 }
 

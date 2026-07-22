@@ -262,6 +262,15 @@ type ListOptions struct {
 	ParentID string
 	Query    string
 	View     string
+	Limit    int
+	Cursor   string
+}
+
+type ObjectPage struct {
+	Items      []Object `json:"items"`
+	NextCursor string   `json:"nextCursor,omitempty"`
+	Limit      int      `json:"limit"`
+	Scanned    int      `json:"scanned"`
 }
 
 type CreateObjectRequest struct {

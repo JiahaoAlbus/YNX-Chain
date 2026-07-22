@@ -41,8 +41,8 @@ func TestServerAuthorizationScopeAndStrictJSON(t *testing.T) {
 	if rr.Code != 200 {
 		t.Fatalf("read: %d %s", rr.Code, rr.Body.String())
 	}
-	var objects []Object
-	if err := json.NewDecoder(rr.Body).Decode(&objects); err != nil {
+	var page ObjectPage
+	if err := json.NewDecoder(rr.Body).Decode(&page); err != nil {
 		t.Fatal(err)
 	}
 	if rr.Header().Get("Content-Security-Policy") == "" {
