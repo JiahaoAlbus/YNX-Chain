@@ -81,6 +81,20 @@ func TestServerRangeDownload(t *testing.T) {
 	if rr.Code != http.StatusPartialContent || rr.Body.String() != "2345" || rr.Header().Get("Content-Range") != "bytes 2-5/10" {
 		t.Fatalf("range: %d %q %q", rr.Code, rr.Body.String(), rr.Header().Get("Content-Range"))
 	}
+	usage, err := s.Usage(owner, "cloud")
+	if err != nil || usage.Counters.EgressBytes != 4 || usage.Counters.IngressBytes != 10 || usage.Counters.ScanBytes != 10 {
+		t.Fatalf("range usage: %#v %v", usage, err)
+	}
+	if usage.PricingStatus != "not-configured-no-charge" || usage.UserChargeMinor != 0 || usage.ProviderCostMinor != 0 {
+		t.Fatalf("unconfigured pricing charged user: %#v", usage)
+	}
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/usage", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr = httptest.NewRecorder()
+	NewServer(s).Handler().ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), `"source":"ynx-cloudd-local-meter"`) {
+		t.Fatalf("usage endpoint: %d %s", rr.Code, rr.Body.String())
+	}
 }
 
 func TestPublicAndRestrictedHealthObservability(t *testing.T) {

@@ -55,6 +55,17 @@ type observedWriter struct {
 	bytes  int
 }
 
+type payloadCountingWriter struct {
+	http.ResponseWriter
+	bytes int64
+}
+
+func (w *payloadCountingWriter) Write(body []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(body)
+	w.bytes += int64(n)
+	return n, err
+}
+
 func (w *observedWriter) WriteHeader(status int) {
 	if status >= 400 {
 		w.Header().Set("X-Error-ID", newID("error"))
@@ -182,6 +193,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/objects/{id}/comments", s.auth(s.addComment))
 	mux.HandleFunc("POST /api/v1/objects/{id}/presence", s.auth(s.presence))
 	mux.HandleFunc("GET /api/v1/quota", s.auth(s.quota))
+	mux.HandleFunc("GET /api/v1/usage", s.auth(s.usage))
 	mux.HandleFunc("GET /api/v1/audit", s.auth(s.audit))
 	mux.HandleFunc("GET /api/v1/export", s.auth(s.exportData))
 	mux.HandleFunc("GET /api/v1/deletions", s.auth(s.deletions))
@@ -491,7 +503,13 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
 	w.Header().Set("Content-Disposition", `inline; filename="`+strings.ReplaceAll(obj.Name, "\"", "")+`"`)
-	http.ServeContent(w, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
+	counter := &payloadCountingWriter{ResponseWriter: w}
+	http.ServeContent(counter, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
+	if counter.bytes > 0 {
+		if err := s.service.RecordEgress(a.Account, a.Product, obj.ID, counter.bytes, "session"); err != nil {
+			log.Printf(`{"level":"error","event":"usage.persist.failed","product":%q,"objectId":%q}`, a.Product, obj.ID)
+		}
+	}
 }
 func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session) {
 	if a.Product != "docs" || !requireScope(w, a, "documents.write") {
@@ -628,7 +646,13 @@ func (s *Server) resolveLinkContent(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
-	http.ServeContent(w, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
+	counter := &payloadCountingWriter{ResponseWriter: w}
+	http.ServeContent(counter, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
+	if counter.bytes > 0 {
+		if err := s.service.RecordEgress(obj.Owner, obj.Product, obj.ID, counter.bytes, "share"); err != nil {
+			log.Printf(`{"level":"error","event":"usage.persist.failed","product":%q,"objectId":%q}`, obj.Product, obj.ID)
+		}
+	}
 }
 func (s *Server) requestAccess(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
@@ -712,6 +736,13 @@ func (s *Server) quota(w http.ResponseWriter, r *http.Request, a Session) {
 	used, limit := s.service.Quota(a.Account, a.Product)
 	writeJSON(w, 200, map[string]any{"usedBytes": used, "limitBytes": limit, "claim": "bounded local product quota; not unlimited storage"})
 }
+func (s *Server) usage(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
+		return
+	}
+	v, err := s.service.Usage(a.Account, a.Product)
+	writeResult(w, v, err)
+}
 func (s *Server) audit(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "audit.read") {
 		return
@@ -733,7 +764,13 @@ func (s *Server) exportData(w http.ResponseWriter, r *http.Request, a Session) {
 	w.Header().Set("X-Content-SHA256", hashBytes(body))
 	w.Header().Set("X-YNX-Export-As-Of", manifest.AsOf.Format(time.RFC3339Nano))
 	w.WriteHeader(200)
-	_, _ = w.Write(body)
+	counter := &payloadCountingWriter{ResponseWriter: w}
+	_, _ = counter.Write(body)
+	if counter.bytes > 0 {
+		if err := s.service.RecordEgress(a.Account, a.Product, "", counter.bytes, "export"); err != nil {
+			log.Printf(`{"level":"error","event":"usage.persist.failed","product":%q,"channel":"export"}`, a.Product)
+		}
+	}
 }
 func (s *Server) deletions(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {

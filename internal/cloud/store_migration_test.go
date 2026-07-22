@@ -55,7 +55,7 @@ func TestLegacyV1MigrationBackupAndRollback(t *testing.T) {
 	}
 }
 
-func TestV2ToV3ProductMigrationAndLegacyRollbackHash(t *testing.T) {
+func TestV2ToCurrentProductMigrationAndLegacyRollbackHash(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")
 	state := newState()
@@ -68,7 +68,7 @@ func TestV2ToV3ProductMigrationAndLegacyRollbackHash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.state.SchemaVersion != 3 || s.state.Objects["doc"].Product != "docs" || s.state.Objects["file"].Product != "cloud" {
+	if s.state.SchemaVersion != CurrentStateSchemaVersion || s.state.Objects["doc"].Product != "docs" || s.state.Objects["file"].Product != "cloud" || s.state.Usage == nil {
 		t.Fatalf("migration: %#v", s.state.Objects)
 	}
 	if _, err := os.Stat(path + ".v2.bak"); err != nil {
@@ -94,6 +94,50 @@ func TestV2ToV3ProductMigrationAndLegacyRollbackHash(t *testing.T) {
 	}
 	if hashBytes(compact) != stored {
 		t.Fatal("legacy binary struct would reject rollback hash")
+	}
+}
+
+func TestV3ToV4UsageMigrationKeepsExactBackup(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	state := newState()
+	state.SchemaVersion = 3
+	state.Usage = nil
+	raw, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var legacy map[string]any
+	if err = json.Unmarshal(raw, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	delete(legacy, "usage")
+	legacy["integrityHash"] = ""
+	unsigned, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy["integrityHash"] = hashBytes(unsigned)
+	raw, err = json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(Config{StatePath: path, ObjectDir: filepath.Join(dir, "objects")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.state.SchemaVersion != 4 || s.state.Usage == nil {
+		t.Fatalf("usage migration: schema=%d usage=%#v", s.state.SchemaVersion, s.state.Usage)
+	}
+	backup, err := os.ReadFile(path + ".v3.bak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(backup) != string(raw) {
+		t.Fatal("v3 migration backup is not byte-identical")
 	}
 }
 

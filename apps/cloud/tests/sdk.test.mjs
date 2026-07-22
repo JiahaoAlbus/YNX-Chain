@@ -15,9 +15,10 @@ test("SDK binds the versioned endpoint and obtains a fresh product token", async
     },
   });
   await client.list({ view: "recent", limit: 25 });
-  await client.quota();
+  await client.usage();
   assert.equal(calls[0].url, "https://cloud.testnet.invalid/api/v1/objects?view=recent&limit=25");
   assert.equal(calls[0].init.headers.get("Authorization"), "Bearer session-1");
+  assert.equal(calls[1].url, "https://cloud.testnet.invalid/api/v1/usage");
   assert.equal(calls[1].init.headers.get("Authorization"), "Bearer session-2");
 });
 

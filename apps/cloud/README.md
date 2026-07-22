@@ -62,6 +62,12 @@ Content-addressed reference counting prevents deletion while another object
 version still uses the same hash. A provider failure returns `202 Accepted` with
 `physicalDeletion: pending` after logical deletion, never a false erasure claim.
 
+`GET /api/v1/usage` returns a versioned, product-isolated report of exact current
+deduplicated storage plus persisted accepted-ingress, delivered-egress, scan-byte,
+and AI-estimate counters. The local adapter has no approved pricing source, so the
+report explicitly sets costs, fees, treasury, burn, user charge, and refunds to
+zero under `not-configured-no-charge`; it is usage evidence, not an invoice.
+
 Remote providers may implement short-lived presigned direct uploads through
 `POST /api/v1/direct-uploads`, owner-visible status, completion, and cancellation.
 Cloud registers no object until the provider verifies exact hash, byte size, and
