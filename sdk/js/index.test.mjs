@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, toEVMAddress, toYNXAddress} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, createStrategyMandate, createUserOperation, getYNXStatus, normalizeYNXAddress, sessionScope, toEVMAddress, toYNXAddress, userOperationDigest} from "./index.js";
 
 let baseUrl;
 let server;
@@ -69,4 +69,15 @@ test("rejects malformed YNX addresses", () => {
   for (const value of ["0x1234", `Y${valid.slice(1)}`, `${valid.slice(0, -1)}q`, `eth${valid.slice(3)}`]) {
     assert.throws(() => toEVMAddress(value), YNXSDKError);
   }
+});
+
+test("builds bounded strategy mandates and user operations", async () => {
+  const strategyHash = "ab".repeat(32);
+  const mandate = createStrategyMandate({id: "m1", owner: "ynx1owner", engineIdentity: "engine-1", strategyHash, strategyVersion: 1, venues: ["Venue-1"], assets: ["YNXT"], markets: ["YNXT/USD"], methods: ["place_order", "cancel_order"], capitalLimitYnxt: 1000, positionLimitYnxt: 500, maxLeverageBps: 20_000, maxSlippageBps: 100, dailyLossLimitYnxt: 100, drawdownLimitBps: 1000, validAfter: "2026-07-22T00:00:01Z", expiresAt: "2026-07-23T00:00:00Z", nonceDomain: "quant/m1", createdAt: "2026-07-22T00:00:00Z"});
+  assert.deepEqual(mandate.methods, ["cancel_order", "place_order"]);
+  assert.throws(() => createStrategyMandate({...mandate, methods: ["withdraw"]}), /forbidden/);
+
+  const operation = createUserOperation({account: "ynx1owner", productId: "pay", nonceDomain: "pay/session", nonce: 0, calls: [{target: "Pay", method: "Settle", valueYnxt: 5, asset: "YNXT", payloadHash: strategyHash}], maxFeeYnxt: 2, validAfter: "2026-07-22T00:00:00Z", validUntil: "2026-07-22T00:01:00Z", sessionKeyId: "session-1"});
+  assert.equal(sessionScope(operation.calls[0]), "pay:settle");
+  assert.equal((await userOperationDigest(operation)).length, 32);
 });

@@ -25,3 +25,9 @@ Migration intentionally does not infer historical fees from balance changes. His
 Before staging activation, operators must back up the v7 file, verify its SHA-256 and mode, start application version 10 against a copy, query accounts and fee events, execute one approved test transfer, verify supply and fee reconciliation, stop, restart, and verify the same AppHash and event. Rollback restores the untouched v7 binary/state pair while public mutation ingress remains frozen.
 
 Current evidence covers local migration and restart tests only. No staging or public migration has been performed.
+
+## Smart Account and mandate candidate boundary
+
+UserOperation and StrategyMandate schemas are additive version-1 candidate formats. Existing signed native transfer and application-action envelopes remain unchanged. No current ABCI state reads these new formats, so adding the library and SDK does not migrate or silently reinterpret existing accounts.
+
+Consensus activation requires a new committed-state version with explicit account, session, paymaster, recovery, mandate, Vault, fee, risk, and audit collections; canonical genesis/migration defaults; old-client query compatibility; replay vectors; and state-root differential tests. Rollback must restore the pre-activation binary/state pair. A newer state must never be written by an older binary.

@@ -15,6 +15,12 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | 1:1 YUSD sandbox with reserve/redemption reconciliation | false | false | false | false | false | false | false | false | false | No reserve provider, custodian, attestation, signer, or redemption rail |
 | Treasury governance and runway ledger | false | false | false | false | false | false | false | false | false | No versioned Treasury state recovered |
 | Public economics dashboard and `/ynxt` `/economics` handoff | false | false | false | false | false | false | false | false | false | Metadata and Website handoff not yet built |
+| StreamBFT shadow candidate | true | true | false | false | false | false | false | false | false | Local lane/DAG/QC/safety/pacemaker/execution/fee/mode tests; canary evidence gate intentionally fails closed |
+| Per-lane fee-market candidate | true | true | false | false | false | false | false | false | false | Candidate-only independent base-fee and multi-resource pricing; not ABCI state or governed policy |
+| Smart Account/UserOperation native candidate | true | true | false | false | false | false | false | false | false | Local Ed25519/P-256, batch, session, paymaster, guardian and replay tests; Bundler and public sponsored transaction absent |
+| StrategyMandate native candidate | true | true | false | false | false | false | false | false | false | Local schema, owner/engine/risk/expiry/nonce/revoke/kill invariants; not committed to consensus state |
+| DEX Strategy Vault owner-only withdrawal | true | true | false | false | false | false | false | false | false | Local state transition and emergency-exit tests; no system contract or public Vault transaction |
+| Realized-net high-water-mark fee invariant | true | true | false | false | false | false | false | false | false | Local loss/recovery/cost tests; no enabled managed Vault fee collection |
 
 ## Current verification
 
