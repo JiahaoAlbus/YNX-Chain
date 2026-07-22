@@ -1,0 +1,24 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "bucketsYnxt": {
+    "stable_reserve": 1000000,
+    "validator_runway": 500000,
+    "insurance": 250000,
+    "liquidity_budget": 200000,
+    "development_public_goods": 500000,
+    "provider_obligations": 250000,
+    "emergency_reserve": 300000
+  },
+  "monthlyRevenueYnxt": 50000,
+  "monthlyObligationsYnxt": 300000,
+  "initialShockBps": {
+    "stable_reserve": 0,
+    "validator_runway": 0,
+    "insurance": 1000,
+    "liquidity_budget": 5000,
+    "development_public_goods": 2000,
+    "provider_obligations": 0,
+    "emergency_reserve": 0
+  },
+  "months": 18
+}

@@ -73,4 +73,13 @@ func TestGatewayCommitsAndQueriesStakingWithoutYieldClaims(t *testing.T) {
 	if records.Failure || len(records.Delegations) != 1 || records.Delegations[0].AmountYNXT != 250 {
 		t.Fatalf("unexpected delegation list: %+v", records)
 	}
+	var treasury struct {
+		Failure  bool                          `json:"failure"`
+		Source   string                        `json:"source"`
+		Treasury consensus.BFTTreasurySnapshot `json:"treasury"`
+	}
+	getJSON(t, server.URL+"/treasury/snapshot", &treasury)
+	if treasury.Failure || treasury.Source != "ynx-consensus-abci" || treasury.Treasury.TransferExecutionEnabled || treasury.Treasury.SecretMarketSupport || !treasury.Treasury.Reconciled {
+		t.Fatalf("Treasury boundary was not truthful: %+v", treasury)
+	}
 }

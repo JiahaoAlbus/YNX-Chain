@@ -13,6 +13,10 @@ All paths are repository-relative and refer to the current source commit only af
 | Delegation, unbonding liability, maturity and withdrawal | `internal/consensus/staking_action.go`, `staking_application.go`, `staking_action_test.go` | `go test ./internal/consensus -run Staking` |
 | Staking Gateway and truthful no-yield boundary | `internal/bftgateway/staking.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
 | Rejected-transaction atomicity | `internal/consensus/application.go`, early-withdrawal/retry path in `staking_action_test.go` | `go test ./internal/consensus -run StakingDelegation` |
+| Consensus Treasury bucket truth | `internal/consensus/treasury_snapshot.go`, `treasury_snapshot_test.go` | `go test ./internal/consensus -run TreasurySnapshot` |
+| Source-labelled Treasury Gateway | `internal/bftgateway/treasury.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
+| Treasury shock and runway model | `internal/economics/treasury.go`, `treasury_test.go` | `go test ./internal/economics -run Treasury` |
+| Reproducible Treasury stress scenario | `economics/examples/treasury-stress.json` | `go run ./cmd/ynx-treasury-sim -input economics/examples/treasury-stress.json` |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 
 Generated artifacts, remote URLs, transaction hashes, installation proof, deployment proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.

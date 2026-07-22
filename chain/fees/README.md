@@ -1,6 +1,6 @@
 # Fees
 
-The authoritative runtime currently uses a fixed 1 YNXT native-transfer or application-action fee credited to the selected validator. Committed state v8 records every charged fee as an audit-bound event whose gross amount must exactly equal validator, provider, protocol, Treasury, and burn allocations. The current policy truthfully records validator allocation at 100% and every other allocation, including burn, at zero.
+The authoritative runtime currently uses a fixed 1 YNXT native-transfer or application-action fee credited to the selected validator. Committed state v9 records every charged fee as an audit-bound event whose gross amount must exactly equal validator, provider, protocol, Treasury, and burn allocations. The current policy truthfully records validator allocation at 100% and every other allocation, including burn, at zero.
 
 ABCI exposes `/economics/fees` and `/economics/fees/{id}`. BFT Gateway exposes bounded `GET /economics/fees` and `GET /economics/fees/{id}` responses with `source`, `asOf`, `version`, `coverage`, and explicit failure state.
 
