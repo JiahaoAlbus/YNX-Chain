@@ -3,6 +3,7 @@ package quantlab
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,11 +27,11 @@ func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
 }
 
 func validMandate(now time.Time, strategyHash string) Mandate {
-	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, MaxLeverageBPS: 20_000, MaxDrawdown: 500_000, MinLiquidity: 2_000_000, MaxVaR: 300_000, MaxExpectedShortfall: 400_000, MaxDepegBPS: 100, MaxConcentrationBPS: 5000, MaxCancelRateBPS: 5000, MaxConsecutiveAPIFailures: 3, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
 }
 
 func validRisk(now time.Time) TestnetRiskObservation {
-	return TestnetRiskObservation{ReferencePrice: 1_000_000, EstimatedGas: 100, OracleAsOf: now, VenueHealthy: true}
+	return TestnetRiskObservation{ReferencePrice: 1_000_000, EstimatedGas: 100, Equity: 10_000_000, GrossExposure: 1_000_000, PeakEquity: 10_000_000, CurrentEquity: 9_900_000, AvailableLiquidity: 10_000_000, DepegBPS: 5, ConcentrationBPS: 2000, OrdersObserved: 10, CancelsObserved: 1, VaR: 100_000, ExpectedShortfall: 150_000, OracleAsOf: now, VenueHealthy: true}
 }
 
 func validDataset(now time.Time) DatasetRecord {
@@ -200,6 +201,39 @@ func TestTestnetRiskObservationRejectsStaleOracleVenueLossGasSlippageAndFrequenc
 	}
 	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "risk-frequency", validRisk(now)); err != ErrForbidden {
 		t.Fatalf("frequency=%v", err)
+	}
+}
+
+func TestTestnetRiskRejectsLeverageDrawdownLiquidityDepegConcentrationReliabilityAndTailLoss(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	service, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	mandate, err := service.RegisterMandate(validMandate(now, strings.Repeat("a", 64)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []func(*TestnetRiskObservation){
+		func(r *TestnetRiskObservation) { r.Equity = 0 },
+		func(r *TestnetRiskObservation) { r.GrossExposure = 20_000_000 },
+		func(r *TestnetRiskObservation) { r.CurrentEquity = r.PeakEquity - mandate.MaxDrawdown },
+		func(r *TestnetRiskObservation) { r.AvailableLiquidity = mandate.MinLiquidity - 1 },
+		func(r *TestnetRiskObservation) { r.DepegBPS = mandate.MaxDepegBPS + 1 },
+		func(r *TestnetRiskObservation) { r.ConcentrationBPS = mandate.MaxConcentrationBPS + 1 },
+		func(r *TestnetRiskObservation) { r.OrdersObserved, r.CancelsObserved = 10, 6 },
+		func(r *TestnetRiskObservation) { r.ConsecutiveAPIFailures = mandate.MaxConsecutiveAPIFailures },
+		func(r *TestnetRiskObservation) { r.VaR = mandate.MaxVaR + 1 },
+		func(r *TestnetRiskObservation) { r.ExpectedShortfall = mandate.MaxExpectedShortfall + 1 },
+	}
+	for index, mutate := range cases {
+		risk := validRisk(now)
+		mutate(&risk)
+		if _, err = service.SubmitTestnet(mandate.Digest, "buy", 1_000_000, 1_000_000, fmt.Sprintf("broad-risk-%02d", index), risk); err != ErrForbidden {
+			t.Fatalf("risk case %d=%v", index, err)
+		}
+	}
+	overflowRisk := validRisk(now)
+	overflowRisk.ReferencePrice = math.MaxInt64
+	if _, err = service.SubmitTestnet(mandate.Digest, "buy", math.MaxInt64, 2, "overflow-order", overflowRisk); err != ErrInvalid {
+		t.Fatalf("overflow=%v", err)
 	}
 }
 

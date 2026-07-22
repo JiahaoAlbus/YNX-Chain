@@ -23,7 +23,7 @@ backup/signing/deployment systems.
 | state overwrite/tamper | integrity hash, atomic writes, cross-process lock, tamper tests | transactional database and replica failover |
 | path/symlink attack on worker spool | fixed operator-configured roots, constrained job IDs, regular-file requirement | `openat`/no-follow hardening and container mount policy |
 | API cross-origin abuse | loopback preview boundary and same-origin WebSocket check | canonical product/device/session auth for public writes |
-| venue sequence/reconciliation failure | idempotency, broker proof, fresh-oracle/venue-health pre-trade gate, signed slippage/gas/frequency/loss limits, reconciliation-triggered kill switch | canonical risk feed and real adapter sequence/snapshot/retry tests |
+| venue sequence/reconciliation failure | durable idempotency reservation, broker proof, fresh-oracle/venue-health pre-trade gate, signed leverage/drawdown/liquidity/depeg/concentration/cancel/API/VaR/ES/slippage/gas/frequency/loss limits, overflow rejection, reconciliation-triggered kill switch | canonical risk feed and real adapter sequence/snapshot/retry tests |
 | data leakage/look-ahead/survivorship | ordered timestamps, OOS split, deterministic hash, gap handling | full dataset catalog/correction/delisting corpus |
 | dependency/build compromise | lockfiles, SBOM, notices, pinned build image, review scripts | CI provenance, SAST/DAST/container scan and signed artifacts |
 

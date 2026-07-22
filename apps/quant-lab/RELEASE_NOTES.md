@@ -12,7 +12,9 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   execution. Exchange and DEX implementations are not shipped.
 - Wallet-signed bounded Testnet mandate boundary with expiry, notional,
   position, daily-loss, slippage, gas and order-frequency limits; fresh oracle
-  and venue-health observations; replay rejection; and idempotent broker proof.
+  and venue-health observations; projected leverage, drawdown, liquidity, depeg,
+  concentration, cancel/API reliability and supplied VaR/ES limits; overflow
+  rejection; replay rejection; and idempotent broker proof.
   Default verifier, authoritative risk feed and broker are unavailable; live
   funds remain disabled.
 - Market data comes only from the Exchange owned actual-match tape. No synthetic product prices, fake liquidity, fake volume or fake fills.

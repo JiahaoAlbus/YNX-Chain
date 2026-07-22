@@ -29,8 +29,11 @@ increase mandate limits or continue after expiry/revoke/kill.
 The local bounded-Testnet pre-trade contract requires a fresh (at most 30
 seconds old) oracle reference, healthy-venue observation, estimated gas and
 observed daily loss. Wallet-signed limits bind maximum slippage, gas and orders
-per minute in addition to notional, position and daily loss. Missing, future or
-stale observations fail closed before the broker is called.
+per minute in addition to notional, position and daily loss. The same signed
+envelope bounds projected leverage, drawdown, minimum liquidity, depeg,
+concentration, cancel rate, consecutive API failures, VaR and expected
+shortfall. Missing, malformed, future, stale or arithmetic-overflowing
+observations fail closed before the broker is called.
 
 Current status: `PaperExecutionAdapter` and `ShadowExecutionAdapter` implement
 the common contract locally. Paper translates authoritative matched-trade price

@@ -16,6 +16,8 @@ independent Risk. Quant and AI can propose an allocation with evidence; neither
 can choose a champion, change risk, sign a mandate, or deploy it. A human-approved
 decision record must include rejected alternatives and uncertainty.
 
-The current runtime does not implement portfolio allocation, VaR/ES, Monte Carlo,
-or automated candidate ranking. Those remain candidates and must not be inferred
-from backtest metrics.
+The current runtime can enforce bounded VaR and expected-shortfall observations
+supplied at the pre-trade boundary, but it does not calculate or independently
+source them. Portfolio allocation, VaR/ES modelling, Monte Carlo and automated
+candidate ranking remain candidates and must not be inferred from backtest
+metrics.

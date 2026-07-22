@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -169,26 +170,42 @@ type RiskLimits struct {
 	MaxOrders        int   `json:"maxOrders"`
 }
 type Mandate struct {
-	Account, StrategyHash, Market          string
-	ProductID, BundleID, DeviceID          string
-	NonceDomain, Scope                     string
-	Nonce                                  uint64
-	MaxNotional, MaxPosition, MaxDailyLoss int64
-	MaxSlippageBPS, MaxGas                 int64
-	MaxOrdersPerMinute                     int
-	ExpiresAt                              time.Time
-	WalletSignature, Digest                string
-	TestnetOnly                            bool
-	Revoked                                bool
-	RevokedAt                              time.Time
+	Account, StrategyHash, Market                      string
+	ProductID, BundleID, DeviceID                      string
+	NonceDomain, Scope                                 string
+	Nonce                                              uint64
+	MaxNotional, MaxPosition, MaxDailyLoss             int64
+	MaxSlippageBPS, MaxGas                             int64
+	MaxOrdersPerMinute                                 int
+	MaxLeverageBPS, MaxDrawdown                        int64
+	MinLiquidity, MaxVaR, MaxExpectedShortfall         int64
+	MaxDepegBPS, MaxConcentrationBPS, MaxCancelRateBPS int64
+	MaxConsecutiveAPIFailures                          int
+	ExpiresAt                                          time.Time
+	WalletSignature, Digest                            string
+	TestnetOnly                                        bool
+	Revoked                                            bool
+	RevokedAt                                          time.Time
 }
 
 type TestnetRiskObservation struct {
-	ReferencePrice    int64     `json:"referencePrice"`
-	EstimatedGas      int64     `json:"estimatedGas"`
-	ObservedDailyLoss int64     `json:"observedDailyLoss"`
-	OracleAsOf        time.Time `json:"oracleAsOf"`
-	VenueHealthy      bool      `json:"venueHealthy"`
+	ReferencePrice         int64     `json:"referencePrice"`
+	EstimatedGas           int64     `json:"estimatedGas"`
+	ObservedDailyLoss      int64     `json:"observedDailyLoss"`
+	Equity                 int64     `json:"equity"`
+	GrossExposure          int64     `json:"grossExposure"`
+	PeakEquity             int64     `json:"peakEquity"`
+	CurrentEquity          int64     `json:"currentEquity"`
+	AvailableLiquidity     int64     `json:"availableLiquidity"`
+	DepegBPS               int64     `json:"depegBps"`
+	ConcentrationBPS       int64     `json:"concentrationBps"`
+	OrdersObserved         int64     `json:"ordersObserved"`
+	CancelsObserved        int64     `json:"cancelsObserved"`
+	ConsecutiveAPIFailures int       `json:"consecutiveApiFailures"`
+	VaR                    int64     `json:"var"`
+	ExpectedShortfall      int64     `json:"expectedShortfall"`
+	OracleAsOf             time.Time `json:"oracleAsOf"`
+	VenueHealthy           bool      `json:"venueHealthy"`
 }
 
 type TestnetOrder struct {
@@ -369,20 +386,27 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 		m.NonceDomain != "ynx-quant-testnet-v1" || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
 		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || m.MaxSlippageBPS <= 0 || m.MaxSlippageBPS > 10_000 ||
 		m.MaxGas <= 0 || m.MaxOrdersPerMinute <= 0 || m.MaxOrdersPerMinute > 60 || !m.ExpiresAt.After(now) ||
+		m.MaxLeverageBPS <= 0 || m.MaxDrawdown <= 0 || m.MinLiquidity <= 0 || m.MaxVaR <= 0 || m.MaxExpectedShortfall <= 0 ||
+		m.MaxDepegBPS <= 0 || m.MaxDepegBPS > 10_000 || m.MaxConcentrationBPS <= 0 || m.MaxConcentrationBPS > 10_000 ||
+		m.MaxCancelRateBPS <= 0 || m.MaxCancelRateBPS > 10_000 || m.MaxConsecutiveAPIFailures <= 0 ||
 		m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
 		return Mandate{}, ErrInvalid
 	}
 	m.Digest = hash(struct {
-		Account, StrategyHash, Market          string
-		ProductID, BundleID, DeviceID          string
-		NonceDomain, Scope                     string
-		Nonce                                  uint64
-		MaxNotional, MaxPosition, MaxDailyLoss int64
-		MaxSlippageBPS, MaxGas                 int64
-		MaxOrdersPerMinute                     int
-		ExpiresAt                              time.Time
-		TestnetOnly                            bool
-	}{m.Account, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.NonceDomain, m.Scope, m.Nonce, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.MaxSlippageBPS, m.MaxGas, m.MaxOrdersPerMinute, m.ExpiresAt, m.TestnetOnly})
+		Account, StrategyHash, Market                      string
+		ProductID, BundleID, DeviceID                      string
+		NonceDomain, Scope                                 string
+		Nonce                                              uint64
+		MaxNotional, MaxPosition, MaxDailyLoss             int64
+		MaxSlippageBPS, MaxGas                             int64
+		MaxOrdersPerMinute                                 int
+		MaxLeverageBPS, MaxDrawdown                        int64
+		MinLiquidity, MaxVaR, MaxExpectedShortfall         int64
+		MaxDepegBPS, MaxConcentrationBPS, MaxCancelRateBPS int64
+		MaxConsecutiveAPIFailures                          int
+		ExpiresAt                                          time.Time
+		TestnetOnly                                        bool
+	}{m.Account, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.NonceDomain, m.Scope, m.Nonce, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.MaxSlippageBPS, m.MaxGas, m.MaxOrdersPerMinute, m.MaxLeverageBPS, m.MaxDrawdown, m.MinLiquidity, m.MaxVaR, m.MaxExpectedShortfall, m.MaxDepegBPS, m.MaxConcentrationBPS, m.MaxCancelRateBPS, m.MaxConsecutiveAPIFailures, m.ExpiresAt, m.TestnetOnly})
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
@@ -426,11 +450,40 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		return TestnetOrder{}, ErrForbidden
 	}
 	now := s.cfg.Now()
-	if !risk.VenueHealthy || risk.ReferencePrice <= 0 || risk.EstimatedGas < 0 || risk.ObservedDailyLoss < 0 || risk.OracleAsOf.IsZero() || risk.OracleAsOf.After(now) || now.Sub(risk.OracleAsOf) > 30*time.Second {
+	if !risk.VenueHealthy || risk.ReferencePrice <= 0 || risk.EstimatedGas < 0 || risk.ObservedDailyLoss < 0 || risk.Equity <= 0 ||
+		risk.GrossExposure < 0 || risk.PeakEquity <= 0 || risk.CurrentEquity < 0 || risk.CurrentEquity > risk.PeakEquity ||
+		risk.AvailableLiquidity < 0 || risk.DepegBPS < 0 || risk.ConcentrationBPS < 0 || risk.OrdersObserved < 0 ||
+		risk.CancelsObserved < 0 || risk.CancelsObserved > risk.OrdersObserved || risk.ConsecutiveAPIFailures < 0 || risk.VaR < 0 || risk.ExpectedShortfall < 0 ||
+		risk.OracleAsOf.IsZero() || risk.OracleAsOf.After(now) || now.Sub(risk.OracleAsOf) > 30*time.Second {
 		return TestnetOrder{}, ErrForbidden
 	}
-	slippageBPS := abs(price-risk.ReferencePrice) * 10_000 / risk.ReferencePrice
-	if slippageBPS > m.MaxSlippageBPS || risk.EstimatedGas > m.MaxGas || risk.ObservedDailyLoss >= m.MaxDailyLoss {
+	slippageBPS, safe := basisPoints(abs(price-risk.ReferencePrice), risk.ReferencePrice)
+	if !safe {
+		return TestnetOrder{}, ErrInvalid
+	}
+	notional, safe := microNotional(price, amount)
+	if !safe {
+		return TestnetOrder{}, ErrInvalid
+	}
+	if risk.GrossExposure > math.MaxInt64-notional {
+		return TestnetOrder{}, ErrInvalid
+	}
+	projectedLeverageBPS, safe := basisPoints(risk.GrossExposure+notional, risk.Equity)
+	if !safe {
+		return TestnetOrder{}, ErrInvalid
+	}
+	drawdown := risk.PeakEquity - risk.CurrentEquity
+	cancelRateBPS := int64(0)
+	if risk.OrdersObserved > 0 {
+		cancelRateBPS, safe = basisPoints(risk.CancelsObserved, risk.OrdersObserved)
+		if !safe {
+			return TestnetOrder{}, ErrInvalid
+		}
+	}
+	if slippageBPS > m.MaxSlippageBPS || risk.EstimatedGas > m.MaxGas || risk.ObservedDailyLoss >= m.MaxDailyLoss ||
+		projectedLeverageBPS > m.MaxLeverageBPS || drawdown >= m.MaxDrawdown || risk.AvailableLiquidity < m.MinLiquidity || risk.AvailableLiquidity < notional ||
+		risk.DepegBPS > m.MaxDepegBPS || risk.ConcentrationBPS > m.MaxConcentrationBPS || cancelRateBPS > m.MaxCancelRateBPS ||
+		risk.ConsecutiveAPIFailures >= m.MaxConsecutiveAPIFailures || risk.VaR > m.MaxVaR || risk.ExpectedShortfall > m.MaxExpectedShortfall {
 		return TestnetOrder{}, ErrForbidden
 	}
 	position := int64(0)
@@ -455,7 +508,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if side == "sell" {
 		signedAmount = -amount
 	}
-	if price*amount/1_000_000 > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
+	if notional > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
 		return TestnetOrder{}, ErrForbidden
 	}
 	d := hash(struct {
@@ -827,7 +880,10 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, ErrForbidden
 	}
 	limits := RiskLimits{MaxOrderNotional: 10_000_000_000, MaxPosition: 10_000_000, MaxDailyLoss: 1_000_000_000, MaxOrders: 100}
-	notional := price * amount / 1_000_000
+	notional, safe := microNotional(price, amount)
+	if !safe {
+		return PaperOrder{}, ErrInvalid
+	}
 	if notional > limits.MaxOrderNotional || len(s.state.Paper.Orders) >= limits.MaxOrders {
 		return PaperOrder{}, ErrForbidden
 	}
@@ -1163,6 +1219,22 @@ func abs(v int64) int64 {
 		return -v
 	}
 	return v
+}
+func microNotional(price, amount int64) (int64, bool) {
+	if price <= 0 || amount <= 0 || amount > math.MaxInt64/price {
+		return 0, false
+	}
+	return price * amount / 1_000_000, true
+}
+func basisPoints(numerator, denominator int64) (int64, bool) {
+	if numerator < 0 || denominator <= 0 {
+		return 0, false
+	}
+	whole, remainder := numerator/denominator, numerator%denominator
+	if whole > math.MaxInt64/10_000 || remainder > math.MaxInt64/10_000 {
+		return 0, false
+	}
+	return whole*10_000 + remainder*10_000/denominator, true
 }
 func validSimpleID(value string) bool {
 	if len(value) < 3 || len(value) > 120 {
