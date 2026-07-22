@@ -11,3 +11,5 @@
 | OIDC/OAuth provider | Third-party authentication | Authorization Code + PKCE; DPoP where supported | Exact redirect, issuer and nonce checks | Provider claims only; never YNX account authority | Reference boundary only |
 
 Official specifications, licensing/terms and version links are tracked in `REFERENCE.md` and `THIRD_PARTY_NOTICES.md`. Operator credentials are never accepted in chat and are requested only through the secure operator-input workflow.
+
+Public probe note (2026-07-22): the EVM endpoint returned `eth_chainId=0x1917` and `eth_blockNumber=0x6bf29`, but `eth_getCode` returned `-32601`. Public EntryPoint and ERC-4337 compatibility therefore remain unverified; see the Chain Core integration handoff.

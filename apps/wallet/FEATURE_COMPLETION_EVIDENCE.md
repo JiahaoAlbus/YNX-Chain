@@ -15,4 +15,6 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 
 Central integration, staging/public product deployment, deployed Bundler/Paymaster, public sponsored receipt, Wallet→Pay/Quant/DEX live Gateway flows, installed-device passkey/Guardian flows, capital test positions, explorer proof for Smart Account, production signing and store release remain false. Local EDR contract execution, test code, screenshots from an older identity tuple, or a public chain RPC do not satisfy these states.
 
+The public EVM endpoint returned chainId 6423 and block 442,153 after bounded retries, but returned JSON-RPC `-32601` for `eth_getCode`. This directly contradicts public EntryPoint/code-verification readiness. The required Chain Core runtime and RPC acceptance surface is recorded in `packages/wallet-auth/integration/chain-erc4337-requirements.json`; no deployment state is raised.
+
 The canonical Gateway adapter, manifest, state schema and cross-language proof vector are implemented and tested but have not been merged into or deployed by `ynx-app-gatewayd`; `integratedCentral` therefore remains false.

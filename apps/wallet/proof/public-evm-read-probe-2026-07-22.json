@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1d7781b2c5d32a8d4d24da18ea5e5ef33c8665c6",
+  "observedAt": "2026-07-22T16:00:36Z",
+  "endpoint": "https://evm.ynxweb4.com",
+  "vantage": "developer-workstation-public-TLS",
+  "results": {
+    "eth_chainId": {"status":"success","result":"0x1917","decimal":6423},
+    "eth_blockNumber": {"status":"success-after-bounded-retry","result":"0x6bf29","decimal":442153},
+    "eth_getCode_entryPointV08_latest": {"status":"rpc-error","code":-32601,"message":"method eth_getCode is not implemented by the local YNX devnet RPC"},
+    "rest_status": {"status":"timeout","timeoutSeconds":15}
+  },
+  "networkObservation": "TLS handshakes were intermittent; successful results required IPv4 and bounded retries.",
+  "conclusion": "The public EVM endpoint proves chainId and advancing block-read capability. It does not expose eth_getCode, so EntryPoint deployment/code presence and ERC-4337 compatibility are unverified.",
+  "states": {"publicChainReadable":true,"entryPointCodeVerified":false,"erc4337RuntimeVerified":false,"publicSponsoredReceipt":false}
+}
