@@ -23,6 +23,11 @@ type ObjectStore interface {
 	Boundary() string
 }
 
+type DirectUploadStore interface {
+	Presign(context.Context, DirectUploadRequest) (DirectUploadPlan, error)
+	VerifyDirect(context.Context, string, string, int64) (DirectUploadVerification, error)
+}
+
 type LocalObjectStore struct{ Root string }
 
 func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (string, error) {
@@ -51,8 +56,8 @@ func (s LocalObjectStore) Delete(_ context.Context, ref, hash string) error {
 func (s LocalObjectStore) Boundary() string { return "bounded-local-filesystem-not-production-durable" }
 
 type RemoteObjectStore struct {
-	BaseURL, Token string
-	Client         *http.Client
+	BaseURL, Token, DirectUploadOrigin string
+	Client                             *http.Client
 }
 
 func (s RemoteObjectStore) client() *http.Client {
@@ -129,6 +134,86 @@ func (s RemoteObjectStore) Delete(ctx context.Context, ref, hash string) error {
 		return fmt.Errorf("object store delete returned %d", resp.StatusCode)
 	}
 	return nil
+}
+
+func (s RemoteObjectStore) Presign(ctx context.Context, in DirectUploadRequest) (DirectUploadPlan, error) {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return DirectUploadPlan{}, err
+	}
+	payload, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.BaseURL, "/")+"/uploads/presign", bytes.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return DirectUploadPlan{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusCreated {
+		return DirectUploadPlan{}, fmt.Errorf("object store presign returned %d", resp.StatusCode)
+	}
+	var out DirectUploadPlan
+	d := json.NewDecoder(io.LimitReader(resp.Body, 32<<10))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&out); err != nil {
+		return DirectUploadPlan{}, err
+	}
+	u, err := url.Parse(out.URL)
+	now := time.Now()
+	allowed, originErr := validatedUploadOrigin(s.DirectUploadOrigin)
+	if err != nil || originErr != nil || out.Method != "PUT" || out.Ref == "" || !out.ExpiresAt.After(now) || out.ExpiresAt.After(now.Add(20*time.Minute)) || !safeUploadURL(u) || u.Scheme+"://"+u.Host != allowed {
+		return DirectUploadPlan{}, errors.New("object store presign response is invalid")
+	}
+	for k := range out.Headers {
+		lower := strings.ToLower(k)
+		if lower == "authorization" || lower == "cookie" || strings.HasPrefix(lower, "x-ynx-") {
+			return DirectUploadPlan{}, errors.New("presigned upload headers contain forbidden credential")
+		}
+	}
+	return out, nil
+}
+
+func (s RemoteObjectStore) VerifyDirect(ctx context.Context, ref, hash string, size int64) (DirectUploadVerification, error) {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return DirectUploadVerification{}, err
+	}
+	payload, _ := json.Marshal(map[string]any{"ref": ref, "hash": hash, "size": size})
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.BaseURL, "/")+"/uploads/verify", bytes.NewReader(payload))
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return DirectUploadVerification{}, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return DirectUploadVerification{}, fmt.Errorf("object store direct verification returned %d", resp.StatusCode)
+	}
+	var out DirectUploadVerification
+	d := json.NewDecoder(io.LimitReader(resp.Body, 16<<10))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&out); err != nil {
+		return DirectUploadVerification{}, err
+	}
+	if !out.Verified || out.Hash != hash || out.Size != size || out.ScanStatus != "accepted" {
+		return DirectUploadVerification{}, errors.New("direct upload verification binding mismatch")
+	}
+	return out, nil
+}
+
+func safeUploadURL(u *url.URL) bool {
+	if u.Scheme == "https" && u.Host != "" {
+		return true
+	}
+	host := u.Hostname()
+	return u.Scheme == "http" && (host == "127.0.0.1" || host == "localhost" || host == "::1")
+}
+func validatedUploadOrigin(raw string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || !safeUploadURL(u) || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
+		return "", errors.New("direct upload origin is not configured or invalid")
+	}
+	return u.Scheme + "://" + u.Host, nil
 }
 func (s RemoteObjectStore) Boundary() string {
 	return "remote-contract-requires-operator-durability-evidence"

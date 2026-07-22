@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -127,5 +128,16 @@ func TestPublicAndRestrictedHealthObservability(t *testing.T) {
 	}
 	if metrics["source"] != "ynx-cloudd in-process counters" || metrics["coverage"] == nil {
 		t.Fatalf("metrics provenance: %#v", metrics)
+	}
+}
+
+func TestDirectUploadCSPIsExactAndOptional(t *testing.T) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
+	for _, tc := range []struct{ origin, want string }{{"", "connect-src 'self';"}, {"https://uploads.ynx.network", "connect-src 'self' https://uploads.ynx.network;"}, {"https://uploads.ynx.network/path", "connect-src 'self';"}} {
+		rr := httptest.NewRecorder()
+		SecureHandlerWithDirectUploadOrigin(next, tc.origin).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/cloud/", nil))
+		if got := rr.Header().Get("Content-Security-Policy"); !strings.Contains(got, tc.want) {
+			t.Fatalf("origin %q CSP %q want %q", tc.origin, got, tc.want)
+		}
 	}
 }

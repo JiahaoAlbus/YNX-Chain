@@ -277,6 +277,69 @@ func (s deleteFailStore) Delete(context.Context, string, string) error {
 	return errors.New("provider unavailable")
 }
 
+type directTestStore struct {
+	LocalObjectStore
+	Body []byte
+}
+
+func (s directTestStore) Presign(ctx context.Context, in DirectUploadRequest) (DirectUploadPlan, error) {
+	if hashBytes(s.Body) != in.Hash || int64(len(s.Body)) != in.Size {
+		return DirectUploadPlan{}, ErrInvalid
+	}
+	ref, err := s.Put(ctx, in.Hash, s.Body)
+	if err != nil {
+		return DirectUploadPlan{}, err
+	}
+	return DirectUploadPlan{Method: "PUT", URL: "http://127.0.0.1:9000/signed", Headers: map[string]string{"X-Checksum-SHA256": in.Hash}, Ref: ref, ExpiresAt: time.Now().Add(5 * time.Minute)}, nil
+}
+func (s directTestStore) VerifyDirect(ctx context.Context, ref, hash string, size int64) (DirectUploadVerification, error) {
+	b, err := s.Get(ctx, ref, hash)
+	if err != nil {
+		return DirectUploadVerification{}, err
+	}
+	return DirectUploadVerification{Verified: int64(len(b)) == size, Hash: hash, Size: int64(len(b)), ScanStatus: "accepted"}, nil
+}
+
+func TestPresignedDirectUploadRestartAndFailClosed(t *testing.T) {
+	body := []byte("provider-direct-content")
+	dir := t.TempDir()
+	store := directTestStore{LocalObjectStore: LocalObjectStore{Root: filepath.Join(dir, "objects")}, Body: body}
+	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: store.Root, ObjectStore: store, QuotaBytes: 1 << 20}
+	s, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, plan, err := s.InitiateDirectUpload(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "checkpoint.bin", MIME: "application/octet-stream", Artifact: &Artifact{Type: "checkpoint", Product: "ai", Retention: "standard"}}, int64(len(body)), hashBytes(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u.ProviderRef != "" || plan.Ref != "" || plan.URL == "" || plan.Method != "PUT" {
+		t.Fatalf("public plan redaction/binding: %#v %#v", u, plan)
+	}
+	s, err = New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := s.GetDirectUpload(owner, u.ID)
+	if err != nil || resumed.Status != "awaiting-upload" || resumed.ProviderRef != "" {
+		t.Fatalf("resume: %#v %v", resumed, err)
+	}
+	obj, err := s.CompleteDirectUpload(context.Background(), owner, u.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obj.Hash != hashBytes(body) || obj.ScanStatus != "accepted" || obj.Artifact == nil || obj.Artifact.Type != "checkpoint" {
+		t.Fatalf("object: %#v", obj)
+	}
+	if _, got, err := s.Content(owner, obj.ID, 0); err != nil || !bytes.Equal(got, body) {
+		t.Fatalf("content: %q %v", got, err)
+	}
+	local := testService(t, nil)
+	if _, _, err := local.InitiateDirectUpload(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "no.bin"}, 1, hashBytes([]byte("x"))); err == nil || !strings.Contains(err.Error(), "unavailable") {
+		t.Fatalf("local adapter claimed presigning: %v", err)
+	}
+}
+
 func TestPhysicalDeleteReferenceCountingAndPendingTruth(t *testing.T) {
 	dir := t.TempDir()
 	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects")}

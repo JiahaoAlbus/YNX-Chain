@@ -435,6 +435,181 @@ func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, order
 	return obj, nil
 }
 
+func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (DirectUpload, DirectUploadPlan, error) {
+	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
+	if !ok {
+		return DirectUpload{}, DirectUploadPlan{}, errors.New("presigned direct upload unavailable for configured object store")
+	}
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxDirectUploadBytes || len(expectedHash) != 64 || validateArtifact(req.Artifact) != nil {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	if req.MIME == "" {
+		req.MIME = "application/octet-stream"
+	}
+	if req.Encryption.ClientSide {
+		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
+			return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+		}
+	} else if req.Encryption.Algorithm != "" || req.Encryption.KeyHint != "" {
+		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	s.mu.Lock()
+	if req.ParentID != "" {
+		p, err := s.require(actor, req.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			s.mu.Unlock()
+			return DirectUpload{}, DirectUploadPlan{}, ErrDenied
+		}
+	}
+	s.mu.Unlock()
+	plan, err := provider.Presign(ctx, DirectUploadRequest{Hash: expectedHash, Size: expectedSize, MIME: req.MIME})
+	if err != nil {
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	now := s.cfg.Now()
+	u := DirectUpload{ID: newID("direct"), Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, ProviderRef: plan.Ref, Status: "awaiting-upload", CreatedAt: now, UpdatedAt: now, ExpiresAt: plan.ExpiresAt}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.state.DirectUploads[u.ID] = u
+	if err := s.persist("direct.initiate", actor, "", map[string]any{"directUploadId": u.ID, "size": expectedSize, "hash": expectedHash, "expiresAt": plan.ExpiresAt}); err != nil {
+		delete(s.state.DirectUploads, u.ID)
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	public := u
+	public.ProviderRef = ""
+	publicPlan := plan
+	publicPlan.Ref = ""
+	return public, publicPlan, nil
+}
+
+func (s *Service) GetDirectUpload(actor, id string) (DirectUpload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		return DirectUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return DirectUpload{}, ErrDenied
+	}
+	u.ProviderRef = ""
+	return u, nil
+}
+
+func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (Object, error) {
+	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
+	if !ok {
+		return Object{}, errors.New("presigned direct upload unavailable for configured object store")
+	}
+	s.mu.Lock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return Object{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return Object{}, ErrDenied
+	}
+	if u.Status != "awaiting-upload" || !u.ExpiresAt.After(s.cfg.Now()) {
+		s.mu.Unlock()
+		return Object{}, ErrInvalid
+	}
+	u.Status = "verifying"
+	u.UpdatedAt = s.cfg.Now()
+	s.state.DirectUploads[id] = u
+	s.mu.Unlock()
+	verified, err := provider.VerifyDirect(ctx, u.ProviderRef, u.ExpectedHash, u.ExpectedSize)
+	if err != nil {
+		s.mu.Lock()
+		u.Status = "awaiting-upload"
+		u.UpdatedAt = s.cfg.Now()
+		s.state.DirectUploads[id] = u
+		_ = saveState(s.cfg.StatePath, &s.state)
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	reset := func() {
+		u.Status = "awaiting-upload"
+		u.UpdatedAt = s.cfg.Now()
+		s.state.DirectUploads[id] = u
+		_ = saveState(s.cfg.StatePath, &s.state)
+	}
+	if u.ParentID != "" {
+		p, err := s.require(actor, u.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			reset()
+			return Object{}, ErrDenied
+		}
+	}
+	if s.usedLocked(actor)+s.additionalLocked(actor, u.ExpectedHash, u.ExpectedSize) > s.cfg.QuotaBytes {
+		reset()
+		return Object{}, errors.New("storage quota exceeded")
+	}
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		reset()
+		return Object{}, err
+	}
+	now := s.cfg.Now()
+	obj := Object{ID: newID("obj"), Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
+	s.state.Objects[obj.ID] = obj
+	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now}}
+	u.Status = "completed"
+	u.UpdatedAt = now
+	s.state.DirectUploads[id] = u
+	if err := s.persist("direct.complete", actor, obj.ID, map[string]any{"directUploadId": id, "hash": obj.Hash, "size": obj.Size, "scanStatus": obj.ScanStatus}); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) CancelDirectUpload(ctx context.Context, actor, id string) (DirectUpload, error) {
+	s.mu.Lock()
+	u, ok := s.state.DirectUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrDenied
+	}
+	if u.Status == "completed" {
+		s.mu.Unlock()
+		return DirectUpload{}, ErrInvalid
+	}
+	s.mu.Unlock()
+	err := s.cfg.ObjectStore.Delete(ctx, u.ProviderRef, u.ExpectedHash)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u.UpdatedAt = s.cfg.Now()
+	if err != nil {
+		u.Status = "cancel-pending-provider-delete"
+	} else {
+		u.Status = "canceled"
+	}
+	s.state.DirectUploads[id] = u
+	if persistErr := s.persist("direct.cancel", actor, "", map[string]any{"directUploadId": id, "status": u.Status}); persistErr != nil {
+		return DirectUpload{}, persistErr
+	}
+	if err != nil {
+		u.ProviderRef = ""
+		return u, errors.New("direct upload canceled; provider object deletion pending")
+	}
+	u.ProviderRef = ""
+	return u, nil
+}
+
 func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDocumentRequest) (Object, error) {
 	if len(req.Content) > MaxUploadBytes {
 		return Object{}, ErrInvalid
@@ -1473,7 +1648,8 @@ func (s *Service) Health() map[string]any {
 	if version == "" {
 		version = "1.0.0"
 	}
-	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+	_, direct := s.cfg.ObjectStore.(DirectUploadStore)
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "directUploads": len(s.state.DirectUploads), "presignedDirectUploadAvailable": direct, "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "maxDirectUploadBytes": MaxDirectUploadBytes, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
 }
 
 func (s *Service) Liveness() map[string]any {

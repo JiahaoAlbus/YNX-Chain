@@ -116,7 +116,7 @@ func main() {
 	}
 	var objects cloud.ObjectStore = cloud.LocalObjectStore{Root: filepath.Join(*data, "objects")}
 	if u := os.Getenv("YNX_OBJECT_STORE_URL"); u != "" {
-		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN")}
+		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN"), DirectUploadOrigin: os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")}
 	}
 	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects, ReleaseCommit: os.Getenv("YNX_RELEASE_COMMIT"), ReleaseVersion: os.Getenv("YNX_RELEASE_VERSION")})
 	if err != nil {
@@ -132,7 +132,7 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/cloud/", http.StatusTemporaryRedirect)
 	})
-	server := &http.Server{Addr: *addr, Handler: cloud.SecureHandler(mux), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
+	server := &http.Server{Addr: *addr, Handler: cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
 	log.Printf("ynx-cloudd listening on %s; durability is bounded local persistence, not production storage", *addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
