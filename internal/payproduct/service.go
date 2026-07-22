@@ -566,7 +566,7 @@ func (s *Service) RetryDue(ctx context.Context) []WebhookDelivery {
 }
 
 func (s *Service) Analytics(merchantID string) (Analytics, error) {
-	out := Analytics{MerchantID: merchantID, GeneratedAt: s.now(), Source: "persistent-product-records-and-authoritative-settlements"}
+	out := Analytics{MerchantID: merchantID, GeneratedAt: s.now(), Source: "persistent-product-records-and-authoritative-settlements", AsOf: s.now(), Version: 1}
 	err := s.store.View(func(data Snapshot) error {
 		if _, ok := data.Merchants[merchantID]; !ok {
 			return errors.New("merchant not found")
@@ -583,6 +583,9 @@ func (s *Service) Analytics(merchantID string) (Analytics, error) {
 		for _, v := range data.Refunds {
 			if v.MerchantID == merchantID {
 				out.RefundRequestCount++
+				if v.Status == "refunded" && v.Evidence != nil {
+					out.RefundedYNXT += v.Amount
+				}
 			}
 		}
 		for _, v := range data.Disputes {
@@ -595,6 +598,7 @@ func (s *Service) Analytics(merchantID string) (Analytics, error) {
 				out.FailedWebhookCount++
 			}
 		}
+		out.NetYNXT = out.GrossYNXT - out.RefundedYNXT
 		return nil
 	})
 	return out, err

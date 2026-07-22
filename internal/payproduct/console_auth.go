@@ -164,7 +164,7 @@ func roleAllows(role, permission string) bool {
 		return true
 	}
 	allowed := map[string]map[string]bool{
-		"finance":   {"read": true, "invoice": true, "reconcile": true, "case": true, "ai-run": true, "ai-review": true},
+		"finance":   {"read": true, "invoice": true, "reconcile": true, "case": true, "refund": true, "ai-run": true, "ai-review": true},
 		"developer": {"read": true, "webhook": true},
 		"support":   {"read": true, "case": true, "ai-run": true},
 		"viewer":    {"read": true},

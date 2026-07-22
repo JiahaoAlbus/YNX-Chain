@@ -8,7 +8,9 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -45,6 +47,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("PUT /v1/merchant/webhook", s.webhook)
 	s.mux.HandleFunc("POST /v1/merchant/webhook/rotate", s.rotate)
 	s.mux.HandleFunc("POST /v1/merchant/webhooks/{id}/retry", s.retryWebhook)
+	s.mux.HandleFunc("POST /v1/merchant/refunds/{id}/submit", s.submitRefund)
+	s.mux.HandleFunc("POST /v1/merchant/refunds/{id}/refresh", s.refreshRefund)
 	s.mux.HandleFunc("GET /v1/merchant/analytics", s.analytics)
 	s.mux.HandleFunc("GET /v1/merchant/reconciliation.csv", s.exportCSV)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
@@ -331,6 +335,33 @@ func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Deliver(r.Context(), r.PathValue("id"))
 	respond(w, 200, out, err)
 }
+func (s *Server) submitRefund(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "refund")
+	if !ok {
+		return
+	}
+	var in struct {
+		Authorization  RefundAuthorization `json:"authorization"`
+		IdempotencyKey string              `json:"idempotencyKey"`
+	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.SubmitRefundAuthorization(r.Context(), p, r.PathValue("id"), in.Authorization, in.IdempotencyKey)
+	respond(w, 201, out, err)
+}
+func (s *Server) refreshRefund(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "case")
+	if !ok {
+		return
+	}
+	if len(bytes.TrimSpace(body)) != 0 && string(bytes.TrimSpace(body)) != "{}" {
+		writeError(w, 400, "refund refresh body must be empty")
+		return
+	}
+	out, err := s.service.RefreshRefund(r.Context(), p, r.PathValue("id"))
+	respond(w, 200, out, err)
+}
 func (s *Server) analytics(w http.ResponseWriter, r *http.Request) {
 	p, _, ok := s.merchantAuth(w, r, "read")
 	if !ok {
@@ -349,18 +380,32 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 		respond(w, 0, nil, err)
 		return
 	}
+	state, err := s.service.SnapshotForMerchant(p.Merchant.ID)
+	if err != nil {
+		respond(w, 0, nil, err)
+		return
+	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=ynx-pay-reconciliation.csv")
 	cw := csv.NewWriter(w)
-	_ = cw.Write([]string{"invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "status", "transaction_hash", "block_number", "created_at", "expires_at"})
+	_ = cw.Write([]string{"invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "refunded_ynxt", "merchant_net_ynxt", "status", "transaction_hash", "block_number", "refund_receipts", "created_at", "expires_at"})
 	for _, v := range items {
 		tx := ""
 		block := ""
+		refunded := int64(0)
+		refundReceipts := []string{}
 		if v.Settlement != nil {
 			tx = v.Settlement.TransactionHash
 			block = strconv.FormatUint(v.Settlement.BlockNumber, 10)
 		}
-		_ = cw.Write([]string{v.ID, v.CentralID, v.MerchantID, strconv.FormatInt(v.Amount, 10), strconv.FormatInt(v.Fee, 10), v.Status, tx, block, v.CreatedAt.Format(time.RFC3339), v.ExpiresAt.Format(time.RFC3339)})
+		for _, refund := range state.Refunds {
+			if refund.InvoiceID == v.ID && refund.Status == "refunded" && refund.Evidence != nil {
+				refunded += refund.Amount
+				refundReceipts = append(refundReceipts, refund.Evidence.ReceiptID)
+			}
+		}
+		sort.Strings(refundReceipts)
+		_ = cw.Write([]string{v.ID, v.CentralID, v.MerchantID, strconv.FormatInt(v.Amount, 10), strconv.FormatInt(v.Fee, 10), strconv.FormatInt(refunded, 10), strconv.FormatInt(v.Amount-refunded, 10), v.Status, tx, block, strings.Join(refundReceipts, ";"), v.CreatedAt.Format(time.RFC3339), v.ExpiresAt.Format(time.RFC3339)})
 	}
 	cw.Flush()
 }

@@ -69,6 +69,16 @@ func (c *HTTPPayAPI) CreateRefund(ctx context.Context, intent string, amount int
 	err := c.do(ctx, http.MethodPost, "/pay/refunds", map[string]any{"intentId": intent, "amount": amount, "reason": reason, "idempotencyKey": key}, &out)
 	return out, err
 }
+func (c *HTTPPayAPI) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
+	var out chain.RefundRecord
+	err := c.do(ctx, http.MethodPost, "/pay/refunds", input, &out)
+	return out, err
+}
+func (c *HTTPPayAPI) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
+	var out AuthoritativeRefundEvidence
+	err := c.do(ctx, http.MethodGet, "/pay/refunds/"+url.PathEscape(id)+"/evidence", nil, &out)
+	return out, err
+}
 func (c *HTTPPayAPI) do(ctx context.Context, method, path string, body any, out any) error {
 	var raw []byte
 	var err error

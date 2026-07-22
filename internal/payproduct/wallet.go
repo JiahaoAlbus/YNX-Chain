@@ -311,6 +311,8 @@ func sameStrings(a, b []string) bool {
 }
 
 func (s *Service) CreateRefundRequest(session WalletSession, invoiceID string, amount int64, reason, key string) (RefundRequest, error) {
+	s.mutation.Lock()
+	defer s.mutation.Unlock()
 	invoice, err := s.Invoice(context.Background(), invoiceID)
 	if err != nil {
 		return RefundRequest{}, err
@@ -329,9 +331,34 @@ func (s *Service) CreateRefundRequest(session WalletSession, invoiceID string, a
 		return RefundRequest{}, err
 	}
 	id := "rfr_" + hashString(invoiceID, session.Account, key)[:20]
+	requestHash := hashJSON(map[string]any{"invoiceId": invoiceID, "account": session.Account, "amount": amount, "reason": strings.TrimSpace(reason)})
+	var existing RefundRequest
+	var replay bool
+	err = s.store.View(func(data Snapshot) error {
+		if idem, ok := data.Idempotency["refund-request:"+session.Account+":"+key]; ok {
+			if idem.RequestHash != requestHash {
+				return errors.New("refund request idempotency key reused with different input")
+			}
+			existing, replay = data.Refunds[idem.ObjectID]
+			return nil
+		}
+		var reserved int64
+		for _, candidate := range data.Refunds {
+			if candidate.InvoiceID == invoiceID && candidate.Status != "rejected" && candidate.Status != "cancelled" && candidate.Status != "failed" {
+				reserved += candidate.Amount
+			}
+		}
+		if reserved+amount > invoice.Amount {
+			return errors.New("aggregate refund requests exceed the paid invoice amount")
+		}
+		return nil
+	})
+	if err != nil || replay {
+		return existing, err
+	}
 	now := s.now()
 	request := RefundRequest{ID: id, InvoiceID: invoiceID, MerchantID: invoice.MerchantID, Payer: session.Account, Amount: amount, Reason: strings.TrimSpace(reason), Status: "requested", CreatedAt: now, UpdatedAt: now}
-	err = s.idempotentUpdate("refund-request", session.Account, key, hashJSON(request), id, func(data *Snapshot) error {
+	err = s.idempotentUpdate("refund-request", session.Account, key, requestHash, id, func(data *Snapshot) error {
 		data.Refunds[id] = request
 		appendAudit(data, invoice.MerchantID, "wallet:"+session.Account, "refund.request", id, "committed", "human merchant action required", now)
 		return nil

@@ -7,7 +7,7 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Canonical Wallet/Gateway client bindings | partial | package and fail-closed tests pass locally; central registry is not integrated |
 | Invoice/payment link/QR and review | verified locally | Pay client tests and production exports; no current install proof |
 | Authoritative committed receipt | verified locally | Go settlement matching and replay tests; fresh public transaction proof missing |
-| Refund request and dispute | partial | request/evidence workflows pass; authoritative refund transaction lifecycle incomplete |
+| Refund request and dispute | partial | refund request, aggregate partial limit, owner/finance plus merchant-Wallet authorization, central submission and authoritative committed refund evidence pass local tests; no fresh public refund transaction. Dispute review remains Trust-owned |
 | Webhook signature/retry/audit | partial | signature and retry tests pass; explicit dead-letter/manual resolution coverage incomplete |
 | Tip, split and recurring draft | missing | no complete persisted API/UI workflow |
 | Smart account and sponsorship | partial | fail-closed HTTPS adapter, device/account/merchant budgets, first-payment eligibility, attribution, call-data binding and authoritative UserOperation receipt tests pass locally; no configured public paymaster or live receipt |
