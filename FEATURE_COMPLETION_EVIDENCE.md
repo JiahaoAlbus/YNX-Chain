@@ -14,7 +14,7 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Liquid staking candidate | false | false | false | false | false | false | false | false | false | Requires audited contracts and stress/queue/slash/depeg evidence |
 | Safety Module and service security pools | false | false | false | false | false | false | false | false | false | No consensus state or contracts recovered |
 | Stablecoin issuer review control plane | true | true | false | false | false | false | false | false | false | Existing `make stablecoin-issuer-check`; intent-only, execution disabled |
-| 1:1 YUSD sandbox with reserve/redemption reconciliation | false | false | false | false | false | false | false | false | false | No reserve provider, custodian, attestation, signer, or redemption rail |
+| 1:1 YUSD sandbox with reserve/redemption reconciliation | true | true | false | false | false | false | false | false | false | Isolated test-unit ledger and `make yusd-sandbox-check`; no real reserve, custodian, attestation, signer, redemption rail, or value |
 | Treasury bucket snapshot and stress/runway simulation | true | true | false | false | false | false | false | false | false | Exact configured consensus account plus explicit zero/unconfigured buckets; branch-local |
 | Treasury governance, custody and transfer execution | false | false | false | false | false | false | false | false | false | No multisig authority, custody evidence, governed budget, or transfer route |
 | Public economics dashboard and `/ynxt` `/economics` handoff | false | false | false | false | false | false | false | false | false | Metadata and Website handoff not yet built |
@@ -24,3 +24,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `go test ./internal/economics ./cmd/ynx-economics-sim` — pass.
 - `go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json` — pass; five reconciled annual records.
 - `go test ./...` initially exposed missing generated Solidity artifacts in three existing tests. After `npm run hardhat:build`, `go test ./internal/bftgateway ./internal/consensus` passed. This is a build prerequisite, not evidence that all final tokenomics requirements are complete.
+- `make yusd-sandbox-check` — pass; race-enabled lifecycle, outage, pause, persistence, reconciliation, tamper, auth, and HTTP boundary coverage.

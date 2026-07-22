@@ -25,3 +25,9 @@ Migration intentionally does not infer historical fees, delegations, or unbondin
 Before staging activation, operators must back up the source state, verify its SHA-256 and mode, start application version 11 against a copy, query accounts, fees, delegations, and unbondings, execute one approved delegation/unbond/withdrawal lifecycle, verify liquid + staked + queued-unbonding supply reconciliation, stop, restart, and verify the same AppHash and records. Rollback restores the untouched matching binary/state pair while public mutation ingress remains frozen.
 
 Current evidence covers local migration and restart tests only. No staging or public migration has been performed.
+
+## YUSD sandbox state v1
+
+The YUSD sandbox uses an independent schema-version-1 JSON state file and never reads or writes consensus or stablecoin-issuer state. Startup validates the whole-file integrity hash, audit chain, reserve liabilities, account supply, redemptions, daily limits, and idempotency records before serving. No earlier YUSD sandbox schema exists, so no migration is claimed. A future schema change must use an explicit offline converter and retain the original file and binary for rollback; old binaries must not write newer schema files.
+
+Restart persistence and tamper rejection are tested locally. An operator stop/copy/hash/restore drill has not yet been recorded, and no staging or public YUSD sandbox state exists.

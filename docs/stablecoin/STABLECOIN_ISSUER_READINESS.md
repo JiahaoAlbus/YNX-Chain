@@ -17,6 +17,8 @@ YNX Chain does not claim USDT, USDC, or any other issuer-supported stablecoin. N
 
 The service stores intent only. Every intent has `status=recorded_not_executed` and `executionEnabled=false`. It has no adapter, signer, contract call, external-chain transaction, mint, burn, freeze, seize, blacklist, or fund-movement implementation.
 
+The separate `ynx-yusd-sandboxd` process does not change this boundary. It operates an isolated test-unit ledger described in `YUSD_SANDBOX.md`; it is not an issuer adapter or evidence of issuer approval.
+
 Native YNXT, wrapped/native YNXT identifiers, gas/resource balances, validator stake/bond, and protocol treasury state are rejected from issuer control. Issuer-token policy must never be presented as a YNX native protocol action.
 
 ## Local Verification
