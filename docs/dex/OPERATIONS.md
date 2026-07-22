@@ -7,6 +7,7 @@ npm ci
 npm run hardhat:build
 npm run dex:contracts:test
 npm run dex:vault:test
+npm run dex:fairflow:test
 npm test --prefix sdk/dex
 npm run build --prefix apps/dex
 npm test --prefix apps/dex
@@ -17,13 +18,15 @@ npm run dex:package:all
 npm run dex:artifacts:verify
 ```
 
+Run the Hardhat build and the three Hardhat contract runners serially. Hardhat 3 shares one compile-cache temporary path, so parallel build processes can race during cache rename even when the Solidity output is valid.
+
 Start the API with random non-repository secrets and owner-selected state/cursor paths. Set `DEX_FACTORY_ADDRESS` and `DEX_INDEXER_START_BLOCK` only from a verified deployment manifest; otherwise the API starts without pretending to ingest chain data. Start the Web app through its same-origin reverse proxy. If AI explanation is enabled, `VITE_DEX_AI_GATEWAY_URL` must remain a same-origin proxy path such as `/ai`; cross-origin endpoints fail closed. `/health` reports product, chain and latest indexed block; `/version` reports exact build identity.
 
 Set `DEX_STRATEGY_VAULT_ADDRESS` only from the same verified deployment manifest. Cursor v2 binds that address and rejects substitution. Enabling it from a v1 cursor preserves a mode-0600 backup and rewinds to `DEX_INDEXER_START_BLOCK` so earlier Vault actions are not skipped. The versioned `/v1/vault/actions` API exposes confirmed actions only and must not be used as a substitute for direct current-state RPC reads.
 
 ## Testnet deployment
 
-Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee addresses, exact Testnet token allow-list, user vault owner, limited Quant engine address and reviewed on-chain vault oracle, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens and zero deployer balance. It deploys the Vault paused and unconfigured and writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, pool creation, test liquidity, Wallet mandate review, swap/LP/Vault proofs, Explorer links and Indexer consistency are separate required steps.
+Copy `.env.dex.example` outside the repository, provide the real RPC, deployer key, reviewed multisig/fee/FairFlow treasury addresses, exact Testnet token allow-list, public minimum solver bond, user vault owner, limited Quant engine address and reviewed on-chain vault oracle, then run `npm run dex:deploy:testnet`. The script rejects the wrong chain, missing token/oracle code, duplicate tokens, invalid bond and zero deployer balance. It deploys the Vault paused and unconfigured plus an empty FairFlow registry with no batches or solver claims, then writes a local mode-0600 manifest. Only the immutable vault owner may configure its mandate. Source/bytecode verification, pool creation, solver funding/onboarding, test liquidity, Wallet mandate review, swap/LP/Vault/FairFlow proofs, Explorer links and Indexer consistency are separate required steps.
 
 ## Recovery and rollback
 
