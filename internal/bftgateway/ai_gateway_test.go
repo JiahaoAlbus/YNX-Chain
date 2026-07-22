@@ -87,6 +87,29 @@ func TestGatewayCommitsAndQueriesSignedAIWorkflow(t *testing.T) {
 	if account.Nonce != 3 || account.Balance != 97 || account.ResourceUsage.AICreditsUsed != 3 {
 		t.Fatalf("unexpected signer account: %+v", account)
 	}
+	var fees struct {
+		SchemaVersion int                     `json:"schemaVersion"`
+		Source        string                  `json:"source"`
+		Failure       bool                    `json:"failure"`
+		Events        []consensus.BFTFeeEvent `json:"events"`
+		Coverage      struct {
+			Total, Matched, Returned int
+			Complete                 bool
+		} `json:"coverage"`
+	}
+	getJSON(t, server.URL+"/economics/fees?payer="+signer+"&limit=10", &fees)
+	if fees.SchemaVersion != 1 || fees.Source != "ynx-consensus-abci" || fees.Failure || len(fees.Events) != 3 || fees.Coverage.Total != 3 || !fees.Coverage.Complete {
+		t.Fatalf("unexpected authoritative fee response: %+v", fees)
+	}
+	var exact struct {
+		Event   consensus.BFTFeeEvent `json:"event"`
+		Source  string                `json:"source"`
+		Failure bool                  `json:"failure"`
+	}
+	getJSON(t, server.URL+"/economics/fees/"+fees.Events[0].ID, &exact)
+	if exact.Failure || exact.Source != "ynx-consensus-abci" || exact.Event.ID != fees.Events[0].ID {
+		t.Fatalf("unexpected exact fee response: %+v", exact)
+	}
 
 	postSignedAction(t, server.URL+"/ai/actions/wrong/approve", approvalRaw, http.StatusBadRequest, nil)
 	postSignedAction(t, server.URL+"/ai/permissions", append(permissionRaw, '\n'), http.StatusBadRequest, nil)

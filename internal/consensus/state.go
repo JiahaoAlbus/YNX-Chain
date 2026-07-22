@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 7
+const CommittedStateVersion = 8
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -27,6 +27,7 @@ type CommittedState struct {
 	Initialized                bool                            `json:"initialized"`
 	Height                     int64                           `json:"height"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -67,6 +68,7 @@ type committedStateHashDocument struct {
 	ChainID                    int64                           `json:"chainId"`
 	MigrationStateHash         string                          `json:"migrationStateHash"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
+	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -108,6 +110,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Initialized:                false,
 		Height:                     int64(migration.Height),
 		Accounts:                   cloneAccounts(migration.Accounts),
+		FeeEvents:                  []BFTFeeEvent{},
 		AIPermissions:              []BFTAIPermission{},
 		AIActions:                  []BFTAIAction{},
 		AIAuditEvents:              []BFTAIAuditEvent{},
@@ -151,6 +154,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		Initialized:                true,
 		Height:                     height,
 		Accounts:                   cloneAccounts(execution.accounts),
+		FeeEvents:                  append([]BFTFeeEvent(nil), execution.feeEvents...),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
 		AIActions:                  cloneAIActions(execution.actions),
 		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
@@ -280,6 +284,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateFeeEvents(s.FeeEvents); err != nil {
+		return err
+	}
 	if liquid > math.MaxInt64-staked || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
@@ -301,12 +308,17 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
+	return s.calculateHashFor("YNX_ABCI_STATE_V8", CommittedStateVersion)
+}
+
+func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
 	doc := committedStateHashDocument{
-		Domain:                     "YNX_ABCI_STATE_V7",
-		Version:                    s.Version,
+		Domain:                     domain,
+		Version:                    version,
 		ChainID:                    s.ChainID,
 		MigrationStateHash:         s.MigrationStateHash,
 		Accounts:                   s.Accounts,
+		FeeEvents:                  s.FeeEvents,
 		AIPermissions:              s.AIPermissions,
 		AIActions:                  s.AIActions,
 		AIAuditEvents:              s.AIAuditEvents,
@@ -348,7 +360,24 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.FeeEvents)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+}
+
+func validateFeeEvents(events []BFTFeeEvent) error {
+	seen := make(map[string]struct{}, len(events))
+	for _, event := range events {
+		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || event.Source != "ynx-consensus-fixed-fee-v1" || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
+			return errors.New("committed fee events must be complete and audit-bound")
+		}
+		if event.BurnYNXT+event.ValidatorYNXT+event.ProviderYNXT+event.ProtocolYNXT+event.TreasuryYNXT != event.GrossFeeYNXT {
+			return errors.New("committed fee event allocation must reconcile to gross fee")
+		}
+		if _, exists := seen[event.ID]; exists {
+			return errors.New("committed fee event IDs must be unique")
+		}
+		seen[event.ID] = struct{}{}
+	}
+	return nil
 }
 
 func validatePayCommittedState(s CommittedState) error {
@@ -421,6 +450,26 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 	var state CommittedState
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
+	}
+	if state.Version == 7 {
+		expected := migration.StateHash
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V7", 7)
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("calculate legacy committed state hash: %w", err)
+			}
+		}
+		if !strings.EqualFold(state.AppHash, expected) {
+			return CommittedState{}, errors.New("legacy committed state app hash is invalid")
+		}
+		state.Version = CommittedStateVersion
+		state.FeeEvents = []BFTFeeEvent{}
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			state.AppHash, err = state.calculateHash()
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("migrate committed state hash: %w", err)
+			}
+		}
 	}
 	if err := state.Validate(migration); err != nil {
 		return CommittedState{}, fmt.Errorf("validate committed state: %w", err)
