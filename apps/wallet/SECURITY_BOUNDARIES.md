@@ -21,6 +21,7 @@ Status: implemented and tested locally on the Wallet branch. Central enforcement
 - Smart Account sponsorship evaluates an exact operation digest, EntryPoint, Product Session, anti-Sybil subject, target/selector allowlist and three nested budgets. Disabled, expired, mismatched or exhausted policies return zero approved cost.
 - Quant mandates structurally prohibit withdrawals, owner changes, arbitrary transfers and unlimited approvals. Exchange authority is subaccount-only; DEX authority requires exact contract and method allowlists.
 - Selective-disclosure candidates carry one bounded eligibility/classification result plus issuer, expiry, proof digest, status-list reference and audit ID. Raw identity-document fields are outside the accepted schema.
+- Sensitive execution can be wrapped in a five-minute secp256k1 Signed Intent that binds Product Session, product/bundle/account, action, exact parameter digest, Evidence, Trust decision, human approval and AI explain-only metadata. Canonical export re-verifies the signature; execution checks expiry and the revoke digest set.
 
 ## Protocol controls
 

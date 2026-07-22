@@ -12,3 +12,4 @@ export * from "./native-transfer.js";
 export * from "./smart-account.js";
 export * from "./mandate.js";
 export * from "./credential.js";
+export * from "./intent.js";

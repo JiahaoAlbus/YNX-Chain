@@ -89,3 +89,8 @@ export declare function strategyMandateDigest(input:unknown):string;
 export declare function parseCapitalProductReview(input:unknown):Readonly<Record<string,unknown>>;
 export declare function parseCredentialCandidate(input:unknown,at?:Date):Readonly<Record<string,unknown>>;
 export declare function credentialCandidateDigest(input:unknown,at?:Date):string;
+export declare function createSignedIntent(input:Readonly<Record<string,unknown>&{accountSecret:string}>):Readonly<Record<string,unknown>>;
+export declare function parseSignedIntent(input:unknown):Readonly<Record<string,unknown>>;
+export declare function signedIntentDigest(input:unknown):string;
+export declare function exportSignedIntent(input:unknown):string;
+export declare function assertSignedIntentActive(input:unknown,context:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;

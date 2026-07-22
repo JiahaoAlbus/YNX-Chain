@@ -4,7 +4,7 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 
 ## Proven locally
 
-- Canonical Wallet/Auth lifecycle: 30 original SDK tests plus 12 Smart Account, mandate, capital and Credential tests.
+- Canonical Wallet/Auth lifecycle: 30 original SDK tests plus 17 Signed Intent, Smart Account, mandate, capital and Credential tests.
 - Wallet native application: 23 unit/integration tests, TypeScript check and product gate.
 - Android API 36 installed/cold-launch evidence and iOS Simulator CI build/install/cold-launch/deep-link rejection evidence.
 - Hosted test-signed Android APK and unsigned iOS Simulator archive with SHA-256 and byte counts.
