@@ -198,6 +198,70 @@ export function buildVaultRemoveLiquidityTx({ state, tokenA, tokenB, liquidity, 
   return vaultRequest(state, "removeLiquidity", [state.actionNonce.toString(), tokenA.toLowerCase(), tokenB.toLowerCase(), positiveBigInt(liquidity).toString(), positiveBigInt(amountAMin, true).toString(), positiveBigInt(amountBMin, true).toString(), deadline], "limited-engine-session");
 }
 
+export function parseExecutionSnapshot(value, { state, now = new Date(), maxAgeMs = 15_000 } = {}) {
+  state = assertExecutableVaultState(state, { now, maxAgeMs });
+  exactObject(value, ["asOf", "chainId", "confidence", "coverage", "failure", "fees", "gas", "oracle", "risk", "source", "vault", "version"]);
+  if (value.chainId !== 6423 || value.vault?.toLowerCase() !== state.vault || value.source !== "YNX Testnet RPC + owner-reviewed oracle" || value.version !== "ynx-execution-snapshot-v1" || value.confidence !== "preflight-observed" || value.failure !== null || !bounded(value.coverage, 20, 500)) fail("INVALID_EXECUTION_SNAPSHOT", "snapshot provenance is not authoritative");
+  const asOf = new Date(value.asOf);
+  const age = now.valueOf() - asOf.valueOf();
+  if (!Number.isFinite(asOf.valueOf()) || !Number.isInteger(maxAgeMs) || maxAgeMs < 1 || age < 0 || age > maxAgeMs) fail("STALE_EXECUTION_SNAPSHOT", "execution snapshot is stale or from the future");
+  exactObject(value.gas, ["estimatedGas", "gasPrice", "provider"]);
+  if (!bounded(value.gas.provider, 3, 120)) fail("INVALID_EXECUTION_SNAPSHOT", "gas provider is missing");
+  const estimatedGas = positiveBigInt(value.gas.estimatedGas);
+  const gasPrice = positiveBigInt(value.gas.gasPrice, true);
+  if (gasPrice > state.mandate.maxGasPrice) fail("GAS_LIMIT_EXCEEDED", "observed gas price exceeds vault mandate");
+  exactObject(value.fees, ["hiddenSpreadBps", "performanceFeeBps", "protocolFeeShareBps", "venueFeeBps"]);
+  for (const field of ["hiddenSpreadBps", "performanceFeeBps", "protocolFeeShareBps", "venueFeeBps"]) if (!Number.isInteger(value.fees[field])) fail("INVALID_EXECUTION_SNAPSHOT", "fee fields must be integer bps");
+  if (value.fees.hiddenSpreadBps !== 0 || value.fees.performanceFeeBps !== 0 || value.fees.venueFeeBps < 0 || value.fees.venueFeeBps > 100 || value.fees.protocolFeeShareBps < 0 || value.fees.protocolFeeShareBps > 5_000) fail("INVALID_EXECUTION_FEES", "fees violate the public v1 fee policy");
+  exactObject(value.oracle, ["address", "deviationBps", "updatedAt"]);
+  const oracleUpdatedAt = new Date(value.oracle.updatedAt);
+  if (!ADDRESS.test(value.oracle.address) || value.oracle.address.toLowerCase() !== state.oracle || !Number.isFinite(oracleUpdatedAt.valueOf()) || !Number.isInteger(value.oracle.deviationBps) || value.oracle.deviationBps < 0) fail("INVALID_EXECUTION_SNAPSHOT", "oracle identity or observation is invalid");
+  const oracleAgeMs = now.valueOf() - oracleUpdatedAt.valueOf();
+  if (oracleAgeMs < 0 || BigInt(Math.floor(oracleAgeMs / 1000)) > state.mandate.oracleMaxAge) fail("STALE_ORACLE", "oracle observation is stale or from the future");
+  if (BigInt(value.oracle.deviationBps) > state.mandate.depegToleranceBps) fail("DEPEG_LIMIT_EXCEEDED", "oracle deviation exceeds vault mandate");
+  exactObject(value.risk, ["dailyLossBps", "drawdownBps", "priceImpactBps", "slippageBps", "tradeValue", "vaultValue"]);
+  for (const field of ["dailyLossBps", "drawdownBps", "priceImpactBps", "slippageBps"]) if (!Number.isInteger(value.risk[field]) || value.risk[field] < 0) fail("INVALID_EXECUTION_SNAPSHOT", "risk bps must be non-negative integers");
+  const tradeValue = positiveBigInt(value.risk.tradeValue, true);
+  const vaultValue = positiveBigInt(value.risk.vaultValue, true);
+  const bounds = [[tradeValue,state.mandate.maxTradeValue,"TRADE_LIMIT_EXCEEDED"],[vaultValue,state.mandate.maxVaultValue,"VAULT_LIMIT_EXCEEDED"],[BigInt(value.risk.slippageBps),state.mandate.maxSlippageBps,"SLIPPAGE_LIMIT_EXCEEDED"],[BigInt(value.risk.priceImpactBps),state.mandate.maxImpactBps,"IMPACT_LIMIT_EXCEEDED"],[BigInt(value.risk.dailyLossBps),state.mandate.maxDailyLossBps,"DAILY_LOSS_LIMIT_EXCEEDED"],[BigInt(value.risk.drawdownBps),state.mandate.maxDrawdownBps,"DRAWDOWN_LIMIT_EXCEEDED"]];
+  for (const [observed, limit, code] of bounds) if (observed > limit) fail(code, "observed risk exceeds vault mandate");
+  return Object.freeze({ ...value, vault: state.vault, asOf: asOf.toISOString(), gas: Object.freeze({ ...value.gas, estimatedGas, gasPrice, estimatedFeeNative: estimatedGas * gasPrice }), fees: Object.freeze({ ...value.fees }), oracle: Object.freeze({ ...value.oracle, address: state.oracle, updatedAt: oracleUpdatedAt.toISOString() }), risk: Object.freeze({ ...value.risk, tradeValue, vaultValue }) });
+}
+
+export function attributeQuoteFees({ quote, protocolFeeShareBps }) {
+  if (!quote || !Array.isArray(quote.steps) || !Number.isInteger(protocolFeeShareBps) || protocolFeeShareBps < 0 || protocolFeeShareBps > 5_000) fail("INVALID_FEE_ATTRIBUTION", "quote or protocol fee share is invalid");
+  const items = quote.steps.map((step) => {
+    validateFee(step.feeBps);
+    const inputAmount = positiveBigInt(step.amountIn);
+    const totalFee = inputAmount * BigInt(step.feeBps) / BPS;
+    const protocolFee = totalFee * BigInt(protocolFeeShareBps) / BPS;
+    return Object.freeze({ pool: step.pool.toLowerCase(), token: step.tokenIn.toLowerCase(), inputAmount, totalFee, protocolFee, lpFee: totalFee - protocolFee, venueFeeBps: step.feeBps, protocolFeeShareBps });
+  });
+  return Object.freeze({ source: "deterministic quote inputs + on-chain pool fee parameters", asOf: quote.quotedAt, version: "ynx-fee-attribution-v1", coverage: "Per-hop nominal input-token fees; excludes gas and price impact", confidence: "deterministic-preflight", failure: null, hiddenSpreadBps: 0, performanceFeeBps: 0, items: Object.freeze(items) });
+}
+
+export function describePoolFeeCollection({ poolType }) {
+  if (poolType !== "constant-product-v1") fail("UNSUPPORTED_POOL_TYPE", "fee collection semantics are unknown for this pool type");
+  return Object.freeze({ poolType, source: "YNXDexPool v1 contract semantics", version: "ynx-fee-collection-capability-v1", lpCollectSupported: false, lpFeeMode: "embedded-in-pool-reserves", realizationAction: "removeLiquidity", protocolCollectAuthority: "factory protocolFeeRecipient only", automaticExecution: false, failure: null });
+}
+
+export function buildVaultCollectFeesTx({ poolType }) {
+  describePoolFeeCollection({ poolType });
+  fail("LP_COLLECT_UNSUPPORTED", "constant-product-v1 LP fees are embedded in reserves and can only be realized by removing liquidity");
+}
+
+export function buildVaultCompoundTx(input) {
+  return buildVaultAddLiquidityTx(input);
+}
+
+export function buildVaultRebalancePlan({ state, remove, target, now = new Date() }) {
+  exactObject(remove, ["amountAMin", "amountBMin", "deadline", "liquidity", "tokenA", "tokenB"]);
+  exactObject(target, ["tokenA", "tokenB"]);
+  validateVaultTokens(target.tokenA, target.tokenB);
+  const firstRequest = buildVaultRemoveLiquidityTx({ state, ...remove, now });
+  return Object.freeze({ source: "caller-supplied bounded Vault actions", asOf: now.toISOString(), version: "ynx-vault-rebalance-plan-v1", operation: "rebalance", automaticExecution: false, strategySelection: false, capitalAllocation: false, firstRequest, continuation: Object.freeze({ requires: "confirmed ActionExecuted plus fresh Vault state and a new canonical Wallet approval", functionName: "addLiquidity", tokenA: target.tokenA.toLowerCase(), tokenB: target.tokenB.toLowerCase() }), failure: null });
+}
+
 export function buildPauseVaultTx({ state, requestedBy }) {
   state = parseVaultState(state);
   if (!ADDRESS.test(requestedBy) || ![state.owner, state.engine].includes(requestedBy.toLowerCase())) fail("UNAUTHORIZED_VAULT_REQUEST", "pause requires owner or engine");

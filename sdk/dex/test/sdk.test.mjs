@@ -9,6 +9,8 @@ import {
   buildVaultSwapExactOutputTx, parseVaultState, reconcileVaultAction,
   digestVaultRequest, submitApprovedVaultRequest,
   parseIndexedVaultAction, reconcileIndexedVaultAction,
+  attributeQuoteFees, buildVaultCollectFeesTx, buildVaultCompoundTx,
+  buildVaultRebalancePlan, describePoolFeeCollection, parseExecutionSnapshot,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -72,6 +74,26 @@ test("vault adapter rejects stale, paused, expired, fee-bearing, and unauthorize
   assert.throws(()=>assertExecutableVaultState(vaultState(current.toISOString(),nowSeconds),{now:current}),error=>error.code==="VAULT_MANDATE_EXPIRED");
   assert.throws(()=>parseVaultState({...state,mandate:{...state.mandate,performanceFeeBps:"1"}}),error=>error.code==="INVALID_VAULT_MANDATE");
   assert.throws(()=>buildEmergencyExitTx({state,requestedBy:address(999),recipient:state.owner}),error=>error.code==="UNAUTHORIZED_VAULT_REQUEST");
+});
+
+test("execution snapshot fails closed on gas, oracle, fee, and risk limits",()=>{
+  const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);
+  const snapshot={asOf:current.toISOString(),chainId:6423,confidence:"preflight-observed",coverage:"RPC gas estimate, pool fees, owner-reviewed oracle and Vault risk observations",failure:null,fees:{hiddenSpreadBps:0,performanceFeeBps:0,protocolFeeShareBps:1667,venueFeeBps:30},gas:{estimatedGas:"210000",gasPrice:"1000000000",provider:"YNX Testnet RPC"},oracle:{address:state.oracle,deviationBps:20,updatedAt:current.toISOString()},risk:{dailyLossBps:10,drawdownBps:20,priceImpactBps:30,slippageBps:40,tradeValue:"1000",vaultValue:"10000"},source:"YNX Testnet RPC + owner-reviewed oracle",vault:state.vault,version:"ynx-execution-snapshot-v1"};
+  const parsed=parseExecutionSnapshot(snapshot,{state,now:current});assert.equal(parsed.gas.estimatedFeeNative,210000000000000n);assert.equal(parsed.failure,null);
+  assert.throws(()=>parseExecutionSnapshot({...snapshot,gas:{...snapshot.gas,gasPrice:"100000000001"}},{state,now:current}),error=>error.code==="GAS_LIMIT_EXCEEDED");
+  assert.throws(()=>parseExecutionSnapshot({...snapshot,fees:{...snapshot.fees,hiddenSpreadBps:1}},{state,now:current}),error=>error.code==="INVALID_EXECUTION_FEES");
+  assert.throws(()=>parseExecutionSnapshot({...snapshot,oracle:{...snapshot.oracle,deviationBps:101}},{state,now:current}),error=>error.code==="DEPEG_LIMIT_EXCEEDED");
+  assert.throws(()=>parseExecutionSnapshot({...snapshot,risk:{...snapshot.risk,tradeValue:"1000001"}},{state,now:current}),error=>error.code==="TRADE_LIMIT_EXCEEDED");
+});
+
+test("fee, collect, compound, and rebalance semantics do not invent automation",()=>{
+  const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);const deadline=nowSeconds+300;
+  const quote=quoteExactInput({amountIn:10_000n,tokenIn:A.address,tokenOut:B.address,pools,now:current});
+  const fees=attributeQuoteFees({quote,protocolFeeShareBps:1667});assert.equal(fees.hiddenSpreadBps,0);assert.equal(fees.performanceFeeBps,0);assert.equal(fees.items.length,1);
+  const capability=describePoolFeeCollection({poolType:"constant-product-v1"});assert.equal(capability.lpCollectSupported,false);assert.equal(capability.realizationAction,"removeLiquidity");
+  assert.throws(()=>buildVaultCollectFeesTx({poolType:"constant-product-v1"}),error=>error.code==="LP_COLLECT_UNSUPPORTED");
+  const compound=buildVaultCompoundTx({state,tokenA:A.address,tokenB:B.address,amountA:100n,amountB:200n,minLiquidity:50n,deadline,now:current});assert.equal(compound.functionName,"addLiquidity");
+  const plan=buildVaultRebalancePlan({state,remove:{tokenA:A.address,tokenB:B.address,liquidity:50n,amountAMin:1n,amountBMin:1n,deadline},target:{tokenA:A.address,tokenB:B.address},now:current});assert.equal(plan.firstRequest.functionName,"removeLiquidity");assert.equal(plan.automaticExecution,false);assert.match(plan.continuation.requires,/fresh Vault state/);
 });
 
 test("receipt reconciliation binds destination, nonce, method and confirmations", () => {
