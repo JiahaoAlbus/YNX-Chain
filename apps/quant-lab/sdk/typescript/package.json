@@ -1,0 +1,14 @@
+{
+  "name": "@ynx/quant-sdk",
+  "version": "0.2.0-testnet",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
+    }
+  },
+  "files": ["index.mjs", "index.d.ts", "README.md"],
+  "license": "Apache-2.0",
+  "engines": {"node": ">=20"}
+}

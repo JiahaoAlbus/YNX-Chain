@@ -1,0 +1,76 @@
+name: ynx-quant-testnet
+services:
+  quantd:
+    build:
+      context: ../..
+      dockerfile: apps/quant-lab/Dockerfile
+      args:
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-development}
+    image: ynx-quant:testnet-local
+    command: ["/usr/local/bin/ynx-quantd"]
+    environment:
+      YNX_QUANT_HTTP_ADDR: 0.0.0.0:6444
+      YNX_QUANT_STATE_PATH: /var/lib/ynx-quant/state.json
+      YNX_QUANT_EXCHANGE_URL: ${YNX_QUANT_EXCHANGE_URL:-}
+    volumes: ["quant-state:/var/lib/ynx-quant"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/ynx-quant-cli", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  worker:
+    image: ynx-quant:testnet-local
+    entrypoint: ["/usr/local/bin/ynx-quant-worker"]
+    environment:
+      YNX_QUANT_STATE_PATH: /var/lib/ynx-quant/state.json
+      YNX_QUANT_JOB_INBOX: /var/lib/ynx-quant/inbox
+      YNX_QUANT_JOB_OUTBOX: /var/lib/ynx-quant/outbox
+    volumes: ["quant-state:/var/lib/ynx-quant"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      quantd: {condition: service_healthy}
+  paperd:
+    image: ynx-quant:testnet-local
+    entrypoint: ["/usr/local/bin/ynx-quant-paperd"]
+    environment:
+      YNX_QUANT_HTTP_ADDR: 0.0.0.0:6445
+      YNX_QUANT_STATE_PATH: /var/lib/ynx-quant/state.json
+    volumes: ["quant-state:/var/lib/ynx-quant"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+  riskd:
+    image: ynx-quant:testnet-local
+    entrypoint: ["/usr/local/bin/ynx-quant-riskd"]
+    environment:
+      YNX_QUANT_HTTP_ADDR: 0.0.0.0:6446
+      YNX_QUANT_STATE_PATH: /var/lib/ynx-quant/state.json
+    volumes: ["quant-state:/var/lib/ynx-quant"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+  web:
+    image: ynx-quant:testnet-local
+    entrypoint: ["/usr/local/bin/ynx-quant-web"]
+    environment:
+      YNX_QUANT_WEB_ADDR: 0.0.0.0:6447
+      YNX_QUANT_API_URL: http://quantd:6444
+      YNX_QUANT_WEB_ROOT: /srv/quant-web
+    ports: ["127.0.0.1:6447:6447"]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      quantd: {condition: service_healthy}
+volumes:
+  quant-state: {}

@@ -222,6 +222,11 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return Mandate{}, lockErr
+	}
+	defer release()
 	if _, ok := s.state.Mandates[m.Digest]; ok {
 		return Mandate{}, ErrConflict
 	}
@@ -239,6 +244,11 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return TestnetOrder{}, lockErr
+	}
+	defer release()
 	if s.state.Paper.KillSwitch {
 		return TestnetOrder{}, ErrForbidden
 	}
@@ -288,6 +298,11 @@ func (s *Service) RevokeMandate(digest, actor string) (Mandate, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return Mandate{}, lockErr
+	}
+	defer release()
 	m, ok := s.state.Mandates[digest]
 	if !ok {
 		return Mandate{}, ErrInvalid
@@ -360,6 +375,11 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 	regimes := map[string]Metrics{"oos-first-half": simulateRange(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, mid), "oos-second-half": simulateRange(req.Bars, strategy, req.Assumptions, mid, len(req.Bars))}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return Experiment{}, lockErr
+	}
+	defer release()
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
@@ -506,6 +526,11 @@ func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (Strate
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return StrategySpec{}, lockErr
+	}
+	defer release()
 	v, ok := s.state.Strategies[id]
 	if !ok {
 		return StrategySpec{}, ErrInvalid
@@ -545,6 +570,11 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return PaperOrder{}, lockErr
+	}
+	defer release()
 	if s.state.Paper.KillSwitch {
 		return PaperOrder{}, ErrForbidden
 	}
@@ -597,6 +627,11 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (PaperState, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return PaperState{}, lockErr
+	}
+	defer release()
 	delta := abs(authoritativeCash-s.state.Paper.Cash) + abs(authoritativePosition-s.state.Paper.Position)
 	s.state.Paper.ReconciliationDelta = delta
 	if delta != 0 {
@@ -611,6 +646,11 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return PaperState{}, lockErr
+	}
+	defer release()
 	s.state.Paper.KillSwitch = true
 	s.audit("kill_switch_activated", "paper", hash(reason))
 	return s.state.Paper, s.save()
@@ -618,7 +658,84 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 func (s *Service) Snapshot() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return map[string]any{"productId": ProductID, "mode": "SIMULATED / YNX TESTNET ONLY", "liveFundsEnabled": false, "paper": s.state.Paper, "strategies": s.state.Strategies, "experiments": s.state.Experiments, "testnetOrders": s.state.TestnetOrders, "audit": s.state.Audit}
+	release, refreshErr := s.lockAndReload()
+	if refreshErr == nil {
+		defer release()
+	}
+	var failure any
+	if refreshErr != nil {
+		failure = map[string]string{"code": "state_refresh_failed", "message": "authoritative state is temporarily unavailable"}
+	}
+	return map[string]any{
+		"productId":        ProductID,
+		"mode":             "SIMULATED / YNX TESTNET ONLY",
+		"liveFundsEnabled": false,
+		"source":           "ynx-quant-authoritative-local-state",
+		"asOf":             s.cfg.Now(),
+		"version":          Version,
+		"coverage":         "local-research-paper-and-bounded-testnet-records",
+		"failure":          failure,
+		"paper":            s.state.Paper,
+		"strategies":       s.state.Strategies,
+		"experiments":      s.state.Experiments,
+		"testnetOrders":    s.state.TestnetOrders,
+		"audit":            s.state.Audit,
+	}
+}
+
+func (s *Service) lockAndReload() (func(), error) {
+	lockPath := s.cfg.StatePath + ".lock"
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
+		return nil, err
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		if err := os.Mkdir(lockPath, 0700); err == nil {
+			release := func() { _ = os.Remove(lockPath) }
+			if err := s.reload(); err != nil {
+				release()
+				return nil, err
+			}
+			return release, nil
+		} else if !os.IsExist(err) {
+			return nil, err
+		}
+		if time.Now().After(deadline) {
+			return nil, ErrUnavailable
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func (s *Service) reload() error {
+	b, err := os.ReadFile(s.cfg.StatePath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var latest state
+	if json.Unmarshal(b, &latest) != nil || !verifyIntegrity(latest) {
+		return fmt.Errorf("state integrity: %w", ErrForbidden)
+	}
+	if latest.Experiments == nil {
+		latest.Experiments = map[string]Experiment{}
+	}
+	if latest.Strategies == nil {
+		latest.Strategies = map[string]StrategySpec{}
+	}
+	if latest.Mandates == nil {
+		latest.Mandates = map[string]Mandate{}
+	}
+	if latest.TestnetOrders == nil {
+		latest.TestnetOrders = map[string]TestnetOrder{}
+	}
+	if latest.Idempotency == nil {
+		latest.Idempotency = map[string]string{}
+	}
+	s.state = latest
+	return nil
 }
 
 func (s *Service) audit(action, id, d string) {

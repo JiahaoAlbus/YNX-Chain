@@ -1,11 +1,14 @@
 package quantlab
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
@@ -30,6 +33,29 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 	r, _ = server.Client().Do(req)
 	if r.StatusCode != 400 {
 		t.Fatalf("unknown field=%d", r.StatusCode)
+	}
+}
+
+func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	server := httptest.NewServer(NewRoleServer(s, "research"))
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
+	connection, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+	_, payload, err := connection.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope map[string]any
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	if envelope["type"] != "snapshot" || envelope["source"] != "ynx-quant-authoritative-local-state" || envelope["confidence"] != "authoritative" || envelope["version"] != Version || envelope["asOf"] == nil || envelope["data"] == nil {
+		t.Fatalf("bad envelope: %#v", envelope)
 	}
 }
 

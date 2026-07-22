@@ -190,3 +190,22 @@ func TestMandateRevocationIsImmediatePersistentAndIdempotent(t *testing.T) {
 		t.Fatalf("restart submit=%v", err)
 	}
 }
+
+func TestIndependentServicesDoNotOverwriteSharedState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "shared.json")
+	research, _ := New(Config{StatePath: path})
+	risk, _ := New(Config{StatePath: path})
+	if _, err := research.RunBacktest(request()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := risk.Kill("cross-process risk test"); err != nil {
+		t.Fatal(err)
+	}
+	researchSnapshot := research.Snapshot()
+	if !researchSnapshot["paper"].(PaperState).KillSwitch {
+		t.Fatal("research service did not refresh risk state")
+	}
+	if len(researchSnapshot["experiments"].(map[string]Experiment)) != 1 {
+		t.Fatal("risk service overwrote research state")
+	}
+}

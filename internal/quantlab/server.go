@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type Server struct {
@@ -28,6 +31,7 @@ func NewRoleServer(s *Service, role string) *Server {
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
+	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
 		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
@@ -71,6 +75,55 @@ func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) snapshot(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, s.service.Snapshot())
+}
+func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		HandshakeTimeout: 5 * time.Second,
+		CheckOrigin: func(request *http.Request) bool {
+			if strings.TrimSpace(request.Header.Get("Origin")) == "" {
+				return true
+			}
+			return localWebSocketOrigin(request)
+		},
+	}
+	connection, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer connection.Close()
+	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	if err := connection.WriteJSON(map[string]any{
+		"type":       "snapshot",
+		"source":     "ynx-quant-authoritative-local-state",
+		"asOf":       time.Now().UTC(),
+		"version":    Version,
+		"confidence": "authoritative",
+		"data":       s.service.Snapshot(),
+	}); err != nil {
+		return
+	}
+	// Read until the client closes. This prevents a write-only connection from
+	// being retained forever and gives intermediaries a normal close path.
+	connection.SetReadLimit(1024)
+	connection.SetReadDeadline(time.Now().Add(35 * time.Second))
+	connection.SetPongHandler(func(string) error {
+		connection.SetReadDeadline(time.Now().Add(35 * time.Second))
+		return nil
+	})
+	for {
+		if _, _, err := connection.ReadMessage(); err != nil {
+			return
+		}
+	}
+}
+func localWebSocketOrigin(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	ip := net.ParseIP(host)
+	if err != nil || ip == nil || !ip.IsLoopback() {
+		return false
+	}
+	origin := strings.TrimRight(r.Header.Get("Origin"), "/")
+	return origin == "http://"+r.Host || origin == "https://"+r.Host
 }
 func (s *Server) backtest(w http.ResponseWriter, r *http.Request) {
 	var q BacktestRequest
