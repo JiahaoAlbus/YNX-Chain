@@ -1,0 +1,18 @@
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.mobile-nav button:focus-visible {
+  outline: 3px solid #8fafff;
+  outline-offset: 2px;
+}
+
+[dir="rtl"] .nav-item,
+[dir="rtl"] .table th {
+  text-align: right;
+}
+
+[dir="rtl"] .sidebar {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}

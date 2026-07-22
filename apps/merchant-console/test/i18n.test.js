@@ -29,3 +29,10 @@ test("locale detection, Arabic and plural formatting are deterministic",()=>{
   assert.match(invoiceCount("en",1),/^1 invoice$/);
   assert.match(invoiceCount("en",2),/^2 invoices$/);
 });
+
+test("accessibility navigation and Wallet sign-in labels are localized",()=>{
+  for(const locale of locales){
+    assert.ok(t(locale,"skipContent").trim(),`${locale}.skipContent`);
+    assert.match(t(locale,"walletSignIn"),/YNX Wallet/i,`${locale}.walletSignIn`);
+  }
+});
