@@ -16,7 +16,7 @@ go build -trimpath -o "$tmp/ynx-bridged" ./cmd/ynx-bridged
 
 api_key="bridge-api-check-key"
 relayers='{"relayer-a":"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=","relayer-b":"PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=","relayer-c":"/FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU="}'
-policies='[{"sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+policies='[{"sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"1000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 state="$tmp/state/bridge.json"
 url="http://127.0.0.1:16433"
 log="$tmp/bridge.log"
@@ -51,7 +51,12 @@ status="$(curl -sS -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/tr
 
 body='{"idempotencyKey":"bridge-check-create-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceEventIndex":7,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"100","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
 created="$(curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
-transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.externalSubmissionEnabled!==false)throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
+transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.phase!=="source_submitted"||d.transfer?.externalSubmissionEnabled!==false)throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
+
+curl -fsS -X POST "$url/bridge/safety" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d '{"idempotencyKey":"bridge-check-pause-001","paused":true,"reason":"bounded-safety-drill"}' | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.safety?.paused||d.replayed)process.exit(1)'
+status="$(curl -sS -o "$tmp/paused.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "${body/bridge-check-create-001/bridge-check-paused-001}")"
+[[ "$status" == 409 ]]
+curl -fsS -X POST "$url/bridge/safety" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d '{"idempotencyKey":"bridge-check-resume-001","paused":false,"reason":"bounded-safety-cleared"}' | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.safety?.paused||d.replayed)process.exit(1)'
 
 status="$(curl -sS -o "$tmp/replay.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
 [[ "$status" == 200 ]]
@@ -74,7 +79,8 @@ printf '%s' "$persisted" | TRANSFER_ID="$transfer_id" node -e 'const d=JSON.pars
 metrics="$(curl -fsS "$url/metrics")"
 grep -Fq "ynx_bridge_transfers_total" <<<"$metrics"
 grep -Fq "ynx_bridge_external_submission_enabled" <<<"$metrics"
+grep -Fq "ynx_bridge_paused" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent restart-safe intents, exact replay/conflict, auth, bounded JSON, truthful no-external-submission health/metrics, and mode-0600 state"
+echo "bridge-api-check passed: persistent restart-safe intents, exact replay/conflict, bounded exposure policy, pause/resume drill, auth, truthful no-external-submission health/metrics, and mode-0600 state"

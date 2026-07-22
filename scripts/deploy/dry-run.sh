@@ -99,7 +99,7 @@ YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX=60
 YNX_BRIDGE_DEPLOY_ENABLED=true
 YNX_BRIDGE_API_KEY=dry-run-bridge-api-key
 YNX_BRIDGE_RELAYERS_JSON='{"relayer-a":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=","relayer-b":"MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI="}'
-YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"sourceChain":"ynx-testnet","destinationChain":"external-testnet","sourceAsset":"YNXT","destinationAsset":"wrapped-ynxt","minConfirmations":12,"maxAmount":"1000000000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"sourceChain":"ynx-testnet","destinationChain":"external-testnet","sourceAsset":"YNXT","destinationAsset":"wrapped-ynxt","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"5000000000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 YNX_BRIDGE_RELAYER_THRESHOLD=2
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 YNX_STABLECOIN_DEPLOY_ENABLED=true

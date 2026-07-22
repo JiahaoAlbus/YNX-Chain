@@ -36,6 +36,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/attestations", s.requireAuth(s.handleAttest))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/finalize", s.requireAuth(s.handleFinalize))
+	s.mux.HandleFunc("POST /bridge/transfers/{id}/outcomes", s.requireAuth(s.handleOutcome))
+	s.mux.HandleFunc("POST /bridge/safety", s.requireAuth(s.handleSafety))
 	s.mux.HandleFunc("GET /bridge/audit", s.requireAuth(s.handleAudit))
 }
 
@@ -52,6 +54,11 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_bridge_finalized_local_total{%s} %d\n", labels, health.FinalizedLocalCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_audit_events_total{%s} %d\n", labels, health.AuditEventCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_external_submission_enabled{%s} 0\n", labels)
+	paused := 0
+	if health.Safety.Paused {
+		paused = 1
+	}
+	_, _ = fmt.Fprintf(w, "ynx_bridge_paused{%s} %d\n", labels, paused)
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +125,32 @@ func (s *Server) handleFinalize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleOutcome(w http.ResponseWriter, r *http.Request) {
+	var request OutcomeRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	result, err := s.service.RecordOutcome(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleSafety(w http.ResponseWriter, r *http.Request) {
+	var request PauseRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	safety, replayed, err := s.service.SetPause(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"safety": safety, "replayed": replayed})
 }
 
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {

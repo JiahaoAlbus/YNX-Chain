@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SchemaVersion       = 1
+	SchemaVersion       = 2
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )
@@ -34,6 +34,7 @@ type RoutePolicy struct {
 	DestinationAsset   string `json:"destinationAsset"`
 	MinConfirmations   uint64 `json:"minConfirmations"`
 	MaxAmount          string `json:"maxAmount"`
+	MaxOutstanding     string `json:"maxOutstanding"`
 	AssetBoundary      string `json:"assetBoundary"`
 	ExternalSubmission bool   `json:"externalSubmission"`
 }
@@ -105,6 +106,14 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d maxAmount is invalid", i)
 		}
 		policy.MaxAmount = strconv.FormatUint(maximum, 10)
+		outstanding := maximum
+		if strings.TrimSpace(policy.MaxOutstanding) != "" {
+			outstanding, err = strconv.ParseUint(strings.TrimSpace(policy.MaxOutstanding), 10, 64)
+			if err != nil || outstanding < maximum {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d maxOutstanding is invalid", i)
+			}
+		}
+		policy.MaxOutstanding = strconv.FormatUint(outstanding, 10)
 		key := routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset)
 		if _, exists := maxAmounts[key]; exists {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d is duplicated", i)
@@ -141,6 +150,19 @@ type FinalizeRequest struct {
 	IdempotencyKey string `json:"idempotencyKey"`
 }
 
+type PauseRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+	Paused         bool   `json:"paused"`
+	Reason         string `json:"reason"`
+}
+
+type OutcomeRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+	Outcome        string `json:"outcome"`
+	EvidenceRef    string `json:"evidenceRef"`
+	ReasonCode     string `json:"reasonCode"`
+}
+
 type Attestation struct {
 	Relayer         string `json:"relayer"`
 	SourceBlockHash string `json:"sourceBlockHash"`
@@ -153,6 +175,7 @@ type Attestation struct {
 type Transfer struct {
 	ID                        string                 `json:"id"`
 	Status                    string                 `json:"status"`
+	Phase                     string                 `json:"phase"`
 	IntentDigest              string                 `json:"intentDigest"`
 	SourceChain               string                 `json:"sourceChain"`
 	SourceTxHash              string                 `json:"sourceTxHash"`
@@ -172,7 +195,16 @@ type Transfer struct {
 	UpdatedAt                 string                 `json:"updatedAt"`
 	FinalizationID            string                 `json:"finalizationId,omitempty"`
 	FinalizedAt               string                 `json:"finalizedAt,omitempty"`
+	OutcomeEvidenceRef        string                 `json:"outcomeEvidenceRef,omitempty"`
+	FailureReasonCode         string                 `json:"failureReasonCode,omitempty"`
+	PreviousPhase             string                 `json:"previousPhase,omitempty"`
 	ExternalSubmissionEnabled bool                   `json:"externalSubmissionEnabled"`
+}
+
+type SafetyState struct {
+	Paused    bool   `json:"paused"`
+	Reason    string `json:"reason,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
 type MutationResult struct {

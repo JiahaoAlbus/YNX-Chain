@@ -21,6 +21,43 @@ type persistentState struct {
 	SourceEvents        map[string]string            `json:"sourceEvents"`
 	CreateIdempotency   map[string]idempotencyRecord `json:"createIdempotency"`
 	FinalizeIdempotency map[string]idempotencyRecord `json:"finalizeIdempotency"`
+	MutationIdempotency map[string]idempotencyRecord `json:"mutationIdempotency"`
+	Safety              SafetyState                  `json:"safety"`
+	Audit               []AuditEvent                 `json:"audit"`
+	Integrity           string                       `json:"integrity"`
+}
+
+type legacyTransferV1 struct {
+	ID                        string                 `json:"id"`
+	Status                    string                 `json:"status"`
+	IntentDigest              string                 `json:"intentDigest"`
+	SourceChain               string                 `json:"sourceChain"`
+	SourceTxHash              string                 `json:"sourceTxHash"`
+	SourceEventIndex          uint64                 `json:"sourceEventIndex"`
+	SourceAsset               string                 `json:"sourceAsset"`
+	DestinationChain          string                 `json:"destinationChain"`
+	DestinationAsset          string                 `json:"destinationAsset"`
+	Amount                    string                 `json:"amount"`
+	Sender                    string                 `json:"sender"`
+	Recipient                 string                 `json:"recipient"`
+	AssetBoundary             string                 `json:"assetBoundary"`
+	RequiredConfirmations     uint64                 `json:"requiredConfirmations"`
+	RequiredAttestations      int                    `json:"requiredAttestations"`
+	SourceBlockHash           string                 `json:"sourceBlockHash,omitempty"`
+	Attestations              map[string]Attestation `json:"attestations"`
+	CreatedAt                 string                 `json:"createdAt"`
+	UpdatedAt                 string                 `json:"updatedAt"`
+	FinalizationID            string                 `json:"finalizationId,omitempty"`
+	FinalizedAt               string                 `json:"finalizedAt,omitempty"`
+	ExternalSubmissionEnabled bool                   `json:"externalSubmissionEnabled"`
+}
+
+type legacyStateV1 struct {
+	SchemaVersion       int                          `json:"schemaVersion"`
+	Transfers           map[string]legacyTransferV1  `json:"transfers"`
+	SourceEvents        map[string]string            `json:"sourceEvents"`
+	CreateIdempotency   map[string]idempotencyRecord `json:"createIdempotency"`
+	FinalizeIdempotency map[string]idempotencyRecord `json:"finalizeIdempotency"`
 	Audit               []AuditEvent                 `json:"audit"`
 	Integrity           string                       `json:"integrity"`
 }
@@ -28,7 +65,7 @@ type persistentState struct {
 func newPersistentState() persistentState {
 	return persistentState{
 		SchemaVersion: SchemaVersion, Transfers: map[string]Transfer{}, SourceEvents: map[string]string{},
-		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{},
+		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{},
 	}
 }
 
@@ -44,6 +81,9 @@ func loadState(path string) (persistentState, error) {
 	if err := json.Unmarshal(raw, &state); err != nil {
 		return persistentState{}, fmt.Errorf("decode bridge state: %w", err)
 	}
+	if state.SchemaVersion == 1 {
+		return loadLegacyStateV1(raw)
+	}
 	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
@@ -57,6 +97,37 @@ func loadState(path string) (persistentState, error) {
 	if err := validateAuditChain(state.Audit); err != nil {
 		return persistentState{}, err
 	}
+	return state, nil
+}
+
+func loadLegacyStateV1(raw []byte) (persistentState, error) {
+	var legacy legacyStateV1
+	if err := json.Unmarshal(raw, &legacy); err != nil {
+		return persistentState{}, fmt.Errorf("decode bridge v1 state: %w", err)
+	}
+	if legacy.SchemaVersion != 1 || legacy.Transfers == nil || legacy.SourceEvents == nil || legacy.CreateIdempotency == nil || legacy.FinalizeIdempotency == nil || legacy.Audit == nil {
+		return persistentState{}, errors.New("bridge v1 state schema is invalid")
+	}
+	got := legacy.Integrity
+	legacy.Integrity = ""
+	encoded, err := json.Marshal(legacy)
+	if err != nil || got != "sha256:"+hashBytes(encoded) {
+		return persistentState{}, errors.New("bridge state integrity mismatch")
+	}
+	if err := validateAuditChain(legacy.Audit); err != nil {
+		return persistentState{}, err
+	}
+	state := newPersistentState()
+	state.SourceEvents, state.CreateIdempotency, state.FinalizeIdempotency, state.Audit = legacy.SourceEvents, legacy.CreateIdempotency, legacy.FinalizeIdempotency, legacy.Audit
+	for id, old := range legacy.Transfers {
+		encoded, _ := json.Marshal(old)
+		var transfer Transfer
+		if err := json.Unmarshal(encoded, &transfer); err != nil {
+			return persistentState{}, fmt.Errorf("migrate bridge transfer %s: %w", id, err)
+		}
+		state.Transfers[id] = transfer
+	}
+	state.Integrity = ""
 	return state, nil
 }
 

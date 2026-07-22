@@ -257,6 +257,113 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	}
 }
 
+func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
+	b := newTestBridge(t)
+	safety, replayed, err := b.service.SetPause(PauseRequest{IdempotencyKey: "pause-bridge-001", Paused: true, Reason: "incident-response"})
+	if err != nil || replayed || !safety.Paused {
+		t.Fatalf("pause failed: %+v replay=%v err=%v", safety, replayed, err)
+	}
+	if _, err := b.service.CreateTransfer(validCreate("paused-create-001")); !errors.Is(err, ErrConflict) {
+		t.Fatalf("paused bridge accepted transfer: %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "pause-bridge-001", Paused: false, Reason: "incident-cleared"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed pause replay expected conflict: %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "resume-bridge-001", Paused: false, Reason: "incident-cleared"}); err != nil {
+		t.Fatal(err)
+	}
+
+	request := validCreate("recovery-flow-001")
+	request.Amount = "1000"
+	created, err := b.service.CreateTransfer(request)
+	if err != nil || created.Transfer.Phase != "source_submitted" {
+		t.Fatalf("create phase: %+v %v", created, err)
+	}
+	blocked := validCreate("exposure-block-001")
+	blocked.SourceTxHash = "0x" + strings.Repeat("d", 64)
+	blocked.SourceEventIndex = 8
+	if _, err := b.service.CreateTransfer(blocked); !errors.Is(err, ErrConflict) {
+		t.Fatalf("outstanding exposure limit not enforced: %v", err)
+	}
+
+	block := "0x" + strings.Repeat("c", 64)
+	first, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12))
+	if err != nil || first.Transfer.Phase != "source_accepted" {
+		t.Fatalf("source accepted phase: %+v %v", first, err)
+	}
+	second, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-b", block, 12))
+	if err != nil || second.Transfer.Phase != "source_finalized" {
+		t.Fatalf("source finalized phase: %+v %v", second, err)
+	}
+	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "proof-finalize-001"})
+	if err != nil || proof.Transfer.Phase != "proof_attestation" {
+		t.Fatalf("proof phase: %+v %v", proof, err)
+	}
+	failed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-failed-001", Outcome: "failed", EvidenceRef: "audit:provider-timeout-001", ReasonCode: "provider-timeout"})
+	if err != nil || failed.Transfer.Phase != "failed" || failed.Transfer.PreviousPhase != "proof_attestation" {
+		t.Fatalf("failed phase: %+v %v", failed, err)
+	}
+	retried, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-retry-001", Outcome: "retry", EvidenceRef: "audit:operator-review-001", ReasonCode: "approved-retry"})
+	if err != nil || retried.Transfer.Phase != "proof_attestation" {
+		t.Fatalf("retry phase: %+v %v", retried, err)
+	}
+	release, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-release-001", Outcome: "destination_mint_release", EvidenceRef: "tx:destination-001", ReasonCode: "operator-observed"})
+	if err != nil || release.Transfer.Phase != "destination_mint_release" {
+		t.Fatalf("release phase: %+v %v", release, err)
+	}
+	confirmed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-confirmed-001", Outcome: "destination_confirmed", EvidenceRef: "receipt:destination-001", ReasonCode: "finalized-receipt"})
+	if err != nil || confirmed.Transfer.Phase != "destination_confirmed" {
+		t.Fatalf("confirmed phase: %+v %v", confirmed, err)
+	}
+
+	if _, err := New(b.cfg); err != nil {
+		t.Fatalf("restart rejected lifecycle state: %v", err)
+	}
+	if got := b.service.Health(buildinfo.Info{}); got.Safety.Paused {
+		t.Fatalf("health retained cleared pause: %+v", got)
+	}
+}
+
+func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T) {
+	b := newTestBridge(t)
+	legacy := legacyStateV1{SchemaVersion: 1, Transfers: map[string]legacyTransferV1{}, SourceEvents: map[string]string{}, CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	unsigned, err := json.Marshal(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy.Integrity = "sha256:" + hashBytes(unsigned)
+	raw, err := json.MarshalIndent(legacy, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.state, append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v1 state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.MutationIdempotency == nil || migrated.state.Integrity == "" {
+		t.Fatalf("v1 state not resealed as v2: %+v", migrated.state)
+	}
+	persisted, err := os.ReadFile(b.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(persisted), `"schemaVersion": 2`) {
+		t.Fatalf("migrated state not persisted as v2: %s", persisted)
+	}
+
+	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)
+	raw, _ = json.Marshal(legacy)
+	if err := os.WriteFile(b.state, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("tampered v1 state was accepted: %v", err)
+	}
+}
+
 func doJSON(t *testing.T, method, url, key string, body any, expected int, target any) {
 	t.Helper()
 	var reader io.Reader
