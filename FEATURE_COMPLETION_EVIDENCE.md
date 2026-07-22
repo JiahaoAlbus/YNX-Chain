@@ -13,7 +13,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Jail, Slashing, appeals and live performance | false | false | false | false | false | false | false | false | false | Disabled pending real governance authority and live telemetry |
 | Liquid staking candidate model and stress simulation | true | true | false | false | false | false | false | false | false | Share/rate, allocation, reward/slash, queue, pause, redemption, solvency and market-discount model; no token or contract |
 | Liquid staking audited contract and testnet activation | false | false | false | false | false | false | false | false | false | No contract audit, governance activation, chain events, deployment, custody/legal review, or live liquidity |
-| Safety Module and service security pools | false | false | false | false | false | false | false | false | false | No consensus state or contracts recovered |
+| Safety Module and independent service-security-pool risk model | true | true | false | false | false | false | false | false | false | Voluntary stake, incident conditions, waterfall, max slash, cooldown exits and isolated Oracle/Bridge/Storage/AI/Indexer pools; model only |
+| Safety Module and service-pool audited contracts/activation | false | false | false | false | false | false | false | false | false | No audited contract, governance authority, custody, live funding, deployment, adjudication/appeal process, or public stake |
 | Stablecoin issuer review control plane | true | true | false | false | false | false | false | false | false | Existing `make stablecoin-issuer-check`; intent-only, execution disabled |
 | 1:1 YUSD sandbox with reserve/redemption reconciliation | true | true | false | false | false | false | false | false | false | Isolated test-unit ledger and `make yusd-sandbox-check`; no real reserve, custodian, attestation, signer, redemption rail, or value |
 | Treasury bucket snapshot and stress/runway simulation | true | true | false | false | false | false | false | false | false | Exact configured consensus account plus explicit zero/unconfigured buckets; branch-local |
@@ -27,3 +28,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `go test ./...` initially exposed missing generated Solidity artifacts in three existing tests. After `npm run hardhat:build`, `go test ./internal/bftgateway ./internal/consensus` passed. This is a build prerequisite, not evidence that all final tokenomics requirements are complete.
 - `make yusd-sandbox-check` — pass; race-enabled lifecycle, outage, pause, persistence, reconciliation, tamper, auth, and HTTP boundary coverage.
 - `make liquid-staking-candidate-check` — pass; race-enabled model tests plus reproducible reward/slash/queue/pause/depeg scenario.
+- `make security-pools-candidate-check` — pass; race-enabled isolation, governance, waterfall, slash/cooldown and exit-path tests plus reproducible stress scenario.

@@ -21,6 +21,11 @@ All paths are repository-relative and refer to the current source commit only af
 | Liquid-staking queue, burn, pause, limits, redemption and solvency | `internal/economics/liquid_staking.go`, `liquid_staking_test.go` | `make liquid-staking-candidate-check` |
 | Reproducible queue/slash/secondary-discount stress path | `economics/examples/liquid-staking-stress.json` | `go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json` |
 | Liquid-staking non-activation and audit gates | `economics/LIQUID_STAKING_CANDIDATE.md` | Inspect output booleans from `make liquid-staking-candidate-check` scenario |
+| Safety Module voluntary stake, shortfall and insurance waterfall | `internal/economics/security_pools.go`, `security_pools_test.go` | `make security-pools-candidate-check` |
+| Service-pool condition isolation and no cross-service contagion | `internal/economics/security_pools.go`, `security_pools_test.go` | `make security-pools-candidate-check` |
+| Cooldown, max slash, queue haircut, pause and mature exit | `internal/economics/security_pools.go`, `security_pools_test.go` | `make security-pools-candidate-check` |
+| Reproducible independent-pool and protocol-shortfall stress path | `economics/examples/security-pools-stress.json` | `go run ./cmd/ynx-security-pools-sim -input economics/examples/security-pools-stress.json` |
+| Security-pool non-activation and public-risk boundary | `economics/SECURITY_POOLS_CANDIDATE.md` | Inspect false release booleans and candidate disclosures |
 | YUSD test reserve, supply and redemption liability reconciliation | `internal/yusdsandbox/service.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD atomic persistence, audit evidence chain and tamper rejection | `internal/yusdsandbox/store.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD outage queue, pause exit and strict authenticated HTTP boundary | `internal/yusdsandbox/server.go`, `server_test.go` | `make yusd-sandbox-check` |
