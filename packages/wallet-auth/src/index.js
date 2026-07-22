@@ -13,3 +13,5 @@ export * from "./smart-account.js";
 export * from "./mandate.js";
 export * from "./credential.js";
 export * from "./intent.js";
+export * from "./session-proof.js";
+export * from "./gateway-adapter.js";

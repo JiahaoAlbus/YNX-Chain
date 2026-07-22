@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynxweb4.com/wallet-auth/gateway-state-v1.json",
+  "title": "YNX Canonical Wallet Gateway Adapter State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "registryVersion", "sessionStore", "consumedProductProofs"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "registryVersion": {"const": 1},
+    "sessionStore": {"type": "object"},
+    "consumedProductProofs": {
+      "type": "array",
+      "maxItems": 20000,
+      "uniqueItems": true,
+      "items": {"type":"string", "pattern":"^[0-9a-f]{64}$"}
+    }
+  }
+}

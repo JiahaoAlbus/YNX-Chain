@@ -17,6 +17,7 @@
   "storeReleased": false,
   "capabilityStates": {
     "canonicalAuth": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "canonicalGatewayAdapter": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "sponsoredUserOperation": {"implementedLocal":false,"testedLocal":false,"integratedCentral":false,"deployedPublic":false},

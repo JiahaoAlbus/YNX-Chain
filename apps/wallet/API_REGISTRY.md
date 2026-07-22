@@ -3,7 +3,7 @@
 | Interface | Authority | Authentication | Rate/health behavior | Data/retention boundary | Status |
 |---|---|---|---|---|---|
 | YNX Testnet account/activity/broadcast | YNX chain state | Public read; signed transaction write | Client timeout, explicit unavailable state; no synthetic fallback | Public chain data; signed payload only | Existing client, public RPC evidence only |
-| Canonical App Gateway | YNX identity/session authority | P-256 device proof and Product Session | Fail closed on timeout, expiry, replay or revoke | Bound request/session/audit fields; no seed/private key | Candidate, not centrally deployed |
+| Canonical App Gateway | YNX identity/session authority | Wallet approval, P-256 completion and sender-constrained per-request Product Session proof | Fail closed on timeout, expiry, HTTP binding mismatch, replay or revoke | Bound request/session/audit fields; no seed/private key | Adapter, manifest, state schema and vector implemented; not centrally merged/deployed |
 | ERC-7769 Bundler RPC | Third-party/YNX Testnet execution relay | Provider policy plus signed UserOperation | Simulate first; expose provider error/rate limit | UserOperation and receipt only | Adapter schema implemented; endpoint input required |
 | Paymaster | Sponsor budget authority | Product Session, operation digest, anti-Sybil binding | Disabled/outage/budget exhaustion returns ineligible; never changes operation | Minimal account binding and budget counters | Policy evaluator implemented; deployment required |
 | WalletConnect | External compatibility | WalletConnect session namespaces | Disconnect and expire fail closed | External dApp metadata/requests; never YNX seed | Not integrated |

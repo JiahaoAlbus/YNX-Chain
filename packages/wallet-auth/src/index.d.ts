@@ -94,3 +94,11 @@ export declare function parseSignedIntent(input:unknown):Readonly<Record<string,
 export declare function signedIntentDigest(input:unknown):string;
 export declare function exportSignedIntent(input:unknown):string;
 export declare function assertSignedIntentActive(input:unknown,context:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;
+export declare function createProductSessionProof(session:CentralWalletSession,input:Readonly<{method:string;path:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,productDeviceSecret:string):Readonly<Record<string,unknown>>;
+export declare function parseProductSessionProof(input:unknown):Readonly<Record<string,unknown>>;
+export declare function productSessionProofSignBytes(input:unknown):string;
+export declare function productSessionProofDigest(input:unknown):string;
+export declare function httpBodyDigest(body:string|Uint8Array):string;
+export declare function verifyProductSessionProof(proof:unknown,session:CentralWalletSession,expected:Readonly<{method:string;path:string;bodyDigest:string}>,at?:Date):Readonly<Record<string,unknown>>;
+export declare class CanonicalWalletGatewayAdapter{constructor(registry:unknown,snapshot?:unknown);complete(input:Readonly<Record<string,unknown>>,at?:Date):CentralWalletSession;introspect(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<{active:true;session:CentralWalletSession}>;revokeSession(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;snapshot():Readonly<Record<string,unknown>>}
+export declare function parseGatewayAdapterSnapshot(input:unknown,registryVersion:number):Readonly<Record<string,unknown>>;

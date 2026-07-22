@@ -15,7 +15,7 @@ Handoff date: 2026-07-22. Owned branch: `codex/final-wallet-auth`. Worktree: `/U
 | State | Value | Evidence/boundary |
 |---|---:|---|
 | implemented-local | true | Independent Wallet, canonical lifecycle, Signed Intent, Smart Account policy, mandate/capital and Credential candidates |
-| tested-local | true | Wallet 23/23 and SDK 47/47 plus typecheck/product-check pass on the recovered final branch |
+| tested-local | true | Wallet 23/23 and SDK 54/54 plus typecheck/product-check pass on the recovered final branch |
 | installed-local | Android true; iOS Simulator true | API 36 phone/foldable installed and cold-launched; macOS 15/Xcode 26.3 CI installed and cold-launched the unsigned iOS Simulator app |
 | integrated-central | false | Version 3 candidate exists; not merged into/deployed by central Gateway |
 | deployed-staging | false | No staging endpoint or version health exists |
@@ -97,6 +97,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - Dependency/license boundary and the reproducible 431-component CycloneDX review SBOM are documented in `DEPENDENCY_REVIEW.md`. Four Expo override tree errors keep release-grade completeness false; package locks remain authoritative.
 - `git diff --check`, owned-path, secret/placeholder and final worktree checks are rerun before push.
 - Smart Account/mandate/Credential/Signed Intent gates: 17 tests covering property/fuzz/fault, 10,000 sponsorship evaluations, 5,000 Credential parses, 2,000 signed export verifications and a 20,000-evaluation sponsorship benchmark.
+- Canonical Gateway adapter: 7 tests covering server-authoritative registry selection, P-256 HTTP proof binding, replay, restart/revoke and 2,000 unique proof operations; the local 1,000-sample benchmark measured p50 2.931 ms, p95 3.318 ms, p99 4.208 ms, zero errors and 333.48 operations/second without network or disk latency.
 
 ## Artifact record
 

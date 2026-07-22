@@ -1,0 +1,24 @@
+import { exactFields, WalletAuthError } from "./canonical.js";
+import { CentralWalletSessionStore, parseCentralWalletStoreSnapshot } from "./lifecycle.js";
+import { centralProtocolEntry, parseCentralRegistryDocument } from "./registry.js";
+import { productSessionProofDigest, verifyProductSessionProof } from "./session-proof.js";
+
+const SNAPSHOT_FIELDS=["schemaVersion","registryVersion","sessionStore","consumedProductProofs"];
+const COMPLETE_FIELDS=["authorizationRequest","walletApproval","gatewayCompletion"];
+const AUTH_FIELDS=["proof","requiredScopes"];
+const REQUEST_FIELDS=["method","path","bodyDigest"];
+
+export class CanonicalWalletGatewayAdapter{
+  #registry;#store;#proofs;
+  constructor(registryInput,snapshot){this.#registry=parseCentralRegistryDocument(registryInput);const parsed=snapshot===undefined?emptySnapshot(this.#registry.registryVersion):parseGatewayAdapterSnapshot(snapshot,this.#registry.registryVersion);this.#store=new CentralWalletSessionStore(parsed.sessionStore);this.#proofs=[...parsed.consumedProductProofs]}
+  complete(input,at=new Date()){exactFields(input,COMPLETE_FIELDS,"Canonical Gateway completion input");const client=input.authorizationRequest?.productClientId;if(typeof client!=="string")fail("UNKNOWN_PRODUCT","Canonical Gateway request has no product client");const registration=this.#registry.products.find(product=>product.productClientId===client);if(!registration)fail("UNKNOWN_PRODUCT","Canonical Gateway product client is not registered");const registryEntry=centralProtocolEntry(registration);return this.#store.complete({registryEntry,...input},at)}
+  introspect(input,request,at=new Date()){exactFields(input,AUTH_FIELDS,"Canonical Gateway introspection input");const context=parseRequest(request);const proofSession=this.#store.snapshot().sessions.find(session=>session.sessionBinding===input.proof?.sessionBinding);if(!proofSession)fail("SESSION_NOT_FOUND","Canonical Gateway Product Session was not found");const proof=verifyProductSessionProof(input.proof,proofSession,context,at);this.#assertUnused(proof);const result=this.#store.introspect(proof.sessionBinding,{productClientId:proof.productClientId,bundleId:proof.bundleId,productDeviceKey:proof.productDeviceKey,requiredScopes:input.requiredScopes},at);this.#consume(proof);return result}
+  revokeSession(input,request,at=new Date()){exactFields(input,["proof"],"Canonical Gateway session revoke input");const context=parseRequest(request);const session=this.#store.snapshot().sessions.find(item=>item.sessionBinding===input.proof?.sessionBinding);if(!session)fail("SESSION_NOT_FOUND","Canonical Gateway Product Session was not found");const proof=verifyProductSessionProof(input.proof,session,context,at);this.#assertUnused(proof);const revoked=this.#store.revokeSession(session.sessionBinding,at);this.#consume(proof);return revoked}
+  snapshot(){return Object.freeze({schemaVersion:1,registryVersion:this.#registry.registryVersion,sessionStore:this.#store.snapshot(),consumedProductProofs:Object.freeze([...this.#proofs])})}
+  #assertUnused(proof){if(this.#proofs.includes(productSessionProofDigest(proof)))fail("REPLAY","Product Session HTTP proof was already consumed");if(this.#proofs.length>=20000)fail("CAPACITY","Product Session proof replay store reached its bound")}
+  #consume(proof){this.#proofs.push(productSessionProofDigest(proof));this.#proofs.sort()}
+}
+export function parseGatewayAdapterSnapshot(input,registryVersion){exactFields(input,SNAPSHOT_FIELDS,"Canonical Gateway adapter snapshot");if(input.schemaVersion!==1||input.registryVersion!==registryVersion)fail("INVALID_STORE","Canonical Gateway adapter snapshot version is incompatible");const store=parseCentralWalletStoreSnapshot(input.sessionStore);if(!Array.isArray(input.consumedProductProofs)||input.consumedProductProofs.length>20000||input.consumedProductProofs.some(value=>typeof value!=="string"||!/^[0-9a-f]{64}$/.test(value))||new Set(input.consumedProductProofs).size!==input.consumedProductProofs.length||[...input.consumedProductProofs].sort().join("\n")!==input.consumedProductProofs.join("\n"))fail("INVALID_STORE","Consumed Product Session proofs must be bounded, unique and sorted");return Object.freeze({schemaVersion:1,registryVersion,sessionStore:store,consumedProductProofs:Object.freeze([...input.consumedProductProofs])})}
+function emptySnapshot(registryVersion){return{schemaVersion:1,registryVersion,sessionStore:{schemaVersion:1,consumedNonces:[],consumedRequestDigests:[],consumedChallenges:[],sessions:[],revokedSessionBindings:[],revokedApprovalDigests:[],revokedDeviceBindings:[],accountLogoutRecords:[],audit:[]},consumedProductProofs:[]}}
+function parseRequest(input){exactFields(input,REQUEST_FIELDS,"Canonical Gateway HTTP request context");return Object.freeze({method:input.method,path:input.path,bodyDigest:input.bodyDigest})}
+function fail(code,message){throw new WalletAuthError(code,message)}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "canonical-wallet-gateway-local-protocol",
+  "sourceClass": "local-measurement",
+  "runtime": {"node":"v24.5.0","platform":"darwin","arch":"arm64"},
+  "samples": 1000,
+  "failures": 0,
+  "errorRate": 0,
+  "elapsedMs": 2998.685,
+  "throughputPerSecond": 333.48,
+  "latencyMs": {"p50":2.931,"p95":3.318,"p99":4.208,"max":7.201},
+  "coverage": "In-process P-256 proof creation, strict verification, Product Session introspection and sorted replay-state update; excludes HTTP, disk, database, provider and public network latency.",
+  "version": "wallet-auth-v1"
+}

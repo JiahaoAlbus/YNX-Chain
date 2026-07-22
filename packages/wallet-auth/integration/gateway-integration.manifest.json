@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "integrationId": "canonical-wallet-auth-v1",
+  "owner": "wallet-auth",
+  "targetService": "ynx-app-gatewayd",
+  "protocol": {
+    "authorization": "wallet-auth-v1",
+    "productDeviceAlgorithm": "p256-sha256",
+    "httpProof": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+    "registryDocumentVersion": 1,
+    "productSchemaVersion": 3,
+    "adapterStateVersion": 1
+  },
+  "routes": [
+    {"method":"POST","path":"/v1/wallet/sessions/complete","authentication":"exact Wallet approval plus P-256 Gateway completion","requiredScope":null},
+    {"method":"POST","path":"/v1/wallet/sessions/introspect","authentication":"sender-constrained P-256 Product Session HTTP proof","requiredScope":"route-specific"},
+    {"method":"POST","path":"/v1/wallet/sessions/revoke","authentication":"path-bound P-256 Product Session HTTP proof","requiredScope":null}
+  ],
+  "serverAuthority": ["registry product selection", "enabled and approved state", "session and proof replay state", "expiry and revocation state"],
+  "clientProhibited": ["registry injection", "wildcard scope", "bearer-only authentication", "callback replacement", "proof reuse", "legacy Ed25519 session substitution"],
+  "stateSchema": "gateway-state.schema.json",
+  "testVector": "../testdata/product-session-http-proof-v1.json",
+  "acceptanceCommand": "npm test",
+  "deploymentState": "candidate-not-merged-not-deployed"
+}

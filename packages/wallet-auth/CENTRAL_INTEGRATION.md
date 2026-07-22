@@ -1,5 +1,7 @@
 # Central Wallet Auth integration contract
 
+The executable integration adapter is `src/gateway-adapter.js`; the merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection.
+
 This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
 ## Canonical registry

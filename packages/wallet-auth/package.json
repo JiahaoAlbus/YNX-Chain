@@ -6,10 +6,11 @@
   "type": "module",
   "exports": "./src/index.js",
   "types": "./src/index.d.ts",
-  "files": ["src", "testdata", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "npm test"
+    "check": "npm test",
+    "benchmark:gateway": "node scripts/benchmark-gateway.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
