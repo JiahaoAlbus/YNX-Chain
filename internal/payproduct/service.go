@@ -753,6 +753,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 				out.RouteQuotes[k] = v
 			}
 		}
+		for k, v := range data.RecurringDrafts {
+			if v.MerchantID == merchantID {
+				out.RecurringDrafts[k] = v
+			}
+		}
 		for _, v := range data.Audit {
 			if v.MerchantID == merchantID {
 				out.Audit = append(out.Audit, v)
