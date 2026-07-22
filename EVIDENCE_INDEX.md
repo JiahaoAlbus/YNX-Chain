@@ -7,6 +7,7 @@
 - Cross-owner merge contract: `integration/DATA_FABRIC_HANDOFF.md` plus strict canonical introspection request/response schemas.
 - External authority packet: `release/operator-inputs.request.json`; it requests secure references and approvals only and explicitly forbids secret material in chat.
 - Remote truth observed during recovery: no GitHub Release; mixed successful/failed product Actions; no Data Fabric Action or Artifact; no listening local Data Fabric process.
+- Final engineering verification: GitHub Actions run `29942204067` passed both jobs at `f065375cc001513942f0abcebd5483d446eb2665`, including full Go tests, race, vet, official vulnerability analysis, Linux builds/hashes, SBOM and policy gates, and isolated PostgreSQL 17.10 transaction plus logical backup/restore tests.
 
 ## Implemented source
 
@@ -60,4 +61,4 @@ The local smoke directly proves both binaries build, the daemon cold-starts, hea
 - Replicated broker, staging PostgreSQL and warehouse endpoints plus a shared failure-injection environment.
 - Testnet chain, Pay, Exchange, DEX and Quant reconciliation receipts.
 - Staging/public domains, TLS, status/support/privacy/security URLs.
-- CI run and artifact at the final Data Fabric source commit.
+- Immutable hosted release artifacts and CI at the future centrally integrated source commit.

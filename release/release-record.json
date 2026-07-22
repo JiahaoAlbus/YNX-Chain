@@ -41,7 +41,14 @@
     "publicMetadata": "public-product-metadata.json",
     "productRelease": "product-release.json",
     "kpiDefinitions": "release/kpi-definitions.json",
-    "operatorInputs": "release/operator-inputs.request.json"
+    "operatorInputs": "release/operator-inputs.request.json",
+    "remoteCI": {
+      "runId": 29942204067,
+      "sourceCommit": "f065375cc001513942f0abcebd5483d446eb2665",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29942204067",
+      "conclusion": "success",
+      "artifactsPublished": false
+    }
   },
   "blockingEvidence": [
     "central product integration",
@@ -50,6 +57,6 @@
     "live testnet reconciliation",
     "capacity and disaster-recovery measurements",
     "staging and public deployment",
-    "final CI and immutable artifact"
+    "immutable signed artifact"
   ]
 }

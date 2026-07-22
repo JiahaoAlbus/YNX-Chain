@@ -11,6 +11,7 @@
 - `release/go-runtime-sbom.spdx.json` records that runtime set as SPDX 2.3; it is an unreleased dirty-worktree dependency inventory, not a final binary-bound SBOM or provenance claim.
 - The dedicated workflow pins checkout, Go and Node setup Actions to exact commits; permissions are read-only.
 - The workflow runs complete Go tests, Data Fabric race tests, vet, pinned `govulncheck`, Node audit, locked artifact generation, secret scan, SBOM validation, path-reproducible builds and artifact hashes.
+- GitHub Actions run `29942204067` passed both jobs at `f065375cc001513942f0abcebd5483d446eb2665`. GitHub emitted a non-failing warning that the pinned checkout and setup-go Action revisions target deprecated Node 20 and were forced onto Node 24; upgrading those upstream Actions remains a maintenance gate.
 - `scripts/data-fabric/quality-gates.sh` rejects placeholder/fake-success language in owned runtime/public surfaces, development-path leaks in public metadata, scoped secret patterns, invalid machine records, and whitespace errors.
 
 ## Build-script allowlist
@@ -19,4 +20,4 @@ Allowed scripts are `hardhat build` and `node scripts/contracts/generate-selecto
 
 ## Remaining gates
 
-No remote Data Fabric CI run exists at the final commit. Deeper source SAST beyond `go vet`, DAST, container scanning, malware scanning, binary signing, immutable artifact hosting, SLSA provenance, reproducible two-builder comparison and public artifact verification remain incomplete. Current Node and Go SPDX records inventory dependencies; a release SBOM must bind final binary SHA-256, bytes, OS/architecture, Go toolchain and source commit.
+No CI artifact was retained or published by the verification workflow. Deeper source SAST beyond `go vet`, DAST, container scanning, malware scanning, binary signing, immutable artifact hosting, SLSA provenance, reproducible two-builder comparison and public artifact verification remain incomplete. Current Node and Go SPDX records inventory dependencies; a release SBOM must bind final binary SHA-256, bytes, OS/architecture, Go toolchain and source commit.
