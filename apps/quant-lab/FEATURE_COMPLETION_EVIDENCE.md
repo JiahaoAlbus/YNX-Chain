@@ -9,7 +9,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | paper partial fills/reconciliation | tested local | paper service tests and browser evidence |
 | risk kill switch | tested local | mismatch, persistence, browser, and multi-daemon smoke tests |
 | lifecycle | tested local | sequential transition, risk evidence, and Wallet-mandate tests |
-| bounded Testnet adapter contract | implemented/tested with injected test double | expiry, notional, position, replay, idempotency, and broker-proof tests; no deployed broker claim |
+| bounded Testnet adapter contract | implemented/tested with injected test doubles | expiry, notional, position, daily loss, slippage, gas, frequency, oracle freshness, venue health, replay, idempotency, and broker-proof tests; no authoritative risk feed or deployed broker claim |
 | mandate revoke | tested local | immediate, idempotent, restart-persistent revoke tests |
 | REST and WebSocket | tested local | HTTP strict-schema/role tests and metadata-bearing WebSocket test |
 | CLI | tested local | approval and loopback gates; backup record test |

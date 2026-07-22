@@ -211,16 +211,17 @@ func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		MandateDigest  string `json:"mandateDigest"`
-		Side           string `json:"side"`
-		Price          int64  `json:"price"`
-		Amount         int64  `json:"amount"`
-		IdempotencyKey string `json:"idempotencyKey"`
+		MandateDigest  string                 `json:"mandateDigest"`
+		Side           string                 `json:"side"`
+		Price          int64                  `json:"price"`
+		Amount         int64                  `json:"amount"`
+		IdempotencyKey string                 `json:"idempotencyKey"`
+		Risk           TestnetRiskObservation `json:"risk"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey)
+	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.Risk)
 	respond(w, v, e, 201)
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {

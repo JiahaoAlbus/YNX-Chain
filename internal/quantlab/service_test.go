@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,7 +25,11 @@ func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
 }
 
 func validMandate(now time.Time, strategyHash string) Mandate {
-	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+}
+
+func validRisk(now time.Time) TestnetRiskObservation {
+	return TestnetRiskObservation{ReferencePrice: 1_000_000, EstimatedGas: 100, OracleAsOf: now, VenueHealthy: true}
 }
 
 func validDataset(now time.Time) DatasetRecord {
@@ -115,23 +120,52 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 	if _, e = s.RegisterMandate(m); e != ErrConflict {
 		t.Fatalf("replay=%v", e)
 	}
-	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1")
+	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))
 	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" {
 		t.Fatalf("%+v %v", o, e)
 	}
-	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1")
+	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))
 	if e != nil || again.ID != o.ID {
 		t.Fatal("idempotent replay changed result")
 	}
-	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 3_000_000, "bounded-order-2"); e != ErrForbidden {
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 3_000_000, "bounded-order-2", validRisk(now)); e != ErrForbidden {
 		t.Fatalf("limit=%v", e)
 	}
-	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_500_000, "bounded-order-aggregate"); e != ErrForbidden {
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_500_000, "bounded-order-aggregate", validRisk(now)); e != ErrForbidden {
 		t.Fatalf("aggregate position=%v", e)
 	}
 	now = now.Add(2 * time.Hour)
-	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "bounded-order-3"); e != ErrForbidden {
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "bounded-order-3", validRisk(now)); e != ErrForbidden {
 		t.Fatalf("expiry=%v", e)
+	}
+}
+
+func TestTestnetRiskObservationRejectsStaleOracleVenueLossGasSlippageAndFrequency(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	m := validMandate(now, strings.Repeat("a", 64))
+	m.MaxOrdersPerMinute = 1
+	m, err := s.RegisterMandate(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []TestnetRiskObservation{
+		{ReferencePrice: 1_000_000, EstimatedGas: 100, OracleAsOf: now.Add(-31 * time.Second), VenueHealthy: true},
+		{ReferencePrice: 1_000_000, EstimatedGas: 100, OracleAsOf: now, VenueHealthy: false},
+		{ReferencePrice: 1_000_000, EstimatedGas: 100, ObservedDailyLoss: m.MaxDailyLoss, OracleAsOf: now, VenueHealthy: true},
+		{ReferencePrice: 1_000_000, EstimatedGas: m.MaxGas + 1, OracleAsOf: now, VenueHealthy: true},
+		{ReferencePrice: 900_000, EstimatedGas: 100, OracleAsOf: now, VenueHealthy: true},
+	}
+	for i, risk := range cases {
+		if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, fmt.Sprintf("risk-reject-%02d", i), risk); err != ErrForbidden {
+			t.Fatalf("risk case %d=%v", i, err)
+		}
+	}
+	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "risk-accepted", validRisk(now)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "risk-frequency", validRisk(now)); err != ErrForbidden {
+		t.Fatalf("frequency=%v", err)
 	}
 }
 
@@ -164,7 +198,7 @@ func TestMandateAndBrokerUnavailableFailClosed(t *testing.T) {
 	if _, e := s.RegisterMandate(m); e != ErrUnavailable {
 		t.Fatalf("verifier=%v", e)
 	}
-	if _, e := s.SubmitTestnet(strings.Repeat("b", 64), "buy", 1, 1, "unavailable-1"); e != ErrUnavailable {
+	if _, e := s.SubmitTestnet(strings.Repeat("b", 64), "buy", 1, 1, "unavailable-1", validRisk(now)); e != ErrUnavailable {
 		t.Fatalf("broker=%v", e)
 	}
 }
@@ -212,14 +246,14 @@ func TestMandateRevocationIsImmediatePersistentAndIdempotent(t *testing.T) {
 	if _, err = s.RevokeMandate(m.Digest, "wallet-owner"); err != nil {
 		t.Fatalf("idempotent revoke=%v", err)
 	}
-	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "revoked-order"); err != ErrForbidden {
+	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "revoked-order", validRisk(now)); err != ErrForbidden {
 		t.Fatalf("revoked submit=%v", err)
 	}
 	restarted, err := New(Config{StatePath: path, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = restarted.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "restart-order"); err != ErrForbidden {
+	if _, err = restarted.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "restart-order", validRisk(now)); err != ErrForbidden {
 		t.Fatalf("restart submit=%v", err)
 	}
 }

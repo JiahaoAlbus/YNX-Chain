@@ -174,11 +174,21 @@ type Mandate struct {
 	NonceDomain, Scope                     string
 	Nonce                                  uint64
 	MaxNotional, MaxPosition, MaxDailyLoss int64
+	MaxSlippageBPS, MaxGas                 int64
+	MaxOrdersPerMinute                     int
 	ExpiresAt                              time.Time
 	WalletSignature, Digest                string
 	TestnetOnly                            bool
 	Revoked                                bool
 	RevokedAt                              time.Time
+}
+
+type TestnetRiskObservation struct {
+	ReferencePrice    int64     `json:"referencePrice"`
+	EstimatedGas      int64     `json:"estimatedGas"`
+	ObservedDailyLoss int64     `json:"observedDailyLoss"`
+	OracleAsOf        time.Time `json:"oracleAsOf"`
+	VenueHealthy      bool      `json:"venueHealthy"`
 }
 
 type TestnetOrder struct {
@@ -337,7 +347,8 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" ||
 		m.ProductID != ProductID || len(strings.TrimSpace(m.BundleID)) < 3 || len(strings.TrimSpace(m.DeviceID)) < 3 ||
 		m.NonceDomain != "ynx-quant-testnet-v1" || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
-		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || !m.ExpiresAt.After(now) ||
+		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || m.MaxSlippageBPS <= 0 || m.MaxSlippageBPS > 10_000 ||
+		m.MaxGas <= 0 || m.MaxOrdersPerMinute <= 0 || m.MaxOrdersPerMinute > 60 || !m.ExpiresAt.After(now) ||
 		m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
 		return Mandate{}, ErrInvalid
 	}
@@ -347,9 +358,11 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 		NonceDomain, Scope                     string
 		Nonce                                  uint64
 		MaxNotional, MaxPosition, MaxDailyLoss int64
+		MaxSlippageBPS, MaxGas                 int64
+		MaxOrdersPerMinute                     int
 		ExpiresAt                              time.Time
 		TestnetOnly                            bool
-	}{m.Account, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.NonceDomain, m.Scope, m.Nonce, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.ExpiresAt, m.TestnetOnly})
+	}{m.Account, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.NonceDomain, m.Scope, m.Nonce, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.MaxSlippageBPS, m.MaxGas, m.MaxOrdersPerMinute, m.ExpiresAt, m.TestnetOnly})
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
@@ -371,7 +384,7 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	return m, s.save()
 }
 
-func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key string) (TestnetOrder, error) {
+func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key string, risk TestnetRiskObservation) (TestnetOrder, error) {
 	if (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || len(key) < 8 || len(key) > 128 {
 		return TestnetOrder{}, ErrInvalid
 	}
@@ -392,7 +405,16 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if !ok || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) {
 		return TestnetOrder{}, ErrForbidden
 	}
+	now := s.cfg.Now()
+	if !risk.VenueHealthy || risk.ReferencePrice <= 0 || risk.EstimatedGas < 0 || risk.ObservedDailyLoss < 0 || risk.OracleAsOf.IsZero() || risk.OracleAsOf.After(now) || now.Sub(risk.OracleAsOf) > 30*time.Second {
+		return TestnetOrder{}, ErrForbidden
+	}
+	slippageBPS := abs(price-risk.ReferencePrice) * 10_000 / risk.ReferencePrice
+	if slippageBPS > m.MaxSlippageBPS || risk.EstimatedGas > m.MaxGas || risk.ObservedDailyLoss >= m.MaxDailyLoss {
+		return TestnetOrder{}, ErrForbidden
+	}
 	position := int64(0)
+	recentOrders := 0
 	for _, existing := range s.state.TestnetOrders {
 		if existing.MandateDigest != mandateDigest || existing.Status != "submitted_testnet" {
 			continue
@@ -402,6 +424,12 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		} else {
 			position -= existing.Amount
 		}
+		if !existing.CreatedAt.Before(now.Add(-time.Minute)) {
+			recentOrders++
+		}
+	}
+	if recentOrders >= m.MaxOrdersPerMinute {
+		return TestnetOrder{}, ErrForbidden
 	}
 	signedAmount := amount
 	if side == "sell" {

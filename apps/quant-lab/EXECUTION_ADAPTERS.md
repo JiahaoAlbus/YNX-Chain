@@ -20,6 +20,14 @@ the user's Strategy Vault. Adapters receive no seed/private key, withdrawal,
 owner-change, risk-change, or scope-widening authority. The Quant Engine cannot
 increase mandate limits or continue after expiry/revoke/kill.
 
+The local bounded-Testnet pre-trade contract requires a fresh (at most 30
+seconds old) oracle reference, healthy-venue observation, estimated gas and
+observed daily loss. Wallet-signed limits bind maximum slippage, gas and orders
+per minute in addition to notional, position and daily loss. Missing, future or
+stale observations fail closed before the broker is called.
+
 Current status: Paper behavior and the bounded Testnet broker interface are
-tested locally. Shadow, canonical Exchange and DEX adapters, sequence/retry
-matrices, real receipts, and emergency exit are not implemented or deployed.
+tested locally, including injected risk observations. Those observations are
+not yet supplied by a canonical authoritative adapter. Shadow, canonical
+Exchange and DEX adapters, sequence/retry matrices, real receipts, and emergency
+exit are not implemented or deployed.
