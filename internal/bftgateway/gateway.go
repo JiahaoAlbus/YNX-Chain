@@ -40,6 +40,7 @@ var implementedCapabilities = []string{
 	"quant-mandate-and-vault-state-transitions",
 	"staking-delegation-and-exit-state-transitions",
 	"treasury-observation-snapshot",
+	"smart-account-and-sponsored-user-operation-state-transitions",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -301,6 +302,15 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("POST /quant/vaults/{id}/withdraw", g.handleQuantMutation)
 	g.mux.HandleFunc("POST /quant/vaults/{id}/emergency-exit", g.handleQuantMutation)
 	g.mux.HandleFunc("GET /quant/audit", g.handleQuantAudit)
+	g.mux.HandleFunc("POST /aa/accounts", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/accounts", g.handleSmartAccounts)
+	g.mux.HandleFunc("GET /aa/accounts/{address}", g.handleSmartAccount)
+	g.mux.HandleFunc("POST /aa/paymasters", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/paymasters", g.handlePaymasters)
+	g.mux.HandleFunc("GET /aa/paymasters/{id}", g.handlePaymaster)
+	g.mux.HandleFunc("POST /aa/user-operations", g.handleAccountAbstractionMutation)
+	g.mux.HandleFunc("GET /aa/user-operations", g.handleUserOperations)
+	g.mux.HandleFunc("GET /aa/user-operations/{id}", g.handleUserOperation)
 	g.mux.HandleFunc("POST /staking/delegations", g.handleStakingMutation)
 	g.mux.HandleFunc("GET /staking/delegations", g.handleStakeDelegations)
 	g.mux.HandleFunc("GET /staking/delegations/{id}", g.handleStakeDelegation)

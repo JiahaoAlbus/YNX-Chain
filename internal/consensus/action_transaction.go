@@ -56,6 +56,9 @@ const (
 	ActionStakeDelegate         = "stake_delegate"
 	ActionStakeUnbond           = "stake_unbond"
 	ActionStakeWithdraw         = "stake_withdraw"
+	ActionSmartAccountCreate    = "smart_account_create"
+	ActionPaymasterCreate       = "paymaster_policy_create"
+	ActionUserOperationExecute  = "user_operation_execute"
 )
 
 var supportedApplicationActions = map[string]struct{}{
@@ -94,6 +97,9 @@ var supportedApplicationActions = map[string]struct{}{
 	ActionStakeDelegate:         {},
 	ActionStakeUnbond:           {},
 	ActionStakeWithdraw:         {},
+	ActionSmartAccountCreate:    {},
+	ActionPaymasterCreate:       {},
+	ActionUserOperationExecute:  {},
 }
 
 // SignedApplicationAction is the canonical transaction envelope for non-transfer
@@ -225,10 +231,10 @@ func NewSignedApplicationAction(privateKey *secp256k1.PrivateKey, chainID int64,
 		PayloadHash: actionPayloadHash(canonicalPayload), Fee: SignedActionFeeYNXT,
 		PublicKey: hex.EncodeToString(publicKey),
 	}
-	if isResourceSponsorAction(action) {
+	if isZeroFeeApplicationAction(action) {
 		tx.Fee = 0
 	}
-	if isResourceAction(action) || isIDEAction(action) || isAssetAuthorizationAction(action) || isStakingAction(action) {
+	if isResourceAction(action) || isIDEAction(action) || isAssetAuthorizationAction(action) || isStakingAction(action) || isAccountAbstractionAction(action) {
 		// Resource actions charge YNXT and bandwidth through the shared envelope,
 		// but do not consume AI, Pay, or Trust credits.
 	} else if isPayAction(action) {
@@ -280,15 +286,15 @@ func (tx SignedApplicationAction) ValidateBasic() error {
 		return errors.New("application action payload hash mismatch")
 	}
 	expectedFee := SignedActionFeeYNXT
-	if isResourceSponsorAction(tx.Action) {
+	if isZeroFeeApplicationAction(tx.Action) {
 		expectedFee = 0
 	}
 	if tx.Fee != expectedFee {
 		return fmt.Errorf("application action fee must equal %d YNXT", expectedFee)
 	}
-	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isAssetAuthorizationAction(tx.Action) || isStakingAction(tx.Action) {
+	if isResourceAction(tx.Action) || isIDEAction(tx.Action) || isAssetAuthorizationAction(tx.Action) || isStakingAction(tx.Action) || isAccountAbstractionAction(tx.Action) {
 		if tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
-			return errors.New("Resource, IDE, asset authorization, and staking actions must not charge AI, Pay, or Trust units")
+			return errors.New("Resource, IDE, asset authorization, staking, and account abstraction actions must not charge AI, Pay, or Trust units")
 		}
 	} else if isPayAction(tx.Action) {
 		if tx.PayUnits != 1 || tx.AIUnits != 0 || tx.TrustUnits != 0 {
@@ -481,6 +487,9 @@ func canonicalActionPayload(action string, value any) ([]byte, error) {
 		}
 		if isStakingAction(action) {
 			return canonicalStakingActionPayload(action, raw)
+		}
+		if isAccountAbstractionAction(action) {
+			return canonicalAccountAbstractionPayload(action, raw)
 		}
 		return nil, fmt.Errorf("unsupported application action %q", action)
 	}

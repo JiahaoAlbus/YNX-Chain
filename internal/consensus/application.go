@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 12
+	ApplicationVersion   = 13
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -47,6 +47,9 @@ type executionState struct {
 	strategyMandates           []assetauth.StrategyMandate
 	strategyVaults             []assetauth.StrategyVault
 	assetAuditEvents           []BFTAssetAuditEvent
+	smartAccounts              []assetauth.SmartAccount
+	paymasters                 []BFTPaymaster
+	userOperationEvents        []BFTUserOperationEvent
 	stakeDelegations           []BFTStakeDelegation
 	unbondings                 []BFTUnbondingEntry
 	permissions                []BFTAIPermission
@@ -223,6 +226,21 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	case req.Path == "/quant/audit":
 		response.Value, _ = json.Marshal(a.committed.AssetAuditEvents)
 		return response, nil
+	case req.Path == "/aa/accounts":
+		response.Value, _ = json.Marshal(a.committed.SmartAccounts)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/accounts/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/accounts/"), a.committed.SmartAccounts, func(v assetauth.SmartAccount) string { return v.Address }, "Smart account")
+	case req.Path == "/aa/paymasters":
+		response.Value, _ = json.Marshal(a.committed.Paymasters)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/paymasters/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/paymasters/"), a.committed.Paymasters, func(v BFTPaymaster) string { return v.Policy.ID }, "Paymaster")
+	case req.Path == "/aa/user-operations":
+		response.Value, _ = json.Marshal(a.committed.UserOperationEvents)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/aa/user-operations/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/aa/user-operations/"), a.committed.UserOperationEvents, func(v BFTUserOperationEvent) string { return v.ID }, "User operation")
 	case req.Path == "/staking/delegations":
 		response.Value, _ = json.Marshal(a.committed.StakeDelegations)
 		return response, nil
@@ -408,7 +426,7 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, staking, Treasury, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, account abstraction, staking, Treasury, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }
@@ -520,7 +538,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), smartAccounts: cloneSmartAccounts(a.committed.SmartAccounts), paymasters: clonePaymasters(a.committed.Paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), a.committed.UserOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
@@ -598,7 +616,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 
 func cloneExecutionStateValue(state executionState) executionState {
 	return executionState{
-		accounts: cloneAccounts(state.accounts), feeEvents: append([]BFTFeeEvent(nil), state.feeEvents...), strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		accounts: cloneAccounts(state.accounts), feeEvents: append([]BFTFeeEvent(nil), state.feeEvents...), strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
 		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),
@@ -642,6 +660,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isAssetAuthorizationAction(tx.Action) {
 		return a.applyAssetAuthorizationAction(state, payload, tx, height, blockTime)
+	}
+	if isAccountAbstractionAction(tx.Action) {
+		return a.applyAccountAbstractionAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if isStakingAction(tx.Action) {
 		return a.applyStakingAction(state, payload, tx, height, blockTime, validationOnly)

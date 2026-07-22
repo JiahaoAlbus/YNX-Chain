@@ -261,7 +261,16 @@ Quant mandate and strategy-vault state:
 - `POST /quant/vaults` creates a vault bound to an existing mandate owned by the signer. Deposit, owner-only withdrawal, and owner-only full close use `/quant/vaults/{id}/deposit`, `/withdraw`, and `/emergency-exit`; reads use `GET /quant/vaults` and `GET /quant/vaults/{id}`.
 - Every mutation charges the committed application-action fee, consumes the signer nonce only on success, moves traceable YNXT lots together with balances, conserves total supply across accounts and vaults, and appends an AppHash-bound audit event. A rejected action cannot leak a fee, nonce, balance, lot, or partial record mutation into the block.
 - `GET /quant/audit` returns the committed audit ledger. All Quant responses expose `source`, `asOf`, `version`, `coverage`, and `failure`; mutation success is returned only after the Gateway verifies Comet transaction evidence and matches the final ABCI record and audit event by action, signer, transaction hash, and record ID.
-- This is branch-local application version 12 / committed-state v10 evidence. It has not been activated on the public four-node runtime, and it does not claim an external exchange adapter, managed-fund deployment, or public vault transaction.
+- This is branch-local application version 13 / committed-state v11 evidence. It has not been activated on the public four-node runtime, and it does not claim an external exchange adapter, managed-fund deployment, or public vault transaction.
+
+Account Abstraction and sponsored operations:
+
+- `POST /aa/accounts` registers an Ed25519 or P-256 owner key, bounded exact-scope session keys, per-domain nonces, and guardian policy under the outer native account's authorization. Reads use `GET /aa/accounts` and `GET /aa/accounts/{address}`.
+- `POST /aa/paymasters` locks a signer-funded YNXT budget with exact product/call allowlists, per-account and global limits, expiry, and optional anti-Sybil attestation. Unspent budget and traceable lots remain part of conserved supply. Reads use `GET /aa/paymasters` and `GET /aa/paymasters/{id}`.
+- `POST /aa/user-operations` accepts a Bundler-signed outer application action containing an independently owner/session-signed UserOperation. The Bundler cannot change account, nonce domain, calls, values, maximum fee, validity, session, or Paymaster without invalidating the inner signature. The candidate executes bounded batch native transfers and charges exactly `1 YNXT` to the account or eligible Paymaster.
+- `GET /aa/user-operations` and `GET /aa/user-operations/{id}` expose AppHash-bound receipts with account, Bundler, actual fee payer, Paymaster, call count, transferred value, fee, height, time, transaction hash, and audit hash. Replays and expired, out-of-scope, over-budget, revoked-session, bad-signature, wrong-chain, and failed calls reject atomically.
+- `ynx-bundlerd` accepts an already user-signed payload on authenticated `POST /user-operations`, serializes its own chain nonce, signs the outer application action from a mode-`0600` raw-key file, and verifies the committed account/operation hash/Bundler evidence before returning success. `GET /user-operations/{id}` returns the Gateway receipt. Its access key is an operator boundary, not user authority.
+- This is branch-local application version 13 / committed-state v11 evidence. No public Bundler, public sponsored transaction, WebAuthn RP/origin validation, or deployed Paymaster budget is claimed.
 
 AI Gateway permission and audit:
 

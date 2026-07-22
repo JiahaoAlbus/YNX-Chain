@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -150,6 +151,9 @@ func (account SmartAccount) AuthorizeUserOperation(operation UserOperation, at t
 	expectedNonce := account.NonceByDomain[operation.NonceDomain]
 	if operation.Nonce != expectedNonce {
 		return account, errors.New("user operation nonce mismatch")
+	}
+	if expectedNonce == math.MaxUint64 {
+		return account, errors.New("user operation nonce domain is exhausted")
 	}
 	algorithm, publicKey := account.OwnerAlgorithm, account.OwnerPublicKey
 	if operation.SessionKeyID != "" {

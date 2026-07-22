@@ -16,7 +16,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 10
+const CommittedStateVersion = 11
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -32,6 +32,9 @@ type CommittedState struct {
 	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates"`
 	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults"`
 	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents"`
 	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations"`
 	Unbondings                 []BFTUnbondingEntry             `json:"unbondings"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
@@ -78,6 +81,9 @@ type committedStateHashDocument struct {
 	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates,omitempty"`
 	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults,omitempty"`
 	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents,omitempty"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts,omitempty"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters,omitempty"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents,omitempty"`
 	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations,omitempty"`
 	Unbondings                 []BFTUnbondingEntry             `json:"unbondings,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
@@ -125,6 +131,9 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		StrategyMandates:           []assetauth.StrategyMandate{},
 		StrategyVaults:             []assetauth.StrategyVault{},
 		AssetAuditEvents:           []BFTAssetAuditEvent{},
+		SmartAccounts:              []assetauth.SmartAccount{},
+		Paymasters:                 []BFTPaymaster{},
+		UserOperationEvents:        []BFTUserOperationEvent{},
 		StakeDelegations:           []BFTStakeDelegation{},
 		Unbondings:                 []BFTUnbondingEntry{},
 		AIPermissions:              []BFTAIPermission{},
@@ -174,6 +183,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
 		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
 		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
+		SmartAccounts:              cloneSmartAccounts(execution.smartAccounts),
+		Paymasters:                 clonePaymasters(execution.paymasters),
+		UserOperationEvents:        append([]BFTUserOperationEvent(nil), execution.userOperationEvents...),
 		StakeDelegations:           append([]BFTStakeDelegation(nil), execution.stakeDelegations...),
 		Unbondings:                 cloneUnbondings(execution.unbondings),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
@@ -311,6 +323,20 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateAssetAuthorizationState(s.StrategyMandates, s.StrategyVaults, s.AssetAuditEvents); err != nil {
 		return err
 	}
+	paymasterLocked, err := validateAccountAbstractionState(s.SmartAccounts, s.Paymasters, s.UserOperationEvents, s.FeeEvents)
+	if err != nil {
+		return err
+	}
+	for _, account := range s.SmartAccounts {
+		if _, exists := accountIndex(s.Accounts, account.Address); !exists {
+			return errors.New("smart account does not have a chain account")
+		}
+	}
+	for _, paymaster := range s.Paymasters {
+		if _, exists := accountIndex(s.Accounts, paymaster.Policy.Sponsor); !exists {
+			return errors.New("paymaster sponsor does not have a chain account")
+		}
+	}
 	var vaultLiquid int64
 	for _, vault := range s.StrategyVaults {
 		if vault.BalanceYNXT > math.MaxInt64 || vaultLiquid > math.MaxInt64-int64(vault.BalanceYNXT) {
@@ -325,10 +351,10 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err != nil {
 		return err
 	}
-	if liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-vaultLiquid || liquid+staked+vaultLiquid > math.MaxInt64-unbonding || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
+	if paymasterLocked > math.MaxInt64 || liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-vaultLiquid || liquid+staked+vaultLiquid > math.MaxInt64-unbonding || liquid+staked+vaultLiquid+unbonding > math.MaxInt64-int64(paymasterLocked) || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
-	if liquid+staked+vaultLiquid+unbonding != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
+	if liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked) != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
 	expected := migration.StateHash
@@ -346,7 +372,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
-	return s.calculateHashFor("YNX_ABCI_STATE_V10", CommittedStateVersion)
+	return s.calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)
 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
@@ -360,6 +386,9 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		StrategyMandates:           s.StrategyMandates,
 		StrategyVaults:             s.StrategyVaults,
 		AssetAuditEvents:           s.AssetAuditEvents,
+		SmartAccounts:              s.SmartAccounts,
+		Paymasters:                 s.Paymasters,
+		UserOperationEvents:        s.UserOperationEvents,
 		StakeDelegations:           s.StakeDelegations,
 		Unbondings:                 s.Unbondings,
 		AIPermissions:              s.AIPermissions,
@@ -403,7 +432,7 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.FeeEvents)+len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.FeeEvents)+len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
 }
 
 func validateFeeEvents(events []BFTFeeEvent) error {
@@ -510,6 +539,9 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 		state.StrategyMandates = []assetauth.StrategyMandate{}
 		state.StrategyVaults = []assetauth.StrategyVault{}
 		state.AssetAuditEvents = []BFTAssetAuditEvent{}
+		state.SmartAccounts = []assetauth.SmartAccount{}
+		state.Paymasters = []BFTPaymaster{}
+		state.UserOperationEvents = []BFTUserOperationEvent{}
 		state.StakeDelegations = []BFTStakeDelegation{}
 		state.Unbondings = []BFTUnbondingEntry{}
 		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
@@ -534,6 +566,9 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 		state.StrategyMandates = []assetauth.StrategyMandate{}
 		state.StrategyVaults = []assetauth.StrategyVault{}
 		state.AssetAuditEvents = []BFTAssetAuditEvent{}
+		state.SmartAccounts = []assetauth.SmartAccount{}
+		state.Paymasters = []BFTPaymaster{}
+		state.UserOperationEvents = []BFTUserOperationEvent{}
 		state.StakeDelegations = []BFTStakeDelegation{}
 		state.Unbondings = []BFTUnbondingEntry{}
 		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
@@ -570,10 +605,35 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 		if state.Unbondings == nil {
 			state.Unbondings = []BFTUnbondingEntry{}
 		}
+		state.SmartAccounts = []assetauth.SmartAccount{}
+		state.Paymasters = []BFTPaymaster{}
+		state.UserOperationEvents = []BFTUserOperationEvent{}
 		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
 			state.AppHash, err = state.calculateHash()
 			if err != nil {
 				return CommittedState{}, fmt.Errorf("migrate v9 committed state hash: %w", err)
+			}
+		}
+	}
+	if state.Version == 10 {
+		expected := migration.StateHash
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V10", 10)
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("calculate v10 committed state hash: %w", err)
+			}
+		}
+		if !strings.EqualFold(state.AppHash, expected) {
+			return CommittedState{}, errors.New("v10 committed state app hash is invalid")
+		}
+		state.Version = CommittedStateVersion
+		state.SmartAccounts = []assetauth.SmartAccount{}
+		state.Paymasters = []BFTPaymaster{}
+		state.UserOperationEvents = []BFTUserOperationEvent{}
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			state.AppHash, err = state.calculateHash()
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("migrate v10 committed state hash: %w", err)
 			}
 		}
 	}
