@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+  "commit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,14 +21,14 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "c164b3651abf75700833cd7dc5e1f8ffedae8572efaeeb02c050e4c4388acc2d",
-    "webPwaBundle": "04c9913a51fd91574d9437707b36acd84ac2e5351213caf28f2e5d80e555ca61",
-    "javascriptSdkPackage": "fc73494b974877ba57f24459a015de077006b64acf96dcc8489fb3f8b80360ef"
+    "artifactManifest": "479d006ab0fdab7c106699050a45686253b936d0147f31c841a6fef0a48704d4",
+    "webPwaBundle": "3ffb23550a1ba7f8957e8d994daa88853cfa536774ea085f221bf5ac1c423644",
+    "javascriptSdkPackage": "be4ebebdb51cd67f2e648e48beb9c000a5e8ae861253bf09e0c308ad97a1d235"
   },
   "bytes": {
-    "artifactManifest": 5331,
-    "webPwaBundle": 327847,
-    "javascriptSdkPackage": 16834
+    "artifactManifest": 6161,
+    "webPwaBundle": 330580,
+    "javascriptSdkPackage": 18974
   },
   "signingClass": "unsigned-local-build",
   "minOS": { "web": "modern browser with ES2022 and PWA support" },
@@ -61,7 +61,7 @@
       "evidence": "npm run dex:vault:test"
     },
     "executionAdapter": {
-      "sourceCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+      "sourceCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
       "implementedLocal": true,
       "testedLocal": true,
       "integratedCentral": false,
@@ -70,15 +70,15 @@
       "evidence": "npm test --prefix sdk/dex"
     },
     "vaultIndexer": {
-      "sourceCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+      "sourceCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedPublic": false,
-      "scope": "confirmed ActionExecuted ingestion, Vault/FairFlow/LP-Protection-bound cursor v4, authenticated v1/v2/v3 state migration, shared reorg recovery, source-labelled API",
+      "scope": "confirmed typed CPMM/StableSwap/Vault/FairFlow/LP-Protection ingestion, all-source-bound cursor v5, authenticated v1/v2/v3/v4 state migration with exact backups, shared reorg recovery, source-labelled API",
       "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
     },
     "fairFlow": {
-      "sourceCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+      "sourceCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
       "implementedLocal": true,
       "testedLocal": true,
       "indexedLocal": true,
@@ -88,7 +88,7 @@
       "evidence": "npm run dex:fairflow:test; npm test --prefix sdk/dex; go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
     },
     "lpProtection": {
-      "sourceCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+      "sourceCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
       "implementedLocal": true,
       "testedLocal": true,
       "indexedLocal": true,
@@ -96,6 +96,16 @@
       "deployedPublic": false,
       "scope": "separate protected CPMM Factory, immutable Oracle policy, bounded component fees, depeg swap circuit breaker, delayed configuration, permissionless LP exit, fixed confirmed event indexing/API and exact source-labelled SDK quote/reconciliation",
       "evidence": "npm run dex:lp-protection:test; npm test --prefix sdk/dex; go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
+    },
+    "stableSwap": {
+      "sourceCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "indexedLocal": true,
+      "integratedCentral": false,
+      "deployedPublic": false,
+      "scope": "separate clean-room two-asset StableSwap Factory/Pool family, 6/8/18-decimal normalization, immutable amplification and fee, proportional fungible LP shares, exact-input/output Router/Quoter compatibility, typed schema/cursor v5 indexing, fresh-state SDK quoting, and PWA CPMM-math exclusion",
+      "evidence": "npm run dex:stable:test; npm test --prefix sdk/dex; go test -race ./internal/dex ./cmd/ynx-dex-indexerd; npm test --prefix apps/dex"
     }
   },
   "centralIntegration": {
@@ -110,11 +120,12 @@
     "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
     "FairFlow is a local unaudited candidate: UI, Sybil and collusion controls, partial fills, external-route proof and cross-chain settlement are absent; Indexer and SDK paths are local-only and have no public chain evidence.",
     "LP Protection is a local unaudited protected-CPMM candidate: UI presentation, reviewed live Oracle adapter, LVR-aware auction, inventory/range guidance and public chain evidence are absent; Indexer and SDK paths are local-only.",
+    "StableSwap is a local unaudited and undeployed candidate: no reviewed stable assets, external peg/rate Oracle, depeg pause, dedicated PWA transaction path, Strategy Vault routing, verified bytecode, pools, liquidity or public receipts exist; the PWA intentionally presents indexed Stable pools read-only.",
     "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
     "No independent third-party smart-contract audit has been completed.",
     "CPMM LP fees are embedded in reserves; there is no separate LP collect method, and compound/rebalance require caller-supplied amounts plus sequential Wallet approvals.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-23T12:00:00.000Z"
+  "generatedAt": "2026-07-22T16:56:56.000Z"
 }

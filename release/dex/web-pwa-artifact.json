@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
+  "sourceBaseCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "04c9913a51fd91574d9437707b36acd84ac2e5351213caf28f2e5d80e555ca61",
-  "sizeBytes": 327847,
+  "sha256": "3ffb23550a1ba7f8957e8d994daa88853cfa536774ea085f221bf5ac1c423644",
+  "sizeBytes": 330580,
   "contentFileCount": 9,
   "content": [
     {
@@ -29,14 +29,14 @@
       "sizeBytes": 21736
     },
     {
-      "path": "assets/index-DoXwOYUV.js",
-      "sha256": "b580ca75e8efde71980a99ffe294bc6a902d1e511e58dfd2d860e538ad7c64d2",
-      "sizeBytes": 240301
+      "path": "assets/index-DTR2Y1ma.js",
+      "sha256": "98e3c79cf8473d866b1c058c4d004ef85c6051bf3cb3eb85db64fc46ac0f3716",
+      "sizeBytes": 241099
     },
     {
-      "path": "assets/index-DoXwOYUV.js.map",
-      "sha256": "a960d608785a13a674409dcceccb3efb4087fd70cda7c8da714568494c3de4b1",
-      "sizeBytes": 1071544
+      "path": "assets/index-DTR2Y1ma.js.map",
+      "sha256": "5422bdc25290cddf65f4b93e35865838dad1bde59f91970fb8377d97c952d4ac",
+      "sizeBytes": 1083209
     },
     {
       "path": "icon-maskable.svg",
@@ -50,7 +50,7 @@
     },
     {
       "path": "index.html",
-      "sha256": "11e3a57120d71d40bd65e6bf22a0b3d6a82a6c901674b64a60476da5f792e363",
+      "sha256": "88843176bfdb1667a44897542183a6b51be3443aab55ad1b40ed9b1f1511afda",
       "sizeBytes": 931
     },
     {
@@ -66,6 +66,6 @@
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "04c9913a51fd91574d9437707b36acd84ac2e5351213caf28f2e5d80e555ca61"
+    "expectedSha256": "3ffb23550a1ba7f8957e8d994daa88853cfa536774ea085f221bf5ac1c423644"
   }
 }
