@@ -4,20 +4,77 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-type Server struct{ service *Service }
+type Server struct {
+	service       *Service
+	mu            sync.Mutex
+	startedAt     time.Time
+	requests      map[string]int64
+	latencyMillis map[string]int64
+}
 
-func NewServer(service *Service) *Server { return &Server{service: service} }
+func NewServer(service *Service) *Server {
+	return &Server{service: service, startedAt: service.cfg.Now(), requests: map[string]int64{}, latencyMillis: map[string]int64{}}
+}
+
+type observedWriter struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (w *observedWriter) WriteHeader(status int) {
+	if status >= 400 {
+		w.Header().Set("X-Error-ID", newID("error"))
+	}
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+func (w *observedWriter) Write(b []byte) (int, error) {
+	if w.status == 0 {
+		w.WriteHeader(200)
+	}
+	n, err := w.ResponseWriter.Write(b)
+	w.bytes += n
+	return n, err
+}
+func (s *Server) observe(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		started := time.Now()
+		requestID := newID("request")
+		w.Header().Set("X-Request-ID", requestID)
+		ow := &observedWriter{ResponseWriter: w}
+		next.ServeHTTP(ow, r)
+		if ow.status == 0 {
+			ow.status = 200
+		}
+		duration := time.Since(started)
+		key := fmt.Sprintf("%s %s %d", r.Method, r.URL.Path, ow.status)
+		s.mu.Lock()
+		s.requests[key]++
+		s.latencyMillis[key] += duration.Milliseconds()
+		s.mu.Unlock()
+		record := map[string]any{"level": "info", "event": "http.request", "requestId": requestID, "method": r.Method, "path": r.URL.Path, "status": ow.status, "bytes": ow.bytes, "durationMs": duration.Milliseconds()}
+		encoded, _ := json.Marshal(record)
+		log.Print(string(encoded))
+	})
+}
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Health()) })
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
+	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
+	mux.HandleFunc("GET /api/v1/health", s.auth(s.detailedHealth))
+	mux.HandleFunc("GET /api/v1/metrics", s.auth(s.metrics))
 	mux.HandleFunc("POST /api/v1/session", s.session)
 	mux.HandleFunc("POST /api/v1/session/challenge", s.sessionChallenge)
 	mux.HandleFunc("DELETE /api/v1/session", s.auth(s.revokeSession))
@@ -53,12 +110,28 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/objects/{id}/presence", s.auth(s.presence))
 	mux.HandleFunc("GET /api/v1/quota", s.auth(s.quota))
 	mux.HandleFunc("GET /api/v1/audit", s.auth(s.audit))
+	mux.HandleFunc("GET /api/v1/export", s.auth(s.exportData))
 	mux.HandleFunc("GET /api/v1/ai/status", s.auth(s.aiStatus))
 	mux.HandleFunc("POST /api/v1/ai/jobs", s.auth(s.aiJob))
 	mux.HandleFunc("GET /api/v1/ai/jobs/{job}", s.auth(s.aiGet))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/cancel", s.auth(s.aiCancel))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/review", s.auth(s.aiReview))
-	return securityHeaders(mux)
+	return securityHeaders(s.observe(mux))
+}
+
+func (s *Server) detailedHealth(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "audit.read") {
+		return
+	}
+	writeJSON(w, 200, s.service.Health())
+}
+func (s *Server) metrics(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "audit.read") {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	writeJSON(w, 200, map[string]any{"schemaVersion": 1, "source": "ynx-cloudd in-process counters", "asOf": s.service.cfg.Now(), "startedAt": s.startedAt, "requests": s.requests, "totalLatencyMillis": s.latencyMillis, "coverage": "current process only; reset on restart"})
 }
 
 type authed func(http.ResponseWriter, *http.Request, Session)
@@ -501,6 +574,22 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 	v, err := s.service.Audit(a.Account)
 	writeResult(w, v, err)
+}
+func (s *Server) exportData(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
+		return
+	}
+	body, manifest, err := s.service.ExportOwnedData(r.Context(), a.Account)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", `attachment; filename="ynx-cloud-export.zip"`)
+	w.Header().Set("X-Content-SHA256", hashBytes(body))
+	w.Header().Set("X-YNX-Export-As-Of", manifest.AsOf.Format(time.RFC3339Nano))
+	w.WriteHeader(200)
+	_, _ = w.Write(body)
 }
 func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "ai.use") {

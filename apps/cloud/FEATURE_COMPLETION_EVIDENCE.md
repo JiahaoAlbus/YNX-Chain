@@ -17,7 +17,8 @@ Evidence baseline: source commit `7b3c5f427c1751b8d5f43833e281811dd81f76bb` plus
 | Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |
 | Millions-of-objects candidate | no | no | none | benchmark and sharding evidence |
 | AI selected-file boundary | yes | local | service/client tests | configured gateway staging |
-| Export/delete | partial | local delete | delete tests | portable archive + account export |
+| Export/delete | partial | local | verified portable ZIP export, manifest tests, logical delete tests | provider blob erasure/GC proof and full-account deletion |
+| Logs, IDs, public/restricted health, metrics | partial | local | server observability tests and `OBSERVABILITY.md` | persistent histograms, traces, dashboard, alerts |
 | Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |
 
 No row marked “local” proves staging, public deployment, production durability, production signing, or store release.

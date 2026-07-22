@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"crypto/rand"
@@ -627,6 +628,9 @@ func (s *Service) DeleteObject(actor, id string) error {
 	if obj.Owner != actor || obj.TrashedAt == nil {
 		return ErrDenied
 	}
+	if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
+		return errors.New("legal hold prevents deletion")
+	}
 	for _, child := range s.state.Objects {
 		if child.ParentID == id {
 			return errors.New("folder must be empty before permanent deletion")
@@ -667,6 +671,78 @@ func (s *Service) DeleteObject(actor, id string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *Service) ExportOwnedData(ctx context.Context, actor string) ([]byte, ExportManifest, error) {
+	if !validAccount(actor) {
+		return nil, ExportManifest{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	manifest := ExportManifest{SchemaVersion: 1, Authority: "YNX Cloud owner metadata and verified object bytes", Source: "ynx-cloudd", AsOf: s.cfg.Now(), Owner: actor, Objects: []Object{}, Versions: []Version{}, Grants: []Grant{}, Audit: []AuditEvent{}, Files: []ExportFile{}}
+	owned := map[string]bool{}
+	for _, obj := range s.state.Objects {
+		if obj.Owner == actor {
+			manifest.Objects = append(manifest.Objects, obj)
+			owned[obj.ID] = true
+		}
+	}
+	sort.Slice(manifest.Objects, func(i, j int) bool { return manifest.Objects[i].ID < manifest.Objects[j].ID })
+	for _, g := range s.state.Grants {
+		if owned[g.ObjectID] {
+			manifest.Grants = append(manifest.Grants, g)
+		}
+	}
+	for _, e := range s.state.Audit {
+		if e.Actor == actor || owned[e.ObjectID] {
+			manifest.Audit = append(manifest.Audit, e)
+		}
+	}
+	var out bytes.Buffer
+	zw := zip.NewWriter(&out)
+	for _, obj := range manifest.Objects {
+		versions := append([]Version(nil), s.state.Versions[obj.ID]...)
+		sort.Slice(versions, func(i, j int) bool { return versions[i].Number < versions[j].Number })
+		for _, v := range versions {
+			body, err := s.cfg.ObjectStore.Get(ctx, v.BlobPath, v.Hash)
+			if err != nil {
+				_ = zw.Close()
+				return nil, ExportManifest{}, fmt.Errorf("export object %s version %d: %w", obj.ID, v.Number, err)
+			}
+			if int64(len(body)) != v.Size || hashBytes(body) != v.Hash {
+				_ = zw.Close()
+				return nil, ExportManifest{}, errors.New("export source integrity mismatch")
+			}
+			name := fmt.Sprintf("objects/%s/versions/%06d.bin", obj.ID, v.Number)
+			w, err := zw.Create(name)
+			if err != nil {
+				return nil, ExportManifest{}, err
+			}
+			if _, err = w.Write(body); err != nil {
+				return nil, ExportManifest{}, err
+			}
+			manifest.Versions = append(manifest.Versions, v)
+			manifest.Files = append(manifest.Files, ExportFile{ObjectID: obj.ID, Version: v.Number, Path: name, Hash: v.Hash, Bytes: v.Size})
+		}
+	}
+	metadata, err := json.MarshalIndent(manifest, "", "  ")
+	if err != nil {
+		return nil, ExportManifest{}, err
+	}
+	w, err := zw.Create("manifest.json")
+	if err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if _, err = w.Write(metadata); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if err = zw.Close(); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	if err := s.persist("data.export", actor, "", map[string]any{"objects": len(manifest.Objects), "versions": len(manifest.Versions), "bytes": out.Len()}); err != nil {
+		return nil, ExportManifest{}, err
+	}
+	return out.Bytes(), manifest, nil
 }
 
 func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (Grant, error) {
@@ -1310,4 +1386,12 @@ func (s *Service) Health() map[string]any {
 		version = "1.0.0"
 	}
 	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+}
+
+func (s *Service) Liveness() map[string]any {
+	version := strings.TrimSpace(s.cfg.ReleaseVersion)
+	if version == "" {
+		version = "1.0.0"
+	}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "source": "YNX Cloud process liveness", "asOf": s.cfg.Now()}
 }
