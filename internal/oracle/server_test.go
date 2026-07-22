@@ -74,6 +74,45 @@ func TestPriceAPIRequiresQualityAndReturnsLastGoodAsStale(t *testing.T) {
 	}
 }
 
+func TestPublicCORSIsExactAndNeverCoversIngestion(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	item := reporter(t, "source-a", 1_000_000, now)
+	server, err := NewServer(testService(t, &now, item), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := server.SetPublicOrigin("https://oracle.ynx.network/path"); err == nil {
+		t.Fatal("origin with path accepted")
+	}
+	if err := server.SetPublicOrigin("https://oracle.ynx.network"); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	request.Header.Set("Origin", "https://oracle.ynx.network")
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if value := response.Header().Get("Access-Control-Allow-Origin"); value != "https://oracle.ynx.network" {
+		t.Fatalf("public CORS=%q", value)
+	}
+	request = httptest.NewRequest(http.MethodPost, "/internal/v1/observations", strings.NewReader("{}"))
+	request.Header.Set("Origin", "https://oracle.ynx.network")
+	response = httptest.NewRecorder()
+	server.ServeHTTP(response, request)
+	if value := response.Header().Get("Access-Control-Allow-Origin"); value != "" {
+		t.Fatalf("ingestion CORS=%q", value)
+	}
+}
+
+func TestInactiveProviderCannotIngest(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	item := reporter(t, "source-a", 1_000_000, now)
+	item.provider.Status = "legal_approval_required"
+	service := testService(t, &now, item)
+	if _, err := service.Ingest(item.observation(t, 1, 1_000_000, now)); !errors.Is(err, ErrProviderInactive) {
+		t.Fatalf("inactive provider err=%v", err)
+	}
+}
+
 func TestAggregatesAreDurableAndLastGoodSurvivesServiceRestart(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	reporters := []testReporter{reporter(t, "source-a", 1_000_000, now), reporter(t, "source-b", 1_000_000, now), reporter(t, "source-c", 1_000_000, now)}

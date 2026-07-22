@@ -12,6 +12,7 @@ var (
 	ErrEmergencyPause        = errors.New("oracle publication is emergency paused")
 	ErrProviderRateLimit     = errors.New("provider rate limit exceeded")
 	ErrProviderNotRegistered = errors.New("provider is not registered")
+	ErrProviderInactive      = errors.New("provider is not active")
 	ErrPersistence           = errors.New("oracle persistence failed")
 )
 
@@ -85,6 +86,9 @@ func (service *Service) Ingest(observation Observation) (bool, error) {
 	if !exists {
 		return false, ErrProviderNotRegistered
 	}
+	if provider.Status != "active" {
+		return false, ErrProviderInactive
+	}
 	created, err := service.store.Ingest(observation, provider)
 	if err != nil || !created {
 		return created, err
@@ -103,6 +107,9 @@ func (service *Service) Correct(correction Correction) error {
 	service.mu.RUnlock()
 	if !exists {
 		return ErrProviderNotRegistered
+	}
+	if provider.Status != "active" {
+		return ErrProviderInactive
 	}
 	if err := service.store.Correct(correction, provider); err != nil {
 		return err
@@ -227,6 +234,21 @@ func (service *Service) LiveData(market string, kind DataType, limit int) (Marke
 		return feed, errInvalid
 	}
 	feed.Items = service.store.Normalized(market, kind, now, limit)
+	service.mu.RLock()
+	active := make(map[string]struct{}, len(service.providers))
+	for id, provider := range service.providers {
+		if provider.Status == "active" {
+			active[id] = struct{}{}
+		}
+	}
+	service.mu.RUnlock()
+	filtered := feed.Items[:0]
+	for _, event := range feed.Items {
+		if _, ok := active[event.ProviderID]; ok {
+			filtered = append(filtered, event)
+		}
+	}
+	feed.Items = filtered
 	providers := map[string]struct{}{}
 	for _, event := range feed.Items {
 		providers[event.ProviderID] = struct{}{}

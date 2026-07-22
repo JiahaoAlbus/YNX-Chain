@@ -21,13 +21,13 @@ This matrix prevents implementation, test, installation, integration, deployment
 | DEX Oracle/TWAP | Existing source semantics recovered; canonical adapter pending | Partial |
 | Quant live/history | Existing consumer semantics recovered; canonical adapter pending | Partial |
 | Finance, Pay, Explorer, Monitor, Bridge | Integration manifests and test vectors pending | Pending |
-| Provider outage/manipulation/depeg/reorg simulations | Core stale/outlier/divergence tests exist; full scenario suite pending | Partial |
-| SLO/capacity and unit economics | Pending measured evidence | Pending |
+| Provider outage/manipulation/depeg/reorg simulations | Explicit tests cover stale/offline data, outlier manipulation, cross-source divergence, thin sources, truthful depeg values, same-height DEX replacement, provider deactivation, and historical replay | Implemented and locally tested; live failover pending |
+| SLO/capacity and unit economics | Bounded in-process p50/p95/p99/throughput/error measurements, conservative Testnet objectives, storage assumptions, external gaps, and cost/scale model are documented | Local baseline complete; staging/WAN/provider evidence pending |
 | Observability and incident operations | Structured trace-correlated logs, request/error IDs, health/version, isolated Prometheus metrics, operations and incident procedures exist; central alerts/dashboard/status integration pending | Partial |
-| Security and supply chain | Core cryptographic boundary tests exist; threat model, SBOM, scans, provenance, reproducibility pending | Partial |
-| Web/PWA docs and 12-language accessibility | Pending | Pending |
-| Public metadata and release record | Pending | Pending |
-| Local installation and cold start | Pending | Pending |
+| Security and supply chain | Threat model/boundaries, Go and production-Web vulnerability gates, two CycloneDX SBOMs, secret scans, and non-root container definition exist; full Web build-tree audit, image scan, DAST, signature, and provenance remain open | Partial; release blocked |
+| Web/PWA docs and 12-language accessibility | Independent `/oracle` production build, SSR tests, PWA shell, 12 localized runtime/risk vocabularies, Arabic RTL, themes, focus, reduced motion, and 390px responsive rules | Implemented and locally tested; assistive-tech/public audit pending |
+| Public metadata and release record | Public metadata, candidate release record, feature/evidence indexes, notes, platform/KPI decisions, and minimal operator request exist | Implemented locally; public URLs/artifacts pending |
+| Local installation and cold start | Web dependencies install and production build/test pass; server/container cannot truthfully start without a real registry/HMAC key and the local Docker daemon is unavailable | Partial; installedLocal remains false |
 | Central integration | Pending | Pending |
 | Staging/public deployment | Direct probes prove unavailable | False |
 | Hosted/signed/store artifacts | No Oracle artifacts found | False |

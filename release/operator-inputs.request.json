@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "requestedAt": "2026-07-22T18:45:45Z",
+  "status": "required_before_public_testnet",
+  "inputs": [
+    { "id": "provider_rights", "required": true, "request": "Executed rights or written approval for at least three independent YNX-capable market-data sources, including redistribution, benchmark/valuation, retention, regions, quotas, costs, and decommission terms.", "secret": false },
+    { "id": "reporter_signers", "required": true, "request": "Secure signer or HSM paths and public reporter identities for each approved provider. Do not transmit private keys in chat or commit them.", "secret": true },
+    { "id": "public_service", "required": true, "request": "Approved deployment account, public API hostname, DNS/TLS control, and ingress/monitoring destination.", "secret": false },
+    { "id": "central_acceptance", "required": true, "request": "Wallet/Auth/Gateway, Explorer, Monitor, Exchange, DEX, Quant, Stablecoin, and Finance owners to review the versioned handoff and return acceptance evidence.", "secret": false },
+    { "id": "public_policies", "required": true, "request": "Approved Support, Privacy, Security, Status, retention/deletion, refund/dispute, and service-shutdown URLs and owners.", "secret": false }
+  ],
+  "prohibitedChatInputs": ["Private key", "Seed phrase", "PEM", "Full API secret", "Validator key", "Payment card data"]
+}

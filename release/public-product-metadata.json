@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "name": "YNX Oracle",
+  "aliases": ["YNX Market Data"],
+  "canonicalRoute": "/oracle",
+  "title": "YNX Oracle | Verifiable market data",
+  "metaDescription": "Inspect YNX Oracle health, versions, source coverage, price quality, staleness, and circuit-breaker state.",
+  "h1": "Price evidence, not price promises.",
+  "status": "local_testnet_candidate",
+  "features": ["Signed provider observations", "Robust multi-source aggregation", "Typed market-data feeds", "Strict consumer validation", "Historical replay and corrections"],
+  "risks": ["No public Oracle API is deployed", "No provider is approved or active for YNX markets", "Market data may be delayed, divergent, incomplete, or unavailable"],
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "structuredDataSuggestion": { "type": "SoftwareApplication", "applicationCategory": "FinanceApplication", "operatingSystem": "Web" },
+  "faq": [
+    { "question": "Can an HTTP 200 price be accepted directly?", "answer": "No. Consumers must validate schema, source, version, time, coverage, confidence, failure, and circuit-breaker state." },
+    { "question": "Is YNX Oracle publicly deployed?", "answer": "No public Oracle API deployment is currently claimed." },
+    { "question": "How many sources are required?", "answer": "The default policy requires at least three independent active sources." }
+  ]
+}

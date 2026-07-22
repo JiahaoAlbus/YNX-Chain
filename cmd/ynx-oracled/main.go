@@ -38,6 +38,7 @@ func run() error {
 	statePath := flag.String("state", "var/oracle/state.json", "integrity-protected state path")
 	registryPath := flag.String("providers", "", "versioned provider registry JSON path")
 	nonceDomain := flag.String("nonce-domain", "ynx-oracle-testnet-v1", "signed observation nonce domain")
+	publicOrigin := flag.String("public-origin", "", "exact HTTPS Oracle Web origin allowed to read public endpoints")
 	flag.Parse()
 	if *registryPath == "" {
 		return errors.New("--providers is required; provider success is never fabricated")
@@ -61,6 +62,9 @@ func run() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	handler, err := oracle.NewServer(service, logger)
 	if err != nil {
+		return err
+	}
+	if err := handler.SetPublicOrigin(*publicOrigin); err != nil {
 		return err
 	}
 	server := &http.Server{Addr: *listen, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}

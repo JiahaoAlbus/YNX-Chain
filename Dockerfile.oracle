@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.7
+ARG GO_IMAGE=golang:1.25.12-alpine3.22
+ARG RUNTIME_IMAGE=alpine:3.22.1
+
+FROM ${GO_IMAGE} AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY cmd/ynx-oracled ./cmd/ynx-oracled
+COPY internal/oracle ./internal/oracle
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracled ./cmd/ynx-oracled
+
+FROM ${RUNTIME_IMAGE}
+RUN addgroup -S -g 65532 oracle && adduser -S -D -H -u 65532 -G oracle oracle
+COPY --from=build --chown=65532:65532 /out/ynx-oracled /usr/local/bin/ynx-oracled
+RUN mkdir -p /var/lib/ynx-oracle /etc/ynx-oracle && chown -R 65532:65532 /var/lib/ynx-oracle /etc/ynx-oracle
+USER 65532:65532
+EXPOSE 6470
+VOLUME ["/var/lib/ynx-oracle"]
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 CMD wget -q -T 2 -O /dev/null http://127.0.0.1:6470/health || exit 1
+ENTRYPOINT ["/usr/local/bin/ynx-oracled"]
+CMD ["--listen", "0.0.0.0:6470", "--metrics-listen", "127.0.0.1:9470", "--state", "/var/lib/ynx-oracle/state.json", "--providers", "/etc/ynx-oracle/providers.json"]

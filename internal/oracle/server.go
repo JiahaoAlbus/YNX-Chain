@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,10 +18,29 @@ import (
 var BuildCommit = "development"
 
 type Server struct {
-	service *Service
-	logger  *slog.Logger
-	mux     *http.ServeMux
-	metrics *Metrics
+	service      *Service
+	logger       *slog.Logger
+	mux          *http.ServeMux
+	metrics      *Metrics
+	publicOrigin string
+}
+
+// SetPublicOrigin enables read-only cross-origin access for the exact Oracle
+// Web origin. Internal ingestion never receives CORS permission.
+func (server *Server) SetPublicOrigin(origin string) error {
+	if origin == "" {
+		server.publicOrigin = ""
+		return nil
+	}
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
+		return errors.New("public origin must be an origin without path, query, credentials, or fragment")
+	}
+	if parsed.Scheme != "https" && !(parsed.Scheme == "http" && (parsed.Hostname() == "localhost" || parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "::1")) {
+		return errors.New("public origin must use HTTPS except on loopback")
+	}
+	server.publicOrigin = strings.TrimSuffix(origin, "/")
+	return nil
 }
 
 var traceParentPattern = regexp.MustCompile(`^00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$`)
@@ -101,6 +121,10 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 	response.Header().Set("X-Frame-Options", "DENY")
 	response.Header().Set("Referrer-Policy", "no-referrer")
 	response.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+	if request.Method == http.MethodGet && publicReadPath(request.URL.Path) && request.Header.Get("Origin") == server.publicOrigin && server.publicOrigin != "" {
+		response.Header().Set("Access-Control-Allow-Origin", server.publicOrigin)
+		response.Header().Set("Vary", "Origin")
+	}
 	server.mux.ServeHTTP(tracked, request)
 	server.logger.Info("oracle request", "request_id", requestID, "trace_id", traceID, "span_id", spanID, "method", request.Method, "path", request.URL.Path, "status", tracked.status, "duration_ms", time.Since(started).Milliseconds())
 }
@@ -241,6 +265,8 @@ func publicError(err error) string {
 		return "provider rate limit exceeded"
 	case errors.Is(err, ErrProviderNotRegistered):
 		return "observation rejected"
+	case errors.Is(err, ErrProviderInactive):
+		return "observation rejected"
 	case errors.Is(err, ErrEmergencyPause):
 		return ErrEmergencyPause.Error()
 	case errors.Is(err, ErrPersistence):
@@ -256,6 +282,15 @@ func publicError(err error) string {
 			}
 		}
 		return "request failed"
+	}
+}
+
+func publicReadPath(path string) bool {
+	switch path {
+	case "/health", "/version", "/prices", "/v1/prices", "/v1/providers", "/v1/replay", "/v1/market-data":
+		return true
+	default:
+		return false
 	}
 }
 

@@ -177,6 +177,43 @@ func TestAggregateArithmeticCannotOverflowCircuitBreaker(t *testing.T) {
 	}
 }
 
+func TestDepegIsReportedWithoutAssumingParity(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	reporters := []testReporter{reporter(t, "source-a", 1_000_000, now), reporter(t, "source-b", 1_000_000, now), reporter(t, "source-c", 1_000_000, now)}
+	providers := map[string]Provider{}
+	values := []int64{799_000, 800_000, 801_000}
+	observations := make([]Observation, 0, 3)
+	for index, item := range reporters {
+		providers[item.provider.ID] = item.provider
+		observation := item.observation(t, 1, values[index], now)
+		observation.Type = StablecoinPrice
+		observation = item.signed(t, observation)
+		observations = append(observations, observation)
+	}
+	price, err := Aggregate(now, observations, providers, DefaultPolicy())
+	if err != nil || price.Value != 800_000 || price.Quality.SourceCount != 3 || price.Quality.CircuitBreaker {
+		t.Fatalf("truthful depeg evidence rejected or normalized to parity: price=%+v err=%v", price, err)
+	}
+}
+
+func TestProviderDeactivationImmediatelyRemovesAuthority(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	reporters := []testReporter{reporter(t, "source-a", 1_000_000, now), reporter(t, "source-b", 1_000_000, now), reporter(t, "source-c", 1_000_000, now)}
+	providers := map[string]Provider{}
+	observations := make([]Observation, 0, 3)
+	for _, item := range reporters {
+		providers[item.provider.ID] = item.provider
+		observations = append(observations, item.observation(t, 1, 1_000_000, now))
+	}
+	deactivated := providers[reporters[2].provider.ID]
+	deactivated.Status = "decommissioned"
+	providers[deactivated.ID] = deactivated
+	price, err := Aggregate(now, observations, providers, DefaultPolicy())
+	if err == nil || !price.Quality.CircuitBreaker || price.Quality.SourceCount != 2 {
+		t.Fatalf("deactivated provider retained authority: price=%+v err=%v", price, err)
+	}
+}
+
 func TestStructuredMarketDataPayloadsAreStrictAndNeverPriceAggregated(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	source := reporter(t, "source-a", 1_000_000, now)

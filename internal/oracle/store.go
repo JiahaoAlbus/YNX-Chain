@@ -111,6 +111,17 @@ func (store *Store) Ingest(observation Observation, provider Provider) (bool, er
 	if observation.Sequence <= store.state.LatestSequences[observation.ReporterID] {
 		return false, errors.New("reporter sequence replay rejected")
 	}
+	if observation.Type == DEXPoolState {
+		for index := len(store.state.Observations) - 1; index >= 0; index-- {
+			previous := store.state.Observations[index]
+			if previous.ProviderID == observation.ProviderID && previous.Market == observation.Market && previous.Type == DEXPoolState {
+				if previous.PoolState == nil || observation.PoolState == nil || observation.PoolState.BlockNumber <= previous.PoolState.BlockNumber {
+					return false, errors.New("DEX pool block regression or replacement requires audited correction")
+				}
+				break
+			}
+		}
+	}
 	next := cloneState(store.state)
 	next.Observations = append(next.Observations, observation)
 	next.NormalizedEvents = append(next.NormalizedEvents, normalizeObservation(observation, "", observation.ObservedAt))

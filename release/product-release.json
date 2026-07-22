@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-oracle-market-data",
+  "channel": "testnet-candidate",
+  "version": "0.1.0-testnet",
+  "sourceCommit": null,
+  "artifacts": [],
+  "publicApi": null,
+  "oracleWeb": null,
+  "providerCountActive": 0,
+  "requiredProviderCount": 3,
+  "sourceLimitation": "No approved provider covers YNXT/YUSD_TEST; authoritative publication remains unavailable.",
+  "released": false
+}

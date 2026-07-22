@@ -1,6 +1,6 @@
 module github.com/JiahaoAlbus/YNX-Chain
 
-go 1.25.0
+go 1.25.12
 
 require (
 	github.com/cometbft/cometbft v0.38.23

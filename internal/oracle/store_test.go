@@ -220,6 +220,30 @@ func TestEmergencyControlEventsAreDurableAndReplaySafe(t *testing.T) {
 	}
 }
 
+func TestDEXReorgReplacementFailsClosed(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	source := reporter(t, "source-a", 1_000_000, now)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "state.json"), []byte(strings.Repeat("k", 32)), "ynx-oracle-testnet-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := structuredBase(source, 1, DEXPoolState, now)
+	first.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "100", Reserve1: "100", BlockNumber: 100, BlockHash: strings.Repeat("a", 64)}
+	first = source.signed(t, first)
+	if _, err := store.Ingest(first, source.provider); err != nil {
+		t.Fatal(err)
+	}
+	replacement := structuredBase(source, 2, DEXPoolState, now.Add(time.Second))
+	replacement.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "101", Reserve1: "99", BlockNumber: 100, BlockHash: strings.Repeat("b", 64)}
+	replacement = source.signed(t, replacement)
+	if _, err := store.Ingest(replacement, source.provider); err == nil || !strings.Contains(err.Error(), "correction") {
+		t.Fatalf("same-height replacement accepted: %v", err)
+	}
+	if len(store.Snapshot().Observations) != 1 {
+		t.Fatal("reorg candidate mutated immutable history")
+	}
+}
+
 func signHex(private []byte, data []byte) string {
 	return hexEncode(ed25519.Sign(ed25519.PrivateKey(private), data))
 }
