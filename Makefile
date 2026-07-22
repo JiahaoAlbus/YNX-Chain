@@ -409,6 +409,13 @@ bridge-integration-check:
 bridge-supply-chain-check:
 	bash ./scripts/verify/bridge-supply-chain-check.sh
 
+.PHONY: bridge-capacity-check bridge-restore-check
+bridge-capacity-check:
+	bash ./scripts/verify/bridge-capacity-check.sh
+
+bridge-restore-check:
+	bash ./scripts/verify/bridge-restore-check.sh
+
 stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 

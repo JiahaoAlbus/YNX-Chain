@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+import crypto from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { performance } from "node:perf_hooks";
+
+const [binary,sourceCommit,output=""] = process.argv.slice(2);
+if(!binary||!/^[0-9a-f]{40}$/.test(sourceCommit||"")){console.error("usage: bridge-restore-probe.mjs <binary> <source-commit> [output]");process.exit(2);}
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),"ynx-bridge-restore-")); const state=path.join(temp,"state.json"), backup=path.join(temp,"state.backup.json"), url="http://127.0.0.1:16435", apiKey="bridge-restore-local-key";
+const env={...process.env,YNX_BRIDGE_HTTP_ADDR:"127.0.0.1:16435",YNX_BRIDGE_STATE_PATH:state,YNX_BRIDGE_API_KEY:apiKey,YNX_BRIDGE_RELAYER_THRESHOLD:"2",YNX_BRIDGE_RELAYERS_JSON:'{"relayer-a":"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=","relayer-b":"PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw="}',YNX_BRIDGE_ROUTE_POLICIES_JSON:'[{"sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"1000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms)); let child,stderr="";
+process.on("exit",()=>{if(child?.exitCode===null)child.kill("SIGTERM");});
+async function start(expectHealthy=true){stderr="";child=spawn(binary,[],{env,stdio:["ignore","ignore","pipe"]});child.stderr.on("data",c=>stderr+=c);if(!expectHealthy)return;for(let i=0;i<200;i++){try{const r=await fetch(`${url}/health`);if(r.ok)return;}catch{}if(child.exitCode!==null)break;await sleep(10);}throw new Error(`bridge start failed: ${stderr.slice(0,500)}`);}
+async function stop(){if(child?.exitCode===null){child.kill("SIGTERM");await new Promise(r=>child.once("exit",r));}}
+const auth={"content-type":"application/json","X-YNX-Bridge-Key":apiKey}; await start();
+let response=await fetch(`${url}/bridge/transfers`,{method:"POST",headers:auth,body:JSON.stringify({idempotencyKey:"restore-create-001",sourceChain:"ethereum-sepolia",sourceTxHash:`0x${"a".repeat(64)}`,sourceEventIndex:1,sourceAsset:"sepolia-usdc",destinationChain:"ynx_6423-1",destinationAsset:"ynx-usdc",amount:"100",sender:`0x${"b".repeat(40)}`,recipient:"ynx1recipient000000000000000000000000000001"})}); if(!response.ok)throw new Error("restore fixture create failed");
+response=await fetch(`${url}/bridge/reconciliations`,{method:"POST",headers:auth,body:JSON.stringify({idempotencyKey:"restore-reconcile-001",sourceChain:"ethereum-sepolia",destinationChain:"ynx_6423-1",sourceAsset:"sepolia-usdc",destinationAsset:"ynx-usdc",locked:"100",burned:"0",minted:"100",released:"0",evidenceRef:"fixture:restore-drill",observedAt:new Date(Date.now()-1000).toISOString()})}); if(!response.ok)throw new Error("restore fixture reconciliation failed");
+response=await fetch(`${url}/bridge/safety`,{method:"POST",headers:auth,body:JSON.stringify({idempotencyKey:"restore-pause-001",paused:true,reason:"restore-drill"})}); if(!response.ok)throw new Error("restore fixture pause failed"); await stop();
+fs.copyFileSync(state,backup); const backupBody=fs.readFileSync(backup), backupSha256=crypto.createHash("sha256").update(backupBody).digest("hex"), backupBytes=backupBody.length, mode=(fs.statSync(backup).mode&0o777).toString(8);
+const corrupted=fs.readFileSync(state,"utf8").replace('"amount": "100"','"amount": "101"'); if(corrupted===fs.readFileSync(state,"utf8"))throw new Error("corruption fixture did not change state"); fs.writeFileSync(state,corrupted,{mode:0o600});
+await start(false); await new Promise(resolve=>{const timer=setTimeout(resolve,2000);child.once("exit",()=>{clearTimeout(timer);resolve();});}); const corruptionRejected=child.exitCode!==null&&stderr.includes("integrity mismatch"); if(child.exitCode===null)await stop(); if(!corruptionRejected)throw new Error(`corrupted state was not rejected: ${stderr.slice(0,500)}`);
+const restoreStart=performance.now(); fs.copyFileSync(backup,state); fs.chmodSync(state,0o600); await start(); const restoreToHealthMs=performance.now()-restoreStart;
+const health=await (await fetch(`${url}/health`)).json(), transparency=await (await fetch(`${url}/bridge/transparency`)).json(); await stop(); fs.rmSync(temp,{recursive:true,force:true});
+if(health.transferCount!==1||health.safety?.paused!==true||transparency.routes?.[0]?.coordinatorOutstanding!=="100"||transparency.routes?.[0]?.lastReconciliation?.balanced!==true)throw new Error("restored state semantics mismatch");
+const report={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),classification:"bounded-local-restore-drill",backup:{sha256:backupSha256,bytes:backupBytes,mode},corruptionRejected,restoreToHealthMs,rpoAcceptedMutationLoss:0,restored:{transferCount:health.transferCount,paused:health.safety.paused,coordinatorOutstanding:transparency.routes[0].coordinatorOutstanding,reconciliationBalanced:transparency.routes[0].lastReconciliation.balanced},remoteRestore:false}; if(output)fs.writeFileSync(output,`${JSON.stringify(report,null,2)}\n`);else console.log(JSON.stringify(report)); console.log(`bridge restore probe passed: corruptionRejected=true restoreToHealthMs=${restoreToHealthMs.toFixed(2)} rpoAcceptedMutationLoss=0 backupBytes=${backupBytes}`);

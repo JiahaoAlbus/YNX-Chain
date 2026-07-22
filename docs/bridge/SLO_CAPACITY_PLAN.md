@@ -13,3 +13,5 @@ Provisional Testnet objectives, pending measurement:
 - Provider outage behavior: fail closed; no destination-success transition without evidence.
 
 The process-level verifier proves bounded correctness, not capacity. Load evidence must record hardware, OS, Go version, source commit, route count, transfer count, payload distribution, duration, and raw result artifact before any objective is promoted to a measured SLO.
+
+`make bridge-capacity-check` launches the real compiled daemon and measures cold start, 500 empty transparency reads, 100 persisted transfer creates at concurrency four, and 500 loaded-state transparency reads at concurrency twenty. It records all samples and storage growth. This bounded local profile does not measure provider, destination-chain, remote network, or multi-instance behavior.

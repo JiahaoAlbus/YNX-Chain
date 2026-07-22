@@ -11,3 +11,5 @@ Before any maintenance:
 5. Restore into an isolated path and verify startup, integrity, transfer count, audit chain, safety state, and reconciliation state.
 
 Resume requires an idempotent operator request with a reason, a healthy persistent state, and confirmation that exposure remains within configured limits. A reconciliation difference must stay visible; it must not be cleared by editing state. External submission, signer installation, contract authority, and funded routes require a separate approval-gated deployment procedure.
+
+`make bridge-restore-check` creates one transfer, one balanced reconciliation, and a persistent pause; copies and hashes the state; corrupts the active file and requires startup rejection; restores the backup; and verifies health, transfer count, exposure, reconciliation, pause state, and mode-0600 persistence. Its evidence is local unless a separately authorized remote drill records otherwise.
