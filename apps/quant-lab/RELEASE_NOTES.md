@@ -5,6 +5,10 @@ This release introduces an independent research, Paper and bounded Testnet Previ
 - Deterministic event-driven out-of-sample backtests with fee, slippage, latency, liquidity participation, partial fill, data-gap, buy/hold, no-trade, walk-forward, regime and parameter-sensitivity evidence.
 - Strategy provenance records source, commit, license, strategy/model/data/feature hashes, split, seed, parameters, assumptions and limitations.
 - Persistent Paper Broker, reconciliation, audit chain and kill switch.
+- Versioned venue-neutral execution intent with tested Paper and non-submitting
+  Shadow adapters, idempotent replay, sequence-gap rejection and explicit
+  source/as-of/coverage/confidence evidence. Exchange and DEX implementations
+  are not shipped.
 - Wallet-signed bounded Testnet mandate boundary with expiry, notional,
   position, daily-loss, slippage, gas and order-frequency limits; fresh oracle
   and venue-health observations; replay rejection; and idempotent broker proof.

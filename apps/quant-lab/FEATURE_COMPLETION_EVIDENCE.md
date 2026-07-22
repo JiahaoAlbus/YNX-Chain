@@ -7,6 +7,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | deterministic event/OOS backtest | tested local | `internal/quantlab/service_test.go` determinism, split, walk-forward, sensitivity, regime tests |
 | actual YNX market tape boundary | tested local | market adapter tests reject malformed/non-authoritative or insufficient history |
 | paper partial fills/reconciliation | tested local | paper service tests and browser evidence |
+| venue-neutral execution adapters | Paper and Shadow tested local | versioned intent schema; Paper partial-fill translation; Shadow zero-fill/no-submit; sequence, idempotency, stale-feed, limit and reconciliation tests; Exchange/DEX implementations absent |
 | risk kill switch | tested local | mismatch, persistence, browser, and multi-daemon smoke tests |
 | lifecycle | tested local | sequential transition, risk evidence, and Wallet-mandate tests |
 | bounded Testnet adapter contract | implemented/tested with injected test doubles | expiry, notional, position, daily loss, slippage, gas, frequency, oracle freshness, venue health, replay, idempotency, and broker-proof tests; no authoritative risk feed or deployed broker claim |

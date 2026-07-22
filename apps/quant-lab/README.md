@@ -38,6 +38,14 @@ reload the integrity-protected state before mutation. A timeout fails closed.
 The WebSocket endpoint is `/v1/stream`; every envelope declares source, time,
 version, and authority confidence.
 
+Strategy orchestration targets the venue-neutral `ExecutionAdapter` contract,
+not a venue SDK. The local `PaperExecutionAdapter` translates authoritative
+matched-trade ticks into simulated fills; `ShadowExecutionAdapter` observes the
+same feed and always returns zero fill with no order ID. The versioned intent
+schema is `apps/quant-lab/integration/execution-adapter.schema.json`.
+Exchange and DEX implementations are intentionally absent until canonical
+subaccount and Strategy Vault integration is available.
+
 Dataset governance records are registered through `POST /v1/datasets` and
 returned in snapshots. The API rejects incomplete provider rights, lineage,
 bias/correction, coverage/failure, or private-cloud-consent metadata.
