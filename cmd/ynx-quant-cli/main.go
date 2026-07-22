@@ -11,7 +11,7 @@ func main() {
 	cli := quantcli.CLI{BaseURL: os.Getenv("YNX_QUANT_API_URL"), StatePath: os.Getenv("YNX_QUANT_STATE_PATH"), Out: os.Stdout}
 	if err := cli.Run(os.Args[1:]); err != nil {
 		if errors.Is(err, quantcli.ErrUsage) {
-			fmt.Fprintln(os.Stderr, "usage: ynx-quant-cli health | snapshot | kill --approve REASON | revoke-mandate --approve DIGEST ACTOR | backup --approve DESTINATION | restore --approve SOURCE")
+			fmt.Fprintln(os.Stderr, "usage: ynx-quant-cli health | snapshot | kill --approve REASON | revoke-mandate --approve DIGEST ACTOR | backup --approve DESTINATION | restore --approve SOURCE | export --approve DESTINATION | delete-local-data --approve 'DELETE ALL LOCAL QUANT DATA'")
 		} else {
 			fmt.Fprintln(os.Stderr, err)
 		}

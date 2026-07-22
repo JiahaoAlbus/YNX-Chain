@@ -32,3 +32,10 @@ client telemetry coverage, export support, and a fail-closed response after the
 deadline. Service termination must leave users able to revoke mandates, stop
 strategies, exit DEX vaults or Exchange positions through owning products, and
 export/delete Quant records.
+
+Local users can export the complete integrity-protected state with
+`ynx-quant-cli export --approve <destination>`. Full local deletion requires the
+exact confirmation `DELETE ALL LOCAL QUANT DATA`; it removes experiments,
+strategies, paper state, mandates, orders, and idempotency records, retaining only
+a non-identifying digest tombstone. Multi-user account-scoped deletion remains a
+Gateway/identity integration requirement and is not claimed.

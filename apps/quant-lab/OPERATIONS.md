@@ -25,6 +25,18 @@ YNX_QUANT_STATE_PATH=/secure/path/state.json \
 Verify health/version, audit continuity, lifecycle, kill/revoke state, paper
 reconciliation, and adapter idempotency before reopening writes.
 
+Export and delete local data:
+
+```sh
+YNX_QUANT_STATE_PATH=/secure/path/state.json \
+  ynx-quant-cli export --approve /secure/export/quant-state.json
+YNX_QUANT_STATE_PATH=/secure/path/state.json \
+  ynx-quant-cli delete-local-data --approve 'DELETE ALL LOCAL QUANT DATA'
+```
+
+Deletion is irreversible without a prior backup. The exact confirmation is
+required; scripts and AI must not invoke it without a human-approved preview.
+
 ## Incidents
 
 For stale data, provider errors, reconciliation mismatch, unexpected fills,

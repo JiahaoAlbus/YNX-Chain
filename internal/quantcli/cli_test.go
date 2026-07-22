@@ -53,6 +53,26 @@ func TestBackupRequiresApprovalAndProducesVerifiedRecord(t *testing.T) {
 	}
 }
 
+func TestDeleteLocalDataRequiresExactConfirmation(t *testing.T) {
+	root := t.TempDir()
+	statePath := filepath.Join(root, "state.json")
+	service, _ := quantlab.New(quantlab.Config{StatePath: statePath})
+	if _, err := service.Kill("CLI deletion fixture"); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	cli := CLI{StatePath: statePath, Out: &out}
+	if err := cli.Run([]string{"delete-local-data", "--approve", "delete"}); err != quantlab.ErrForbidden {
+		t.Fatalf("weak confirmation=%v", err)
+	}
+	if err := cli.Run([]string{"delete-local-data", "--approve", "DELETE ALL LOCAL QUANT DATA"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"previousDigest"`) {
+		t.Fatalf("record=%s", out.String())
+	}
+}
+
 func TestMutationRejectsNonLoopback(t *testing.T) {
 	cli := CLI{BaseURL: "https://quant.example.invalid"}
 	if err := cli.Run([]string{"kill", "--approve", "operator test"}); err == nil || !strings.Contains(err.Error(), "loopback") {

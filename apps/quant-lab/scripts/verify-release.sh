@@ -18,6 +18,7 @@ runtime_targets=(
   cmd/ynx-quant-riskd
   cmd/ynx-quant-web
   cmd/ynx-quant-cli
+  cmd/ynx-quant-desktop
   internal/quantlab
   internal/quantworker
   internal/quantcli
@@ -35,9 +36,11 @@ jq -e '.productId == "ynx-quant-lab" and (.downloads | type == "array")' apps/qu
 go test ./internal/quantlab ./internal/quantworker ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
   ./cmd/ynx-quant-riskd ./cmd/ynx-quant-web ./cmd/ynx-quant-cli
+go test ./cmd/ynx-quant-desktop
 go vet ./internal/quantlab ./internal/quantworker ./internal/quantapp ./internal/quantcli \
   ./cmd/ynx-quantd ./cmd/ynx-quant-worker ./cmd/ynx-quant-paperd \
   ./cmd/ynx-quant-riskd ./cmd/ynx-quant-web ./cmd/ynx-quant-cli
+go vet ./cmd/ynx-quant-desktop
 npm test --prefix apps/quant-lab
 npm run test:browser --prefix apps/quant-lab
 node --test apps/quant-lab/sdk/typescript/index.test.mjs
@@ -48,6 +51,10 @@ PYTHONPATH=apps/quant-lab/sdk/python/src "$python_bin" -m unittest discover \
 
 docker compose -f apps/quant-lab/compose.yaml config --quiet
 ruby -e 'require "yaml"; YAML.load_stream(File.read("apps/quant-lab/k8s/quant-candidate.yaml"))'
+
+if [[ "${YNX_BUILD_DESKTOP_CANDIDATES:-1}" == "1" ]]; then
+  apps/quant-lab/scripts/build-desktop-candidates.sh >/dev/null
+fi
 
 if [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
   docker build -f apps/quant-lab/Dockerfile \

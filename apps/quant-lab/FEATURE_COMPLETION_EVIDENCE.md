@@ -20,7 +20,8 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | independent daemons | built/smoked local | core, worker, paper, risk, web, CLI builds; cross-process risk propagation smoke |
 | Docker Compose | schema parsed only | Docker daemon unavailable; image build/installation false |
 | Kubernetes | candidate YAML parsed only | no cluster apply, rollout, persistence, or recovery evidence |
-| macOS/Windows desktop | not achieved | no desktop artifact or install/cold-start proof |
+| macOS desktop | installed/tested local candidate | arm64 app bundle built, ad-hoc signed, installed in user Applications, version/API/frontend cold-launch smoke passed |
+| Windows desktop | built local candidate | x64 binaries and archive cross-compiled; no Windows host launch/install evidence |
 | canonical Gateway/Wallet integration | not achieved | handoff records only; local writes remain loopback preview |
 | real Exchange/DEX Testnet | not achieved | no transaction hash, fill, vault receipt, revoke propagation, or emergency-exit receipt |
 | public web/download | not achieved | no verified public endpoint or immutable hosted artifact |

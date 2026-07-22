@@ -61,6 +61,16 @@ func (c CLI) Run(args []string) error {
 			return ErrUsage
 		}
 		return c.localStateOperation("restore", args[2])
+	case "export":
+		if len(args) != 3 || args[1] != "--approve" {
+			return ErrUsage
+		}
+		return c.localStateOperation("backup", args[2])
+	case "delete-local-data":
+		if len(args) != 3 || args[1] != "--approve" {
+			return ErrUsage
+		}
+		return c.deleteLocalData(args[2])
 	default:
 		return ErrUsage
 	}
@@ -102,6 +112,24 @@ func (c CLI) Run(args []string) error {
 	}
 	pretty, _ := json.MarshalIndent(value, "", "  ")
 	_, err = fmt.Fprintln(c.Out, string(pretty))
+	return err
+}
+
+func (c CLI) deleteLocalData(confirmation string) error {
+	statePath := strings.TrimSpace(c.StatePath)
+	if statePath == "" {
+		return errors.New("YNX_QUANT_STATE_PATH is required for local state operations")
+	}
+	service, err := quantlab.New(quantlab.Config{StatePath: statePath})
+	if err != nil {
+		return err
+	}
+	record, err := service.DeleteAllLocalData(confirmation)
+	if err != nil {
+		return err
+	}
+	encoded, _ := json.MarshalIndent(record, "", "  ")
+	_, err = fmt.Fprintln(c.Out, string(encoded))
 	return err
 }
 

@@ -23,7 +23,7 @@ var (
 
 const (
 	ProductID           = "ynx-quant-lab"
-	Version             = "0.1.0-testnet"
+	Version             = "0.2.0-testnet"
 	StateSchema         = 1
 	StageDraft          = "Draft"
 	StageResearch       = "Research"
@@ -162,6 +162,11 @@ type BackupRecord struct {
 	Bytes     int64     `json:"bytes"`
 	Schema    int       `json:"schema"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+type DeletionRecord struct {
+	DeletedAt      time.Time `json:"deletedAt"`
+	PreviousDigest string    `json:"previousDigest"`
+	Schema         int       `json:"schema"`
 }
 type state struct {
 	Schema        int                     `json:"schema"`
@@ -746,6 +751,38 @@ func (s *Service) Restore(source string) (BackupRecord, error) {
 		return BackupRecord{}, err
 	}
 	return BackupRecord{Path: source, SHA256: hashBytes(b), Bytes: info.Size(), Schema: restored.Schema, CreatedAt: s.cfg.Now()}, nil
+}
+
+func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error) {
+	if confirmation != "DELETE ALL LOCAL QUANT DATA" {
+		return DeletionRecord{}, ErrForbidden
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return DeletionRecord{}, err
+	}
+	defer release()
+	previousDigest := s.state.Integrity
+	if previousDigest == "" {
+		previousDigest = hash(s.state)
+	}
+	now := s.cfg.Now()
+	s.state = state{
+		Schema:        StateSchema,
+		Experiments:   map[string]Experiment{},
+		Strategies:    map[string]StrategySpec{},
+		Paper:         PaperState{Cash: 100_000_000_000, UpdatedAt: now},
+		Mandates:      map[string]Mandate{},
+		TestnetOrders: map[string]TestnetOrder{},
+		Idempotency:   map[string]string{},
+	}
+	s.audit("all_local_user_data_deleted", "local-state", previousDigest)
+	if err := s.save(); err != nil {
+		return DeletionRecord{}, err
+	}
+	return DeletionRecord{DeletedAt: now, PreviousDigest: previousDigest, Schema: StateSchema}, nil
 }
 
 func (s *Service) lockAndReload() (func(), error) {

@@ -25,6 +25,10 @@
 - Compose config parse: pass
 - Kubernetes YAML parse: pass; OpenAPI validation unavailable without a cluster
 - Docker build: failed before build because local daemon was not running
+- macOS arm64 desktop: bundle built, ad-hoc signature verified, installed in the
+  user Applications directory, then cold-launched with API/version and frontend
+  checks; this is test signing, not production signing or notarization
+- Windows x64 desktop: cross-compiled and archived only; not launched or installed
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
@@ -35,4 +39,5 @@ a commit-addressed artifact, hash it, and attach a hosted immutable URL.
 CI run URL, staging/public health response, canonical Gateway session, Wallet
 mandate approval/revoke receipt, Exchange order/fill, DEX vault actions,
 Explorer/Finance/Monitor/Trust correlation, container digest, desktop install,
-hosted SDK/download URLs, signing/notarization, and public uptime evidence.
+hosted SDK/download URLs, production signing/notarization, Windows host launch,
+and public uptime evidence.

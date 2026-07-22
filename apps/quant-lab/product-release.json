@@ -5,7 +5,7 @@
   "releaseClass": "local-testnet-candidate",
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": false,
+  "installedLocal": true,
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
@@ -14,6 +14,9 @@
   "storeReleased": false,
   "publicUrls": [],
   "healthUrls": [],
-  "artifacts": [],
-  "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "Docker image build and install", "desktop packages and installation", "public deployment and immutable hosted downloads"]
+  "artifacts": [
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip", "platform": "macOS arm64", "signingClass": "adhoc-test-only", "builtLocal": true, "installedLocal": true, "hosted": false},
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip", "platform": "Windows x64", "signingClass": "unsigned-cross-compiled", "builtLocal": true, "installedLocal": false, "hosted": false}
+  ],
+  "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "Docker image build and install", "Windows host launch and installation", "production desktop signing and notarization", "public deployment and immutable hosted downloads"]
 }

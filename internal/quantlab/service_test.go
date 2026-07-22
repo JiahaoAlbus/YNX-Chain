@@ -247,3 +247,32 @@ func TestBackupRestoreDrillRejectsTamperAndRestoresState(t *testing.T) {
 		t.Fatalf("tampered restore=%v", err)
 	}
 }
+
+func TestDeleteAllLocalDataRequiresExactConfirmationAndLeavesTombstone(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	service, _ := New(Config{StatePath: path})
+	if _, err := service.RunBacktest(request()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Kill("deletion fixture"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.DeleteAllLocalData("delete"); err != ErrForbidden {
+		t.Fatalf("weak confirmation=%v", err)
+	}
+	record, err := service.DeleteAllLocalData("DELETE ALL LOCAL QUANT DATA")
+	if err != nil || record.PreviousDigest == "" {
+		t.Fatalf("record=%+v err=%v", record, err)
+	}
+	snapshot := service.Snapshot()
+	if len(snapshot["experiments"].(map[string]Experiment)) != 0 || len(snapshot["strategies"].(map[string]StrategySpec)) != 0 || len(snapshot["testnetOrders"].(map[string]TestnetOrder)) != 0 {
+		t.Fatal("user records remain")
+	}
+	if snapshot["paper"].(PaperState).KillSwitch {
+		t.Fatal("paper state remains")
+	}
+	audit := snapshot["audit"].([]AuditEvent)
+	if len(audit) != 1 || audit[0].Action != "all_local_user_data_deleted" {
+		t.Fatalf("audit=%+v", audit)
+	}
+}
