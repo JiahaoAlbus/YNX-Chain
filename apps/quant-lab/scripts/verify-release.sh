@@ -7,6 +7,7 @@ cd "$repo_root"
 runtime_targets=(
   apps/quant-lab/web
   apps/quant-lab/server
+  apps/quant-lab/examples
   apps/quant-lab/Dockerfile
   apps/quant-lab/compose.yaml
   apps/quant-lab/k8s

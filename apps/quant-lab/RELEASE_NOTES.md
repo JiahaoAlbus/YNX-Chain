@@ -25,6 +25,8 @@ This release introduces an independent research, Paper and bounded Testnet Previ
 - Immediate, idempotent, restart-persistent mandate revocation.
 - Independent core, worker, paper, risk, web, and CLI binaries; REST and
   source-labelled WebSocket; Python and TypeScript SDK candidates.
+- Tested research-only strategy template and venue-neutral Shadow intent
+  example; no executable unsigned package or invented venue receipt is shipped.
 - Cross-process state coordination, atomic integrity-checked backup/restore,
   tamper rejection, and restore drill.
 - Docker Compose and Kubernetes candidates with non-root/read-only boundaries.

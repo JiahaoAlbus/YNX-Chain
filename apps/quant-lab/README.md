@@ -64,6 +64,11 @@ The standalone SDKs are under `apps/quant-lab/sdk/python` and
 `apps/quant-lab/sdk/typescript`. Neither SDK can sign, hold Wallet keys,
 withdraw, change ownership, or mutate without explicit caller approval.
 
+The `apps/quant-lab/examples` directory contains a tested research-only
+strategy template and a schema-valid venue-neutral Shadow intent. The strategy
+template has no privileged permissions, profit claim or execution eligibility;
+it becomes runnable only after the separate signed-package gate succeeds.
+
 Self-hosted candidate:
 
 ```sh

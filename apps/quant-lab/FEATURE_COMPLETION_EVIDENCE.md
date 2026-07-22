@@ -17,6 +17,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | CLI | tested local | approval and loopback gates; backup record test |
 | Python/TypeScript SDK | built/tested local | Python unit tests and wheel build; Node tests and package dry-run |
 | worker sandbox boundary | tested local | Ed25519 package signature, source/artifact hashes, scan evidence, dependency allowlist, resource bounds, zero host/network/key/secret permission, payload tamper rejection; arbitrary source execution absent |
+| strategy/adapter examples | tested local | research-only built-in template denies privileged permissions/profit claim/execution eligibility; Shadow intent conforms to venue-neutral v1 schema; no invented Exchange/DEX receipt examples |
 | state backup/restore | tested local | atomic backup, restore drill, schema/integrity and tamper rejection |
 | PnL/fee attribution | tested local | alpha/beta residual, fee/slippage, realized/unrealized/net dual reconciliation, explicit unsupported components |
 | dataset catalog | tested local | version/hash, rights/terms, lineage, correction/bias, source/asOf/coverage/confidence/failure, private consent, persistence and duplicate rejection |
