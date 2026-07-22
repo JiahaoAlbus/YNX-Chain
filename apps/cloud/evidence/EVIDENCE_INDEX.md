@@ -7,7 +7,7 @@
 
 - Protocol/security: `internal/cloud/service_test.go`, `server_test.go`, `adapters_test.go`, mobile `wallet.test.ts`, and `integration/failure-vectors.json`.
 - Client SDK: `../sdk/index.js`, `../sdk/index.d.ts`, and `../tests/sdk.test.mjs` prove short-lived token callbacks, exact API routing, product validation, error correlation, and bounded idempotent retry behavior.
-- Usage/economics: schema-v4 migration plus service/server tests prove product-isolated persisted ingress, delivered range egress, scan, and AI counters; `../UNIT_ECONOMICS.md` records exact coverage and the unconfigured zero-charge boundary.
+- Usage/economics: schema-v5 migration plus service/server tests prove product-isolated persisted ingress, delivered range egress, scan, AI, and exact whole-second storage integration counters; `../UNIT_ECONOMICS.md` records the non-retroactive coverage and unconfigured zero-charge boundaries.
 - Retention/exit: service tests prove retention validation and time-gated deletion; server tests plus `../OPERATIONS.md` prove the local user-exit mode preserves export/deletion while blocking new mutations.
 - Observability: `internal/cloud/telemetry_test.go`, server tests, `../OBSERVABILITY.md`, and `../observability/*.json` prove integrity-checked persistent RED bins, normalized routes, correlated bounded traces, authenticated readiness, and local alert evaluation.
 - Security/supply chain: `../THREAT_MODEL.md`, `../SECURITY_BOUNDARIES.md`, `SBOM.cdx.json`, `ARTIFACT_PROVENANCE.json`, `../security/build-script-allowlist.json`, `../scripts/security-gate.mjs`, and `.github/workflows/cloud-security.yml` define and execute local controls without upgrading debug/public release claims.

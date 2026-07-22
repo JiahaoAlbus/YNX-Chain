@@ -5,7 +5,7 @@
 - Content-addressed storage with verified reads, strict schemas and bounds, scanner/quota failure closure, atomic state persistence, and verified backup/restore.
 - Fail-closed Cloud/Docs data separation across objects, listings, uploads, AI jobs, quota, audit, portability exports, access decisions, and physical-deletion records, including schema-v3 migration and legacy rollback output.
 - Dependency-free JavaScript/TypeScript SDK with short-lived Wallet session callbacks, typed Cloud/Docs operations, bounded idempotent retries, and correlated request/error failures.
-- Schema-v4 product usage ledger for accepted ingress, delivered egress, scan bytes, AI estimates, exact current storage, and explicit zero-charge economics while pricing is unconfigured.
+- Schema-v5 product usage ledger for accepted ingress, delivered egress, scan bytes, AI estimates, exact current storage, exact whole-second storage integration with explicit coverage start, and zero-charge economics while pricing is unconfigured.
 - Enforced artifact retention windows and indefinite legal holds, plus an operator user-exit mode that keeps authentication, export, revoke, cancellation, and deletion available while blocking new writes.
 - Integrity-checked persistent RED telemetry, normalized route templates, correlated request traces, authenticated readiness, evaluated local alerts, and versioned dashboard/alert definitions.
 - Explicit threat/security boundaries, deterministic CycloneDX dependency inventory, reviewed build-script allowlist, artifact verification provenance, and a CI-ready security/recovery gate; production provenance and signing remain unclaimed.

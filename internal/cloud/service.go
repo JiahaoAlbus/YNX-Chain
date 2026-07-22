@@ -132,9 +132,31 @@ func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v)
 
 func usageKey(owner, product string) string { return owner + "\x00" + product }
 
-func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUnits, aiJobs int64) {
+func (s *Service) settleStorageLocked(owner, product string) UsageCounters {
 	key := usageKey(owner, product)
 	usage := s.state.Usage[key]
+	now := s.cfg.Now()
+	usage.Owner = owner
+	usage.Product = product
+	if usage.StorageMeteredAt.IsZero() {
+		usage.StorageMeteredAt = now
+		usage.StorageCoverageStarts = now
+	} else if elapsed := now.Sub(usage.StorageMeteredAt); elapsed >= time.Second {
+		seconds := int64(elapsed / time.Second)
+		bytes := s.usedLockedProduct(owner, product)
+		if bytes > 0 && seconds <= (int64(^uint64(0)>>1)-usage.StorageByteSeconds)/bytes {
+			usage.StorageByteSeconds += bytes * seconds
+		}
+		usage.StorageMeteredAt = usage.StorageMeteredAt.Add(time.Duration(seconds) * time.Second)
+	}
+	usage.UpdatedAt = now
+	s.state.Usage[key] = usage
+	return usage
+}
+
+func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUnits, aiJobs int64) {
+	key := usageKey(owner, product)
+	usage := s.settleStorageLocked(owner, product)
 	usage.Owner = owner
 	usage.Product = product
 	usage.IngressBytes += ingress
@@ -328,6 +350,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		if s.usedLocked(actor)+s.additionalLocked(actor, h, obj.Size) > s.cfg.QuotaBytes {
 			return Object{}, errors.New("storage quota exceeded")
 		}
+		s.settleStorageLocked(actor, obj.Product)
 		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now}}
 	}
 	s.state.Objects[obj.ID] = obj
@@ -645,6 +668,7 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 	}
 	now := s.cfg.Now()
 	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
+	s.settleStorageLocked(actor, obj.Product)
 	s.state.Objects[obj.ID] = obj
 	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now}}
 	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
@@ -726,6 +750,7 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 		return Object{}, errors.New("storage quota exceeded")
 	}
 	now := s.cfg.Now()
+	s.settleStorageLocked(actor, obj.Product)
 	obj.Version++
 	obj.Hash = h
 	obj.Size = int64(len(req.Content))
@@ -1041,6 +1066,7 @@ func (s *Service) DeleteObject(actor, id string) error {
 		}
 	}
 	removedVersions := append([]Version(nil), s.state.Versions[id]...)
+	s.settleStorageLocked(actor, obj.Product)
 	delete(s.state.Comments, id)
 	delete(s.state.Versions, id)
 	delete(s.state.Objects, id)
@@ -1560,12 +1586,12 @@ func (s *Service) Usage(actor, product string) (UsageReport, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	usage := s.state.Usage[usageKey(actor, product)]
-	if usage.Owner == "" {
-		usage.Owner, usage.Product = actor, product
+	usage := s.settleStorageLocked(actor, product)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return UsageReport{}, err
 	}
 	return UsageReport{
-		SchemaVersion:  1,
+		SchemaVersion:  2,
 		Source:         "ynx-cloudd-local-meter",
 		Authority:      "YNX control-plane observed usage; not a provider invoice",
 		AsOf:           s.cfg.Now(),
@@ -1576,14 +1602,15 @@ func (s *Service) Usage(actor, product string) (UsageReport, error) {
 		Counters:       usage,
 		PricingStatus:  "not-configured-no-charge",
 		Coverage: map[string]string{
-			"storageBytes": "exact current deduplicated immutable-version bytes recorded by this control plane",
-			"ingressBytes": "accepted object-version bytes, including provider-direct completions",
-			"egressBytes":  "HTTP response payload bytes observed after authenticated or share-link delivery",
-			"scanBytes":    "accepted object-version bytes submitted to the configured scanner boundary",
-			"aiInputUnits": "provider-independent preflight estimate; not provider-billed tokens",
-			"backupBytes":  "not attributable per owner in the operator recovery archive; reported as zero",
-			"replicaBytes": "no replicated provider configured; reported as zero",
-			"financials":   "no pricing provider configured; all monetary fields are zero and no charge is authorized",
+			"storageBytes":       "exact current deduplicated immutable-version bytes recorded by this control plane",
+			"storageByteSeconds": "whole-second integral of exact current storage since storageCoverageStartsAt; pre-schema-v5 history is not estimated",
+			"ingressBytes":       "accepted object-version bytes, including provider-direct completions",
+			"egressBytes":        "HTTP response payload bytes observed after authenticated or share-link delivery",
+			"scanBytes":          "accepted object-version bytes submitted to the configured scanner boundary",
+			"aiInputUnits":       "provider-independent preflight estimate; not provider-billed tokens",
+			"backupBytes":        "not attributable per owner in the operator recovery archive; reported as zero",
+			"replicaBytes":       "no replicated provider configured; reported as zero",
+			"financials":         "no pricing provider configured; all monetary fields are zero and no charge is authorized",
 		},
 	}, nil
 }
