@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": "a0a2d5356f459f25e644e68b0925474399d12dcb",
+  "sourceCommit": "f0d42aec138c2506f211cf1a0a138e4e5de87923",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -15,8 +15,8 @@
     "storeReleased": false
   },
   "stateNotes": {
-    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, export/delete and user-exit mode, persistent RED telemetry/readiness/traces, schema-v5 zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, and deterministic local security/supply-chain gate exist at sourceCommit. This does not claim production durability, hosted monitoring, external penetration testing, production signing, or public release.",
-    "testedLocal": "Go Cloud tests, Web/SDK tests, static/a11y gates, canonical API smoke, migration, and backup/restore pass locally. Unrelated repository consensus tests require an absent generated Devtools artifact and are not used as Cloud evidence.",
+    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, schema-v6 dedicated-scope product-data erasure and user-exit mode, persistent RED telemetry/readiness/traces, zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, and deterministic local security/supply-chain gate exist at sourceCommit. This does not claim production durability, provider backup/replica sanitization, hosted monitoring, external penetration testing, production signing, or public release.",
+    "testedLocal": "Race-enabled Go Cloud tests, Web/SDK tests, static/a11y/security gates, canonical Wallet/API erasure smoke, migration, and backup/restore pass locally. Unrelated repository consensus tests require an absent generated Devtools artifact and are not used as Cloud evidence.",
     "installedLocal": "The exact Android Testnet Preview APK in the artifact manifest was installed and cold-launched with adb; the evidence screenshot is indexed. iOS local installation is not claimed.",
     "integratedCentral": "False: central Wallet registrations remain disabled and pending review.",
     "deployedStaging": "False: no staging endpoint or remote smoke evidence exists.",
