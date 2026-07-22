@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 type diskEnvelope struct {
@@ -43,24 +44,45 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	if err := strictJSON(raw, &env); err != nil {
 		return nil, fmt.Errorf("decode pay product store: %w", err)
 	}
-	if err := strictJSON(env.Payload, &s.data); err != nil {
-		return nil, fmt.Errorf("decode pay product snapshot: %w", err)
-	}
-	canonical, err := json.Marshal(s.data)
-	if err != nil || env.Version != 1 || !hmac.Equal([]byte(env.MAC), []byte(s.mac(canonical))) {
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, env.Payload); err != nil || env.Version != 1 || !hmac.Equal([]byte(env.MAC), []byte(s.mac(compact.Bytes()))) {
 		return nil, errors.New("pay product store integrity check failed")
+	}
+	var fields map[string]json.RawMessage
+	if err := strictJSON(env.Payload, &fields); err != nil {
+		return nil, fmt.Errorf("decode pay product snapshot fields: %w", err)
+	}
+	// Sessions produced by the removed product-local Wallet verifier are never
+	// migrated. Central Gateway assertions are short-lived and reconstructed.
+	delete(fields, "walletChallenges")
+	delete(fields, "walletSessions")
+	migrated, err := json.Marshal(fields)
+	if err != nil {
+		return nil, err
+	}
+	if err := strictJSON(migrated, &s.data); err != nil {
+		return nil, fmt.Errorf("decode pay product snapshot: %w", err)
 	}
 	s.normalize()
 	return s, nil
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 1, Merchants: map[string]Merchant{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, WalletChallenges: map[string]WalletChallenge{}, WalletSessions: map[string]WalletSession{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
+	return Snapshot{Version: 1, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
 }
 func (s *Store) normalize() {
 	e := emptySnapshot()
 	if s.data.Merchants == nil {
 		s.data.Merchants = e.Merchants
+	}
+	if s.data.MerchantMembers == nil {
+		s.data.MerchantMembers = e.MerchantMembers
+	}
+	if s.data.ConsoleSessions == nil {
+		s.data.ConsoleSessions = e.ConsoleSessions
+	}
+	if s.data.GatewaySeen == nil {
+		s.data.GatewaySeen = e.GatewaySeen
 	}
 	if s.data.Catalog == nil {
 		s.data.Catalog = e.Catalog
@@ -79,12 +101,6 @@ func (s *Store) normalize() {
 	}
 	if s.data.AIRuns == nil {
 		s.data.AIRuns = e.AIRuns
-	}
-	if s.data.WalletChallenges == nil {
-		s.data.WalletChallenges = e.WalletChallenges
-	}
-	if s.data.WalletSessions == nil {
-		s.data.WalletSessions = e.WalletSessions
 	}
 	if s.data.Idempotency == nil {
 		s.data.Idempotency = e.Idempotency

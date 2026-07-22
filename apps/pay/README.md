@@ -14,7 +14,8 @@ and session binding, and persistent one-use state. Payment uses a quote-bound
 callbacks, altered amount/merchant/payout/fee/expiry, replayed responses and
 wallet results that do not match the signed intent.
 
-Set `EXPO_PUBLIC_YNX_PAY_URL` to the product service URL. Run `npm run check` for
+Set `EXPO_PUBLIC_YNX_GATEWAY_URL` to the central App Gateway origin. The app
+never connects to the product service directly. Run `npm run check` for
 strict TypeScript, parser tests, and Android/iOS JS bundle exports. There is no
 fallback to the central Pay API: a build without the product URL fails closed
 instead of sending product requests to the wrong service.

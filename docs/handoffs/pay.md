@@ -1,143 +1,91 @@
-# YNX Pay handoff
+# YNX Pay and Merchant Console handoff
 
-## Delivery
+## Source and status
 
 - Branch: `codex/ecosystem-pay`
-- Baseline: `51bed843`
-- Owned paths only: `apps/pay/**`, `apps/merchant-console/**`, `internal/payproduct/**`, `docs/handoffs/pay.md`
-- Central Pay API and Gateway policy were not modified.
-- Acceptance date: 2026-07-17 (Asia/Shanghai).
+- Preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
+- Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
+  `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
+  `3feb86824135d5143e4e72e506d4efef9f530d3d931081c15500f16b1347bf2f`.
+- Local implementation and production builds pass. Central integration,
+  product staging, a fresh payment proof and current visual acceptance remain
+  open; this handoff does not claim release completion.
 
-## Completed product boundary
+## Authority and authentication boundaries
 
-`internal/payproduct` is a persistent product service layered on the central Pay
-API. It owns merchant onboarding, catalog and signed invoices, Wallet/Gateway
-sessions, refund/dispute requests, webhook delivery, reconciliation, analytics,
-audit and bounded AI runs. The product merchant ID remains local and audited;
-`YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID` identifies the merchant bound to the
-central credential used for authoritative intent, invoice and settlement calls.
+Pay and Merchant Console no longer implement a product-local Wallet verifier.
+Both use the immutable canonical package for request parsing, Wallet approval,
+callback verification, request digests and P-256 product-device challenges.
+The product service accepts settlement, refund and dispute calls only with a
+short-lived server-to-server Gateway assertion bound to method, escaped path,
+body hash, account, session, device, Pay registry identity, scopes, request
+digest, session binding, lifetime and persistent one-time nonce.
 
-An invoice becomes `committed` only after the central Pay API returns `paid`
-evidence whose invoice, intent, central merchant, payout address, amount, asset,
-transaction hash, block number and audit hash match the signed local record. A
-UI action, timer, submitted hash or proof harness cannot create paid state.
+Merchant Console creates a 15-minute opaque product session only after the
+central Gateway verifies the exact `pay-merchant` registry entry. Browser code
+stores no bootstrap key, merchant HMAC credential, webhook secret or Gateway
+assertion key. Roles are owner, finance, developer, support and viewer; every
+route has an explicit permission and role changes invalidate old sessions. The
+last active owner cannot be demoted.
 
-The independent native Pay app provides QR/manual/deep-link lookup, strict
-Wallet authorization, Gateway completion, payment review, pending/committed/
-failed/expired states, evidence-backed receipts, refunds and disputes. The Web
-Merchant Console has separate operations for onboarding, catalog/invoices,
-transactions, webhooks/retries, reconciliation/CSV, cases, AI review, security
-and audit. Both fail closed if the product URL is not configured; neither falls
-back to the central API.
+The controller-ready registry and proxy contract is
+`docs/integration/pay-card-wallet-registry.json`. It is intentionally marked
+`integratedCentral=false`: central main does not yet contain these entries or
+routes.
 
-Cross-chain settlement remains explicitly `unavailable` because no approved
-live bridge route was supplied.
+## Payment truth, receipts and operations
 
-## Security and resilience
+Invoices remain merchant Ed25519 signed. `committed` can be persisted only
+after the central Pay API returns a matching paid record whose invoice, intent,
+merchant, payout, payer, amount, asset, transaction hash, block and audit hash
+match the Wallet-signed quote and result. UI state, submitted hashes and timers
+cannot produce Paid.
 
-- JSON state uses atomic replacement plus HMAC integrity verification; restart
-  and tamper behavior are tested.
-- Merchant requests sign method, path, body hash, timestamp and nonce; expiry,
-  idempotency, nonce replay and cross-merchant access are tested.
-- Wallet sign-in binds a low-S secp256k1 YNX signature and an Ed25519 device
-  signature to a one-time challenge. Gateway completion is P-256 and exact
-  product, bundle, scope, session and expiry bound.
-- Go and TypeScript now share sorted-key canonical JSON. The fixed cross-runtime
-  request digest is
-  `b984b0360a06b93e6c269ff79c86022d47aaea7cdee434a1ed6b72eb20e18ebd`.
-- Merchant invoices are Ed25519-signed. Settlement accepts only an exact
-  quote-bound Wallet payment result and rechecks the authoritative transaction.
-- Webhook HMAC material is `YNX_PAY_WEBHOOK_V1`, delivery ID, exact timestamp
-  and payload hash. Timestamp, payload and signature are generated from the same
-  persisted envelope. Attempts, retry backoff, secret version and terminal
-  delivery state survive restart; receiver replay rejection uses delivery ID.
-- Stored merchant credentials and webhook secrets are AES-GCM encrypted and are
-  absent from snapshots, exports and audit payloads.
-- AI can explain or draft only. It cannot sign, pay, refund, change payout or
-  webhook secrets, or approve a dispute. A provider-backed unit acceptance test
-  proves human review is audited while the invoice remains pending with no
-  settlement.
+The consumer app covers QR/manual/payment-link lookup, merchant/amount/fee/
+network/expiry review, Wallet signing, pending/committed/failed/expired states,
+authoritative receipts, history, refund, dispute and offline recovery. The
+Merchant Console covers catalog, invoice/link/QR records, status and receipts,
+refund/dispute cases, webhook rotation/retry, reconciliation CSV, analytics,
+audit and review-only AI explanations.
 
-## Real YNX Testnet payment proof
+Webhook delivery signs the persistent payload envelope, includes delivery ID,
+timestamp, payload hash and secret version, persists retry/backoff state and
+rejects replays. Secrets are encrypted at rest and never included in browser
+snapshots or audit details. AI output cannot sign, pay, refund, approve a case,
+change payout or rotate secrets; owner/finance approval is separately audited.
 
-The operator acceptance harness used cryptographic Wallet/Gateway requests and a
-real native YNXT transfer through an SSH tunnel to the public-testnet backend.
-It did not inject or simulate `paid`. The public RPC independently returned the
-same transaction and committed block.
+## Verification completed on 2026-07-19
 
-- Network: `ynx_6423-1` / chain ID 6423 / asset YNXT
-- Product merchant: `mrc_83e49711c8235a75bd2a`
-- Payer: `ynx13mn60llmjqdrj90f7kmud80pcs7ds59qf9cl7m`
-- Payout: `ynx132d04zndz4znc6643yccg8y5xzjvnrxs7mtklu`
-- Product invoice: `inv_21cf3d36775cce48deb4`
-- Central invoice: `a015f6dea5c652d791dc68db`
-- Intent: `00a0a7f9beaeb3784c4039c3`
-- Amount and fee: 7 YNXT + 1 YNXT
-- Transaction: `0x046e2db6d3fa0211e104abef9c8ef419873c4944561063b48d3bc05baa553c12`
-- Committed block: 226048
-- Settlement: `80e81ec0dfd045199e619eba`
-- Authoritative audit hash:
-  `c136d70eb465b284f43d2cb64e1d143ba4a1448acb7c2c588e518210a4065f78`
-- Refund request: `rfr_acf2a991d770563f1b90`, 2 YNXT, `requested`
-- Dispute: `dsp_8c79282b358b30f92522`, `open`, bound to the transaction
-- Webhook: `whd_dd31ab83a047599f9154`, delivered attempt 1, signed payload
-- Reconciliation: one committed payment, gross 7 YNXT; CSV contains invoice and
-  transaction; merchant nonce replay was rejected.
-
-The sanitized machine-readable record is
-`internal/payproduct/proof/live-testnet-payment.json`.
-
-## Native and Web acceptance
-
-- Twelve locales are audited in both products: English, Simplified Chinese,
-  Traditional Chinese, Japanese, Korean, Spanish, French, German, Portuguese,
-  Russian, Arabic and Indonesian. Payment/refund/dispute/authorization/AI
-  authority strings are complete and semantically tested; Arabic uses RTL.
-- Merchant Web: browser-verified at 1280x720 in Simplified Chinese and 390x844
-  in Arabic RTL. Body and scroll widths matched at both sizes, the mobile rail
-  collapsed, and there were no console warnings/errors. Screenshots are in
-  `apps/merchant-console/proof/`.
-- Android release variant: built under JDK 17, installed on `emulator-5562`,
-  cold-launched as `com.ynxweb4.pay/.MainActivity`, and rendered the YNX Testnet
-  payment UI with no fatal/React errors. APK SHA-256:
-  `a0c4c6919042754eb898ab78b06307bcf458965f1e766ac75f0ad9a8e4613934`.
-- The local acceptance APK uses debug signing. It is not represented as
-  store-signed or production-distributable. iOS native sources and production
-  JS export pass, but App Store signing/install was not available on this host.
-
-## Verification gates
-
-Completed on 2026-07-17:
-
-- `go test -race ./internal/payproduct/... -count=1`
-- `bash internal/payproduct/smoke.sh`
-  - Pay product Go tests
-  - Merchant Console record/i18n tests and production build
-  - Pay app TypeScript/i18n/Wallet tests and Android/iOS Expo exports
+- `go test -race ./internal/payproduct/... ./internal/cardproduct/... -count=1`
 - `go test ./... -count=1`
-- Android `:app:assembleDebug` and `:app:assembleRelease`
-- Merchant Web desktop/mobile/RTL browser acceptance
-- Real YNX Testnet proof plus independent public RPC transaction lookup
-- `make pay-api-check`, `make no-placeholder-check`, `make secret-scan`,
-  `make env-check`, and `git diff --check`
+- `bash internal/payproduct/smoke.sh`
+- Merchant Console: 7 tests, production build, zero npm vulnerabilities.
+- Pay: TypeScript check, 6 tests, Android/iOS Hermes exports.
+- Android Pay release: lint vital and release assembly passed; SHA-256
+  `14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44`,
+  102623957 bytes, debug/test certificate only, minimum SDK 24.
+- Full repository environment, placeholder and secret scans plus central
+  `pay-api-check` passed.
+- Public read-only checks returned HTTP 200 for RPC, Faucet and central Pay;
+  they prove the chain is healthy, not that this product branch is deployed.
 
-## Live AI status and truthful external boundaries
+## Evidence and blockers
 
-The live YNX AI Gateway is configured with `gpt-4.1-mini`, but its provider
-returned HTTP 429 during acceptance. The recorded run
-`air_7DH-Znlamqu0uiso` is honestly `provider_failed`; no explanation, approval or
-financial action was fabricated. Local provider-backed tests cover explanation,
-human review/audit and the no-financial-execution boundary.
+The prior proof in `internal/payproduct/proof/live-testnet-payment.json` remains
+historical evidence from 2026-07-16 and is not presented as this version's
+required fresh payment. The operator harness now uses only central Gateway
+session and proxy routes; it no longer calls the removed product-local Wallet
+route or uses a browser merchant secret.
 
-The product service and frontends are not claimed as publicly deployed by this
-branch. Remaining release-owner work is limited to:
+Fresh proof is blocked because public central Gateway product routes are not
+deployed and the local controller branch has not accepted the registry. The
+public `gateway.ynxweb4.com/health` returns deployment-not-found, and available
+local SSH keys were rejected by the primary node. Android re-install testing
+also hit emulator system death (`DeadSystemException`, package/activity services
+disappeared); the observed ANR screenshot is retained as failure evidence, not
+as an install pass. iOS Hermes exports pass and a macOS simulator build job is
+now in CI, but this host has no Xcode runtime.
 
-1. Deploy `ynx-pay-productd` with persistent state, reverse proxy, central
-   credential, `YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID`, integrity/encryption keys,
-   least-privilege Gateway bindings and CORS.
-2. Configure `EXPO_PUBLIC_YNX_PAY_URL` and `globalThis.YNX_PAY_API_URL`, then
-   publish the merchant static build and consumer deep-link domain.
-3. Restore AI provider quota/access and rerun live provider-backed approval.
-4. Supply production Android/iOS signing, store ownership and physical-device
-   acceptance.
-5. Keep cross-chain settlement unavailable until an approved live route exists.
+Do not set integratedCentral, deployedStaging, installedLocal for the current
+artifacts, downloadHosted, productionSigned or storeReleased to true until the
+corresponding evidence exists.

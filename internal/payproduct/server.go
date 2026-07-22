@@ -27,7 +27,8 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
-	s.mux.HandleFunc("POST /v1/wallet/gateway-sessions", s.walletSession)
+	s.mux.HandleFunc("POST /v1/merchant/sessions", s.merchantSession)
+	s.mux.HandleFunc("POST /v1/merchant/members", s.merchantMember)
 	s.mux.HandleFunc("GET /v1/invoices/{id}", s.invoice)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/settlements", s.settlement)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/refund-requests", s.refund)
@@ -58,23 +59,47 @@ func (s *Server) onboard(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Onboard(in)
 	respond(w, 201, out, err)
 }
-func (s *Server) walletSession(w http.ResponseWriter, r *http.Request) {
-	var in WalletSessionInput
-	if !decode(w, r, &in) {
+func (s *Server) merchantSession(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
 		return
 	}
-	out, err := s.service.CompleteWalletSession(in)
-	if err == nil {
-		out.Token = out.SessionID + "." + out.Token
+	var in struct {
+		MerchantID string `json:"merchantId"`
 	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.CompleteMerchantSession(r, body, in.MerchantID)
 	respond(w, 201, out, err)
+}
+func (s *Server) merchantMember(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "members")
+	if !ok {
+		return
+	}
+	var in struct {
+		Account string `json:"account"`
+		Role    string `json:"role"`
+	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.UpsertMerchantMember(p, in.Account, in.Role)
+	respond(w, 200, out, err)
 }
 func (s *Server) invoice(w http.ResponseWriter, r *http.Request) {
 	out, err := s.service.Invoice(r.Context(), r.PathValue("id"))
 	respond(w, 200, out, err)
 }
 func (s *Server) settlement(w http.ResponseWriter, r *http.Request) {
-	session, err := s.service.AuthenticateWallet(r.Header.Get("Authorization"))
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
 		writeError(w, 401, err.Error())
 		return
@@ -84,14 +109,19 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request) {
 		Result         WalletPaymentResult `json:"result"`
 		IdempotencyKey string              `json:"idempotencyKey"`
 	}
-	if !decode(w, r, &in) {
+	if !decodeBytes(w, body, &in) {
 		return
 	}
 	out, err := s.service.SubmitSignedSettlement(r.Context(), session, r.PathValue("id"), in.Intent, in.Result, in.IdempotencyKey)
 	respond(w, 201, out, err)
 }
 func (s *Server) refund(w http.ResponseWriter, r *http.Request) {
-	session, err := s.service.AuthenticateWallet(r.Header.Get("Authorization"))
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
 		writeError(w, 401, err.Error())
 		return
@@ -101,14 +131,19 @@ func (s *Server) refund(w http.ResponseWriter, r *http.Request) {
 		Reason         string `json:"reason"`
 		IdempotencyKey string `json:"idempotencyKey"`
 	}
-	if !decode(w, r, &in) {
+	if !decodeBytes(w, body, &in) {
 		return
 	}
 	out, err := s.service.CreateRefundRequest(session, r.PathValue("id"), in.Amount, in.Reason, in.IdempotencyKey)
 	respond(w, 201, out, err)
 }
 func (s *Server) dispute(w http.ResponseWriter, r *http.Request) {
-	session, err := s.service.AuthenticateWallet(r.Header.Get("Authorization"))
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
 		writeError(w, 401, err.Error())
 		return
@@ -118,22 +153,22 @@ func (s *Server) dispute(w http.ResponseWriter, r *http.Request) {
 		TrustEvidence  []string `json:"trustEvidence"`
 		IdempotencyKey string   `json:"idempotencyKey"`
 	}
-	if !decode(w, r, &in) {
+	if !decodeBytes(w, body, &in) {
 		return
 	}
 	out, err := s.service.CreateDispute(session, r.PathValue("id"), in.Reason, in.IdempotencyKey, in.TrustEvidence)
 	respond(w, 201, out, err)
 }
 func (s *Server) merchantState(w http.ResponseWriter, r *http.Request) {
-	m, _, ok := s.merchantAuth(w, r)
+	p, _, ok := s.merchantAuth(w, r, "read")
 	if !ok {
 		return
 	}
-	out, err := s.service.SnapshotForMerchant(m.ID)
+	out, err := s.service.SnapshotForMerchant(p.Merchant.ID)
 	respond(w, 200, out, err)
 }
 func (s *Server) catalog(w http.ResponseWriter, r *http.Request) {
-	m, body, ok := s.merchantAuth(w, r)
+	p, body, ok := s.merchantAuth(w, r, "invoice")
 	if !ok {
 		return
 	}
@@ -141,11 +176,11 @@ func (s *Server) catalog(w http.ResponseWriter, r *http.Request) {
 	if !decodeBytes(w, body, &in) {
 		return
 	}
-	out, err := s.service.CreateCatalog(m, in)
+	out, err := s.service.CreateCatalog(p.Merchant, in)
 	respond(w, 201, out, err)
 }
 func (s *Server) createInvoice(w http.ResponseWriter, r *http.Request) {
-	m, body, ok := s.merchantAuth(w, r)
+	p, body, ok := s.merchantAuth(w, r, "invoice")
 	if !ok {
 		return
 	}
@@ -153,11 +188,11 @@ func (s *Server) createInvoice(w http.ResponseWriter, r *http.Request) {
 	if !decodeBytes(w, body, &in) {
 		return
 	}
-	out, err := s.service.CreateInvoice(r.Context(), m, in)
+	out, err := s.service.CreateInvoice(r.Context(), p.Merchant, in)
 	respond(w, 201, out, err)
 }
 func (s *Server) webhook(w http.ResponseWriter, r *http.Request) {
-	m, body, ok := s.merchantAuth(w, r)
+	p, body, ok := s.merchantAuth(w, r, "webhook")
 	if !ok {
 		return
 	}
@@ -167,23 +202,23 @@ func (s *Server) webhook(w http.ResponseWriter, r *http.Request) {
 	if !decodeBytes(w, body, &in) {
 		return
 	}
-	err := s.service.SetWebhook(m, in.Endpoint)
+	err := s.service.SetWebhook(p.Merchant, in.Endpoint)
 	respond(w, 200, map[string]string{"status": "updated"}, err)
 }
 func (s *Server) rotate(w http.ResponseWriter, r *http.Request) {
-	m, _, ok := s.merchantAuth(w, r)
+	p, _, ok := s.merchantAuth(w, r, "webhook")
 	if !ok {
 		return
 	}
-	secret, err := s.service.RotateWebhookSecret(m)
-	respond(w, 200, map[string]string{"webhookSecret": secret, "notice": "shown once"}, err)
+	_, err := s.service.RotateWebhookSecret(p.Merchant)
+	respond(w, 200, map[string]string{"status": "rotated", "secretDelivery": "server-side secret manager only"}, err)
 }
 func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
-	m, _, ok := s.merchantAuth(w, r)
+	p, _, ok := s.merchantAuth(w, r, "webhook")
 	if !ok {
 		return
 	}
-	state, err := s.service.SnapshotForMerchant(m.ID)
+	state, err := s.service.SnapshotForMerchant(p.Merchant.ID)
 	if err == nil {
 		if _, ok := state.Deliveries[r.PathValue("id")]; !ok {
 			err = errors.New("webhook delivery not found")
@@ -197,19 +232,19 @@ func (s *Server) retryWebhook(w http.ResponseWriter, r *http.Request) {
 	respond(w, 200, out, err)
 }
 func (s *Server) analytics(w http.ResponseWriter, r *http.Request) {
-	m, _, ok := s.merchantAuth(w, r)
+	p, _, ok := s.merchantAuth(w, r, "read")
 	if !ok {
 		return
 	}
-	out, err := s.service.Analytics(m.ID)
+	out, err := s.service.Analytics(p.Merchant.ID)
 	respond(w, 200, out, err)
 }
 func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
-	m, _, ok := s.merchantAuth(w, r)
+	p, _, ok := s.merchantAuth(w, r, "reconcile")
 	if !ok {
 		return
 	}
-	items, err := s.service.Export(m.ID)
+	items, err := s.service.Export(p.Merchant.ID)
 	if err != nil {
 		respond(w, 0, nil, err)
 		return
@@ -230,7 +265,7 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 	cw.Flush()
 }
 func (s *Server) aiRun(w http.ResponseWriter, r *http.Request) {
-	m, body, ok := s.merchantAuth(w, r)
+	p, body, ok := s.merchantAuth(w, r, "ai-run")
 	if !ok {
 		return
 	}
@@ -238,11 +273,11 @@ func (s *Server) aiRun(w http.ResponseWriter, r *http.Request) {
 	if !decodeBytes(w, body, &in) {
 		return
 	}
-	out, err := s.service.StartAI(r.Context(), m, in)
+	out, err := s.service.StartAI(r.Context(), p.Merchant, in)
 	respond(w, 201, out, err)
 }
 func (s *Server) aiReview(w http.ResponseWriter, r *http.Request) {
-	m, body, ok := s.merchantAuth(w, r)
+	p, body, ok := s.merchantAuth(w, r, "ai-review")
 	if !ok {
 		return
 	}
@@ -252,21 +287,26 @@ func (s *Server) aiReview(w http.ResponseWriter, r *http.Request) {
 	if !decodeBytes(w, body, &in) {
 		return
 	}
-	out, err := s.service.ReviewAI(m, r.PathValue("id"), in.Decision)
+	out, err := s.service.ReviewAI(p.Merchant, r.PathValue("id"), in.Decision)
 	respond(w, 200, out, err)
 }
-func (s *Server) merchantAuth(w http.ResponseWriter, r *http.Request) (Merchant, []byte, bool) {
+func (s *Server) merchantAuth(w http.ResponseWriter, r *http.Request, permission string) (MerchantPrincipal, []byte, bool) {
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
 	if err != nil {
 		writeError(w, 413, "request body exceeds limit")
-		return Merchant{}, nil, false
+		return MerchantPrincipal{}, nil, false
 	}
-	m, err := s.service.Authenticate(r.Method, r.URL.RequestURI(), body, r.Header.Get("Authorization"))
+	p, err := s.service.AuthenticateMerchantSession(r.Header.Get("Authorization"))
 	if err != nil {
 		writeError(w, 401, err.Error())
-		return Merchant{}, nil, false
+		return MerchantPrincipal{}, nil, false
 	}
-	return m, body, true
+	if !roleAllows(p.Role, permission) {
+		writeError(w, 403, "merchant role does not allow this operation")
+		return MerchantPrincipal{}, nil, false
+	}
+	w.Header().Set("X-YNX-Merchant-Role", p.Role)
+	return p, body, true
 }
 func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
