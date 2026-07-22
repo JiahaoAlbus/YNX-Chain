@@ -92,14 +92,16 @@ func TestEconomicsDisclosureRequestIDHealthAndMetrics(t *testing.T) {
 	disclosure := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/api/economics/disclosure", nil)
 	request.Header.Set("X-Request-ID", "economics-test-request-0001")
+	request.Header.Set("traceparent", "00-0123456789abcdef0123456789abcdef-0123456789abcdef-01")
 	handler.ServeHTTP(disclosure, request)
-	if disclosure.Code != http.StatusOK || disclosure.Header().Get("X-Request-ID") != "economics-test-request-0001" {
+	if disclosure.Code != http.StatusOK || disclosure.Header().Get("X-Request-ID") != "economics-test-request-0001" || disclosure.Header().Get("X-Trace-ID") != "0123456789abcdef0123456789abcdef" {
 		t.Fatalf("request ID was not propagated: status=%d id=%q", disclosure.Code, disclosure.Header().Get("X-Request-ID"))
 	}
 	var body struct {
 		RequestID string `json:"requestId"`
+		TraceID   string `json:"traceId"`
 	}
-	if err := json.NewDecoder(disclosure.Body).Decode(&body); err != nil || body.RequestID != "economics-test-request-0001" {
+	if err := json.NewDecoder(disclosure.Body).Decode(&body); err != nil || body.RequestID != "economics-test-request-0001" || body.TraceID != "0123456789abcdef0123456789abcdef" {
 		t.Fatalf("response request ID mismatch: body=%+v err=%v", body, err)
 	}
 
@@ -125,6 +127,7 @@ func TestEconomicsDisclosureRequestIDHealthAndMetrics(t *testing.T) {
 		"ynx_explorer_economics_disclosure_errors_total 0",
 		"ynx_explorer_economics_disclosure_latency_seconds_count 1",
 		"ynx_explorer_economics_disclosure_latency_seconds_bucket{le=\"+Inf\"} 1",
+		"ynx_explorer_economics_disclosure_last_success_timestamp_seconds ",
 	} {
 		if !strings.Contains(metrics, expected) {
 			t.Fatalf("metrics missing %q:\n%s", expected, metrics)

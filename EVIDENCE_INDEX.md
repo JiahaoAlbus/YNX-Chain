@@ -55,6 +55,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Dependency, secret and static scan truth | `release/security-scan-evidence.json`, `SUPPLY_CHAIN_SECURITY.md` | Re-run named commands; unresolved npm High remains explicit |
 | Reproducible unsigned local binary and cold start | `release/reproducible-build-evidence.json` | Repeat allowlisted build twice and compare SHA-256 |
 | Scoped release changes and known gaps | `RELEASE_NOTES.md`, `product-release.json` | `make economics-public-package-check` |
+| Quant realized-net high-water-mark ownership and vectors | `docs/coordination/QUANT_FEE_HIGH_WATER_MARK_HANDOFF.md` | On Chain Core worktree: `go test ./internal/assetauth -run PerformanceFee -count=1` |
+| Founder KPI definitions and kill/scale rules | `GROWTH_KPI_FRAMEWORK.md` | Review unavailable-current-value and source requirements |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 
 Generated artifacts, remote URLs, transaction hashes, installation proof, deployment proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.

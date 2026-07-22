@@ -89,6 +89,30 @@ groups:
         annotations:
           summary: YNX explorer is serving stale indexed data
           description: Explorer sees an RPC-to-indexer lag above three blocks for more than three minutes.
+      - alert: YNXEconomicsDisclosureErrors
+        expr: increase(ynx_explorer_economics_disclosure_errors_total{job="ynx-explorerd"}[5m]) / clamp_min(increase(ynx_explorer_economics_disclosure_requests_total{job="ynx-explorerd"}[5m]), 1) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNXT economics disclosure error ratio is elevated
+          description: More than one percent of disclosure requests failed for five minutes. Correlate Request, Trace and Error IDs before rollback.
+      - alert: YNXEconomicsDisclosureLatency
+        expr: histogram_quantile(0.99, sum by (le) (rate(ynx_explorer_economics_disclosure_latency_seconds_bucket{job="ynx-explorerd"}[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNXT economics disclosure p99 exceeds one second
+          description: Process latency has remained above the candidate p99 threshold for ten minutes; verify ingress and instance saturation separately.
+      - alert: YNXEconomicsDisclosureStale
+        expr: time() - ynx_explorer_economics_disclosure_last_success_timestamp_seconds{job="ynx-explorerd"} > 300
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNXT economics disclosure has no recent success
+          description: No successful disclosure response has been observed for more than five minutes.
       - alert: YNXFaucetDown
         expr: up{job="ynx-faucetd"} == 0
         for: 2m

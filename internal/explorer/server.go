@@ -28,6 +28,7 @@ type Server struct {
 	economicsErrors         atomic.Uint64
 	economicsLatencyNanos   atomic.Uint64
 	economicsLatencyBuckets [6]atomic.Uint64
+	economicsLastSuccess    atomic.Int64
 }
 
 type streamEvent struct {

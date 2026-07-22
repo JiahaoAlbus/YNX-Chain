@@ -27,6 +27,7 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | YUSD local backup/restore correctness | true | true | false | false | false | false | false | false | false | Digest-preserving fresh-path restore compares full snapshot, queued redemptions, audit and mode; no off-host/staging timed recovery |
 | Security and supply-chain evidence package | true | true | false | false | false | false | false | false | false | Threat model, boundaries, 408-component deterministic SBOM, notices, allowlist and scans; unresolved npm High, DAST/signing/hosted provenance absent |
 | Reproducible Explorer binary | true | true | false | false | false | false | false | false | false | Two unsigned darwin-arm64 local builds matched and one cold-started on loopback; binary is not retained, installed, hosted or signed |
+| Quant realized-net high-water-mark invariant handoff | false | false | false | false | false | false | false | false | false | Direct implementation/test exists in owning Chain Core branch; this branch provides exact vector and integration contract but does not claim ownership or activation |
 
 ## Current verification
 

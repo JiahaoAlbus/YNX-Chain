@@ -13,3 +13,9 @@ YUSD is an isolated test-unit sandbox with no real value, reserve attestation or
 `make yusd-restore-drill` performs a local stop-equivalent snapshot copy, digest comparison and restore into a fresh path, then compares snapshot, queued redemptions, audit events and file mode. It proves local correctness only. Off-host encryption, backup scheduler, retention period, deletion authority, elapsed RTO/RPO and staging restore remain unimplemented.
 
 On service termination, pause minting, keep the redemption exit queue visible, export the versioned state plus digest and audit, and publish the honest provider/custody boundary. Never delete a state file until its retention and disposal authority are approved. No public user exit is claimed because no public YUSD deployment exists.
+
+## Incident, support, refund and dispute boundary
+
+For disclosure incidents, capture Request/Trace/Error IDs, exact build, health and metric window; post only through the centrally approved status channel. Support must distinguish an explanatory error from a chain, provider or user-asset incident and must not ask for seeds, private keys or complete credentials. No support/status URL is approved in this package, so no live channel is claimed.
+
+The economics dashboard charges no fee and therefore has no refund ledger. Gas, venue/provider, managed-Vault or YUSD disputes belong to the authoritative receipt/fee/custody owner. Preserve the consent snapshot, signed mandate, fee attribution, burn/revenue split, provider receipt, transaction hash and audit ID; freeze only the affected mutation path; never manufacture a refund or reverse an immutable chain event in the UI. Escalation, response-time policy, refund authority and jurisdiction require central legal/support approval before public release.

@@ -48,6 +48,10 @@ grep -Fq "ynx-indexerd:6426" infra/monitoring/prometheus.yml
 grep -Fq "YNXIndexerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-explorerd:6427" infra/monitoring/prometheus.yml
 grep -Fq "YNXExplorerLagging" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXEconomicsDisclosureErrors" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXEconomicsDisclosureLatency" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXEconomicsDisclosureStale" infra/monitoring/ynx-alerts.yml
+grep -Fq "Economics Disclosure Latency" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx-faucetd:6428" infra/monitoring/prometheus.yml
 grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx_faucet_requests_total" infra/monitoring/grafana-dashboard.json
