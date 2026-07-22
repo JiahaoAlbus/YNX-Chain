@@ -48,3 +48,12 @@ RFC3339Nano timestamp and payload hash. Receivers must validate
 `X-YNX-Delivery-ID`, `X-YNX-Timestamp`, `X-YNX-Payload-SHA256`,
 `X-YNX-Signature-Version` and `X-YNX-Signature`, then reject reused delivery
 IDs. Delivery attempts, retry state and secret version are persistent.
+
+Recovery uses the separate `ynx-pay-product-recovery` command. The integrity
+key is accepted only through `YNX_PAY_PRODUCT_INTEGRITY_KEY`; it is never a CLI
+argument. `backup` requires an exact source commit and creates a new,
+non-overwriting HMAC archive. `verify` checks both archive and nested store
+integrity. `restore` requires the current destination SHA-256 (or the literal
+`absent`), creates a rollback copy before replacement, and verifies the restored
+bytes. The running service holds a store-operation lock, so restore fails until
+the service has shut down gracefully.

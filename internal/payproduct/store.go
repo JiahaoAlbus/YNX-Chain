@@ -40,17 +40,27 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read pay product store: %w", err)
 	}
+	snapshot, err := decodeStoreSnapshot(raw, integrityKey)
+	if err != nil {
+		return nil, err
+	}
+	s.data = snapshot
+	return s, nil
+}
+
+func decodeStoreSnapshot(raw, integrityKey []byte) (Snapshot, error) {
+	s := &Store{integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}
 	var env diskEnvelope
 	if err := strictJSON(raw, &env); err != nil {
-		return nil, fmt.Errorf("decode pay product store: %w", err)
+		return Snapshot{}, fmt.Errorf("decode pay product store: %w", err)
 	}
 	var compact bytes.Buffer
 	if err := json.Compact(&compact, env.Payload); err != nil || env.Version != 1 || !hmac.Equal([]byte(env.MAC), []byte(s.mac(compact.Bytes()))) {
-		return nil, errors.New("pay product store integrity check failed")
+		return Snapshot{}, errors.New("pay product store integrity check failed")
 	}
 	var fields map[string]json.RawMessage
 	if err := strictJSON(env.Payload, &fields); err != nil {
-		return nil, fmt.Errorf("decode pay product snapshot fields: %w", err)
+		return Snapshot{}, fmt.Errorf("decode pay product snapshot fields: %w", err)
 	}
 	// Sessions produced by the removed product-local Wallet verifier are never
 	// migrated. Central Gateway assertions are short-lived and reconstructed.
@@ -58,16 +68,16 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	delete(fields, "walletSessions")
 	migrated, err := json.Marshal(fields)
 	if err != nil {
-		return nil, err
+		return Snapshot{}, err
 	}
 	if err := strictJSON(migrated, &s.data); err != nil {
-		return nil, fmt.Errorf("decode pay product snapshot: %w", err)
+		return Snapshot{}, fmt.Errorf("decode pay product snapshot: %w", err)
 	}
 	if s.data.Version < 1 || s.data.Version > SnapshotVersion {
-		return nil, fmt.Errorf("unsupported pay product snapshot version %d", s.data.Version)
+		return Snapshot{}, fmt.Errorf("unsupported pay product snapshot version %d", s.data.Version)
 	}
 	s.normalize()
-	return s, nil
+	return s.data, nil
 }
 
 func emptySnapshot() Snapshot {

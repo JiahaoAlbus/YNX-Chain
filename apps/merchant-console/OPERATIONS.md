@@ -14,4 +14,8 @@ Run `npm ci && npm run check` in this directory and `go test ./internal/payprodu
 
 AI may draft and explain only. Operators must not grant it payment, refund, payout, secret rotation, role change or settlement authority.
 
-Backup/restore automation, alert routing, status page, support/privacy/security URLs and public rollback proof remain open release gates.
+## Backup and restore
+
+Use `go run ./internal/payproduct/cmd/ynx-pay-product-recovery` with `backup`, `verify`, or `restore`. The integrity key is supplied only by the process environment. A backup requires the exact source commit and will not overwrite an existing archive. Restore requires an exact current-state SHA-256 confirmation, automatically preserves the pre-restore bytes in a rollback file, and refuses to run while the service lock is active. See `RECOVERY_RUNBOOK.md`.
+
+Alert routing, status page, support/privacy/security URLs and public rollback proof remain open release gates.

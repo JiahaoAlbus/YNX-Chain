@@ -7,9 +7,9 @@ The current forward migration accepts snapshot v1, removes obsolete product-loca
 Release gates still open:
 
 - Add an explicit schema migration registry and golden fixtures for every supported prior version.
-- Add CLI backup, verify, restore and rollback-migration commands with audit IDs.
+- Add explicit rollback-migration commands and audit-ID integration. Backup, verify and guarded restore CLI commands are implemented and tested.
 - Prove old-client compatibility and publish deprecation windows.
 - Define retention, export/delete, legal hold and service-shutdown exit behavior.
-- Run a timed restore drill against a copy; never overwrite live state during verification.
+- Publish recurring remote restore-drill evidence; never overwrite live state during verification.
 
 Rollback must restore both the prior binary and its compatible state backup. Replacing only the binary is not a rollback proof.
