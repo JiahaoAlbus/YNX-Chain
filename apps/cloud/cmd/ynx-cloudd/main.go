@@ -126,6 +126,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
 	mux.Handle("/health", api)
+	mux.Handle("/health/", api)
 	mux.Handle("/cloud/", http.StripPrefix("/cloud/", http.FileServer(http.Dir(*cloudUI))))
 	mux.Handle("/docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(*docsUI))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

@@ -41,3 +41,11 @@ control-plane implementation, not provider-native streaming multipart. Objects
 may carry typed Dataset, Strategy/Model, Build, Backtest/Experiment, Checkpoint,
 Media Source, Document Export, or Audit Archive metadata. Content endpoints use
 standard HTTP byte ranges.
+
+`GET /api/v1/export` creates an owner-only ZIP containing every owned immutable
+version plus a versioned manifest of object metadata, ACLs, audit events, hashes,
+byte sizes, source, authority, and `asOf`. Export fails closed if any source byte
+does not match its recorded hash or size. Artifacts under `legal-hold` cannot be
+permanently deleted. Logical deletion still relies on operator-controlled,
+content-addressed blob retention/garbage collection and is not described as
+verified physical erasure.

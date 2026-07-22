@@ -228,6 +228,27 @@ type SaveDocumentRequest struct {
 	Content     []byte `json:"content"`
 }
 
+type ExportFile struct {
+	ObjectID string `json:"objectId"`
+	Version  int    `json:"version"`
+	Path     string `json:"path"`
+	Hash     string `json:"sha256"`
+	Bytes    int64  `json:"bytes"`
+}
+
+type ExportManifest struct {
+	SchemaVersion int          `json:"schemaVersion"`
+	Authority     string       `json:"authority"`
+	Source        string       `json:"source"`
+	AsOf          time.Time    `json:"asOf"`
+	Owner         string       `json:"owner"`
+	Objects       []Object     `json:"objects"`
+	Versions      []Version    `json:"versions"`
+	Grants        []Grant      `json:"grants"`
+	Audit         []AuditEvent `json:"audit"`
+	Files         []ExportFile `json:"files"`
+}
+
 type ConflictError struct{ Current Object }
 
 func (e ConflictError) Error() string { return "document version conflict" }

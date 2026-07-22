@@ -1,8 +1,10 @@
 package cloud
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -208,6 +210,64 @@ func TestMultipartResumeIntegrityCancelAndArtifact(t *testing.T) {
 	}
 	if resumed, err := s.GetMultipart(owner, bad.ID); err != nil || resumed.Status != "active" {
 		t.Fatalf("failed completion must remain resumable: %#v %v", resumed, err)
+	}
+}
+
+func TestPortableExportAndLegalHold(t *testing.T) {
+	s := testService(t, nil)
+	ctx := context.Background()
+	obj, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "strategy.bin", Content: []byte("v1"), Artifact: &Artifact{Type: "strategy", Product: "quant", Retention: "standard"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive, manifest, err := s.ExportOwnedData(ctx, owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Owner != owner || manifest.Source != "ynx-cloudd" || len(manifest.Objects) != 1 || len(manifest.Files) != 1 || manifest.Files[0].Hash != obj.Hash {
+		t.Fatalf("manifest: %#v", manifest)
+	}
+	zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	seenManifest, seenBody := false, false
+	for _, f := range zr.File {
+		r, err := f.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		var b bytes.Buffer
+		if _, err = b.ReadFrom(r); err != nil {
+			t.Fatal(err)
+		}
+		_ = r.Close()
+		switch f.Name {
+		case "manifest.json":
+			var decoded ExportManifest
+			if err := json.Unmarshal(b.Bytes(), &decoded); err != nil || decoded.Owner != owner {
+				t.Fatalf("decoded manifest: %#v %v", decoded, err)
+			}
+			seenManifest = true
+		case manifest.Files[0].Path:
+			if b.String() != "v1" {
+				t.Fatalf("export body %q", b.String())
+			}
+			seenBody = true
+		}
+	}
+	if !seenManifest || !seenBody {
+		t.Fatalf("archive entries manifest=%v body=%v", seenManifest, seenBody)
+	}
+	hold, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "hold.bin", Content: []byte("held"), Artifact: &Artifact{Type: "audit-archive", Product: "trust", Retention: "legal-hold"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SetTrash(owner, hold.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteObject(owner, hold.ID); err == nil || !strings.Contains(err.Error(), "legal hold") {
+		t.Fatalf("legal hold deletion: %v", err)
 	}
 }
 

@@ -80,3 +80,52 @@ func TestServerRangeDownload(t *testing.T) {
 		t.Fatalf("range: %d %q %q", rr.Code, rr.Body.String(), rr.Header().Get("Content-Range"))
 	}
 }
+
+func TestPublicAndRestrictedHealthObservability(t *testing.T) {
+	s := testService(t, nil)
+	server := NewServer(s)
+	handler := server.Handler()
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != 200 || rr.Header().Get("X-Request-ID") == "" {
+		t.Fatalf("public health: %d %#v", rr.Code, rr.Header())
+	}
+	var public map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&public); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := public["objects"]; ok {
+		t.Fatal("public health leaked object count")
+	}
+	if _, ok := public["durability"]; ok {
+		t.Fatal("public health leaked provider boundary")
+	}
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/metrics", nil)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != 401 || rr.Header().Get("X-Error-ID") == "" || rr.Header().Get("X-Request-ID") == "" {
+		t.Fatalf("error IDs: %d %#v", rr.Code, rr.Header())
+	}
+	envelope := testWalletEnvelope(t, s, "cloud", "metrics", []string{"audit.read"})
+	token, _, err := s.CreateSession(context.Background(), envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"/api/v1/health", "/api/v1/metrics"} {
+		req = httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr = httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != 200 {
+			t.Fatalf("%s: %d %s", path, rr.Code, rr.Body.String())
+		}
+	}
+	var metrics map[string]any
+	if err := json.NewDecoder(rr.Body).Decode(&metrics); err != nil {
+		t.Fatal(err)
+	}
+	if metrics["source"] != "ynx-cloudd in-process counters" || metrics["coverage"] == nil {
+		t.Fatalf("metrics provenance: %#v", metrics)
+	}
+}
