@@ -22,6 +22,10 @@ Status date: 2026-07-22.
 - `go test -race ./internal/bridgegateway ./cmd/ynx-bridged`
 - `make bridge-api-check`
 - `make bridge-integration-check`
+- `make bridge-supply-chain-check`
+- `make bridge-capacity-check`
+- `make bridge-restore-check`
+- `make bridge-evidence-check`
 - `go test ./...`
 - `make no-placeholder-check`
 - `make secret-scan`

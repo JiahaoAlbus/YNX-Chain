@@ -24,5 +24,8 @@
 - Supply-chain gate: `scripts/verify/bridge-supply-chain-check.sh`
 - Public product metadata: `docs/bridge/public-product-metadata.json`
 - Machine release state: `docs/bridge/product-release.json`
+- Capacity evidence: `docs/bridge/capacity-evidence.json`
+- Restore evidence: `docs/bridge/restore-evidence.json`
+- Evidence gate: `scripts/verify/bridge-evidence-check.mjs`
 
 Generated test output is ephemeral and is not public or remote evidence. A release evidence record must bind future logs, artifacts, transaction receipts, API responses, and deployment URLs to the exact source commit that produced them.

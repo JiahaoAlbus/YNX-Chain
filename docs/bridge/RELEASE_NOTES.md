@@ -11,5 +11,6 @@
 - Added eight-product consumer integration contracts and destination-confirmed availability vectors.
 - Recorded the official stablecoin transfer candidate as unavailable because YNX was not listed in the inspected official CCTP testnet contract reference.
 - Added Bridge-specific threat, security-boundary, third-party, reproducible-build, SPDX SBOM, public metadata, and machine release-state gates.
+- Added source-bound local p50/p95/p99/throughput/storage evidence and a corruption-rejection plus backup-restore drill.
 
 External submission remains disabled. This candidate is not installed, staged, public, production-signed, issuer-supported, funded, or independently audited.
