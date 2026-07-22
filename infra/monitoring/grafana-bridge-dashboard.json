@@ -1,0 +1,77 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Coordinator availability",
+      "type": "stat",
+      "targets": [{"expr": "up{job=\"ynx-bridged\"}", "legendFormat": "availability", "refId": "A"}],
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "Fail-closed and pause state",
+      "type": "stat",
+      "targets": [
+        {"expr": "ynx_bridge_external_submission_enabled{service=\"ynx-bridged\"}", "legendFormat": "external submission", "refId": "A"},
+        {"expr": "ynx_bridge_paused{service=\"ynx-bridged\"}", "legendFormat": "paused", "refId": "B"}
+      ],
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0}
+    },
+    {
+      "id": 3,
+      "title": "Route exposure against cap",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "ynx_bridge_route_outstanding", "legendFormat": "{{provider}} {{source_asset}} outstanding", "refId": "A"},
+        {"expr": "ynx_bridge_route_outstanding_limit", "legendFormat": "{{provider}} {{source_asset}} cap", "refId": "B"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "id": 4,
+      "title": "Reconciliation balance",
+      "type": "stat",
+      "targets": [{"expr": "ynx_bridge_reconciliation_balanced", "legendFormat": "{{provider}} {{source_asset}}", "refId": "A"}],
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 6}
+    },
+    {
+      "id": 5,
+      "title": "Reconciliation age (seconds)",
+      "type": "timeseries",
+      "targets": [{"expr": "time() - ynx_bridge_reconciliation_timestamp_seconds", "legendFormat": "{{provider}} {{source_asset}}", "refId": "A"}],
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 6}
+    },
+    {
+      "id": 6,
+      "title": "Rate-limit denials (5m)",
+      "type": "timeseries",
+      "targets": [{"expr": "increase(ynx_bridge_rate_limit_denied_total[5m])", "legendFormat": "denied", "refId": "A"}],
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 12}
+    },
+    {
+      "id": 7,
+      "title": "Transfer lifecycle totals",
+      "type": "timeseries",
+      "targets": [
+        {"expr": "ynx_bridge_transfers_total", "legendFormat": "transfers", "refId": "A"},
+        {"expr": "ynx_bridge_ready_total", "legendFormat": "ready", "refId": "B"},
+        {"expr": "ynx_bridge_finalized_local_total", "legendFormat": "local finalized", "refId": "C"}
+      ],
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 8}
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["ynx", "bridge", "testnet", "local-coordinator"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "utc",
+  "title": "YNX Bridge Safety and SLO",
+  "uid": "ynx-bridge-safety",
+  "version": 1
+}

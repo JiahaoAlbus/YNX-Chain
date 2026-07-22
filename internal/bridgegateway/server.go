@@ -9,12 +9,15 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
+
+var traceparentPattern = regexp.MustCompile(`^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$`)
 
 type Server struct {
 	service *Service
@@ -53,7 +56,10 @@ func (w *statusWriter) Write(body []byte) (int, error) {
 func (s *Server) observeAndLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := newRequestID()
+		traceID, responseTraceparent := traceContext(r.Header.Get("traceparent"))
 		w.Header().Set("X-Request-ID", requestID)
+		w.Header().Set("X-Trace-ID", traceID)
+		w.Header().Set("traceparent", responseTraceparent)
 		started := time.Now()
 		accessKey := r.Header.Get("X-YNX-Bridge-Key")
 		if accessKey == "" {
@@ -73,7 +79,7 @@ func (s *Server) observeAndLimit(next http.Handler) http.Handler {
 		if pattern == "" {
 			pattern = "unmatched"
 		}
-		slog.Info("bridge_http_request", "request_id", requestID, "method", r.Method, "route", pattern, "status", status, "duration_ms", time.Since(started).Milliseconds())
+		slog.Info("bridge_http_request", "request_id", requestID, "trace_id", traceID, "method", r.Method, "route", pattern, "status", status, "duration_ms", time.Since(started).Milliseconds())
 	})
 }
 
@@ -83,6 +89,28 @@ func newRequestID() string {
 		return "breq_" + hex.EncodeToString(raw)
 	}
 	return "breq_" + hashText(time.Now().UTC().Format(time.RFC3339Nano))[:24]
+}
+
+func traceContext(incoming string) (string, string) {
+	traceID := ""
+	flags := "01"
+	if match := traceparentPattern.FindStringSubmatch(strings.ToLower(strings.TrimSpace(incoming))); len(match) == 4 && match[1] != strings.Repeat("0", 32) && match[2] != strings.Repeat("0", 16) {
+		traceID = match[1]
+		flags = match[3]
+	}
+	if traceID == "" {
+		traceID = randomHex(16)
+	}
+	spanID := randomHex(8)
+	return traceID, "00-" + traceID + "-" + spanID + "-" + flags
+}
+
+func randomHex(size int) string {
+	raw := make([]byte, size)
+	if _, err := rand.Read(raw); err == nil {
+		return hex.EncodeToString(raw)
+	}
+	return hashText(time.Now().UTC().Format(time.RFC3339Nano) + "|" + strconv.Itoa(size))[:size*2]
 }
 
 func (s *Server) routes() {
@@ -122,6 +150,19 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	for _, route := range s.service.Transparency().Routes {
 		value, _ := strconv.ParseUint(route.CoordinatorOutstanding, 10, 64)
 		exposure += value
+		routeLabels := fmt.Sprintf(`%s,provider="%s",source_chain="%s",destination_chain="%s",source_asset="%s",destination_asset="%s"`, labels, route.Route.Provider, route.Route.SourceChain, route.Route.DestinationChain, route.Route.SourceAsset, route.Route.DestinationAsset)
+		limit, _ := strconv.ParseUint(route.Route.MaxOutstanding, 10, 64)
+		_, _ = fmt.Fprintf(w, "ynx_bridge_route_outstanding{%s} %d\n", routeLabels, value)
+		_, _ = fmt.Fprintf(w, "ynx_bridge_route_outstanding_limit{%s} %d\n", routeLabels, limit)
+		if route.LastReconciliation != nil {
+			balanced := 0
+			if route.LastReconciliation.Balanced {
+				balanced = 1
+			}
+			recordedAt, _ := time.Parse(time.RFC3339Nano, route.LastReconciliation.RecordedAt)
+			_, _ = fmt.Fprintf(w, "ynx_bridge_reconciliation_balanced{%s} %d\n", routeLabels, balanced)
+			_, _ = fmt.Fprintf(w, "ynx_bridge_reconciliation_timestamp_seconds{%s} %d\n", routeLabels, recordedAt.Unix())
+		}
 	}
 	_, _ = fmt.Fprintf(w, "ynx_bridge_coordinator_outstanding{%s} %d\n", labels, exposure)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_rate_limit_denied_total{%s} %d\n", labels, health.RateLimitDenied)

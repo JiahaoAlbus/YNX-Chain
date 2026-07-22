@@ -1,0 +1,59 @@
+groups:
+  - name: ynx-bridge-safety
+    rules:
+      - alert: YNXBridgeUnavailable
+        expr: up{job="ynx-bridged"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX Bridge coordinator is unavailable
+          runbook: docs/bridge/OPERATIONS.md#incident-response
+      - alert: YNXBridgeUnexpectedExternalSubmission
+        expr: ynx_bridge_external_submission_enabled{service="ynx-bridged"} != 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: Fail-closed external submission boundary changed
+          runbook: docs/bridge/OPERATIONS.md#incident-response
+      - alert: YNXBridgePaused
+        expr: ynx_bridge_paused{service="ynx-bridged"} == 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX Bridge coordinator remains paused
+          runbook: docs/bridge/OPERATIONS.md#pause-and-resume
+      - alert: YNXBridgeRouteExposureHigh
+        expr: ynx_bridge_route_outstanding / ynx_bridge_route_outstanding_limit >= 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Bridge route exposure is at least 80 percent of its configured cap
+          runbook: docs/bridge/OPERATIONS.md#incident-response
+      - alert: YNXBridgeReconciliationImbalance
+        expr: ynx_bridge_reconciliation_balanced == 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: Latest operator-submitted reconciliation is unbalanced
+          runbook: docs/bridge/OPERATIONS.md#reconciliation
+      - alert: YNXBridgeReconciliationStale
+        expr: time() - ynx_bridge_reconciliation_timestamp_seconds > 86400
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Bridge reconciliation is older than 24 hours
+          runbook: docs/bridge/OPERATIONS.md#reconciliation
+      - alert: YNXBridgeRateLimitAbuse
+        expr: increase(ynx_bridge_rate_limit_denied_total[5m]) > 25
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Bridge API is rejecting sustained excess traffic
+          runbook: docs/bridge/OPERATIONS.md#incident-response

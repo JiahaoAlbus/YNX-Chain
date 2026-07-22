@@ -275,6 +275,40 @@ func TestBridgeRequestErrorIDsAndRateLimit(t *testing.T) {
 	}
 }
 
+func TestBridgeTraceContextPropagation(t *testing.T) {
+	b := newTestBridge(t)
+	server := httptest.NewServer(NewServer(b.service).Handler())
+	defer server.Close()
+	const traceID = "4bf92f3577b34da6a3ce929d0e0e4736"
+	request, err := http.NewRequest(http.MethodGet, server.URL+"/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("traceparent", "00-"+traceID+"-00f067aa0ba902b7-01")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.Header.Get("X-Trace-ID") != traceID || !strings.HasPrefix(response.Header.Get("traceparent"), "00-"+traceID+"-") {
+		t.Fatalf("trace context not propagated: trace=%q traceparent=%q", response.Header.Get("X-Trace-ID"), response.Header.Get("traceparent"))
+	}
+	invalid, err := http.NewRequest(http.MethodGet, server.URL+"/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalid.Header.Set("traceparent", "00-not-a-trace-00f067aa0ba902b7-01")
+	response, err = http.DefaultClient.Do(invalid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	generated := response.Header.Get("X-Trace-ID")
+	if len(generated) != 32 || generated == traceID {
+		t.Fatalf("invalid trace context was not replaced: %q", generated)
+	}
+}
+
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}

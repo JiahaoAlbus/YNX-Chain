@@ -1,5 +1,7 @@
 # Bridge Release Notes
 
+- Added W3C trace-context propagation, bounded per-route safety/reconciliation metrics, loadable Prometheus alerts, and an importable Bridge safety/SLO dashboard. These are local definitions; no remote monitoring or public status service is claimed.
+
 ## Local engineering candidate — 2026-07-22
 
 - Added explicit source, proof, destination, failure, retry, recovery, and dispute phases.

@@ -43,6 +43,9 @@ start_bridge() {
 }
 
 start_bridge
+curl -fsS -D "$tmp/trace.headers" -o /dev/null -H 'traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' "$url/health"
+grep -Eiq '^X-Trace-ID: 4bf92f3577b34da6a3ce929d0e0e4736' "$tmp/trace.headers"
+grep -Eiq '^Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-[0-9a-f]{16}-01' "$tmp/trace.headers"
 health="$(curl -fsS "$url/health")"
 printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit)throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
@@ -100,7 +103,11 @@ grep -Fq "ynx_bridge_external_submission_enabled" <<<"$metrics"
 grep -Fq "ynx_bridge_paused" <<<"$metrics"
 grep -Fq "ynx_bridge_coordinator_outstanding" <<<"$metrics"
 grep -Fq "ynx_bridge_rate_limit_denied_total" <<<"$metrics"
+grep -Fq "ynx_bridge_route_outstanding{" <<<"$metrics"
+grep -Fq "ynx_bridge_route_outstanding_limit{" <<<"$metrics"
+grep -Fq "ynx_bridge_reconciliation_balanced{" <<<"$metrics"
+grep -Fq "ynx_bridge_reconciliation_timestamp_seconds{" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent intents, replay/conflict, provider/route/user/daily limits, large-delay policy, pause/resume, source-qualified reconciliation/transparency, auth, truthful metrics, and mode-0600 state"
+echo "bridge-api-check passed: persistent intents, replay/conflict, provider/route/user/daily limits, large-delay policy, pause/resume, source-qualified reconciliation/transparency, auth, trace propagation, truthful metrics, and mode-0600 state"
