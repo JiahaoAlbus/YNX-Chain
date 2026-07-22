@@ -31,6 +31,9 @@ All paths are repository-relative and refer to the current source commit only af
 | YUSD outage queue, pause exit and strict authenticated HTTP boundary | `internal/yusdsandbox/server.go`, `server_test.go` | `make yusd-sandbox-check` |
 | YUSD no-value/no-attestation/no-guaranteed-peg disclosure | `docs/stablecoin/YUSD_SANDBOX.md`, `internal/yusdsandbox/types.go` | `make yusd-sandbox-check` |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
+| Component/key/asset/network trust boundaries | `SECURITY_BOUNDARIES.md`, `docs/security/SECURITY_MANUAL.md` | Review against source gates and current recovery evidence |
+| Telemetry truth and missing public evidence | `OBSERVABILITY.md`, monitoring/deployment scripts | Local monitoring checks plus eligible-vantage remote evidence when available |
+| Read-only inspection, backup, rollback and BFT transaction index | `OPERATIONS.md`, `docs/operations/OPERATIONS_RUNBOOK.md` | Relevant `make` gates; mutating operations require their own approval packets |
 | Chain Core recovery and deployed-runtime boundary | `CURRENT_RECOVERY_AUDIT.md`, `release/recovery-evidence.json` | strict SSH audit, exact-release four-node verifier, bounded public ingress diagnostic |
 | StreamBFT shadow candidate | `internal/streambft`, `docs/architecture/STREAMBFT_CANDIDATE.md`, `docs/formal/streambft` | `make streambft-candidate-check` |
 | Deterministic parallel/sequential state-root equivalence | `internal/streambft/executor.go`, `internal/streambft/streambft_test.go` | `go test -race ./internal/streambft` |
