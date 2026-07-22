@@ -1,5 +1,6 @@
 {
   "name": "ynx-chain-contract-tooling",
+  "version": "0.0.0-private",
   "private": true,
   "type": "module",
   "scripts": {

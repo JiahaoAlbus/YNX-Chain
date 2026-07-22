@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "requestStatus": "required-before-public-release",
+  "generatedAt": "2026-07-22",
+  "sourceCommit": "pending-final-documentation-commit",
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
+      "private key",
+      "seed phrase",
+      "validator key",
+      "PEM or keystore",
+      "CVV or full card data",
+      "complete API secret",
+      "raw identity document"
+    ],
+    "secretMethod": "Provide only a secret-manager reference/path and access owner after the receiving service account and rotation policy are approved."
+  },
+  "inputs": [
+    {
+      "id": "legal-entity-jurisdiction-approval",
+      "ownerClass": "founder-and-qualified-counsel",
+      "required": true,
+      "provide": ["operating entity and jurisdictions", "product/activity classification decisions", "reviewed legal document versions/digests", "required licenses/registrations and prohibited claims", "approval and review-expiry date"]
+    },
+    {
+      "id": "official-public-urls-and-domain-control",
+      "ownerClass": "website-domain-and-operations-owner",
+      "required": true,
+      "provide": ["approved canonical route", "support URL", "privacy URL", "security-report URL", "status URL", "DNS/hosting ownership evidence reference", "Website integration commit and deployment identity"]
+    },
+    {
+      "id": "signer-custody-and-recovery",
+      "ownerClass": "security-custody-owner",
+      "requiredFor": ["production signing", "public value-moving services", "validator changes"],
+      "provide": ["secure signer path/reference", "public signer/address manifest", "two-person approval record", "rotation and offline recovery evidence", "artifact signing certificate/public-key chain"],
+      "prohibited": "Do not provide secret key material."
+    },
+    {
+      "id": "provider-procurement-and-access",
+      "ownerClass": "procurement-privacy-security-legal",
+      "requiredFor": ["AI", "payments", "card", "custody", "bridge", "oracle/market data", "stablecoin", "storage"],
+      "provide": ["approved provider and product scope", "terms/license/jurisdiction/retention/data-rights review", "rate/size limits and pricing", "outage/fallback decision", "secret-manager credential reference if needed"],
+      "prohibited": "Do not provide complete provider credentials."
+    },
+    {
+      "id": "economics-and-funding-decision",
+      "ownerClass": "founder-finance-governance",
+      "requiredFor": ["token distribution", "staking", "fees", "treasury", "burn/buyback", "stablecoin", "liquidity"],
+      "provide": ["approved policy versions and effective dates", "allocation/circulating-supply evidence", "treasury/funding and subsidy budget", "liquidity decision and limits", "reserve/redemption or explicit non-activation decision", "economic/legal/security reviewer approvals"]
+    },
+    {
+      "id": "brand-assets-and-media-rights",
+      "ownerClass": "brand-and-legal-owner",
+      "requiredFor": ["public logo variants", "icons", "screenshots", "press distribution"],
+      "provide": ["source and rights record", "approved asset hashes/bytes/dimensions", "light/dark/icon variants", "screenshot release/route/state/privacy approval", "named brand reviewer"]
+    }
+  ],
+  "releaseRule": "Missing input keeps the affected release state false and the capability unavailable; it must never be replaced by fabricated configuration, success, provider health, legal approval, funding, liquidity, signature, URL, or asset."
+}

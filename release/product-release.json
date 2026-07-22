@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Chain Documentation and Public Disclosure Package",
+  "release": "0.1.0-candidate",
+  "releaseClass": "documentation-candidate",
+  "network": "YNX Testnet",
+  "asOf": "2026-07-22T00:00:00+08:00",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "stateEvidence": {
+    "implementedLocal": "All named documentation-package artifacts exist and the repository docs-compliance gate passes.",
+    "testedLocal": "The complete local preflight and docs-compliance gate passed on the candidate working tree on 2026-07-22; final metadata reconciliation is rechecked before publication.",
+    "installedLocal": "Not applicable until a packaged documentation artifact exists; retained false rather than inferred.",
+    "integratedCentral": "Website handoff has not been accepted or integrated.",
+    "deployedStaging": "No direct staging deployment evidence is recorded.",
+    "deployedPublic": "The main website responded on 2026-07-22, but this candidate package is not deployed and service subdomains were not independently verified.",
+    "downloadHosted": "No immutable documentation package URL, digest, or byte count exists.",
+    "productionSigned": "No production signature evidence exists.",
+    "storeReleased": "No store release applies to this documentation candidate. False is retained for cross-product schema consistency."
+  },
+  "legalReview": "required",
+  "securityReview": "required",
+  "economicReview": "required",
+  "publicClaimPolicy": "Only claims linked to direct evidence may be published. Candidate, Testnet, preview, test-signed, unsigned, production-signed, and store-released states must remain distinct."
+}

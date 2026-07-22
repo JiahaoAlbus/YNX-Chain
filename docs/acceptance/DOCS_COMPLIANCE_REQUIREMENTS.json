@@ -1,0 +1,192 @@
+{
+  "schemaVersion": "1.0.0",
+  "asOf": "2026-07-22",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "overallStatus": "in_progress",
+  "statusVocabulary": [
+    "proved",
+    "partial",
+    "missing",
+    "blocked_external",
+    "not_applicable"
+  ],
+  "requirements": [
+    {
+      "id": "C01",
+      "name": "Recovery audit",
+      "status": "partial",
+      "evidence": ["docs/coordination/DOCS_COMPLIANCE_RECOVERY_AUDIT.md"],
+      "remaining": ["Retry GitHub Actions API", "Audit release assets and servers", "Complete independent public endpoint proof"]
+    },
+    {
+      "id": "C02",
+      "name": "Ownership and integration handoff",
+      "status": "partial",
+      "evidence": ["docs/coordination/MASTER_INTEGRATION_CHECKLIST.md"],
+      "remaining": ["Create docs/compliance Website handoff", "Record accepted source commits for every imported product claim"]
+    },
+    {
+      "id": "C03",
+      "name": "Truthful release-state booleans",
+      "status": "partial",
+      "evidence": ["release/product-release.json"],
+      "remaining": ["Gather integration, deployment, download, signing, and store evidence"]
+    },
+    {
+      "id": "C04",
+      "name": "Zero-placeholder and zero-fake-success gate",
+      "status": "partial",
+      "evidence": ["docs/architecture/ZERO_PLACEHOLDER_POLICY.md", "Makefile"],
+      "remaining": ["Run the gate after final commit metadata reconciliation"]
+    },
+    {
+      "id": "C05",
+      "name": "Authority and source classification",
+      "status": "partial",
+      "evidence": ["docs/api/API_REFERENCE.md", "docs/acceptance/PROJECT_STATE.md"],
+      "remaining": ["Publish common source/asOf/version/confidence/failure schema", "Apply it to public claims and economic data"]
+    },
+    {
+      "id": "C06",
+      "name": "Canonical Wallet Auth and Gateway disclosure",
+      "status": "partial",
+      "evidence": ["docs/ecosystem/PRODUCT_ARCHITECTURE.md", "docs/coordination/MASTER_INTEGRATION_CHECKLIST.md", "docs/architecture/WALLET_AUTH_SMART_ACCOUNT_STRATEGY_MANDATE.md"],
+      "remaining": ["Centrally integrate product registration/introspection and migrate product clients", "Complete production recovery and public negative-vector evidence"]
+    },
+    {
+      "id": "C07",
+      "name": "User asset and permission boundary disclosure",
+      "status": "partial",
+      "evidence": ["docs/custody/CUSTODY_PROVIDER_READINESS.md", "docs/stablecoin/STABLECOIN_ISSUER_READINESS.md", "docs/architecture/WALLET_AUTH_SMART_ACCOUNT_STRATEGY_MANDATE.md", "docs/quant/QUANT_ARCHITECTURE_ASSET_BOUNDARY_FEES_RISKS.md"],
+      "remaining": ["Implement/audit any selected smart-account and mandate contracts", "Prove integrated Quant execution, revocation, kill switch and emergency exit"]
+    },
+    {
+      "id": "C08",
+      "name": "Provider register and outage truth",
+      "status": "partial",
+      "evidence": ["docs/compliance/PROVIDER_REGISTER.md"],
+      "remaining": ["Complete official-source terms, license, jurisdiction, retention, rights, limit and cost reviews for every active provider", "Reconcile product-specific provider candidates", "Obtain procurement/privacy/security/legal approval"]
+    },
+    {
+      "id": "C09",
+      "name": "AI governance disclosure",
+      "status": "partial",
+      "evidence": ["docs/architecture/ARCHITECTURE.md", "docs/acceptance/PROJECT_STATE.md", "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md"],
+      "remaining": ["Complete provider/privacy approvals and central product integration", "Verify production consent, cost, audit, red-team and failure semantics"]
+    },
+    {
+      "id": "C10",
+      "name": "Brand guide and product identity",
+      "status": "partial",
+      "evidence": ["assets/brand/ynx-logo.png", "docs/public/PUBLIC_BRAND_FACTS.md", "docs/public/BRAND_GUIDE.md", "docs/public/GLOSSARY.md"],
+      "remaining": ["Audit legacy names and assets across all public bundles", "Generate reviewed light/dark and icon-size assets with rights/digests", "Verify Website implementation"]
+    },
+    {
+      "id": "C11",
+      "name": "Twelve-language and accessibility coverage",
+      "status": "partial",
+      "evidence": ["docs/public/BRAND_GUIDE.md", "docs/public/GLOSSARY.md", "docs/public/LOCALIZATION_TERMINOLOGY.md"],
+      "remaining": ["Professionally review terminology and translate runtime/legal/risk content", "Verify Arabic RTL and accessibility in the Website and each product"]
+    },
+    {
+      "id": "C12",
+      "name": "Independent product and platform rationale",
+      "status": "partial",
+      "evidence": ["docs/ecosystem/PRODUCT_ARCHITECTURE.md", "docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md"],
+      "remaining": ["Publish platform applicability matrix", "Reconcile preview, simulator, unsigned, signed, and store release classes"]
+    },
+    {
+      "id": "C13",
+      "name": "SLO capacity and unit economics",
+      "status": "partial",
+      "evidence": ["docs/operations/SLO_CAPACITY_PLAN.md", "docs/economics/UNIT_ECONOMICS.md", "release/evidence/local-read-benchmark-2026-07-22.json", "scripts/loadtest/local-read-benchmark.mjs"],
+      "remaining": ["Run representative multi-validator, write-path, soak, failover and provider-degradation tests", "Approve economic inputs and service objectives"]
+    },
+    {
+      "id": "C14",
+      "name": "Migration compatibility backup and sunset",
+      "status": "partial",
+      "evidence": ["docs/deployment/TESTNET_DEPLOYMENT_GUIDE.md", "docs/operations/OPERATIONS_RUNBOOK.md", "docs/operations/MIGRATION_COMPATIBILITY.md"],
+      "remaining": ["Run and record representative migration, rollback, export, and restore drills", "Approve retention and sunset ownership"]
+    },
+    {
+      "id": "C15",
+      "name": "Observability and support closure",
+      "status": "partial",
+      "evidence": ["docs/operations/OPERATIONS_RUNBOOK.md", "docs/operations/OBSERVABILITY.md", "infra/monitoring"],
+      "remaining": ["Implement and verify missing SLO, saturation, disk, quorum, provider, certificate and error-budget telemetry", "Verify production alert, status and support routing"]
+    },
+    {
+      "id": "C16",
+      "name": "Security and supply-chain package",
+      "status": "partial",
+      "evidence": ["docs/security/SECURITY_MANUAL.md", "docs/mainnet-readiness/SECURITY_AUDIT_PREP.md", "docs/security/THREAT_MODEL.md", "docs/security/SUPPLY_CHAIN_REVIEW.md", "THIRD_PARTY_NOTICES.md", "release/sbom-npm.cdx.json", "release/go-module-inventory.json", "release/evidence/supply-chain-2026-07-22.json"],
+      "remaining": ["Resolve or formally isolate the npm advisory", "Run unavailable dedicated vulnerability/SAST/DAST/artifact scanners", "Complete artifact-specific licenses, provenance, cross-host reproducibility, signing, download and install evidence"]
+    },
+    {
+      "id": "C17",
+      "name": "Economics fees and risk transparency",
+      "status": "partial",
+      "evidence": ["docs/economics/YNXT_TOKENOMICS.md", "docs/economics/STAKING_LIQUID_STAKING_SAFETY_MODULE.md", "docs/economics/TREASURY_REVENUE_BURN.md", "docs/economics/PROOF_OF_SOLVENCY.md", "docs/whitepaper/EXECUTION_AND_LOCAL_FEE_MARKETS.md"],
+      "remaining": ["Complete stablecoin reserve/redemption disclosure", "Reconcile newer owner commits and central integration", "Obtain economic, governance, security and legal review", "Gather public evidence for any activated policy"]
+    },
+    {
+      "id": "C18",
+      "name": "Public product and SEO handoff",
+      "status": "partial",
+      "evidence": ["release/public-product-metadata.json", "release/product-release.json", "release/structured-data-suggestions.json", "docs/public/FAQ.md", "docs/public/search", "docs/public/PUBLIC_BRAND_FACTS.md", "docs/public/MARKETING_CLAIMS_EVIDENCE_MATRIX.md", "docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "docs/public/PRESS_KIT.md"],
+      "remaining": ["Create reviewed exact-release screenshots and approved asset variants", "Integrate and verify metadata/content/JSON-LD/accessibility in Website"]
+    },
+    {
+      "id": "C19",
+      "name": "Completion and release evidence set",
+      "status": "partial",
+      "evidence": ["docs/acceptance/FEATURE_COMPLETION_EVIDENCE.md", "docs/acceptance/EVIDENCE_INDEX.md", "docs/acceptance/UI_DESIGN_AUDIT.md", "docs/acceptance/RELEASE_NOTES.md", "docs/acceptance/OPERATIONS.md", "release/product-release.json"],
+      "remaining": ["Bind the publication commit and rerun the metadata gate", "Attach exact-release screenshots/public/runtime/CI/artifact evidence where applicable"]
+    },
+    {
+      "id": "C20",
+      "name": "Founder KPI framework",
+      "status": "partial",
+      "evidence": ["docs/acceptance/FOUNDER_KPI_FRAMEWORK.md"],
+      "remaining": ["Approve product-specific value events and numeric thresholds after a representative baseline", "Implement privacy-reviewed KPI collection and dashboards"]
+    },
+    {
+      "id": "C21",
+      "name": "One-time operator input request",
+      "status": "partial",
+      "evidence": ["REQUIRED_INPUTS.md", "ENV_INTAKE_FORM.md", "release/operator-inputs.request.json"],
+      "remaining": ["External owners provide only the approvals and deployment evidence requested in the generated record"]
+    },
+    {
+      "id": "C22",
+      "name": "Final validation commit push and remote verification",
+      "status": "missing",
+      "evidence": [],
+      "remaining": ["Commit and push assigned branch", "Verify local and remote SHA", "Verify clean worktree"]
+    }
+  ],
+  "publicDocumentDeliverables": {
+    "technicalWhitepaper": "partial",
+    "streamBftSpecification": "partial",
+    "executionAndLocalFeeMarkets": "partial",
+    "tradingUltraLiquidityFairFlow": "partial",
+    "ynxtTokenomics": "partial",
+    "stakingLiquidStakingSafetyModule": "partial",
+    "stablecoinReserveRedemption": "partial",
+    "treasuryRevenueBurn": "partial",
+    "proofOfSolvency": "partial",
+    "walletAuthSmartAccountStrategyMandate": "partial",
+    "quantArchitectureAssetBoundaryFeesRisks": "partial",
+    "bridgeOracleDataFabric": "partial",
+    "securityPrivacyAiGovernance": "partial",
+    "trustAppealsMarketIntegrity": "partial",
+    "productArchitecture": "partial",
+    "productGuides": "partial",
+    "termsPrivacyAupDraft": "partial",
+    "regulatoryGapAnalyses": "partial",
+    "licensingOpenSourceReview": "partial",
+    "marketingClaimsEvidenceMatrix": "partial",
+    "pressBrandFaqSupportIncidentLaunchLegalPacket": "partial"
+  }
+}

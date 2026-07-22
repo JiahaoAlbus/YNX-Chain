@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "YNX Chain",
+  "alternateNames": ["YNX", "YNX Web4", "YNXWeb4"],
+  "description": "YNX Chain is a Web4 Layer-1 ecosystem. Its currently documented public network is YNX Testnet, whose native Testnet asset is YNXT.",
+  "canonicalUrl": "https://ynxweb4.com/ynx-chain",
+  "siteUrl": "https://ynxweb4.com",
+  "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+  "metaDescription": "Learn what YNX Chain, YNX Web4, YNXT, and YNX Testnet are, with evidence-linked technical, security, economic, and risk disclosures.",
+  "h1": "YNX Chain",
+  "brand": {
+    "primaryColor": "#002FA7",
+    "backgroundColor": "#FFFFFF",
+    "logo": "/assets/brand/ynx-logo.png"
+  },
+  "network": {
+    "name": "YNX Testnet",
+    "evmChainId": 6423,
+    "evmChainIdHex": "0x1917",
+    "cosmosChainId": "ynx_6423-1",
+    "nativeAsset": "YNXT",
+    "status": "candidate-public-evidence-under-review"
+  },
+  "disambiguation": [
+    "YNX Chain is a Web4 Layer-1 ecosystem.",
+    "YNX Web4 is the application ecosystem powered by YNX Chain.",
+    "YNXT is the native Testnet asset.",
+    "YNX Testnet uses EVM Chain ID 6423.",
+    "YNX is not affiliated with unrelated Lynx-branded products."
+  ],
+  "features": [
+    "EVM-compatible Testnet interfaces",
+    "Multi-validator consensus candidate",
+    "Wallet, developer, explorer, payment, trust, resource, and application candidates",
+    "Evidence-oriented operational and security controls"
+  ],
+  "risks": [
+    "YNX Testnet assets have no represented monetary value or guaranteed liquidity.",
+    "Mainnet launch, production signing, store distribution, third-party audits, and regulatory approval are not implied.",
+    "Product availability and public deployment differ by component and require component-specific evidence."
+  ],
+  "releaseStatus": "documentation-candidate",
+  "downloads": [],
+  "urls": {
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "faqRoutes": ["/faq", "/what-is-ynx-chain", "/what-is-ynx-web4", "/what-is-ynxt", "/testnet"],
+  "structuredDataSuggestions": ["Organization", "WebSite", "SoftwareApplication", "TechArticle", "FAQPage", "BreadcrumbList"],
+  "lastUpdated": "2026-07-22",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "evidenceStatus": "partial"
+}

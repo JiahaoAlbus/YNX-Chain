@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "suggestions-not-production-jsonld",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "lastReviewed": "2026-07-22",
+  "entities": [
+    {
+      "type": "Organization",
+      "allowedProperties": {
+        "name": "YNX Chain",
+        "alternateName": ["YNX", "YNX Web4", "YNXWeb4"],
+        "url": "https://ynxweb4.com"
+      },
+      "blockedUntilEvidenced": ["logo public URL", "founder", "foundingDate", "sameAs", "contactPoint", "award"]
+    },
+    {
+      "type": "WebSite",
+      "allowedProperties": {"name": "YNX Chain", "url": "https://ynxweb4.com"},
+      "blockedUntilEvidenced": ["SearchAction"]
+    },
+    {
+      "type": "TechArticle",
+      "appliesTo": ["whitepaper", "technical specifications", "search explainers"],
+      "requiredVisibleProperties": ["headline", "dateModified", "version", "source commit", "evidence status"]
+    },
+    {
+      "type": "FAQPage",
+      "appliesTo": ["/faq"],
+      "constraint": "Every Question and acceptedAnswer must be visibly rendered and match docs/public/FAQ.md."
+    },
+    {
+      "type": "BreadcrumbList",
+      "constraint": "Use only the visible route hierarchy."
+    },
+    {
+      "type": "SoftwareApplication",
+      "status": "blocked",
+      "reason": "No product download, production signing, supported operating-system matrix, offer, or store release is evidenced."
+    }
+  ],
+  "prohibitedFabrication": ["AggregateRating", "Review", "Offer", "price", "downloadUrl", "operatingSystem", "applicationCategory availability claim", "partner or affiliation"]
+}

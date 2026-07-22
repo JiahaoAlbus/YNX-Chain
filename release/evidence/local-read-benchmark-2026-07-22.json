@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "benchmarkKind": "single-process-local-devnet-http-read",
+  "measuredAt": "2026-07-22T14:46:51.230Z",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "target": "http://127.0.0.1:6460",
+  "endpoints": ["/health", "/status"],
+  "requests": 5000,
+  "warmupRequests": 250,
+  "concurrency": 50,
+  "timeoutMs": 5000,
+  "durationMs": 1813.444583,
+  "successfulRequests": 5000,
+  "failedRequests": 0,
+  "throughputRequestsPerSecond": 2757.183785417059,
+  "aggregateLatencyMs": {
+    "p50": 9.213624999999979,
+    "p95": 70.32395799999995,
+    "p99": 120.24262499999986,
+    "max": 164.45550000000003
+  },
+  "byPath": {
+    "/health": {"successfulRequests": 2500, "p50Ms": 9.204167000000098, "p95Ms": 70.28220900000008, "p99Ms": 120.15174999999999},
+    "/status": {"successfulRequests": 2500, "p50Ms": 9.219749999999976, "p95Ms": 71.05091599999992, "p99Ms": 120.24262499999986}
+  },
+  "environment": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "cpuModel": "Apple M2",
+    "logicalCpuCount": 8,
+    "totalMemoryBytes": 8589934592,
+    "nodeVersion": "v24.5.0"
+  },
+  "nodeStartupToHealthMs": 1007,
+  "stateDirectoryKiBBefore": 8,
+  "stateDirectoryKiBAfter": 12,
+  "stateDirectoryGrowthKiB": 4,
+  "interpretation": "Development evidence only. This is not a multi-validator, WAN, write-path, adversarial, or production capacity result."
+}

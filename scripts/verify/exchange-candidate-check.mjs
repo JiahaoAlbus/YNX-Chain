@@ -10,6 +10,7 @@ import {verifyExchangeCandidate} from "./exchange-candidate-verify.mjs";
 
 const root = process.cwd();
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "ynx-exchange-check-"));
+fs.mkdirSync(path.join(root, "tmp"), {recursive: true});
 const generatedVectorDir = fs.mkdtempSync(path.join(root, "tmp/exchange-vector-check-"));
 
 try {
