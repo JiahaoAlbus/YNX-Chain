@@ -80,6 +80,7 @@ type MultipartUpload struct {
 
 type BlobDeletion struct {
 	ID          string    `json:"id"`
+	ErasureID   string    `json:"erasureId,omitempty"`
 	Product     string    `json:"product"`
 	Owner       string    `json:"owner"`
 	Hash        string    `json:"hash"`
@@ -89,6 +90,23 @@ type BlobDeletion struct {
 	RequestedAt time.Time `json:"requestedAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	LastError   string    `json:"lastError,omitempty"`
+}
+
+type DataErasureReceipt struct {
+	SchemaVersion  int               `json:"schemaVersion"`
+	ID             string            `json:"id"`
+	OwnerHash      string            `json:"ownerHash"`
+	Product        string            `json:"product"`
+	Status         string            `json:"status"`
+	Source         string            `json:"source"`
+	Authority      string            `json:"authority"`
+	RequestedAt    time.Time         `json:"requestedAt"`
+	UpdatedAt      time.Time         `json:"updatedAt"`
+	Deleted        map[string]int    `json:"deleted"`
+	CompletedBlobs int               `json:"completedBlobs"`
+	PendingBlobs   int               `json:"pendingBlobs"`
+	Retained       map[string]string `json:"retained"`
+	Coverage       string            `json:"coverage"`
 }
 
 type DirectUpload struct {
@@ -298,6 +316,7 @@ type persistentState struct {
 	BlobDeletions    map[string]BlobDeletion           `json:"blobDeletions"`
 	DirectUploads    map[string]DirectUpload           `json:"directUploads"`
 	Usage            map[string]UsageCounters          `json:"usage"`
+	DataErasures     map[string]DataErasureReceipt     `json:"dataErasures"`
 	IntegrityHash    string                            `json:"integrityHash"`
 }
 

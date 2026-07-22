@@ -22,8 +22,8 @@
       "requestingProduct": "cloud",
       "bundleId": "com.ynxweb4.cloud",
       "callbacks": ["ynxcloud://wallet-auth/callback"],
-      "scopes": ["ai.use", "audit.read", "files.read", "files.write", "permissions.manage"],
-      "maxScopes": 5,
+      "scopes": ["ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"],
+      "maxScopes": 6,
       "productDeviceAlgorithms": ["p256-sha256"],
       "sessionDurationSeconds": 240,
       "revocationPolicy": {"session": true, "approval": true, "device": true, "accountAllDevices": true}
@@ -38,8 +38,8 @@
       "requestingProduct": "docs",
       "bundleId": "com.ynxweb4.docs",
       "callbacks": ["ynxdocs://wallet-auth/callback"],
-      "scopes": ["ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"],
-      "maxScopes": 6,
+      "scopes": ["ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"],
+      "maxScopes": 7,
       "productDeviceAlgorithms": ["p256-sha256"],
       "sessionDurationSeconds": 240,
       "revocationPolicy": {"session": true, "approval": true, "device": true, "accountAllDevices": true}

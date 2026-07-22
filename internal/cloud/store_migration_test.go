@@ -141,7 +141,7 @@ func TestV3ToCurrentUsageMigrationKeepsExactBackup(t *testing.T) {
 	}
 }
 
-func TestV4ToV5StorageTimeMigrationDoesNotInventHistory(t *testing.T) {
+func TestV4ToCurrentStorageTimeMigrationDoesNotInventHistory(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "state.json")
 	state := newState()
@@ -159,7 +159,7 @@ func TestV4ToV5StorageTimeMigrationDoesNotInventHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	usage := s.state.Usage[usageKey(owner, "cloud")]
-	if s.state.SchemaVersion != 5 || usage.IngressBytes != 42 || usage.StorageByteSeconds != 0 || !usage.StorageMeteredAt.IsZero() {
+	if s.state.SchemaVersion != CurrentStateSchemaVersion || usage.IngressBytes != 42 || usage.StorageByteSeconds != 0 || !usage.StorageMeteredAt.IsZero() {
 		t.Fatalf("v4 storage-time migration invented or lost usage: schema=%d usage=%#v", s.state.SchemaVersion, usage)
 	}
 	backup, err := os.ReadFile(path + ".v4.bak")
@@ -168,6 +168,35 @@ func TestV4ToV5StorageTimeMigrationDoesNotInventHistory(t *testing.T) {
 	}
 	if string(backup) != string(raw) {
 		t.Fatal("v4 migration backup is not byte-identical")
+	}
+}
+
+func TestV5ToV6ErasureReceiptMigrationStartsEmpty(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "state.json")
+	state := newState()
+	state.SchemaVersion = 5
+	state.DataErasures = nil
+	if err := saveState(path, &state); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := New(Config{StatePath: path, ObjectDir: filepath.Join(dir, "objects")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.state.SchemaVersion != 6 || s.state.DataErasures == nil || len(s.state.DataErasures) != 0 {
+		t.Fatalf("v5 erasure migration invented receipts: schema=%d receipts=%#v", s.state.SchemaVersion, s.state.DataErasures)
+	}
+	backup, err := os.ReadFile(path + ".v5.bak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(backup) != string(raw) {
+		t.Fatal("v5 migration backup is not byte-identical")
 	}
 }
 

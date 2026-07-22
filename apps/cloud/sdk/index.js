@@ -97,7 +97,7 @@ export class YNXCloudClient {
   }
   getObject(id) { return this.request(`/objects/${safeSegment(id)}`); }
   createObject(input) { return this.request("/objects", { method: "POST", body: input }); }
-  deleteObject(id) { return this.request(`/objects/${safeSegment(id)}`, { method: "DELETE" }); }
+  deleteObject(id) { return this.request(`/objects/${safeSegment(id)}`, { method: "DELETE", body: { confirm: "DELETE" }, retry: 1 }); }
   content(id, { range, signal } = {}) { return this.request(`/objects/${safeSegment(id)}/content`, { headers: range ? { Range: range } : {}, response: "response", signal }); }
   versions(id) { return this.request(`/objects/${safeSegment(id)}/versions`); }
   restoreVersion(id, version) { return this.request(`/objects/${safeSegment(id)}/versions/${safeSegment(String(version))}/restore`, { method: "POST" }); }
@@ -109,6 +109,8 @@ export class YNXCloudClient {
   usage() { return this.request("/usage"); }
   audit() { return this.request("/audit"); }
   exportData() { return this.request("/export", { response: "response" }); }
+  eraseProductData() { return this.request("/account-data", { method: "DELETE", body: { confirm: `DELETE ${this.product.toUpperCase()} DATA` }, retry: 1 }); }
+  erasureReceipts() { return this.request("/account-data/erasures"); }
   deletionRecords() { return this.request("/deletions"); }
   retryDeletion(id) { return this.request(`/deletions/${safeSegment(id)}/retry`, { method: "POST" }); }
 
@@ -118,12 +120,12 @@ export class YNXCloudClient {
     return this.request(`/multipart/${safeSegment(id)}/parts/${safeSegment(String(part))}`, { method: "PUT", body: bytes, headers: { "Content-Type": "application/octet-stream", "X-Content-SHA256": sha256 } });
   }
   completeMultipart(id, parts) { return this.request(`/multipart/${safeSegment(id)}/complete`, { method: "POST", body: { parts } }); }
-  cancelMultipart(id) { return this.request(`/multipart/${safeSegment(id)}`, { method: "DELETE" }); }
+  cancelMultipart(id) { return this.request(`/multipart/${safeSegment(id)}`, { method: "DELETE", retry: 1 }); }
 
   initiateDirectUpload(input) { return this.request("/direct-uploads", { method: "POST", body: input }); }
   directUploadStatus(id) { return this.request(`/direct-uploads/${safeSegment(id)}`); }
   completeDirectUpload(id) { return this.request(`/direct-uploads/${safeSegment(id)}/complete`, { method: "POST" }); }
-  cancelDirectUpload(id) { return this.request(`/direct-uploads/${safeSegment(id)}`, { method: "DELETE" }); }
+  cancelDirectUpload(id) { return this.request(`/direct-uploads/${safeSegment(id)}`, { method: "DELETE", retry: 1 }); }
 
   createAIJob(input) { return this.request("/ai/jobs", { method: "POST", body: input }); }
   getAIJob(id) { return this.request(`/ai/jobs/${safeSegment(id)}`); }

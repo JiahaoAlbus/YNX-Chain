@@ -1149,6 +1149,7 @@ func (s *Service) RetryBlobDeletion(ctx context.Context, actor, product, id stri
 	}
 	d.Attempts++
 	d.UpdatedAt = s.cfg.Now()
+	wasPending := d.Status == "pending"
 	if err := s.cfg.ObjectStore.Delete(ctx, d.Ref, d.Hash); err != nil {
 		d.Status = "pending"
 		d.LastError = "provider deletion failed; retry remains available"
@@ -1157,7 +1158,29 @@ func (s *Service) RetryBlobDeletion(ctx context.Context, actor, product, id stri
 		d.LastError = ""
 	}
 	s.state.BlobDeletions[id] = d
-	if err := s.persist("blob.delete.retry", actor, "", map[string]any{"product": d.Product, "deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
+	if wasPending && d.Status == "completed" && d.ErasureID != "" {
+		if receipt, ok := s.state.DataErasures[d.ErasureID]; ok && receipt.PendingBlobs > 0 {
+			receipt.PendingBlobs--
+			receipt.CompletedBlobs++
+			receipt.UpdatedAt = d.UpdatedAt
+			if receipt.PendingBlobs == 0 {
+				receipt.Status = "logical-erasure-complete-known-provider-deletions-complete"
+			}
+			s.state.DataErasures[d.ErasureID] = receipt
+		}
+	}
+	if d.Status == "completed" && d.ErasureID != "" {
+		delete(s.state.BlobDeletions, id)
+	}
+	if d.ErasureID != "" {
+		if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+			return BlobDeletion{}, err
+		}
+		ownerHash := hashBytes([]byte(actor))
+		go func() {
+			_ = s.cfg.TrustSink.Record(context.Background(), TrustEvent{Actor: "sha256:" + ownerHash, Action: "account.product-data.provider-delete.retry", At: d.UpdatedAt, Details: map[string]any{"product": product, "receiptId": d.ErasureID, "status": d.Status, "attempts": d.Attempts}})
+		}()
+	} else if err := s.persist("blob.delete.retry", actor, "", map[string]any{"product": d.Product, "deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
 		return BlobDeletion{}, err
 	}
 	d.Ref = ""
@@ -1234,6 +1257,329 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([
 		return nil, ExportManifest{}, err
 	}
 	return out.Bytes(), manifest, nil
+}
+
+func containsAccount(value any, account string) bool {
+	switch v := value.(type) {
+	case string:
+		return v == account
+	case []string:
+		for _, item := range v {
+			if item == account {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range v {
+			if containsAccount(item, account) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, item := range v {
+			if containsAccount(item, account) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// EraseProductData atomically removes the control-plane data associated with one
+// Wallet account and product before attempting provider deletion. Provider
+// failures remain explicit, retryable BlobDeletion records and never turn the
+// receipt into a physical-erasure claim.
+func (s *Service) EraseProductData(ctx context.Context, actor, product string) (DataErasureReceipt, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return DataErasureReceipt{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.cfg.Now()
+	owned := map[string]bool{}
+	for id, obj := range s.state.Objects {
+		if obj.Owner != actor || obj.Product != product {
+			continue
+		}
+		if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
+			return DataErasureReceipt{}, errors.New("legal hold prevents product data erasure")
+		}
+		if obj.Artifact != nil && obj.Artifact.RetentionEnds != nil && obj.Artifact.RetentionEnds.After(now) {
+			return DataErasureReceipt{}, fmt.Errorf("retention prevents product data erasure until %s", obj.Artifact.RetentionEnds.UTC().Format(time.RFC3339))
+		}
+		owned[id] = true
+	}
+	for _, upload := range s.state.MultipartUploads {
+		if upload.Owner == actor && upload.Product == product && upload.Artifact != nil && (upload.Artifact.Retention == "legal-hold" || (upload.Artifact.RetentionEnds != nil && upload.Artifact.RetentionEnds.After(now))) {
+			return DataErasureReceipt{}, errors.New("active multipart artifact retention prevents product data erasure")
+		}
+	}
+	for _, upload := range s.state.DirectUploads {
+		if upload.Owner == actor && upload.Product == product && upload.Artifact != nil && (upload.Artifact.Retention == "legal-hold" || (upload.Artifact.RetentionEnds != nil && upload.Artifact.RetentionEnds.After(now))) {
+			return DataErasureReceipt{}, errors.New("active direct-upload artifact retention prevents product data erasure")
+		}
+	}
+
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		return DataErasureReceipt{}, err
+	}
+	deleted := map[string]int{}
+	cancelJobIDs := []string{}
+	type deletionTarget struct{ ref, hash string }
+	targets := map[string]deletionTarget{}
+	addTarget := func(ref, hash string) {
+		if ref != "" && len(hash) == 64 {
+			targets[ref+"\x00"+hash] = deletionTarget{ref: ref, hash: hash}
+		}
+	}
+	s.settleStorageLocked(actor, product)
+	for id := range owned {
+		deleted["objects"]++
+		for _, version := range s.state.Versions[id] {
+			deleted["versions"]++
+			addTarget(version.BlobPath, version.Hash)
+		}
+		delete(s.state.Objects, id)
+		delete(s.state.Versions, id)
+	}
+	pseudonym := "sha256:" + hashBytes([]byte(actor))
+	for objectID, versions := range s.state.Versions {
+		if objectProduct := s.state.Objects[objectID].Product; objectProduct == product {
+			for i := range versions {
+				if versions[i].Author == actor {
+					versions[i].Author = pseudonym
+					deleted["versionAuthorsPseudonymized"]++
+				}
+			}
+			s.state.Versions[objectID] = versions
+		}
+	}
+	objectProduct := func(id string) string {
+		if owned[id] {
+			return product
+		}
+		return s.state.Objects[id].Product
+	}
+	for id, grant := range s.state.Grants {
+		if owned[grant.ObjectID] || (objectProduct(grant.ObjectID) == product && (grant.Principal == actor || grant.CreatedBy == actor)) {
+			delete(s.state.Grants, id)
+			deleted["grants"]++
+		}
+	}
+	for id, link := range s.state.Links {
+		if owned[link.ObjectID] || (objectProduct(link.ObjectID) == product && link.CreatedBy == actor) {
+			delete(s.state.Links, id)
+			deleted["shareLinks"]++
+		}
+	}
+	for id, request := range s.state.AccessRequests {
+		if owned[request.ObjectID] || (objectProduct(request.ObjectID) == product && (request.Requester == actor || request.DecidedBy == actor)) {
+			delete(s.state.AccessRequests, id)
+			deleted["accessRequests"]++
+		}
+	}
+	for objectID, comments := range s.state.Comments {
+		if owned[objectID] {
+			deleted["comments"] += len(comments)
+			delete(s.state.Comments, objectID)
+			continue
+		}
+		if objectProduct(objectID) != product {
+			continue
+		}
+		kept := comments[:0]
+		for _, comment := range comments {
+			if comment.Author == actor {
+				deleted["comments"]++
+				continue
+			}
+			mentions := comment.Mentions[:0]
+			for _, mention := range comment.Mentions {
+				if mention == actor {
+					deleted["mentions"]++
+					continue
+				}
+				mentions = append(mentions, mention)
+			}
+			comment.Mentions = mentions
+			kept = append(kept, comment)
+		}
+		s.state.Comments[objectID] = kept
+	}
+	for key, presence := range s.state.Presence {
+		if owned[presence.ObjectID] || (objectProduct(presence.ObjectID) == product && presence.Actor == actor) {
+			delete(s.state.Presence, key)
+			deleted["presence"]++
+		}
+	}
+	for id, job := range s.state.AIJobs {
+		referencesErasedObject := false
+		for _, objectID := range job.ObjectIDs {
+			if owned[objectID] {
+				referencesErasedObject = true
+				break
+			}
+		}
+		if job.Product == product && (job.Actor == actor || referencesErasedObject) {
+			cancelJobIDs = append(cancelJobIDs, id)
+			delete(s.state.AIJobs, id)
+			deleted["aiJobs"]++
+		}
+	}
+	for token, session := range s.state.Sessions {
+		if session.Account == actor && session.Product == product {
+			delete(s.state.Sessions, token)
+			deleted["sessions"]++
+		}
+	}
+	for id, challenge := range s.state.WalletChallenges {
+		if challenge.Product == product && challenge.Challenge.Account == actor {
+			delete(s.state.WalletChallenges, id)
+			deleted["walletChallenges"]++
+		}
+	}
+	for id, upload := range s.state.MultipartUploads {
+		if upload.Owner == actor && upload.Product == product {
+			for _, part := range upload.Parts {
+				addTarget(part.Ref, part.Hash)
+			}
+			delete(s.state.MultipartUploads, id)
+			deleted["multipartUploads"]++
+		}
+	}
+	for id, upload := range s.state.DirectUploads {
+		if upload.Owner == actor && upload.Product == product {
+			addTarget(upload.ProviderRef, upload.ExpectedHash)
+			delete(s.state.DirectUploads, id)
+			deleted["directUploads"]++
+		}
+	}
+	for id, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "completed" {
+			delete(s.state.BlobDeletions, id)
+			deleted["completedDeletionRecords"]++
+		}
+	}
+	keptAudit := s.state.Audit[:0]
+	for _, event := range s.state.Audit {
+		eventProduct := auditProduct(event, s.state.Objects)
+		if owned[event.ObjectID] || (eventProduct == product && (event.Actor == actor || containsAccount(event.Details, actor))) {
+			deleted["auditEvents"]++
+			continue
+		}
+		keptAudit = append(keptAudit, event)
+	}
+	s.state.Audit = keptAudit
+	delete(s.state.Usage, usageKey(actor, product))
+	deleted["usageLedgers"] = 1
+
+	remaining := map[string]bool{}
+	for _, versions := range s.state.Versions {
+		for _, version := range versions {
+			remaining[version.BlobPath+"\x00"+version.Hash] = true
+		}
+	}
+	for _, upload := range s.state.MultipartUploads {
+		for _, part := range upload.Parts {
+			remaining[part.Ref+"\x00"+part.Hash] = true
+		}
+	}
+	for _, upload := range s.state.DirectUploads {
+		if upload.ProviderRef != "" {
+			remaining[upload.ProviderRef+"\x00"+upload.ExpectedHash] = true
+		}
+	}
+	shared := 0
+	newDeletionIDs := []string{}
+	receiptID := newID("erasure")
+	for key, target := range targets {
+		if remaining[key] {
+			shared++
+			continue
+		}
+		deletion := BlobDeletion{ID: newID("deletion"), ErasureID: receiptID, Product: product, Owner: actor, Hash: target.hash, Ref: target.ref, Status: "pending", RequestedAt: now, UpdatedAt: now, LastError: "provider deletion queued by product data erasure"}
+		s.state.BlobDeletions[deletion.ID] = deletion
+		newDeletionIDs = append(newDeletionIDs, deletion.ID)
+	}
+	ownerHash := hashBytes([]byte(actor))
+	pendingBeforeAttempts := 0
+	for _, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "pending" {
+			pendingBeforeAttempts++
+		}
+	}
+	receipt := DataErasureReceipt{SchemaVersion: 1, ID: receiptID, OwnerHash: ownerHash, Product: product, Status: "logical-erasure-complete-provider-deletion-pending", Source: "ynx-cloudd", Authority: "YNX control-plane logical erasure and observed provider deletion attempts", RequestedAt: now, UpdatedAt: now, Deleted: deleted, PendingBlobs: pendingBeforeAttempts, Retained: map[string]string{"erasureReceipt": "hashed owner identifier and aggregate counts retained for accountability", "securityNonces": "opaque replay-prevention digests expire independently", "pendingProviderDeletionRecords": "raw owner authorization is retained only while a known provider deletion is pending, then removed"}, Coverage: "product-scoped control-plane state and known provider references; provider-native replicas, backups, legal retention, and external systems require their own evidence"}
+	if shared > 0 {
+		receipt.Retained["sharedContentReferences"] = fmt.Sprintf("%d content reference(s) remain because another object still uses the exact provider ref and hash", shared)
+	}
+	s.state.DataErasures[receipt.ID] = receipt
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return DataErasureReceipt{}, err
+	}
+	for _, id := range cancelJobIDs {
+		if cancel := s.cancels[id]; cancel != nil {
+			cancel()
+			delete(s.cancels, id)
+		}
+	}
+
+	for _, id := range newDeletionIDs {
+		deletion := s.state.BlobDeletions[id]
+		deletion.Attempts = 1
+		deletion.UpdatedAt = s.cfg.Now()
+		if err := s.cfg.ObjectStore.Delete(ctx, deletion.Ref, deletion.Hash); err != nil {
+			deletion.LastError = "provider deletion failed; retry remains available"
+		} else {
+			deletion.Status = "completed"
+			deletion.LastError = ""
+			receipt.CompletedBlobs++
+		}
+		if deletion.Status == "completed" {
+			delete(s.state.BlobDeletions, id)
+		} else {
+			s.state.BlobDeletions[id] = deletion
+		}
+	}
+	receipt.PendingBlobs = 0
+	for _, deletion := range s.state.BlobDeletions {
+		if deletion.Owner == actor && deletion.Product == product && deletion.Status == "pending" {
+			receipt.PendingBlobs++
+		}
+	}
+	if receipt.PendingBlobs == 0 {
+		receipt.Status = "logical-erasure-complete-known-provider-deletions-complete"
+	}
+	receipt.UpdatedAt = s.cfg.Now()
+	s.state.DataErasures[receipt.ID] = receipt
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		return DataErasureReceipt{}, err
+	}
+	go func() {
+		_ = s.cfg.TrustSink.Record(context.Background(), TrustEvent{Actor: "sha256:" + ownerHash, Action: "account.product-data.erase", At: receipt.UpdatedAt, Details: map[string]any{"product": product, "receiptId": receipt.ID, "status": receipt.Status, "pendingBlobs": receipt.PendingBlobs}})
+	}()
+	return receipt, nil
+}
+
+func (s *Service) DataErasureReceipts(actor, product string) ([]DataErasureReceipt, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return nil, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	want := hashBytes([]byte(actor))
+	out := []DataErasureReceipt{}
+	for _, receipt := range s.state.DataErasures {
+		if receipt.OwnerHash == want && receipt.Product == product {
+			out = append(out, receipt)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].RequestedAt.After(out[j].RequestedAt) })
+	return out, nil
 }
 
 func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (Grant, error) {
@@ -1798,10 +2144,10 @@ func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
 		scopes                            []string
 	}
 	bindings := []binding{
-		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "files.read", "files.write", "permissions.manage"}},
-		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"}},
-		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://cloud.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "files.read", "files.write", "permissions.manage"}},
-		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"}},
+		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
+		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://cloud.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 	}
 	for _, b := range bindings {
 		if request.RequestingProduct != b.product || request.ProductClientID != b.client || request.BundleID != b.bundle || request.Callback != b.callback || len(request.Scopes) == 0 || len(request.Scopes) > len(b.scopes) {

@@ -248,6 +248,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/usage", s.auth(s.usage))
 	mux.HandleFunc("GET /api/v1/audit", s.auth(s.audit))
 	mux.HandleFunc("GET /api/v1/export", s.auth(s.exportData))
+	mux.HandleFunc("DELETE /api/v1/account-data", s.auth(s.eraseAccountData))
+	mux.HandleFunc("GET /api/v1/account-data/erasures", s.auth(s.erasureReceipts))
 	mux.HandleFunc("GET /api/v1/deletions", s.auth(s.deletions))
 	mux.HandleFunc("POST /api/v1/deletions/{deletion}/retry", s.auth(s.retryDeletion))
 	mux.HandleFunc("GET /api/v1/ai/status", s.auth(s.aiStatus))
@@ -861,6 +863,39 @@ func (s *Server) exportData(w http.ResponseWriter, r *http.Request, a Session) {
 			log.Printf(`{"level":"error","event":"usage.persist.failed","product":%q,"channel":"export"}`, a.Product)
 		}
 	}
+}
+func (s *Server) eraseAccountData(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "data.delete") {
+		return
+	}
+	var confirmation struct {
+		Confirm string `json:"confirm"`
+	}
+	if !decode(w, r, &confirmation, 1024) {
+		return
+	}
+	want := "DELETE " + strings.ToUpper(a.Product) + " DATA"
+	if confirmation.Confirm != want {
+		writeError(w, http.StatusBadRequest, "product data erasure requires exact "+want+" confirmation")
+		return
+	}
+	receipt, err := s.service.EraseProductData(r.Context(), a.Account, a.Product)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	status := http.StatusOK
+	if receipt.PendingBlobs > 0 {
+		status = http.StatusAccepted
+	}
+	writeJSON(w, status, receipt)
+}
+func (s *Server) erasureReceipts(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireScope(w, a, "data.delete") {
+		return
+	}
+	receipts, err := s.service.DataErasureReceipts(a.Account, a.Product)
+	writeResult(w, receipts, err)
 }
 func (s *Server) deletions(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.write", "documents.write") {

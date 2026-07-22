@@ -18,13 +18,13 @@ Evidence baseline: local source commit `a0a2d5356f459f25e644e68b0925474399d12dcb
 | Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |
 | Millions-of-objects candidate | partial | local | 1m-object/100-sample p50/p95/p99 evidence at exact commit | concurrent, persisted, sharded and remote benchmark |
 | AI selected-file boundary | yes | local | product-bound job and selected-object service/client tests | configured gateway staging |
-| Export/delete | partial | local | product-scoped verified portable ZIP; product-scoped dedup deletion queue; pending/retry tests | provisioned-provider erasure proof and full-account deletion |
+| Export/delete | yes, control-plane | local | product-scoped verified portable ZIP; schema-v6 dedicated-scope product-account erasure with retention-atomic preflight, session/job/upload/collaboration cleanup, hashed receipts, provider pending/retry truth, API/SDK/smoke tests | provisioned-provider media-sanitization and backup/replica erasure proof |
 | Retention/legal hold | yes, control-plane | local | future-expiry validation, active-window denial, post-expiry deletion, indefinite legal-hold tests | provider-native object-lock proof |
 | Service cessation user exit | yes, control-plane | local | HTTP exit-mode test proves sign-in/read/export/trash/delete remain while new writes return 423 | announced remote exit drill and support/status evidence |
 | Logs, IDs, health, readiness, metrics, traces | partial | local | integrity-checked persistent RED bins, normalized routes, correlated bounded traces, fail-closed readiness, evaluated alerts, machine-readable dashboard and tests | provider child spans, distributed export/aggregation, hosted dashboard/paging/status integration |
 | Security and supply chain | partial | local | threat model, security boundaries, deterministic 468-component CycloneDX inventory, script allowlist, Go vet/secret/lock/artifact gate, local APK provenance record, CI workflow | external SAST/DAST/penetration report, container scan when image exists, fresh reproducible build, production attestation/signing |
 | Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
-| State migration and rollback | partial | local | legacy v1/v2/v3 fixtures, byte-identical backups, product and schema-v4 usage migration, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |
+| State migration and rollback | partial | local | legacy v1/v2/v3/v4/v5 fixtures, byte-identical backups, product, usage, storage-time and schema-v6 erasure-receipt migrations, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |
 | Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |
 
 No row marked “local” proves staging, public deployment, production durability, production signing, or store release.

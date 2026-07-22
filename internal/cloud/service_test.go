@@ -349,6 +349,18 @@ func (s deleteFailStore) Delete(context.Context, string, string) error {
 	return errors.New("provider unavailable")
 }
 
+type toggleDeleteStore struct {
+	LocalObjectStore
+	Fail *bool
+}
+
+func (s toggleDeleteStore) Delete(ctx context.Context, ref, hash string) error {
+	if *s.Fail {
+		return errors.New("provider unavailable")
+	}
+	return s.LocalObjectStore.Delete(ctx, ref, hash)
+}
+
 type directTestStore struct {
 	LocalObjectStore
 	Body []byte
@@ -480,6 +492,185 @@ func TestPhysicalDeleteReferenceCountingAndPendingTruth(t *testing.T) {
 	}
 	if _, err := s.RetryBlobDeletion(context.Background(), viewer, "cloud", deletions[0].ID); !errors.Is(err, ErrDenied) {
 		t.Fatalf("foreign retry: %v", err)
+	}
+}
+
+func TestProductDataErasureIsComprehensiveIsolatedAndTruthful(t *testing.T) {
+	dir := t.TempDir()
+	local := LocalObjectStore{Root: filepath.Join(dir, "objects")}
+	s, err := New(Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: local.Root, ObjectStore: deleteFailStore{local}, WalletVerifier: acceptWallet{}, AIProvider: fakeAI{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	cloudObject, err := s.Create(ctx, owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "erase.bin", Content: []byte("erase-cloud")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	docsObject, err := s.Create(ctx, owner, CreateObjectRequest{Product: "docs", Kind: KindDoc, Name: "keep.txt", Content: []byte("keep-docs")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	viewerDoc, err := s.Create(ctx, viewer, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "shared.txt", Content: []byte("viewer")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	upload, err := s.InitiateMultipart(owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "partial.bin"}, 4, hashBytes([]byte("part")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.PutMultipartPart(ctx, owner, upload.ID, 1, []byte("part"), hashBytes([]byte("part"))); err != nil {
+		t.Fatal(err)
+	}
+	viewerUpload, err := s.InitiateMultipart(viewer, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "shared-part.bin"}, 4, hashBytes([]byte("part")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.PutMultipartPart(ctx, viewer, viewerUpload.ID, 1, []byte("part"), hashBytes([]byte("part"))); err != nil {
+		t.Fatal(err)
+	}
+	now := s.cfg.Now()
+	s.mu.Lock()
+	s.state.Grants["incoming"] = Grant{ID: "incoming", ObjectID: viewerDoc.ID, Principal: owner, CreatedBy: viewer, Role: "viewer", CreatedAt: now}
+	s.state.Comments[viewerDoc.ID] = []Comment{
+		{ID: "owned-comment", ObjectID: viewerDoc.ID, Version: 1, Author: owner, Body: "remove", CreatedAt: now},
+		{ID: "kept-comment", ObjectID: viewerDoc.ID, Version: 1, Author: viewer, Body: "keep", Mentions: []string{owner}, CreatedAt: now},
+	}
+	s.state.Presence[viewerDoc.ID+":"+owner] = Presence{ObjectID: viewerDoc.ID, Actor: owner, Label: "Owner", ExpiresAt: now.Add(time.Minute)}
+	s.state.AIJobs["erase-job"] = AIJob{ID: "erase-job", Product: "cloud", Actor: owner, Status: "queued"}
+	s.state.AIJobs["derived-job"] = AIJob{ID: "derived-job", Product: "cloud", Actor: viewer, ObjectIDs: []string{cloudObject.ID}, Status: "completed", Result: "derived"}
+	versions := s.state.Versions[viewerDoc.ID]
+	versions[0].Author = owner
+	s.state.Versions[viewerDoc.ID] = versions
+	s.state.Sessions["cloud-session"] = Session{TokenHash: "cloud-session", Account: owner, Product: "cloud"}
+	s.state.Sessions["docs-session"] = Session{TokenHash: "docs-session", Account: owner, Product: "docs"}
+	s.state.WalletChallenges["cloud-challenge"] = PendingWalletChallenge{Product: "cloud", Challenge: GatewayChallenge{Account: owner}}
+	s.state.WalletChallenges["docs-challenge"] = PendingWalletChallenge{Product: "docs", Challenge: GatewayChallenge{Account: owner}}
+	if err = saveState(s.cfg.StatePath, &s.state); err != nil {
+		s.mu.Unlock()
+		t.Fatal(err)
+	}
+	s.mu.Unlock()
+
+	receipt, err := s.EraseProductData(ctx, owner, "cloud")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.Status != "logical-erasure-complete-provider-deletion-pending" || receipt.PendingBlobs != 1 || receipt.OwnerHash != hashBytes([]byte(owner)) || receipt.OwnerHash == owner || receipt.Retained["sharedContentReferences"] == "" {
+		t.Fatalf("erasure receipt: %#v", receipt)
+	}
+	encoded, _ := json.Marshal(receipt)
+	if bytes.Contains(encoded, []byte(owner)) {
+		t.Fatalf("receipt retained raw owner: %s", encoded)
+	}
+	if _, ok := s.state.Objects[cloudObject.ID]; ok {
+		t.Fatal("cloud-owned object survived erasure")
+	}
+	if _, ok := s.state.Objects[docsObject.ID]; !ok {
+		t.Fatal("Docs object crossed Cloud erasure boundary")
+	}
+	if _, ok := s.state.Objects[viewerDoc.ID]; !ok {
+		t.Fatal("other owner's Cloud object was erased")
+	}
+	if _, ok := s.state.Grants["incoming"]; ok || len(s.state.Comments[viewerDoc.ID]) != 1 || len(s.state.Comments[viewerDoc.ID][0].Mentions) != 0 {
+		t.Fatalf("secondary account references survived: grant=%#v comments=%#v", s.state.Grants["incoming"], s.state.Comments[viewerDoc.ID])
+	}
+	if _, ok := s.state.Sessions["cloud-session"]; ok {
+		t.Fatal("Cloud session survived erasure")
+	}
+	if _, ok := s.state.Sessions["docs-session"]; !ok {
+		t.Fatal("Docs session crossed Cloud erasure boundary")
+	}
+	if _, ok := s.state.WalletChallenges["cloud-challenge"]; ok {
+		t.Fatal("Cloud Wallet challenge survived erasure")
+	}
+	if _, ok := s.state.WalletChallenges["docs-challenge"]; !ok {
+		t.Fatal("Docs Wallet challenge crossed Cloud erasure boundary")
+	}
+	if _, ok := s.state.Usage[usageKey(owner, "cloud")]; ok {
+		t.Fatal("Cloud usage ledger survived erasure")
+	}
+	if _, ok := s.state.Usage[usageKey(owner, "docs")]; !ok {
+		t.Fatal("Docs usage ledger crossed Cloud erasure boundary")
+	}
+	if _, ok := s.state.MultipartUploads[upload.ID]; ok {
+		t.Fatal("multipart upload survived erasure")
+	}
+	if _, ok := s.state.MultipartUploads[viewerUpload.ID]; !ok {
+		t.Fatal("shared multipart reference crossed account boundary")
+	}
+	if _, ok := s.state.AIJobs["derived-job"]; ok || s.state.Versions[viewerDoc.ID][0].Author != "sha256:"+hashBytes([]byte(owner)) {
+		t.Fatalf("derived data or collaborator authorship survived: job=%#v author=%q", s.state.AIJobs["derived-job"], s.state.Versions[viewerDoc.ID][0].Author)
+	}
+	receipts, err := s.DataErasureReceipts(owner, "cloud")
+	if err != nil || len(receipts) != 1 || receipts[0].ID != receipt.ID {
+		t.Fatalf("receipt lookup: %#v %v", receipts, err)
+	}
+	deletions, err := s.BlobDeletions(owner, "cloud")
+	if err != nil || len(deletions) != 1 || deletions[0].Status != "pending" {
+		t.Fatalf("provider deletion truth: %#v %v", deletions, err)
+	}
+	restarted, err := New(s.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipts, err = restarted.DataErasureReceipts(owner, "cloud")
+	if err != nil || len(receipts) != 1 || receipts[0].PendingBlobs != 1 {
+		t.Fatalf("persistent erasure receipt: %#v %v", receipts, err)
+	}
+}
+
+func TestErasureProviderRetryCompletesReceiptAndRemovesRawOwnerRecord(t *testing.T) {
+	dir := t.TempDir()
+	fail := true
+	local := LocalObjectStore{Root: filepath.Join(dir, "objects")}
+	s, err := New(Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: local.Root, ObjectStore: toggleDeleteStore{LocalObjectStore: local, Fail: &fail}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "retry.bin", Content: []byte("retry")}); err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := s.EraseProductData(context.Background(), owner, "cloud")
+	if err != nil || receipt.PendingBlobs != 1 {
+		t.Fatalf("pending erasure: %#v %v", receipt, err)
+	}
+	deletions, err := s.BlobDeletions(owner, "cloud")
+	if err != nil || len(deletions) != 1 || deletions[0].ErasureID != receipt.ID {
+		t.Fatalf("pending deletion: %#v %v", deletions, err)
+	}
+	fail = false
+	completed, err := s.RetryBlobDeletion(context.Background(), owner, "cloud", deletions[0].ID)
+	if err != nil || completed.Status != "completed" {
+		t.Fatalf("completed retry: %#v %v", completed, err)
+	}
+	receipts, err := s.DataErasureReceipts(owner, "cloud")
+	if err != nil || len(receipts) != 1 || receipts[0].PendingBlobs != 0 || receipts[0].CompletedBlobs != 1 || receipts[0].Status != "logical-erasure-complete-known-provider-deletions-complete" {
+		t.Fatalf("completed receipt: %#v %v", receipts, err)
+	}
+	if len(s.state.BlobDeletions) != 0 {
+		t.Fatalf("completed erasure deletion retained owner authorization: %#v", s.state.BlobDeletions)
+	}
+	encoded, _ := json.Marshal(s.state)
+	if bytes.Contains(encoded, []byte(owner)) {
+		t.Fatalf("completed state retained raw owner: %s", encoded)
+	}
+}
+
+func TestProductDataErasurePreflightBlocksAllMutationForRetention(t *testing.T) {
+	now := time.Date(2026, 7, 23, 1, 0, 0, 0, time.UTC)
+	s := testService(t, func(cfg *Config) { cfg.Now = func() time.Time { return now } })
+	_, err := s.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "held.bin", Content: []byte("held"), Artifact: &Artifact{Type: "audit-archive", Product: "cloud", Retention: "legal-hold"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, _ := json.Marshal(s.state)
+	if _, err = s.EraseProductData(context.Background(), owner, "cloud"); err == nil || !strings.Contains(err.Error(), "legal hold") {
+		t.Fatalf("legal hold erasure result: %v", err)
+	}
+	after, _ := json.Marshal(s.state)
+	if !bytes.Equal(before, after) {
+		t.Fatal("retention preflight mutated state")
 	}
 }
 

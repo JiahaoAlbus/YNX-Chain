@@ -15,3 +15,9 @@ const page = await cloud.list({ view: "recent", limit: 100 });
 ```
 
 The client retries idempotent requests only when the service returns `429` or `503`, honors bounded `Retry-After`, surfaces request/error IDs, and never retries mutating POST requests automatically. It does not create sessions, hold Wallet approvals, upload provider credentials, or weaken server-side authorization.
+
+`eraseProductData()` sends the exact product-bound destructive confirmation once
+and requires a Wallet session with the dedicated `data.delete` scope. It returns
+the service's hashed-owner receipt and never converts a pending provider deletion
+into success. `erasureReceipts()` supports receipt recovery after the erasing
+session is revoked and the user explicitly signs in again.

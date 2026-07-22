@@ -13,6 +13,7 @@ Version: 1. Scope: the shared Cloud/Docs control plane, Web/PWA clients, native 
 ## Trust boundaries
 
 1. Browser/native/SDK → control plane: hostile input, strict JSON/body limits, canonical product session, exact scopes, rate limit, and bounded concurrency.
+   Product-account erasure additionally requires the dedicated `data.delete` scope and exact product-bound destructive confirmation; ordinary read/write sessions cannot invoke it.
 2. Wallet verifier → control plane: authenticated operator channel; unavailable, replayed, mutated, wrong-product, wrong-bundle, wrong-device, widened-scope, expired, or revoked assertions fail closed.
 3. Control plane → object store/scanner: operator-only credentials, bounded responses, checksum and size verification, accepted scan status, no signed-URL persistence, exact upload origin.
 4. Control plane → AI gateway: explicit selected object/version consent, encrypted-content exclusion, provider/model/estimate state, cancel, review, and audit.
