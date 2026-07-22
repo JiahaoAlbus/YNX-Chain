@@ -12,21 +12,37 @@ import (
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
+	role    string
 }
 
 func NewServer(s *Service) *Server {
-	v := &Server{service: s, mux: http.NewServeMux()}
+	return NewRoleServer(s, "all")
+}
+
+func NewRoleServer(s *Service, role string) *Server {
+	allowed := map[string]bool{"all": true, "research": true, "paper": true, "risk": true}
+	if !allowed[role] {
+		panic("invalid quant service role")
+	}
+	v := &Server{service: s, mux: http.NewServeMux(), role: role}
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
-	v.mux.HandleFunc("POST /v1/backtests", v.backtest)
-	v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
-	v.mux.HandleFunc("PUT /v1/strategies/{id}/stage", v.stage)
-	v.mux.HandleFunc("POST /v1/paper/orders", v.paper)
-	v.mux.HandleFunc("POST /v1/paper/reconcile", v.reconcile)
-	v.mux.HandleFunc("POST /v1/risk/kill", v.kill)
-	v.mux.HandleFunc("POST /v1/testnet/mandates", v.mandate)
-	v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
+	if role == "all" || role == "research" {
+		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
+		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
+		v.mux.HandleFunc("PUT /v1/strategies/{id}/stage", v.stage)
+	}
+	if role == "all" || role == "paper" {
+		v.mux.HandleFunc("POST /v1/paper/orders", v.paper)
+		v.mux.HandleFunc("POST /v1/paper/reconcile", v.reconcile)
+	}
+	if role == "all" || role == "risk" {
+		v.mux.HandleFunc("POST /v1/risk/kill", v.kill)
+		v.mux.HandleFunc("POST /v1/testnet/mandates", v.mandate)
+		v.mux.HandleFunc("POST /v1/testnet/mandates/{digest}/revoke", v.revokeMandate)
+		v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
+	}
 	return v
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +64,7 @@ func localPreviewRequest(r *http.Request) bool {
 	return origin == "" || origin == "http://"+r.Host || origin == "https://"+r.Host
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false})
+	write(w, 200, map[string]any{"status": "ok", "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
@@ -76,13 +92,21 @@ func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 	respond(w, v, e, 201)
 }
 func (s *Server) stage(w http.ResponseWriter, r *http.Request) {
+	var q LifecycleApproval
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.AdvanceStrategy(r.PathValue("id"), q)
+	respond(w, v, e, 200)
+}
+func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		Stage string `json:"stage"`
+		Actor string `json:"actor"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SetStage(r.PathValue("id"), q.Stage)
+	v, e := s.service.RevokeMandate(r.PathValue("digest"), q.Actor)
 	respond(w, v, e, 200)
 }
 func (s *Server) paper(w http.ResponseWriter, r *http.Request) {

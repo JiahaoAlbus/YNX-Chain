@@ -42,7 +42,7 @@ function render() {
     ? strategies
         .map(
           (s) =>
-            `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Candidate")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td></tr>`,
+            `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td></tr>`,
         )
         .join("")
     : `<tr><td colspan="5">${safe(t("emptyStrategy"))}</td></tr>`;

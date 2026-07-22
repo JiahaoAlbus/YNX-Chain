@@ -135,3 +135,58 @@ func TestMandateAndBrokerUnavailableFailClosed(t *testing.T) {
 		t.Fatalf("broker=%v", e)
 	}
 }
+
+func TestLifecycleCannotSkipRiskEvidenceOrWalletMandate(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	experiment, err := s.RunBacktest(request())
+	if err != nil || experiment.Strategy.Stage != StageBacktest {
+		t.Fatalf("backtest stage=%q err=%v", experiment.Strategy.Stage, err)
+	}
+	digest := strings.Repeat("e", 64)
+	if _, err = s.AdvanceStrategy(experiment.Strategy.ID, LifecycleApproval{TargetStage: StagePaper, RiskApproved: true, EvidenceDigest: digest, Actor: "risk-operator"}); err != ErrForbidden {
+		t.Fatalf("stage skip=%v", err)
+	}
+	for _, target := range []string{StageWalkForward, StagePaper, StageShadow, StageCandidate} {
+		if _, err = s.AdvanceStrategy(experiment.Strategy.ID, LifecycleApproval{TargetStage: target, RiskApproved: true, EvidenceDigest: digest, Actor: "risk-operator"}); err != nil {
+			t.Fatalf("advance to %s: %v", target, err)
+		}
+	}
+	if _, err = s.AdvanceStrategy(experiment.Strategy.ID, LifecycleApproval{TargetStage: StageBoundedTestnet, RiskApproved: true, EvidenceDigest: digest, Actor: "risk-operator"}); err != ErrForbidden {
+		t.Fatalf("missing mandate=%v", err)
+	}
+	m, err := s.RegisterMandate(Mandate{Account: "ynx1test", StrategyHash: experiment.Strategy.StrategyHash, Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.AdvanceStrategy(experiment.Strategy.ID, LifecycleApproval{TargetStage: StageBoundedTestnet, RiskApproved: true, EvidenceDigest: digest, MandateDigest: m.Digest, Actor: "risk-operator"}); err != nil {
+		t.Fatalf("bounded testnet=%v", err)
+	}
+}
+
+func TestMandateRevocationIsImmediatePersistentAndIdempotent(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "s.json")
+	s, _ := New(Config{StatePath: path, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	m, err := s.RegisterMandate(Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	revoked, err := s.RevokeMandate(m.Digest, "wallet-owner")
+	if err != nil || !revoked.Revoked || revoked.RevokedAt.IsZero() {
+		t.Fatalf("revoked=%+v err=%v", revoked, err)
+	}
+	if _, err = s.RevokeMandate(m.Digest, "wallet-owner"); err != nil {
+		t.Fatalf("idempotent revoke=%v", err)
+	}
+	if _, err = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "revoked-order"); err != ErrForbidden {
+		t.Fatalf("revoked submit=%v", err)
+	}
+	restarted, err := New(Config{StatePath: path, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = restarted.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "restart-order"); err != ErrForbidden {
+		t.Fatalf("restart submit=%v", err)
+	}
+}

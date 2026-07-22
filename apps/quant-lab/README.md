@@ -19,3 +19,13 @@ Configuration:
 - `YNX_QUANT_EXCHANGE_URL` — Exchange API base for actual matched trades.
 
 Testnet order submission additionally requires injected `MandateVerifier` and `TestnetBroker` implementations. The shipped server injects neither and therefore fails closed. Real-money execution has no adapter or route.
+
+Strategy lifecycle changes are sequential and fail closed:
+
+`Draft → Research → Backtest → Walk-forward → Paper → Shadow → Candidate → Wallet-approved Bounded Testnet → Paused → Retired → Archived`
+
+The deterministic backtest records Draft, Research, and Backtest audit events.
+Every later transition requires an independent risk approval and a SHA-256
+evidence digest. Entry into bounded Testnet additionally requires a current,
+unrevoked Wallet mandate for the exact strategy hash. Mandate revocation is
+immediate, persistent, idempotent, and blocks later submission.

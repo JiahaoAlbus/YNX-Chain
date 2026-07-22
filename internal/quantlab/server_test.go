@@ -32,3 +32,30 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 		t.Fatalf("unknown field=%d", r.StatusCode)
 	}
 }
+
+func TestServiceRolesExposeOnlyOwnedMutationRoutes(t *testing.T) {
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	cases := []struct{ role, allowed, denied string }{
+		{"research", "/v1/backtests", "/v1/risk/kill"},
+		{"paper", "/v1/paper/orders", "/v1/backtests"},
+		{"risk", "/v1/risk/kill", "/v1/paper/orders"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.role, func(t *testing.T) {
+			server := httptest.NewServer(NewRoleServer(s, tc.role))
+			defer server.Close()
+			for path, wantNotFound := range map[string]bool{tc.allowed: false, tc.denied: true} {
+				req, _ := http.NewRequest("POST", server.URL+path, strings.NewReader(`{}`))
+				req.Header.Set("X-YNX-Preview-Mode", "local-paper")
+				response, err := server.Client().Do(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_ = response.Body.Close()
+				if (response.StatusCode == http.StatusNotFound) != wantNotFound {
+					t.Fatalf("path=%s status=%d wantNotFound=%v", path, response.StatusCode, wantNotFound)
+				}
+			}
+		})
+	}
+}

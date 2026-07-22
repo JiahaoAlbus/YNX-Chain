@@ -22,8 +22,19 @@ var (
 )
 
 const (
-	ProductID = "ynx-quant-lab"
-	Version   = "0.1.0-testnet"
+	ProductID           = "ynx-quant-lab"
+	Version             = "0.1.0-testnet"
+	StageDraft          = "Draft"
+	StageResearch       = "Research"
+	StageBacktest       = "Backtest"
+	StageWalkForward    = "Walk-forward"
+	StagePaper          = "Paper"
+	StageShadow         = "Shadow"
+	StageCandidate      = "Candidate"
+	StageBoundedTestnet = "Wallet-approved Bounded Testnet"
+	StagePaused         = "Paused"
+	StageRetired        = "Retired"
+	StageArchived       = "Archived"
 )
 
 // BuildCommit is overridden by release builds with -ldflags -X.
@@ -64,6 +75,13 @@ type StrategySpec struct {
 	Stage                                                                                                               string
 	CreatedAt                                                                                                           time.Time
 }
+type LifecycleApproval struct {
+	TargetStage    string `json:"targetStage"`
+	RiskApproved   bool   `json:"riskApproved"`
+	EvidenceDigest string `json:"evidenceDigest"`
+	MandateDigest  string `json:"mandateDigest"`
+	Actor          string `json:"actor"`
+}
 type BacktestRequest struct {
 	Strategy    StrategySpec `json:"strategy"`
 	Bars        []Bar        `json:"bars"`
@@ -102,6 +120,8 @@ type Mandate struct {
 	ExpiresAt                              time.Time
 	WalletSignature, Digest                string
 	TestnetOnly                            bool
+	Revoked                                bool
+	RevokedAt                              time.Time
 }
 
 type TestnetOrder struct {
@@ -223,7 +243,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		return TestnetOrder{}, ErrForbidden
 	}
 	m, ok := s.state.Mandates[mandateDigest]
-	if !ok || !s.cfg.Now().Before(m.ExpiresAt) {
+	if !ok || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) {
 		return TestnetOrder{}, ErrForbidden
 	}
 	if price*amount/1_000_000 > m.MaxNotional || amount > m.MaxPosition {
@@ -260,11 +280,37 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	return o, s.save()
 }
 
+func (s *Service) RevokeMandate(digest, actor string) (Mandate, error) {
+	digest = strings.TrimSpace(digest)
+	actor = strings.TrimSpace(actor)
+	if len(digest) != sha256.Size*2 || len(actor) < 3 {
+		return Mandate{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	m, ok := s.state.Mandates[digest]
+	if !ok {
+		return Mandate{}, ErrInvalid
+	}
+	if m.Revoked {
+		return m, nil
+	}
+	m.Revoked = true
+	m.RevokedAt = s.cfg.Now()
+	s.state.Mandates[digest] = m
+	s.audit("testnet_mandate_revoked", digest, hash(struct{ Actor, Digest string }{actor, digest}))
+	return m, s.save()
+}
+
 func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 	if err := validateBacktest(req); err != nil {
 		return Experiment{}, err
 	}
 	strategy := req.Strategy
+	// A completed deterministic experiment records each prerequisite research
+	// state in order. Execution stages remain unavailable until separately
+	// approved through AdvanceStrategy.
+	strategy.Stage = StageBacktest
 	strategy.StrategyHash = hash(struct {
 		Source, Commit string
 		Params         map[string]int64
@@ -321,6 +367,8 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy
+	s.audit("strategy_drafted", strategy.ID, strategy.StrategyHash)
+	s.audit("strategy_research_validated", strategy.ID, strategy.FeatureHash)
 	s.audit("backtest_completed", id, e.AuditDigest)
 	if err := s.save(); err != nil {
 		return Experiment{}, err
@@ -449,9 +497,11 @@ func cloneParams(input map[string]int64) map[string]int64 {
 	return out
 }
 
-func (s *Service) SetStage(id, stage string) (StrategySpec, error) {
-	allowed := map[string]bool{"Baseline": true, "Candidate": true, "Champion": true, "Challenger": true, "Rejected": true, "Retired": true}
-	if !allowed[stage] {
+func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (StrategySpec, error) {
+	approval.TargetStage = strings.TrimSpace(approval.TargetStage)
+	approval.Actor = strings.TrimSpace(approval.Actor)
+	approval.EvidenceDigest = strings.ToLower(strings.TrimSpace(approval.EvidenceDigest))
+	if len(approval.Actor) < 3 || len(approval.EvidenceDigest) != sha256.Size*2 {
 		return StrategySpec{}, ErrInvalid
 	}
 	s.mu.Lock()
@@ -460,9 +510,31 @@ func (s *Service) SetStage(id, stage string) (StrategySpec, error) {
 	if !ok {
 		return StrategySpec{}, ErrInvalid
 	}
-	v.Stage = stage
+	next := map[string]string{
+		StageBacktest:       StageWalkForward,
+		StageWalkForward:    StagePaper,
+		StagePaper:          StageShadow,
+		StageShadow:         StageCandidate,
+		StageCandidate:      StageBoundedTestnet,
+		StageBoundedTestnet: StagePaused,
+		StagePaused:         StageRetired,
+		StageRetired:        StageArchived,
+	}
+	if next[v.Stage] != approval.TargetStage || !approval.RiskApproved {
+		return StrategySpec{}, ErrForbidden
+	}
+	if approval.TargetStage == StageBoundedTestnet {
+		m, exists := s.state.Mandates[strings.TrimSpace(approval.MandateDigest)]
+		if !exists || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) || m.StrategyHash != v.StrategyHash {
+			return StrategySpec{}, ErrForbidden
+		}
+	}
+	v.Stage = approval.TargetStage
 	s.state.Strategies[id] = v
-	s.audit("strategy_stage_changed", id, hash(v))
+	s.audit("strategy_lifecycle_advanced", id, hash(struct {
+		Strategy StrategySpec
+		Approval LifecycleApproval
+	}{v, approval}))
 	return v, s.save()
 }
 
