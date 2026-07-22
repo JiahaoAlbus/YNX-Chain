@@ -19,6 +19,8 @@ Evidence baseline: local source commit `ead4d6732c5d942cf8b821e0fd50a06403ac62e5
 | Millions-of-objects candidate | partial | local | 1m-object/100-sample p50/p95/p99 evidence at exact commit | concurrent, persisted, sharded and remote benchmark |
 | AI selected-file boundary | yes | local | product-bound job and selected-object service/client tests | configured gateway staging |
 | Export/delete | partial | local | product-scoped verified portable ZIP; product-scoped dedup deletion queue; pending/retry tests | provisioned-provider erasure proof and full-account deletion |
+| Retention/legal hold | yes, control-plane | local | future-expiry validation, active-window denial, post-expiry deletion, indefinite legal-hold tests | provider-native object-lock proof |
+| Service cessation user exit | yes, control-plane | local | HTTP exit-mode test proves sign-in/read/export/trash/delete remain while new writes return 423 | announced remote exit drill and support/status evidence |
 | Logs, IDs, public/restricted health, metrics | partial | local | server observability tests and `OBSERVABILITY.md` | persistent histograms, traces, dashboard, alerts |
 | Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
 | State migration and rollback | partial | local | legacy v1/v2/v3 fixtures, byte-identical backups, product and schema-v4 usage migration, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |

@@ -203,7 +203,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/ai/jobs/{job}", s.auth(s.aiGet))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/cancel", s.auth(s.aiCancel))
 	mux.HandleFunc("POST /api/v1/ai/jobs/{job}/review", s.auth(s.aiReview))
-	return securityHeaders(s.observe(mux))
+	return securityHeaders(s.observe(s.exitModeGuard(mux)))
+}
+
+func (s *Server) exitModeGuard(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.service.cfg.ExitMode || r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodDelete ||
+			(r.Method == http.MethodPost && (r.URL.Path == "/api/v1/session" || r.URL.Path == "/api/v1/session/challenge" || strings.HasSuffix(r.URL.Path, "/trash") || strings.HasSuffix(r.URL.Path, "/cancel") || (strings.HasPrefix(r.URL.Path, "/api/v1/deletions/") && strings.HasSuffix(r.URL.Path, "/retry")))) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("X-YNX-Service-Mode", "user-exit")
+		writeError(w, http.StatusLocked, "service is in user-exit mode; new writes are disabled while read, export, revoke, cancel, trash, and delete paths remain available")
+	})
 }
 
 func (s *Server) detailedHealth(w http.ResponseWriter, r *http.Request, a Session) {

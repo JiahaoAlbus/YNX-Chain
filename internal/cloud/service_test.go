@@ -312,6 +312,37 @@ func TestPortableExportAndLegalHold(t *testing.T) {
 	}
 }
 
+func TestArtifactRetentionIsValidatedAndEnforced(t *testing.T) {
+	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
+	s := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
+	ctx := context.Background()
+	if _, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "ephemeral.bin", Content: []byte("x"), Artifact: &Artifact{Type: "build", Product: "developer", Retention: "ephemeral"}}); err == nil || !strings.Contains(err.Error(), "requires a future expiry") {
+		t.Fatalf("ephemeral object without expiry accepted: %v", err)
+	}
+	past := now.Add(-time.Second)
+	if _, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "past.bin", Content: []byte("x"), Artifact: &Artifact{Type: "build", Product: "developer", Retention: "standard", RetentionEnds: &past}}); err == nil || !strings.Contains(err.Error(), "must be in the future") {
+		t.Fatalf("past retention accepted: %v", err)
+	}
+	future := now.Add(time.Hour)
+	if _, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "expiring-hold.bin", Content: []byte("x"), Artifact: &Artifact{Type: "audit-archive", Product: "trust", Retention: "legal-hold", RetentionEnds: &future}}); err == nil || !strings.Contains(err.Error(), "cannot declare") {
+		t.Fatalf("expiring legal hold accepted: %v", err)
+	}
+	object, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "retained.bin", Content: []byte("retained"), Artifact: &Artifact{Type: "dataset", Product: "quant", Retention: "standard", RetentionEnds: &future}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SetTrash(owner, object.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteObject(owner, object.ID); err == nil || !strings.Contains(err.Error(), future.Format(time.RFC3339)) {
+		t.Fatalf("active retention deletion: %v", err)
+	}
+	now = future.Add(time.Second)
+	if err = s.DeleteObject(owner, object.ID); err != nil {
+		t.Fatalf("expired retention deletion: %v", err)
+	}
+}
+
 type deleteFailStore struct{ LocalObjectStore }
 
 func (s deleteFailStore) Delete(context.Context, string, string) error {

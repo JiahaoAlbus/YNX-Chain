@@ -36,6 +36,7 @@ type Config struct {
 	TrustSink      TrustSink
 	ReleaseCommit  string
 	ReleaseVersion string
+	ExitMode       bool
 	Now            func() time.Time
 }
 
@@ -223,13 +224,22 @@ func validateName(name string) error {
 	return nil
 }
 
-func validateArtifact(a *Artifact) error {
+func validateArtifact(a *Artifact, now time.Time) error {
 	if a == nil {
 		return nil
 	}
 	valid := map[string]bool{"dataset": true, "strategy": true, "model": true, "build": true, "backtest": true, "experiment": true, "checkpoint": true, "media-source": true, "document-export": true, "audit-archive": true}
 	if !valid[a.Type] || strings.TrimSpace(a.Product) == "" || len(a.Product) > 64 || (a.Retention != "standard" && a.Retention != "legal-hold" && a.Retention != "ephemeral") {
 		return ErrInvalid
+	}
+	if a.Retention == "legal-hold" && a.RetentionEnds != nil {
+		return errors.New("legal hold cannot declare an automatic expiry")
+	}
+	if a.Retention == "ephemeral" && a.RetentionEnds == nil {
+		return errors.New("ephemeral retention requires a future expiry")
+	}
+	if a.RetentionEnds != nil && !a.RetentionEnds.After(now) {
+		return errors.New("retention expiry must be in the future")
 	}
 	return nil
 }
@@ -251,8 +261,11 @@ func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
 }
 
 func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequest) (Object, error) {
-	if !validAccount(actor) || validateName(req.Name) != nil || validateArtifact(req.Artifact) != nil {
+	if !validAccount(actor) || validateName(req.Name) != nil {
 		return Object{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return Object{}, err
 	}
 	if req.Kind != KindFolder && req.Kind != KindFile && req.Kind != KindDoc {
 		return Object{}, ErrInvalid
@@ -319,8 +332,11 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 }
 
 func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (MultipartUpload, error) {
-	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxMultipartBytes || len(expectedHash) != 64 || validateArtifact(req.Artifact) != nil {
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxMultipartBytes || len(expectedHash) != 64 {
 		return MultipartUpload{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return MultipartUpload{}, err
 	}
 	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
 		return MultipartUpload{}, ErrInvalid
@@ -494,8 +510,11 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 	if !ok {
 		return DirectUpload{}, DirectUploadPlan{}, errors.New("presigned direct upload unavailable for configured object store")
 	}
-	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxDirectUploadBytes || len(expectedHash) != 64 || validateArtifact(req.Artifact) != nil {
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxDirectUploadBytes || len(expectedHash) != 64 {
 		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
+	}
+	if err := validateArtifact(req.Artifact, s.cfg.Now()); err != nil {
+		return DirectUpload{}, DirectUploadPlan{}, err
 	}
 	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
 		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
@@ -979,6 +998,9 @@ func (s *Service) DeleteObject(actor, id string) error {
 	}
 	if obj.Artifact != nil && obj.Artifact.Retention == "legal-hold" {
 		return errors.New("legal hold prevents deletion")
+	}
+	if obj.Artifact != nil && obj.Artifact.RetentionEnds != nil && obj.Artifact.RetentionEnds.After(s.cfg.Now()) {
+		return fmt.Errorf("retention prevents deletion until %s", obj.Artifact.RetentionEnds.UTC().Format(time.RFC3339))
 	}
 	for _, child := range s.state.Objects {
 		if child.ParentID == id {
@@ -1908,7 +1930,14 @@ func (s *Service) Health() map[string]any {
 		version = "1.0.0"
 	}
 	_, direct := s.cfg.ObjectStore.(DirectUploadStore)
-	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "directUploads": len(s.state.DirectUploads), "presignedDirectUploadAvailable": direct, "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "maxDirectUploadBytes": MaxDirectUploadBytes, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "mode": s.serviceMode(), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "directUploads": len(s.state.DirectUploads), "presignedDirectUploadAvailable": direct, "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "maxDirectUploadBytes": MaxDirectUploadBytes, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
+}
+
+func (s *Service) serviceMode() string {
+	if s.cfg.ExitMode {
+		return "user-exit"
+	}
+	return "normal"
 }
 
 func (s *Service) Liveness() map[string]any {
@@ -1916,5 +1945,5 @@ func (s *Service) Liveness() map[string]any {
 	if version == "" {
 		version = "1.0.0"
 	}
-	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "source": "YNX Cloud process liveness", "asOf": s.cfg.Now()}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "mode": s.serviceMode(), "source": "YNX Cloud process liveness", "asOf": s.cfg.Now()}
 }
