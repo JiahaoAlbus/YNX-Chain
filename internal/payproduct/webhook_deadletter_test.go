@@ -2,8 +2,10 @@ package payproduct
 
 import (
 	"context"
+	"io"
+	"net"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -11,19 +13,18 @@ import (
 
 func TestWebhookDeadLetterAndAuditedManualReplay(t *testing.T) {
 	var healthy atomic.Bool
-	receiver := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !healthy.Load() {
-			http.Error(w, "receiver unavailable", http.StatusServiceUnavailable)
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer receiver.Close()
 	now := time.Date(2026, 7, 22, 4, 0, 0, 0, time.UTC)
 	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
-	service.client = receiver.Client()
+	service.webhookResolver = staticWebhookResolver{addresses: []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}}
+	service.client = newWebhookHTTPClient(&http.Client{Transport: webhookRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		status := http.StatusServiceUnavailable
+		if healthy.Load() {
+			status = http.StatusNoContent
+		}
+		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header), Request: request}, nil
+	})}, service.webhookResolver)
 	merchant, _ := onboard(t, service)
-	if err := service.SetWebhook(merchant, receiver.URL); err != nil {
+	if err := service.SetWebhook(merchant, "https://receiver.example.com/events"); err != nil {
 		t.Fatal(err)
 	}
 	if err := service.store.View(func(data Snapshot) error { merchant = data.Merchants[merchant.ID]; return nil }); err != nil {

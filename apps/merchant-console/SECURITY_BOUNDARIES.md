@@ -10,6 +10,13 @@ Trust boundaries:
 4. Merchant service to webhook receiver: HTTPS plus versioned HMAC over event ID, timestamp and exact payload hash.
 5. Persistent state: HMAC envelope and atomic replacement.
 
-Threats covered by tests include replay, body substitution, cross-product callback, scope escalation, role escalation, last-owner removal, stale role session, invoice tamper, settlement mismatch, provider outage, webhook payload tamper/retry and AI execution boundary.
+Threats covered by tests include replay, body substitution, cross-product callback, scope escalation, role escalation, last-owner removal, stale role session, invoice tamper, settlement mismatch, provider outage, webhook payload tamper/retry, webhook SSRF/DNS rebinding/redirect containment and AI execution boundary.
 
-Open threats: multi-instance replay coordination, distributed persistence, credential rotation workflow, SSRF/DNS rebinding for webhook destinations, provider compromise, rate exhaustion, retention/deletion, disaster restore, DAST and hosted artifact provenance. These block production readiness.
+Webhook delivery accepts only HTTPS public DNS names on the standard TLS port,
+rejects local/internal names and IP literals at configuration, re-resolves every
+delivery, rejects the whole DNS answer if any address is non-public, and the
+production transport dials only a validated resolved address with redirects and
+environment proxies disabled. Unsafe DNS faults persist as retry evidence without
+making a network call.
+
+Open threats: multi-instance replay coordination, distributed persistence, credential rotation workflow, provider compromise, rate exhaustion, retention/deletion, production-scale disaster restore, DAST and hosted artifact provenance. These block production readiness.

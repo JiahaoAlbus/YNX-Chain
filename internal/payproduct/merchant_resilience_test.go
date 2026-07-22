@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +46,22 @@ func FuzzWebhookSignatureBindsEveryField(f *testing.F) {
 			if string(base) == string(variant) {
 				t.Fatalf("webhook signature material did not bind field %d", i)
 			}
+		}
+	})
+}
+
+func FuzzWebhookDestinationSyntaxFailsClosed(f *testing.F) {
+	for _, endpoint := range []string{"", "http://localhost", "https://127.0.0.1", "https://user:pass@example.com", "https://receiver.example.com/events", "https://receiver.example.com:8443/events", "https://receiver.example.com/events#secret"} {
+		f.Add(endpoint)
+	}
+	f.Fuzz(func(t *testing.T, endpoint string) {
+		normalized, err := validWebhookURL(endpoint)
+		if err != nil || normalized == "" {
+			return
+		}
+		parsed, parseErr := url.Parse(normalized)
+		if parseErr != nil || parsed.Scheme != "https" || parsed.User != nil || parsed.Fragment != "" || !webhookHostSyntaxAllowed(parsed.Hostname()) || (parsed.Port() != "" && parsed.Port() != "443") {
+			t.Fatalf("unsafe endpoint escaped webhook syntax gate: %q => %q", endpoint, normalized)
 		}
 	})
 }
