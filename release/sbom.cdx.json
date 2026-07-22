@@ -1,0 +1,6069 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "YNXT Economics local integration candidate",
+      "version": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21",
+      "properties": [
+        {
+          "name": "ynx:sourceCommit",
+          "value": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"
+        },
+        {
+          "name": "ynx:releaseClass",
+          "value": "local_testnet_integration_candidate"
+        },
+        {
+          "name": "ynx:publicArtifact",
+          "value": "false"
+        }
+      ]
+    },
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "name": "generate-economics-sbom.mjs",
+          "version": "1"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cel.dev/expr",
+      "version": "v0.25.1",
+      "purl": "pkg:golang/cel.dev%2Fexpr@v0.25.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go",
+      "version": "v0.112.1",
+      "purl": "pkg:golang/cloud.google.com%2Fgo@v0.112.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/compute",
+      "version": "v1.24.0",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fcompute@v1.24.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/compute/metadata",
+      "version": "v0.9.0",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fcompute%2Fmetadata@v0.9.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/firestore",
+      "version": "v1.15.0",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Ffirestore@v1.15.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/iam",
+      "version": "v1.1.5",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fiam@v1.1.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/longrunning",
+      "version": "v0.5.5",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Flongrunning@v0.5.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "cloud.google.com/go/storage",
+      "version": "v1.35.1",
+      "purl": "pkg:golang/cloud.google.com%2Fgo%2Fstorage@v1.35.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "dario.cat/mergo",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/dario.cat%2Fmergo@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aclements/go-moremath",
+      "version": "v0.0.0-20210112150236-f10218a38794",
+      "purl": "pkg:golang/github.com%2Faclements%2Fgo-moremath@v0.0.0-20210112150236-f10218a38794",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/adlio/schema",
+      "version": "v1.3.6",
+      "purl": "pkg:golang/github.com%2Fadlio%2Fschema@v1.3.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/afex/hystrix-go",
+      "version": "v0.0.0-20180502004556-fa1af6a1f4f5",
+      "purl": "pkg:golang/github.com%2Fafex%2Fhystrix-go@v0.0.0-20180502004556-fa1af6a1f4f5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/alecthomas/kingpin/v2",
+      "version": "v2.4.0",
+      "purl": "pkg:golang/github.com%2Falecthomas%2Fkingpin%2Fv2@v2.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/alecthomas/units",
+      "version": "v0.0.0-20211218093645-b94a6e3cc137",
+      "purl": "pkg:golang/github.com%2Falecthomas%2Funits@v0.0.0-20211218093645-b94a6e3cc137",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/andybalholm/brotli",
+      "version": "v1.0.5",
+      "purl": "pkg:golang/github.com%2Fandybalholm%2Fbrotli@v1.0.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/armon/go-metrics",
+      "version": "v0.4.1",
+      "purl": "pkg:golang/github.com%2Farmon%2Fgo-metrics@v0.4.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aws/aws-sdk-go-v2",
+      "version": "v1.9.1",
+      "purl": "pkg:golang/github.com%2Faws%2Faws-sdk-go-v2@v1.9.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aws/aws-sdk-go-v2/service/cloudwatch",
+      "version": "v1.8.1",
+      "purl": "pkg:golang/github.com%2Faws%2Faws-sdk-go-v2%2Fservice%2Fcloudwatch@v1.8.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aws/aws-sdk-go",
+      "version": "v1.40.45",
+      "purl": "pkg:golang/github.com%2Faws%2Faws-sdk-go@v1.40.45",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aws/smithy-go",
+      "version": "v1.8.0",
+      "purl": "pkg:golang/github.com%2Faws%2Fsmithy-go@v1.8.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/aymerick/douceur",
+      "version": "v0.2.0",
+      "purl": "pkg:golang/github.com%2Faymerick%2Fdouceur@v0.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Azure/go-ansiterm",
+      "version": "v0.0.0-20230124172434-306776ec8161",
+      "purl": "pkg:golang/github.com%2FAzure%2Fgo-ansiterm@v0.0.0-20230124172434-306776ec8161",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/beorn7/perks",
+      "version": "v1.0.1",
+      "purl": "pkg:golang/github.com%2Fbeorn7%2Fperks@v1.0.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/btcsuite/btcd/btcutil",
+      "version": "v1.1.6",
+      "purl": "pkg:golang/github.com%2Fbtcsuite%2Fbtcd%2Fbtcutil@v1.1.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/BurntSushi/toml",
+      "version": "v1.4.0",
+      "purl": "pkg:golang/github.com%2FBurntSushi%2Ftoml@v1.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/casbin/casbin/v2",
+      "version": "v2.37.0",
+      "purl": "pkg:golang/github.com%2Fcasbin%2Fcasbin%2Fv2@v2.37.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cenkalti/backoff",
+      "version": "v2.2.1+incompatible",
+      "purl": "pkg:golang/github.com%2Fcenkalti%2Fbackoff@v2.2.1%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cenkalti/backoff/v4",
+      "version": "v4.1.1",
+      "purl": "pkg:golang/github.com%2Fcenkalti%2Fbackoff%2Fv4@v4.1.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/census-instrumentation/opencensus-proto",
+      "version": "v0.2.1",
+      "purl": "pkg:golang/github.com%2Fcensus-instrumentation%2Fopencensus-proto@v0.2.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cespare/xxhash/v2",
+      "version": "v2.3.0",
+      "purl": "pkg:golang/github.com%2Fcespare%2Fxxhash%2Fv2@v2.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/clbanning/mxj",
+      "version": "v1.8.4",
+      "purl": "pkg:golang/github.com%2Fclbanning%2Fmxj@v1.8.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/client9/misspell",
+      "version": "v0.3.4",
+      "purl": "pkg:golang/github.com%2Fclient9%2Fmisspell@v0.3.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cloudflare/circl",
+      "version": "v1.3.7",
+      "purl": "pkg:golang/github.com%2Fcloudflare%2Fcircl@v1.3.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/CloudyKit/fastprinter",
+      "version": "v0.0.0-20200109182630-33d98a066a53",
+      "purl": "pkg:golang/github.com%2FCloudyKit%2Ffastprinter@v0.0.0-20200109182630-33d98a066a53",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/CloudyKit/jet/v6",
+      "version": "v6.2.0",
+      "purl": "pkg:golang/github.com%2FCloudyKit%2Fjet%2Fv6@v6.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cncf/udpa/go",
+      "version": "v0.0.0-20191209042840-269d4d468f6f",
+      "purl": "pkg:golang/github.com%2Fcncf%2Fudpa%2Fgo@v0.0.0-20191209042840-269d4d468f6f",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cncf/xds/go",
+      "version": "v0.0.0-20251210132809-ee656c7534f5",
+      "purl": "pkg:golang/github.com%2Fcncf%2Fxds%2Fgo@v0.0.0-20251210132809-ee656c7534f5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/datadriven",
+      "version": "v1.0.3-0.20230413201302-be42291fc80f",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Fdatadriven@v1.0.3-0.20230413201302-be42291fc80f",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/errors",
+      "version": "v1.11.3",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Ferrors@v1.11.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/fifo",
+      "version": "v0.0.0-20240606204812-0bbfbd93a7ce",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Ffifo@v0.0.0-20240606204812-0bbfbd93a7ce",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/logtags",
+      "version": "v0.0.0-20230118201751-21c54148d20b",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Flogtags@v0.0.0-20230118201751-21c54148d20b",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/pebble",
+      "version": "v1.1.1",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Fpebble@v1.1.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/redact",
+      "version": "v1.1.5",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Fredact@v1.1.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cockroachdb/tokenbucket",
+      "version": "v0.0.0-20230807174530-cc333fc44b06",
+      "purl": "pkg:golang/github.com%2Fcockroachdb%2Ftokenbucket@v0.0.0-20230807174530-cc333fc44b06",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/codegangsta/inject",
+      "version": "v0.0.0-20150114235600-33e0aa1cb7c0",
+      "purl": "pkg:golang/github.com%2Fcodegangsta%2Finject@v0.0.0-20150114235600-33e0aa1cb7c0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cometbft/cometbft-db",
+      "version": "v0.14.1",
+      "purl": "pkg:golang/github.com%2Fcometbft%2Fcometbft-db@v0.14.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cometbft/cometbft",
+      "version": "v0.38.23",
+      "purl": "pkg:golang/github.com%2Fcometbft%2Fcometbft@v0.38.23",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/containerd/continuity",
+      "version": "v0.3.0",
+      "purl": "pkg:golang/github.com%2Fcontainerd%2Fcontinuity@v0.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/coreos/go-semver",
+      "version": "v0.3.0",
+      "purl": "pkg:golang/github.com%2Fcoreos%2Fgo-semver@v0.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/coreos/go-systemd/v22",
+      "version": "v22.3.2",
+      "purl": "pkg:golang/github.com%2Fcoreos%2Fgo-systemd%2Fv22@v22.3.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cosmos/gogoproto",
+      "version": "v1.7.0",
+      "purl": "pkg:golang/github.com%2Fcosmos%2Fgogoproto@v1.7.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cpuguy83/go-md2man/v2",
+      "version": "v2.0.6",
+      "purl": "pkg:golang/github.com%2Fcpuguy83%2Fgo-md2man%2Fv2@v2.0.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/creack/pty",
+      "version": "v1.1.9",
+      "purl": "pkg:golang/github.com%2Fcreack%2Fpty@v1.1.9",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/cyphar/filepath-securejoin",
+      "version": "v0.3.6",
+      "purl": "pkg:golang/github.com%2Fcyphar%2Ffilepath-securejoin@v0.3.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/DataDog/zstd",
+      "version": "v1.4.5",
+      "purl": "pkg:golang/github.com%2FDataDog%2Fzstd@v1.4.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/davecgh/go-spew",
+      "version": "v1.1.2-0.20180830191138-d8f796af33cc",
+      "purl": "pkg:golang/github.com%2Fdavecgh%2Fgo-spew@v1.1.2-0.20180830191138-d8f796af33cc",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/decred/dcrd/crypto/blake256",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Fdecred%2Fdcrd%2Fcrypto%2Fblake256@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/decred/dcrd/dcrec/secp256k1/v4",
+      "version": "v4.4.0",
+      "purl": "pkg:golang/github.com%2Fdecred%2Fdcrd%2Fdcrec%2Fsecp256k1%2Fv4@v4.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/dgraph-io/badger/v4",
+      "version": "v4.2.0",
+      "purl": "pkg:golang/github.com%2Fdgraph-io%2Fbadger%2Fv4@v4.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/dgraph-io/ristretto",
+      "version": "v0.1.1",
+      "purl": "pkg:golang/github.com%2Fdgraph-io%2Fristretto@v0.1.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/dgryski/go-farm",
+      "version": "v0.0.0-20190423205320-6a90982ecee2",
+      "purl": "pkg:golang/github.com%2Fdgryski%2Fgo-farm@v0.0.0-20190423205320-6a90982ecee2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/docker/cli",
+      "version": "v24.0.7+incompatible",
+      "purl": "pkg:golang/github.com%2Fdocker%2Fcli@v24.0.7%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/docker/go-connections",
+      "version": "v0.4.0",
+      "purl": "pkg:golang/github.com%2Fdocker%2Fgo-connections@v0.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/docker/go-units",
+      "version": "v0.5.0",
+      "purl": "pkg:golang/github.com%2Fdocker%2Fgo-units@v0.5.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/dustin/go-humanize",
+      "version": "v1.0.1",
+      "purl": "pkg:golang/github.com%2Fdustin%2Fgo-humanize@v1.0.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/edsrzf/mmap-go",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fedsrzf%2Fmmap-go@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/eknkc/amber",
+      "version": "v0.0.0-20171010120322-cdade1c07385",
+      "purl": "pkg:golang/github.com%2Feknkc%2Famber@v0.0.0-20171010120322-cdade1c07385",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/emirpasic/gods",
+      "version": "v1.18.1",
+      "purl": "pkg:golang/github.com%2Femirpasic%2Fgods@v1.18.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/envoyproxy/go-control-plane",
+      "version": "v0.14.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane@v0.14.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/envoyproxy/go-control-plane/envoy",
+      "version": "v1.36.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane%2Fenvoy@v1.36.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/envoyproxy/go-control-plane/ratelimit",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fgo-control-plane%2Fratelimit@v0.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/envoyproxy/protoc-gen-validate",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/github.com%2Fenvoyproxy%2Fprotoc-gen-validate@v1.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/fatih/color",
+      "version": "v1.14.1",
+      "purl": "pkg:golang/github.com%2Ffatih%2Fcolor@v1.14.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/fatih/structs",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Ffatih%2Fstructs@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/felixge/httpsnoop",
+      "version": "v1.0.4",
+      "purl": "pkg:golang/github.com%2Ffelixge%2Fhttpsnoop@v1.0.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/flosch/pongo2/v4",
+      "version": "v4.0.2",
+      "purl": "pkg:golang/github.com%2Fflosch%2Fpongo2%2Fv4@v4.0.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/fortytw2/leaktest",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/github.com%2Ffortytw2%2Fleaktest@v1.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/franela/goreq",
+      "version": "v0.0.0-20171204163338-bcd34c9993f8",
+      "purl": "pkg:golang/github.com%2Ffranela%2Fgoreq@v0.0.0-20171204163338-bcd34c9993f8",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/frankban/quicktest",
+      "version": "v1.14.6",
+      "purl": "pkg:golang/github.com%2Ffrankban%2Fquicktest@v1.14.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/fsnotify/fsnotify",
+      "version": "v1.7.0",
+      "purl": "pkg:golang/github.com%2Ffsnotify%2Ffsnotify@v1.7.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/getsentry/sentry-go",
+      "version": "v0.27.0",
+      "purl": "pkg:golang/github.com%2Fgetsentry%2Fsentry-go@v0.27.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/ghemawat/stream",
+      "version": "v0.0.0-20171120220530-696b145b53b9",
+      "purl": "pkg:golang/github.com%2Fghemawat%2Fstream@v0.0.0-20171120220530-696b145b53b9",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gin-contrib/sse",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com%2Fgin-contrib%2Fsse@v0.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gin-gonic/gin",
+      "version": "v1.8.1",
+      "purl": "pkg:golang/github.com%2Fgin-gonic%2Fgin@v1.8.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-errors/errors",
+      "version": "v1.4.2",
+      "purl": "pkg:golang/github.com%2Fgo-errors%2Ferrors@v1.4.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-git/gcfg",
+      "version": "v1.5.1-0.20230307220236-3a3c6141e376",
+      "purl": "pkg:golang/github.com%2Fgo-git%2Fgcfg@v1.5.1-0.20230307220236-3a3c6141e376",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-git/go-billy/v5",
+      "version": "v5.6.2",
+      "purl": "pkg:golang/github.com%2Fgo-git%2Fgo-billy%2Fv5@v5.6.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-git/go-git/v5",
+      "version": "v5.13.2",
+      "purl": "pkg:golang/github.com%2Fgo-git%2Fgo-git%2Fv5@v5.13.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-jose/go-jose/v4",
+      "version": "v4.1.3",
+      "purl": "pkg:golang/github.com%2Fgo-jose%2Fgo-jose%2Fv4@v4.1.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-kit/kit",
+      "version": "v0.13.0",
+      "purl": "pkg:golang/github.com%2Fgo-kit%2Fkit@v0.13.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-kit/log",
+      "version": "v0.2.1",
+      "purl": "pkg:golang/github.com%2Fgo-kit%2Flog@v0.2.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-logfmt/logfmt",
+      "version": "v0.6.0",
+      "purl": "pkg:golang/github.com%2Fgo-logfmt%2Flogfmt@v0.6.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-logr/logr",
+      "version": "v1.4.3",
+      "purl": "pkg:golang/github.com%2Fgo-logr%2Flogr@v1.4.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-logr/stdr",
+      "version": "v1.2.2",
+      "purl": "pkg:golang/github.com%2Fgo-logr%2Fstdr@v1.2.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-martini/martini",
+      "version": "v0.0.0-20170121215854-22fa46961aab",
+      "purl": "pkg:golang/github.com%2Fgo-martini%2Fmartini@v0.0.0-20170121215854-22fa46961aab",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-playground/locales",
+      "version": "v0.14.0",
+      "purl": "pkg:golang/github.com%2Fgo-playground%2Flocales@v0.14.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-playground/universal-translator",
+      "version": "v0.18.0",
+      "purl": "pkg:golang/github.com%2Fgo-playground%2Funiversal-translator@v0.18.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-playground/validator/v10",
+      "version": "v10.11.1",
+      "purl": "pkg:golang/github.com%2Fgo-playground%2Fvalidator%2Fv10@v10.11.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/go-zookeeper/zk",
+      "version": "v1.0.2",
+      "purl": "pkg:golang/github.com%2Fgo-zookeeper%2Fzk@v1.0.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/goccy/go-json",
+      "version": "v0.9.11",
+      "purl": "pkg:golang/github.com%2Fgoccy%2Fgo-json@v0.9.11",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gofrs/uuid",
+      "version": "v4.4.0+incompatible",
+      "purl": "pkg:golang/github.com%2Fgofrs%2Fuuid@v4.4.0%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gogo/googleapis",
+      "version": "v1.4.1",
+      "purl": "pkg:golang/github.com%2Fgogo%2Fgoogleapis@v1.4.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gogo/protobuf",
+      "version": "v1.3.2",
+      "purl": "pkg:golang/github.com%2Fgogo%2Fprotobuf@v1.3.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gogo/status",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Fgogo%2Fstatus@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang-jwt/jwt/v4",
+      "version": "v4.0.0",
+      "purl": "pkg:golang/github.com%2Fgolang-jwt%2Fjwt%2Fv4@v4.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang/glog",
+      "version": "v1.2.5",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fglog@v1.2.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang/groupcache",
+      "version": "v0.0.0-20210331224755-41bb18bfe9da",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fgroupcache@v0.0.0-20210331224755-41bb18bfe9da",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang/mock",
+      "version": "v1.1.1",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fmock@v1.1.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang/protobuf",
+      "version": "v1.5.4",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fprotobuf@v1.5.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/golang/snappy",
+      "version": "v0.0.4",
+      "purl": "pkg:golang/github.com%2Fgolang%2Fsnappy@v0.0.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/btree",
+      "version": "v1.1.3",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fbtree@v1.1.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/flatbuffers",
+      "version": "v1.12.1",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fflatbuffers@v1.12.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/go-cmp",
+      "version": "v0.7.0",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fgo-cmp@v0.7.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/gofuzz",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fgofuzz@v1.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/orderedcode",
+      "version": "v0.0.1",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Forderedcode@v0.0.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/s2a-go",
+      "version": "v0.1.7",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fs2a-go@v0.1.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com%2Fgoogle%2Fuuid@v1.6.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/googleapis/enterprise-certificate-proxy",
+      "version": "v0.3.2",
+      "purl": "pkg:golang/github.com%2Fgoogleapis%2Fenterprise-certificate-proxy@v0.3.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/googleapis/gax-go/v2",
+      "version": "v2.12.3",
+      "purl": "pkg:golang/github.com%2Fgoogleapis%2Fgax-go%2Fv2@v2.12.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/googleapis/google-cloud-go-testing",
+      "version": "v0.0.0-20210719221736-1c9a4c676720",
+      "purl": "pkg:golang/github.com%2Fgoogleapis%2Fgoogle-cloud-go-testing@v0.0.0-20210719221736-1c9a4c676720",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp",
+      "version": "v1.30.0",
+      "purl": "pkg:golang/github.com%2FGoogleCloudPlatform%2Fopentelemetry-operations-go%2Fdetectors%2Fgcp@v1.30.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gorilla/css",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fgorilla%2Fcss@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gorilla/websocket",
+      "version": "v1.5.3",
+      "purl": "pkg:golang/github.com%2Fgorilla%2Fwebsocket@v1.5.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/gotestyourself/gotestyourself",
+      "version": "v2.2.0+incompatible",
+      "purl": "pkg:golang/github.com%2Fgotestyourself%2Fgotestyourself@v2.2.0%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/guptarohit/asciigraph",
+      "version": "v0.5.5",
+      "purl": "pkg:golang/github.com%2Fguptarohit%2Fasciigraph@v0.5.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/consul/api",
+      "version": "v1.28.2",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fconsul%2Fapi@v1.28.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/errwrap",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Ferrwrap@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/go-cleanhttp",
+      "version": "v0.5.2",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-cleanhttp@v0.5.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/go-hclog",
+      "version": "v1.5.0",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-hclog@v1.5.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/go-immutable-radix",
+      "version": "v1.3.1",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-immutable-radix@v1.3.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/go-multierror",
+      "version": "v1.1.1",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-multierror@v1.1.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/go-rootcerts",
+      "version": "v1.0.2",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgo-rootcerts@v1.0.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/golang-lru",
+      "version": "v0.5.4",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgolang-lru@v0.5.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/golang-lru/v2",
+      "version": "v2.0.7",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fgolang-lru%2Fv2@v2.0.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/hcl",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fhcl@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hashicorp/serf",
+      "version": "v0.10.1",
+      "purl": "pkg:golang/github.com%2Fhashicorp%2Fserf@v0.10.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/HdrHistogram/hdrhistogram-go",
+      "version": "v1.1.2",
+      "purl": "pkg:golang/github.com%2FHdrHistogram%2Fhdrhistogram-go@v1.1.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hpcloud/tail",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fhpcloud%2Ftail@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hudl/fargo",
+      "version": "v1.4.0",
+      "purl": "pkg:golang/github.com%2Fhudl%2Ffargo@v1.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/hydrogen18/memlistener",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fhydrogen18%2Fmemlistener@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/inconshreveable/mousetrap",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Finconshreveable%2Fmousetrap@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/influxdata/influxdb1-client",
+      "version": "v0.0.0-20200827194710-b269163b24ab",
+      "purl": "pkg:golang/github.com%2Finfluxdata%2Finfluxdb1-client@v0.0.0-20200827194710-b269163b24ab",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/informalsystems/tm-load-test",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/github.com%2Finformalsystems%2Ftm-load-test@v1.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/iris-contrib/schema",
+      "version": "v0.0.6",
+      "purl": "pkg:golang/github.com%2Firis-contrib%2Fschema@v0.0.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/jbenet/go-context",
+      "version": "v0.0.0-20150711004518-d14ea06fba99",
+      "purl": "pkg:golang/github.com%2Fjbenet%2Fgo-context@v0.0.0-20150711004518-d14ea06fba99",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/jmespath/go-jmespath",
+      "version": "v0.4.0",
+      "purl": "pkg:golang/github.com%2Fjmespath%2Fgo-jmespath@v0.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/jmhodges/levigo",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fjmhodges%2Flevigo@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Joker/jade",
+      "version": "v1.1.3",
+      "purl": "pkg:golang/github.com%2FJoker%2Fjade@v1.1.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/josharian/intern",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fjosharian%2Fintern@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/jpillora/backoff",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fjpillora%2Fbackoff@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/json-iterator/go",
+      "version": "v1.1.12",
+      "purl": "pkg:golang/github.com%2Fjson-iterator%2Fgo@v1.1.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/julienschmidt/httprouter",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/github.com%2Fjulienschmidt%2Fhttprouter@v1.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/blocks",
+      "version": "v0.0.7",
+      "purl": "pkg:golang/github.com%2Fkataras%2Fblocks@v0.0.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/golog",
+      "version": "v0.1.8",
+      "purl": "pkg:golang/github.com%2Fkataras%2Fgolog@v0.1.8",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/iris/v12",
+      "version": "v12.2.0",
+      "purl": "pkg:golang/github.com%2Fkataras%2Firis%2Fv12@v12.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/pio",
+      "version": "v0.0.11",
+      "purl": "pkg:golang/github.com%2Fkataras%2Fpio@v0.0.11",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/sitemap",
+      "version": "v0.0.6",
+      "purl": "pkg:golang/github.com%2Fkataras%2Fsitemap@v0.0.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kataras/tunnel",
+      "version": "v0.0.4",
+      "purl": "pkg:golang/github.com%2Fkataras%2Ftunnel@v0.0.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kevinburke/ssh_config",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/github.com%2Fkevinburke%2Fssh_config@v1.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kisielk/errcheck",
+      "version": "v1.5.0",
+      "purl": "pkg:golang/github.com%2Fkisielk%2Ferrcheck@v1.5.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kisielk/gotool",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fkisielk%2Fgotool@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/klauspost/compress",
+      "version": "v1.17.11",
+      "purl": "pkg:golang/github.com%2Fklauspost%2Fcompress@v1.17.11",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Knetic/govaluate",
+      "version": "v3.0.1-0.20171022003610-9aa49832a739+incompatible",
+      "purl": "pkg:golang/github.com%2FKnetic%2Fgovaluate@v3.0.1-0.20171022003610-9aa49832a739%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kr/fs",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com%2Fkr%2Ffs@v0.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kr/pretty",
+      "version": "v0.3.1",
+      "purl": "pkg:golang/github.com%2Fkr%2Fpretty@v0.3.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kr/text",
+      "version": "v0.2.0",
+      "purl": "pkg:golang/github.com%2Fkr%2Ftext@v0.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/kylelemons/godebug",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Fkylelemons%2Fgodebug@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/labstack/echo/v4",
+      "version": "v4.10.0",
+      "purl": "pkg:golang/github.com%2Flabstack%2Fecho%2Fv4@v4.10.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/labstack/gommon",
+      "version": "v0.4.0",
+      "purl": "pkg:golang/github.com%2Flabstack%2Fgommon@v0.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/leodido/go-urn",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/github.com%2Fleodido%2Fgo-urn@v1.2.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/lib/pq",
+      "version": "v1.12.0",
+      "purl": "pkg:golang/github.com%2Flib%2Fpq@v1.12.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/linxGnu/grocksdb",
+      "version": "v1.8.14",
+      "purl": "pkg:golang/github.com%2FlinxGnu%2Fgrocksdb@v1.8.14",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/magiconair/properties",
+      "version": "v1.8.7",
+      "purl": "pkg:golang/github.com%2Fmagiconair%2Fproperties@v1.8.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mailgun/raymond/v2",
+      "version": "v2.0.48",
+      "purl": "pkg:golang/github.com%2Fmailgun%2Fraymond%2Fv2@v2.0.48",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mailru/easyjson",
+      "version": "v0.7.7",
+      "purl": "pkg:golang/github.com%2Fmailru%2Feasyjson@v0.7.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Masterminds/semver/v3",
+      "version": "v3.3.1",
+      "purl": "pkg:golang/github.com%2FMasterminds%2Fsemver%2Fv3@v3.3.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mattn/go-colorable",
+      "version": "v0.1.13",
+      "purl": "pkg:golang/github.com%2Fmattn%2Fgo-colorable@v0.1.13",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mattn/go-isatty",
+      "version": "v0.0.17",
+      "purl": "pkg:golang/github.com%2Fmattn%2Fgo-isatty@v0.0.17",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/matttproud/golang_protobuf_extensions",
+      "version": "v1.0.2-0.20181231171920-c182affec369",
+      "purl": "pkg:golang/github.com%2Fmatttproud%2Fgolang_protobuf_extensions@v1.0.2-0.20181231171920-c182affec369",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/microcosm-cc/bluemonday",
+      "version": "v1.0.23",
+      "purl": "pkg:golang/github.com%2Fmicrocosm-cc%2Fbluemonday@v1.0.23",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Microsoft/go-winio",
+      "version": "v0.6.1",
+      "purl": "pkg:golang/github.com%2FMicrosoft%2Fgo-winio@v0.6.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/miekg/dns",
+      "version": "v1.1.43",
+      "purl": "pkg:golang/github.com%2Fmiekg%2Fdns@v1.1.43",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/minio/highwayhash",
+      "version": "v1.0.4",
+      "purl": "pkg:golang/github.com%2Fminio%2Fhighwayhash@v1.0.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mitchellh/go-homedir",
+      "version": "v1.1.0",
+      "purl": "pkg:golang/github.com%2Fmitchellh%2Fgo-homedir@v1.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mitchellh/mapstructure",
+      "version": "v1.5.0",
+      "purl": "pkg:golang/github.com%2Fmitchellh%2Fmapstructure@v1.5.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/moby/term",
+      "version": "v0.0.0-20221205130635-1aeaba878587",
+      "purl": "pkg:golang/github.com%2Fmoby%2Fterm@v0.0.0-20221205130635-1aeaba878587",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/modern-go/concurrent",
+      "version": "v0.0.0-20180306012644-bacd9c7ef1dd",
+      "purl": "pkg:golang/github.com%2Fmodern-go%2Fconcurrent@v0.0.0-20180306012644-bacd9c7ef1dd",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/modern-go/reflect2",
+      "version": "v1.0.2",
+      "purl": "pkg:golang/github.com%2Fmodern-go%2Freflect2@v1.0.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/munnerz/goautoneg",
+      "version": "v0.0.0-20191010083416-a7dc8b61c822",
+      "purl": "pkg:golang/github.com%2Fmunnerz%2Fgoautoneg@v0.0.0-20191010083416-a7dc8b61c822",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/mwitkow/go-conntrack",
+      "version": "v0.0.0-20190716064945-2f068394615f",
+      "purl": "pkg:golang/github.com%2Fmwitkow%2Fgo-conntrack@v0.0.0-20190716064945-2f068394615f",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nats-io/jwt/v2",
+      "version": "v2.2.1-0.20220330180145-442af02fd36a",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fjwt%2Fv2@v2.2.1-0.20220330180145-442af02fd36a",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nats-io/nats-server/v2",
+      "version": "v2.8.4",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats-server%2Fv2@v2.8.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nats-io/nats.go",
+      "version": "v1.34.0",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnats.go@v1.34.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nats-io/nkeys",
+      "version": "v0.4.7",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnkeys@v0.4.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nats-io/nuid",
+      "version": "v1.0.1",
+      "purl": "pkg:golang/github.com%2Fnats-io%2Fnuid@v1.0.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Nvveen/Gotty",
+      "version": "v0.0.0-20120604004816-cd527374f1e5",
+      "purl": "pkg:golang/github.com%2FNvveen%2FGotty@v0.0.0-20120604004816-cd527374f1e5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/nxadm/tail",
+      "version": "v1.4.4",
+      "purl": "pkg:golang/github.com%2Fnxadm%2Ftail@v1.4.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/oasisprotocol/curve25519-voi",
+      "version": "v0.0.0-20220708102147-0a8a51822cae",
+      "purl": "pkg:golang/github.com%2Foasisprotocol%2Fcurve25519-voi@v0.0.0-20220708102147-0a8a51822cae",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/onsi/ginkgo",
+      "version": "v1.14.0",
+      "purl": "pkg:golang/github.com%2Fonsi%2Fginkgo@v1.14.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/onsi/gomega",
+      "version": "v1.10.1",
+      "purl": "pkg:golang/github.com%2Fonsi%2Fgomega@v1.10.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/op/go-logging",
+      "version": "v0.0.0-20160315200505-970db520ece7",
+      "purl": "pkg:golang/github.com%2Fop%2Fgo-logging@v0.0.0-20160315200505-970db520ece7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/opencontainers/go-digest",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fopencontainers%2Fgo-digest@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/opencontainers/image-spec",
+      "version": "v1.1.0-rc2",
+      "purl": "pkg:golang/github.com%2Fopencontainers%2Fimage-spec@v1.1.0-rc2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/opencontainers/runc",
+      "version": "v1.1.12",
+      "purl": "pkg:golang/github.com%2Fopencontainers%2Frunc@v1.1.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/opentracing/opentracing-go",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/github.com%2Fopentracing%2Fopentracing-go@v1.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/openzipkin/zipkin-go",
+      "version": "v0.2.5",
+      "purl": "pkg:golang/github.com%2Fopenzipkin%2Fzipkin-go@v0.2.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/ory/dockertest",
+      "version": "v3.3.5+incompatible",
+      "purl": "pkg:golang/github.com%2Fory%2Fdockertest@v3.3.5%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pelletier/go-toml/v2",
+      "version": "v2.2.2",
+      "purl": "pkg:golang/github.com%2Fpelletier%2Fgo-toml%2Fv2@v2.2.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/performancecopilot/speed/v4",
+      "version": "v4.0.0",
+      "purl": "pkg:golang/github.com%2Fperformancecopilot%2Fspeed%2Fv4@v4.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/petermattis/goid",
+      "version": "v0.0.0-20250813065127-a731cc31b4fe",
+      "purl": "pkg:golang/github.com%2Fpetermattis%2Fgoid@v0.0.0-20250813065127-a731cc31b4fe",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pingcap/errors",
+      "version": "v0.11.4",
+      "purl": "pkg:golang/github.com%2Fpingcap%2Ferrors@v0.11.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pjbgf/sha1cd",
+      "version": "v0.3.2",
+      "purl": "pkg:golang/github.com%2Fpjbgf%2Fsha1cd@v0.3.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pkg/diff",
+      "version": "v0.0.0-20210226163009-20ebb0f2a09e",
+      "purl": "pkg:golang/github.com%2Fpkg%2Fdiff@v0.0.0-20210226163009-20ebb0f2a09e",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "purl": "pkg:golang/github.com%2Fpkg%2Ferrors@v0.9.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pkg/sftp",
+      "version": "v1.13.6",
+      "purl": "pkg:golang/github.com%2Fpkg%2Fsftp@v1.13.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/planetscale/vtprotobuf",
+      "version": "v0.6.1-0.20240319094008-0393e58bdf10",
+      "purl": "pkg:golang/github.com%2Fplanetscale%2Fvtprotobuf@v0.6.1-0.20240319094008-0393e58bdf10",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/pmezard/go-difflib",
+      "version": "v1.0.1-0.20181226105442-5d4384ee4fb2",
+      "purl": "pkg:golang/github.com%2Fpmezard%2Fgo-difflib@v1.0.1-0.20181226105442-5d4384ee4fb2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/prometheus/client_golang",
+      "version": "v1.21.0",
+      "purl": "pkg:golang/github.com%2Fprometheus%2Fclient_golang@v1.21.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/prometheus/client_model",
+      "version": "v0.6.1",
+      "purl": "pkg:golang/github.com%2Fprometheus%2Fclient_model@v0.6.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/prometheus/common",
+      "version": "v0.62.0",
+      "purl": "pkg:golang/github.com%2Fprometheus%2Fcommon@v0.62.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/prometheus/procfs",
+      "version": "v0.15.1",
+      "purl": "pkg:golang/github.com%2Fprometheus%2Fprocfs@v0.15.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/ProtonMail/go-crypto",
+      "version": "v1.1.5",
+      "purl": "pkg:golang/github.com%2FProtonMail%2Fgo-crypto@v1.1.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/rabbitmq/amqp091-go",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/github.com%2Frabbitmq%2Famqp091-go@v1.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/rcrowley/go-metrics",
+      "version": "v0.0.0-20201227073835-cf1acfcdf475",
+      "purl": "pkg:golang/github.com%2Frcrowley%2Fgo-metrics@v0.0.0-20201227073835-cf1acfcdf475",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/rogpeppe/go-internal",
+      "version": "v1.12.0",
+      "purl": "pkg:golang/github.com%2Frogpeppe%2Fgo-internal@v1.12.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/rs/cors",
+      "version": "v1.11.1",
+      "purl": "pkg:golang/github.com%2Frs%2Fcors@v1.11.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/russross/blackfriday/v2",
+      "version": "v2.1.0",
+      "purl": "pkg:golang/github.com%2Frussross%2Fblackfriday%2Fv2@v2.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sagikazarmark/crypt",
+      "version": "v0.19.0",
+      "purl": "pkg:golang/github.com%2Fsagikazarmark%2Fcrypt@v0.19.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sagikazarmark/locafero",
+      "version": "v0.4.0",
+      "purl": "pkg:golang/github.com%2Fsagikazarmark%2Flocafero@v0.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sagikazarmark/slog-shim",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/github.com%2Fsagikazarmark%2Fslog-shim@v0.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sasha-s/go-deadlock",
+      "version": "v0.3.9",
+      "purl": "pkg:golang/github.com%2Fsasha-s%2Fgo-deadlock@v0.3.9",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/satori/go.uuid",
+      "version": "v1.2.0",
+      "purl": "pkg:golang/github.com%2Fsatori%2Fgo.uuid@v1.2.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/schollz/closestmatch",
+      "version": "v2.1.0+incompatible",
+      "purl": "pkg:golang/github.com%2Fschollz%2Fclosestmatch@v2.1.0%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sergi/go-diff",
+      "version": "v1.3.2-0.20230802210424-5b0b94c5c0d3",
+      "purl": "pkg:golang/github.com%2Fsergi%2Fgo-diff@v1.3.2-0.20230802210424-5b0b94c5c0d3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/Shopify/goreferrer",
+      "version": "v0.0.0-20220729165902-8cddb4f5de06",
+      "purl": "pkg:golang/github.com%2FShopify%2Fgoreferrer@v0.0.0-20220729165902-8cddb4f5de06",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sirupsen/logrus",
+      "version": "v1.9.3",
+      "purl": "pkg:golang/github.com%2Fsirupsen%2Flogrus@v1.9.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/skeema/knownhosts",
+      "version": "v1.3.0",
+      "purl": "pkg:golang/github.com%2Fskeema%2Fknownhosts@v1.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/snikch/goodman",
+      "version": "v0.0.0-20171125024755-10e37e294daa",
+      "purl": "pkg:golang/github.com%2Fsnikch%2Fgoodman@v0.0.0-20171125024755-10e37e294daa",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sony/gobreaker",
+      "version": "v0.4.1",
+      "purl": "pkg:golang/github.com%2Fsony%2Fgobreaker@v0.4.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/sourcegraph/conc",
+      "version": "v0.3.0",
+      "purl": "pkg:golang/github.com%2Fsourcegraph%2Fconc@v0.3.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spf13/afero",
+      "version": "v1.11.0",
+      "purl": "pkg:golang/github.com%2Fspf13%2Fafero@v1.11.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spf13/cast",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com%2Fspf13%2Fcast@v1.6.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spf13/cobra",
+      "version": "v1.9.1",
+      "purl": "pkg:golang/github.com%2Fspf13%2Fcobra@v1.9.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spf13/pflag",
+      "version": "v1.0.6",
+      "purl": "pkg:golang/github.com%2Fspf13%2Fpflag@v1.0.6",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spf13/viper",
+      "version": "v1.19.0",
+      "purl": "pkg:golang/github.com%2Fspf13%2Fviper@v1.19.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/spiffe/go-spiffe/v2",
+      "version": "v2.6.0",
+      "purl": "pkg:golang/github.com%2Fspiffe%2Fgo-spiffe%2Fv2@v2.6.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/streadway/handy",
+      "version": "v0.0.0-20200128134331-0f66f006fb2e",
+      "purl": "pkg:golang/github.com%2Fstreadway%2Fhandy@v0.0.0-20200128134331-0f66f006fb2e",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/stretchr/objx",
+      "version": "v0.5.2",
+      "purl": "pkg:golang/github.com%2Fstretchr%2Fobjx@v0.5.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/stretchr/testify",
+      "version": "v1.10.0",
+      "purl": "pkg:golang/github.com%2Fstretchr%2Ftestify@v1.10.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/subosito/gotenv",
+      "version": "v1.6.0",
+      "purl": "pkg:golang/github.com%2Fsubosito%2Fgotenv@v1.6.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/syndtr/goleveldb",
+      "version": "v1.0.1-0.20210819022825-2ae1ddf74ef7",
+      "purl": "pkg:golang/github.com%2Fsyndtr%2Fgoleveldb@v1.0.1-0.20210819022825-2ae1ddf74ef7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/tdewolff/minify/v2",
+      "version": "v2.12.4",
+      "purl": "pkg:golang/github.com%2Ftdewolff%2Fminify%2Fv2@v2.12.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/tdewolff/parse/v2",
+      "version": "v2.6.4",
+      "purl": "pkg:golang/github.com%2Ftdewolff%2Fparse%2Fv2@v2.6.4",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/tendermint/go-amino",
+      "version": "v0.16.0",
+      "purl": "pkg:golang/github.com%2Ftendermint%2Fgo-amino@v0.16.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/ugorji/go/codec",
+      "version": "v1.2.7",
+      "purl": "pkg:golang/github.com%2Fugorji%2Fgo%2Fcodec@v1.2.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/urfave/negroni",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Furfave%2Fnegroni@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/valyala/bytebufferpool",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2Fvalyala%2Fbytebufferpool@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/valyala/fasthttp",
+      "version": "v1.40.0",
+      "purl": "pkg:golang/github.com%2Fvalyala%2Ffasthttp@v1.40.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/valyala/fasttemplate",
+      "version": "v1.2.2",
+      "purl": "pkg:golang/github.com%2Fvalyala%2Ffasttemplate@v1.2.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/VividCortex/gohistogram",
+      "version": "v1.0.0",
+      "purl": "pkg:golang/github.com%2FVividCortex%2Fgohistogram@v1.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/vmihailenco/msgpack/v5",
+      "version": "v5.3.5",
+      "purl": "pkg:golang/github.com%2Fvmihailenco%2Fmsgpack%2Fv5@v5.3.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/vmihailenco/tagparser/v2",
+      "version": "v2.0.0",
+      "purl": "pkg:golang/github.com%2Fvmihailenco%2Ftagparser%2Fv2@v2.0.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/xanzy/ssh-agent",
+      "version": "v0.3.3",
+      "purl": "pkg:golang/github.com%2Fxanzy%2Fssh-agent@v0.3.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/xhit/go-str2duration/v2",
+      "version": "v2.1.0",
+      "purl": "pkg:golang/github.com%2Fxhit%2Fgo-str2duration%2Fv2@v2.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/yosssi/ace",
+      "version": "v0.0.5",
+      "purl": "pkg:golang/github.com%2Fyosssi%2Face@v0.0.5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "github.com/yuin/goldmark",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/github.com%2Fyuin%2Fgoldmark@v1.2.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/bbolt",
+      "version": "v1.4.0-alpha.0.0.20240404170359-43604f3112c5",
+      "purl": "pkg:golang/go.etcd.io%2Fbbolt@v1.4.0-alpha.0.0.20240404170359-43604f3112c5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/etcd/api/v3",
+      "version": "v3.5.12",
+      "purl": "pkg:golang/go.etcd.io%2Fetcd%2Fapi%2Fv3@v3.5.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/etcd/client/pkg/v3",
+      "version": "v3.5.12",
+      "purl": "pkg:golang/go.etcd.io%2Fetcd%2Fclient%2Fpkg%2Fv3@v3.5.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/etcd/client/v2",
+      "version": "v2.305.12",
+      "purl": "pkg:golang/go.etcd.io%2Fetcd%2Fclient%2Fv2@v2.305.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/etcd/client/v3",
+      "version": "v3.5.12",
+      "purl": "pkg:golang/go.etcd.io%2Fetcd%2Fclient%2Fv3@v3.5.12",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.etcd.io/gofail",
+      "version": "v0.1.0",
+      "purl": "pkg:golang/go.etcd.io%2Fgofail@v0.1.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opencensus.io",
+      "version": "v0.24.0",
+      "purl": "pkg:golang/go.opencensus.io@v0.24.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/auto/sdk",
+      "version": "v1.2.1",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fauto%2Fsdk@v1.2.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/contrib/detectors/gcp",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fcontrib%2Fdetectors%2Fgcp@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+      "version": "v0.49.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fcontrib%2Finstrumentation%2Fgoogle.golang.org%2Fgrpc%2Fotelgrpc@v0.49.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+      "version": "v0.49.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fcontrib%2Finstrumentation%2Fnet%2Fhttp%2Fotelhttp@v0.49.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/otel",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/otel/metric",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fmetric@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/otel/sdk",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/otel/sdk/metric",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Fsdk%2Fmetric@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.opentelemetry.io/otel/trace",
+      "version": "v1.39.0",
+      "purl": "pkg:golang/go.opentelemetry.io%2Fotel%2Ftrace@v1.39.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.uber.org/atomic",
+      "version": "v1.9.0",
+      "purl": "pkg:golang/go.uber.org%2Fatomic@v1.9.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.uber.org/multierr",
+      "version": "v1.10.0",
+      "purl": "pkg:golang/go.uber.org%2Fmultierr@v1.10.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "go.uber.org/zap",
+      "version": "v1.21.0",
+      "purl": "pkg:golang/go.uber.org%2Fzap@v1.21.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/crypto",
+      "version": "v0.53.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fcrypto@v0.53.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/exp",
+      "version": "v0.0.0-20240719175910-8a7402abbf56",
+      "purl": "pkg:golang/golang.org%2Fx%2Fexp@v0.0.0-20240719175910-8a7402abbf56",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/lint",
+      "version": "v0.0.0-20190313153728-d0100b6bd8b3",
+      "purl": "pkg:golang/golang.org%2Fx%2Flint@v0.0.0-20190313153728-d0100b6bd8b3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/mod",
+      "version": "v0.36.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fmod@v0.36.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/net",
+      "version": "v0.56.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fnet@v0.56.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/oauth2",
+      "version": "v0.34.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Foauth2@v0.34.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/perf",
+      "version": "v0.0.0-20230113213139-801c7ef9e5c5",
+      "purl": "pkg:golang/golang.org%2Fx%2Fperf@v0.0.0-20230113213139-801c7ef9e5c5",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/sync",
+      "version": "v0.21.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsync@v0.21.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/sys",
+      "version": "v0.46.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fsys@v0.46.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/term",
+      "version": "v0.44.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Fterm@v0.44.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/text",
+      "version": "v0.38.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftext@v0.38.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/time",
+      "version": "v0.5.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftime@v0.5.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/tools",
+      "version": "v0.45.0",
+      "purl": "pkg:golang/golang.org%2Fx%2Ftools@v0.45.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "golang.org/x/xerrors",
+      "version": "v0.0.0-20220907171357-04be3eba64a2",
+      "purl": "pkg:golang/golang.org%2Fx%2Fxerrors@v0.0.0-20220907171357-04be3eba64a2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gonum.org/v1/gonum",
+      "version": "v0.16.0",
+      "purl": "pkg:golang/gonum.org%2Fv1%2Fgonum@v0.16.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/api",
+      "version": "v0.171.0",
+      "purl": "pkg:golang/google.golang.org%2Fapi@v0.171.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/appengine",
+      "version": "v1.6.8",
+      "purl": "pkg:golang/google.golang.org%2Fappengine@v1.6.8",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/genproto",
+      "version": "v0.0.0-20240213162025-012b6fc9bca9",
+      "purl": "pkg:golang/google.golang.org%2Fgenproto@v0.0.0-20240213162025-012b6fc9bca9",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/genproto/googleapis/api",
+      "version": "v0.0.0-20251202230838-ff82c1b0f217",
+      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Fapi@v0.0.0-20251202230838-ff82c1b0f217",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/genproto/googleapis/rpc",
+      "version": "v0.0.0-20251202230838-ff82c1b0f217",
+      "purl": "pkg:golang/google.golang.org%2Fgenproto%2Fgoogleapis%2Frpc@v0.0.0-20251202230838-ff82c1b0f217",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/grpc",
+      "version": "v1.79.3",
+      "purl": "pkg:golang/google.golang.org%2Fgrpc@v1.79.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "google.golang.org/protobuf",
+      "version": "v1.36.10",
+      "purl": "pkg:golang/google.golang.org%2Fprotobuf@v1.36.10",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/check.v1",
+      "version": "v1.0.0-20201130134442-10cb98267c6c",
+      "purl": "pkg:golang/gopkg.in%2Fcheck.v1@v1.0.0-20201130134442-10cb98267c6c",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/fsnotify.v1",
+      "version": "v1.4.7",
+      "purl": "pkg:golang/gopkg.in%2Ffsnotify.v1@v1.4.7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/gcfg.v1",
+      "version": "v1.2.3",
+      "purl": "pkg:golang/gopkg.in%2Fgcfg.v1@v1.2.3",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/ini.v1",
+      "version": "v1.67.0",
+      "purl": "pkg:golang/gopkg.in%2Fini.v1@v1.67.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/tomb.v1",
+      "version": "v1.0.0-20141024135613-dd632973f1e7",
+      "purl": "pkg:golang/gopkg.in%2Ftomb.v1@v1.0.0-20141024135613-dd632973f1e7",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/warnings.v0",
+      "version": "v0.1.2",
+      "purl": "pkg:golang/gopkg.in%2Fwarnings.v0@v0.1.2",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/yaml.v2",
+      "version": "v2.4.0",
+      "purl": "pkg:golang/gopkg.in%2Fyaml.v2@v2.4.0",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "purl": "pkg:golang/gopkg.in%2Fyaml.v3@v3.0.1",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "gotest.tools",
+      "version": "v2.2.0+incompatible",
+      "purl": "pkg:golang/gotest.tools@v2.2.0%2Bincompatible",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "golang",
+      "name": "honnef.co/go/tools",
+      "version": "v0.0.0-20190523083050-ea95bdfd59fc",
+      "purl": "pkg:golang/honnef.co%2Fgo%2Ftools@v0.0.0-20190523083050-ea95bdfd59fc",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "go-module-graph"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@adraffy/ens-normalize",
+      "version": "1.11.1",
+      "purl": "pkg:npm/%40adraffy%2Fens-normalize@1.11.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/aix-ppc64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Faix-ppc64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/android-arm",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/android-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/android-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/darwin-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/freebsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-arm",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-ia32",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ia32@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-loong64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-loong64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-mips64el",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-mips64el@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-ppc64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ppc64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-riscv64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-riscv64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-s390x",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-s390x@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/linux-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Flinux-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/netbsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/netbsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/openbsd-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/openbsd-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/openharmony-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fopenharmony-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/sunos-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fsunos-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/win32-arm64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-arm64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/win32-ia32",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-ia32@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@esbuild/win32-x64",
+      "version": "0.28.1",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-x64@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/curves",
+      "version": "1.2.0",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.2.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/curves",
+      "version": "1.4.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.4.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/curves",
+      "version": "1.8.2",
+      "purl": "pkg:npm/%40noble%2Fcurves@1.8.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/hashes",
+      "version": "1.3.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.3.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/hashes",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.4.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@noble/hashes",
+      "version": "1.7.2",
+      "purl": "pkg:npm/%40noble%2Fhashes@1.7.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-darwin-arm64",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-arm64@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-darwin-x64",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-darwin-x64@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-linux-arm64-gnu",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-gnu@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-linux-arm64-musl",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-arm64-musl@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-linux-x64-gnu",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-gnu@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-linux-x64-musl",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-linux-x64-musl@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr-win32-x64-msvc",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr-win32-x64-msvc@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/edr",
+      "version": "0.12.0",
+      "purl": "pkg:npm/%40nomicfoundation%2Fedr@0.12.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/hardhat-errors",
+      "version": "3.0.15",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-errors@3.0.15",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/hardhat-ethers",
+      "version": "4.0.13",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-ethers@4.0.13",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/hardhat-utils",
+      "version": "4.1.3",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-utils@4.1.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/hardhat-vendored",
+      "version": "3.0.4",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-vendored@3.0.4",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/hardhat-zod-utils",
+      "version": "3.0.5",
+      "purl": "pkg:npm/%40nomicfoundation%2Fhardhat-zod-utils@3.0.5",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-arm64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-arm64@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-darwin-x64",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-darwin-x64@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-gnu@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-linux-arm64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-arm64-musl@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-gnu",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-gnu@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-linux-x64-musl",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-linux-x64-musl@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer-win32-x64-msvc",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer-win32-x64-msvc@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@nomicfoundation/solidity-analyzer",
+      "version": "0.1.2",
+      "purl": "pkg:npm/%40nomicfoundation%2Fsolidity-analyzer@0.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@scure/base",
+      "version": "1.1.9",
+      "purl": "pkg:npm/%40scure%2Fbase@1.1.9",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@scure/base",
+      "version": "1.2.6",
+      "purl": "pkg:npm/%40scure%2Fbase@1.2.6",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@scure/bip32",
+      "version": "1.4.0",
+      "purl": "pkg:npm/%40scure%2Fbip32@1.4.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@scure/bip39",
+      "version": "1.3.0",
+      "purl": "pkg:npm/%40scure%2Fbip39@1.3.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@sentry/core",
+      "version": "9.47.1",
+      "purl": "pkg:npm/%40sentry%2Fcore@9.47.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@streamparser/json-node",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson-node@0.0.22",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@streamparser/json",
+      "version": "0.0.22",
+      "purl": "pkg:npm/%40streamparser%2Fjson@0.0.22",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "@types/node",
+      "version": "22.7.5",
+      "purl": "pkg:npm/%40types%2Fnode@22.7.5",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "adm-zip",
+      "version": "0.4.16",
+      "purl": "pkg:npm/adm-zip@0.4.16",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "aes-js",
+      "version": "4.0.0-beta.5",
+      "purl": "pkg:npm/aes-js@4.0.0-beta.5",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "ansi-colors",
+      "version": "4.1.3",
+      "purl": "pkg:npm/ansi-colors@4.1.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "ansi-regex",
+      "version": "5.0.1",
+      "purl": "pkg:npm/ansi-regex@5.0.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "chokidar",
+      "version": "4.0.3",
+      "purl": "pkg:npm/chokidar@4.0.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "enquirer",
+      "version": "2.4.1",
+      "purl": "pkg:npm/enquirer@2.4.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "env-paths",
+      "version": "2.2.1",
+      "purl": "pkg:npm/env-paths@2.2.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "esbuild",
+      "version": "0.28.1",
+      "purl": "pkg:npm/esbuild@0.28.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "ethereum-cryptography",
+      "version": "2.2.1",
+      "purl": "pkg:npm/ethereum-cryptography@2.2.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "ethers",
+      "version": "6.17.0",
+      "purl": "pkg:npm/ethers@6.17.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "fast-equals",
+      "version": "5.4.0",
+      "purl": "pkg:npm/fast-equals@5.4.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "purl": "pkg:npm/fsevents@2.3.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "hardhat",
+      "version": "3.9.0",
+      "purl": "pkg:npm/hardhat@3.9.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "json-stream-stringify",
+      "version": "3.1.7",
+      "purl": "pkg:npm/json-stream-stringify@3.1.7",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "micro-eth-signer",
+      "version": "0.14.0",
+      "purl": "pkg:npm/micro-eth-signer@0.14.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "micro-packed",
+      "version": "0.7.3",
+      "purl": "pkg:npm/micro-packed@0.7.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "p-map",
+      "version": "7.0.5",
+      "purl": "pkg:npm/p-map@7.0.5",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "readdirp",
+      "version": "4.1.2",
+      "purl": "pkg:npm/readdirp@4.1.2",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "resolve.exports",
+      "version": "2.0.3",
+      "purl": "pkg:npm/resolve.exports@2.0.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "rfdc",
+      "version": "1.4.1",
+      "purl": "pkg:npm/rfdc@1.4.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "semver",
+      "version": "7.8.5",
+      "purl": "pkg:npm/semver@7.8.5",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "ISC"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "strip-ansi",
+      "version": "6.0.1",
+      "purl": "pkg:npm/strip-ansi@6.0.1",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "tslib",
+      "version": "2.7.0",
+      "purl": "pkg:npm/tslib@2.7.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "0BSD"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "tsx",
+      "version": "4.22.4",
+      "purl": "pkg:npm/tsx@4.22.4",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "typescript",
+      "version": "5.9.3",
+      "purl": "pkg:npm/typescript@5.9.3",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "undici-types",
+      "version": "6.19.8",
+      "purl": "pkg:npm/undici-types@6.19.8",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "undici",
+      "version": "6.27.0",
+      "purl": "pkg:npm/undici@6.27.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "ws",
+      "version": "8.21.0",
+      "purl": "pkg:npm/ws@8.21.0",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "npm",
+      "name": "zod",
+      "version": "3.25.76",
+      "purl": "pkg:npm/zod@3.25.76",
+      "scope": "optional",
+      "properties": [
+        {
+          "name": "ynx:dependencySource",
+          "value": "package-lock-v3"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ]
+}

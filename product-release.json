@@ -33,6 +33,15 @@
       "bytes": 828944,
       "signingClass": "unsigned_repository_asset",
       "downloadURL": null
+    },
+    {
+      "kind": "cyclonedx_sbom",
+      "path": "release/sbom.cdx.json",
+      "sha256": "f28f3af841485cca1e670e654740eecabd5c775b396a6bb808e32bd5aa1917d4",
+      "bytes": 150037,
+      "signingClass": "unsigned_repository_evidence",
+      "downloadURL": null,
+      "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21"
     }
   ],
   "installationEvidence": null,
@@ -46,6 +55,8 @@
     "public screenshots and browser/device accessibility evidence",
     "staging/public deployment and monitor evidence",
     "support, privacy, security and status URLs",
-    "contract audits and governed candidate activation"
+    "contract audits and governed candidate activation",
+    "unresolved High vulnerability in development-only Hardhat adm-zip chain",
+    "external DAST, hosted CI provenance and artifact signing"
   ]
 }

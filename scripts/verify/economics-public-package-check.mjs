@@ -24,10 +24,13 @@ for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "de
 const commit = spawnSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`], { cwd: root });
 assert.equal(commit.status, 0, "sourceCommit must identify an existing commit");
 
+for (const artifact of release.artifacts) {
+  const bytes = fs.readFileSync(path.join(root, artifact.path));
+  assert.equal(bytes.byteLength, artifact.bytes, `${artifact.path} byte count`);
+  assert.equal(crypto.createHash("sha256").update(bytes).digest("hex"), artifact.sha256, `${artifact.path} digest`);
+  assert.equal(artifact.downloadURL, null, `${artifact.path} must not claim hosting`);
+}
 const artifact = release.artifacts[0];
-const bytes = fs.readFileSync(path.join(root, artifact.path));
-assert.equal(bytes.byteLength, artifact.bytes);
-assert.equal(crypto.createHash("sha256").update(bytes).digest("hex"), artifact.sha256);
 assert.equal(metadata.assets.socialPreview.sha256, artifact.sha256);
 assert.equal(metadata.assets.socialPreview.bytes, artifact.bytes);
 

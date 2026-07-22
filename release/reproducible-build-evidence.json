@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "source": "two-local-build-comparison-and-local-cold-start",
+  "asOf": "2026-07-22T16:07:47Z",
+  "sourceCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21",
+  "coverage": "darwin-arm64-cgo-disabled-local-unsigned-build-not-hosted-ci",
+  "toolchain": "go1.25.12",
+  "commandClass": "CGO_ENABLED=0 go build -trimpath -buildvcs=false with empty build ID and fixed build metadata",
+  "artifact": {
+    "name": "ynx-explorerd",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "minimumOS": null,
+    "minimumOSStatus": "not_measured",
+    "sha256": "2b161e7c62184b565985265ca0b4b510d43c40862689c55f9b01ce28fd073f0b",
+    "bytes": 11381506,
+    "signingClass": "unsigned_local_binary",
+    "immutableDownloadURL": null
+  },
+  "buildAEqualsBuildB": true,
+  "coldStart": {
+    "executed": true,
+    "listenAddress": "loopback-only",
+    "healthStatus": 200,
+    "healthSource": "ynx-economics-reference-model",
+    "healthFailure": false,
+    "reportedCommit": "e9bf567bed0c8d608e2e0915df43d0b2c1109b21",
+    "rpcAndIndexerAvailable": false,
+    "publicDeployment": false
+  },
+  "installedLocal": false,
+  "failure": false
+}

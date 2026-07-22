@@ -50,6 +50,11 @@ All paths are repository-relative and refer to the current source commit only af
 | Economics Request ID, health and Prometheus metrics | `internal/explorer/economics_web.go`, `economics_web_test.go`, `OBSERVABILITY.md` | `make economics-public-ui-check` |
 | Economics local latency, throughput, allocation and coverage boundary | `evidence/performance/economics-local-benchmark.json`, `SLO_CAPACITY_PLAN.md` | Re-run `go run ./cmd/ynx-economics-bench` against its exact `sourceCommit` |
 | Unit-cost formulas and currently unavailable billing/user inputs | `UNIT_ECONOMICS.md` | Review zero/unknown/undefined boundaries |
+| Threats, trust assets and execution boundaries | `THREAT_MODEL.md`, `SECURITY_BOUNDARIES.md` | Review authority and remaining-gate tables |
+| Complete resolved dependency inventory | `release/sbom.cdx.json`, `THIRD_PARTY_NOTICES.md` | `make economics-supply-chain-check` |
+| Dependency, secret and static scan truth | `release/security-scan-evidence.json`, `SUPPLY_CHAIN_SECURITY.md` | Re-run named commands; unresolved npm High remains explicit |
+| Reproducible unsigned local binary and cold start | `release/reproducible-build-evidence.json` | Repeat allowlisted build twice and compare SHA-256 |
+| Scoped release changes and known gaps | `RELEASE_NOTES.md`, `product-release.json` | `make economics-public-package-check` |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 
 Generated artifacts, remote URLs, transaction hashes, installation proof, deployment proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.
