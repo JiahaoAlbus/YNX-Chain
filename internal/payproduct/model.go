@@ -270,6 +270,8 @@ type Snapshot struct {
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
 	Sponsorships    map[string]SponsorshipQuote       `json:"sponsorships"`
+	BridgeTransfers map[string]BridgeTransfer         `json:"bridgeTransfers"`
+	RouteQuotes     map[string]PaymentRouteQuote      `json:"routeQuotes"`
 	Audit           []AuditEntry                      `json:"audit"`
 }
 

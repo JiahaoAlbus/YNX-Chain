@@ -68,7 +68,7 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 1, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Sponsorships: map[string]SponsorshipQuote{}, Audit: []AuditEntry{}}
+	return Snapshot{Version: 1, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Sponsorships: map[string]SponsorshipQuote{}, BridgeTransfers: map[string]BridgeTransfer{}, RouteQuotes: map[string]PaymentRouteQuote{}, Audit: []AuditEntry{}}
 }
 func (s *Store) normalize() {
 	e := emptySnapshot()
@@ -110,6 +110,12 @@ func (s *Store) normalize() {
 	}
 	if s.data.Sponsorships == nil {
 		s.data.Sponsorships = e.Sponsorships
+	}
+	if s.data.BridgeTransfers == nil {
+		s.data.BridgeTransfers = e.BridgeTransfers
+	}
+	if s.data.RouteQuotes == nil {
+		s.data.RouteQuotes = e.RouteQuotes
 	}
 }
 

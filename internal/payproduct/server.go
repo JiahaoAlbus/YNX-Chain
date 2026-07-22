@@ -1,6 +1,7 @@
 package payproduct
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
@@ -35,6 +36,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/invoices/{id}/disputes", s.dispute)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/sponsorship-quotes", s.sponsorshipQuote)
 	s.mux.HandleFunc("POST /v1/sponsorships/{id}/receipts", s.sponsorshipReceipt)
+	s.mux.HandleFunc("POST /v1/invoices/{id}/route-quotes", s.routeQuote)
+	s.mux.HandleFunc("POST /v1/route-quotes/{id}/select", s.routeSelect)
+	s.mux.HandleFunc("POST /v1/bridge-transfers/{id}/refresh", s.bridgeRefresh)
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
@@ -197,6 +201,62 @@ func (s *Server) sponsorshipReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.service.ConfirmSponsorship(r.Context(), session, r.PathValue("id"), in.UserOperationHash)
+	respond(w, 200, out, err)
+}
+func (s *Server) routeQuote(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	var in RouteQuoteInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.CreateRouteQuote(r.Context(), session, r.PathValue("id"), in)
+	respond(w, 201, out, err)
+}
+func (s *Server) routeSelect(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	var in struct {
+		OptionID string `json:"optionId"`
+	}
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.SelectRoute(session, r.PathValue("id"), in.OptionID)
+	respond(w, 200, out, err)
+}
+func (s *Server) bridgeRefresh(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	if err != nil {
+		writeError(w, 413, "request body exceeds limit")
+		return
+	}
+	session, err := s.service.VerifyPayGateway(r, body)
+	if err != nil {
+		writeError(w, 401, err.Error())
+		return
+	}
+	if len(bytes.TrimSpace(body)) != 0 && string(bytes.TrimSpace(body)) != "{}" {
+		writeError(w, 400, "bridge refresh body must be empty")
+		return
+	}
+	out, err := s.service.RefreshBridge(r.Context(), session, r.PathValue("id"))
 	respond(w, 200, out, err)
 }
 func (s *Server) merchantState(w http.ResponseWriter, r *http.Request) {

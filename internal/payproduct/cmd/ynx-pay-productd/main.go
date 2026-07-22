@@ -40,7 +40,14 @@ func main() {
 		}
 		sponsorPolicy = payproduct.SponsorPolicy{Sponsor: required("YNX_PAY_PRODUCT_SPONSOR_ID"), DailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_DAILY_BUDGET"), PerUserDailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_USER_DAILY_BUDGET"), PerMerchantDailyBudget: positiveInt("YNX_PAY_PRODUCT_SPONSOR_MERCHANT_DAILY_BUDGET"), MaximumQuoteLifetime: 5 * time.Minute}
 	}
-	service, err := payproduct.New(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), PayAPI: pay, AI: ai, Sponsorship: sponsorship, SponsorPolicy: sponsorPolicy})
+	var bridge payproduct.BridgeProvider
+	if base := strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_BRIDGE_URL")); base != "" {
+		bridge, err = payproduct.NewHTTPBridgeProvider(base, required("YNX_PAY_PRODUCT_BRIDGE_KEY"))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	service, err := payproduct.New(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), PayAPI: pay, AI: ai, Sponsorship: sponsorship, SponsorPolicy: sponsorPolicy, Bridge: bridge})
 	if err != nil {
 		log.Fatal(err)
 	}
