@@ -11,6 +11,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
 const releaseManifestEvidencePath = process.env.YNX_RELEASE_MANIFEST_EVIDENCE_PATH || path.join(repoRoot, "tmp/verify-testnet/release-manifest-evidence.json");
 const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
+const aiStreamTimeoutMs = Number(process.env.YNX_REMOTE_AI_STREAM_TIMEOUT_MS || Math.max(timeoutMs, 45000));
+const explorerIndexAttempts = Number(process.env.YNX_REMOTE_EXPLORER_INDEX_ATTEMPTS || 30);
 const growthDelayMs = Number(process.env.YNX_REMOTE_BLOCK_GROWTH_DELAY_MS || 2500);
 const remoteTransport = parseRemoteSmokeTransport();
 const remoteDispatcher = createRemoteSmokeDispatcher(remoteTransport, timeoutMs);
@@ -107,7 +109,7 @@ async function request(name, url, options = {}) {
       method: options.method || "GET",
       headers,
       body,
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(options.timeoutMs || timeoutMs),
       ...(remoteDispatcher ? { dispatcher: remoteDispatcher } : {}),
     });
     const text = await res.text();
@@ -849,7 +851,7 @@ async function main() {
 
     const txHash = txHashOf(faucetTx);
     if (txHash) {
-      const explorerTx = await getJsonEventually("explorer.faucetTx", `${endpoints.explorer}/api/txs/${txHash}`);
+      const explorerTx = await getJsonEventually("explorer.faucetTx", `${endpoints.explorer}/api/txs/${txHash}`, {}, explorerIndexAttempts, 1000);
       if (explorerTx) checkTxHash("explorer.faucetTx.hash", explorerTx?.transaction ?? explorerTx);
     }
 
@@ -950,7 +952,7 @@ async function main() {
     if (!aiGatewayAPIKey) {
       record("ai.stream.authenticatedSSE", false, "YNX_AI_GATEWAY_API_KEY is missing from the secure remote proof environment", {});
     } else {
-      const aiStream = await request("ai.stream", `${endpoints.ai}/ai/stream?session=${encodeURIComponent(aiSession)}&q=${encodeURIComponent("Explain current YNX Testnet status without executing actions")}`, { headers: aiHeaders });
+      const aiStream = await request("ai.stream", `${endpoints.ai}/ai/stream?session=${encodeURIComponent(aiSession)}&q=${encodeURIComponent("Explain current YNX Testnet status without executing actions")}`, { headers: aiHeaders, timeoutMs: aiStreamTimeoutMs });
       const streamOK = aiStream.ok && aiStream.requestId && aiStream.text.includes("event: metadata") && aiStream.text.includes("event: token") && aiStream.text.includes("event: done") && aiStream.text.includes(aiSession);
       record("ai.stream.authenticatedSSE", Boolean(streamOK), streamOK ? `authenticated session stream ${aiSession} request ${aiStream.requestId}` : `authenticated AI Gateway SSE failed: ${aiStream.error || clip(aiStream.text)}`, {
         requestId: aiStream.requestId,

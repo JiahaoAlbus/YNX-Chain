@@ -1,5 +1,95 @@
 # Project State
 
+## 2026-07-16 transaction continuity and ecosystem worktree audit
+
+- A Singapore direct-origin read-only check used the committed Exchange
+  withdrawal reference transaction
+  `0x5469bfc2a41b76150b765122e4dc5e02c3bbe66886c24f46efe0dfd60edea5ac`.
+  REST transaction, Explorer transaction, EVM transaction, EVM receipt with
+  status `0x1`, and exact release `02f4ccd8770c` each passed 5/5. Public height
+  advanced from `204647` to `204653`. This is operator-controlled regional
+  evidence, not independent proof.
+- The corresponding Silicon Valley attempt did not reach the APIs: three
+  strict-host-key SSH attempts timed out while waiting for the SSH banner. No
+  transaction/receipt failure is inferred because no API probe executed. The
+  Silicon Valley-specific continuity proof remains open.
+- A subsequent Seoul direct-origin check completed the second non-primary
+  region: REST transaction, Explorer transaction, EVM transaction, successful
+  EVM receipt, and exact release each passed 5/5 for the same committed
+  reference. Public height advanced from `215973` to `215988`. Singapore and
+  Seoul therefore provide two operator-controlled non-primary continuity
+  vantages; neither is independent third-party proof.
+- `public-ingress-diagnostic` now binds its transaction and receipt probes to the
+  committed Exchange vector, checks REST, Explorer, EVM transaction, and
+  successful EVM receipt semantics, and records the expected release and vector
+  source in evidence. The bounded diagnostic now has 14 probes per cycle.
+- All 15 declared ecosystem product directories under Desktop were verified as
+  clean registered worktrees sharing this repository's Git directory, using the
+  declared product branches and the expected GitHub origin. No product migration
+  is required. Exchange currently points at the newer clean tip `ff2b6b4ea877`;
+  it must not be reset to the earlier `ee1c3f...` candidate.
+- The 23-product matrix is now explicit in
+  `docs/coordination/PRODUCT_ACCEPTANCE_MATRIX.md`. All 15 original product tasks
+  received targeted rework for product closure, native/installable platform
+  evidence, central Wallet/Gateway integration, and 12-language localization
+  including Arabic RTL. None of those candidates is represented as integrated,
+  deployed, publicly available, production signed, or externally accepted.
+
+## 2026-07-16 direct public ingress path diagnosis
+
+- The authoritative runtime and ingress were not changed. Caddy has remained active since 2026-07-11 with zero restarts, 36 open file descriptors against a `1048576` limit, an empty `:443` receive queue, and no warning/error journal entries during the observed failures. All eight loopback backends returned HTTP `200`; Caddy validation passed. Host memory, task, socket, and qdisc evidence showed no current resource or queue exhaustion, and no local firewall rate limit applies to `:443`.
+- Five bounded direct cycles from the primary and five from Singapore each passed RPC, REST, Faucet, Indexer, Explorer, AI, Pay, Trust, Resource, and EVM `0x1917` reads: 50/50 probes per vantage. Heights grew `202784` to `202805` on the primary and `202784` to `202802` from Singapore. These are operator-controlled direct public-origin reads, not independent proof.
+- The first Silicon Valley cycle set passed 49/50 probes and grew from `202786` to `202827`; one RPC TLS handshake exceeded the existing four-second connect bound. A follow-up from the same node passed 20/20 TLS 1.2 handshakes, 20/20 TLS 1.3 handshakes, and 20/20 HTTPS RPC reads. This shows recovery but does not erase the observed cross-region failure or establish guaranteed availability.
+- The workstation is not a direct public vantage while SingLinkVPN is active: all YNX public names resolve to `198.18.0.0/15` fake IPs, and routes to both fake and real origin addresses traverse `utun4`. A one-cycle run completed only 4/10 probes. New `public-ingress-diagnostic` evidence records DNS, TCP, TLS, TTFB, semantic chain/release checks, and block growth; it marks fake/non-public DNS and explicit origin overrides as ineligible for direct proof. Its bounded offline self-test is now part of preflight.
+- The remaining ingress gap is intermittent long-distance TLS/path availability and absence of an independent public vantage or redundant ingress. No timeout was increased, no retry policy was widened, and no DNS, Caddy, firewall, BFT, or chain mutation was performed.
+
+## 2026-07-16 authoritative snapshot-v2 rollout and follower recovery
+
+- Ordinary authoritative release `02f4ccd8770c` was deployed through the restricted upgrade gate in follower-first order: Singapore, Silicon Valley, Seoul, then primary. Predeploy reports and valid scoped backups were created on every role (about 12 MB per follower and 23 MB primary). No BFT freeze, signer, candidate, ingress cutover, or rollback transaction phase ran.
+- All four nodes report the exact release manifest, manifest SHA-256 `77f21c...98f4c`, and installed `ynx-chaind` SHA-256 `a91a6f...6398e`. Every authoritative state file reports snapshot version `2` with marker `2` and a populated full-state integrity digest. The digests differ at moving follower heights as expected; they are not represented as one simultaneous-state proof.
+- The original fixed-height convergence verifier exposed a moving-chain sampling race after rollout. The corrected local verifier now requires each follower's same identity snapshot to be `synced`, `catchingUp=false`, `fresh=true`, source/local height and hash equal, then verifies that exact hash from both follower and primary block APIs. All three followers passed this canonical convergence check and rejected local writes with HTTP `409`.
+- A bounded Seoul restart proved lifecycle reset and recovery: the service was initially unavailable, then reported `syncing`, `catchingUp=true`, `fresh=false`, zero post-restart successes, and finally recovered after one authenticated snapshot to `synced`, `catchingUp=false`, `fresh=true` at height `197443`. Source/local and primary/Seoul block hashes all matched `be7e0c...9b18`; failures and consecutive failures were zero after recovery.
+- An operator-controlled Singapore-routed public smoke proved exact release reads and real Faucet, Explorer, Pay, governance/Anti-Illegal, Trust appeal/transparency, Resource, and IDE workflows. Explorer required 24 bounded one-second attempts before the new Faucet transaction appeared, so local verification now permits up to 30 attempts. AI SSE remained failed with HTTP `502` because the upstream provider returned `429`; this is an external provider/quota blocker, not completed AI proof. Direct public ingress also showed intermittent zero-status EVM/REST/Explorer connections. No independent public proof is claimed.
+
+## 2026-07-16 protected authoritative monitoring and alert drill
+
+- Prometheus 3.11.2 is checksum-pinned, installed, enabled, and active on the primary. It listens only on WireGuard `10.77.42.1:19090`; a direct request to public `43.153.202.237:19090` timed out. The config has one loopback primary target and distinct Singapore, Silicon Valley, and Seoul targets at `10.77.42.2`, `.3`, and `.4`; all four returned `up=1`. No replication credential, public node address, Grafana endpoint, or Alertmanager secret is exposed by the scrape config.
+- A controlled Seoul `ynx-chaind` stop began at `03:16:49Z`. `YNXChainMetricsDown{role="seoul"}` was absent before interruption, entered pending, reached firing at `03:19:11Z` after its two-minute hold, and cleared by `03:19:34Z` after the service restarted and the target returned to `up=1`.
+- Exact-release verification then proved Singapore convergence at height `200903`, Silicon Valley at `200945`, and restarted Seoul at `200947`; each follower matched the primary's canonical hash at its sampled height and rejected writes with HTTP `409`. Public RPC grew from `200969` to `200971`.
+- The complete `make verify-testnet` command still failed after the convergence proof because direct REST, Faucet, Explorer, AI, and Pay ingress requests intermittently returned fetch failures. Mutable remote actions were therefore skipped. Protected monitoring and restart recovery are complete operator evidence; direct ingress stability, provider-backed AI success, Alertmanager notification delivery, a remote dashboard, and independent proof remain incomplete.
+
+## 2026-07-16 Wallet Auth candidate protocol review
+
+- Initial total-control review rejected branch tip `bb8ef9924d71c1f991cb1facdfc06ab2d60045c8` because Gateway scope/expiry was not fully bound and the Android P-256 proof could not be verified by the Ed25519-only shared package. That superseded SHA remains rejected.
+- Corrected branch tip `51cf0da1fb30ee1c1a093a1ec8f43d544e54d061`, still from baseline `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`, passed total-control reruns: Wallet Auth 17/17, Wallet App 13/13, typecheck, product check, production dependency audit with zero findings, committed proof/APK hashes, and focused secret scan.
+- The corrected protocol binds `p256-sha256`, canonical 33-byte compressed SEC1 P-256 public keys, exact ordered scopes, issue/expiry inside the Wallet approval, and exact challenge/completion schemas. The Android harness verifies every Wallet request/approval binding, digest, scope, secp256k1 signature, and derived `ynx1` account before persistent nonce consumption, then uses the same canonical Gateway signing domain with a non-exportable Android Keystore P-256 key. The new emulator proof and persistent replay rejection hashes match the handoff.
+- The corrected candidate is accepted into the integration queue only. Central registry/Gateway implementation, current-main replay, Social and dependent-product migration, production signing, native iOS archive, physical-device proof, external audit, deployment, and public proof remain incomplete.
+
+## 2026-07-16 ecosystem candidate intake batch
+
+- Total-control intake reviewed exact remote tips for Wallet Auth/Wallet, Social, Pay, Exchange, Trust/Resource, Explorer/Monitor, Developer, Mail/Calendar, Finance, and Video. Every branch stayed within its declared product paths plus one handoff and passed an isolated repository secret scan. Wallet Auth was initially rejected and then corrected at `51cf0da1fb30`; all listed branches are queued candidates only. None was merged, deployed, or promoted to public proof.
+- Focused independent reruns passed: Wallet protocol 13/13 and App 13/13 plus type/product checks; Social Go race plus 8/8 App tests and typecheck; Pay Go race, merchant test/build, consumer typecheck and 2/2 tests; Exchange Go race, 5/5 UI and smoke; Trust/Resource four race suites; Explorer 5/5 and Monitor 6/6 plus both builds; Developer 13/13 client, 5/5 Web and 2/2 sandbox; Mail/Calendar race, 3/3 UI and smoke for each; Finance race, 3/3 UI and smoke; Video race, viewer/studio checks and smoke.
+- Integration conflicts remain explicit. Social uses `com.ynx.social` and a legacy query-field Wallet request while the reviewed Wallet Auth candidate requires exact registry binding and a canonical base64url request envelope. Pay, Exchange and other older candidates also retain temporary product-local Wallet adapters. No dependent product may merge until one central Wallet/Gateway verifier is implemented and exact cross-product vectors pass.
+- Trust/Resource still sends AI prompts in a GET query and must adopt reviewed POST-body Gateway transport. Explorer/Monitor installs Vite 6.4.1, for which the current audit reports a high-severity path traversal/file-read advisory; it must be upgraded and rebuilt. Wallet, Pay and Social Expo dependency trees currently report ten moderate advisories. These dependency findings are integration-release blockers, not evidence that the implemented local workflows are fake.
+- All product branches except Wallet/Social start from older baseline `51bed843c5aa8dc53b2dc32b29cb8ca349ff0e95`; Wallet/Social start from `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`. Integration requires current-main replay/cherry-pick review and full central gates. Local screenshots, Hermes bundles, emulator runs, ad-hoc desktop archives and handoff-reported Playwright runs remain product evidence only.
+
+## 2026-07-16 recovered four-node access and upgrade source-release gate
+
+- A later fresh read-only cycle superseded the earlier Seoul outage observation. Current host keys and strict SSH passed for primary, Singapore, Silicon Valley, and Seoul. Public RPC advanced from height `195385` to `195386`, and bounded RPC, EVM RPC, REST, gRPC, governance, Indexer, Explorer, AI, Pay, Trust, Resource, and Web4 reads passed; Faucet timed out once and passed in the subsequent verification cycle.
+- The public chain remains release `0d31850f74b2`, so exact target-release checks failed and every mutable smoke action remained skipped. `verify-testnet` also failed because the not-yet-installed target manifest was absent. No backup, install, restart, cloud action, chain mutation, firewall/ingress change, or BFT phase ran.
+- The upgrade gate exposed a sequencing defect: it permitted source-to-target build differences but required the target release manifest before the first target install. Current source now adds a strict four-node `upgrade-source-release-audit` that binds each node's live `/status` source release to its installed manifest and `/usr/local/bin/ynx-chaind` SHA-256, requires one consistent source release, and binds the intended target to current `HEAD`.
+- Restricted upgrade mode may tolerate a missing target manifest only after that source audit passes. Node, SSH, service, peer, block-growth, current-source manifest, and current-source checksum failures remain blockers. Missing and failed source-evidence fixtures are rejected; static checks and complete `make preflight` pass locally. The new gate has not yet authorized or executed a remote deployment.
+- `infra/monitoring/replication-alerts.test.yml` now exercises the production Prometheus rules with synthetic follower timelines. Prometheus 2.55.1 `promtool` proves degraded, prolonged catch-up, lag-above-three, and consecutive-failure alerts remain pending for the configured `for` duration, fire, and clear after recovery. This is local rule behavior evidence only; no remote scrape target, Alertmanager notification, controlled remote interruption, or independent proof exists.
+- Actual ordinary deployment now fails before the readiness gate or build when Git has tracked modifications or untracked files, preventing dirty source from being labeled as the clean `HEAD` release. Ignored runtime/secret evidence remains allowed, and dry-run remains non-mutating. An isolated check covers clean, ignored-only, tracked-dirty, and untracked repositories.
+
+## 2026-07-16 Authoritative snapshot v2 corruption detection
+
+- Current source upgrades the authoritative `devnet-state.json` from partial Resource Sponsor integrity to a versioned full-snapshot SHA-256 digest covering blocks, transactions, accounts, validators, operational peer records, Pay, Trust, governance, AI, Resource, contracts, and nested records. Startup and replication validate the digest before applying state.
+- Persistent writes now fsync the mode-`0600` temporary file, rename it atomically, and fsync the parent directory. A separate `devnet-state.integrity-version` marker allows one valid marker-free v1 migration and rejects later local downgrade to v1. This detects corruption and unkeyed file changes; it is not a keyed signature or independent storage audit.
+- Replication validates full integrity and Resource Sponsor integrity before mutation. If persistence fails after an incoming state is applied, memory is restored to the pre-apply snapshot and rollback persistence is attempted; failure evidence is returned rather than exposing a successful half-apply.
+- Local tests cover v2 restart, account and block tamper rejection, authenticated replication tamper rejection, v1 migration, post-migration downgrade rejection, mode `0600`, temporary-file cleanup, write failure, rollback after failed persistence, and race safety. No remote state file was changed and no public v2 migration, remote corruption drill, or independent proof exists.
+- The safe first rollout order is all three followers before the primary. New followers can consume authenticated v1 during the bounded mixed-version interval and reseal locally as v2; after the primary upgrade they must consume authenticated v2. Deploying the primary before old followers would make those old followers reject the unsupported snapshot version.
+
 ## 2026-07-16 Replication fault detection and bounded remote audit
 
 - One fresh read-only remote cycle completed. Strict SSH and current host keys passed on the primary, Singapore, Silicon Valley, and Seoul roles. Public RPC identified chain `6423`, four active validators, four observed peer records, three peer-sync records, and deployed release `0d31850f74b2` at observed height `185750`.
@@ -190,4 +280,4 @@ Current blockers:
 
 Largest real gap that can still be advanced next:
 
-- Build the first real native Chat window over the remotely protected direct-message core: conversation list/create, encrypted message send/read, delivery/read state, device/session lifecycle, retry-safe errors, and honest empty/unavailable states. Keep the App native rather than website-shaped. Groups, attachments, Bank, Shop, live Bridge execution, iOS/real devices, owner production signing, stores, audit, and independent proof remain later gaps. Bounded EVM/IDE remains frozen.
+- Preserve authoritative release `02f4ccd8770c` and protected monitoring while hardening direct public ingress: retain bounded per-phase path evidence, obtain repeated zero-failure cycles from multiple non-primary public regions, and design a truthful redundant-ingress/failover option before changing DNS or origin routing. Then repeat exact-release, block-growth, and transaction/receipt continuity without using the workstation VPN path or the Singapore SSH tunnel. Provider-backed AI remains an external HTTP `429` blocker; BFT and bounded EVM/IDE remain frozen.
