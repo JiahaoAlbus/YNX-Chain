@@ -148,6 +148,108 @@ export function assertFreshQuote(quote, { now = new Date(), maxAgeMs = 15_000 } 
   return quote;
 }
 
+export function parseVaultState(value) {
+  exactObject(value, ["actionNonce", "asOf", "chainId", "configured", "engine", "failure", "killed", "mandate", "nonceDomain", "oracle", "owner", "paused", "revoked", "router", "source", "vault", "version"]);
+  if (value.chainId !== 6423 || value.source !== "YNX Testnet EVM RPC" || value.version !== "ynx-strategy-vault-v1" || value.failure !== null) fail("INVALID_VAULT_STATE", "vault state is not authoritative");
+  for (const field of ["vault", "owner", "engine", "router", "oracle"]) if (!ADDRESS.test(value[field])) fail("INVALID_VAULT_STATE", `invalid ${field}`);
+  if (!/^0x[0-9a-fA-F]{64}$/.test(value.nonceDomain)) fail("INVALID_VAULT_STATE", "invalid nonce domain");
+  for (const field of ["configured", "paused", "revoked", "killed"]) if (typeof value[field] !== "boolean") fail("INVALID_VAULT_STATE", `invalid ${field}`);
+  const asOf = new Date(value.asOf);
+  if (!Number.isFinite(asOf.valueOf())) fail("INVALID_VAULT_STATE", "invalid state timestamp");
+  const mandate = parseVaultMandate(value.mandate);
+  return Object.freeze({ ...value, actionNonce: positiveBigInt(value.actionNonce, true), asOf: asOf.toISOString(), mandate, vault: value.vault.toLowerCase(), owner: value.owner.toLowerCase(), engine: value.engine.toLowerCase(), router: value.router.toLowerCase(), oracle: value.oracle.toLowerCase(), nonceDomain: value.nonceDomain.toLowerCase() });
+}
+
+export function assertExecutableVaultState(state, { now = new Date(), maxAgeMs = 15_000 } = {}) {
+  state = parseVaultState(state);
+  const age = now.valueOf() - new Date(state.asOf).valueOf();
+  if (!Number.isInteger(maxAgeMs) || maxAgeMs < 1 || age < 0 || age > maxAgeMs) fail("STALE_VAULT_STATE", "vault state is stale or from the future");
+  if (!state.configured || state.paused || state.revoked || state.killed) fail("VAULT_NOT_EXECUTABLE", "vault mandate is not executable");
+  if (BigInt(Math.floor(now.valueOf() / 1000)) >= state.mandate.expiresAt) fail("VAULT_MANDATE_EXPIRED", "vault mandate expired");
+  return state;
+}
+
+export function buildVaultSwapExactInputTx({ state, quote, slippageBps, deadline, now = new Date() }) {
+  state = assertExecutableVaultState(state, { now });
+  assertFreshQuote(quote, { now });
+  validateVaultDeadline(deadline, state, now);
+  return vaultRequest(state, "swapExactInput", [state.actionNonce.toString(), quote.amountIn.toString(), minimumOutput(quote.amountOut, slippageBps).toString(), quote.path, deadline], "limited-engine-session");
+}
+
+export function buildVaultSwapExactOutputTx({ state, quote, slippageBps, deadline, now = new Date() }) {
+  state = assertExecutableVaultState(state, { now });
+  assertFreshQuote(quote, { now });
+  validateVaultDeadline(deadline, state, now);
+  return vaultRequest(state, "swapExactOutput", [state.actionNonce.toString(), quote.amountOut.toString(), maximumInput(quote.amountIn, slippageBps).toString(), quote.path, deadline], "limited-engine-session");
+}
+
+export function buildVaultAddLiquidityTx({ state, tokenA, tokenB, amountA, amountB, minLiquidity, deadline, now = new Date() }) {
+  state = assertExecutableVaultState(state, { now });
+  validateVaultTokens(tokenA, tokenB);
+  validateVaultDeadline(deadline, state, now);
+  return vaultRequest(state, "addLiquidity", [state.actionNonce.toString(), tokenA.toLowerCase(), tokenB.toLowerCase(), positiveBigInt(amountA).toString(), positiveBigInt(amountB).toString(), positiveBigInt(minLiquidity).toString(), deadline], "limited-engine-session");
+}
+
+export function buildVaultRemoveLiquidityTx({ state, tokenA, tokenB, liquidity, amountAMin, amountBMin, deadline, now = new Date() }) {
+  state = assertExecutableVaultState(state, { now });
+  validateVaultTokens(tokenA, tokenB);
+  validateVaultDeadline(deadline, state, now);
+  return vaultRequest(state, "removeLiquidity", [state.actionNonce.toString(), tokenA.toLowerCase(), tokenB.toLowerCase(), positiveBigInt(liquidity).toString(), positiveBigInt(amountAMin, true).toString(), positiveBigInt(amountBMin, true).toString(), deadline], "limited-engine-session");
+}
+
+export function buildPauseVaultTx({ state, requestedBy }) {
+  state = parseVaultState(state);
+  if (!ADDRESS.test(requestedBy) || ![state.owner, state.engine].includes(requestedBy.toLowerCase())) fail("UNAUTHORIZED_VAULT_REQUEST", "pause requires owner or engine");
+  return vaultRequest(state, "pause", [], requestedBy.toLowerCase() === state.owner ? "owner" : "limited-engine-session");
+}
+
+export function buildEmergencyExitTx({ state, requestedBy, recipient }) {
+  state = parseVaultState(state);
+  if (!ADDRESS.test(requestedBy) || requestedBy.toLowerCase() !== state.owner || !ADDRESS.test(recipient)) fail("UNAUTHORIZED_VAULT_REQUEST", "emergency exit requires owner");
+  return vaultRequest(state, "emergencyExit", [recipient.toLowerCase()], "owner");
+}
+
+export function reconcileVaultAction({ request, receipt, latestBlock, minConfirmations = 12, asOf = new Date() }) {
+  exactObject(request, ["approvalRequired", "args", "authority", "chainId", "executor", "functionName", "nonceDomain", "sourceStateAsOf", "to", "value"]);
+  exactObject(receipt, ["blockNumber", "chainId", "events", "status", "to", "transactionHash"]);
+  if (request.chainId !== 6423 || receipt.chainId !== 6423 || request.to !== receipt.to?.toLowerCase() || receipt.status !== "success" || !/^0x[0-9a-fA-F]{64}$/.test(receipt.transactionHash)) fail("INVALID_RECEIPT", "receipt identity or status mismatch");
+  if (!Number.isSafeInteger(receipt.blockNumber) || !Number.isSafeInteger(latestBlock) || receipt.blockNumber < 1 || latestBlock < receipt.blockNumber || !Number.isInteger(minConfirmations) || minConfirmations < 1) fail("INVALID_RECEIPT", "invalid confirmation state");
+  const confirmations = latestBlock - receipt.blockNumber + 1;
+  if (confirmations < minConfirmations) fail("UNCONFIRMED_RECEIPT", "receipt has insufficient confirmations");
+  if (!Array.isArray(receipt.events)) fail("INVALID_RECEIPT", "receipt events missing");
+  const action = receipt.events.find((event) => event?.eventName === "ActionExecuted");
+  if (!action) fail("INVALID_RECEIPT", "ActionExecuted event missing");
+  exactObject(action, ["afterValue", "beforeValue", "eventName", "logIndex", "method", "nonce"]);
+  const expectedNonce = request.args[0];
+  if (String(action.nonce) !== String(expectedNonce) || action.method !== request.functionName || !Number.isSafeInteger(action.logIndex) || action.logIndex < 0) fail("RECEIPT_MISMATCH", "receipt event does not match request");
+  positiveBigInt(action.beforeValue, true); positiveBigInt(action.afterValue, true);
+  return Object.freeze({ source: "confirmed YNX Testnet EVM receipt", asOf: asOf.toISOString(), version: "ynx-vault-reconciliation-v1", coverage: "ActionExecuted identity, nonce, method, status, destination, and confirmations", confidence: "confirmed-on-chain", failure: null, transactionHash: receipt.transactionHash.toLowerCase(), blockNumber: receipt.blockNumber, confirmations, vault: request.to, nonceDomain: request.nonceDomain, actionNonce: String(action.nonce), method: action.method, beforeValue: String(action.beforeValue), afterValue: String(action.afterValue) });
+}
+
+export async function digestVaultRequest(request) {
+  exactObject(request, ["approvalRequired", "args", "authority", "chainId", "executor", "functionName", "nonceDomain", "sourceStateAsOf", "to", "value"]);
+  const payload = JSON.stringify([request.chainId,request.to,request.executor,request.functionName,request.args,request.value,request.authority,request.approvalRequired,request.nonceDomain,request.sourceStateAsOf]);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
+  return `0x${Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,"0")).join("")}`;
+}
+
+export async function submitApprovedVaultRequest({ request, approval, sendTransaction, now = new Date() }) {
+  if (typeof sendTransaction !== "function") fail("INVALID_TRANSPORT", "an explicit engine transport is required");
+  exactObject(approval,["actionNonce","approved","asOf","chainId","engine","expiresAt","failure","nonceDomain","productClientId","requestDigest","revoked","scopes","source","vault"]);
+  if (approval.approved!==true||approval.revoked!==false||approval.failure!==null||approval.chainId!==6423||approval.productClientId!=="ynx-dex-web-v1"||approval.source!=="canonical YNX Wallet introspection") fail("INVALID_APPROVAL","canonical Wallet approval is not active");
+  if (!ADDRESS.test(approval.vault)||!ADDRESS.test(approval.engine)||approval.vault.toLowerCase()!==request.to||approval.engine.toLowerCase()!==request.executor||approval.nonceDomain.toLowerCase()!==request.nonceDomain) fail("APPROVAL_MISMATCH","approval identity does not match request");
+  if (!Array.isArray(approval.scopes)||approval.scopes.length!==1||approval.scopes[0]!=="dex:vault:execute") fail("APPROVAL_SCOPE","approval scope must be exact");
+  if (!/^0x[0-9a-fA-F]{64}$/.test(approval.requestDigest)||approval.requestDigest.toLowerCase()!==await digestVaultRequest(request)) fail("APPROVAL_MISMATCH","approval digest does not match request");
+  if (String(approval.actionNonce)!==String(request.args[0])) fail("APPROVAL_MISMATCH","approval nonce does not match request");
+  const asOf=new Date(approval.asOf);const expiresAt=new Date(approval.expiresAt);
+  if (!Number.isFinite(asOf.valueOf())||!Number.isFinite(expiresAt.valueOf())||asOf>now||expiresAt<=now) fail("APPROVAL_EXPIRED","approval timing is invalid");
+  if (!new Set(["swapExactInput","swapExactOutput","addLiquidity","removeLiquidity"]).has(request.functionName)||request.authority!=="limited-engine-session"||request.approvalRequired!==true) fail("INVALID_TRANSACTION","request is not an engine vault action");
+  const result=await sendTransaction(request);
+  exactObject(result,["provider","submittedAt","transactionHash"]);
+  if (!bounded(result.provider,1,80)||!/^0x[0-9a-fA-F]{64}$/.test(result.transactionHash)||!Number.isFinite(new Date(result.submittedAt).valueOf())) fail("INVALID_SUBMISSION","transport returned invalid submission evidence");
+  return Object.freeze({status:"submitted-unconfirmed",source:"caller-supplied YNX engine transport",asOf:new Date(result.submittedAt).toISOString(),version:"ynx-vault-submission-v1",failure:null,provider:result.provider,transactionHash:result.transactionHash.toLowerCase(),vault:request.to,nonceDomain:request.nonceDomain,actionNonce:String(request.args[0]),requestDigest:approval.requestDigest.toLowerCase()});
+}
+
 function quoteRouteExactInput(input, route, tokenIn, now) {
   let current = tokenIn.toLowerCase();
   let value = input;
@@ -212,6 +314,19 @@ function enumerateRoutes(tokenIn, tokenOut, rawPools, maxHops) {
 }
 
 function routeKey(quote) { return quote.steps.map((step) => step.pool).join(":"); }
+function parseVaultMandate(value) {
+  exactObject(value, ["depegToleranceBps", "expiresAt", "feeAsset", "feeRecipient", "maxDailyLossBps", "maxDrawdownBps", "maxGasPrice", "maxImpactBps", "maxSlippageBps", "maxTradeValue", "maxVaultValue", "minActionInterval", "oracleMaxAge", "performanceFeeBps"]);
+  const result = { ...value };
+  for (const field of ["maxVaultValue", "maxTradeValue", "maxGasPrice", "expiresAt", "minActionInterval", "oracleMaxAge", "maxSlippageBps", "maxImpactBps", "maxDailyLossBps", "maxDrawdownBps", "depegToleranceBps", "performanceFeeBps"]) result[field] = positiveBigInt(value[field], field === "maxGasPrice" || field === "minActionInterval" || field === "performanceFeeBps");
+  if (!ADDRESS.test(value.feeAsset) || !ADDRESS.test(value.feeRecipient) || result.performanceFeeBps !== 0n || value.feeAsset.toLowerCase() !== "0x0000000000000000000000000000000000000000" || value.feeRecipient.toLowerCase() !== "0x0000000000000000000000000000000000000000") fail("INVALID_VAULT_MANDATE", "v1 fee fields must remain zero");
+  return Object.freeze({ ...result, feeAsset: value.feeAsset.toLowerCase(), feeRecipient: value.feeRecipient.toLowerCase() });
+}
+function validateVaultDeadline(deadline, state, now) {
+  const nowSeconds = Math.floor(now.valueOf() / 1000);
+  if (!Number.isInteger(deadline) || deadline <= nowSeconds || BigInt(deadline) > state.mandate.expiresAt || deadline > nowSeconds + 3600) fail("INVALID_DEADLINE", "deadline must be within one hour and mandate expiry");
+}
+function validateVaultTokens(tokenA, tokenB) { if (!ADDRESS.test(tokenA) || !ADDRESS.test(tokenB) || tokenA.toLowerCase() === tokenB.toLowerCase()) fail("INVALID_TOKEN", "invalid vault token pair"); }
+function vaultRequest(state, functionName, args, authority) { return Object.freeze({ chainId: 6423, to: state.vault, executor:authority==="owner"?state.owner:state.engine, functionName, args: Object.freeze(args), value: "0", authority, approvalRequired: true, nonceDomain: state.nonceDomain, sourceStateAsOf: state.asOf }); }
 function validateFee(value) { if (!Number.isInteger(value) || value < 0 || value > 100) fail("INVALID_FEE", "fee must be 0..100 bps"); }
 function validateSlippage(value) { if (!Number.isInteger(value) || value < 1 || value > 5_000) fail("INVALID_SLIPPAGE", "slippage must be 1..5000 bps"); }
 function validateTxCommon(router, recipient, deadline, chainId) {

@@ -4,4 +4,6 @@ Local candidate adds an independent Web/PWA, immutable constant-product contract
 
 The final branch additionally adds a non-upgradeable Strategy Vault source candidate. It binds an immutable user owner and limited engine, allows only typed swap/liquidity actions returning assets to the vault, enforces exact approvals, nonce/frequency/capital/gas/deadline/oracle/depeg/loss/drawdown limits, and preserves owner pause/revoke/kill/withdraw/emergency exit. Performance fees are disabled because realized-PnL accounting is not yet available.
 
+The JavaScript SDK adds a limited Execution Adapter. It does not contain keys or an automatic strategy loop: submission requires an exact request digest from canonical Wallet introspection and an explicitly injected engine transport, returns an unconfirmed state, then requires confirmed event reconciliation.
+
 This is not a deployed release. The observed public RPC identifies YNX Testnet chain 6423, but no verified contract addresses, reviewed tokens, pools, liquidity, Wallet swap/LP proof, staging/public URL, hosted artifact, production signature, store review or independent audit exists. All corresponding central/deployment/distribution flags remain false.

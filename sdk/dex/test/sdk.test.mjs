@@ -4,6 +4,10 @@ import {
   DexSdkError, amountIn, amountOut, assertFreshQuote, buildSwapExactInputTx,
   maximumInput, minimumOutput, parsePool, quoteExactInput, quoteExactOutput,
   parseFeeSummary, parsePosition, parseSpotPrice, parseTWAP, priceImpactBps,
+  assertExecutableVaultState, buildEmergencyExitTx, buildPauseVaultTx,
+  buildVaultAddLiquidityTx, buildVaultRemoveLiquidityTx, buildVaultSwapExactInputTx,
+  buildVaultSwapExactOutputTx, parseVaultState, reconcileVaultAction,
+  digestVaultRequest, submitApprovedVaultRequest,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -37,6 +41,63 @@ test("slippage and transaction builder preserve fail-closed bounds", () => {
   assert.equal(tx.args[1], minimumOutput(quote.amountOut, 50).toString());
 });
 
+test("execution adapter builds approval-bound vault requests without signing or arbitrary recipients", () => {
+  const current = new Date();
+  const nowSeconds = Math.floor(current.valueOf() / 1000);
+  const state = vaultState(current.toISOString(), nowSeconds + 3_600);
+  const exactIn = quoteExactInput({ amountIn: 1_000n, tokenIn: A.address, tokenOut: B.address, pools, now: current });
+  const exactOut = quoteExactOutput({ amountOut: 500n, tokenIn: A.address, tokenOut: B.address, pools, now: current });
+  const deadline = nowSeconds + 300;
+  const inputRequest = buildVaultSwapExactInputTx({ state, quote: exactIn, slippageBps: 50, deadline, now: current });
+  assert.equal(inputRequest.to, state.vault);
+  assert.equal(inputRequest.args[0], "7");
+  assert.equal(inputRequest.args[2], minimumOutput(exactIn.amountOut, 50).toString());
+  assert.equal(inputRequest.authority, "limited-engine-session");
+  assert.equal(inputRequest.approvalRequired, true);
+  assert(!Object.hasOwn(inputRequest, "privateKey") && !Object.hasOwn(inputRequest, "recipient"));
+  assert.equal(buildVaultSwapExactOutputTx({ state, quote: exactOut, slippageBps: 50, deadline, now: current }).args[2], maximumInput(exactOut.amountIn, 50).toString());
+  assert.equal(buildVaultAddLiquidityTx({ state, tokenA:A.address,tokenB:B.address,amountA:100n,amountB:200n,minLiquidity:50n,deadline,now:current }).functionName,"addLiquidity");
+  assert.equal(buildVaultRemoveLiquidityTx({ state, tokenA:A.address,tokenB:B.address,liquidity:50n,amountAMin:1n,amountBMin:1n,deadline,now:current }).functionName,"removeLiquidity");
+  assert.equal(buildPauseVaultTx({ state, requestedBy:state.engine }).authority,"limited-engine-session");
+  assert.equal(buildEmergencyExitTx({ state, requestedBy:state.owner, recipient:state.owner }).authority,"owner");
+});
+
+test("vault adapter rejects stale, paused, expired, fee-bearing, and unauthorized state", () => {
+  const current = new Date(); const nowSeconds = Math.floor(current.valueOf()/1000);
+  const state = vaultState(current.toISOString(),nowSeconds+300);
+  assert.equal(parseVaultState(state).actionNonce,7n);
+  assert.throws(()=>assertExecutableVaultState({...state,paused:true},{now:current}),error=>error instanceof DexSdkError&&error.code==="VAULT_NOT_EXECUTABLE");
+  assert.throws(()=>assertExecutableVaultState(vaultState(new Date(current.valueOf()-60_000).toISOString(),nowSeconds+300),{now:current}),error=>error.code==="STALE_VAULT_STATE");
+  assert.throws(()=>assertExecutableVaultState(vaultState(current.toISOString(),nowSeconds),{now:current}),error=>error.code==="VAULT_MANDATE_EXPIRED");
+  assert.throws(()=>parseVaultState({...state,mandate:{...state.mandate,performanceFeeBps:"1"}}),error=>error.code==="INVALID_VAULT_MANDATE");
+  assert.throws(()=>buildEmergencyExitTx({state,requestedBy:address(999),recipient:state.owner}),error=>error.code==="UNAUTHORIZED_VAULT_REQUEST");
+});
+
+test("receipt reconciliation binds destination, nonce, method and confirmations", () => {
+  const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);
+  const quote=quoteExactInput({amountIn:1000n,tokenIn:A.address,tokenOut:B.address,pools,now:current});
+  const request=buildVaultSwapExactInputTx({state,quote,slippageBps:50,deadline:nowSeconds+300,now:current});
+  const receipt={blockNumber:100,chainId:6423,status:"success",to:state.vault,transactionHash:`0x${"ab".repeat(32)}`,events:[{eventName:"ActionExecuted",nonce:"7",method:"swapExactInput",beforeValue:"10000",afterValue:"9999",logIndex:3}]};
+  const proof=reconcileVaultAction({request,receipt,latestBlock:111,minConfirmations:12,asOf:current});
+  assert.equal(proof.confirmations,12);assert.equal(proof.confidence,"confirmed-on-chain");assert.equal(proof.failure,null);
+  assert.throws(()=>reconcileVaultAction({request,receipt:{...receipt,events:[{...receipt.events[0],nonce:"8"}]},latestBlock:111}),error=>error.code==="RECEIPT_MISMATCH");
+  assert.throws(()=>reconcileVaultAction({request,receipt,latestBlock:110,minConfirmations:12}),error=>error.code==="UNCONFIRMED_RECEIPT");
+});
+
+test("submission requires an exact canonical Wallet approval and explicit transport", async()=>{
+  const current=new Date();const nowSeconds=Math.floor(current.valueOf()/1000);const state=vaultState(current.toISOString(),nowSeconds+3600);
+  const quote=quoteExactInput({amountIn:1000n,tokenIn:A.address,tokenOut:B.address,pools,now:current});
+  const request=buildVaultSwapExactInputTx({state,quote,slippageBps:50,deadline:nowSeconds+300,now:current});
+  const requestDigest=await digestVaultRequest(request);let submissions=0;
+  const approval={actionNonce:"7",approved:true,asOf:current.toISOString(),chainId:6423,engine:state.engine,expiresAt:new Date(current.valueOf()+60_000).toISOString(),failure:null,nonceDomain:state.nonceDomain,productClientId:"ynx-dex-web-v1",requestDigest,revoked:false,scopes:["dex:vault:execute"],source:"canonical YNX Wallet introspection",vault:state.vault};
+  const result=await submitApprovedVaultRequest({request,approval,now:current,sendTransaction:async(candidate)=>{submissions++;assert.equal(candidate,request);return{provider:"YNX Testnet RPC",submittedAt:current.toISOString(),transactionHash:`0x${"cd".repeat(32)}`}}});
+  assert.equal(submissions,1);assert.equal(result.status,"submitted-unconfirmed");assert.equal(result.failure,null);
+  await assert.rejects(submitApprovedVaultRequest({request,approval:{...approval,requestDigest:`0x${"00".repeat(32)}`},now:current,sendTransaction:async()=>{submissions++;}}),error=>error.code==="APPROVAL_MISMATCH");
+  assert.equal(submissions,1,"tampered approval never reaches the transport");
+  await assert.rejects(submitApprovedVaultRequest({request,approval:{...approval,revoked:true},now:current,sendTransaction:async()=>{submissions++;}}),error=>error.code==="INVALID_APPROVAL");
+  assert.equal(submissions,1,"revoked approval never reaches the transport");
+});
+
 test("constant-product rounding never drains reserves across deterministic property vectors", () => {
   for (let i = 1n; i <= 500n; i++) {
     const reserveIn = 10_000n + i * 97n;
@@ -49,6 +110,8 @@ test("constant-product rounding never drains reserves across deterministic prope
     assert((reserveIn + input) * (reserveOut - output) >= reserveIn * reserveOut);
   }
 });
+
+function vaultState(asOf,expiresAt){return {actionNonce:"7",asOf,chainId:6423,configured:true,engine:address(202),failure:null,killed:false,mandate:{depegToleranceBps:"100",expiresAt:String(expiresAt),feeAsset:address(0),feeRecipient:address(0),maxDailyLossBps:"1000",maxDrawdownBps:"2000",maxGasPrice:"100000000000",maxImpactBps:"500",maxSlippageBps:"100",maxTradeValue:"1000000",maxVaultValue:"10000000",minActionInterval:"60",oracleMaxAge:"300",performanceFeeBps:"0"},nonceDomain:`0x${"12".repeat(32)}`,oracle:address(204),owner:address(201),paused:false,revoked:false,router:address(203),source:"YNX Testnet EVM RPC",vault:address(200),version:"ynx-strategy-vault-v1"}}
 
 test("schema, stale, unsupported and liquidity errors are explicit", () => {
   assert.throws(() => parsePool({ ...pools[0], unknown: true }), (error) => error instanceof DexSdkError && error.code === "INVALID_SCHEMA");
