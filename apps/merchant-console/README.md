@@ -20,11 +20,14 @@ fixtures.
 
 Run `npm run check` to execute record-boundary tests and build `dist/`.
 
-The console supports the same twelve audited locales as the consumer App,
-including Arabic RTL, localized dates/numbers/plurals, persistent manual locale
-selection and a separate persistent AI output-language selection. Payment,
-refund, dispute, authorization and AI authority-boundary strings have strict
-nonblank/semantic tests.
+The authentication and authority-boundary surface has twelve audited locale
+catalogs, including Arabic RTL, localized dates/numbers/plurals, persistent
+manual locale selection and a separate persistent AI output-language selection.
+Authenticated operational views still contain English copy and are explicitly
+tracked as incomplete rather than represented as fully translated.
+
+See `API_CONTRACT.md` for the current v1 route/auth/role/error and reconciliation
+schema contract.
 
 The checked-in screenshots are prior visual evidence only and must not be used
 to claim the current Wallet/Gateway build is deployed. Current-version visual

@@ -14,6 +14,7 @@ import (
 )
 
 const maxRequestBytes = 1 << 20
+const reconciliationSchemaVersion = "2"
 
 type Server struct {
 	service *Service
@@ -521,7 +522,19 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=ynx-pay-reconciliation.csv")
-	cw := csv.NewWriter(w)
+	w.Header().Set("X-YNX-Reconciliation-Schema", reconciliationSchemaVersion)
+	encoded, err := encodeReconciliationCSV(items, state.Refunds)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "reconciliation export failed")
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(encoded)
+}
+
+func encodeReconciliationCSV(items []Invoice, refundSets ...map[string]RefundRequest) ([]byte, error) {
+	var out bytes.Buffer
+	cw := csv.NewWriter(&out)
 	_ = cw.Write([]string{"invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "refunded_ynxt", "merchant_net_ynxt", "status", "transaction_hash", "block_number", "refund_receipts", "created_at", "expires_at"})
 	for _, v := range items {
 		tx := ""
@@ -532,16 +545,22 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 			tx = v.Settlement.TransactionHash
 			block = strconv.FormatUint(v.Settlement.BlockNumber, 10)
 		}
-		for _, refund := range state.Refunds {
-			if refund.InvoiceID == v.ID && refund.Status == "refunded" && refund.Evidence != nil {
-				refunded += refund.Amount
-				refundReceipts = append(refundReceipts, refund.Evidence.ReceiptID)
+		for _, refunds := range refundSets {
+			for _, refund := range refunds {
+				if refund.InvoiceID == v.ID && refund.Status == "refunded" && refund.Evidence != nil {
+					refunded += refund.Amount
+					refundReceipts = append(refundReceipts, refund.Evidence.ReceiptID)
+				}
 			}
 		}
 		sort.Strings(refundReceipts)
 		_ = cw.Write([]string{v.ID, v.CentralID, v.MerchantID, strconv.FormatInt(v.Amount, 10), strconv.FormatInt(v.Fee, 10), strconv.FormatInt(refunded, 10), strconv.FormatInt(v.Amount-refunded, 10), v.Status, tx, block, strings.Join(refundReceipts, ";"), v.CreatedAt.Format(time.RFC3339), v.ExpiresAt.Format(time.RFC3339)})
 	}
 	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
 }
 func (s *Server) capital(w http.ResponseWriter, r *http.Request) {
 	p, _, ok := s.merchantAuth(w, r, "reconcile")
