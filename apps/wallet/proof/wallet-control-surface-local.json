@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-smart-account-capital-control-local",
+  "generatedAt": "2026-07-22T16:13:25.000Z",
+  "sourceCommit": "b966020dcc5b65234ea597604fa9c5b9c79a1b82",
+  "sourceFiles": [
+    {"path": "apps/wallet/App.tsx", "sha256": "155f7068e6e4dee0f49675b6d27c23e3c34039c16d95f79921c685cccfffc505"},
+    {"path": "apps/wallet/src/control/controlSurface.ts", "sha256": "eb079a400a825ec22eeb150173ebcd18eabaf365a73f6476e9f312cbcf760c62"},
+    {"path": "apps/wallet/src/control/controlCopy.ts", "sha256": "c3c6ae8a9ab7f906de29a637a4f12fc4a8b57f1e271644bba1a0427adacb80c4"},
+    {"path": "apps/wallet/src/control/controlSurface.test.ts", "sha256": "398dd6bd775f94444bbcf182dce61a72c8aeb17ea126a203c67eb6975cfa8b1e"},
+    {"path": "packages/wallet-auth/src/mandate.js", "sha256": "a240dd33e215d25c7d5925770ac0f5c0d6f30d152e860808d0c20836f01b353a"}
+  ],
+  "assertions": {
+    "capitalCurrentProductTypes": 15,
+    "legacyBridgeRouteParseable": true,
+    "locales": 12,
+    "rtl": true,
+    "lightDark": true,
+    "aiExplainOnly": true,
+    "missingEvidenceUnavailable": true,
+    "futureEvidenceRejected": true,
+    "duplicateProductRejected": true,
+    "capitalStaleAfterSeconds": 86400,
+    "smartAccountEvidenceMaxAgeSeconds": 300
+  },
+  "tests": {
+    "walletTestsPassed": 28,
+    "walletTestsFailed": 0,
+    "walletAuthTestsPassed": 59,
+    "walletAuthTestsFailed": 0,
+    "fuzzInputs": 1000,
+    "soakSnapshots": 5000,
+    "benchmarkElapsedMs": 728.28,
+    "benchmarkCoverage": "Parser and policy evaluation on local Node runtime; excludes rendering, network, provider and device latency"
+  },
+  "bundles": [
+    {"platform": "android", "format": "Hermes bytecode engineering export", "bytes": 4557597, "sha256": "3ca503db2832a01f660456f7fdeb5dff04a8a1cfe0fd722c2f4a659d4511341f"},
+    {"platform": "ios", "format": "Hermes bytecode engineering export", "bytes": 4552093, "sha256": "b5893c0f33ac12ffc823630ee9428fd5b1edb862308a0fc068edaf40f5935a0a"}
+  ],
+  "claims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "bundledAndroidLocal": true,
+    "bundledIOSLocal": true,
+    "installedDeviceCurrentSurface": false,
+    "publicRuntimeSnapshot": false,
+    "capitalPosition": false,
+    "publicSmartAccountReady": false,
+    "publicSponsorshipReady": false,
+    "hostedCurrentArtifacts": false,
+    "explorerProof": false
+  }
+}
