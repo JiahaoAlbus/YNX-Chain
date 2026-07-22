@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -24,6 +25,8 @@ const (
 var allowedMethods = map[string]struct{}{
 	MethodPlaceOrder: {}, MethodCancelOrder: {}, MethodReducePosition: {}, MethodRebalance: {}, MethodSettle: {},
 }
+
+var recordIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 
 type StrategyMandate struct {
 	SchemaVersion      int        `json:"schemaVersion"`
@@ -86,6 +89,9 @@ func (mandate StrategyMandate) validate(requireAudit bool) error {
 		if strings.TrimSpace(value) == "" || len(value) > 256 {
 			return fmt.Errorf("strategy mandate %s is invalid", name)
 		}
+	}
+	if !recordIDPattern.MatchString(mandate.ID) {
+		return errors.New("strategy mandate ID must be a path-safe canonical record ID")
 	}
 	if len(mandate.StrategyHash) != sha256.Size*2 {
 		return errors.New("strategy hash must be lowercase SHA-256 hex")

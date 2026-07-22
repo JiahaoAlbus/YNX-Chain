@@ -9,12 +9,14 @@ All paths are repository-relative and refer to the current source commit only af
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |
-| v7 to v8 migration boundary | `internal/consensus/state.go`, `MIGRATION_COMPATIBILITY.md` | `go test ./internal/consensus -run 'MigratesVersion7'` |
+| v7 to v8 and v8 to v9 migration boundaries | `internal/consensus/state.go`, `MIGRATION_COMPATIBILITY.md` | `go test ./internal/consensus -run 'MigratesVersion(7|8)'` |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 | Chain Core recovery and deployed-runtime boundary | `CURRENT_RECOVERY_AUDIT.md`, `release/recovery-evidence.json` | strict SSH audit, exact-release four-node verifier, bounded public ingress diagnostic |
 | StreamBFT shadow candidate | `internal/streambft`, `docs/architecture/STREAMBFT_CANDIDATE.md`, `docs/formal/streambft` | `make streambft-candidate-check` |
 | Deterministic parallel/sequential state-root equivalence | `internal/streambft/executor.go`, `internal/streambft/streambft_test.go` | `go test -race ./internal/streambft` |
 | Strategy mandate and owner-only Vault invariants | `internal/assetauth/mandate.go`, `internal/assetauth/vault.go` | `go test -race ./internal/assetauth` |
+| AppHash-bound mandate/vault state, traceable lots, atomic rejection, audit and migration | `internal/consensus/asset_authorization_action.go`, `internal/consensus/asset_authorization_action_test.go` | `go test -race ./internal/consensus` |
+| Quant source/version/coverage API and committed mutation evidence | `internal/bftgateway/quant.go`, `internal/bftgateway/quant_test.go` | `go test -race ./internal/bftgateway` |
 | Smart Account, session, paymaster, passkey, guardian recovery | `internal/assetauth/smartaccount.go`, `internal/assetauth/recovery.go` | `go test -race ./internal/assetauth` |
 | Public primitive schemas and JavaScript builders | `chain/accounts/user-operation.schema.json`, `chain/governance/strategy-mandate.schema.json`, `sdk/js/primitives.js` | `npm test --prefix sdk/js` |
 

@@ -17,17 +17,23 @@ Migration intentionally does not infer historical fees from balance changes. His
 - Signed transfer version remains 1 and its canonical fields, signature domain, fixed fee, nonce behavior, and chain replay protection are unchanged.
 - Signed application action version remains 1.
 - Existing ABCI query paths and Gateway routes remain available.
-- New fee queries are additive.
-- Old binaries cannot interpret schema v8 and must not be used to write migrated state. Rollback requires restoring the pre-upgrade v7 state snapshot and binary together; a v8 state file must never be handed to a v7 binary.
+- New fee and Quant mandate/vault/audit queries are additive.
+- Old binaries cannot interpret a newer schema and must not write it. Rollback requires restoring the matching pre-upgrade state snapshot and binary together; a v9 state file must never be handed to a v7 or v8 binary.
+
+## Committed state v8 to v9
+
+Application version 11 introduces committed-state schema v9 with sorted StrategyMandate and StrategyVault collections plus an append-only asset-authorization audit ledger. Loading v8 first verifies the exact v8 AppHash using the v8 domain. It then initializes only empty v9 collections and recalculates the v9 AppHash when application records exist. Migration never fabricates historical mandates, vault balances, lot provenance, or audit events.
+
+Vault YNXT is removed from the depositor account and retained as a separately reconciled liquid-supply component. Each vault's sorted traceable lots must sum exactly to its balance, its mandate must exist, and account balances plus vault balances plus stake must equal the migration supply anchor. A failed transaction runs on an isolated execution-state copy and cannot persist a charged fee, consumed nonce, moved lot, or partially updated record.
 
 ## Required activation and rollback drill
 
-Before staging activation, operators must back up the v7 file, verify its SHA-256 and mode, start application version 10 against a copy, query accounts and fee events, execute one approved test transfer, verify supply and fee reconciliation, stop, restart, and verify the same AppHash and event. Rollback restores the untouched v7 binary/state pair while public mutation ingress remains frozen.
+Before staging activation, operators must back up the active state file, verify its SHA-256 and mode, start application version 11 against a copy, query accounts, fee events, and empty Quant collections, execute approved mandate/vault/deposit/owner-withdraw test actions, verify supply/lot/audit reconciliation, stop, restart, and verify the same AppHash and records. Rollback restores the untouched pre-upgrade binary/state pair while public mutation ingress remains frozen.
 
 Current evidence covers local migration and restart tests only. No staging or public migration has been performed.
 
-## Smart Account and mandate candidate boundary
+## Smart Account candidate boundary
 
-UserOperation and StrategyMandate schemas are additive version-1 candidate formats. Existing signed native transfer and application-action envelopes remain unchanged. No current ABCI state reads these new formats, so adding the library and SDK does not migrate or silently reinterpret existing accounts.
+UserOperation remains an additive version-1 candidate format. Existing signed native transfer and application-action envelope versions remain unchanged. StrategyMandate and StrategyVault now use signed application actions and v9 ABCI persistence; no existing account is silently reinterpreted.
 
-Consensus activation requires a new committed-state version with explicit account, session, paymaster, recovery, mandate, Vault, fee, risk, and audit collections; canonical genesis/migration defaults; old-client query compatibility; replay vectors; and state-root differential tests. Rollback must restore the pre-activation binary/state pair. A newer state must never be written by an older binary.
+Smart Account activation still requires a future committed-state version with explicit account, session, paymaster, recovery, and audit collections; canonical genesis/migration defaults; old-client query compatibility; replay vectors; and state-root differential tests. Rollback must restore the pre-activation binary/state pair. A newer state must never be written by an older binary.

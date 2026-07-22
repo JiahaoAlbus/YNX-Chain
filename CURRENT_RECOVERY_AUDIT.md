@@ -28,5 +28,5 @@ As of: 2026-07-22T14:45:00Z
 
 - Public four-validator BFT cutover, public 3/4 precommit proof, public one-validator fault/recovery, double-sign evidence, public state sync, and public BFT backup/restore are incomplete.
 - StreamBFT is a local shadow candidate only. Canary eligibility is false until every formal, differential, validator-count, WAN, fault, state-sync, soak, rollback, and composite bake-off requirement passes.
-- Chain-level Smart Account and StrategyMandate libraries, schemas, SDK surfaces, Vault withdrawal boundary, and fee invariants are local implementation evidence only. They are not yet committed into ABCI state or deployed.
+- Chain-level Smart Account, schemas, SDK surfaces, and fee invariants remain local implementation evidence. StrategyMandate and StrategyVault are now integrated into branch-local committed-state v9, ABCI execution/query, and BFT Gateway code with local/race evidence; none of these primitives is deployed on the authoritative public runtime.
 - GitHub Actions/Artifacts inventory, public direct-route stability, independent public proof, current-source deployment, security closure, capacity/soak, complete operator inputs, final push, and clean remote SHA verification remain open.

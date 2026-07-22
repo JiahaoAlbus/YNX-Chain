@@ -12,13 +12,14 @@ import (
 )
 
 type StrategyVault struct {
-	SchemaVersion int        `json:"schemaVersion"`
-	ID            string     `json:"id"`
-	Owner         string     `json:"owner"`
-	MandateID     string     `json:"mandateId"`
-	BalanceYNXT   uint64     `json:"balanceYnxt"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	ClosedAt      *time.Time `json:"closedAt,omitempty"`
+	SchemaVersion int               `json:"schemaVersion"`
+	ID            string            `json:"id"`
+	Owner         string            `json:"owner"`
+	MandateID     string            `json:"mandateId"`
+	BalanceYNXT   uint64            `json:"balanceYnxt"`
+	Lots          map[string]uint64 `json:"lots,omitempty"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	ClosedAt      *time.Time        `json:"closedAt,omitempty"`
 }
 
 type VaultEvent struct {
@@ -34,7 +35,7 @@ type VaultEvent struct {
 }
 
 func NewStrategyVault(id, owner, mandateID string, at time.Time) (StrategyVault, error) {
-	vault := StrategyVault{SchemaVersion: 1, ID: strings.TrimSpace(id), Owner: strings.TrimSpace(owner), MandateID: strings.TrimSpace(mandateID), CreatedAt: at.UTC()}
+	vault := StrategyVault{SchemaVersion: 1, ID: strings.TrimSpace(id), Owner: strings.TrimSpace(owner), MandateID: strings.TrimSpace(mandateID), Lots: map[string]uint64{}, CreatedAt: at.UTC()}
 	if err := vault.Validate(); err != nil {
 		return StrategyVault{}, err
 	}
@@ -44,6 +45,9 @@ func NewStrategyVault(id, owner, mandateID string, at time.Time) (StrategyVault,
 func (vault StrategyVault) Validate() error {
 	if vault.SchemaVersion != 1 || vault.ID == "" || vault.Owner == "" || vault.MandateID == "" || vault.CreatedAt.IsZero() {
 		return errors.New("strategy vault identity is invalid")
+	}
+	if !recordIDPattern.MatchString(vault.ID) || !recordIDPattern.MatchString(vault.MandateID) {
+		return errors.New("strategy vault and mandate IDs must be path-safe canonical record IDs")
 	}
 	if vault.ClosedAt != nil && vault.ClosedAt.Before(vault.CreatedAt) {
 		return errors.New("strategy vault close time predates creation")

@@ -12,10 +12,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 8
+const CommittedStateVersion = 9
 
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
@@ -28,6 +29,9 @@ type CommittedState struct {
 	Height                     int64                           `json:"height"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -69,6 +73,9 @@ type committedStateHashDocument struct {
 	MigrationStateHash         string                          `json:"migrationStateHash"`
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents,omitempty"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates,omitempty"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults,omitempty"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -111,6 +118,9 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Height:                     int64(migration.Height),
 		Accounts:                   cloneAccounts(migration.Accounts),
 		FeeEvents:                  []BFTFeeEvent{},
+		StrategyMandates:           []assetauth.StrategyMandate{},
+		StrategyVaults:             []assetauth.StrategyVault{},
+		AssetAuditEvents:           []BFTAssetAuditEvent{},
 		AIPermissions:              []BFTAIPermission{},
 		AIActions:                  []BFTAIAction{},
 		AIAuditEvents:              []BFTAIAuditEvent{},
@@ -155,6 +165,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		Height:                     height,
 		Accounts:                   cloneAccounts(execution.accounts),
 		FeeEvents:                  append([]BFTFeeEvent(nil), execution.feeEvents...),
+		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
+		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
+		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
 		AIActions:                  cloneAIActions(execution.actions),
 		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
@@ -287,10 +300,20 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
 		return err
 	}
-	if liquid > math.MaxInt64-staked || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
+	if err := validateAssetAuthorizationState(s.StrategyMandates, s.StrategyVaults, s.AssetAuditEvents); err != nil {
+		return err
+	}
+	var vaultLiquid int64
+	for _, vault := range s.StrategyVaults {
+		if vault.BalanceYNXT > math.MaxInt64 || vaultLiquid > math.MaxInt64-int64(vault.BalanceYNXT) {
+			return errors.New("strategy vault YNXT total overflows int64")
+		}
+		vaultLiquid += int64(vault.BalanceYNXT)
+	}
+	if liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-vaultLiquid || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
-	if liquid+staked != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
+	if liquid+staked+vaultLiquid != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
 	expected := migration.StateHash
@@ -308,7 +331,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
-	return s.calculateHashFor("YNX_ABCI_STATE_V8", CommittedStateVersion)
+	return s.calculateHashFor("YNX_ABCI_STATE_V9", CommittedStateVersion)
 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
@@ -319,6 +342,9 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		MigrationStateHash:         s.MigrationStateHash,
 		Accounts:                   s.Accounts,
 		FeeEvents:                  s.FeeEvents,
+		StrategyMandates:           s.StrategyMandates,
+		StrategyVaults:             s.StrategyVaults,
+		AssetAuditEvents:           s.AssetAuditEvents,
 		AIPermissions:              s.AIPermissions,
 		AIActions:                  s.AIActions,
 		AIAuditEvents:              s.AIAuditEvents,
@@ -360,7 +386,7 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.FeeEvents)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
+	return len(s.FeeEvents)+len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency) != 0
 }
 
 func validateFeeEvents(events []BFTFeeEvent) error {
@@ -464,10 +490,35 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 		}
 		state.Version = CommittedStateVersion
 		state.FeeEvents = []BFTFeeEvent{}
+		state.StrategyMandates = []assetauth.StrategyMandate{}
+		state.StrategyVaults = []assetauth.StrategyVault{}
+		state.AssetAuditEvents = []BFTAssetAuditEvent{}
 		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
 			state.AppHash, err = state.calculateHash()
 			if err != nil {
 				return CommittedState{}, fmt.Errorf("migrate committed state hash: %w", err)
+			}
+		}
+	}
+	if state.Version == 8 {
+		expected := migration.StateHash
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V8", 8)
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("calculate v8 committed state hash: %w", err)
+			}
+		}
+		if !strings.EqualFold(state.AppHash, expected) {
+			return CommittedState{}, errors.New("v8 committed state app hash is invalid")
+		}
+		state.Version = CommittedStateVersion
+		state.StrategyMandates = []assetauth.StrategyMandate{}
+		state.StrategyVaults = []assetauth.StrategyVault{}
+		state.AssetAuditEvents = []BFTAssetAuditEvent{}
+		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
+			state.AppHash, err = state.calculateHash()
+			if err != nil {
+				return CommittedState{}, fmt.Errorf("migrate v8 committed state hash: %w", err)
 			}
 		}
 	}

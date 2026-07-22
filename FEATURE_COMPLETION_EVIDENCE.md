@@ -6,7 +6,7 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Economic policy candidate and deterministic simulation | true | true | false | false | false | false | false | false | false | `internal/economics`, `cmd/ynx-economics-sim`; tests and `go run` do not prove an installed artifact |
 | Dynamic issuance in consensus | false | false | false | false | false | false | false | false | false | Formula is simulation-only; no consensus migration or state event exists |
-| Current fixed-fee consensus ledger and API | true | true | false | false | false | false | false | false | false | Committed state v8, ABCI and Gateway queries on this branch; not merged or deployed |
+| Current fixed-fee consensus ledger and API | true | true | false | true | false | false | false | false | false | Committed state v9, ABCI and Gateway queries on this branch; integrated with central application execution, not deployed |
 | EIP-1559/per-lane fee and burn policy | false | false | false | false | false | false | false | false | false | No governed activation, base-fee adjustment, per-lane market, priority fee, or burn exists |
 | Validator/delegator staking lifecycle | false | false | false | false | false | false | false | false | false | Existing state has balances/voting power only |
 | Liquid staking candidate | false | false | false | false | false | false | false | false | false | Requires audited contracts and stress/queue/slash/depeg evidence |
@@ -18,8 +18,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | StreamBFT shadow candidate | true | true | false | false | false | false | false | false | false | Local lane/DAG/QC/safety/pacemaker/execution/fee/mode tests; canary evidence gate intentionally fails closed |
 | Per-lane fee-market candidate | true | true | false | false | false | false | false | false | false | Candidate-only independent base-fee and multi-resource pricing; not ABCI state or governed policy |
 | Smart Account/UserOperation native candidate | true | true | false | false | false | false | false | false | false | Local Ed25519/P-256, batch, session, paymaster, guardian and replay tests; Bundler and public sponsored transaction absent |
-| StrategyMandate native candidate | true | true | false | false | false | false | false | false | false | Local schema, owner/engine/risk/expiry/nonce/revoke/kill invariants; not committed to consensus state |
-| DEX Strategy Vault owner-only withdrawal | true | true | false | false | false | false | false | false | false | Local state transition and emergency-exit tests; no system contract or public Vault transaction |
+| StrategyMandate native candidate | true | true | false | true | false | false | false | false | false | Owner/engine/risk/expiry/nonce/revoke/kill invariants plus v9 ABCI persistence, Gateway API, migration and audit tests; no public mandate transaction |
+| DEX Strategy Vault owner-only withdrawal | true | true | false | true | false | false | false | false | false | ABCI balance/lot conservation, owner-only withdrawal, emergency exit, audit, Gateway and atomic rejection tests; no external adapter or public Vault transaction |
 | Realized-net high-water-mark fee invariant | true | true | false | false | false | false | false | false | false | Local loss/recovery/cost tests; no enabled managed Vault fee collection |
 
 ## Current verification
@@ -27,3 +27,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `go test ./internal/economics ./cmd/ynx-economics-sim` — pass.
 - `go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json` — pass; five reconciled annual records.
 - `go test ./...` initially exposed missing generated Solidity artifacts in three existing tests. After `npm run hardhat:build`, `go test ./internal/bftgateway ./internal/consensus` passed. This is a build prerequisite, not evidence that all final tokenomics requirements are complete.
+- `make asset-primitives-check` covers local/race tests for the primitive library, v9 consensus integration, Gateway contract, schemas, and JavaScript SDK. No installed, staging, or public result is inferred from this local gate.

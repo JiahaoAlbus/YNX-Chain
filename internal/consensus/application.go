@@ -12,13 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 10
+	ApplicationVersion   = 11
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -43,6 +44,9 @@ type transactionError struct {
 type executionState struct {
 	accounts                   []chain.ConsensusAccount
 	feeEvents                  []BFTFeeEvent
+	strategyMandates           []assetauth.StrategyMandate
+	strategyVaults             []assetauth.StrategyVault
+	assetAuditEvents           []BFTAssetAuditEvent
 	permissions                []BFTAIPermission
 	actions                    []BFTAIAction
 	auditEvents                []BFTAIAuditEvent
@@ -204,6 +208,19 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	case strings.HasPrefix(req.Path, "/economics/fees/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/economics/fees/"), a.committed.FeeEvents, func(v BFTFeeEvent) string { return v.ID }, "Fee event")
+	case req.Path == "/quant/mandates":
+		response.Value, _ = json.Marshal(a.committed.StrategyMandates)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/quant/mandates/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/quant/mandates/"), a.committed.StrategyMandates, func(v assetauth.StrategyMandate) string { return v.ID }, "Strategy mandate")
+	case req.Path == "/quant/vaults":
+		response.Value, _ = json.Marshal(a.committed.StrategyVaults)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/quant/vaults/"):
+		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/quant/vaults/"), a.committed.StrategyVaults, func(v assetauth.StrategyVault) string { return v.ID }, "Strategy vault")
+	case req.Path == "/quant/audit":
+		response.Value, _ = json.Marshal(a.committed.AssetAuditEvents)
+		return response, nil
 	case strings.HasPrefix(req.Path, "/accounts/"):
 		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/accounts/"))
 		index, ok := accountIndex(a.committed.Accounts, address)
@@ -373,7 +390,7 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, economics fees, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }
@@ -485,7 +502,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
@@ -495,6 +512,10 @@ func (a *Application) cloneExecutionState() executionState {
 }
 
 func (a *Application) applyTransaction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	// Every transaction executes against an isolated copy. Action handlers may
+	// charge fees or mutate nested records before a later business-rule check;
+	// an error must never leak those partial writes into the surrounding block.
+	state = cloneExecutionStateValue(state)
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
@@ -544,6 +565,9 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Amount); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
 	}
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[feeIndex], tx.Fee); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
 	accounts[senderIndex].Balance -= tx.Amount + tx.Fee
 	accounts[senderIndex].Nonce++
 	accounts[senderIndex].ResourceUsage.BandwidthUsed++
@@ -552,6 +576,17 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	state.accounts = accounts
 	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
+}
+
+func cloneExecutionStateValue(state executionState) executionState {
+	return executionState{
+		accounts: cloneAccounts(state.accounts), feeEvents: append([]BFTFeeEvent(nil), state.feeEvents...), strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
+		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
+		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),
+		governanceRequests: cloneGovernanceRequests(state.governanceRequests), trustAppeals: cloneTrustAppeals(state.trustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), state.trustCorrections...), trustLabels: cloneTrustLabels(state.trustLabels), trustEvidence: cloneTrustEvidence(state.trustEvidence), trackingReviews: cloneTrackingReviews(state.trackingReviews), transparency: cloneTransparencyEntries(state.transparency),
+		contracts: cloneBFTContracts(state.contracts), evmReceipts: cloneBFTEVMReceipts(state.evmReceipts), evmLogs: cloneBFTEVMLogs(state.evmLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), state.ideIdempotency...),
+	}
 }
 
 func (a *Application) applyApplicationAction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
@@ -586,6 +621,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if isIDEAction(tx.Action) {
 		return a.applyIDEAction(state, payload, tx, height, blockTime)
+	}
+	if isAssetAuthorizationAction(tx.Action) {
+		return a.applyAssetAuthorizationAction(state, payload, tx, height, blockTime)
 	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
@@ -700,6 +738,9 @@ func (a *Application) chargeApplicationAction(state *executionState, tx SignedAp
 	state.accounts, _ = ensureAccount(state.accounts, a.feeRecipient)
 	signerIndex, _ = accountIndex(state.accounts, tx.Signer)
 	feeIndex, _ := accountIndex(state.accounts, a.feeRecipient)
+	if err := moveTraceableLots(&state.accounts[signerIndex], &state.accounts[feeIndex], tx.Fee); err != nil {
+		return invalidTransaction(CodeInsufficientYNXT, err)
+	}
 	state.accounts[signerIndex].Balance -= tx.Fee
 	state.accounts[signerIndex].Nonce++
 	state.accounts[signerIndex].ResourceUsage.AICreditsUsed += tx.AIUnits

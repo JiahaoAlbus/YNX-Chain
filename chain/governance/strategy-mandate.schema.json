@@ -7,7 +7,7 @@
   "properties": {
     "schemaVersion": {"const": 1},
     "chainId": {"const": "ynx_6423-1"},
-    "id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
     "owner": {"type": "string", "minLength": 1, "maxLength": 256},
     "engineIdentity": {"type": "string", "minLength": 1, "maxLength": 256},
     "strategyHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},

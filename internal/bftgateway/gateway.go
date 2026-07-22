@@ -37,6 +37,7 @@ var implementedCapabilities = []string{
 	"resource-market-state-transitions",
 	"evm-transaction-receipts-and-logs",
 	"ide-contract-state-transitions",
+	"quant-mandate-and-vault-state-transitions",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -45,6 +46,7 @@ var (
 	transactionHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
 	aiRecordIDPattern      = regexp.MustCompile(`^[0-9a-f]{24}$`)
+	quantRecordIDPattern   = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 	buildCommitPattern     = regexp.MustCompile(`^[0-9a-f]{12}$`)
 )
 
@@ -285,6 +287,18 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
 	g.mux.HandleFunc("GET /economics/fees", g.handleEconomicsFees)
 	g.mux.HandleFunc("GET /economics/fees/{id}", g.handleEconomicsFee)
+	g.mux.HandleFunc("POST /quant/mandates", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/mandates", g.handleQuantMandates)
+	g.mux.HandleFunc("GET /quant/mandates/{id}", g.handleQuantMandate)
+	g.mux.HandleFunc("POST /quant/mandates/{id}/revoke", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/mandates/{id}/kill", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/vaults", g.handleQuantVaults)
+	g.mux.HandleFunc("GET /quant/vaults/{id}", g.handleQuantVault)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/deposit", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/withdraw", g.handleQuantMutation)
+	g.mux.HandleFunc("POST /quant/vaults/{id}/emergency-exit", g.handleQuantMutation)
+	g.mux.HandleFunc("GET /quant/audit", g.handleQuantAudit)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)
