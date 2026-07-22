@@ -42,7 +42,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if len(secret) < 32 {
 		return nil, errors.New("DEX state HMAC secret must contain at least 32 bytes")
 	}
-	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 4, Events: []Event{}, FairFlowEvents: []FairFlowEvent{}, LPProtectionEvents: []LPProtectionEvent{}}}
+	store := &Store{path: path, secret: append([]byte(nil), secret...), state: storePayload{SchemaVersion: 5, Events: []Event{}, FairFlowEvents: []FairFlowEvent{}, LPProtectionEvents: []LPProtectionEvent{}}}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return store, nil
@@ -54,7 +54,7 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if err := decodeExact(data, &envelope); err != nil {
 		return nil, fmt.Errorf("decode DEX state: %w", err)
 	}
-	if (envelope.Payload.SchemaVersion < 1 || envelope.Payload.SchemaVersion > 4) || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
+	if (envelope.Payload.SchemaVersion < 1 || envelope.Payload.SchemaVersion > 5) || !hmac.Equal([]byte(envelope.Integrity), []byte(store.integrity(envelope.Payload))) {
 		return nil, errors.New("DEX state integrity verification failed")
 	}
 	for _, event := range envelope.Payload.Events {
@@ -75,18 +75,20 @@ func OpenStore(path string, secret []byte) (*Store, error) {
 	if envelope.Payload.Sequence != uint64(len(envelope.Payload.Events)+len(envelope.Payload.FairFlowEvents)+len(envelope.Payload.LPProtectionEvents)) {
 		return nil, errors.New("DEX state sequence mismatch")
 	}
-	if envelope.Payload.SchemaVersion < 4 {
+	if envelope.Payload.SchemaVersion < 5 {
 		legacyVersion := envelope.Payload.SchemaVersion
 		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", path, legacyVersion), data); err != nil {
 			return nil, fmt.Errorf("preserve DEX schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Payload.SchemaVersion = 4
+		envelope.Payload.SchemaVersion = 5
 		if legacyVersion < 3 {
 			envelope.Payload.FairFlowEvents = []FairFlowEvent{}
 		}
-		envelope.Payload.LPProtectionEvents = []LPProtectionEvent{}
+		if legacyVersion < 4 {
+			envelope.Payload.LPProtectionEvents = []LPProtectionEvent{}
+		}
 		if err := store.persist(envelope.Payload); err != nil {
-			return nil, fmt.Errorf("migrate DEX state to schema v4: %w", err)
+			return nil, fmt.Errorf("migrate DEX state to schema v5: %w", err)
 		}
 	}
 	store.state = envelope.Payload
@@ -294,7 +296,7 @@ func (store *Store) Pools() []Pool {
 	defer store.mu.RUnlock()
 	latest := map[string]Pool{}
 	for _, event := range store.state.Events {
-		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+		if !isPoolContractVersion(event.ContractVersion) {
 			continue
 		}
 		pool := latest[event.Pool]
@@ -339,7 +341,7 @@ func (store *Store) Positions(account string) []Position {
 	type totals struct{ lp, add0, add1, remove0, remove1 *big.Int }
 	byPool := map[string]*totals{}
 	for _, event := range store.state.Events {
-		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+		if !isPoolContractVersion(event.ContractVersion) {
 			continue
 		}
 		if event.Account != account || (event.Type != "liquidity-add" && event.Type != "liquidity-remove") {
@@ -412,7 +414,7 @@ func (store *Store) TWAPs() []TWAP {
 	byPool := map[string]observations{}
 	for index := range events {
 		event := &events[index]
-		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+		if !isPoolContractVersion(event.ContractVersion) {
 			continue
 		}
 		if event.Price0Cumulative == "" || event.Price1Cumulative == "" {
@@ -453,7 +455,7 @@ func (store *Store) Fees() []FeeSummary {
 	}
 	byPool := map[string]*totals{}
 	for _, event := range events {
-		if event.ContractVersion != "ynx-dex-cpmm-v1" {
+		if !isPoolContractVersion(event.ContractVersion) {
 			continue
 		}
 		item := byPool[event.Pool]

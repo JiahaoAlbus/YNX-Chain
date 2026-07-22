@@ -1,6 +1,7 @@
 export type Address = `0x${string}`;
 export interface Token { address: Address; chainId: 6423; decimals: number; name: string; symbol: string; verified: boolean }
 export interface Pool { address: Address; feeBps: number; reserve0: bigint | string; reserve1: bigint | string; token0: Token; token1: Token; updatedAt: string }
+export interface StablePoolState { address:Address;amplification:number;asOf:string;blockNumber:number;chainId:6423;confidence:"confirmed-on-chain";contractVersion:"ynx-stableswap-v1";coverage:string;failure:null;feeBps:number;precisionMultiplier0:bigint;precisionMultiplier1:bigint;reserve0:bigint;reserve1:bigint;source:"YNX Testnet EVM RPC";token0:Address;token1:Address;version:"ynx-stable-pool-state-v1" }
 export interface QuoteStep { pool: Address; tokenIn: Address; tokenOut: Address; amountIn: bigint; amountOut: bigint; reserveIn: bigint; reserveOut: bigint; feeBps: number }
 export interface Quote { kind: "exact-input" | "exact-output"; amountIn: bigint; amountOut: bigint; path: readonly Address[]; steps: readonly QuoteStep[]; quotedAt: string }
 export interface TransactionRequest { chainId: 6423; to: Address; functionName: string; args: readonly unknown[]; value: "0" }
@@ -27,6 +28,11 @@ export declare function parsePosition(value: unknown): Readonly<Position>;
 export declare function parseSpotPrice(value: unknown): Readonly<SpotPrice>;
 export declare function parseTWAP(value: unknown): Readonly<TWAP>;
 export declare function parseFeeSummary(value: unknown): Readonly<FeeSummary>;
+export declare function parseStablePoolState(value:unknown,options?:{now?:Date;maxAgeMs?:number}):Readonly<StablePoolState>;
+export declare function stableAmountOut(input:{pool:unknown;tokenIn:Address;amountIn:bigint|string}):bigint;
+export declare function stableAmountIn(input:{pool:unknown;tokenIn:Address;amountOut:bigint|string}):bigint;
+export declare function quoteStableExactInput(input:{amountIn:bigint|string;tokenIn:Address;tokenOut:Address;pools:unknown[];maxHops?:number;now?:Date}):Readonly<Quote>;
+export declare function quoteStableExactOutput(input:{amountOut:bigint|string;tokenIn:Address;tokenOut:Address;pools:unknown[];maxHops?:number;now?:Date}):Readonly<Quote>;
 export declare function parseLPProtectionQuote(value:unknown,options?:{now?:Date;maxAgeMs?:number}):Readonly<LPProtectionQuote>;
 export declare function quoteProtectedExactInput(input:{amountIn:bigint|string;tokenIn:Address;tokenOut:Address;pool:Pool;feeQuote:unknown;now?:Date}):Readonly<Quote>;
 export declare function parseIndexedLPProtectionEvent(value:unknown):Readonly<IndexedLPProtectionEvent>;

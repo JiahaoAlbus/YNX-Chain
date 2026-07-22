@@ -26,6 +26,7 @@ import (
 type EVMPollerConfig struct {
 	RPCURL        string
 	Factory       string
+	StableFactory string
 	StrategyVault string
 	FairFlow      string
 	LPProtection  string
@@ -40,10 +41,12 @@ type EVMPollerConfig struct {
 }
 
 type poolIdentity struct {
-	Address      string `json:"address"`
-	Token0       string `json:"token0"`
-	Token1       string `json:"token1"`
-	CreatedBlock uint64 `json:"createdBlock"`
+	Address         string `json:"address"`
+	Token0          string `json:"token0"`
+	Token1          string `json:"token1"`
+	CreatedBlock    uint64 `json:"createdBlock"`
+	ContractVersion string `json:"contractVersion,omitempty"`
+	SwapFeeBps      uint16 `json:"swapFeeBps,omitempty"`
 }
 
 type pollCursor struct {
@@ -51,6 +54,7 @@ type pollCursor struct {
 	StrategyVault string         `json:"strategyVault,omitempty"`
 	FairFlow      string         `json:"fairFlow,omitempty"`
 	LPProtection  string         `json:"lpProtection,omitempty"`
+	StableFactory string         `json:"stableFactory,omitempty"`
 	NextBlock     uint64         `json:"nextBlock"`
 	LastBlockHash string         `json:"lastBlockHash"`
 	Pools         []poolIdentity `json:"pools"`
@@ -109,6 +113,7 @@ var eventTopics = map[string]string{
 	"protection-assessed":         eventTopic("ProtectionAssessed(address,address,uint256,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint256,bytes32)"),
 }
 var cumulativePriceSelector = functionSelector("currentCumulativePrices()")
+var swapFeeSelector = functionSelector("swapFeeBps()")
 var nonceDomainSelector = functionSelector("nonceDomain()")
 var vaultMethods = map[string]string{
 	strings.ToLower(functionSelector("swapExactInput(uint256,uint256,uint256,address[],uint256)")):                "swapExactInput",
@@ -123,6 +128,9 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	}
 	if cfg.StrategyVault != "" && (!addressPattern.MatchString(cfg.StrategyVault) || strings.EqualFold(cfg.StrategyVault, cfg.Factory)) {
 		return nil, errors.New("strategy vault must be a distinct valid address")
+	}
+	if cfg.StableFactory != "" && (!addressPattern.MatchString(cfg.StableFactory) || strings.EqualFold(cfg.StableFactory, cfg.Factory) || strings.EqualFold(cfg.StableFactory, cfg.StrategyVault) || strings.EqualFold(cfg.StableFactory, cfg.FairFlow) || strings.EqualFold(cfg.StableFactory, cfg.LPProtection)) {
+		return nil, errors.New("Stable factory must be a distinct valid address")
 	}
 	if cfg.FairFlow != "" && (!addressPattern.MatchString(cfg.FairFlow) || strings.EqualFold(cfg.FairFlow, cfg.Factory) || strings.EqualFold(cfg.FairFlow, cfg.StrategyVault)) {
 		return nil, errors.New("FairFlow must be a distinct valid address")
@@ -151,7 +159,7 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 12 * time.Second}
 	}
-	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 4, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), LPProtection: strings.ToLower(cfg.LPProtection), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
+	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 5, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), LPProtection: strings.ToLower(cfg.LPProtection), StableFactory: strings.ToLower(cfg.StableFactory), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
 	if err := poller.loadCursor(); err != nil {
 		return nil, err
 	}
@@ -209,23 +217,29 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 		end = safeHead
 	}
 
-	factoryLogs, err := poller.getLogs(ctx, poller.cursor.NextBlock, end, poller.cfg.Factory)
-	if err != nil {
-		return false, err
-	}
 	createdEvents := make([]Event, 0)
-	for _, log := range factoryLogs {
-		if len(log.Topics) == 0 || !strings.EqualFold(log.Topics[0], eventTopics["pool-created"]) {
-			continue
+	factories := []struct{ address, version string }{{poller.cfg.Factory, "ynx-dex-cpmm-v1"}}
+	if poller.cfg.StableFactory != "" {
+		factories = append(factories, struct{ address, version string }{poller.cfg.StableFactory, "ynx-stableswap-v1"})
+	}
+	for _, factory := range factories {
+		factoryLogs, readErr := poller.getLogs(ctx, poller.cursor.NextBlock, end, factory.address)
+		if readErr != nil {
+			return false, readErr
 		}
-		pool, event, err := poller.decodePoolCreated(ctx, log)
-		if err != nil {
-			return false, err
+		for _, log := range factoryLogs {
+			if len(log.Topics) == 0 || !strings.EqualFold(log.Topics[0], eventTopics["pool-created"]) {
+				continue
+			}
+			pool, event, decodeErr := poller.decodePoolCreated(ctx, log, factory.address, factory.version)
+			if decodeErr != nil {
+				return false, decodeErr
+			}
+			if !poller.hasPool(pool.Address) {
+				poller.cursor.Pools = append(poller.cursor.Pools, pool)
+			}
+			createdEvents = append(createdEvents, event)
 		}
-		if !poller.hasPool(pool.Address) {
-			poller.cursor.Pools = append(poller.cursor.Pools, pool)
-		}
-		createdEvents = append(createdEvents, event)
 	}
 	sort.Slice(poller.cursor.Pools, func(i, j int) bool { return poller.cursor.Pools[i].Address < poller.cursor.Pools[j].Address })
 	addresses := make([]string, 0, len(poller.cursor.Pools))
@@ -281,6 +295,9 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 		if err != nil {
 			return false, err
 		}
+		if err := bindProtectedSwapFees(events, lpProtectionEvents); err != nil {
+			return false, err
+		}
 	}
 	all := append(append(createdEvents, events...), vaultEvents...)
 	sort.Slice(all, func(i, j int) bool {
@@ -314,6 +331,48 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func bindProtectedSwapFees(events []Event, assessments []LPProtectionEvent) error {
+	bySwap := map[string]LPProtectionEvent{}
+	for _, assessment := range assessments {
+		if assessment.Type != "assessed" {
+			continue
+		}
+		key := strings.ToLower(assessment.TransactionHash + ":" + assessment.Pool + ":" + assessment.TokenIn + ":" + assessment.Details["amountIn"])
+		if _, exists := bySwap[key]; exists {
+			return errors.New("duplicate LP protection assessment for swap")
+		}
+		bySwap[key] = assessment
+	}
+	for index := range events {
+		event := &events[index]
+		if event.Type != "swap" || event.ContractVersion != "ynx-dex-cpmm-v1" {
+			continue
+		}
+		tokenIn, amountIn := event.Token0, event.Amount0
+		if strings.HasPrefix(amountIn, "-") {
+			tokenIn, amountIn = event.Token1, event.Amount1
+		}
+		key := strings.ToLower(event.TxHash + ":" + event.Pool + ":" + tokenIn + ":" + amountIn)
+		assessment, ok := bySwap[key]
+		if !ok {
+			return errors.New("protected CPMM swap is missing exact ProtectionAssessed evidence")
+		}
+		amount, amountOK := new(big.Int).SetString(amountIn, 10)
+		feeBps, feeOK := new(big.Int).SetString(assessment.Details["totalFeeBps"], 10)
+		if !amountOK || !feeOK {
+			return errors.New("invalid protected swap fee evidence")
+		}
+		fee := new(big.Int).Mul(amount, feeBps)
+		fee.Div(fee, big.NewInt(10_000))
+		if strings.EqualFold(tokenIn, event.Token0) {
+			event.Fee0 = fee.String()
+		} else {
+			event.Fee1 = fee.String()
+		}
+	}
+	return nil
 }
 
 func (poller *EVMPoller) decodeVaultLogs(ctx context.Context, logs []evmLog) ([]Event, error) {
@@ -597,9 +656,9 @@ func (poller *EVMPoller) recoverReorg(ctx context.Context) error {
 	return poller.persistCursor()
 }
 
-func (poller *EVMPoller) decodePoolCreated(ctx context.Context, log evmLog) (poolIdentity, Event, error) {
+func (poller *EVMPoller) decodePoolCreated(ctx context.Context, log evmLog, factory, contractVersion string) (poolIdentity, Event, error) {
 	block, index, err := validateLog(log)
-	if err != nil || len(log.Topics) != 3 {
+	if err != nil || len(log.Topics) != 3 || !strings.EqualFold(log.Address, factory) || !isPoolContractVersion(contractVersion) {
 		return poolIdentity{}, Event{}, errors.New("invalid PoolCreated log")
 	}
 	words, err := dataWords(log.Data)
@@ -614,7 +673,14 @@ func (poller *EVMPoller) decodePoolCreated(ctx context.Context, log evmLog) (poo
 	if err != nil {
 		return poolIdentity{}, Event{}, err
 	}
-	pool := poolIdentity{Address: strings.ToLower(poolAddress), Token0: strings.ToLower(token0), Token1: strings.ToLower(token1), CreatedBlock: block}
+	feeBps := uint16(30)
+	if contractVersion == "ynx-stableswap-v1" {
+		feeBps, err = poller.poolSwapFee(ctx, poolAddress, block)
+		if err != nil {
+			return poolIdentity{}, Event{}, err
+		}
+	}
+	pool := poolIdentity{Address: strings.ToLower(poolAddress), Token0: strings.ToLower(token0), Token1: strings.ToLower(token1), CreatedBlock: block, ContractVersion: contractVersion, SwapFeeBps: feeBps}
 	return pool, baseEvent(log, block, index, timestamp, pool, "pool-created"), nil
 }
 
@@ -700,7 +766,7 @@ func (poller *EVMPoller) decodePoolLogs(ctx context.Context, logs []evmLog) ([]E
 			event.Type, event.Account = "swap", topicAddress(log.Topics[3])
 			fee := new(big.Int)
 			fee.SetString(amountIn, 10)
-			fee.Mul(fee, big.NewInt(30))
+			fee.Mul(fee, new(big.Int).SetUint64(uint64(pool.SwapFeeBps)))
 			fee.Div(fee, big.NewInt(10_000))
 			if strings.EqualFold(tokenIn, pool.Token0) {
 				event.Amount0, event.Amount1, event.Fee0 = amountIn, "-"+amountOut, fee.String()
@@ -734,7 +800,7 @@ func (poller *EVMPoller) decodePoolLogs(ctx context.Context, logs []evmLog) ([]E
 }
 
 func baseEvent(log evmLog, block, index uint64, timestamp time.Time, pool poolIdentity, kind string) Event {
-	return Event{ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID, ContractVersion: "ynx-dex-cpmm-v1", BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash), TxHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Pool: strings.ToLower(pool.Address), Token0: strings.ToLower(pool.Token0), Token1: strings.ToLower(pool.Token1), Amount0: "0", Amount1: "0", LPAmount: "0", Fee0: "0", Fee1: "0", Reserve0: "0", Reserve1: "0", Timestamp: timestamp}
+	return Event{ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID, ContractVersion: pool.ContractVersion, BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash), TxHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Pool: strings.ToLower(pool.Address), Token0: strings.ToLower(pool.Token0), Token1: strings.ToLower(pool.Token1), Amount0: "0", Amount1: "0", LPAmount: "0", Fee0: "0", Fee1: "0", Reserve0: "0", Reserve1: "0", Timestamp: timestamp}
 }
 
 func (poller *EVMPoller) getLogs(ctx context.Context, from, to uint64, address any) ([]evmLog, error) {
@@ -784,6 +850,22 @@ func (poller *EVMPoller) cumulativePrices(ctx context.Context, pool string, bloc
 		return "", "", errors.New("invalid cumulative-price eth_call response")
 	}
 	return wordDecimal(words[0]), wordDecimal(words[1]), nil
+}
+
+func (poller *EVMPoller) poolSwapFee(ctx context.Context, pool string, block uint64) (uint16, error) {
+	var encoded string
+	if err := poller.rpc(ctx, "eth_call", []any{map[string]string{"to": pool, "data": swapFeeSelector}, hexQuantity(block)}, &encoded); err != nil {
+		return 0, err
+	}
+	words, err := dataWords(encoded)
+	if err != nil || len(words) != 1 {
+		return 0, errors.New("invalid swapFeeBps eth_call response")
+	}
+	value := new(big.Int)
+	if _, ok := value.SetString(words[0], 16); !ok || !value.IsUint64() || value.Sign() <= 0 || value.Uint64() > 100 {
+		return 0, errors.New("invalid indexed pool swap fee")
+	}
+	return uint16(value.Uint64()), nil
 }
 
 func (poller *EVMPoller) nonceDomain(ctx context.Context, block uint64) (string, error) {
@@ -850,12 +932,15 @@ func (poller *EVMPoller) loadCursor() error {
 	payload, _ := json.Marshal(envelope.Cursor)
 	mac := hmac.New(sha256.New, poller.cfg.CursorSecret)
 	_, _ = mac.Write(payload)
-	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 4 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
+	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 5 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
 		return errors.New("EVM cursor integrity verification failed")
 	}
 	for _, pool := range envelope.Cursor.Pools {
 		if !addressPattern.MatchString(pool.Address) || !addressPattern.MatchString(pool.Token0) || !addressPattern.MatchString(pool.Token1) || pool.CreatedBlock < poller.cfg.StartBlock {
 			return errors.New("invalid pool in EVM cursor")
+		}
+		if envelope.Cursor.SchemaVersion == 5 && (!isPoolContractVersion(pool.ContractVersion) || pool.SwapFeeBps == 0 || pool.SwapFeeBps > 100) {
+			return errors.New("invalid typed pool in EVM cursor")
 		}
 	}
 	if envelope.Cursor.SchemaVersion >= 2 && !strings.EqualFold(envelope.Cursor.StrategyVault, poller.cfg.StrategyVault) {
@@ -864,19 +949,27 @@ func (poller *EVMPoller) loadCursor() error {
 	if envelope.Cursor.SchemaVersion >= 3 && !strings.EqualFold(envelope.Cursor.FairFlow, poller.cfg.FairFlow) {
 		return errors.New("EVM cursor FairFlow binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion == 4 && !strings.EqualFold(envelope.Cursor.LPProtection, poller.cfg.LPProtection) {
+	if envelope.Cursor.SchemaVersion >= 4 && !strings.EqualFold(envelope.Cursor.LPProtection, poller.cfg.LPProtection) {
 		return errors.New("EVM cursor LP protection binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion < 4 {
+	if envelope.Cursor.SchemaVersion == 5 && !strings.EqualFold(envelope.Cursor.StableFactory, poller.cfg.StableFactory) {
+		return errors.New("EVM cursor Stable factory binding mismatch")
+	}
+	if envelope.Cursor.SchemaVersion < 5 {
 		legacyVersion := envelope.Cursor.SchemaVersion
 		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", poller.cfg.CursorPath, legacyVersion), data); err != nil {
 			return fmt.Errorf("preserve EVM cursor schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Cursor.SchemaVersion = 4
+		envelope.Cursor.SchemaVersion = 5
 		envelope.Cursor.StrategyVault = strings.ToLower(poller.cfg.StrategyVault)
 		envelope.Cursor.FairFlow = strings.ToLower(poller.cfg.FairFlow)
 		envelope.Cursor.LPProtection = strings.ToLower(poller.cfg.LPProtection)
-		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "")) || (legacyVersion == 2 && (poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "")) || (legacyVersion == 3 && poller.cfg.LPProtection != "") {
+		envelope.Cursor.StableFactory = strings.ToLower(poller.cfg.StableFactory)
+		for index := range envelope.Cursor.Pools {
+			envelope.Cursor.Pools[index].ContractVersion = "ynx-dex-cpmm-v1"
+			envelope.Cursor.Pools[index].SwapFeeBps = 30
+		}
+		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 2 && (poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 3 && (poller.cfg.LPProtection != "" || poller.cfg.StableFactory != "")) || (legacyVersion == 4 && poller.cfg.StableFactory != "") {
 			envelope.Cursor.NextBlock = poller.cfg.StartBlock
 			envelope.Cursor.LastBlockHash = ""
 		}

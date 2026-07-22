@@ -10,9 +10,10 @@ The final-objective requirement matrix and 2026-07-22 revalidation record are in
 - Strategy Vault security boundary and adversarial/property runner: `docs/dex/STRATEGY_VAULT_SECURITY.md`, `scripts/dex/vault-test.mjs`
 - FairFlow contract, lifecycle and economic boundary: `docs/dex/FAIRFLOW_SECURITY.md`, `scripts/dex/fairflow-test.mjs`
 - LP Protection contract and economic boundary: `docs/dex/LP_PROTECTION_SECURITY.md`, `scripts/dex/lp-protection-test.mjs`
+- StableSwap contract and economic boundary: `docs/dex/STABLESWAP_SECURITY.md`, `scripts/dex/stable-test.mjs`
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
-- Indexer recovery/security tests, including FairFlow and LP Protection persistence/API/migration: `internal/dex/store_test.go`
-- Confirmed EVM polling/reorg, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`
+- Indexer recovery/security tests, including typed Stable pools, FairFlow and LP Protection persistence/API/migration: `internal/dex/store_test.go`
+- Confirmed EVM polling/reorg, typed Stable discovery/fee attribution, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`
 - State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
 - Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
 - Desktop/mobile/offline E2E: `apps/dex/e2e/dex.spec.ts`

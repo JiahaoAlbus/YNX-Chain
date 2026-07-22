@@ -197,7 +197,7 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.state.SchemaVersion != 4 || len(migrated.Events()) != 1 || len(migrated.FairFlowEvents("")) != 0 || len(migrated.LPProtectionEvents("", "")) != 0 {
+	if migrated.state.SchemaVersion != 5 || len(migrated.Events()) != 1 || len(migrated.FairFlowEvents("")) != 0 || len(migrated.LPProtectionEvents("", "")) != 0 {
 		t.Fatalf("migrated=%#v", migrated.state)
 	}
 	backup, err := os.ReadFile(path + ".schema-v1.bak")
@@ -210,7 +210,7 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	}
 	var current storeEnvelope
 	currentData, _ := os.ReadFile(path)
-	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 4 {
+	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 5 {
 		t.Fatalf("current schema %v %#v", err, current.Payload)
 	}
 }
@@ -225,7 +225,7 @@ func TestStoreMigratesAuthenticatedSchemaV2AndPreservesRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	migrated, err := OpenStore(path, testSecret)
-	if err != nil || migrated.state.SchemaVersion != 4 {
+	if err != nil || migrated.state.SchemaVersion != 5 {
 		t.Fatalf("migration %v %#v", err, migrated)
 	}
 	backup, err := os.ReadFile(path + ".schema-v2.bak")
@@ -248,10 +248,35 @@ func TestStoreMigratesAuthenticatedSchemaV3AndPreservesRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	migrated, err := OpenStore(path, testSecret)
-	if err != nil || migrated.state.SchemaVersion != 4 || len(migrated.FairFlowEvents("")) != 1 || len(migrated.LPProtectionEvents("", "")) != 0 {
+	if err != nil || migrated.state.SchemaVersion != 5 || len(migrated.FairFlowEvents("")) != 1 || len(migrated.LPProtectionEvents("", "")) != 0 {
 		t.Fatalf("migration %v %#v", err, migrated)
 	}
 	backup, err := os.ReadFile(path + ".schema-v3.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("backup %v", err)
+	}
+}
+
+func TestStoreMigratesSchemaV4WithoutLosingLPProtectionOrStablePools(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	legacyStore := &Store{path: path, secret: append([]byte(nil), testSecret...)}
+	stable := fixture(4, "swap")
+	stable.ContractVersion = "ynx-stableswap-v1"
+	payload := storePayload{SchemaVersion: 4, Sequence: 2, Events: []Event{stable}, FairFlowEvents: []FairFlowEvent{}, LPProtectionEvents: []LPProtectionEvent{lpProtectionFixture(4)}}
+	legacy := storeEnvelope{Payload: payload, Integrity: legacyStore.integrity(payload)}
+	data, _ := json.MarshalIndent(legacy, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, testSecret)
+	if err != nil || migrated.state.SchemaVersion != 5 || len(migrated.LPProtectionEvents("", "")) != 1 {
+		t.Fatalf("migration %v %#v", err, migrated)
+	}
+	pools := migrated.Pools()
+	if len(pools) != 1 || pools[0].ContractVersion != "ynx-stableswap-v1" {
+		t.Fatalf("stable pools=%#v", pools)
+	}
+	backup, err := os.ReadFile(path + ".schema-v4.bak")
 	if err != nil || !bytes.Equal(backup, data) {
 		t.Fatalf("backup %v", err)
 	}

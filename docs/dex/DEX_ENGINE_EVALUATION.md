@@ -4,9 +4,9 @@ Reviewed on 2026-07-18 for YNX Testnet EVM chain ID 6423. Repository HEADs were 
 
 ## Decision
 
-YNX DEX v1 uses a clean-room, immutable constant-product pool implemented in this repository. No third-party AMM source was copied. The chosen scope is intentionally narrower than concentrated-liquidity or stable-swap engines: permissionless creation between allow-listed Testnet tokens, 30 bps swap fee, explicitly accrued protocol share, bounded four-hop routing, exact-input/output, LP mint/burn, cumulative-price observations, deadlines, min/max bounds, and a two-day public delay for token support, fee recipient, and governance changes.
+YNX DEX retains its clean-room immutable constant-product family and now adds an isolated clean-room two-asset StableSwap candidate under Decision 002. No third-party AMM source was copied. Stable pools use governance-reviewed creation, immutable A/fee and separate Factory/Router/Quoter addresses; this does not change the earlier conclusion that the reviewed external StableSwap repository is unsuitable for copying.
 
-This decision is Testnet-only. `mainnet=false`, `audited=false`, and `productionLiquidity=false`. A qualified independent audit, economic review, oracle review, malicious-token campaign, deployment ceremony, and owner-approved multisig are required before reconsidering that boundary.
+Both families remain Testnet-only. `mainnet=false`, `audited=false`, and `productionLiquidity=false`. Stable assets, external rate/peg evidence and depeg controls are not established. A qualified independent audit, economic/Oracle review, deployment ceremony and owner-approved multisig are required before changing that boundary.
 
 ## Candidates
 

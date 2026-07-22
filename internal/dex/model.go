@@ -65,7 +65,7 @@ func (event Event) Validate() error {
 	if event.ContractVersion == "ynx-strategy-vault-v1" {
 		return event.validateVaultAction()
 	}
-	if event.ContractVersion != "ynx-dex-cpmm-v1" {
+	if !isPoolContractVersion(event.ContractVersion) {
 		return errors.New("wrong chain or contract version")
 	}
 	if event.Vault != "" || event.NonceDomain != "" || event.ActionNonce != "" || event.Method != "" || event.MethodSelector != "" || event.BeforeValue != "" || event.AfterValue != "" {
@@ -107,6 +107,10 @@ func (event Event) Validate() error {
 		return errors.New("invalid timestamp")
 	}
 	return nil
+}
+
+func isPoolContractVersion(version string) bool {
+	return version == "ynx-dex-cpmm-v1" || version == "ynx-stableswap-v1"
 }
 
 func (event Event) validateVaultAction() error {

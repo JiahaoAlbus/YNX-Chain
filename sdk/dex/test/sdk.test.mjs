@@ -16,6 +16,8 @@ import {
   submitApprovedFairFlowRequest,
   parseLPProtectionQuote, quoteProtectedExactInput, parseIndexedLPProtectionEvent,
   reconcileLPProtectionQuote,
+  parseStablePoolState, stableAmountIn, stableAmountOut,
+  quoteStableExactInput, quoteStableExactOutput,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -24,6 +26,8 @@ const A = token(1, "A"); const B = token(2, "B"); const C = token(3, "C");
 const pool = (value, token0, token1, reserve0, reserve1) => ({ address: address(value), feeBps: 30, reserve0: String(reserve0), reserve1: String(reserve1), token0, token1, updatedAt: "2026-07-18T06:00:00.000Z" });
 const pools = [pool(11, A, B, 1_000_000n, 1_000_000n), pool(12, B, C, 1_000_000n, 2_000_000n), pool(13, A, C, 1_000_000n, 1_500_000n)];
 const now = new Date("2026-07-18T06:00:05.000Z");
+const stableState=(value,token0,token1,reserve0,reserve1,multiplier0,multiplier1)=>({address:address(value),amplification:200,asOf:now.toISOString(),blockNumber:100,chainId:6423,confidence:"confirmed-on-chain",contractVersion:"ynx-stableswap-v1",coverage:"Confirmed reserves, immutable amplification, fee and decimal precision multipliers",failure:null,feeBps:4,precisionMultiplier0:String(multiplier0),precisionMultiplier1:String(multiplier1),reserve0:String(reserve0),reserve1:String(reserve1),source:"YNX Testnet EVM RPC",token0,token1,version:"ynx-stable-pool-state-v1"});
+const stablePools=[stableState(21,A.address,B.address,1_000_000n*10n**18n,1_000_000n*10n**6n,1n,10n**12n),stableState(22,B.address,C.address,1_000_000n*10n**6n,1_000_000n*10n**8n,10n**12n,10n**10n)];
 
 test("exact-input routing chooses the best deterministic route", () => {
   const quote = quoteExactInput({ amountIn: 10_000n, tokenIn: A.address, tokenOut: C.address, pools, now });
@@ -37,6 +41,14 @@ test("exact-output routing minimizes required input", () => {
   const quote = quoteExactOutput({ amountOut: 10_000n, tokenIn: A.address, tokenOut: C.address, pools, now });
   assert(quote.amountIn > 0n);
   assert.equal(quote.amountOut, 10_000n);
+});
+
+test("StableSwap quotes bind fresh typed RPC state and decimal normalization",()=>{
+  const parsed=parseStablePoolState(stablePools[0],{now});assert.equal(parsed.precisionMultiplier1,10n**12n);const input=1_000n*10n**18n;const direct=stableAmountOut({pool:stablePools[0],tokenIn:A.address,amountIn:input});assert(direct>999n*10n**6n&&direct<1_000n*10n**6n);
+  const required=stableAmountIn({pool:stablePools[0],tokenIn:A.address,amountOut:direct});assert(required<=input);assert(stableAmountOut({pool:stablePools[0],tokenIn:A.address,amountIn:required})>=direct);if(required>1n)assert(stableAmountOut({pool:stablePools[0],tokenIn:A.address,amountIn:required-1n})<direct);
+  const multi=quoteStableExactInput({amountIn:input,tokenIn:A.address,tokenOut:C.address,pools:stablePools,now});assert.deepEqual(multi.path,[A.address,B.address,C.address]);assert.equal(multi.steps.length,2);assert.equal(multi.version,"ynx-stable-route-quote-v1");
+  const reverse=quoteStableExactOutput({amountOut:100n*10n**8n,tokenIn:A.address,tokenOut:C.address,pools:stablePools,now});assert(reverse.amountIn>0n);assert.equal(reverse.amountOut,100n*10n**8n);
+  assert.throws(()=>parseStablePoolState({...stablePools[0],amplification:9},{now}),error=>error.code==="INVALID_STABLE_POOL");assert.throws(()=>parseStablePoolState({...stablePools[0],asOf:new Date(now.valueOf()-16_000).toISOString()},{now}),error=>error.code==="INVALID_STABLE_POOL");assert.throws(()=>parseStablePoolState({...stablePools[0],source:"cache"},{now}),error=>error.code==="INVALID_STABLE_POOL");
 });
 
 test("slippage and transaction builder preserve fail-closed bounds", () => {

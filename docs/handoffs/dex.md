@@ -17,8 +17,9 @@ YNX Exchange remains the operator/custody/order-book product. Do not merge DEX b
 - `contracts/dex`: versioned factory, immutable pool, bounded router, read-only quoter, adversarial test tokens and integration runner.
 - `contracts/dex/YNXStrategyVault.sol`: immutable per-user owner/engine boundary with typed Router methods, exact approvals, mandate/oracle limits, pause/revoke/kill and owner-only recovery. Vault v1 has no fee-transfer path.
 - `contracts/dex/YNXProtectedDexFactory.sol` and `YNXLPProtection.sol`: separate protected CPMM deployment type with immutable Oracle binding, bounded component-level dynamic fees, delayed configuration, depeg swap circuit breaker and unconditional proportional LP exit.
-- `sdk/dex`: strict ESM SDK for token/pool/Vault/FairFlow/LP Protection parsing, deterministic exact-in/out routing, protected fee-bound quotes, slippage, typed Vault and Intent requests, exact canonical Wallet approval digests, injected submission and confirmed receipt/event reconciliation. It contains no signer, solver or automatic strategy loop.
-- `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v4 event state, confirmed Pool/Vault/FairFlow/LP Protection EVM poller, address-bound cursor migration, shared reorg rewind/rescan, source-labelled Vault/FairFlow/LP Protection APIs, public pool reads, protected positions and strict token-list API.
+- `contracts/dex/YNXStableFactory.sol` and `YNXStablePool.sol`: separate clean-room two-asset StableSwap family with 18-decimal normalization, immutable A/fee, proportional fungible LP shares, exact input/output and existing bounded Router/Quoter compatibility.
+- `sdk/dex`: strict ESM SDK for token/pool/Vault/FairFlow/LP Protection/Stable state, deterministic CPMM and Stable exact-in/out routing, protected fee-bound quotes, typed requests, exact canonical Wallet approval digests, injected submission and confirmed reconciliation. It contains no signer, solver or automatic strategy loop.
+- `internal/dex` and `cmd/ynx-dex-indexerd`: HMAC-protected schema-v5 event state, confirmed typed CPMM/Stable/Vault/FairFlow/LP Protection EVM poller, address-bound migration, shared reorg rewind/rescan and source-labelled APIs.
 - `apps/dex`: responsive Web/PWA with Swap, Pools, Pool Detail, Add/Remove Liquidity, Positions boundary, Explore/Tokens/Transactions, Analytics, Governance, Docs and Settings.
 - AI risk explanation: context selection, explicit permission, same-origin canonical-gateway enforcement, provider/model/status/cost, strict NDJSON streaming/cancel, review, local apply/reject and SHA-256 hash-chained browser audit. It cannot build, sign, submit or mutate a transaction.
 - `release/dex`: deterministic upload-ready PWA tarball and per-file/SHA-256 manifest. It is unsigned and not hosted.
@@ -39,7 +40,7 @@ Owner action is required to review and register this candidate, expose the canon
 
 ## Runtime configuration
 
-Copy `.env.dex.example` outside the repository. Generate independent secrets for state HMAC and trusted ingestion. The EVM poller additionally requires a verified `DEX_FACTORY_ADDRESS`, exact `DEX_INDEXER_START_BLOCK`, positive confirmations and a private cursor path. Set `DEX_LP_PROTECTION_ADDRESS` only from the same verified deployment and require it to equal `factory.lpProtection()`. The token file defaults to `token-lists/dex-testnet.json`, which is intentionally empty until owner-reviewed test tokens exist.
+Copy `.env.dex.example` outside the repository. Generate independent secrets for state HMAC and trusted ingestion. The EVM poller additionally requires a verified `DEX_FACTORY_ADDRESS`, exact `DEX_INDEXER_START_BLOCK`, positive confirmations and a private cursor path. Set `DEX_LP_PROTECTION_ADDRESS` and optional `DEX_STABLE_FACTORY_ADDRESS` only from the same verified deployment; require protection to equal `factory.lpProtection()`. The token file remains intentionally empty until owner-reviewed test tokens exist.
 
 The poller checks chain 6423, scans only confirmed bounded ranges, discovers pools from `PoolCreated`, correlates LP `Transfer` with Mint/Burn, decodes Swap/Sync/fees plus Vault/FairFlow/LP Protection logs, persists an HMAC cursor and rewinds/rescans when the previously confirmed block hash changes. Never lower confirmations or edit signed state to bypass a conflict.
 
@@ -52,6 +53,7 @@ npm run dex:contracts:test
 npm run dex:vault:test
 npm run dex:fairflow:test
 npm run dex:lp-protection:test
+npm run dex:stable:test
 npm test --prefix sdk/dex
 go test -race ./internal/dex ./cmd/ynx-dex-indexerd
 npm ci --prefix apps/dex
