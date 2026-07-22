@@ -412,6 +412,10 @@ bridge-supply-chain-check:
 bridge-observability-check:
 	node ./scripts/verify/bridge-observability-check.mjs
 
+.PHONY: bridge-sdk-check
+bridge-sdk-check:
+	bash ./scripts/verify/bridge-sdk-check.sh
+
 .PHONY: bridge-capacity-check bridge-restore-check bridge-evidence-check
 bridge-capacity-check:
 	bash ./scripts/verify/bridge-capacity-check.sh

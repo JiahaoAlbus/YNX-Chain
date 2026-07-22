@@ -49,6 +49,7 @@ grep -Eiq '^Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-[0-9a-f]{16}-01' "$
 health="$(curl -fsS "$url/health")"
 printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit)throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
+BRIDGE_URL="$url" node --input-type=module -e 'import {YNXBridgeClient} from "./sdk/bridge/index.js";const c=new YNXBridgeClient({baseURL:process.env.BRIDGE_URL});const [h,t]=await Promise.all([c.getHealth(),c.getTransparency()]);if(h.liveBridge!==false||t.routes.length!==1)process.exit(1)'
 
 status="$(curl -sS -D "$tmp/unauthorized.headers" -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/transfers")"
 [[ "$status" == 401 ]]

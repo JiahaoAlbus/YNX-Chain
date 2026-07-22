@@ -12,6 +12,7 @@ Status date: 2026-07-22.
 | Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
+| Read-only Bridge JavaScript SDK and lifecycle availability guard | true | true | false | false | false | false |
 | External source submission | false | false | false | false | false | false |
 | Destination mint or release execution | false | false | false | false | false | false |
 | Official stablecoin transfer route | false | false | false | false | false | false |
@@ -24,6 +25,7 @@ Status date: 2026-07-22.
 - `make bridge-api-check`
 - `make bridge-integration-check`
 - `make bridge-observability-check`
+- `make bridge-sdk-check`
 - `make bridge-supply-chain-check`
 - `make bridge-capacity-check`
 - `make bridge-restore-check`

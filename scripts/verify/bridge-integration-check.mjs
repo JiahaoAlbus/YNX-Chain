@@ -6,10 +6,13 @@ const vectors = read("docs/bridge/consumer-lifecycle-vectors.json");
 const provider = read("docs/bridge/provider-status.json");
 const metadata = read("docs/bridge/public-product-metadata.json");
 const release = read("docs/bridge/product-release.json");
+const sdk = read("sdk/bridge/package.json");
 const fail = (message) => { throw new Error(message); };
 
 if (manifest.schemaVersion !== 1 || manifest.currentIntegrationState !== "handoff_only_not_integrated") fail("manifest integration state is invalid");
 if (manifest.publicRead.path !== "/bridge/transparency" || manifest.publicRead.deployedPublic !== false) fail("public read boundary is invalid");
+if (manifest.sdk.path !== "sdk/bridge" || manifest.sdk.package !== "@ynx-chain/bridge-sdk" || manifest.sdk.access !== "public-read-only" || manifest.sdk.acceptsCredentials !== false || manifest.sdk.registryPublished !== false || manifest.sdk.assetAvailableOnlyAt !== "destination_confirmed") fail("Bridge SDK handoff boundary is invalid");
+if (sdk.name !== manifest.sdk.package || sdk.version !== manifest.sdk.version || sdk.private !== true) fail("Bridge SDK package state is invalid");
 if (manifest.protectedCoordinatorBoundary.consumerCredentialAccess !== false || manifest.protectedCoordinatorBoundary.browserCredentialAccess !== false || manifest.protectedCoordinatorBoundary.walletSecretAccess !== false || manifest.protectedCoordinatorBoundary.centralGatewayIntegrated !== false) fail("protected boundary is invalid");
 const expectedConsumers = ["wallet","pay","exchange","dex","finance","explorer","monitor","trust"];
 if (manifest.consumers.map(({id}) => id).join(",") !== expectedConsumers.join(",")) fail("consumer set or order is invalid");
@@ -25,4 +28,4 @@ for (const key of ["installedLocal","integratedCentral","deployedStaging","deplo
 if (release.sourceCommit !== null || release.sourceCommitRequiredBeforeRelease !== true || release.artifacts.length !== 0 || release.publicUrls.length !== 0 || release.transactionEvidence.length !== 0) fail("release record contains unsupported evidence");
 const serialized = JSON.stringify({manifest,vectors,provider,metadata,release});
 for (const forbidden of ["Codex", "Worktree", "/Users/", "localhost", "127.0.0.1"]) if (serialized.includes(forbidden)) fail(`public handoff contains forbidden internal value ${forbidden}`);
-console.log("bridge integration check passed: eight consumer contracts, destination-confirmed availability gate, protected credential boundary, and unavailable CCTP status");
+console.log("bridge integration check passed: eight consumer contracts, read-only unpublished SDK, destination-confirmed availability gate, protected credential boundary, and unavailable CCTP status");

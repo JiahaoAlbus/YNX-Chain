@@ -1,5 +1,6 @@
 # Bridge Release Notes
 
+- Added an independent dependency-free Bridge JavaScript SDK for credential-free health/transparency reads and fail-closed destination-availability classification. The package is locally tested, private, and not registry-published.
 - Added W3C trace-context propagation, bounded per-route safety/reconciliation metrics, loadable Prometheus alerts, and an importable Bridge safety/SLO dashboard. These are local definitions; no remote monitoring or public status service is claimed.
 
 ## Local engineering candidate — 2026-07-22

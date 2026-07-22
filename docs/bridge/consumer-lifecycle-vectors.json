@@ -2,12 +2,16 @@
   "schemaVersion": 1,
   "vectors": [
     {"id":"quote-only","phase":"quote","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"user-review","phase":"user_review","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"source-submitted","phase":"source_submitted","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
     {"id":"source-accepted","phase":"source_accepted","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
     {"id":"source-finalized","phase":"source_finalized","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
+    {"id":"proof-attestation","phase":"proof_attestation","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
     {"id":"destination-release","phase":"destination_mint_release","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},
     {"id":"destination-confirmed","phase":"destination_confirmed","assetAvailable":true,"mayPay":true,"mayCreditExchange":true,"showRecovery":false},
     {"id":"failed","phase":"failed","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
     {"id":"refund-recovery","phase":"refund_recovery","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
-    {"id":"dispute","phase":"dispute","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true}
+    {"id":"dispute","phase":"dispute","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":true},
+    {"id":"retry","phase":"retry","assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false}
   ]
 }

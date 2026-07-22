@@ -1,0 +1,11 @@
+{
+  "name": "@ynx-chain/bridge-sdk",
+  "version": "0.1.0",
+  "description": "Read-only YNX Bridge transparency and lifecycle client",
+  "type": "module",
+  "exports": "./index.js",
+  "files": ["README.md", "index.js"],
+  "engines": {"node": ">=18"},
+  "scripts": {"test": "node --test index.test.mjs"},
+  "private": true
+}
