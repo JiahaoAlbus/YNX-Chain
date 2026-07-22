@@ -16,6 +16,12 @@ func TestServerAuthorizationScopeAndStrictJSON(t *testing.T) {
 	now := time.Now().UTC()
 	s := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
 	handler := NewServer(s).Handler()
+	challengeReq := httptest.NewRequest(http.MethodPost, "/api/v1/session/challenge", strings.NewReader(`{}`))
+	challengeRR := httptest.NewRecorder()
+	handler.ServeHTTP(challengeRR, challengeReq)
+	if challengeRR.Code == http.StatusLocked {
+		t.Fatalf("exit mode blocked canonical authentication: %d %s", challengeRR.Code, challengeRR.Body.String())
+	}
 	envelope := testWalletEnvelope(t, s, "cloud", "n", []string{"files.read"})
 	token, _, err := s.CreateSession(context.Background(), envelope)
 	if err != nil {
@@ -94,6 +100,51 @@ func TestServerRangeDownload(t *testing.T) {
 	NewServer(s).Handler().ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), `"source":"ynx-cloudd-local-meter"`) {
 		t.Fatalf("usage endpoint: %d %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestUserExitModePreservesExportAndDeletionButBlocksNewWrites(t *testing.T) {
+	s := testService(t, func(c *Config) { c.ExitMode = true })
+	object, err := s.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "leave.txt", MIME: "text/plain", Content: []byte("portable")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope := testWalletEnvelope(t, s, "cloud", "exit-mode", []string{"files.read", "files.write", "permissions.manage"})
+	token, _, err := s.CreateSession(context.Background(), envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewServer(s).Handler()
+	request := func(method, path, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		return rr
+	}
+	if rr := request(http.MethodPost, "/api/v1/objects", `{"kind":"file","name":"blocked.txt","content":"eA=="}`); rr.Code != http.StatusLocked || rr.Header().Get("X-YNX-Service-Mode") != "user-exit" {
+		t.Fatalf("exit write: %d %s %#v", rr.Code, rr.Body.String(), rr.Header())
+	}
+	if rr := request(http.MethodGet, "/api/v1/objects/"+object.ID+"/content", ""); rr.Code != http.StatusOK || rr.Body.String() != "portable" {
+		t.Fatalf("exit read: %d %q", rr.Code, rr.Body.String())
+	}
+	if rr := request(http.MethodGet, "/api/v1/export", ""); rr.Code != http.StatusOK || rr.Header().Get("X-Content-SHA256") == "" {
+		t.Fatalf("exit export: %d %s", rr.Code, rr.Body.String())
+	}
+	if rr := request(http.MethodPost, "/api/v1/objects/"+object.ID+"/trash", ""); rr.Code != http.StatusOK {
+		t.Fatalf("exit trash: %d %s", rr.Code, rr.Body.String())
+	}
+	if rr := request(http.MethodDelete, "/api/v1/objects/"+object.ID, `{"confirm":"DELETE"}`); rr.Code != http.StatusNoContent {
+		t.Fatalf("exit delete: %d %s", rr.Code, rr.Body.String())
+	}
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), `"mode":"user-exit"`) {
+		t.Fatalf("exit health: %d %s", rr.Code, rr.Body.String())
+	}
+	if rr := request(http.MethodDelete, "/api/v1/session", ""); rr.Code != http.StatusNoContent {
+		t.Fatalf("exit logout: %d %s", rr.Code, rr.Body.String())
 	}
 }
 

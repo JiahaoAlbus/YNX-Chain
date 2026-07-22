@@ -79,6 +79,7 @@ func main() {
 	rollbackV1 := flag.String("rollback-state-v1", "", "write a verified schema-v1 rollback state to this new file and exit")
 	maxConcurrent := flag.Int("max-concurrent", 128, "maximum in-flight HTTP requests before fail-fast backpressure")
 	requestsPerMinute := flag.Int("requests-per-minute", 120, "fixed-window requests per direct TCP client")
+	exitMode := flag.Bool("user-exit-mode", false, "disable new writes while preserving authentication, read, export, revoke, cancel, trash and delete paths")
 	flag.Parse()
 	operations := 0
 	for _, value := range []string{*backupDir, *restoreDir, *rollbackV1} {
@@ -134,7 +135,7 @@ func main() {
 	if u := os.Getenv("YNX_OBJECT_STORE_URL"); u != "" {
 		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN"), DirectUploadOrigin: os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")}
 	}
-	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects, ReleaseCommit: os.Getenv("YNX_RELEASE_COMMIT"), ReleaseVersion: os.Getenv("YNX_RELEASE_VERSION")})
+	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects, ReleaseCommit: os.Getenv("YNX_RELEASE_COMMIT"), ReleaseVersion: os.Getenv("YNX_RELEASE_VERSION"), ExitMode: *exitMode})
 	if err != nil {
 		log.Fatal(err)
 	}

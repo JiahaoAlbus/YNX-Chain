@@ -68,6 +68,16 @@ and AI-estimate counters. The local adapter has no approved pricing source, so t
 report explicitly sets costs, fees, treasury, burn, user charge, and refunds to
 zero under `not-configured-no-charge`; it is usage evidence, not an invoice.
 
+Artifact retention is enforced at deletion time. Legal holds do not auto-expire;
+ephemeral artifacts require a future expiry; and standard or ephemeral retention
+windows block permanent deletion until their exact UTC timestamp. Expiry only
+makes deletion eligible and never causes silent erasure.
+
+For planned service cessation, `ynx-cloudd -user-exit-mode` rejects new writes
+while retaining canonical sign-in, read/download, audit, usage, export, revoke,
+cancel, trash, delete, and provider-deletion retry paths. Health exposes the mode
+and blocked mutations return HTTP 423 with `X-YNX-Service-Mode: user-exit`.
+
 Remote providers may implement short-lived presigned direct uploads through
 `POST /api/v1/direct-uploads`, owner-visible status, completion, and cancellation.
 Cloud registers no object until the provider verifies exact hash, byte size, and
