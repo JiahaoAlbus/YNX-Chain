@@ -12,6 +12,7 @@ The daemon emits structured JSON request logs to stdout. Preserve `X-Request-ID`
 
 - Settlement provider unavailable: fail the request, preserve pending invoice state, expose outage; never mark paid.
 - Webhook receiver unavailable: persist bounded retry state and keep the delivery operator-visible.
+- Webhook DNS resolves to any loopback, private, link-local, carrier-grade NAT, benchmark or documentation-only address, or returns a redirect: make no redirected/internal request and persist retry/failure evidence.
 - Wallet/Gateway assertion invalid, replayed, expired or scope-widened: return unauthorized without fallback auth.
 - Integrity check fails: stop writes, preserve evidence, restore only from a verified copy.
 - Role changes: invalidate stale role sessions; retain at least one active owner.

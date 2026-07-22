@@ -60,6 +60,14 @@
 - Reconciliation CSV now declares schema version 1 and is encoded before headers are committed so serialization failure cannot masquerade as a successful download.
 - The golden test fixes the ten-column order, RFC3339 timestamps, empty pending evidence and authoritative committed transaction/block fields.
 
+## Webhook destination containment
+
+- Configuration rejects non-HTTPS, userinfo, fragments, non-443 ports, local/internal names and all IP literals.
+- Delivery rejects loopback, private, link-local, carrier-grade NAT, benchmark, documentation IPv6 and mixed public/private DNS answers.
+- Production dialing disables environment proxies, dials only an address from the validated answer, retains TLS hostname verification and never follows redirects.
+- Fault test proves a metadata-address DNS rebinding result makes zero transport calls and persists a retrying attempt rather than success.
+- Destination-syntax fuzz passed 41,606 executions in two seconds after seven seed cases, adding 83 coverage-interesting inputs.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.

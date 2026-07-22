@@ -42,6 +42,7 @@ type Config struct {
 	PayAPI            PayAPI
 	AI                AIProvider
 	ProviderProbe     ProviderProbe
+	WebhookResolver   WebhookResolver
 	HTTPClient        *http.Client
 	Now               func() time.Time
 }
@@ -57,6 +58,7 @@ type Service struct {
 	key               []byte
 	gatewayKey        []byte
 	client            *http.Client
+	webhookResolver   WebhookResolver
 	now               func() time.Time
 	mutation          sync.Mutex
 	aiMu              sync.Mutex
@@ -85,15 +87,16 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := cfg.HTTPClient
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+	resolver := cfg.WebhookResolver
+	if resolver == nil {
+		resolver = defaultWebhookResolver{}
 	}
+	client := newWebhookHTTPClient(cfg.HTTPClient, resolver)
 	now := cfg.Now
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, webhookResolver: resolver, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -507,15 +510,22 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 		return d, nil
 	}
 	payload, _ := json.Marshal(map[string]any{"event": d.EventType, "objectId": d.ObjectID, "merchantId": d.MerchantID, "occurredAt": d.CreatedAt})
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-YNX-Event-ID", d.ID)
-	req.Header.Set("X-YNX-Delivery-ID", d.ID)
-	req.Header.Set("X-YNX-Timestamp", d.CreatedAt.UTC().Format(time.RFC3339Nano))
-	req.Header.Set("X-YNX-Payload-SHA256", d.PayloadHash)
-	req.Header.Set("X-YNX-Signature-Version", fmt.Sprint(d.SecretVersion))
-	req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
-	resp, sendErr := s.client.Do(req)
+	var resp *http.Response
+	sendErr := validateWebhookDestination(ctx, d.Endpoint, s.webhookResolver)
+	if sendErr == nil {
+		var req *http.Request
+		req, sendErr = http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
+		if sendErr == nil {
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-YNX-Event-ID", d.ID)
+			req.Header.Set("X-YNX-Delivery-ID", d.ID)
+			req.Header.Set("X-YNX-Timestamp", d.CreatedAt.UTC().Format(time.RFC3339Nano))
+			req.Header.Set("X-YNX-Payload-SHA256", d.PayloadHash)
+			req.Header.Set("X-YNX-Signature-Version", fmt.Sprint(d.SecretVersion))
+			req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
+			resp, sendErr = s.client.Do(req)
+		}
+	}
 	d.Attempt++
 	d.UpdatedAt = s.now()
 	if sendErr == nil {
@@ -756,7 +766,7 @@ func validWebhookURL(v string) (string, error) {
 		return "", nil
 	}
 	u, err := url.Parse(v)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || !webhookHostSyntaxAllowed(u.Hostname()) || (u.Port() != "" && u.Port() != "443") {
 		return "", errors.New("webhook endpoint must be absolute HTTPS without userinfo")
 	}
 	return u.String(), nil

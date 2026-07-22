@@ -36,7 +36,7 @@ surface and does not claim a deployed endpoint.
 | `POST /v1/invoices/{id}/settlements` | canonical Pay Gateway assertion | exact signed payment result | 201 | Submit settlement; commits only after matching central Pay evidence |
 | `POST /v1/invoices/{id}/refund-requests` | canonical Pay Gateway assertion | exact payer/session binding | 201 | Record request only; never executes refund funds |
 | `POST /v1/invoices/{id}/disputes` | canonical Pay Gateway assertion | exact payer/session binding | 201 | Record dispute/Trust references only; AI cannot decide it |
-| `PUT /v1/merchant/webhook` | merchant session | `webhook` | 200 | Set validated HTTPS receiver |
+| `PUT /v1/merchant/webhook` | merchant session | `webhook` | 200 | Set HTTPS public-DNS receiver on port 443; local/IP destinations fail closed |
 | `POST /v1/merchant/webhook/rotate` | merchant session | `webhook` | 200 | Rotate server-side secret; browser never receives it |
 | `POST /v1/merchant/webhooks/{id}/retry` | merchant session | `webhook` | 200 | Retry persisted merchant-owned delivery |
 | `GET /v1/merchant/reconciliation.csv` | merchant session | `reconcile` | 200 | Download schema-v1 CSV with authoritative settlement evidence |
@@ -59,6 +59,12 @@ surface and does not claim a deployed endpoint.
 
 Unknown roles and permissions fail closed and are covered by fuzz, fault and
 100,000-iteration soak tests.
+
+Webhook delivery never follows redirects or environment proxies. The production
+transport validates every DNS answer, rejects mixed public/private answers and
+dials the selected validated address directly while retaining the original TLS
+hostname. Resolution faults become operator-visible retry/failed records; they
+cannot become successful health or delivery evidence.
 
 ## Reconciliation schema v1
 

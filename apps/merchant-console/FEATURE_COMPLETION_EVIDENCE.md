@@ -10,14 +10,14 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Owner/Finance/Developer/Support/Viewer RBAC | yes | yes | `console_auth.go`; role matrix, fuzz, fault and soak tests | Staging Wallet role walkthrough |
 | Role change session invalidation | yes | yes | `TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession` | Remote session revocation evidence |
 | Signed invoices and authoritative settlement | yes | yes | `service.go`; settlement mismatch, provider fault, fuzz and soak tests | Funded public Testnet transaction hash |
-| Webhook signature, retry and operator visibility | yes | yes | `TestSettlementMismatchExpiryAndWebhookRetry`; webhook fuzz and soak tests | Public receiver delivery evidence |
+| Webhook signature, SSRF containment, retry and operator visibility | yes | yes | Signature fuzz/soak, public-DNS/IP/redirect tests and DNS-rebinding fault persistence | Public receiver delivery evidence |
 | Reconciliation CSV | yes | yes | Authenticated route, explicit schema-v1 response header and golden pending/committed evidence fixture | Remote export against staging records |
 | Refund/dispute request and Trust evidence reference | yes | yes | `wallet.go`; `TestGatewayBoundPaymentCreatesPayerCases` | Official Trust adapter verification |
 | AI explanation/draft authority boundary | yes | yes | AI cancellation and non-execution tests | Official AI Gateway credential and cost evidence |
 | 12 locales, RTL and accessibility | partial | yes-local | Localized authentication/authority surface, valid skip targets, focus retention, RTL layout rules, 10 frontend tests and focused 1280x720/390x844 browser checks | Translate authenticated operational copy; full zoom/keyboard/screen-reader/rules/screenshot matrix |
 | Provider Integration Hub | partial | yes | Nine-category versioned catalog, credential-reference-only configuration, server-side probe contract, failure/disable/audit tests and UI | Implement and remotely verify each official production adapter |
 | Capital tools and transparent fee waterfall | partial | yes | Evidence-only `capital-v1` API/UI; 14 disclosed capabilities; unknown reserves/costs/net remain unavailable | Implement authorized providers and complete authoritative fee records |
-| Snapshot v1 to v2 migration | yes | yes | `TestSnapshotV1MigratesProvidersAndFutureVersionFails` | Add full CLI backup/restore/rollback drill |
+| Snapshot v1 to v2 migration | yes | yes | Forward migration/future rejection tests plus guarded local backup/restore/rollback drill | Production-sized staging migration/rollback evidence |
 | Backup/verify/restore/rollback | yes-local | yes | Recovery CLI, nested HMAC verification, exact-SHA guard, store lock, rollback copy and `evidence/backup-restore-drill.json` | Repeat with production-sized staging copy and remote operator evidence |
 | Request observability and runtime metrics | yes-local | yes | Correlated request/trace/error IDs, redacted JSON logs, outbound trace propagation, fail-closed monitor endpoint and race-tested bounded metrics | Add OpenTelemetry/exporter, durable business metrics, alerts and staging dashboard |
 | Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |

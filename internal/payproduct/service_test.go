@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -199,7 +200,8 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer receiver.Close()
-	merchant.WebhookURL = strings.Replace(receiver.URL, "http://", "https://", 1)
+	merchant.WebhookURL = "https://receiver.example.test/events"
+	service.webhookResolver = staticWebhookResolver{addresses: []net.IPAddr{{IP: net.ParseIP("8.8.8.8")}}}
 	service.client = receiver.Client()
 	service.client.Transport = roundTripRewrite{target: receiver.URL}
 	if err := service.queueWebhook(merchant, "invoice.expired", invoice.ID); err != nil {
