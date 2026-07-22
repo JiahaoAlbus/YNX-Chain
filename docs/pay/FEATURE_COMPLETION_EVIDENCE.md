@@ -12,8 +12,8 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Tip, split and recurring draft | missing | no complete persisted API/UI workflow |
 | Smart account and sponsorship | partial | fail-closed HTTPS adapter, device/account/merchant budgets, first-payment eligibility, attribution, call-data binding and authoritative UserOperation receipt tests pass locally; no configured public paymaster or live receipt |
 | Stablecoin settlement | unavailable | no reviewed official Testnet asset/provider configuration |
-| Cross-chain entry | missing | no complete quote-to-destination-confirmation adapter |
-| Explainable payment routing | missing | no persisted route quote and Wallet-approved selection |
+| Cross-chain entry | partial | optional HTTPS adapter and persisted monotonic quote/source/finality/attestation/destination/refund lifecycle pass local tests; no approved configured provider or live destination proof |
+| Explainable payment routing | partial | native, active-sponsored and bridge candidates are scored from disclosed cost, time, risk, finality, health and user limits; Wallet selection is audited and non-executing; no live provider comparison evidence |
 | Quant/service billing | missing | no external high-water-mark evidence validator |
 | Android/iOS | partial | builds/tests exist; current install/cold-launch and signed release evidence missing |
 | Merchant web | verified locally | tests and static production build pass; staging/public deployment missing |
