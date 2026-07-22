@@ -1,6 +1,6 @@
 # YNX Cloud feature completion evidence
 
-Evidence baseline: source commit `7b3c5f427c1751b8d5f43833e281811dd81f76bb` plus the recovered, uncommitted Cloud change set. A final source commit is intentionally not claimed until the change set is committed and pushed.
+Evidence baseline: local source commit `ead4d6732c5d942cf8b821e0fd50a06403ac62e5`. Remote publication, staging, and public evidence remain separately unproven and are not implied by this local source reference.
 
 | Capability | Implemented | Tested | Direct evidence | Remaining proof |
 | --- | --- | --- | --- | --- |
