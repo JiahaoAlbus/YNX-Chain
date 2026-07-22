@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 2,
+  "operation": "atomic-wallet-registry-and-route-rollout",
+  "requires": {
+    "package": "@ynx-chain/wallet-auth@1.0.0",
+    "network": "ynx_6423-1",
+    "verifier": "verifyCentralWalletSession",
+    "activeGuard": "assertCentralWalletSessionActive"
+  },
+  "registryAdds": [
+    "../../../apps/trust-center/integration/canonical-wallet-registry.json",
+    "../../../apps/resource-market/integration/canonical-wallet-registry.json"
+  ],
+  "routeAdds": [
+    "POST /app/session/wallet-v1/challenge",
+    "POST /app/session/wallet-v1/complete",
+    "POST /app/session/wallet-v1/revoke",
+    "/app/trust/*",
+    "/app/governance/*",
+    "/app/resource-market/*"
+  ],
+  "requiredCI": [
+    "canonical-wallet-v1-test-vector.json acceptance",
+    "unknown-field rejection",
+    "nonce and request-digest replay rejection",
+    "callback and scope substitution rejection",
+    "cross-product and cross-device reuse rejection",
+    "callback response field substitution and Gateway challenge replay/expiry rejection",
+    "expiry and revocation rejection",
+    "Product Session proof signature, method, signed product path, exact body digest and persistent replay rejection",
+    "quote/intent/capacity/settlement invariant"
+  ],
+  "callbackTransport": "Use @ynx-chain/wallet-auth createCallbackURL/parseCallbackURL exactly. After the Wallet approval callback, issue a short-lived Gateway challenge; require the exact product P-256 device key to sign it; complete with authorizationRequest, walletApproval and gatewayCompletion.",
+  "productSessionProof": "Reject bearer/device session headers. Parse X-YNX-Product-Session-Proof and use CanonicalWalletGatewayAdapter.introspect with method, exact body digest and X-YNX-Product-Request-Path. Treat that path header as untrusted until signature verification, and reject unless a fixed route table maps it to the active /app/<product>/* endpoint. Consume each proof once.",
+  "rollout": "Publish v2 registry entries, challenge/completion routes and verifier routes in one transaction. Until both health checks pass, products remain integratedCentral=false and adapters return unavailable without local substitution."
+}

@@ -1,0 +1,23 @@
+# Feature completion evidence
+
+Evidence date: 2026-07-22. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. The candidate is still a dirty working tree, so none of this evidence is release evidence yet.
+
+| Requirement | Current result | Direct evidence | Remaining proof |
+| --- | --- | --- | --- |
+| Two providers | Implemented and locally tested | `TestTwoProviderQuoteMeterSettlementAndRecovery`; authenticated HTTP registration/verification test | Real independent providers and public endpoints |
+| Storage, bandwidth, CPU/GPU, AI, build, quant, RPC, artifacts | Domain types implemented | `ResourceUnits` and unit validation in `internal/resourcemarket/engine.go` | Real workloads for every claimed category |
+| Provider lifecycle | Implemented and locally tested | registration, independent verification, evidenced capacity update, maintenance matching exclusion, terminal-work exit gate, offer closure, worker-key revocation, migration target, failure, bond and dispute tests; provider continuity UI | revenue accounting and public-provider proof |
+| Matching | Implemented and locally tested | score includes price, region filter, latency, uptime, completion, bond, failures and disputes | measured settlement/exit reliability inputs |
+| Pricing modes | Implemented and locally tested | fixed/reservation/long-term quotes plus sealed reverse and split batch procurement; deadline, self-dealing, price ceiling, full-fill, commitment digest and deterministic price/quality/provider tie-break tests | public fairness monitoring and real-provider auction evidence |
+| Quote through settlement | Implemented and locally tested | strict lifecycle test and receipt reconciliation test | central Wallet/Gateway and public chain receipt |
+| Signed metering | Locally implemented and tested | expiring Ed25519 worker-key registry, canonical payload preview, tamper/revoke tests and receipt reconciliation | remote worker identity ceremony and public workload proof |
+| Failure, retry and refund | Implemented and locally tested | `TestProviderFailureRetryRefundBondAndAppeal` | authoritative refund transaction receipt |
+| Bond, notice and appeal | Implemented and locally tested | capped bond and independent appeal tests | insurance policy and legal review |
+| Persistence and restart | Implemented and locally tested | productstore integrity envelope, restart test and exact backup/restore corruption drill | source-commit-bound final drill artifact |
+| Canonical Wallet | Fail-closed adapter, request proofs and vectors pass | canonical wallet package tests and SDK-generated vector verifier; dedicated challenge/completion proxies; Android SDK callback binding and non-exportable P-256 key; exact method/path/body proof, replay, restart-persistence and tamper tests; missing-Wallet and malformed-callback failure evidence | central merge and deployed challenge/completion/introspection/revocation success |
+| Web/API | Provider/buyer and lifecycle workspaces integrated | authenticated HTTP tests, smoke gate, 5-test Playwright suite; worker-key, meter, failure/retry, dispute/appeal, receipt, continuity and scoped-export controls; structurally complete 12-locale × 143-string draft catalog with browser switching and manually reviewed settlement-boundary terms | professional linguistic review of all generated static strings, interpolated runtime/server error localization and browser automation for every operator form |
+| Data export/delete/retention | Implemented and locally tested | authenticated actor-scoped JSON export; independent erasure request/fulfillment; live-obligation and provider-exit gates; identity pseudonymization while retaining economic/audit integrity; versioned 30/90-day transient sweep; API/UI controls and domain tests | jurisdiction-specific legal approval and deployed scheduled operator job |
+| Android/iOS | Android debug installed locally; iOS source only | clean proof-enabled Android debug build; APK/package/certificate inspection; emulator replacement install and 2.313 s cold start; foreground activity/UI hierarchy/screenshot evidence; obsolete legacy login controls removed; canonical Wallet launch control and malformed callback failure exercised | live canonical Wallet/Gateway success, Android production signing and full Web feature parity; Xcode/iOS simulator installation |
+| Public `/resource-market` | Not achieved | no public URL exists | website handoff merge, deployment and remote smoke |
+
+Full-product `implementedLocal` and `testedLocal` remain false because dynamic/error 12-language coverage, platform installation, central integration, public workload/settlement proof and complete release gates are not all proven.

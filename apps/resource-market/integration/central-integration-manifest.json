@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-resource-market",
+  "productClientId": "ynx-resource-market-v1",
+  "packageId": "com.ynxweb4.resource",
+  "callback": "ynxresource://wallet-auth/callback",
+  "walletProtocol": "wallet-auth-v1",
+  "completionRoute": "POST /app/session/wallet-v1/complete",
+  "challengeRoute": "POST /app/session/wallet-v1/challenge",
+  "revocationRoute": "POST /app/session/wallet-v1/revoke",
+  "productCompletionRoute": "POST /api/auth/session/complete",
+  "productChallengeRoute": "POST /api/auth/session/challenge",
+  "callbackTransport": {
+    "source": "@ynx-chain/wallet-auth createCallbackURL/parseCallbackURL",
+    "uri": "ynxresource://wallet-auth/callback?response=<base64url-canonical-authorization-response>",
+    "exactQueryKeys": ["response"],
+    "postCallbackSequence": ["verify exact request/approval bindings", "request central Gateway challenge", "sign canonical challenge with non-exportable product P-256 key", "submit authorizationRequest, walletApproval and gatewayCompletion"],
+    "securityBoundary": "The callback approval is short-lived and has no product session or asset authority. Session creation requires a fresh central challenge and proof from the exact product device key."
+  },
+  "authorityRoutes": ["/app/resource-market/*"],
+  "productSessionProof": {
+    "header": "X-YNX-Product-Session-Proof",
+    "signedPathHeader": "X-YNX-Product-Request-Path",
+    "verification": "Decode the proof and call CanonicalWalletGatewayAdapter.introspect with the HTTP method, exact raw body digest and signed product path. Treat the path header as untrusted until the proof verifies, then require a fixed one-to-one mapping from /api/authority/* to the current /app/resource-market/* route before executing authority logic.",
+    "replay": "Consume each proof once in the central adapter. The product proxy also persists a bounded replay set before forwarding.",
+    "legacyHeaders": "reject Authorization bearer session binding and X-YNX-Product-Device-Key"
+  },
+  "registryFile": "canonical-wallet-registry.json",
+  "testVectorFile": "canonical-wallet-v1-test-vector.json",
+  "centralPackage": "@ynx-chain/wallet-auth",
+  "centralVerifier": "verifyCentralWalletSession",
+  "sessionGuard": "assertCentralWalletSessionActive",
+  "unknownFields": "reject",
+  "transactionBoundary": ["registry read", "nonce consume", "request digest replay consume", "gateway challenge consume", "session write", "revocation read"],
+  "integratedCentral": false,
+  "reason": "Registry, Gateway routes and authoritative Resource routes are not merged or deployed in the central worktree. Product adapter fails closed and never infers settlement."
+}

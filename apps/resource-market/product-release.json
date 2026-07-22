@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-resource-market-v1",
+  "name": "YNX Resource Market",
+  "branch": "codex/final-resource-market",
+  "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
+  "candidateSourceCommit": null,
+  "workingTreeDirty": true,
+  "version": "0.3.0-candidate",
+  "surfaces": ["web", "api", "android-debug-source", "ios-source"],
+  "implementedLocal": false,
+  "testedLocal": false,
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "componentEvidence": {
+    "providerMarketDomainTested": true,
+    "authenticatedMarketAPITested": true,
+    "persistenceRestartTested": true,
+    "localHTTPSmokeTested": true,
+    "localMatchingCapacityMeasured": true,
+    "canonicalWalletVectorsTested": true,
+    "newMarketUIIntegrated": true,
+    "providerLifecycleAndScopedExportTested": true,
+    "reverseAndBatchAuctionClearingTested": true,
+    "exportErasureAndRetentionTested": true,
+    "localSecurityGatesPassedWithPatchedToolchain": true,
+    "reproducibleUnsignedLocalBinaryMeasured": true,
+    "androidDebugBuildInstalledAndColdStarted": true,
+    "providerBuyerQuoteUIFlowTested": true,
+    "workerSigningRegistryIntegrated": true,
+    "backupRestoreDrillRecorded": true,
+    "publicSettlementReceiptVerified": false
+  },
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "installEvidence": [
+    {
+      "platform": "android-emulator",
+      "class": "debug-signed",
+      "record": "evidence/android-debug-install-20260722.json",
+      "screenshot": "evidence/android-debug-cold-start-20260722.png",
+      "coldStartMs": 2313
+    }
+  ],
+  "centralIntegration": {"status": "not-merged-or-deployed", "registry": "integration/canonical-wallet-registry.json", "manifest": "integration/central-integration-manifest.json", "failClosed": true},
+  "knownLimitations": [
+    "The provider/buyer Web UI covers provider continuity, quote/intent, sealed reverse/batch auctions, worker-key, execution, dispute and receipt actions. A 143-string draft catalog is structurally browser-tested in 12 locales and settlement-boundary terms are manually reviewed; full linguistic review, interpolated notices and server-originated errors remain incomplete.",
+    "The Android debug client implements the canonical SDK response callback, central challenge request, Android Keystore P-256 device proof and replay-resistant per-request Product Session proofs. Missing Wallet handler and malformed callbacks fail closed; live completion remains unproven until central routes are merged.",
+    "No live central Wallet/Gateway or authoritative public settlement endpoint is connected.",
+    "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
+    "Local capacity evidence covers matching reads only and does not establish public or settlement capacity."
+  ],
+  "generatedAt": "2026-07-22T22:18:00+08:00"
+}

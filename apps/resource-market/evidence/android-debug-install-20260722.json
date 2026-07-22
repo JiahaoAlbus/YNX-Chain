@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-resource-market-v1",
+  "evidenceClass": "local-android-debug-emulator-install",
+  "sourceCommit": null,
+  "workingTreeDirty": true,
+  "generatedAt": "2026-07-23T00:08:00+08:00",
+  "build": {
+    "command": "ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew --no-daemon clean assembleDebug",
+    "result": "BUILD SUCCESSFUL",
+    "artifact": "mobile/android/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "e278a89a632ef8c73be4159c4547c6c28ac00d9b2bf28b1525cbfe7782a2d07e",
+    "bytes": 25468,
+    "package": "com.ynxweb4.resource",
+    "versionCode": 1,
+    "versionName": "0.2.0-candidate",
+    "minSdk": 26,
+    "targetSdk": 35
+  },
+  "signing": {
+    "class": "android-debug",
+    "productionSigned": false,
+    "schemeV2Verified": true,
+    "certificateDN": "C=US, O=Android, CN=Android Debug",
+    "certificateSHA256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "installation": {
+    "commandResult": "Success",
+    "emulator": "YNX_API_36",
+    "androidVersion": "16",
+    "display": "1080x2400",
+    "priorPackageUninstalled": false,
+    "appDataClearedBeforeLaunch": false,
+    "launchState": "COLD",
+    "activity": "com.ynxweb4.resource/.MainActivity",
+    "totalTimeMs": 2313,
+    "waitTimeMs": 2337,
+    "foregroundActivityVerified": true,
+    "canonicalCallbackRouteMatched": true,
+    "canonicalCallbackFailClosedMessageVerified": true,
+    "visibleWalletLaunchControlClicked": true,
+    "missingWalletHandlerFailsWithoutSession": true,
+    "malformedOrMismatchedSDKCallbackRejected": true,
+    "renderedTextVerified": [
+      "YNX Resource Market",
+      "Canonical YNX Wallet",
+      "Open canonical YNX Wallet",
+      "fresh central challenge signed by this app's non-exportable P-256 key",
+      "A fee quote is not settlement",
+      "Load resource balances",
+      "Exact Wallet-reviewed signed payload JSON"
+    ]
+  },
+  "screenshot": {
+    "path": "evidence/android-debug-cold-start-20260722.png",
+    "sha256": "80ed331811a23442c915152fde1640ee30213398650e916435cff1237368fd08",
+    "bytes": 211646
+  },
+  "scopeLimitations": [
+    "This is a local emulator installation of a debug-signed APK, not a production-signed or store artifact.",
+    "The Android native surface exposes fail-closed authority quote/intent controls and does not prove feature parity with the full provider/buyer Web workspace.",
+    "Legacy challenge controls were removed. The client implements the canonical SDK response callback, central challenge request, Android Keystore device proof, completion envelope and fresh replay-resistant per-request Product Session proofs; live completion remains unavailable until central challenge/completion routes are merged and a Wallet handler is installed.",
+    "The configured emulator gateway is local and no authoritative central or public settlement call was proven.",
+    "The candidate source tree was dirty and had no final source commit, so this is not final release provenance."
+  ]
+}

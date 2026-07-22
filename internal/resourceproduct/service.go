@@ -2,16 +2,17 @@ package resourceproduct
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/resourcemarket"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -23,12 +24,12 @@ const maxBody = 1 << 20
 var resourceTypes = map[string]bool{"Bandwidth": true, "Compute": true, "AI Credits": true, "Trust Credits": true, "Pay Credits": true}
 
 type Config struct {
-	StorePath, AIURL, AIKey, AIModel string
-	Sessions                         map[string]Actor
-	AllowHeaderAuth                  bool
-	CentralGatewayURL                string
-	CentralClientID                  string
-	Now                              func() time.Time
+	StorePath, MarketStorePath, AIURL, AIKey, AIModel string
+	Sessions                                          map[string]Actor
+	AllowHeaderAuth                                   bool
+	CentralGatewayURL                                 string
+	CentralClientID                                   string
+	Now                                               func() time.Time
 }
 type Actor struct{ ID, Role string }
 type Audit struct {
@@ -41,13 +42,8 @@ type Audit struct {
 	At      time.Time `json:"at"`
 }
 type CentralSession struct {
-	ID        string    `json:"id"`
-	TokenHash string    `json:"tokenHash"`
-	Account   string    `json:"account"`
-	DeviceID  string    `json:"deviceId"`
-	Scopes    []string  `json:"scopes"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	Status    string    `json:"status"`
+	canonicalwallet.Session
+	Status string `json:"status"`
 }
 type AuthorityAudit struct {
 	ID           string    `json:"id"`
@@ -61,20 +57,27 @@ type AuthorityAudit struct {
 	At           time.Time `json:"at"`
 }
 type PurchaseIntent struct {
-	ID                string    `json:"id"`
-	Owner             string    `json:"owner"`
-	Kind              string    `json:"kind"`
-	IdempotencyKey    string    `json:"idempotencyKey"`
-	RequestHash       string    `json:"requestHash"`
-	Status            string    `json:"status"`
-	AuthorityPath     string    `json:"authorityPath"`
-	AuthorityObjectID string    `json:"authorityObjectId,omitempty"`
-	TransactionHash   string    `json:"transactionHash,omitempty"`
-	FeeSettlement     string    `json:"feeSettlement"`
-	Attempts          int       `json:"attempts"`
-	LastError         string    `json:"lastError,omitempty"`
-	CreatedAt         time.Time `json:"createdAt"`
-	UpdatedAt         time.Time `json:"updatedAt"`
+	ID                    string    `json:"id"`
+	Owner                 string    `json:"owner"`
+	Kind                  string    `json:"kind"`
+	IdempotencyKey        string    `json:"idempotencyKey"`
+	RequestHash           string    `json:"requestHash"`
+	Status                string    `json:"status"`
+	AuthorityPath         string    `json:"authorityPath"`
+	AuthorityObjectID     string    `json:"authorityObjectId,omitempty"`
+	TransactionHash       string    `json:"transactionHash,omitempty"`
+	QuoteID               string    `json:"quoteId,omitempty"`
+	QuoteExpiresAt        time.Time `json:"quoteExpiresAt,omitempty"`
+	IntentSigned          bool      `json:"intentSigned"`
+	AuthorityAccepted     bool      `json:"authorityAccepted"`
+	CapacityConfirmed     bool      `json:"capacityConfirmed"`
+	AssetSettlementProven bool      `json:"assetSettlementProven"`
+	SettlementEvidence    string    `json:"settlementEvidence,omitempty"`
+	FeeSettlement         string    `json:"feeSettlement"`
+	Attempts              int       `json:"attempts"`
+	LastError             string    `json:"lastError,omitempty"`
+	CreatedAt             time.Time `json:"createdAt"`
+	UpdatedAt             time.Time `json:"updatedAt"`
 }
 type Policy struct {
 	AllowedBeneficiaries []string `json:"allowedBeneficiaries"`
@@ -150,17 +153,22 @@ type snapshot struct {
 	AI             map[string]AIRecord       `json:"ai"`
 	Audit          []Audit                   `json:"audit"`
 	Sessions       map[string]CentralSession `json:"sessions"`
+	SessionProofs  map[string]time.Time      `json:"sessionProofs"`
 	AuthorityAudit []AuthorityAudit          `json:"authorityAudit"`
 	Intents        map[string]PurchaseIntent `json:"intents"`
 	Replay         map[string]replay         `json:"replay"`
 	Sequence       uint64                    `json:"sequence"`
 }
 type Service struct {
-	mu       sync.Mutex
-	cfg      Config
-	data     snapshot
-	client   *http.Client
-	sessions map[string]Actor
+	mu        sync.Mutex
+	cfg       Config
+	data      snapshot
+	client    *http.Client
+	sessions  map[string]Actor
+	cancels   map[string]context.CancelFunc
+	market    *resourcemarket.Engine
+	metrics   serviceMetrics
+	startedAt time.Time
 }
 
 func New(cfg Config) (*Service, error) {
@@ -182,7 +190,14 @@ func New(cfg Config) (*Service, error) {
 			return nil, errors.New("central Gateway client ID is required")
 		}
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}, Intents: map[string]PurchaseIntent{}}}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, cancels: map[string]context.CancelFunc{}, startedAt: cfg.Now().UTC(), data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}, SessionProofs: map[string]time.Time{}, Intents: map[string]PurchaseIntent{}}}
+	if strings.TrimSpace(cfg.MarketStorePath) != "" {
+		market, err := resourcemarket.New(cfg.MarketStorePath, cfg.Now)
+		if err != nil {
+			return nil, fmt.Errorf("initialize resource market engine: %w", err)
+		}
+		s.market = market
+	}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || strings.TrimSpace(actor.ID) == "" || strings.TrimSpace(actor.Role) == "" {
 			return nil, errors.New("Resource session registry contains an invalid token or actor")
@@ -196,16 +211,12 @@ func New(cfg Config) (*Service, error) {
 	return s, nil
 }
 func (s *Service) load() error {
-	b, err := os.ReadFile(s.cfg.StorePath)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
 	var d snapshot
-	if err := json.Unmarshal(b, &d); err != nil {
-		return fmt.Errorf("decode resource store: %w", err)
+	if _, err := productstore.Load(s.cfg.StorePath, &d); err != nil {
+		return fmt.Errorf("load resource store: %w", err)
+	}
+	if d.Version == 0 {
+		return nil
 	}
 	if d.Version != 1 {
 		return fmt.Errorf("unsupported resource store version %d", d.Version)
@@ -225,6 +236,9 @@ func (s *Service) load() error {
 	if d.Sessions == nil {
 		d.Sessions = map[string]CentralSession{}
 	}
+	if d.SessionProofs == nil {
+		d.SessionProofs = map[string]time.Time{}
+	}
 	if d.Intents == nil {
 		d.Intents = map[string]PurchaseIntent{}
 	}
@@ -232,18 +246,7 @@ func (s *Service) load() error {
 	return nil
 }
 func (s *Service) saveLocked() error {
-	if err := os.MkdirAll(filepath.Dir(s.cfg.StorePath), 0o700); err != nil {
-		return err
-	}
-	b, err := json.MarshalIndent(s.data, "", "  ")
-	if err != nil {
-		return err
-	}
-	tmp := s.cfg.StorePath + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, s.cfg.StorePath)
+	return productstore.Save(s.cfg.StorePath, s.data)
 }
 func (s *Service) nextLocked(p string) string {
 	s.data.Sequence++
@@ -293,12 +296,17 @@ func (s *Service) Do(a Actor, in Action) (Result, error) {
 	if in.IdempotencyKey == "" {
 		return Result{}, apiError{400, "idempotencyKey is required"}
 	}
+	if len(in.IdempotencyKey) > 128 {
+		return Result{}, apiError{400, "idempotencyKey exceeds 128 characters"}
+	}
 	b, _ := json.Marshal(in)
 	sum := sha256.Sum256(append([]byte(a.ID+"|"+a.Role+"|"), b...))
 	digest := hex.EncodeToString(sum[:])
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if old, ok := s.data.Replay[in.IdempotencyKey]; ok {
+	previous := cloneSnapshot(s.data)
+	replayKey := a.ID + "|" + in.IdempotencyKey
+	if old, ok := s.data.Replay[replayKey]; ok {
 		if old.Digest != digest {
 			return Result{}, apiError{409, "idempotency key reused with different input"}
 		}
@@ -306,13 +314,21 @@ func (s *Service) Do(a Actor, in Action) (Result, error) {
 	}
 	res, kind, id, err := s.doLocked(a, in)
 	if err != nil {
+		s.data = previous
 		return Result{}, err
 	}
-	s.data.Replay[in.IdempotencyKey] = replay{Digest: digest, Kind: kind, ID: id}
+	s.data.Replay[replayKey] = replay{Digest: digest, Kind: kind, ID: id}
 	if err := s.saveLocked(); err != nil {
+		s.data = previous
 		return Result{}, err
 	}
 	return res, nil
+}
+func cloneSnapshot(in snapshot) snapshot {
+	b, _ := json.Marshal(in)
+	var out snapshot
+	_ = json.Unmarshal(b, &out)
+	return out
 }
 func (s *Service) replayLocked(r replay) Result {
 	switch r.Kind {
@@ -333,53 +349,43 @@ func (s *Service) auditLocked(a Actor, action, target, outcome string) string {
 	s.data.Audit = append(s.data.Audit, Audit{ID: id, Actor: a.ID, Role: a.Role, Action: action, Target: target, Outcome: outcome, At: s.cfg.Now().UTC()})
 	return id
 }
-func (s *Service) storeCentralSession(token string, v CentralSession) error {
-	sum := sha256.Sum256([]byte(token))
-	v.TokenHash = hex.EncodeToString(sum[:])
-	v.Status = "active"
+func (s *Service) walletRegistry() canonicalwallet.Registry {
+	return canonicalwallet.Registry{SchemaVersion: 2, ProductClientID: s.cfg.CentralClientID, RequestingProduct: "resource-market", BundleID: "com.ynxweb4.resource", Callbacks: []string{"ynxresource://wallet-auth/callback"}, Scopes: []string{"account:read", "resource:analytics", "resource:capacity:read", "resource:dispute", "resource:history", "resource:intent", "resource:quote"}, MaxScopes: 7, ProductDeviceAlgorithms: []string{"p256-sha256"}}
+}
+func (s *Service) storeCentralSession(v canonicalwallet.Session) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data.Sessions[v.ID] = v
+	s.data.Sessions[v.SessionBinding] = CentralSession{Session: v, Status: "active"}
 	return s.saveLocked()
 }
-func (s *Service) authenticateCentral(token, device string) (Actor, error) {
-	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	if token == "" || device == "" {
-		return Actor{}, apiError{401, "central Wallet session and device are required"}
-	}
-	sum := sha256.Sum256([]byte(token))
-	want := hex.EncodeToString(sum[:])
+func (s *Service) authenticateCentral(binding, deviceKey string) (Actor, error) {
+	binding = strings.TrimSpace(strings.TrimPrefix(binding, "Bearer "))
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	now := s.cfg.Now().UTC()
-	for _, v := range s.data.Sessions {
-		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 {
-			if v.Status != "active" || v.DeviceID != device || !now.Before(v.ExpiresAt) {
-				break
-			}
-			return Actor{ID: v.Account, Role: "user"}, nil
-		}
+	v, ok := s.data.Sessions[binding]
+	if !ok || v.Status != "active" {
+		return Actor{}, apiError{401, "canonical Wallet session is missing, revoked or unknown"}
 	}
-	return Actor{}, apiError{401, "central Wallet session is invalid, expired or revoked"}
+	if err := canonicalwallet.AssertActive(v.Session, binding, strings.TrimSpace(deviceKey), []string{"account:read"}, s.cfg.Now().UTC()); err != nil {
+		return Actor{}, apiError{401, err.Error()}
+	}
+	return Actor{ID: v.Account, Role: "user"}, nil
 }
-func (s *Service) revokeCentral(token, device string) error {
-	a, err := s.authenticateCentral(token, device)
+func (s *Service) revokeCentral(binding, deviceKey string) error {
+	a, err := s.authenticateCentral(binding, deviceKey)
 	if err != nil {
 		return err
 	}
-	clean := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	sum := sha256.Sum256([]byte(clean))
-	want := hex.EncodeToString(sum[:])
+	clean := strings.TrimSpace(strings.TrimPrefix(binding, "Bearer "))
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for id, v := range s.data.Sessions {
-		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 && v.Account == a.ID {
-			v.Status = "revoked"
-			s.data.Sessions[id] = v
-			return s.saveLocked()
-		}
+	v, ok := s.data.Sessions[clean]
+	if !ok || v.Account != a.ID {
+		return apiError{404, "central session not found"}
 	}
-	return apiError{404, "central session not found"}
+	v.Status = "revoked"
+	s.data.Sessions[clean] = v
+	return s.saveLocked()
 }
 func validResource(in Action, now time.Time) error {
 	if !resourceTypes[in.ResourceType] {
@@ -391,11 +397,17 @@ func validResource(in Action, now time.Time) error {
 	if in.Source == "" {
 		return apiError{422, "source is required"}
 	}
+	if len(in.Source) > 512 {
+		return apiError{422, "source exceeds 512 characters"}
+	}
 	if !in.Expiry.After(now) {
 		return apiError{422, "future expiry is required"}
 	}
 	if in.Fee < 0 {
 		return apiError{422, "fee cannot be negative"}
+	}
+	if in.Expiry.After(now.Add(366 * 24 * time.Hour)) {
+		return apiError{422, "expiry exceeds one year"}
 	}
 	return nil
 }
@@ -425,8 +437,8 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 			return Result{}, "", "", err
 		}
 		id := s.nextLocked("resource")
-		r := Record{ID: id, Kind: "staking", Owner: a.ID, Beneficiary: a.ID, ResourceType: in.ResourceType, Limit: in.Limit, Source: in.Source, Expiry: in.Expiry.UTC(), Fee: in.Fee, Status: "active", Settlement: "capacity only; YNXT staking evidence is external and no asset is moved by this product", PolicyVersion: 1, CreatedAt: now, UpdatedAt: now}
-		r.Audit = []string{s.auditLocked(a, in.Type, id, "active")}
+		r := Record{ID: id, Kind: "staking", Owner: a.ID, Beneficiary: a.ID, ResourceType: in.ResourceType, Limit: in.Limit, Source: in.Source, Expiry: in.Expiry.UTC(), Fee: in.Fee, Status: "pending_capacity_evidence", Settlement: "draft only; capacity and any asset settlement remain unproven until authoritative evidence is returned", PolicyVersion: 1, CreatedAt: now, UpdatedAt: now}
+		r.Audit = []string{s.auditLocked(a, in.Type, id, "pending_capacity_evidence")}
 		s.data.Records[id] = r
 		return Result{Record: &r}, "record", id, nil
 	case "create_pool":
@@ -442,10 +454,13 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 		if in.Policy.MaxPerGrant <= 0 || in.Policy.MaxPerGrant > in.Limit {
 			return Result{}, "", "", apiError{422, "bounded maxPerGrant is required"}
 		}
+		if len(in.Policy.AllowedBeneficiaries) > 100 {
+			return Result{}, "", "", apiError{422, "beneficiary allow-list exceeds 100 entries"}
+		}
 		in.Policy.Version = 1
 		id := s.nextLocked("pool")
-		p := Pool{ID: id, Owner: a.ID, ResourceType: in.ResourceType, Limit: in.Limit, Available: in.Limit, Source: in.Source, Expiry: in.Expiry.UTC(), Fee: in.Fee, Status: "active", Policy: in.Policy, CreatedAt: now, UpdatedAt: now}
-		p.Audit = []string{s.auditLocked(a, in.Type, id, "active")}
+		p := Pool{ID: id, Owner: a.ID, ResourceType: in.ResourceType, Limit: in.Limit, Available: 0, Source: in.Source, Expiry: in.Expiry.UTC(), Fee: in.Fee, Status: "pending_capacity_evidence", Policy: in.Policy, CreatedAt: now, UpdatedAt: now}
+		p.Audit = []string{s.auditLocked(a, in.Type, id, "pending_capacity_evidence")}
 		s.data.Pools[id] = p
 		return Result{Pool: &p}, "pool", id, nil
 	case "update_policy":
@@ -456,8 +471,8 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 		if p.Owner != a.ID {
 			return Result{}, "", "", apiError{403, "pool owner required"}
 		}
-		if p.Status != "active" {
-			return Result{}, "", "", apiError{409, "pool is not active"}
+		if p.Status != "capacity_confirmed" {
+			return Result{}, "", "", apiError{409, "pool capacity is not authoritatively confirmed"}
 		}
 		if in.Policy.MaxPerGrant <= 0 || in.Policy.MaxPerGrant > p.Limit {
 			return Result{}, "", "", apiError{422, "invalid maxPerGrant"}
@@ -473,10 +488,10 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 		if !ok {
 			return Result{}, "", "", apiError{404, "pool not found"}
 		}
-		if p.Status != "active" || !p.Expiry.After(now) {
-			return Result{}, "", "", apiError{409, "pool unavailable or expired"}
+		if p.Status != "capacity_confirmed" || !p.Expiry.After(now) {
+			return Result{}, "", "", apiError{409, "pool capacity is unconfirmed, unavailable or expired"}
 		}
-		if in.Beneficiary == "" || in.Limit <= 0 || in.Limit > p.Available || in.Limit > p.Policy.MaxPerGrant {
+		if in.Beneficiary == "" || len(in.Beneficiary) > 256 || in.Limit <= 0 || in.Limit > p.Available || in.Limit > p.Policy.MaxPerGrant {
 			return Result{}, "", "", apiError{422, "beneficiary and bounded available limit are required"}
 		}
 		if !contains(p.Policy.AllowedBeneficiaries, in.Beneficiary) {
@@ -554,7 +569,7 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 			return Result{}, "", "", apiError{403, "auditor or system role required"}
 		}
 		for id, p := range s.data.Pools {
-			if p.Status == "active" && !p.Expiry.After(now) {
+			if (p.Status == "active" || p.Status == "capacity_confirmed" || p.Status == "pending_capacity_evidence") && !p.Expiry.After(now) {
 				p.Status = "expired"
 				p.UpdatedAt = now
 				p.Audit = append(p.Audit, s.auditLocked(a, in.Type, id, "expired"))
@@ -678,13 +693,20 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 		x.Status = "running"
 		x.UpdatedAt = now
 		s.data.AI[x.ID] = x
+		ctx, cancel := context.WithCancel(context.Background())
+		s.cancels[x.ID] = cancel
 		if err := s.saveLocked(); err != nil {
 			return Result{}, "", "", err
 		}
 		s.mu.Unlock()
-		ans, err := s.askAI(x)
+		ans, err := s.askAI(ctx, x)
 		s.mu.Lock()
 		x = s.data.AI[x.ID]
+		delete(s.cancels, x.ID)
+		cancel()
+		if x.Status == "cancelled" {
+			return Result{AI: &x}, "ai", x.ID, nil
+		}
 		if err != nil {
 			x.Status = "failed"
 			x.Error = err.Error()
@@ -705,6 +727,9 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 			return Result{}, "", "", apiError{403, "AI record owner required"}
 		}
 		x.Status = "cancelled"
+		if cancel := s.cancels[x.ID]; cancel != nil {
+			cancel()
+		}
 		x.UpdatedAt = now
 		s.data.AI[x.ID] = x
 		s.auditLocked(a, in.Type, x.ID, "cancelled")
@@ -735,10 +760,10 @@ func (s *Service) doLocked(a Actor, in Action) (Result, string, string, error) {
 	}
 }
 
-func (s *Service) askAI(x AIRecord) (string, error) {
+func (s *Service) askAI(ctx context.Context, x AIRecord) (string, error) {
 	prompt := fmt.Sprintf("Explain resource usage, cost and rental options for %s using only %s. Respond in %s. Never rent, stake, transfer or sponsor automatically.", x.Intent, strings.Join(x.Context, ","), x.OutputLanguage)
 	body, _ := json.Marshal(map[string]any{"session": x.ID, "prompt": prompt, "context": x.Context, "outputLanguage": x.OutputLanguage})
-	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -810,7 +835,7 @@ func (s *Service) View(a Actor) (map[string]any, error) {
 			if r.Status == "active" && r.Expiry.After(now) && r.Beneficiary == a.ID {
 				balances[r.ResourceType] += r.Limit
 			}
-			if r.Owner == a.ID && r.Kind != "staking" {
+			if r.Owner == a.ID && r.Kind != "staking" && r.Settlement == "settled_with_authoritative_evidence" {
 				income += r.Fee
 			}
 			records = append(records, r)
@@ -826,7 +851,7 @@ func (s *Service) View(a Actor) (map[string]any, error) {
 	if role(a, "auditor") {
 		audit = append(audit, s.data.Audit...)
 	}
-	return map[string]any{"balances": balances, "pools": pools, "records": records, "ai": ai, "incomeQuoted": income, "audit": audit, "policy": map[string]any{"assetMovement": false, "sponsorship": "moves bounded resource capacity only", "feeTruth": "quoted until authoritative external settlement evidence exists"}}, nil
+	return map[string]any{"balances": balances, "pools": pools, "records": records, "ai": ai, "incomeSettled": income, "incomeQuoted": int64(0), "audit": audit, "policy": map[string]any{"assetMovement": false, "sponsorship": "moves bounded resource capacity only", "feeTruth": "quote, signed intent, authority acceptance, capacity confirmation and asset settlement are independent states"}}, nil
 }
 
 type apiError struct {

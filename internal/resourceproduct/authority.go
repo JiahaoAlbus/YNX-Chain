@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,7 +20,7 @@ type authorityResponse struct {
 	Body   []byte
 }
 
-func (s *Service) centralRequest(r *http.Request, method, path string, body []byte, session, device string) (authorityResponse, error) {
+func (s *Service) centralRequest(r *http.Request, method, path string, body []byte, proof string) (authorityResponse, error) {
 	if s.cfg.CentralGatewayURL == "" {
 		return authorityResponse{}, errors.New("central Wallet/Gateway is unavailable or not configured")
 	}
@@ -31,11 +32,9 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 		return authorityResponse{}, err
 	}
 	req.Header.Set("X-YNX-Client", s.cfg.CentralClientID)
-	if session != "" {
-		req.Header.Set("X-YNX-App-Session", strings.TrimSpace(strings.TrimPrefix(session, "Bearer ")))
-	}
-	if device != "" {
-		req.Header.Set("X-YNX-Device-ID", device)
+	if proof != "" {
+		req.Header.Set(canonicalwallet.ProductSessionProofHeader, proof)
+		req.Header.Set("X-YNX-Product-Request-Path", r.URL.Path)
 	}
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
@@ -56,10 +55,12 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 }
 func (s *Service) registerAuthorityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/meta", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"product": "ynx-resource-market", "chainId": "ynx_6423-1", "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "centralClientId": s.cfg.CentralClientID, "walletCallback": "ynxresource://auth/callback", "scopes": []string{"resource:read", "resource:quote", "resource:intent", "resource:history", "resource:dispute"}, "authority": "Quote, capacity allocation and transaction state come only from the central Gateway and authoritative Resource API.", "assetBoundary": "No product route signs, transfers, freezes or settles YNXT."})
+		writeJSON(w, 200, map[string]any{"product": "ynx-resource-market", "productId": "ynx-resource-market", "chainId": canonicalwallet.ChainID, "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "integratedCentral": false, "registry": s.walletRegistry(), "walletTransport": "ynxwallet://authorize?request=<base64url(canonical JSON)>", "authority": "Quote, capacity allocation and transaction state come only from the central Gateway and authoritative Resource API.", "assetBoundary": "No product route signs, transfers, freezes or settles YNXT."})
 	})
-	mux.HandleFunc("POST /api/auth/challenges", s.handleCentralChallenge)
-	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleCentralVerify)
+	mux.HandleFunc("POST /api/auth/challenges", legacyWalletGone)
+	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", legacyWalletGone)
+	mux.HandleFunc("POST /api/auth/session/challenge", s.handleCentralChallenge)
+	mux.HandleFunc("POST /api/auth/session/complete", s.handleCanonicalComplete)
 	mux.HandleFunc("POST /api/auth/revoke", s.handleCentralRevoke)
 	mux.HandleFunc("POST /api/authority/intents", s.handleIntentCreate)
 	mux.HandleFunc("POST /api/authority/intents/{id}/retry", s.handleIntentRetry)
@@ -87,12 +88,40 @@ func readBoundedBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 	}
 	return raw, true
 }
+func legacyWalletGone(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusGone, map[string]string{"error": "legacy challenge login is disabled; use canonical Wallet V1 authorization envelope", "state": "migration_required"})
+}
+func (s *Service) handleCanonicalComplete(w http.ResponseWriter, r *http.Request) {
+	raw, ok := readBoundedBody(w, r)
+	if !ok {
+		return
+	}
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/complete", raw, "")
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "canonical Wallet/Gateway unavailable", "state": "unavailable", "authority": "no local session created"})
+		return
+	}
+	if resp.Status/100 != 2 {
+		copyCentral(w, resp)
+		return
+	}
+	session, err := canonicalwallet.ParseVerifiedSession(resp.Body, s.walletRegistry(), s.cfg.Now().UTC())
+	if err != nil {
+		writeJSON(w, 502, map[string]string{"error": err.Error(), "state": "tampered_or_incompatible", "authority": "session rejected"})
+		return
+	}
+	if err := s.storeCentralSession(session); err != nil {
+		writeJSON(w, 500, map[string]string{"error": "canonical session persistence failed"})
+		return
+	}
+	copyCentral(w, resp)
+}
 func (s *Service) handleCentralChallenge(w http.ResponseWriter, r *http.Request) {
 	raw, ok := readBoundedBody(w, r)
 	if !ok {
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges", raw, "", "")
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/challenge", raw, "")
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
@@ -104,7 +133,7 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges/"+url.PathEscape(r.PathValue("id"))+"/verify", raw, "", "")
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges/"+url.PathEscape(r.PathValue("id"))+"/verify", raw, "")
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
@@ -122,36 +151,34 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 502, map[string]string{"error": "central Gateway returned an invalid session binding"})
 			return
 		}
-		if err := s.storeCentralSession(out.Token, CentralSession{ID: out.SessionID, Account: out.Account, DeviceID: out.DeviceID, Scopes: out.Scopes, ExpiresAt: out.ExpiresAt}); err != nil {
-			writeJSON(w, 500, map[string]string{"error": "central session audit persistence failed"})
-			return
-		}
+		writeJSON(w, http.StatusGone, map[string]string{"error": "legacy central session response rejected"})
+		return
 	}
 	copyCentral(w, resp)
 }
 func (s *Service) handleCentralRevoke(w http.ResponseWriter, r *http.Request) {
-	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
-	if _, err := s.authenticateCentral(token, device); err != nil {
+	auth, err := requireProductSession(r)
+	if err != nil {
 		writeErr(w, err)
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/revoke", nil, token, device)
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/revoke", nil, auth.Proof)
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
 	}
 	if resp.Status/100 == 2 {
-		_ = s.revokeCentral(token, device)
+		_ = s.revokeCentral(auth.Binding, auth.DeviceKey)
 	}
 	copyCentral(w, resp)
 }
 func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, path string) {
-	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
-	actor, err := s.authenticateCentral(token, device)
+	auth, err := requireProductSession(r)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
+	actor := auth.Actor
 	var raw []byte
 	if r.Method != http.MethodGet {
 		var ok bool
@@ -164,7 +191,7 @@ func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, p
 	if r.Method == http.MethodGet && r.URL.RawQuery != "" {
 		requestPath += "?" + r.URL.RawQuery
 	}
-	resp, err := s.centralRequest(r, r.Method, requestPath, raw, token, device)
+	resp, err := s.centralRequest(r, r.Method, requestPath, raw, auth.Proof)
 	if err != nil {
 		s.recordAuthority(actor, r.Method, path, raw, nil, 502, "unavailable")
 		writeJSON(w, 503, map[string]string{"error": "central Gateway or authoritative Resource API is unavailable", "state": "unavailable", "retry": "safe", "settlement": "not asserted"})
@@ -217,18 +244,20 @@ func (s *Service) handleIntentRetry(w http.ResponseWriter, r *http.Request) {
 	s.handleIntent(w, r, r.PathValue("id"))
 }
 func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID string) {
-	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
-	actor, err := s.authenticateCentral(token, device)
+	auth, err := requireProductSession(r)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
+	actor := auth.Actor
 	raw, ok := readBoundedBody(w, r)
 	if !ok {
 		return
 	}
 	var in intentInput
-	if json.Unmarshal(raw, &in) != nil || in.IdempotencyKey == "" || len(in.Payload) == 0 {
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.DisallowUnknownFields()
+	if dec.Decode(&in) != nil || in.IdempotencyKey == "" || len(in.Payload) == 0 {
 		writeJSON(w, 422, map[string]string{"error": "kind, idempotencyKey and signed payload are required"})
 		return
 	}
@@ -277,7 +306,7 @@ func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID s
 	s.data.Intents[intent.ID] = intent
 	_ = s.saveLocked()
 	s.mu.Unlock()
-	resp, callErr := s.centralRequest(r, http.MethodPost, path, in.Payload, token, device)
+	resp, callErr := s.centralRequest(r, http.MethodPost, path, in.Payload, auth.Proof)
 	s.mu.Lock()
 	intent = s.data.Intents[intent.ID]
 	if callErr != nil {
@@ -297,13 +326,22 @@ func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID s
 	}
 	if resp.Status/100 == 2 {
 		intent.Status = "pending_authority_confirmation"
+		intent.IntentSigned = true
+		intent.AuthorityAccepted = true
 		var data map[string]any
 		if json.Unmarshal(resp.Body, &data) == nil {
-			txHash, objectID := extractEvidence(data, in.Kind)
+			txHash, objectID, settlementProof := extractEvidence(data, in.Kind)
 			intent.TransactionHash = txHash
 			intent.AuthorityObjectID = objectID
 			if txHash != "" && objectID != "" {
 				intent.Status = "authority_confirmed_capacity"
+				intent.CapacityConfirmed = true
+			}
+			if txHash != "" && settlementProof != "" {
+				intent.AssetSettlementProven = true
+				intent.SettlementEvidence = settlementProof
+				intent.FeeSettlement = "settled_with_authoritative_evidence"
+				intent.Status = "settled_with_authoritative_evidence"
 			}
 		}
 	}
@@ -329,7 +367,7 @@ func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID s
 	}
 	writeJSON(w, code, map[string]any{"intent": intent, "authorityStatus": resp.Status, "authorityResponse": json.RawMessage(resp.Body)})
 }
-func extractEvidence(data map[string]any, kind string) (string, string) {
+func extractEvidence(data map[string]any, kind string) (string, string, string) {
 	tx := ""
 	if v, ok := data["transaction"].(map[string]any); ok {
 		tx, _ = v["hash"].(string)
@@ -341,14 +379,23 @@ func extractEvidence(data map[string]any, kind string) (string, string) {
 			id, _ = v["id"].(string)
 		}
 	}
-	return tx, id
+	proof := ""
+	if v, ok := data["settlement"].(map[string]any); ok {
+		status, _ := v["status"].(string)
+		proof, _ = v["proofHash"].(string)
+		if status != "settled" || len(strings.TrimPrefix(proof, "sha256:")) != 64 {
+			proof = ""
+		}
+	}
+	return tx, id, proof
 }
 func (s *Service) handleIntentGet(w http.ResponseWriter, r *http.Request) {
-	actor, err := s.authenticateCentral(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID"))
+	auth, err := requireProductSession(r)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
+	actor := auth.Actor
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v, ok := s.data.Intents[r.PathValue("id")]

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-resource-market-v1",
+  "name": "YNX Resource Market",
+  "aliases": ["YNX Infrastructure Market", "YNX Compute Market"],
+  "canonicalRoute": "/resource-market",
+  "title": "YNX Resource Market — Verifiable Infrastructure Capacity",
+  "metaDescription": "Review provider evidence, compare infrastructure capacity, meter real usage and verify settlement state on the YNX test network.",
+  "h1": "Infrastructure capacity with evidence from quote to settlement",
+  "status": "local-candidate",
+  "features": ["Provider verification", "Capacity matching", "Usage metering", "Settlement receipts", "Failure and dispute recovery"],
+  "risks": ["Provider availability and performance can vary", "Test-network assets have no guaranteed value", "Settlement is final only when authoritative receipt evidence is confirmed"],
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "screenshots": ["resource-market-desktop.png", "resource-market-mobile.png"],
+  "structuredDataRecommendation": "SoftwareApplication with WebApplication applicationCategory; add FAQPage only when the published FAQ text exactly matches visible content",
+  "faq": [
+    {"question": "Does a quote reserve or pay for capacity?", "answer": "No. Quote, intent, reservation, service, metering and asset settlement are separate states."},
+    {"question": "Can YNX AI purchase infrastructure?", "answer": "No. AI may explain quotes and forecast usage, but it cannot reserve capacity, sign, pay or settle."},
+    {"question": "How are providers paid?", "answer": "Only measured usage that reconciles to authoritative settlement evidence can become a confirmed receipt."}
+  ]
+}

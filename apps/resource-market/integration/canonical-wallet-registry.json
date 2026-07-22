@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-resource-market-v1",
+  "requestingProduct": "resource-market",
+  "bundleId": "com.ynxweb4.resource",
+  "callbacks": [
+    "ynxresource://wallet-auth/callback"
+  ],
+  "scopes": [
+    "account:read",
+    "resource:analytics",
+    "resource:capacity:read",
+    "resource:dispute",
+    "resource:history",
+    "resource:intent",
+    "resource:quote"
+  ],
+  "maxScopes": 7,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "productClientId": "ynx-trust-center-v1",
+  "requestingProduct": "trust-center",
+  "bundleId": "com.ynxweb4.trust",
+  "callbacks": [
+    "ynxtrust://wallet-auth/callback"
+  ],
+  "scopes": [
+    "account:read",
+    "trust:appeal",
+    "trust:evidence:read",
+    "trust:evidence:write",
+    "trust:transparency"
+  ],
+  "maxScopes": 5,
+  "productDeviceAlgorithms": [
+    "p256-sha256"
+  ]
+}

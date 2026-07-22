@@ -1,10 +1,471 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#002FA7"><title>YNX Resource Market</title><link rel="stylesheet" href="/styles.css"></head><body><a class="skip" href="#main">Skip to resource dashboard</a>
-<aside><div class="brand"><span aria-hidden="true">R</span><div><b data-i18n="appName">YNX Resource</b><small>Capacity market</small></div></div><nav aria-label="Resource Market"><button class="nav active" data-view="overview">Overview</button><button class="nav" data-view="trade">Quote & intent</button><button class="nav" data-view="pools">Sponsored pools</button><button class="nav" data-view="history">History & income</button><button class="nav" data-view="ai">AI cost guide</button></nav><div class="boundary"><b>Capacity only</b><p data-i18n="boundary">Sponsorship transfers only limited resource capacity; it never transfers YNXT or any user asset. A fee quote is not settlement; settled status requires authoritative chain or service evidence.</p></div></aside>
-<div class="shell"><header><div><p class="eyebrow">CAPACITY CONTROL</p><h1 data-i18n="appName">Resource Market</h1></div><div class="identity"><label><span data-i18n="language">Language</span><select class="locale-select" aria-label="Language"></select></label><label><span data-i18n="aiLanguage">AI output</span><select id="ai-language" aria-label="AI output language"></select></label><button id="wallet-open" data-i18n="wallet">Sign in with YNX Wallet</button><details><summary>Local test identity</summary><label>Account<input id="actor" value="ynx1demo" autocomplete="off"></label><label>Role<select id="role"><option>user</option><option>pool_operator</option><option>dispute_reviewer</option><option>auditor</option></select></label></details></div></header><main id="main"><div id="status" role="status" aria-live="polite">Loading capacity records…</div>
-<section id="wallet" class="panel hidden" aria-labelledby="wallet-title"><h2 id="wallet-title" data-i18n="wallet">Sign in with YNX Wallet</h2><p>The central Gateway creates the signing document. Resource Market never requests a seed phrase or private key.</p><form id="wallet-form"><label>YNX account<input name="account" required placeholder="ynx1…"></label><label>Device ID<input name="deviceId" required></label><label>Device signing public key<input name="deviceSigningPublicKey" required></label><button class="primary">Create wallet challenge</button></form><div id="wallet-result" aria-live="polite"></div><form id="wallet-verify" class="hidden"><input name="challengeId" type="hidden"><label>Account public key<input name="accountPublicKey" required></label><label>Wallet account signature<input name="accountSignature" required></label><label>Wallet device signature<input name="deviceSignature" required></label><button class="primary">Verify signed challenge</button></form></section>
-<section id="overview" class="view"><div class="metric-grid" id="balances"></div><div class="split"><section class="panel"><div class="panel-head"><div><p class="eyebrow">SUPPLY</p><h2>Create a bounded pool</h2></div><span class="pill">No asset transfer</span></div><form id="pool-form"><label>Resource type<select name="resourceType"><option>Bandwidth</option><option>Compute</option><option>AI Credits</option><option>Trust Credits</option><option>Pay Credits</option></select></label><label>Total capacity<input name="limit" type="number" min="1" required></label><label>Source reference<input name="source" required placeholder="staking receipt or allocation ID"></label><label>Expiry<input name="expiry" type="datetime-local" required></label><label>Fee per unit<input name="fee" type="number" min="0" value="0" required></label><label>Max per grant<input name="max" type="number" min="1" required></label><label class="check"><input name="revocable" type="checkbox" checked> Unused capacity is revocable</label><button class="primary">Create pool</button></form></section><section class="panel dark"><p class="eyebrow">MARKET TRUTH</p><h2>Price is a quote.<br>Income needs settlement evidence.</h2><p>The product records capacity, fee quotes and audit history. It never labels a pending fee as received YNXT.</p><div id="income"></div></section></div></section>
-<section id="trade" class="view hidden"><div class="split"><section class="panel"><p class="eyebrow">AUTHORITATIVE QUOTE</p><h2>Retrieve price and policy</h2><p>A quote is information, not a purchase or settlement.</p><form id="quote-form"><label>Renter account<input name="address" required placeholder="ynx1…"></label><label>Bandwidth<input name="bandwidth" type="number" min="0" value="0" required></label><label>Compute<input name="compute" type="number" min="0" value="0" required></label><label>AI Credits<input name="aiCredits" type="number" min="0" value="0" required></label><label>Trust Credits<input name="trustCredits" type="number" min="0" value="0" required></label><button class="primary">Load central quote</button></form><pre id="quote-result" aria-live="polite"></pre></section><section class="panel"><p class="eyebrow">SIGNED PURCHASE INTENT</p><h2>Submit only after Wallet review</h2><form id="intent-form"><label>Intent type<select name="kind"><option value="rental">Rental</option><option value="delegation">Delegation</option><option value="sponsorship">Sponsorship</option></select></label><label>Idempotency key<input name="idempotencyKey" required></label><label class="check">Signed payload JSON<textarea name="payload" rows="7" required placeholder="Paste the exact payload reviewed and signed by YNX Wallet"></textarea></label><button class="primary">Submit signed intent</button></form><pre id="intent-result" aria-live="polite"></pre><button id="intent-retry" class="hidden">Retry exact failed intent</button></section></div></section>
-<section id="pools" class="view hidden"><div class="panel-head"><div><p class="eyebrow">POOL LEDGER</p><h2>Owner, beneficiary and limits</h2></div><button id="refresh">Refresh</button></div><div id="pool-list" class="grid-list"></div></section>
-<section id="history" class="view hidden"><div class="panel"><p class="eyebrow">AUDITABLE CAPACITY</p><h2>Delegation, rental, sponsorship and dispute history</h2><div id="record-list" class="table-wrap"></div></div></section>
-<section id="ai" class="view hidden"><div class="panel ai"><p class="eyebrow">PERMISSIONED GUIDE</p><h2>Understand usage, cost and rental options</h2><p>AI can explain choices. It cannot rent, stake, sponsor, revoke or transfer anything.</p><label>Question<input id="ai-intent" placeholder="Compare my capacity and rental options"></label><fieldset><legend>Context preview</legend><label><input type="checkbox" value="balances" checked> Balances</label><label><input type="checkbox" value="usage"> Usage</label><label><input type="checkbox" value="prices" checked> Prices</label><label><input type="checkbox" value="rental_options" checked> Rental options</label><label><input type="checkbox" value="owned_history"> Owned history</label></fieldset><button id="ai-prepare" class="primary">Preview data and cost</button><div id="ai-result" tabindex="0"></div></div></section></main></div>
-<template id="empty"><div class="empty"><h3>No persisted records</h3><p>This product does not insert synthetic pools or market activity.</p></div></template><script src="/i18n.js"></script><script src="/i18n-extra.js"></script><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#002FA7">
+<meta name="description" content="Review provider evidence, compare infrastructure capacity, meter real usage and verify settlement state on the YNX test network.">
+<link rel="canonical" href="/resource-market">
+<title>YNX Resource Market — Verifiable Infrastructure Capacity</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to capacity workspace</a>
+<header>
+<a class="brand" href="#main">
+<img src="/ynx-logo.png" alt="">
+<span>
+<b data-i18n="appName">YNX Resource Market</b>
+<small>Capacity exchange</small>
+</span>
+</a>
+<div class="market-signal">
+<i>
+</i>
+<span>Authority link</span>
+<b id="authority-state">checking</b>
+</div>
+<div class="header-tools">
+<details class="locale-menu">
+<summary>
+<span data-i18n="language">Language</span>
+<b class="locale-current">English</b>
+</summary>
+<div>
+<select class="locale-select" aria-label="Language">
+</select>
+</div>
+</details>
+<button id="text-size" aria-pressed="false">Text size</button>
+<button id="theme-toggle" aria-pressed="false">Appearance</button>
+<button id="wallet-open" data-i18n="wallet">Sign in with YNX Wallet</button>
+<details class="dev-identity">
+<summary>Local test identity</summary>
+<div>
+<label>Account<input id="actor" value="ynx1demo">
+</label>
+<label>Role<select id="role">
+<option>user</option>
+<option>pool_operator</option>
+<option>resource_verifier</option>
+<option>resource_operator</option>
+<option>settlement_authority</option>
+<option>dispute_reviewer</option>
+<option>auditor</option>
+</select>
+</label>
+</div>
+</details>
+</div>
+</header>
+<div class="market-shell">
+<aside>
+<div class="network">
+<span>YNX</span>
+<b>6423</b>
+<small>Native capacity rail</small>
+</div>
+<nav aria-label="Resource Market">
+<button class="nav active" data-view="market">
+<span>01</span>Provider market</button>
+<button class="nav" data-view="trade">
+<span>02</span>Wallet intent</button>
+<button class="nav" data-view="overview">
+<span>03</span>Legacy capacity</button>
+<button class="nav" data-view="pools">
+<span>04</span>Positions</button>
+<button class="nav" data-view="history">
+<span>05</span>Settlement</button>
+<button class="nav" data-view="ai">
+<span>06</span>AI guide</button>
+</nav>
+<div class="capacity-only">
+<b>Capacity only</b>
+<p data-i18n="boundary">Sponsorship transfers only limited resource capacity; it never transfers YNXT or any user asset. A fee quote is not settlement; settled status requires authoritative chain or service evidence.</p>
+</div>
+</aside>
+<main id="main">
+<div class="market-head">
+<div>
+<p class="eyebrow">RESOURCE EXECUTION CONSOLE</p>
+<h1 id="view-title">Provider market</h1>
+</div>
+<div id="status" role="status" aria-live="polite">
+<i>
+</i>
+<span>Loading persisted capacity records…</span>
+</div>
+</div>
+<section id="wallet" class="wallet-panel hidden">
+<button class="wallet-close">Close</button>
+<p class="eyebrow">CANONICAL WALLET V1</p>
+<h2 data-i18n="wallet">Sign in with YNX Wallet</h2>
+<p>Generate a product-device-bound request. This market never accepts a seed phrase, private key, unsigned asset instruction or cross-product token.</p>
+<div id="wallet-bindings" class="mono-grid">
+</div>
+<button id="wallet-create" class="primary">Create canonical authorization request</button>
+<a id="wallet-launch" class="launch hidden">Open exact request in YNX Wallet</a>
+<div id="wallet-result" class="message">
+</div>
+</section>
+<section id="market" class="view">
+  <div class="market-workspaces">
+    <section class="provider-workspace">
+<div class="section-title">
+<div>
+<p class="eyebrow">PROVIDER WORKSPACE</p>
+<h2>Register verifiable capacity</h2>
+</div>
+<span>Evidence required</span>
+</div>
+      <form id="provider-form">
+<label>Provider name<input name="name" required>
+</label>
+<label>Region<input name="region" required>
+</label>
+<label>Hardware description<input name="hardware" required>
+</label>
+<label>Security bond candidate<input name="bond" type="number" min="0" value="0">
+</label>
+<label>Evidence reference<input name="evidence" required>
+</label>
+<button class="primary">Register provider</button>
+</form>
+      <form id="offer-form">
+<h3>Publish offer</h3>
+<label>Verified provider<select name="providerId" id="offer-provider" required>
+</select>
+</label>
+<label>Resource<select name="resource">
+<option value="storage">Storage</option>
+<option value="bandwidth_egress">Bandwidth / egress</option>
+<option value="cpu_compute">CPU compute</option>
+<option value="gpu_compute">GPU compute</option>
+<option value="ai_inference">AI inference</option>
+<option value="developer_build">Developer build</option>
+<option value="quant_backtest">Quant backtest</option>
+<option value="paper_shadow_worker">Paper / shadow worker</option>
+<option value="indexer_rpc">Indexer / RPC</option>
+<option value="artifact_storage">Artifact storage</option>
+</select>
+</label>
+<label>Pricing<select name="pricing">
+<option value="fixed">Fixed price</option>
+<option value="reverse_auction">Reverse auction</option>
+<option value="batch_auction">Batch auction</option>
+<option value="reservation">Capacity reservation</option>
+<option value="long_term">Long-term commitment</option>
+</select>
+</label>
+<div class="form-row">
+<label>Unit price<input name="unitPrice" type="number" min="0" required>
+</label>
+<label>Capacity<input name="capacity" type="number" min="1" required>
+</label>
+<label>Maximum order<input name="maxUnits" type="number" min="1" required>
+</label>
+</div>
+<label>Capacity evidence<input name="evidence" required>
+</label>
+<button class="primary">Publish verified offer</button>
+</form>
+      <form id="provider-lifecycle-form">
+<h3>Provider continuity</h3>
+<label>Verified provider<select name="providerId" id="lifecycle-provider" required></select></label>
+<label>Operation<select name="operation">
+<option value="maintenance_on">Enter maintenance</option>
+<option value="maintenance_off">Return from maintenance</option>
+<option value="update_capacity">Update offer capacity</option>
+<option value="exit_provider">Exit with migration</option>
+</select></label>
+<label>Offer ID (capacity update)<input name="offerId"></label>
+<div class="form-row">
+<label>Revised capacity<input name="capacity" type="number" min="1"></label>
+<label>Updated order ceiling<input name="maxUnits" type="number" min="1"></label>
+</div>
+<label>Continuity proof URI<input name="evidence" required></label>
+<label>Migration target (exit)<input name="migrationTarget"></label>
+<button class="primary">Record provider operation</button>
+</form>
+      <form id="auction-bid-form">
+<h3>Submit sealed capacity bid</h3>
+<label>Open procurement<select name="auctionId" id="auction-bid-auction" required></select></label>
+<label>Matching auction offer<select name="offerId" id="auction-bid-offer" required></select></label>
+<div class="form-row"><label>Bid units<input name="units" type="number" min="1" required></label><label>Bid unit price<input name="unitPrice" type="number" min="0" required></label></div>
+<label>Bid evidence URI<input name="evidence" required></label>
+<button class="primary">Seal immutable bid</button>
+</form>
+    </section>
+    <section class="buyer-workspace">
+<div class="section-title">
+<div>
+<p class="eyebrow">BUYER WORKSPACE</p>
+<h2>Match real providers</h2>
+</div>
+<span>Quote ≠ settlement</span>
+</div>
+<form id="match-form">
+<label>Resource<select name="resource">
+<option value="storage">Storage</option>
+<option value="bandwidth_egress">Bandwidth / egress</option>
+<option value="cpu_compute">CPU compute</option>
+<option value="gpu_compute">GPU compute</option>
+<option value="ai_inference">AI inference</option>
+<option value="developer_build">Developer build</option>
+<option value="quant_backtest">Quant backtest</option>
+<option value="paper_shadow_worker">Paper / shadow worker</option>
+<option value="indexer_rpc">Indexer / RPC</option>
+<option value="artifact_storage">Artifact storage</option>
+</select>
+</label>
+<div class="form-row">
+<label>Units<input name="units" type="number" min="1" required>
+</label>
+<label>Region filter<input name="region">
+</label>
+</div>
+<button class="primary">Match providers</button>
+</form>
+<div id="offer-results" class="market-list">
+</div>
+<form id="auction-form">
+<h3>Open procurement auction</h3>
+<label>Mode<select name="mode"><option value="reverse_auction">Reverse auction · one provider</option><option value="batch_auction">Batch auction · split capacity</option></select></label>
+<label>Resource<select name="resource"><option value="storage">Storage</option><option value="bandwidth_egress">Bandwidth / egress</option><option value="cpu_compute">CPU compute</option><option value="gpu_compute">GPU compute</option><option value="ai_inference">AI inference</option><option value="developer_build">Developer build</option><option value="quant_backtest">Quant backtest</option><option value="paper_shadow_worker">Paper / shadow worker</option><option value="indexer_rpc">Indexer / RPC</option><option value="artifact_storage">Artifact storage</option></select></label>
+<div class="form-row"><label>Auction units<input name="units" type="number" min="1" required></label><label>Maximum unit price<input name="maxUnitPrice" type="number" min="0" required></label><label>Protocol fee (bps)<input name="protocolFeeBps" type="number" min="0" max="10000" value="0" required></label></div>
+<label>Auction region<input name="region"></label><label>Closes at<input name="closesAt" type="datetime-local" required></label><label>Demand evidence URI<input name="evidence" required></label>
+<button class="primary">Open evidenced auction</button>
+</form>
+</section>
+  </div>
+  <section class="market-ledger">
+<div class="section-title">
+<div>
+<p class="eyebrow">LIVE LOCAL STATE</p>
+<h2>Providers and execution timeline</h2>
+</div>
+<div><button id="market-export">Export my records</button> <button id="market-refresh">Refresh</button></div>
+</div>
+<div id="provider-list" class="market-list">
+</div>
+<div id="order-list" class="market-list">
+</div>
+<div id="auction-list" class="market-list"></div>
+<div class="operation-grid">
+<form id="auction-clear-form"><p class="eyebrow">AUCTION OPERATOR</p><h3>Clear elapsed procurement</h3><label>Elapsed auction<select name="auctionId" id="auction-clear-select" required></select></label><button class="primary">Clear deterministically</button><pre id="auction-result" class="terminal">No auction clearing submitted.</pre></form>
+<form id="erasure-request-form"><p class="eyebrow">PRIVACY</p><h3>Request identity erasure</h3><label>Reason<textarea name="reason" rows="3" required></textarea></label><label>Request evidence URI<input name="source" required></label><button class="primary">Request erasure review</button><p>Live orders, disputes, auctions and verified-provider duties block fulfillment. Economic and audit records are pseudonymized, not destroyed.</p></form>
+<form id="retention-form"><p class="eyebrow">RETENTION OPERATOR</p><h3>Fulfill erasure or sweep transients</h3><label>Pending request<select name="requestId" id="erasure-select"></select></label><label>Operation<select name="operation"><option value="fulfill_erasure">Fulfill eligible erasure</option><option value="apply_retention">Apply versioned retention policy</option></select></label><button class="primary">Apply privacy operation</button><pre id="retention-result" class="terminal">No privacy operation submitted.</pre></form>
+<form id="worker-key-form"><p class="eyebrow">WORKER IDENTITY</p><h3>Register an expiring Ed25519 key</h3><label>Provider<select name="providerId" id="worker-provider" required></select></label><label>Worker key ID<input name="keyId" required></label><label>Ed25519 public key (base64url)<input name="publicKey" required></label><label>Key expiry<input name="expiresAt" type="datetime-local" required></label><label>Key evidence<input name="source" required></label><button class="primary">Register worker key</button><p>The browser never receives or stores the worker private key.</p></form>
+<form id="lifecycle-form"><p class="eyebrow">ORDER OPERATION</p><h3>Advance one evidenced state</h3><label>Order<select name="orderId" id="lifecycle-order" required></select></label><label>Operation<select name="operation"><option value="reserve">Reserve capacity</option><option value="start_service">Start service</option><option value="prepare_meter">Preview meter payload</option><option value="record_usage">Submit signed meter</option><option value="complete_service">Complete service</option><option value="report_failure">Report provider failure</option><option value="retry_failure">Retry failed order</option><option value="settlement_pending">Mark settlement pending</option><option value="open_dispute">Open dispute</option></select></label><label>Evidence / Ed25519 integrity string<textarea name="evidence" rows="3"></textarea></label><label>Reason<input name="reason"></label><div class="form-row"><label>Quantity<input name="quantity" type="number" min="1"></label><label>Usage start<input name="start" type="datetime-local"></label><label>Usage end<input name="end" type="datetime-local"></label></div><label>Meter source reference<input name="source"></label><button class="primary">Preview or submit operation</button><pre id="lifecycle-result" class="terminal">No operation submitted.</pre></form>
+<form id="receipt-form"><p class="eyebrow">SETTLEMENT AUTHORITY</p><h3>Confirm reconciled receipt</h3><label>Pending order<select name="orderId" id="receipt-order" required></select></label><div class="form-row"><label>Gross cost<input name="gross" type="number" min="0" required></label><label>Provider net<input name="net" type="number" min="0" required></label><label>Protocol fee<input name="fee" type="number" min="0" required></label></div><label>Testnet asset<input name="asset" required></label><label>Transaction hash<input name="transactionHash" required></label><label>Receipt evidence<input name="evidence" required></label><label>Source reference<input name="source" required></label><button class="primary">Confirm authoritative receipt</button><p>Only the settlement-authority role can submit; amounts must reconcile to signed meters.</p></form>
+<form id="dispute-form"><p class="eyebrow">DISPUTE & APPEAL</p><h3>Review bounded remedies</h3><label>Dispute<select name="disputeId" id="dispute-select" required></select></label><label>Operation<select name="operation"><option value="decide_dispute">Decide dispute</option><option value="appeal_dispute">Appeal decision</option><option value="resolve_appeal">Resolve appeal</option></select></label><label>Decision / reason<input name="decision"></label><label>Evidence<input name="evidence" required></label><div class="form-row"><label>Bond penalty<input name="penalty" type="number" min="0" value="0"></label><label>Refund<input name="refund" type="number" min="0" value="0"></label></div><button class="primary">Submit bounded review</button><p>Penalty is capped by bond; refunds cannot exceed metered gross cost; appeal review must be independent.</p></form>
+</div>
+</section>
+</section>
+<section id="trade" class="view hidden">
+<div class="trade-grid">
+<section class="quote-composer">
+<div class="section-title">
+<div>
+<p class="eyebrow">01 · AUTHORITATIVE QUOTE</p>
+<h2>Compose capacity</h2>
+</div>
+<span>Quote ≠ purchase</span>
+</div>
+<form id="quote-form">
+<label>Renter account<input name="address" required placeholder="ynx1…">
+</label>
+<div class="resource-lines">
+<label>
+<span>Bandwidth</span>
+<input name="bandwidth" type="number" min="0" value="0">
+</label>
+<label>
+<span>Compute</span>
+<input name="compute" type="number" min="0" value="0">
+</label>
+<label>
+<span>AI Credits</span>
+<input name="aiCredits" type="number" min="0" value="0">
+</label>
+<label>
+<span>Trust Credits</span>
+<input name="trustCredits" type="number" min="0" value="0">
+</label>
+</div>
+<button id="quote" class="primary">Load authoritative quote</button>
+</form>
+<pre id="quote-result" class="terminal" aria-live="polite">No quote loaded. Local prices are never substituted.</pre>
+</section>
+<section class="execution">
+<div class="section-title">
+<div>
+<p class="eyebrow">02 · SIGNED INTENT</p>
+<h2>Review exact payload</h2>
+</div>
+<span>Idempotent</span>
+</div>
+<form id="intent-form">
+<label>Intent type<select name="kind">
+<option value="rental">Rental</option>
+<option value="delegation">Delegation</option>
+<option value="sponsorship">Sponsorship</option>
+</select>
+</label>
+<label>Idempotency key<input name="idempotencyKey" required>
+</label>
+<label>Wallet-reviewed signed payload JSON<textarea name="payload" rows="8" required placeholder="Paste the exact non-secret signed payload returned by YNX Wallet">
+</textarea>
+</label>
+<button class="primary">Submit signed intent</button>
+</form>
+<button id="intent-retry" class="hidden">Retry exact failed intent</button>
+<pre id="intent-result" class="terminal">No intent submitted.</pre>
+</section>
+</div>
+<div class="truth-rail" aria-label="Settlement stage boundary">
+<div>
+<b>Quote</b>
+<span>price + expiry + fee breakdown</span>
+</div>
+<div>
+<b>Intent</b>
+<span>Wallet-reviewed payload</span>
+</div>
+<div>
+<b>Authority</b>
+<span>accepted or rejected</span>
+</div>
+<div>
+<b>Capacity</b>
+<span>object + transaction evidence</span>
+</div>
+<div>
+<b>Settlement</b>
+<span>proof required; never inferred</span>
+</div>
+</div>
+</section>
+<section id="overview" class="view hidden">
+<div id="balances" class="capacity-strip">
+</div>
+<div class="capacity-body">
+<section>
+<p class="eyebrow">AUTHORITATIVE CAPACITY</p>
+<h2>Balances and limits</h2>
+<p>Only confirmed capacity contributes to availability. Draft supply is held at zero until authoritative capacity evidence exists.</p>
+<div id="capacity-ledger">
+</div>
+</section>
+<section class="draft-supply">
+<p class="eyebrow">LOCAL RECOVERY DRAFT</p>
+<h2>Prepare a pool policy</h2>
+<p>This saves a pending draft only. It cannot mint capacity, move YNXT, or become active without central evidence.</p>
+<form id="pool-form">
+<label>Resource type<select name="resourceType">
+<option>Bandwidth</option>
+<option>Compute</option>
+<option>AI Credits</option>
+<option>Trust Credits</option>
+<option>Pay Credits</option>
+</select>
+</label>
+<label>Requested capacity<input name="limit" type="number" min="1" required>
+</label>
+<label>Source reference<input name="source" required>
+</label>
+<label>Expiry<input name="expiry" type="datetime-local" required>
+</label>
+<label>Fee per unit<input name="fee" type="number" min="0" value="0">
+</label>
+<label>Max per grant<input name="max" type="number" min="1" required>
+</label>
+<label class="check">
+<input name="revocable" type="checkbox" checked> Unused confirmed capacity is revocable</label>
+<button class="primary">Save pending supply draft</button>
+</form>
+</section>
+</div>
+</section>
+<section id="pools" class="view hidden">
+<div class="section-title">
+<div>
+<p class="eyebrow">DELEGATION · RENTAL · SPONSORSHIP</p>
+<h2>Capacity positions</h2>
+</div>
+<button id="refresh">Refresh</button>
+</div>
+<div id="pool-list" class="position-list">
+</div>
+</section>
+<section id="history" class="view hidden">
+<div class="income-band">
+<div>
+<small>Authoritatively settled income</small>
+<b id="settled-income">0</b>
+</div>
+<div>
+<small>Unsettled quoted fees</small>
+<b id="quoted-income">0</b>
+</div>
+<p>No transaction or settlement proof means the amount stays out of settled income.</p>
+</div>
+<div class="section-title">
+<div>
+<p class="eyebrow">RECOVERY & AUDIT</p>
+<h2>Settlement timeline</h2>
+</div>
+</div>
+<div id="record-list" class="settlement-list">
+</div>
+</section>
+<section id="ai" class="view hidden">
+<div class="ai-console">
+<div>
+<p class="eyebrow">EXPLANATION ONLY</p>
+<h2>Understand cost without execution.</h2>
+<p>AI may explain usage, price and rental options. It cannot rent, stake, sponsor, revoke, sign or settle anything.</p>
+<label>Question<input id="ai-intent" placeholder="Compare capacity and rental options">
+</label>
+<label>AI output language<select id="ai-language">
+</select>
+</label>
+<fieldset>
+<legend>Context preview</legend>
+<label>
+<input type="checkbox" value="balances" checked> Balances</label>
+<label>
+<input type="checkbox" value="usage"> Usage</label>
+<label>
+<input type="checkbox" value="prices" checked> Prices</label>
+<label>
+<input type="checkbox" value="rental_options" checked> Rental options</label>
+<label>
+<input type="checkbox" value="owned_history"> Owned history</label>
+</fieldset>
+<button id="ai-prepare" class="primary">Preview context and cost</button>
+</div>
+<div id="ai-result" class="terminal">No context sent. Permission is required.</div>
+</div>
+</section>
+</main>
+</div>
+<template id="empty">
+<div class="empty">
+<span>0</span>
+<h3>No persisted records</h3>
+<p>This product does not insert synthetic pools, settlements or market activity.</p>
+</div>
+</template>
+<script src="/i18n.js">
+</script>
+<script src="/i18n-extra.js">
+</script>
+<script src="/i18n-market.js">
+</script>
+<script src="/app.js">
+</script>
+<script src="/market.js">
+</script>
+</body>
+</html>

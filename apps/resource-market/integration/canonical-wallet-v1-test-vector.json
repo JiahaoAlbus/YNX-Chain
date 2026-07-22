@@ -1,0 +1,145 @@
+{
+  "testOnly": true,
+  "generatedBy": "@ynx-chain/wallet-auth",
+  "registryEntry": {
+    "schemaVersion": 2,
+    "productClientId": "ynx-resource-market-v1",
+    "requestingProduct": "resource-market",
+    "bundleId": "com.ynxweb4.resource",
+    "callbacks": [
+      "ynxresource://wallet-auth/callback"
+    ],
+    "scopes": [
+      "account:read",
+      "resource:analytics",
+      "resource:capacity:read",
+      "resource:dispute",
+      "resource:history",
+      "resource:intent",
+      "resource:quote"
+    ],
+    "maxScopes": 7,
+    "productDeviceAlgorithms": [
+      "p256-sha256"
+    ]
+  },
+  "authorizationRequest": {
+    "version": "1",
+    "nonce": "nonce_resource_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "resource-market",
+    "productClientId": "ynx-resource-market-v1",
+    "bundleId": "com.ynxweb4.resource",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxresource://wallet-auth/callback",
+    "scopes": [
+      "account:read",
+      "resource:analytics",
+      "resource:capacity:read",
+      "resource:dispute",
+      "resource:history",
+      "resource:intent",
+      "resource:quote"
+    ],
+    "purpose": "Read authoritative capacity and submit one Wallet-reviewed resource intent",
+    "issuedAt": "2026-07-18T05:59:00.000Z",
+    "expiresAt": "2026-07-18T06:04:00.000Z"
+  },
+  "walletApproval": {
+    "version": "1",
+    "requestDigest": "dc00a044c91d7e5d834141e9b540c2d5218628d771f4267d4a281d1936a10314",
+    "nonce": "nonce_resource_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "resource-market",
+    "productClientId": "ynx-resource-market-v1",
+    "bundleId": "com.ynxweb4.resource",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynxresource://wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "grantedScopes": [
+      "account:read",
+      "resource:analytics",
+      "resource:capacity:read",
+      "resource:dispute",
+      "resource:history",
+      "resource:intent",
+      "resource:quote"
+    ],
+    "purpose": "Read authoritative capacity and submit one Wallet-reviewed resource intent",
+    "issuedAt": "2026-07-18T06:00:00.000Z",
+    "expiresAt": "2026-07-18T06:04:00.000Z",
+    "walletSignature": "62194518a1e1e878da00968cb482ae0ccfc3c8d84db601b40837c4eee3f6dd2065c404374859b6a34673be7e1682f562847ea99e595c5a2192f5a2fa2b4d9998"
+  },
+  "gatewayCompletion": {
+    "challenge": {
+      "version": "1",
+      "challenge": "gateway_resource_challenge_abcdefghijklmnop",
+      "requestDigest": "dc00a044c91d7e5d834141e9b540c2d5218628d771f4267d4a281d1936a10314",
+      "productClientId": "ynx-resource-market-v1",
+      "bundleId": "com.ynxweb4.resource",
+      "productDeviceAlgorithm": "p256-sha256",
+      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+      "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+      "scopes": [
+        "account:read",
+        "resource:analytics",
+        "resource:capacity:read",
+        "resource:dispute",
+        "resource:history",
+        "resource:intent",
+        "resource:quote"
+      ],
+      "issuedAt": "2026-07-18T06:00:00.000Z",
+      "expiresAt": "2026-07-18T06:03:00.000Z"
+    },
+    "deviceSignature": "MEQCIFI4x302gnNrVeT596x6GDI3nwA_PaG1ffN3zv8Q23RQAiBzy6uUUq0u5n2lHgdWv3ATWpyYrhN-_8dH0EijD50R_g"
+  },
+  "expectedSession": {
+    "verifierVersion": "wallet-auth-v1",
+    "sessionBinding": "9c62a542457262f4d435959866607e81c8534c33828165caea9f0278bb867181",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "resource-market",
+    "productClientId": "ynx-resource-market-v1",
+    "bundleId": "com.ynxweb4.resource",
+    "callback": "ynxresource://wallet-auth/callback",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "deviceBinding": "9b22ba4e6b896b3a66c7345293b005cea1cae79a751189e5d75216efa51736cd",
+    "requestDigest": "dc00a044c91d7e5d834141e9b540c2d5218628d771f4267d4a281d1936a10314",
+    "approvalDigest": "83f23923bf3757cc78f233b1e35b84d26f113027cd1e36209caac467c242c29c",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": [
+      "account:read",
+      "resource:analytics",
+      "resource:capacity:read",
+      "resource:dispute",
+      "resource:history",
+      "resource:intent",
+      "resource:quote"
+    ],
+    "nonce": "nonce_resource_abcdefghijklmnopqrstuvwxyz12",
+    "purpose": "Read authoritative capacity and submit one Wallet-reviewed resource intent",
+    "issuedAt": "2026-07-18T06:00:00.000Z",
+    "expiresAt": "2026-07-18T06:03:00.000Z"
+  },
+  "productSessionProof": {
+    "body": "{\"kind\":\"resource\"}",
+    "proof": {
+      "version": "1",
+      "sessionBinding": "9c62a542457262f4d435959866607e81c8534c33828165caea9f0278bb867181",
+      "productClientId": "ynx-resource-market-v1",
+      "bundleId": "com.ynxweb4.resource",
+      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+      "method": "POST",
+      "path": "/api/authority/intents",
+      "bodyDigest": "db20dfa2bc962cc27ebc1c9d7ea4c50f2b8371e718694ab481269399595dd05e",
+      "nonce": "proof_resource_abcdefghijklmnopqrstuvwxyz",
+      "issuedAt": "2026-07-18T06:00:00.000Z",
+      "expiresAt": "2026-07-18T06:00:30.000Z",
+      "signature": "MEUCIQCchERTggsruppYTlNVP8QgwRUlAOxLNFTV2YZjuPrqKAIgSGtB4mJEPl9PSYWEUz4SyqDuD732v9G8pWWtzOaevCU"
+    }
+  }
+}

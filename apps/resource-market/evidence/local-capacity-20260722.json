@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-07-22T16:14:34.495Z",
+  "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
+  "workingTreeHadUncommittedChanges": true,
+  "command": "./scripts/verify/resource-market-capacity.sh",
+  "scope": "local loopback HTTP matching read; two ephemeral providers; no public-network or chain-settlement claim",
+  "requests": 1000,
+  "concurrency": 25,
+  "completed": 1000,
+  "failures": 0,
+  "errorRate": 0,
+  "elapsedMs": 148.942,
+  "throughputRequestsPerSecond": 6714.02,
+  "latencyMs": { "p50": 3.058, "p95": 7.402, "p99": 8.756, "max": 9.545 }
+}

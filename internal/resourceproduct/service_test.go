@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -19,8 +20,82 @@ func do(t *testing.T, s *Service, a Actor, in Action) Result {
 	}
 	return r
 }
+
+func TestResourceAI429EmptyAndCancellationRemainHonest(t *testing.T) {
+	for name, handler := range map[string]http.HandlerFunc{
+		"rate_limited": func(w http.ResponseWriter, _ *http.Request) {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limited"})
+		},
+		"empty": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			provider := httptest.NewServer(handler)
+			defer provider.Close()
+			svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "state.json"), AIURL: provider.URL, AIKey: "key", AIModel: "model"})
+			actor := Actor{"user", "user"}
+			prepared := do(t, svc, actor, Action{Type: "ai_prepare", IdempotencyKey: "prepare", Reason: "explain quote", Context: []string{"prices"}}).AI
+			got := do(t, svc, actor, Action{Type: "ai_run", IdempotencyKey: "run", AIID: prepared.ID, Permission: true}).AI
+			if got.Status != "failed" || got.Error == "" {
+				t.Fatalf("dishonest provider result: %+v", got)
+			}
+		})
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var once sync.Once
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		once.Do(func() { close(started) })
+		select {
+		case <-r.Context().Done():
+			return
+		case <-release:
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte("data: {\"text\":\"late\"}\n\n"))
+		}
+	}))
+	defer provider.Close()
+	defer close(release)
+	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "cancel.json"), AIURL: provider.URL, AIKey: "key", AIModel: "model"})
+	actor := Actor{"user", "user"}
+	prepared := do(t, svc, actor, Action{Type: "ai_prepare", IdempotencyKey: "prepare", Reason: "explain", Context: []string{"usage"}}).AI
+	done := make(chan Result, 1)
+	go func() {
+		r, _ := svc.Do(actor, Action{Type: "ai_run", IdempotencyKey: "run", AIID: prepared.ID, Permission: true})
+		done <- r
+	}()
+	<-started
+	cancelled := do(t, svc, actor, Action{Type: "ai_cancel", IdempotencyKey: "cancel", AIID: prepared.ID}).AI
+	if cancelled.Status != "cancelled" {
+		t.Fatalf("cancel=%+v", cancelled)
+	}
+	select {
+	case result := <-done:
+		if result.AI == nil || result.AI.Status != "cancelled" {
+			t.Fatalf("late provider overwrote cancel: %+v", result)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("AI cancellation did not interrupt provider request")
+	}
+}
 func poolAction(now time.Time) Action {
 	return Action{Type: "create_pool", IdempotencyKey: "pool", ResourceType: "Compute", Limit: 1000, Source: "staking-receipt:chain-6423-10", Expiry: now.Add(24 * time.Hour), Fee: 2, Policy: Policy{AllowedBeneficiaries: []string{"beneficiary"}, MaxPerGrant: 300, Revocable: true}}
+}
+
+func confirmPoolForAuthoritativeTest(t *testing.T, svc *Service, id string) Pool {
+	t.Helper()
+	svc.mu.Lock()
+	defer svc.mu.Unlock()
+	p := svc.data.Pools[id]
+	p.Status = "capacity_confirmed"
+	p.Available = p.Limit
+	svc.data.Pools[id] = p
+	if err := svc.saveLocked(); err != nil {
+		t.Fatal(err)
+	}
+	return p
 }
 
 func TestPoolSponsorshipLifecycleReplayRestartAndNoAssets(t *testing.T) {
@@ -29,7 +104,7 @@ func TestPoolSponsorshipLifecycleReplayRestartAndNoAssets(t *testing.T) {
 	svc, _ := New(Config{StorePath: path, Now: func() time.Time { return now }})
 	owner := Actor{"owner", "user"}
 	p := do(t, svc, owner, poolAction(now)).Pool
-	if p.Available != 1000 || p.ResourceType != "Compute" {
+	if p.Available != 0 || p.Status != "pending_capacity_evidence" || p.ResourceType != "Compute" {
 		t.Fatalf("pool %+v", p)
 	}
 	again := do(t, svc, owner, poolAction(now))
@@ -41,6 +116,8 @@ func TestPoolSponsorshipLifecycleReplayRestartAndNoAssets(t *testing.T) {
 	if _, err := svc.Do(owner, changed); err == nil {
 		t.Fatal("changed replay accepted")
 	}
+	confirmed := confirmPoolForAuthoritativeTest(t, svc, p.ID)
+	p = &confirmed
 	base := Action{Type: "sponsor", IdempotencyKey: "sponsor", PoolID: p.ID, Beneficiary: "beneficiary", Limit: 250, Expiry: now.Add(time.Hour)}
 	if _, err := svc.Do(owner, base); err == nil {
 		t.Fatal("sponsorship without beneficiary consent")
@@ -91,6 +168,8 @@ func TestAllResourceTypesStakeDelegationRentalPolicyExpiryAndDispute(t *testing.
 		}
 	}
 	p := do(t, svc, Actor{"owner", "user"}, Action{Type: "create_pool", IdempotencyKey: "p", ResourceType: "Bandwidth", Limit: 100, Source: "allocation:1", Expiry: now.Add(time.Hour), Fee: 1, Policy: Policy{MaxPerGrant: 50, Revocable: true}}).Pool
+	confirmed := confirmPoolForAuthoritativeTest(t, svc, p.ID)
+	p = &confirmed
 	d := do(t, svc, Actor{"owner", "user"}, Action{Type: "delegate", IdempotencyKey: "d", PoolID: p.ID, Beneficiary: "b", Limit: 20, Expiry: now.Add(30 * time.Minute)}).Record
 	if d.Kind != "delegation" {
 		t.Fatal("delegation missing")

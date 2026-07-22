@@ -1,0 +1,37 @@
+{
+  "productId": "ynx-trust-center-v1",
+  "name": "YNX Trust Center",
+  "branch": "codex/ecosystem-trust-resource",
+  "commit": "PENDING_SOURCE_COMMIT",
+  "version": "0.2.0-candidate",
+  "surfaces": ["web", "api", "android", "ios-source"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {"androidDebugApk": "3303230854efd5f30f7f813352f28a30ffdd54088232e3a336be70bc98b9f6d2"},
+  "bytes": {"androidDebugApk": 20544},
+  "signingClass": {"android": "debug", "ios": "unsigned-source"},
+  "minOS": {"android": 26, "ios": "16.0"},
+  "installEvidence": [],
+  "centralIntegration": {
+    "status": "pending-owner-merge-and-deployment",
+    "registry": "integration/canonical-wallet-registry.json",
+    "manifest": "integration/central-integration-manifest.json",
+    "failClosed": true
+  },
+  "knownLimitations": [
+    "No live central Wallet/Gateway endpoint or authoritative Trust deployment was provided.",
+    "Host Android emulators expose ADB but remain in boot animation with package service unavailable; APK install is not claimed.",
+    "Full Xcode, Simulator runtimes, signing identities, staging hosting and public artifact hosting are unavailable."
+  ],
+  "generatedAt": "2026-07-19T03:50:00+08:00"
+}
