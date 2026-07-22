@@ -24,6 +24,7 @@ type persistentState struct {
 	MutationIdempotency map[string]idempotencyRecord `json:"mutationIdempotency"`
 	Safety              SafetyState                  `json:"safety"`
 	Reconciliations     map[string]Reconciliation    `json:"reconciliations,omitempty"`
+	DataRequests        map[string]DataRequest       `json:"dataRequests,omitempty"`
 	Audit               []AuditEvent                 `json:"audit"`
 	Integrity           string                       `json:"integrity"`
 }
@@ -66,7 +67,7 @@ type legacyStateV1 struct {
 func newPersistentState() persistentState {
 	return persistentState{
 		SchemaVersion: SchemaVersion, Transfers: map[string]Transfer{}, SourceEvents: map[string]string{},
-		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Reconciliations: map[string]Reconciliation{}, Audit: []AuditEvent{},
+		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Reconciliations: map[string]Reconciliation{}, DataRequests: map[string]DataRequest{}, Audit: []AuditEvent{},
 	}
 }
 
@@ -85,6 +86,9 @@ func loadState(path string) (persistentState, error) {
 	if state.SchemaVersion == 1 {
 		return loadLegacyStateV1(raw)
 	}
+	if state.SchemaVersion == 2 {
+		return loadLegacyStateV2(state)
+	}
 	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
@@ -98,9 +102,34 @@ func loadState(path string) (persistentState, error) {
 	if state.Reconciliations == nil {
 		state.Reconciliations = map[string]Reconciliation{}
 	}
+	if state.DataRequests == nil {
+		state.DataRequests = map[string]DataRequest{}
+	}
 	if err := validateAuditChain(state.Audit); err != nil {
 		return persistentState{}, err
 	}
+	return state, nil
+}
+
+func loadLegacyStateV2(state persistentState) (persistentState, error) {
+	got := state.Integrity
+	state.Integrity = ""
+	expected, err := stateDigest(state)
+	if err != nil || got != expected {
+		return persistentState{}, errors.New("bridge state integrity mismatch")
+	}
+	if state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
+		return persistentState{}, errors.New("bridge v2 state schema is invalid")
+	}
+	if err := validateAuditChain(state.Audit); err != nil {
+		return persistentState{}, err
+	}
+	state.SchemaVersion = SchemaVersion
+	if state.Reconciliations == nil {
+		state.Reconciliations = map[string]Reconciliation{}
+	}
+	state.DataRequests = map[string]DataRequest{}
+	state.Integrity = ""
 	return state, nil
 }
 

@@ -309,6 +309,109 @@ func TestBridgeTraceContextPropagation(t *testing.T) {
 	}
 }
 
+func TestBridgeDataExportRetentionAndIdentityRedaction(t *testing.T) {
+	b := newTestBridge(t)
+	b.cfg.RetentionPeriod = 24 * time.Hour
+	service, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.service = service
+	created, err := b.service.CreateTransfer(validCreate("privacy-create-001"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	exported, err := b.service.ExportAccount(created.Transfer.Sender)
+	if err != nil || len(exported.Transfers) != 1 || exported.Source != "ynx-bridge-coordinator" || exported.Coverage != "coordinator-records-only-not-independent-chain-history" {
+		t.Fatalf("unexpected account export: %+v %v", exported, err)
+	}
+	held, replayed, err := b.service.RequestDataDeletion(DataDeletionRequest{IdempotencyKey: "privacy-delete-request-001", Account: created.Transfer.Sender, Reason: "account-closure"})
+	if err != nil || replayed || held.Status != "safety_hold" || held.OutstandingTransfers != 1 || held.EligibleAt != "" {
+		t.Fatalf("active transfer deletion was not safety-held: %+v %v", held, err)
+	}
+	if _, _, err := b.service.ExecuteDataDeletion(held.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-001"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("active transfer deletion execution should fail closed: %v", err)
+	}
+	block := "0x" + strings.Repeat("c", 64)
+	for _, relayer := range []string{"relayer-a", "relayer-b"} {
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, relayer, block, 12)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "privacy-finalize-001"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-release-001", Outcome: "destination_mint_release", EvidenceRef: "receipt:privacy-release", ReasonCode: "operator-observed"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-confirm-001", Outcome: "destination_confirmed", EvidenceRef: "receipt:privacy-confirmed", ReasonCode: "finalized-receipt"}); err != nil {
+		t.Fatal(err)
+	}
+	pending, _, err := b.service.RequestDataDeletion(DataDeletionRequest{IdempotencyKey: "privacy-delete-request-002", Account: created.Transfer.Sender, Reason: "account-closure"})
+	if err != nil || pending.Status != "pending_retention" || pending.OutstandingTransfers != 0 || pending.EligibleAt == "" {
+		t.Fatalf("terminal transfer deletion request is invalid: %+v %v", pending, err)
+	}
+	if _, _, err := b.service.ExecuteDataDeletion(pending.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-002"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("retention period should block early execution: %v", err)
+	}
+	*b.clock = b.clock.Add(25 * time.Hour)
+	completed, replayed, err := b.service.ExecuteDataDeletion(pending.ID, DataDeletionExecuteRequest{IdempotencyKey: "privacy-delete-execute-003"})
+	if err != nil || replayed || completed.Status != "completed" || completed.Account != "" || completed.CompletedAt == "" {
+		t.Fatalf("eligible identity redaction failed: %+v %v", completed, err)
+	}
+	redacted, err := b.service.Get(created.Transfer.ID)
+	if err != nil || !redacted.SenderRedacted || !strings.HasPrefix(redacted.Sender, "redacted:sha256:") || redacted.RecipientRedacted || redacted.SourceTxHash != created.Transfer.SourceTxHash || redacted.Amount != created.Transfer.Amount || redacted.Phase != "destination_confirmed" {
+		t.Fatalf("redaction changed financial evidence or missed identity: %+v %v", redacted, err)
+	}
+	exported, err = b.service.ExportAccount(created.Transfer.Sender)
+	if err != nil || len(exported.Transfers) != 0 || len(exported.DeletionRequests) != 2 {
+		t.Fatalf("post-redaction export should retain request evidence only: %+v %v", exported, err)
+	}
+	restarted, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("redacted state did not restart: %v", err)
+	}
+	persisted, _ := restarted.Get(created.Transfer.ID)
+	if !persisted.SenderRedacted || persisted.Sender != redacted.Sender {
+		t.Fatalf("restart lost redaction state: %+v", persisted)
+	}
+}
+
+func TestBridgeV2StateMigratesToDataLifecycleSchema(t *testing.T) {
+	b := newTestBridge(t)
+	state := cloneState(b.service.state)
+	state.SchemaVersion = 2
+	state.DataRequests = nil
+	state.Integrity = ""
+	digest, err := stateDigest(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state.Integrity = digest
+	raw, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(b.state, append(raw, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(b.cfg)
+	if err != nil {
+		t.Fatalf("valid v2 state migration failed: %v", err)
+	}
+	if migrated.state.SchemaVersion != 3 || migrated.state.DataRequests == nil || migrated.state.Integrity == "" {
+		t.Fatalf("v2 state not migrated to v3: %+v", migrated.state)
+	}
+	state.Integrity = "sha256:" + strings.Repeat("0", 64)
+	raw, _ = json.Marshal(state)
+	if err := os.WriteFile(b.state, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("tampered v2 state expected integrity rejection, got %v", err)
+	}
+}
+
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
@@ -325,6 +428,15 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	base.Policies[0].ExternalSubmission = true
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("external submission policy unexpectedly passed")
+	}
+	base.Policies[0].ExternalSubmission = false
+	base.RetentionPeriod = 23 * time.Hour
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("sub-day retention policy unexpectedly passed")
+	}
+	base.RetentionPeriod = 24 * time.Hour
+	if err := ValidateConfig(base); err != nil {
+		t.Fatalf("minimum bounded retention policy rejected: %v", err)
 	}
 }
 
@@ -416,14 +528,14 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 		t.Fatalf("valid v1 state migration failed: %v", err)
 	}
 	if migrated.state.SchemaVersion != SchemaVersion || migrated.state.MutationIdempotency == nil || migrated.state.Integrity == "" {
-		t.Fatalf("v1 state not resealed as v2: %+v", migrated.state)
+		t.Fatalf("v1 state not resealed as v3: %+v", migrated.state)
 	}
 	persisted, err := os.ReadFile(b.state)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schemaVersion": 2`) {
-		t.Fatalf("migrated state not persisted as v2: %s", persisted)
+	if !strings.Contains(string(persisted), `"schemaVersion": 3`) {
+		t.Fatalf("migrated state not persisted as v3: %s", persisted)
 	}
 
 	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)

@@ -6,6 +6,8 @@ Protected assets are user funds, source-event uniqueness, destination issuance/r
 
 The canonical Wallet signs user source transactions. Consumer products and AI never receive account secrets, Bridge credentials, relayer keys, or withdrawal authority. `ynx-bridged` accepts observations and records local state; external submission is disabled. Relayers provide independent Ed25519 attestations, but the current local keys and process do not constitute production custody, HSM/MPC protection, or canonical-bridge security.
 
+Data-rights controls treat premature deletion as an asset-safety and audit-evasion threat. Active or unresolved transfers cannot be redacted, retention is bounded configuration, execution is separate and idempotent, and identity pseudonymization preserves source-event, amount, lifecycle, reconciliation, dispute, and audit evidence. Account digests remain linkable and are not described as anonymous.
+
 ## Principal threats and controls
 
 | Threat | Current control | Residual boundary |

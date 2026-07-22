@@ -27,6 +27,7 @@ bridge_env=(
   YNX_BRIDGE_ROUTE_POLICIES_JSON="$policies"
   YNX_BRIDGE_RELAYER_THRESHOLD=2
   YNX_BRIDGE_STATE_PATH="$state"
+  YNX_BRIDGE_RETENTION_PERIOD=24h
 )
 env "${bridge_env[@]}" "$tmp/ynx-bridged" --check-config >/dev/null
 
@@ -47,7 +48,7 @@ curl -fsS -D "$tmp/trace.headers" -o /dev/null -H 'traceparent: 00-4bf92f3577b34
 grep -Eiq '^X-Trace-ID: 4bf92f3577b34da6a3ce929d0e0e4736' "$tmp/trace.headers"
 grep -Eiq '^Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-[0-9a-f]{16}-01' "$tmp/trace.headers"
 health="$(curl -fsS "$url/health")"
-printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit)throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
+printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit||!d.retentionPolicy?.startsWith("24h"))throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
 BRIDGE_URL="$url" node --input-type=module -e 'import {YNXBridgeClient} from "./sdk/bridge/index.js";const c=new YNXBridgeClient({baseURL:process.env.BRIDGE_URL});const [h,t]=await Promise.all([c.getHealth(),c.getTransparency()]);if(h.liveBridge!==false||t.routes.length!==1)process.exit(1)'
 
@@ -60,6 +61,12 @@ node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1]));if(!d.r
 body='{"idempotencyKey":"bridge-check-create-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceEventIndex":7,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"100","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
 created="$(curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
 transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.phase!=="source_submitted"||d.transfer?.externalSubmissionEnabled!==false)throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
+account='0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+curl -fsS "$url/bridge/data-exports/$account" -H "X-YNX-Bridge-Key: $api_key" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.schemaVersion!==1||d.source!=="ynx-bridge-coordinator"||d.transfers?.length!==1||d.deletionRequests?.length!==0)throw new Error(`bad data export ${JSON.stringify(d)}`)'
+deletion="$(curl -fsS -X POST "$url/bridge/data-deletion-requests" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "{\"idempotencyKey\":\"bridge-check-delete-request-001\",\"account\":\"$account\",\"reason\":\"account-closure\"}")"
+deletion_id="$(printf '%s' "$deletion" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.request?.status!=="safety_hold"||d.request?.outstandingTransfers!==1||d.request?.eligibleAt)throw new Error(`bad deletion hold ${JSON.stringify(d)}`);process.stdout.write(d.request.id)')"
+status="$(curl -sS -o "$tmp/delete-held.json" -w '%{http_code}' -X POST "$url/bridge/data-deletion-requests/$deletion_id/execute" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d '{"idempotencyKey":"bridge-check-delete-execute-001"}')"
+[[ "$status" == 409 ]] && grep -Fq "active or unresolved transfers require safety retention" "$tmp/delete-held.json"
 
 observed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 reconciliation="$(curl -fsS -X POST "$url/bridge/reconciliations" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "{\"idempotencyKey\":\"bridge-check-reconcile-001\",\"sourceChain\":\"ethereum-sepolia\",\"destinationChain\":\"ynx_6423-1\",\"sourceAsset\":\"sepolia-usdc\",\"destinationAsset\":\"ynx-usdc\",\"locked\":\"100\",\"burned\":\"0\",\"minted\":\"90\",\"released\":\"0\",\"evidenceRef\":\"fixture:bridge-api-check\",\"observedAt\":\"$observed_at\"}")"
@@ -97,6 +104,7 @@ pid=""
 start_bridge
 persisted="$(curl -fsS "$url/bridge/transfers/$transfer_id" -H "X-YNX-Bridge-Key: $api_key")"
 printf '%s' "$persisted" | TRANSFER_ID="$transfer_id" node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.id!==process.env.TRANSFER_ID||d.status!=="pending_attestations"||d.amount!=="100")throw new Error(`restart mismatch ${JSON.stringify(d)}`)'
+curl -fsS "$url/bridge/data-exports/$account" -H "X-YNX-Bridge-Key: $api_key" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.transfers?.length!==1||d.deletionRequests?.length!==1||d.deletionRequests[0].status!=="safety_hold")throw new Error(`data request restart mismatch ${JSON.stringify(d)}`)'
 
 metrics="$(curl -fsS "$url/metrics")"
 grep -Fq "ynx_bridge_transfers_total" <<<"$metrics"
@@ -111,4 +119,4 @@ grep -Fq "ynx_bridge_reconciliation_timestamp_seconds{" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent intents, replay/conflict, provider/route/user/daily limits, large-delay policy, pause/resume, source-qualified reconciliation/transparency, auth, trace propagation, truthful metrics, and mode-0600 state"
+echo "bridge-api-check passed: persistent intents, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"

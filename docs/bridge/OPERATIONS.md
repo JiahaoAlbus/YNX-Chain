@@ -27,3 +27,7 @@ Investigate every non-zero difference without replacing the submitted evidence. 
 `make bridge-restore-check` creates one transfer, one balanced reconciliation, and a persistent pause; copies and hashes the state; corrupts the active file and requires startup rejection; restores the backup; and verifies health, transfer count, exposure, reconciliation, pause state, and mode-0600 persistence. Its evidence is local unless a separately authorized remote drill records otherwise.
 
 The bounded local drill in `restore-evidence.json` is the authoritative measured record. It is bound to the source commit named in that JSON and is not remote disaster-recovery evidence.
+
+## Data rights and service cessation
+
+Use the protected export endpoint before acting on a deletion request. Never edit the state file. Active, failed, disputed, or otherwise unresolved transfers remain under a safety hold. After terminal resolution and the configured retention period, use the separate execute endpoint and verify that identities are pseudonymized while transfer, source-event, amount, lifecycle, reconciliation, and audit evidence remain intact. Follow `DATA_LIFECYCLE.md` for the full cessation and user-exit sequence.

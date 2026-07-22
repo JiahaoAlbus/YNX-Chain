@@ -126,6 +126,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /bridge/safety", s.requireAuth(s.handleSafety))
 	s.mux.HandleFunc("POST /bridge/reconciliations", s.requireAuth(s.handleReconciliation))
 	s.mux.HandleFunc("GET /bridge/audit", s.requireAuth(s.handleAudit))
+	s.mux.HandleFunc("GET /bridge/data-exports/{account}", s.requireAuth(s.handleDataExport))
+	s.mux.HandleFunc("POST /bridge/data-deletion-requests", s.requireAuth(s.handleDataDeletionRequest))
+	s.mux.HandleFunc("POST /bridge/data-deletion-requests/{id}/execute", s.requireAuth(s.handleDataDeletionExecute))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -293,6 +296,45 @@ func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	items := s.service.Audit(after, limit)
 	writeJSON(w, http.StatusOK, map[string]any{"events": items, "count": len(items)})
+}
+
+func (s *Server) handleDataExport(w http.ResponseWriter, r *http.Request) {
+	exported, err := s.service.ExportAccount(r.PathValue("account"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, exported)
+}
+
+func (s *Server) handleDataDeletionRequest(w http.ResponseWriter, r *http.Request) {
+	var request DataDeletionRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	record, replayed, err := s.service.RequestDataDeletion(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	status := http.StatusCreated
+	if replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, map[string]any{"request": record, "replayed": replayed})
+}
+
+func (s *Server) handleDataDeletionExecute(w http.ResponseWriter, r *http.Request) {
+	var request DataDeletionExecuteRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	record, replayed, err := s.service.ExecuteDataDeletion(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"request": record, "replayed": replayed})
 }
 
 func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {

@@ -51,6 +51,7 @@ type Health struct {
 	Safety                    SafetyState    `json:"safety"`
 	RateLimit                 string         `json:"rateLimit"`
 	RateLimitDenied           uint64         `json:"rateLimitDenied"`
+	RetentionPolicy           string         `json:"retentionPolicy"`
 	Build                     buildinfo.Info `json:"build"`
 }
 
@@ -149,6 +150,10 @@ func (s *Service) RateLimitSnapshot() (string, uint64) {
 	s.rateMu.Lock()
 	defer s.rateMu.Unlock()
 	return fmt.Sprintf("%d per %s per api-key/ip", s.cfg.RateLimitMax, s.cfg.RateLimitWindow), s.rateLimitDenied
+}
+
+func (s *Service) RetentionPolicy() string {
+	return s.cfg.RetentionPeriod.String() + " after last transfer update; financial evidence retained after identity redaction"
 }
 
 func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult, error) {
@@ -500,6 +505,173 @@ func (s *Service) Reconcile(request ReconciliationRequest) (Reconciliation, bool
 	return record, false, nil
 }
 
+func (s *Service) ExportAccount(account string) (AccountDataExport, error) {
+	account = normalizeAccount(account)
+	if !identifierPattern.MatchString(account) {
+		return AccountDataExport{}, fmt.Errorf("%w: export account is invalid", ErrInvalid)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := AccountDataExport{SchemaVersion: 1, Source: "ynx-bridge-coordinator", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "coordinator-records-only-not-independent-chain-history", Account: account, RetentionPolicy: s.RetentionPolicy(), Transfers: []Transfer{}, DeletionRequests: []DataRequest{}}
+	for _, transfer := range s.state.Transfers {
+		if transfer.Sender == account || transfer.Recipient == account {
+			result.Transfers = append(result.Transfers, cloneTransfer(transfer))
+		}
+	}
+	sort.Slice(result.Transfers, func(i, j int) bool { return result.Transfers[i].ID < result.Transfers[j].ID })
+	accountDigest := "sha256:" + hashText(account)
+	for _, request := range s.state.DataRequests {
+		if request.Account == account || request.AccountDigest == accountDigest {
+			result.DeletionRequests = append(result.DeletionRequests, request)
+		}
+	}
+	sort.Slice(result.DeletionRequests, func(i, j int) bool { return result.DeletionRequests[i].ID < result.DeletionRequests[j].ID })
+	return result, nil
+}
+
+func (s *Service) RequestDataDeletion(request DataDeletionRequest) (DataRequest, bool, error) {
+	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
+	request.Account = normalizeAccount(request.Account)
+	request.Reason = normalizeName(request.Reason)
+	if !idempotencyPattern.MatchString(request.IdempotencyKey) || !identifierPattern.MatchString(request.Account) || !identifierPattern.MatchString(request.Reason) {
+		return DataRequest{}, false, fmt.Errorf("%w: deletion request is invalid", ErrInvalid)
+	}
+	digest := digestJSON(request)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.state.MutationIdempotency[request.IdempotencyKey]; ok {
+		if existing.Digest != digest {
+			return DataRequest{}, false, fmt.Errorf("%w: mutation key reused with changed input", ErrConflict)
+		}
+		stored, ok := s.state.DataRequests[existing.TransferID]
+		if !ok {
+			return DataRequest{}, false, errors.New("bridge deletion request index is inconsistent")
+		}
+		return stored, true, nil
+	}
+	now := s.cfg.Now().UTC()
+	matched, outstanding, eligibleAt := s.dataRetentionStateLocked(request.Account)
+	status := "pending_retention"
+	if outstanding > 0 {
+		status = "safety_hold"
+	}
+	if matched == 0 {
+		eligibleAt = now
+	}
+	id := "bdr_" + hashText(request.IdempotencyKey + "|" + digest)[:24]
+	record := DataRequest{ID: id, Status: status, Account: request.Account, AccountDigest: "sha256:" + hashText(request.Account), Reason: request.Reason, RequestedAt: now.Format(timeFormat), EligibleAt: eligibleAt.Format(timeFormat), MatchedTransfers: matched, OutstandingTransfers: outstanding, RetentionPolicy: s.RetentionPolicy(), Source: "operator-submitted-data-rights-request"}
+	if outstanding > 0 {
+		record.EligibleAt = ""
+	}
+	before := cloneState(s.state)
+	s.state.DataRequests[id] = record
+	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: id}
+	appendAudit(&s.state, record.RequestedAt, "data_deletion_requested", id, digest)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		s.state = before
+		return DataRequest{}, false, err
+	}
+	return record, false, nil
+}
+
+func (s *Service) ExecuteDataDeletion(requestID string, request DataDeletionExecuteRequest) (DataRequest, bool, error) {
+	requestID = strings.TrimSpace(requestID)
+	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
+	if !identifierPattern.MatchString(requestID) || !idempotencyPattern.MatchString(request.IdempotencyKey) {
+		return DataRequest{}, false, fmt.Errorf("%w: deletion execution identity is invalid", ErrInvalid)
+	}
+	digest := digestJSON(struct {
+		RequestID string `json:"requestId"`
+		Key       string `json:"idempotencyKey"`
+	}{requestID, request.IdempotencyKey})
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, ok := s.state.MutationIdempotency[request.IdempotencyKey]; ok {
+		if existing.Digest != digest || existing.TransferID != requestID {
+			return DataRequest{}, false, fmt.Errorf("%w: mutation key reused with changed input", ErrConflict)
+		}
+		return s.state.DataRequests[requestID], true, nil
+	}
+	record, ok := s.state.DataRequests[requestID]
+	if !ok {
+		return DataRequest{}, false, ErrNotFound
+	}
+	if record.Status == "completed" || record.Account == "" {
+		return DataRequest{}, false, fmt.Errorf("%w: deletion request already completed under another key", ErrConflict)
+	}
+	matched, outstanding, eligibleAt := s.dataRetentionStateLocked(record.Account)
+	if outstanding > 0 {
+		return DataRequest{}, false, fmt.Errorf("%w: active or unresolved transfers require safety retention", ErrConflict)
+	}
+	if s.cfg.Now().UTC().Before(eligibleAt) {
+		return DataRequest{}, false, fmt.Errorf("%w: configured retention period has not elapsed", ErrConflict)
+	}
+	before := cloneState(s.state)
+	for id, transfer := range s.state.Transfers {
+		changed := false
+		if transfer.Sender == record.Account {
+			transfer.Sender = redactedAccount(record.AccountDigest)
+			transfer.SenderRedacted = true
+			changed = true
+		}
+		if transfer.Recipient == record.Account {
+			transfer.Recipient = redactedAccount(record.AccountDigest)
+			transfer.RecipientRedacted = true
+			changed = true
+		}
+		if changed {
+			s.state.Transfers[id] = transfer
+		}
+	}
+	now := s.cfg.Now().UTC().Format(timeFormat)
+	for id, related := range s.state.DataRequests {
+		if related.AccountDigest != record.AccountDigest {
+			continue
+		}
+		related.Status, related.Account, related.CompletedAt = "completed", "", now
+		related.MatchedTransfers, related.OutstandingTransfers = matched, 0
+		related.EligibleAt = eligibleAt.Format(timeFormat)
+		s.state.DataRequests[id] = related
+	}
+	record = s.state.DataRequests[requestID]
+	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: requestID}
+	appendAudit(&s.state, now, "data_identity_redacted", requestID, digest)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		s.state = before
+		return DataRequest{}, false, err
+	}
+	return record, false, nil
+}
+
+func (s *Service) dataRetentionStateLocked(account string) (int, int, time.Time) {
+	matched, outstanding := 0, 0
+	eligibleAt := s.cfg.Now().UTC()
+	for _, transfer := range s.state.Transfers {
+		if transfer.Sender != account && transfer.Recipient != account {
+			continue
+		}
+		matched++
+		if transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" {
+			outstanding++
+			continue
+		}
+		updated, err := time.Parse(time.RFC3339Nano, transfer.UpdatedAt)
+		if err != nil {
+			outstanding++
+			continue
+		}
+		candidate := updated.Add(s.cfg.RetentionPeriod)
+		if candidate.After(eligibleAt) {
+			eligibleAt = candidate
+		}
+	}
+	return matched, outstanding, eligibleAt
+}
+
+func redactedAccount(digest string) string {
+	return "redacted:sha256:" + strings.TrimPrefix(digest, "sha256:")[:32]
+}
+
 func (s *Service) Transparency() Transparency {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -592,6 +764,7 @@ func (s *Service) Health(build buildinfo.Info) Health {
 		}
 	}
 	health.RateLimit, health.RateLimitDenied = s.RateLimitSnapshot()
+	health.RetentionPolicy = s.RetentionPolicy()
 	return health
 }
 
@@ -708,6 +881,9 @@ func (s *Service) validateStateLocked() (bool, error) {
 		} else if transfer.NotBefore != "" {
 			return false, errors.New("bridge persisted transfer has unexpected delay")
 		}
+		if transfer.SenderRedacted != strings.HasPrefix(transfer.Sender, "redacted:sha256:") || transfer.RecipientRedacted != strings.HasPrefix(transfer.Recipient, "redacted:sha256:") {
+			return false, errors.New("bridge persisted transfer identity-redaction state is invalid")
+		}
 	}
 	for key, record := range s.state.Reconciliations {
 		policy, ok := s.policies[key]
@@ -736,6 +912,40 @@ func (s *Service) validateStateLocked() (bool, error) {
 		}
 		if _, err := time.Parse(time.RFC3339Nano, record.ObservedAt); err != nil {
 			return false, errors.New("bridge reconciliation observed time is invalid")
+		}
+	}
+	for id, request := range s.state.DataRequests {
+		if id != request.ID || !identifierPattern.MatchString(id) || !accountDigestPattern.MatchString(request.AccountDigest) || request.Source != "operator-submitted-data-rights-request" || request.RetentionPolicy == "" {
+			return false, errors.New("bridge data request identity is invalid")
+		}
+		if _, err := time.Parse(time.RFC3339Nano, request.RequestedAt); err != nil {
+			return false, errors.New("bridge data request time is invalid")
+		}
+		switch request.Status {
+		case "safety_hold":
+			if request.Account == "" || request.OutstandingTransfers == 0 || request.EligibleAt != "" || request.CompletedAt != "" {
+				return false, errors.New("bridge safety-held data request is invalid")
+			}
+		case "pending_retention":
+			if request.Account == "" || request.OutstandingTransfers != 0 || request.EligibleAt == "" || request.CompletedAt != "" {
+				return false, errors.New("bridge pending data request is invalid")
+			}
+		case "completed":
+			if request.Account != "" || request.OutstandingTransfers != 0 || request.EligibleAt == "" || request.CompletedAt == "" {
+				return false, errors.New("bridge completed data request is invalid")
+			}
+		default:
+			return false, errors.New("bridge data request status is invalid")
+		}
+		if request.EligibleAt != "" {
+			if _, err := time.Parse(time.RFC3339Nano, request.EligibleAt); err != nil {
+				return false, errors.New("bridge data request eligibility time is invalid")
+			}
+		}
+		if request.CompletedAt != "" {
+			if _, err := time.Parse(time.RFC3339Nano, request.CompletedAt); err != nil {
+				return false, errors.New("bridge data request completion time is invalid")
+			}
 		}
 	}
 	return true, nil

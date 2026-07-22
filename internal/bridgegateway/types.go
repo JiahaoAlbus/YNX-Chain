@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SchemaVersion       = 2
+	SchemaVersion       = 3
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )
@@ -25,6 +25,7 @@ var (
 	ErrInsufficientQuorum  = errors.New("bridge transfer has insufficient finality or attestations")
 	identifierPattern      = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/@-]{2,127}$`)
 	idempotencyPattern     = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$`)
+	accountDigestPattern   = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 )
 
 type RoutePolicy struct {
@@ -53,6 +54,7 @@ type Config struct {
 	Now             func() time.Time
 	RateLimitWindow time.Duration
 	RateLimitMax    int
+	RetentionPeriod time.Duration
 }
 
 func (c Config) normalized() (Config, map[string]uint64, error) {
@@ -167,6 +169,12 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	if c.RateLimitWindow < time.Second || c.RateLimitWindow > time.Hour || c.RateLimitMax < 1 || c.RateLimitMax > 100000 {
 		return Config{}, nil, errors.New("bridge rate limit must use a 1s-1h window and max 1-100000")
 	}
+	if c.RetentionPeriod == 0 {
+		c.RetentionPeriod = 7 * 365 * 24 * time.Hour
+	}
+	if c.RetentionPeriod < 24*time.Hour || c.RetentionPeriod > 10*365*24*time.Hour {
+		return Config{}, nil, errors.New("bridge retention period must be between 24h and 10 years")
+	}
 	return c, maxAmounts, nil
 }
 
@@ -219,6 +227,42 @@ type ReconciliationRequest struct {
 	Released         string `json:"released"`
 	EvidenceRef      string `json:"evidenceRef"`
 	ObservedAt       string `json:"observedAt"`
+}
+
+type DataDeletionRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+	Account        string `json:"account"`
+	Reason         string `json:"reason"`
+}
+
+type DataDeletionExecuteRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+}
+
+type DataRequest struct {
+	ID                   string `json:"id"`
+	Status               string `json:"status"`
+	Account              string `json:"account,omitempty"`
+	AccountDigest        string `json:"accountDigest"`
+	Reason               string `json:"reason"`
+	RequestedAt          string `json:"requestedAt"`
+	EligibleAt           string `json:"eligibleAt,omitempty"`
+	CompletedAt          string `json:"completedAt,omitempty"`
+	MatchedTransfers     int    `json:"matchedTransfers"`
+	OutstandingTransfers int    `json:"outstandingTransfers"`
+	RetentionPolicy      string `json:"retentionPolicy"`
+	Source               string `json:"source"`
+}
+
+type AccountDataExport struct {
+	SchemaVersion    int           `json:"schemaVersion"`
+	Source           string        `json:"source"`
+	AsOf             string        `json:"asOf"`
+	Coverage         string        `json:"coverage"`
+	Account          string        `json:"account"`
+	RetentionPolicy  string        `json:"retentionPolicy"`
+	Transfers        []Transfer    `json:"transfers"`
+	DeletionRequests []DataRequest `json:"deletionRequests"`
 }
 
 type Reconciliation struct {
@@ -294,6 +338,8 @@ type Transfer struct {
 	FailureReasonCode         string                 `json:"failureReasonCode,omitempty"`
 	PreviousPhase             string                 `json:"previousPhase,omitempty"`
 	ExternalSubmissionEnabled bool                   `json:"externalSubmissionEnabled"`
+	SenderRedacted            bool                   `json:"senderRedacted,omitempty"`
+	RecipientRedacted         bool                   `json:"recipientRedacted,omitempty"`
 }
 
 type SafetyState struct {

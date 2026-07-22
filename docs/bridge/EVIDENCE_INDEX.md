@@ -7,6 +7,7 @@
 - Readiness boundary: `docs/bridge/BRIDGE_INTEGRATION_READINESS.md`
 - Feature status: `docs/bridge/FEATURE_COMPLETION_EVIDENCE.md`
 - Migration: `docs/bridge/MIGRATION_COMPATIBILITY.md`
+- Data lifecycle and cessation: `docs/bridge/DATA_LIFECYCLE.md`
 - Observability: `docs/bridge/OBSERVABILITY.md`
 - Operations: `docs/bridge/OPERATIONS.md`
 - Capacity: `docs/bridge/SLO_CAPACITY_PLAN.md`
@@ -20,6 +21,7 @@
 - Integration gate: `scripts/verify/bridge-integration-check.mjs`
 - Read-only SDK: `sdk/bridge`
 - SDK gate: `scripts/verify/bridge-sdk-check.sh`
+- Data lifecycle gate: `scripts/verify/bridge-data-lifecycle-check.sh`
 - Threat model: `docs/bridge/THREAT_MODEL.md`
 - Security boundaries: `docs/bridge/SECURITY_BOUNDARIES.md`
 - Third-party notices: `docs/bridge/THIRD_PARTY_NOTICES.md`

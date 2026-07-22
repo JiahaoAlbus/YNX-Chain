@@ -34,6 +34,7 @@ func main() {
 	threshold := flag.Int("threshold", envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2), "required relayer attestations")
 	rateWindow := flag.Duration("rate-window", envDurationOrDefault("YNX_BRIDGE_RATE_LIMIT_WINDOW", time.Minute), "rate limit window")
 	rateMax := flag.Int("rate-max", envIntOrDefault("YNX_BRIDGE_RATE_LIMIT_MAX", 5000), "maximum requests per API key/IP in window")
+	retention := flag.Duration("retention", envDurationOrDefault("YNX_BRIDGE_RETENTION_PERIOD", 7*365*24*time.Hour), "identity retention after last transfer update")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
 
@@ -45,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax}
+	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention}
 	if *checkConfig {
 		if err := bridgegateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
