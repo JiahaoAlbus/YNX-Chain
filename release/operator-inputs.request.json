@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "requestStatus": "required-before-public-release",
   "generatedAt": "2026-07-22",
-  "sourceCommit": "pending-final-documentation-commit",
+  "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
   "instructions": {
     "responseChannel": "approved control plane or named owner handoff",
     "neverProvideInChatOrRepository": [

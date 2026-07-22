@@ -5,7 +5,7 @@
 | Version | 0.1.0-candidate |
 | Effective date | 2026-07-22 |
 | Implementation source reviewed | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Documentation publication commit | Pending final commit |
+| Documentation publication commit | `2e3c893c7c97e7bc713af4e9a74438ffd125289f` |
 | Product release | YNX Testnet documentation candidate |
 | Last reviewed | 2026-07-22 |
 | Superseded version | None |
