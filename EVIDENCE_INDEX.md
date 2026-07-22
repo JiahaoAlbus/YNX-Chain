@@ -23,6 +23,9 @@ All paths are repository-relative and refer to the current source commit only af
 | Liquid-staking queue, burn, pause, limits, redemption and solvency | `internal/economics/liquid_staking.go`, `liquid_staking_test.go` | `make liquid-staking-candidate-check` |
 | Reproducible queue/slash/secondary-discount stress path | `economics/examples/liquid-staking-stress.json` | `go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json` |
 | Liquid-staking non-activation and audit gates | `economics/LIQUID_STAKING_CANDIDATE.md` | Inspect output booleans from `make liquid-staking-candidate-check` scenario |
+| Safety Module cap, cooldown, explicit slash and insurance waterfall model | `internal/economics/safety_module.go`, `safety_module_test.go` | `make safety-module-candidate-check` |
+| Reproducible non-activated Safety Module shortfall | `economics/examples/safety-module-shortfall.json`, `cmd/ynx-safety-module-sim` | `make safety-module-candidate-check` |
+| Safety Module non-activation and risk boundary | `economics/SAFETY_MODULE_CANDIDATE.md` | Inspect false activation/execution/yield fields from the candidate scenario |
 | YUSD test reserve, supply and redemption liability reconciliation | `internal/yusdsandbox/service.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD atomic persistence, audit evidence chain and tamper rejection | `internal/yusdsandbox/store.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD outage queue, pause exit and strict authenticated HTTP boundary | `internal/yusdsandbox/server.go`, `server_test.go` | `make yusd-sandbox-check` |

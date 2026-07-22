@@ -20,6 +20,12 @@ The solvency snapshot deterministically reconciles every native YNXT liability d
 
 This is an exact proof of native consensus supply conservation, not proof of fiat reserves, external custody, market liquidity, price support, or redemption capacity. `externalReserveRatio.valueBps` is therefore `null`, external redemption is false, and the published on-chain transferable amount is not described as off-chain withdrawal capacity. Any future external reserve ratio requires a separate custodian, scope, timestamp, liability perimeter, attestation, and redemption-rail evidence set.
 
+## Safety Module candidate boundary
+
+The deterministic candidate accepts only voluntary native-wallet YNXT provenance and rejects derivative or recursively restaked claims. Eligible active stake and stake still inside its cooldown are bounded by a global cap. A modeled shortfall consumes the stated insurance reserve first, then allocates no more than the explicit maximum slash basis points proportionally across slashable participants; any residual remains visibly uncovered. A slash requires an allowlisted reason and a 32-byte evidence hash.
+
+This model never moves funds. Execution, activation eligibility, and guaranteed yield are always false. Consensus state, governance authority, formal verification, economic review, independent security audit, public risk disclosure, appeals, and a public incident procedure remain required before a Safety Module could be proposed for activation. Isolated Oracle, Bridge, Storage, and AI security pools are not implemented and must not reuse this candidate as evidence.
+
 ## Fees
 
 Management fee is time-proportional to average NAV and capped at the explicit annual basis-point rate. Performance fee uses realized gross PnL minus trading, funding, and provider costs. It applies only to cumulative realized net profit above a persistent high-water mark. Losses do not generate a fee or reset the high-water mark; recovery below the previous high-water mark does not generate a second fee. Unsigned overflow and invalid rates fail closed.
