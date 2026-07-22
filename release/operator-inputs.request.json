@@ -4,7 +4,7 @@
   "secretHandling": "Do not paste secrets into chat. Supply only through the owner-approved secure operator path.",
   "requests": [
     {"id":"central-gateway","kind":"deployment-approval","requiredFor":["integratedCentral","deployedStaging","deployedPublic"],"minimum":"Approved registry v3 tuples, Gateway deployment target and public health/version URLs"},
-    {"id":"smart-account-testnet","kind":"public-address-and-funding","requiredFor":["sponsored-user-operation","explorer-proof"],"minimum":"YNX Testnet EntryPoint, account factory, Bundler RPC, Paymaster address/policy URL and bounded sponsor funding approval"},
+    {"id":"smart-account-testnet","kind":"public-address-and-funding","requiredFor":["sponsored-user-operation","explorer-proof"],"minimum":"YNX Testnet EntryPoint mode/address, Bundler RPC, owner-controlled Paymaster policy-signer and risk-officer public addresses, policy URL and bounded sponsor funding approval; never provide signer secrets in chat"},
     {"id":"mobile-signing","kind":"secure-signer-path","requiredFor":["productionSigned","storeReleased"],"minimum":"Owner-controlled Android/iOS signing workflow and store accounts; never export keys into the repository"},
     {"id":"public-urls","kind":"domain-and-policy","requiredFor":["deployedPublic","website-handoff"],"minimum":"Approved Wallet domain, privacy, security, support and status URLs"},
     {"id":"credential-issuer","kind":"provider-and-legal-approval","requiredFor":["selective-disclosure-live"],"minimum":"Approved issuer metadata/status endpoint, data rights, retention, jurisdiction and legal review"},

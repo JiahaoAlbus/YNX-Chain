@@ -205,6 +205,177 @@ assert.notEqual(await ethers.provider.getCode(predictedAccount), "0x");
 const counterfactualAccount = await ethers.getContractAt("YNXSmartAccount", predictedAccount);
 assert.equal(await counterfactualAccount.owner(), factoryOwner.address);
 
+const policySigner = ethers.Wallet.createRandom();
+const sponsorOwner = ethers.Wallet.createRandom();
+const sponsoredAccount = await ethers.deployContract("YNXSmartAccount", [
+  entryPoint.target,
+  sponsorOwner.address,
+  passkeyX,
+  passkeyY,
+  guardian.address,
+  86400,
+]);
+const paymaster = await ethers.deployContract("YNXSponsorPaymaster", [entryPoint.target, policySigner.address, guardian.address]);
+await (await paymaster.deposit({ value: ethers.parseEther("10") })).wait();
+const productId = ethers.keccak256(ethers.toUtf8Bytes("ynx.wallet.testnet"));
+const subjectId = ethers.keccak256(ethers.toUtf8Bytes("anti-sybil:test-subject"));
+const policyId = ethers.keccak256(ethers.toUtf8Bytes("first-action-policy-v1"));
+await (await paymaster.configureProduct(
+  productId,
+  ethers.parseEther("10"),
+  ethers.parseEther("0.1"),
+  ethers.parseEther("5"),
+  ethers.parseEther("0.1"),
+  0x0f,
+  destination.address,
+  true,
+)).wait();
+await (await paymaster.setMerchant(productId, destination.address, true)).wait();
+await (await paymaster.setSponsorshipEnabled(true)).wait();
+const sponsorAuthType = "tuple(bytes32 authorizationId,bytes32 productId,bytes32 subjectId,bytes32 policyId,uint8 sponsorType,address destination,uint128 authorizationMaxCost,uint48 validAfter,uint48 validUntil)";
+const paymasterStatic = ethers.solidityPacked(
+  ["address", "uint128", "uint128"],
+  [paymaster.target, 2_000_000n, 500_000n],
+);
+const sponsorshipNow = BigInt((await ethers.provider.getBlock("latest")).timestamp);
+async function sponsoredOperation(nonce, sponsorType, authorizationId, callDestination = destination.address) {
+  const callData = sponsoredAccount.interface.encodeFunctionData("execute", [callDestination, 0n, "0x"]);
+  const op = {
+    sender: sponsoredAccount.target,
+    nonce,
+    initCode: "0x",
+    callData,
+    accountGasLimits: pack128(3_000_000n, 1_000_000n),
+    preVerificationGas: 100_000n,
+    gasFees: pack128(1_000_000_000n, 2_000_000_000n),
+    paymasterAndData: paymasterStatic,
+    signature: "0x",
+  };
+  const authorization = {
+    authorizationId,
+    productId,
+    subjectId,
+    policyId,
+    sponsorType,
+    destination: callDestination,
+    authorizationMaxCost: ethers.parseEther("0.1"),
+    validAfter: sponsorshipNow - 1n,
+    validUntil: sponsorshipNow + 3600n,
+  };
+  const sponsorHash = await paymaster.getSponsorHash(op, authorization);
+  const sponsorSignature = policySigner.signingKey.sign(sponsorHash).serialized;
+  const encodedAuthorization = ethers.AbiCoder.defaultAbiCoder().encode(
+    [sponsorAuthType, "bytes"],
+    [authorization, sponsorSignature],
+  );
+  op.paymasterAndData = ethers.concat([paymasterStatic, encodedAuthorization]);
+  const accountHash = await entryPoint.getUserOpHash(op);
+  op.signature = ethers.concat(["0x00", sponsorOwner.signingKey.sign(accountHash).serialized]);
+  return op;
+}
+
+const firstActionId = ethers.keccak256(ethers.toUtf8Bytes("first-action-authorization"));
+await (await entryPoint.handleOps(
+  [await sponsoredOperation(0n, 1, firstActionId)],
+  beneficiary.address,
+  { gasLimit: 12_000_000 },
+)).wait();
+assert.equal(await paymaster.firstActionUsed(productId, subjectId), true);
+assert.equal(await ethers.provider.getBalance(sponsoredAccount.target), 0n);
+let budget = await paymaster.productBudgets(productId);
+assert.equal(budget.reservedToday > 0n, true);
+assert.equal(budget.observedToday > 0n, true);
+
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(1n, 1, ethers.keccak256(ethers.toUtf8Bytes("second-first-action")))],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|BudgetExceeded/,
+);
+
+const tampered = await sponsoredOperation(1n, 0, ethers.keccak256(ethers.toUtf8Bytes("tamper-authorization")));
+tampered.callData = sponsoredAccount.interface.encodeFunctionData("execute", [owner.address, 0n, "0x"]);
+const tamperedAccountHash = await entryPoint.getUserOpHash(tampered);
+tampered.signature = ethers.concat(["0x00", sponsorOwner.signingKey.sign(tamperedAccountHash).serialized]);
+await assert.rejects(
+  entryPoint.handleOps([tampered], beneficiary.address, { gasLimit: 12_000_000 }),
+  /AA34|signature error/,
+);
+
+const gasTampered = await sponsoredOperation(1n, 0, ethers.keccak256(ethers.toUtf8Bytes("gas-tamper-authorization")));
+const gasTamperedBytes = ethers.getBytes(gasTampered.paymasterAndData);
+gasTamperedBytes[51] ^= 1;
+gasTampered.paymasterAndData = ethers.hexlify(gasTamperedBytes);
+const gasTamperedAccountHash = await entryPoint.getUserOpHash(gasTampered);
+gasTampered.signature = ethers.concat(["0x00", sponsorOwner.signingKey.sign(gasTamperedAccountHash).serialized]);
+await assert.rejects(
+  entryPoint.handleOps([gasTampered], beneficiary.address, { gasLimit: 12_000_000 }),
+  /AA34|signature error/,
+);
+
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(1n, 2, ethers.keccak256(ethers.toUtf8Bytes("unapproved-merchant")), owner.address)],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|PolicyViolation/,
+);
+
+await (await entryPoint.handleOps(
+  [await sponsoredOperation(1n, 2, ethers.keccak256(ethers.toUtf8Bytes("merchant-authorization")))],
+  beneficiary.address,
+  { gasLimit: 12_000_000 },
+)).wait();
+await (await entryPoint.handleOps(
+  [await sponsoredOperation(2n, 3, ethers.keccak256(ethers.toUtf8Bytes("developer-authorization")))],
+  beneficiary.address,
+  { gasLimit: 12_000_000 },
+)).wait();
+
+const sponsorSamples = [];
+const sponsorSoakCount = 25;
+for (let index = 0; index < sponsorSoakCount; index += 1) {
+  const started = performance.now();
+  const authorizationId = ethers.keccak256(ethers.toUtf8Bytes(`product-soak-${index}`));
+  await (await entryPoint.handleOps(
+    [await sponsoredOperation(3n + BigInt(index), 0, authorizationId)],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  )).wait();
+  sponsorSamples.push(performance.now() - started);
+}
+const sponsorSorted = [...sponsorSamples].sort((a, b) => a - b);
+const sponsorPercentile = (fraction) => sponsorSorted[Math.ceil(sponsorSorted.length * fraction) - 1];
+const sponsorSeconds = sponsorSamples.reduce((sum, value) => sum + value, 0) / 1000;
+budget = await paymaster.productBudgets(productId);
+const usage = await paymaster.subjectUsage(productId, subjectId);
+assert.equal(budget.reservedToday <= budget.dailyLimit, true);
+assert.equal(usage.reservedToday <= budget.perSubjectDailyLimit, true);
+
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(28n, 0, firstActionId)],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|AuthorizationReplay/,
+);
+await (await paymaster.connect(guardian).disableProduct(productId)).wait();
+await (await paymaster.connect(guardian).setSponsorshipEnabled(false)).wait();
+await assert.rejects(paymaster.connect(guardian).setSponsorshipEnabled(true), /UnauthorizedRiskAction/);
+await (await paymaster.setSponsorshipEnabled(true)).wait();
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(28n, 0, ethers.keccak256(ethers.toUtf8Bytes("disabled-product")))],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|SponsorshipDisabled/,
+);
+
 console.log(JSON.stringify({
   entryPoint: entryPoint.target,
   account: account.target,
@@ -217,6 +388,9 @@ console.log(JSON.stringify({
   delayedGuardianRecovery: "passed",
   recoveryRevokedSessions: "passed",
   counterfactualFactoryUserOperation: "passed",
+  sponsoredFirstActionUserOperation: "passed",
+  merchantAndDeveloperSponsorship: "passed",
+  sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",
     samples: soakCount,
@@ -225,5 +399,14 @@ console.log(JSON.stringify({
     p50Ms: Number(percentile(0.5).toFixed(3)),
     p95Ms: Number(percentile(0.95).toFixed(3)),
     p99Ms: Number(percentile(0.99).toFixed(3)),
+  },
+  sponsorBenchmark: {
+    environment: "Hardhat EDR in-process local chain; excludes external Bundler, RPC, persistence and network latency",
+    samples: sponsorSoakCount,
+    failures: 0,
+    throughputPerSecond: Number((sponsorSoakCount / sponsorSeconds).toFixed(2)),
+    p50Ms: Number(sponsorPercentile(0.5).toFixed(3)),
+    p95Ms: Number(sponsorPercentile(0.95).toFixed(3)),
+    p99Ms: Number(sponsorPercentile(0.99).toFixed(3)),
   },
 }, null, 2));

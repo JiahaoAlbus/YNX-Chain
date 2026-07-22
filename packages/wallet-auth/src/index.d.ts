@@ -84,6 +84,11 @@ export declare function userOperationDigest(input:unknown):string;
 export declare function parseSponsorshipPolicy(input:unknown):SponsorshipPolicy;
 export declare function parseSponsorshipRequest(input:unknown):SponsorshipRequest;
 export declare function evaluateSponsorship(operation:unknown,request:unknown,policy:unknown,at?:Date):Readonly<{eligible:boolean;reasons:readonly string[];policyId:string;userOperationDigest:string;paymaster:string;approvedCost:number;remainingSubjectBudget:number;remainingSponsorBudget:number}>;
+export type PackedUserOperation=Readonly<{sender:string;nonce:string;initCode:string;callData:string;accountGasLimits:string;preVerificationGas:string;gasFees:string;paymasterAndData:string;signature:string}>;
+export declare const ERC_7769_VERSION:"ERC-7769";
+export declare const YNX_TESTNET_CHAIN_QUANTITY:"0x1917";
+export declare function parsePackedUserOperation(input:unknown):PackedUserOperation;
+export declare class ERC7769BundlerClient{constructor(config:{endpoint:string;entryPoint:string;timeoutMs?:number;maxRequestsPerSecond?:number;authentication?:{header:"authorization"|"x-api-key";value:string}});health():Promise<Readonly<Record<string,unknown>>>;estimateUserOperationGas(operation:unknown):Promise<Readonly<Record<string,unknown>>>;sendUserOperation(operation:unknown):Promise<Readonly<Record<string,unknown>>>;getUserOperationByHash(hash:string):Promise<Readonly<Record<string,unknown>>>;getUserOperationReceipt(hash:string):Promise<Readonly<Record<string,unknown>>>;}
 export declare function parseStrategyMandate(input:unknown):Readonly<Record<string,unknown>>;
 export declare function strategyMandateDigest(input:unknown):string;
 export declare function parseCapitalProductReview(input:unknown):Readonly<Record<string,unknown>>;

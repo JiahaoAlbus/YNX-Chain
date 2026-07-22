@@ -19,6 +19,7 @@ Status: implemented and tested locally on the Wallet branch. Central enforcement
 - Authorization intent, returned approval, rejection, and local revocation intent are separate immutable audit events without key material.
 - AI security review receives only selected request metadata. Its interface cannot read a key, approve, sign, mutate scopes, or bypass local authentication.
 - Smart Account sponsorship evaluates an exact operation digest, EntryPoint, Product Session, anti-Sybil subject, target/selector allowlist and three nested budgets. Disabled, expired, mismatched or exhausted policies return zero approved cost.
+- The on-chain Paymaster starts disabled. EIP-712 authorization binds the full operation core, Product, anti-Sybil subject, policy, sponsor type, target, authorization ID, cost cap and validity. Validation reserves worst-case cost atomically; postOp records observed cost without refunding the reservation. Risk Officer authority can disable a product or global sponsorship but cannot re-enable, withdraw funds, rotate signers or widen budgets.
 - Quant mandates structurally prohibit withdrawals, owner changes, arbitrary transfers and unlimited approvals. Exchange authority is subaccount-only; DEX authority requires exact contract and method allowlists.
 - Selective-disclosure candidates carry one bounded eligibility/classification result plus issuer, expiry, proof digest, status-list reference and audit ID. Raw identity-document fields are outside the accepted schema.
 - Sensitive execution can be wrapped in a five-minute secp256k1 Signed Intent that binds Product Session, product/bundle/account, action, exact parameter digest, Evidence, Trust decision, human approval and AI explain-only metadata. Canonical export re-verifies the signature; execution checks expiry and the revoke digest set.
@@ -41,4 +42,4 @@ Revocation is four-level: one session, every session from one approval, every se
 
 ## Required production hardening
 
-External cryptographic/mobile review, native non-exportable signing where chain-compatible, central durable transaction isolation, deployed EntryPoint/Bundler/Paymaster contracts, passkey and Guardian implementation, device integrity policy, production key custody, authenticated revocation sync, physical-device biometric testing, and public privacy/accessibility review remain release gates.
+External cryptographic/mobile review, native non-exportable signing where chain-compatible, central durable transaction isolation, deployed EntryPoint/Bundler/Paymaster contracts, installed-device passkey/Guardian drills, device integrity policy, production key custody, authenticated revocation sync, physical-device biometric testing, and public privacy/accessibility review remain release gates.

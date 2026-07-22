@@ -21,7 +21,7 @@
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"522b998077b5f150b86ab56f0a2f62a3a5005b82"},
-    "sponsoredUserOperation": {"implementedLocal":false,"testedLocal":false,"integratedCentral":false,"deployedPublic":false},
+    "sponsoredUserOperation": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "capitalReview": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}

@@ -4,6 +4,8 @@
 
 Run `npm ci && npm run check` in this directory and `npm test` in `packages/wallet-auth`. From the repository root, generate the existing contract fixtures with `npm ci && npm run hardhat:build && npm run contracts:selectors` before `make test`; those generated artifacts are ignored and are not Wallet deliverables.
 
+Run `npm run hardhat:test:wallet` for the local official EntryPoint, account, passkey, session, guardian, counterfactual factory and Paymaster flow. Public deployment uses `npm run hardhat:deploy:wallet-smart-account` only through the secure operator environment. It refuses non-6423 networks, requires an exact source commit and public signer/officer addresses, deploys the Paymaster disabled with zero deposit and emits code hashes; funding, policy enablement and Bundler submission are separate approved operations.
+
 Build Android with SDK 36 and Java 17:
 
 ```sh
