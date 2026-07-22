@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "scope": "ynxt-economics-local-candidate",
+  "allowed": [
+    "go build -trimpath -buildvcs=false -ldflags=-buildid=",
+    "go run ./cmd/ynx-economics-bench",
+    "node scripts/release/generate-economics-sbom.mjs",
+    "node scripts/verify/economics-public-package-check.mjs",
+    "node scripts/verify/economics-supply-chain-check.mjs"
+  ],
+  "networkDuringBuild": false,
+  "signing": "unsigned-local-evidence-only"
+}
