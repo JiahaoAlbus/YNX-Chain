@@ -11,7 +11,7 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Role change session invalidation | yes | yes | `TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession` | Remote session revocation evidence |
 | Signed invoices and authoritative settlement | yes | yes | `service.go`; settlement mismatch, provider fault, fuzz and soak tests | Funded public Testnet transaction hash |
 | Webhook signature, retry and operator visibility | yes | yes | `TestSettlementMismatchExpiryAndWebhookRetry`; webhook fuzz and soak tests | Public receiver delivery evidence |
-| Reconciliation CSV | yes | yes | `server.go`; authenticated reconciliation route | Golden CSV/schema compatibility test |
+| Reconciliation CSV | yes | yes | Authenticated route, explicit schema-v1 response header and golden pending/committed evidence fixture | Remote export against staging records |
 | Refund/dispute request and Trust evidence reference | yes | yes | `wallet.go`; `TestGatewayBoundPaymentCreatesPayerCases` | Official Trust adapter verification |
 | AI explanation/draft authority boundary | yes | yes | AI cancellation and non-execution tests | Official AI Gateway credential and cost evidence |
 | 12 locales, RTL and accessibility | partial | yes-local | Localized authentication/authority surface, valid skip targets, focus retention, RTL layout rules, 10 frontend tests and focused 1280x720/390x844 browser checks | Translate authenticated operational copy; full zoom/keyboard/screen-reader/rules/screenshot matrix |

@@ -1,6 +1,7 @@
 package payproduct
 
 import (
+	"bytes"
 	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 )
 
 const maxRequestBytes = 1 << 20
+const reconciliationSchemaVersion = "1"
 
 type Server struct {
 	service *Service
@@ -315,9 +317,20 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 		respond(w, 0, nil, err)
 		return
 	}
+	encoded, err := encodeReconciliationCSV(items)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "reconciliation export failed")
+		return
+	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 	w.Header().Set("Content-Disposition", "attachment; filename=ynx-pay-reconciliation.csv")
-	cw := csv.NewWriter(w)
+	w.Header().Set("X-YNX-Reconciliation-Schema", reconciliationSchemaVersion)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(encoded)
+}
+func encodeReconciliationCSV(items []Invoice) ([]byte, error) {
+	var out bytes.Buffer
+	cw := csv.NewWriter(&out)
 	_ = cw.Write([]string{"invoice_id", "central_invoice_id", "merchant_id", "amount_ynxt", "fee_ynxt", "status", "transaction_hash", "block_number", "created_at", "expires_at"})
 	for _, v := range items {
 		tx := ""
@@ -329,6 +342,10 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 		_ = cw.Write([]string{v.ID, v.CentralID, v.MerchantID, strconv.FormatInt(v.Amount, 10), strconv.FormatInt(v.Fee, 10), v.Status, tx, block, v.CreatedAt.Format(time.RFC3339), v.ExpiresAt.Format(time.RFC3339)})
 	}
 	cw.Flush()
+	if err := cw.Error(); err != nil {
+		return nil, err
+	}
+	return out.Bytes(), nil
 }
 func (s *Server) capital(w http.ResponseWriter, r *http.Request) {
 	p, _, ok := s.merchantAuth(w, r, "reconcile")

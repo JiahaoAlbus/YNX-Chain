@@ -6,6 +6,11 @@ The current forward migration accepts snapshot v1, removes obsolete product-loca
 
 The guarded recovery workflow is locally proven in `evidence/backup-restore-drill.json`: archive and nested store verification, exact-current-SHA confirmation, operation-lock exclusion, atomic replacement, post-restore verification and rollback-byte preservation all passed against source commit `53adf12dde18c4e6d0ca3602a528d3efe8c19aef`.
 
+Reconciliation export declares schema version 1 in `X-YNX-Reconciliation-Schema`.
+Its ten-column order and pending/committed evidence representation are fixed by
+`TestReconciliationCSVGoldenSchemaAndEvidenceFields`; any incompatible change
+requires a new header version, fixture and consumer migration note.
+
 Release gates still open:
 
 - Add an explicit schema migration registry and golden fixtures for every supported prior version.

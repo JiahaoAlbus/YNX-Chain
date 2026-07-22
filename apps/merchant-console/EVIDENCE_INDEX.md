@@ -54,6 +54,12 @@
 - `npm run check` passed 10/10 tests and rebuilt the production bundle; `npm audit --omit=dev` reported zero vulnerabilities.
 - Scope limitation: this is not a WCAG conformance claim. Authenticated views retain untranslated English copy and the full screen-reader/keyboard/zoom/rules/screenshot matrix remains open.
 
+## API and reconciliation compatibility
+
+- `API_CONTRACT.md` records every current route, its authority class, RBAC permission, success status and non-execution boundary.
+- Reconciliation CSV now declares schema version 1 and is encoded before headers are committed so serialization failure cannot masquerade as a successful download.
+- The golden test fixes the ten-column order, RFC3339 timestamps, empty pending evidence and authoritative committed transaction/block fields.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.
