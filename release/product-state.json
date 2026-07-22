@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-oracle-market-data",
-  "sourceCommit": null,
-  "implementedLocal": false,
-  "testedLocal": false,
+  "sourceCommit": "9d565673bb23d6150665f51e00527e651b1c243a",
+  "implementedLocal": true,
+  "testedLocal": true,
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
@@ -11,10 +11,20 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "evidence": [],
+  "evidence": [
+    "Go 1.25.12 race suite and vet passed for server, providers, and SDK",
+    "Go reachable-vulnerability scan reports no vulnerabilities",
+    "Oracle Web production build, lint, SSR tests, and production dependency audit passed",
+    "v1/v2 to v3 migration and local backup/restore drills passed",
+    "CycloneDX server and production-Web SBOMs are committed",
+    "Bounded in-process latency and concurrency profile is recorded"
+  ],
   "limitations": [
-    "Real provider registry and provider access are not configured.",
-    "No staging or public Oracle deployment is available.",
-    "Cross-product and Chain Core integration has not yet been completed."
+    "No approved active provider covers YNXT/YUSD_TEST and no production reporter signer is configured.",
+    "No staging or public Oracle API deployment, Explorer evidence, or Monitor evidence is available.",
+    "The Oracle Web Sites project exists, but source publication is blocked by TLS failure to its Git host.",
+    "Container build/scan is pending because the local Docker daemon is unavailable.",
+    "The full Web development dependency audit remains a release gate even though the deployed production dependency audit is clean.",
+    "Cross-product and Chain Core integration has not been accepted."
   ]
 }
