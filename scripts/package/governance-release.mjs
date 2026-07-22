@@ -31,7 +31,10 @@ for (const artifact of artifacts) {
   execFileSync("go", ["build", "-trimpath", "-o", path.join(outDir, artifact.name), artifact.source], { env: buildEnv, stdio: "inherit" });
 }
 
-const modules = execFileSync("go", ["list", "-m", "-f", "{{json .}}", "all"], { encoding: "utf8" }).trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+const modules = execFileSync("go", ["list", "-m", "-f", "{{.Path}}\t{{.Version}}", "all"], { encoding: "utf8" }).trim().split("\n").filter(Boolean).map((line) => {
+  const [Path, Version] = line.split("\t");
+  return { Path, Version };
+});
 const components = modules.filter((module) => module.Path && module.Version).map((module) => ({
   type: "library",
   name: module.Path,
