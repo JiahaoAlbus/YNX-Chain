@@ -6,6 +6,11 @@ All paths are repository-relative and refer to the current source commit only af
 | --- | --- | --- |
 | Candidate issuance and fee simulation | `internal/economics/model.go` | `go test ./internal/economics` |
 | Reproducible medium-usage path | `economics/examples/medium-usage.json` | `go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json` |
+| Per-lane base-fee adjustment, capacity and fee-cap rejection | `internal/economics/fee_market.go`, `fee_market_test.go` | `make fee-market-candidate-check` |
+| Priority/service fees, separate burns and exact four-way splits | `internal/economics/fee_market.go`, `fee_market_test.go` | `make fee-market-candidate-check` |
+| Sponsored payer attribution and deterministic event audit hash | `internal/economics/fee_market.go`, `fee_market_test.go` | `make fee-market-candidate-check` |
+| Reproducible congestion/idle/sponsorship fee path | `economics/examples/fee-market-stress.json` | `go run ./cmd/ynx-fee-market-sim -input economics/examples/fee-market-stress.json` |
+| Fee-market non-activation and migration gates | `economics/FEE_MARKET_CANDIDATE.md` | Inspect false consensus/governance/Explorer booleans |
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |

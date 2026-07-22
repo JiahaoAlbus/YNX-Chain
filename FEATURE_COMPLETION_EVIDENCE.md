@@ -7,7 +7,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Economic policy candidate and deterministic simulation | true | true | false | false | false | false | false | false | false | `internal/economics`, `cmd/ynx-economics-sim`; tests and `go run` do not prove an installed artifact |
 | Dynamic issuance in consensus | false | false | false | false | false | false | false | false | false | Formula is simulation-only; no consensus migration or state event exists |
 | Current fixed-fee consensus ledger and API | true | true | false | false | false | false | false | false | false | Committed state v8, ABCI and Gateway queries on this branch; not merged or deployed |
-| EIP-1559/per-lane fee and burn policy | false | false | false | false | false | false | false | false | false | No governed activation, base-fee adjustment, per-lane market, priority fee, or burn exists |
+| EIP-1559-style per-lane fee/burn/sponsorship candidate model | true | true | false | false | false | false | false | false | false | Lane-local base fee, priority, service metering/burn, exact split and sponsor attribution; simulation only |
+| Governed fee-market consensus and Explorer activation | false | false | false | false | false | false | false | false | false | Current fixed fee remains authoritative; no migration, governance execution, wallet approval flow, settlement or deployment |
 | Validator/delegator delegation, unbonding and withdrawal | true | true | false | false | false | false | false | false | false | Committed state v9 and signed Gateway routes; branch-local only |
 | Staking rewards and validator commission distribution | false | false | false | false | false | false | false | false | false | Commission is disclosed but reward source is explicitly inactive |
 | Jail, Slashing, appeals and live performance | false | false | false | false | false | false | false | false | false | Disabled pending real governance authority and live telemetry |
@@ -29,3 +30,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make yusd-sandbox-check` — pass; race-enabled lifecycle, outage, pause, persistence, reconciliation, tamper, auth, and HTTP boundary coverage.
 - `make liquid-staking-candidate-check` — pass; race-enabled model tests plus reproducible reward/slash/queue/pause/depeg scenario.
 - `make security-pools-candidate-check` — pass; race-enabled isolation, governance, waterfall, slash/cooldown and exit-path tests plus reproducible stress scenario.
+- `make fee-market-candidate-check` — pass; race-enabled lane adjustment, cap rejection, burn/split conservation, sponsorship and audit-hash tests plus reproducible scenario.
