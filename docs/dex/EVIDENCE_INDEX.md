@@ -1,5 +1,7 @@
 # YNX DEX evidence index
 
+The final-objective requirement matrix and 2026-07-22 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. It distinguishes the recovered constant-product candidate from the incomplete expanded DEX objective.
+
 ## Source and tests
 
 - Protocol source revision: `contracts/dex/SOURCE_REV`
@@ -14,6 +16,7 @@
 - Release/registry validation: `scripts/dex/check-manifests.mjs`
 - Deterministic PWA/SDK/contract-evidence packaging: `scripts/dex/package-web.mjs`, `scripts/dex/package-all.mjs`
 - Artifact integrity verifier: `scripts/dex/verify-artifacts.mjs`
+- Release source-binding guard and regression test: `scripts/dex/source-base.mjs`, `scripts/dex/source-base.test.mjs`
 
 ## Visual evidence
 

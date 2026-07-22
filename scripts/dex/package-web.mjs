@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import process from "node:process";
+import { resolveSourceBaseCommit } from "./source-base.mjs";
 
 const root=path.resolve(import.meta.dirname,"../..");
 const app=path.join(root,"apps/dex");
@@ -32,7 +32,7 @@ const archiveName=`ynx-dex-web-pwa-${packageJSON.version}.tar.gz`;
 await mkdir(release,{recursive:true});
 await writeFile(path.join(release,archiveName),archive,{mode:0o644});
 const sha256=value=>createHash("sha256").update(value).digest("hex");
-const sourceBaseCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim();
+const sourceBaseCommit=await resolveSourceBaseCommit(root,["apps/dex"]);
 const artifact={schemaVersion:1,productId:"ynx-dex",artifactType:"web-pwa-upload-bundle",version:packageJSON.version,sourceBaseCommit,mainnet:false,audited:false,productionLiquidity:false,installedLocal:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,file:archiveName,sha256:sha256(archive),sizeBytes:archive.length,contentFileCount:files.length,content:files.map(file=>({path:file.relative,sha256:sha256(file.data),sizeBytes:file.data.length})),verification:{command:`shasum -a 256 release/dex/${archiveName}`,expectedSha256:sha256(archive)}};
 await writeFile(path.join(release,"web-pwa-artifact.json"),JSON.stringify(artifact,null,2)+"\n",{mode:0o644});
 process.stdout.write(`${archiveName} ${artifact.sha256} ${artifact.sizeBytes} bytes\n`);

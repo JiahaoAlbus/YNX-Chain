@@ -3,8 +3,8 @@
 ## Release identity and boundary
 
 - Product: independent `YNX DEX`, Testnet Preview `0.1.0-testnet-preview.1`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Chain DEX`
-- Branch: `codex/ecosystem-dex`
+- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex`
+- Branch: `codex/final-dex`
 - Chain: YNX Testnet EVM chain `6423` (`0x1917`); `mainnet=false`
 - Protocol: clean-room immutable constant-product pools, 30 bps pool fee, bounded four-hop router
 - Custody: none. The Web app prepares requests; canonical YNX Wallet must authorize and sign.
@@ -54,6 +54,7 @@ npm run build --prefix apps/dex
 npm test --prefix apps/dex
 npm run test:e2e --prefix apps/dex
 npm run dex:manifests:check
+npm run dex:release:test
 npm run dex:package:all
 npm run dex:artifacts:verify
 ```
