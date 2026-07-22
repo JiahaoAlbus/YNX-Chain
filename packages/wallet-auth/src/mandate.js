@@ -61,7 +61,7 @@ export function parseCapitalProductReview(input) {
   exactFields(input, CAPITAL_FIELDS, "Wallet capital product review");
   const review = {
     schemaVersion: exact(input.schemaVersion, "schemaVersion", 1),
-    productType: enumeration(input.productType, "productType", ["native-staking", "liquid-staking-candidate", "safety-module", "service-security-pool", "dex-lp", "vault", "portfolio-margin", "stablecoin", "bridge-route", "solver-auction", "protocol-owned-liquidity", "treasury-multisig"]),
+    productType: enumeration(input.productType, "productType", ["native-staking", "liquid-staking-candidate", "withdrawal-queue", "safety-module", "service-security-pool", "dex-lp", "vault", "trading-subaccount", "api-wallet", "portfolio-margin", "stablecoin", "bridge-route", "cross-chain-route", "solver-auction", "protocol-owned-liquidity", "treasury-multisig"]),
     name: text(input.name, "name", 1, 120), provider: text(input.provider, "provider", 1, 120), contract: pattern(input.contract, "contract", /^0x[0-9a-f]{40}$/),
     governance: https(input.governance, "governance"), yieldSource: text(input.yieldSource, "yieldSource", 1, 500),
     historicalYieldRange: text(input.historicalYieldRange, "historicalYieldRange", 1, 200), nonGuarantee: bool(input.nonGuarantee, "nonGuarantee"),

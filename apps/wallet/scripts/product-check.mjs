@@ -5,6 +5,8 @@ const config=JSON.parse(await readFile(new URL("../app.json",import.meta.url),"u
 const source=await readFile(new URL("../App.tsx",import.meta.url),"utf8");
 const i18n=await readFile(new URL("../src/i18n/i18n.ts",import.meta.url),"utf8");
 const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",import.meta.url),"utf8");
+const controls=await readFile(new URL("../src/control/controlSurface.ts",import.meta.url),"utf8");
+const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.meta.url),"utf8");
 assert.equal(config.name,"YNX Wallet");
 assert.equal(config.scheme,"ynxwallet");
 assert.equal(config.android.package,"com.ynxweb4.wallet");
@@ -20,6 +22,8 @@ for(const required of ["Sign in with YNX Wallet","Requesting App","App identity"
 for(const required of ["AI security explanation","authorizationAudit.append","approval-revoked"])assert.equal(`${source}\n${i18n}\n${audit}`.includes(required),true,`missing ${required}`);
 for(const required of ["useColorScheme","isReduceMotionEnabled","isHighTextContrastEnabled","Text follows the device font scale"])assert.equal(source.includes(required),true,`missing adaptive UI contract ${required}`);
 for(const required of ["WELCOME","Create a new Wallet","Import account","Recover Wallet","WALLET LOCKED","NATIVE ACCOUNT","Assets","Activity","Receive YNXT","Send Review","Connected Apps","Sessions","Devices","Recovery","Security","Authorization Audit","Network"])assert.equal(`${source}\n${i18n}`.toLowerCase().includes(required.toLowerCase()),true,`missing Wallet IA surface ${required}`);
+for(const required of ["Smart Account & Capital","CAPITAL REVIEW","Sponsored gas","Yield source","Historical yield","Lock / cooldown","Slashing / drawdown","Withdrawal / reserve","Immediate exit"])assert.equal(`${source}\n${controlCopy}`.includes(required),true,`missing Wallet control surface ${required}`);
+for(const required of ["withdrawal-queue","trading-subaccount","api-wallet","cross-chain-route","missingCapitalProducts","staleCapitalProducts"])assert.equal(controls.includes(required),true,`missing fail-closed capital control ${required}`);
 for(const locale of ["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"])assert.equal(i18n.includes(`\"${locale}\"`)||i18n.includes(`${locale}:`),true,`missing locale ${locale}`);
 assert.ok((source.match(/accessibilityLabel=/g)??[]).length>=14,"Wallet controls need explicit accessibility labels");
 for(const file of ["RECOVERY.md","REFERENCE.md","PARITY.md","WEB4_IDENTITY.md","FEATURE_COMPLETION_EVIDENCE.md","CAPITAL_DESIGN.md","API_REGISTRY.md","MIGRATION_COMPATIBILITY.md","SLO_CAPACITY_PLAN.md","UNIT_ECONOMICS.md","OBSERVABILITY.md","THIRD_PARTY_NOTICES.md","PRODUCT_KPIS.md","public-product-metadata.json"])await access(new URL(`../${file}`,import.meta.url));
@@ -28,4 +32,4 @@ const metadata=JSON.parse(await readFile(new URL("../public-product-metadata.jso
 assert.equal(metadata.productId,"wallet");
 assert.equal(metadata.canonicalRoute,"/wallet");
 assert.equal(metadata.releaseStatus,"testnet-engineering-preview");
-console.log("wallet product-check passed: independent IDs, exact network/asset identity, bounded authorization UI, audit/revocation, 12 locales, route isolation, and accessibility labels");
+console.log("wallet product-check passed: independent IDs, exact network/asset identity, bounded authorization and capital UI, audit/revocation, 12 locales, route isolation, and accessibility labels");

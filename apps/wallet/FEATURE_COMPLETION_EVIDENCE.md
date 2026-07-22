@@ -5,11 +5,12 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 ## Proven locally
 
 - Canonical Wallet/Auth lifecycle: 30 original SDK tests plus 24 Gateway adapter, Signed Intent, Smart Account, mandate, capital and Credential tests.
-- Wallet native application: 23 unit/integration tests, TypeScript check and product gate.
+- Wallet native application: 28 unit/integration tests, TypeScript check and product gate.
 - Android API 36 installed/cold-launch evidence and iOS Simulator CI build/install/cold-launch/deep-link rejection evidence.
 - Hosted test-signed Android APK and unsigned iOS Simulator archive with SHA-256 and byte counts.
 - Official eth-infinitism EntryPoint v0.8 plus the YNX Smart Account compile locally with solc 0.8.28. A real local `handleOps` flow covers owner, UV-required WebAuthn, bounded session key, policy rejection and delayed guardian recovery. This is local EDR evidence only.
 - The local Paymaster flow sponsors zero-balance accounts through EntryPoint for first-action, merchant, developer and product modes. EIP-712 tamper, authorization replay, second first-action, unapproved target, disabled product and Risk Officer re-enable attempts fail closed; product/subject budget invariants and postOp observations are asserted.
+- The Wallet Smart Account & Capital control surface consumes only a strict runtime evidence snapshot. It never creates a position or success claim, fails closed on malformed/future/duplicate evidence, marks capital evidence stale after 24 hours, requires five-minute-fresh EntryPoint and Bundler evidence for readiness, preserves legacy `bridge-route`, and covers all 15 required current capital product types. Property, fuzz, fault and 5,000-snapshot soak/benchmark tests pass; the 2026-07-22 local run completed in 728.28 ms.
 
 ## Not yet proven
 
