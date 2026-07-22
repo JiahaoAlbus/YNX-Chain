@@ -34,6 +34,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Component/key/asset/network trust boundaries | `SECURITY_BOUNDARIES.md`, `docs/security/SECURITY_MANUAL.md` | Review against source gates and current recovery evidence |
 | Telemetry truth and missing public evidence | `OBSERVABILITY.md`, monitoring/deployment scripts | Local monitoring checks plus eligible-vantage remote evidence when available |
 | Read-only inspection, backup, rollback and BFT transaction index | `OPERATIONS.md`, `docs/operations/OPERATIONS_RUNBOOK.md` | Relevant `make` gates; mutating operations require their own approval packets |
+| Proposed SLOs and required capacity/soak evidence | `SLO_CAPACITY_PLAN.md` | No achieved thresholds until raw current-source samples exist |
+| Unit-cost definitions and missing financial inputs | `UNIT_ECONOMICS.md` | Provider invoices, service costs, usage, fees and governed subsidy records required |
 | Chain Core recovery and deployed-runtime boundary | `CURRENT_RECOVERY_AUDIT.md`, `release/recovery-evidence.json` | strict SSH audit, exact-release four-node verifier, bounded public ingress diagnostic |
 | StreamBFT shadow candidate | `internal/streambft`, `docs/architecture/STREAMBFT_CANDIDATE.md`, `docs/formal/streambft` | `make streambft-candidate-check` |
 | Deterministic parallel/sequential state-root equivalence | `internal/streambft/executor.go`, `internal/streambft/streambft_test.go` | `go test -race ./internal/streambft` |
