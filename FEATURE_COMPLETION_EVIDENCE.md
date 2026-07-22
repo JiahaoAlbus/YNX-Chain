@@ -15,7 +15,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Safety Module and service security pools | false | false | false | false | false | false | false | false | false | No consensus state or contracts recovered |
 | Stablecoin issuer review control plane | true | true | false | false | false | false | false | false | false | Existing `make stablecoin-issuer-check`; intent-only, execution disabled |
 | 1:1 YUSD sandbox with reserve/redemption reconciliation | false | false | false | false | false | false | false | false | false | No reserve provider, custodian, attestation, signer, or redemption rail |
-| Treasury governance and runway ledger | false | false | false | false | false | false | false | false | false | No versioned Treasury state recovered |
+| Treasury bucket snapshot and stress/runway simulation | true | true | false | true | false | false | false | false | false | Exact configured consensus account exposed through ABCI/Gateway plus explicit zero/unconfigured buckets and local simulation; branch-local |
+| Treasury governance, custody and transfer execution | false | false | false | false | false | false | false | false | false | No multisig authority, custody evidence, governed budget, or transfer route |
 | Public economics dashboard and `/ynxt` `/economics` handoff | false | false | false | false | false | false | false | false | false | Metadata and Website handoff not yet built |
 | StreamBFT shadow candidate | true | true | false | false | false | false | false | false | false | Local lane/DAG/QC/safety/pacemaker/execution/fee/mode tests; canary evidence gate intentionally fails closed |
 | Per-lane fee-market candidate | true | true | false | false | false | false | false | false | false | Candidate-only independent base-fee and multi-resource pricing; not ABCI state or governed policy |

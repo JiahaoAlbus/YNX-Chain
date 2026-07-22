@@ -39,6 +39,7 @@ var implementedCapabilities = []string{
 	"ide-contract-state-transitions",
 	"quant-mandate-and-vault-state-transitions",
 	"staking-delegation-and-exit-state-transitions",
+	"treasury-observation-snapshot",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -308,6 +309,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /staking/unbondings/{id}", g.handleUnbonding)
 	g.mux.HandleFunc("POST /staking/withdrawals", g.handleStakingMutation)
 	g.mux.HandleFunc("GET /staking/summary", g.handleStakingSummary)
+	g.mux.HandleFunc("GET /treasury/snapshot", g.handleTreasurySnapshot)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)
