@@ -35,3 +35,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make fee-market-candidate-check` — pass; race-enabled lane adjustment, cap rejection, burn/split conservation, sponsorship and audit-hash tests plus reproducible scenario.
 - `make macro-stress-check` — pass; 1,000 seeded iterations per Low/Medium/High scenario with deterministic percentile and named-failure coverage.
 - `make economics-public-ui-check` — pass; canonical routes, source disclosure, release/risk truth, 12 locales, RTL, focus, reduced motion, mobile containment and social asset.
+- `make economics-public-package-check` — pass; canonical metadata, 12 locales, release booleans, exact implementation commit and social-asset hash/bytes.

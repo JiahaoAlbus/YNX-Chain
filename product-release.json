@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "ynxt-economics-local-candidate-2026-07-22",
+  "product": "YNXT Economics",
+  "asOf": "2026-07-22T00:00:00Z",
+  "sourceCommit": "1085c12bb4b1e992a46d1458e2625ca8cc6a0de6",
+  "releaseClass": "local_testnet_integration_candidate",
+  "routes": ["/ynxt", "/economics", "/api/economics/disclosure", "/assets/economics-og.png"],
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "verification": [
+    "make economics-public-ui-check",
+    "make macro-stress-check",
+    "go test ./...",
+    "make no-placeholder-check",
+    "make static-check",
+    "make secret-scan"
+  ],
+  "artifacts": [
+    {
+      "kind": "social_preview",
+      "path": "internal/explorer/assets/economics-og.png",
+      "sha256": "aace303711eade2ae30a1ad1607090b19d6ca584a482c5897cd523cf0bd6b40e",
+      "bytes": 828944,
+      "signingClass": "unsigned_repository_asset",
+      "downloadURL": null
+    }
+  ],
+  "installationEvidence": null,
+  "stagingEvidence": null,
+  "publicEvidence": null,
+  "productionSigningEvidence": null,
+  "storeEvidence": null,
+  "knownGaps": [
+    "central Website integration and SSR/SSG",
+    "approved public domain and canonical absolute URLs",
+    "public screenshots and browser/device accessibility evidence",
+    "staging/public deployment and monitor evidence",
+    "support, privacy, security and status URLs",
+    "contract audits and governed candidate activation"
+  ]
+}

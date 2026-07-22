@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-07-22T00:00:00Z",
+  "sourceCommit": "1085c12bb4b1e992a46d1458e2625ca8cc6a0de6",
+  "product": {
+    "name": "YNXT Economics",
+    "aliases": ["YNXT", "YNX Economics", "YNX Token Economics"],
+    "productType": "testnet economics disclosure and simulation dashboard",
+    "canonicalRoutes": ["/ynxt", "/economics"],
+    "titles": {
+      "/ynxt": "YNXT Economics | YNX Chain",
+      "/economics": "Economic Models | YNX Chain"
+    },
+    "metaDescriptions": {
+      "/ynxt": "Transparent YNXT testnet economics, candidate policies, stress evidence, and activation boundaries.",
+      "/economics": "Reproducible YNXT fee, issuance, staking, Treasury, stable settlement, and risk simulations."
+    },
+    "h1": {
+      "/ynxt": "YNXT economics, with every boundary visible.",
+      "/economics": "Model the policy before governing it."
+    }
+  },
+  "locales": ["en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id"],
+  "features": [
+    "current fixed-fee policy disclosure",
+    "candidate dynamic issuance and fee-market boundaries",
+    "staking and liquid-staking risk models",
+    "Safety Module and independent service-security-pool models",
+    "YUSD test-unit sandbox disclosure",
+    "Treasury and seeded Low/Medium/High macro stress evidence",
+    "source-labelled live Explorer context"
+  ],
+  "riskDisclosures": [
+    "Testnet only; Mainnet launch is not claimed.",
+    "Candidate models are not consensus or contract state.",
+    "No APY, token price, stable peg, liquidity, reserve, insurance coverage, runway, or governance outcome is guaranteed.",
+    "YUSD sandbox units have no real-world value and no external reserve attestation."
+  ],
+  "faq": [
+    {"question": "Is dynamic issuance active?", "answer": "No. It is a bounded candidate simulation; current consensus does not execute it."},
+    {"question": "Does YNX burn current base fees?", "answer": "No. Current fixed-fee events record zero burn; per-lane burn is a candidate."},
+    {"question": "Does staking guarantee APY?", "answer": "No. The reward source is inactive and no APY is guaranteed."},
+    {"question": "Is YUSD redeemable for real value?", "answer": "No. It is an isolated test-unit sandbox without external reserve attestation or a real redemption rail."},
+    {"question": "Are the stress results forecasts?", "answer": "No. They are deterministic distributions generated from public assumptions."}
+  ],
+  "assets": {
+    "logo": "internal/explorer/assets/ynx-logo.png",
+    "icon": "internal/explorer/assets/ynx-logo.png",
+    "socialPreview": {
+      "path": "internal/explorer/assets/economics-og.png",
+      "sha256": "aace303711eade2ae30a1ad1607090b19d6ca584a482c5897cd523cf0bd6b40e",
+      "bytes": 828944,
+      "width": 1731,
+      "height": 909
+    },
+    "screenshots": [],
+    "screenshotStatus": "not_captured_no_public_or_browser_qa_claim"
+  },
+  "urls": {
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null,
+    "availability": "not_configured_no_approved_public_domain"
+  },
+  "structuredDataSuggestion": {
+    "types": ["WebPage"],
+    "faqPageAllowedOnlyWhenVisibleFAQIsRendered": true,
+    "prohibitedClaims": ["Offer", "AggregateRating", "token price", "APY", "Mainnet availability"]
+  },
+  "websiteOwnerHandoff": "docs/coordination/WEBSITE_ECONOMICS_HANDOFF.md"
+}

@@ -20,6 +20,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Twelve locales, Arabic RTL, runtime failures and risk semantics | `internal/explorer/economics_web.go`, `UI_DESIGN_AUDIT.md` | `make economics-public-ui-check` |
 | Keyboard, reduced motion, light/dark and 390px containment | `internal/explorer/economics_web.go`, `UI_DESIGN_AUDIT.md` | `make economics-public-ui-check` |
 | Economics Website/SEO integration contract | `docs/coordination/WEBSITE_ECONOMICS_HANDOFF.md` | Review canonical route, metadata, FAQ and acceptance sections |
+| Machine-readable public metadata and release booleans | `public-product-metadata.json`, `product-release.json` | `make economics-public-package-check` |
+| Social asset bytes, SHA-256 and implementation source commit | `internal/explorer/assets/economics-og.png`, `product-release.json` | `make economics-public-package-check` |
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |
