@@ -2,17 +2,17 @@
 
 ## Evidence boundary
 
-The only measured capacity evidence is `evidence/performance/economics-local-benchmark.json`, bound to source commit `9b5ed34efd7b62c88bed6150a2f38bf9b862e768`. It measured the read-only `/api/economics/disclosure` handler in one Go process over loopback on an 8-logical-CPU Apple arm64 host. It is not a public, staging, network, multi-instance, sustained-load, or concurrent-user result.
+The only measured capacity evidence is `evidence/performance/economics-local-benchmark.json`, bound to source commit `63afbdd82b001b1063332100796366f4423da3bc`. It measured the read-only `/api/economics/disclosure` handler in one Go process over loopback on an 8-logical-CPU Apple arm64 host. It is not a public, staging, network, multi-instance, sustained-load, or concurrent-user result.
 
 | Measure | Direct result | Coverage boundary |
 | --- | ---: | --- |
 | Requests / workers | 2,000 / 16 | 50 warmups; short local run |
-| First request | 0.964 ms | Process already started; not deployment cold boot |
-| p50 / p95 / p99 | 0.436 / 1.178 / 1.471 ms | Client-observed loopback latency |
-| Maximum | 1.941 ms | Same run only |
-| Throughput | 29,106.93 requests/s | Local burst, not an ingress commitment |
+| First request | 1.022 ms | Process already started; not deployment cold boot |
+| p50 / p95 / p99 | 0.401 / 0.979 / 1.113 ms | Client-observed loopback latency |
+| Maximum | 1.356 ms | Same run only |
+| Throughput | 32,092.77 requests/s | Local burst, not an ingress commitment |
 | Errors | 0 (0 bps) | Same 2,000-request sample |
-| Response / allocation | 1,828 bytes / 25,011 allocated bytes per request | Runtime allocation delta, not RSS |
+| Response / allocation | 1,873 bytes / 25,900 allocated bytes per request | Runtime allocation delta, not RSS |
 | Queue | Not measured | Handler has no application queue |
 | Storage growth | 0 bytes/request | Handler does not persist request state |
 | Provider latency | Not applicable to reference response | No third-party call is made |

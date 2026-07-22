@@ -4,7 +4,7 @@
 
 The economics disclosure is a read-only, process-local calculation with no paid provider and no per-request persistence. Therefore its directly observed third-party cost, storage growth and protocol revenue are all zero for the measured path. Hosting, bandwidth, monitoring, support, legal, custody, audits, signer operations and incident-response costs are unknown because there is no deployed service or billing evidence. No active users, conversion, revenue, gross margin or subsidy burn are claimed.
 
-The local benchmark observed a 1,828-byte response and 25,011 allocated runtime bytes per request. Allocation is not a cloud cost and must not be converted to currency without a priced deployment profile.
+The current local benchmark observed a 1,873-byte response and 25,900 allocated runtime bytes per request. Allocation is not a cloud cost and must not be converted to currency without a priced deployment profile. Structured per-request logs add observability volume that must be measured and priced under sustained staging load.
 
 ## Candidate accounting model
 

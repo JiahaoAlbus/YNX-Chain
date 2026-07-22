@@ -42,6 +42,6 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make economics-public-ui-check` — pass; canonical routes, source disclosure, release/risk truth, 12 locales, RTL, focus, reduced motion, mobile containment and social asset.
 - `make economics-public-package-check` — pass; canonical metadata, 12 locales, release booleans, exact implementation commit and social-asset hash/bytes.
 - `make yusd-restore-drill` — pass; local mode-0600 copy/hash/restore with state, queue and audit equality.
-- `go run ./cmd/ynx-economics-bench -source-commit 9b5ed34efd7b62c88bed6150a2f38bf9b862e768 -requests 2000 -concurrency 16` — pass; direct values and limits are recorded in `evidence/performance/economics-local-benchmark.json`.
+- `go run ./cmd/ynx-economics-bench -source-commit 63afbdd82b001b1063332100796366f4423da3bc -requests 2000 -concurrency 16` — pass; direct values and limits are recorded in `evidence/performance/economics-local-benchmark.json`.
 - `make economics-supply-chain-check` — pass; deterministic 408-component SBOM matches the resolved Go graph and npm lockfile.
 - `govulncheck` symbol scan after upgrading to Go 1.25.12 and fixed module versions — zero called findings. Full npm audit remains unresolved with three High entries in development-only Hardhat/`adm-zip` tooling.
