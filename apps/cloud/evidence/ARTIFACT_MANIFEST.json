@@ -10,8 +10,11 @@
       "sha256": "dd2a77ed0c2e3106ef15016016c6abfae37af8f34b241fb22ffaae029b638461",
       "bytes": 69731693,
       "signingClass": "Android debug certificate; Testnet Preview only",
+      "verifiedAtSourceCommit": "db9bc224df52e05018264fc284fb23f18033424a",
       "minOS": "Android 7.0 / API 24",
       "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
       "artifactUrl": null
     }
   ]

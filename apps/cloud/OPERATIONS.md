@@ -14,6 +14,8 @@ Health is `GET /health`. It reports bounded local durability honestly. Cloud UI 
 
 Use authenticated `/api/v1/ready` for traffic admission, `/api/v1/metrics` for persistent RED/saturation/alert state, and `/api/v1/traces` for the bounded 200-request diagnostic window. All require an `audit.read` product session. If readiness reports telemetry persistence false, stop admitting traffic, preserve `telemetry.json` for diagnosis, verify storage permissions/capacity, and restore only from verified recovery evidence. Do not treat public liveness as provider readiness. Alert definitions and operator actions are versioned under `observability/`; delivery is not configured and must not be described as paging.
 
+Run `npm --prefix apps/cloud run security` before any artifact handoff. A failure in vet, secret/placeholder scanning, script allowlist, lock/SBOM coverage, material digest, provenance, or artifact hash/archive inspection blocks release. Regeneration requires an exact reviewed source commit and must use `generate-security-artifacts.mjs`; never edit hashes or provenance claims to make the gate pass. The current provenance explicitly covers a recovered debug-signed local APK and is not production attestation.
+
 ## User-exit mode
 
 Before planned service cessation, announce the export deadline through the approved support/status channels, create and verify a recovery backup, retain object-provider read/delete credentials, and start the same release with `-user-exit-mode`. Public and restricted health report `mode: user-exit`.

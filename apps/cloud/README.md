@@ -20,8 +20,15 @@ Checks:
 ```bash
 npm --prefix apps/cloud test
 npm --prefix apps/cloud run check
+npm --prefix apps/cloud run security
 bash apps/cloud/scripts/smoke.sh
 ```
+
+The security gate verifies production-surface forbidden markers and common secret
+formats, exact package-script allowlists, Go vet, Go/pnpm lock coverage in the
+CycloneDX SBOM, provenance material hashes, and the recovered APK's exact hash,
+size, release-class claims, and archive contents. See `THREAT_MODEL.md` and
+`SECURITY_BOUNDARIES.md` for authority and residual-risk boundaries.
 
 Reusable Web, Node, and React Native API access is provided by the dependency-free
 ESM package in `sdk/`. It accepts a callback for the current short-lived Wallet

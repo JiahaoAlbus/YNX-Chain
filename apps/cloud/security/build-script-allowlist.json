@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "packages": {
+    "apps/cloud/package.json": ["check", "security", "smoke", "test"],
+    "apps/cloud/mobile/package.json": ["android", "bundle", "check", "i18n-check", "ios", "prebuild", "start", "test", "typecheck"],
+    "apps/docs/mobile/package.json": ["android", "bundle", "check", "i18n-check", "ios", "prebuild", "start", "test", "typecheck"]
+  },
+  "forbiddenLifecycleScripts": ["preinstall", "install", "postinstall", "prepare"],
+  "reviewBoundary": "Any script name or lifecycle hook outside this exact set requires explicit source review and allowlist update."
+}
