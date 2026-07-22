@@ -25,6 +25,8 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 			json.NewEncoder(w).Encode(map[string]string{"ref": "object-ref", "hash": hash})
 		case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/objects/"):
 			w.Write(body)
+		case r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/objects/") && r.Header.Get("X-Content-SHA256") == hash:
+			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/v1/cloud/evidence":
 			w.WriteHeader(201)
 		case r.URL.Path == "/ai/stream":
@@ -48,6 +50,9 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	got, err := store.Get(ctx, ref, hash)
 	if err != nil || string(got) != "bounded" {
 		t.Fatalf("get %q %v", got, err)
+	}
+	if err := store.Delete(ctx, ref, hash); err != nil {
+		t.Fatalf("delete: %v", err)
 	}
 	ai := RemoteAIProvider{BaseURL: server.URL, Token: "token", Model: "test"}
 	answer, err := ai.Complete(ctx, "summarize", []AIContext{{ObjectID: "o", Version: 1, Content: "selected"}})

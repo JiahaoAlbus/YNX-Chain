@@ -30,6 +30,7 @@ Start the service on the new restore directory, verify `/health`, sign in throug
 - Scanner unavailable/rejects: upload fails; no metadata commit.
 - State or blob hash mismatch: service fails closed; restore the last verified backup into a new directory.
 - Quota exceeded: upload/save fails before commit; user may delete or export data.
+- Physical deletion pending: inspect the owner-visible deletion record, restore provider health/credentials, invoke the authenticated retry endpoint, and retain the audit event. Do not tell the user that bytes were erased until status is `completed`; provider media-sanitization evidence remains a separate requirement.
 - Conflict: Docs returns 409 with current version/content; user chooses keep-local-as-new-document or use-server.
 
 There is no replicated object store, KMS, antivirus service, public TLS deployment, production signer, store account, or central registry approval in this branch.

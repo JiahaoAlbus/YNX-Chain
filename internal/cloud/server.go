@@ -111,6 +111,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/quota", s.auth(s.quota))
 	mux.HandleFunc("GET /api/v1/audit", s.auth(s.audit))
 	mux.HandleFunc("GET /api/v1/export", s.auth(s.exportData))
+	mux.HandleFunc("GET /api/v1/deletions", s.auth(s.deletions))
+	mux.HandleFunc("POST /api/v1/deletions/{deletion}/retry", s.auth(s.retryDeletion))
 	mux.HandleFunc("GET /api/v1/ai/status", s.auth(s.aiStatus))
 	mux.HandleFunc("POST /api/v1/ai/jobs", s.auth(s.aiJob))
 	mux.HandleFunc("GET /api/v1/ai/jobs/{job}", s.auth(s.aiGet))
@@ -329,6 +331,11 @@ func (s *Server) deleteObject(w http.ResponseWriter, r *http.Request, a Session)
 		return
 	}
 	if err := s.service.DeleteObject(a.Account, r.PathValue("id")); err != nil {
+		var pending DeletionPendingError
+		if errors.As(err, &pending) {
+			writeJSON(w, http.StatusAccepted, map[string]any{"status": "logical-deletion-complete", "physicalDeletion": "pending", "pendingBlobs": pending.Count})
+			return
+		}
 		writeServiceError(w, err)
 		return
 	}
@@ -590,6 +597,20 @@ func (s *Server) exportData(w http.ResponseWriter, r *http.Request, a Session) {
 	w.Header().Set("X-YNX-Export-As-Of", manifest.AsOf.Format(time.RFC3339Nano))
 	w.WriteHeader(200)
 	_, _ = w.Write(body)
+}
+func (s *Server) deletions(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
+		return
+	}
+	v, err := s.service.BlobDeletions(a.Account)
+	writeResult(w, v, err)
+}
+func (s *Server) retryDeletion(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
+		return
+	}
+	v, err := s.service.RetryBlobDeletion(r.Context(), a.Account, r.PathValue("deletion"))
+	writeResult(w, v, err)
 }
 func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "ai.use") {
