@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": null,
+  "sourceCommit": "6dc77b6d6228b2efa182d21c6f61c409c1af417f",
   "states": {
-    "implementedLocal": false,
-    "testedLocal": false,
-    "installedLocal": false,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -15,10 +15,15 @@
     "storeReleased": false
   },
   "stateNotes": {
-    "implementedLocal": "Core bounded product exists, but objective-required multipart, artifact, export, observability and scale work remains.",
-    "testedLocal": "Recovered suites pass, but the full objective test matrix is incomplete.",
-    "installedLocal": "Android preview evidence exists; iOS and full product installation evidence does not.",
-    "integratedCentral": "Central Wallet registrations remain disabled and pending review."
+    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, artifacts, export/delete, observability, capacity candidate, and JavaScript SDK exist at sourceCommit. This does not claim production durability.",
+    "testedLocal": "Go Cloud tests, Web/SDK tests, static/a11y gates, canonical API smoke, migration, and backup/restore pass locally. Unrelated repository consensus tests require an absent generated Devtools artifact and are not used as Cloud evidence.",
+    "installedLocal": "The exact Android Testnet Preview APK in the artifact manifest was installed and cold-launched with adb; the evidence screenshot is indexed. iOS local installation is not claimed.",
+    "integratedCentral": "False: central Wallet registrations remain disabled and pending review.",
+    "deployedStaging": "False: no staging endpoint or remote smoke evidence exists.",
+    "deployedPublic": "False: no public endpoint or public verification exists.",
+    "downloadHosted": "False: the APK is local and has no immutable hosted URL.",
+    "productionSigned": "False: the Android APK uses a debug certificate and no production signing evidence exists.",
+    "storeReleased": "False: no app-store release evidence exists."
   },
   "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
   "evidenceIndex": "evidence/EVIDENCE_INDEX.md"

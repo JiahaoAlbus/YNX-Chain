@@ -8,7 +8,7 @@
   "metaDescription": "Store, version, share, revoke, recover, and export authorized files and product artifacts with verifiable checksums.",
   "h1": "Storage you can inspect, revoke, and leave",
   "status": "local-testnet-preview",
-  "features": ["Files and folders", "Version restore", "Expiring access", "Checksum verification", "Backup and recovery", "Selected-file AI boundary"],
+  "features": ["Files and folders", "Version restore", "Expiring access", "Checksum verification", "Backup and recovery", "Selected-file AI boundary", "JavaScript and TypeScript SDK"],
   "risks": ["No production durability claim", "No public deployment", "No production signing", "Provider and central Wallet integration pending"],
   "supportUrl": null,
   "privacyUrl": null,
