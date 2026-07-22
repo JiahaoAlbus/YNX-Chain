@@ -114,10 +114,27 @@ func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {
 	if ed25519.Verify(publicKey, invoiceSigningMaterial(tamperedInvoice), signature) {
 		t.Fatal("tampered invoice retained a valid signature")
 	}
-	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: merchant.PayoutAddress, Amount: 25, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("a", 64), BlockNumber: 91, Status: "paid", AuditHash: strings.Repeat("b", 64), CreatedAt: now.Add(time.Minute)}
+	tamperedFee := invoice
+	tamperedFee.FeeBreakdown.ProtocolFee++
+	if ed25519.Verify(publicKey, invoiceSigningMaterial(tamperedFee), signature) {
+		t.Fatal("tampered fee breakdown retained a valid signature")
+	}
+	legacy := invoice
+	legacy.Version = 1
+	legacy.FeeBreakdown = FeeBreakdown{}
+	if !strings.HasPrefix(string(invoiceSigningMaterial(legacy)), "YNX_PAY_INVOICE_V1|") {
+		t.Fatal("version 1 invoice compatibility material was not preserved")
+	}
+	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: merchant.PayoutAddress, Amount: 25, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("a", 64), BlockNumber: 91, Status: "paid", IdempotencyKey: "settle-key-01", AuditHash: strings.Repeat("b", 64), CreatedAt: now.Add(time.Minute)}
 	committed, err := service.SubmitSettlement(context.Background(), invoice.ID, merchant.PayoutAddress, pay.settlement.TransactionHash, "settle-key-01")
 	if err != nil || committed.Status != "committed" || committed.Settlement == nil || committed.Settlement.Source != "authoritative-central-pay-api" {
 		t.Fatalf("settlement not accepted: %+v %v", committed, err)
+	}
+	if committed.Settlement.ChainID != ChainID || committed.Settlement.Finality != "committed" || committed.Settlement.Payee != merchant.PayoutAddress || committed.Settlement.InvoiceID != invoice.ID || committed.Settlement.CentralInvoiceID != invoice.CentralID || committed.Settlement.IntentID != invoice.IntentID || committed.Settlement.ReceiptID == "" || committed.Settlement.AuditID == "" || committed.Settlement.SourceVersion != 1 || committed.Settlement.Confidence != "authoritative" {
+		t.Fatalf("settlement receipt does not carry the complete authority binding: %+v", committed.Settlement)
+	}
+	if invoice.FeeBreakdown.NetworkFee != NativeFeeYNXT || invoice.FeeBreakdown.MerchantNet != invoice.Amount || invoice.FeeBreakdown.Source == "" || invoice.FeeBreakdown.Version != 1 {
+		t.Fatalf("invoice fee breakdown is incomplete: %+v", invoice.FeeBreakdown)
 	}
 	restarted, err := New(Config{StorePath: path, IntegrityKey: bytes32(7), GatewayKey: bytes32(8), BootstrapKey: strings.Repeat("b", 24), PublicBaseURL: "https://pay.example", PayAPI: pay, Now: func() time.Time { return now }})
 	if err != nil {
@@ -160,7 +177,7 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Amount: 9, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("c", 64), BlockNumber: 2, Status: "paid", AuditHash: strings.Repeat("d", 64), CreatedAt: now}
+	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Amount: 9, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("c", 64), BlockNumber: 2, Status: "paid", IdempotencyKey: "webhook-settle-01", AuditHash: strings.Repeat("d", 64), CreatedAt: now}
 	if _, err := service.SubmitSettlement(context.Background(), invoice.ID, merchant.PayoutAddress, pay.settlement.TransactionHash, "settle-key-02"); err == nil || !strings.Contains(err.Error(), "mismatched") {
 		t.Fatalf("mismatched evidence accepted: %v", err)
 	}
@@ -241,7 +258,7 @@ func TestGatewayBoundPaymentCreatesPayerCases(t *testing.T) {
 	accountHex, _ := consensus.NativeAddress(accountKey.PubKey().SerializeCompressed())
 	account, _ := accountaddress.Encode(accountHex)
 	session := WalletSession{ID: "gateway-pay-session-123456", Account: account, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, SessionBinding: strings.Repeat("a", 64), Scopes: append([]string(nil), walletScopes...), ExpiresAt: now.Add(3 * time.Minute)}
-	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: account, Amount: 11, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("e", 64), BlockNumber: 3, Status: "paid", AuditHash: strings.Repeat("f", 64), CreatedAt: now}
+	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: account, Amount: 11, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("e", 64), BlockNumber: 3, Status: "paid", IdempotencyKey: "wallet-settle-01", AuditHash: strings.Repeat("f", 64), CreatedAt: now}
 	intent, result := signedPaymentFixture(t, now, invoice, session, accountKey)
 	if _, err := service.SubmitSignedSettlement(context.Background(), session, invoice.ID, intent, result, "settle-key-03"); err != nil {
 		t.Fatal(err)
