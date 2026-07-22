@@ -23,6 +23,12 @@ npm --prefix apps/cloud run check
 bash apps/cloud/scripts/smoke.sh
 ```
 
+Reusable Web, Node, and React Native API access is provided by the dependency-free
+ESM package in `sdk/`. It accepts a callback for the current short-lived Wallet
+product session, exposes typed Cloud/Docs operations, reports request/error IDs,
+and retries only idempotent requests on explicit rate-limit or backpressure
+responses. It does not create or persist Wallet credentials.
+
 Client-side encryption is an API boundary: ciphertext may be stored with
 `AES-256-GCM` metadata, while the user-held recovery package and key never enter
 the service. The default scanner is a bounded policy interface and EICAR guard,
