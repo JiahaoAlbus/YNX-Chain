@@ -1,6 +1,6 @@
 # YNX Cloud feature completion evidence
 
-Evidence baseline: local source commit `f76ad8ca9cd5a7aa872181936036e2e943b584ac`. Remote publication, staging, and public evidence remain separately unproven and are not implied by this local source reference.
+Evidence baseline: local source commit `9e23df2ef9012c7f52d1fc6ed9ac7e02a1410c87`. Remote publication, staging, and public evidence remain separately unproven and are not implied by this local source reference.
 
 | Capability | Implemented | Tested | Direct evidence | Remaining proof |
 | --- | --- | --- | --- | --- |
