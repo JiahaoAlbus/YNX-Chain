@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "classification": "local-vendored-package-verification",
+  "package": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "private": true,
+    "engines": {
+      "node": ">=22"
+    },
+    "dependencies": {
+      "@noble/curves": "2.2.0",
+      "@noble/hashes": "2.2.0"
+    }
+  },
+  "archive": {
+    "fileName": "ynx-chain-wallet-auth-1.0.0.tgz",
+    "sha256": "3feb86824135d5143e4e72e506d4efef9f530d3d931081c15500f16b1347bf2f",
+    "bytes": 11181
+  },
+  "contents": {
+    "fileCount": 13,
+    "files": [
+      {
+        "path": "package/package.json",
+        "sha256": "2b222e1025e9e792e7ca54c1ec6c99168d91f55aa40c6a29786f7f0a167b130f"
+      },
+      {
+        "path": "package/src/base64url.js",
+        "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+      },
+      {
+        "path": "package/src/canonical.js",
+        "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+      },
+      {
+        "path": "package/src/crypto.js",
+        "sha256": "ca7adbc7d71b05a48fca0401810451cbe3f28a579d119aaae5329b1d13f09a0f"
+      },
+      {
+        "path": "package/src/deep-link.js",
+        "sha256": "1cabb31d435300360602f632b1164f10348aa36aeb4fa9ee9d848c2493b9c348"
+      },
+      {
+        "path": "package/src/index.d.ts",
+        "sha256": "f380bba09447df91317f9f7078eed76fa7b9428267a06565655e35b9e749f7d5"
+      },
+      {
+        "path": "package/src/index.js",
+        "sha256": "cde0134275caa815fb4c131f122168bf431ba553a997beef3d471fab1fadf1ed"
+      },
+      {
+        "path": "package/src/integration.js",
+        "sha256": "f025847f49ad2948ad18d5bc62f5e1bafd51b9b4700e27b8c7929d6af9fa67b2"
+      },
+      {
+        "path": "package/src/protocol.js",
+        "sha256": "b5f7bebaeacd7f128f5d2aaabc46dfc5dfd3a1359fe46eaecb7be28f7e91776a"
+      },
+      {
+        "path": "package/src/replay.js",
+        "sha256": "74014622be2e9c79e0abbbea643ae11b687ed97a6aa6805459db5eccf66f4f61"
+      },
+      {
+        "path": "package/src/session.js",
+        "sha256": "246ac9116528b11e841dbafb7a678300c83d27a695dbe91d935c739c09bbb4ce"
+      },
+      {
+        "path": "package/testdata/gateway-p256-v1.json",
+        "sha256": "d9b7916205c22568a411a141945f89901be089b9560bf7880a3b385cd19df442"
+      },
+      {
+        "path": "package/testdata/signer-v1.json",
+        "sha256": "4c6e704c47a29b3693360dafca3684f2d1a4c67e2bdde42c9f2693a60cdd687d"
+      }
+    ]
+  },
+  "provenance": {
+    "sourceRepository": null,
+    "sourceCommit": null,
+    "status": "unverified"
+  },
+  "license": {
+    "declared": null,
+    "inArchive": false,
+    "status": "NOASSERTION"
+  },
+  "limitations": [
+    "No source repository or source commit is declared by the archive.",
+    "No license file or declared license is present in the archive; distribution approval remains blocked."
+  ]
+}
