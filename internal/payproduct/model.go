@@ -285,6 +285,7 @@ type Snapshot struct {
 	Sponsorships    map[string]SponsorshipQuote       `json:"sponsorships"`
 	BridgeTransfers map[string]BridgeTransfer         `json:"bridgeTransfers"`
 	RouteQuotes     map[string]PaymentRouteQuote      `json:"routeQuotes"`
+	RecurringDrafts map[string]RecurringDraft         `json:"recurringDrafts"`
 	Audit           []AuditEntry                      `json:"audit"`
 }
 

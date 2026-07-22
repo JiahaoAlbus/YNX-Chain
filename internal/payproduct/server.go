@@ -44,6 +44,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/merchant/state", s.merchantState)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
+	s.mux.HandleFunc("POST /v1/merchant/recurring-drafts", s.createRecurringDraft)
 	s.mux.HandleFunc("PUT /v1/merchant/webhook", s.webhook)
 	s.mux.HandleFunc("POST /v1/merchant/webhook/rotate", s.rotate)
 	s.mux.HandleFunc("POST /v1/merchant/webhooks/{id}/retry", s.retryWebhook)
@@ -296,6 +297,22 @@ func (s *Server) createInvoice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.service.CreateInvoice(r.Context(), p.Merchant, in)
+	respond(w, 201, out, err)
+}
+func (s *Server) createRecurringDraft(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "invoice")
+	if !ok {
+		return
+	}
+	if p.Role != "owner" && p.Role != "finance" {
+		writeError(w, 403, "owner or finance role required for recurring draft")
+		return
+	}
+	var in RecurringDraftInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.CreateRecurringDraft(p.Merchant, in)
 	respond(w, 201, out, err)
 }
 func (s *Server) webhook(w http.ResponseWriter, r *http.Request) {

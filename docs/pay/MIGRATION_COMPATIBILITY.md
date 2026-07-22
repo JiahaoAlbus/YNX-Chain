@@ -2,6 +2,8 @@
 
 Legacy webhook deliveries stored with status `failed` are normalized to `dead_letter` when the integrity-protected store is opened. Their prior update time becomes `deadLetteredAt`, any scheduled retry is cleared, and operators must use the audited manual replay endpoint, which creates a new delivery ID. Existing delivered, pending and retrying records are unchanged.
 
+Snapshots written before recurring drafts omit `recurringDrafts`; store normalization initializes an empty map without changing existing objects or payment state.
+
 ## Current formats
 
 - Disk envelope version: 1, HMAC-SHA-256 integrity protected.
