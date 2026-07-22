@@ -29,6 +29,7 @@ import (
 
 type fakePay struct {
 	mu            sync.Mutex
+	intent        chain.PayIntent
 	invoice       chain.Invoice
 	settlement    chain.PaySettlement
 	settlementErr error
@@ -50,9 +51,11 @@ func (fixedAI) Complete(context.Context, string, string) (string, string, string
 
 func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string) (chain.PayIntent, error) {
 	f.mu.Lock()
+	f.intent = chain.PayIntent{ID: "0123456789abcdef01234567", Merchant: m, PayoutAddress: p, Amount: a, Currency: NativeAsset, Status: "created", CreatedAt: time.Now().UTC(), IdempotencyKey: k}
 	f.intentCalls++
+	intent := f.intent
 	f.mu.Unlock()
-	return chain.PayIntent{ID: "0123456789abcdef01234567", Merchant: m, PayoutAddress: p, Amount: a, Currency: NativeAsset, Status: "created", CreatedAt: time.Now().UTC(), IdempotencyKey: k}, nil
+	return intent, nil
 }
 func (f *fakePay) CreateInvoice(_ context.Context, intent string, h int64, k string) (chain.Invoice, error) {
 	f.mu.Lock()
@@ -104,6 +107,9 @@ func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {
 	if invoice.Status == "committed" || invoice.Settlement != nil {
 		t.Fatal("invoice became committed without evidence")
 	}
+	if invoice.Version != 3 || invoice.BaseAmount != 25 || invoice.TipAmount != 0 || invoice.Amount != invoice.BaseAmount+invoice.TipAmount {
+		t.Fatalf("invoice v3 base/tip total is inconsistent: %+v", invoice)
+	}
 	publicKey, _ := hex.DecodeString(invoice.SigningPublicKey)
 	signature, _ := hex.DecodeString(invoice.Signature)
 	if !ed25519.Verify(publicKey, invoiceSigningMaterial(invoice), signature) {
@@ -118,6 +124,11 @@ func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {
 	tamperedFee.FeeBreakdown.ProtocolFee++
 	if ed25519.Verify(publicKey, invoiceSigningMaterial(tamperedFee), signature) {
 		t.Fatal("tampered fee breakdown retained a valid signature")
+	}
+	tamperedTip := invoice
+	tamperedTip.TipAmount++
+	if ed25519.Verify(publicKey, invoiceSigningMaterial(tamperedTip), signature) {
+		t.Fatal("tampered tip retained a valid invoice signature")
 	}
 	legacy := invoice
 	legacy.Version = 1
@@ -162,6 +173,31 @@ func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {
 	}
 	if _, err := OpenStore(path, bytes32(7)); err == nil {
 		t.Fatalf("tampered store accepted: %v", err)
+	}
+}
+
+func TestTipIsBoundIntoCentralTotalAndInvoiceSignature(t *testing.T) {
+	now := time.Date(2026, 7, 22, 6, 0, 0, 0, time.UTC)
+	pay := &fakePay{}
+	service, _ := testService(t, pay, func() time.Time { return now })
+	merchant, _ := onboard(t, service)
+	pay.invoice.Merchant = merchant.ID
+	pay.invoice.PayoutAddress = merchant.PayoutAddress
+	pay.invoice.Amount = 12
+	invoice, err := service.CreateInvoice(context.Background(), merchant, InvoiceInput{Description: "Lunch", Amount: 10, TipAmount: 2, ExpiresInMinutes: 30, IdempotencyKey: "invoice-tip-01"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if invoice.Version != 3 || invoice.BaseAmount != 10 || invoice.TipAmount != 2 || invoice.Amount != 12 || invoice.FeeBreakdown.MerchantNet != 12 || pay.intent.Amount != 12 {
+		t.Fatalf("tip did not reconcile with central intent and fee ledger: invoice=%+v intent=%+v", invoice, pay.intent)
+	}
+	publicKey, _ := hex.DecodeString(invoice.SigningPublicKey)
+	signature, _ := hex.DecodeString(invoice.Signature)
+	if !ed25519.Verify(publicKey, invoiceSigningMaterial(invoice), signature) {
+		t.Fatal("tip invoice signature did not verify")
+	}
+	if _, err := service.CreateInvoice(context.Background(), merchant, InvoiceInput{Amount: 10, TipAmount: 11, ExpiresInMinutes: 30, IdempotencyKey: "invoice-tip-02"}); err == nil {
+		t.Fatal("tip greater than base amount was accepted")
 	}
 }
 

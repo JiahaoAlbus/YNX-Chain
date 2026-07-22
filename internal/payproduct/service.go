@@ -291,6 +291,7 @@ type InvoiceInput struct {
 	CatalogItemID    string `json:"catalogItemId,omitempty"`
 	Description      string `json:"description,omitempty"`
 	Amount           int64  `json:"amount,omitempty"`
+	TipAmount        int64  `json:"tipAmount,omitempty"`
 	ExpiresInMinutes int64  `json:"expiresInMinutes"`
 	IdempotencyKey   string `json:"idempotencyKey"`
 }
@@ -305,7 +306,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 	if input.ExpiresInMinutes < 1 || input.ExpiresInMinutes > 24*60 {
 		return Invoice{}, errors.New("invoice expiry must be between 1 and 1440 minutes")
 	}
-	amount := input.Amount
+	baseAmount := input.Amount
 	description := strings.TrimSpace(input.Description)
 	var itemID string
 	if input.CatalogItemID != "" {
@@ -314,7 +315,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 			if !ok || item.MerchantID != merchant.ID || !item.Active {
 				return errors.New("catalog item is unavailable")
 			}
-			amount = item.Amount
+			baseAmount = item.Amount
 			description = item.Name
 			itemID = item.ID
 			return nil
@@ -323,9 +324,16 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 			return Invoice{}, err
 		}
 	}
-	if amount <= 0 {
+	if baseAmount <= 0 {
 		return Invoice{}, errors.New("invoice amount must be positive")
 	}
+	if input.TipAmount < 0 || input.TipAmount > baseAmount {
+		return Invoice{}, errors.New("tip must be non-negative and no greater than the base amount")
+	}
+	if baseAmount > int64(^uint64(0)>>1)-input.TipAmount {
+		return Invoice{}, errors.New("invoice total exceeds supported range")
+	}
+	amount := baseAmount + input.TipAmount
 	scope := "invoice:" + merchant.ID
 	if existing, ok, err := s.idempotentInvoice(scope, key, hashJSON(input)); err != nil {
 		return Invoice{}, err
@@ -349,7 +357,7 @@ func (s *Service) CreateInvoice(ctx context.Context, merchant Merchant, input In
 		expiry = central.DueAt
 	}
 	createdAt := s.now()
-	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, FeeBreakdown: FeeBreakdown{NetworkFee: NativeFeeYNXT, MerchantNet: amount, Source: "ynx-pay-fee-policy", AsOf: createdAt, Version: 1}, Status: "pending", ExpiresAt: expiry, CreatedAt: createdAt, SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
+	invoice := Invoice{Version: InvoiceVersion, ID: "inv_" + hashString(central.ID, merchant.ID)[:20], CentralID: central.ID, IntentID: intent.ID, MerchantID: merchant.ID, MerchantName: merchant.DisplayName, PayoutAddress: merchant.PayoutAddress, CatalogItemID: itemID, Description: description, BaseAmount: baseAmount, TipAmount: input.TipAmount, Amount: amount, Asset: NativeAsset, Network: ChainID, Fee: NativeFeeYNXT, FeeBreakdown: FeeBreakdown{NetworkFee: NativeFeeYNXT, MerchantNet: amount, Source: "ynx-pay-fee-policy", AsOf: createdAt, Version: 1}, Status: "pending", ExpiresAt: expiry, CreatedAt: createdAt, SignatureKeyID: merchant.ID + "-invoice-v1", SigningPublicKey: merchant.InvoiceSigningPublicKey, SignatureAlgorithm: "ed25519"}
 	privateText, err := s.open(merchant.InvoiceSigningPrivateCipher)
 	if err != nil {
 		return Invoice{}, errors.New("merchant invoice signing key unavailable")
@@ -821,7 +829,11 @@ func invoiceSigningMaterial(v Invoice) []byte {
 		return []byte(strings.Join([]string{"YNX_PAY_INVOICE_V1", fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm}, "|"))
 	}
 	fee := v.FeeBreakdown
-	return []byte(strings.Join([]string{"YNX_PAY_INVOICE_V2", fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), fmt.Sprint(fee.NetworkFee), fmt.Sprint(fee.ProviderCost), fmt.Sprint(fee.ProtocolFee), fmt.Sprint(fee.Burn), fmt.Sprint(fee.Treasury), fmt.Sprint(fee.MerchantNet), fmt.Sprint(fee.SponsorCost), fmt.Sprint(fee.UserRebate), fee.Source, fee.AsOf.UTC().Format(time.RFC3339Nano), fmt.Sprint(fee.Version), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm}, "|"))
+	base := []string{fmt.Sprint(v.Version), v.ID, v.CentralID, v.IntentID, v.MerchantID, v.MerchantName, v.PayoutAddress, fmt.Sprint(v.Amount), v.Asset, v.Network, fmt.Sprint(v.Fee), fmt.Sprint(fee.NetworkFee), fmt.Sprint(fee.ProviderCost), fmt.Sprint(fee.ProtocolFee), fmt.Sprint(fee.Burn), fmt.Sprint(fee.Treasury), fmt.Sprint(fee.MerchantNet), fmt.Sprint(fee.SponsorCost), fmt.Sprint(fee.UserRebate), fee.Source, fee.AsOf.UTC().Format(time.RFC3339Nano), fmt.Sprint(fee.Version)}
+	if v.Version == 2 {
+		return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V2"}, append(base, v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm)...), "|"))
+	}
+	return []byte(strings.Join(append([]string{"YNX_PAY_INVOICE_V3"}, append(base, fmt.Sprint(v.BaseAmount), fmt.Sprint(v.TipAmount), v.ExpiresAt.UTC().Format(time.RFC3339Nano), v.CreatedAt.UTC().Format(time.RFC3339Nano), v.SignatureKeyID, v.SigningPublicKey, v.SignatureAlgorithm)...), "|"))
 }
 func appendAudit(data *Snapshot, merchant, actor, action, object, outcome, detail string, at time.Time) {
 	data.Audit = append(data.Audit, AuditEntry{ID: "aud_" + hashString(merchant, action, object, at.Format(time.RFC3339Nano))[:20], MerchantID: merchant, Actor: actor, Action: action, ObjectID: object, Outcome: outcome, Detail: detail, At: at})

@@ -6,7 +6,7 @@ Legacy webhook deliveries stored with status `failed` are normalized to `dead_le
 
 - Disk envelope version: 1, HMAC-SHA-256 integrity protected.
 - Snapshot version: 1.
-- Invoice versions: v1 legacy and v2 current, both merchant Ed25519 signed; v2 binds the complete fee breakdown.
+- Invoice versions: v1 legacy, v2 fee-ledger, and v3 current. All are merchant Ed25519 signed; v2 binds the complete fee breakdown, while v3 additionally binds base amount, tip and reconciled total. Readers retain exact v1/v2 verification material.
 - Wallet/Gateway protocol version: 1.
 - Canonical Wallet registry schema: 2.
 

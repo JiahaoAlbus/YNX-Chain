@@ -31,6 +31,12 @@ result bound to the exact signed invoice quote. It then asks the central Pay API
 for the transaction and persists `committed` only when the authoritative
 transaction, block and audit evidence match.
 
+Current invoice version 3 signs the base amount and optional tip separately,
+plus their reconciled total and the complete fee ledger. The tip is capped at
+the base amount. Central intent creation and authoritative settlement matching
+use the total; v1 and v2 signature material remains readable without rewriting
+stored invoices.
+
 `prove-testnet-commit.sh` is the live evidence injection gate. It accepts only
 real Wallet-produced intent/result JSON files and an authenticated product
 session, submits them unchanged, and verifies the returned and subsequently
