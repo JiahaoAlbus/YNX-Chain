@@ -14,4 +14,6 @@ Added a typed settlement-asset registry and `GET /v1/settlement-assets`. Native 
 
 Completed the local webhook dead-letter lifecycle. Five failed attempts now enter a terminal `dead_letter` state and are excluded from automatic retries. Owner/developer manual replay requires a reason and idempotency key, creates a newly signed delivery ID linked to the original, and records the Wallet-authenticated actor in audit. Existing stored `failed` deliveries migrate to `dead_letter` without being silently retried.
 
+Added invoice v3 tip support. Merchants submit a positive base amount and an optional non-negative tip capped at the base amount. The central Pay intent and invoice use the reconciled total; the merchant signature separately binds base, tip and total along with the complete fee ledger. Pay rejects inconsistent fields and shows base/tip in all twelve supported locales before Wallet review. Legacy v1 and v2 signature verification remains intact.
+
 This is not a public release. Central Gateway integration, current device installation proof, fresh Testnet payment/refund/sponsorship evidence, hosted downloads, production signing and store release are not complete.

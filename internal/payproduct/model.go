@@ -7,7 +7,7 @@ const (
 	EVMChainID     = 6423
 	NativeAsset    = "YNXT"
 	NativeFeeYNXT  = int64(1)
-	InvoiceVersion = 2
+	InvoiceVersion = 3
 )
 
 type Merchant struct {
@@ -69,6 +69,8 @@ type Invoice struct {
 	PayoutAddress      string              `json:"payoutAddress"`
 	CatalogItemID      string              `json:"catalogItemId,omitempty"`
 	Description        string              `json:"description,omitempty"`
+	BaseAmount         int64               `json:"baseAmount,omitempty"`
+	TipAmount          int64               `json:"tipAmount,omitempty"`
 	Amount             int64               `json:"amount"`
 	Asset              string              `json:"asset"`
 	Network            string              `json:"network"`
