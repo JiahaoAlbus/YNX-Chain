@@ -7,6 +7,8 @@ const i18n=await readFile(new URL("../src/i18n/i18n.ts",import.meta.url),"utf8")
 const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",import.meta.url),"utf8");
 const controls=await readFile(new URL("../src/control/controlSurface.ts",import.meta.url),"utf8");
 const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.meta.url),"utf8");
+const androidGradle=await readFile(new URL("../android/app/build.gradle",import.meta.url),"utf8");
+const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
 assert.equal(config.name,"YNX Wallet");
 assert.equal(config.scheme,"ynxwallet");
 assert.equal(config.android.package,"com.ynxweb4.wallet");
@@ -17,6 +19,9 @@ assert.equal(config.extra.nativeAsset,"YNXT");
 assert.equal(config.extra.internalAcceptanceShell,false);
 assert.equal(config.userInterfaceStyle,"automatic");
 assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
+assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
+for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
+assert.equal(androidGradle.includes("            signingConfig signingConfigs.debug\n            def enableShrinkResources"),false,"Release must never inherit debug signing");
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);
 for(const required of ["Sign in with YNX Wallet","Requesting App","App identity","Permissions","Purpose","Valid until","Approve","Reject"])assert.equal(`${source}\n${i18n}`.includes(required),true,`missing ${required}`);
 for(const required of ["AI security explanation","authorizationAudit.append","approval-revoked"])assert.equal(`${source}\n${i18n}\n${audit}`.includes(required),true,`missing ${required}`);

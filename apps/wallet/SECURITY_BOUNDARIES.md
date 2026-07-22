@@ -1,5 +1,7 @@
 # YNX Wallet security boundaries
 
+Android Release builds do not inherit the debug signing key. Expo prebuild applies `plugins/withYnxAndroidReleaseSigning.js`; a Release is signed only when the external keystore path, alias, store password and key password are all present, while partial configuration fails during Gradle evaluation. Credentials stay outside the repository and must be supplied by the protected release process. Debug builds use the standard user-level Android debug keystore (or an explicit debug-only override) and are never production artifacts.
+
 Status: implemented and tested locally on the Wallet branch. Central enforcement remains pending review and deployment.
 
 ## Assets and trust anchors
