@@ -2,7 +2,8 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
+  "commit": "31de114bf9944dc89b3d4dea4d7f7abd92b018ba",
+  "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
   "implementedLocal": true,
@@ -14,6 +15,15 @@
   "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
+  "capabilityStates": {
+    "canonicalAuth": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "sponsoredUserOperation": {"implementedLocal":false,"testedLocal":false,"integratedCentral":false,"deployedPublic":false},
+    "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "capitalReview": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
+  },
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [
@@ -47,7 +57,7 @@
     "No staging/public product deployment, production signing or store release exists; hosted binaries are engineering evidence only.",
     "Native iOS development on this host requires full Xcode; the executed macOS CI provides the Simulator build/install evidence.",
     "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
-    "CycloneDX generation is blocked by Expo dependency-tree ESBOMPROBLEMS; package-lock.json is the machine-readable dependency inventory."
+    "CycloneDX 1.6 review SBOM is reproducible and contains 431 runtime components, but four Expo override ELSPROBLEMS keep release-grade SBOM completeness false; package-lock.json remains authoritative."
   ],
-  "generatedAt": "2026-07-18T22:10:00+08:00"
+  "generatedAt": "2026-07-22T22:20:00+08:00"
 }

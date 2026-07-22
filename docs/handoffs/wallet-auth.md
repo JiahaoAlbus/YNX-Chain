@@ -7,15 +7,15 @@ Handoff date: 2026-07-22. Owned branch: `codex/final-wallet-auth`. Worktree: `/U
 - Preserved starting/remote branch tip: `efe827f467107e23482289a5b1f69ac9ff83e694`.
 - Merge base: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`.
 - Compatibility reference observed on `origin/main`: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
-- Product source/evidence commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. The final release-record/handoff branch tip is reported to the controller because a commit cannot contain its own hash.
+- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol/product source commit: `31de114bf9944dc89b3d4dea4d7f7abd92b018ba`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
 - Owned changes are limited to `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. No central acceptance file, long-term objective, root Makefile or other product source was modified.
 
 ## Honest delivery state
 
 | State | Value | Evidence/boundary |
 |---|---:|---|
-| implemented-local | true | Independent Wallet plus canonical SDK, registry and lifecycle code |
-| tested-local | true | Wallet 23/23, SDK 30/30, typecheck/product-check/bundles and root `make test` pass |
+| implemented-local | true | Independent Wallet, canonical lifecycle, Signed Intent, Smart Account policy, mandate/capital and Credential candidates |
+| tested-local | true | Wallet 23/23 and SDK 47/47 plus typecheck/product-check pass on the recovered final branch |
 | installed-local | Android true; iOS Simulator true | API 36 phone/foldable installed and cold-launched; macOS 15/Xcode 26.3 CI installed and cold-launched the unsigned iOS Simulator app |
 | integrated-central | false | Version 3 candidate exists; not merged into/deployed by central Gateway |
 | deployed-staging | false | No staging endpoint or version health exists |
@@ -94,8 +94,9 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - API 36 phone install: success; cold launch 2140/2274 ms and second cold launch 477/513 ms, focused MainActivity verified.
 - Pixel 9 Pro Fold install: success; 2076×2152, cold launch 15082/15742 ms.
 - iOS: Android/iOS Hermes exports pass; all iOS plists pass `plutil`. GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) passed SDK/Wallet checks and pods, built with Xcode 26.3, booted an iPhone Simulator, installed the unsigned Release app, cold-launched `com.ynxweb4.wallet`, routed a malformed `ynxwallet://authorize` URL to the fail-closed rejection UI, captured a screenshot and uploaded the app/evidence artifact. This host still has CommandLineTools only.
-- Dependency/license boundary and failed-closed CycloneDX generation are documented in `DEPENDENCY_REVIEW.md`. Package locks are the complete machine-readable inventory.
+- Dependency/license boundary and the reproducible 431-component CycloneDX review SBOM are documented in `DEPENDENCY_REVIEW.md`. Four Expo override tree errors keep release-grade completeness false; package locks remain authoritative.
 - `git diff --check`, owned-path, secret/placeholder and final worktree checks are rerun before push.
+- Smart Account/mandate/Credential/Signed Intent gates: 17 tests covering property/fuzz/fault, 10,000 sponsorship evaluations, 5,000 Credential parses, 2,000 signed export verifications and a 20,000-evaluation sponsorship benchmark.
 
 ## Artifact record
 
