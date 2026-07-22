@@ -20,6 +20,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | 1:1 YUSD sandbox with reserve/redemption reconciliation | true | true | false | false | false | false | false | false | false | Isolated test-unit ledger and `make yusd-sandbox-check`; no real reserve, custodian, attestation, signer, redemption rail, or value |
 | Treasury bucket snapshot and stress/runway simulation | true | true | false | false | false | false | false | false | false | Exact configured consensus account plus explicit zero/unconfigured buckets; branch-local |
 | Treasury governance, custody and transfer execution | false | false | false | false | false | false | false | false | false | No multisig authority, custody evidence, governed budget, or transfer route |
+| Low/Medium/High seeded macro and agent-ledger stress model | true | true | false | false | false | false | false | false | false | Supply, validator, Treasury, stable reserve, liquidity/Sybil, governance, Bridge/Oracle and readiness distributions; assumptions only |
+| Calibrated production economic forecast | false | false | false | false | false | false | false | false | false | No production telemetry, independent calibration, market-price model, custody/legal evidence, or scale validation |
 | Public economics dashboard and `/ynxt` `/economics` handoff | false | false | false | false | false | false | false | false | false | Metadata and Website handoff not yet built |
 
 ## Current verification
@@ -31,3 +33,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `make liquid-staking-candidate-check` — pass; race-enabled model tests plus reproducible reward/slash/queue/pause/depeg scenario.
 - `make security-pools-candidate-check` — pass; race-enabled isolation, governance, waterfall, slash/cooldown and exit-path tests plus reproducible stress scenario.
 - `make fee-market-candidate-check` — pass; race-enabled lane adjustment, cap rejection, burn/split conservation, sponsorship and audit-hash tests plus reproducible scenario.
+- `make macro-stress-check` — pass; 1,000 seeded iterations per Low/Medium/High scenario with deterministic percentile and named-failure coverage.
