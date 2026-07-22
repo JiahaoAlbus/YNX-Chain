@@ -32,6 +32,8 @@ func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_BRIDGE_HTTP_ADDR", "127.0.0.1:6433"), "Bridge coordinator HTTP listen address")
 	statePath := flag.String("state", envOrDefault("YNX_BRIDGE_STATE_PATH", "tmp/bridge/state.json"), "Bridge persistent state path")
 	threshold := flag.Int("threshold", envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2), "required relayer attestations")
+	rateWindow := flag.Duration("rate-window", envDurationOrDefault("YNX_BRIDGE_RATE_LIMIT_WINDOW", time.Minute), "rate limit window")
+	rateMax := flag.Int("rate-max", envIntOrDefault("YNX_BRIDGE_RATE_LIMIT_MAX", 5000), "maximum requests per API key/IP in window")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
 
@@ -43,7 +45,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies}
+	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax}
 	if *checkConfig {
 		if err := bridgegateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
@@ -127,6 +129,18 @@ func envIntOrDefault(key string, fallback int) int {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
 	if err != nil {
 		return fallback
 	}

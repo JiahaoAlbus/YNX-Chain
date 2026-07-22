@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"sort"
 	"strconv"
@@ -20,12 +21,15 @@ import (
 )
 
 type Service struct {
-	mu             sync.Mutex
-	cfg            Config
-	maxAmounts     map[string]uint64
-	maxOutstanding map[string]uint64
-	policies       map[string]RoutePolicy
-	state          persistentState
+	mu              sync.Mutex
+	cfg             Config
+	maxAmounts      map[string]uint64
+	maxOutstanding  map[string]uint64
+	policies        map[string]RoutePolicy
+	state           persistentState
+	rateMu          sync.Mutex
+	seen            map[string][]time.Time
+	rateLimitDenied uint64
 }
 
 type Health struct {
@@ -45,6 +49,8 @@ type Health struct {
 	LiveBridge                bool           `json:"liveBridge"`
 	TruthfulStatus            string         `json:"truthfulStatus"`
 	Safety                    SafetyState    `json:"safety"`
+	RateLimit                 string         `json:"rateLimit"`
+	RateLimitDenied           uint64         `json:"rateLimitDenied"`
 	Build                     buildinfo.Info `json:"build"`
 }
 
@@ -77,7 +83,7 @@ func New(cfg Config) (*Service, error) {
 		value, _ := strconv.ParseUint(policy.MaxOutstanding, 10, 64)
 		maxOutstanding[routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset)] = value
 	}
-	service := &Service{cfg: normalized, maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state}
+	service := &Service{cfg: normalized, maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state, seen: map[string][]time.Time{}}
 	migrated := false
 	for id, transfer := range service.state.Transfers {
 		if transfer.Phase != "" {
@@ -113,6 +119,36 @@ func (s *Service) Authorized(value string) bool {
 		return false
 	}
 	return subtle.ConstantTimeCompare([]byte(value), []byte(s.cfg.APIKey)) == 1
+}
+
+func (s *Service) Allow(remoteAddr, accessKey string, now time.Time) bool {
+	host, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr))
+	if err != nil {
+		host = strings.TrimSpace(remoteAddr)
+	}
+	key := host + "|" + hashText(strings.TrimSpace(strings.TrimPrefix(accessKey, "Bearer ")))
+	s.rateMu.Lock()
+	defer s.rateMu.Unlock()
+	cutoff := now.UTC().Add(-s.cfg.RateLimitWindow)
+	recent := s.seen[key][:0]
+	for _, at := range s.seen[key] {
+		if at.After(cutoff) {
+			recent = append(recent, at)
+		}
+	}
+	if len(recent) >= s.cfg.RateLimitMax {
+		s.seen[key] = recent
+		s.rateLimitDenied++
+		return false
+	}
+	s.seen[key] = append(recent, now.UTC())
+	return true
+}
+
+func (s *Service) RateLimitSnapshot() (string, uint64) {
+	s.rateMu.Lock()
+	defer s.rateMu.Unlock()
+	return fmt.Sprintf("%d per %s per api-key/ip", s.cfg.RateLimitMax, s.cfg.RateLimitWindow), s.rateLimitDenied
 }
 
 func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult, error) {
@@ -555,6 +591,7 @@ func (s *Service) Health(build buildinfo.Info) Health {
 			health.FinalizedLocalCount++
 		}
 	}
+	health.RateLimit, health.RateLimitDenied = s.RateLimitSnapshot()
 	return health
 }
 

@@ -23,6 +23,7 @@ The canonical Wallet signs user source transactions. Consumer products and AI ne
 | Supply-chain replacement | Trimmed deterministic builds, checksum manifest, SBOM, secret scan | Public signing/provenance service absent |
 | Consumer credits too early | Shared vectors allow availability only at destination confirmation | Consumer branches are not centrally integrated |
 | Provider outage or unsupported chain | Route remains unavailable and external submission disabled | No supported provider route exists |
+| Request flood or credential probing | Per API-key/IP and public-IP rate limits, bounded bodies, request/error correlation IDs | Single-process limiter needs distributed replacement before HA scale |
 
 ## Emergency behavior
 

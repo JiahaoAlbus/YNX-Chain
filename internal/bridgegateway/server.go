@@ -1,13 +1,17 @@
 package bridgegateway
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
@@ -26,7 +30,60 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 	return s
 }
 
-func (s *Server) Handler() http.Handler { return s.mux }
+func (s *Server) Handler() http.Handler { return s.observeAndLimit(s.mux) }
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(status int) {
+	if w.status == 0 {
+		w.status = status
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+func (w *statusWriter) Write(body []byte) (int, error) {
+	if w.status == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+	return w.ResponseWriter.Write(body)
+}
+
+func (s *Server) observeAndLimit(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestID := newRequestID()
+		w.Header().Set("X-Request-ID", requestID)
+		started := time.Now()
+		accessKey := r.Header.Get("X-YNX-Bridge-Key")
+		if accessKey == "" {
+			accessKey = r.Header.Get("Authorization")
+		}
+		writer := &statusWriter{ResponseWriter: w}
+		if !s.service.Allow(r.RemoteAddr, accessKey, started.UTC()) {
+			writeJSON(writer, http.StatusTooManyRequests, map[string]string{"error": "Bridge API rate limit exceeded"})
+		} else {
+			next.ServeHTTP(writer, r)
+		}
+		status := writer.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		pattern := r.Pattern
+		if pattern == "" {
+			pattern = "unmatched"
+		}
+		slog.Info("bridge_http_request", "request_id", requestID, "method", r.Method, "route", pattern, "status", status, "duration_ms", time.Since(started).Milliseconds())
+	})
+}
+
+func newRequestID() string {
+	raw := make([]byte, 12)
+	if _, err := rand.Read(raw); err == nil {
+		return "breq_" + hex.EncodeToString(raw)
+	}
+	return "breq_" + hashText(time.Now().UTC().Format(time.RFC3339Nano))[:24]
+}
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
@@ -67,6 +124,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 		exposure += value
 	}
 	_, _ = fmt.Fprintf(w, "ynx_bridge_coordinator_outstanding{%s} %d\n", labels, exposure)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_rate_limit_denied_total{%s} %d\n", labels, health.RateLimitDenied)
 }
 
 func (s *Server) handleTransparency(w http.ResponseWriter, _ *http.Request) {
@@ -256,6 +314,20 @@ func boundedInt(raw string, fallback int) (int, error) {
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
+	if status >= 400 {
+		requestID := w.Header().Get("X-Request-ID")
+		errorID := "berr_" + hashText(requestID + "|" + strconv.Itoa(status))[:16]
+		w.Header().Set("X-Error-ID", errorID)
+		if original, ok := value.(map[string]string); ok {
+			enriched := map[string]string{}
+			for key, item := range original {
+				enriched[key] = item
+			}
+			enriched["requestId"] = requestID
+			enriched["errorId"] = errorID
+			value = enriched
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)

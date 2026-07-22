@@ -45,12 +45,14 @@ type RoutePolicy struct {
 }
 
 type Config struct {
-	StatePath string
-	APIKey    string
-	Relayers  map[string]ed25519.PublicKey
-	Threshold int
-	Policies  []RoutePolicy
-	Now       func() time.Time
+	StatePath       string
+	APIKey          string
+	Relayers        map[string]ed25519.PublicKey
+	Threshold       int
+	Policies        []RoutePolicy
+	Now             func() time.Time
+	RateLimitWindow time.Duration
+	RateLimitMax    int
 }
 
 func (c Config) normalized() (Config, map[string]uint64, error) {
@@ -155,6 +157,15 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	}
 	if c.Now == nil {
 		c.Now = func() time.Time { return time.Now().UTC() }
+	}
+	if c.RateLimitWindow == 0 {
+		c.RateLimitWindow = time.Minute
+	}
+	if c.RateLimitMax == 0 {
+		c.RateLimitMax = 5000
+	}
+	if c.RateLimitWindow < time.Second || c.RateLimitWindow > time.Hour || c.RateLimitMax < 1 || c.RateLimitMax > 100000 {
+		return Config{}, nil, errors.New("bridge rate limit must use a 1s-1h window and max 1-100000")
 	}
 	return c, maxAmounts, nil
 }

@@ -240,6 +240,41 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	}
 }
 
+func TestBridgeRequestErrorIDsAndRateLimit(t *testing.T) {
+	b := newTestBridge(t)
+	b.cfg.RateLimitMax = 2
+	b.cfg.RateLimitWindow = time.Minute
+	service, err := New(b.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+	for index := 0; index < 3; index++ {
+		response, err := http.Get(server.URL + "/health")
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(response.Body)
+		response.Body.Close()
+		if response.Header.Get("X-Request-ID") == "" {
+			t.Fatal("request id missing")
+		}
+		if index < 2 && response.StatusCode != http.StatusOK {
+			t.Fatalf("early rate rejection: %d %s", response.StatusCode, body)
+		}
+		if index == 2 {
+			if response.StatusCode != http.StatusTooManyRequests || response.Header.Get("X-Error-ID") == "" || !strings.Contains(string(body), `"requestId"`) || !strings.Contains(string(body), `"errorId"`) {
+				t.Fatalf("bad rate-limit response: status=%d headers=%v body=%s", response.StatusCode, response.Header, body)
+			}
+		}
+	}
+	health := service.Health(buildinfo.Info{})
+	if health.RateLimitDenied != 1 || health.RateLimit == "" {
+		t.Fatalf("rate limit health mismatch: %+v", health)
+	}
+}
+
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
 	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}

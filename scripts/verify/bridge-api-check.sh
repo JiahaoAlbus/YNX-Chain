@@ -44,11 +44,14 @@ start_bridge() {
 
 start_bridge
 health="$(curl -fsS "$url/health")"
-printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission")throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
+printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit)throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
 
-status="$(curl -sS -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/transfers")"
+status="$(curl -sS -D "$tmp/unauthorized.headers" -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/transfers")"
 [[ "$status" == 401 ]]
+grep -Eiq '^X-Request-ID: breq_[0-9a-f]{24}' "$tmp/unauthorized.headers"
+grep -Eiq '^X-Error-ID: berr_[0-9a-f]{16}' "$tmp/unauthorized.headers"
+node -e 'const d=JSON.parse(require("fs").readFileSync(process.argv[1]));if(!d.requestId?.startsWith("breq_")||!d.errorId?.startsWith("berr_"))process.exit(1)' "$tmp/unauthorized.json"
 
 body='{"idempotencyKey":"bridge-check-create-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceEventIndex":7,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"100","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
 created="$(curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
@@ -96,6 +99,7 @@ grep -Fq "ynx_bridge_transfers_total" <<<"$metrics"
 grep -Fq "ynx_bridge_external_submission_enabled" <<<"$metrics"
 grep -Fq "ynx_bridge_paused" <<<"$metrics"
 grep -Fq "ynx_bridge_coordinator_outstanding" <<<"$metrics"
+grep -Fq "ynx_bridge_rate_limit_denied_total" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
