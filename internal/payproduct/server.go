@@ -29,6 +29,7 @@ func NewServer(service *Service) *Server {
 func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /v1/settlement-assets", s.settlementAssets)
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
 	s.mux.HandleFunc("POST /v1/merchant/sessions", s.merchantSession)
 	s.mux.HandleFunc("POST /v1/merchant/members", s.merchantMember)
@@ -53,6 +54,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/merchant/reconciliation.csv", s.exportCSV)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
+}
+func (s *Server) settlementAssets(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, map[string]any{"assets": s.service.SettlementAssets(), "fiatIsOnChainAsset": false})
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-pay-product", "network": ChainID, "evmChainId": EVMChainID, "asset": NativeAsset, "feeYnxt": NativeFeeYNXT, "crossChainSettlement": "unavailable", "paidEvidence": "authoritative-central-pay-api"})

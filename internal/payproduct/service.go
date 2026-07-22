@@ -43,6 +43,7 @@ type Config struct {
 	Sponsorship       SponsorshipProvider
 	SponsorPolicy     SponsorPolicy
 	Bridge            BridgeProvider
+	StableApproval    *StableSettlementApproval
 	HTTPClient        *http.Client
 	Now               func() time.Time
 }
@@ -53,6 +54,7 @@ type Service struct {
 	sponsorship       SponsorshipProvider
 	sponsorPolicy     SponsorPolicy
 	bridge            BridgeProvider
+	stableApproval    *StableSettlementApproval
 	bootstrap         string
 	publicBase        string
 	centralMerchantID string
@@ -100,7 +102,7 @@ func New(cfg Config) (*Service, error) {
 			return nil, err
 		}
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, sponsorship: cfg.Sponsorship, sponsorPolicy: cfg.SponsorPolicy, bridge: cfg.Bridge, stableApproval: cfg.StableApproval, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {

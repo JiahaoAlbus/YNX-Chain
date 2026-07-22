@@ -11,7 +11,7 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Webhook signature/retry/audit | partial | signature and retry tests pass; explicit dead-letter/manual resolution coverage incomplete |
 | Tip, split and recurring draft | missing | no complete persisted API/UI workflow |
 | Smart account and sponsorship | partial | fail-closed HTTPS adapter, device/account/merchant budgets, first-payment eligibility, attribution, call-data binding and authoritative UserOperation receipt tests pass locally; no configured public paymaster or live receipt |
-| Stablecoin settlement | unavailable | no reviewed official Testnet asset/provider configuration |
+| Stablecoin settlement | partial / externally unavailable | Local typed registry, public read endpoint and fail-closed approval tests distinguish YNXT, Testnet stablecoin and fiat. Circle's official USDC contract and CCTP domain lists were checked on 2026-07-22 and do not list YNX/6423, so USDC remains `unavailable` with no fabricated address; no live provider settlement exists |
 | Cross-chain entry | partial | optional HTTPS adapter and persisted monotonic quote/source/finality/attestation/destination/refund lifecycle pass local tests; no approved configured provider or live destination proof |
 | Explainable payment routing | partial | native, active-sponsored and bridge candidates are scored from disclosed cost, time, risk, finality, health and user limits; Wallet selection is audited and non-executing; no live provider comparison evidence |
 | Quant/service billing | missing | no external high-water-mark evidence validator |
