@@ -3,7 +3,7 @@
   "productId": "ynx-oracle-market-data",
   "channel": "testnet-candidate",
   "version": "0.1.0-testnet",
-  "sourceCommit": "0b98ce6fdc0d75cbb7d4d77d643aeb2a1a791775",
+  "sourceCommit": "c0860d008bc4e8ed0169a94b4892a4f46950a8dd",
   "artifacts": [],
   "publicApi": null,
   "oracleWeb": {
