@@ -26,6 +26,26 @@
 - Re-run fuzz totals: RBAC 42,125 executions, Webhook 17,790 executions, Settlement 50,809 executions after seed coverage; all passed.
 - Frontend CycloneDX SBOM and path-sanitized Go dependency inventory are recorded under `artifacts/sbom/`.
 
+## Recovery drill (source `53adf12dde18c4e6d0ca3602a528d3efe8c19aef`)
+
+- Built the daemon and independent recovery CLI from the exact source commit.
+- Started and gracefully stopped the service against an ephemeral integrity-protected snapshot; the service operation lock was released.
+- Created and independently verified a non-overwriting backup archive.
+- Changed the current store byte representation to produce a different valid SHA-256, then restored with that exact confirmation.
+- Restored SHA-256 matched the backup source SHA-256; automatic rollback SHA-256 matched the pre-restore state.
+- Machine evidence: `evidence/backup-restore-drill.json` (SHA-256 `eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045`, 3,024 bytes).
+- Scope limitation: 427-byte empty local snapshot. This proves the workflow and guards, not production-size RTO/RPO.
+
+## Observability verification
+
+- HTTP responses and structured JSON logs correlate request and trace IDs; public errors add a supportable error ID and stable code.
+- Tests prove logs omit authorization material and responses sanitize provider bodies, stack details and server paths.
+- Central Pay and AI calls propagate request ID and W3C trace context.
+- The process-local metrics snapshot is protected by a constant-time monitor-key check, fails closed when unconfigured, uses bounded route templates/status/duration buckets, and excludes query strings, headers and keys.
+- `go test -race ./internal/payproduct`, `go test ./internal/payproduct/...` and `go vet ./internal/payproduct/...` passed after these changes.
+- Post-change fuzz rerun passed: RBAC 38,756 executions, Webhook 13,485 executions and Settlement 30,818 executions after baseline coverage.
+- Scope limitation: no OpenTelemetry collector, durable exporter, alert delivery, staging dashboard or measured SLO is claimed.
+
 ## Truthful release state
 
 See `product-release.json`. No public URL, public Testnet transaction, hosted download, central integration or production signature is claimed.

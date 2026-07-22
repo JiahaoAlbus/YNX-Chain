@@ -4,6 +4,8 @@ Current state schema is envelope version 1 and snapshot version 2. The store ver
 
 The current forward migration accepts snapshot v1, removes obsolete product-local `walletChallenges` and `walletSessions`, initializes the Provider Hub map, and writes v2 on the next mutation. Canonical Gateway sessions are reconstructed and never migrated. Missing Merchant RBAC maps are normalized to empty maps. Unknown fields and future snapshot versions fail closed. `TestSnapshotV1MigratesProvidersAndFutureVersionFails` proves both directions.
 
+The guarded recovery workflow is locally proven in `evidence/backup-restore-drill.json`: archive and nested store verification, exact-current-SHA confirmation, operation-lock exclusion, atomic replacement, post-restore verification and rollback-byte preservation all passed against source commit `53adf12dde18c4e6d0ca3602a528d3efe8c19aef`.
+
 Release gates still open:
 
 - Add an explicit schema migration registry and golden fixtures for every supported prior version.

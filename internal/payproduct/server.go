@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,16 +17,27 @@ const maxRequestBytes = 1 << 20
 type Server struct {
 	service *Service
 	mux     *http.ServeMux
+	logger  *slog.Logger
+	metrics *RuntimeMetrics
 }
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	return NewServerWithLogger(service, newDiscardLogger())
+}
+func NewServerWithLogger(service *Service, logger *slog.Logger) *Server {
+	if logger == nil {
+		logger = newDiscardLogger()
+	}
+	s := &Server{service: service, mux: http.NewServeMux(), logger: logger, metrics: NewRuntimeMetrics()}
 	s.routes()
 	return s
 }
-func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
+func (s *Server) Handler() http.Handler {
+	return requestObservability(securityHeaders(s.mux), s.logger, s.metrics)
+}
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /internal/metrics", s.runtimeMetrics)
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
 	s.mux.HandleFunc("POST /v1/merchant/sessions", s.merchantSession)
 	s.mux.HandleFunc("POST /v1/merchant/members", s.merchantMember)
@@ -48,6 +60,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/merchant/capital", s.capital)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
+}
+func (s *Server) runtimeMetrics(w http.ResponseWriter, r *http.Request) {
+	key := s.service.monitorKey
+	if len(key) < 24 || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-YNX-Monitor-Key")), []byte(key)) != 1 {
+		writeError(w, http.StatusUnauthorized, "valid monitor key required")
+		return
+	}
+	writeJSON(w, http.StatusOK, s.metrics.Snapshot(s.service.now().UTC()))
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	status := 200
@@ -147,7 +167,7 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
-		writeError(w, 401, err.Error())
+		writeError(w, 401, publicErrorMessage(err))
 		return
 	}
 	var in struct {
@@ -169,7 +189,7 @@ func (s *Server) refund(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
-		writeError(w, 401, err.Error())
+		writeError(w, 401, publicErrorMessage(err))
 		return
 	}
 	var in struct {
@@ -191,7 +211,7 @@ func (s *Server) dispute(w http.ResponseWriter, r *http.Request) {
 	}
 	session, err := s.service.VerifyPayGateway(r, body)
 	if err != nil {
-		writeError(w, 401, err.Error())
+		writeError(w, 401, publicErrorMessage(err))
 		return
 	}
 	var in struct {
@@ -352,7 +372,7 @@ func (s *Server) merchantAuth(w http.ResponseWriter, r *http.Request, permission
 	}
 	p, err := s.service.AuthenticateMerchantSession(r.Header.Get("Authorization"))
 	if err != nil {
-		writeError(w, 401, err.Error())
+		writeError(w, 401, publicErrorMessage(err))
 		return MerchantPrincipal{}, nil, false
 	}
 	if !roleAllows(p.Role, permission) {
@@ -379,13 +399,16 @@ func decodeBytes(w http.ResponseWriter, raw []byte, out any) bool {
 }
 func respond(w http.ResponseWriter, status int, value any, err error) {
 	if err != nil {
-		writeError(w, 400, err.Error())
+		writeError(w, 400, publicErrorMessage(err))
 		return
 	}
 	writeJSON(w, status, value)
 }
 func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
+	requestID := w.Header().Get("X-Request-ID")
+	errorID := "err_" + randomToken(12)
+	w.Header().Set("X-Error-ID", errorID)
+	writeJSON(w, status, map[string]string{"error": message, "errorId": errorID, "requestId": requestID, "code": errorCode(status)})
 }
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json")
@@ -398,6 +421,9 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+		w.Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 		next.ServeHTTP(w, r)
 	})
 }

@@ -21,6 +21,12 @@ fail honestly as `provider_unavailable`. Cross-chain settlement is always
 reported as `unavailable` until the central integration authority supplies a
 real approved bridge route.
 
+Set the optional `YNX_PAY_PRODUCT_MONITOR_KEY` to a dedicated value containing
+at least 24 characters to enable authenticated reads of `GET /internal/metrics`
+with `X-YNX-Monitor-Key`. Without it the endpoint fails closed. The returned
+request counters and duration buckets are direct process-local observations and
+reset on restart; structured JSON request logs are written to stdout.
+
 Wallet authorization implements the central Wallet/Gateway contract: canonical
 Wallet request and approval, compact low-S secp256k1 account signature, P-256
 product-device challenge completion, exact product/bundle/scope binding, expiry

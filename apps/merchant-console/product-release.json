@@ -2,7 +2,7 @@
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
   "branch": "codex/final-merchant-console",
-  "commit": "574f28500819f091e369c1900db09bab50bda649",
+  "commit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -34,7 +34,8 @@
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
+  "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Official provider adapters/credentials, executable capital services, restore drill, end-to-end capacity and public Testnet evidence remain incomplete."],
+  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete."],
   "generatedAt": "2026-07-22T00:00:00+08:00"
 }

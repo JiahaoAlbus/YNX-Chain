@@ -9,5 +9,7 @@
 - Added read-only capital capability and transparent settlement waterfall APIs/UI without invented cost or merchant-net values.
 - Replaced fixed health success with direct liveness/store evidence and unverified dependency readiness.
 - Added frontend CycloneDX SBOM and backend module inventory.
+- Added an independent backup/verify/restore CLI with exact source commit, nested integrity checks, non-overwrite behavior, running-service exclusion, exact-current-SHA confirmation, automatic rollback preservation and verified local drill evidence.
+- Added correlated request/trace/error IDs, redacted structured request logs, outbound trace propagation and a fail-closed process-local metrics snapshot.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.

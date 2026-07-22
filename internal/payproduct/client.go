@@ -84,6 +84,12 @@ func (c *HTTPPayAPI) do(ctx context.Context, method, path string, body any, out 
 	}
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
 	req.Header.Set("Content-Type", "application/json")
+	if requestID := RequestIDFromContext(ctx); requestID != "" {
+		req.Header.Set("X-Request-ID", requestID)
+	}
+	if traceparent := TraceparentFromContext(ctx); traceparent != "" {
+		req.Header.Set("traceparent", traceparent)
+	}
 	resp, err := c.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("central Pay API unavailable: %w", err)

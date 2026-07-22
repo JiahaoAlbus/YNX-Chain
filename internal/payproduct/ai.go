@@ -90,7 +90,7 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 	}
 	recordJSON, _ := json.Marshal(records)
 	prompt := fmt.Sprintf("You are the YNX Pay %s workflow. Analyze only the supplied authorized JSON records. Never sign, pay, refund, redirect funds, approve disputes, or modify secrets. Return a factual draft in %s with record IDs and uncertainty. Records: %s", input.Workflow, language, recordJSON)
-	providerContext, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	providerContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), 60*time.Second)
 	s.aiMu.Lock()
 	s.aiCancels[run.ID] = cancel
 	s.aiMu.Unlock()
@@ -174,6 +174,12 @@ func (p *HTTPAIProvider) Complete(ctx context.Context, session, prompt string) (
 		return "YNX AI Gateway", p.Model, "", 0, err
 	}
 	req.Header.Set("Authorization", "Bearer "+p.APIKey)
+	if requestID := RequestIDFromContext(ctx); requestID != "" {
+		req.Header.Set("X-Request-ID", requestID)
+	}
+	if traceparent := TraceparentFromContext(ctx); traceparent != "" {
+		req.Header.Set("traceparent", traceparent)
+	}
 	resp, err := p.Client.Do(req)
 	if err != nil {
 		return "YNX AI Gateway", p.Model, "", 0, err

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef",
+  "classification": "local-unsigned-recovery-drill",
+  "networkActions": false,
+  "backup": {
+    "manifest": {
+      "formatVersion": 1,
+      "backupId": "bkp_ef24d2ea61cab16d2cff52df",
+      "createdAt": "2026-07-22T14:48:47.514235Z",
+      "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef",
+      "sourceSha256": "41c6e3d729e8d62912d3a97e7ff7edbff04cfa8c247dc20ec5b8b25a521a042f",
+      "sourceBytes": 427,
+      "snapshotVersion": 2,
+      "recordCounts": {
+        "aiRuns": 0,
+        "auditEntries": 0,
+        "catalog": 0,
+        "disputes": 0,
+        "invoices": 0,
+        "members": 0,
+        "merchants": 0,
+        "providers": 0,
+        "refunds": 0,
+        "webhookDeliveries": 0
+      },
+      "integrity": "HMAC-SHA256 plus nested state-envelope HMAC-SHA256"
+    },
+    "operation": "backup",
+    "status": "verified"
+  },
+  "verification": {
+    "manifest": {
+      "formatVersion": 1,
+      "backupId": "bkp_ef24d2ea61cab16d2cff52df",
+      "createdAt": "2026-07-22T14:48:47.514235Z",
+      "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef",
+      "sourceSha256": "41c6e3d729e8d62912d3a97e7ff7edbff04cfa8c247dc20ec5b8b25a521a042f",
+      "sourceBytes": 427,
+      "snapshotVersion": 2,
+      "recordCounts": {
+        "aiRuns": 0,
+        "auditEntries": 0,
+        "catalog": 0,
+        "disputes": 0,
+        "invoices": 0,
+        "members": 0,
+        "merchants": 0,
+        "providers": 0,
+        "refunds": 0,
+        "webhookDeliveries": 0
+      },
+      "integrity": "HMAC-SHA256 plus nested state-envelope HMAC-SHA256"
+    },
+    "operation": "verify",
+    "status": "verified"
+  },
+  "restore": {
+    "evidence": {
+      "formatVersion": 1,
+      "backupId": "bkp_ef24d2ea61cab16d2cff52df",
+      "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef",
+      "restoredAt": "2026-07-22T14:48:47.586604Z",
+      "beforeSha256": "cc576d00a8161f9d9662541fbb75941aa972c9ddb486512fbf477f79cf4d4e49",
+      "afterSha256": "41c6e3d729e8d62912d3a97e7ff7edbff04cfa8c247dc20ec5b8b25a521a042f",
+      "restoredBytes": 427,
+      "snapshotVersion": 2,
+      "rollbackFileName": "state.json.rollback.20260722T144847.586604000Z.cc576d00a816",
+      "verified": true
+    },
+    "operation": "restore",
+    "status": "verified"
+  },
+  "checks": {
+    "sourceSha256": "41c6e3d729e8d62912d3a97e7ff7edbff04cfa8c247dc20ec5b8b25a521a042f",
+    "preRestoreSha256": "cc576d00a8161f9d9662541fbb75941aa972c9ddb486512fbf477f79cf4d4e49",
+    "restoredSha256": "41c6e3d729e8d62912d3a97e7ff7edbff04cfa8c247dc20ec5b8b25a521a042f",
+    "rollbackSha256": "cc576d00a8161f9d9662541fbb75941aa972c9ddb486512fbf477f79cf4d4e49",
+    "restoredMatchesBackup": true,
+    "rollbackMatchesPreRestore": true,
+    "serviceLockReleased": true
+  },
+  "limitations": [
+    "Ephemeral local state; not a staging or public restore.",
+    "No production credentials, funds, provider calls, or network settlement were used."
+  ]
+}

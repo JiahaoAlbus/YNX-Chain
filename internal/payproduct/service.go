@@ -36,6 +36,7 @@ type Config struct {
 	IntegrityKey      []byte
 	GatewayKey        []byte
 	BootstrapKey      string
+	MonitorKey        string
 	PublicBaseURL     string
 	CentralMerchantID string
 	PayAPI            PayAPI
@@ -50,6 +51,7 @@ type Service struct {
 	ai                AIProvider
 	providerProbe     ProviderProbe
 	bootstrap         string
+	monitorKey        string
 	publicBase        string
 	centralMerchantID string
 	key               []byte
@@ -91,7 +93,7 @@ func New(cfg Config) (*Service, error) {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, monitorKey: strings.TrimSpace(cfg.MonitorKey), publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {

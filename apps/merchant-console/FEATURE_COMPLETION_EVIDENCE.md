@@ -18,7 +18,8 @@ This ledger is intentionally fail-closed: `implemented` means current source con
 | Provider Integration Hub | partial | yes | Nine-category versioned catalog, credential-reference-only configuration, server-side probe contract, failure/disable/audit tests and UI | Implement and remotely verify each official production adapter |
 | Capital tools and transparent fee waterfall | partial | yes | Evidence-only `capital-v1` API/UI; 14 disclosed capabilities; unknown reserves/costs/net remain unavailable | Implement authorized providers and complete authoritative fee records |
 | Snapshot v1 to v2 migration | yes | yes | `TestSnapshotV1MigratesProvidersAndFutureVersionFails` | Add full CLI backup/restore/rollback drill |
-| Backup/restore drill | partial | no | Integrity-protected atomic local store exists | Add operator command, destructive-restore guard and drill log |
+| Backup/verify/restore/rollback | yes-local | yes | Recovery CLI, nested HMAC verification, exact-SHA guard, store lock, rollback copy and `evidence/backup-restore-drill.json` | Repeat with production-sized staging copy and remote operator evidence |
+| Request observability and runtime metrics | yes-local | yes | Correlated request/trace/error IDs, redacted JSON logs, outbound trace propagation, fail-closed monitor endpoint and race-tested bounded metrics | Add OpenTelemetry/exporter, durable business metrics, alerts and staging dashboard |
 | Public/staging deployment | no | no | No current URL, health response or hosted hash | Operator inputs and deployment |
 
 The product is not release-complete while any remaining gate above is open.
