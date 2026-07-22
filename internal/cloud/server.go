@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -20,10 +21,32 @@ type Server struct {
 	startedAt     time.Time
 	requests      map[string]int64
 	latencyMillis map[string]int64
+	limits        ServerLimits
+	inflight      chan struct{}
+	clients       map[string]clientWindow
+	rejections    map[string]int64
+}
+
+type ServerLimits struct {
+	MaxConcurrent     int
+	RequestsPerMinute int
+}
+type clientWindow struct {
+	StartedAt time.Time
+	Count     int
 }
 
 func NewServer(service *Service) *Server {
-	return &Server{service: service, startedAt: service.cfg.Now(), requests: map[string]int64{}, latencyMillis: map[string]int64{}}
+	return NewServerWithLimits(service, ServerLimits{MaxConcurrent: 128, RequestsPerMinute: 120})
+}
+func NewServerWithLimits(service *Service, limits ServerLimits) *Server {
+	if limits.MaxConcurrent < 1 {
+		limits.MaxConcurrent = 128
+	}
+	if limits.RequestsPerMinute < 1 {
+		limits.RequestsPerMinute = 120
+	}
+	return &Server{service: service, startedAt: service.cfg.Now(), requests: map[string]int64{}, latencyMillis: map[string]int64{}, limits: limits, inflight: make(chan struct{}, limits.MaxConcurrent), clients: map[string]clientWindow{}, rejections: map[string]int64{}}
 }
 
 type observedWriter struct {
@@ -53,20 +76,66 @@ func (s *Server) observe(next http.Handler) http.Handler {
 		requestID := newID("request")
 		w.Header().Set("X-Request-ID", requestID)
 		ow := &observedWriter{ResponseWriter: w}
-		next.ServeHTTP(ow, r)
-		if ow.status == 0 {
-			ow.status = 200
-		}
-		duration := time.Since(started)
-		key := fmt.Sprintf("%s %s %d", r.Method, r.URL.Path, ow.status)
+		defer func() {
+			if ow.status == 0 {
+				ow.status = 200
+			}
+			duration := time.Since(started)
+			key := fmt.Sprintf("%s %s %d", r.Method, r.URL.Path, ow.status)
+			s.mu.Lock()
+			s.requests[key]++
+			s.latencyMillis[key] += duration.Milliseconds()
+			s.mu.Unlock()
+			record := map[string]any{"level": "info", "event": "http.request", "requestId": requestID, "method": r.Method, "path": r.URL.Path, "status": ow.status, "bytes": ow.bytes, "durationMs": duration.Milliseconds()}
+			encoded, _ := json.Marshal(record)
+			log.Print(string(encoded))
+		}()
+		client := directClient(r.RemoteAddr)
+		now := s.service.cfg.Now()
 		s.mu.Lock()
-		s.requests[key]++
-		s.latencyMillis[key] += duration.Milliseconds()
+		window := s.clients[client]
+		if window.StartedAt.IsZero() || now.Sub(window.StartedAt) >= time.Minute {
+			window = clientWindow{StartedAt: now}
+		}
+		if window.Count >= s.limits.RequestsPerMinute {
+			s.rejections["rate_limit"]++
+			s.mu.Unlock()
+			w.Header().Set("Retry-After", strconv.Itoa(max(1, 60-int(now.Sub(window.StartedAt).Seconds()))))
+			writeError(ow, http.StatusTooManyRequests, "client request rate exceeded; retry after the advertised interval")
+			return
+		}
+		window.Count++
+		s.clients[client] = window
+		if len(s.clients) > 10000 {
+			for key, value := range s.clients {
+				if now.Sub(value.StartedAt) >= 2*time.Minute {
+					delete(s.clients, key)
+				}
+			}
+		}
 		s.mu.Unlock()
-		record := map[string]any{"level": "info", "event": "http.request", "requestId": requestID, "method": r.Method, "path": r.URL.Path, "status": ow.status, "bytes": ow.bytes, "durationMs": duration.Milliseconds()}
-		encoded, _ := json.Marshal(record)
-		log.Print(string(encoded))
+		select {
+		case s.inflight <- struct{}{}:
+			defer func() { <-s.inflight }()
+			next.ServeHTTP(ow, r)
+		default:
+			s.mu.Lock()
+			s.rejections["backpressure"]++
+			s.mu.Unlock()
+			w.Header().Set("Retry-After", "1")
+			writeError(ow, http.StatusServiceUnavailable, "server concurrency capacity reached; retry with backoff")
+		}
 	})
+}
+func directClient(remote string) string {
+	host, _, err := net.SplitHostPort(remote)
+	if err == nil && host != "" {
+		return host
+	}
+	if strings.TrimSpace(remote) == "" {
+		return "unknown"
+	}
+	return remote
 }
 
 func (s *Server) Handler() http.Handler {
@@ -137,7 +206,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	writeJSON(w, 200, map[string]any{"schemaVersion": 1, "source": "ynx-cloudd in-process counters", "asOf": s.service.cfg.Now(), "startedAt": s.startedAt, "requests": s.requests, "totalLatencyMillis": s.latencyMillis, "coverage": "current process only; reset on restart"})
+	writeJSON(w, 200, map[string]any{"schemaVersion": 1, "source": "ynx-cloudd in-process counters", "asOf": s.service.cfg.Now(), "startedAt": s.startedAt, "requests": s.requests, "totalLatencyMillis": s.latencyMillis, "rejections": s.rejections, "inflight": len(s.inflight), "maxConcurrent": s.limits.MaxConcurrent, "requestsPerMinutePerDirectClient": s.limits.RequestsPerMinute, "clientIdentityBoundary": "direct TCP peer; X-Forwarded-For is not trusted", "coverage": "current process only; reset on restart"})
 }
 
 type authed func(http.ResponseWriter, *http.Request, Session)

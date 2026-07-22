@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -139,5 +140,67 @@ func TestDirectUploadCSPIsExactAndOptional(t *testing.T) {
 		if got := rr.Header().Get("Content-Security-Policy"); !strings.Contains(got, tc.want) {
 			t.Fatalf("origin %q CSP %q want %q", tc.origin, got, tc.want)
 		}
+	}
+}
+
+func TestRateLimitIgnoresForwardedIdentityAndResets(t *testing.T) {
+	now := time.Now().UTC()
+	s := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
+	handler := NewServerWithLimits(s, ServerLimits{MaxConcurrent: 2, RequestsPerMinute: 2}).Handler()
+	for i := 0; i < 3; i++ {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		req.RemoteAddr = "192.0.2.10:4321"
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("198.51.100.%d", i))
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		want := 200
+		if i == 2 {
+			want = 429
+		}
+		if rr.Code != want {
+			t.Fatalf("request %d got %d want %d", i, rr.Code, want)
+		}
+		if i == 2 && (rr.Header().Get("Retry-After") == "" || rr.Header().Get("X-Error-ID") == "") {
+			t.Fatalf("rate limit headers: %#v", rr.Header())
+		}
+	}
+	now = now.Add(time.Minute)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.RemoteAddr = "192.0.2.10:9999"
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != 200 {
+		t.Fatalf("window did not reset: %d", rr.Code)
+	}
+}
+
+func TestBackpressureRejectsWithoutQueueing(t *testing.T) {
+	s := testService(t, nil)
+	server := NewServerWithLimits(s, ServerLimits{MaxConcurrent: 1, RequestsPerMinute: 100})
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	handler := server.observe(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { close(entered); <-release; w.WriteHeader(204) }))
+	done := make(chan struct{})
+	go func() {
+		req := httptest.NewRequest(http.MethodGet, "/slow", nil)
+		req.RemoteAddr = "192.0.2.1:1"
+		handler.ServeHTTP(httptest.NewRecorder(), req)
+		close(done)
+	}()
+	<-entered
+	req := httptest.NewRequest(http.MethodGet, "/slow", nil)
+	req.RemoteAddr = "192.0.2.2:2"
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != 503 || rr.Header().Get("Retry-After") != "1" || rr.Header().Get("X-Error-ID") == "" {
+		t.Fatalf("backpressure: %d %#v", rr.Code, rr.Header())
+	}
+	close(release)
+	<-done
+	server.mu.Lock()
+	rejected := server.rejections["backpressure"]
+	server.mu.Unlock()
+	if rejected != 1 {
+		t.Fatalf("backpressure metric %d", rejected)
 	}
 }

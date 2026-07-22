@@ -76,6 +76,8 @@ func main() {
 	devWallet := flag.Bool("dev-wallet", false, "enable explicit local-only Wallet test verifier")
 	backupDir := flag.String("backup", "", "create a verified recovery backup in this new directory and exit")
 	restoreDir := flag.String("restore", "", "restore this verified recovery backup into the new data directory and exit")
+	maxConcurrent := flag.Int("max-concurrent", 128, "maximum in-flight HTTP requests before fail-fast backpressure")
+	requestsPerMinute := flag.Int("requests-per-minute", 120, "fixed-window requests per direct TCP client")
 	flag.Parse()
 	if *backupDir != "" && *restoreDir != "" {
 		log.Fatal("-backup and -restore are mutually exclusive")
@@ -122,7 +124,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	api := cloud.NewServer(service).Handler()
+	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
 	mux.Handle("/health", api)
