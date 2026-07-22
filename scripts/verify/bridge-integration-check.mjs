@@ -11,6 +11,7 @@ const fail = (message) => { throw new Error(message); };
 
 if (manifest.schemaVersion !== 1 || manifest.currentIntegrationState !== "handoff_only_not_integrated") fail("manifest integration state is invalid");
 if (manifest.publicRead.path !== "/bridge/transparency" || manifest.publicRead.deployedPublic !== false) fail("public read boundary is invalid");
+if (manifest.routeCatalog.path !== "/bridge/routes" || manifest.routeCatalog.source !== "ynx-bridge-route-registry" || manifest.routeCatalog.quotesExecutable !== false || manifest.routeCatalog.deployedPublic !== false) fail("route catalog boundary is invalid");
 if (manifest.sdk.path !== "sdk/bridge" || manifest.sdk.package !== "@ynx-chain/bridge-sdk" || manifest.sdk.access !== "public-read-only" || manifest.sdk.acceptsCredentials !== false || manifest.sdk.registryPublished !== false || manifest.sdk.assetAvailableOnlyAt !== "destination_confirmed") fail("Bridge SDK handoff boundary is invalid");
 if (sdk.name !== manifest.sdk.package || sdk.version !== manifest.sdk.version || sdk.private !== true) fail("Bridge SDK package state is invalid");
 if (manifest.protectedCoordinatorBoundary.consumerCredentialAccess !== false || manifest.protectedCoordinatorBoundary.browserCredentialAccess !== false || manifest.protectedCoordinatorBoundary.walletSecretAccess !== false || manifest.protectedCoordinatorBoundary.centralGatewayIntegrated !== false) fail("protected boundary is invalid");

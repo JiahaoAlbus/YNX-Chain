@@ -16,7 +16,7 @@ go build -trimpath -o "$tmp/ynx-bridged" ./cmd/ynx-bridged
 
 api_key="bridge-api-check-key"
 relayers='{"relayer-a":"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=","relayer-b":"PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=","relayer-c":"/FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU="}'
-policies='[{"provider":"local-api-check","sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"2000","dailyLimit":"1500","userOutstandingLimit":"1000","largeTransferThreshold":"500","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+policies='[{"provider":"local-api-check","classification":"external-bridge-adapter","sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"2000","dailyLimit":"1500","userOutstandingLimit":"1000","largeTransferThreshold":"500","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 state="$tmp/state/bridge.json"
 url="http://127.0.0.1:16433"
 log="$tmp/bridge.log"
@@ -50,7 +50,8 @@ grep -Eiq '^Traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-[0-9a-f]{16}-01' "$
 health="$(curl -fsS "$url/health")"
 printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission"||!d.rateLimit||!d.retentionPolicy?.startsWith("24h"))throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
-BRIDGE_URL="$url" node --input-type=module -e 'import {YNXBridgeClient} from "./sdk/bridge/index.js";const c=new YNXBridgeClient({baseURL:process.env.BRIDGE_URL});const [h,t]=await Promise.all([c.getHealth(),c.getTransparency()]);if(h.liveBridge!==false||t.routes.length!==1)process.exit(1)'
+curl -fsS "$url/bridge/routes" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const r=d.routes?.[0];if(d.source!=="ynx-bridge-route-registry"||r.classification!=="external-bridge-adapter"||r.availability!=="unavailable"||r.executable!==false||r.externalSubmissionEnabled!==false||r.source.contract!==null||r.destination.contract!==null||r.fees.providerFee!==null||r.slippage.maximumBps!==null||r.timing.estimatedMaxSeconds!==null||r.refund.available!==false)throw new Error(`bad fail-closed route catalog ${JSON.stringify(d)}`)'
+BRIDGE_URL="$url" node --input-type=module -e 'import {YNXBridgeClient} from "./sdk/bridge/index.js";const c=new YNXBridgeClient({baseURL:process.env.BRIDGE_URL});const [h,t,r]=await Promise.all([c.getHealth(),c.getTransparency(),c.getRoutes()]);if(h.liveBridge!==false||t.routes.length!==1||r.routes[0].executable!==false)process.exit(1)'
 
 status="$(curl -sS -D "$tmp/unauthorized.headers" -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/transfers")"
 [[ "$status" == 401 ]]
@@ -119,4 +120,4 @@ grep -Fq "ynx_bridge_reconciliation_timestamp_seconds{" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent intents, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"
+echo "bridge-api-check passed: fail-closed route catalog, persistent intents, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"

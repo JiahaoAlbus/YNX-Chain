@@ -702,6 +702,36 @@ func (s *Service) Transparency() Transparency {
 	return result
 }
 
+func (s *Service) RouteCatalog() RouteCatalog {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := RouteCatalog{SchemaVersion: 1, Source: "ynx-bridge-route-registry", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "configured-fail-closed-candidates-not-live-provider-quotes", Routes: []RouteCatalogEntry{}}
+	keys := make([]string, 0, len(s.policies))
+	for key := range s.policies {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		policy := s.policies[key]
+		result.Routes = append(result.Routes, RouteCatalogEntry{
+			ID:       "route_" + hashText(key + "|" + policy.Provider + "|" + policy.Classification)[:24],
+			Provider: policy.Provider, Classification: policy.Classification,
+			Availability: "unavailable", FailureStatus: "provider-or-contract-route-unavailable", ProviderHealth: "not-connected",
+			Source:      RouteAssetEndpoint{Chain: policy.SourceChain, Asset: policy.SourceAsset},
+			Destination: RouteAssetEndpoint{Chain: policy.DestinationChain, Asset: policy.DestinationAsset},
+			Fees:        RouteFeeDisclosure{Status: "unavailable-no-executable-route", HiddenSpread: false},
+			Slippage:    RouteSlippageDisclosure{Status: "not-applicable-no-executable-route"},
+			Timing:      RouteTimingDisclosure{Status: "unavailable-no-provider-route"},
+			Finality:    RouteFinalityDisclosure{SourceConfirmations: policy.MinConfirmations, ProofVerification: "local-relayer-attestation-only-not-independent-chain-proof"},
+			Refund:      RouteRefundDisclosure{Available: false, Mode: "evidence-recording-only-no-external-refund-execution"},
+			Risk:        []string{"provider support is not verified", "source and destination contracts are not configured or verified", "destination finality is not independently verified", "route has no funded testnet evidence", "external submission is disabled"},
+			Limits:      policy, Executable: false, ExternalSubmissionEnabled: false,
+			UserSigning: "canonical-wallet-required", CredentialBoundary: "browser-and-consumers-have-no-bridge-or-provider-secret",
+		})
+	}
+	return result
+}
+
 func (s *Service) Get(transferID string) (Transfer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

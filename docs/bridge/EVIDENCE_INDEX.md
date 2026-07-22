@@ -17,6 +17,8 @@
 - Consumer manifest: `docs/bridge/consumer-integration-manifest.json`
 - Consumer lifecycle vectors: `docs/bridge/consumer-lifecycle-vectors.json`
 - Provider status: `docs/bridge/provider-status.json`
+- Route adapter contract: `docs/bridge/ROUTE_ADAPTER.md`
+- Route adapter gate: `scripts/verify/bridge-route-adapter-check.mjs`
 - Consumer handoff: `docs/handoffs/bridge-consumers.md`
 - Integration gate: `scripts/verify/bridge-integration-check.mjs`
 - Read-only SDK: `sdk/bridge`

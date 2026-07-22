@@ -1,5 +1,6 @@
 # Bridge Release Notes
 
+- Added a public, read-only `/bridge/routes` catalog and SDK method with exact route classification, contract/token/fee/slippage/time/risk/finality/refund disclosures. All current candidates fail closed with null quote fields and no external execution.
 - Added persistence schema v3 with source-qualified account export, durable deletion requests, active-transfer safety holds, configurable retention, separately authorized execution, identity pseudonymization, v2 migration, and service-cessation guidance. Financial and security evidence remains intact.
 - Added an independent dependency-free Bridge JavaScript SDK for credential-free health/transparency reads and fail-closed destination-availability classification. The package is locally tested, private, and not registry-published.
 - Added W3C trace-context propagation, bounded per-route safety/reconciliation metrics, loadable Prometheus alerts, and an importable Bridge safety/SLO dashboard. These are local definitions; no remote monitoring or public status service is claimed.

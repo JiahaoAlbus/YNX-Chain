@@ -45,6 +45,10 @@ export class YNXBridgeClient {
     return validateTransparency(await this.#request("bridge/transparency"));
   }
 
+  async getRoutes() {
+    return validateRoutes(await this.#request("bridge/routes"));
+  }
+
   async #request(path) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
@@ -123,8 +127,24 @@ function validateTransparency(value) {
   return Object.freeze(value);
 }
 
+function validateRoutes(value) {
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1 || value.source !== "ynx-bridge-route-registry" || !validTimestamp(value.asOf) || value.coverage !== "configured-fail-closed-candidates-not-live-provider-quotes" || !Array.isArray(value.routes)) {
+    throw new YNXBridgeSDKError("Bridge route catalog contract is invalid");
+  }
+  for (const route of value.routes) {
+    const endpoints = [route?.source, route?.destination];
+    const unavailable = route?.availability === "unavailable" && route?.executable === false && route?.externalSubmissionEnabled === false;
+    const nullEndpointEvidence = endpoints.every((endpoint) => endpoint && endpoint.contract === null && endpoint.symbol === null && endpoint.decimals === null && endpoint.explorerUrl === null && endpoint.contractVerified === false);
+    const nullQuoteEvidence = route?.fees?.status === "unavailable-no-executable-route" && [route.fees.currency, route.fees.sourceGas, route.fees.destinationGas, route.fees.providerFee, route.fees.ynxFee, route?.slippage?.maximumBps, route?.timing?.estimatedMinSeconds, route?.timing?.estimatedMaxSeconds, route?.finality?.destinationRule, route?.refund?.sla].every((item) => item === null);
+    if (!unavailable || !nullEndpointEvidence || !nullQuoteEvidence || route.fees.hiddenSpread !== false || route.refund?.available !== false || typeof route.classification !== "string" || !validRoute(route.limits)) {
+      throw new YNXBridgeSDKError("Bridge route catalog overclaims route availability");
+    }
+  }
+  return Object.freeze(value);
+}
+
 function validRoute(route) {
-  const identities = [route.provider, route.sourceChain, route.destinationChain, route.sourceAsset, route.destinationAsset, route.assetBoundary];
+  const identities = [route.provider, route.classification, route.sourceChain, route.destinationChain, route.sourceAsset, route.destinationAsset, route.assetBoundary];
   return identities.every((value) => typeof value === "string" && value.length >= 3) &&
     typeof route.externalSubmission === "boolean" && /^[1-9][0-9]*$/.test(route.maxAmount) && /^[1-9][0-9]*$/.test(route.maxOutstanding);
 }

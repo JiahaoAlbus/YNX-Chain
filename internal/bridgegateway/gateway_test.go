@@ -45,8 +45,9 @@ func newTestBridge(t *testing.T) *testBridge {
 	cfg := Config{
 		StatePath: state, APIKey: testAPIKey, Relayers: public, Threshold: 2,
 		Policies: []RoutePolicy{{
-			Provider:    "local-test-provider",
-			SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
+			Provider:       "local-test-provider",
+			Classification: "external-bridge-adapter",
+			SourceChain:    "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
 			MinConfirmations: 12, MaxAmount: "1000", MaxOutstanding: "1000", DailyLimit: "2000", UserOutstandingLimit: "1000", LargeTransferThreshold: "500", LargeTransferDelaySeconds: 3600, AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
 		}},
 		Now: func() time.Time { return now },
@@ -414,7 +415,7 @@ func TestBridgeV2StateMigratesToDataLifecycleSchema(t *testing.T) {
 
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
@@ -584,6 +585,11 @@ func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.
 	doJSON(t, http.MethodGet, server.URL+"/bridge/transparency", "", nil, http.StatusOK, &public)
 	if public.Routes[0].LastReconciliation.Verification != "reference-recorded-not-independently-verified" {
 		t.Fatalf("public reconciliation overclaim: %+v", public)
+	}
+	var catalog RouteCatalog
+	doJSON(t, http.MethodGet, server.URL+"/bridge/routes", "", nil, http.StatusOK, &catalog)
+	if catalog.Source != "ynx-bridge-route-registry" || len(catalog.Routes) != 1 || catalog.Routes[0].Availability != "unavailable" || catalog.Routes[0].Executable || catalog.Routes[0].Source.Contract != nil || catalog.Routes[0].Fees.ProviderFee != nil || catalog.Routes[0].Refund.Available {
+		t.Fatalf("public route catalog overclaim: %+v", catalog)
 	}
 	tampered := cloneState(b.service.state)
 	for key, reconciliation := range tampered.Reconciliations {

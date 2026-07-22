@@ -30,6 +30,7 @@ var (
 
 type RoutePolicy struct {
 	Provider                  string `json:"provider,omitempty"`
+	Classification            string `json:"classification"`
 	SourceChain               string `json:"sourceChain"`
 	DestinationChain          string `json:"destinationChain"`
 	SourceAsset               string `json:"sourceAsset"`
@@ -43,6 +44,79 @@ type RoutePolicy struct {
 	LargeTransferDelaySeconds uint64 `json:"largeTransferDelaySeconds,omitempty"`
 	AssetBoundary             string `json:"assetBoundary"`
 	ExternalSubmission        bool   `json:"externalSubmission"`
+}
+
+type RouteAssetEndpoint struct {
+	Chain            string  `json:"chain"`
+	Asset            string  `json:"asset"`
+	Symbol           *string `json:"symbol"`
+	Decimals         *uint8  `json:"decimals"`
+	Contract         *string `json:"contract"`
+	ContractVerified bool    `json:"contractVerified"`
+	ExplorerURL      *string `json:"explorerUrl"`
+}
+
+type RouteFeeDisclosure struct {
+	Status         string  `json:"status"`
+	Currency       *string `json:"currency"`
+	SourceGas      *string `json:"sourceGas"`
+	DestinationGas *string `json:"destinationGas"`
+	ProviderFee    *string `json:"providerFee"`
+	YNXFee         *string `json:"ynxFee"`
+	HiddenSpread   bool    `json:"hiddenSpread"`
+}
+
+type RouteSlippageDisclosure struct {
+	Status     string  `json:"status"`
+	MaximumBPS *uint64 `json:"maximumBps"`
+}
+
+type RouteTimingDisclosure struct {
+	Status              string  `json:"status"`
+	EstimatedMinSeconds *uint64 `json:"estimatedMinSeconds"`
+	EstimatedMaxSeconds *uint64 `json:"estimatedMaxSeconds"`
+}
+
+type RouteFinalityDisclosure struct {
+	SourceConfirmations uint64  `json:"sourceConfirmations"`
+	DestinationRule     *string `json:"destinationRule"`
+	ProofVerification   string  `json:"proofVerification"`
+}
+
+type RouteRefundDisclosure struct {
+	Available bool    `json:"available"`
+	Mode      string  `json:"mode"`
+	SLA       *string `json:"sla"`
+}
+
+type RouteCatalogEntry struct {
+	ID                        string                  `json:"id"`
+	Provider                  string                  `json:"provider"`
+	Classification            string                  `json:"classification"`
+	Availability              string                  `json:"availability"`
+	FailureStatus             string                  `json:"failureStatus"`
+	ProviderHealth            string                  `json:"providerHealth"`
+	Source                    RouteAssetEndpoint      `json:"source"`
+	Destination               RouteAssetEndpoint      `json:"destination"`
+	Fees                      RouteFeeDisclosure      `json:"fees"`
+	Slippage                  RouteSlippageDisclosure `json:"slippage"`
+	Timing                    RouteTimingDisclosure   `json:"timing"`
+	Finality                  RouteFinalityDisclosure `json:"finality"`
+	Refund                    RouteRefundDisclosure   `json:"refund"`
+	Risk                      []string                `json:"risk"`
+	Limits                    RoutePolicy             `json:"limits"`
+	Executable                bool                    `json:"executable"`
+	ExternalSubmissionEnabled bool                    `json:"externalSubmissionEnabled"`
+	UserSigning               string                  `json:"userSigning"`
+	CredentialBoundary        string                  `json:"credentialBoundary"`
+}
+
+type RouteCatalog struct {
+	SchemaVersion int                 `json:"schemaVersion"`
+	Source        string              `json:"source"`
+	AsOf          string              `json:"asOf"`
+	Coverage      string              `json:"coverage"`
+	Routes        []RouteCatalogEntry `json:"routes"`
 }
 
 type Config struct {
@@ -102,6 +176,7 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		policy.SourceAsset = normalizeAsset(policy.SourceAsset)
 		policy.DestinationAsset = normalizeAsset(policy.DestinationAsset)
 		policy.AssetBoundary = strings.ToLower(strings.TrimSpace(policy.AssetBoundary))
+		policy.Classification = normalizeName(policy.Classification)
 		if !identifierPattern.MatchString(policy.Provider) || !identifierPattern.MatchString(policy.SourceChain) || !identifierPattern.MatchString(policy.DestinationChain) || !identifierPattern.MatchString(policy.SourceAsset) || !identifierPattern.MatchString(policy.DestinationAsset) {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d identity is invalid", i)
 		}
@@ -110,6 +185,10 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		}
 		if policy.AssetBoundary != "canonical-to-represented" && policy.AssetBoundary != "represented-to-canonical" {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d asset boundary is invalid", i)
+		}
+		classifications := map[string]bool{"official-stablecoin-transfer-candidate": true, "proof-based-canonical-bridge-candidate": true, "external-bridge-adapter": true, "route-aggregator": true, "manual-operator-testnet-transfer": true}
+		if !classifications[policy.Classification] {
+			return Config{}, nil, fmt.Errorf("bridge route policy %d classification is invalid", i)
 		}
 		maximum, err := strconv.ParseUint(strings.TrimSpace(policy.MaxAmount), 10, 64)
 		if err != nil || maximum == 0 {

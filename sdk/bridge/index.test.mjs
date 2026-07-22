@@ -18,7 +18,11 @@ before(async () => {
       return;
     }
     if (request.url === "/bridge/transparency") {
-      response.end(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-coordinator", asOf: "2026-07-22T00:00:00Z", coverage: "coordinator-state-plus-operator-reconciliation-references", liveBridge: false, externalSubmissionEnabled: false, routes: [{route: {provider: "local-test-provider", sourceChain: "ethereum-sepolia", destinationChain: "ynx_6423-1", sourceAsset: "sepolia-usdc", destinationAsset: "ynx-usdc", assetBoundary: "canonical-to-represented", maxAmount: "1000", maxOutstanding: "2000", externalSubmission: false}, coordinatorOutstanding: "0"}]}));
+      response.end(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-coordinator", asOf: "2026-07-22T00:00:00Z", coverage: "coordinator-state-plus-operator-reconciliation-references", liveBridge: false, externalSubmissionEnabled: false, routes: [{route: {provider: "local-test-provider", classification: "external-bridge-adapter", sourceChain: "ethereum-sepolia", destinationChain: "ynx_6423-1", sourceAsset: "sepolia-usdc", destinationAsset: "ynx-usdc", assetBoundary: "canonical-to-represented", maxAmount: "1000", maxOutstanding: "2000", externalSubmission: false}, coordinatorOutstanding: "0"}]}));
+      return;
+    }
+    if (request.url === "/bridge/routes") {
+      response.end(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-route-registry", asOf: "2026-07-22T00:00:00Z", coverage: "configured-fail-closed-candidates-not-live-provider-quotes", routes: [{id: "route_test", provider: "local-test-provider", classification: "external-bridge-adapter", availability: "unavailable", failureStatus: "provider-or-contract-route-unavailable", providerHealth: "not-connected", source: {chain: "ethereum-sepolia", asset: "sepolia-usdc", symbol: null, decimals: null, contract: null, contractVerified: false, explorerUrl: null}, destination: {chain: "ynx_6423-1", asset: "ynx-usdc", symbol: null, decimals: null, contract: null, contractVerified: false, explorerUrl: null}, fees: {status: "unavailable-no-executable-route", currency: null, sourceGas: null, destinationGas: null, providerFee: null, ynxFee: null, hiddenSpread: false}, slippage: {status: "not-applicable-no-executable-route", maximumBps: null}, timing: {status: "unavailable-no-provider-route", estimatedMinSeconds: null, estimatedMaxSeconds: null}, finality: {sourceConfirmations: 12, destinationRule: null, proofVerification: "local-relayer-attestation-only-not-independent-chain-proof"}, refund: {available: false, mode: "evidence-recording-only-no-external-refund-execution", sla: null}, risk: ["provider support is not verified"], limits: {provider: "local-test-provider", classification: "external-bridge-adapter", sourceChain: "ethereum-sepolia", destinationChain: "ynx_6423-1", sourceAsset: "sepolia-usdc", destinationAsset: "ynx-usdc", assetBoundary: "canonical-to-represented", maxAmount: "1000", maxOutstanding: "2000", externalSubmission: false}, executable: false, externalSubmissionEnabled: false, userSigning: "canonical-wallet-required", credentialBoundary: "browser-and-consumers-have-no-bridge-or-provider-secret"}]}));
       return;
     }
     if (request.url === "/invalid-live") {
@@ -40,6 +44,9 @@ test("reads truthful public Bridge health and transparency without credentials",
   assert.equal((await client.getHealth()).liveBridge, false);
   const transparency = await client.getTransparency();
   assert.equal(transparency.routes[0].coordinatorOutstanding, "0");
+  const routes = await client.getRoutes();
+  assert.equal(routes.routes[0].availability, "unavailable");
+  assert.equal(routes.routes[0].fees.providerFee, null);
   assert.equal(lastHeaders.authorization, undefined);
   assert.equal(lastHeaders["x-ynx-bridge-key"], undefined);
 });

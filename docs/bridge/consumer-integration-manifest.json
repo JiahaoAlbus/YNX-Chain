@@ -15,6 +15,14 @@
     "authentication": "none",
     "deployedPublic": false
   },
+  "routeCatalog": {
+    "method": "GET",
+    "path": "/bridge/routes",
+    "source": "ynx-bridge-route-registry",
+    "authentication": "none",
+    "quotesExecutable": false,
+    "deployedPublic": false
+  },
   "sdk": {
     "path": "sdk/bridge",
     "package": "@ynx-chain/bridge-sdk",

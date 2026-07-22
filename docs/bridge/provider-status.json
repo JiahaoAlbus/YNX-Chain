@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-07-22T14:20:00Z",
+  "asOf": "2026-07-22T15:38:29Z",
   "provider": "Circle",
   "product": "CCTP",
   "classification": "official-stablecoin-transfer-candidate",
   "officialReference": "https://developers.circle.com/cctp/references/contract-addresses",
   "referenceSection": "Testnet contract addresses",
+  "officialPageStatement": "lists deployed CCTP contracts for supported EVM-compatible blockchains",
   "ynxListedOnInspectedReference": false,
   "ynxRouteStatus": "unavailable",
   "reason": "YNX is not listed in the inspected official CCTP testnet contract-address table",
@@ -15,6 +16,19 @@
   "fundingPresent": false,
   "testedRemote": false,
   "deployedPublic": false,
+  "operationalReview": {
+    "license": "not_approved",
+    "terms": "not_approved",
+    "jurisdiction": "not_approved",
+    "authentication": "not_applicable_without_supported_route",
+    "rateLimit": "unknown_without_supported_route",
+    "dataRetention": "not_reviewed",
+    "dataRights": "not_reviewed",
+    "version": "official_contract_reference_inspected_only",
+    "health": "not_connected",
+    "fallback": "none",
+    "outageMode": "route_unavailable"
+  },
   "nextEvidenceRequired": [
     "official YNX domain listing",
     "official YNX contract addresses",

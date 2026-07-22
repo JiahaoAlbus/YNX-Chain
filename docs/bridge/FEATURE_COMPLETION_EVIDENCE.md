@@ -11,6 +11,7 @@ Status date: 2026-07-22.
 | Lifecycle, failure, retry, recovery, dispute | true | true | false | false | false | false |
 | Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
+| Fail-closed route catalog and provider disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
 | Read-only Bridge JavaScript SDK and lifecycle availability guard | true | true | false | false | false | false |
 | Data export, retention hold, deletion-request execution, and identity redaction | true | true | false | false | false | false |
@@ -26,6 +27,7 @@ Status date: 2026-07-22.
 - `go test -race ./internal/bridgegateway ./cmd/ynx-bridged`
 - `make bridge-api-check`
 - `make bridge-integration-check`
+- `make bridge-route-adapter-check`
 - `make bridge-observability-check`
 - `make bridge-sdk-check`
 - `make bridge-data-lifecycle-check`
@@ -37,7 +39,7 @@ Status date: 2026-07-22.
 - `make no-placeholder-check`
 - `make secret-scan`
 
-The API check launches the compiled daemon, exercises unauthorized rejection, create replay/conflict, persistent restart, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure.
+The API check launches the compiled daemon, exercises the public fail-closed route catalog, unauthorized rejection, create replay/conflict, persistent restart, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure.
 
 ## Missing completion evidence
 
