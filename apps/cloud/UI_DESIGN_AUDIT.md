@@ -17,13 +17,13 @@ Audit date: 2026-07-18. The review used the running Web app at 1440×900 and 390
 ## State and safety review
 
 - Loading: mobile activity indicator and Web status; empty: bounded storage explanation; success: authorized item count and sync timestamp; failure/retry: honest API error with retry; offline: persistent banner/queue; stale/conflict: no silent overwrite; permission denied/unavailable/expired/replay/tamper: server error is surfaced without local fallback.
-- Recovery and partial completion: verified backup/restore, resumable offline queue, and first-failure queue pause. Audit and destructive confirmation are explicit. Permanent deletion requires an already-trashed object and exact `DELETE` confirmation.
+- Recovery and partial completion: verified backup/restore, resumable offline queue, and first-failure queue pause. Audit and destructive confirmation are explicit. Permanent deletion requires an already-trashed object and exact `DELETE` confirmation. Product-data erasure is a separate export-first Web/native settings flow: routine sessions omit `data.delete`, the user reauthorizes that scope alone, types exact `DELETE CLOUD DATA`, and sees either completed-known-provider or honestly pending-provider receipt state. A fresh dedicated session can recover hashed receipts after the erasing session is revoked.
 - AI requires selected file/version context, consent, provider/model/status/cost, cancel, review, accept/reject, citations, and audit. It never changes a source file, share, deletion, or permission automatically.
 
 ## Accessibility, locale, and motion
 
 - Touch targets are at least 44 px; keyboard search, skip link, focus-visible ring, semantic roles/labels, live status/errors, high contrast, and reduced motion are implemented.
-- Twelve locales are present: en, zh-CN, zh-TW, ja, ko, es, fr, de, pt, ru, ar, id. Arabic sets document direction to RTL; native direction change is applied after restart. Dates use locale-aware formatters. Security/quota text is translated.
+- Twelve locales are present: en, zh-CN, zh-TW, ja, ko, es, fr, de, pt, ru, ar, id. Arabic sets document direction to RTL; native direction change is applied after restart. Dates use locale-aware formatters. Security, quota, export, destructive erasure, retention, provider-pending, and receipt-recovery text is translated.
 - Web sizing uses rem/clamp and responsive grids; native respects system font scaling. Native appearance tokens select system light/dark at launch.
 
 ## Runtime screenshots inspected

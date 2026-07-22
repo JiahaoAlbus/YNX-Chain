@@ -7,11 +7,15 @@ const b64url=(bytes:Uint8Array)=>{let value="";for(const byte of bytes)value+=St
 const decode=(value:string)=>Uint8Array.from(atob(value.replaceAll("-","+").replaceAll("_","/")+"===".slice((value.length+3)%4)),x=>x.charCodeAt(0));
 export const canonicalJSON=(value:unknown):string=>Array.isArray(value)?`[${value.map(canonicalJSON).join(",")}]`:value!==null&&typeof value==="object"?`{${Object.keys(value as Record<string,unknown>).sort().map(key=>`${JSON.stringify(key)}:${canonicalJSON((value as Record<string,unknown>)[key])}`).join(",")}}`:JSON.stringify(value);
 
-export function authorizationRequest(key:string,nonce:string,now=new Date()){
-  return {version:"1",nonce,chainId:"ynx_6423-1",...binding,productDeviceAlgorithm:"p256-sha256",productDeviceKey:key,purpose:"Use explicitly authorized YNX Cloud content on this device.",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+300000).toISOString()};
+export function authorizationRequest(key:string,nonce:string,now=new Date(),options?:{scopes?:string[];purpose?:string}){
+  const scopes=options?.scopes||[...binding.scopes],allowed=new Set([...binding.scopes,"data.delete"]);
+  if(!scopes.length||scopes.some((scope,index)=>!allowed.has(scope)||(index>0&&scope<=scopes[index-1]!)))throw Error("Wallet request scopes must be unique, sorted, and registered");
+  const purpose=options?.purpose?.trim()||"Use explicitly authorized YNX Cloud content on this device.";
+  if(purpose.length<8||purpose.length>280)throw Error("Wallet request purpose is invalid");
+  return {version:"1",nonce,chainId:"ynx_6423-1",...binding,scopes,productDeviceAlgorithm:"p256-sha256",productDeviceKey:key,purpose,issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+300000).toISOString()};
 }
-export function requestURL(key:string,nonce:string,now=new Date()){
-  const request=authorizationRequest(key,nonce,now);
+export function requestURL(key:string,nonce:string,now=new Date(),options?:{scopes?:string[];purpose?:string}){
+  const request=authorizationRequest(key,nonce,now,options);
   return `ynxwallet://authorize?request=${b64url(encoder.encode(canonicalJSON(request)))}`;
 }
 export function approvalFromURL(url:string,request:ReturnType<typeof authorizationRequest>){
