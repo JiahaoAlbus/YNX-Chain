@@ -15,7 +15,7 @@ Evidence baseline: source commit `7b3c5f427c1751b8d5f43833e281811dd81f76bb` plus
 | Multipart/resume/cancel | yes, bounded | local | durable upload/part state, restart resume and integrity tests | provider-native streaming; pause is client-side stop/resume |
 | Presigned direct upload | yes, adapter contract | local | fail-closed remote adapter, restart/verify tests, Web 8–64 MiB route | provisioned S3-compatible provider and remote proof |
 | Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |
-| Millions-of-objects candidate | no | no | none | benchmark and sharding evidence |
+| Millions-of-objects candidate | partial | local | 1m-object/100-sample p50/p95/p99 evidence at exact commit | concurrent, persisted, sharded and remote benchmark |
 | AI selected-file boundary | yes | local | service/client tests | configured gateway staging |
 | Export/delete | partial | local | verified portable ZIP; dedup reference-counted physical delete; pending/retry tests | provisioned-provider erasure proof and full-account deletion |
 | Logs, IDs, public/restricted health, metrics | partial | local | server observability tests and `OBSERVABILITY.md` | persistent histograms, traces, dashboard, alerts |
