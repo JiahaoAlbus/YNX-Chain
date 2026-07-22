@@ -2,9 +2,10 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/final-tokenomics]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   test:
