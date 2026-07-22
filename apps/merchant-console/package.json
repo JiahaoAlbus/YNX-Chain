@@ -1,1 +1,1 @@
-{"name":"@ynx-chain/merchant-console","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test test/*.test.js","build":"node scripts/build.mjs","check":"npm test && npm run build"}}
+{"name":"@ynx-chain/merchant-console","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --test test/*.test.js","build":"node scripts/build.mjs","check":"npm test && npm run build"},"dependencies":{"@noble/curves":"2.2.0","@ynx-chain/wallet-auth":"file:vendor/ynx-chain-wallet-auth-1.0.0.tgz"},"devDependencies":{"esbuild":"0.25.12"}}

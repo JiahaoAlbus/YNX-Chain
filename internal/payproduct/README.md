@@ -36,7 +36,7 @@ looked-up receipt against the exact transaction hash. Missing external evidence
 fails closed; the script never creates a signature or settlement.
 
 `live-testnet-proof.mjs` is the operator acceptance harness. With explicit
-product, RPC, faucet and bootstrap endpoints, it creates cryptographic Wallet
+product, central Gateway, RPC, faucet and bootstrap endpoints, it creates cryptographic Wallet
 and Gateway requests, signs and broadcasts a native YNXT transaction, waits for
 authoritative committed evidence, and exercises receipt, refund, dispute,
 webhook, reconciliation, audit, replay rejection and AI status. It writes the

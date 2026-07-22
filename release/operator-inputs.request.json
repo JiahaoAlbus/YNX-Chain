@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "productId": "pay-merchant",
+  "status": "not-ready-to-request",
+  "reason": "Autonomous engineering and local verification remain incomplete; do not request credentials yet.",
+  "inputs": [
+    {"id": "gateway_registration", "type": "approval-reference", "secret": false, "neededFor": "canonical Wallet/Gateway integration"},
+    {"id": "public_domain", "type": "domain-dns", "secret": false, "neededFor": "staging/public URL and Wallet callback"},
+    {"id": "testnet_funding", "type": "funded-wallet-approval", "secret": true, "delivery": "approved secure signer path only; never chat", "neededFor": "real Testnet settlement proof"},
+    {"id": "provider_credentials", "type": "secret-manager-references", "secret": true, "delivery": "approved secret manager only; never chat", "neededFor": "official provider sandbox tests"},
+    {"id": "public_policy_urls", "type": "legal-support-urls", "secret": false, "neededFor": "Support, Privacy, Security and Status links"}
+  ]
+}

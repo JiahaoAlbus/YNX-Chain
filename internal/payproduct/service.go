@@ -34,6 +34,7 @@ type AIProvider interface {
 type Config struct {
 	StorePath         string
 	IntegrityKey      []byte
+	GatewayKey        []byte
 	BootstrapKey      string
 	PublicBaseURL     string
 	CentralMerchantID string
@@ -50,6 +51,7 @@ type Service struct {
 	publicBase        string
 	centralMerchantID string
 	key               []byte
+	gatewayKey        []byte
 	client            *http.Client
 	now               func() time.Time
 	mutation          sync.Mutex
@@ -63,6 +65,9 @@ func New(cfg Config) (*Service, error) {
 	}
 	if len(cfg.IntegrityKey) < 32 {
 		return nil, errors.New("integrity key must contain at least 32 bytes")
+	}
+	if len(cfg.GatewayKey) < 32 {
+		return nil, errors.New("Gateway assertion key must contain at least 32 bytes")
 	}
 	if len(cfg.BootstrapKey) < 24 {
 		return nil, errors.New("merchant bootstrap key must contain at least 24 characters")
@@ -84,7 +89,7 @@ func New(cfg Config) (*Service, error) {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -103,6 +108,7 @@ type OnboardInput struct {
 	PayoutAddress  string `json:"payoutAddress"`
 	WebhookURL     string `json:"webhookUrl,omitempty"`
 	IdempotencyKey string `json:"idempotencyKey"`
+	OwnerAccount   string `json:"ownerAccount,omitempty"`
 }
 type OnboardResult struct {
 	Merchant      Merchant `json:"merchant"`
@@ -120,6 +126,14 @@ func (s *Service) Onboard(input OnboardInput) (OnboardResult, error) {
 	payout, err := nativewallet.NormalizeNativeAddress(input.PayoutAddress)
 	if err != nil {
 		return OnboardResult{}, fmt.Errorf("invalid payout address: %w", err)
+	}
+	ownerAccount := strings.TrimSpace(input.OwnerAccount)
+	if ownerAccount == "" {
+		ownerAccount = payout
+	}
+	ownerAccount, err = nativewallet.NormalizeNativeAddress(ownerAccount)
+	if err != nil {
+		return OnboardResult{}, fmt.Errorf("invalid owner Wallet account: %w", err)
 	}
 	endpoint, err := validWebhookURL(input.WebhookURL)
 	if err != nil {
@@ -162,11 +176,13 @@ func (s *Service) Onboard(input OnboardInput) (OnboardResult, error) {
 		centralMerchantID = id
 	}
 	merchant := Merchant{ID: id, CentralMerchantID: centralMerchantID, DisplayName: name, PayoutAddress: payout, Status: "active", WebhookURL: endpoint, SecretVersion: 1, SecretHash: hashString(credential), CredentialCipher: s.seal(credential), WebhookSecretCipher: s.seal(webhookSecret), InvoiceSigningPublicKey: hex.EncodeToString(invoicePublic), InvoiceSigningPrivateCipher: s.seal(base64.RawStdEncoding.EncodeToString(invoicePrivate)), CreatedAt: now, UpdatedAt: now}
+	owner := MerchantMember{ID: "mem_" + hashString(id, ownerAccount)[:20], MerchantID: id, Account: ownerAccount, Role: "owner", Status: "active", CreatedAt: now, UpdatedAt: now}
 	err = s.store.Update(func(data *Snapshot) error {
 		if _, ok := data.Merchants[id]; ok {
 			return errors.New("merchant already exists")
 		}
 		data.Merchants[id] = merchant
+		data.MerchantMembers[id+":"+ownerAccount] = owner
 		data.Idempotency["onboard:"+key] = IdempotencyRecord{Scope: "onboard", Key: key, RequestHash: requestHash, ObjectID: id, CreatedAt: now}
 		appendAudit(data, id, "bootstrap", "merchant.onboard", id, "committed", "merchant identity created", now)
 		return nil
@@ -388,7 +404,7 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
-	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 {
+	if !validSettlementEvidence(invoice, merchant, v) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
 	invoice.Status = "committed"
@@ -398,6 +414,20 @@ func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.P
 	}
 	_ = s.queueWebhook(merchant, "invoice.committed", invoice.ID)
 	return invoice, nil
+}
+
+func validSettlementEvidence(invoice Invoice, merchant Merchant, v chain.PaySettlement) bool {
+	return v.ID != "" &&
+		v.Status == "paid" &&
+		v.BlockNumber != 0 &&
+		v.InvoiceID == invoice.CentralID &&
+		v.IntentID == invoice.IntentID &&
+		v.Merchant == merchant.CentralMerchantID &&
+		v.PayoutAddress == invoice.PayoutAddress &&
+		v.Amount == invoice.Amount &&
+		v.Currency == NativeAsset &&
+		strings.HasPrefix(v.TransactionHash, "0x") && len(v.TransactionHash) == 66 &&
+		len(v.AuditHash) == 64
 }
 func (s *Service) saveInvoice(invoice Invoice, action string) error {
 	return s.store.Update(func(data *Snapshot) error {
@@ -597,6 +627,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 				out.Catalog[k] = v
 			}
 		}
+		for k, v := range data.MerchantMembers {
+			if v.MerchantID == merchantID {
+				out.MerchantMembers[k] = v
+			}
+		}
 		for k, v := range data.Invoices {
 			if v.MerchantID == merchantID {
 				out.Invoices[k] = v
@@ -629,6 +664,8 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 		}
 		out.Idempotency = nil
 		out.Nonces = nil
+		out.ConsoleSessions = nil
+		out.GatewaySeen = nil
 		return nil
 	})
 	return out, err

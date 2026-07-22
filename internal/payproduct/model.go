@@ -27,6 +27,27 @@ type Merchant struct {
 	UpdatedAt                   time.Time `json:"updatedAt"`
 }
 
+type MerchantMember struct {
+	ID         string    `json:"id"`
+	MerchantID string    `json:"merchantId"`
+	Account    string    `json:"account"`
+	Role       string    `json:"role"`
+	Status     string    `json:"status"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
+}
+
+type MerchantConsoleSession struct {
+	ID         string     `json:"id"`
+	MerchantID string     `json:"merchantId"`
+	Account    string     `json:"account"`
+	Role       string     `json:"role"`
+	TokenHash  string     `json:"tokenHash"`
+	ExpiresAt  time.Time  `json:"expiresAt"`
+	RevokedAt  *time.Time `json:"revokedAt,omitempty"`
+	CreatedAt  time.Time  `json:"createdAt"`
+}
+
 type CatalogItem struct {
 	ID          string    `json:"id"`
 	MerchantID  string    `json:"merchantId"`
@@ -153,40 +174,32 @@ type NonceRecord struct {
 	Nonce      string    `json:"nonce"`
 	SeenAt     time.Time `json:"seenAt"`
 }
-type WalletChallenge struct {
-	Nonce         string     `json:"nonce"`
-	RequestDigest string     `json:"requestDigest"`
-	ExpiresAt     time.Time  `json:"expiresAt"`
-	UsedAt        *time.Time `json:"usedAt,omitempty"`
-}
 type WalletSession struct {
-	ID                     string     `json:"id"`
-	Account                string     `json:"account"`
-	ProductClientID        string     `json:"productClientId"`
-	BundleID               string     `json:"bundleId"`
-	ProductDeviceAlgorithm string     `json:"productDeviceAlgorithm"`
-	ProductDeviceKey       string     `json:"productDeviceKey"`
-	SessionBinding         string     `json:"sessionBinding"`
-	TokenHash              string     `json:"tokenHash"`
-	Scopes                 []string   `json:"scopes"`
-	ExpiresAt              time.Time  `json:"expiresAt"`
-	RevokedAt              *time.Time `json:"revokedAt,omitempty"`
+	ID                     string    `json:"id"`
+	Account                string    `json:"account"`
+	ProductClientID        string    `json:"productClientId"`
+	BundleID               string    `json:"bundleId"`
+	ProductDeviceAlgorithm string    `json:"productDeviceAlgorithm"`
+	SessionBinding         string    `json:"sessionBinding"`
+	Scopes                 []string  `json:"scopes"`
+	ExpiresAt              time.Time `json:"expiresAt"`
 }
 
 type Snapshot struct {
-	Version          int                          `json:"version"`
-	Merchants        map[string]Merchant          `json:"merchants"`
-	Catalog          map[string]CatalogItem       `json:"catalog"`
-	Invoices         map[string]Invoice           `json:"invoices"`
-	Refunds          map[string]RefundRequest     `json:"refunds"`
-	Disputes         map[string]Dispute           `json:"disputes"`
-	Deliveries       map[string]WebhookDelivery   `json:"deliveries"`
-	AIRuns           map[string]AIRun             `json:"aiRuns"`
-	WalletChallenges map[string]WalletChallenge   `json:"walletChallenges"`
-	WalletSessions   map[string]WalletSession     `json:"walletSessions"`
-	Idempotency      map[string]IdempotencyRecord `json:"idempotency"`
-	Nonces           map[string]NonceRecord       `json:"nonces"`
-	Audit            []AuditEntry                 `json:"audit"`
+	Version         int                               `json:"version"`
+	Merchants       map[string]Merchant               `json:"merchants"`
+	MerchantMembers map[string]MerchantMember         `json:"merchantMembers"`
+	ConsoleSessions map[string]MerchantConsoleSession `json:"consoleSessions"`
+	GatewaySeen     map[string]time.Time              `json:"gatewaySeen"`
+	Catalog         map[string]CatalogItem            `json:"catalog"`
+	Invoices        map[string]Invoice                `json:"invoices"`
+	Refunds         map[string]RefundRequest          `json:"refunds"`
+	Disputes        map[string]Dispute                `json:"disputes"`
+	Deliveries      map[string]WebhookDelivery        `json:"deliveries"`
+	AIRuns          map[string]AIRun                  `json:"aiRuns"`
+	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
+	Nonces          map[string]NonceRecord            `json:"nonces"`
+	Audit           []AuditEntry                      `json:"audit"`
 }
 
 type Analytics struct {

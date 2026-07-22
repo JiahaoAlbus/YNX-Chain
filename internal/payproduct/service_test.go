@@ -1,13 +1,11 @@
 package payproduct
 
 import (
+	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
-	"crypto/rand"
+	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -48,19 +46,6 @@ func (a *blockingAI) Complete(ctx context.Context, _, _ string) (string, string,
 
 func (fixedAI) Complete(context.Context, string, string) (string, string, string, int64, error) {
 	return "YNX AI Gateway", "provider-backed-test-model", "Risk explanation grounded in the selected invoice; human approval does not move funds.", 42, nil
-}
-
-func TestCanonicalWalletRequestMatchesTypeScriptVector(t *testing.T) {
-	request := WalletAuthorizationRequest{
-		Version: "1", Nonce: "pay_nonce_abcdefghijklmnopqrstuvwxyz12", ChainID: ChainID, RequestingProduct: walletProduct,
-		ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm,
-		ProductDeviceKey: "A-p256-device-key-vector", Callback: walletCallback, Scopes: append([]string(nil), walletScopes...),
-		Purpose: "Review YNXT payments and manage only this account&apos;s payment cases.", IssuedAt: "2026-07-16T00:00:00.000Z", ExpiresAt: "2026-07-16T00:05:00.000Z",
-	}
-	const want = "b984b0360a06b93e6c269ff79c86022d47aaea7cdee434a1ed6b72eb20e18ebd"
-	if got := digestCanonical(walletRequestDomain, request); got != want {
-		t.Fatalf("canonical request digest differs from TypeScript Wallet: got %s want %s canonical=%s", got, want, mustCanonical(request))
-	}
 }
 
 func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string) (chain.PayIntent, error) {
@@ -134,7 +119,7 @@ func TestAuthoritativePaymentPersistenceIdempotencyAndTamper(t *testing.T) {
 	if err != nil || committed.Status != "committed" || committed.Settlement == nil || committed.Settlement.Source != "authoritative-central-pay-api" {
 		t.Fatalf("settlement not accepted: %+v %v", committed, err)
 	}
-	restarted, err := New(Config{StorePath: path, IntegrityKey: bytes32(7), BootstrapKey: strings.Repeat("b", 24), PublicBaseURL: "https://pay.example", PayAPI: pay, Now: func() time.Time { return now }})
+	restarted, err := New(Config{StorePath: path, IntegrityKey: bytes32(7), GatewayKey: bytes32(8), BootstrapKey: strings.Repeat("b", 24), PublicBaseURL: "https://pay.example", PayAPI: pay, Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,7 +189,7 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 			t.Error("webhook payload hash does not match exact body")
 		}
 		want := "v" + version + "=" + hmacHex([]byte(secret), webhookSigningMaterial(deliveryID, parsed, payloadHash))
-		if !hmacEqual(signed, want) {
+		if !hmac.Equal([]byte(signed), []byte(want)) {
 			t.Errorf("webhook signature does not bind event ID, timestamp, and exact body")
 		}
 		if attempts == 1 {
@@ -240,7 +225,7 @@ func (r roundTripRewrite) RoundTrip(req *http.Request) (*http.Response, error) {
 	return http.DefaultTransport.RoundTrip(req)
 }
 
-func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
+func TestGatewayBoundPaymentCreatesPayerCases(t *testing.T) {
 	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
 	pay := &fakePay{}
 	service, _ := testService(t, pay, func() time.Time { return now })
@@ -255,18 +240,7 @@ func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
 	accountKey := secp256k1.PrivKeyFromBytes(bytes32(9))
 	accountHex, _ := consensus.NativeAddress(accountKey.PubKey().SerializeCompressed())
 	account, _ := accountaddress.Encode(accountHex)
-	input := walletSessionFixture(t, now, accountKey, account)
-	sessionResult, err := service.CompleteWalletSession(input)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := service.CompleteWalletSession(input); err == nil || !strings.Contains(err.Error(), "replay") {
-		t.Fatalf("wallet challenge replay accepted: %v", err)
-	}
-	session, err := service.AuthenticateWallet("Bearer " + sessionResult.SessionID + "." + sessionResult.Token)
-	if err != nil {
-		t.Fatal(err)
-	}
+	session := WalletSession{ID: "gateway-pay-session-123456", Account: account, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, SessionBinding: strings.Repeat("a", 64), Scopes: append([]string(nil), walletScopes...), ExpiresAt: now.Add(3 * time.Minute)}
 	pay.settlement = chain.PaySettlement{ID: "fedcba9876543210fedcba98", IntentID: invoice.IntentID, InvoiceID: invoice.CentralID, Merchant: merchant.ID, PayoutAddress: merchant.PayoutAddress, Payer: account, Amount: 11, Currency: NativeAsset, TransactionHash: "0x" + strings.Repeat("e", 64), BlockNumber: 3, Status: "paid", AuditHash: strings.Repeat("f", 64), CreatedAt: now}
 	intent, result := signedPaymentFixture(t, now, invoice, session, accountKey)
 	if _, err := service.SubmitSignedSettlement(context.Background(), session, invoice.ID, intent, result, "settle-key-03"); err != nil {
@@ -283,27 +257,6 @@ func TestWalletSignInRejectsReplayAndCreatesPayerCases(t *testing.T) {
 	if _, err := service.CreateDispute(session, invoice.ID, "merchant did not deliver the item", "dispute-key-01", []string{"trust.case-123"}); err != nil {
 		t.Fatal(err)
 	}
-}
-
-func walletSessionFixture(t *testing.T, now time.Time, accountKey *secp256k1.PrivateKey, account string) WalletSessionInput {
-	t.Helper()
-	device, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	deviceKey := base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), device.PublicKey.X, device.PublicKey.Y))
-	request := WalletAuthorizationRequest{Version: "1", Nonce: "pay_nonce_abcdefghijklmnopqrstuvwxyz12", ChainID: ChainID, RequestingProduct: walletProduct, ProductClientID: walletProductClientID, BundleID: walletBundleID, ProductDeviceAlgorithm: walletDeviceAlgorithm, ProductDeviceKey: deviceKey, Callback: walletCallback, Scopes: append([]string(nil), walletScopes...), Purpose: "Review YNXT payments and manage only this account's payment cases.", IssuedAt: now.Add(-time.Minute).Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(4 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
-	approval := WalletAuthorizationResponse{Version: request.Version, RequestDigest: digestCanonical(walletRequestDomain, request), Nonce: request.Nonce, ChainID: request.ChainID, RequestingProduct: request.RequestingProduct, ProductClientID: request.ProductClientID, BundleID: request.BundleID, ProductDeviceAlgorithm: request.ProductDeviceAlgorithm, ProductDeviceKey: request.ProductDeviceKey, Callback: request.Callback, Account: account, AccountPublicKey: hex.EncodeToString(accountKey.PubKey().SerializeCompressed()), GrantedScopes: append([]string(nil), request.Scopes...), Purpose: request.Purpose, IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(4 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
-	unsigned := map[string]any{"version": approval.Version, "requestDigest": approval.RequestDigest, "nonce": approval.Nonce, "chainId": approval.ChainID, "requestingProduct": approval.RequestingProduct, "productClientId": approval.ProductClientID, "bundleId": approval.BundleID, "productDeviceAlgorithm": approval.ProductDeviceAlgorithm, "productDeviceKey": approval.ProductDeviceKey, "callback": approval.Callback, "account": approval.Account, "accountPublicKey": approval.AccountPublicKey, "grantedScopes": approval.GrantedScopes, "purpose": approval.Purpose, "issuedAt": approval.IssuedAt, "expiresAt": approval.ExpiresAt}
-	digest := sha256.Sum256([]byte(walletApprovalDomain + "\n" + string(mustCanonical(unsigned))))
-	approval.WalletSignature = hex.EncodeToString(secpECDSA.SignCompact(accountKey, digest[:], true)[1:])
-	challenge := GatewayChallenge{Version: "1", Challenge: "gateway_challenge_abcdefghijklmnop", RequestDigest: approval.RequestDigest, ProductClientID: approval.ProductClientID, BundleID: approval.BundleID, ProductDeviceAlgorithm: approval.ProductDeviceAlgorithm, ProductDeviceKey: approval.ProductDeviceKey, Account: approval.Account, Scopes: append([]string(nil), approval.GrantedScopes...), IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(3 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
-	deviceDigest := sha256.Sum256([]byte(walletGatewayDomain + "\n" + string(mustCanonical(challenge))))
-	deviceSignature, err := ecdsa.SignASN1(rand.Reader, device, deviceDigest[:])
-	if err != nil {
-		t.Fatal(err)
-	}
-	return WalletSessionInput{Request: request, Approval: approval, Completion: GatewayCompletion{Challenge: challenge, DeviceSignature: base64.RawURLEncoding.EncodeToString(deviceSignature)}}
 }
 
 func signedPaymentFixture(t *testing.T, now time.Time, invoice Invoice, session WalletSession, accountKey *secp256k1.PrivateKey) (SignedPaymentIntent, WalletPaymentResult) {
@@ -343,17 +296,161 @@ func TestHTTPProductSmoke(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	timestamp := now.Format(time.RFC3339)
-	nonce := "smoke-nonce-1234567890"
+	sessionBody := []byte(fmt.Sprintf(`{"merchantId":%q}`, onboardResult.Merchant.ID))
+	req, _ = http.NewRequest(http.MethodPost, server.URL+"/v1/merchant/sessions", bytes.NewReader(sessionBody))
+	signMerchantGatewayRequest(t, req, sessionBody, address, now, "smoke-gateway-nonce-123456")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusCreated {
+		t.Fatalf("Wallet/Gateway merchant session failed: %v status=%v", err, resp.StatusCode)
+	}
+	var consoleSession MerchantSessionResult
+	if err := json.NewDecoder(resp.Body).Decode(&consoleSession); err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
 	path := "/v1/merchant/state"
-	material := strings.Join([]string{"YNX_PAY_PRODUCT_REQUEST_V1", "GET", path, hexSHA(nil), timestamp, nonce}, "\n")
 	req, _ = http.NewRequest(http.MethodGet, server.URL+path, nil)
-	req.Header.Set("Authorization", "YNX:"+onboardResult.Merchant.ID+":"+timestamp+":"+nonce+":"+hmacHex([]byte(onboardResult.Credential), []byte(material)))
+	req.Header.Set("Authorization", "Bearer "+consoleSession.Token)
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("signed merchant state smoke failed: %v status=%v", err, resp.StatusCode)
 	}
 	_ = resp.Body.Close()
+}
+
+func TestMerchantRoleMatrixAndMembershipChangeInvalidatesSession(t *testing.T) {
+	now := time.Date(2026, 7, 18, 13, 0, 0, 0, time.UTC)
+	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
+	merchant, _ := onboard(t, service)
+	ownerAccount := merchant.PayoutAddress
+	owner := MerchantPrincipal{Merchant: merchant, Account: ownerAccount, Role: "owner", Session: "owner-session"}
+	if _, err := service.UpsertMerchantMember(owner, ownerAccount, "viewer"); err == nil || !strings.Contains(err.Error(), "at least one") {
+		t.Fatalf("last owner demotion was not rejected: %v", err)
+	}
+	roles := []string{"owner", "finance", "developer", "support", "viewer"}
+	wants := map[string]map[string]bool{
+		"owner":     {"read": true, "invoice": true, "reconcile": true, "case": true, "webhook": true, "ai-run": true, "ai-review": true, "members": true},
+		"finance":   {"read": true, "invoice": true, "reconcile": true, "case": true, "ai-run": true, "ai-review": true},
+		"developer": {"read": true, "webhook": true},
+		"support":   {"read": true, "case": true, "ai-run": true},
+		"viewer":    {"read": true},
+	}
+	for _, role := range roles {
+		for _, permission := range []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members"} {
+			if got := roleAllows(role, permission); got != wants[role][permission] {
+				t.Fatalf("role=%s permission=%s got=%v want=%v", role, permission, got, wants[role][permission])
+			}
+		}
+	}
+	memberKey := secp256k1.PrivKeyFromBytes(bytes32(9))
+	memberHex, _ := consensus.NativeAddress(memberKey.PubKey().SerializeCompressed())
+	memberAccount, _ := accountaddress.Encode(memberHex)
+	member, err := service.UpsertMerchantMember(owner, memberAccount, "viewer")
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := "viewer-console-session-token-123456"
+	session := MerchantConsoleSession{ID: "mcs_viewer_session_123", MerchantID: merchant.ID, Account: member.Account, Role: member.Role, TokenHash: hashString(token), ExpiresAt: now.Add(10 * time.Minute), CreatedAt: now}
+	if err := service.store.Update(func(data *Snapshot) error { data.ConsoleSessions[session.ID] = session; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AuthenticateMerchantSession("Bearer " + session.ID + "." + token); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.UpsertMerchantMember(owner, memberAccount, "developer"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AuthenticateMerchantSession("Bearer " + session.ID + "." + token); err == nil || !strings.Contains(err.Error(), "membership changed") {
+		t.Fatalf("old role session was not invalidated: %v", err)
+	}
+	if _, err := service.UpsertMerchantMember(MerchantPrincipal{Merchant: merchant, Account: memberAccount, Role: "developer"}, ownerAccount, "viewer"); err == nil {
+		t.Fatal("non-owner changed merchant membership")
+	}
+}
+
+func TestMerchantGatewayAssertionRejectsReplayAndBodySubstitution(t *testing.T) {
+	now := time.Date(2026, 7, 18, 14, 0, 0, 0, time.UTC)
+	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
+	merchant, _ := onboard(t, service)
+	body := []byte(fmt.Sprintf(`{"merchantId":%q}`, merchant.ID))
+	makeRequest := func(payload []byte, nonce string) *http.Request {
+		req := httptest.NewRequest(http.MethodPost, "https://pay.example/v1/merchant/sessions", bytes.NewReader(payload))
+		signMerchantGatewayRequest(t, req, body, merchant.PayoutAddress, now, nonce)
+		return req
+	}
+	if _, err := service.CompleteMerchantSession(makeRequest(body, "merchant-replay-nonce-123456"), body, merchant.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.CompleteMerchantSession(makeRequest(body, "merchant-replay-nonce-123456"), body, merchant.ID); err == nil || !strings.Contains(err.Error(), "replay") {
+		t.Fatalf("replay accepted: %v", err)
+	}
+	tampered := []byte(fmt.Sprintf(`{"merchantId":%q,"extra":"substitution"}`, merchant.ID))
+	if _, err := service.CompleteMerchantSession(makeRequest(tampered, "merchant-body-nonce-123456"), tampered, merchant.ID); err == nil {
+		t.Fatal("body substitution accepted")
+	}
+}
+
+func TestPayGatewayAssertionBindsActiveSessionAndRejectsReplayTamperAndCrossApp(t *testing.T) {
+	now := time.Date(2026, 7, 18, 15, 0, 0, 0, time.UTC)
+	service, _ := testService(t, &fakePay{}, func() time.Time { return now })
+	key := secp256k1.PrivKeyFromBytes(bytes32(6))
+	accountHex, _ := consensus.NativeAddress(key.PubKey().SerializeCompressed())
+	account, _ := accountaddress.Encode(accountHex)
+	body := []byte(`{"reason":"not delivered"}`)
+	makeRequest := func(payload []byte, nonce string) *http.Request {
+		req := httptest.NewRequest(http.MethodPost, "https://pay.example/v1/invoices/inv_aaaaaaaaaaaaaaaaaaaa/refund-requests", bytes.NewReader(payload))
+		signPayGatewayRequest(t, req, body, account, now, nonce)
+		return req
+	}
+	session, err := service.VerifyPayGateway(makeRequest(body, "pay-gateway-nonce-123456"), body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if session.Account != account || session.SessionBinding != strings.Repeat("b", 64) || !sameStrings(session.Scopes, walletScopes) {
+		t.Fatalf("wrong Pay principal: %+v", session)
+	}
+	if _, err := service.VerifyPayGateway(makeRequest(body, "pay-gateway-nonce-123456"), body); err == nil || !strings.Contains(err.Error(), "replay") {
+		t.Fatalf("replay accepted: %v", err)
+	}
+	tampered := []byte(`{"reason":"redirected body"}`)
+	if _, err := service.VerifyPayGateway(makeRequest(tampered, "pay-body-nonce-123456"), tampered); err == nil {
+		t.Fatal("body substitution accepted")
+	}
+	cross := makeRequest(body, "pay-cross-app-nonce-123456")
+	cross.Header.Set("X-YNX-Product", "ynx-card")
+	if _, err := service.VerifyPayGateway(cross, body); err == nil {
+		t.Fatal("cross-product assertion accepted")
+	}
+}
+
+func signPayGatewayRequest(t *testing.T, req *http.Request, signedBody []byte, account string, now time.Time, nonce string) {
+	t.Helper()
+	issued, expires := now.UTC(), now.UTC().Add(3*time.Minute)
+	headers := map[string]string{"X-YNX-Account": account, "X-YNX-Session-ID": "gateway-pay-session-123456", "X-YNX-Device-ID": "pay-device-123456", "X-YNX-Product": walletProduct, "X-YNX-Client": walletProductClientID, "X-YNX-Bundle": walletBundleID, "X-YNX-Callback": walletCallback, "X-YNX-Chain": ChainID, "X-YNX-Scopes": strings.Join(walletScopes, " "), "X-YNX-Session-Binding": strings.Repeat("b", 64), "X-YNX-Request-Digest": strings.Repeat("c", 64), "X-YNX-Issued-At": issued.Format(time.RFC3339Nano), "X-YNX-Expires-At": expires.Format(time.RFC3339Nano), "X-YNX-Nonce": nonce}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	bodyHash := sha256.Sum256(signedBody)
+	material := strings.Join([]string{gatewayDomain, req.Method, req.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), account, headers["X-YNX-Session-ID"], headers["X-YNX-Device-ID"], walletProduct, walletProductClientID, walletBundleID, walletCallback, ChainID, strings.Join(walletScopes, " "), headers["X-YNX-Session-Binding"], headers["X-YNX-Request-Digest"], headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
+	req.Header.Set("X-YNX-Gateway-Signature", hmacHex(bytes32(8), []byte(material)))
+}
+
+func signMerchantGatewayRequest(t *testing.T, req *http.Request, body []byte, account string, now time.Time, nonce string) {
+	t.Helper()
+	issued, expires := now.UTC(), now.UTC().Add(3*time.Minute)
+	headers := map[string]string{
+		"X-YNX-Account": account, "X-YNX-Session-ID": "gateway-session-123456", "X-YNX-Device-ID": "merchant-device-123456",
+		"X-YNX-Product": MerchantProductID, "X-YNX-Client": MerchantClientID, "X-YNX-Bundle": MerchantBundleID,
+		"X-YNX-Callback": MerchantCallback, "X-YNX-Chain": ChainID, "X-YNX-Scopes": strings.Join(merchantConsoleScopes, " "),
+		"X-YNX-Request-Digest": strings.Repeat("a", 64), "X-YNX-Issued-At": issued.Format(time.RFC3339Nano),
+		"X-YNX-Expires-At": expires.Format(time.RFC3339Nano), "X-YNX-Nonce": nonce,
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	bodyHash := sha256.Sum256(body)
+	material := strings.Join([]string{gatewayDomain, req.Method, req.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), account, headers["X-YNX-Session-ID"], headers["X-YNX-Device-ID"], MerchantProductID, MerchantClientID, MerchantBundleID, MerchantCallback, ChainID, strings.Join(merchantConsoleScopes, " "), headers["X-YNX-Request-Digest"], headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
+	req.Header.Set("X-YNX-Gateway-Signature", hmacHex(bytes32(8), []byte(material)))
 }
 
 func TestConcurrentInvoiceIdempotencyCreatesOneCentralPair(t *testing.T) {
@@ -490,7 +587,7 @@ func TestAIRiskExplanationRequiresHumanApprovalAndNeverExecutesPayment(t *testin
 func testService(t *testing.T, pay *fakePay, now func() time.Time) (*Service, string) {
 	t.Helper()
 	path := t.TempDir() + "/state.json"
-	service, err := New(Config{StorePath: path, IntegrityKey: bytes32(7), BootstrapKey: strings.Repeat("b", 24), PublicBaseURL: "https://pay.example", PayAPI: pay, Now: now})
+	service, err := New(Config{StorePath: path, IntegrityKey: bytes32(7), GatewayKey: bytes32(8), BootstrapKey: strings.Repeat("b", 24), PublicBaseURL: "https://pay.example", PayAPI: pay, Now: now})
 	if err != nil {
 		t.Fatal(err)
 	}
