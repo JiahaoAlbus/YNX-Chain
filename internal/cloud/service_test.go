@@ -635,6 +635,14 @@ func TestCrossProductSecondarySurfacesFailClosed(t *testing.T) {
 	if used, _ := s.Quota(owner, "docs"); used != 4 {
 		t.Fatalf("docs quota leaked: %d", used)
 	}
+	cloudUsage, err := s.Usage(owner, "cloud")
+	if err != nil || cloudUsage.StorageBytes != 5 || cloudUsage.Counters.IngressBytes != 5 || cloudUsage.Counters.ScanBytes != 5 {
+		t.Fatalf("cloud usage: %#v %v", cloudUsage, err)
+	}
+	docsUsage, err := s.Usage(owner, "docs")
+	if err != nil || docsUsage.StorageBytes != 4 || docsUsage.Counters.IngressBytes != 4 || docsUsage.Counters.ScanBytes != 4 {
+		t.Fatalf("docs usage: %#v %v", docsUsage, err)
+	}
 	_, cloudExport, err := s.ExportOwnedData(ctx, owner, "cloud")
 	if err != nil || len(cloudExport.Objects) != 1 || cloudExport.Objects[0].ID != cloudFile.ID {
 		t.Fatalf("cloud export crossed product: %#v %v", cloudExport.Objects, err)

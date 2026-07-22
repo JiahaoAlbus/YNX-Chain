@@ -25,7 +25,7 @@ const downloaded=await call(`/objects/${file.id}/content`,{headers:cloudHeaders}
 const {body:share}=await call(`/objects/${file.id}/links`,{method:"POST",headers:cloudHeaders,body:JSON.stringify({role:"viewer",expiresAt:new Date(Date.now()+3600000).toISOString()})});
 await call(`/shares/${share.token}`);await call(`/objects/${file.id}/links/${share.link.id}`,{method:"DELETE",headers:cloudHeaders});await assert.rejects(()=>call(`/shares/${share.token}`),error=>error.status===403);
 await call(`/objects/${file.id}/trash`,{method:"POST",headers:cloudHeaders});await call(`/objects/${file.id}`,{method:"DELETE",headers:cloudHeaders,body:JSON.stringify({confirm:"DELETE"})});
-await call("/quota",{headers:cloudHeaders});await call("/audit",{headers:cloudHeaders});
+await call("/quota",{headers:cloudHeaders});const {body:cloudUsage}=await call("/usage",{headers:cloudHeaders});assert.equal(cloudUsage.product,"cloud");assert.ok(cloudUsage.counters.ingressBytes>=content.length*2);assert.ok(cloudUsage.counters.egressBytes>=content.length);assert.equal(cloudUsage.pricingStatus,"not-configured-no-charge");assert.equal(cloudUsage.userChargeMinor,0);await call("/audit",{headers:cloudHeaders});
 
 const docsToken=await authenticate("docs"),docsHeaders={Authorization:`Bearer ${docsToken}`};
 const {body:doc}=await call("/objects",{method:"POST",headers:docsHeaders,body:JSON.stringify({kind:"doc",name:"Smoke doc",mime:"text/plain",content:Buffer.from("v1").toString("base64"),encryption:{clientSide:false}})});
@@ -33,4 +33,5 @@ const {body:v2}=await call(`/objects/${doc.id}/document`,{method:"PUT",headers:d
 await assert.rejects(()=>call(`/objects/${doc.id}/document`,{method:"PUT",headers:docsHeaders,body:JSON.stringify({baseVersion:1,content:Buffer.from("stale").toString("base64")})}),error=>error.status===409);
 await call(`/objects/${doc.id}/comments`,{method:"POST",headers:docsHeaders,body:JSON.stringify({version:2,body:"Version-bound review",mentions:[]})});
 await call(`/objects/${doc.id}/presence`,{method:"POST",headers:docsHeaders,body:JSON.stringify({label:"Editing"})});
+const {body:docsUsage}=await call("/usage",{headers:docsHeaders});assert.equal(docsUsage.product,"docs");assert.equal(docsUsage.storageBytes,4);assert.equal(docsUsage.counters.ingressBytes,4);assert.equal(docsUsage.userChargeMinor,0);
 console.log("YNX Cloud & Docs canonical API smoke passed");

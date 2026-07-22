@@ -120,6 +120,22 @@ func hashBytes(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToStri
 
 func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v) >= 20 && len(v) <= 96 }
 
+func usageKey(owner, product string) string { return owner + "\x00" + product }
+
+func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUnits, aiJobs int64) {
+	key := usageKey(owner, product)
+	usage := s.state.Usage[key]
+	usage.Owner = owner
+	usage.Product = product
+	usage.IngressBytes += ingress
+	usage.EgressBytes += egress
+	usage.ScanBytes += scan
+	usage.AIInputUnits += aiUnits
+	usage.AIJobs += aiJobs
+	usage.UpdatedAt = s.cfg.Now()
+	s.state.Usage[key] = usage
+}
+
 func (s *Service) persist(action, actor, objectID string, details map[string]any) error {
 	if details == nil {
 		details = map[string]any{}
@@ -293,6 +309,9 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now}}
 	}
 	s.state.Objects[obj.ID] = obj
+	if obj.Kind != KindFolder {
+		s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
+	}
 	if err := s.persist("object.create", actor, obj.ID, map[string]any{"product": obj.Product, "kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
 		return Object{}, err
 	}
@@ -600,6 +619,7 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 	obj := Object{ID: newID("obj"), Product: u.Product, Owner: actor, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Size: u.ExpectedSize, Hash: u.ExpectedHash, Version: 1, CreatedAt: now, UpdatedAt: now, Encryption: u.Encryption, Artifact: u.Artifact, ScanStatus: verified.ScanStatus}
 	s.state.Objects[obj.ID] = obj
 	s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: obj.Hash, Size: obj.Size, MIME: obj.MIME, BlobPath: u.ProviderRef, Author: actor, CreatedAt: now}}
+	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
 	u.Status = "completed"
 	u.UpdatedAt = now
 	s.state.DirectUploads[id] = u
@@ -686,6 +706,7 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 	obj.ScanStatus = "accepted"
 	s.state.Objects[id] = obj
 	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now})
+	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
 	if err := s.persist("document.save", actor, id, map[string]any{"version": obj.Version, "hash": h}); err != nil {
 		return Object{}, err
 	}
@@ -1502,6 +1523,50 @@ func (s *Service) Quota(actor, product string) (used, limit int64) {
 	return s.usedLockedProduct(actor, product), s.cfg.QuotaBytes
 }
 
+func (s *Service) Usage(actor, product string) (UsageReport, error) {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") {
+		return UsageReport{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	usage := s.state.Usage[usageKey(actor, product)]
+	if usage.Owner == "" {
+		usage.Owner, usage.Product = actor, product
+	}
+	return UsageReport{
+		SchemaVersion:  1,
+		Source:         "ynx-cloudd-local-meter",
+		Authority:      "YNX control-plane observed usage; not a provider invoice",
+		AsOf:           s.cfg.Now(),
+		Owner:          actor,
+		Product:        product,
+		StorageBytes:   s.usedLockedProduct(actor, product),
+		FreeQuotaBytes: s.cfg.QuotaBytes,
+		Counters:       usage,
+		PricingStatus:  "not-configured-no-charge",
+		Coverage: map[string]string{
+			"storageBytes": "exact current deduplicated immutable-version bytes recorded by this control plane",
+			"ingressBytes": "accepted object-version bytes, including provider-direct completions",
+			"egressBytes":  "HTTP response payload bytes observed after authenticated or share-link delivery",
+			"scanBytes":    "accepted object-version bytes submitted to the configured scanner boundary",
+			"aiInputUnits": "provider-independent preflight estimate; not provider-billed tokens",
+			"backupBytes":  "not attributable per owner in the operator recovery archive; reported as zero",
+			"replicaBytes": "no replicated provider configured; reported as zero",
+			"financials":   "no pricing provider configured; all monetary fields are zero and no charge is authorized",
+		},
+	}, nil
+}
+
+func (s *Service) RecordEgress(actor, product, objectID string, bytes int64, channel string) error {
+	if !validAccount(actor) || (product != "cloud" && product != "docs") || bytes < 0 || (channel != "session" && channel != "share" && channel != "export") {
+		return ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.meterLocked(actor, product, 0, bytes, 0, 0, 0)
+	return s.persist("meter.egress", actor, objectID, map[string]any{"product": product, "bytes": bytes, "channel": channel})
+}
+
 func (s *Service) AIStatus(ctx context.Context) map[string]any {
 	provider, model, ok := s.cfg.AIProvider.Status(ctx)
 	return map[string]any{"provider": provider, "model": model, "available": ok, "boundary": "selected file versions only; encrypted content excluded"}
@@ -1564,6 +1629,7 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruc
 		job.Estimate += len(c.Content) / 4
 	}
 	s.state.AIJobs[job.ID] = job
+	s.meterLocked(actor, product, 0, 0, 0, int64(job.Estimate), 1)
 	_ = s.persist("ai.consent", actor, "", map[string]any{"product": product, "jobId": job.ID, "mode": mode, "contexts": citations, "estimatedUnits": job.Estimate})
 	jobCtx, cancel := context.WithCancel(context.Background())
 	s.cancels[job.ID] = cancel
@@ -1580,7 +1646,7 @@ func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, c
 	}
 	job.Status = "running"
 	s.state.AIJobs[job.ID] = job
-	_ = s.persist("ai.started", job.Actor, "", map[string]any{"jobId": job.ID})
+	_ = s.persist("ai.started", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID})
 	s.mu.Unlock()
 	if !available {
 		job.Status = "failed"
@@ -1605,7 +1671,7 @@ func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, c
 		job.Error = "canceled by user"
 	}
 	s.state.AIJobs[job.ID] = job
-	_ = s.persist("ai.result", job.Actor, "", map[string]any{"jobId": job.ID, "status": job.Status})
+	_ = s.persist("ai.result", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID, "status": job.Status})
 	s.mu.Unlock()
 }
 

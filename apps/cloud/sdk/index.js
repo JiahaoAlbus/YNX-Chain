@@ -106,6 +106,7 @@ export class YNXCloudClient {
   trash(id) { return this.request(`/objects/${safeSegment(id)}/trash`, { method: "POST" }); }
   restore(id) { return this.request(`/objects/${safeSegment(id)}/restore`, { method: "POST" }); }
   quota() { return this.request("/quota"); }
+  usage() { return this.request("/usage"); }
   audit() { return this.request("/audit"); }
   exportData() { return this.request("/export", { response: "response" }); }
   deletionRecords() { return this.request("/deletions"); }

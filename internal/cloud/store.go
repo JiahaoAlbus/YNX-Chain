@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-const CurrentStateSchemaVersion = 3
+const CurrentStateSchemaVersion = 4
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}}
+	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}, Usage: map[string]UsageCounters{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -31,7 +31,7 @@ func loadState(path string) (persistentState, error) {
 	if err := json.Unmarshal(b, &state); err != nil {
 		return persistentState{}, fmt.Errorf("decode cloud state: %w", err)
 	}
-	if (state.SchemaVersion != 1 && state.SchemaVersion != 2 && state.SchemaVersion != CurrentStateSchemaVersion) || state.IntegrityHash == "" {
+	if (state.SchemaVersion < 1 || state.SchemaVersion > CurrentStateSchemaVersion) || state.IntegrityHash == "" {
 		return persistentState{}, errors.New("cloud state schema or integrity hash is invalid")
 	}
 	if !verifyStoredState(b, state) {
@@ -395,6 +395,9 @@ func normalize(s *persistentState) {
 	}
 	if s.DirectUploads == nil {
 		s.DirectUploads = map[string]DirectUpload{}
+	}
+	if s.Usage == nil {
+		s.Usage = map[string]UsageCounters{}
 	}
 }
 

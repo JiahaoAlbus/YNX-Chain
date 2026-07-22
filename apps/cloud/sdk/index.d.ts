@@ -14,9 +14,16 @@ export declare class YNXCloudClient {
   content(id: string, options?: { range?: string; signal?: AbortSignal }): Promise<Response>;
   versions(id: string): Promise<unknown[]>; restoreVersion(id: string, version: number): Promise<CloudObject>; saveDocument(id: string, input: unknown): Promise<CloudObject>;
   star(id: string, starred: boolean): Promise<CloudObject>; trash(id: string): Promise<CloudObject>; restore(id: string): Promise<CloudObject>;
-  quota(): Promise<{ usedBytes: number; limitBytes: number; claim: string }>; audit(): Promise<unknown[]>; exportData(): Promise<Response>;
+  quota(): Promise<{ usedBytes: number; limitBytes: number; claim: string }>; usage(): Promise<UsageReport>; audit(): Promise<unknown[]>; exportData(): Promise<Response>;
   deletionRecords(): Promise<unknown[]>; retryDeletion(id: string): Promise<unknown>;
   initiateMultipart(input: unknown): Promise<unknown>; multipartStatus(id: string): Promise<unknown>; putMultipartPart(id: string, part: number, bytes: ArrayBuffer | ArrayBufferView, sha256: string): Promise<unknown>; completeMultipart(id: string, parts: number[]): Promise<CloudObject>; cancelMultipart(id: string): Promise<unknown>;
   initiateDirectUpload(input: unknown): Promise<unknown>; directUploadStatus(id: string): Promise<unknown>; completeDirectUpload(id: string): Promise<CloudObject>; cancelDirectUpload(id: string): Promise<unknown>;
   createAIJob(input: unknown): Promise<unknown>; getAIJob(id: string): Promise<unknown>; cancelAIJob(id: string): Promise<unknown>; reviewAIJob(id: string, decision: "applied" | "rejected"): Promise<unknown>;
+}
+
+export interface UsageReport {
+  schemaVersion: 1; source: string; authority: string; asOf: string; owner: string; product: Product; storageBytes: number; freeQuotaBytes: number;
+  counters: { owner: string; product: Product; ingressBytes: number; egressBytes: number; scanBytes: number; aiInputUnits: number; aiJobs: number; backupBytes: number; replicaBytes: number; updatedAt: string };
+  pricingStatus: "not-configured-no-charge"; providerCostMinor: 0; protocolFeeMinor: 0; treasuryMinor: 0; burnMinor: 0; userChargeMinor: 0; refundMinor: 0;
+  coverage: Record<string, string>;
 }

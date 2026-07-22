@@ -200,6 +200,40 @@ type AuditEvent struct {
 	Details  map[string]any `json:"details,omitempty"`
 }
 
+type UsageCounters struct {
+	Owner        string    `json:"owner"`
+	Product      string    `json:"product"`
+	IngressBytes int64     `json:"ingressBytes"`
+	EgressBytes  int64     `json:"egressBytes"`
+	ScanBytes    int64     `json:"scanBytes"`
+	AIInputUnits int64     `json:"aiInputUnits"`
+	AIJobs       int64     `json:"aiJobs"`
+	BackupBytes  int64     `json:"backupBytes"`
+	ReplicaBytes int64     `json:"replicaBytes"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+type UsageReport struct {
+	SchemaVersion     int               `json:"schemaVersion"`
+	Source            string            `json:"source"`
+	Authority         string            `json:"authority"`
+	AsOf              time.Time         `json:"asOf"`
+	Owner             string            `json:"owner"`
+	Product           string            `json:"product"`
+	StorageBytes      int64             `json:"storageBytes"`
+	FreeQuotaBytes    int64             `json:"freeQuotaBytes"`
+	Counters          UsageCounters     `json:"counters"`
+	PricingStatus     string            `json:"pricingStatus"`
+	Currency          string            `json:"currency,omitempty"`
+	ProviderCostMinor int64             `json:"providerCostMinor"`
+	ProtocolFeeMinor  int64             `json:"protocolFeeMinor"`
+	TreasuryMinor     int64             `json:"treasuryMinor"`
+	BurnMinor         int64             `json:"burnMinor"`
+	UserChargeMinor   int64             `json:"userChargeMinor"`
+	RefundMinor       int64             `json:"refundMinor"`
+	Coverage          map[string]string `json:"coverage"`
+}
+
 type AIJob struct {
 	ID          string     `json:"id"`
 	Product     string     `json:"product"`
@@ -260,6 +294,7 @@ type persistentState struct {
 	MultipartUploads map[string]MultipartUpload        `json:"multipartUploads"`
 	BlobDeletions    map[string]BlobDeletion           `json:"blobDeletions"`
 	DirectUploads    map[string]DirectUpload           `json:"directUploads"`
+	Usage            map[string]UsageCounters          `json:"usage"`
 	IntegrityHash    string                            `json:"integrityHash"`
 }
 
