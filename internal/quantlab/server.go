@@ -33,6 +33,7 @@ func NewRoleServer(s *Service, role string) *Server {
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	if role == "all" || role == "research" {
+		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
 		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
 		v.mux.HandleFunc("PUT /v1/strategies/{id}/stage", v.stage)
@@ -48,6 +49,14 @@ func NewRoleServer(s *Service, role string) *Server {
 		v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
 	}
 	return v
+}
+func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
+	var q DatasetRecord
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.RegisterDataset(q)
+	respond(w, v, e, 201)
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")

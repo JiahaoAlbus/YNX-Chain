@@ -38,6 +38,10 @@ reload the integrity-protected state before mutation. A timeout fails closed.
 The WebSocket endpoint is `/v1/stream`; every envelope declares source, time,
 version, and authority confidence.
 
+Dataset governance records are registered through `POST /v1/datasets` and
+returned in snapshots. The API rejects incomplete provider rights, lineage,
+bias/correction, coverage/failure, or private-cloud-consent metadata.
+
 Worker trust configuration uses public strategy-signing keys only:
 
 - `YNX_QUANT_STRATEGY_KEYRING` — strict JSON public-key keyring path

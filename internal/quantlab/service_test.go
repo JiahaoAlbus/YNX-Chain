@@ -27,6 +27,10 @@ func validMandate(now time.Time, strategyHash string) Mandate {
 	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
 }
 
+func validDataset(now time.Time) DatasetRecord {
+	return DatasetRecord{ID: "ynx-exchange-matches", Version: "2026-07-22-v1", ContentSHA256: strings.Repeat("d", 64), SchemaVersion: "trades-v1", Provider: "YNX Exchange", OfficialURL: "https://exchange.ynxweb4.com", License: "YNX-testnet-data-terms", TermsVersion: "2026-07-22", Jurisdiction: "operator-review-required", Authentication: "canonical-gateway-session", RateLimit: "100 requests/minute candidate", Retention: "30 days candidate", DataRights: "research-backtest-paper-testnet-only", PermittedUses: []string{"research", "backtest", "paper"}, DataTypes: []string{"trades"}, Timezone: "UTC", Precision: "integer micro-units", CorrectionPolicy: "append correction with superseded hash", BiasControls: []string{"missing-data", "survivorship", "look-ahead", "delisting", "depeg"}, Lineage: []string{"ynx-exchange-match-ledger", "quant-ingestion-v1"}, Source: "ynx-owned-exchange-match-ledger", AsOf: now.Add(-time.Minute), Coverage: "YNXT-YUSD_TEST matched trades", Confidence: "authoritative-for-YNX-Exchange-matches", FailureStatus: "none"}
+}
+
 func bars() []Bar {
 	r := make([]Bar, 48)
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -303,5 +307,39 @@ func TestDeleteAllLocalDataRequiresExactConfirmationAndLeavesTombstone(t *testin
 	audit := snapshot["audit"].([]AuditEvent)
 	if len(audit) != 1 || audit[0].Action != "all_local_user_data_deleted" {
 		t.Fatalf("audit=%+v", audit)
+	}
+}
+
+func TestDatasetCatalogRequiresRightsLineageBiasAndPrivateConsent(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "state.json")
+	service, _ := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	record := validDataset(now)
+	registered, err := service.RegisterDataset(record)
+	if err != nil || registered.IngestedAt != now {
+		t.Fatalf("registered=%+v err=%v", registered, err)
+	}
+	if _, err := service.RegisterDataset(record); err != ErrConflict {
+		t.Fatalf("duplicate=%v", err)
+	}
+	restarted, err := New(Config{StatePath: path, Now: func() time.Time { return now }})
+	if err != nil || len(restarted.Snapshot()["datasets"].(map[string]DatasetRecord)) != 1 {
+		t.Fatalf("restart=%v", err)
+	}
+
+	invalid := validDataset(now)
+	invalid.ID = "unknown-type"
+	invalid.DataTypes = []string{"prices"}
+	if _, err := service.RegisterDataset(invalid); err != ErrInvalid {
+		t.Fatalf("type=%v", err)
+	}
+	private := validDataset(now)
+	private.ID, private.Private = "private-user-data", true
+	if _, err := service.RegisterDataset(private); err != ErrForbidden {
+		t.Fatalf("missing consent=%v", err)
+	}
+	private.CloudConsentID, private.ConsentExpiresAt = "consent-12345", now.Add(24*time.Hour)
+	if _, err := service.RegisterDataset(private); err != nil {
+		t.Fatalf("private consent=%v", err)
 	}
 }

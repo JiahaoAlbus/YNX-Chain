@@ -17,6 +17,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | worker sandbox boundary | tested local | Ed25519 package signature, source/artifact hashes, scan evidence, dependency allowlist, resource bounds, zero host/network/key/secret permission, payload tamper rejection; arbitrary source execution absent |
 | state backup/restore | tested local | atomic backup, restore drill, schema/integrity and tamper rejection |
 | PnL/fee attribution | tested local | alpha/beta residual, fee/slippage, realized/unrealized/net dual reconciliation, explicit unsupported components |
+| dataset catalog | tested local | version/hash, rights/terms, lineage, correction/bias, source/asOf/coverage/confidence/failure, private consent, persistence and duplicate rejection |
 | web accessibility/i18n | tested local | 12 catalog parity, Arabic RTL, 390 px overflow, light/dark browser evidence |
 | independent daemons | built/smoked local | core, worker, paper, risk, web, CLI builds; cross-process risk propagation smoke |
 | Docker Compose | schema parsed only | Docker daemon unavailable; image build/installation false |

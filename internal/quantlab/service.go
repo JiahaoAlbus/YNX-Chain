@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -60,6 +61,37 @@ type Bar struct {
 	Low    int64     `json:"low"`
 	Close  int64     `json:"close"`
 	Volume int64     `json:"volume"`
+}
+type DatasetRecord struct {
+	ID               string    `json:"id"`
+	Version          string    `json:"version"`
+	ContentSHA256    string    `json:"contentSha256"`
+	SchemaVersion    string    `json:"schemaVersion"`
+	Provider         string    `json:"provider"`
+	OfficialURL      string    `json:"officialUrl"`
+	License          string    `json:"license"`
+	TermsVersion     string    `json:"termsVersion"`
+	Jurisdiction     string    `json:"jurisdiction"`
+	Authentication   string    `json:"authentication"`
+	RateLimit        string    `json:"rateLimit"`
+	Retention        string    `json:"retention"`
+	DataRights       string    `json:"dataRights"`
+	PermittedUses    []string  `json:"permittedUses"`
+	DataTypes        []string  `json:"dataTypes"`
+	Timezone         string    `json:"timezone"`
+	Precision        string    `json:"precision"`
+	CorrectionPolicy string    `json:"correctionPolicy"`
+	BiasControls     []string  `json:"biasControls"`
+	Lineage          []string  `json:"lineage"`
+	Source           string    `json:"source"`
+	AsOf             time.Time `json:"asOf"`
+	IngestedAt       time.Time `json:"ingestedAt"`
+	Coverage         string    `json:"coverage"`
+	Confidence       string    `json:"confidence"`
+	FailureStatus    string    `json:"failureStatus"`
+	Private          bool      `json:"private"`
+	CloudConsentID   string    `json:"cloudConsentId,omitempty"`
+	ConsentExpiresAt time.Time `json:"consentExpiresAt,omitempty"`
 }
 type Assumptions struct {
 	FeeBPS, SlippageBPS int64
@@ -193,16 +225,17 @@ type DeletionRecord struct {
 	Schema         int       `json:"schema"`
 }
 type state struct {
-	Schema        int                     `json:"schema"`
-	Sequence      int64                   `json:"sequence"`
-	Experiments   map[string]Experiment   `json:"experiments"`
-	Strategies    map[string]StrategySpec `json:"strategies"`
-	Paper         PaperState              `json:"paper"`
-	Mandates      map[string]Mandate      `json:"mandates"`
-	TestnetOrders map[string]TestnetOrder `json:"testnetOrders"`
-	Idempotency   map[string]string       `json:"idempotency"`
-	Audit         []AuditEvent            `json:"audit"`
-	Integrity     string                  `json:"integrity"`
+	Schema        int                      `json:"schema"`
+	Sequence      int64                    `json:"sequence"`
+	Experiments   map[string]Experiment    `json:"experiments"`
+	Strategies    map[string]StrategySpec  `json:"strategies"`
+	Datasets      map[string]DatasetRecord `json:"datasets"`
+	Paper         PaperState               `json:"paper"`
+	Mandates      map[string]Mandate       `json:"mandates"`
+	TestnetOrders map[string]TestnetOrder  `json:"testnetOrders"`
+	Idempotency   map[string]string        `json:"idempotency"`
+	Audit         []AuditEvent             `json:"audit"`
+	Integrity     string                   `json:"integrity"`
 }
 type Service struct {
 	mu    sync.Mutex
@@ -217,7 +250,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}}
+	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}}
 	s.TestnetOrders = map[string]TestnetOrder{}
 	s.Idempotency = map[string]string{}
 	b, err := os.ReadFile(cfg.StatePath)
@@ -228,6 +261,9 @@ func New(cfg Config) (*Service, error) {
 		if s.TestnetOrders == nil {
 			s.TestnetOrders = map[string]TestnetOrder{}
 		}
+		if s.Datasets == nil {
+			s.Datasets = map[string]DatasetRecord{}
+		}
 		if s.Idempotency == nil {
 			s.Idempotency = map[string]string{}
 		}
@@ -235,6 +271,62 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	return &Service{cfg: cfg, state: s}, nil
+}
+
+func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
+	record.ID = strings.TrimSpace(record.ID)
+	record.Version = strings.TrimSpace(record.Version)
+	record.ContentSHA256 = strings.ToLower(strings.TrimSpace(record.ContentSHA256))
+	parsedURL, urlErr := url.Parse(strings.TrimSpace(record.OfficialURL))
+	allowedTypes := map[string]bool{"OHLCV": true, "trades": true, "order-book": true, "funding": true, "oracle": true, "DEX-pools": true}
+	allowedUses := map[string]bool{"research": true, "backtest": true, "paper": true, "shadow": true, "bounded-testnet": true, "display": true}
+	allowedBias := map[string]bool{"missing-data": true, "survivorship": true, "look-ahead": true, "delisting": true, "depeg": true, "corporate-action": true}
+	if !validSimpleID(record.ID) || record.Version == "" || len(record.ContentSHA256) != 64 || record.SchemaVersion == "" || record.Provider == "" || urlErr != nil || parsedURL.Scheme != "https" || parsedURL.Host == "" || parsedURL.User != nil || record.License == "" || record.TermsVersion == "" || record.Jurisdiction == "" || record.Authentication == "" || record.RateLimit == "" || record.Retention == "" || record.DataRights == "" || len(record.PermittedUses) == 0 || len(record.DataTypes) == 0 || record.Timezone == "" || record.Precision == "" || record.CorrectionPolicy == "" || len(record.BiasControls) == 0 || len(record.Lineage) == 0 || record.Source == "" || record.AsOf.IsZero() || record.Coverage == "" || record.Confidence == "" || record.FailureStatus == "" {
+		return DatasetRecord{}, ErrInvalid
+	}
+	if _, err := hex.DecodeString(record.ContentSHA256); err != nil {
+		return DatasetRecord{}, ErrInvalid
+	}
+	for _, value := range record.DataTypes {
+		if !allowedTypes[value] {
+			return DatasetRecord{}, ErrInvalid
+		}
+	}
+	for _, value := range record.PermittedUses {
+		if !allowedUses[value] {
+			return DatasetRecord{}, ErrInvalid
+		}
+	}
+	for _, value := range record.BiasControls {
+		if !allowedBias[value] {
+			return DatasetRecord{}, ErrInvalid
+		}
+	}
+	now := s.cfg.Now()
+	if record.AsOf.After(now) || record.AsOf.Before(now.AddDate(-20, 0, 0)) {
+		return DatasetRecord{}, ErrInvalid
+	}
+	if record.Private && (len(strings.TrimSpace(record.CloudConsentID)) < 8 || !record.ConsentExpiresAt.After(now) || record.ConsentExpiresAt.After(now.Add(90*24*time.Hour))) {
+		return DatasetRecord{}, ErrForbidden
+	}
+	if !record.Private && (record.CloudConsentID != "" || !record.ConsentExpiresAt.IsZero()) {
+		return DatasetRecord{}, ErrInvalid
+	}
+	record.IngestedAt = now
+	key := record.ID + "@" + record.Version
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return DatasetRecord{}, err
+	}
+	defer release()
+	if _, exists := s.state.Datasets[key]; exists {
+		return DatasetRecord{}, ErrConflict
+	}
+	s.state.Datasets[key] = record
+	s.audit("dataset_registered", key, record.ContentSHA256)
+	return record, s.save()
 }
 
 func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
@@ -784,6 +876,7 @@ func (s *Service) Snapshot() map[string]any {
 		"coverage":         "local-research-paper-and-bounded-testnet-records",
 		"failure":          failure,
 		"paper":            s.state.Paper,
+		"datasets":         s.state.Datasets,
 		"strategies":       s.state.Strategies,
 		"experiments":      s.state.Experiments,
 		"testnetOrders":    s.state.TestnetOrders,
@@ -868,6 +961,7 @@ func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error
 		Schema:        StateSchema,
 		Experiments:   map[string]Experiment{},
 		Strategies:    map[string]StrategySpec{},
+		Datasets:      map[string]DatasetRecord{},
 		Paper:         PaperState{Cash: 100_000_000_000, UpdatedAt: now},
 		Mandates:      map[string]Mandate{},
 		TestnetOrders: map[string]TestnetOrder{},
@@ -921,6 +1015,9 @@ func (s *Service) reload() error {
 	}
 	if latest.Strategies == nil {
 		latest.Strategies = map[string]StrategySpec{}
+	}
+	if latest.Datasets == nil {
+		latest.Datasets = map[string]DatasetRecord{}
 	}
 	if latest.Mandates == nil {
 		latest.Mandates = map[string]Mandate{}
@@ -979,6 +1076,17 @@ func abs(v int64) int64 {
 		return -v
 	}
 	return v
+}
+func validSimpleID(value string) bool {
+	if len(value) < 3 || len(value) > 120 {
+		return false
+	}
+	for _, character := range value {
+		if (character < 'a' || character > 'z') && (character < 'A' || character > 'Z') && (character < '0' || character > '9') && character != '-' && character != '_' && character != '.' {
+			return false
+		}
+	}
+	return true
 }
 func sortedKeys[V any](m map[string]V) []string {
 	r := make([]string, 0, len(m))
