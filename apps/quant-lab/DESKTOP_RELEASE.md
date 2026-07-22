@@ -15,8 +15,8 @@ notarization, hardened-runtime entitlement review, immutable hosting, and store
 release are false.
 
 The local macOS archive built from source commit
-`5c8524035e4dfe628331ca3953d5a75b0b6a8cf7` is 7,337,643 bytes with SHA-256
-`93667642db45e38d5c8a2ee338ee0ebf92747c7ac483991cf5b3dedf8d66859c`.
+`eb3767a48d51287f6b4601e0f712a18e734752a7` is 7,338,285 bytes with SHA-256
+`235d36c3b362f79607ef70147b991f3e4289591c2930a4aaab00525e0c0c7590`.
 
 ## Windows
 
@@ -25,9 +25,9 @@ cross-compiled into an archive. It is `unsigned-cross-compiled`. There is no
 Windows host launch, installation, antivirus/SmartScreen, minimum-version, or
 uninstall evidence, so `installedLocal` applies only to macOS.
 
-The local Windows archive built from the same source commit is 8,073,050 bytes
+The local Windows archive built from the same source commit is 8,072,676 bytes
 with SHA-256
-`cc151dabc4f3b002e5df3814433f5ef1fa83eb916756b825dc5ac3974ed52304`.
+`72270d4fd26da41e445ad45c49a8e099841131f19b4a8d761952e39b012baa91`.
 
 Desktop currently opens the product in the user's default browser while owning
 the local service lifecycle; it is not represented as an embedded native WebView.

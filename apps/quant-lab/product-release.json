@@ -3,7 +3,7 @@
   "productId": "ynx-quant-lab",
   "version": "0.2.0-testnet-candidate",
   "releaseClass": "local-testnet-candidate",
-  "sourceCommit": "5c8524035e4dfe628331ca3953d5a75b0b6a8cf7",
+  "sourceCommit": "eb3767a48d51287f6b4601e0f712a18e734752a7",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
@@ -16,8 +16,8 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifacts": [
-    {"name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip", "platform": "macOS arm64", "minimumOS": "macOS 13.0", "bytes": 7337643, "sha256": "93667642db45e38d5c8a2ee338ee0ebf92747c7ac483991cf5b3dedf8d66859c", "signingClass": "adhoc-test-only", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "hosted": false},
-    {"name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip", "platform": "Windows x64", "minimumOS": "unverified", "bytes": 8073050, "sha256": "cc151dabc4f3b002e5df3814433f5ef1fa83eb916756b825dc5ac3974ed52304", "signingClass": "unsigned-cross-compiled", "builtLocal": true, "installedLocal": false, "coldStartVerified": false, "hosted": false}
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip", "platform": "macOS arm64", "minimumOS": "macOS 13.0", "bytes": 7338285, "sha256": "235d36c3b362f79607ef70147b991f3e4289591c2930a4aaab00525e0c0c7590", "signingClass": "adhoc-test-only", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "hosted": false},
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip", "platform": "Windows x64", "minimumOS": "unverified", "bytes": 8072676, "sha256": "72270d4fd26da41e445ad45c49a8e099841131f19b4a8d761952e39b012baa91", "signingClass": "unsigned-cross-compiled", "builtLocal": true, "installedLocal": false, "coldStartVerified": false, "hosted": false}
   ],
   "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "Docker image build and install", "Windows host launch and installation", "production desktop signing and notarization", "public deployment and immutable hosted downloads"]
 }

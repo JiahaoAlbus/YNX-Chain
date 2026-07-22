@@ -31,13 +31,13 @@
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 
 Desktop artifacts built from source commit
-`5c8524035e4dfe628331ca3953d5a75b0b6a8cf7`:
+`eb3767a48d51287f6b4601e0f712a18e734752a7`:
 
-- macOS arm64 ZIP: 7,337,643 bytes; SHA-256
-  `93667642db45e38d5c8a2ee338ee0ebf92747c7ac483991cf5b3dedf8d66859c`;
+- macOS arm64 ZIP: 7,338,285 bytes; SHA-256
+  `235d36c3b362f79607ef70147b991f3e4289591c2930a4aaab00525e0c0c7590`;
   ad-hoc test signature; installed cold-start verified
-- Windows x64 ZIP: 8,073,050 bytes; SHA-256
-  `cc151dabc4f3b002e5df3814433f5ef1fa83eb916756b825dc5ac3974ed52304`;
+- Windows x64 ZIP: 8,072,676 bytes; SHA-256
+  `72270d4fd26da41e445ad45c49a8e099841131f19b4a8d761952e39b012baa91`;
   unsigned cross-compile; no Windows execution evidence
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
