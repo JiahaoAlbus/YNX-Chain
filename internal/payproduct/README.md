@@ -15,6 +15,8 @@ Run with `go run ./internal/payproduct/cmd/ynx-pay-productd`. Required variables
 - `YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID` (the merchant identity bound to that
   central credential; product merchant IDs remain separate and are audited)
 
+`GET /v1/settlement-assets` reports asset classes and evidence-backed availability. YNXT is the Testnet native asset, not a stablecoin or fiat. USDC/CCTP remains `unavailable` because the official Circle registries do not list YNX chain ID 6423. A host may inject a reviewed `StableSettlementApproval`; incomplete chain, contract, issuer/legal, health, attestation, limits, pause, depeg or provenance fields fail closed. YUSD also requires reserve, mint/burn, redemption and supply reconciliation evidence.
+
 Optional AI Gateway variables are `YNX_PAY_PRODUCT_AI_URL`,
 `YNX_PAY_PRODUCT_AI_KEY`, and `YNX_PAY_PRODUCT_AI_MODEL`. When absent, AI runs
 fail honestly as `provider_unavailable`. Cross-chain settlement is always
