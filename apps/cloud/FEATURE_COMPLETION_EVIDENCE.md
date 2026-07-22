@@ -11,7 +11,8 @@ Evidence baseline: source commit `7b3c5f427c1751b8d5f43833e281811dd81f76bb` plus
 | Quota and audit | yes | local | product-scoped service tests and canonical smoke | billing provider |
 | Offline queue and conflict UI | yes | local | Web/native tests; Docs 409 smoke | multi-device staging |
 | Backup/restore | yes | local | `scripts/smoke.sh`, `internal/cloud/recovery.go` | cross-region drill |
-| Quant/product artifact metadata | yes | local | typed object metadata and multipart lifecycle test | staging/product SDK proof |
+| Quant/product artifact metadata | yes | local | typed object metadata and multipart lifecycle test | staging consumer proof |
+| JavaScript/TypeScript SDK | yes | local | dependency-free ESM/types package and `tests/sdk.test.mjs` | publish immutable package and run staging consumer proof |
 | Multipart/resume/cancel | yes, bounded | local | durable upload/part state, restart resume and integrity tests | provider-native streaming; pause is client-side stop/resume |
 | Presigned direct upload | yes, adapter contract | local | fail-closed remote adapter, restart/verify tests, Web 8–64 MiB route | provisioned S3-compatible provider and remote proof |
 | Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |

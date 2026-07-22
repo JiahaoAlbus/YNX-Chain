@@ -1,0 +1,13 @@
+{
+  "name": "@ynx/cloud-client",
+  "version": "1.0.0-testnet-preview",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "files": ["index.js", "index.d.ts", "README.md"],
+  "sideEffects": false
+}
