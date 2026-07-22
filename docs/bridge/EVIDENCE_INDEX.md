@@ -13,5 +13,10 @@
 - Unit economics: `docs/bridge/UNIT_ECONOMICS.md`
 - Interface audit: `docs/bridge/UI_DESIGN_AUDIT.md`
 - Release notes: `docs/bridge/RELEASE_NOTES.md`
+- Consumer manifest: `docs/bridge/consumer-integration-manifest.json`
+- Consumer lifecycle vectors: `docs/bridge/consumer-lifecycle-vectors.json`
+- Provider status: `docs/bridge/provider-status.json`
+- Consumer handoff: `docs/handoffs/bridge-consumers.md`
+- Integration gate: `scripts/verify/bridge-integration-check.mjs`
 
 Generated test output is ephemeral and is not public or remote evidence. A release evidence record must bind future logs, artifacts, transaction receipts, API responses, and deployment URLs to the exact source commit that produced them.

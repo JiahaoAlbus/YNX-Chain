@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Bridge",
+  "canonicalRoute": "/bridge",
+  "chain": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeSymbol": "YNXT"
+  },
+  "currentIntegrationState": "handoff_only_not_integrated",
+  "publicRead": {
+    "method": "GET",
+    "path": "/bridge/transparency",
+    "source": "ynx-bridge-coordinator",
+    "authentication": "none",
+    "deployedPublic": false
+  },
+  "protectedCoordinatorBoundary": {
+    "consumerCredentialAccess": false,
+    "browserCredentialAccess": false,
+    "walletSecretAccess": false,
+    "requiredMediator": "canonical-app-gateway",
+    "centralGatewayIntegrated": false
+  },
+  "proposedProductScopes": [
+    "bridge:quote:read",
+    "bridge:transfer:create",
+    "bridge:transfer:read",
+    "bridge:recovery:create",
+    "bridge:dispute:create"
+  ],
+  "lifecycle": [
+    "quote",
+    "user_review",
+    "source_submitted",
+    "source_accepted",
+    "source_finalized",
+    "proof_attestation",
+    "destination_mint_release",
+    "destination_confirmed",
+    "failed",
+    "refund_recovery",
+    "dispute"
+  ],
+  "consumers": [
+    {"id":"wallet","responsibility":"quote, exact route review, fee/risk/finality review, source signature, recovery entry","mutationAuthority":"user-approved canonical Wallet intent only"},
+    {"id":"pay","responsibility":"show bridge funding as pending until destination confirmation before payment","mutationAuthority":"none"},
+    {"id":"exchange","responsibility":"map deposit and withdrawal status to source and destination evidence","mutationAuthority":"custody-approved backend only"},
+    {"id":"dex","responsibility":"label route as external and show provider/contracts/slippage/finality/refund","mutationAuthority":"user-approved canonical Wallet intent only"},
+    {"id":"finance","responsibility":"read-only exposure and source-qualified reconciliation","mutationAuthority":"none"},
+    {"id":"explorer","responsibility":"deep-link source transaction, source block, destination transaction and receipt","mutationAuthority":"none"},
+    {"id":"monitor","responsibility":"alert on pause, exposure saturation, provider failure and reconciliation age/difference","mutationAuthority":"operator safety action through approved control plane only"},
+    {"id":"trust","responsibility":"open dispute and appeal with immutable evidence references","mutationAuthority":"product-scoped Gateway session without asset authority"}
+  ],
+  "truthRules": [
+    "quote is not source acceptance",
+    "source acceptance is not source finality",
+    "provider webhook is not destination availability",
+    "destination release is not destination confirmation",
+    "operator reconciliation is not independent proof",
+    "unavailable provider routes remain unavailable"
+  ]
+}
