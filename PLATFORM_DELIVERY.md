@@ -14,5 +14,6 @@ signing and store-release surface. Mobile and desktop users receive the PWA;
 backend consumers use the API/SDK. There is no unsigned native build, production
 signature, or app-store release, and none is claimed.
 
-The container and public API remain uninstalled/unpublished until real provider
-registry, signer custody, image scan, and deployment evidence exist.
+The container is built and installed locally with a fail-closed safety-check
+registry. It and the public API remain unpublished until real provider registry,
+signer custody, registry digest, signing, and deployment evidence exist.

@@ -18,6 +18,9 @@
   `release/operator-inputs.request.json`
 
 Test commands are enumerated in `FEATURE_COMPLETION_EVIDENCE.md` and the
-requirement matrix. Public URLs, CI run IDs, container digests, screenshots,
-restore drill results, and Explorer/Monitor evidence remain absent and are not
+requirement matrix. Public-access URLs, CI run IDs, container digests,
+screenshots, remote restore drill results, and Explorer/Monitor evidence remain absent and are not
 represented as complete.
+
+The owner-only Web deployment is recorded in `release/product-release.json`.
+Its unauthenticated HTTP 401 proves access control, not public availability.

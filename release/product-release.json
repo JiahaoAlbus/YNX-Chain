@@ -6,7 +6,13 @@
   "sourceCommit": "9d565673bb23d6150665f51e00527e651b1c243a",
   "artifacts": [],
   "publicApi": null,
-  "oracleWeb": null,
+  "oracleWeb": {
+    "url": "https://ynx-oracle-control.jeohuang.chatgpt.site/oracle",
+    "access": "owner_only",
+    "deploymentStatus": "succeeded",
+    "sourceCommit": "ad7836788e61d396402f286e687d99f723fea0bd",
+    "unauthenticatedHttpStatus": 401
+  },
   "providerCountActive": 0,
   "requiredProviderCount": 3,
   "sourceLimitation": "No approved provider covers YNXT/YUSD_TEST; authoritative publication remains unavailable.",

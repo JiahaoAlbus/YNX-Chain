@@ -18,6 +18,17 @@
     `c0624ef8277a29c496fc2c82a152d8173a5203f98d008a64093b9b6b82e23c94`.
   - `release/oracle-web-production.cdx.json`, 9,758 bytes, SHA-256
     `584bb9e402e1a37c9792740e955962f2b9926140dc5a11b736c52424f7f3d0bb`.
+  - `release/oracle-image-linux-arm64.cdx.json`, 40,735 bytes, SHA-256
+    `c91f9833989ba5e4ff587e4cf4e7770f7b2d71b9e8ebf206881bf6f03114e423`.
+- The pinned linux/arm64 image builds as local ID
+  `sha256:58c30f0adb0651cffed64c0beac0519a53fc8fe62c113b2a85cc629eb75d7d19`
+  (14,570,034 bytes), runs as UID/GID 65532 on a read-only root filesystem,
+  and contains a CGO-disabled Go 1.25.12 binary.
+- Trivy 0.72.0 reports zero high/critical fixed vulnerabilities in both Alpine
+  3.22.5 packages and the Go binary. A local cold start with an explicitly
+  inactive test registry returned HTTP 503 `degraded`, active sources 0/3, and
+  the exact source limitation while the process remained healthy enough to
+  serve diagnostics.
 
 ## Open gates
 
@@ -28,8 +39,6 @@
   Cloudflare/Vite tooling repeatedly timed out, and some advisory-fixed versions
   were not published. Do not produce a signed/public artifact until the full
   audit is clean or a time-bounded, owner-approved exception documents reachability.
-- The local Docker daemon is unavailable, so the container has not been built,
-  scanned, started read-only/non-root, or assigned an immutable digest.
 - No DAST against a deployed API/Web origin, penetration test, dependency-review
   CI run, artifact signature, SLSA provenance, or public immutable download exists.
 - The Go SBOM generator could not derive the monorepo main-component version
@@ -42,5 +51,6 @@ Before distribution: build only from the final clean commit; run the full npm
 and Go audits; generate per-platform SBOMs; scan filesystem and image; run DAST
 on public read routes and rejected internal writes; record bytes, SHA-256,
 container digest, signing class, provenance, minimum OS, install, cold-start,
-and rollback evidence. A scan failure cannot be converted into a warning by the
+and rollback evidence. The local image ID is not a registry digest or hosted
+artifact. A scan failure cannot be converted into a warning by the
 release script.

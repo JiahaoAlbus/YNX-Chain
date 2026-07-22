@@ -11,8 +11,8 @@
 | Consumer SDK | Go strict validator rejects stale, breaker, low-source/confidence/coverage and version mismatch | Local tested |
 | Provider governance | Three official candidates documented; all inactive pending rights/YNX coverage | Source limitation open |
 | Anomaly behavior | Tests cover stale/offline, outlier, divergence, thin source, depeg, DEX reorg replacement, provider deactivation, and historical replay | Local tested; live failover pending |
-| Web/PWA | Independent `/oracle`, 12 languages, RTL, themes, reduced motion, PWA shell, live-only queries | Production build and SSR tests pass; deployment pending |
-| Container | Non-root multi-stage container definition with health check and mounted state/registry | Build pending because local Docker daemon is unavailable |
+| Web/PWA | Independent `/oracle`, 12 languages, RTL, themes, reduced motion, PWA shell, live-only queries | Production build/SSR tests and owner-only deployment pass; public access pending |
+| Container | Digest-pinned non-root image, Go 1.25.12 binary, read-only cold start, degraded fail-closed health, image SBOM, and clean high/critical Trivy scan | Built/installed locally; not hosted or signed |
 | Central integrations | Versioned schemas and consumer handoff manifest | Ready for review; not integrated centrally |
 
 No row implies public Testnet readiness. Public activation requires approved

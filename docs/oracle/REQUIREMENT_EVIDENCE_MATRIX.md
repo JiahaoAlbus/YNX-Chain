@@ -27,10 +27,11 @@ This matrix prevents implementation, test, installation, integration, deployment
 | Security and supply chain | Threat model/boundaries, Go and production-Web vulnerability gates, two CycloneDX SBOMs, secret scans, and non-root container definition exist; full Web build-tree audit, image scan, DAST, signature, and provenance remain open | Partial; release blocked |
 | Web/PWA docs and 12-language accessibility | Independent `/oracle` production build, SSR tests, PWA shell, 12 localized runtime/risk vocabularies, Arabic RTL, themes, focus, reduced motion, and 390px responsive rules | Implemented and locally tested; assistive-tech/public audit pending |
 | Public metadata and release record | Public metadata, candidate release record, feature/evidence indexes, notes, platform/KPI decisions, and minimal operator request exist | Implemented locally; public URLs/artifacts pending |
-| Local installation and cold start | Web dependencies install and production build/test pass; server/container cannot truthfully start without a real registry/HMAC key and the local Docker daemon is unavailable | Partial; installedLocal remains false |
+| Local installation and cold start | Web dependencies install/build; pinned non-root container builds and starts read-only with an isolated inactive safety-check registry, then truthfully returns degraded 0/3-source health | Installed locally; no production registry or public artifact |
 | Central integration | Pending | Pending |
-| Staging/public deployment | Direct probes prove unavailable | False |
-| Hosted/signed/store artifacts | No Oracle artifacts found | False |
+| Web deployment | Sites production deployment succeeded with owner-only access; unauthenticated `/oracle` returns HTTP 401 | Private evidence only; `deployedPublic=false` |
+| Oracle API staging/public deployment | Direct probes prove unavailable | False |
+| Hosted/signed/store artifacts | No public Oracle artifact is hosted, production-signed, or store-released | False |
 
 ## Product state booleans
 

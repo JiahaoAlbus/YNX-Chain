@@ -1,11 +1,11 @@
-# syntax=docker/dockerfile:1.7
-ARG GO_IMAGE=golang:1.25.12-alpine3.22
-ARG RUNTIME_IMAGE=alpine:3.22.1
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+ARG GO_IMAGE=golang:1.25-alpine3.22@sha256:65b4400aee0927412e9ed791a11893273a49d55df24841f7599660fb80dae464
+ARG RUNTIME_IMAGE=alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
 
 FROM ${GO_IMAGE} AS build
+ENV GOTOOLCHAIN=auto
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY cmd/ynx-oracled ./cmd/ynx-oracled
 COPY internal/oracle ./internal/oracle
 RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracled ./cmd/ynx-oracled

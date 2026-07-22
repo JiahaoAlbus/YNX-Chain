@@ -4,6 +4,7 @@
   "requestedAt": "2026-07-22T18:45:45Z",
   "status": "required_before_public_testnet",
   "inputs": [
+    { "id": "oracle_web_public_access", "required": true, "request": "Approve changing the verified owner-only Oracle Web deployment to public access, or provide the approved public Website route that will consume the handoff.", "secret": false },
     { "id": "provider_rights", "required": true, "request": "Executed rights or written approval for at least three independent YNX-capable market-data sources, including redistribution, benchmark/valuation, retention, regions, quotas, costs, and decommission terms.", "secret": false },
     { "id": "reporter_signers", "required": true, "request": "Secure signer or HSM paths and public reporter identities for each approved provider. Do not transmit private keys in chat or commit them.", "secret": true },
     { "id": "public_service", "required": true, "request": "Approved deployment account, public API hostname, DNS/TLS control, and ingress/monitoring destination.", "secret": false },
