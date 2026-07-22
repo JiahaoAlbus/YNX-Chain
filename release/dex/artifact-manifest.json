@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-dex",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
+  "sourceBaseCommit": "56c837fe455126c30212b76401d0adf1ef5f5a4a",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -21,14 +21,14 @@
     {
       "type": "web-pwa-upload-bundle",
       "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-      "sha256": "46f19d0e0593ddd5f93429437ffe859b85cb78c6d40e8149ac87c80d31f43d10",
-      "sizeBytes": 326067
+      "sha256": "04c9913a51fd91574d9437707b36acd84ac2e5351213caf28f2e5d80e555ca61",
+      "sizeBytes": 327847
     },
     {
       "type": "javascript-sdk-npm-package",
       "file": "ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
-      "sha256": "c6fd9f02b87d0ca4859e2bc36f31b94c7cc855aa4edc0c347d8669981642c9e1",
-      "sizeBytes": 14692
+      "sha256": "fc73494b974877ba57f24459a015de077006b64acf96dcc8489fb3f8b80360ef",
+      "sizeBytes": 16834
     },
     {
       "type": "contract-source-and-build-manifest",
@@ -51,8 +51,8 @@
         },
         {
           "path": "contracts/dex/YNXLPProtection.sol",
-          "sha256": "77422b78d2bbfa552702b069c8cced9e0cffe23e30fa1a78cec6c9ea50b93c40",
-          "sizeBytes": 11887
+          "sha256": "783c8c9c36ee963a432bbf638dd04f050b52c6d2bb3dd087f8fc31104d18fe85",
+          "sizeBytes": 11944
         },
         {
           "path": "contracts/dex/YNXDexRouter.sol",
@@ -76,7 +76,7 @@
         },
         {
           "path": "contracts/dex/SOURCE_REV",
-          "sha256": "0e8a1751716d1d0b7184121ae1daf3387a0d5f3e1413e68ae5c56ad7db69c5ac",
+          "sha256": "ea752f5ae4e61df25aefc5a8bb9c316cf36df6656a681549669803abb5b7d919",
           "sizeBytes": 783
         },
         {
@@ -91,23 +91,23 @@
         },
         {
           "path": "artifacts/contracts/dex/YNXDexFactory.sol/YNXDexFactory.json",
-          "sha256": "3d29a9b33b2a0dd2f09e4f00854ef4f6411070378fd4da885f43051a448fcab3",
+          "sha256": "07131478c81da09e30e8c3a937d666abcb67976533cce32a6b9f084e24f2202a",
           "sizeBytes": 69020
         },
         {
           "path": "artifacts/contracts/dex/YNXProtectedDexFactory.sol/YNXProtectedDexFactory.json",
-          "sha256": "6cbacbd5dd892feeb71f7e026e7587e66cb2c1392a055007b5049690ad86ff10",
-          "sizeBytes": 94611
+          "sha256": "6a2f2013977672e30cd677fc7f4fb3bc04efe48c73bc4db28ee479d923b40c87",
+          "sizeBytes": 94641
         },
         {
           "path": "artifacts/contracts/dex/YNXDexPool.sol/YNXDexPool.json",
-          "sha256": "91d356e7c44c2c62f2e30b664192723e8ae566eeb33dbdcf445c27c76c3e5fc7",
+          "sha256": "afb132a4f0b25da5046669925dbcb6b6ca84362ae5111c9b21ba97fd31f0127f",
           "sizeBytes": 64977
         },
         {
           "path": "artifacts/contracts/dex/YNXLPProtection.sol/YNXLPProtection.json",
-          "sha256": "7aed87fb89118bbb59bff441b0bb726e00b3d7b057c5d19356b919c85ba8f2bd",
-          "sizeBytes": 61204
+          "sha256": "21cb77a7720026f83f279a1ad4d272cc2f0bc53e1a0009b9c0eaf9524d3c8050",
+          "sizeBytes": 61408
         },
         {
           "path": "artifacts/contracts/dex/YNXDexRouter.sol/YNXDexRouter.json",
