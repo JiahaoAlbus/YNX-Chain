@@ -22,25 +22,32 @@
     "dist/app.js": "59bdf760465b047d0085dc4781a6bdcad74100c4c041846e586d6bf5eff3c1c9",
     "dist/styles.css": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
     "dist/a11y.css": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
+    "dist/manifest.webmanifest": "7cdab34fc2558a2651f7c7444a502f0fedd56dbfca180642dbc98186af99d7ed",
+    "dist/runtime-config.js": "d0545fc13aea930bcc73d66fde5830f186d51a969b099323da26aae0e5a3a2b6",
     "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
     "artifacts/sbom/backend-modules.json": "2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d",
     "artifacts/sbom/backend.cdx.json": "512441688ca876cac0fe247aac6fe182ef478a66deeca48e71cc63a8b32e9167",
-    "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12"
+    "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12",
+    "evidence/reproducible-build.json": "5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf"
   },
   "bytes": {
     "dist/index.html": 1040,
     "dist/app.js": 128655,
     "dist/styles.css": 5918,
     "dist/a11y.css": 328,
+    "dist/manifest.webmanifest": 228,
+    "dist/runtime-config.js": 215,
     "artifacts/sbom/frontend.cdx.json": 7276,
     "artifacts/sbom/backend-modules.json": 57262,
     "artifacts/sbom/backend.cdx.json": 260459,
-    "artifacts/vendor/wallet-auth-verification.json": 2863
+    "artifacts/vendor/wallet-auth-verification.json": 2863,
+    "evidence/reproducible-build.json": 1232
   },
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
   "recoveryEvidence": [{"classification": "local-unsigned-recovery-drill", "path": "evidence/backup-restore-drill.json", "sha256": "eab7eee06310e9519d2d7f5945ce977a0e8a6a5ad5e95aff906e2a5cdfa6e045", "bytes": 3024, "sourceCommit": "53adf12dde18c4e6d0ca3602a528d3efe8c19aef"}],
+  "reproducibilityEvidence": [{"classification": "local-unsigned-reproducible-build-check", "path": "evidence/reproducible-build.json", "sha256": "5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf", "bytes": 1232, "sourceCommit": "70f637de4a5b7e21da1b0743b6c96b8b572b9a11", "runs": 2, "byteIdentical": true}],
   "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
   "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Authenticated business views retain untranslated English copy; full 12-language, screen-reader, keyboard, zoom and automated accessibility-rule acceptance is incomplete.", "Existing proof screenshots predate canonical Wallet integration.", "Observability is process-local; OpenTelemetry, durable export, alerts and a staging dashboard are not configured.", "Official provider adapters/credentials, executable capital services, production-sized remote restore evidence, end-to-end capacity and public Testnet evidence remain incomplete."],
   "generatedAt": "2026-07-22T00:00:00+08:00"

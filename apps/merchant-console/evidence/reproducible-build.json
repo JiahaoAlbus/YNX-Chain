@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "classification": "local-unsigned-reproducible-build-check",
+  "sourceCommit": "70f637de4a5b7e21da1b0743b6c96b8b572b9a11",
+  "buildCommand": "node scripts/build.mjs",
+  "runs": 2,
+  "artifacts": {
+    "a11y.css": {
+      "sha256": "5ce379ece02d4e12a6dae5d0576dc50d21ab2633d1d4f4de97ae2d36c8c83faf",
+      "bytes": 328
+    },
+    "app.js": {
+      "sha256": "59bdf760465b047d0085dc4781a6bdcad74100c4c041846e586d6bf5eff3c1c9",
+      "bytes": 128655
+    },
+    "index.html": {
+      "sha256": "e1a4818843b06e6f72247f864e6257532f7cd4e39fbb632b9c11852921e81a5e",
+      "bytes": 1040
+    },
+    "manifest.webmanifest": {
+      "sha256": "7cdab34fc2558a2651f7c7444a502f0fedd56dbfca180642dbc98186af99d7ed",
+      "bytes": 228
+    },
+    "runtime-config.js": {
+      "sha256": "d0545fc13aea930bcc73d66fde5830f186d51a969b099323da26aae0e5a3a2b6",
+      "bytes": 215
+    },
+    "styles.css": {
+      "sha256": "61aa804580352a32c848f9294f1e200367ea95980255359bf59a4c165dc6e881",
+      "bytes": 5918
+    }
+  },
+  "byteIdentical": true,
+  "limitations": [
+    "Local darwin/arm64 process; not an independent builder or signed provenance.",
+    "Dependency cache and operating system were shared between both runs."
+  ]
+}

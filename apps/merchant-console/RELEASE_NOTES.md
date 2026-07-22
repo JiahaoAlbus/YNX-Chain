@@ -15,5 +15,6 @@
 - Added the complete current API authority/route contract and a versioned golden reconciliation CSV compatibility test.
 - Contained webhook SSRF, DNS rebinding and redirect risks with public-address validation, bound dialing, disabled proxies and persisted fail-closed retry evidence.
 - Added a deterministic CycloneDX backend SBOM and exact vendored Wallet Auth member manifest; unresolved source provenance/license remains an explicit distribution blocker.
+- Added exact-source two-run production-bundle byte reproducibility evidence with explicit same-host/cache limitations.
 
 No staging/public deployment, official provider success, stablecoin settlement, hosted download or production signature is claimed by this release.

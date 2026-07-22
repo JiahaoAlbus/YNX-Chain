@@ -21,10 +21,17 @@
 - Frontend tests bind the standard backend SBOM to the current `go.mod` and
   `go.sum`, reject local paths/broken references, and bind the vendor manifest
   to the exact tarball bytes while requiring truthful unknown provenance/license.
+- `npm run build:verify -- <exact-HEAD>` executed the production build twice
+  from source commit `70f637de4a5b7e21da1b0743b6c96b8b572b9a11`; all six bundle
+  files were byte-identical. Machine evidence is
+  `evidence/reproducible-build.json` (SHA-256
+  `5a770c56ef7bbcd47e3a47b8d51e614c68385a059c320b1c5dc5c4d73fbf72cf`,
+  1,232 bytes). Both runs shared one darwin/arm64 host and dependency cache, so
+  this is not an independent-builder or signed-provenance claim.
 
 Release gates: obtain and verify the vendored tarball's authoritative source
 commit and license, run SAST/DAST/dependency review/container and artifact scans,
-audit lifecycle/build scripts, record full production-bundle reproducibility,
+audit lifecycle/build scripts, reproduce on an independent hermetic builder,
 and publish signed provenance plus immutable artifact URL/SHA-256/bytes/signing
 class/minimum browser. Local secret-pattern scans are evidence only and do not
 replace an approved secret scanner.

@@ -74,6 +74,8 @@
 - Backend SBOM metadata binds current `go.mod` and `go.sum` SHA-256 values, and frontend tests reject stale input hashes, missing dependency references and local paths.
 - Vendor verification binds the exact 11,181-byte Wallet Auth archive and all 13 member hashes. It truthfully records missing source provenance and license as `unverified` / `NOASSERTION`.
 - `npm run check` passed 12/12 tests after adding the supply-chain gates; `npm audit --omit=dev` reported zero vulnerabilities.
+- Exact-HEAD production build verification ran twice and produced byte-identical `index.html`, `app.js`, `styles.css`, `a11y.css`, `manifest.webmanifest` and `runtime-config.js`; see `evidence/reproducible-build.json`.
+- Reproducibility limitation: same local darwin/arm64 host and cache, unsigned and not an independent hermetic builder.
 
 ## Truthful release state
 
