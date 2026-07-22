@@ -8,7 +8,8 @@ Status: implemented and tested for the bounded local filesystem adapter. This is
 - The service hashes decoded bytes with SHA-256. Blobs are addressed only by the lowercase 64-hex digest and written beneath the configured data root; request names and paths never become filesystem paths.
 - Same-name siblings are retained as distinct object IDs. No create, upload, autosave, version restore, or conflict recovery silently overwrites another object.
 - Object metadata, immutable version metadata, quota state, and the hash-chained audit event are persisted atomically through a new state snapshot. A failed persistence step restores the previous in-memory state.
-- Duplicate content may share one content-addressed blob. Permanent deletion removes logical references first; physical blob collection is an explicit operator retention boundary and cannot invalidate a remaining reference.
+- Duplicate content may share one content-addressed blob. Permanent deletion removes logical references first, computes remaining hash references, and calls the provider delete contract only for the final reference. Local deletion verifies the path and hash before removal. Remote deletion binds the expected SHA-256.
+- A provider deletion failure returns truthful `logical-deletion-complete` / `physicalDeletion: pending`, persists a redacted owner-visible deletion record, and supports an authenticated retry. It never reports physical erasure before provider success. Completed local deletion proves removal from this adapter only, not media sanitization by a production provider.
 
 ## Read contract
 

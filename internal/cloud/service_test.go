@@ -271,6 +271,83 @@ func TestPortableExportAndLegalHold(t *testing.T) {
 	}
 }
 
+type deleteFailStore struct{ LocalObjectStore }
+
+func (s deleteFailStore) Delete(context.Context, string, string) error {
+	return errors.New("provider unavailable")
+}
+
+func TestPhysicalDeleteReferenceCountingAndPendingTruth(t *testing.T) {
+	dir := t.TempDir()
+	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects")}
+	s, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := s.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "a", Content: []byte("same")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := s.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "b", Content: []byte("same")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	versions, _ := s.Versions(owner, a.ID)
+	blob := versions[0].BlobPath
+	if _, err = s.SetTrash(owner, a.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteObject(owner, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = os.Stat(blob); err != nil {
+		t.Fatalf("deduplicated blob deleted while referenced: %v", err)
+	}
+	if _, err = s.SetTrash(owner, b.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DeleteObject(owner, b.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = os.Stat(blob); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("final unreferenced blob retained: %v", err)
+	}
+	deletions, err := s.BlobDeletions(owner)
+	if err != nil || len(deletions) != 1 || deletions[0].Status != "completed" || deletions[0].Ref != "" {
+		t.Fatalf("completed deletion evidence: %#v %v", deletions, err)
+	}
+
+	dir = t.TempDir()
+	local := LocalObjectStore{Root: filepath.Join(dir, "objects")}
+	s, err = New(Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: local.Root, ObjectStore: deleteFailStore{local}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err = s.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "pending", Content: []byte("erase")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.SetTrash(owner, a.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	err = s.DeleteObject(owner, a.ID)
+	var pending DeletionPendingError
+	if !errors.As(err, &pending) || pending.Count != 1 {
+		t.Fatalf("pending result: %v", err)
+	}
+	deletions, err = s.BlobDeletions(owner)
+	if err != nil || len(deletions) != 1 || deletions[0].Status != "pending" || deletions[0].LastError == "" {
+		t.Fatalf("pending evidence: %#v %v", deletions, err)
+	}
+	retried, err := s.RetryBlobDeletion(context.Background(), owner, deletions[0].ID)
+	if err != nil || retried.Status != "pending" || retried.Attempts != 2 || retried.Ref != "" {
+		t.Fatalf("retry evidence: %#v %v", retried, err)
+	}
+	if _, err := s.RetryBlobDeletion(context.Background(), viewer, deletions[0].ID); !errors.Is(err, ErrDenied) {
+		t.Fatalf("foreign retry: %v", err)
+	}
+}
+
 func TestNativeWalletBindingsRejectSubstitutionAndReplay(t *testing.T) {
 	s := testService(t, nil)
 	ctx := context.Background()

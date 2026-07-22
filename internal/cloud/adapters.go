@@ -10,6 +10,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -17,6 +19,7 @@ import (
 type ObjectStore interface {
 	Put(context.Context, string, []byte) (string, error)
 	Get(context.Context, string, string) ([]byte, error)
+	Delete(context.Context, string, string) error
 	Boundary() string
 }
 
@@ -27,6 +30,23 @@ func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (stri
 }
 func (s LocalObjectStore) Get(_ context.Context, ref, hash string) ([]byte, error) {
 	return readBlob(ref, hash)
+}
+func (s LocalObjectStore) Delete(_ context.Context, ref, hash string) error {
+	want := filepath.Join(s.Root, hash[:2], hash)
+	clean, err := filepath.Abs(ref)
+	if err != nil {
+		return err
+	}
+	expected, err := filepath.Abs(want)
+	if err != nil || clean != expected {
+		return errors.New("object delete reference is outside content-addressed root")
+	}
+	if _, err := readBlob(clean, hash); errors.Is(err, os.ErrNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+	return os.Remove(clean)
 }
 func (s LocalObjectStore) Boundary() string { return "bounded-local-filesystem-not-production-durable" }
 
@@ -91,6 +111,24 @@ func (s RemoteObjectStore) Get(ctx context.Context, ref, hash string) ([]byte, e
 		return nil, errors.New("object store response integrity mismatch")
 	}
 	return b, nil
+}
+func (s RemoteObjectStore) Delete(ctx context.Context, ref, hash string) error {
+	if err := validRemote(s.BaseURL, s.Token); err != nil {
+		return err
+	}
+	u := strings.TrimRight(s.BaseURL, "/") + "/objects/" + url.PathEscape(ref)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	req.Header.Set("Authorization", "Bearer "+s.Token)
+	req.Header.Set("X-Content-SHA256", hash)
+	resp, err := s.client().Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		return fmt.Errorf("object store delete returned %d", resp.StatusCode)
+	}
+	return nil
 }
 func (s RemoteObjectStore) Boundary() string {
 	return "remote-contract-requires-operator-durability-evidence"

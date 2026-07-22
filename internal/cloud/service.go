@@ -38,6 +38,12 @@ type Config struct {
 	Now            func() time.Time
 }
 
+type DeletionPendingError struct{ Count int }
+
+func (e DeletionPendingError) Error() string {
+	return fmt.Sprintf("logical deletion completed; %d physical blob deletion(s) pending provider recovery", e.Count)
+}
+
 type Service struct {
 	mu      sync.Mutex
 	cfg     Config
@@ -660,17 +666,99 @@ func (s *Service) DeleteObject(actor, id string) error {
 			delete(s.state.Presence, key)
 		}
 	}
+	removedVersions := append([]Version(nil), s.state.Versions[id]...)
 	delete(s.state.Comments, id)
 	delete(s.state.Versions, id)
 	delete(s.state.Objects, id)
-	if err := s.persist("object.delete", actor, id, map[string]any{"kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "contentAddressedBlobGC": "operator-retention-policy"}); err != nil {
+	if err := s.persist("object.delete", actor, id, map[string]any{"kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "physicalDeletion": "attempted only after final content reference"}); err != nil {
 		var restored persistentState
 		if json.Unmarshal(before, &restored) == nil {
 			s.state = restored
 		}
 		return err
 	}
+	remaining := map[string]bool{}
+	for _, versions := range s.state.Versions {
+		for _, v := range versions {
+			remaining[v.Hash] = true
+		}
+	}
+	unique := map[string]Version{}
+	for _, v := range removedVersions {
+		if !remaining[v.Hash] {
+			unique[v.Hash+"\x00"+v.BlobPath] = v
+		}
+	}
+	pending := 0
+	for _, v := range unique {
+		now := s.cfg.Now()
+		d := BlobDeletion{ID: newID("deletion"), Owner: actor, Hash: v.Hash, Ref: v.BlobPath, Status: "completed", Attempts: 1, RequestedAt: now, UpdatedAt: now}
+		if err := s.cfg.ObjectStore.Delete(context.Background(), v.BlobPath, v.Hash); err != nil {
+			d.Status = "pending"
+			d.LastError = "provider deletion failed; operator retry required"
+			pending++
+		}
+		s.state.BlobDeletions[d.ID] = d
+	}
+	if len(unique) > 0 {
+		if err := s.persist("blob.delete", actor, id, map[string]any{"eligible": len(unique), "pending": pending}); err != nil {
+			return err
+		}
+	}
+	if pending > 0 {
+		return DeletionPendingError{Count: pending}
+	}
 	return nil
+}
+
+func (s *Service) BlobDeletions(actor string) ([]BlobDeletion, error) {
+	if !validAccount(actor) {
+		return nil, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := []BlobDeletion{}
+	for _, d := range s.state.BlobDeletions {
+		if d.Owner == actor {
+			copy := d
+			copy.Ref = ""
+			copy.LastError = strings.TrimSpace(copy.LastError)
+			out = append(out, copy)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UpdatedAt.After(out[j].UpdatedAt) })
+	return out, nil
+}
+
+func (s *Service) RetryBlobDeletion(ctx context.Context, actor, id string) (BlobDeletion, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, ok := s.state.BlobDeletions[id]
+	if !ok {
+		return BlobDeletion{}, ErrNotFound
+	}
+	if d.Owner != actor {
+		return BlobDeletion{}, ErrDenied
+	}
+	if d.Status == "completed" {
+		d.Ref = ""
+		return d, nil
+	}
+	d.Attempts++
+	d.UpdatedAt = s.cfg.Now()
+	if err := s.cfg.ObjectStore.Delete(ctx, d.Ref, d.Hash); err != nil {
+		d.Status = "pending"
+		d.LastError = "provider deletion failed; retry remains available"
+	} else {
+		d.Status = "completed"
+		d.LastError = ""
+	}
+	s.state.BlobDeletions[id] = d
+	if err := s.persist("blob.delete.retry", actor, "", map[string]any{"deletionId": id, "status": d.Status, "attempts": d.Attempts}); err != nil {
+		return BlobDeletion{}, err
+	}
+	d.Ref = ""
+	return d, nil
 }
 
 func (s *Service) ExportOwnedData(ctx context.Context, actor string) ([]byte, ExportManifest, error) {

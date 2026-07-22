@@ -49,3 +49,9 @@ does not match its recorded hash or size. Artifacts under `legal-hold` cannot be
 permanently deleted. Logical deletion still relies on operator-controlled,
 content-addressed blob retention/garbage collection and is not described as
 verified physical erasure.
+
+`GET /api/v1/deletions` lists redacted deletion outcomes for the current owner;
+`POST /api/v1/deletions/{deletion}/retry` retries a pending provider deletion.
+Content-addressed reference counting prevents deletion while another object
+version still uses the same hash. A provider failure returns `202 Accepted` with
+`physicalDeletion: pending` after logical deletion, never a false erasure claim.

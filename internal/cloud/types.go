@@ -75,6 +75,18 @@ type MultipartUpload struct {
 	UpdatedAt    time.Time             `json:"updatedAt"`
 }
 
+type BlobDeletion struct {
+	ID          string    `json:"id"`
+	Owner       string    `json:"owner"`
+	Hash        string    `json:"hash"`
+	Ref         string    `json:"ref,omitempty"`
+	Status      string    `json:"status"`
+	Attempts    int       `json:"attempts"`
+	RequestedAt time.Time `json:"requestedAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	LastError   string    `json:"lastError,omitempty"`
+}
+
 type Version struct {
 	ObjectID  string    `json:"objectId"`
 	Number    int       `json:"number"`
@@ -204,6 +216,7 @@ type persistentState struct {
 	Nonces           map[string]time.Time              `json:"nonces"`
 	Audit            []AuditEvent                      `json:"audit"`
 	MultipartUploads map[string]MultipartUpload        `json:"multipartUploads"`
+	BlobDeletions    map[string]BlobDeletion           `json:"blobDeletions"`
 	IntegrityHash    string                            `json:"integrityHash"`
 }
 
