@@ -30,6 +30,16 @@
   checks; this is test signing, not production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 
+Desktop artifacts built from source commit
+`5c8524035e4dfe628331ca3953d5a75b0b6a8cf7`:
+
+- macOS arm64 ZIP: 7,337,643 bytes; SHA-256
+  `93667642db45e38d5c8a2ee338ee0ebf92747c7ac483991cf5b3dedf8d66859c`;
+  ad-hoc test signature; installed cold-start verified
+- Windows x64 ZIP: 8,073,050 bytes; SHA-256
+  `cc151dabc4f3b002e5df3814433f5ef1fa83eb916756b825dc5ac3974ed52304`;
+  unsigned cross-compile; no Windows execution evidence
+
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
 a commit-addressed artifact, hash it, and attach a hosted immutable URL.
