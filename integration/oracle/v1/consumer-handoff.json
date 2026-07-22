@@ -4,7 +4,7 @@
   "oracleSchema": "ynx.oracle.v1",
   "policyVersion": "weighted-median-mad-v1",
   "normalizerVersion": "observation-normalizer-v1",
-  "sourceCommit": "8f1bd1c75707470a93870c22334f98d7459ea094",
+  "sourceCommit": "0b98ce6fdc0d75cbb7d4d77d643aeb2a1a791775",
   "authorityBoundary": {
     "oracleOwns": ["provider registry", "signed observation validation", "normalization", "aggregate quality", "lineage", "corrections", "historical replay"],
     "doesNotOwn": ["wallet identity", "authentication", "chain consensus", "balances", "orders", "settlement", "mint or burn", "bridge release", "financial advice"],

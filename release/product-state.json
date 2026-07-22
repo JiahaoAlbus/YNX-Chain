@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-oracle-market-data",
-  "sourceCommit": "8f1bd1c75707470a93870c22334f98d7459ea094",
+  "sourceCommit": "0b98ce6fdc0d75cbb7d4d77d643aeb2a1a791775",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
