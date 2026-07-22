@@ -986,6 +986,13 @@ func (s *Service) validateStateLocked() (bool, error) {
 		if transfer.ExternalSubmissionEnabled || transfer.RequiredAttestations != s.cfg.Threshold {
 			return false, errors.New("bridge persisted transfer violates current safety policy")
 		}
+		if !strings.HasPrefix(transfer.IntentDigest, "sha256:") || len(transfer.IntentDigest) != 71 || transfer.ID != "brg_"+strings.TrimPrefix(transfer.IntentDigest, "sha256:")[:24] {
+			return false, errors.New("bridge persisted transfer identity is inconsistent")
+		}
+		eventKey := fmt.Sprintf("%s|%s|%d", transfer.SourceChain, transfer.SourceTxHash, transfer.SourceEventIndex)
+		if indexedID, ok := s.state.SourceEvents[eventKey]; !ok || indexedID != transfer.ID {
+			return false, errors.New("bridge transfer is missing its source-event index")
+		}
 		key := routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset)
 		if _, ok := s.policies[key]; !ok {
 			return false, errors.New("bridge persisted transfer uses an unsupported route")
@@ -1021,6 +1028,9 @@ func (s *Service) validateStateLocked() (bool, error) {
 			if event.Sequence != uint64(i+1) || !allowedPhases[event.Phase] || !validLifecycleTimestamp(event.At) || invalidEvidence || invalidReason || !identifierPattern.MatchString(event.Source) || !identifierPattern.MatchString(event.Coverage) {
 				return false, errors.New("bridge persisted transfer lifecycle is invalid")
 			}
+		}
+		if err := s.validatePersistedAttestations(transfer); err != nil {
+			return false, err
 		}
 		amount, err := strconv.ParseUint(transfer.Amount, 10, 64)
 		if err != nil || amount == 0 {
@@ -1068,6 +1078,11 @@ func (s *Service) validateStateLocked() (bool, error) {
 		}
 		if transfer.SenderRedacted != strings.HasPrefix(transfer.Sender, "redacted:sha256:") || transfer.RecipientRedacted != strings.HasPrefix(transfer.Recipient, "redacted:sha256:") {
 			return false, errors.New("bridge persisted transfer identity-redaction state is invalid")
+		}
+	}
+	for _, record := range s.state.FinalizeIdempotency {
+		if _, ok := s.state.Transfers[record.TransferID]; !ok {
+			return false, errors.New("bridge finalization idempotency references a missing transfer")
 		}
 	}
 	for key, record := range s.state.Reconciliations {
@@ -1134,6 +1149,88 @@ func (s *Service) validateStateLocked() (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func (s *Service) validatePersistedAttestations(transfer Transfer) error {
+	if transfer.Attestations == nil {
+		return errors.New("bridge persisted transfer attestations are missing")
+	}
+	if len(transfer.Attestations) == 0 && transfer.SourceBlockHash != "" || len(transfer.Attestations) > 0 && transfer.SourceBlockHash == "" {
+		return errors.New("bridge persisted source block binding is inconsistent")
+	}
+	for name, attestation := range transfer.Attestations {
+		publicKey, allowed := s.cfg.Relayers[name]
+		if !allowed || attestation.Relayer != name || normalizeName(name) != name || attestation.SourceBlockHash != transfer.SourceBlockHash || attestation.Confirmations < transfer.RequiredConfirmations || !validLifecycleTimestamp(attestation.AttestedAt) {
+			return errors.New("bridge persisted attestation identity or finality is invalid")
+		}
+		payload := AttestationPayload(transfer, name, attestation.SourceBlockHash, attestation.Confirmations)
+		if attestation.PayloadHash != "sha256:"+hashBytes(payload) {
+			return errors.New("bridge persisted attestation payload is invalid")
+		}
+		signature, err := base64.StdEncoding.Strict().DecodeString(attestation.Signature)
+		if err != nil || len(signature) != ed25519.SignatureSize || !ed25519.Verify(publicKey, payload, signature) {
+			return errors.New("bridge persisted attestation signature is invalid")
+		}
+		if !hasAuditEvidence(s.state.Audit, "attestation_accepted", transfer.ID, attestation.PayloadHash) {
+			return errors.New("bridge persisted attestation audit evidence is missing")
+		}
+	}
+	quorum := len(transfer.Attestations) >= transfer.RequiredAttestations
+	switch transfer.Status {
+	case "pending_attestations":
+		if quorum || transfer.FinalizationID != "" || transfer.FinalizedAt != "" || s.hasFinalizationRecord(transfer.ID) {
+			return errors.New("bridge persisted pending status is inconsistent")
+		}
+	case "ready_for_local_finalization":
+		if !quorum || transfer.FinalizationID != "" || transfer.FinalizedAt != "" || s.hasFinalizationRecord(transfer.ID) {
+			return errors.New("bridge persisted ready status is inconsistent")
+		}
+	case "finalized_local":
+		if !quorum || !identifierPattern.MatchString(transfer.FinalizationID) || !validLifecycleTimestamp(transfer.FinalizedAt) {
+			return errors.New("bridge persisted finalized status is inconsistent")
+		}
+		if err := s.validatePersistedFinalization(transfer); err != nil {
+			return err
+		}
+	default:
+		return errors.New("bridge persisted transfer status is invalid")
+	}
+	return nil
+}
+
+func (s *Service) hasFinalizationRecord(transferID string) bool {
+	for _, record := range s.state.FinalizeIdempotency {
+		if record.TransferID == transferID {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) validatePersistedFinalization(transfer Transfer) error {
+	matches := 0
+	for key, record := range s.state.FinalizeIdempotency {
+		if record.TransferID != transfer.ID {
+			continue
+		}
+		matches++
+		if !idempotencyPattern.MatchString(key) || transfer.FinalizationID != "brf_"+hashText(transfer.ID + "|" + key)[:24] || !strings.HasPrefix(record.Digest, "sha256:") || !hasAuditEvidence(s.state.Audit, "transfer_finalized_local", transfer.ID, record.Digest) {
+			return errors.New("bridge persisted finalization evidence is inconsistent")
+		}
+	}
+	if matches != 1 {
+		return errors.New("bridge persisted finalization evidence is inconsistent")
+	}
+	return nil
+}
+
+func hasAuditEvidence(events []AuditEvent, action, transferID, detailHash string) bool {
+	for _, event := range events {
+		if event.Action == action && event.TransferID == transferID && event.DetailHash == detailHash {
+			return true
+		}
+	}
+	return false
 }
 
 const timeFormat = "2006-01-02T15:04:05.000000000Z"

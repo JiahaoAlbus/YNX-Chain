@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-22.
+Status date: 2026-07-23.
 
 ## Evidence-backed state
 
@@ -8,6 +8,7 @@ Status date: 2026-07-22.
 | --- | --- | --- | --- | --- | --- | --- |
 | Persistent transfer coordinator | true | true | false | false | false | false |
 | Relayer quorum and replay rejection | true | true | false | false | false | false |
+| Persisted relayer signature/quorum/audit revalidation | true | true | false | false | false | false |
 | Lifecycle, failure, retry, recovery, dispute | true | true | false | false | false | false |
 | Append-only source-qualified lifecycle timeline and v3 migration | true | true | false | false | false | false |
 | Settlement-aware exposure accounting across disputes and v4 migration | true | true | false | false | false | false |
@@ -42,7 +43,7 @@ Status date: 2026-07-22.
 - `make no-placeholder-check`
 - `make secret-scan`
 
-The API check launches the compiled daemon, exercises the public fail-closed route catalog, unauthorized rejection, create replay/conflict, persistent restart, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure.
+The API check launches the compiled daemon and exercises public fail-closed route/asset catalogs, unauthorized rejection, create replay/conflict, persistent restart and semantic state validation, pause/resume rejection, exposure limits, public transparency, an intentionally unbalanced reconciliation, truthful metrics, state file mode, and secret non-disclosure. Focused race tests additionally reseal forged quorum/signature/index/audit states and require startup rejection.
 
 ## Missing completion evidence
 

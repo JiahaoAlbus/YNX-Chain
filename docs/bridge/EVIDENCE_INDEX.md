@@ -27,6 +27,7 @@
 - Data lifecycle gate: `scripts/verify/bridge-data-lifecycle-check.sh`
 - Threat model: `docs/bridge/THREAT_MODEL.md`
 - Security boundaries: `docs/bridge/SECURITY_BOUNDARIES.md`
+- Relayer key lifecycle: `docs/bridge/RELAYER_KEY_LIFECYCLE.md`
 - Third-party notices: `docs/bridge/THIRD_PARTY_NOTICES.md`
 - Supply-chain gate: `scripts/verify/bridge-supply-chain-check.sh`
 - Public product metadata: `docs/bridge/public-product-metadata.json`

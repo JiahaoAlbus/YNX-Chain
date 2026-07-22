@@ -18,6 +18,8 @@ Data-rights controls treat premature deletion as an asset-safety and audit-evasi
 | Double mint or release | One local finalization and lifecycle transition graph | No destination contract is connected |
 | Stolen service credential | Constant-time check, no credential persistence/logging, consumer denial | API-key auth is not the final canonical Gateway integration |
 | Single relayer compromise | Distinct keys and threshold quorum | Production signer/HSM/MPC ceremony absent |
+| Resealed forged quorum state | Startup re-verifies every relayer key, finality/block binding, payload hash, Ed25519 signature, audit evidence, quorum/status, and source-event index | State digest is still not an external signature or independent audit |
+| Silent relayer-key replacement | Historical signatures must verify under the configured public key or startup fails | Versioned production key rotation and recovery ceremony remain absent |
 | Excess exposure | Per-transfer, UTC-daily, user-outstanding, and provider/route-outstanding limits plus persistent pause | Limits need route-specific economic and legal approval |
 | Settled transfer reopened by later dispute | Exposure resolution is independent from current lifecycle phase; migration derives it only from terminal evidence and rejects conflicting resolution | Operator evidence is still not independent destination proof |
 | Large transfer rushed after proof | Persisted not-before time blocks local finalization after quorum | Delay does not replace destination signer review |

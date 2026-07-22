@@ -468,6 +468,141 @@ func TestBridgeResealedInvalidLifecycleIsRejected(t *testing.T) {
 	}
 }
 
+func TestBridgeResealedAttestationAndIndexForgeryIsRejected(t *testing.T) {
+	t.Run("signature", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("forged-attestation-signature-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		transfer := state.Transfers[created.Transfer.ID]
+		attestation := transfer.Attestations["relayer-a"]
+		attestation.Signature = base64.StdEncoding.EncodeToString(make([]byte, ed25519.SignatureSize))
+		transfer.Attestations["relayer-a"] = attestation
+		state.Transfers[transfer.ID] = transfer
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "attestation signature is invalid") {
+			t.Fatalf("resealed forged attestation accepted: %v", err)
+		}
+	})
+
+	t.Run("quorum-status", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("forged-quorum-status-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		transfer := state.Transfers[created.Transfer.ID]
+		transfer.Status = "ready_for_local_finalization"
+		state.Transfers[transfer.ID] = transfer
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "ready status is inconsistent") {
+			t.Fatalf("resealed forged quorum status accepted: %v", err)
+		}
+	})
+
+	t.Run("source-event-index", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-source-index-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		for key, id := range state.SourceEvents {
+			if id == created.Transfer.ID {
+				delete(state.SourceEvents, key)
+			}
+		}
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "missing its source-event index") {
+			t.Fatalf("resealed missing source-event index accepted: %v", err)
+		}
+	})
+
+	t.Run("changed-relayer-key", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("changed-relayer-key-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		replacement, _, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg := b.cfg
+		cfg.Relayers = map[string]ed25519.PublicKey{}
+		for name, key := range b.cfg.Relayers {
+			cfg.Relayers[name] = append(ed25519.PublicKey(nil), key...)
+		}
+		cfg.Relayers["relayer-a"] = replacement
+		if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "attestation signature is invalid") {
+			t.Fatalf("changed relayer key silently accepted historical signature: %v", err)
+		}
+	})
+
+	t.Run("missing-attestation-audit", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-attestation-audit-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		state.Audit = state.Audit[:len(state.Audit)-1]
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "attestation audit evidence is missing") {
+			t.Fatalf("attestation without audit evidence accepted: %v", err)
+		}
+	})
+
+	t.Run("missing-finalization-audit", func(t *testing.T) {
+		b := newTestBridge(t)
+		created, err := b.service.CreateTransfer(validCreate("missing-finalization-audit-001"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		for _, relayer := range []string{"relayer-a", "relayer-b"} {
+			if _, err := b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, relayer, block, 12)); err != nil {
+				t.Fatal(err)
+			}
+		}
+		*b.clock = b.now.Add(time.Hour)
+		if _, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "missing-finalization-proof-001"}); err != nil {
+			t.Fatal(err)
+		}
+		state := cloneState(b.service.state)
+		state.Audit = state.Audit[:len(state.Audit)-1]
+		if err := saveState(b.state, &state); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "finalization evidence is inconsistent") {
+			t.Fatalf("finalization without audit evidence accepted: %v", err)
+		}
+	})
+}
+
 func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) {
 	b := newTestBridge(t)
 	created, err := b.service.CreateTransfer(validCreate("v4-settled-dispute-001"))

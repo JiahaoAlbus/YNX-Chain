@@ -121,4 +121,4 @@ grep -Fq "ynx_bridge_reconciliation_timestamp_seconds{" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: fail-closed route and asset catalogs, persistent lifecycle timeline, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"
+echo "bridge-api-check passed: fail-closed route and asset catalogs, persistent lifecycle and relayer evidence revalidation, replay/conflict, limits/delay, pause/resume, reconciliation/transparency, data export/retention hold, auth, tracing, truthful metrics, and mode-0600 state"

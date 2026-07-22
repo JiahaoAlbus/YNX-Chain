@@ -2,6 +2,8 @@
 
 The daemon starts only with a state path, a minimum-length API key, at least two distinct Ed25519 relayers, a threshold of at least two, and one or more fail-closed route policies. Every route keeps external submission disabled.
 
+Startup re-verifies stored relayer allowlisting, source-block/finality binding, canonical payload hashes, Ed25519 signatures, matching audit evidence, quorum/status state, finalization evidence, transfer digest identity, and complete source-event indexing. A full-state digest alone is insufficient.
+
 ## Incident response
 
 Before maintenance or incident recovery:
