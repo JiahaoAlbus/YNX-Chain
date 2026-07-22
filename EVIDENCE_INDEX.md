@@ -15,6 +15,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Rejected-transaction atomicity | `internal/consensus/application.go`, early-withdrawal/retry path in `staking_action_test.go` | `go test ./internal/consensus -run StakingDelegation` |
 | Consensus Treasury bucket truth | `internal/consensus/treasury_snapshot.go`, `treasury_snapshot_test.go` | `go test ./internal/consensus -run TreasurySnapshot` |
 | Source-labelled Treasury Gateway | `internal/bftgateway/treasury.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
+| Native YNXT supply/liability reconciliation and deterministic Merkle proofs | `internal/consensus/solvency_snapshot.go`, `solvency_snapshot_test.go` | `make solvency-check` |
+| Fail-closed source-labelled solvency and liability-proof Gateway | `internal/bftgateway/solvency.go`, `staking_test.go` | `make solvency-check` |
 | Treasury shock and runway model | `internal/economics/treasury.go`, `treasury_test.go` | `go test ./internal/economics -run Treasury` |
 | Reproducible Treasury stress scenario | `economics/examples/treasury-stress.json` | `go run ./cmd/ynx-treasury-sim -input economics/examples/treasury-stress.json` |
 | Liquid-staking share rate, allocation and reward/slash accounting | `internal/economics/liquid_staking.go`, `liquid_staking_test.go` | `make liquid-staking-candidate-check` |

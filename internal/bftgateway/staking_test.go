@@ -82,4 +82,21 @@ func TestGatewayCommitsAndQueriesStakingWithoutYieldClaims(t *testing.T) {
 	if treasury.Failure || treasury.Source != "ynx-consensus-abci" || treasury.Treasury.TransferExecutionEnabled || treasury.Treasury.SecretMarketSupport || !treasury.Treasury.Reconciled {
 		t.Fatalf("Treasury boundary was not truthful: %+v", treasury)
 	}
+	var solvency struct {
+		Failure  bool                          `json:"failure"`
+		Source   string                        `json:"source"`
+		Solvency consensus.BFTSolvencySnapshot `json:"solvency"`
+	}
+	getJSON(t, server.URL+"/solvency/snapshot", &solvency)
+	if solvency.Failure || solvency.Source != "ynx-consensus-abci" || !solvency.Solvency.Reconciled || solvency.Solvency.OnChainReconciliationBPS != 10_000 || solvency.Solvency.ExternalReserveRatio.Available || solvency.Solvency.ExternalReserveRatio.ValueBPS != nil || solvency.Solvency.Liabilities.PendingUnbondingYNXT != 150 {
+		t.Fatalf("solvency snapshot was not truthful: %+v", solvency)
+	}
+	var liability struct {
+		Failure bool                                `json:"failure"`
+		Proof   consensus.BFTSolvencyLiabilityProof `json:"proof"`
+	}
+	getJSON(t, server.URL+"/solvency/liabilities/"+delegator, &liability)
+	if liability.Failure || liability.Proof.Leaf.Address != delegator || liability.Proof.Leaf.PendingUnbondingYNXT != 150 || !liability.Proof.Verified || !consensus.VerifySolvencyLiabilityProof(liability.Proof) || liability.Proof.LiabilityMerkleRoot != solvency.Solvency.LiabilityMerkleRoot {
+		t.Fatalf("unexpected solvency liability proof: %+v", liability)
+	}
 }

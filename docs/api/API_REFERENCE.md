@@ -272,6 +272,13 @@ Account Abstraction and sponsored operations:
 - `ynx-bundlerd` accepts an already user-signed payload on authenticated `POST /user-operations`, serializes its own chain nonce, signs the outer application action from a mode-`0600` raw-key file, and verifies the committed account/operation hash/Bundler evidence before returning success. `GET /user-operations/{id}` returns the Gateway receipt. Its access key is an operator boundary, not user authority.
 - This is branch-local application version 13 / committed-state v11 evidence. No public Bundler, public sponsored transaction, WebAuthn RP/origin validation, or deployed Paymaster budget is claimed.
 
+Native solvency and liability proofs:
+
+- `GET /solvency/snapshot` returns exact native YNXT consensus-issued supply and liabilities split across liquid accounts, stake, queued unbonding, Strategy Vaults, and unspent Paymaster budgets. It includes the AppHash-bound state height/hash, encumbered amount, reconciliation basis points, leaf count, and deterministic liability Merkle root.
+- `GET /solvency/liabilities/{ynx1...}` returns the address's aggregate liability leaf and domain-separated Merkle siblings. The Gateway verifies the proof locally before returning it; tampered leaves, siblings, roots, sources, or address mismatches fail closed.
+- `onChainReconciliationBps=10000` means the native state categories equal the migration-anchored YNXT supply. It is not an external reserve ratio. External reserve basis points remain `null`, external redemption is false, and maximum external withdrawal delay is unavailable until a real custodian, attestation scope, and redemption provider exist.
+- These derived queries do not alter committed-state v11 and are branch-local only. No public solvency dashboard, custodian attestation, fiat reserve, market-liquidity, price-support, or redemption-capacity evidence is claimed.
+
 AI Gateway permission and audit:
 
 - `ynx-ai-gatewayd` is the independent public AI service on port `6429`. `GET /health` exposes chain identity, provider configuration state, model name, rate-limit policy, build identity, and `truthfulStatus=chain-context-and-provider-backed-ai-gateway`; `GET /metrics` exposes request, success, denial, error, and active-request counters.

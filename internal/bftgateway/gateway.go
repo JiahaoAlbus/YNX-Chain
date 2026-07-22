@@ -41,6 +41,7 @@ var implementedCapabilities = []string{
 	"staking-delegation-and-exit-state-transitions",
 	"treasury-observation-snapshot",
 	"smart-account-and-sponsored-user-operation-state-transitions",
+	"native-liability-solvency-snapshot-and-merkle-proof",
 }
 
 var missingCutoverCapabilities = []string{}
@@ -320,6 +321,8 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("POST /staking/withdrawals", g.handleStakingMutation)
 	g.mux.HandleFunc("GET /staking/summary", g.handleStakingSummary)
 	g.mux.HandleFunc("GET /treasury/snapshot", g.handleTreasurySnapshot)
+	g.mux.HandleFunc("GET /solvency/snapshot", g.handleSolvencySnapshot)
+	g.mux.HandleFunc("GET /solvency/liabilities/{address}", g.handleSolvencyLiabilityProof)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)

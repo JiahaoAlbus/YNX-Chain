@@ -257,6 +257,27 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	case req.Path == "/treasury/snapshot":
 		response.Value, _ = json.Marshal(buildTreasurySnapshot(a.migration, a.committed))
 		return response, nil
+	case req.Path == "/solvency/snapshot":
+		snapshot, err := buildSolvencySnapshot(a.migration, a.committed)
+		if err != nil {
+			return nil, err
+		}
+		response.Value, _ = json.Marshal(snapshot)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/solvency/liabilities/"):
+		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/solvency/liabilities/"))
+		if !IsNativeAddress(address) {
+			response.Code, response.Log = 1, "canonical YNX liability address is required"
+			return response, nil
+		}
+		proof, err := buildSolvencyLiabilityProof(a.committed, address)
+		if err != nil {
+			response.Code, response.Log = 1, err.Error()
+			return response, nil
+		}
+		response.Key = []byte(address)
+		response.Value, _ = json.Marshal(proof)
+		return response, nil
 	case strings.HasPrefix(req.Path, "/accounts/"):
 		address := strings.TrimSpace(strings.TrimPrefix(req.Path, "/accounts/"))
 		index, ok := accountIndex(a.committed.Accounts, address)
@@ -426,7 +447,7 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	default:
 		response.Code = 1
-		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, account abstraction, staking, Treasury, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
+		response.Log = "supported query paths include migration, state, accounts, economics fees, Quant mandates/vaults/audit, account abstraction, staking, Treasury, solvency, AI, Pay, Resource Market, governance, Trust, IDE contracts/calls, EVM receipts/logs, and transparency"
 		return response, nil
 	}
 }

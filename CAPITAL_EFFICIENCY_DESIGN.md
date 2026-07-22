@@ -14,6 +14,12 @@ The DEX `StrategyVault` accepts deposits, but normal withdrawal and emergency ex
 
 An exchange integration must use a dedicated subaccount/API credential for trading only, with exchange-side withdrawal disabled. The chain schema cannot prove an external exchange applied that setting, so adapter evidence must include official API capability, account identifier, scope response, test order/cancel, rejected withdrawal, expiry/revocation, and credential-rotation records without exposing the credential.
 
+## Proof of solvency boundary
+
+The solvency snapshot deterministically reconciles every native YNXT liability domain represented in committed state: transferable account balances, account stake, queued unbonding entries, owner-bound Strategy Vault balances, and unspent sponsor-bound Paymaster budgets. Each positive-liability address receives one canonical leaf. A domain-separated Merkle tree exposes a root in the snapshot and an independently verifiable inclusion proof per address through ABCI and the BFT Gateway.
+
+This is an exact proof of native consensus supply conservation, not proof of fiat reserves, external custody, market liquidity, price support, or redemption capacity. `externalReserveRatio.valueBps` is therefore `null`, external redemption is false, and the published on-chain transferable amount is not described as off-chain withdrawal capacity. Any future external reserve ratio requires a separate custodian, scope, timestamp, liability perimeter, attestation, and redemption-rail evidence set.
+
 ## Fees
 
 Management fee is time-proportional to average NAV and capped at the explicit annual basis-point rate. Performance fee uses realized gross PnL minus trading, funding, and provider costs. It applies only to cumulative realized net profit above a persistent high-water mark. Losses do not generate a fee or reset the high-water mark; recovery below the previous high-water mark does not generate a second fee. Unsigned overflow and invalid rates fail closed.

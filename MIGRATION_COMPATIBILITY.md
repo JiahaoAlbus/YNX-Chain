@@ -36,6 +36,8 @@ Current evidence covers local migration and restart tests only. No staging or pu
 
 UserOperation remains an additive version-1 format inside the existing signed application-action envelope. StrategyMandate, StrategyVault, Smart Account registration, Paymaster creation, UserOperation execution, delegation, unbonding, and withdrawal use v11 ABCI persistence; no existing account is silently reinterpreted.
 
+The version-1 solvency snapshot and liability proofs add no persisted state. They are deterministically derived from the already validated v11 account, stake, queued-unbonding, Strategy Vault, and Paymaster records, so old state migration and rollback bytes are unchanged.
+
 Owner/session authorization state, Paymaster budgets, and UserOperation receipts are included in v11. Guardian recovery proposals/execution still require a future committed-state extension. Activation also requires public Bundler, sponsored-transaction, WebAuthn RP/origin, old-client, state-root differential, backup, and rollback evidence.
 
 ## YUSD sandbox state v1
