@@ -1,0 +1,26 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "initialValidatorYnxt": {
+    "validator-a": 225000,
+    "validator-b": 225000,
+    "validator-c": 225000,
+    "validator-d": 225000
+  },
+  "initialLiquidYnxt": 100000,
+  "initialShareSupply": 1000000,
+  "initiallyPaused": false,
+  "contractAuditCompleted": false,
+  "governanceActivated": false,
+  "secondaryLiquidityLive": false,
+  "actions": [
+    { "epoch": 1, "type": "deposit", "amount": 100000, "validator": "validator-e" },
+    { "epoch": 2, "type": "reward", "amount": 50000, "validator": "validator-a" },
+    { "epoch": 3, "type": "request_withdrawal", "amount": 200000 },
+    { "epoch": 4, "type": "pause" },
+    { "epoch": 4, "type": "deposit", "amount": 10000, "validator": "validator-e" },
+    { "epoch": 5, "type": "slash", "amount": 100000, "validator": "validator-a" },
+    { "epoch": 6, "type": "secondary_quote", "marketPriceBpsOfNav": 8000, "marketAvailableShares": 25000 },
+    { "epoch": 10, "type": "fulfill_withdrawal", "queueId": "lstq-000001" },
+    { "epoch": 24, "type": "fulfill_withdrawal", "queueId": "lstq-000001" }
+  ]
+}

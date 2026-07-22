@@ -11,7 +11,8 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 | Validator/delegator delegation, unbonding and withdrawal | true | true | false | false | false | false | false | false | false | Committed state v9 and signed Gateway routes; branch-local only |
 | Staking rewards and validator commission distribution | false | false | false | false | false | false | false | false | false | Commission is disclosed but reward source is explicitly inactive |
 | Jail, Slashing, appeals and live performance | false | false | false | false | false | false | false | false | false | Disabled pending real governance authority and live telemetry |
-| Liquid staking candidate | false | false | false | false | false | false | false | false | false | Requires audited contracts and stress/queue/slash/depeg evidence |
+| Liquid staking candidate model and stress simulation | true | true | false | false | false | false | false | false | false | Share/rate, allocation, reward/slash, queue, pause, redemption, solvency and market-discount model; no token or contract |
+| Liquid staking audited contract and testnet activation | false | false | false | false | false | false | false | false | false | No contract audit, governance activation, chain events, deployment, custody/legal review, or live liquidity |
 | Safety Module and service security pools | false | false | false | false | false | false | false | false | false | No consensus state or contracts recovered |
 | Stablecoin issuer review control plane | true | true | false | false | false | false | false | false | false | Existing `make stablecoin-issuer-check`; intent-only, execution disabled |
 | 1:1 YUSD sandbox with reserve/redemption reconciliation | true | true | false | false | false | false | false | false | false | Isolated test-unit ledger and `make yusd-sandbox-check`; no real reserve, custodian, attestation, signer, redemption rail, or value |
@@ -25,3 +26,4 @@ Evidence is direct only for the exact state shown. `false` is not a defect label
 - `go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json` — pass; five reconciled annual records.
 - `go test ./...` initially exposed missing generated Solidity artifacts in three existing tests. After `npm run hardhat:build`, `go test ./internal/bftgateway ./internal/consensus` passed. This is a build prerequisite, not evidence that all final tokenomics requirements are complete.
 - `make yusd-sandbox-check` — pass; race-enabled lifecycle, outage, pause, persistence, reconciliation, tamper, auth, and HTTP boundary coverage.
+- `make liquid-staking-candidate-check` — pass; race-enabled model tests plus reproducible reward/slash/queue/pause/depeg scenario.

@@ -17,6 +17,10 @@ All paths are repository-relative and refer to the current source commit only af
 | Source-labelled Treasury Gateway | `internal/bftgateway/treasury.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
 | Treasury shock and runway model | `internal/economics/treasury.go`, `treasury_test.go` | `go test ./internal/economics -run Treasury` |
 | Reproducible Treasury stress scenario | `economics/examples/treasury-stress.json` | `go run ./cmd/ynx-treasury-sim -input economics/examples/treasury-stress.json` |
+| Liquid-staking share rate, allocation and reward/slash accounting | `internal/economics/liquid_staking.go`, `liquid_staking_test.go` | `make liquid-staking-candidate-check` |
+| Liquid-staking queue, burn, pause, limits, redemption and solvency | `internal/economics/liquid_staking.go`, `liquid_staking_test.go` | `make liquid-staking-candidate-check` |
+| Reproducible queue/slash/secondary-discount stress path | `economics/examples/liquid-staking-stress.json` | `go run ./cmd/ynx-liquid-staking-sim -input economics/examples/liquid-staking-stress.json` |
+| Liquid-staking non-activation and audit gates | `economics/LIQUID_STAKING_CANDIDATE.md` | Inspect output booleans from `make liquid-staking-candidate-check` scenario |
 | YUSD test reserve, supply and redemption liability reconciliation | `internal/yusdsandbox/service.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD atomic persistence, audit evidence chain and tamper rejection | `internal/yusdsandbox/store.go`, `service_test.go` | `make yusd-sandbox-check` |
 | YUSD outage queue, pause exit and strict authenticated HTTP boundary | `internal/yusdsandbox/server.go`, `server_test.go` | `make yusd-sandbox-check` |
