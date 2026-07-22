@@ -19,6 +19,7 @@
     "v1/v2 to v3 migration and local backup/restore drills passed",
     "CycloneDX server and production-Web SBOMs are committed",
     "Pinned non-root container built, started read-only, failed closed at 0/3 active sources, and passed a high/critical Trivy scan",
+    "Repeatable live-container DAST smoke passed security header, safe error, CORS, method, path, and oversized body gates",
     "Bounded in-process latency and concurrency profile is recorded"
   ],
   "limitations": [

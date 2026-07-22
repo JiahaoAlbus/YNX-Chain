@@ -29,6 +29,9 @@
   inactive test registry returned HTTP 503 `degraded`, active sources 0/3, and
   the exact source limitation while the process remained healthy enough to
   serve diagnostics.
+- The repeatable live-container DAST smoke verifies degraded fail-closed health,
+  security headers, safe error bodies, path/method/oversized-body rejection,
+  internal-ingestion CORS denial, UID 65532, and a read-only root filesystem.
 
 ## Open gates
 
@@ -39,7 +42,7 @@
   Cloudflare/Vite tooling repeatedly timed out, and some advisory-fixed versions
   were not published. Do not produce a signed/public artifact until the full
   audit is clean or a time-bounded, owner-approved exception documents reachability.
-- No DAST against a deployed API/Web origin, penetration test, dependency-review
+- No DAST against a deployed public API/Web origin, penetration test, dependency-review
   CI run, artifact signature, SLSA provenance, or public immutable download exists.
 - The Go SBOM generator could not derive the monorepo main-component version
   from the worktree reference; dependencies remain complete and the release
