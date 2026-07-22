@@ -143,6 +143,18 @@ func TestApplicationExecutesSignedTransferAndRestoresCommittedState(t *testing.T
 	}
 	assertConsensusAccount(t, app, sender, 874, 1)
 	assertConsensusAccount(t, app, recipient, 125, 0)
+	feeResponse, err := app.Query(ctx, &abcitypes.RequestQuery{Path: "/economics/fees"})
+	if err != nil || feeResponse.Code != abcitypes.CodeTypeOK {
+		t.Fatalf("fee ledger query failed: response=%+v err=%v", feeResponse, err)
+	}
+	var feeEvents []BFTFeeEvent
+	if err := json.Unmarshal(feeResponse.Value, &feeEvents); err != nil || len(feeEvents) != 1 {
+		t.Fatalf("fee ledger did not expose one event: events=%+v err=%v", feeEvents, err)
+	}
+	feeEvent := feeEvents[0]
+	if feeEvent.Payer != sender || feeEvent.GrossFeeYNXT != 1 || feeEvent.ValidatorYNXT != 1 || feeEvent.BurnYNXT != 0 || feeEvent.Recipient == "" || feeEvent.AuditHash != feeEventAuditHash(feeEvent) {
+		t.Fatalf("fee event does not truthfully reconcile current policy: %+v", feeEvent)
+	}
 	if info, err := os.Stat(statePath); err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("durable state is missing or not mode 0600: info=%v err=%v", info, err)
 	}
@@ -157,6 +169,9 @@ func TestApplicationExecutesSignedTransferAndRestoresCommittedState(t *testing.T
 	}
 	assertConsensusAccount(t, restarted, sender, 874, 1)
 	assertConsensusAccount(t, restarted, recipient, 125, 0)
+	if len(restarted.committed.FeeEvents) != 1 || restarted.committed.FeeEvents[0] != feeEvent {
+		t.Fatalf("fee ledger was not restored exactly: %+v", restarted.committed.FeeEvents)
+	}
 	replay, err := restarted.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: payload})
 	if err != nil || replay.Code != CodeInvalidNonce {
 		t.Fatalf("committed nonce replay was not rejected: response=%+v err=%v", replay, err)

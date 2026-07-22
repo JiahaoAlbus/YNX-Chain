@@ -283,6 +283,8 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
+	g.mux.HandleFunc("GET /economics/fees", g.handleEconomicsFees)
+	g.mux.HandleFunc("GET /economics/fees/{id}", g.handleEconomicsFee)
 	g.mux.HandleFunc("POST /ai/permissions", g.handleAIMutation)
 	g.mux.HandleFunc("GET /ai/permissions", g.handleAIPermissions)
 	g.mux.HandleFunc("GET /ai/permissions/{id}", g.handleAIPermission)
