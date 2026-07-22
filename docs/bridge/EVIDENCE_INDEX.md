@@ -9,6 +9,7 @@
 - Migration: `docs/bridge/MIGRATION_COMPATIBILITY.md`
 - Data lifecycle and cessation: `docs/bridge/DATA_LIFECYCLE.md`
 - Observability: `docs/bridge/OBSERVABILITY.md`
+- Status and support contract: `docs/bridge/STATUS_AND_SUPPORT.md`
 - Operations: `docs/bridge/OPERATIONS.md`
 - Capacity: `docs/bridge/SLO_CAPACITY_PLAN.md`
 - Unit economics: `docs/bridge/UNIT_ECONOMICS.md`

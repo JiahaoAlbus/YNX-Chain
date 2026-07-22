@@ -714,6 +714,10 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	if err != nil || replayed || !safety.Paused {
 		t.Fatalf("pause failed: %+v replay=%v err=%v", safety, replayed, err)
 	}
+	pausedStatus := b.service.ProductStatus(buildinfo.Info{})
+	if pausedStatus.CoordinatorState != "paused-local-coordinator" || !pausedStatus.Paused || pausedStatus.ExternalBridgeState != "unavailable" || pausedStatus.UserAssetMovementEnabled {
+		t.Fatalf("paused product status overclaim: %+v", pausedStatus)
+	}
 	if _, err := b.service.CreateTransfer(validCreate("paused-create-001")); !errors.Is(err, ErrConflict) {
 		t.Fatalf("paused bridge accepted transfer: %v", err)
 	}
@@ -912,6 +916,11 @@ func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.
 	doJSON(t, http.MethodGet, server.URL+"/bridge/assets", "", nil, http.StatusOK, &assets)
 	if assets.Source != "ynx-bridge-asset-registry" || len(assets.Assets) != 2 || assets.Assets[0].Availability != "unavailable" || assets.Assets[0].Contract != nil || assets.Assets[0].ContractVerified || assets.Assets[0].ExternalExecutionEnabled || !assets.Assets[0].AllowlistedForCoordinatorIntent {
 		t.Fatalf("public asset catalog overclaim: %+v", assets)
+	}
+	var status ProductStatus
+	doJSON(t, http.MethodGet, server.URL+"/bridge/status", "", nil, http.StatusOK, &status)
+	if status.Source != "ynx-bridge-status" || status.CoordinatorState != "available-local-coordinator" || status.ExternalBridgeState != "unavailable" || status.ProviderConnection != "not-connected" || status.ExternalSubmissionEnabled || status.UserAssetMovementEnabled || status.OfficialStablecoinRouteAvailable || status.DeployedPublic || status.Reconciliation.State != "operator-observed-imbalance" || status.Reconciliation.IndependentVerification || status.Capabilities.RefundExecution || !status.Capabilities.DisputeRecording || status.Support.Configured || status.Support.PublicStatusURL != nil {
+		t.Fatalf("public product status overclaim: %+v", status)
 	}
 	tampered := cloneState(b.service.state)
 	for key, reconciliation := range tampered.Reconciliations {

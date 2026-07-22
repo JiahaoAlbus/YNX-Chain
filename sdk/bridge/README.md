@@ -1,6 +1,6 @@
 # YNX Bridge SDK
 
-`@ynx-chain/bridge-sdk` is a dependency-free, read-only JavaScript client for the public Bridge health, transparency, route-catalog, and token-allowlist surfaces. It validates source, version, timestamps, route/asset shape, null contract and quote evidence, and the fail-closed relationship between availability, `liveBridge`, and external execution.
+`@ynx-chain/bridge-sdk` is a dependency-free, read-only JavaScript client for the public Bridge health, transparency, route-catalog, token-allowlist, and product-status surfaces. It validates source, version, timestamps, route/asset shape, null contract and quote evidence, and the fail-closed relationship between local availability, external Bridge readiness, provider connection, public deployment, support, and execution.
 
 The SDK never accepts or sends Bridge API keys, Wallet sessions, provider credentials, relayer keys, private keys, or transaction signatures. It cannot create, attest, finalize, retry, refund, dispute, mint, release, or submit a transfer. Consumer products must use the canonical Wallet/App Gateway approval boundary for any future mutation integration.
 

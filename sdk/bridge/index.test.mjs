@@ -29,6 +29,10 @@ before(async () => {
       response.end(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-asset-registry", asOf: "2026-07-22T00:00:00Z", coverage: "configured-token-allowlist-candidates-not-verified-contracts", assets: [{id: "asset_test", chain: "ethereum-sepolia", asset: "sepolia-usdc", assetClass: "testnet-stablecoin", canonicality: "canonical", symbol: null, decimals: null, contract: null, contractVerified: false, explorerUrl: null, allowlistedForCoordinatorIntent: true, availability: "unavailable", movementModes: ["lock-observation-only-not-executed"], supplyAuthority: "not-configured", reserveEvidence: "operator-reconciliation-reference-only-not-independent-proof", externalExecutionEnabled: false, routeIds: ["route_test"], risk: ["contract address and metadata are not configured"]}]}));
       return;
     }
+    if (request.url === "/bridge/status") {
+      response.end(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-status", asOf: "2026-07-23T00:00:00Z", coverage: "local-coordinator-and-configured-candidates-not-public-provider-health", coordinatorState: "available-local-coordinator", externalBridgeState: "unavailable", failureStatus: "no-verified-provider-contract-or-public-deployment", paused: false, routeCount: 1, assetCount: 2, transferCount: 0, openExposureTransferCount: 0, providerConnection: "not-connected", externalSubmissionEnabled: false, userAssetMovementEnabled: false, officialStablecoinRouteAvailable: false, deployedPublic: false, reconciliation: {state: "no-operator-observation", recordCount: 0, latestRecordedAt: null, independentVerification: false, coverage: "operator-submitted-references-not-independent-chain-proof"}, capabilities: {readOnlyEvidence: true, quoteExecution: false, sourceSubmission: false, destinationMintRelease: false, refundExecution: false, disputeRecording: true, emergencyExitExecution: false}, support: {configured: false, supportUrl: null, privacyUrl: null, securityUrl: null, publicStatusUrl: null}, build: {commit: "test", release: "test", buildTime: "2026-07-23T00:00:00Z"}}));
+      return;
+    }
     if (request.url === "/invalid-live") {
       response.end(JSON.stringify({ok: true, service: "ynx-bridged", liveBridge: true, externalSubmissionEnabled: false}));
       return;
@@ -52,8 +56,11 @@ test("reads truthful public Bridge health and transparency without credentials",
 	assert.equal(routes.routes[0].availability, "unavailable");
 	assert.equal(routes.routes[0].fees.providerFee, null);
   const assets = await client.getAssets();
-  assert.equal(assets.assets[0].assetClass, "testnet-stablecoin");
-  assert.equal(assets.assets[0].contract, null);
+	assert.equal(assets.assets[0].assetClass, "testnet-stablecoin");
+	assert.equal(assets.assets[0].contract, null);
+  const status = await client.getStatus();
+  assert.equal(status.externalBridgeState, "unavailable");
+  assert.equal(status.capabilities.refundExecution, false);
   assert.equal(lastHeaders.authorization, undefined);
   assert.equal(lastHeaders["x-ynx-bridge-key"], undefined);
 });
@@ -83,4 +90,6 @@ test("fails closed on malformed contracts, insecure origins, and bounded errors"
 	await assert.rejects(failing.getHealth(), (error) => error.status === 503 && error.requestId === "breq_1" && error.errorId === "berr_1");
 	const overclaimingAsset = new YNXBridgeClient({baseURL, fetchImpl: async () => new Response(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-asset-registry", asOf: "2026-07-22T00:00:00Z", coverage: "configured-token-allowlist-candidates-not-verified-contracts", assets: [{assetClass: "wrapped-test-asset", canonicality: "represented", symbol: "WYNXT", decimals: 18, contract: "0x0000000000000000000000000000000000000001", contractVerified: true, explorerUrl: null, allowlistedForCoordinatorIntent: true, availability: "available", supplyAuthority: "configured", externalExecutionEnabled: true, routeIds: ["route_test"], risk: []}]}), {status: 200, headers: {"content-type": "application/json"}})});
 	await assert.rejects(overclaimingAsset.getAssets(), /overclaims asset availability/);
+	const overclaimingStatus = new YNXBridgeClient({baseURL, fetchImpl: async () => new Response(JSON.stringify({schemaVersion: 1, source: "ynx-bridge-status", asOf: "2026-07-23T00:00:00Z", coverage: "local-coordinator-and-configured-candidates-not-public-provider-health", coordinatorState: "available-local-coordinator", externalBridgeState: "available", paused: false, providerConnection: "connected", externalSubmissionEnabled: true, userAssetMovementEnabled: true, officialStablecoinRouteAvailable: true, deployedPublic: true, reconciliation: {independentVerification: true}, capabilities: {readOnlyEvidence: true, quoteExecution: true, sourceSubmission: true, destinationMintRelease: true, refundExecution: true, disputeRecording: true, emergencyExitExecution: true}, support: {configured: true, supportUrl: "https://invalid.test", privacyUrl: null, securityUrl: null, publicStatusUrl: "https://invalid.test"}}), {status: 200, headers: {"content-type": "application/json"}})});
+	await assert.rejects(overclaimingStatus.getStatus(), /overclaims readiness/);
 });

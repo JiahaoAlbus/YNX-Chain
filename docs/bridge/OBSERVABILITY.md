@@ -8,4 +8,6 @@ Every HTTP response includes a random `X-Request-ID`; error responses include `X
 
 `GET /bridge/transparency` exposes source-qualified public accounting. Coordinator exposure is derived from persisted transfer state. External reconciliation is labeled operator-submitted and not independently verified. Loadable Prometheus rules in `infra/monitoring/ynx-bridge-alerts.yml` independently alert on availability, fail-closed boundary changes, pause duration, route-limit saturation, reconciliation imbalance/age, and rate-limit abuse. The importable `infra/monitoring/grafana-bridge-dashboard.json` covers those safety and lifecycle signals without user or transaction labels. Alert delivery and dashboard installation are deployment-owned and are not implied by these local definitions.
 
+`GET /bridge/status` is the local product-readiness summary. It separates process availability, pause state, open exposure count, and operator reconciliation from external provider, contract, execution, public deployment, support, refund, and emergency-exit readiness. It is not an independently hosted public status page.
+
 No remote Prometheus target, alert delivery, installed/rendered dashboard, or public status-page evidence exists for `ynx-bridged` yet.

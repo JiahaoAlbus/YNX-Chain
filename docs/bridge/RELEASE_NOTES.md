@@ -1,5 +1,6 @@
 # Bridge Release Notes
 
+- Added public `/bridge/status` and SDK validation that separate local coordinator health from unavailable external Bridge/provider/public/support/refund/emergency-exit states.
 - Re-verify all persisted relayer signatures, source block/finality bindings, payload hashes, audit evidence, quorum status, finalization identity, and source-event indexes at startup. Changed trust-root keys and resealed forged quorum state fail closed.
 - Added public `/bridge/assets` token-allowlist metadata and SDK support, with exact Testnet stablecoin, wrapped test asset, YNXT candidate, and other candidate classes. Unknown contracts/metadata and all asset execution remain explicitly unavailable.
 - Added persistence schema v5 with explicit exposure resolution. Destination-confirmed or refund-recovered transfers remain settled if a later dispute becomes current, preventing false outstanding-supply and limit inflation.

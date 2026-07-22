@@ -17,6 +17,7 @@ Status date: 2026-07-23.
 | Fail-closed route catalog and provider disclosure | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
+| Truthful local product status and support/readiness boundary | true | true | false | false | false | false |
 | Read-only Bridge JavaScript SDK and lifecycle availability guard | true | true | false | false | false | false |
 | Data export, retention hold, deletion-request execution, and identity redaction | true | true | false | false | false | false |
 | Service-cessation and user-exit runbook | true | true | false | false | false | false |

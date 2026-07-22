@@ -10,6 +10,8 @@ The independent `sdk/bridge` package exposes only public health, transparency, a
 
 `GET /bridge/assets` reports the configured token allowlist with explicit Testnet stablecoin, wrapped test asset, YNXT bridge candidate, and other Testnet candidate classes. It rejects class/canonicality conflicts and keeps unknown contract metadata null, verification false, supply authority unconfigured, and execution disabled.
 
+`GET /bridge/status` keeps local coordinator availability separate from external Bridge readiness. It reports provider/public/execution/support/refund/emergency-exit states as unavailable, false, or null and never treats operator reconciliation as independent proof.
+
 `GET /bridge/transparency` is intentionally public and reports coordinator-observed outstanding exposure, configured route limits, pause state, and the latest reconciliation reference. Reconciliation records publish locked, burned, minted, released, outstanding-supply, reserve-backing, difference, and balanced state. Their source is always `operator-submitted-evidence` and verification is `reference-recorded-not-independently-verified`; an unbalanced report remains visible as unbalanced. This is transparent accounting input, not proof of reserve, verified contract state, or a liquidity valuation.
 
 This is not a live bridge. External submission is hard-disabled by route validation and reported as false by health and metrics. No external-chain transaction, mint, burn, native YNXT freeze/seizure, funded bridge account, production relayer custody, remote Bridge deployment, public Bridge endpoint, third-party integration, or stablecoin issuer support has been completed or claimed.

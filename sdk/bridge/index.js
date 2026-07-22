@@ -54,6 +54,10 @@ export class YNXBridgeClient {
     return validateAssets(await this.#request("bridge/assets"));
   }
 
+  async getStatus() {
+    return validateStatus(await this.#request("bridge/status"));
+  }
+
   async #request(path) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
@@ -163,6 +167,23 @@ function validateAssets(value) {
 
 function validAssetClass(value) {
   return ASSET_CLASSES.has(value);
+}
+
+function validateStatus(value) {
+  const supportURLs = [value?.support?.supportUrl, value?.support?.privacyUrl, value?.support?.securityUrl, value?.support?.publicStatusUrl];
+  const counts = [value?.routeCount, value?.assetCount, value?.transferCount, value?.openExposureTransferCount, value?.reconciliation?.recordCount];
+  const validCounts = counts.every((item) => Number.isInteger(item) && item >= 0);
+  const reconciliationStates = new Set(["no-operator-observation", "operator-observed-balanced", "operator-observed-imbalance"]);
+  const reconciliationTimeValid = value?.reconciliation?.state === "no-operator-observation" ? value?.reconciliation?.latestRecordedAt === null : validTimestamp(value?.reconciliation?.latestRecordedAt);
+  const executionDisabled = value?.externalBridgeState === "unavailable" && value?.providerConnection === "not-connected" && value?.externalSubmissionEnabled === false && value?.userAssetMovementEnabled === false && value?.officialStablecoinRouteAvailable === false && value?.deployedPublic === false;
+  const capabilities = value?.capabilities;
+  if (!value || value.schemaVersion !== 1 || value.source !== "ynx-bridge-status" || !validTimestamp(value.asOf) || value.coverage !== "local-coordinator-and-configured-candidates-not-public-provider-health" || value.failureStatus !== "no-verified-provider-contract-or-public-deployment" || !["available-local-coordinator", "paused-local-coordinator"].includes(value.coordinatorState) || !validCounts || !executionDisabled || !reconciliationStates.has(value.reconciliation?.state) || !reconciliationTimeValid || value.reconciliation?.independentVerification !== false || capabilities?.readOnlyEvidence !== true || capabilities?.quoteExecution !== false || capabilities?.sourceSubmission !== false || capabilities?.destinationMintRelease !== false || capabilities?.refundExecution !== false || capabilities?.disputeRecording !== true || capabilities?.emergencyExitExecution !== false || value.support?.configured !== false || !supportURLs.every((item) => item === null)) {
+    throw new YNXBridgeSDKError("Bridge product status overclaims readiness");
+  }
+  if ((value.coordinatorState === "paused-local-coordinator") !== (value.paused === true)) {
+    throw new YNXBridgeSDKError("Bridge product status pause state is inconsistent");
+  }
+  return Object.freeze(value);
 }
 
 function validRoute(route) {

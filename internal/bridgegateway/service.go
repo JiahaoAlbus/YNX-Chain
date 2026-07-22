@@ -841,6 +841,53 @@ func destinationMovementMode(boundary string) string {
 	return "release-observation-only-not-executed"
 }
 
+func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	assetKeys := map[string]struct{}{}
+	for _, policy := range s.policies {
+		assetKeys[policy.SourceChain+"|"+policy.SourceAsset] = struct{}{}
+		assetKeys[policy.DestinationChain+"|"+policy.DestinationAsset] = struct{}{}
+	}
+	openExposure := 0
+	for _, transfer := range s.state.Transfers {
+		if transferExposureOpen(transfer) {
+			openExposure++
+		}
+	}
+	reconciliation := StatusReconciliation{State: "no-operator-observation", RecordCount: len(s.state.Reconciliations), IndependentVerification: false, Coverage: "operator-submitted-references-not-independent-chain-proof"}
+	latest := ""
+	imbalanced := false
+	for _, record := range s.state.Reconciliations {
+		if record.RecordedAt > latest {
+			latest = record.RecordedAt
+		}
+		if !record.Balanced {
+			imbalanced = true
+		}
+	}
+	if latest != "" {
+		reconciliation.LatestRecordedAt = &latest
+		reconciliation.State = "operator-observed-balanced"
+		if imbalanced {
+			reconciliation.State = "operator-observed-imbalance"
+		}
+	}
+	coordinatorState := "available-local-coordinator"
+	if s.state.Safety.Paused {
+		coordinatorState = "paused-local-coordinator"
+	}
+	return ProductStatus{
+		SchemaVersion: 1, Source: "ynx-bridge-status", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "local-coordinator-and-configured-candidates-not-public-provider-health",
+		CoordinatorState: coordinatorState, ExternalBridgeState: "unavailable", FailureStatus: "no-verified-provider-contract-or-public-deployment",
+		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
+		ProviderConnection: "not-connected", ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
+		Reconciliation: reconciliation,
+		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteExecution: false, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
+		Support:        StatusSupport{Configured: false}, Build: buildinfo.Normalize(build),
+	}
+}
+
 func (s *Service) Get(transferID string) (Transfer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

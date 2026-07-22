@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
 const (
@@ -149,6 +151,56 @@ type AssetCatalog struct {
 	AsOf          string              `json:"asOf"`
 	Coverage      string              `json:"coverage"`
 	Assets        []AssetCatalogEntry `json:"assets"`
+}
+
+type StatusReconciliation struct {
+	State                   string  `json:"state"`
+	RecordCount             int     `json:"recordCount"`
+	LatestRecordedAt        *string `json:"latestRecordedAt"`
+	IndependentVerification bool    `json:"independentVerification"`
+	Coverage                string  `json:"coverage"`
+}
+
+type StatusCapabilities struct {
+	ReadOnlyEvidence       bool `json:"readOnlyEvidence"`
+	QuoteExecution         bool `json:"quoteExecution"`
+	SourceSubmission       bool `json:"sourceSubmission"`
+	DestinationMintRelease bool `json:"destinationMintRelease"`
+	RefundExecution        bool `json:"refundExecution"`
+	DisputeRecording       bool `json:"disputeRecording"`
+	EmergencyExitExecution bool `json:"emergencyExitExecution"`
+}
+
+type StatusSupport struct {
+	Configured      bool    `json:"configured"`
+	SupportURL      *string `json:"supportUrl"`
+	PrivacyURL      *string `json:"privacyUrl"`
+	SecurityURL     *string `json:"securityUrl"`
+	PublicStatusURL *string `json:"publicStatusUrl"`
+}
+
+type ProductStatus struct {
+	SchemaVersion                    int                  `json:"schemaVersion"`
+	Source                           string               `json:"source"`
+	AsOf                             string               `json:"asOf"`
+	Coverage                         string               `json:"coverage"`
+	CoordinatorState                 string               `json:"coordinatorState"`
+	ExternalBridgeState              string               `json:"externalBridgeState"`
+	FailureStatus                    string               `json:"failureStatus"`
+	Paused                           bool                 `json:"paused"`
+	RouteCount                       int                  `json:"routeCount"`
+	AssetCount                       int                  `json:"assetCount"`
+	TransferCount                    int                  `json:"transferCount"`
+	OpenExposureTransferCount        int                  `json:"openExposureTransferCount"`
+	ProviderConnection               string               `json:"providerConnection"`
+	ExternalSubmissionEnabled        bool                 `json:"externalSubmissionEnabled"`
+	UserAssetMovementEnabled         bool                 `json:"userAssetMovementEnabled"`
+	OfficialStablecoinRouteAvailable bool                 `json:"officialStablecoinRouteAvailable"`
+	DeployedPublic                   bool                 `json:"deployedPublic"`
+	Reconciliation                   StatusReconciliation `json:"reconciliation"`
+	Capabilities                     StatusCapabilities   `json:"capabilities"`
+	Support                          StatusSupport        `json:"support"`
+	Build                            buildinfo.Info       `json:"build"`
 }
 
 type Config struct {

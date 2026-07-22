@@ -13,6 +13,7 @@
     "pause and route exposure controls",
     "source-qualified public reconciliation",
     "fail-closed route and token allowlist catalogs",
+    "source-qualified local status and support readiness",
     "failure, retry, recovery, and dispute evidence"
   ],
   "risks": [

@@ -32,6 +32,16 @@
     "externalExecutionEnabled": false,
     "deployedPublic": false
   },
+  "statusSurface": {
+    "method": "GET",
+    "path": "/bridge/status",
+    "source": "ynx-bridge-status",
+    "authentication": "none",
+    "externalBridgeAvailable": false,
+    "providerConnected": false,
+    "supportConfigured": false,
+    "deployedPublic": false
+  },
   "sdk": {
     "path": "sdk/bridge",
     "package": "@ynx-chain/bridge-sdk",
