@@ -57,6 +57,9 @@ All paths are repository-relative and refer to the current source commit only af
 | Scoped release changes and known gaps | `RELEASE_NOTES.md`, `product-release.json` | `make economics-public-package-check` |
 | Quant realized-net high-water-mark ownership and vectors | `docs/coordination/QUANT_FEE_HIGH_WATER_MARK_HANDOFF.md` | On Chain Core worktree: `go test ./internal/assetauth -run PerformanceFee -count=1` |
 | Founder KPI definitions and kill/scale rules | `GROWTH_KPI_FRAMEWORK.md` | Review unavailable-current-value and source requirements |
+| Cross-owner integration inventory and exact false states | `release/economics-integration-manifest.json` | Parse JSON and inspect every activation boundary |
+| Requirement-by-requirement completion decision | `DELIVERY_COMPLETION_AUDIT.md` | Confirm partial/missing evidence remains false |
+| One-time secure operator input request | `release/operator-inputs.request.json` | Confirm no secret material is requested |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
 
 Generated artifacts, remote URLs, transaction hashes, installation proof, deployment proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.

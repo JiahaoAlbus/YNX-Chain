@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "product": "YNXT Economics",
+  "sourceCommit": "da9308ef7d005d7afaf91b7a71689fa6ebde2d07",
+  "targetOwners": ["Chain Core", "Wallet/Auth", "Gateway", "Explorer/Monitor", "Website", "Governance"],
+  "currentAuthority": {
+    "feePolicy": "fixed-fee-v1",
+    "feeBurnActive": false,
+    "dynamicIssuanceActive": false,
+    "stakingRewardsActive": false,
+    "slashingActive": false,
+    "treasuryExecutionActive": false
+  },
+  "handoffs": [
+    {
+      "capability": "current-fee-ledger-and-staking-lifecycle",
+      "source": ["internal/consensus/fee_state.go", "internal/consensus/staking_action.go", "internal/bftgateway/economics.go", "internal/bftgateway/staking.go"],
+      "migration": "committed state v7/v8 to v9",
+      "activation": "central-review-required"
+    },
+    {
+      "capability": "candidate-economic-policy",
+      "source": ["internal/economics/model.go", "internal/economics/fee_market.go", "internal/economics/macro_stress.go"],
+      "migration": "not-implemented-candidate-only",
+      "activation": "forbidden-without-governance-timelock-audit-and-rollback"
+    },
+    {
+      "capability": "liquid-staking-and-security-pools",
+      "source": ["internal/economics/liquid_staking.go", "internal/economics/security_pools.go"],
+      "migration": "not-implemented-model-only",
+      "activation": "forbidden-without-audited-contracts-and-public-risk"
+    },
+    {
+      "capability": "yusd-test-unit-sandbox",
+      "source": ["internal/yusdsandbox"],
+      "migration": "independent-schema-v1",
+      "activation": "no-real-value-no-custody-no-attestation"
+    },
+    {
+      "capability": "quant-realized-net-high-water-mark",
+      "source": ["docs/coordination/QUANT_FEE_HIGH_WATER_MARK_HANDOFF.md"],
+      "owningCommit": "fde0f55",
+      "activation": "owning-branches-only-not-integrated"
+    },
+    {
+      "capability": "public-economics-routes",
+      "source": ["internal/explorer/economics_web.go", "public-product-metadata.json", "docs/coordination/WEBSITE_ECONOMICS_HANDOFF.md"],
+      "activation": "website-ssr-ssg-domain-and-public-proof-required"
+    }
+  ],
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "product": "YNXT Economics",
+  "sourceCommit": "da9308ef7d005d7afaf91b7a71689fa6ebde2d07",
+  "requestPolicy": "Provide references or approvals through an approved secure channel; never place secrets, private keys, seeds, PEM contents, validator keys or full provider credentials in chat or git.",
+  "inputs": [
+    {
+      "id": "central-integration-approval",
+      "requiredFor": ["integratedCentral"],
+      "provide": "review owner and approved target commit/PR for Chain Core, Wallet/Auth, Gateway, Explorer/Monitor and Website handoffs"
+    },
+    {
+      "id": "public-domain-and-dns",
+      "requiredFor": ["deployedStaging", "deployedPublic"],
+      "provide": "approved staging/public canonical origins and DNS change owner"
+    },
+    {
+      "id": "support-privacy-security-status",
+      "requiredFor": ["deployedPublic"],
+      "provide": "approved HTTPS URLs, jurisdiction and accountable owners for support, privacy, security and status"
+    },
+    {
+      "id": "secure-signing-and-governance",
+      "requiredFor": ["candidate activation", "productionSigned"],
+      "provide": "secure signer path reference, multisig/governance approvers, timelock policy and recovery ceremony evidence; no key material"
+    },
+    {
+      "id": "stable-settlement-provider-review",
+      "requiredFor": ["real stable settlement"],
+      "provide": "approved official Testnet USDC/CCTP or reviewed equivalent, provider account reference, custody/reserve/attestation/legal approvals and outage contact; credentials only through secret manager"
+    },
+    {
+      "id": "independent-audits",
+      "requiredFor": ["fee market", "liquid staking", "security pools", "managed Vault fees", "public YUSD"],
+      "provide": "auditor engagement/report references, resolved findings and approved activation scope"
+    },
+    {
+      "id": "public-funding-and-liquidity",
+      "requiredFor": ["Treasury/security/liquidity activation"],
+      "provide": "governed budget, funding provenance, counterparty limits, conflicts and approved public addresses"
+    },
+    {
+      "id": "hardhat-vulnerability-disposition",
+      "requiredFor": ["contract-tooling production release"],
+      "provide": "approved upgrade/removal plan or time-bounded security acceptance for the no-fix adm-zip advisory"
+    }
+  ]
+}
