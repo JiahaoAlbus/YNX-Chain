@@ -57,6 +57,25 @@ if [[ "${YNX_BUILD_DESKTOP_CANDIDATES:-1}" == "1" ]]; then
   apps/quant-lab/scripts/build-desktop-candidates.sh >/dev/null
 fi
 
+desktop_output=${YNX_QUANT_DESKTOP_OUTPUT:-dist/quant-desktop}
+mac_archive="$desktop_output/YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip"
+windows_archive="$desktop_output/YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip"
+if [[ -f "$mac_archive" && -f "$windows_archive" ]]; then
+  for entry in "0:$mac_archive" "1:$windows_archive"; do
+    index=${entry%%:*}
+    artifact=${entry#*:}
+    expected_hash=$(jq -r ".artifacts[$index].sha256" apps/quant-lab/product-release.json)
+    expected_bytes=$(jq -r ".artifacts[$index].bytes" apps/quant-lab/product-release.json)
+    actual_hash=$(shasum -a 256 "$artifact" | awk '{print $1}')
+    actual_bytes=$(wc -c <"$artifact" | tr -d ' ')
+    test "$actual_hash" = "$expected_hash"
+    test "$actual_bytes" = "$expected_bytes"
+  done
+  if command -v codesign >/dev/null 2>&1; then
+    codesign --verify --deep --strict "$desktop_output/macos/YNX Quant Lab.app"
+  fi
+fi
+
 if [[ "${YNX_REQUIRE_DOCKER_BUILD:-0}" == "1" ]]; then
   docker build -f apps/quant-lab/Dockerfile \
     --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" \

@@ -15,8 +15,11 @@ notarization, hardened-runtime entitlement review, immutable hosting, and store
 release are false.
 
 The local macOS archive built from source commit
-`eb3767a48d51287f6b4601e0f712a18e734752a7` is 7,338,285 bytes with SHA-256
-`235d36c3b362f79607ef70147b991f3e4289591c2930a4aaab00525e0c0c7590`.
+`c140404cbfaca5f01a2db05af3d9a544652ac8f6` is 7,361,745 bytes with SHA-256
+`8d9d9c16af94ad5156f3c6babfb7b287e9dc6d22ab622340f4138a25b44ee201`.
+The installed cold launch returned this exact commit from `/version`, a ready
+health response with live funds disabled, Prometheus build/risk signals and the
+YNX Quant Lab frontend title.
 
 ## Windows
 
@@ -25,9 +28,9 @@ cross-compiled into an archive. It is `unsigned-cross-compiled`. There is no
 Windows host launch, installation, antivirus/SmartScreen, minimum-version, or
 uninstall evidence, so `installedLocal` applies only to macOS.
 
-The local Windows archive built from the same source commit is 8,072,676 bytes
+The local Windows archive built from the same source commit is 8,095,087 bytes
 with SHA-256
-`72270d4fd26da41e445ad45c49a8e099841131f19b4a8d761952e39b012baa91`.
+`f67fad932b6851b22a327faf98217e3070e3cd256e1f9e0495c9e4eb55f58e6b`.
 
 Desktop currently opens the product in the user's default browser while owning
 the local service lifecycle; it is not represented as an embedded native WebView.

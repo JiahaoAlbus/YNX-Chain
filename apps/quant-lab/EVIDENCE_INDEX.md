@@ -12,7 +12,7 @@
 - Python and TypeScript clients: `apps/quant-lab/sdk`
 - self-host candidates: `apps/quant-lab/Dockerfile`, `compose.yaml`, and `k8s`
 
-## Local evidence collected 2026-07-22
+## Local evidence collected 2026-07-22 and refreshed 2026-07-23
 
 - Go package tests and vet: pass
 - UI catalog/contract tests: pass
@@ -31,13 +31,13 @@
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 
 Desktop artifacts built from source commit
-`eb3767a48d51287f6b4601e0f712a18e734752a7`:
+`c140404cbfaca5f01a2db05af3d9a544652ac8f6`:
 
-- macOS arm64 ZIP: 7,338,285 bytes; SHA-256
-  `235d36c3b362f79607ef70147b991f3e4289591c2930a4aaab00525e0c0c7590`;
+- macOS arm64 ZIP: 7,361,745 bytes; SHA-256
+  `8d9d9c16af94ad5156f3c6babfb7b287e9dc6d22ab622340f4138a25b44ee201`;
   ad-hoc test signature; installed cold-start verified
-- Windows x64 ZIP: 8,072,676 bytes; SHA-256
-  `72270d4fd26da41e445ad45c49a8e099841131f19b4a8d761952e39b012baa91`;
+- Windows x64 ZIP: 8,095,087 bytes; SHA-256
+  `f67fad932b6851b22a327faf98217e3070e3cd256e1f9e0495c9e4eb55f58e6b`;
   unsigned cross-compile; no Windows execution evidence
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
