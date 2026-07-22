@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "chainId": "ynx_6423-1",
+  "ownerBranch": "codex/final-cloud",
+  "status": "pending-central-review",
+  "walletVerifier": {
+    "method": "POST",
+    "path": "/v1/wallet-auth/sessions/verify",
+    "authentication": "service bearer supplied only by the Cloud/Docs operator",
+    "requestSchema": "WalletSessionEnvelope in internal/cloud/security.go",
+    "responseSchema": "CentralSessionClaims in internal/cloud/security.go",
+    "failurePolicy": "unknown fields, disabled registration, unavailable verifier, timeout, replay, expiry, mutation and cross-product reuse all fail closed"
+  },
+  "nativeRegistrations": [
+    {
+      "schemaVersion": 3,
+      "productId": "cloud",
+      "displayName": "YNX Cloud",
+      "reviewState": "pending-review",
+      "enabled": false,
+      "productClientId": "ynx-cloud-mobile-v1",
+      "requestingProduct": "cloud",
+      "bundleId": "com.ynxweb4.cloud",
+      "callbacks": ["ynxcloud://wallet-auth/callback"],
+      "scopes": ["ai.use", "audit.read", "files.read", "files.write", "permissions.manage"],
+      "maxScopes": 5,
+      "productDeviceAlgorithms": ["p256-sha256"],
+      "sessionDurationSeconds": 240,
+      "revocationPolicy": {"session": true, "approval": true, "device": true, "accountAllDevices": true}
+    },
+    {
+      "schemaVersion": 3,
+      "productId": "docs",
+      "displayName": "YNX Docs",
+      "reviewState": "pending-review",
+      "enabled": false,
+      "productClientId": "ynx-docs-mobile-v1",
+      "requestingProduct": "docs",
+      "bundleId": "com.ynxweb4.docs",
+      "callbacks": ["ynxdocs://wallet-auth/callback"],
+      "scopes": ["ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"],
+      "maxScopes": 6,
+      "productDeviceAlgorithms": ["p256-sha256"],
+      "sessionDurationSeconds": 240,
+      "revocationPolicy": {"session": true, "approval": true, "device": true, "accountAllDevices": true}
+    }
+  ],
+  "webRegistrationsRequired": [
+    {
+      "productId": "cloud",
+      "productClientId": "ynx-cloud-web-v1",
+      "bundleId": "web.ynx.cloud",
+      "callback": "https://cloud.staging.ynx.network/auth/callback"
+    },
+    {
+      "productId": "docs",
+      "productClientId": "ynx-docs-web-v1",
+      "bundleId": "web.ynx.docs",
+      "callback": "https://docs.staging.ynx.network/auth/callback"
+    }
+  ],
+  "centralSchemaBlocker": "central Wallet registry schema v3 accepts one client, bundle and callback tuple per product; central owners must add reviewed multi-surface registrations before either Web client can be enabled",
+  "authoritativeLocalTests": [
+    "internal/cloud/service_test.go",
+    "internal/cloud/server_test.go",
+    "internal/cloud/adapters_test.go",
+    "apps/cloud/mobile/src/wallet.test.ts",
+    "apps/docs/mobile/src/wallet.test.ts",
+    "apps/cloud/scripts/canonical-smoke.mjs"
+  ]
+}

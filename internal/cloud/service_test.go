@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -15,7 +16,33 @@ const viewer = "ynx1pppppppppppppppppppppppppppppppp5f3cz"
 
 type acceptWallet struct{}
 
-func (acceptWallet) Verify(context.Context, WalletAssertion) error { return nil }
+func (acceptWallet) Verify(_ context.Context, e WalletSessionEnvelope) (CentralSessionClaims, error) {
+	a := e.WalletApproval
+	return CentralSessionClaims{VerifierVersion: "wallet-auth-v1", SessionBinding: strings.Repeat("b", 64), ProductClientID: a.ProductClientID, BundleID: a.BundleID, ProductDeviceAlgorithm: a.ProductDeviceAlgorithm, RequestDigest: a.RequestDigest, Account: a.Account, Scopes: a.GrantedScopes, IssuedAt: a.IssuedAt, ExpiresAt: a.ExpiresAt}, nil
+}
+
+func testWalletEnvelope(t *testing.T, s *Service, product, nonce string, scopes []string) WalletSessionEnvelope {
+	t.Helper()
+	now := s.cfg.Now().UTC().Truncate(time.Millisecond)
+	client, bundle, callback := "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback"
+	if product == "docs" {
+		client, bundle, callback = "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback"
+	}
+	if len(nonce) < 32 {
+		nonce += strings.Repeat("x", 32-len(nonce))
+	}
+	r := WalletAuthorizationRequest{Version: "1", Nonce: nonce, ChainID: ChainID, RequestingProduct: product, ProductClientID: client, BundleID: bundle, ProductDeviceAlgorithm: "p256-sha256", ProductDeviceKey: "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv", Callback: callback, Scopes: scopes, Purpose: "Use explicitly authorized YNX content on this device.", IssuedAt: now.Add(-time.Second).Format("2006-01-02T15:04:05.000Z"), ExpiresAt: now.Add(4 * time.Minute).Format("2006-01-02T15:04:05.000Z")}
+	digest, err := authorizationDigest(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := WalletApproval{Version: "1", RequestDigest: digest, Nonce: r.Nonce, ChainID: r.ChainID, RequestingProduct: r.RequestingProduct, ProductClientID: r.ProductClientID, BundleID: r.BundleID, ProductDeviceAlgorithm: r.ProductDeviceAlgorithm, ProductDeviceKey: r.ProductDeviceKey, Callback: r.Callback, Account: owner, AccountPublicKey: strings.Repeat("0", 66), GrantedScopes: r.Scopes, Purpose: r.Purpose, IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: r.ExpiresAt, WalletSignature: strings.Repeat("0", 128)}
+	c, err := s.CreateWalletChallenge(r, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return WalletSessionEnvelope{AuthorizationRequest: r, WalletApproval: a, GatewayCompletion: GatewayCompletion{Challenge: c, DeviceSignature: strings.Repeat("A", 96)}}
+}
 
 type fakeAI struct{}
 
@@ -113,31 +140,101 @@ func TestFileLifecyclePermissionsVersionsAndAI(t *testing.T) {
 	}
 }
 
+func TestMultipartResumeIntegrityCancelAndArtifact(t *testing.T) {
+	dir := t.TempDir()
+	cfg := Config{StatePath: filepath.Join(dir, "state.json"), ObjectDir: filepath.Join(dir, "objects"), WalletVerifier: acceptWallet{}, AIProvider: fakeAI{}, QuotaBytes: MaxMultipartBytes}
+	s, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1, p2 := []byte("resumable "), []byte("dataset")
+	all := append(append([]byte{}, p1...), p2...)
+	u, err := s.InitiateMultipart(owner, CreateObjectRequest{Kind: KindFile, Name: "prices.parquet", MIME: "application/octet-stream", Artifact: &Artifact{Type: "dataset", Product: "quant", Retention: "standard"}}, int64(len(all)), hashBytes(all))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.PutMultipartPart(context.Background(), owner, u.ID, 1, p1, hashBytes(p1)); err != nil {
+		t.Fatal(err)
+	}
+	// Restart proves upload state and part references are durable enough to resume.
+	s, err = New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := s.GetMultipart(owner, u.ID)
+	if err != nil || len(resumed.Parts) != 1 || resumed.Status != "active" {
+		t.Fatalf("resume: %#v %v", resumed, err)
+	}
+	if _, err = s.PutMultipartPart(context.Background(), owner, u.ID, 2, p2, hashBytes(p2)); err != nil {
+		t.Fatal(err)
+	}
+	obj, err := s.CompleteMultipart(context.Background(), owner, u.ID, []int{1, 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obj.Hash != hashBytes(all) || obj.Artifact == nil || obj.Artifact.Type != "dataset" || obj.Artifact.Product != "quant" {
+		t.Fatalf("artifact: %#v", obj)
+	}
+	if _, body, err := s.Content(owner, obj.ID, 0); err != nil || !bytes.Equal(body, all) {
+		t.Fatalf("content: %q %v", body, err)
+	}
+	if _, err := s.GetMultipart(owner, u.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("completed upload retained: %v", err)
+	}
+
+	cancel, err := s.InitiateMultipart(owner, CreateObjectRequest{Kind: KindFile, Name: "cancel.bin"}, 1, hashBytes([]byte("x")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CancelMultipart(viewer, cancel.ID); !errors.Is(err, ErrDenied) {
+		t.Fatalf("foreign cancel: %v", err)
+	}
+	if err := s.CancelMultipart(owner, cancel.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetMultipart(owner, cancel.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("cancel retained: %v", err)
+	}
+
+	bad, err := s.InitiateMultipart(owner, CreateObjectRequest{Kind: KindFile, Name: "bad.bin"}, 2, hashBytes([]byte("ok")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.PutMultipartPart(context.Background(), owner, bad.ID, 1, []byte("no"), hashBytes([]byte("no"))); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.CompleteMultipart(context.Background(), owner, bad.ID, []int{1}); err == nil {
+		t.Fatal("expected final hash mismatch")
+	}
+	if resumed, err := s.GetMultipart(owner, bad.ID); err != nil || resumed.Status != "active" {
+		t.Fatalf("failed completion must remain resumable: %#v %v", resumed, err)
+	}
+}
+
 func TestNativeWalletBindingsRejectSubstitutionAndReplay(t *testing.T) {
 	s := testService(t, nil)
 	ctx := context.Background()
-	expires := time.Now().UTC().Add(4 * time.Minute).Format(time.RFC3339)
-	cases := []WalletAssertion{
-		{Product: "cloud", ClientID: "ynx-cloud-mobile-v1", BundleID: "com.ynxweb4.cloud", Callback: "ynxcloud://wallet-auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "native-cloud", ExpiresAt: expires, DevicePublicKey: "p256-cloud", Signature: "wallet-cloud"},
-		{Product: "docs", ClientID: "ynx-docs-mobile-v1", BundleID: "com.ynxweb4.docs", Callback: "ynxdocs://wallet-auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"docs.read"}, Nonce: "native-docs", ExpiresAt: expires, DevicePublicKey: "p256-docs", Signature: "wallet-docs"},
-	}
-	for _, assertion := range cases {
-		if _, _, err := s.CreateSession(ctx, assertion); err != nil {
-			t.Fatalf("valid native binding rejected for %s: %v", assertion.Product, err)
+	for _, product := range []string{"cloud", "docs"} {
+		scopes := []string{"files.read"}
+		if product == "docs" {
+			scopes = []string{"documents.write"}
 		}
-		if _, _, err := s.CreateSession(ctx, assertion); err == nil || !strings.Contains(err.Error(), "replay") {
-			t.Fatalf("native replay accepted for %s: %v", assertion.Product, err)
+		envelope := testWalletEnvelope(t, s, product, "native-"+product, scopes)
+		if _, _, err := s.CreateSession(ctx, envelope); err != nil {
+			t.Fatalf("valid native binding rejected for %s: %v", product, err)
 		}
-		tampered := assertion
-		tampered.Nonce += "-tampered"
-		tampered.BundleID = "com.attacker.substitute"
+		if _, _, err := s.CreateSession(ctx, envelope); err == nil || !strings.Contains(err.Error(), "replay") {
+			t.Fatalf("native replay accepted for %s: %v", product, err)
+		}
+		tampered := testWalletEnvelope(t, s, product, "tamper-bundle-"+product, scopes)
+		tampered.AuthorizationRequest.BundleID = "com.attacker.substitute"
 		if _, _, err := s.CreateSession(ctx, tampered); !errors.Is(err, ErrInvalid) {
-			t.Fatalf("bundle substitution was not rejected for %s: %v", assertion.Product, err)
+			t.Fatalf("bundle substitution was not rejected for %s: %v", product, err)
 		}
-		tampered.BundleID = assertion.BundleID
-		tampered.Callback = "attacker://wallet-auth/callback"
+		tampered = testWalletEnvelope(t, s, product, "tamper-callback-"+product, scopes)
+		tampered.AuthorizationRequest.Callback = "attacker://wallet-auth/callback"
 		if _, _, err := s.CreateSession(ctx, tampered); !errors.Is(err, ErrInvalid) {
-			t.Fatalf("callback substitution was not rejected for %s: %v", assertion.Product, err)
+			t.Fatalf("callback substitution was not rejected for %s: %v", product, err)
 		}
 	}
 }
@@ -180,6 +277,59 @@ func TestRestartIntegrityQuotaAndEncryptedAIBoundary(t *testing.T) {
 	}
 }
 
+func TestPermanentDeleteAndRecoveryBackupRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	data := filepath.Join(dir, "live")
+	s, err := New(Config{StatePath: filepath.Join(data, "state.json"), ObjectDir: filepath.Join(data, "objects"), WalletVerifier: acceptWallet{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := s.Create(context.Background(), owner, CreateObjectRequest{Kind: KindFile, Name: "recovery.txt", MIME: "text/plain", Content: []byte("recover me")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	backup := filepath.Join(dir, "backup")
+	manifest, err := CreateRecoveryBackup(data, backup, s.cfg.ObjectStore.Boundary(), time.Now())
+	if err != nil || len(manifest.Files) < 2 {
+		t.Fatalf("backup: %#v %v", manifest, err)
+	}
+	restored := filepath.Join(dir, "restored")
+	if _, err := RestoreRecoveryBackup(backup, restored); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := New(Config{StatePath: filepath.Join(restored, "state.json"), ObjectDir: filepath.Join(restored, "objects"), WalletVerifier: acceptWallet{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, body, err := reopened.Content(owner, file.ID, 1); err != nil || string(body) != "recover me" {
+		t.Fatalf("restored content %q %v", body, err)
+	}
+	if _, err := s.SetTrash(owner, file.ID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteObject(viewer, file.ID); !errors.Is(err, ErrDenied) {
+		t.Fatalf("non-owner delete %v", err)
+	}
+	if err := s.DeleteObject(owner, file.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Get(owner, file.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("deleted object remained: %v", err)
+	}
+	manifestPath := filepath.Join(backup, "recovery-manifest.json")
+	body, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifestPath, append(body, []byte("tamper")...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Extra trailing JSON is rejected by the strict recovery decoder.
+	if _, err := VerifyRecoveryBackup(backup); err == nil {
+		t.Fatal("tampered recovery manifest accepted")
+	}
+}
+
 func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	now := time.Date(2026, 7, 15, 12, 0, 0, 0, time.UTC)
 	s := testService(t, func(c *Config) { c.Now = func() time.Time { return now } })
@@ -208,8 +358,8 @@ func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	if _, err := s.ResolveLink(token); !errors.Is(err, ErrDenied) {
 		t.Fatalf("revoked link: %v", err)
 	}
-	assertion := WalletAssertion{Product: "cloud", ClientID: "com.ynx.cloud.web", BundleID: "com.ynx.cloud.web", Callback: "/cloud/auth/callback", Account: owner, ChainID: ChainID, Scopes: []string{"files.read"}, Nonce: "one", ExpiresAt: now.Add(4 * time.Minute).Format(time.RFC3339), DevicePublicKey: "device", Signature: "sig"}
-	token2, _, err := s.CreateSession(ctx, assertion)
+	envelope := testWalletEnvelope(t, s, "cloud", "one", []string{"files.read"})
+	token2, _, err := s.CreateSession(ctx, envelope)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +369,7 @@ func TestAccessLinkSessionAndMalwareBounds(t *testing.T) {
 	if err := s.RevokeSession(token2); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.CreateSession(ctx, assertion); err == nil {
+	if _, _, err := s.CreateSession(ctx, envelope); err == nil {
 		t.Fatal("Wallet assertion replay must fail")
 	}
 	if _, err := s.Create(ctx, owner, CreateObjectRequest{Kind: KindFile, Name: "evil.txt", MIME: "text/plain", Content: []byte("EICAR-STANDARD-ANTIVIRUS-TEST-FILE")}); err == nil {

@@ -1,13 +1,16 @@
 package cloud
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -29,6 +32,8 @@ type Config struct {
 	AIProvider     AIProvider
 	ObjectStore    ObjectStore
 	TrustSink      TrustSink
+	ReleaseCommit  string
+	ReleaseVersion string
 	Now            func() time.Time
 }
 
@@ -42,6 +47,12 @@ type Service struct {
 func New(cfg Config) (*Service, error) {
 	if strings.TrimSpace(cfg.StatePath) == "" {
 		return nil, errors.New("cloud state path is required")
+	}
+	if commit := strings.TrimSpace(cfg.ReleaseCommit); commit != "" {
+		decoded, err := hex.DecodeString(commit)
+		if err != nil || len(decoded) != 20 || commit != strings.ToLower(commit) {
+			return nil, errors.New("YNX_RELEASE_COMMIT must be an exact lowercase 40-hex Git SHA")
+		}
 	}
 	if cfg.ObjectDir == "" {
 		cfg.ObjectDir = filepath.Join(filepath.Dir(cfg.StatePath), "objects")
@@ -180,8 +191,19 @@ func validateName(name string) error {
 	return nil
 }
 
+func validateArtifact(a *Artifact) error {
+	if a == nil {
+		return nil
+	}
+	valid := map[string]bool{"dataset": true, "strategy": true, "model": true, "build": true, "backtest": true, "experiment": true, "checkpoint": true, "media-source": true, "document-export": true, "audit-archive": true}
+	if !valid[a.Type] || strings.TrimSpace(a.Product) == "" || len(a.Product) > 64 || (a.Retention != "standard" && a.Retention != "legal-hold" && a.Retention != "ephemeral") {
+		return ErrInvalid
+	}
+	return nil
+}
+
 func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequest) (Object, error) {
-	if !validAccount(actor) || validateName(req.Name) != nil {
+	if !validAccount(actor) || validateName(req.Name) != nil || validateArtifact(req.Artifact) != nil {
 		return Object{}, ErrInvalid
 	}
 	if req.Kind != KindFolder && req.Kind != KindFile && req.Kind != KindDoc {
@@ -217,7 +239,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		}
 	}
 	now := s.cfg.Now()
-	obj := Object{ID: newID("obj"), Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption}
+	obj := Object{ID: newID("obj"), Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
 		path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
@@ -234,7 +256,173 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now}}
 	}
 	s.state.Objects[obj.ID] = obj
-	if err := s.persist("object.create", actor, obj.ID, map[string]any{"kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide}); err != nil {
+	if err := s.persist("object.create", actor, obj.ID, map[string]any{"kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (MultipartUpload, error) {
+	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxMultipartBytes || len(expectedHash) != 64 || validateArtifact(req.Artifact) != nil {
+		return MultipartUpload{}, ErrInvalid
+	}
+	if _, err := hex.DecodeString(expectedHash); err != nil || expectedHash != strings.ToLower(expectedHash) {
+		return MultipartUpload{}, ErrInvalid
+	}
+	if req.Encryption.ClientSide {
+		if req.Encryption.Algorithm != "AES-256-GCM" || req.Encryption.RecoveryPolicy == "" {
+			return MultipartUpload{}, ErrInvalid
+		}
+	} else if req.Encryption.Algorithm != "" || req.Encryption.KeyHint != "" {
+		return MultipartUpload{}, ErrInvalid
+	}
+	if req.MIME == "" {
+		req.MIME = "application/octet-stream"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if req.ParentID != "" {
+		p, err := s.require(actor, req.ParentID, 2)
+		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
+			return MultipartUpload{}, ErrDenied
+		}
+	}
+	now := s.cfg.Now()
+	u := MultipartUpload{ID: newID("upload"), Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, Status: "active", Parts: map[int]MultipartPart{}, CreatedAt: now, UpdatedAt: now}
+	s.state.MultipartUploads[u.ID] = u
+	if err := s.persist("multipart.initiate", actor, "", map[string]any{"uploadId": u.ID, "expectedSize": expectedSize, "expectedHash": expectedHash}); err != nil {
+		delete(s.state.MultipartUploads, u.ID)
+		return MultipartUpload{}, err
+	}
+	return u, nil
+}
+
+func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number int, body []byte, claimedHash string) (MultipartPart, error) {
+	if number < 1 || number > MaxMultipartParts || len(body) < 1 || len(body) > MaxUploadBytes || hashBytes(body) != claimedHash {
+		return MultipartPart{}, ErrInvalid
+	}
+	s.mu.Lock()
+	u, ok := s.state.MultipartUploads[id]
+	s.mu.Unlock()
+	if !ok {
+		return MultipartPart{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return MultipartPart{}, ErrDenied
+	}
+	if u.Status != "active" {
+		return MultipartPart{}, ErrInvalid
+	}
+	ref, err := s.cfg.ObjectStore.Put(ctx, claimedHash, body)
+	if err != nil {
+		return MultipartPart{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u = s.state.MultipartUploads[id]
+	if u.Status != "active" {
+		return MultipartPart{}, ErrInvalid
+	}
+	p := MultipartPart{Number: number, Size: int64(len(body)), Hash: claimedHash, Ref: ref}
+	u.Parts[number] = p
+	u.UpdatedAt = s.cfg.Now()
+	s.state.MultipartUploads[id] = u
+	if err := s.persist("multipart.part", actor, "", map[string]any{"uploadId": id, "part": number, "size": len(body), "hash": claimedHash}); err != nil {
+		return MultipartPart{}, err
+	}
+	return p, nil
+}
+
+func (s *Service) GetMultipart(actor, id string) (MultipartUpload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		return MultipartUpload{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		return MultipartUpload{}, ErrDenied
+	}
+	return u, nil
+}
+
+func (s *Service) CancelMultipart(actor, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if u.Owner != actor {
+		return ErrDenied
+	}
+	delete(s.state.MultipartUploads, id)
+	return s.persist("multipart.cancel", actor, "", map[string]any{"uploadId": id, "parts": len(u.Parts)})
+}
+
+func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, ordered []int) (Object, error) {
+	s.mu.Lock()
+	u, ok := s.state.MultipartUploads[id]
+	if !ok {
+		s.mu.Unlock()
+		return Object{}, ErrNotFound
+	}
+	if u.Owner != actor {
+		s.mu.Unlock()
+		return Object{}, ErrDenied
+	}
+	if u.Status != "active" || len(ordered) == 0 || len(ordered) != len(u.Parts) {
+		s.mu.Unlock()
+		return Object{}, ErrInvalid
+	}
+	u.Status = "completing"
+	s.state.MultipartUploads[id] = u
+	s.mu.Unlock()
+	failed := func() {
+		s.mu.Lock()
+		v, ok := s.state.MultipartUploads[id]
+		if ok {
+			v.Status = "active"
+			s.state.MultipartUploads[id] = v
+			_ = saveState(s.cfg.StatePath, &s.state)
+		}
+		s.mu.Unlock()
+	}
+	var all bytes.Buffer
+	last := 0
+	for _, n := range ordered {
+		if n <= last {
+			failed()
+			return Object{}, ErrInvalid
+		}
+		p, ok := u.Parts[n]
+		if !ok {
+			failed()
+			return Object{}, ErrInvalid
+		}
+		b, err := s.cfg.ObjectStore.Get(ctx, p.Ref, p.Hash)
+		if err != nil {
+			failed()
+			return Object{}, err
+		}
+		all.Write(b)
+		last = n
+	}
+	body := all.Bytes()
+	if int64(len(body)) != u.ExpectedSize || hashBytes(body) != u.ExpectedHash {
+		failed()
+		return Object{}, errors.New("multipart final integrity mismatch")
+	}
+	obj, err := s.Create(ctx, actor, CreateObjectRequest{ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Content: body, Encryption: u.Encryption, Artifact: u.Artifact})
+	if err != nil {
+		failed()
+		return Object{}, err
+	}
+	s.mu.Lock()
+	delete(s.state.MultipartUploads, id)
+	err = s.persist("multipart.complete", actor, obj.ID, map[string]any{"uploadId": id, "parts": len(ordered), "hash": obj.Hash})
+	s.mu.Unlock()
+	if err != nil {
 		return Object{}, err
 	}
 	return obj, nil
@@ -427,6 +615,58 @@ func (s *Service) SetTrash(actor, id string, trash bool) (Object, error) {
 		return Object{}, err
 	}
 	return obj, nil
+}
+
+func (s *Service) DeleteObject(actor, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 3)
+	if err != nil {
+		return err
+	}
+	if obj.Owner != actor || obj.TrashedAt == nil {
+		return ErrDenied
+	}
+	for _, child := range s.state.Objects {
+		if child.ParentID == id {
+			return errors.New("folder must be empty before permanent deletion")
+		}
+	}
+	before, err := json.Marshal(s.state)
+	if err != nil {
+		return err
+	}
+	for key, grant := range s.state.Grants {
+		if grant.ObjectID == id {
+			delete(s.state.Grants, key)
+		}
+	}
+	for key, link := range s.state.Links {
+		if link.ObjectID == id {
+			delete(s.state.Links, key)
+		}
+	}
+	for key, request := range s.state.AccessRequests {
+		if request.ObjectID == id {
+			delete(s.state.AccessRequests, key)
+		}
+	}
+	for key, presence := range s.state.Presence {
+		if presence.ObjectID == id {
+			delete(s.state.Presence, key)
+		}
+	}
+	delete(s.state.Comments, id)
+	delete(s.state.Versions, id)
+	delete(s.state.Objects, id)
+	if err := s.persist("object.delete", actor, id, map[string]any{"kind": obj.Kind, "name": obj.Name, "lastHash": obj.Hash, "logicalDeletion": true, "contentAddressedBlobGC": "operator-retention-policy"}); err != nil {
+		var restored persistentState
+		if json.Unmarshal(before, &restored) == nil {
+			s.state = restored
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (Grant, error) {
@@ -896,44 +1136,129 @@ func (s *Service) ReviewAI(actor, id, decision string) (AIJob, error) {
 	return j, nil
 }
 
-func (s *Service) CreateSession(ctx context.Context, a WalletAssertion) (string, Session, error) {
-	if a.ChainID != ChainID || (a.Product != "cloud" && a.Product != "docs") || !validAccount(a.Account) || len(a.Scopes) == 0 || len(a.Scopes) > 8 {
-		return "", Session{}, ErrInvalid
+func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
+	type binding struct {
+		product, client, bundle, callback string
+		scopes                            []string
 	}
-	expectedClient, expectedBundle, expectedCallback := "com.ynx.cloud.web", "com.ynx.cloud.web", "/cloud/auth/callback"
-	allowed := map[string]bool{"files.read": true, "files.write": true, "permissions.manage": true, "audit.read": true, "ai.use": true}
-	if a.Product == "docs" {
-		expectedClient, expectedBundle, expectedCallback = "com.ynx.docs.web", "com.ynx.docs.web", "/docs/auth/callback"
-		allowed["docs.read"], allowed["docs.edit"], allowed["docs.comment"] = true, true, true
+	bindings := []binding{
+		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"}},
+		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://cloud.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "files.read", "files.write", "permissions.manage"}},
+		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"}},
 	}
-	if a.Product == "cloud" && a.ClientID == "ynx-cloud-mobile-v1" {
-		expectedClient, expectedBundle, expectedCallback = "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback"
-	}
-	if a.Product == "docs" && a.ClientID == "ynx-docs-mobile-v1" {
-		expectedClient, expectedBundle, expectedCallback = "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback"
-	}
-	if a.ClientID != expectedClient || a.BundleID != expectedBundle || a.Callback != expectedCallback {
-		return "", Session{}, ErrInvalid
-	}
-	seenScopes := map[string]bool{}
-	for _, scope := range a.Scopes {
-		if !allowed[scope] || seenScopes[scope] {
-			return "", Session{}, ErrInvalid
+	for _, b := range bindings {
+		if request.RequestingProduct != b.product || request.ProductClientID != b.client || request.BundleID != b.bundle || request.Callback != b.callback || len(request.Scopes) == 0 || len(request.Scopes) > len(b.scopes) {
+			continue
 		}
-		seenScopes[scope] = true
+		allowed, previous := map[string]bool{}, ""
+		for _, scope := range b.scopes {
+			allowed[scope] = true
+		}
+		valid := true
+		for _, scope := range request.Scopes {
+			if !allowed[scope] || scope <= previous {
+				valid = false
+				break
+			}
+			previous = scope
+		}
+		if valid {
+			return b.product, nil
+		}
 	}
-	expires, err := time.Parse(time.RFC3339, a.ExpiresAt)
-	if err != nil || !expires.After(s.cfg.Now()) || expires.After(s.cfg.Now().Add(5*time.Minute)) {
-		return "", Session{}, ErrInvalid
+	return "", ErrInvalid
+}
+
+func authorizationDigest(request WalletAuthorizationRequest) (string, error) {
+	b, err := json.Marshal(request)
+	if err != nil {
+		return "", err
 	}
-	if a.Nonce == "" || len(a.Nonce) > 128 || a.DevicePublicKey == "" || a.Signature == "" {
-		return "", Session{}, ErrInvalid
+	var value map[string]any
+	if err := json.Unmarshal(b, &value); err != nil {
+		return "", err
 	}
-	if err := s.cfg.WalletVerifier.Verify(ctx, a); err != nil {
+	canonical, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	return hashBytes(canonical), nil
+}
+
+func validateWalletPair(request WalletAuthorizationRequest, approval WalletApproval, now time.Time) (string, time.Time, error) {
+	product, err := walletProductBinding(request)
+	if err != nil || request.Version != "1" || request.ChainID != ChainID || request.ProductDeviceAlgorithm != "p256-sha256" || len(request.Nonce) < 32 || len(request.Nonce) > 64 || len(request.ProductDeviceKey) != 44 || len(request.Purpose) < 8 || len(request.Purpose) > 280 {
+		return "", time.Time{}, ErrInvalid
+	}
+	issued, err1 := time.Parse(time.RFC3339Nano, request.IssuedAt)
+	expires, err2 := time.Parse(time.RFC3339Nano, request.ExpiresAt)
+	if err1 != nil || err2 != nil || issued.After(now.Add(30*time.Second)) || !expires.After(now) || expires.Sub(issued) > 5*time.Minute || !expires.After(issued) {
+		return "", time.Time{}, ErrInvalid
+	}
+	digest, err := authorizationDigest(request)
+	if err != nil {
+		return "", time.Time{}, ErrInvalid
+	}
+	approvalIssued, approvalErr := time.Parse(time.RFC3339Nano, approval.IssuedAt)
+	if approvalErr != nil || approval.Version != "1" || approval.RequestDigest != digest || approval.Nonce != request.Nonce || approval.ChainID != request.ChainID || approval.RequestingProduct != request.RequestingProduct || approval.ProductClientID != request.ProductClientID || approval.BundleID != request.BundleID || approval.ProductDeviceAlgorithm != request.ProductDeviceAlgorithm || approval.ProductDeviceKey != request.ProductDeviceKey || approval.Callback != request.Callback || approval.Purpose != request.Purpose || approval.ExpiresAt != request.ExpiresAt || strings.Join(approval.GrantedScopes, "\n") != strings.Join(request.Scopes, "\n") || !validAccount(approval.Account) || len(approval.AccountPublicKey) != 66 || len(approval.WalletSignature) != 128 || approvalIssued.Before(issued) || approvalIssued.After(now.Add(30*time.Second)) {
+		return "", time.Time{}, ErrInvalid
+	}
+	return product, expires, nil
+}
+
+func (s *Service) CreateWalletChallenge(request WalletAuthorizationRequest, approval WalletApproval) (GatewayChallenge, error) {
+	now := s.cfg.Now().UTC().Truncate(time.Millisecond)
+	product, approvalExpiry, err := validateWalletPair(request, approval, now)
+	if err != nil {
+		return GatewayChallenge{}, err
+	}
+	expires := now.Add(3 * time.Minute)
+	if approvalExpiry.Before(expires) {
+		expires = approvalExpiry
+	}
+	challenge := GatewayChallenge{Version: "1", Challenge: newID("gateway"), RequestDigest: approval.RequestDigest, ProductClientID: approval.ProductClientID, BundleID: approval.BundleID, ProductDeviceAlgorithm: approval.ProductDeviceAlgorithm, ProductDeviceKey: approval.ProductDeviceKey, Account: approval.Account, Scopes: append([]string(nil), approval.GrantedScopes...), IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: expires.Format("2006-01-02T15:04:05.000Z")}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, pending := range s.state.WalletChallenges {
+		if !pending.CreatedAt.Add(5 * time.Minute).After(now) {
+			delete(s.state.WalletChallenges, id)
+		}
+	}
+	s.state.WalletChallenges[challenge.Challenge] = PendingWalletChallenge{Challenge: challenge, Product: product, Callback: request.Callback, Nonce: request.Nonce, CreatedAt: now}
+	if err := s.persist("session.challenge", approval.Account, "", map[string]any{"product": product, "requestDigest": approval.RequestDigest}); err != nil {
+		return GatewayChallenge{}, err
+	}
+	return challenge, nil
+}
+
+func (s *Service) CreateSession(ctx context.Context, envelope WalletSessionEnvelope) (string, Session, error) {
+	now := s.cfg.Now().UTC()
+	product, expires, err := validateWalletPair(envelope.AuthorizationRequest, envelope.WalletApproval, now)
+	if err != nil {
 		return "", Session{}, err
 	}
+	challenge := envelope.GatewayCompletion.Challenge
+	s.mu.Lock()
+	pending, ok := s.state.WalletChallenges[challenge.Challenge]
+	s.mu.Unlock()
+	if !ok || pending.Product != product || pending.Callback != envelope.AuthorizationRequest.Callback || pending.Nonce != envelope.AuthorizationRequest.Nonce || !reflect.DeepEqual(pending.Challenge, challenge) {
+		return "", Session{}, errors.New("canonical Wallet challenge mismatch or replay")
+	}
+	challengeExpiry, err := time.Parse(time.RFC3339Nano, challenge.ExpiresAt)
+	if err != nil || !challengeExpiry.After(now) || len(envelope.GatewayCompletion.DeviceSignature) < 90 {
+		return "", Session{}, ErrInvalid
+	}
+	claims, err := s.cfg.WalletVerifier.Verify(ctx, envelope)
+	if err != nil {
+		return "", Session{}, err
+	}
+	issuedAt, err := time.Parse(time.RFC3339Nano, claims.IssuedAt)
+	if err != nil || claims.ExpiresAt != envelope.WalletApproval.ExpiresAt {
+		return "", Session{}, ErrInvalid
+	}
 	token := newID("session")
-	session := Session{TokenHash: hashBytes([]byte(token)), Account: a.Account, Product: a.Product, Scopes: append([]string(nil), a.Scopes...), ExpiresAt: expires}
+	session := Session{TokenHash: hashBytes([]byte(token)), SessionBinding: claims.SessionBinding, RequestDigest: claims.RequestDigest, Account: claims.Account, Product: product, ClientID: claims.ProductClientID, BundleID: claims.BundleID, Callback: envelope.AuthorizationRequest.Callback, DeviceKey: envelope.AuthorizationRequest.ProductDeviceKey, Scopes: append([]string(nil), claims.Scopes...), IssuedAt: issuedAt, ExpiresAt: expires}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for nonce, expiry := range s.state.Nonces {
@@ -941,13 +1266,17 @@ func (s *Service) CreateSession(ctx context.Context, a WalletAssertion) (string,
 			delete(s.state.Nonces, nonce)
 		}
 	}
-	nonceKey := a.Product + ":" + a.ClientID + ":" + a.Nonce
+	nonceKey := product + ":" + envelope.AuthorizationRequest.ProductClientID + ":" + envelope.AuthorizationRequest.Nonce
 	if _, replayed := s.state.Nonces[nonceKey]; replayed {
 		return "", Session{}, errors.New("Wallet assertion nonce replay rejected")
 	}
+	if _, exists := s.state.WalletChallenges[challenge.Challenge]; !exists {
+		return "", Session{}, errors.New("canonical Wallet challenge replay rejected")
+	}
+	delete(s.state.WalletChallenges, challenge.Challenge)
 	s.state.Nonces[nonceKey] = expires
 	s.state.Sessions[session.TokenHash] = session
-	if err := s.persist("session.create", a.Account, "", map[string]any{"product": a.Product, "scopes": a.Scopes}); err != nil {
+	if err := s.persist("session.create", claims.Account, "", map[string]any{"product": product, "clientId": claims.ProductClientID, "requestDigest": claims.RequestDigest, "sessionBinding": claims.SessionBinding, "scopes": claims.Scopes}); err != nil {
 		return "", Session{}, err
 	}
 	return token, session, nil
@@ -976,5 +1305,9 @@ func (s *Service) RevokeSession(token string) error {
 func (s *Service) Health() map[string]any {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return map[string]any{"ok": true, "service": "ynx-cloudd", "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "quotaBytes": s.cfg.QuotaBytes}
+	version := strings.TrimSpace(s.cfg.ReleaseVersion)
+	if version == "" {
+		version = "1.0.0"
+	}
+	return map[string]any{"ok": true, "service": "ynx-cloudd", "version": version, "commit": strings.TrimSpace(s.cfg.ReleaseCommit), "schemaVersion": s.state.SchemaVersion, "objects": len(s.state.Objects), "activeMultipartUploads": len(s.state.MultipartUploads), "chainId": ChainID, "evmChainId": EVMChainID, "nativeSymbol": NativeSymbol, "durability": s.cfg.ObjectStore.Boundary(), "trustBoundary": s.cfg.TrustSink.Boundary(), "maxUploadBytes": MaxUploadBytes, "maxMultipartBytes": MaxMultipartBytes, "maxMultipartParts": MaxMultipartParts, "multipartBoundary": "resumable bounded assembly; not provider-native streaming multipart", "quotaBytes": s.cfg.QuotaBytes}
 }

@@ -12,9 +12,9 @@
   <a class="skip" href="#workspace">Skip to files</a>
   <div id="offline" class="offline" role="status" hidden>Offline. Changes stay on this device until you reconnect.</div>
   <header class="topbar">
-    <a class="brand" href="/cloud/" aria-label="YNX Cloud home"><span class="mark" aria-hidden="true">Y</span><span>YNX Cloud</span></a>
+    <a class="brand" href="/cloud/" aria-label="YNX Cloud home"><span>YNX Cloud</span></a>
     <label class="search"><span class="sr-only">Search files</span><input id="search" type="search" placeholder="Search your authorized files" autocomplete="off"><kbd>⌘ K</kbd></label>
-    <button id="wallet" class="wallet">Sign in with YNX Wallet</button>
+    <div class="account-actions"><label class="sr-only" for="locale">Language</label><select id="locale" aria-label="Language"><option>en</option><option>zh-CN</option><option>zh-TW</option><option>ja</option><option>ko</option><option>es</option><option>fr</option><option>de</option><option>pt</option><option>ru</option><option>ar</option><option>id</option></select><button id="wallet" class="wallet">Sign in with YNX Wallet</button></div>
   </header>
   <div class="shell">
     <nav class="sidebar" aria-label="Cloud views">
@@ -33,13 +33,13 @@
     <main id="workspace" tabindex="-1">
       <div class="workspace-head"><div><p class="eyebrow">PRIVATE WORKSPACE</p><h1 id="view-title">Files</h1><p id="view-subtitle">Only items your current YNX identity can access.</p></div><div class="head-actions"><button id="sync" class="quiet">Sync now</button><button id="ai-open" class="quiet">AI workspace</button></div></div>
       <div id="status" class="status" role="status" aria-live="polite"></div>
-      <section id="empty" class="empty" hidden><div class="empty-icon" aria-hidden="true">↥</div><h2>No files here</h2><p>Upload a bounded file or create a folder. Content is stored off-chain; only identity, permissions, hashes, or settlement evidence may be anchored.</p></section>
+      <section id="empty" class="empty" hidden><h2>No files here</h2><p>Upload a bounded file or create a folder. Content is stored off-chain; only identity, permissions, hashes, or settlement evidence may be anchored.</p></section>
       <section id="files" class="file-grid" aria-label="Files"></section>
     </main>
     <aside id="details" class="details" aria-label="File details" hidden>
-      <button id="details-close" class="close" aria-label="Close details">×</button>
+      <button id="details-close" class="close" aria-label="Close details">Close</button>
       <p class="eyebrow">OBJECT &amp; ACCESS</p><h2 id="detail-name"></h2><div id="preview" class="preview"></div><dl id="metadata"></dl>
-      <div class="action-stack"><button id="download">Download</button><button id="star">Star</button><button id="share">Manage access</button><button id="versions">Version history</button><button id="trash">Move to trash</button></div>
+      <div class="action-stack"><button id="download">Download</button><button id="star">Star</button><button id="share">Manage access</button><button id="versions">Version history</button><button id="trash">Move to trash</button><button id="delete" class="danger" hidden>Delete permanently</button></div>
       <div id="detail-panel"></div>
     </aside>
   </div>

@@ -38,28 +38,88 @@ func (BoundedScanner) Scan(_ context.Context, name, mimeType string, content []b
 	return nil
 }
 
-type WalletAssertion struct {
-	Product         string   `json:"product"`
-	ClientID        string   `json:"clientId"`
-	BundleID        string   `json:"bundleId"`
-	Callback        string   `json:"callback"`
-	Account         string   `json:"account"`
-	ChainID         string   `json:"chainId"`
-	Scopes          []string `json:"scopes"`
-	Nonce           string   `json:"nonce"`
-	ExpiresAt       string   `json:"expiresAt"`
-	DevicePublicKey string   `json:"devicePublicKey"`
-	Signature       string   `json:"signature"`
+type WalletAuthorizationRequest struct {
+	Version                string   `json:"version"`
+	Nonce                  string   `json:"nonce"`
+	ChainID                string   `json:"chainId"`
+	RequestingProduct      string   `json:"requestingProduct"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Callback               string   `json:"callback"`
+	Scopes                 []string `json:"scopes"`
+	Purpose                string   `json:"purpose"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+}
+
+type WalletApproval struct {
+	Version                string   `json:"version"`
+	RequestDigest          string   `json:"requestDigest"`
+	Nonce                  string   `json:"nonce"`
+	ChainID                string   `json:"chainId"`
+	RequestingProduct      string   `json:"requestingProduct"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Callback               string   `json:"callback"`
+	Account                string   `json:"account"`
+	AccountPublicKey       string   `json:"accountPublicKey"`
+	GrantedScopes          []string `json:"grantedScopes"`
+	Purpose                string   `json:"purpose"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+	WalletSignature        string   `json:"walletSignature"`
+}
+
+type GatewayChallenge struct {
+	Version                string   `json:"version"`
+	Challenge              string   `json:"challenge"`
+	RequestDigest          string   `json:"requestDigest"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Account                string   `json:"account"`
+	Scopes                 []string `json:"scopes"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
+}
+
+type GatewayCompletion struct {
+	Challenge       GatewayChallenge `json:"challenge"`
+	DeviceSignature string           `json:"deviceSignature"`
+}
+
+type WalletSessionEnvelope struct {
+	AuthorizationRequest WalletAuthorizationRequest `json:"authorizationRequest"`
+	WalletApproval       WalletApproval             `json:"walletApproval"`
+	GatewayCompletion    GatewayCompletion          `json:"gatewayCompletion"`
+}
+
+type CentralSessionClaims struct {
+	VerifierVersion        string   `json:"verifierVersion"`
+	SessionBinding         string   `json:"sessionBinding"`
+	ProductClientID        string   `json:"productClientId"`
+	BundleID               string   `json:"bundleId"`
+	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
+	RequestDigest          string   `json:"requestDigest"`
+	Account                string   `json:"account"`
+	Scopes                 []string `json:"scopes"`
+	IssuedAt               string   `json:"issuedAt"`
+	ExpiresAt              string   `json:"expiresAt"`
 }
 
 type WalletVerifier interface {
-	Verify(context.Context, WalletAssertion) error
+	Verify(context.Context, WalletSessionEnvelope) (CentralSessionClaims, error)
 }
 
 type UnavailableWalletVerifier struct{}
 
-func (UnavailableWalletVerifier) Verify(context.Context, WalletAssertion) error {
-	return errors.New("YNX Wallet verifier is not configured")
+func (UnavailableWalletVerifier) Verify(context.Context, WalletSessionEnvelope) (CentralSessionClaims, error) {
+	return CentralSessionClaims{}, errors.New("canonical YNX Wallet verifier is not configured")
 }
 
 type AIProvider interface {

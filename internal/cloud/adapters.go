@@ -101,12 +101,12 @@ type RemoteWalletVerifier struct {
 	Client         *http.Client
 }
 
-func (v RemoteWalletVerifier) Verify(ctx context.Context, a WalletAssertion) error {
+func (v RemoteWalletVerifier) Verify(ctx context.Context, envelope WalletSessionEnvelope) (CentralSessionClaims, error) {
 	if err := validRemote(v.BaseURL, v.Token); err != nil {
-		return err
+		return CentralSessionClaims{}, err
 	}
-	b, _ := json.Marshal(a)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet-auth/verify", bytes.NewReader(b))
+	b, _ := json.Marshal(envelope)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(v.BaseURL, "/")+"/v1/wallet-auth/sessions/verify", bytes.NewReader(b))
 	req.Header.Set("Authorization", "Bearer "+v.Token)
 	req.Header.Set("Content-Type", "application/json")
 	client := v.Client
@@ -115,23 +115,23 @@ func (v RemoteWalletVerifier) Verify(ctx context.Context, a WalletAssertion) err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return CentralSessionClaims{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Wallet verifier rejected assertion with %d", resp.StatusCode)
+		return CentralSessionClaims{}, fmt.Errorf("canonical Wallet verifier rejected session with %d", resp.StatusCode)
 	}
-	var out struct {
-		Active                                         bool `json:"active"`
-		Account, Product, ClientID, BundleID, Callback string
+	var out CentralSessionClaims
+	decoder := json.NewDecoder(io.LimitReader(resp.Body, 32<<10))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&out); err != nil {
+		return CentralSessionClaims{}, err
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 32<<10)).Decode(&out); err != nil {
-		return err
+	approval := envelope.WalletApproval
+	if out.VerifierVersion != "wallet-auth-v1" || out.SessionBinding == "" || out.RequestDigest != approval.RequestDigest || out.Account != approval.Account || out.ProductClientID != approval.ProductClientID || out.BundleID != approval.BundleID || out.ProductDeviceAlgorithm != approval.ProductDeviceAlgorithm || strings.Join(out.Scopes, "\n") != strings.Join(approval.GrantedScopes, "\n") || out.ExpiresAt != approval.ExpiresAt {
+		return CentralSessionClaims{}, errors.New("canonical Wallet verifier response binding mismatch")
 	}
-	if !out.Active || out.Account != a.Account || out.Product != a.Product || out.ClientID != a.ClientID || out.BundleID != a.BundleID || out.Callback != a.Callback {
-		return errors.New("Wallet verifier response binding mismatch")
-	}
-	return nil
+	return out, nil
 }
 
 type RemoteAIProvider struct {
@@ -150,9 +150,11 @@ func (p RemoteAIProvider) Complete(ctx context.Context, instruction string, cont
 	if len(payload) > 7500 {
 		return "", errors.New("selected AI context exceeds gateway request bound")
 	}
-	u := strings.TrimRight(p.BaseURL, "/") + "/ai/stream?session=cloud-docs&q=" + url.QueryEscape(string(payload))
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	u := strings.TrimRight(p.BaseURL, "/") + "/ai/stream"
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(payload))
 	req.Header.Set("X-YNX-AI-Key", p.Token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-YNX-Product", "cloud-docs")
 	client := p.Client
 	if client == nil {
 		client = &http.Client{Timeout: 45 * time.Second}

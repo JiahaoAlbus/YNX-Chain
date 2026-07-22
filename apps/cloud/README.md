@@ -27,3 +27,17 @@ Client-side encryption is an API boundary: ciphertext may be stored with
 `AES-256-GCM` metadata, while the user-held recovery package and key never enter
 the service. The default scanner is a bounded policy interface and EICAR guard,
 not a production antivirus claim.
+
+Bounded resumable multipart API:
+
+- `POST /api/v1/multipart` initiates an upload with exact final size and SHA-256.
+- `PUT /api/v1/multipart/{upload}/parts/{part}` accepts a part with `X-Content-SHA256`.
+- `GET /api/v1/multipart/{upload}` resumes from durable part metadata.
+- `POST /api/v1/multipart/{upload}/complete` verifies ordered parts and final hash.
+- `DELETE /api/v1/multipart/{upload}` cancels the upload.
+
+The current assembly limit is 64 MiB with 8 MiB parts. It is an honest local
+control-plane implementation, not provider-native streaming multipart. Objects
+may carry typed Dataset, Strategy/Model, Build, Backtest/Experiment, Checkpoint,
+Media Source, Document Export, or Audit Archive metadata. Content endpoints use
+standard HTTP byte ranges.

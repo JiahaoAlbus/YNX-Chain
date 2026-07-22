@@ -18,8 +18,8 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 			return
 		}
 		switch {
-		case r.URL.Path == "/v1/wallet-auth/verify":
-			json.NewEncoder(w).Encode(map[string]any{"active": true, "Account": owner, "Product": "cloud", "ClientID": "ynx-cloud-mobile-v1", "BundleID": "com.ynxweb4.cloud", "Callback": "ynxcloud://wallet-auth/callback"})
+		case r.URL.Path == "/v1/wallet-auth/sessions/verify":
+			json.NewEncoder(w).Encode(CentralSessionClaims{VerifierVersion: "wallet-auth-v1", SessionBinding: strings.Repeat("b", 64), ProductClientID: "ynx-cloud-mobile-v1", BundleID: "com.ynxweb4.cloud", ProductDeviceAlgorithm: "p256-sha256", RequestDigest: strings.Repeat("a", 64), Account: owner, Scopes: []string{"files.read"}, IssuedAt: "2026-07-18T00:00:00.000Z", ExpiresAt: "2026-07-18T00:04:00.000Z"})
 		case r.Method == "PUT":
 			w.WriteHeader(201)
 			json.NewEncoder(w).Encode(map[string]string{"ref": "object-ref", "hash": hash})
@@ -36,8 +36,8 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	}))
 	defer server.Close()
 	ctx := context.Background()
-	a := WalletAssertion{Product: "cloud", ClientID: "ynx-cloud-mobile-v1", BundleID: "com.ynxweb4.cloud", Callback: "ynxcloud://wallet-auth/callback", Account: owner}
-	if err := (RemoteWalletVerifier{BaseURL: server.URL, Token: "token"}).Verify(ctx, a); err != nil {
+	a := WalletApproval{RequestDigest: strings.Repeat("a", 64), ProductClientID: "ynx-cloud-mobile-v1", BundleID: "com.ynxweb4.cloud", ProductDeviceAlgorithm: "p256-sha256", Account: owner, GrantedScopes: []string{"files.read"}, IssuedAt: "2026-07-18T00:00:00.000Z", ExpiresAt: "2026-07-18T00:04:00.000Z"}
+	if _, err := (RemoteWalletVerifier{BaseURL: server.URL, Token: "token"}).Verify(ctx, WalletSessionEnvelope{WalletApproval: a}); err != nil {
 		t.Fatal(err)
 	}
 	store := RemoteObjectStore{BaseURL: server.URL, Token: "token"}

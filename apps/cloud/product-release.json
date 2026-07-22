@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "productId": "cloud",
+  "version": "1.0.0-testnet-preview",
+  "sourceCommit": null,
+  "states": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "stateNotes": {
+    "implementedLocal": "Core bounded product exists, but objective-required multipart, artifact, export, observability and scale work remains.",
+    "testedLocal": "Recovered suites pass, but the full objective test matrix is incomplete.",
+    "installedLocal": "Android preview evidence exists; iOS and full product installation evidence does not.",
+    "integratedCentral": "Central Wallet registrations remain disabled and pending review."
+  },
+  "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
+  "evidenceIndex": "evidence/EVIDENCE_INDEX.md"
+}

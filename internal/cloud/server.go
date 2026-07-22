@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -18,10 +19,17 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Health()) })
 	mux.HandleFunc("POST /api/v1/session", s.session)
+	mux.HandleFunc("POST /api/v1/session/challenge", s.sessionChallenge)
 	mux.HandleFunc("DELETE /api/v1/session", s.auth(s.revokeSession))
 	mux.HandleFunc("GET /api/v1/objects", s.auth(s.list))
 	mux.HandleFunc("POST /api/v1/objects", s.auth(s.create))
+	mux.HandleFunc("POST /api/v1/multipart", s.auth(s.initiateMultipart))
+	mux.HandleFunc("GET /api/v1/multipart/{upload}", s.auth(s.getMultipart))
+	mux.HandleFunc("PUT /api/v1/multipart/{upload}/parts/{part}", s.auth(s.putMultipartPart))
+	mux.HandleFunc("POST /api/v1/multipart/{upload}/complete", s.auth(s.completeMultipart))
+	mux.HandleFunc("DELETE /api/v1/multipart/{upload}", s.auth(s.cancelMultipart))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
+	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))
 	mux.HandleFunc("GET /api/v1/objects/{id}/versions", s.auth(s.versions))
@@ -81,17 +89,40 @@ func requireScope(w http.ResponseWriter, s Session, scope string) bool {
 	return false
 }
 
+func requireProductScope(w http.ResponseWriter, s Session, cloudScope, docsScope string) bool {
+	if s.Product == "docs" {
+		return requireScope(w, s, docsScope)
+	}
+	return requireScope(w, s, cloudScope)
+}
+
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
-	var a WalletAssertion
-	if !decode(w, r, &a, 32<<10) {
+	var envelope WalletSessionEnvelope
+	if !decode(w, r, &envelope, 64<<10) {
 		return
 	}
-	token, session, err := s.service.CreateSession(r.Context(), a)
+	token, session, err := s.service.CreateSession(r.Context(), envelope)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, 201, map[string]any{"token": token, "session": session})
+}
+
+func (s *Server) sessionChallenge(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		AuthorizationRequest WalletAuthorizationRequest `json:"authorizationRequest"`
+		WalletApproval       WalletApproval             `json:"walletApproval"`
+	}
+	if !decode(w, r, &request, 48<<10) {
+		return
+	}
+	challenge, err := s.service.CreateWalletChallenge(request.AuthorizationRequest, request.WalletApproval)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, challenge)
 }
 func (s *Server) revokeSession(w http.ResponseWriter, r *http.Request, _ Session) {
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
@@ -103,14 +134,14 @@ func (s *Server) revokeSession(w http.ResponseWriter, r *http.Request, _ Session
 }
 
 func (s *Server) list(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	objects, err := s.service.List(a.Account, ListOptions{ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view")})
 	writeResult(w, objects, err)
 }
 func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
 	var req CreateObjectRequest
@@ -124,15 +155,114 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 	writeJSON(w, 201, obj)
 }
+func (s *Server) initiateMultipart(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	var req struct {
+		ParentID     string     `json:"parentId"`
+		Name         string     `json:"name"`
+		MIME         string     `json:"mime"`
+		Encryption   Encryption `json:"encryption"`
+		Artifact     *Artifact  `json:"artifact"`
+		ExpectedSize int64      `json:"expectedSize"`
+		ExpectedHash string     `json:"expectedHash"`
+	}
+	if !decode(w, r, &req, 32<<10) {
+		return
+	}
+	u, err := s.service.InitiateMultipart(a.Account, CreateObjectRequest{ParentID: req.ParentID, Kind: KindFile, Name: req.Name, MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact}, req.ExpectedSize, req.ExpectedHash)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, u)
+}
+func (s *Server) getMultipart(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	v, err := s.service.GetMultipart(a.Account, r.PathValue("upload"))
+	writeResult(w, v, err)
+}
+func (s *Server) putMultipartPart(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	n, err := strconv.Atoi(r.PathValue("part"))
+	if err != nil {
+		writeError(w, 400, "invalid part number")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadBytes)
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, 413, "multipart part exceeds bound")
+		return
+	}
+	p, err := s.service.PutMultipartPart(r.Context(), a.Account, r.PathValue("upload"), n, b, strings.ToLower(strings.TrimSpace(r.Header.Get("X-Content-SHA256"))))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 200, p)
+}
+func (s *Server) completeMultipart(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	var req struct {
+		Parts []int `json:"parts"`
+	}
+	if !decode(w, r, &req, 16<<10) {
+		return
+	}
+	v, err := s.service.CompleteMultipart(r.Context(), a.Account, r.PathValue("upload"), req.Parts)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, v)
+}
+func (s *Server) cancelMultipart(w http.ResponseWriter, r *http.Request, a Session) {
+	if a.Product != "cloud" || !requireScope(w, a, "files.write") {
+		return
+	}
+	if err := s.service.CancelMultipart(a.Account, r.PathValue("upload")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(204)
+}
 func (s *Server) get(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	obj, err := s.service.Get(a.Account, r.PathValue("id"))
 	writeResult(w, obj, err)
 }
+func (s *Server) deleteObject(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
+		return
+	}
+	var confirmation struct {
+		Confirm string `json:"confirm"`
+	}
+	if !decode(w, r, &confirmation, 1024) {
+		return
+	}
+	if confirmation.Confirm != "DELETE" {
+		writeError(w, http.StatusBadRequest, "permanent deletion requires exact DELETE confirmation")
+		return
+	}
+	if err := s.service.DeleteObject(a.Account, r.PathValue("id")); err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
 func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
@@ -144,11 +274,10 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
 	w.Header().Set("Content-Disposition", `inline; filename="`+strings.ReplaceAll(obj.Name, "\"", "")+`"`)
-	w.WriteHeader(200)
-	_, _ = w.Write(b)
+	http.ServeContent(w, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
 }
 func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session) {
-	if a.Product != "docs" || !requireScope(w, a, "docs.edit") {
+	if a.Product != "docs" || !requireScope(w, a, "documents.write") {
 		return
 	}
 	var req SaveDocumentRequest
@@ -159,14 +288,14 @@ func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session)
 	writeResult(w, obj, err)
 }
 func (s *Server) versions(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	v, err := s.service.Versions(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
 	n, err := strconv.Atoi(r.PathValue("version"))
@@ -178,7 +307,7 @@ func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Sessio
 	writeResult(w, obj, e)
 }
 func (s *Server) star(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
 	var req struct {
@@ -191,14 +320,14 @@ func (s *Server) star(w http.ResponseWriter, r *http.Request, a Session) {
 	writeResult(w, obj, err)
 }
 func (s *Server) trash(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
 	obj, err := s.service.SetTrash(a.Account, r.PathValue("id"), true)
 	writeResult(w, obj, err)
 }
 func (s *Server) restore(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if !requireProductScope(w, a, "files.write", "documents.write") {
 		return
 	}
 	obj, err := s.service.SetTrash(a.Account, r.PathValue("id"), false)
@@ -206,14 +335,14 @@ func (s *Server) restore(w http.ResponseWriter, r *http.Request, a Session) {
 }
 
 func (s *Server) grants(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	g, err := s.service.Grants(a.Account, r.PathValue("id"))
 	writeResult(w, g, err)
 }
 func (s *Server) grant(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	var req struct {
@@ -232,14 +361,14 @@ func (s *Server) grant(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, g)
 }
 func (s *Server) revokeGrant(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	g, err := s.service.RevokeGrant(a.Account, r.PathValue("id"), r.PathValue("grant"))
 	writeResult(w, g, err)
 }
 func (s *Server) createLink(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	var req struct {
@@ -257,14 +386,14 @@ func (s *Server) createLink(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, map[string]any{"link": l, "token": token})
 }
 func (s *Server) links(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	v, err := s.service.Links(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) revokeLink(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	l, err := s.service.RevokeLink(a.Account, r.PathValue("id"), r.PathValue("link"))
@@ -282,11 +411,10 @@ func (s *Server) resolveLinkContent(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
-	w.WriteHeader(200)
-	_, _ = w.Write(b)
+	http.ServeContent(w, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
 }
 func (s *Server) requestAccess(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	var req struct {
@@ -304,14 +432,14 @@ func (s *Server) requestAccess(w http.ResponseWriter, r *http.Request, a Session
 	writeJSON(w, 201, v)
 }
 func (s *Server) accessRequests(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	v, err := s.service.AccessRequests(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) decideAccess(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if !requireProductScope(w, a, "permissions.manage", "sharing.manage") {
 		return
 	}
 	var req struct {
@@ -325,14 +453,14 @@ func (s *Server) decideAccess(w http.ResponseWriter, r *http.Request, a Session)
 }
 
 func (s *Server) comments(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	v, err := s.service.Comments(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) addComment(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.comment") {
+	if a.Product != "docs" || !requireScope(w, a, "comments.write") {
 		return
 	}
 	var req struct {
@@ -351,7 +479,7 @@ func (s *Server) addComment(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, v)
 }
 func (s *Server) presence(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.read") {
+	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
 	var req struct {

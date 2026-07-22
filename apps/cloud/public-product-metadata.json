@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "productId": "cloud",
+  "name": "YNX Cloud",
+  "aliases": ["YNX Object Storage"],
+  "canonicalRoute": "/cloud",
+  "title": "YNX Cloud — User-controlled Testnet storage",
+  "metaDescription": "Store, version, share, revoke, recover, and export authorized files and product artifacts with verifiable checksums.",
+  "h1": "Storage you can inspect, revoke, and leave",
+  "status": "local-testnet-preview",
+  "features": ["Files and folders", "Version restore", "Expiring access", "Checksum verification", "Backup and recovery", "Selected-file AI boundary"],
+  "risks": ["No production durability claim", "No public deployment", "No production signing", "Provider and central Wallet integration pending"],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "downloadUrl": null,
+  "structuredDataSuggestion": "SoftwareApplication"
+}

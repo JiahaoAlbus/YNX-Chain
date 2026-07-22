@@ -1,0 +1,27 @@
+[
+  {
+    "op": "test",
+    "path": "/registryVersion",
+    "value": 1
+  },
+  {
+    "op": "test",
+    "path": "/chainId",
+    "value": "ynx_6423-1"
+  },
+  {
+    "op": "test",
+    "path": "/products/8/productId",
+    "value": "docs"
+  },
+  {
+    "op": "replace",
+    "path": "/products/8/scopes",
+    "value": ["ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"]
+  },
+  {
+    "op": "replace",
+    "path": "/products/8/maxScopes",
+    "value": 6
+  }
+]

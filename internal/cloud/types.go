@@ -3,10 +3,12 @@ package cloud
 import "time"
 
 const (
-	ChainID        = "ynx_6423-1"
-	EVMChainID     = 6423
-	NativeSymbol   = "YNXT"
-	MaxUploadBytes = 8 << 20
+	ChainID           = "ynx_6423-1"
+	EVMChainID        = 6423
+	NativeSymbol      = "YNXT"
+	MaxUploadBytes    = 8 << 20
+	MaxMultipartBytes = 64 << 20
+	MaxMultipartParts = 256
 )
 
 type ObjectKind string
@@ -40,6 +42,37 @@ type Object struct {
 	UpdatedAt  time.Time  `json:"updatedAt"`
 	Encryption Encryption `json:"encryption"`
 	ScanStatus string     `json:"scanStatus,omitempty"`
+	Artifact   *Artifact  `json:"artifact,omitempty"`
+}
+
+type Artifact struct {
+	Type          string     `json:"type"`
+	Product       string     `json:"product"`
+	Retention     string     `json:"retention"`
+	RetentionEnds *time.Time `json:"retentionEndsAt,omitempty"`
+}
+
+type MultipartPart struct {
+	Number int    `json:"number"`
+	Size   int64  `json:"size"`
+	Hash   string `json:"hash"`
+	Ref    string `json:"ref"`
+}
+
+type MultipartUpload struct {
+	ID           string                `json:"id"`
+	Owner        string                `json:"owner"`
+	ParentID     string                `json:"parentId,omitempty"`
+	Name         string                `json:"name"`
+	MIME         string                `json:"mime"`
+	Encryption   Encryption            `json:"encryption"`
+	Artifact     *Artifact             `json:"artifact,omitempty"`
+	ExpectedSize int64                 `json:"expectedSize"`
+	ExpectedHash string                `json:"expectedHash"`
+	Status       string                `json:"status"`
+	Parts        map[int]MultipartPart `json:"parts"`
+	CreatedAt    time.Time             `json:"createdAt"`
+	UpdatedAt    time.Time             `json:"updatedAt"`
 }
 
 type Version struct {
@@ -134,27 +167,44 @@ type AIJob struct {
 }
 
 type Session struct {
-	TokenHash string    `json:"tokenHash"`
-	Account   string    `json:"account"`
-	Product   string    `json:"product"`
-	Scopes    []string  `json:"scopes"`
-	ExpiresAt time.Time `json:"expiresAt"`
+	TokenHash      string    `json:"tokenHash"`
+	SessionBinding string    `json:"sessionBinding"`
+	RequestDigest  string    `json:"requestDigest"`
+	Account        string    `json:"account"`
+	Product        string    `json:"product"`
+	ClientID       string    `json:"clientId"`
+	BundleID       string    `json:"bundleId"`
+	Callback       string    `json:"callback"`
+	DeviceKey      string    `json:"deviceKey"`
+	Scopes         []string  `json:"scopes"`
+	IssuedAt       time.Time `json:"issuedAt"`
+	ExpiresAt      time.Time `json:"expiresAt"`
+}
+
+type PendingWalletChallenge struct {
+	Challenge GatewayChallenge `json:"challenge"`
+	Product   string           `json:"product"`
+	Callback  string           `json:"callback"`
+	Nonce     string           `json:"nonce"`
+	CreatedAt time.Time        `json:"createdAt"`
 }
 
 type persistentState struct {
-	SchemaVersion  int                      `json:"schemaVersion"`
-	Objects        map[string]Object        `json:"objects"`
-	Versions       map[string][]Version     `json:"versions"`
-	Grants         map[string]Grant         `json:"grants"`
-	Links          map[string]ShareLink     `json:"links"`
-	AccessRequests map[string]AccessRequest `json:"accessRequests"`
-	Comments       map[string][]Comment     `json:"comments"`
-	Presence       map[string]Presence      `json:"presence"`
-	AIJobs         map[string]AIJob         `json:"aiJobs"`
-	Sessions       map[string]Session       `json:"sessions"`
-	Nonces         map[string]time.Time     `json:"nonces"`
-	Audit          []AuditEvent             `json:"audit"`
-	IntegrityHash  string                   `json:"integrityHash"`
+	SchemaVersion    int                               `json:"schemaVersion"`
+	Objects          map[string]Object                 `json:"objects"`
+	Versions         map[string][]Version              `json:"versions"`
+	Grants           map[string]Grant                  `json:"grants"`
+	Links            map[string]ShareLink              `json:"links"`
+	AccessRequests   map[string]AccessRequest          `json:"accessRequests"`
+	Comments         map[string][]Comment              `json:"comments"`
+	Presence         map[string]Presence               `json:"presence"`
+	AIJobs           map[string]AIJob                  `json:"aiJobs"`
+	Sessions         map[string]Session                `json:"sessions"`
+	WalletChallenges map[string]PendingWalletChallenge `json:"walletChallenges"`
+	Nonces           map[string]time.Time              `json:"nonces"`
+	Audit            []AuditEvent                      `json:"audit"`
+	MultipartUploads map[string]MultipartUpload        `json:"multipartUploads"`
+	IntegrityHash    string                            `json:"integrityHash"`
 }
 
 type ListOptions struct {
@@ -170,6 +220,7 @@ type CreateObjectRequest struct {
 	MIME       string     `json:"mime"`
 	Content    []byte     `json:"content"`
 	Encryption Encryption `json:"encryption"`
+	Artifact   *Artifact  `json:"artifact,omitempty"`
 }
 
 type SaveDocumentRequest struct {
