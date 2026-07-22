@@ -13,10 +13,10 @@ import (
 	"time"
 )
 
-const CurrentStateSchemaVersion = 5
+const CurrentStateSchemaVersion = 6
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}, Usage: map[string]UsageCounters{}}
+	return persistentState{SchemaVersion: CurrentStateSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, WalletChallenges: map[string]PendingWalletChallenge{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}, MultipartUploads: map[string]MultipartUpload{}, BlobDeletions: map[string]BlobDeletion{}, DirectUploads: map[string]DirectUpload{}, Usage: map[string]UsageCounters{}, DataErasures: map[string]DataErasureReceipt{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -398,6 +398,9 @@ func normalize(s *persistentState) {
 	}
 	if s.Usage == nil {
 		s.Usage = map[string]UsageCounters{}
+	}
+	if s.DataErasures == nil {
+		s.DataErasures = map[string]DataErasureReceipt{}
 	}
 }
 

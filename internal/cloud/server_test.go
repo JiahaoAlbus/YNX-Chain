@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -147,6 +148,68 @@ func TestUserExitModePreservesExportAndDeletionButBlocksNewWrites(t *testing.T) 
 	}
 	if rr := request(http.MethodDelete, "/api/v1/session", ""); rr.Code != http.StatusNoContent {
 		t.Fatalf("exit logout: %d %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestServerProductDataErasureRequiresDedicatedScopeAndExactConfirmation(t *testing.T) {
+	s := testService(t, nil)
+	object, err := s.Create(context.Background(), owner, CreateObjectRequest{Product: "cloud", Kind: KindFile, Name: "erase.txt", Content: []byte("erase")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	readEnvelope := testWalletEnvelope(t, s, "cloud", "erase-read", []string{"files.read"})
+	readToken, _, err := s.CreateSession(context.Background(), readEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewServer(s).Handler()
+	request := func(token, confirm string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodDelete, "/api/v1/account-data", strings.NewReader(fmt.Sprintf(`{"confirm":%q}`, confirm)))
+		req.Header.Set("Authorization", "Bearer "+token)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		return rr
+	}
+	if rr := request(readToken, "DELETE CLOUD DATA"); rr.Code != http.StatusForbidden {
+		t.Fatalf("erasure without dedicated scope: %d %s", rr.Code, rr.Body.String())
+	}
+	eraseEnvelope := testWalletEnvelope(t, s, "cloud", "erase-dedicated", []string{"data.delete"})
+	eraseToken, _, err := s.CreateSession(context.Background(), eraseEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rr := request(eraseToken, "DELETE DATA"); rr.Code != http.StatusBadRequest {
+		t.Fatalf("inexact confirmation: %d %s", rr.Code, rr.Body.String())
+	}
+	if _, err := s.Get(owner, object.ID); err != nil {
+		t.Fatalf("inexact confirmation mutated data: %v", err)
+	}
+	rr := request(eraseToken, "DELETE CLOUD DATA")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("erasure: %d %s", rr.Code, rr.Body.String())
+	}
+	var receipt DataErasureReceipt
+	if err = json.Unmarshal(rr.Body.Bytes(), &receipt); err != nil || receipt.Product != "cloud" || receipt.PendingBlobs != 0 || receipt.OwnerHash == owner {
+		t.Fatalf("receipt: %#v %v", receipt, err)
+	}
+	if _, err := s.Authenticate(eraseToken); !errors.Is(err, ErrDenied) {
+		t.Fatalf("erasure session remained valid: %v", err)
+	}
+	stateAfterErase, _ := json.Marshal(s.state)
+	if bytes.Contains(stateAfterErase, []byte(owner)) {
+		t.Fatalf("completed erasure retained raw owner before fresh sign-in: %s", stateAfterErase)
+	}
+	lookupEnvelope := testWalletEnvelope(t, s, "cloud", "erase-lookup", []string{"data.delete"})
+	lookupToken, _, err := s.CreateSession(context.Background(), lookupEnvelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/account-data/erasures", nil)
+	req.Header.Set("Authorization", "Bearer "+lookupToken)
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), receipt.ID) || strings.Contains(rr.Body.String(), owner) {
+		t.Fatalf("hashed receipt lookup: %d %s", rr.Code, rr.Body.String())
 	}
 }
 

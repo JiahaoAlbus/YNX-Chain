@@ -15,6 +15,7 @@ export declare class YNXCloudClient {
   versions(id: string): Promise<unknown[]>; restoreVersion(id: string, version: number): Promise<CloudObject>; saveDocument(id: string, input: unknown): Promise<CloudObject>;
   star(id: string, starred: boolean): Promise<CloudObject>; trash(id: string): Promise<CloudObject>; restore(id: string): Promise<CloudObject>;
   quota(): Promise<{ usedBytes: number; limitBytes: number; claim: string }>; usage(): Promise<UsageReport>; audit(): Promise<unknown[]>; exportData(): Promise<Response>;
+  eraseProductData(): Promise<DataErasureReceipt>; erasureReceipts(): Promise<DataErasureReceipt[]>;
   deletionRecords(): Promise<unknown[]>; retryDeletion(id: string): Promise<unknown>;
   initiateMultipart(input: unknown): Promise<unknown>; multipartStatus(id: string): Promise<unknown>; putMultipartPart(id: string, part: number, bytes: ArrayBuffer | ArrayBufferView, sha256: string): Promise<unknown>; completeMultipart(id: string, parts: number[]): Promise<CloudObject>; cancelMultipart(id: string): Promise<unknown>;
   initiateDirectUpload(input: unknown): Promise<unknown>; directUploadStatus(id: string): Promise<unknown>; completeDirectUpload(id: string): Promise<CloudObject>; cancelDirectUpload(id: string): Promise<unknown>;
@@ -22,8 +23,13 @@ export declare class YNXCloudClient {
 }
 
 export interface UsageReport {
-  schemaVersion: 1; source: string; authority: string; asOf: string; owner: string; product: Product; storageBytes: number; freeQuotaBytes: number;
-  counters: { owner: string; product: Product; ingressBytes: number; egressBytes: number; scanBytes: number; aiInputUnits: number; aiJobs: number; backupBytes: number; replicaBytes: number; updatedAt: string };
+  schemaVersion: 2; source: string; authority: string; asOf: string; owner: string; product: Product; storageBytes: number; freeQuotaBytes: number;
+  counters: { owner: string; product: Product; ingressBytes: number; egressBytes: number; scanBytes: number; aiInputUnits: number; aiJobs: number; backupBytes: number; replicaBytes: number; storageByteSeconds: number; storageMeteredAt?: string; storageCoverageStartsAt?: string; updatedAt: string };
   pricingStatus: "not-configured-no-charge"; providerCostMinor: 0; protocolFeeMinor: 0; treasuryMinor: 0; burnMinor: 0; userChargeMinor: 0; refundMinor: 0;
   coverage: Record<string, string>;
+}
+
+export interface DataErasureReceipt {
+  schemaVersion: 1; id: string; ownerHash: string; product: Product; status: "logical-erasure-complete-known-provider-deletions-complete" | "logical-erasure-complete-provider-deletion-pending";
+  source: string; authority: string; requestedAt: string; updatedAt: string; deleted: Record<string, number>; completedBlobs: number; pendingBlobs: number; retained: Record<string, string>; coverage: string;
 }

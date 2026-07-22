@@ -69,6 +69,16 @@ Content-addressed reference counting prevents deletion while another object
 version still uses the same hash. A provider failure returns `202 Accepted` with
 `physicalDeletion: pending` after logical deletion, never a false erasure claim.
 
+Product-account erasure uses the dedicated `data.delete` Wallet scope and exact
+`DELETE CLOUD DATA` or `DELETE DOCS DATA` confirmation at
+`DELETE /api/v1/account-data`. Schema-v6 preflight blocks the whole transaction
+for legal hold or active retention, then removes product-owned objects, versions,
+collaboration identifiers, sessions/challenges, AI jobs, active uploads, audit
+identifiers, and usage state. The response is a hashed-owner receipt; known
+provider failures remain retryable and return `202`, while a successful provider
+attempt does not retain the raw owner in its deletion record. A new dedicated
+Wallet session may read receipts at `GET /api/v1/account-data/erasures`.
+
 `GET /api/v1/usage` returns a versioned, product-isolated report of exact current
 deduplicated storage plus persisted accepted-ingress, delivered-egress, scan-byte,
 and AI-estimate counters. The local adapter has no approved pricing source, so the

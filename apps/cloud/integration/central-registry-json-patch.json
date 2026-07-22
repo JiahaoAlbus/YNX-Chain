@@ -17,11 +17,11 @@
   {
     "op": "replace",
     "path": "/products/8/scopes",
-    "value": ["ai.use", "audit.read", "comments.write", "documents.read", "documents.write", "sharing.manage"]
+    "value": ["ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"]
   },
   {
     "op": "replace",
     "path": "/products/8/maxScopes",
-    "value": 6
+    "value": 7
   }
 ]

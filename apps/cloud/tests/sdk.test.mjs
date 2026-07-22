@@ -60,6 +60,26 @@ test("SDK retries bounded idempotent reads on explicit backpressure", async () =
   assert.equal(calls, 3);
 });
 
+test("SDK sends exact destructive confirmations without mutation retries", async () => {
+  const calls = [];
+  const client = new YNXCloudClient({
+    endpoint: "https://cloud.testnet.invalid",
+    product: "cloud",
+    getAccessToken: () => "session",
+    maxRetries: 5,
+    fetch: async (url, init) => {
+      calls.push({ url, method: init.method, body: JSON.parse(init.body) });
+      return new Response(JSON.stringify({ schemaVersion: 1, id: "erasure_1", product: "cloud" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  });
+  await client.deleteObject("obj_1");
+  await client.eraseProductData();
+  assert.deepEqual(calls, [
+    { url: "https://cloud.testnet.invalid/api/v1/objects/obj_1", method: "DELETE", body: { confirm: "DELETE" } },
+    { url: "https://cloud.testnet.invalid/api/v1/account-data", method: "DELETE", body: { confirm: "DELETE CLOUD DATA" } },
+  ]);
+});
+
 test("SDK rejects ambiguous products and unsafe identifiers", async () => {
   assert.throws(() => new YNXCloudClient({ endpoint: "https://cloud.testnet.invalid", product: "*", getAccessToken: () => "x" }), /product/);
   const client = new YNXCloudClient({ endpoint: "https://cloud.testnet.invalid", product: "cloud", getAccessToken: () => "x", fetch: async () => new Response() });
