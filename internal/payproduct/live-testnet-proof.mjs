@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { secp256k1 } from "../../apps/pay/node_modules/@noble/curves/secp256k1.js";
+import { p256 } from "../../apps/pay/node_modules/@noble/curves/nist.js";
 import { sha256 } from "../../apps/pay/node_modules/@noble/hashes/sha2.js";
 import { keccak_256 } from "../../apps/pay/node_modules/@noble/hashes/sha3.js";
 import { bytesToHex, utf8ToBytes } from "../../apps/pay/node_modules/@noble/hashes/utils.js";
@@ -17,8 +18,10 @@ import {
   paymentIntentDigest,
   requestDigest,
 } from "../../apps/pay/src/walletAuth.ts";
+import { encodeBase64url, parseAuthorizationRequest, registryParserBinding } from "../../apps/pay/node_modules/@ynx-chain/wallet-auth/src/index.js";
 
 const productURL = required("YNX_PAY_PRODUCT_URL").replace(/\/$/, "");
+const gatewayURL = required("YNX_PAY_GATEWAY_URL").replace(/\/$/, "");
 const bootstrapKey = required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY");
 const rpcURL = (process.env.YNX_PAY_RPC_URL || "https://rpc.ynxweb4.com").replace(/\/$/, "");
 const faucetURL = (process.env.YNX_PAY_FAUCET_URL || "https://faucet.ynxweb4.com").replace(/\/$/, "");
@@ -43,16 +46,18 @@ const funded = await eventually(async () => {
 const onboard = await jsonRequest(`${productURL}/v1/merchants/onboard`, {
   method: "POST",
   headers: { "X-YNX-Bootstrap-Key": bootstrapKey },
-  body: { displayName: `YNX Testnet Merchant ${runID}`, payoutAddress: merchantWallet.account, webhookUrl: "https://httpbingo.org/post", idempotencyKey: `onboard-${runID}` },
+  body: { displayName: `YNX Testnet Merchant ${runID}`, payoutAddress: merchantWallet.account, ownerAccount: merchantWallet.account, webhookUrl: "https://httpbingo.org/post", idempotencyKey: `onboard-${runID}` },
 });
 const merchantID = onboard.merchant?.id;
-const credential = onboard.credential;
-assert(/^mrc_[0-9a-f]{20}$/.test(merchantID) && typeof credential === "string" && credential.length >= 32, "merchant onboarding did not return bounded credentials");
+assert(/^mrc_[0-9a-f]{20}$/.test(merchantID), "merchant onboarding did not return a bounded merchant identity");
+
+const merchantSession = await completeWalletGateway({ kind: "merchant", identity: merchantWallet, merchantId: merchantID });
+assert(merchantSession.account === merchantWallet.account && merchantSession.role === "owner", "merchant Wallet/Gateway owner session binding failed");
 
 const invoice = await merchantRequest("POST", "/v1/merchant/invoices", { description: "Authoritative YNX Testnet proof", amount: 7, expiresInMinutes: 20, idempotencyKey: `invoice-${runID}` });
 assert(invoice.status === "pending" && invoice.amount === 7 && invoice.asset === "YNXT" && invoice.payoutAddress === merchantWallet.account, "signed invoice does not match the merchant request");
 
-const device = validSecret();
+const device = validP256Secret();
 const deviceText = deviceSecret(device);
 const authRequest = createAuthorizationRequest(deviceText, randomBytes(24));
 const approvalUnsigned = {
@@ -77,8 +82,13 @@ const approval = {
   ...approvalUnsigned,
   walletSignature: compactWalletSignature("YNX_WALLET_AUTH_APPROVAL_V1", approvalUnsigned, payerSecret),
 };
-const completion = createGatewayCompletion(approval, deviceText, randomBytes(24));
-const walletSession = await jsonRequest(`${productURL}/v1/wallet/gateway-sessions`, { method: "POST", body: { request: authRequest, approval, completion } });
+const challenge = await jsonRequest(`${gatewayURL}/app/pay/session/challenges`, { method: "POST", body: { request: authRequest, approval } });
+const completion = createGatewayCompletion(challenge, deviceText);
+const payCompletionBody = { request: authRequest, approval, completion };
+const walletSession = await jsonRequest(`${gatewayURL}/app/pay/session/complete`, { method: "POST", body: payCompletionBody });
+const walletReplay = await fetch(`${gatewayURL}/app/pay/session/complete`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payCompletionBody) });
+await walletReplay.text();
+const walletSessionReplayRejected = !walletReplay.ok;
 assert(walletSession.account === payer.account && walletSession.scopes?.join("\n") === "account:read\npay:case:create\npay:settlement:submit", "Wallet/Gateway session binding failed");
 
 const quoteIssuedAt = new Date().toISOString();
@@ -119,21 +129,21 @@ const resultUnsigned = {
   issuedAt: new Date().toISOString(),
 };
 const walletResult = { ...resultUnsigned, walletSignature: compactWalletSignature("YNX_PAY_WALLET_RESULT_V1", resultUnsigned, payerSecret) };
-const committed = await jsonRequest(`${productURL}/v1/invoices/${invoice.id}/settlements`, {
+const committed = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${invoice.id}/settlements`, {
   method: "POST",
   headers: { Authorization: `Bearer ${walletSession.token}` },
   body: { intent, result: walletResult, idempotencyKey: `settlement-${runID}` },
 });
 assertCommitted(committed, signedTransfer.hash);
-const receipt = await jsonRequest(`${productURL}/v1/invoices/${invoice.id}`);
+const receipt = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${invoice.id}`);
 assertCommitted(receipt, signedTransfer.hash);
 
-const refund = await jsonRequest(`${productURL}/v1/invoices/${invoice.id}/refund-requests`, {
+const refund = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${invoice.id}/refund-requests`, {
   method: "POST",
   headers: { Authorization: `Bearer ${walletSession.token}` },
   body: { amount: 2, reason: "Live Testnet refund workflow proof", idempotencyKey: `refund-${runID}` },
 });
-const dispute = await jsonRequest(`${productURL}/v1/invoices/${invoice.id}/disputes`, {
+const dispute = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${invoice.id}/disputes`, {
   method: "POST",
   headers: { Authorization: `Bearer ${walletSession.token}` },
   body: { reason: "Live Testnet dispute and Trust review workflow proof", trustEvidence: [`tx:${signedTransfer.hash}`], idempotencyKey: `dispute-${runID}` },
@@ -171,8 +181,7 @@ assert(csv.includes(invoice.id) && csv.includes(signedTransfer.hash), "reconcili
 if (reviewed.status === "applied") assert(state.audit?.some((entry) => entry.action === "ai.review" && entry.outcome === "applied"), "AI approval audit entry is missing");
 assert(state.audit?.some((entry) => entry.action === "webhook.deliver"), "webhook delivery audit entry is missing");
 
-const replay = await merchantReplayProbe("GET", "/v1/merchant/analytics");
-assert(replay.first === 200 && replay.second === 401 && /replay/i.test(replay.error), "merchant request nonce replay was not rejected");
+assert(merchantSession.replayRejected === true && walletSessionReplayRejected === true, "Gateway challenge/session replay was not rejected");
 
 const proof = {
   proofType: "ynx-pay-authoritative-testnet-payment",
@@ -194,7 +203,7 @@ const proof = {
   ai: { id: reviewed.id, workflow: reviewed.workflow, outputLanguage: reviewed.outputLanguage, status: reviewed.status, decision: reviewed.decision, provider: reviewed.provider, model: reviewed.model, externalBlocker: aiExternalBlocker || undefined },
   reconciliation: { committedCount: analytics.committedCount, grossYnxt: analytics.grossYnxt, csvIncludesInvoice: true, csvIncludesTransaction: true },
   auditCount: state.audit.length,
-  replayRejected: true,
+  replayRejected: merchantSession.replayRejected && walletSessionReplayRejected,
   truthfulBoundary: "paid only after authoritative central Pay API matched a committed YNX Testnet YNXT transaction",
 };
 await mkdir(dirname(outputPath), { recursive: true });
@@ -202,29 +211,33 @@ await writeFile(outputPath, JSON.stringify(proof, null, 2) + "\n", { mode: 0o644
 console.log(JSON.stringify(proof, null, 2));
 
 async function merchantRequest(method, path, body, raw = false) {
-  const signed = merchantAuthorization(method, path, body);
-  const response = await fetch(productURL + path, { method, headers: signed.headers, body: signed.body || undefined, signal: AbortSignal.timeout(65_000) });
+  const response = await fetch(gatewayURL + "/app/pay-merchant" + path, { method, headers: { Authorization: `Bearer ${merchantSession.token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) }, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(65_000) });
   const text = await response.text();
   if (!response.ok) throw new Error(`merchant request ${path} failed (${response.status}): ${text}`);
   return raw ? text : JSON.parse(text);
 }
 
-function merchantAuthorization(method, path, body, nonce = randomBytes(16).toString("hex")) {
-  const raw = body === undefined ? "" : JSON.stringify(body);
-  const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
-  const bodyHash = createHash("sha256").update(raw).digest("hex");
-  const material = ["YNX_PAY_PRODUCT_REQUEST_V1", method, path, bodyHash, timestamp, nonce].join("\n");
-  const signature = createHmac("sha256", credential).update(material).digest("hex");
-  return { body: raw, headers: { Authorization: `YNX:${merchantID}:${timestamp}:${nonce}:${signature}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) } };
-}
-
-async function merchantReplayProbe(method, path) {
-  const authorization = merchantAuthorization(method, path, undefined, randomBytes(16).toString("hex"));
-  const first = await fetch(productURL + path, { method, headers: authorization.headers });
-  await first.text();
-  const second = await fetch(productURL + path, { method, headers: authorization.headers });
-  const value = await second.json();
-  return { first: first.status, second: second.status, error: value.error || "" };
+async function completeWalletGateway({ kind, identity, merchantId }) {
+  const secret = validP256Secret();
+  const now = new Date();
+  const merchant = kind === "merchant";
+  const registry = merchant
+    ? { schemaVersion: 2, productClientId: "ynx-merchant-console-v1", requestingProduct: "pay-merchant", bundleId: "com.ynxweb4.merchant-console", callbacks: ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"], scopes: ["account:read", "merchant:session:create"], maxScopes: 2, productDeviceAlgorithms: ["p256-sha256"] }
+    : null;
+  assert(registry, "operator helper supports merchant sessions only");
+  const request = parseAuthorizationRequest({ version: "1", nonce: randomBytes(24).toString("base64url"), chainId: "ynx_6423-1", requestingProduct: registry.requestingProduct, productClientId: registry.productClientId, bundleId: registry.bundleId, productDeviceAlgorithm: "p256-sha256", productDeviceKey: encodeBase64url(p256.getPublicKey(secret, true)), callback: registry.callbacks[0], scopes: registry.scopes, purpose: "Operate this YNX Testnet merchant through the canonical Wallet", issuedAt: now.toISOString(), expiresAt: new Date(now.getTime() + 5 * 60_000).toISOString() }, { now, registry: registryParserBinding(registry) });
+  const unsigned = { version: request.version, requestDigest: requestDigest(request), nonce: request.nonce, chainId: request.chainId, requestingProduct: request.requestingProduct, productClientId: request.productClientId, bundleId: request.bundleId, productDeviceAlgorithm: request.productDeviceAlgorithm, productDeviceKey: request.productDeviceKey, callback: request.callback, account: identity.account, accountPublicKey: identity.accountPublicKey, grantedScopes: [...request.scopes], purpose: request.purpose, issuedAt: request.issuedAt, expiresAt: request.expiresAt };
+  const approval = { ...unsigned, walletSignature: compactWalletSignature("YNX_WALLET_AUTH_APPROVAL_V1", unsigned, identity.secret) };
+  const challengePath = `/app/${registry.requestingProduct}/session/challenges`;
+  const completePath = `/app/${registry.requestingProduct}/session/complete`;
+  const challenge = await jsonRequest(gatewayURL + challengePath, { method: "POST", body: { request, approval } });
+  const completion = createGatewayCompletion(challenge, deviceSecret(secret));
+  const body = { request, approval, completion, merchantId };
+  const session = await jsonRequest(gatewayURL + completePath, { method: "POST", body });
+  const replay = await fetch(gatewayURL + completePath, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  await replay.text();
+  assert(!replay.ok, "Gateway accepted a consumed merchant completion");
+  return { ...session, replayRejected: true };
 }
 
 async function jsonRequest(url, options = {}) {
@@ -263,6 +276,12 @@ function validSecret() {
     if (secp256k1.utils.isValidSecretKey(value)) return value;
   }
 }
+function validP256Secret() {
+  for (;;) {
+    const value = randomBytes(32);
+    if (p256.utils.isValidSecretKey(value)) return value;
+  }
+}
 
 function assertCommitted(value, hash) {
   assert(value.status === "committed" && value.settlement?.status === "committed", "invoice was not committed");
@@ -276,7 +295,7 @@ function transactionHash(value) {
 function accountIdentity(secret) {
   const publicKey = secp256k1.getPublicKey(secret, true);
   const payload = keccak_256(secp256k1.getPublicKey(secret, false).slice(1)).slice(-20);
-  return Object.freeze({ account: encodeYNXAddress(payload), accountPublicKey: bytesToHex(publicKey), evmAddress: `0x${bytesToHex(payload)}` });
+  return Object.freeze({ account: encodeYNXAddress(payload), accountPublicKey: bytesToHex(publicKey), evmAddress: `0x${bytesToHex(payload)}`, secret });
 }
 
 function signNativeTransfer({ secret, identity, to, amount, nonce, balance }) {

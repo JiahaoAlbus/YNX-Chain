@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "YNX Card",
+    "slug": "ynx-card",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ynxcard",
+    "icon": "./assets/icon.png",
+    "splash": {"image":"./assets/icon.png","resizeMode":"contain","backgroundColor":"#002FA7"},
+    "locales": {
+      "en":"./assets/locales/en.json","zh":"./assets/locales/zh-CN.json","zh-Hant":"./assets/locales/zh-TW.json","ja":"./assets/locales/ja.json","ko":"./assets/locales/ko.json","es":"./assets/locales/es.json","fr":"./assets/locales/fr.json","de":"./assets/locales/de.json","pt":"./assets/locales/pt.json","ru":"./assets/locales/ru.json","ar":"./assets/locales/ar.json","id":"./assets/locales/id.json"
+    },
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ynxweb4.card",
+      "buildNumber": "1",
+      "infoPlist": {"LSApplicationQueriesSchemes":["ynxwallet"]}
+    },
+    "android": {
+      "package": "com.ynxweb4.card",
+      "versionCode": 1,
+      "adaptiveIcon": {"foregroundImage":"./assets/icon.png","backgroundColor":"#002FA7"},
+      "intentFilters": [{"action":"VIEW","autoVerify":false,"data":[{"scheme":"ynxcard"}],"category":["BROWSABLE","DEFAULT"]}]
+    },
+    "plugins": ["expo-secure-store", "expo-localization", ["expo-local-authentication", {"faceIDPermission":"Authenticate before revealing YNX Card details."}]],
+    "extra": {"productId":"ynx-card","productClientId":"ynx-card-v1","network":"ynx_6423-1","issuerCapability":"sandbox-or-unavailable"}
+  }
+}

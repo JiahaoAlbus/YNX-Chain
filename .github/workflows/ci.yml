@@ -36,3 +36,36 @@ jobs:
       - run: make ecosystem-package
       - run: make exchange-package
       - run: make mainnet-readiness
+
+  pay-card-ios-native:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: pay
+            scheme: YNXPay
+          - app: card
+            scheme: YNXCard
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - run: npx pod-install ios
+      - name: Build iOS Simulator app without signing
+        run: >-
+          xcodebuild
+          -workspace ios/${{ matrix.scheme }}.xcworkspace
+          -scheme ${{ matrix.scheme }}
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build

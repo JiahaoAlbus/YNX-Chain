@@ -17,6 +17,8 @@ test("payment, refund, dispute and AI strings preserve strict authority boundari
     assert.ok(!/button or timer can mark.*paid/i.test(t(locale,"paidTruth"))||locale!=="en");
     assert.match(t(locale,"refundTruth"),/(Wallet|钱包|錢包|返金|환불|reembolso|remboursement|Erstattung|استرداد|возврат|pengembalian)/i);
     assert.match(t(locale,"aiTruth"),/(AI|IA|KI|ИИ|الذكاء|人工知能|인공|智能)/i);
+    assert.match(t(locale,"privacy"),/(Wallet|Gateway)/i);
+    assert.ok(!/(credential|凭据|憑據|認証情報|자격 증명|credencial|identifiant|Anmeldedaten|Учётные данные|بيانات الاعتماد|Kredensial)/i.test(t(locale,"privacy")),`${locale} must not imply browser-held server credentials`);
   }
 });
 

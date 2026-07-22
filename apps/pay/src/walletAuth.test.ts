@@ -4,6 +4,7 @@ import { p256 } from "@noble/curves/nist.js";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
+import { createGatewayChallenge } from "@ynx-chain/wallet-auth";
 import { authorizationDeepLink, canonicalJSON, createAuthorizationRequest, createGatewayCompletion, deviceSecret, parsePaymentResultCallback, paymentIntent, paymentIntentDigest, requestDigest, verifyAuthorization } from "./walletAuth";
 
 const now=new Date("2026-07-16T01:00:00.000Z"),accountSecret=new Uint8Array(32).fill(0);accountSecret[31]=1;
@@ -15,7 +16,8 @@ test("Pay uses the strict Wallet request envelope and P-256 Gateway completion",
   const approvalBase={version:"1" as const,requestDigest:requestDigest(request),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account,accountPublicKey,grantedScopes:request.scopes,purpose:request.purpose,issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+240_000).toISOString()};
   const walletSignature=bytesToHex(secp256k1.sign(sha256(utf8ToBytes(`YNX_WALLET_AUTH_APPROVAL_V1\n${canonicalJSON(approvalBase)}`)),accountSecret,{prehash:false,format:"compact",lowS:true}));
   const approval=verifyAuthorization({...approvalBase,walletSignature},request,now);
-  const completion=createGatewayCompletion(approval,device,new Uint8Array(24).fill(0x22),now);
+  const challenge=createGatewayChallenge(approval,{challenge:"gateway_pay_challenge_123456789012",expiresAt:new Date(now.getTime()+180_000).toISOString()},now);
+  const completion=createGatewayCompletion(challenge,device);
   assert.equal(completion.challenge.productDeviceKey,request.productDeviceKey);
   assert.ok(p256.verify(Buffer.from(completion.deviceSignature,"base64url"),utf8ToBytes(`YNX_PRODUCT_SESSION_CHALLENGE_V1\n${canonicalJSON(completion.challenge)}`),p256.getPublicKey(deviceBytes,true),{format:"der",lowS:false}));
   assert.throws(()=>verifyAuthorization({...approval,productClientId:"attacker"},request,now),/match/);

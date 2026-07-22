@@ -13,6 +13,7 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
     "expo": "~57.0.4",
     "expo-camera": "~57.0.0",
     "expo-clipboard": "57.0.0",
