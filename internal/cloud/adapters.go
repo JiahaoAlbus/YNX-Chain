@@ -314,9 +314,12 @@ func (p RemoteAIProvider) Complete(ctx context.Context, instruction string, cont
 }
 
 type TrustEvent struct {
-	Actor, Action, ObjectID, Hash string         `json:"actor,omitempty"`
-	At                            time.Time      `json:"at"`
-	Details                       map[string]any `json:"details,omitempty"`
+	Actor    string         `json:"actor,omitempty"`
+	Action   string         `json:"action,omitempty"`
+	ObjectID string         `json:"objectId,omitempty"`
+	Hash     string         `json:"hash,omitempty"`
+	At       time.Time      `json:"at"`
+	Details  map[string]any `json:"details,omitempty"`
 }
 type TrustSink interface {
 	Record(context.Context, TrustEvent) error

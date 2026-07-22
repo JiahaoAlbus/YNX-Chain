@@ -13,6 +13,7 @@ import (
 func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	body := []byte("bounded")
 	hash := hashBytes(body)
+	var recordedTrust TrustEvent
 	var server *httptest.Server
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer token" && r.Header.Get("X-YNX-AI-Key") != "token" {
@@ -35,6 +36,10 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 		case r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/objects/") && r.Header.Get("X-Content-SHA256") == hash:
 			w.WriteHeader(http.StatusNoContent)
 		case r.URL.Path == "/v1/cloud/evidence":
+			if err := json.NewDecoder(r.Body).Decode(&recordedTrust); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 			w.WriteHeader(201)
 		case r.URL.Path == "/ai/stream":
 			w.Header().Set("Content-Type", "text/event-stream")
@@ -79,8 +84,12 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	if err != nil || answer != "grounded" {
 		t.Fatalf("AI %q %v", answer, err)
 	}
-	if err := (RemoteTrustSink{BaseURL: server.URL, Token: "token"}).Record(ctx, TrustEvent{Actor: owner}); err != nil {
+	event := TrustEvent{Actor: owner, Action: "object.create", ObjectID: "obj_1", Hash: hash}
+	if err := (RemoteTrustSink{BaseURL: server.URL, Token: "token"}).Record(ctx, event); err != nil {
 		t.Fatal(err)
+	}
+	if recordedTrust.Actor != event.Actor || recordedTrust.Action != event.Action || recordedTrust.ObjectID != event.ObjectID || recordedTrust.Hash != event.Hash {
+		t.Fatalf("Trust evidence fields were not independently encoded: %#v", recordedTrust)
 	}
 	if err := validRemote("http://198.51.100.1", "token"); err == nil {
 		t.Fatal("non-loopback HTTP must fail closed")

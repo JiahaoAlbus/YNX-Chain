@@ -1,0 +1,51 @@
+name: Cloud security and recovery gates
+
+on:
+  push:
+    branches: [codex/final-cloud]
+    paths:
+      - 'apps/cloud/**'
+      - 'apps/docs/**'
+      - 'internal/cloud/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/cloud-security.yml'
+  pull_request:
+    paths:
+      - 'apps/cloud/**'
+      - 'apps/docs/**'
+      - 'internal/cloud/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/cloud-security.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  security-recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Static security, dependency, SBOM, script, and artifact gate
+        run: node apps/cloud/scripts/security-gate.mjs
+      - name: Cloud control-plane tests
+        run: go test ./internal/cloud ./apps/cloud/cmd/ynx-cloudd
+      - name: Cloud Web, SDK, accessibility, and product-boundary gates
+        run: |
+          npm --prefix apps/cloud test
+          npm --prefix apps/cloud run check
+      - name: Canonical auth, API, migration, backup, and restore DAST smoke
+        run: bash apps/cloud/scripts/smoke.sh
