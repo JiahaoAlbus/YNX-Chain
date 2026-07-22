@@ -18,6 +18,9 @@ Status: implemented and tested locally on the Wallet branch. Central enforcement
 - Multi-account selection cannot silently authorize: changing the selected account locks the Wallet again.
 - Authorization intent, returned approval, rejection, and local revocation intent are separate immutable audit events without key material.
 - AI security review receives only selected request metadata. Its interface cannot read a key, approve, sign, mutate scopes, or bypass local authentication.
+- Smart Account sponsorship evaluates an exact operation digest, EntryPoint, Product Session, anti-Sybil subject, target/selector allowlist and three nested budgets. Disabled, expired, mismatched or exhausted policies return zero approved cost.
+- Quant mandates structurally prohibit withdrawals, owner changes, arbitrary transfers and unlimited approvals. Exchange authority is subaccount-only; DEX authority requires exact contract and method allowlists.
+- Selective-disclosure candidates carry one bounded eligibility/classification result plus issuer, expiry, proof digest, status-list reference and audit ID. Raw identity-document fields are outside the accepted schema.
 
 ## Protocol controls
 
@@ -32,9 +35,9 @@ Revocation is four-level: one session, every session from one approval, every se
 - JavaScript must materialize the approved account scalar briefly to sign. This is not a claim of hardware-backed non-exportable chain signing.
 - The local approval-revocation event is not synchronized until central Gateway provides the authenticated endpoint.
 - The 25-product registry is a disabled candidate. It is not centrally reviewed, integrated, staged, or deployed.
-- The Android APK is locally test-signed. No production keystore, Apple distribution identity, hosted download, store review, or release is claimed.
+- The Android APK is locally test-signed and the iOS asset is an unsigned Simulator build. Both engineering artifacts are hosted with hashes; no production keystore, Apple distribution identity, store review, or production release is claimed.
 - Native sends query the authoritative balance/nonce, require a `ynx1` recipient, show the fixed fee, require strong biometrics, sign the exact Go-compatible canonical payload and accept only a strictly matching broadcast response. The public-testnet scalar-1 vector advanced from nonce 1 to nonce 2, proving the live path. This remains a software-held, local-testnet signing implementation rather than a hardware-backed production claim.
 
 ## Required production hardening
 
-External cryptographic/mobile review, native non-exportable signing where chain-compatible, central durable transaction isolation, device integrity policy, production key custody, incident runbooks, authenticated revocation sync, physical-device biometric testing, and public privacy/accessibility review remain release gates.
+External cryptographic/mobile review, native non-exportable signing where chain-compatible, central durable transaction isolation, deployed EntryPoint/Bundler/Paymaster contracts, passkey and Guardian implementation, device integrity policy, production key custody, authenticated revocation sync, physical-device biometric testing, and public privacy/accessibility review remain release gates.

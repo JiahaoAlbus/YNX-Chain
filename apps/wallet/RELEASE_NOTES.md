@@ -8,7 +8,10 @@
 - Atomic reference lifecycle for challenge completion, introspection, replay persistence and four revocation boundaries.
 - Twelve locale catalogs, Arabic RTL, system light/dark, font scaling, high-contrast state and reduced-motion behavior.
 - Android API 36 release build/install/cold-launch evidence plus phone, foldable, RTL and large-text screenshots. iOS Hermes output and runnable macOS Simulator CI are included.
+- Strict Smart Account UserOperation/sponsorship policy, Quant/Exchange/DEX mandate, capital review and selective-disclosure Credential candidates with property, fuzz, fault, soak and benchmark coverage.
+- Recovery, Reference, Parity, Web4 Identity, API Registry, Migration, SLO/Capacity, Unit Economics, Observability, notices, KPI and machine-readable public/operator metadata.
+- Hosted test-signed Android and unsigned iOS Simulator engineering artifacts with SHA-256 and byte counts; executed iOS CI install/cold-launch/deep-link rejection evidence.
 
 ## Not released
 
-Central registry/Gateway deployment, public hosting, production signing, Apple native build on this host, store review and external security audit remain false. The Android APK is a local test-signed Testnet Preview artifact.
+Central registry/Gateway deployment, deployed Bundler/Paymaster, sponsored on-chain receipt, public product hosting, production signing, physical Apple device build, store review and external security audit remain false. Hosted binaries are engineering evidence only.

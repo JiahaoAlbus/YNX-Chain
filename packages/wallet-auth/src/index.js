@@ -9,3 +9,6 @@ export * from "./integration.js";
 export * from "./registry.js";
 export * from "./lifecycle.js";
 export * from "./native-transfer.js";
+export * from "./smart-account.js";
+export * from "./mandate.js";
+export * from "./credential.js";
