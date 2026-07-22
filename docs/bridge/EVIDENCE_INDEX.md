@@ -19,6 +19,7 @@
 - Provider status: `docs/bridge/provider-status.json`
 - Route adapter contract: `docs/bridge/ROUTE_ADAPTER.md`
 - Route adapter gate: `scripts/verify/bridge-route-adapter-check.mjs`
+- Asset catalog contract: `docs/bridge/ASSET_CATALOG.md`
 - Consumer handoff: `docs/handoffs/bridge-consumers.md`
 - Integration gate: `scripts/verify/bridge-integration-check.mjs`
 - Read-only SDK: `sdk/bridge`

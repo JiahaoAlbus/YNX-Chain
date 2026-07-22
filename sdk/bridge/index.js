@@ -14,6 +14,7 @@ const PHASES = new Set([
   "retry",
 ]);
 const RECOVERY_PHASES = new Set(["failed", "refund_recovery", "dispute"]);
+const ASSET_CLASSES = new Set(["testnet-stablecoin", "wrapped-test-asset", "ynxt-bridge-candidate", "other-testnet-asset-candidate"]);
 
 export class YNXBridgeSDKError extends Error {
   constructor(message, {cause, status, requestId, errorId} = {}) {
@@ -47,6 +48,10 @@ export class YNXBridgeClient {
 
   async getRoutes() {
     return validateRoutes(await this.#request("bridge/routes"));
+  }
+
+  async getAssets() {
+    return validateAssets(await this.#request("bridge/assets"));
   }
 
   async #request(path) {
@@ -134,7 +139,7 @@ function validateRoutes(value) {
   for (const route of value.routes) {
     const endpoints = [route?.source, route?.destination];
     const unavailable = route?.availability === "unavailable" && route?.executable === false && route?.externalSubmissionEnabled === false;
-    const nullEndpointEvidence = endpoints.every((endpoint) => endpoint && endpoint.contract === null && endpoint.symbol === null && endpoint.decimals === null && endpoint.explorerUrl === null && endpoint.contractVerified === false);
+    const nullEndpointEvidence = endpoints.every((endpoint) => endpoint && validAssetClass(endpoint.assetClass) && endpoint.contract === null && endpoint.symbol === null && endpoint.decimals === null && endpoint.explorerUrl === null && endpoint.contractVerified === false);
     const nullQuoteEvidence = route?.fees?.status === "unavailable-no-executable-route" && [route.fees.currency, route.fees.sourceGas, route.fees.destinationGas, route.fees.providerFee, route.fees.ynxFee, route?.slippage?.maximumBps, route?.timing?.estimatedMinSeconds, route?.timing?.estimatedMaxSeconds, route?.finality?.destinationRule, route?.refund?.sla].every((item) => item === null);
     if (!unavailable || !nullEndpointEvidence || !nullQuoteEvidence || route.fees.hiddenSpread !== false || route.refund?.available !== false || typeof route.classification !== "string" || !validRoute(route.limits)) {
       throw new YNXBridgeSDKError("Bridge route catalog overclaims route availability");
@@ -143,9 +148,27 @@ function validateRoutes(value) {
   return Object.freeze(value);
 }
 
+function validateAssets(value) {
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1 || value.source !== "ynx-bridge-asset-registry" || !validTimestamp(value.asOf) || value.coverage !== "configured-token-allowlist-candidates-not-verified-contracts" || !Array.isArray(value.assets)) {
+    throw new YNXBridgeSDKError("Bridge asset catalog contract is invalid");
+  }
+  for (const asset of value.assets) {
+    const nullMetadata = [asset?.symbol, asset?.decimals, asset?.contract, asset?.explorerUrl].every((item) => item === null);
+    if (!asset || !validAssetClass(asset.assetClass) || !["canonical", "represented"].includes(asset.canonicality) || !nullMetadata || asset.contractVerified !== false || asset.allowlistedForCoordinatorIntent !== true || asset.availability !== "unavailable" || asset.supplyAuthority !== "not-configured" || asset.externalExecutionEnabled !== false || !Array.isArray(asset.movementModes) || asset.movementModes.length === 0 || !Array.isArray(asset.routeIds) || asset.routeIds.length === 0 || !Array.isArray(asset.risk) || asset.risk.length === 0) {
+      throw new YNXBridgeSDKError("Bridge asset catalog overclaims asset availability");
+    }
+  }
+  return Object.freeze(value);
+}
+
+function validAssetClass(value) {
+  return ASSET_CLASSES.has(value);
+}
+
 function validRoute(route) {
   const identities = [route.provider, route.classification, route.sourceChain, route.destinationChain, route.sourceAsset, route.destinationAsset, route.assetBoundary];
   return identities.every((value) => typeof value === "string" && value.length >= 3) &&
+    validAssetClass(route.sourceAssetClass) && validAssetClass(route.destinationAssetClass) &&
     typeof route.externalSubmission === "boolean" && /^[1-9][0-9]*$/.test(route.maxAmount) && /^[1-9][0-9]*$/.test(route.maxOutstanding);
 }
 

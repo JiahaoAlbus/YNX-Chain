@@ -1,5 +1,6 @@
 # Bridge Release Notes
 
+- Added public `/bridge/assets` token-allowlist metadata and SDK support, with exact Testnet stablecoin, wrapped test asset, YNXT candidate, and other candidate classes. Unknown contracts/metadata and all asset execution remain explicitly unavailable.
 - Added persistence schema v5 with explicit exposure resolution. Destination-confirmed or refund-recovered transfers remain settled if a later dispute becomes current, preventing false outstanding-supply and limit inflation.
 - Added persistence schema v4 with an ordered, source-qualified lifecycle timeline. Retry is retained as an explicit event, while migrated v2/v3 transfers receive only an honestly labeled current-phase snapshot.
 - Added a public, read-only `/bridge/routes` catalog and SDK method with exact route classification, contract/token/fee/slippage/time/risk/finality/refund disclosures. All current candidates fail closed with null quote fields and no external execution.

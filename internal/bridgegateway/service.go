@@ -739,11 +739,11 @@ func (s *Service) RouteCatalog() RouteCatalog {
 	for _, key := range keys {
 		policy := s.policies[key]
 		result.Routes = append(result.Routes, RouteCatalogEntry{
-			ID:       "route_" + hashText(key + "|" + policy.Provider + "|" + policy.Classification)[:24],
+			ID:       routeCatalogID(key, policy),
 			Provider: policy.Provider, Classification: policy.Classification,
 			Availability: "unavailable", FailureStatus: "provider-or-contract-route-unavailable", ProviderHealth: "not-connected",
-			Source:      RouteAssetEndpoint{Chain: policy.SourceChain, Asset: policy.SourceAsset},
-			Destination: RouteAssetEndpoint{Chain: policy.DestinationChain, Asset: policy.DestinationAsset},
+			Source:      RouteAssetEndpoint{Chain: policy.SourceChain, Asset: policy.SourceAsset, AssetClass: policy.SourceAssetClass},
+			Destination: RouteAssetEndpoint{Chain: policy.DestinationChain, Asset: policy.DestinationAsset, AssetClass: policy.DestinationAssetClass},
 			Fees:        RouteFeeDisclosure{Status: "unavailable-no-executable-route", HiddenSpread: false},
 			Slippage:    RouteSlippageDisclosure{Status: "not-applicable-no-executable-route"},
 			Timing:      RouteTimingDisclosure{Status: "unavailable-no-provider-route"},
@@ -755,6 +755,90 @@ func (s *Service) RouteCatalog() RouteCatalog {
 		})
 	}
 	return result
+}
+
+func routeCatalogID(key string, policy RoutePolicy) string {
+	return "route_" + hashText(key + "|" + policy.Provider + "|" + policy.Classification)[:24]
+}
+
+func (s *Service) AssetCatalog() AssetCatalog {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := AssetCatalog{SchemaVersion: 1, Source: "ynx-bridge-asset-registry", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "configured-token-allowlist-candidates-not-verified-contracts", Assets: []AssetCatalogEntry{}}
+	entries := map[string]AssetCatalogEntry{}
+	for key, policy := range s.policies {
+		routeID := routeCatalogID(key, policy)
+		addAssetCatalogEntry(entries, policy.SourceChain, policy.SourceAsset, policy.SourceAssetClass, sourceCanonicality(policy.AssetBoundary), sourceMovementMode(policy.AssetBoundary), routeID)
+		addAssetCatalogEntry(entries, policy.DestinationChain, policy.DestinationAsset, policy.DestinationAssetClass, destinationCanonicality(policy.AssetBoundary), destinationMovementMode(policy.AssetBoundary), routeID)
+	}
+	keys := make([]string, 0, len(entries))
+	for key := range entries {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		entry := entries[key]
+		sort.Strings(entry.RouteIDs)
+		sort.Strings(entry.MovementModes)
+		result.Assets = append(result.Assets, entry)
+	}
+	return result
+}
+
+func addAssetCatalogEntry(entries map[string]AssetCatalogEntry, chain, asset, assetClass, canonicality, movementMode, routeID string) {
+	key := chain + "|" + asset
+	entry, exists := entries[key]
+	if !exists {
+		entry = AssetCatalogEntry{
+			ID: "asset_" + hashText(key + "|" + assetClass)[:24], Chain: chain, Asset: asset, AssetClass: assetClass, Canonicality: canonicality,
+			AllowlistedForCoordinatorIntent: true, Availability: "unavailable", MovementModes: []string{},
+			SupplyAuthority: "not-configured", ReserveEvidence: "operator-reconciliation-reference-only-not-independent-proof",
+			ExternalExecutionEnabled: false, RouteIDs: []string{},
+			Risk: []string{"contract address and metadata are not configured", "contract verification is absent", "mint burn lock and release execution are disabled", "reserve evidence is operator-submitted and not independently verified"},
+		}
+	}
+	if !containsString(entry.MovementModes, movementMode) {
+		entry.MovementModes = append(entry.MovementModes, movementMode)
+	}
+	entry.RouteIDs = append(entry.RouteIDs, routeID)
+	entries[key] = entry
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func sourceCanonicality(boundary string) string {
+	if boundary == "canonical-to-represented" {
+		return "canonical"
+	}
+	return "represented"
+}
+
+func destinationCanonicality(boundary string) string {
+	if boundary == "canonical-to-represented" {
+		return "represented"
+	}
+	return "canonical"
+}
+
+func sourceMovementMode(boundary string) string {
+	if boundary == "canonical-to-represented" {
+		return "lock-observation-only-not-executed"
+	}
+	return "burn-observation-only-not-executed"
+}
+
+func destinationMovementMode(boundary string) string {
+	if boundary == "canonical-to-represented" {
+		return "mint-observation-only-not-executed"
+	}
+	return "release-observation-only-not-executed"
 }
 
 func (s *Service) Get(transferID string) (Transfer, error) {

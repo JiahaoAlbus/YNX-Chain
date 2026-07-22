@@ -12,6 +12,7 @@
     "replay-resistant relayer attestations",
     "pause and route exposure controls",
     "source-qualified public reconciliation",
+    "fail-closed route and token allowlist catalogs",
     "failure, retry, recovery, and dispute evidence"
   ],
   "risks": [

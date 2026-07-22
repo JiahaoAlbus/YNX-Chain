@@ -23,6 +23,15 @@
     "quotesExecutable": false,
     "deployedPublic": false
   },
+  "assetCatalog": {
+    "method": "GET",
+    "path": "/bridge/assets",
+    "source": "ynx-bridge-asset-registry",
+    "authentication": "none",
+    "contractMetadataVerified": false,
+    "externalExecutionEnabled": false,
+    "deployedPublic": false
+  },
   "sdk": {
     "path": "sdk/bridge",
     "package": "@ynx-chain/bridge-sdk",

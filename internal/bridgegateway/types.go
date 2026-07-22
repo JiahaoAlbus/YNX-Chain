@@ -35,6 +35,8 @@ type RoutePolicy struct {
 	DestinationChain          string `json:"destinationChain"`
 	SourceAsset               string `json:"sourceAsset"`
 	DestinationAsset          string `json:"destinationAsset"`
+	SourceAssetClass          string `json:"sourceAssetClass"`
+	DestinationAssetClass     string `json:"destinationAssetClass"`
 	MinConfirmations          uint64 `json:"minConfirmations"`
 	MaxAmount                 string `json:"maxAmount"`
 	MaxOutstanding            string `json:"maxOutstanding"`
@@ -49,6 +51,7 @@ type RoutePolicy struct {
 type RouteAssetEndpoint struct {
 	Chain            string  `json:"chain"`
 	Asset            string  `json:"asset"`
+	AssetClass       string  `json:"assetClass"`
 	Symbol           *string `json:"symbol"`
 	Decimals         *uint8  `json:"decimals"`
 	Contract         *string `json:"contract"`
@@ -119,6 +122,35 @@ type RouteCatalog struct {
 	Routes        []RouteCatalogEntry `json:"routes"`
 }
 
+type AssetCatalogEntry struct {
+	ID                              string   `json:"id"`
+	Chain                           string   `json:"chain"`
+	Asset                           string   `json:"asset"`
+	AssetClass                      string   `json:"assetClass"`
+	Canonicality                    string   `json:"canonicality"`
+	Symbol                          *string  `json:"symbol"`
+	Decimals                        *uint8   `json:"decimals"`
+	Contract                        *string  `json:"contract"`
+	ContractVerified                bool     `json:"contractVerified"`
+	ExplorerURL                     *string  `json:"explorerUrl"`
+	AllowlistedForCoordinatorIntent bool     `json:"allowlistedForCoordinatorIntent"`
+	Availability                    string   `json:"availability"`
+	MovementModes                   []string `json:"movementModes"`
+	SupplyAuthority                 string   `json:"supplyAuthority"`
+	ReserveEvidence                 string   `json:"reserveEvidence"`
+	ExternalExecutionEnabled        bool     `json:"externalExecutionEnabled"`
+	RouteIDs                        []string `json:"routeIds"`
+	Risk                            []string `json:"risk"`
+}
+
+type AssetCatalog struct {
+	SchemaVersion int                 `json:"schemaVersion"`
+	Source        string              `json:"source"`
+	AsOf          string              `json:"asOf"`
+	Coverage      string              `json:"coverage"`
+	Assets        []AssetCatalogEntry `json:"assets"`
+}
+
 type Config struct {
 	StatePath       string
 	APIKey          string
@@ -168,6 +200,8 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		return Config{}, nil, errors.New("at least one bridge route policy is required")
 	}
 	maxAmounts := make(map[string]uint64, len(c.Policies))
+	assetClasses := map[string]string{}
+	assetCanonicality := map[string]string{}
 	for i := range c.Policies {
 		policy := &c.Policies[i]
 		policy.SourceChain = normalizeName(policy.SourceChain)
@@ -175,6 +209,8 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		policy.DestinationChain = normalizeName(policy.DestinationChain)
 		policy.SourceAsset = normalizeAsset(policy.SourceAsset)
 		policy.DestinationAsset = normalizeAsset(policy.DestinationAsset)
+		policy.SourceAssetClass = normalizeName(policy.SourceAssetClass)
+		policy.DestinationAssetClass = normalizeName(policy.DestinationAssetClass)
 		policy.AssetBoundary = strings.ToLower(strings.TrimSpace(policy.AssetBoundary))
 		policy.Classification = normalizeName(policy.Classification)
 		if !identifierPattern.MatchString(policy.Provider) || !identifierPattern.MatchString(policy.SourceChain) || !identifierPattern.MatchString(policy.DestinationChain) || !identifierPattern.MatchString(policy.SourceAsset) || !identifierPattern.MatchString(policy.DestinationAsset) {
@@ -189,6 +225,22 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		classifications := map[string]bool{"official-stablecoin-transfer-candidate": true, "proof-based-canonical-bridge-candidate": true, "external-bridge-adapter": true, "route-aggregator": true, "manual-operator-testnet-transfer": true}
 		if !classifications[policy.Classification] {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d classification is invalid", i)
+		}
+		assetClassifications := map[string]bool{"testnet-stablecoin": true, "wrapped-test-asset": true, "ynxt-bridge-candidate": true, "other-testnet-asset-candidate": true}
+		if !assetClassifications[policy.SourceAssetClass] || !assetClassifications[policy.DestinationAssetClass] {
+			return Config{}, nil, fmt.Errorf("bridge route policy %d asset classification is invalid", i)
+		}
+		for assetKey, class := range map[string]string{policy.SourceChain + "|" + policy.SourceAsset: policy.SourceAssetClass, policy.DestinationChain + "|" + policy.DestinationAsset: policy.DestinationAssetClass} {
+			if existing, ok := assetClasses[assetKey]; ok && existing != class {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d conflicts with asset classification", i)
+			}
+			assetClasses[assetKey] = class
+		}
+		for assetKey, canonicality := range map[string]string{policy.SourceChain + "|" + policy.SourceAsset: sourceCanonicality(policy.AssetBoundary), policy.DestinationChain + "|" + policy.DestinationAsset: destinationCanonicality(policy.AssetBoundary)} {
+			if existing, ok := assetCanonicality[assetKey]; ok && existing != canonicality {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d conflicts with asset canonicality", i)
+			}
+			assetCanonicality[assetKey] = canonicality
 		}
 		maximum, err := strconv.ParseUint(strings.TrimSpace(policy.MaxAmount), 10, 64)
 		if err != nil || maximum == 0 {

@@ -118,6 +118,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /bridge/transparency", s.handleTransparency)
 	s.mux.HandleFunc("GET /bridge/routes", s.handleRoutes)
+	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
 	s.mux.HandleFunc("GET /bridge/transfers", s.requireAuth(s.handleList))
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
@@ -178,6 +179,10 @@ func (s *Server) handleTransparency(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleRoutes(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.service.RouteCatalog())
+}
+
+func (s *Server) handleAssets(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.AssetCatalog())
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {

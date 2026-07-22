@@ -11,6 +11,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -48,6 +50,7 @@ func newTestBridge(t *testing.T) *testBridge {
 			Provider:       "local-test-provider",
 			Classification: "external-bridge-adapter",
 			SourceChain:    "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
+			SourceAssetClass: "testnet-stablecoin", DestinationAssetClass: "wrapped-test-asset",
 			MinConfirmations: 12, MaxAmount: "1000", MaxOutstanding: "1000", DailyLimit: "2000", UserOutstandingLimit: "1000", LargeTransferThreshold: "500", LargeTransferDelaySeconds: 3600, AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
 		}},
 		Now: func() time.Time { return now },
@@ -497,7 +500,7 @@ func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) 
 
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
@@ -520,6 +523,53 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	base.RetentionPeriod = 24 * time.Hour
 	if err := ValidateConfig(base); err != nil {
 		t.Fatalf("minimum bounded retention policy rejected: %v", err)
+	}
+	base.Policies[0].SourceAssetClass = "unsupported-asset-class"
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("unsupported asset classification unexpectedly passed")
+	}
+	base.Policies[0].SourceAssetClass = "other-testnet-asset-candidate"
+	conflictingClass := base.Policies[0]
+	conflictingClass.DestinationChain, conflictingClass.DestinationAsset = "c-chain", "asset-c"
+	conflictingClass.SourceAssetClass = "wrapped-test-asset"
+	base.Policies = append(base.Policies, conflictingClass)
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("conflicting asset classification unexpectedly passed")
+	}
+	base.Policies = base.Policies[:1]
+	conflictingRole := base.Policies[0]
+	conflictingRole.SourceChain, conflictingRole.SourceAsset = "c-chain", "asset-c"
+	conflictingRole.DestinationChain, conflictingRole.DestinationAsset = "a-chain", "asset-a"
+	conflictingRole.SourceAssetClass, conflictingRole.DestinationAssetClass = "wrapped-test-asset", "other-testnet-asset-candidate"
+	base.Policies = append(base.Policies, conflictingRole)
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("conflicting asset canonicality unexpectedly passed")
+	}
+}
+
+func TestBridgeAssetCatalogCombinesBidirectionalMovementDeterministically(t *testing.T) {
+	b := newTestBridge(t)
+	cfg := b.cfg
+	cfg.StatePath = filepath.Join(t.TempDir(), "state.json")
+	reverse := cfg.Policies[0]
+	reverse.SourceChain, reverse.DestinationChain = reverse.DestinationChain, reverse.SourceChain
+	reverse.SourceAsset, reverse.DestinationAsset = reverse.DestinationAsset, reverse.SourceAsset
+	reverse.SourceAssetClass, reverse.DestinationAssetClass = reverse.DestinationAssetClass, reverse.SourceAssetClass
+	reverse.AssetBoundary = "represented-to-canonical"
+	cfg.Policies = append(cfg.Policies, reverse)
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := service.AssetCatalog()
+	second := service.AssetCatalog()
+	if !reflect.DeepEqual(first, second) || len(first.Assets) != 2 {
+		t.Fatalf("asset catalog is nondeterministic: first=%+v second=%+v", first, second)
+	}
+	for _, asset := range first.Assets {
+		if len(asset.RouteIDs) != 2 || len(asset.MovementModes) != 2 || !sort.StringsAreSorted(asset.RouteIDs) || !sort.StringsAreSorted(asset.MovementModes) {
+			t.Fatalf("bidirectional asset evidence is incomplete: %+v", asset)
+		}
 	}
 }
 
@@ -722,6 +772,11 @@ func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.
 	doJSON(t, http.MethodGet, server.URL+"/bridge/routes", "", nil, http.StatusOK, &catalog)
 	if catalog.Source != "ynx-bridge-route-registry" || len(catalog.Routes) != 1 || catalog.Routes[0].Availability != "unavailable" || catalog.Routes[0].Executable || catalog.Routes[0].Source.Contract != nil || catalog.Routes[0].Fees.ProviderFee != nil || catalog.Routes[0].Refund.Available {
 		t.Fatalf("public route catalog overclaim: %+v", catalog)
+	}
+	var assets AssetCatalog
+	doJSON(t, http.MethodGet, server.URL+"/bridge/assets", "", nil, http.StatusOK, &assets)
+	if assets.Source != "ynx-bridge-asset-registry" || len(assets.Assets) != 2 || assets.Assets[0].Availability != "unavailable" || assets.Assets[0].Contract != nil || assets.Assets[0].ContractVerified || assets.Assets[0].ExternalExecutionEnabled || !assets.Assets[0].AllowlistedForCoordinatorIntent {
+		t.Fatalf("public asset catalog overclaim: %+v", assets)
 	}
 	tampered := cloneState(b.service.state)
 	for key, reconciliation := range tampered.Reconciliations {
