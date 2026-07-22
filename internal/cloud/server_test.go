@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -155,7 +156,7 @@ func TestPublicAndRestrictedHealthObservability(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
-	if rr.Code != 200 || rr.Header().Get("X-Request-ID") == "" {
+	if rr.Code != 200 || rr.Header().Get("X-Request-ID") == "" || rr.Header().Get("X-Trace-ID") == "" {
 		t.Fatalf("public health: %d %#v", rr.Code, rr.Header())
 	}
 	var public map[string]any
@@ -179,7 +180,7 @@ func TestPublicAndRestrictedHealthObservability(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/api/v1/health", "/api/v1/metrics"} {
+	for _, path := range []string{"/api/v1/health", "/api/v1/ready", "/api/v1/traces", "/api/v1/metrics"} {
 		req = httptest.NewRequest(http.MethodGet, path, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		rr = httptest.NewRecorder()
@@ -192,8 +193,40 @@ func TestPublicAndRestrictedHealthObservability(t *testing.T) {
 	if err := json.NewDecoder(rr.Body).Decode(&metrics); err != nil {
 		t.Fatal(err)
 	}
-	if metrics["source"] != "ynx-cloudd in-process counters" || metrics["coverage"] == nil {
+	if metrics["source"] != "ynx-cloudd persistent RED telemetry" || metrics["coverage"] == nil {
 		t.Fatalf("metrics provenance: %#v", metrics)
+	}
+	routes, ok := metrics["routes"].(map[string]any)
+	if !ok || routes["GET /health"] == nil {
+		t.Fatalf("normalized persistent routes: %#v", metrics["routes"])
+	}
+	restarted := NewServer(s)
+	if restarted.telemetry.Routes["GET /health"].Requests == 0 || len(restarted.telemetry.RecentTraces) == 0 {
+		t.Fatalf("telemetry did not survive server restart: %#v", restarted.telemetry)
+	}
+}
+
+func TestReadinessFailsClosedOnCorruptTelemetry(t *testing.T) {
+	s := testService(t, nil)
+	envelope := testWalletEnvelope(t, s, "cloud", "corrupt-telemetry", []string{"audit.read"})
+	token, _, err := s.CreateSession(context.Background(), envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(s.cfg.TelemetryPath, []byte(`{"schemaVersion":1,"integrityHash":"tampered"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handler := NewServer(s).Handler()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/ready", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusServiceUnavailable || !strings.Contains(rr.Body.String(), `"telemetryPersistence":false`) {
+		t.Fatalf("corrupt telemetry readiness: %d %s", rr.Code, rr.Body.String())
+	}
+	body, err := os.ReadFile(s.cfg.TelemetryPath)
+	if err != nil || !strings.Contains(string(body), "tampered") {
+		t.Fatalf("corrupt telemetry was silently overwritten: %q %v", body, err)
 	}
 }
 
