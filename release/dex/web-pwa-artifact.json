@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "6acd42669c8982625a706bfd3bd6b5b7ea991dda",
+  "sourceBaseCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,

@@ -2,7 +2,7 @@
   "productId": "ynx-dex",
   "name": "YNX DEX",
   "branch": "codex/final-dex",
-  "commit": "6acd42669c8982625a706bfd3bd6b5b7ea991dda",
+  "commit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
   "version": "0.1.0-testnet-preview.1",
   "surfaces": ["web", "pwa", "indexer-api", "solidity-contracts", "javascript-sdk"],
   "implementedLocal": false,
@@ -21,12 +21,12 @@
   "healthUrls": [],
   "artifactUrls": [],
   "sha256": {
-    "artifactManifest": "c908150701a84f291904345827eb9b2294eca42b60f1cf16922e2b9d1b9fb0d6",
+    "artifactManifest": "8ee0cb57a51ba7924b1685d8dcb41ba61e769b55c009f673b31f5514debec278",
     "webPwaBundle": "46f19d0e0593ddd5f93429437ffe859b85cb78c6d40e8149ac87c80d31f43d10",
     "javascriptSdkPackage": "c6fd9f02b87d0ca4859e2bc36f31b94c7cc855aa4edc0c347d8669981642c9e1"
   },
   "bytes": {
-    "artifactManifest": 4477,
+    "artifactManifest": 5331,
     "webPwaBundle": 326067,
     "javascriptSdkPackage": 14692
   },
@@ -61,7 +61,7 @@
       "evidence": "npm run dex:vault:test"
     },
     "executionAdapter": {
-      "sourceCommit": "6acd42669c8982625a706bfd3bd6b5b7ea991dda",
+      "sourceCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
       "implementedLocal": true,
       "testedLocal": true,
       "integratedCentral": false,
@@ -70,7 +70,7 @@
       "evidence": "npm test --prefix sdk/dex"
     },
     "vaultIndexer": {
-      "sourceCommit": "6acd42669c8982625a706bfd3bd6b5b7ea991dda",
+      "sourceCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedPublic": false,
@@ -78,7 +78,7 @@
       "evidence": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
     },
     "fairFlow": {
-      "sourceCommit": "6acd42669c8982625a706bfd3bd6b5b7ea991dda",
+      "sourceCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
       "implementedLocal": true,
       "testedLocal": true,
       "indexedLocal": true,
@@ -86,6 +86,16 @@
       "deployedPublic": false,
       "scope": "on-chain Intent lifecycle, uniform clearing price, solver-funded rebate, commit/reveal competition, verified surplus score, CoW net settlement, exact external inventory, cancellation abort, native bond/reputation, objective slashing, all-stage confirmed indexing and exact canonical Wallet-approved SDK Intent requests",
       "evidence": "npm run dex:fairflow:test; npm test --prefix sdk/dex; go test -race ./internal/dex ./cmd/ynx-dex-indexerd"
+    },
+    "lpProtection": {
+      "sourceCommit": "07c02681dfa8a986548f25e719ecd2ca5d70c63f",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "indexedLocal": false,
+      "integratedCentral": false,
+      "deployedPublic": false,
+      "scope": "separate protected CPMM Factory, immutable Oracle policy, bounded volatility/depth/divergence/directional-flow/JIT fees, depeg swap circuit breaker, delayed per-pool configuration and permissionless LP exit",
+      "evidence": "npm run dex:lp-protection:test"
     }
   },
   "centralIntegration": {
@@ -99,11 +109,12 @@
     "The final DEX objective is not implemented or fully tested locally; recovered 0.1 candidate coverage is recorded separately.",
     "No YNX Testnet protocol deployment, verified bytecode, pools, swaps, or LP proofs exist yet.",
     "FairFlow is a local unaudited candidate: UI, Sybil and collusion controls, partial fills, external-route proof and cross-chain settlement are absent; Indexer and SDK paths are local-only and have no public chain evidence.",
+    "LP Protection is a local unaudited protected-CPMM candidate: SDK/Indexer/UI presentation, reviewed live Oracle adapter, LVR-aware auction, inventory/range guidance and public chain evidence are absent.",
     "Canonical Wallet verifier and DEX registry entry are not integrated into main.",
     "No independent third-party smart-contract audit has been completed.",
     "CPMM LP fees are embedded in reserves; there is no separate LP collect method, and compound/rebalance require caller-supplied amounts plus sequential Wallet approvals.",
     "Staging, public deployment, hosted download, production signing, and store release are absent.",
     "The Web/PWA prepares deterministic swap and LP reviews, but all transaction authorization remains unavailable until canonical Wallet registry integration and verified Testnet contract addresses exist."
   ],
-  "generatedAt": "2026-07-22T18:00:00.000Z"
+  "generatedAt": "2026-07-22T19:00:00.000Z"
 }

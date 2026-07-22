@@ -4,7 +4,8 @@ source commit: 3214c584c9032d6b6b3753df6b2450d4ac739189
 constant-product source commit: 3214c584c9032d6b6b3753df6b2450d4ac739189
 strategy-vault source commit: 8a793b4562790834a67c3e4ee491ce089341d549
 fairflow source commit: 30c9e9d2577e02a13f3f91d0b71f4cce45dc008f
-source paths: contracts/dex/YNXDexFactory.sol, YNXDexPool.sol, YNXDexRouter.sol, YNXDexQuoter.sol, YNXStrategyVault.sol, YNXFairFlow.sol
+lp-protection source commit: 07c02681dfa8a986548f25e719ecd2ca5d70c63f
+source paths: contracts/dex/YNXDexFactory.sol, YNXProtectedDexFactory.sol, YNXDexPool.sol, YNXLPProtection.sol, YNXDexRouter.sol, YNXDexQuoter.sol, YNXStrategyVault.sol, YNXFairFlow.sol
 compiler: solc 0.8.24
 optimizer: enabled, 200 runs
 EVM target: shanghai
