@@ -28,6 +28,7 @@ type EVMPollerConfig struct {
 	Factory       string
 	StrategyVault string
 	FairFlow      string
+	LPProtection  string
 	StartBlock    uint64
 	Confirmations uint64
 	BlockRange    uint64
@@ -49,6 +50,7 @@ type pollCursor struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	StrategyVault string         `json:"strategyVault,omitempty"`
 	FairFlow      string         `json:"fairFlow,omitempty"`
+	LPProtection  string         `json:"lpProtection,omitempty"`
 	NextBlock     uint64         `json:"nextBlock"`
 	LastBlockHash string         `json:"lastBlockHash"`
 	Pools         []poolIdentity `json:"pools"`
@@ -83,24 +85,28 @@ type evmBlock struct {
 }
 
 var eventTopics = map[string]string{
-	"pool-created":            eventTopic("PoolCreated(address,address,address,uint256)"),
-	"mint":                    eventTopic("Mint(address,uint256,uint256,address)"),
-	"burn":                    eventTopic("Burn(address,uint256,uint256,address)"),
-	"swap":                    eventTopic("Swap(address,address,uint256,uint256,address)"),
-	"sync":                    eventTopic("Sync(uint112,uint112)"),
-	"fees":                    eventTopic("ProtocolFeesClaimed(address,uint256,uint256)"),
-	"transfer":                eventTopic("Transfer(address,address,uint256)"),
-	"vault-action":            eventTopic("ActionExecuted(uint256,bytes4,uint256,uint256)"),
-	"fair-batch-opened":       eventTopic("BatchOpened(uint64,address,address,uint256,uint256,uint256,uint256)"),
-	"fair-intent-submitted":   eventTopic("IntentSubmitted(bytes32,uint64,address,bool,uint256,uint256,uint256,uint256)"),
-	"fair-intent-cancelled":   eventTopic("IntentCancelled(bytes32,uint64,address,bool)"),
-	"fair-solution-committed": eventTopic("SolutionCommitted(uint64,address,bytes32)"),
-	"fair-solution-revealed":  eventTopic("SolutionRevealed(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
-	"fair-winner-finalized":   eventTopic("WinnerFinalized(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
-	"fair-intent-settled":     eventTopic("IntentSettled(bytes32,uint64,address,uint256,uint256,uint256,uint256)"),
-	"fair-batch-settled":      eventTopic("BatchSettled(uint64,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bytes32)"),
-	"fair-batch-failed":       eventTopic("BatchFailed(uint64,address,bytes32,uint256)"),
-	"fair-solver-slashed":     eventTopic("SolverSlashed(uint64,address,bytes32,uint256)"),
+	"pool-created":                eventTopic("PoolCreated(address,address,address,uint256)"),
+	"mint":                        eventTopic("Mint(address,uint256,uint256,address)"),
+	"burn":                        eventTopic("Burn(address,uint256,uint256,address)"),
+	"swap":                        eventTopic("Swap(address,address,uint256,uint256,address)"),
+	"sync":                        eventTopic("Sync(uint112,uint112)"),
+	"fees":                        eventTopic("ProtocolFeesClaimed(address,uint256,uint256)"),
+	"transfer":                    eventTopic("Transfer(address,address,uint256)"),
+	"vault-action":                eventTopic("ActionExecuted(uint256,bytes4,uint256,uint256)"),
+	"fair-batch-opened":           eventTopic("BatchOpened(uint64,address,address,uint256,uint256,uint256,uint256)"),
+	"fair-intent-submitted":       eventTopic("IntentSubmitted(bytes32,uint64,address,bool,uint256,uint256,uint256,uint256)"),
+	"fair-intent-cancelled":       eventTopic("IntentCancelled(bytes32,uint64,address,bool)"),
+	"fair-solution-committed":     eventTopic("SolutionCommitted(uint64,address,bytes32)"),
+	"fair-solution-revealed":      eventTopic("SolutionRevealed(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
+	"fair-winner-finalized":       eventTopic("WinnerFinalized(uint64,address,uint256,uint256,uint256,bytes32,bytes32)"),
+	"fair-intent-settled":         eventTopic("IntentSettled(bytes32,uint64,address,uint256,uint256,uint256,uint256)"),
+	"fair-batch-settled":          eventTopic("BatchSettled(uint64,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bytes32)"),
+	"fair-batch-failed":           eventTopic("BatchFailed(uint64,address,bytes32,uint256)"),
+	"fair-solver-slashed":         eventTopic("SolverSlashed(uint64,address,bytes32,uint256)"),
+	"protection-pool-registered":  eventTopic("PoolRegistered(address,address,address)"),
+	"protection-config-scheduled": eventTopic("ProtectionConfigScheduled(address,bytes32,uint256)"),
+	"protection-config-changed":   eventTopic("ProtectionConfigChanged(address,bytes32)"),
+	"protection-assessed":         eventTopic("ProtectionAssessed(address,address,uint256,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint16,uint256,bytes32)"),
 }
 var cumulativePriceSelector = functionSelector("currentCumulativePrices()")
 var nonceDomainSelector = functionSelector("nonceDomain()")
@@ -120,6 +126,9 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	}
 	if cfg.FairFlow != "" && (!addressPattern.MatchString(cfg.FairFlow) || strings.EqualFold(cfg.FairFlow, cfg.Factory) || strings.EqualFold(cfg.FairFlow, cfg.StrategyVault)) {
 		return nil, errors.New("FairFlow must be a distinct valid address")
+	}
+	if cfg.LPProtection != "" && (!addressPattern.MatchString(cfg.LPProtection) || strings.EqualFold(cfg.LPProtection, cfg.Factory) || strings.EqualFold(cfg.LPProtection, cfg.StrategyVault) || strings.EqualFold(cfg.LPProtection, cfg.FairFlow)) {
+		return nil, errors.New("LP protection must be a distinct valid address")
 	}
 	if len(cfg.CursorSecret) < 32 || strings.TrimSpace(cfg.CursorPath) == "" {
 		return nil, errors.New("cursor path and 32-byte cursor secret are required")
@@ -142,7 +151,7 @@ func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 12 * time.Second}
 	}
-	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 3, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
+	poller := &EVMPoller{store: store, cfg: cfg, cursor: pollCursor{SchemaVersion: 4, StrategyVault: strings.ToLower(cfg.StrategyVault), FairFlow: strings.ToLower(cfg.FairFlow), LPProtection: strings.ToLower(cfg.LPProtection), NextBlock: cfg.StartBlock, Pools: []poolIdentity{}}}
 	if err := poller.loadCursor(); err != nil {
 		return nil, err
 	}
@@ -262,6 +271,17 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 			return false, err
 		}
 	}
+	lpProtectionEvents := []LPProtectionEvent{}
+	if poller.cfg.LPProtection != "" {
+		protectionLogs, readErr := poller.getLogs(ctx, poller.cursor.NextBlock, end, poller.cfg.LPProtection)
+		if readErr != nil {
+			return false, readErr
+		}
+		lpProtectionEvents, err = poller.decodeLPProtectionLogs(ctx, protectionLogs)
+		if err != nil {
+			return false, err
+		}
+	}
 	all := append(append(createdEvents, events...), vaultEvents...)
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].BlockNumber == all[j].BlockNumber {
@@ -276,6 +296,11 @@ func (poller *EVMPoller) PollOnce(ctx context.Context) (bool, error) {
 	}
 	for _, event := range fairFlowEvents {
 		if _, err := poller.store.AppendFairFlow(event); err != nil {
+			return false, err
+		}
+	}
+	for _, event := range lpProtectionEvents {
+		if _, err := poller.store.AppendLPProtection(event); err != nil {
 			return false, err
 		}
 	}
@@ -447,6 +472,89 @@ func (poller *EVMPoller) decodeFairFlowLogs(ctx context.Context, logs []evmLog) 
 		}
 		if err := event.Validate(); err != nil {
 			return nil, fmt.Errorf("decoded FairFlow event validation: %w", err)
+		}
+		result = append(result, event)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].BlockNumber == result[j].BlockNumber {
+			return result[i].LogIndex < result[j].LogIndex
+		}
+		return result[i].BlockNumber < result[j].BlockNumber
+	})
+	return result, nil
+}
+
+func (poller *EVMPoller) decodeLPProtectionLogs(ctx context.Context, logs []evmLog) ([]LPProtectionEvent, error) {
+	result := make([]LPProtectionEvent, 0, len(logs))
+	for _, log := range logs {
+		if log.Removed || len(log.Topics) == 0 {
+			continue
+		}
+		if !strings.EqualFold(log.Address, poller.cfg.LPProtection) {
+			return nil, errors.New("LP protection log address mismatch")
+		}
+		kind, expectedTopics, expectedWords := "", 0, 0
+		switch {
+		case strings.EqualFold(log.Topics[0], eventTopics["protection-pool-registered"]):
+			kind, expectedTopics, expectedWords = "pool-registered", 4, 0
+		case strings.EqualFold(log.Topics[0], eventTopics["protection-config-scheduled"]):
+			kind, expectedTopics, expectedWords = "config-scheduled", 3, 1
+		case strings.EqualFold(log.Topics[0], eventTopics["protection-config-changed"]):
+			kind, expectedTopics, expectedWords = "config-changed", 3, 0
+		case strings.EqualFold(log.Topics[0], eventTopics["protection-assessed"]):
+			kind, expectedTopics, expectedWords = "assessed", 4, 10
+		default:
+			continue
+		}
+		block, index, err := validateLog(log)
+		if err != nil || len(log.Topics) != expectedTopics {
+			return nil, fmt.Errorf("invalid LP protection %s log", kind)
+		}
+		words, err := dataWords(log.Data)
+		if err != nil || len(words) != expectedWords {
+			return nil, fmt.Errorf("invalid LP protection %s data", kind)
+		}
+		timestamp, err := poller.blockTime(ctx, block)
+		if err != nil {
+			return nil, err
+		}
+		event := LPProtectionEvent{
+			ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID,
+			ContractVersion: "ynx-lp-protection-v1", LPProtection: strings.ToLower(log.Address),
+			Pool: strings.ToLower(topicAddress(log.Topics[1])), BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash),
+			TransactionHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Details: map[string]string{},
+			AsOf: timestamp, Source: "confirmed YNX Testnet EVM logs", Version: "ynx-lp-protection-event-v1",
+			Confidence: "confirmed-on-chain", Coverage: "Confirmed LP protection pool, configuration or assessed fee components with Oracle evidence identity", Failure: nil,
+		}
+		switch kind {
+		case "pool-registered":
+			event.Details = map[string]string{"token0": strings.ToLower(topicAddress(log.Topics[2])), "token1": strings.ToLower(topicAddress(log.Topics[3]))}
+		case "config-scheduled":
+			event.Details = map[string]string{"configHash": strings.ToLower(log.Topics[2]), "executableAt": wordDecimal(words[0])}
+		case "config-changed":
+			event.Details = map[string]string{"configHash": strings.ToLower(log.Topics[2])}
+		case "assessed":
+			event.TokenIn = strings.ToLower(topicAddress(log.Topics[2]))
+			amountIn := wordDecimal(words[0])
+			totalFeeBps := wordDecimal(words[1])
+			amount, amountOK := new(big.Int).SetString(amountIn, 10)
+			fee, feeOK := new(big.Int).SetString(totalFeeBps, 10)
+			if !amountOK || !feeOK {
+				return nil, errors.New("invalid LP protection realized fee inputs")
+			}
+			realized := new(big.Int).Mul(amount, fee)
+			realized.Div(realized, big.NewInt(10_000))
+			event.Details = map[string]string{
+				"amountIn": amountIn, "totalFeeBps": totalFeeBps, "baseFeeBps": wordDecimal(words[2]),
+				"volatilityFeeBps": wordDecimal(words[3]), "depthFeeBps": wordDecimal(words[4]),
+				"divergenceFeeBps": wordDecimal(words[5]), "toxicFlowFeeBps": wordDecimal(words[6]),
+				"jitFeeBps": wordDecimal(words[7]), "depegBps": wordDecimal(words[8]),
+				"oracleAsOf": wordDecimal(words[9]), "oracleSourceHash": strings.ToLower(log.Topics[3]),
+				"realizedFeeAmount": realized.String(), "incentiveAmount": "0",
+			}
+		}
+		if err := event.Validate(); err != nil {
+			return nil, fmt.Errorf("decoded LP protection event validation: %w", err)
 		}
 		result = append(result, event)
 	}
@@ -742,7 +850,7 @@ func (poller *EVMPoller) loadCursor() error {
 	payload, _ := json.Marshal(envelope.Cursor)
 	mac := hmac.New(sha256.New, poller.cfg.CursorSecret)
 	_, _ = mac.Write(payload)
-	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 3 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
+	if envelope.Cursor.SchemaVersion < 1 || envelope.Cursor.SchemaVersion > 4 || !hmac.Equal([]byte(envelope.Integrity), []byte(hex.EncodeToString(mac.Sum(nil)))) || envelope.Cursor.NextBlock < poller.cfg.StartBlock {
 		return errors.New("EVM cursor integrity verification failed")
 	}
 	for _, pool := range envelope.Cursor.Pools {
@@ -753,18 +861,22 @@ func (poller *EVMPoller) loadCursor() error {
 	if envelope.Cursor.SchemaVersion >= 2 && !strings.EqualFold(envelope.Cursor.StrategyVault, poller.cfg.StrategyVault) {
 		return errors.New("EVM cursor strategy vault binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion == 3 && !strings.EqualFold(envelope.Cursor.FairFlow, poller.cfg.FairFlow) {
+	if envelope.Cursor.SchemaVersion >= 3 && !strings.EqualFold(envelope.Cursor.FairFlow, poller.cfg.FairFlow) {
 		return errors.New("EVM cursor FairFlow binding mismatch")
 	}
-	if envelope.Cursor.SchemaVersion < 3 {
+	if envelope.Cursor.SchemaVersion == 4 && !strings.EqualFold(envelope.Cursor.LPProtection, poller.cfg.LPProtection) {
+		return errors.New("EVM cursor LP protection binding mismatch")
+	}
+	if envelope.Cursor.SchemaVersion < 4 {
 		legacyVersion := envelope.Cursor.SchemaVersion
 		if err := preserveLegacyState(fmt.Sprintf("%s.schema-v%d.bak", poller.cfg.CursorPath, legacyVersion), data); err != nil {
 			return fmt.Errorf("preserve EVM cursor schema v%d rollback: %w", legacyVersion, err)
 		}
-		envelope.Cursor.SchemaVersion = 3
+		envelope.Cursor.SchemaVersion = 4
 		envelope.Cursor.StrategyVault = strings.ToLower(poller.cfg.StrategyVault)
 		envelope.Cursor.FairFlow = strings.ToLower(poller.cfg.FairFlow)
-		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "")) || (legacyVersion == 2 && poller.cfg.FairFlow != "") {
+		envelope.Cursor.LPProtection = strings.ToLower(poller.cfg.LPProtection)
+		if (legacyVersion == 1 && (poller.cfg.StrategyVault != "" || poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "")) || (legacyVersion == 2 && (poller.cfg.FairFlow != "" || poller.cfg.LPProtection != "")) || (legacyVersion == 3 && poller.cfg.LPProtection != "") {
 			envelope.Cursor.NextBlock = poller.cfg.StartBlock
 			envelope.Cursor.LastBlockHash = ""
 		}

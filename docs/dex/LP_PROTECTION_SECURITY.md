@@ -4,7 +4,7 @@
 
 ## Enforced swap protection
 
-Every protected swap calls `assessSwap` atomically before output. The policy verifies a nonzero, source-hashed, owner-reviewed on-chain Oracle observation and rejects future, stale or out-of-tolerance depeg data. Its bounded fee is the disclosed sum of base, volatility, input-depth, spot/Oracle divergence, directional-flow imbalance and recent-liquidity JIT components, capped by the public pool configuration. `ProtectionAssessed` emits the component BPS, Oracle time and source hash. A source hash identifies the reviewed upstream configuration; it is not itself proof that an external market price is correct.
+Every protected swap calls `assessSwap` atomically before output. The policy verifies a nonzero, source-hashed, owner-reviewed on-chain Oracle observation and rejects future, stale or out-of-tolerance depeg data. Its bounded fee is the disclosed sum of base, volatility, input-depth, spot/Oracle divergence, directional-flow imbalance and recent-liquidity JIT components, capped by the public pool configuration. `ProtectionAssessed` emits base and every surcharge component in BPS, Oracle time and source hash. A source hash identifies the reviewed upstream configuration; it is not itself proof that an external market price is correct.
 
 Directional toxic flow is a deterministic windowed imbalance measure, not an AI classifier. It tracks each side's cumulative input depth in BPS, caps both sides, charges same-side concentration and lets opposite flow reduce the imbalance. The JIT guard is an explicitly bounded fee for swaps shortly after mint/burn, not a claim that all JIT liquidity is malicious. Neither signal guarantees LVR or MEV elimination.
 
@@ -27,3 +27,5 @@ Oracle/depeg protection applies only to swaps. Proportional LP burn remains perm
 ## Local evidence
 
 `npm run dex:lp-protection:test` covers component-level fee arithmetic, 32 differential/property vectors, 16 stateful invariant vectors, exact-input/output routing, fee caps, Oracle source binding, stale/invalid/depeg fail-closed behavior, flow-window reset, same-side versus offsetting flow, JIT expiry, delayed governance, taxed-token atomic rollback, protocol-fee accounting and permissionless LP exit during a depeg. It prints local Factory deployment, pool creation and protected-swap gas without extrapolating capacity.
+
+`go test -race ./internal/dex ./cmd/ynx-dex-indexerd` covers all four LP Protection ABI shapes, fixed-schema persistence/API reads, exact v3-to-v4 backup migration, address substitution, fee-cap substitution, restart and shared confirmed-reorg removal. `npm test --prefix sdk/dex` covers strict source/freshness/schema parsing, exact pool/token/amount quote binding and post-confirmation component/realized-fee reconciliation. These are local deterministic tests, not live Oracle or public-chain evidence.

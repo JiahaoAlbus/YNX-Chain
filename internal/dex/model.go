@@ -2,6 +2,7 @@ package dex
 
 import (
 	"errors"
+	"math/big"
 	"regexp"
 	"strings"
 	"time"
@@ -158,14 +159,15 @@ type Position struct {
 }
 
 type Analytics struct {
-	Source          string `json:"source"`
-	IndexedEvents   int    `json:"indexedEvents"`
-	Pools           int    `json:"pools"`
-	Swaps           int    `json:"swaps"`
-	LiquidityEvents int    `json:"liquidityEvents"`
-	LatestBlock     uint64 `json:"latestBlock"`
-	VaultActions    int    `json:"vaultActions"`
-	FairFlowEvents  int    `json:"fairFlowEvents"`
+	Source             string `json:"source"`
+	IndexedEvents      int    `json:"indexedEvents"`
+	Pools              int    `json:"pools"`
+	Swaps              int    `json:"swaps"`
+	LiquidityEvents    int    `json:"liquidityEvents"`
+	LatestBlock        uint64 `json:"latestBlock"`
+	VaultActions       int    `json:"vaultActions"`
+	FairFlowEvents     int    `json:"fairFlowEvents"`
+	LPProtectionEvents int    `json:"lpProtectionEvents"`
 }
 
 type VaultAction struct {
@@ -208,6 +210,112 @@ type FairFlowEvent struct {
 	Confidence      string            `json:"confidence"`
 	Coverage        string            `json:"coverage"`
 	Failure         *string           `json:"failure"`
+}
+
+type LPProtectionEvent struct {
+	ID              string            `json:"id"`
+	ChainID         uint64            `json:"chainId"`
+	ContractVersion string            `json:"contractVersion"`
+	LPProtection    string            `json:"lpProtection"`
+	Pool            string            `json:"pool"`
+	TokenIn         string            `json:"tokenIn"`
+	BlockNumber     uint64            `json:"blockNumber"`
+	BlockHash       string            `json:"blockHash"`
+	TransactionHash string            `json:"transactionHash"`
+	LogIndex        uint64            `json:"logIndex"`
+	Type            string            `json:"type"`
+	Details         map[string]string `json:"details"`
+	AsOf            time.Time         `json:"asOf"`
+	Source          string            `json:"source"`
+	Version         string            `json:"version"`
+	Confidence      string            `json:"confidence"`
+	Coverage        string            `json:"coverage"`
+	Failure         *string           `json:"failure"`
+}
+
+func (event LPProtectionEvent) Validate() error {
+	if len(event.ID) < 16 || len(event.ID) > 128 || event.ChainID != ChainID || event.ContractVersion != "ynx-lp-protection-v1" || !addressPattern.MatchString(event.LPProtection) || !addressPattern.MatchString(event.Pool) || event.LPProtection == "0x0000000000000000000000000000000000000000" || event.Pool == "0x0000000000000000000000000000000000000000" || event.BlockNumber == 0 || !hashPattern.MatchString(event.BlockHash) || !hashPattern.MatchString(event.TransactionHash) {
+		return errors.New("invalid LP protection event identity")
+	}
+	if event.Source != "confirmed YNX Testnet EVM logs" || event.Version != "ynx-lp-protection-event-v1" || event.Confidence != "confirmed-on-chain" || len(event.Coverage) < 20 || event.Failure != nil || event.AsOf.IsZero() || event.AsOf.After(time.Now().Add(2*time.Minute)) {
+		return errors.New("invalid LP protection provenance")
+	}
+	expected := map[string][]string{
+		"pool-registered":  {"token0", "token1"},
+		"config-scheduled": {"configHash", "executableAt"},
+		"config-changed":   {"configHash"},
+		"assessed":         {"amountIn", "baseFeeBps", "depegBps", "depthFeeBps", "divergenceFeeBps", "incentiveAmount", "jitFeeBps", "oracleAsOf", "oracleSourceHash", "realizedFeeAmount", "totalFeeBps", "toxicFlowFeeBps", "volatilityFeeBps"},
+	}
+	keys, ok := expected[event.Type]
+	if !ok || len(event.Details) != len(keys) {
+		return errors.New("unsupported LP protection event type or details")
+	}
+	for _, key := range keys {
+		if _, exists := event.Details[key]; !exists {
+			return errors.New("missing LP protection event detail")
+		}
+	}
+	if event.Type == "assessed" {
+		if !addressPattern.MatchString(event.TokenIn) || event.TokenIn == "0x0000000000000000000000000000000000000000" || !hashPattern.MatchString(event.Details["oracleSourceHash"]) {
+			return errors.New("invalid LP protection assessment identity")
+		}
+		for _, key := range []string{"amountIn", "realizedFeeAmount", "incentiveAmount", "oracleAsOf"} {
+			if !amountPattern.MatchString(event.Details[key]) || strings.HasPrefix(event.Details[key], "-") {
+				return errors.New("invalid LP protection amount")
+			}
+		}
+		if event.Details["amountIn"] == "0" || event.Details["incentiveAmount"] != "0" || event.Details["oracleAsOf"] == "0" {
+			return errors.New("invalid LP protection realized fee semantics")
+		}
+		for _, key := range []string{"totalFeeBps", "baseFeeBps", "volatilityFeeBps", "depthFeeBps", "divergenceFeeBps", "toxicFlowFeeBps", "jitFeeBps", "depegBps"} {
+			value, ok := new(big.Int).SetString(event.Details[key], 10)
+			if !ok || value.Sign() < 0 || value.Cmp(big.NewInt(20_000)) > 0 {
+				return errors.New("invalid LP protection bps")
+			}
+		}
+		total, _ := new(big.Int).SetString(event.Details["totalFeeBps"], 10)
+		base, _ := new(big.Int).SetString(event.Details["baseFeeBps"], 10)
+		componentSum := new(big.Int).Set(base)
+		for _, key := range []string{"volatilityFeeBps", "depthFeeBps", "divergenceFeeBps", "toxicFlowFeeBps", "jitFeeBps"} {
+			component, _ := new(big.Int).SetString(event.Details[key], 10)
+			componentSum.Add(componentSum, component)
+		}
+		if total.Cmp(big.NewInt(2_000)) > 0 || total.Cmp(base) < 0 || total.Cmp(componentSum) > 0 {
+			return errors.New("LP protection total fee exceeds contract cap")
+		}
+		amount, _ := new(big.Int).SetString(event.Details["amountIn"], 10)
+		realized, _ := new(big.Int).SetString(event.Details["realizedFeeAmount"], 10)
+		expectedRealized := new(big.Int).Mul(amount, total)
+		expectedRealized.Div(expectedRealized, big.NewInt(10_000))
+		oracleAsOf, _ := new(big.Int).SetString(event.Details["oracleAsOf"], 10)
+		if realized.Cmp(expectedRealized) != 0 || !oracleAsOf.IsUint64() || oracleAsOf.Uint64() > uint64(event.AsOf.Unix()+120) {
+			return errors.New("invalid LP protection realized fee or Oracle time")
+		}
+	} else {
+		if event.TokenIn != "" {
+			return errors.New("non-assessment LP protection event contains token")
+		}
+		for key, value := range event.Details {
+			switch key {
+			case "token0", "token1":
+				if !addressPattern.MatchString(value) || value == "0x0000000000000000000000000000000000000000" {
+					return errors.New("invalid LP protection pool token")
+				}
+			case "configHash":
+				if !hashPattern.MatchString(value) {
+					return errors.New("invalid LP protection config hash")
+				}
+			case "executableAt":
+				if !amountPattern.MatchString(value) || strings.HasPrefix(value, "-") || value == "0" {
+					return errors.New("invalid LP protection execution time")
+				}
+			}
+		}
+		if event.Type == "pool-registered" && strings.ToLower(event.Details["token0"]) >= strings.ToLower(event.Details["token1"]) {
+			return errors.New("invalid LP protection token ordering")
+		}
+	}
+	return nil
 }
 
 func (event FairFlowEvent) Validate() error {

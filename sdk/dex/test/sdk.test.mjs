@@ -14,6 +14,8 @@ import {
   buildCancelFairFlowIntentTx, buildSubmitFairFlowIntentTx, digestFairFlowRequest,
   parseFairFlowState, parseIndexedFairFlowEvent, reconcileIndexedFairFlowRequest,
   submitApprovedFairFlowRequest,
+  parseLPProtectionQuote, quoteProtectedExactInput, parseIndexedLPProtectionEvent,
+  reconcileLPProtectionQuote,
 } from "../src/index.js";
 
 const address = (value) => `0x${value.toString(16).padStart(40, "0")}`;
@@ -123,6 +125,27 @@ test("FairFlow indexed events are strict and reconcile exact Intent semantics",(
   assert.throws(()=>reconcileIndexedFairFlowRequest({request,event:{...event,details:{...event.details,zeroForOne:"false"}}}),error=>error.code==="RECEIPT_MISMATCH");
   assert.throws(()=>parseIndexedFairFlowEvent({...event,source:"cache"}),error=>error.code==="INVALID_FAIRFLOW_EVENT");
   assert.throws(()=>parseIndexedFairFlowEvent({...event,details:{...event.details,hiddenPriority:"1"}}),error=>error.code==="INVALID_SCHEMA");
+});
+
+test("LP Protection quote binds authoritative fee components to the exact swap",()=>{
+  const current=new Date();const oracleAsOf=new Date(current.valueOf()-30_000);const feeQuote={amountIn:"10000",asOf:current.toISOString(),baseFeeBps:30,chainId:6423,confidence:"preflight-observed",coverage:"Current pool-bound fee components and owner-reviewed Oracle observation",depegBps:0,depthFeeBps:10,divergenceFeeBps:0,failure:null,jitFeeBps:50,lpProtection:address(220),maxFeeBps:500,oracleAsOf:oracleAsOf.toISOString(),oracleMaxAgeSeconds:300,oracleSourceHash:`0x${"45".repeat(32)}`,pool:pools[0].address,source:"YNX Testnet EVM RPC + owner-reviewed LP oracle",tokenIn:A.address,totalFeeBps:145,toxicFlowFeeBps:5,version:"ynx-lp-protection-quote-v1",volatilityFeeBps:50};
+  const parsed=parseLPProtectionQuote(feeQuote,{now:current});assert.equal(parsed.amountIn,10000n);assert.equal(parsed.totalFeeBps,145);
+  const quote=quoteProtectedExactInput({amountIn:10000n,tokenIn:A.address,tokenOut:B.address,pool:pools[0],feeQuote,now:current});
+  const expected=10000n*9855n*1_000_000n/(1_000_000n*10_000n+10000n*9855n);assert.equal(quote.amountOut,expected);assert.equal(quote.steps[0].feeBreakdown.oracleSourceHash,feeQuote.oracleSourceHash);
+  assert.throws(()=>quoteProtectedExactInput({amountIn:10001n,tokenIn:A.address,tokenOut:B.address,pool:pools[0],feeQuote,now:current}),error=>error.code==="LP_PROTECTION_BINDING_MISMATCH");
+  assert.throws(()=>parseLPProtectionQuote({...feeQuote,totalFeeBps:501},{now:current}),error=>error.code==="INVALID_LP_PROTECTION_QUOTE");
+  assert.throws(()=>parseLPProtectionQuote({...feeQuote,depthFeeBps:11},{now:current}),error=>error.code==="INVALID_LP_PROTECTION_QUOTE");
+  assert.throws(()=>parseLPProtectionQuote({...feeQuote,oracleAsOf:new Date(current.valueOf()-301_000).toISOString()},{now:current}),error=>error.code==="STALE_LP_PROTECTION_QUOTE");
+});
+
+test("LP Protection reconciliation separates realized fees from zero incentives",()=>{
+  const current=new Date();const feeQuote={amountIn:"10000",asOf:current.toISOString(),baseFeeBps:30,chainId:6423,confidence:"preflight-observed",coverage:"Current pool-bound fee components and owner-reviewed Oracle observation",depegBps:0,depthFeeBps:10,divergenceFeeBps:0,failure:null,jitFeeBps:50,lpProtection:address(220),maxFeeBps:500,oracleAsOf:new Date(current.valueOf()-30_000).toISOString(),oracleMaxAgeSeconds:300,oracleSourceHash:`0x${"45".repeat(32)}`,pool:pools[0].address,source:"YNX Testnet EVM RPC + owner-reviewed LP oracle",tokenIn:A.address,totalFeeBps:145,toxicFlowFeeBps:5,version:"ynx-lp-protection-quote-v1",volatilityFeeBps:50};
+  const event={asOf:current.toISOString(),blockHash:`0x${"ab".repeat(32)}`,blockNumber:100,chainId:6423,confidence:"confirmed-on-chain",contractVersion:"ynx-lp-protection-v1",coverage:"Confirmed LP protection pool and assessed fee components with Oracle evidence identity",details:{amountIn:"10000",baseFeeBps:"30",depegBps:"0",depthFeeBps:"10",divergenceFeeBps:"0",incentiveAmount:"0",jitFeeBps:"50",oracleAsOf:String(BigInt(Math.floor(current.valueOf()/1000))-30n),oracleSourceHash:feeQuote.oracleSourceHash,realizedFeeAmount:"145",totalFeeBps:"145",toxicFlowFeeBps:"5",volatilityFeeBps:"50"},failure:null,id:`0x${"cd".repeat(32)}:4`,logIndex:4,lpProtection:feeQuote.lpProtection,pool:feeQuote.pool,source:"confirmed YNX Testnet EVM logs",tokenIn:A.address,transactionHash:`0x${"cd".repeat(32)}`,type:"assessed",version:"ynx-lp-protection-event-v1"};
+  const parsed=parseIndexedLPProtectionEvent(event);assert.equal(parsed.details.realizedFeeAmount,145n);assert.equal(parsed.details.incentiveAmount,0n);
+  const proof=reconcileLPProtectionQuote({feeQuote,event,now:current});assert.equal(proof.status,"confirmed");assert.equal(proof.realizedFeeAmount,145n);assert.equal(proof.incentiveAmount,0n);
+  assert.throws(()=>parseIndexedLPProtectionEvent({...event,details:{...event.details,incentiveAmount:"1"}}),error=>error.code==="INVALID_LP_PROTECTION_EVENT");
+  assert.throws(()=>parseIndexedLPProtectionEvent({...event,details:{...event.details,totalFeeBps:"146",realizedFeeAmount:"146"}}),error=>error.code==="INVALID_LP_PROTECTION_EVENT");
+  assert.throws(()=>reconcileLPProtectionQuote({feeQuote,event:{...event,details:{...event.details,volatilityFeeBps:"51"}},now:current}),error=>error.code==="LP_PROTECTION_RECONCILIATION_MISMATCH");
 });
 
 test("receipt reconciliation binds destination, nonce, method and confirmations", () => {

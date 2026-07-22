@@ -33,6 +33,49 @@ func fairFlowFixture(index uint64) FairFlowEvent {
 	return FairFlowEvent{ID: fmt.Sprintf("fairflow-event-abcd-%d", index), ChainID: ChainID, ContractVersion: "ynx-fairflow-v1", FairFlow: "0x00000000000000000000000000000000000000f4", BlockNumber: 300 + index, BlockHash: fmt.Sprintf("0x%064x", 500+index), TransactionHash: fmt.Sprintf("0x%064x", 600+index), LogIndex: index, Type: "winner-finalized", BatchID: "3", Actor: "0x00000000000000000000000000000000000000a1", Details: map[string]string{"priceX96": "158456325028528675187087900672", "rebateBps": "100", "scoreToken0": "55", "routeHash": fmt.Sprintf("0x%064x", 700), "bestExecutionDigest": fmt.Sprintf("0x%064x", 701)}, AsOf: time.Now().Add(-time.Minute).UTC(), Source: "confirmed YNX Testnet EVM logs", Version: "ynx-fairflow-event-v1", Confidence: "confirmed-on-chain", Coverage: "Confirmed FairFlow event identity and stage-specific indexed/data fields", Failure: nil}
 }
 
+func lpProtectionFixture(index uint64) LPProtectionEvent {
+	return LPProtectionEvent{ID: fmt.Sprintf("lp-protection-event-%d", index), ChainID: ChainID, ContractVersion: "ynx-lp-protection-v1", LPProtection: "0x00000000000000000000000000000000000000f5", Pool: "0x0000000000000000000000000000000000000011", TokenIn: "0x0000000000000000000000000000000000000001", BlockNumber: 400 + index, BlockHash: fmt.Sprintf("0x%064x", 700+index), TransactionHash: fmt.Sprintf("0x%064x", 800+index), LogIndex: index, Type: "assessed", Details: map[string]string{"amountIn": "10000", "totalFeeBps": "145", "baseFeeBps": "30", "volatilityFeeBps": "50", "depthFeeBps": "10", "divergenceFeeBps": "0", "toxicFlowFeeBps": "5", "jitFeeBps": "50", "depegBps": "0", "oracleAsOf": "1700000000", "oracleSourceHash": fmt.Sprintf("0x%064x", 900), "realizedFeeAmount": "145", "incentiveAmount": "0"}, AsOf: time.Now().Add(-time.Minute).UTC(), Source: "confirmed YNX Testnet EVM logs", Version: "ynx-lp-protection-event-v1", Confidence: "confirmed-on-chain", Coverage: "Confirmed LP protection pool and assessed fee components with Oracle evidence identity", Failure: nil}
+}
+
+func TestLPProtectionEventsPersistRejectSubstitutionAndRewind(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	store, err := OpenStore(path, testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := lpProtectionFixture(1)
+	if created, err := store.AppendLPProtection(event); err != nil || !created {
+		t.Fatalf("append %v %v", created, err)
+	}
+	if len(store.Pools()) != 0 || len(store.FairFlowEvents("")) != 0 || store.Analytics().LPProtectionEvents != 1 {
+		t.Fatal("LP protection polluted projections or analytics missing")
+	}
+	if events := store.LPProtectionEvents(event.LPProtection, event.Pool); len(events) != 1 || events[0].Details["incentiveAmount"] != "0" {
+		t.Fatalf("events=%#v", events)
+	}
+	tampered := event
+	tampered.Details = map[string]string{}
+	if err := tampered.Validate(); err == nil {
+		t.Fatal("LP protection detail substitution accepted")
+	}
+	conflict := event
+	conflict.Details = map[string]string{}
+	for key, value := range event.Details {
+		conflict.Details[key] = value
+	}
+	conflict.Details["totalFeeBps"] = "146"
+	if _, err := store.AppendLPProtection(conflict); err == nil {
+		t.Fatal("conflicting LP protection replay accepted")
+	}
+	restarted, err := OpenStore(path, testSecret)
+	if err != nil || len(restarted.LPProtectionEvents(event.LPProtection, event.Pool)) != 1 {
+		t.Fatalf("restart %v", err)
+	}
+	if err := restarted.Rewind(event.BlockNumber); err != nil || len(restarted.LPProtectionEvents("", "")) != 0 {
+		t.Fatalf("rewind %v", err)
+	}
+}
+
 func TestFairFlowEventsPersistRejectSubstitutionAndRewind(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "state.json")
 	store, err := OpenStore(path, testSecret)
@@ -154,7 +197,7 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if migrated.state.SchemaVersion != 3 || len(migrated.Events()) != 1 || len(migrated.FairFlowEvents("")) != 0 {
+	if migrated.state.SchemaVersion != 4 || len(migrated.Events()) != 1 || len(migrated.FairFlowEvents("")) != 0 || len(migrated.LPProtectionEvents("", "")) != 0 {
 		t.Fatalf("migrated=%#v", migrated.state)
 	}
 	backup, err := os.ReadFile(path + ".schema-v1.bak")
@@ -167,7 +210,7 @@ func TestStoreMigratesAuthenticatedSchemaV1AndPreservesRollback(t *testing.T) {
 	}
 	var current storeEnvelope
 	currentData, _ := os.ReadFile(path)
-	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 3 {
+	if err := decodeExact(currentData, &current); err != nil || current.Payload.SchemaVersion != 4 {
 		t.Fatalf("current schema %v %#v", err, current.Payload)
 	}
 }
@@ -182,7 +225,7 @@ func TestStoreMigratesAuthenticatedSchemaV2AndPreservesRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	migrated, err := OpenStore(path, testSecret)
-	if err != nil || migrated.state.SchemaVersion != 3 {
+	if err != nil || migrated.state.SchemaVersion != 4 {
 		t.Fatalf("migration %v %#v", err, migrated)
 	}
 	backup, err := os.ReadFile(path + ".schema-v2.bak")
@@ -192,6 +235,25 @@ func TestStoreMigratesAuthenticatedSchemaV2AndPreservesRollback(t *testing.T) {
 	info, err := os.Stat(path + ".schema-v2.bak")
 	if err != nil || info.Mode().Perm() != 0o600 {
 		t.Fatalf("mode %v %v", info, err)
+	}
+}
+
+func TestStoreMigratesAuthenticatedSchemaV3AndPreservesRollback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "state.json")
+	legacyStore := &Store{path: path, secret: append([]byte(nil), testSecret...)}
+	payload := storePayload{SchemaVersion: 3, Sequence: 1, Events: []Event{}, FairFlowEvents: []FairFlowEvent{fairFlowFixture(3)}}
+	legacy := storeEnvelope{Payload: payload, Integrity: legacyStore.integrity(payload)}
+	data, _ := json.MarshalIndent(legacy, "", "  ")
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := OpenStore(path, testSecret)
+	if err != nil || migrated.state.SchemaVersion != 4 || len(migrated.FairFlowEvents("")) != 1 || len(migrated.LPProtectionEvents("", "")) != 0 {
+		t.Fatalf("migration %v %#v", err, migrated)
+	}
+	backup, err := os.ReadFile(path + ".schema-v3.bak")
+	if err != nil || !bytes.Equal(backup, data) {
+		t.Fatalf("backup %v", err)
 	}
 }
 
@@ -328,6 +390,22 @@ func TestServerStrictSchemaAuthAndTruthfulSources(t *testing.T) {
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("bad FairFlow query %d", response.Code)
+	}
+	protectionEvent := lpProtectionFixture(10)
+	if _, err := store.AppendLPProtection(protectionEvent); err != nil {
+		t.Fatal(err)
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/lp-protection/events?lpProtection="+protectionEvent.LPProtection+"&pool="+protectionEvent.Pool+"&type=assessed&limit=25", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"realizedFeeAmount":"145"`) || !strings.Contains(response.Body.String(), `"incentiveAmount":"0"`) || !strings.Contains(response.Body.String(), `"version":"ynx-lp-protection-events-api-v1"`) {
+		t.Fatalf("LP protection API %d %s", response.Code, response.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/v1/lp-protection/events?lpProtection=bad", nil)
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("bad LP protection query %d", response.Code)
 	}
 	bad := map[string]any{}
 	_ = json.Unmarshal(data, &bad)

@@ -53,7 +53,7 @@ func main() {
 		if err != nil || confirmations == 0 {
 			log.Fatal("DEX_INDEXER_CONFIRMATIONS must be positive")
 		}
-		poller, err := dex.NewEVMPoller(store, dex.EVMPollerConfig{RPCURL: env("YNX_EVM_RPC_URL", "https://evm.ynxweb4.com"), Factory: factory, StrategyVault: strings.TrimSpace(os.Getenv("DEX_STRATEGY_VAULT_ADDRESS")), FairFlow: strings.TrimSpace(os.Getenv("DEX_FAIRFLOW_ADDRESS")), StartBlock: startBlock, Confirmations: confirmations, CursorPath: env("YNX_DEX_CURSOR_PATH", "tmp/dex/evm-cursor.json"), CursorSecret: stateSecret})
+		poller, err := dex.NewEVMPoller(store, dex.EVMPollerConfig{RPCURL: env("YNX_EVM_RPC_URL", "https://evm.ynxweb4.com"), Factory: factory, StrategyVault: strings.TrimSpace(os.Getenv("DEX_STRATEGY_VAULT_ADDRESS")), FairFlow: strings.TrimSpace(os.Getenv("DEX_FAIRFLOW_ADDRESS")), LPProtection: strings.TrimSpace(os.Getenv("DEX_LP_PROTECTION_ADDRESS")), StartBlock: startBlock, Confirmations: confirmations, CursorPath: env("YNX_DEX_CURSOR_PATH", "tmp/dex/evm-cursor.json"), CursorSecret: stateSecret})
 		if err != nil {
 			log.Fatal(err)
 		}

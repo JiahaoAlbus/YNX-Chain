@@ -1,4 +1,5 @@
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const NATIVE_ACCOUNT = /^ynx1[0-9a-z]{20,80}$/;
 const INTEGER = /^-?[0-9]{1,78}$/;
 const MAX_HOPS = 4;
@@ -53,6 +54,54 @@ export function parseFeeSummary(value) {
   exactObject(value,["claimedFee0","claimedFee1","pool","swapFee0","swapFee1","token0","token1"]);if(![value.pool,value.token0,value.token1].every(item=>ADDRESS.test(item)))fail("INVALID_FEES","invalid fee identity");for(const field of ["claimedFee0","claimedFee1","swapFee0","swapFee1"])positiveBigInt(value[field],true);return Object.freeze({...value,pool:value.pool.toLowerCase(),token0:value.token0.toLowerCase(),token1:value.token1.toLowerCase()});
 }
 
+export function parseLPProtectionQuote(value, { now = new Date(), maxAgeMs = 15_000 } = {}) {
+  exactObject(value,["amountIn","asOf","baseFeeBps","chainId","confidence","coverage","depegBps","depthFeeBps","divergenceFeeBps","failure","jitFeeBps","lpProtection","maxFeeBps","oracleAsOf","oracleMaxAgeSeconds","oracleSourceHash","pool","source","tokenIn","totalFeeBps","toxicFlowFeeBps","version","volatilityFeeBps"]);
+  if(value.chainId!==6423||![value.lpProtection,value.pool,value.tokenIn].every(item=>ADDRESS.test(item)&&item.toLowerCase()!==ZERO_ADDRESS)||!/^0x[0-9a-fA-F]{64}$/.test(value.oracleSourceHash)||value.source!=="YNX Testnet EVM RPC + owner-reviewed LP oracle"||value.version!=="ynx-lp-protection-quote-v1"||value.confidence!=="preflight-observed"||!bounded(value.coverage,20,500)||value.failure!==null)fail("INVALID_LP_PROTECTION_QUOTE","LP protection quote identity or provenance is invalid");
+  const amountIn=positiveBigInt(value.amountIn);const asOf=new Date(value.asOf);const oracleAsOf=new Date(value.oracleAsOf);const age=now.valueOf()-asOf.valueOf();
+  if(!Number.isFinite(asOf.valueOf())||!Number.isFinite(oracleAsOf.valueOf())||!Number.isInteger(maxAgeMs)||maxAgeMs<1||!Number.isInteger(value.oracleMaxAgeSeconds)||value.oracleMaxAgeSeconds<30||value.oracleMaxAgeSeconds>86_400||age<0||age>maxAgeMs||oracleAsOf>asOf||asOf.valueOf()-oracleAsOf.valueOf()>value.oracleMaxAgeSeconds*1000)fail("STALE_LP_PROTECTION_QUOTE","LP protection or Oracle observation is stale or from the future");
+  const bps={};for(const field of ["totalFeeBps","baseFeeBps","volatilityFeeBps","depthFeeBps","divergenceFeeBps","toxicFlowFeeBps","jitFeeBps","depegBps"]){if(!Number.isInteger(value[field])||value[field]<0||value[field]>20_000)fail("INVALID_LP_PROTECTION_QUOTE",`invalid ${field}`);bps[field]=value[field]}
+  const uncapped=bps.baseFeeBps+bps.volatilityFeeBps+bps.depthFeeBps+bps.divergenceFeeBps+bps.toxicFlowFeeBps+bps.jitFeeBps;
+  if(!Number.isInteger(value.maxFeeBps)||value.maxFeeBps<bps.baseFeeBps||value.maxFeeBps>2_000||bps.totalFeeBps!==Math.min(uncapped,value.maxFeeBps))fail("INVALID_LP_PROTECTION_QUOTE","total fee violates on-chain component or cap semantics");
+  return Object.freeze({...value,...bps,amountIn,asOf:asOf.toISOString(),oracleAsOf:oracleAsOf.toISOString(),lpProtection:value.lpProtection.toLowerCase(),pool:value.pool.toLowerCase(),tokenIn:value.tokenIn.toLowerCase(),oracleSourceHash:value.oracleSourceHash.toLowerCase()});
+}
+
+export function quoteProtectedExactInput({ amountIn, tokenIn, tokenOut, pool, feeQuote, now = new Date() }) {
+  pool=parsePool(pool);feeQuote=parseLPProtectionQuote(feeQuote,{now});const input=positiveBigInt(amountIn);
+  if(!ADDRESS.test(tokenIn)||!ADDRESS.test(tokenOut)||tokenIn.toLowerCase()===tokenOut.toLowerCase()||feeQuote.pool!==pool.address||feeQuote.tokenIn!==tokenIn.toLowerCase()||feeQuote.amountIn!==input)fail("LP_PROTECTION_BINDING_MISMATCH","fee quote does not bind the exact pool, token and input");
+  const zeroForOne=tokenIn.toLowerCase()===pool.token0.address&&tokenOut.toLowerCase()===pool.token1.address;if(!zeroForOne&&!(tokenIn.toLowerCase()===pool.token1.address&&tokenOut.toLowerCase()===pool.token0.address))fail("LP_PROTECTION_BINDING_MISMATCH","tokens do not match the protected pool");
+  const reserveIn=zeroForOne?pool.reserve0:pool.reserve1;const reserveOut=zeroForOne?pool.reserve1:pool.reserve0;const output=amountOutAtFee(input,reserveIn,reserveOut,feeQuote.totalFeeBps);
+  const step=Object.freeze({pool:pool.address,tokenIn:tokenIn.toLowerCase(),tokenOut:tokenOut.toLowerCase(),amountIn:input,amountOut:output,reserveIn,reserveOut,feeBps:feeQuote.totalFeeBps,feeBreakdown:feeQuote});
+  return Object.freeze({kind:"exact-input",amountIn:input,amountOut:output,path:Object.freeze([tokenIn.toLowerCase(),tokenOut.toLowerCase()]),steps:Object.freeze([step]),quotedAt:feeQuote.asOf,source:"authoritative protected-pool RPC fee quote + indexed reserves",version:"ynx-protected-quote-v1",confidence:"deterministic-preflight",failure:null});
+}
+
+export function parseIndexedLPProtectionEvent(value) {
+  exactObject(value,["asOf","blockHash","blockNumber","chainId","confidence","contractVersion","coverage","details","failure","id","logIndex","lpProtection","pool","source","tokenIn","transactionHash","type","version"]);
+  if(value.chainId!==6423||value.contractVersion!=="ynx-lp-protection-v1"||![value.lpProtection,value.pool].every(item=>ADDRESS.test(item)&&item.toLowerCase()!==ZERO_ADDRESS)||!/^0x[0-9a-fA-F]{64}$/.test(value.blockHash)||!/^0x[0-9a-fA-F]{64}$/.test(value.transactionHash)||!Number.isSafeInteger(value.blockNumber)||value.blockNumber<1||!Number.isSafeInteger(value.logIndex)||value.logIndex<0||value.source!=="confirmed YNX Testnet EVM logs"||value.version!=="ynx-lp-protection-event-v1"||value.confidence!=="confirmed-on-chain"||!bounded(value.coverage,20,500)||value.failure!==null)fail("INVALID_LP_PROTECTION_EVENT","LP protection event identity or provenance is invalid");
+  const expected={"pool-registered":["token0","token1"],"config-scheduled":["configHash","executableAt"],"config-changed":["configHash"],assessed:["amountIn","baseFeeBps","depegBps","depthFeeBps","divergenceFeeBps","incentiveAmount","jitFeeBps","oracleAsOf","oracleSourceHash","realizedFeeAmount","totalFeeBps","toxicFlowFeeBps","volatilityFeeBps"]}[value.type];
+  if(!expected)fail("INVALID_LP_PROTECTION_EVENT","unsupported LP protection event type");exactObject(value.details,expected);
+  const asOf=new Date(value.asOf);if(!Number.isFinite(asOf.valueOf()))fail("INVALID_LP_PROTECTION_EVENT","invalid event time");
+  if(value.type==="assessed"){
+    if(!ADDRESS.test(value.tokenIn)||!/^0x[0-9a-fA-F]{64}$/.test(value.details.oracleSourceHash))fail("INVALID_LP_PROTECTION_EVENT","invalid assessment identity");
+    const amount=positiveBigInt(value.details.amountIn);const realized=positiveBigInt(value.details.realizedFeeAmount,true);if(value.details.incentiveAmount!=="0")fail("INVALID_LP_PROTECTION_EVENT","incentive must remain separate and zero");
+    const bps={};for(const field of ["totalFeeBps","baseFeeBps","volatilityFeeBps","depthFeeBps","divergenceFeeBps","toxicFlowFeeBps","jitFeeBps","depegBps"]){const parsed=Number(value.details[field]);if(!/^[0-9]{1,5}$/.test(value.details[field])||!Number.isSafeInteger(parsed)||parsed>20_000)fail("INVALID_LP_PROTECTION_EVENT",`invalid ${field}`);bps[field]=parsed}
+    const componentSum=bps.baseFeeBps+bps.volatilityFeeBps+bps.depthFeeBps+bps.divergenceFeeBps+bps.toxicFlowFeeBps+bps.jitFeeBps;
+    if(bps.totalFeeBps>2_000||bps.totalFeeBps<bps.baseFeeBps||bps.totalFeeBps>componentSum||realized!==amount*BigInt(bps.totalFeeBps)/BPS||!/^[1-9][0-9]{0,77}$/.test(value.details.oracleAsOf))fail("INVALID_LP_PROTECTION_EVENT","invalid realized fee semantics");
+    return Object.freeze({...value,asOf:asOf.toISOString(),lpProtection:value.lpProtection.toLowerCase(),pool:value.pool.toLowerCase(),tokenIn:value.tokenIn.toLowerCase(),details:Object.freeze({...value.details,amountIn:amount,realizedFeeAmount:realized,incentiveAmount:0n,...bps,oracleSourceHash:value.details.oracleSourceHash.toLowerCase(),oracleAsOf:BigInt(value.details.oracleAsOf)})});
+  }
+  if(value.tokenIn!=="")fail("INVALID_LP_PROTECTION_EVENT","non-assessment event contains token input");
+  if(value.type==="pool-registered"&&(!ADDRESS.test(value.details.token0)||!ADDRESS.test(value.details.token1)||value.details.token0.toLowerCase()===ZERO_ADDRESS||value.details.token1.toLowerCase()===ZERO_ADDRESS||value.details.token0.toLowerCase()>=value.details.token1.toLowerCase()))fail("INVALID_LP_PROTECTION_EVENT","invalid registered token ordering");
+  if((value.type==="config-scheduled"||value.type==="config-changed")&&!/^0x[0-9a-fA-F]{64}$/.test(value.details.configHash))fail("INVALID_LP_PROTECTION_EVENT","invalid configuration hash");
+  if(value.type==="config-scheduled"&&!/^[1-9][0-9]{0,77}$/.test(value.details.executableAt))fail("INVALID_LP_PROTECTION_EVENT","invalid configuration execution time");
+  return Object.freeze({...value,asOf:asOf.toISOString(),lpProtection:value.lpProtection.toLowerCase(),pool:value.pool.toLowerCase(),details:Object.freeze({...value.details})});
+}
+
+export function reconcileLPProtectionQuote({ feeQuote, event, now = new Date() }) {
+  feeQuote=parseLPProtectionQuote(feeQuote,{now});event=parseIndexedLPProtectionEvent(event);
+  if(event.type!=="assessed"||event.lpProtection!==feeQuote.lpProtection||event.pool!==feeQuote.pool||event.tokenIn!==feeQuote.tokenIn||event.details.amountIn!==feeQuote.amountIn||event.details.oracleSourceHash!==feeQuote.oracleSourceHash)fail("LP_PROTECTION_RECONCILIATION_MISMATCH","confirmed assessment does not match the approved fee quote");
+  for(const field of ["totalFeeBps","baseFeeBps","volatilityFeeBps","depthFeeBps","divergenceFeeBps","toxicFlowFeeBps","jitFeeBps","depegBps"])if(event.details[field]!==feeQuote[field])fail("LP_PROTECTION_RECONCILIATION_MISMATCH",`confirmed ${field} differs from preflight`);
+  return Object.freeze({status:"confirmed",transactionHash:event.transactionHash,blockHash:event.blockHash,blockNumber:event.blockNumber,logIndex:event.logIndex,pool:event.pool,tokenIn:event.tokenIn,realizedFeeAmount:event.details.realizedFeeAmount,incentiveAmount:event.details.incentiveAmount,feeBps:event.details.totalFeeBps,source:event.source,asOf:event.asOf,version:"ynx-lp-protection-reconciliation-v1",confidence:"confirmed-on-chain",failure:null});
+}
+
 export function amountOut(amountIn, reserveIn, reserveOut, feeBps = 30) {
   amountIn = positiveBigInt(amountIn);
   reserveIn = positiveBigInt(reserveIn);
@@ -62,6 +111,13 @@ export function amountOut(amountIn, reserveIn, reserveOut, feeBps = 30) {
   const output = adjusted * reserveOut / (reserveIn * BPS + adjusted);
   if (output <= 0n || output >= reserveOut) fail("INSUFFICIENT_LIQUIDITY", "quote has no executable output");
   return output;
+}
+
+function amountOutAtFee(amountIn, reserveIn, reserveOut, feeBps) {
+  amountIn=positiveBigInt(amountIn);reserveIn=positiveBigInt(reserveIn);reserveOut=positiveBigInt(reserveOut);
+  if(!Number.isInteger(feeBps)||feeBps<0||feeBps>2_000)fail("INVALID_FEE","protected fee must be 0..2000 bps");
+  const adjusted=amountIn*(BPS-BigInt(feeBps));const output=adjusted*reserveOut/(reserveIn*BPS+adjusted);
+  if(output<=0n||output>=reserveOut)fail("INSUFFICIENT_LIQUIDITY","quote has no executable output");return output;
 }
 
 export function amountIn(amountOutValue, reserveIn, reserveOut, feeBps = 30) {

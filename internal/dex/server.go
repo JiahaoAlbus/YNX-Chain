@@ -122,12 +122,50 @@ func (server *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/account/positions", server.positions)
 	mux.HandleFunc("GET /v1/vault/actions", server.vaultActions)
 	mux.HandleFunc("GET /v1/fairflow/events", server.fairFlowEvents)
+	mux.HandleFunc("GET /v1/lp-protection/events", server.lpProtectionEvents)
 	mux.HandleFunc("POST /internal/v1/events", server.ingest)
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Content-Type", "application/json")
 		response.Header().Set("Cache-Control", "no-store")
 		response.Header().Set("X-Content-Type-Options", "nosniff")
 		mux.ServeHTTP(response, request)
+	})
+}
+
+func (server *Server) lpProtectionEvents(response http.ResponseWriter, request *http.Request) {
+	lpProtection := strings.ToLower(strings.TrimSpace(request.URL.Query().Get("lpProtection")))
+	if !addressPattern.MatchString(lpProtection) {
+		writeError(response, http.StatusBadRequest, "valid LP protection address required")
+		return
+	}
+	pool := strings.ToLower(strings.TrimSpace(request.URL.Query().Get("pool")))
+	if pool != "" && !addressPattern.MatchString(pool) {
+		writeError(response, http.StatusBadRequest, "invalid pool address")
+		return
+	}
+	typeFilter := strings.TrimSpace(request.URL.Query().Get("type"))
+	if typeFilter != "" && typeFilter != "pool-registered" && typeFilter != "config-scheduled" && typeFilter != "config-changed" && typeFilter != "assessed" {
+		writeError(response, http.StatusBadRequest, "invalid LP protection event type")
+		return
+	}
+	limit, ok := boundedLimit(request.URL)
+	if !ok {
+		writeError(response, http.StatusBadRequest, "invalid limit")
+		return
+	}
+	all := server.store.LPProtectionEvents(lpProtection, pool)
+	items := make([]LPProtectionEvent, 0, limit)
+	for i := len(all) - 1; i >= 0 && len(items) < limit; i-- {
+		if typeFilter == "" || all[i].Type == typeFilter {
+			items = append(items, all[i])
+		}
+	}
+	writeJSON(response, http.StatusOK, map[string]any{
+		"items": items, "lpProtection": lpProtection, "pool": pool, "type": typeFilter,
+		"source": "confirmed YNX Testnet EVM logs", "asOf": time.Now().UTC(),
+		"version": "ynx-lp-protection-events-api-v1", "confidence": "confirmed-on-chain",
+		"coverage": "Pool registration, delayed config hashes and assessed dynamic-fee components; current config and Oracle health require direct RPC reads",
+		"failure":  nil,
 	})
 }
 
