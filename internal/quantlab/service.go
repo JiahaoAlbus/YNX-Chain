@@ -93,11 +93,32 @@ type Metrics struct {
 	Trades, PartialFills, DataGaps        int
 	NoTrade                               bool
 }
+type PnLAttribution struct {
+	Currency                 string   `json:"currency"`
+	Alpha                    int64    `json:"alpha"`
+	Beta                     int64    `json:"beta"`
+	CarryFunding             int64    `json:"carryFunding"`
+	MakerRebateLPFee         int64    `json:"makerRebateLpFee"`
+	TradingFee               int64    `json:"tradingFee"`
+	Gas                      int64    `json:"gas"`
+	Slippage                 int64    `json:"slippage"`
+	MEV                      int64    `json:"mev"`
+	OracleDrift              int64    `json:"oracleDrift"`
+	AverageIdleCapital       int64    `json:"averageIdleCapital"`
+	ComputeDataFee           int64    `json:"computeDataFee"`
+	ManagementPerformanceFee int64    `json:"managementPerformanceFee"`
+	UserRealizedPnL          int64    `json:"userRealizedPnl"`
+	UserUnrealizedPnL        int64    `json:"userUnrealizedPnl"`
+	UserNetPnL               int64    `json:"userNetPnl"`
+	Reconciled               bool     `json:"reconciled"`
+	UnsupportedComponents    []string `json:"unsupportedComponents"`
+}
 type Experiment struct {
 	ID                   string             `json:"id"`
 	Strategy             StrategySpec       `json:"strategy"`
 	Assumptions          Assumptions        `json:"assumptions"`
 	Metrics              Metrics            `json:"metrics"`
+	Attribution          PnLAttribution     `json:"attribution"`
 	LookAheadRejected    bool               `json:"lookAheadRejected"`
 	LeakageChecksPassed  bool               `json:"leakageChecksPassed"`
 	WalkForward          []Metrics          `json:"walkForward"`
@@ -375,7 +396,7 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics := simulate(req.Bars, strategy, req.Assumptions)
+	metrics, attribution := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
 	walkForward := make([]Metrics, 0, req.Assumptions.WalkForwardWindows)
 	oos := len(req.Bars) - req.Assumptions.TrainEnd
 	for i := 0; i < req.Assumptions.WalkForwardWindows; i++ {
@@ -421,7 +442,7 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
-	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, Status: "completed_oos", CreatedAt: now}
+	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, Status: "completed_oos", CreatedAt: now}
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy
@@ -462,6 +483,10 @@ func simulate(b []Bar, st StrategySpec, a Assumptions) Metrics {
 	return simulateRange(b, st, a, a.TrainEnd, len(b))
 }
 func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) Metrics {
+	metrics, _ := simulateDetailed(b, st, a, startIndex, endIndex)
+	return metrics
+}
+func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution) {
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -470,6 +495,12 @@ func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex
 	trades := 0
 	partial := 0
 	gaps := 0
+	tradingFees := int64(0)
+	slippageCosts := int64(0)
+	realizedGross := int64(0)
+	averageEntry := int64(0)
+	idleCapitalSum := int64(0)
+	idleCapitalSamples := int64(0)
 	fast := int(st.Params["fast"])
 	slow := int(st.Params["slow"])
 	if fast < 2 {
@@ -529,10 +560,38 @@ func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex
 		}
 		cost := fill * price / 1_000_000
 		friction := abs(cost) * (a.FeeBPS + a.SlippageBPS) / 10000
+		fee := abs(cost) * a.FeeBPS / 10000
+		slippage := abs(cost) * a.SlippageBPS / 10000
+		tradingFees += fee
+		slippageCosts += slippage
+		priorPosition := pos
+		if priorPosition == 0 || (priorPosition > 0 && fill > 0) || (priorPosition < 0 && fill < 0) {
+			total := abs(priorPosition) + abs(fill)
+			if total > 0 {
+				averageEntry = (abs(priorPosition)*averageEntry + abs(fill)*price) / total
+			}
+		} else {
+			closed := abs(fill)
+			if closed > abs(priorPosition) {
+				closed = abs(priorPosition)
+			}
+			direction := int64(1)
+			if priorPosition < 0 {
+				direction = -1
+			}
+			realizedGross += closed * (price - averageEntry) * direction / 1_000_000
+			if abs(fill) > abs(priorPosition) {
+				averageEntry = price
+			} else if abs(fill) == abs(priorPosition) {
+				averageEntry = 0
+			}
+		}
 		cash -= cost
 		cash -= friction
 		pos += fill
 		trades++
+		idleCapitalSum += cash
+		idleCapitalSamples++
 		equity := cash + pos*b[i].Close/1_000_000
 		if equity > peak {
 			peak = equity
@@ -544,7 +603,18 @@ func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex
 	}
 	end := cash + pos*b[endIndex-1].Close/1_000_000
 	buyHold := (b[endIndex-1].Close - b[startIndex].Close) * 10000 / b[startIndex].Close
-	return Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	net := end - start
+	beta := buyHold * start / 10000
+	gross := net + tradingFees + slippageCosts
+	averageIdle := start
+	if idleCapitalSamples > 0 {
+		averageIdle = idleCapitalSum / idleCapitalSamples
+	}
+	userRealized := realizedGross - tradingFees - slippageCosts
+	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: gross - beta, Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: net - userRealized, UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
+	attribution.Reconciled = attribution.Alpha+attribution.Beta+attribution.CarryFunding+attribution.MakerRebateLPFee-attribution.TradingFee-attribution.Gas-attribution.Slippage-attribution.MEV-attribution.OracleDrift-attribution.ComputeDataFee-attribution.ManagementPerformanceFee == attribution.UserNetPnL && attribution.UserRealizedPnL+attribution.UserUnrealizedPnL == attribution.UserNetPnL
+	return metrics, attribution
 }
 
 func cloneParams(input map[string]int64) map[string]int64 {

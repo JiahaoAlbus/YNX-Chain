@@ -50,10 +50,10 @@ function render() {
     ? experiments
         .map(
           (e) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td></tr>`,
+            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
         )
         .join("")
-    : `<tr><td colspan="9">${safe(t("emptyExperiment"))}</td></tr>`;
+    : `<tr><td colspan="14">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
   $("#paper-state").innerHTML =
     `<h3>Broker state</h3><dl><div><dt>Cash</dt><dd>${p.Cash ?? 0}</dd></div><div><dt>Position</dt><dd>${p.Position ?? 0}</dd></div><div><dt>Reconciliation</dt><dd>${p.ReconciliationDelta ?? 0}</dd></div><div><dt>Kill switch</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch ? "ACTIVE" : "Armed"}</dd></div></dl>`;

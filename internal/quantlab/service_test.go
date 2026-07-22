@@ -54,7 +54,7 @@ func TestBacktestIsDeterministicOOSAndPersistent(t *testing.T) {
 		t.Fatal(e)
 	}
 	snap := b.Snapshot()
-	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || len(snap["experiments"].(map[string]Experiment)) != 1 {
+	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || !a.Attribution.Reconciled || a.Attribution.UserRealizedPnL+a.Attribution.UserUnrealizedPnL != a.Attribution.UserNetPnL || len(a.Attribution.UnsupportedComponents) != 7 || len(snap["experiments"].(map[string]Experiment)) != 1 {
 		t.Fatalf("bad result %#v", a)
 	}
 }
