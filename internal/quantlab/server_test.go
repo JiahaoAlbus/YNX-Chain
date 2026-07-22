@@ -1,7 +1,9 @@
 package quantlab
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -41,7 +43,10 @@ func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	server := httptest.NewServer(NewRoleServer(s, "research"))
 	defer server.Close()
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
-	connection, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	headers := http.Header{}
+	headers.Set("X-YNX-Request-ID", "websocket-request-1")
+	headers.Set("traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+	connection, _, err := websocket.DefaultDialer.Dial(wsURL, headers)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +59,7 @@ func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		t.Fatal(err)
 	}
-	if envelope["type"] != "snapshot" || envelope["source"] != "ynx-quant-authoritative-local-state" || envelope["confidence"] != "authoritative" || envelope["version"] != Version || envelope["asOf"] == nil || envelope["data"] == nil {
+	if envelope["type"] != "snapshot" || envelope["source"] != "ynx-quant-authoritative-local-state" || envelope["confidence"] != "authoritative" || envelope["version"] != Version || envelope["requestId"] != "websocket-request-1" || envelope["traceId"] != "4bf92f3577b34da6a3ce929d0e0e4736" || envelope["asOf"] == nil || envelope["data"] == nil {
 		t.Fatalf("bad envelope: %#v", envelope)
 	}
 }
@@ -83,5 +88,64 @@ func TestServiceRolesExposeOnlyOwnedMutationRoutes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRequestTraceErrorIDsAndStructuredLogsAreRedacted(t *testing.T) {
+	service, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	var logs bytes.Buffer
+	server := httptest.NewServer(NewObservedRoleServer(service, "all", &logs))
+	defer server.Close()
+	req, _ := http.NewRequest(http.MethodGet, server.URL+"/missing?token=must-not-appear", nil)
+	req.Header.Set("X-YNX-Request-ID", "caller-request-123")
+	req.Header.Set("traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+	response, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusNotFound || response.Header.Get("X-YNX-Request-ID") != "caller-request-123" || response.Header.Get("X-YNX-Trace-ID") != "4bf92f3577b34da6a3ce929d0e0e4736" || response.Header.Get("X-YNX-Error-ID") == "" {
+		t.Fatalf("status=%d headers=%v", response.StatusCode, response.Header)
+	}
+	var problem map[string]string
+	if json.NewDecoder(response.Body).Decode(&problem) != nil || problem["requestId"] != "caller-request-123" || problem["errorId"] != response.Header.Get("X-YNX-Error-ID") || problem["error"] != "route_not_found" {
+		t.Fatalf("problem=%v", problem)
+	}
+	if strings.Contains(logs.String(), "must-not-appear") || strings.Contains(logs.String(), "token=") {
+		t.Fatalf("query leaked: %s", logs.String())
+	}
+	var entry map[string]any
+	if json.Unmarshal(bytes.TrimSpace(logs.Bytes()), &entry) != nil || entry["msg"] != "quant_http_request" || entry["requestId"] != "caller-request-123" || entry["route"] != "/" || entry["status"].(float64) != 404 || entry["errorId"] == "" {
+		t.Fatalf("log=%v raw=%s", entry, logs.String())
+	}
+}
+
+func TestInvalidCorrelationIDIsReplacedAndMetricsExposeAlertSignals(t *testing.T) {
+	service, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	server := httptest.NewServer(NewObservedRoleServer(service, "risk", io.Discard))
+	defer server.Close()
+	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/risk/kill", strings.NewReader(`{"reason":"metrics test"}`))
+	req.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	req.Header.Set("X-YNX-Request-ID", "../../unsafe")
+	response, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	generated := response.Header.Get("X-YNX-Request-ID")
+	if response.StatusCode != http.StatusOK || generated == "../../unsafe" || !validCorrelationID(generated) {
+		t.Fatalf("status=%d requestID=%q", response.StatusCode, generated)
+	}
+	metricsResponse, err := server.Client().Get(server.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics, _ := io.ReadAll(metricsResponse.Body)
+	_ = metricsResponse.Body.Close()
+	text := string(metrics)
+	for _, expected := range []string{"ynx_quant_http_requests_total 1", "ynx_quant_kill_switch_activations_total 1", "ynx_quant_kill_switch_active 1", "ynx_quant_reconciliation_delta 0", "ynx_quant_execution_pending_unknown 0", "ynx_quant_build_info"} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("missing %q in %s", expected, text)
+		}
 	}
 }

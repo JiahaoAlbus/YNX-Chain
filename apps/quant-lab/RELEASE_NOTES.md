@@ -31,6 +31,10 @@ This release introduces an independent research, Paper and bounded Testnet Previ
   The Docker image is not installed because no local daemon was available.
 - SLO/capacity baseline, unit economics, threat model, operations, migration,
   observability, evidence index, release truth record, and public metadata.
+- Validated/generated request and trace IDs, stable error IDs, redacted JSON
+  route logs, WebSocket correlation and bounded Prometheus operational/risk
+  metrics. No trace backend, dashboard, monitor ingestion or alert delivery is
+  claimed.
 
 Historical and simulated results do not predict returns. This candidate is not
 a real-money trading product. It is not centrally integrated, deployed, hosted,

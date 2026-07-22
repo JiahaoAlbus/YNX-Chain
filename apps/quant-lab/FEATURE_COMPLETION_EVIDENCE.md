@@ -13,6 +13,7 @@ Evidence date: 2026-07-22. Evidence is local unless explicitly stated.
 | bounded Testnet adapter contract | implemented/tested with injected test doubles | expiry, notional, position, daily loss, slippage, gas, frequency, projected leverage, drawdown, liquidity, depeg, concentration, cancel/API reliability, supplied VaR/ES, oracle freshness, venue health, overflow, replay, idempotency, and broker-proof tests; no authoritative risk feed or deployed broker claim |
 | mandate revoke | tested local | immediate, idempotent, restart-persistent revoke tests |
 | REST and WebSocket | tested local | HTTP strict-schema/role tests and metadata-bearing WebSocket test |
+| local observability | tested local | request/trace/error IDs, WebSocket correlation, redacted JSON route logs, Prometheus request/risk/reconciliation/kill/pending/build metrics, readiness signals; no trace backend or delivered alerts |
 | CLI | tested local | approval and loopback gates; backup record test |
 | Python/TypeScript SDK | built/tested local | Python unit tests and wheel build; Node tests and package dry-run |
 | worker sandbox boundary | tested local | Ed25519 package signature, source/artifact hashes, scan evidence, dependency allowlist, resource bounds, zero host/network/key/secret permission, payload tamper rejection; arbitrary source execution absent |

@@ -36,7 +36,9 @@ Independent binaries:
 All state-writing daemons coordinate through an atomic cross-process lock and
 reload the integrity-protected state before mutation. A timeout fails closed.
 The WebSocket endpoint is `/v1/stream`; every envelope declares source, time,
-version, and authority confidence.
+version, authority confidence, request ID and trace ID. `/metrics` exports local
+Prometheus counters and risk/reconciliation gauges. `/health` reports readiness
+separately from kill-switch, reconciliation and unknown-execution alert signals.
 
 Strategy orchestration targets the venue-neutral `ExecutionAdapter` contract,
 not a venue SDK. The local `PaperExecutionAdapter` translates authoritative

@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,6 +18,8 @@ type Server struct {
 	service *Service
 	mux     *http.ServeMux
 	role    string
+	logger  *slog.Logger
+	metrics serverMetrics
 }
 
 func NewServer(s *Service) *Server {
@@ -23,15 +27,20 @@ func NewServer(s *Service) *Server {
 }
 
 func NewRoleServer(s *Service, role string) *Server {
+	return NewObservedRoleServer(s, role, os.Stderr)
+}
+
+func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server {
 	allowed := map[string]bool{"all": true, "research": true, "paper": true, "risk": true}
 	if !allowed[role] {
 		panic("invalid quant service role")
 	}
-	v := &Server{service: s, mux: http.NewServeMux(), role: role}
+	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter)}
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
+	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
@@ -48,6 +57,7 @@ func NewRoleServer(s *Service, role string) *Server {
 		v.mux.HandleFunc("POST /v1/testnet/mandates/{digest}/revoke", v.revokeMandate)
 		v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
 	}
+	v.mux.HandleFunc("/", v.notFound)
 	return v
 }
 func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
@@ -56,16 +66,12 @@ func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.RegisterDataset(q)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if r.Method != http.MethodGet && !localPreviewRequest(r) {
-		write(w, http.StatusForbidden, map[string]string{"error": "local preview write boundary rejected"})
-		return
-	}
-	s.mux.ServeHTTP(w, r)
+	s.observe(w, r)
 }
 func localPreviewRequest(r *http.Request) bool {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -77,7 +83,19 @@ func localPreviewRequest(r *http.Request) bool {
 	return origin == "" || origin == "http://"+r.Host || origin == "https://"+r.Host
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"status": "ok", "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false})
+	snapshot := s.service.Snapshot()
+	if snapshot["failure"] != nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "state_unavailable")
+		return
+	}
+	paper := snapshot["paper"].(PaperState)
+	pendingUnknown := 0
+	for _, record := range snapshot["executionLedger"].(map[string]ExecutionLedgerRecord) {
+		if record.Status == "reserved_outcome_unknown" {
+			pendingUnknown++
+		}
+	}
+	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
@@ -100,9 +118,13 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer connection.Close()
+	s.metrics.activeWebSockets.Add(1)
+	defer s.metrics.activeWebSockets.Add(^uint64(0))
 	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	if err := connection.WriteJSON(map[string]any{
 		"type":       "snapshot",
+		"requestId":  requestID(r),
+		"traceId":    traceID(r),
 		"source":     "ynx-quant-authoritative-local-state",
 		"asOf":       time.Now().UTC(),
 		"version":    Version,
@@ -125,6 +147,9 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	writeProblem(w, r, http.StatusNotFound, "route_not_found")
+}
 func localWebSocketOrigin(r *http.Request) bool {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	ip := net.ParseIP(host)
@@ -140,7 +165,7 @@ func (s *Server) backtest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.RunBacktest(q)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 	var q struct {
@@ -151,7 +176,7 @@ func (s *Server) backtestFromMarket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.RunBacktestFromMarket(q.Strategy, q.Assumptions)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func (s *Server) stage(w http.ResponseWriter, r *http.Request) {
 	var q LifecycleApproval
@@ -159,7 +184,7 @@ func (s *Server) stage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.AdvanceStrategy(r.PathValue("id"), q)
-	respond(w, v, e, 200)
+	respond(w, r, v, e, 200)
 }
 func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 	var q struct {
@@ -169,7 +194,7 @@ func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.RevokeMandate(r.PathValue("digest"), q.Actor)
-	respond(w, v, e, 200)
+	respond(w, r, v, e, 200)
 }
 func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 	var q struct {
@@ -181,7 +206,7 @@ func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.ApplyPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {
 	var q struct{ Cash, Position int64 }
@@ -189,7 +214,7 @@ func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.Reconcile(q.Cash, q.Position)
-	respond(w, v, e, 200)
+	respond(w, r, v, e, 200)
 }
 func (s *Server) kill(w http.ResponseWriter, r *http.Request) {
 	var q struct {
@@ -199,7 +224,7 @@ func (s *Server) kill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.Kill(q.Reason)
-	respond(w, v, e, 200)
+	respond(w, r, v, e, 200)
 }
 func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
 	var q Mandate
@@ -207,7 +232,7 @@ func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.RegisterMandate(q)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
 	var q struct {
@@ -222,23 +247,23 @@ func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.Risk)
-	respond(w, v, e, 201)
+	respond(w, r, v, e, 201)
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	if e := d.Decode(v); e != nil {
-		write(w, 400, map[string]string{"error": "invalid JSON: " + e.Error()})
+		writeProblem(w, r, http.StatusBadRequest, "invalid_json")
 		return false
 	}
 	if e := d.Decode(&struct{}{}); e != io.EOF {
-		write(w, 400, map[string]string{"error": "one JSON value required"})
+		writeProblem(w, r, http.StatusBadRequest, "single_json_value_required")
 		return false
 	}
 	return true
 }
-func respond(w http.ResponseWriter, v any, e error, ok int) {
+func respond(w http.ResponseWriter, r *http.Request, v any, e error, ok int) {
 	if e == nil {
 		write(w, ok, v)
 		return
@@ -251,7 +276,20 @@ func respond(w http.ResponseWriter, v any, e error, ok int) {
 	} else if errors.Is(e, ErrUnavailable) {
 		code = 503
 	}
-	write(w, code, map[string]string{"error": e.Error()})
+	errorCode := "invalid_request"
+	if errors.Is(e, ErrForbidden) {
+		errorCode = "forbidden"
+	} else if errors.Is(e, ErrConflict) {
+		errorCode = "conflict"
+	} else if errors.Is(e, ErrUnavailable) {
+		errorCode = "unavailable"
+	}
+	writeProblem(w, r, code, errorCode)
+}
+func writeProblem(w http.ResponseWriter, r *http.Request, code int, errorCode string) {
+	errorID := randomHex(12)
+	w.Header().Set("X-YNX-Error-ID", errorID)
+	write(w, code, map[string]string{"error": errorCode, "requestId": requestID(r), "errorId": errorID})
 }
 func write(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
