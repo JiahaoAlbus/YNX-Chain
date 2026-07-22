@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
   "release": null,
-  "sourceCommit": null,
+  "sourceCommit": "fa73fd7e814b0881d8244a95998bcaa3e6dc3085",
   "channel": "unreleased-testnet-work",
   "states": {
     "implementedLocal": false,
