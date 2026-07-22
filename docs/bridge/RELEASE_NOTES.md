@@ -1,0 +1,12 @@
+# Bridge Release Notes
+
+## Local engineering candidate — 2026-07-22
+
+- Added explicit source, proof, destination, failure, retry, recovery, and dispute phases.
+- Added persistent pause/resume safety state.
+- Added per-transfer and route-outstanding exposure limits.
+- Added strict v1-to-v2 state migration and tamper rejection.
+- Added source-qualified public transparency and operator-evidence reconciliation.
+- Added semantic startup rejection for invalid phases, over-limit exposure, inconsistent accounting, and changed truth-source labels.
+
+External submission remains disabled. This candidate is not installed, staged, public, production-signed, issuer-supported, funded, or independently audited.

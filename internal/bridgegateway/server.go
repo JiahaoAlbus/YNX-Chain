@@ -31,6 +31,7 @@ func (s *Server) Handler() http.Handler { return s.mux }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+	s.mux.HandleFunc("GET /bridge/transparency", s.handleTransparency)
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
 	s.mux.HandleFunc("GET /bridge/transfers", s.requireAuth(s.handleList))
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
@@ -38,6 +39,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/finalize", s.requireAuth(s.handleFinalize))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/outcomes", s.requireAuth(s.handleOutcome))
 	s.mux.HandleFunc("POST /bridge/safety", s.requireAuth(s.handleSafety))
+	s.mux.HandleFunc("POST /bridge/reconciliations", s.requireAuth(s.handleReconciliation))
 	s.mux.HandleFunc("GET /bridge/audit", s.requireAuth(s.handleAudit))
 }
 
@@ -59,6 +61,16 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 		paused = 1
 	}
 	_, _ = fmt.Fprintf(w, "ynx_bridge_paused{%s} %d\n", labels, paused)
+	var exposure uint64
+	for _, route := range s.service.Transparency().Routes {
+		value, _ := strconv.ParseUint(route.CoordinatorOutstanding, 10, 64)
+		exposure += value
+	}
+	_, _ = fmt.Fprintf(w, "ynx_bridge_coordinator_outstanding{%s} %d\n", labels, exposure)
+}
+
+func (s *Server) handleTransparency(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.Transparency())
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -151,6 +163,19 @@ func (s *Server) handleSafety(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"safety": safety, "replayed": replayed})
+}
+
+func (s *Server) handleReconciliation(w http.ResponseWriter, r *http.Request) {
+	var request ReconciliationRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	reconciliation, replayed, err := s.service.Reconcile(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"reconciliation": reconciliation, "replayed": replayed})
 }
 
 func (s *Server) handleAudit(w http.ResponseWriter, r *http.Request) {

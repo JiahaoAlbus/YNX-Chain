@@ -45,6 +45,7 @@ start_bridge() {
 start_bridge
 health="$(curl -fsS "$url/health")"
 printf '%s' "$health" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.ok||d.service!=="ynx-bridged"||d.nativeSymbol!=="YNXT"||d.routeCount!==1||d.relayerCount!==3||d.requiredAttestations!==2||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.truthfulStatus!=="local-coordinator-only-no-external-submission")throw new Error(`bad bridge health ${JSON.stringify(d)}`)'
+curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.source!=="ynx-bridge-coordinator"||d.liveBridge!==false||d.externalSubmissionEnabled!==false||d.routes?.length!==1||d.routes[0].coordinatorOutstanding!=="0")throw new Error(`bad public transparency ${JSON.stringify(d)}`)'
 
 status="$(curl -sS -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/transfers")"
 [[ "$status" == 401 ]]
@@ -52,6 +53,11 @@ status="$(curl -sS -o "$tmp/unauthorized.json" -w '%{http_code}' "$url/bridge/tr
 body='{"idempotencyKey":"bridge-check-create-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceEventIndex":7,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"100","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
 created="$(curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$body")"
 transfer_id="$(printf '%s' "$created" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(d.replayed||d.transfer?.status!=="pending_attestations"||d.transfer?.phase!=="source_submitted"||d.transfer?.externalSubmissionEnabled!==false)throw new Error(`bad create ${JSON.stringify(d)}`);process.stdout.write(d.transfer.id)')"
+
+observed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+reconciliation="$(curl -fsS -X POST "$url/bridge/reconciliations" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "{\"idempotencyKey\":\"bridge-check-reconcile-001\",\"sourceChain\":\"ethereum-sepolia\",\"destinationChain\":\"ynx_6423-1\",\"sourceAsset\":\"sepolia-usdc\",\"destinationAsset\":\"ynx-usdc\",\"locked\":\"100\",\"burned\":\"0\",\"minted\":\"90\",\"released\":\"0\",\"evidenceRef\":\"fixture:bridge-api-check\",\"observedAt\":\"$observed_at\"}")"
+printf '%s' "$reconciliation" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const r=d.reconciliation;if(d.replayed||r.balanced!==false||r.difference!=="10"||r.source!=="operator-submitted-evidence"||r.verification!=="reference-recorded-not-independently-verified")throw new Error(`bad reconciliation ${JSON.stringify(d)}`)'
+curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const r=d.routes?.[0];if(r.coordinatorOutstanding!=="100"||r.lastReconciliation?.difference!=="10"||r.lastReconciliation?.balanced!==false)throw new Error(`bad exposed reconciliation ${JSON.stringify(d)}`)'
 
 curl -fsS -X POST "$url/bridge/safety" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d '{"idempotencyKey":"bridge-check-pause-001","paused":true,"reason":"bounded-safety-drill"}' | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.safety?.paused||d.replayed)process.exit(1)'
 status="$(curl -sS -o "$tmp/paused.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "${body/bridge-check-create-001/bridge-check-paused-001}")"
@@ -80,7 +86,8 @@ metrics="$(curl -fsS "$url/metrics")"
 grep -Fq "ynx_bridge_transfers_total" <<<"$metrics"
 grep -Fq "ynx_bridge_external_submission_enabled" <<<"$metrics"
 grep -Fq "ynx_bridge_paused" <<<"$metrics"
+grep -Fq "ynx_bridge_coordinator_outstanding" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent restart-safe intents, exact replay/conflict, bounded exposure policy, pause/resume drill, auth, truthful no-external-submission health/metrics, and mode-0600 state"
+echo "bridge-api-check passed: persistent intents, replay/conflict, exposure limits, pause/resume, source-qualified reconciliation/transparency, auth, truthful no-external-submission metrics, and mode-0600 state"

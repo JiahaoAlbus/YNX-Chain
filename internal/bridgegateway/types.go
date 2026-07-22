@@ -163,6 +163,55 @@ type OutcomeRequest struct {
 	ReasonCode     string `json:"reasonCode"`
 }
 
+type ReconciliationRequest struct {
+	IdempotencyKey   string `json:"idempotencyKey"`
+	SourceChain      string `json:"sourceChain"`
+	DestinationChain string `json:"destinationChain"`
+	SourceAsset      string `json:"sourceAsset"`
+	DestinationAsset string `json:"destinationAsset"`
+	Locked           string `json:"locked"`
+	Burned           string `json:"burned"`
+	Minted           string `json:"minted"`
+	Released         string `json:"released"`
+	EvidenceRef      string `json:"evidenceRef"`
+	ObservedAt       string `json:"observedAt"`
+}
+
+type Reconciliation struct {
+	Route             RoutePolicy `json:"route"`
+	Locked            string      `json:"locked"`
+	Burned            string      `json:"burned"`
+	Minted            string      `json:"minted"`
+	Released          string      `json:"released"`
+	OutstandingSupply string      `json:"outstandingSupply"`
+	ReserveBacking    string      `json:"reserveBacking"`
+	Difference        string      `json:"difference"`
+	Balanced          bool        `json:"balanced"`
+	EvidenceRef       string      `json:"evidenceRef"`
+	ObservedAt        string      `json:"observedAt"`
+	RecordedAt        string      `json:"recordedAt"`
+	Source            string      `json:"source"`
+	Verification      string      `json:"verification"`
+}
+
+type RouteExposure struct {
+	Route                  RoutePolicy     `json:"route"`
+	CoordinatorOutstanding string          `json:"coordinatorOutstanding"`
+	TransferCount          int             `json:"transferCount"`
+	LastReconciliation     *Reconciliation `json:"lastReconciliation,omitempty"`
+}
+
+type Transparency struct {
+	SchemaVersion             int             `json:"schemaVersion"`
+	Source                    string          `json:"source"`
+	AsOf                      string          `json:"asOf"`
+	Coverage                  string          `json:"coverage"`
+	LiveBridge                bool            `json:"liveBridge"`
+	ExternalSubmissionEnabled bool            `json:"externalSubmissionEnabled"`
+	Safety                    SafetyState     `json:"safety"`
+	Routes                    []RouteExposure `json:"routes"`
+}
+
 type Attestation struct {
 	Relayer         string `json:"relayer"`
 	SourceBlockHash string `json:"sourceBlockHash"`

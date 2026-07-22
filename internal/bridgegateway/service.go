@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
@@ -368,6 +369,92 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 	return MutationResult{Transfer: cloneTransfer(transfer)}, nil
 }
 
+func (s *Service) Reconcile(request ReconciliationRequest) (Reconciliation, bool, error) {
+	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
+	request.SourceChain, request.DestinationChain = normalizeName(request.SourceChain), normalizeName(request.DestinationChain)
+	request.SourceAsset, request.DestinationAsset = normalizeAsset(request.SourceAsset), normalizeAsset(request.DestinationAsset)
+	request.EvidenceRef, request.ObservedAt = strings.TrimSpace(request.EvidenceRef), strings.TrimSpace(request.ObservedAt)
+	if !idempotencyPattern.MatchString(request.IdempotencyKey) || !identifierPattern.MatchString(request.EvidenceRef) {
+		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation identity is invalid", ErrInvalid)
+	}
+	observedAt, err := time.Parse(time.RFC3339Nano, request.ObservedAt)
+	if err != nil || observedAt.After(s.cfg.Now().UTC()) {
+		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation observedAt is invalid", ErrInvalid)
+	}
+	values := make([]uint64, 4)
+	for i, raw := range []string{request.Locked, request.Burned, request.Minted, request.Released} {
+		values[i], err = strconv.ParseUint(strings.TrimSpace(raw), 10, 64)
+		if err != nil {
+			return Reconciliation{}, false, fmt.Errorf("%w: reconciliation amounts must be uint64 decimal strings", ErrInvalid)
+		}
+	}
+	locked, burned, minted, released := values[0], values[1], values[2], values[3]
+	if burned > minted || released > locked {
+		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation would produce negative supply or reserve", ErrInvalid)
+	}
+	key := routeKey(request.SourceChain, request.DestinationChain, request.SourceAsset, request.DestinationAsset)
+	policy, ok := s.policies[key]
+	if !ok {
+		return Reconciliation{}, false, fmt.Errorf("%w: reconciliation route is not allowed", ErrInvalid)
+	}
+	outstanding, reserve := minted-burned, locked-released
+	difference := outstanding
+	if reserve >= outstanding {
+		difference = reserve - outstanding
+	} else {
+		difference = outstanding - reserve
+	}
+	record := Reconciliation{Route: policy, Locked: strconv.FormatUint(locked, 10), Burned: strconv.FormatUint(burned, 10), Minted: strconv.FormatUint(minted, 10), Released: strconv.FormatUint(released, 10), OutstandingSupply: strconv.FormatUint(outstanding, 10), ReserveBacking: strconv.FormatUint(reserve, 10), Difference: strconv.FormatUint(difference, 10), Balanced: difference == 0, EvidenceRef: request.EvidenceRef, ObservedAt: observedAt.UTC().Format(timeFormat), RecordedAt: s.cfg.Now().UTC().Format(timeFormat), Source: "operator-submitted-evidence", Verification: "reference-recorded-not-independently-verified"}
+	digest := digestJSON(request)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if existing, exists := s.state.MutationIdempotency[request.IdempotencyKey]; exists {
+		if existing.Digest != digest || existing.TransferID != key {
+			return Reconciliation{}, false, fmt.Errorf("%w: mutation key reused with changed input", ErrConflict)
+		}
+		return s.state.Reconciliations[key], true, nil
+	}
+	before := cloneState(s.state)
+	s.state.Reconciliations[key] = record
+	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: key}
+	appendAudit(&s.state, record.RecordedAt, "reconciliation_recorded", key, digest)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		s.state = before
+		return Reconciliation{}, false, err
+	}
+	return record, false, nil
+}
+
+func (s *Service) Transparency() Transparency {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := Transparency{SchemaVersion: 1, Source: "ynx-bridge-coordinator", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "coordinator-state-plus-operator-reconciliation-references", LiveBridge: false, ExternalSubmissionEnabled: false, Safety: s.state.Safety, Routes: []RouteExposure{}}
+	keys := make([]string, 0, len(s.policies))
+	for key := range s.policies {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		entry := RouteExposure{Route: s.policies[key], CoordinatorOutstanding: "0"}
+		var amount uint64
+		for _, transfer := range s.state.Transfers {
+			if routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset) != key || transfer.Phase == "destination_confirmed" || transfer.Phase == "refund_recovery" {
+				continue
+			}
+			value, _ := strconv.ParseUint(transfer.Amount, 10, 64)
+			amount += value
+			entry.TransferCount++
+		}
+		entry.CoordinatorOutstanding = strconv.FormatUint(amount, 10)
+		if reconciliation, ok := s.state.Reconciliations[key]; ok {
+			copy := reconciliation
+			entry.LastReconciliation = &copy
+		}
+		result.Routes = append(result.Routes, entry)
+	}
+	return result
+}
+
 func (s *Service) Get(transferID string) (Transfer, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -486,12 +573,60 @@ func (s *Service) validateStateLocked() (bool, error) {
 			return false, errors.New("bridge source-event index is inconsistent")
 		}
 	}
+	allowedPhases := map[string]bool{"source_submitted": true, "source_accepted": true, "source_finalized": true, "proof_attestation": true, "destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true}
+	exposure := map[string]uint64{}
 	for _, transfer := range s.state.Transfers {
 		if transfer.ExternalSubmissionEnabled || transfer.RequiredAttestations != s.cfg.Threshold {
 			return false, errors.New("bridge persisted transfer violates current safety policy")
 		}
-		if _, ok := s.policies[routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset)]; !ok {
+		key := routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset)
+		if _, ok := s.policies[key]; !ok {
 			return false, errors.New("bridge persisted transfer uses an unsupported route")
+		}
+		if !allowedPhases[transfer.Phase] {
+			return false, errors.New("bridge persisted transfer has an invalid lifecycle phase")
+		}
+		amount, err := strconv.ParseUint(transfer.Amount, 10, 64)
+		if err != nil || amount == 0 {
+			return false, errors.New("bridge persisted transfer amount is invalid")
+		}
+		if transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" {
+			if ^uint64(0)-exposure[key] < amount {
+				return false, errors.New("bridge persisted route exposure overflows")
+			}
+			exposure[key] += amount
+			if exposure[key] > s.maxOutstanding[key] {
+				return false, errors.New("bridge persisted route exposure exceeds policy")
+			}
+		}
+	}
+	for key, record := range s.state.Reconciliations {
+		policy, ok := s.policies[key]
+		if !ok || routeKey(record.Route.SourceChain, record.Route.DestinationChain, record.Route.SourceAsset, record.Route.DestinationAsset) != key || routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset) != key {
+			return false, errors.New("bridge reconciliation uses an unsupported route")
+		}
+		values := make([]uint64, 7)
+		for i, raw := range []string{record.Locked, record.Burned, record.Minted, record.Released, record.OutstandingSupply, record.ReserveBacking, record.Difference} {
+			value, err := strconv.ParseUint(raw, 10, 64)
+			if err != nil {
+				return false, errors.New("bridge reconciliation amount is invalid")
+			}
+			values[i] = value
+		}
+		if values[1] > values[2] || values[3] > values[0] || values[4] != values[2]-values[1] || values[5] != values[0]-values[3] {
+			return false, errors.New("bridge reconciliation accounting is inconsistent")
+		}
+		difference := values[4]
+		if values[5] >= values[4] {
+			difference = values[5] - values[4]
+		} else {
+			difference = values[4] - values[5]
+		}
+		if values[6] != difference || record.Balanced != (difference == 0) || record.Source != "operator-submitted-evidence" || record.Verification != "reference-recorded-not-independently-verified" {
+			return false, errors.New("bridge reconciliation truth boundary is invalid")
+		}
+		if _, err := time.Parse(time.RFC3339Nano, record.ObservedAt); err != nil {
+			return false, errors.New("bridge reconciliation observed time is invalid")
 		}
 	}
 	return true, nil

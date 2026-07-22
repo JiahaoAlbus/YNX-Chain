@@ -23,6 +23,7 @@ type persistentState struct {
 	FinalizeIdempotency map[string]idempotencyRecord `json:"finalizeIdempotency"`
 	MutationIdempotency map[string]idempotencyRecord `json:"mutationIdempotency"`
 	Safety              SafetyState                  `json:"safety"`
+	Reconciliations     map[string]Reconciliation    `json:"reconciliations,omitempty"`
 	Audit               []AuditEvent                 `json:"audit"`
 	Integrity           string                       `json:"integrity"`
 }
@@ -65,7 +66,7 @@ type legacyStateV1 struct {
 func newPersistentState() persistentState {
 	return persistentState{
 		SchemaVersion: SchemaVersion, Transfers: map[string]Transfer{}, SourceEvents: map[string]string{},
-		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{},
+		CreateIdempotency: map[string]idempotencyRecord{}, FinalizeIdempotency: map[string]idempotencyRecord{}, MutationIdempotency: map[string]idempotencyRecord{}, Reconciliations: map[string]Reconciliation{}, Audit: []AuditEvent{},
 	}
 }
 
@@ -94,6 +95,9 @@ func loadState(path string) (persistentState, error) {
 		return persistentState{}, errors.New("bridge state integrity mismatch")
 	}
 	state.Integrity = got
+	if state.Reconciliations == nil {
+		state.Reconciliations = map[string]Reconciliation{}
+	}
 	if err := validateAuditChain(state.Audit); err != nil {
 		return persistentState{}, err
 	}

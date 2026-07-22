@@ -364,6 +364,57 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 	}
 }
 
+func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.T) {
+	b := newTestBridge(t)
+	request := ReconciliationRequest{IdempotencyKey: "reconcile-route-001", SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc", Locked: "700", Burned: "100", Minted: "900", Released: "300", EvidenceRef: "report:operator-cycle-001", ObservedAt: b.now.Add(-time.Minute).Format(time.RFC3339Nano)}
+	record, replayed, err := b.service.Reconcile(request)
+	// The supplied observations intentionally expose a mismatch; they must not be labeled balanced.
+	if err != nil || replayed || record.Balanced || record.OutstandingSupply != "800" || record.ReserveBacking != "400" || record.Difference != "400" {
+		t.Fatalf("unexpected reconciliation: %+v replay=%v err=%v", record, replayed, err)
+	}
+	if record.Source != "operator-submitted-evidence" || record.Verification != "reference-recorded-not-independently-verified" {
+		t.Fatalf("reconciliation source overclaim: %+v", record)
+	}
+	if _, replayed, err = b.service.Reconcile(request); err != nil || !replayed {
+		t.Fatalf("reconciliation replay failed: replay=%v err=%v", replayed, err)
+	}
+	changed := request
+	changed.Locked = "701"
+	if _, _, err := b.service.Reconcile(changed); !errors.Is(err, ErrConflict) {
+		t.Fatalf("changed reconciliation replay accepted: %v", err)
+	}
+	invalid := request
+	invalid.IdempotencyKey = "reconcile-route-002"
+	invalid.Burned = "901"
+	if _, _, err := b.service.Reconcile(invalid); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("negative supply reconciliation accepted: %v", err)
+	}
+
+	transparency := b.service.Transparency()
+	if transparency.LiveBridge || transparency.ExternalSubmissionEnabled || transparency.Source != "ynx-bridge-coordinator" || len(transparency.Routes) != 1 || transparency.Routes[0].LastReconciliation == nil {
+		t.Fatalf("bad transparency: %+v", transparency)
+	}
+	server := httptest.NewServer(NewServer(b.service).Handler())
+	defer server.Close()
+	var public Transparency
+	doJSON(t, http.MethodGet, server.URL+"/bridge/transparency", "", nil, http.StatusOK, &public)
+	if public.Routes[0].LastReconciliation.Verification != "reference-recorded-not-independently-verified" {
+		t.Fatalf("public reconciliation overclaim: %+v", public)
+	}
+	tampered := cloneState(b.service.state)
+	for key, reconciliation := range tampered.Reconciliations {
+		reconciliation.Difference = "0"
+		reconciliation.Balanced = true
+		tampered.Reconciliations[key] = reconciliation
+	}
+	if err := saveState(b.state, &tampered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "accounting is inconsistent") && !strings.Contains(err.Error(), "truth boundary is invalid") {
+		t.Fatalf("resealed inconsistent reconciliation accepted: %v", err)
+	}
+}
+
 func doJSON(t *testing.T, method, url, key string, body any, expected int, target any) {
 	t.Helper()
 	var reader io.Reader
