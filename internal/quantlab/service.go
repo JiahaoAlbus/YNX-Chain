@@ -117,6 +117,9 @@ type RiskLimits struct {
 }
 type Mandate struct {
 	Account, StrategyHash, Market          string
+	ProductID, BundleID, DeviceID          string
+	NonceDomain, Scope                     string
+	Nonce                                  uint64
 	MaxNotional, MaxPosition, MaxDailyLoss int64
 	ExpiresAt                              time.Time
 	WalletSignature, Digest                string
@@ -218,15 +221,22 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	m.Account = strings.TrimSpace(m.Account)
 	m.StrategyHash = strings.ToLower(strings.TrimSpace(m.StrategyHash))
 	m.Market = strings.TrimSpace(m.Market)
-	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" || m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || !m.ExpiresAt.After(now) || m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
+	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" ||
+		m.ProductID != ProductID || len(strings.TrimSpace(m.BundleID)) < 3 || len(strings.TrimSpace(m.DeviceID)) < 3 ||
+		m.NonceDomain != "ynx-quant-testnet-v1" || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
+		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || !m.ExpiresAt.After(now) ||
+		m.ExpiresAt.After(now.Add(24*time.Hour)) || strings.TrimSpace(m.WalletSignature) == "" {
 		return Mandate{}, ErrInvalid
 	}
 	m.Digest = hash(struct {
 		Account, StrategyHash, Market          string
+		ProductID, BundleID, DeviceID          string
+		NonceDomain, Scope                     string
+		Nonce                                  uint64
 		MaxNotional, MaxPosition, MaxDailyLoss int64
 		ExpiresAt                              time.Time
 		TestnetOnly                            bool
-	}{m.Account, m.StrategyHash, m.Market, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.ExpiresAt, m.TestnetOnly})
+	}{m.Account, m.StrategyHash, m.Market, m.ProductID, m.BundleID, m.DeviceID, m.NonceDomain, m.Scope, m.Nonce, m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.ExpiresAt, m.TestnetOnly})
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
@@ -269,7 +279,22 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if !ok || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) {
 		return TestnetOrder{}, ErrForbidden
 	}
-	if price*amount/1_000_000 > m.MaxNotional || amount > m.MaxPosition {
+	position := int64(0)
+	for _, existing := range s.state.TestnetOrders {
+		if existing.MandateDigest != mandateDigest || existing.Status != "submitted_testnet" {
+			continue
+		}
+		if existing.Side == "buy" {
+			position += existing.Amount
+		} else {
+			position -= existing.Amount
+		}
+	}
+	signedAmount := amount
+	if side == "sell" {
+		signedAmount = -amount
+	}
+	if price*amount/1_000_000 > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
 		return TestnetOrder{}, ErrForbidden
 	}
 	d := hash(struct {

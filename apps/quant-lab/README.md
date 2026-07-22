@@ -63,3 +63,9 @@ Every later transition requires an independent risk approval and a SHA-256
 evidence digest. Entry into bounded Testnet additionally requires a current,
 unrevoked Wallet mandate for the exact strategy hash. Mandate revocation is
 immediate, persistent, idempotent, and blocks later submission.
+
+Mandates also bind the canonical product ID, bundle, device, nonce domain,
+single-purpose execution scope, and nonzero nonce. Wrong product/bundle/device,
+scope widening, nonce-domain substitution, expiry, replay, revoke, per-order
+notional, and cumulative position fail closed. The local verifier remains a test
+interface; canonical Wallet/Gateway integration is still false.

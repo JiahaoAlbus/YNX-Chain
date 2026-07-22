@@ -23,6 +23,10 @@ func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
 	return "committed-ynx-testnet-proof", nil
 }
 
+func validMandate(now time.Time, strategyHash string) Mandate {
+	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+}
+
 func bars() []Bar {
 	r := make([]Bar, 48)
 	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -99,7 +103,7 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	m := validMandate(now, strings.Repeat("a", 64))
 	m, e = s.RegisterMandate(m)
 	if e != nil {
 		t.Fatal(e)
@@ -118,16 +122,41 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 3_000_000, "bounded-order-2"); e != ErrForbidden {
 		t.Fatalf("limit=%v", e)
 	}
+	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_500_000, "bounded-order-aggregate"); e != ErrForbidden {
+		t.Fatalf("aggregate position=%v", e)
+	}
 	now = now.Add(2 * time.Hour)
 	if _, e = s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1, "bounded-order-3"); e != ErrForbidden {
 		t.Fatalf("expiry=%v", e)
 	}
 }
 
+func TestMandateRejectsWrongProductBundleDeviceScopeAndNonce(t *testing.T) {
+	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }, MandateVerifier: allowMandate{}})
+	base := validMandate(now, strings.Repeat("a", 64))
+	cases := []func(*Mandate){
+		func(m *Mandate) { m.ProductID = "wrong-product" },
+		func(m *Mandate) { m.BundleID = "" },
+		func(m *Mandate) { m.DeviceID = "" },
+		func(m *Mandate) { m.Scope = "quant:*" },
+		func(m *Mandate) { m.NonceDomain = "wallet-global" },
+		func(m *Mandate) { m.Nonce = 0 },
+	}
+	for index, mutate := range cases {
+		candidate := base
+		mutate(&candidate)
+		if _, err := s.RegisterMandate(candidate); err != ErrInvalid {
+			t.Fatalf("case %d=%v", index, err)
+		}
+	}
+}
+
 func TestMandateAndBrokerUnavailableFailClosed(t *testing.T) {
 	now := time.Now().UTC()
 	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
-	m := Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 1, MaxPosition: 1, MaxDailyLoss: 1, ExpiresAt: now.Add(time.Hour), WalletSignature: "proof", TestnetOnly: true}
+	m := validMandate(now, strings.Repeat("a", 64))
+	m.MaxNotional, m.MaxPosition, m.MaxDailyLoss, m.WalletSignature = 1, 1, 1, "proof"
 	if _, e := s.RegisterMandate(m); e != ErrUnavailable {
 		t.Fatalf("verifier=%v", e)
 	}
@@ -155,7 +184,7 @@ func TestLifecycleCannotSkipRiskEvidenceOrWalletMandate(t *testing.T) {
 	if _, err = s.AdvanceStrategy(experiment.Strategy.ID, LifecycleApproval{TargetStage: StageBoundedTestnet, RiskApproved: true, EvidenceDigest: digest, Actor: "risk-operator"}); err != ErrForbidden {
 		t.Fatalf("missing mandate=%v", err)
 	}
-	m, err := s.RegisterMandate(Mandate{Account: "ynx1test", StrategyHash: experiment.Strategy.StrategyHash, Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true})
+	m, err := s.RegisterMandate(validMandate(now, experiment.Strategy.StrategyHash))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,7 +197,7 @@ func TestMandateRevocationIsImmediatePersistentAndIdempotent(t *testing.T) {
 	now := time.Date(2026, 7, 22, 0, 0, 0, 0, time.UTC)
 	path := filepath.Join(t.TempDir(), "s.json")
 	s, _ := New(Config{StatePath: path, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}})
-	m, err := s.RegisterMandate(Mandate{Account: "ynx1test", StrategyHash: strings.Repeat("a", 64), Market: "YNXT-YUSD_TEST", MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true})
+	m, err := s.RegisterMandate(validMandate(now, strings.Repeat("a", 64)))
 	if err != nil {
 		t.Fatal(err)
 	}

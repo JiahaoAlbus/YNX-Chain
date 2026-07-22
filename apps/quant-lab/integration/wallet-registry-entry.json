@@ -1,11 +1,11 @@
 {
   "schemaVersion": 3,
-  "productId": "quant-lab",
+  "productId": "ynx-quant-lab",
   "displayName": "YNX Quant Lab",
   "reviewState": "pending-review",
   "enabled": false,
   "productClientId": "ynx-quant-lab-v1",
-  "requestingProduct": "quant-lab",
+  "requestingProduct": "ynx-quant-lab",
   "bundleId": "com.ynxweb4.quantlab",
   "callbacks": [
     "ynxquant://wallet-auth/callback"
@@ -14,13 +14,15 @@
     "quant:audit:read",
     "quant:paper",
     "quant:research",
-    "quant:testnet-mandate"
+    "quant:testnet-execute"
   ],
   "maxScopes": 4,
   "productDeviceAlgorithms": [
     "p256-sha256"
   ],
   "sessionDurationSeconds": 300,
+  "mandateNonceDomain": "ynx-quant-testnet-v1",
+  "requiredMandateBindings": ["productId", "bundleId", "deviceId", "account", "strategyHash", "market", "scope", "nonce", "maxNotional", "maxPosition", "maxDailyLoss", "expiresAt", "testnetOnly"],
   "revocationPolicy": {
     "session": true,
     "approval": true,

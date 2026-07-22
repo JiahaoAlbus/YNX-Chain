@@ -1,13 +1,15 @@
 {
   "schemaVersion": 1,
-  "productId": "quant-lab",
+  "productId": "ynx-quant-lab",
   "walletAuthSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "registryEntry": "wallet-registry-entry.json",
   "requiredGatewayRoutes": [
     "POST /v1/wallet/session-challenges",
     "POST /v1/wallet/sessions",
     "POST /v1/sessions/introspect",
-    "POST /v1/wallet/mandates/verify"
+    "POST /v1/wallet/mandates/verify",
+    "POST /v1/wallet/mandates/revoke",
+    "GET /v1/wallet/mandates/{digest}/introspect"
   ],
   "integratedCentral": false,
   "testnetExecutionEnabled": false,
