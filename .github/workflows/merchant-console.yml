@@ -1,0 +1,49 @@
+name: Merchant Console
+
+on:
+  push:
+    branches: [codex/final-merchant-console]
+  pull_request:
+    paths:
+      - "apps/merchant-console/**"
+      - "internal/payproduct/**"
+      - ".github/workflows/merchant-console.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/merchant-console
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/merchant-console/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --audit-level=high
+      - name: Reject runtime placeholders and credential material
+        run: >-
+          ! grep -REin
+          'TODO|FIXME|coming soon|example\.com|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AKIA[0-9A-Z]{16}|sk_live_[A-Za-z0-9]+'
+          src
+
+  backend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./internal/payproduct/...
+      - run: go vet ./internal/payproduct/...
+      - run: go test ./internal/payproduct -run '^$' -fuzz '^FuzzMerchantRBACFailsClosed$' -fuzztime=5s
+      - run: go test ./internal/payproduct -run '^$' -fuzz '^FuzzWebhookSignatureBindsEveryField$' -fuzztime=5s
+      - run: go test ./internal/payproduct -run '^$' -fuzz '^FuzzSettlementEvidenceFailsClosed$' -fuzztime=5s

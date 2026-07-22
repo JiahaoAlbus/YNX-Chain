@@ -63,15 +63,19 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	if err := strictJSON(migrated, &s.data); err != nil {
 		return nil, fmt.Errorf("decode pay product snapshot: %w", err)
 	}
+	if s.data.Version < 1 || s.data.Version > SnapshotVersion {
+		return nil, fmt.Errorf("unsupported pay product snapshot version %d", s.data.Version)
+	}
 	s.normalize()
 	return s, nil
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 1, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
+	return Snapshot{Version: SnapshotVersion, Merchants: map[string]Merchant{}, MerchantMembers: map[string]MerchantMember{}, ConsoleSessions: map[string]MerchantConsoleSession{}, GatewaySeen: map[string]time.Time{}, Catalog: map[string]CatalogItem{}, Invoices: map[string]Invoice{}, Refunds: map[string]RefundRequest{}, Disputes: map[string]Dispute{}, Deliveries: map[string]WebhookDelivery{}, AIRuns: map[string]AIRun{}, Providers: map[string]ProviderConnection{}, Idempotency: map[string]IdempotencyRecord{}, Nonces: map[string]NonceRecord{}, Audit: []AuditEntry{}}
 }
 func (s *Store) normalize() {
 	e := emptySnapshot()
+	s.data.Version = SnapshotVersion
 	if s.data.Merchants == nil {
 		s.data.Merchants = e.Merchants
 	}
@@ -101,6 +105,9 @@ func (s *Store) normalize() {
 	}
 	if s.data.AIRuns == nil {
 		s.data.AIRuns = e.AIRuns
+	}
+	if s.data.Providers == nil {
+		s.data.Providers = e.Providers
 	}
 	if s.data.Idempotency == nil {
 		s.data.Idempotency = e.Idempotency

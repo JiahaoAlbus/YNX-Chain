@@ -1,0 +1,273 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:23859ff5-6ddb-485f-a5be-0347fd9a61ed",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-22T14:29:56.743Z",
+    "lifecycles": [
+      {
+        "phase": "build"
+      }
+    ],
+    "tools": [
+      {
+        "vendor": "npm",
+        "name": "cli",
+        "version": "11.5.1"
+      }
+    ],
+    "component": {
+      "bom-ref": "@ynx-chain/merchant-console@1.0.0",
+      "type": "library",
+      "name": "merchant-console",
+      "version": "1.0.0",
+      "scope": "required",
+      "purl": "pkg:npm/%40ynx-chain/merchant-console@1.0.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "externalReferences": []
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "@esbuild/darwin-arm64@0.25.12",
+      "type": "library",
+      "name": "@esbuild/darwin-arm64",
+      "version": "0.25.12",
+      "scope": "optional",
+      "description": "The macOS ARM 64-bit binary for esbuild, a JavaScript bundler.",
+      "purl": "pkg:npm/%40esbuild/darwin-arm64@0.25.12",
+      "properties": [
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.25.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/evanw/esbuild.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/evanw/esbuild#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/evanw/esbuild/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "377ce5fa5c470a27e022570c50fe74d7a11291e4232e3ffde7d471c4d608b61220f82407227ba316e5de59b58c8274e8e1ca795d51ea14f9a9caef49eb90b562"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@noble/curves@2.2.0",
+      "type": "library",
+      "name": "@noble/curves",
+      "version": "2.2.0",
+      "scope": "required",
+      "author": "Paul Miller",
+      "description": "Audited & minimal JS implementation of elliptic curve cryptography",
+      "purl": "pkg:npm/%40noble/curves@2.2.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@noble/curves/-/curves-2.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/paulmillr/noble-curves.git"
+        },
+        {
+          "type": "website",
+          "url": "https://paulmillr.com/noble/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/paulmillr/noble-curves/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "4ff0681e01578ab6f410d48f06abb35f4adc8d778ce8ba3cf766b68e560992a93cdcba99c7497539fec3ce5289ea3929bccae41d29c07206f925e80bf1278891"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@noble/hashes@2.2.0",
+      "type": "library",
+      "name": "@noble/hashes",
+      "version": "2.2.0",
+      "scope": "required",
+      "author": "Paul Miller",
+      "description": "Audited & minimal 0-dependency JS implementation of SHA, RIPEMD, BLAKE, HMAC, HKDF, PBKDF & Scrypt",
+      "purl": "pkg:npm/%40noble/hashes@2.2.0",
+      "properties": [],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@noble/hashes/-/hashes-2.2.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/paulmillr/noble-hashes.git"
+        },
+        {
+          "type": "website",
+          "url": "https://paulmillr.com/noble/"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/paulmillr/noble-hashes/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "218a831a24d769be859e20209d2759c2059ba26c69cbd16d62f2cab3bc0252cd9af119084c6f831463b50ccf5cafe137fd18000d1a458eb295689d73eac8ed12"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-auth@1.0.0",
+      "type": "library",
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.0.0",
+      "scope": "required",
+      "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
+      "purl": "pkg:npm/%40ynx-chain/wallet-auth@1.0.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:private",
+          "value": "true"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2b56f8e5aadab6ddbf164840af9b20f4ec82065f3b8ca875f5e34127da0b31e2d4f4aa3ccca98792f140cc8a667437fc77a94aec484700e7d37f832074ddcb12"
+        }
+      ]
+    },
+    {
+      "bom-ref": "esbuild@0.25.12",
+      "type": "library",
+      "name": "esbuild",
+      "version": "0.25.12",
+      "scope": "optional",
+      "description": "An extremely fast JavaScript and CSS bundler and minifier.",
+      "purl": "pkg:npm/esbuild@0.25.12",
+      "properties": [
+        {
+          "name": "cdx:npm:package:development",
+          "value": "true"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/evanw/esbuild.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/evanw/esbuild#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/evanw/esbuild/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "6db3c1618aed65b92de8eb3a1624cb093171beae2db7724a6a5975bd1c2c840ddf755cedb0b01ab45699a1b864042f3f06b3deb686b4a24b18a0a5e81b8af226"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "@ynx-chain/merchant-console@1.0.0",
+      "dependsOn": [
+        "@noble/curves@2.2.0",
+        "@ynx-chain/wallet-auth@1.0.0",
+        "esbuild@0.25.12"
+      ]
+    },
+    {
+      "ref": "@esbuild/darwin-arm64@0.25.12",
+      "dependsOn": []
+    },
+    {
+      "ref": "@noble/curves@2.2.0",
+      "dependsOn": [
+        "@noble/hashes@2.2.0"
+      ]
+    },
+    {
+      "ref": "@noble/hashes@2.2.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "@ynx-chain/wallet-auth@1.0.0",
+      "dependsOn": [
+        "@noble/curves@2.2.0",
+        "@noble/hashes@2.2.0"
+      ]
+    },
+    {
+      "ref": "esbuild@0.25.12",
+      "dependsOn": [
+        "@esbuild/darwin-arm64@0.25.12"
+      ]
+    }
+  ]
+}

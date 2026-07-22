@@ -12,7 +12,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-var merchantPermissions = []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members"}
+var merchantPermissions = []string{"read", "invoice", "reconcile", "case", "webhook", "ai-run", "ai-review", "members", "provider-manage", "provider-test"}
 
 func FuzzMerchantRBACFailsClosed(f *testing.F) {
 	for _, role := range []string{"owner", "finance", "developer", "support", "viewer", "", "OWNER", "admin", "owner\x00"} {

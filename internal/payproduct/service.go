@@ -40,6 +40,7 @@ type Config struct {
 	CentralMerchantID string
 	PayAPI            PayAPI
 	AI                AIProvider
+	ProviderProbe     ProviderProbe
 	HTTPClient        *http.Client
 	Now               func() time.Time
 }
@@ -47,6 +48,7 @@ type Service struct {
 	store             *Store
 	pay               PayAPI
 	ai                AIProvider
+	providerProbe     ProviderProbe
 	bootstrap         string
 	publicBase        string
 	centralMerchantID string
@@ -89,7 +91,7 @@ func New(cfg Config) (*Service, error) {
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
+	service := &Service{store: st, pay: cfg.PayAPI, ai: cfg.AI, providerProbe: cfg.ProviderProbe, bootstrap: cfg.BootstrapKey, publicBase: base, centralMerchantID: strings.TrimSpace(cfg.CentralMerchantID), key: append([]byte(nil), cfg.IntegrityKey...), gatewayKey: append([]byte(nil), cfg.GatewayKey...), client: client, now: now, aiCancels: map[string]context.CancelFunc{}}
 	_ = service.store.Update(func(data *Snapshot) error {
 		for id, run := range data.AIRuns {
 			if run.Status == "running" {
@@ -655,6 +657,11 @@ func (s *Service) SnapshotForMerchant(merchantID string) (Snapshot, error) {
 		for k, v := range data.AIRuns {
 			if v.MerchantID == merchantID {
 				out.AIRuns[k] = v
+			}
+		}
+		for k, v := range data.Providers {
+			if v.MerchantID == merchantID {
+				out.Providers[k] = publicProviderConnection(v)
 			}
 		}
 		for _, v := range data.Audit {

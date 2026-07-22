@@ -1,6 +1,6 @@
 # Observability
 
-Current evidence: `/health` reports service, Testnet network, asset, fee and settlement authority; mutations append integrity-protected audit entries; webhook attempts preserve HTTP status and retry state.
+Current evidence: `/health` reports direct process liveness and local-store readability while keeping central Pay and Gateway readiness `unverified`; it no longer emits a fixed success boolean. Provider connection tests persist source/version/coverage/check time/last success/failure code. Mutations append integrity-protected audit entries; webhook attempts preserve HTTP status and retry state.
 
 Required before staging SLO claims:
 

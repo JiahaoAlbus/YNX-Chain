@@ -29,6 +29,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/merchants/onboard", s.onboard)
 	s.mux.HandleFunc("POST /v1/merchant/sessions", s.merchantSession)
 	s.mux.HandleFunc("POST /v1/merchant/members", s.merchantMember)
+	s.mux.HandleFunc("GET /v1/merchant/providers/catalog", s.providerCatalog)
+	s.mux.HandleFunc("PUT /v1/merchant/providers", s.configureProvider)
+	s.mux.HandleFunc("POST /v1/merchant/providers/{id}/test", s.testProvider)
+	s.mux.HandleFunc("POST /v1/merchant/providers/{id}/disable", s.disableProvider)
 	s.mux.HandleFunc("GET /v1/invoices/{id}", s.invoice)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/settlements", s.settlement)
 	s.mux.HandleFunc("POST /v1/invoices/{id}/refund-requests", s.refund)
@@ -41,11 +45,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/merchant/webhooks/{id}/retry", s.retryWebhook)
 	s.mux.HandleFunc("GET /v1/merchant/analytics", s.analytics)
 	s.mux.HandleFunc("GET /v1/merchant/reconciliation.csv", s.exportCSV)
+	s.mux.HandleFunc("GET /v1/merchant/capital", s.capital)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs", s.aiRun)
 	s.mux.HandleFunc("POST /v1/merchant/ai/runs/{id}/review", s.aiReview)
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-pay-product", "network": ChainID, "evmChainId": EVMChainID, "asset": NativeAsset, "feeYnxt": NativeFeeYNXT, "crossChainSettlement": "unavailable", "paidEvidence": "authoritative-central-pay-api"})
+	status := 200
+	storeState := "readable"
+	if err := s.service.store.View(func(Snapshot) error { return nil }); err != nil {
+		status = 503
+		storeState = "unavailable"
+	}
+	writeJSON(w, status, map[string]any{"schemaVersion": 1, "service": "ynx-pay-product", "liveness": "live", "readiness": "unverified", "network": ChainID, "evmChainId": EVMChainID, "asset": NativeAsset, "feeYnxt": NativeFeeYNXT, "stateStore": storeState, "centralPay": "unverified", "canonicalGateway": "unverified", "crossChainSettlement": "unavailable", "paidEvidenceAuthority": "authoritative-central-pay-api", "asOf": s.service.now().UTC(), "source": "direct-process-and-local-store-check"})
 }
 func (s *Server) onboard(w http.ResponseWriter, r *http.Request) {
 	if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-YNX-Bootstrap-Key")), []byte(s.service.bootstrap)) != 1 {
@@ -87,6 +98,41 @@ func (s *Server) merchantMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := s.service.UpsertMerchantMember(p, in.Account, in.Role)
+	respond(w, 200, out, err)
+}
+func (s *Server) providerCatalog(w http.ResponseWriter, r *http.Request) {
+	_, _, ok := s.merchantAuth(w, r, "read")
+	if !ok {
+		return
+	}
+	writeJSON(w, 200, map[string]any{"version": "2026-07-22", "source": "official-provider-documentation", "providers": ProviderCatalog()})
+}
+func (s *Server) configureProvider(w http.ResponseWriter, r *http.Request) {
+	p, body, ok := s.merchantAuth(w, r, "provider-manage")
+	if !ok {
+		return
+	}
+	var in ProviderConnectionInput
+	if !decodeBytes(w, body, &in) {
+		return
+	}
+	out, err := s.service.ConfigureProvider(p, in)
+	respond(w, 200, out, err)
+}
+func (s *Server) testProvider(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "provider-test")
+	if !ok {
+		return
+	}
+	out, err := s.service.TestProvider(r.Context(), p, r.PathValue("id"))
+	respond(w, 200, out, err)
+}
+func (s *Server) disableProvider(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "provider-manage")
+	if !ok {
+		return
+	}
+	out, err := s.service.DisableProvider(p, r.PathValue("id"))
 	respond(w, 200, out, err)
 }
 func (s *Server) invoice(w http.ResponseWriter, r *http.Request) {
@@ -263,6 +309,14 @@ func (s *Server) exportCSV(w http.ResponseWriter, r *http.Request) {
 		_ = cw.Write([]string{v.ID, v.CentralID, v.MerchantID, strconv.FormatInt(v.Amount, 10), strconv.FormatInt(v.Fee, 10), v.Status, tx, block, v.CreatedAt.Format(time.RFC3339), v.ExpiresAt.Format(time.RFC3339)})
 	}
 	cw.Flush()
+}
+func (s *Server) capital(w http.ResponseWriter, r *http.Request) {
+	p, _, ok := s.merchantAuth(w, r, "reconcile")
+	if !ok {
+		return
+	}
+	out, err := s.service.CapitalOverview(p.Merchant.ID)
+	respond(w, 200, out, err)
 }
 func (s *Server) aiRun(w http.ResponseWriter, r *http.Request) {
 	p, body, ok := s.merchantAuth(w, r, "ai-run")

@@ -3,11 +3,12 @@ package payproduct
 import "time"
 
 const (
-	ChainID        = "ynx_6423-1"
-	EVMChainID     = 6423
-	NativeAsset    = "YNXT"
-	NativeFeeYNXT  = int64(1)
-	InvoiceVersion = 1
+	ChainID         = "ynx_6423-1"
+	EVMChainID      = 6423
+	NativeAsset     = "YNXT"
+	NativeFeeYNXT   = int64(1)
+	InvoiceVersion  = 1
+	SnapshotVersion = 2
 )
 
 type Merchant struct {
@@ -162,6 +163,44 @@ type AIRun struct {
 	CreatedAt      time.Time `json:"createdAt"`
 	UpdatedAt      time.Time `json:"updatedAt"`
 }
+
+type ProviderDefinition struct {
+	ID               string   `json:"id"`
+	Category         string   `json:"category"`
+	DisplayName      string   `json:"displayName"`
+	Environments     []string `json:"environments"`
+	Capabilities     []string `json:"capabilities"`
+	Authentication   string   `json:"authentication"`
+	RateLimitPolicy  string   `json:"rateLimitPolicy"`
+	DataRetention    string   `json:"dataRetention"`
+	Jurisdiction     string   `json:"jurisdiction"`
+	DataRights       string   `json:"dataRights"`
+	TermsURL         string   `json:"termsUrl"`
+	DocumentationURL string   `json:"documentationUrl"`
+	Version          string   `json:"version"`
+	Source           string   `json:"source"`
+}
+
+type ProviderConnection struct {
+	ID                  string     `json:"id"`
+	MerchantID          string     `json:"merchantId"`
+	ProviderID          string     `json:"providerId"`
+	Category            string     `json:"category"`
+	Environment         string     `json:"environment"`
+	Capabilities        []string   `json:"capabilities"`
+	Status              string     `json:"status"`
+	Health              string     `json:"health"`
+	HealthSource        string     `json:"healthSource"`
+	HealthVersion       string     `json:"healthVersion"`
+	HealthCoverage      string     `json:"healthCoverage"`
+	LastCheckedAt       *time.Time `json:"lastCheckedAt,omitempty"`
+	LastSuccessAt       *time.Time `json:"lastSuccessAt,omitempty"`
+	LastFailureCode     string     `json:"lastFailureCode,omitempty"`
+	CredentialReference string     `json:"credentialReference"`
+	CredentialVersion   string     `json:"credentialVersion"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	UpdatedAt           time.Time  `json:"updatedAt"`
+}
 type IdempotencyRecord struct {
 	Scope       string    `json:"scope"`
 	Key         string    `json:"key"`
@@ -197,6 +236,7 @@ type Snapshot struct {
 	Disputes        map[string]Dispute                `json:"disputes"`
 	Deliveries      map[string]WebhookDelivery        `json:"deliveries"`
 	AIRuns          map[string]AIRun                  `json:"aiRuns"`
+	Providers       map[string]ProviderConnection     `json:"providers"`
 	Idempotency     map[string]IdempotencyRecord      `json:"idempotency"`
 	Nonces          map[string]NonceRecord            `json:"nonces"`
 	Audit           []AuditEntry                      `json:"audit"`
