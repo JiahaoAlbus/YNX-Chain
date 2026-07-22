@@ -1,0 +1,13 @@
+# YNX StreamBFT Candidate
+
+Status: implemented and tested locally as a shadow candidate. CometBFT v0.38.23 remains the only accepted safety baseline and the public network is not running StreamBFT.
+
+The candidate separates data availability from ordering. Multiple workers form canonical DAG batches; a batch becomes orderable only after Ed25519 votes representing more than two thirds of validator power bind its digest. Ordering uses deterministic leader rotation, domain-separated quorum certificates, a persistent HotStuff locked-QC voting rule, a three-certified-chain commit predicate, and an asynchronous fallback certificate domain. Aggregate or threshold signatures are not trusted by this version; Ed25519 verification is the required fallback.
+
+Proposal construction assigns every transaction to one of nine fixed semantic lanes. Consensus/governance, oracle/bridge/risk, liquidation, cancel, trading, pay/stable settlement, EVM, service settlement, and bulk commitment each receive independent capacity and minimum fees. Canonical sorting guarantees cancellation precedes new trading orders. Saturation of General EVM cannot consume the consensus/recovery or pay lane budget.
+
+Execution validates explicit sorted access sets, schedules non-conflicting work concurrently, commits writes in deterministic dependency waves, meters compute/storage/bandwidth/state growth, and computes the state root over length-delimited sorted keys. The same block is also executable through an explicit sequential path. Worker-count differential tests require the parallel and sequential state roots to match.
+
+The default candidate mode is disabled. Shadow mode may compare proposals, results, latency, and recovery against CometBFT without voting or changing authoritative state. Canary mode fails closed unless formal safety, differential replay, state-root, 4/7/13/21-validator, at least three-region WAN, Byzantine, partition/loss, state-sync/restore, soak, rollback, and composite bake-off evidence are all true. This gate is deliberately not satisfied by the current repository evidence.
+
+The finite TLA+ model under `docs/formal/streambft` specifies honest non-equivocation, locked voting, quorum formation, and quorum intersection for four validators with one Byzantine validator. Local Go tests additionally verify 3/4 acceptance, 2/4 rejection, equivocation rejection, deterministic proposal order, bounded adaptive timeouts, resource-overflow rejection, lane isolation, and sequential/parallel state-root equivalence. A TLC/Apalache run artifact and expanded fault/validator/WAN/soak evidence remain required before canary eligibility can become true.
