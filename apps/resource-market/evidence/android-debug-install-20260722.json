@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "productId": "ynx-resource-market-v1",
   "evidenceClass": "local-android-debug-emulator-install",
-  "sourceCommit": null,
-  "workingTreeDirty": true,
+  "sourceCommit": "beca120f3e5e9552f7d9f1bc62aac217f6026b33",
+  "workingTreeDirty": false,
   "generatedAt": "2026-07-23T00:08:00+08:00",
   "build": {
     "command": "ANDROID_HOME=$HOME/Library/Android/sdk ANDROID_SDK_ROOT=$HOME/Library/Android/sdk ./gradlew --no-daemon clean assembleDebug",
@@ -61,6 +61,6 @@
     "The Android native surface exposes fail-closed authority quote/intent controls and does not prove feature parity with the full provider/buyer Web workspace.",
     "Legacy challenge controls were removed. The client implements the canonical SDK response callback, central challenge request, Android Keystore device proof, completion envelope and fresh replay-resistant per-request Product Session proofs; live completion remains unavailable until central challenge/completion routes are merged and a Wallet handler is installed.",
     "The configured emulator gateway is local and no authoritative central or public settlement call was proven.",
-    "The candidate source tree was dirty and had no final source commit, so this is not final release provenance."
+    "The APK is bound to source candidate beca120f3e5e9552f7d9f1bc62aac217f6026b33, but remains a local debug artifact rather than final release provenance."
   ]
 }

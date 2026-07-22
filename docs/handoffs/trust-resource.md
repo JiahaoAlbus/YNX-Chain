@@ -3,7 +3,7 @@
 ## Candidate identity and truth boundary
 
 - Branch: `codex/final-resource-market`
-- Source candidate: uncommitted recovery and implementation candidate
+- Source candidate: `beca120f3e5e9552f7d9f1bc62aac217f6026b33`
 - Baseline retained: `c7e4445598a74e60aa0ed05b9580790527bf71be`
 - Verification date: 2026-07-22, Asia/Shanghai
 

@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "recordedAt": "2026-07-23T00:17:00+08:00",
   "scope": "local dirty candidate; not release or public artifact evidence",
-  "sourceCommit": null,
-  "workingTreeDirty": true,
+  "sourceCommit": "beca120f3e5e9552f7d9f1bc62aac217f6026b33",
+  "workingTreeDirty": false,
   "toolchains": {
     "go": "go1.25.12 darwin/arm64",
     "govulncheck": "v1.1.4",
@@ -32,7 +32,7 @@
   "knownLimitations": [
     "The host default Go 1.25.7 toolchain is vulnerable and must not build release artifacts.",
     "CI is configured for Go 1.25.12 but no remote CI run is yet recorded.",
-    "The matching binary hash is not source-commit-bound and is not a distributable release artifact.",
+    "The matching binary hash is source-candidate-bound but is not a distributable release artifact.",
     "No container scan applies because this product candidate does not currently ship a container image."
   ]
 }

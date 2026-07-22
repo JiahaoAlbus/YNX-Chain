@@ -1,6 +1,6 @@
 # Feature completion evidence
 
-Evidence date: 2026-07-22. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. The candidate is still a dirty working tree, so none of this evidence is release evidence yet.
+Evidence date: 2026-07-22. Baseline commit: `c7e4445598a74e60aa0ed05b9580790527bf71be`. Source candidate: `beca120f3e5e9552f7d9f1bc62aac217f6026b33`. Local evidence is source-candidate-bound but remains nonpublic candidate evidence.
 
 | Requirement | Current result | Direct evidence | Remaining proof |
 | --- | --- | --- | --- |
