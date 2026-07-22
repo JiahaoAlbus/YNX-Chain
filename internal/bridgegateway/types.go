@@ -28,15 +28,20 @@ var (
 )
 
 type RoutePolicy struct {
-	SourceChain        string `json:"sourceChain"`
-	DestinationChain   string `json:"destinationChain"`
-	SourceAsset        string `json:"sourceAsset"`
-	DestinationAsset   string `json:"destinationAsset"`
-	MinConfirmations   uint64 `json:"minConfirmations"`
-	MaxAmount          string `json:"maxAmount"`
-	MaxOutstanding     string `json:"maxOutstanding"`
-	AssetBoundary      string `json:"assetBoundary"`
-	ExternalSubmission bool   `json:"externalSubmission"`
+	Provider                  string `json:"provider,omitempty"`
+	SourceChain               string `json:"sourceChain"`
+	DestinationChain          string `json:"destinationChain"`
+	SourceAsset               string `json:"sourceAsset"`
+	DestinationAsset          string `json:"destinationAsset"`
+	MinConfirmations          uint64 `json:"minConfirmations"`
+	MaxAmount                 string `json:"maxAmount"`
+	MaxOutstanding            string `json:"maxOutstanding"`
+	DailyLimit                string `json:"dailyLimit,omitempty"`
+	UserOutstandingLimit      string `json:"userOutstandingLimit,omitempty"`
+	LargeTransferThreshold    string `json:"largeTransferThreshold,omitempty"`
+	LargeTransferDelaySeconds uint64 `json:"largeTransferDelaySeconds,omitempty"`
+	AssetBoundary             string `json:"assetBoundary"`
+	ExternalSubmission        bool   `json:"externalSubmission"`
 }
 
 type Config struct {
@@ -88,11 +93,12 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	for i := range c.Policies {
 		policy := &c.Policies[i]
 		policy.SourceChain = normalizeName(policy.SourceChain)
+		policy.Provider = normalizeName(policy.Provider)
 		policy.DestinationChain = normalizeName(policy.DestinationChain)
 		policy.SourceAsset = normalizeAsset(policy.SourceAsset)
 		policy.DestinationAsset = normalizeAsset(policy.DestinationAsset)
 		policy.AssetBoundary = strings.ToLower(strings.TrimSpace(policy.AssetBoundary))
-		if !identifierPattern.MatchString(policy.SourceChain) || !identifierPattern.MatchString(policy.DestinationChain) || !identifierPattern.MatchString(policy.SourceAsset) || !identifierPattern.MatchString(policy.DestinationAsset) {
+		if !identifierPattern.MatchString(policy.Provider) || !identifierPattern.MatchString(policy.SourceChain) || !identifierPattern.MatchString(policy.DestinationChain) || !identifierPattern.MatchString(policy.SourceAsset) || !identifierPattern.MatchString(policy.DestinationAsset) {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d identity is invalid", i)
 		}
 		if policy.SourceChain == policy.DestinationChain || policy.MinConfirmations == 0 || policy.ExternalSubmission {
@@ -114,6 +120,33 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 			}
 		}
 		policy.MaxOutstanding = strconv.FormatUint(outstanding, 10)
+		daily := outstanding
+		if strings.TrimSpace(policy.DailyLimit) != "" {
+			daily, err = strconv.ParseUint(strings.TrimSpace(policy.DailyLimit), 10, 64)
+			if err != nil || daily == 0 {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d dailyLimit is invalid", i)
+			}
+		}
+		policy.DailyLimit = strconv.FormatUint(daily, 10)
+		userLimit := outstanding
+		if strings.TrimSpace(policy.UserOutstandingLimit) != "" {
+			userLimit, err = strconv.ParseUint(strings.TrimSpace(policy.UserOutstandingLimit), 10, 64)
+			if err != nil || userLimit == 0 {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d userOutstandingLimit is invalid", i)
+			}
+		}
+		policy.UserOutstandingLimit = strconv.FormatUint(userLimit, 10)
+		largeThreshold := maximum
+		if strings.TrimSpace(policy.LargeTransferThreshold) != "" {
+			largeThreshold, err = strconv.ParseUint(strings.TrimSpace(policy.LargeTransferThreshold), 10, 64)
+			if err != nil || largeThreshold == 0 || largeThreshold > maximum {
+				return Config{}, nil, fmt.Errorf("bridge route policy %d largeTransferThreshold is invalid", i)
+			}
+		}
+		if largeThreshold < maximum && policy.LargeTransferDelaySeconds == 0 {
+			return Config{}, nil, fmt.Errorf("bridge route policy %d largeTransferDelaySeconds is required", i)
+		}
+		policy.LargeTransferThreshold = strconv.FormatUint(largeThreshold, 10)
 		key := routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset)
 		if _, exists := maxAmounts[key]; exists {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d is duplicated", i)
@@ -244,6 +277,8 @@ type Transfer struct {
 	UpdatedAt                 string                 `json:"updatedAt"`
 	FinalizationID            string                 `json:"finalizationId,omitempty"`
 	FinalizedAt               string                 `json:"finalizedAt,omitempty"`
+	NotBefore                 string                 `json:"notBefore,omitempty"`
+	LargeTransferDelayApplied bool                   `json:"largeTransferDelayApplied,omitempty"`
 	OutcomeEvidenceRef        string                 `json:"outcomeEvidenceRef,omitempty"`
 	FailureReasonCode         string                 `json:"failureReasonCode,omitempty"`
 	PreviousPhase             string                 `json:"previousPhase,omitempty"`
@@ -272,6 +307,13 @@ type AuditEvent struct {
 }
 
 func normalizeName(value string) string { return strings.ToLower(strings.TrimSpace(value)) }
+func normalizeAccount(value string) string {
+	value = strings.TrimSpace(value)
+	if strings.HasPrefix(strings.ToLower(value), "0x") || strings.HasPrefix(strings.ToLower(value), "ynx1") {
+		return strings.ToLower(value)
+	}
+	return value
+}
 func normalizeAsset(value string) string {
 	value = strings.TrimSpace(value)
 	if strings.EqualFold(value, "YNXT") {

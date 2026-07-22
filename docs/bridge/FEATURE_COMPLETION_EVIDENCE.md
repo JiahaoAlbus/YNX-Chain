@@ -9,7 +9,7 @@ Status date: 2026-07-22.
 | Persistent transfer coordinator | true | true | false | false | false | false |
 | Relayer quorum and replay rejection | true | true | false | false | false | false |
 | Lifecycle, failure, retry, recovery, dispute | true | true | false | false | false | false |
-| Pause/resume and route exposure limits | true | true | false | false | false | false |
+| Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
 | External source submission | false | false | false | false | false | false |
 | Destination mint or release execution | false | false | false | false | false | false |

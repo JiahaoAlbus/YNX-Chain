@@ -26,6 +26,7 @@ type testBridge struct {
 	private map[string]ed25519.PrivateKey
 	state   string
 	now     time.Time
+	clock   *time.Time
 }
 
 func newTestBridge(t *testing.T) *testBridge {
@@ -44,8 +45,9 @@ func newTestBridge(t *testing.T) *testBridge {
 	cfg := Config{
 		StatePath: state, APIKey: testAPIKey, Relayers: public, Threshold: 2,
 		Policies: []RoutePolicy{{
+			Provider:    "local-test-provider",
 			SourceChain: "ethereum-sepolia", DestinationChain: "ynx_6423-1", SourceAsset: "sepolia-usdc", DestinationAsset: "ynx-usdc",
-			MinConfirmations: 12, MaxAmount: "1000", AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
+			MinConfirmations: 12, MaxAmount: "1000", MaxOutstanding: "1000", DailyLimit: "2000", UserOutstandingLimit: "1000", LargeTransferThreshold: "500", LargeTransferDelaySeconds: 3600, AssetBoundary: "canonical-to-represented", ExternalSubmission: false,
 		}},
 		Now: func() time.Time { return now },
 	}
@@ -53,7 +55,7 @@ func newTestBridge(t *testing.T) *testBridge {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &testBridge{service: service, cfg: cfg, private: private, state: state, now: now}
+	return &testBridge{service: service, cfg: cfg, private: private, state: state, now: now, clock: &now}
 }
 
 func validCreate(key string) CreateTransferRequest {
@@ -240,7 +242,7 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
@@ -295,6 +297,7 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	if err != nil || second.Transfer.Phase != "source_finalized" {
 		t.Fatalf("source finalized phase: %+v %v", second, err)
 	}
+	*b.clock = b.now.Add(time.Hour)
 	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "proof-finalize-001"})
 	if err != nil || proof.Transfer.Phase != "proof_attestation" {
 		t.Fatalf("proof phase: %+v %v", proof, err)
@@ -413,6 +416,72 @@ func TestBridgeReconciliationAndPublicTransparencyAreSourceQualified(t *testing.
 	if _, err := New(b.cfg); err == nil || !strings.Contains(err.Error(), "accounting is inconsistent") && !strings.Contains(err.Error(), "truth boundary is invalid") {
 		t.Fatalf("resealed inconsistent reconciliation accepted: %v", err)
 	}
+}
+
+func TestBridgeDailyUserAndLargeTransferControls(t *testing.T) {
+	t.Run("large transfer delay", func(t *testing.T) {
+		b := newTestBridge(t)
+		request := validCreate("large-delay-create-001")
+		request.Amount = "600"
+		created, err := b.service.CreateTransfer(request)
+		if err != nil || !created.Transfer.LargeTransferDelayApplied || created.Transfer.NotBefore == "" {
+			t.Fatalf("large delay not applied: %+v %v", created, err)
+		}
+		block := "0x" + strings.Repeat("c", 64)
+		if _, err = b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-a", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = b.service.AddAttestation(created.Transfer.ID, b.signedAttestation(t, created.Transfer, "relayer-b", block, 12)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "delay has not elapsed") {
+			t.Fatalf("early large finalize accepted: %v", err)
+		}
+		*b.clock = b.now.Add(time.Hour)
+		if result, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); err != nil || result.Transfer.Phase != "proof_attestation" {
+			t.Fatalf("elapsed large finalize failed: %+v %v", result, err)
+		}
+	})
+	t.Run("user and daily limits", func(t *testing.T) {
+		b := newTestBridge(t)
+		b.cfg.Policies[0].MaxOutstanding = "5000"
+		b.cfg.Policies[0].DailyLimit = "1500"
+		b.cfg.Policies[0].UserOutstandingLimit = "700"
+		service, err := New(b.cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b.service = service
+		first := validCreate("limit-user-first-001")
+		first.Amount = "600"
+		if _, err = b.service.CreateTransfer(first); err != nil {
+			t.Fatal(err)
+		}
+		sameUser := validCreate("limit-user-second-001")
+		sameUser.SourceTxHash = "0x" + strings.Repeat("d", 64)
+		sameUser.SourceEventIndex = 8
+		sameUser.Amount = "200"
+		sameUser.Sender = "0x" + strings.Repeat("B", 40)
+		if _, err = b.service.CreateTransfer(sameUser); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "user outstanding limit") {
+			t.Fatalf("user limit not enforced: %v", err)
+		}
+		second := validCreate("limit-daily-second-001")
+		second.SourceTxHash = "0x" + strings.Repeat("e", 64)
+		second.SourceEventIndex = 9
+		second.Sender = "0x" + strings.Repeat("c", 40)
+		second.Amount = "700"
+		if _, err = b.service.CreateTransfer(second); err != nil {
+			t.Fatal(err)
+		}
+		daily := validCreate("limit-daily-third-001")
+		daily.SourceTxHash = "0x" + strings.Repeat("f", 64)
+		daily.SourceEventIndex = 10
+		daily.Sender = "0x" + strings.Repeat("d", 40)
+		daily.Amount = "300"
+		if _, err = b.service.CreateTransfer(daily); !errors.Is(err, ErrConflict) || !strings.Contains(err.Error(), "daily limit") {
+			t.Fatalf("daily limit not enforced: %v", err)
+		}
+	})
 }
 
 func doJSON(t *testing.T, method, url, key string, body any, expected int, target any) {

@@ -140,20 +140,53 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 	}
 	route := routeKey(normalized.SourceChain, normalized.DestinationChain, normalized.SourceAsset, normalized.DestinationAsset)
 	var outstanding uint64
+	var userOutstanding uint64
+	var dailyTotal uint64
+	nowTime := s.cfg.Now().UTC()
+	today := nowTime.Format("2006-01-02")
 	for _, existing := range s.state.Transfers {
-		if routeKey(existing.SourceChain, existing.DestinationChain, existing.SourceAsset, existing.DestinationAsset) != route || existing.Phase == "destination_confirmed" || existing.Phase == "refund_recovery" {
+		if routeKey(existing.SourceChain, existing.DestinationChain, existing.SourceAsset, existing.DestinationAsset) != route {
 			continue
 		}
 		value, _ := strconv.ParseUint(existing.Amount, 10, 64)
+		if strings.HasPrefix(existing.CreatedAt, today) {
+			if ^uint64(0)-dailyTotal < value {
+				return MutationResult{}, fmt.Errorf("%w: route daily volume overflows", ErrConflict)
+			}
+			dailyTotal += value
+		}
+		if existing.Phase == "destination_confirmed" || existing.Phase == "refund_recovery" {
+			continue
+		}
 		if ^uint64(0)-outstanding < value {
 			return MutationResult{}, fmt.Errorf("%w: route exposure overflow", ErrConflict)
 		}
 		outstanding += value
+		if existing.Sender == normalized.Sender {
+			if ^uint64(0)-userOutstanding < value {
+				return MutationResult{}, fmt.Errorf("%w: user exposure overflows", ErrConflict)
+			}
+			userOutstanding += value
+		}
 	}
 	if limit := s.maxOutstanding[route]; outstanding > limit || amount > limit-outstanding {
 		return MutationResult{}, fmt.Errorf("%w: route outstanding exposure limit exceeded", ErrConflict)
 	}
-	now := s.cfg.Now().UTC().Format(timeFormat)
+	dailyLimit, _ := strconv.ParseUint(policy.DailyLimit, 10, 64)
+	if dailyTotal > dailyLimit || amount > dailyLimit-dailyTotal {
+		return MutationResult{}, fmt.Errorf("%w: route daily limit exceeded", ErrConflict)
+	}
+	userLimit, _ := strconv.ParseUint(policy.UserOutstandingLimit, 10, 64)
+	if userOutstanding > userLimit || amount > userLimit-userOutstanding {
+		return MutationResult{}, fmt.Errorf("%w: user outstanding limit exceeded", ErrConflict)
+	}
+	now := nowTime.Format(timeFormat)
+	largeThreshold, _ := strconv.ParseUint(policy.LargeTransferThreshold, 10, 64)
+	largeDelayApplied := amount > largeThreshold
+	notBefore := ""
+	if largeDelayApplied {
+		notBefore = nowTime.Add(time.Duration(policy.LargeTransferDelaySeconds) * time.Second).Format(timeFormat)
+	}
 	id := "brg_" + digest[len("sha256:"):len("sha256:")+24]
 	transfer := Transfer{
 		ID: id, Status: "pending_attestations", Phase: "source_submitted", IntentDigest: digest,
@@ -161,7 +194,7 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 		DestinationChain: normalized.DestinationChain, DestinationAsset: normalized.DestinationAsset, Amount: normalized.Amount,
 		Sender: normalized.Sender, Recipient: normalized.Recipient, AssetBoundary: policy.AssetBoundary,
 		RequiredConfirmations: policy.MinConfirmations, RequiredAttestations: s.cfg.Threshold, Attestations: map[string]Attestation{},
-		CreatedAt: now, UpdatedAt: now, ExternalSubmissionEnabled: false,
+		CreatedAt: now, UpdatedAt: now, NotBefore: notBefore, LargeTransferDelayApplied: largeDelayApplied, ExternalSubmissionEnabled: false,
 	}
 	before := cloneState(s.state)
 	s.state.Transfers[id] = transfer
@@ -263,6 +296,12 @@ func (s *Service) Finalize(transferID string, request FinalizeRequest) (Mutation
 	}
 	if transfer.Status != "ready_for_local_finalization" || len(transfer.Attestations) < transfer.RequiredAttestations || transfer.SourceBlockHash == "" {
 		return MutationResult{}, ErrInsufficientQuorum
+	}
+	if transfer.LargeTransferDelayApplied {
+		notBefore, err := time.Parse(time.RFC3339Nano, transfer.NotBefore)
+		if err != nil || s.cfg.Now().UTC().Before(notBefore) {
+			return MutationResult{}, fmt.Errorf("%w: large transfer delay has not elapsed", ErrConflict)
+		}
 	}
 	before := cloneState(s.state)
 	now := s.cfg.Now().UTC().Format(timeFormat)
@@ -527,8 +566,8 @@ func (s *Service) normalizeCreate(request CreateTransferRequest) (CreateTransfer
 	request.DestinationAsset = normalizeAsset(request.DestinationAsset)
 	request.SourceTxHash = strings.ToLower(strings.TrimSpace(request.SourceTxHash))
 	request.Amount = strings.TrimSpace(request.Amount)
-	request.Sender = strings.TrimSpace(request.Sender)
-	request.Recipient = strings.TrimSpace(request.Recipient)
+	request.Sender = normalizeAccount(request.Sender)
+	request.Recipient = normalizeAccount(request.Recipient)
 	if !idempotencyPattern.MatchString(request.IdempotencyKey) || !identifierPattern.MatchString(request.SourceTxHash) || !identifierPattern.MatchString(request.Sender) || !identifierPattern.MatchString(request.Recipient) {
 		return CreateTransferRequest{}, RoutePolicy{}, 0, "", "", fmt.Errorf("%w: transfer identity is invalid", ErrInvalid)
 	}
@@ -575,6 +614,8 @@ func (s *Service) validateStateLocked() (bool, error) {
 	}
 	allowedPhases := map[string]bool{"source_submitted": true, "source_accepted": true, "source_finalized": true, "proof_attestation": true, "destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true}
 	exposure := map[string]uint64{}
+	userExposure := map[string]uint64{}
+	dailyVolume := map[string]uint64{}
 	for _, transfer := range s.state.Transfers {
 		if transfer.ExternalSubmissionEnabled || transfer.RequiredAttestations != s.cfg.Threshold {
 			return false, errors.New("bridge persisted transfer violates current safety policy")
@@ -598,6 +639,37 @@ func (s *Service) validateStateLocked() (bool, error) {
 			if exposure[key] > s.maxOutstanding[key] {
 				return false, errors.New("bridge persisted route exposure exceeds policy")
 			}
+			userKey := key + "|" + transfer.Sender
+			if ^uint64(0)-userExposure[userKey] < amount {
+				return false, errors.New("bridge persisted user exposure overflows")
+			}
+			userExposure[userKey] += amount
+			userLimit, _ := strconv.ParseUint(s.policies[key].UserOutstandingLimit, 10, 64)
+			if userExposure[userKey] > userLimit {
+				return false, errors.New("bridge persisted user exposure exceeds policy")
+			}
+		}
+		day := transfer.CreatedAt
+		if len(day) >= 10 {
+			day = day[:10]
+		}
+		dailyKey := key + "|" + day
+		if ^uint64(0)-dailyVolume[dailyKey] < amount {
+			return false, errors.New("bridge persisted daily volume overflows")
+		}
+		dailyVolume[dailyKey] += amount
+		dailyLimit, _ := strconv.ParseUint(s.policies[key].DailyLimit, 10, 64)
+		if dailyVolume[dailyKey] > dailyLimit {
+			return false, errors.New("bridge persisted daily volume exceeds policy")
+		}
+		if transfer.LargeTransferDelayApplied {
+			created, err1 := time.Parse(time.RFC3339Nano, transfer.CreatedAt)
+			notBefore, err2 := time.Parse(time.RFC3339Nano, transfer.NotBefore)
+			if err1 != nil || err2 != nil || !notBefore.After(created) {
+				return false, errors.New("bridge persisted large-transfer delay is invalid")
+			}
+		} else if transfer.NotBefore != "" {
+			return false, errors.New("bridge persisted transfer has unexpected delay")
 		}
 	}
 	for key, record := range s.state.Reconciliations {

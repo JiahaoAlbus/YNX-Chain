@@ -16,7 +16,8 @@ The canonical Wallet signs user source transactions. Consumer products and AI ne
 | Double mint or release | One local finalization and lifecycle transition graph | No destination contract is connected |
 | Stolen service credential | Constant-time check, no credential persistence/logging, consumer denial | API-key auth is not the final canonical Gateway integration |
 | Single relayer compromise | Distinct keys and threshold quorum | Production signer/HSM/MPC ceremony absent |
-| Excess exposure | Per-transfer and route-outstanding limits, persistent pause | Daily/user/provider limits remain future policy inputs |
+| Excess exposure | Per-transfer, UTC-daily, user-outstanding, and provider/route-outstanding limits plus persistent pause | Limits need route-specific economic and legal approval |
+| Large transfer rushed after proof | Persisted not-before time blocks local finalization after quorum | Delay does not replace destination signer review |
 | State tamper | Full-state digest, semantic startup validation, hash-chained audit | Digest is not a keyed signature or independent database audit |
 | False reserve claim | Source labels, evidence references, visible difference, no automatic healthy result | Operator reference is not independent proof |
 | Supply-chain replacement | Trimmed deterministic builds, checksum manifest, SBOM, secret scan | Public signing/provenance service absent |

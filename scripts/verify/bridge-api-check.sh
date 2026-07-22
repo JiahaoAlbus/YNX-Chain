@@ -16,7 +16,7 @@ go build -trimpath -o "$tmp/ynx-bridged" ./cmd/ynx-bridged
 
 api_key="bridge-api-check-key"
 relayers='{"relayer-a":"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=","relayer-b":"PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw=","relayer-c":"/FHNjmIYoaONpH7QAjDwWAgW7RO6MwOsXeuRFUiQgCU="}'
-policies='[{"sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"1000","assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+policies='[{"provider":"local-api-check","sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"2000","dailyLimit":"1500","userOutstandingLimit":"1000","largeTransferThreshold":"500","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 state="$tmp/state/bridge.json"
 url="http://127.0.0.1:16433"
 log="$tmp/bridge.log"
@@ -59,6 +59,15 @@ reconciliation="$(curl -fsS -X POST "$url/bridge/reconciliations" -H "X-YNX-Brid
 printf '%s' "$reconciliation" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const r=d.reconciliation;if(d.replayed||r.balanced!==false||r.difference!=="10"||r.source!=="operator-submitted-evidence"||r.verification!=="reference-recorded-not-independently-verified")throw new Error(`bad reconciliation ${JSON.stringify(d)}`)'
 curl -fsS "$url/bridge/transparency" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));const r=d.routes?.[0];if(r.coordinatorOutstanding!=="100"||r.lastReconciliation?.difference!=="10"||r.lastReconciliation?.balanced!==false)throw new Error(`bad exposed reconciliation ${JSON.stringify(d)}`)'
 
+user_over='{"idempotencyKey":"bridge-check-user-limit-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","sourceEventIndex":8,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"901","sender":"0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","recipient":"ynx1recipient000000000000000000000000000001"}'
+status="$(curl -sS -o "$tmp/user-limit.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$user_over")"
+[[ "$status" == 409 ]] && grep -Fq "user outstanding limit exceeded" "$tmp/user-limit.json"
+daily_seed='{"idempotencyKey":"bridge-check-daily-seed-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","sourceEventIndex":9,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"1000","sender":"0xcccccccccccccccccccccccccccccccccccccccc","recipient":"ynx1recipient000000000000000000000000000001"}'
+curl -fsS -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$daily_seed" >/dev/null
+daily_over='{"idempotencyKey":"bridge-check-daily-limit-001","sourceChain":"ethereum-sepolia","sourceTxHash":"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff","sourceEventIndex":10,"sourceAsset":"sepolia-usdc","destinationChain":"ynx_6423-1","destinationAsset":"ynx-usdc","amount":"401","sender":"0xdddddddddddddddddddddddddddddddddddddddd","recipient":"ynx1recipient000000000000000000000000000001"}'
+status="$(curl -sS -o "$tmp/daily-limit.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "$daily_over")"
+[[ "$status" == 409 ]] && grep -Fq "route daily limit exceeded" "$tmp/daily-limit.json"
+
 curl -fsS -X POST "$url/bridge/safety" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d '{"idempotencyKey":"bridge-check-pause-001","paused":true,"reason":"bounded-safety-drill"}' | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8"));if(!d.safety?.paused||d.replayed)process.exit(1)'
 status="$(curl -sS -o "$tmp/paused.json" -w '%{http_code}' -X POST "$url/bridge/transfers" -H "X-YNX-Bridge-Key: $api_key" -H 'content-type: application/json' -d "${body/bridge-check-create-001/bridge-check-paused-001}")"
 [[ "$status" == 409 ]]
@@ -90,4 +99,4 @@ grep -Fq "ynx_bridge_coordinator_outstanding" <<<"$metrics"
 [[ "$(stat -f %Lp "$state" 2>/dev/null || stat -c %a "$state")" == 600 ]]
 ! grep -Fq "$api_key" "$state" "$log"
 
-echo "bridge-api-check passed: persistent intents, replay/conflict, exposure limits, pause/resume, source-qualified reconciliation/transparency, auth, truthful no-external-submission metrics, and mode-0600 state"
+echo "bridge-api-check passed: persistent intents, replay/conflict, provider/route/user/daily limits, large-delay policy, pause/resume, source-qualified reconciliation/transparency, auth, truthful metrics, and mode-0600 state"
