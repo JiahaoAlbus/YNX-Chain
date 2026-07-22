@@ -20,6 +20,7 @@
     "canonicalGatewayAdapter": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "sponsoredUserOperation": {"implementedLocal":false,"testedLocal":false,"integratedCentral":false,"deployedPublic":false},
     "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "capitalReview": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
@@ -58,6 +59,7 @@
     "No staging/public product deployment, production signing or store release exists; hosted binaries are engineering evidence only.",
     "Native iOS development on this host requires full Xcode; the executed macOS CI provides the Simulator build/install evidence.",
     "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
+    "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "CycloneDX 1.6 review SBOM is reproducible and contains 431 runtime components, but four Expo override ELSPROBLEMS keep release-grade SBOM completeness false; package-lock.json remains authoritative."
   ],
   "generatedAt": "2026-07-22T22:20:00+08:00"

@@ -6,9 +6,14 @@
     "contracts:check": "bash ./scripts/verify/contract-tooling-check.sh",
     "contracts:selectors": "node ./scripts/contracts/generate-selector-metadata.mjs",
     "hardhat:build": "hardhat build",
+    "hardhat:test:wallet": "hardhat run ./scripts/contracts/test-smart-account-hardhat.js",
+    "hardhat:deploy:wallet-smart-account": "hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --network ynxTestnet",
     "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
   },
   "devDependencies": {
+    "@account-abstraction/contracts": "0.8.0",
+    "@noble/curves": "1.4.2",
+    "@noble/hashes": "1.4.0",
     "@nomicfoundation/hardhat-ethers": "^4.0.13",
     "ethers": "^6.17.0",
     "hardhat": "^3.9.0",

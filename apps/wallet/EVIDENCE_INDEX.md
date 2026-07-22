@@ -35,6 +35,9 @@ Both assets correspond to source commit `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d
 
 ## Smart Account, mandate and Credential evidence
 
+- `contracts/wallet/YNXSmartAccount.sol` and `YNXEntryPoint.sol`: official ERC-4337 v0.8 EntryPoint integration, owner and UV-required WebAuthn validation, exact-target/selector session keys, per-call/daily native-value limits, batch calls inherited from BaseAccount, emergency epoch revoke and delayed guardian recovery.
+- `scripts/contracts/test-smart-account-hardhat.js`: real local EntryPoint `handleOps` for owner, WebAuthn, session-key and counterfactual factory operations; missing-UV, wrong-target, over-limit and post-recovery rejection; 50-operation session soak and local latency benchmark. It explicitly excludes Bundler/RPC/durable-storage/public-chain latency.
+- `scripts/contracts/deploy-wallet-smart-account.js`: chainId-6423-only deployment path for a verified existing EntryPoint or the pinned official EntryPoint plus factory. It requires an exact source commit and emits mined transaction references, code hashes and byte counts; it leaves Paymaster/Bundler/sponsored receipt null rather than claiming success.
 - `packages/wallet-auth/test/smart-account.test.mjs`: operation/policy binding, first-action and anti-Sybil budget properties, malformed-input fuzz, provider/policy faults, 10,000-iteration soak and 20,000-evaluation benchmark.
 - `packages/wallet-auth/test/mandate-credential.test.mjs`: no-withdraw/subaccount/DEX allowlist invariants, fee boundaries, capital non-guarantee and minimal Credential disclosure/expiry/status tests, including a 5,000-iteration Credential soak.
 - `packages/wallet-auth/test/intent.test.mjs`: secp256k1 Signed Intent bound to Product Session, action and parameter digest; Evidence/Trust, human approval, AI explain-only, canonical export, tamper/expiry/revoke and 2,000-verification soak/benchmark.
