@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-22T14:15:00Z",
+  "canonicalEnvelope": "schemas/data-fabric/event-envelope-v1.schema.json",
+  "canonicalJournal": "schemas/data-fabric/journal-entry-v1.schema.json",
+  "canonicalIntrospectionRequest": "schemas/data-fabric/canonical-introspection-request-v1.schema.json",
+  "canonicalIntrospectionResponse": "schemas/data-fabric/canonical-introspection-response-v1.schema.json",
+  "handoff": "integration/DATA_FABRIC_HANDOFF.md",
+  "integrationPolicy": {
+    "unknownField": "reject",
+    "invalidVersion": "reject-and-dead-letter",
+    "duplicate": "acknowledge-without-reapplying-effect",
+    "outOfOrder": "reject-for-ordered-aggregate-and-retry-after-gap",
+    "tamper": "reject-quarantine-alert",
+    "exactlyOnceClaim": "idempotent-local-state-transition-with-consumer-inbox",
+    "canonicalAuthorization": {
+      "credentialTransport": "opaque-app-session-and-device-signature-headers",
+      "rejectedCredentialTransport": ["authorization-bearer", "browser-cookie"],
+      "requiredBindings": ["sessionId", "deviceId", "product", "bundleId", "requestId", "requestNonce", "requestTimestamp", "requestSignature", "requestMethod", "requestPath", "contentSha256", "requiredScope"],
+      "freshness": "not-older-than-2m-and-not-more-than-30s-future",
+      "replay": "consume-session-device-nonce-after-successful-introspection",
+      "failClosed": ["introspection-unavailable", "inactive-or-revoked", "request-unbound-or-tampered", "wrong-session", "wrong-product", "wrong-bundle", "wrong-device", "scope-widening", "expired"]
+    }
+  },
+  "sources": [
+    {"products": ["chain"], "branch": "main", "commit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c", "dirtyWorktreeObserved": false},
+    {"products": ["wallet", "auth"], "branch": "codex/ecosystem-wallet-auth", "commit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8", "dirtyWorktreeObserved": true},
+    {"products": ["pay", "merchant"], "branch": "codex/ecosystem-pay", "commit": "ffb528b4971b5849ffb151a018263daf5c0e2cb0", "dirtyWorktreeObserved": true},
+    {"products": ["shop"], "branch": "codex/ecosystem-shop", "commit": "ecf787f6f8f515c9de214f78676f59c39e956489", "dirtyWorktreeObserved": false},
+    {"products": ["exchange", "quant"], "branch": "codex/ecosystem-exchange", "commit": "22604af0717a19b5f8aa9223685c3ad3f049941a", "dirtyWorktreeObserved": true},
+    {"products": ["dex"], "branch": "codex/ecosystem-dex", "commit": "1614ffb7fa4983a182405fe3fa118fa448f87b4b", "dirtyWorktreeObserved": false},
+    {"products": ["cloud"], "branch": "codex/ecosystem-cloud-docs", "commit": "7b3c5f427c1751b8d5f43833e281811dd81f76bb", "dirtyWorktreeObserved": true},
+    {"products": ["ai"], "branch": "codex/ecosystem-ai", "commit": "31d3c6b05a47b895f8db1192eff2df763cd4c4c8", "dirtyWorktreeObserved": false},
+    {"products": ["trust", "resource"], "branch": "codex/ecosystem-trust-resource", "commit": "c7e4445598a74e60aa0ed05b9580790527bf71be", "dirtyWorktreeObserved": true},
+    {"products": ["finance"], "branch": "codex/ecosystem-finance", "commit": "63a14500b19ab3b35e29159092973e425837a9c5", "dirtyWorktreeObserved": true}
+  ],
+  "contracts": [
+    {"product": "wallet", "aggregate": "session", "eventTypes": ["wallet.session.opened", "wallet.session.revoked", "wallet.session.expired"], "saga": "wallet-session-revoke", "authority": "canonical-wallet-auth", "integratedCentral": false},
+    {"product": "pay", "aggregate": "invoice", "eventTypes": ["pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued", "pay.refund.completed"], "saga": "pay-invoice-receipt-refund", "authority": "ynx-pay", "integratedCentral": false},
+    {"product": "shop", "aggregate": "order", "eventTypes": ["shop.order.created", "shop.inventory.reserved", "shop.payment.captured", "shop.fulfillment.completed"], "saga": "shop-order-inventory-payment-fulfillment", "authority": "ynx-shop", "integratedCentral": false},
+    {"product": "merchant", "aggregate": "settlement", "eventTypes": ["merchant.webhook.accepted", "merchant.reconciliation.completed", "merchant.settlement.completed"], "saga": "merchant-webhook-reconciliation-settlement", "authority": "ynx-merchant", "integratedCentral": false},
+    {"product": "exchange", "aggregate": "order", "eventTypes": ["exchange.order.accepted", "exchange.fill.recorded", "exchange.funding.applied", "exchange.fee.posted"], "saga": "exchange-order-fill-funding-fee", "authority": "ynx-exchange", "integratedCentral": false},
+    {"product": "dex", "aggregate": "operation", "eventTypes": ["dex.swap.finalized", "dex.liquidity.changed", "dex.vault.changed"], "saga": "dex-swap-lp-vault", "authority": "ynx-chain-and-vault", "integratedCentral": false},
+    {"product": "quant", "aggregate": "mandate", "eventTypes": ["quant.mandate.activated", "quant.pnl.recorded", "quant.fee.posted", "quant.kill_switch.activated"], "saga": "quant-mandate-pnl-fee-kill-switch", "authority": "ynx-quant", "integratedCentral": false},
+    {"product": "trust", "aggregate": "case", "eventTypes": ["trust.case.opened", "trust.appeal.decided", "trust.correction.published"], "saga": "trust-case-appeal-correction", "authority": "ynx-trust", "integratedCentral": false},
+    {"product": "resource", "aggregate": "usage", "eventTypes": ["resource.usage.recorded", "resource.settlement.completed"], "saga": "resource-usage-settlement", "authority": "ynx-resource", "integratedCentral": false},
+    {"product": "cloud", "aggregate": "usage", "eventTypes": ["cloud.usage.recorded", "cloud.billing.posted"], "saga": "cloud-usage-billing", "authority": "ynx-cloud", "integratedCentral": false},
+    {"product": "ai", "aggregate": "usage", "eventTypes": ["ai.usage.recorded", "ai.cost.posted"], "saga": "ai-usage-cost", "authority": "ynx-ai-gateway", "integratedCentral": false},
+    {"product": "mail", "aggregate": "delivery", "eventTypes": ["mail.delivery.accepted", "mail.delivery.completed", "mail.delivery.failed"], "saga": "mail-delivery", "authority": "ynx-mail", "integratedCentral": false},
+    {"product": "creator", "aggregate": "revenue", "eventTypes": ["creator.revenue.recognized", "creator.settlement.completed"], "saga": "creator-revenue", "authority": "originating-product-and-ledger", "integratedCentral": false}
+  ]
+}

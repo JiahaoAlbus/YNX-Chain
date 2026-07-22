@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.test/data-fabric/canonical-introspection-request-v1.schema.json",
+  "title": "YNX Data Fabric Canonical Introspection Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sessionToken","sessionId","deviceId","product","bundleId","requestId","requestNonce","requestTimestamp","requestSignature","requestMethod","requestPath","contentSha256","requiredScope"],
+  "properties": {
+    "sessionToken": {"type":"string","minLength":16,"maxLength":4096},
+    "sessionId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "deviceId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "product": {"type":"string","pattern":"^[a-z0-9][a-z0-9-]{1,62}$"},
+    "bundleId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._-]{2,255}$"},
+    "requestId": {"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "requestNonce": {"type":"string","minLength":16,"maxLength":256},
+    "requestTimestamp": {"type":"string","format":"date-time"},
+    "requestSignature": {"type":"string","minLength":32,"maxLength":4096},
+    "requestMethod": {"type":"string","enum":["GET","POST"]},
+    "requestPath": {"type":"string","pattern":"^/v1/[A-Za-z0-9/%?&=+._~:-]{1,2043}$"},
+    "contentSha256": {"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "requiredScope": {"type":"string","pattern":"^fabric\\.(events|ledger|sagas|reconciliation|audit|privacy)\\.(read|write|recover|export|erase)$"}
+  }
+}

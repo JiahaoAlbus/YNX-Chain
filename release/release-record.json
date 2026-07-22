@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Data Fabric",
+  "release": null,
+  "sourceCommit": null,
+  "sourceRelease": null,
+  "generatedAt": "2026-07-22T16:55:40Z",
+  "states": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "components": {
+    "canonicalEnvelope": {"implementedLocal": true, "testedLocal": true},
+    "fileBackedOutboxInbox": {"implementedLocal": true, "testedLocal": true},
+    "jetstreamTransport": {"implementedLocal": true, "testedLocal": true, "deployedStaging": false},
+    "postgresTransactionalRepository": {"implementedLocal": true, "testedLocal": true, "liveDatabaseTested": true, "deployedStaging": false},
+    "postgresCapacitySample": {"measuredDirtyWorktree": true, "measuredCleanCommit": false, "deployedLoadTested": false},
+    "sagaStateMachine": {"implementedLocal": true, "testedLocal": true},
+    "billingLedgerModel": {"implementedLocal": true, "testedLocal": true},
+    "reconciliationModel": {"implementedLocal": true, "testedLocal": true},
+    "canonicalIntrospectionBoundary": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false},
+    "daemonAndControlBinaries": {"implementedLocal": true, "testedLocal": true, "exercisedLocal": true, "installedLocal": false},
+    "offlineBackupRestore": {"implementedLocal": true, "testedLocal": true, "exercisedLocal": true, "installedLocal": false},
+    "postgresLogicalBackupRestore": {"implementedLocal": true, "testedLocal": true, "encryptedRemote": false, "pitrTested": false, "productionSizeTested": false},
+    "subjectExportAndAnalyticsSuppression": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false},
+    "operatorConsole": {"implementedLocal": true, "testedLocal": true, "realWalletSessionTested": false, "visualAuditPassed": false},
+    "analyticsEventFactSink": {"implementedLocal": true, "testedLocal": true, "deployedWarehouse": false},
+    "analyticsWarehouse": {"implementedLocal": false, "testedLocal": false}
+  },
+  "evidence": {
+    "featureMatrix": "FEATURE_COMPLETION_EVIDENCE.md",
+    "evidenceIndex": "EVIDENCE_INDEX.md",
+    "integrationContracts": "integration/product-event-contracts.json",
+    "publicMetadata": "public-product-metadata.json",
+    "productRelease": "product-release.json",
+    "kpiDefinitions": "release/kpi-definitions.json",
+    "operatorInputs": "release/operator-inputs.request.json"
+  },
+  "blockingEvidence": [
+    "central product integration",
+    "replicated broker and database kill/failover testing",
+    "warehouse and privacy lifecycle",
+    "live testnet reconciliation",
+    "capacity and disaster-recovery measurements",
+    "staging and public deployment",
+    "final CI and immutable artifact"
+  ]
+}

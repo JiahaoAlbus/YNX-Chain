@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "requestId": "ynx-data-fabric-external-inputs-v1",
+  "product": "ynx-data-fabric",
+  "generatedAt": "2026-07-22T17:30:00Z",
+  "handling": {
+    "submitSecretsInChat": false,
+    "secretDelivery": "Provide only an access-controlled secret-manager reference and grant the deployment identity least-privilege read access.",
+    "prohibitedValues": [
+      "private key",
+      "seed phrase",
+      "PEM content",
+      "complete API secret",
+      "validator key",
+      "payment card data"
+    ]
+  },
+  "inputs": [
+    {
+      "id": "canonical-wallet-gateway-approval",
+      "requiredFor": ["integratedCentral"],
+      "secret": false,
+      "request": {
+        "productRegistrationApprovalId": null,
+        "acceptedBundleIds": [],
+        "introspectionEndpoint": null,
+        "walletBridgeOwner": null
+      },
+      "acceptance": "The owner returns real signed pass/fail vectors for replay, tamper, wrong product, wrong bundle, wrong device, scope widening, expiry, and revocation using the v1 schemas."
+    },
+    {
+      "id": "staging-data-services",
+      "requiredFor": ["deployedStaging"],
+      "secret": true,
+      "request": {
+        "postgresTlsEndpoint": null,
+        "postgresCredentialSecretReference": null,
+        "jetstreamTlsEndpoint": null,
+        "jetstreamCredentialSecretReference": null,
+        "warehouseTlsEndpoint": null,
+        "warehouseCredentialSecretReference": null,
+        "deploymentIdentity": null,
+        "approvedRegionAndRetentionPolicy": null
+      },
+      "acceptance": "Endpoints, TLS identity, least-privilege grants, backup destination, retention policy, and outage/failover test authority are approved for an isolated Testnet environment."
+    },
+    {
+      "id": "testnet-authority-observers",
+      "requiredFor": ["integratedCentral", "deployedStaging"],
+      "secret": true,
+      "request": {
+        "chainObserverEndpointAndPublicAddress": null,
+        "payObserverEndpoint": null,
+        "exchangeObserverEndpoint": null,
+        "dexObserverEndpointAndPublicAddresses": null,
+        "quantObserverEndpoint": null,
+        "observerCredentialSecretReferences": []
+      },
+      "acceptance": "Each owner approves read-only observation, finality semantics, rate limits, retention/data rights, stable reference IDs, and evidence hashes; unavailable observations remain unavailable rather than zero."
+    },
+    {
+      "id": "public-routing-and-support",
+      "requiredFor": ["deployedPublic"],
+      "secret": false,
+      "request": {
+        "canonicalUrl": null,
+        "healthUrl": null,
+        "statusUrl": null,
+        "supportUrl": null,
+        "privacyUrl": null,
+        "securityUrl": null,
+        "dnsAndTlsApprovalId": null,
+        "legalPublicationApprovalId": null,
+        "onCallOwner": null
+      },
+      "acceptance": "URLs resolve through approved DNS/TLS, support and incident ownership are staffed, and privacy/security/legal text is approved before Website publication."
+    },
+    {
+      "id": "artifact-signing-and-hosting",
+      "requiredFor": ["downloadHosted", "productionSigned"],
+      "secret": true,
+      "request": {
+        "secureSignerPathReference": null,
+        "signingClassAndApprovalId": null,
+        "immutableArtifactDestination": null,
+        "provenanceIdentity": null,
+        "releaseApprover": null
+      },
+      "acceptance": "The build receives signer access through the approved secure service, never raw key material, and publishes immutable URLs with source commit, SHA-256, bytes, OS/architecture, signing class, SBOM, provenance, install and cold-start evidence."
+    },
+    {
+      "id": "testnet-capacity-and-drill-authority",
+      "requiredFor": ["deployedStaging"],
+      "secret": false,
+      "request": {
+        "approvedLoadAndFailureWindow": null,
+        "resourceBudgetOwner": null,
+        "rtoRpoTargets": null,
+        "backupRetentionApprovalId": null
+      },
+      "acceptance": "The owner authorizes bounded load, broker/database failure, restore/PITR and recovery drills with explicit cost ceiling and observability coverage."
+    }
+  ]
+}

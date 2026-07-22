@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-22T17:06:12Z",
+  "sourceCommit": null,
+  "dirtyWorktree": true,
+  "database": "PostgreSQL 17.10",
+  "tools": {"pgDump": "17.10", "pgRestore": "17.10"},
+  "test": {
+    "package": "./internal/datafabricpgbackup",
+    "name": "TestPostgresLiveLogicalBackupRestoreAndIntegrity",
+    "result": "passed",
+    "archiveBytesObserved": 58509,
+    "archiveSHA256Observed": "5e0452e36a4a10cb9585911bd20426ed2285567d757d172d7d1ecbcf051b017a",
+    "sourceCounts": {"events": 1, "journalEntries": 1, "analyticsFacts": 1},
+    "assertions": [
+      "source migration checksum and complete repository integrity pass before backup",
+      "private PostgreSQL URL is decomposed into child-only libpq environment variables rather than process arguments",
+      "custom archive contains only ynx_fabric and ynx_analytics schemas and is hash/byte/catalog verified",
+      "restore refuses a target that already contains either Data Fabric schema",
+      "empty-target restore executes in one transaction",
+      "restored migration checksum, event signatures/order, Ledger balance/links, Inbox lineage, analytics fact, and record counts pass",
+      "a second restore refuses to overwrite the restored target"
+    ]
+  },
+  "limitations": [
+    "transient archive from an isolated local test database; the archive itself is not retained as a release artifact",
+    "write-maintenance is explicitly asserted by the operator but not coordinated by a distributed maintenance controller",
+    "not encrypted, remotely stored, immutable, production-sized, replica/PITR tested, or timed as an approved RTO/RPO drill",
+    "not clean-commit, CI, staging, public, or independent evidence"
+  ]
+}

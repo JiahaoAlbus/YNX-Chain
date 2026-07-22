@@ -1,5 +1,6 @@
 {
   "name": "ynx-chain-contract-tooling",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -14,5 +15,8 @@
     "hardhat": "^3.9.0",
     "typescript": "^5.9.0",
     "undici": "^6.27.0"
+  },
+  "overrides": {
+    "adm-zip": "0.6.0"
   }
 }

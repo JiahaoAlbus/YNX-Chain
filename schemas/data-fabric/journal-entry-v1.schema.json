@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/data-fabric/journal-entry-v1.schema.json",
+  "title": "YNX Billing Ledger Journal Entry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entryId", "correlationId", "eventId", "effectiveAt", "recordedAt", "description", "revenueRecognitionBoundary", "postings", "sourceCommit", "sourceRelease", "auditId"],
+  "properties": {
+    "entryId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+    "correlationId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+    "eventId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+    "effectiveAt": {"$ref": "event-envelope-v1.schema.json#/$defs/timestamp"},
+    "recordedAt": {"$ref": "event-envelope-v1.schema.json#/$defs/timestamp"},
+    "description": {"type": "string", "minLength": 1},
+    "correctionOf": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+    "revenueRecognitionBoundary": {"type": "string", "minLength": 1},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "sourceRelease": {"type": "string", "minLength": 1},
+    "auditId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+    "feeConsent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["consentId", "feeScheduleVersion", "acceptedAt", "maximumAmountMinor", "basis"],
+      "properties": {
+        "consentId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"},
+        "feeScheduleVersion": {"type": "string", "minLength": 1},
+        "acceptedAt": {"$ref": "event-envelope-v1.schema.json#/$defs/timestamp"},
+        "maximumAmountMinor": {"type": "integer", "minimum": 1},
+        "basis": {"type": "string", "minLength": 1}
+      }
+    },
+    "postings": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["accountId", "asset", "currency", "side", "amountMinor", "category"],
+        "properties": {
+          "accountId": {"$ref": "event-envelope-v1.schema.json#/$defs/id"}, "asset": {"type": "string", "minLength": 1}, "currency": {"type": "string", "minLength": 1},
+          "side": {"enum": ["debit", "credit"]}, "amountMinor": {"type": "integer", "minimum": 1},
+          "category": {"enum": ["user-charge", "provider-cost", "protocol-revenue", "gas", "venue-fee", "burn", "treasury", "insurance", "refund", "dispute-reserve", "merchant-net", "creator-net", "builder-net", "provider-net", "quant-compute", "quant-data", "quant-management-fee", "quant-performance-fee", "stablecoin-settlement", "bridge-settlement", "subscription", "compute-data-fee"]}
+        }
+      }
+    }
+  },
+  "$comment": "JSON Schema validates record shape. Producers and ledgers MUST additionally enforce equal debit and credit totals for each asset and currency pair."
+}

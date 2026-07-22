@@ -1,0 +1,37 @@
+{
+  "measuredAt": "2026-07-22T16:39:36.952197Z",
+  "sourceCommit": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "sourceRelease": "data-fabric-dirty-capacity-20260722",
+  "dirtyWorkingTree": true,
+  "databaseVersion": "PostgreSQL 17.10 on aarch64-apple-darwin25.0.0, compiled by Apple clang version 17.0.0 (clang-1700.0.13.3), 64-bit",
+  "goos": "darwin",
+  "goarch": "arm64",
+  "goVersion": "go1.25.7",
+  "cpuCount": 8,
+  "events": 1000,
+  "concurrency": 8,
+  "appendLatency": {
+    "p50Milliseconds": 1.378,
+    "p95Milliseconds": 5.045,
+    "p99Milliseconds": 7.04,
+    "maxMilliseconds": 9.761
+  },
+  "appendThroughputPerSecond": 4667.966580216081,
+  "outboxLeaseAckLatency": {
+    "p50Milliseconds": 135.227,
+    "p95Milliseconds": 135.227,
+    "p99Milliseconds": 135.227,
+    "maxMilliseconds": 135.227
+  },
+  "outboxLeaseAckThroughputPerSecond": 7377.081699955232,
+  "integrityAuditDurationMilliseconds": 33.895,
+  "databaseBytes": 12859059,
+  "errors": 0,
+  "limitations": [
+    "single local PostgreSQL process",
+    "one event per aggregate without hot-partition skew",
+    "lease and acknowledgement only; no network broker publication",
+    "no journal, Saga, reconciliation, replica, failover, disk-full, or long-duration load",
+    "dirty working tree and small sample; not a public-scale claim"
+  ]
+}

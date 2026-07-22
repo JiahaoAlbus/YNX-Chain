@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-data-fabric",
+  "release": null,
+  "sourceCommit": null,
+  "channel": "unreleased-testnet-work",
+  "states": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "publicHealthURL": null,
+  "artifacts": [],
+  "compatibility": {
+    "eventEnvelope": "1.0",
+    "fileStoreSchema": 1,
+    "backupManifestSchema": 1,
+    "postgresMigration": 1,
+    "minimumOS": null
+  },
+  "externalEvidenceRequired": [
+    "accepted canonical Wallet and App Gateway registration",
+    "real producer and consumer integration receipts",
+    "shared staging PostgreSQL, replicated JetStream, and analytics warehouse",
+    "public Testnet health and cross-product workflow receipts",
+    "immutable hosted artifacts with SHA-256, bytes, signing class, and cold-install proof",
+    "support, privacy, security, status, canonical, and download URLs"
+  ]
+}

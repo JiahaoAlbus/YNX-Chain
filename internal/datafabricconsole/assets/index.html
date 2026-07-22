@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>YNX Data Fabric Operator</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip">Skip to operations</a>
+  <header class="topbar">
+    <div class="identity" aria-label="YNX Data Fabric">
+      <span class="mark" aria-hidden="true"></span>
+      <span>YNX <strong>Data Fabric</strong></span>
+    </div>
+    <div class="preferences">
+      <label for="language" data-i18n="language">Language</label>
+      <select id="language" aria-label="Language"></select>
+      <button id="theme" type="button" data-i18n="theme">Appearance</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow" data-i18n="eyebrow">Operational evidence</p>
+      <h1 id="page-title" data-i18n="title">Follow facts from commit to recovery.</h1>
+      <p class="lede" data-i18n="subtitle">HTTP acceptance is not business completion. This console reads authoritative event, billing, Saga, and reconciliation state without editing history.</p>
+      <div id="state" class="state" role="status" aria-live="polite" data-state="loading">
+        <span class="state-dot" aria-hidden="true"></span><span data-i18n="loading">Loading verified state…</span>
+      </div>
+    </section>
+
+    <section class="evidence" aria-labelledby="public-heading">
+      <div class="section-heading">
+        <div><p class="index">01</p><h2 id="public-heading" data-i18n="publicEvidence">Public service evidence</h2></div>
+        <button id="refresh-public" type="button" data-i18n="refresh">Refresh evidence</button>
+      </div>
+      <dl class="facts" id="public-facts">
+        <div><dt data-i18n="integrity">Integrity</dt><dd id="health-value">—</dd></div>
+        <div><dt data-i18n="version">Version</dt><dd id="version-value">—</dd></div>
+        <div><dt data-i18n="sourceCommit">Source commit</dt><dd id="commit-value">—</dd></div>
+        <div><dt data-i18n="pendingOutbox">Pending Outbox</dt><dd id="outbox-value">—</dd></div>
+        <div><dt data-i18n="deadLetters">Dead letters</dt><dd id="dlq-value">—</dd></div>
+        <div><dt data-i18n="sagaRecovery">Sagas in recovery</dt><dd id="saga-value">—</dd></div>
+      </dl>
+      <p class="provenance" id="public-provenance"></p>
+    </section>
+
+    <section class="authorized" aria-labelledby="authorized-heading">
+      <div class="section-heading">
+        <div><p class="index">02</p><h2 id="authorized-heading" data-i18n="authorized">Authorized product records</h2></div>
+        <button id="load-authorized" type="button" data-i18n="loadAuthorized">Authorize and load</button>
+      </div>
+      <p data-i18n="authorizationNote">The canonical Wallet must bind product, bundle, session, device, nonce, timestamp, method, path, body digest, and scope. Browser cookies and Bearer tokens are never used.</p>
+      <p id="authorized-context" class="provenance"></p>
+
+      <nav class="tabs" aria-label="Record views">
+        <button type="button" role="tab" aria-selected="true" aria-controls="events-panel" id="events-tab" data-panel="events-panel" data-i18n="events">Events</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="ledger-panel" id="ledger-tab" data-panel="ledger-panel" data-i18n="ledger">Billing ledger</button>
+        <button type="button" role="tab" aria-selected="false" aria-controls="reconciliation-panel" id="reconciliation-tab" data-panel="reconciliation-panel" data-i18n="reconciliations">Reconciliation</button>
+      </nav>
+
+      <div id="events-panel" role="tabpanel" aria-labelledby="events-tab">
+        <div class="table-wrap" tabindex="0">
+          <table><caption data-i18n="eventsCaption">Authorized canonical event facts</caption><thead><tr><th data-i18n="event">Event</th><th data-i18n="type">Type</th><th data-i18n="effectiveAt">Effective at</th><th data-i18n="status">Status</th></tr></thead><tbody id="events-body"></tbody></table>
+        </div>
+        <p id="events-empty" class="empty" data-i18n="notLoaded">Authorize to load records.</p>
+      </div>
+      <div id="ledger-panel" role="tabpanel" aria-labelledby="ledger-tab" hidden>
+        <div class="table-wrap" tabindex="0">
+          <table><caption data-i18n="ledgerCaption">Immutable authorized journal entries</caption><thead><tr><th data-i18n="entry">Entry</th><th data-i18n="effectiveAt">Effective at</th><th data-i18n="boundary">Recognition boundary</th><th data-i18n="postings">Postings</th></tr></thead><tbody id="ledger-body"></tbody></table>
+        </div>
+        <p id="ledger-empty" class="empty" data-i18n="notLoaded">Authorize to load records.</p>
+      </div>
+      <div id="reconciliation-panel" role="tabpanel" aria-labelledby="reconciliation-tab" hidden>
+        <div class="table-wrap" tabindex="0">
+          <table><caption data-i18n="reconciliationCaption">Source-labeled reconciliation runs</caption><thead><tr><th data-i18n="run">Run</th><th data-i18n="status">Status</th><th data-i18n="coverage">Coverage</th><th data-i18n="completedAt">Completed at</th></tr></thead><tbody id="reconciliation-body"></tbody></table>
+        </div>
+        <p id="reconciliation-empty" class="empty" data-i18n="notLoaded">Authorize to load records.</p>
+      </div>
+    </section>
+
+    <aside class="boundary" aria-labelledby="boundary-heading">
+      <p class="index">03</p><h2 id="boundary-heading" data-i18n="boundaryHeading">Authority boundary</h2>
+      <p data-i18n="boundaryText">Analytics is derived. It cannot change events, bills, settlements, Wallet identity, chain state, or product authority. Corrections are new records with Audit IDs.</p>
+    </aside>
+  </main>
+  <footer><p data-i18n="footer">Testnet operational console · No Mainnet or production claim</p></footer>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# YNX Data Fabric Founder KPI Framework
+
+No KPI value is reported until an authoritative source, complete window, denominator, coverage, source version, and failure state are recorded. Empty data is `unavailable`, never zero. Test fixtures and operator-console visits are excluded from product adoption.
+
+| KPI | Definition | Authority and lineage | Guardrail | Testnet decision |
+| --- | --- | --- | --- | --- |
+| Activation | Distinct canonical product accounts whose first accepted event reaches its declared Saga terminal state within 24 hours / distinct accounts with a first accepted event | Signed events → Saga terminal facts; account pseudonymized before analytics | Exclude internal/test identities and incomplete source coverage | Investigate onboarding if below 60% after at least 100 eligible accounts |
+| 7-day retention | Activated accounts with an authoritative accepted event on days 6–8 / activated accounts eligible for the full window | Event store → privacy-safe daily account activity | Cohort must be complete; no rolling partial cohort | Redesign if below 20% for three complete cohorts |
+| 30-day retention | Activated accounts with an authoritative accepted event on days 27–33 / activated accounts eligible for the full window | Event store → privacy-safe daily account activity | Same eligibility and bot exclusion policy as activation | Do not scale paid acquisition without a stable measured baseline |
+| Task completion | Sagas reaching `completed` / Sagas reaching any terminal or manual-recovery state | Saga store; segmented by kind and product | Never count HTTP acceptance as completion | Stop rollout for any critical Saga below 95% in a complete window |
+| Crash-free session | Canonical sessions without a product-reported crash event / sessions with complete crash telemetry | Product crash authority through approved schema | `unavailable` when telemetry coverage is below 95% | Do not claim a value before product instrumentation is accepted |
+| Support load | New support cases attributable to Data Fabric / 1,000 activated accounts | Approved support system joined only by pseudonymous case correlation | Private case content must not enter general analytics | Escalate staffing or simplify flows when sustained burden exceeds approved capacity |
+| Abuse rate | Confirmed abuse events / authoritative accepted events | Trust decisions and appeal/correction facts | Corrections replace classifications analytically without rewriting history | Pause exposed workflow when threshold set by Trust is exceeded |
+| Provider cost | Ledger-recorded provider, compute, data, venue, gas, broker, database, warehouse, and observability cost / accepted event and active account | Immutable Billing Ledger plus provider invoices reconciled to journal entries | No estimate presented as settled cost; disclose coverage | Kill or renegotiate flows with unbounded cost or incomplete reconciliation |
+| Gross-margin candidate | Recognized consented service revenue − recognized attributable cost | Immutable Billing Ledger at declared recognition boundary | Excludes unrealized gains, hidden spread, mint/burn, and subsidy | Scale only after positive repeatable margin with reliability/support reserve |
+| Public Testnet usage | Accepted public Testnet events, distinct pseudonymous accounts, completed Sagas, journal entries, and reconciliations | Public deployment release + canonical stores | Must bind exact release and exclude fixtures/replay duplicates | A prerequisite for any public adoption claim |
+| Conversion | Eligible activated accounts beginning a separately consented paid service / eligible activated accounts shown the same disclosed offer | Canonical consent event plus ledger boundary | No dark patterns or unequal denominator | Inform pricing only after statistically meaningful, consented exposure |
+
+## Measurement record
+
+`release/kpi-definitions.json` is the machine-readable contract. Every produced KPI record must include `windowStart`, `windowEnd`, `asOf`, `sourceVersion`, `numerator`, `denominator`, `value`, `coverage`, `status`, `failure`, and exact release/source commit. Scale and kill thresholds are hypotheses until the minimum cohort and complete windows above exist.

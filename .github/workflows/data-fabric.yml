@@ -1,0 +1,119 @@
+name: data-fabric
+
+on:
+  push:
+    branches: [codex/final-data-fabric]
+  pull_request:
+    paths:
+      - ".github/workflows/data-fabric.yml"
+      - "cmd/ynx-data-fabricctl/**"
+      - "cmd/ynx-data-fabricd/**"
+      - "cmd/ynx-data-fabric-worker/**"
+      - "internal/datafabric/**"
+      - "internal/datafabricapi/**"
+      - "internal/datafabricbackup/**"
+      - "internal/datafabricconfig/**"
+      - "internal/datafabricconsole/**"
+      - "internal/datafabricnats/**"
+      - "internal/datafabricpgbackup/**"
+      - "internal/datafabricpostgres/**"
+      - "internal/datafabricpgbackup/**"
+      - "sdk/datafabric/**"
+      - "schemas/data-fabric/**"
+      - "integration/**"
+      - "release/**"
+      - "scripts/data-fabric/**"
+      - "package.json"
+      - "package-lock.json"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: "1.25.12"
+          cache: true
+      - name: Install Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24.5.0"
+          cache: npm
+      - name: Install locked build tools without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Audit Node build dependencies
+        run: npm audit --audit-level=high
+      - name: Generate contract artifacts required by repository tests
+        run: |
+          npm run hardhat:build
+          npm run contracts:selectors
+      - name: Test the complete Go repository
+        run: go test ./... -count=1
+      - name: Race-test Data Fabric state transitions
+        run: go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpostgres ./internal/datafabricpgbackup -count=1
+      - name: Vet Data Fabric binaries and libraries
+        run: go vet ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric
+      - name: Analyze reachable Go vulnerabilities
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
+      - name: Build reproducible-path Linux binaries
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricd ./cmd/ynx-data-fabricd
+          CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricctl ./cmd/ynx-data-fabricctl
+          CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabric-worker ./cmd/ynx-data-fabric-worker
+          go version -m dist/ynx-data-fabricd
+          go version -m dist/ynx-data-fabricctl
+          go version -m dist/ynx-data-fabric-worker
+          sha256sum dist/ynx-data-fabricd dist/ynx-data-fabricctl dist/ynx-data-fabric-worker
+      - name: Generate and validate SPDX SBOM
+        run: |
+          npm sbom --sbom-format spdx > dist/npm-sbom.spdx.json
+          jq empty dist/npm-sbom.spdx.json
+          if grep -q '/home/runner/' dist/npm-sbom.spdx.json; then exit 1; fi
+          jq empty release/go-runtime-sbom.spdx.json
+      - name: Run Data Fabric zero-placeholder and public-leak gates
+        run: scripts/data-fabric/quality-gates.sh
+      - name: Run repository secret gate
+        run: make secret-scan
+      - name: Validate Data Fabric machine records
+        run: |
+          jq empty schemas/data-fabric/*.json integration/product-event-contracts.json release/*.json evidence/capacity/*.json evidence/postgres/*.json evidence/ui/*.json public-product-metadata.json product-release.json infra/data-fabric/grafana-dashboard.json
+          git diff --check
+
+  postgres-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_DB: ynx_data_fabric_test
+          POSTGRES_USER: ynx_test
+          POSTGRES_PASSWORD: integration-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ynx_test -d ynx_data_fabric_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: "1.25.12"
+          cache: true
+      - name: Run destructive-isolated PostgreSQL integration
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+        run: go test ./internal/datafabricpostgres ./internal/datafabricpgbackup -run '^TestPostgresLive(TransactionsConstraintsAndRecovery|LogicalBackupRestoreAndIntegrity)$' -count=1 -v

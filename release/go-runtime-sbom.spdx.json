@@ -1,0 +1,29 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "ynx-data-fabric-go-runtime-unreleased",
+  "documentNamespace": "urn:uuid:af65d542-f1ea-4b6b-9c0d-72fa0fd47084",
+  "creationInfo": {
+    "created": "2026-07-22T16:42:01Z",
+    "creators": ["Tool: go-version-m-go1.25.12", "Organization: YNX"]
+  },
+  "documentDescribes": ["SPDXRef-Package-YNXDataFabric"],
+  "packages": [
+    {"name":"github.com/JiahaoAlbus/YNX-Chain","SPDXID":"SPDXRef-Package-YNXDataFabric","versionInfo":"unreleased-dirty-worktree","downloadLocation":"NOASSERTION","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","copyrightText":"NOASSERTION"},
+    {"name":"github.com/klauspost/compress","SPDXID":"SPDXRef-Package-klauspost-compress","versionInfo":"v1.18.5","downloadLocation":"https://proxy.golang.org/github.com/klauspost/compress/@v/v1.18.5.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"Apache-2.0","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/github.com/klauspost/compress@v1.18.5"}]},
+    {"name":"github.com/lib/pq","SPDXID":"SPDXRef-Package-lib-pq","versionInfo":"v1.12.0","downloadLocation":"https://proxy.golang.org/github.com/lib/pq/@v/v1.12.0.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"MIT","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/github.com/lib/pq@v1.12.0"}]},
+    {"name":"github.com/nats-io/nats.go","SPDXID":"SPDXRef-Package-nats-go","versionInfo":"v1.52.0","downloadLocation":"https://proxy.golang.org/github.com/nats-io/nats.go/@v/v1.52.0.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"Apache-2.0","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/github.com/nats-io/nats.go@v1.52.0"}]},
+    {"name":"github.com/nats-io/nkeys","SPDXID":"SPDXRef-Package-nats-nkeys","versionInfo":"v0.4.15","downloadLocation":"https://proxy.golang.org/github.com/nats-io/nkeys/@v/v0.4.15.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"Apache-2.0","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/github.com/nats-io/nkeys@v0.4.15"}]},
+    {"name":"github.com/nats-io/nuid","SPDXID":"SPDXRef-Package-nats-nuid","versionInfo":"v1.0.1","downloadLocation":"https://proxy.golang.org/github.com/nats-io/nuid/@v/v1.0.1.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"Apache-2.0","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/github.com/nats-io/nuid@v1.0.1"}]},
+    {"name":"golang.org/x/crypto","SPDXID":"SPDXRef-Package-x-crypto","versionInfo":"v0.50.0","downloadLocation":"https://proxy.golang.org/golang.org/x/crypto/@v/v0.50.0.zip","filesAnalyzed":false,"licenseConcluded":"NOASSERTION","licenseDeclared":"BSD-3-Clause","copyrightText":"NOASSERTION","externalRefs":[{"referenceCategory":"PACKAGE-MANAGER","referenceType":"purl","referenceLocator":"pkg:golang/golang.org/x/crypto@v0.50.0"}]}
+  ],
+  "relationships": [
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-klauspost-compress"},
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-lib-pq"},
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-nats-go"},
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-nats-nkeys"},
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-nats-nuid"},
+    {"spdxElementId":"SPDXRef-Package-YNXDataFabric","relationshipType":"DEPENDS_ON","relatedSpdxElement":"SPDXRef-Package-x-crypto"}
+  ]
+}

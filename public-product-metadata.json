@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "id": "ynx-data-fabric",
+    "name": "YNX Data Fabric",
+    "aliases": ["Data Fabric", "YNX Event Fabric"],
+    "canonicalRoute": "/data-fabric",
+    "title": "YNX Data Fabric — Verifiable events, billing, and reconciliation",
+    "metaDescription": "The shared YNX Testnet data plane for signed events, recoverable cross-product workflows, immutable billing records, and source-labeled reconciliation.",
+    "h1": "Verifiable events. Recoverable workflows. Balanced books.",
+    "brand": {
+      "primaryColor": "#002FA7",
+      "backgroundColor": "#FFFFFF",
+      "logoSource": "assets/brand/ynx-logo.png"
+    }
+  },
+  "localizedNames": {
+    "en": "YNX Data Fabric",
+    "zh-Hans": "YNX 数据织网",
+    "zh-Hant": "YNX 資料織網",
+    "ja": "YNX データファブリック",
+    "ko": "YNX 데이터 패브릭",
+    "es": "YNX Data Fabric",
+    "fr": "YNX Data Fabric",
+    "de": "YNX Data Fabric",
+    "pt": "YNX Data Fabric",
+    "ru": "YNX Data Fabric",
+    "ar": "نسيج بيانات YNX",
+    "id": "YNX Data Fabric"
+  },
+  "features": [
+    "Strict signed event envelopes with product, actor, ordering, source, privacy, retention, and audit authority",
+    "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, and backfill",
+    "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status",
+    "Append-only double-entry billing records and source-labeled reconciliation"
+  ],
+  "risks": [
+    "An accepted HTTP request does not mean a multi-service business workflow is complete.",
+    "Testnet evidence does not establish Mainnet, production signing, availability, capacity, or financial suitability.",
+    "Third-party and derived observations can be unavailable or inconsistent and never replace authoritative product or ledger state.",
+    "Operator recovery and reconciliation may require human review; historical financial records are corrected with new entries, never silently edited."
+  ],
+  "faq": [
+    {
+      "question": "Is YNX Data Fabric a wallet or custody service?",
+      "answer": "No. Products and the canonical Wallet remain authoritative for identity, permissions, assets, and custody. Data Fabric transports signed facts and records workflow, billing, and reconciliation state."
+    },
+    {
+      "question": "Does it guarantee exactly-once network delivery?",
+      "answer": "No. Delivery can repeat. Transactional Outbox and Inbox records plus idempotent state transitions provide exactly-once effects within each controlled state boundary."
+    },
+    {
+      "question": "Can analytics change a bill or settlement?",
+      "answer": "No. Analytics is derived and cannot modify the authoritative operational event store or immutable Billing Ledger."
+    },
+    {
+      "question": "Is it publicly released?",
+      "answer": "No. Local component tests exist, but central integration, staging and public deployment, hosted downloads, production signing, and store release are not evidenced."
+    }
+  ],
+  "structuredDataRecommendation": {
+    "types": ["SoftwareApplication", "TechArticle", "FAQPage"],
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Server and command line",
+    "offers": null
+  },
+  "publicURLs": {
+    "canonical": null,
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "screenshots": [],
+  "downloads": [],
+  "websiteHandoff": {
+    "owner": "YNX Website",
+    "ssrOrSsgRequired": true,
+    "jsonLdRequired": true,
+    "sitemapRequired": true,
+    "searchConsoleRequired": true,
+    "bingRequired": true,
+    "indexNowRequired": true
+  }
+}
