@@ -182,17 +182,12 @@ func setupReconciliationFixtureAt(t *testing.T, path string) (*Store, JournalEnt
 	if err := store.Append(event, key); err != nil {
 		t.Fatal(err)
 	}
-	consentTime := now.Add(-time.Hour)
 	entry := JournalEntry{
 		EntryID: "journal.exchange.0001", CorrelationID: event.CorrelationID, EventID: event.EventID,
 		EffectiveAt: now, RecordedAt: now, Description: "Exchange settlement", RevenueBoundary: "exchange-transaction-complete",
 		Postings: []Posting{
-			{AccountID: "account.user.0001", Asset: "YNX", Currency: "YNX", Side: Debit, Amount: 1000, Category: "venue-fee"},
+			{AccountID: "account.user.0001", Asset: "YNX", Currency: "YNX", Side: Debit, Amount: 1000, Category: "user-charge"},
 			{AccountID: "account.protocol.revenue", Asset: "YNX", Currency: "YNX", Side: Credit, Amount: 1000, Category: "protocol-revenue"},
-		},
-		FeeConsent: &FeeConsent{
-			ConsentID: "consent.user.0001", FeeScheduleVersion: "v1.0", AcceptedAt: consentTime,
-			MaximumAmountMinor: 2000, Basis: "per-transaction",
 		},
 		SourceCommit: "719e101", SourceRelease: "exchange-testnet-v0", AuditID: "audit.settlement.0001",
 	}
