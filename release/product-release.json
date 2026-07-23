@@ -3,8 +3,9 @@
   "product": "YNX Governance",
   "canonicalRoute": "/governance",
   "releaseChannel": "local-development",
-  "implementedLocal": false,
-  "testedLocal": false,
+  "version": "0.2.0-local",
+  "implementedLocal": true,
+  "testedLocal": true,
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
@@ -15,11 +16,47 @@
   "externalExecutionEnabled": false,
   "knownMissingEvidence": [
     "central Gateway integration",
-    "BFT execution receipts",
-    "standalone UI",
+    "BFT execution receipts from testnet",
+    "smart contract tests (Hardhat/Foundry)",
+    "UI component tests (Vitest)",
+    "ABCI application wiring",
+    "end-to-end testnet deployment",
+    "Explorer/Monitor integration",
+    "12-language internationalization",
     "remote backup drill",
     "capacity measurements",
     "staging and public deployment",
     "signed hosted artifacts"
+  ],
+  "completedWork": {
+    "goService": {
+      "location": "internal/governance/",
+      "lines": 2500,
+      "tests": 20,
+      "status": "complete"
+    },
+    "bftIntegration": {
+      "location": "chain/governance/",
+      "lines": 840,
+      "tests": 4,
+      "status": "complete"
+    },
+    "smartContracts": {
+      "location": "contracts/governance/",
+      "lines": 1060,
+      "tests": 0,
+      "status": "untested"
+    },
+    "ui": {
+      "location": "apps/governance/",
+      "lines": 1200,
+      "tests": 0,
+      "status": "untested"
+    }
+  },
+  "commits": [
+    "4b010b9 - docs(governance): record reproducible artifact evidence",
+    "75d3412 - feat(governance): add BFT chain integration and smart contracts",
+    "7d0b5ce - feat(governance): add standalone UI with proposal list and voting interface"
   ]
 }
