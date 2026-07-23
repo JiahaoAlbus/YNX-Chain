@@ -6,7 +6,7 @@
 - Product source inventory: `integration/product-event-contracts.json` records the committed product refs observed during recovery and whether a dirty product worktree was present.
 - Cross-owner merge contract: `integration/DATA_FABRIC_HANDOFF.md` plus strict canonical introspection request/response schemas.
 - External authority packet: `release/operator-inputs.request.json`; it requests secure references and approvals only and explicitly forbids secret material in chat.
-- Remote truth observed during recovery: no GitHub Release; mixed successful/failed product Actions; no Data Fabric Action or Artifact; no listening local Data Fabric process.
+- Remote truth observed during recovery: GitHub run `29942204067` passed at `f065375cc001513942f0abcebd5483d446eb2665`; no public Release; no listening local Data Fabric process.
 - Final engineering verification: GitHub Actions run `29942204067` passed both jobs at `f065375cc001513942f0abcebd5483d446eb2665`, including full Go tests, race, vet, official vulnerability analysis, Linux builds/hashes, SBOM and policy gates, and isolated PostgreSQL 17.10 transaction plus logical backup/restore tests.
 
 ## Implemented source
@@ -22,6 +22,9 @@
 - Billing Ledger: `internal/datafabric/ledger.go`
 - Saga catalog and persistence: `internal/datafabric/saga.go`, `internal/datafabric/saga_store.go`
 - Reconciliation: `internal/datafabric/reconciliation.go`
+- Reconciliation tests: `internal/datafabric/reconciliation_test.go` (match/mismatch/unavailable/evidence hash/duplicate/persistence)
+- Ledger tests: `internal/datafabric/ledger_test.go` (balance/consent/maximum/timing/account ownership/correction/integrity)
+- Producer integration vectors: `integration/PRODUCER_TEST_VECTORS.md` (20 contract test vectors for product owners)
 - Fail-closed API boundary: `internal/datafabricapi/auth.go`, `internal/datafabricapi/server.go`
 - Runnable daemon: `cmd/ynx-data-fabricd/main.go`
 - Go SDK and canonical request client: `sdk/datafabric/datafabric.go`, `sdk/datafabric/client.go`
@@ -42,7 +45,7 @@ Run from the repository root:
 
 ```sh
 go test ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpostgres ./sdk/datafabric ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabric-worker -count=1
-go build ./cmd/ynx-data-fabricd
+go build ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabric-worker
 scripts/data-fabric/local-smoke.sh
 jq empty schemas/data-fabric/*.json integration/product-event-contracts.json release/*.json public-product-metadata.json product-release.json
 git diff --check
