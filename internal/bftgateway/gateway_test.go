@@ -158,7 +158,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 24 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 25 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
@@ -263,7 +263,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":24,"method":"eth_getBlockByNumber","params":["latest","false"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":26,"method":"eth_sendRawTransaction","params":["0x0"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":27,"method":"eth_sendRawTransaction","params":["0x%x"]}`, wrongChainPayload), -32003)
-	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getCode","params":[]}`))
+	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getStorageAt","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
 	}

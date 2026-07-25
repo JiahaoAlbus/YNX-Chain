@@ -124,6 +124,204 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	}
 }
 
+func (g *Gateway) evmCommittedContractCode(ctx context.Context, raw json.RawMessage) (any, int, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil || len(params) != 2 {
+		return nil, -32602, errors.New("eth_getCode requires an address and block tag")
+	}
+	var address string
+	if err := json.Unmarshal(params[0], &address); err != nil || !isCanonicalEVMAddress(address) {
+		return nil, -32602, errors.New("canonical lowercase contract address is required")
+	}
+	if code, err := g.requireCurrentCommittedTag(ctx, params[1]); err != nil {
+		return nil, code, err
+	}
+	contract, found, err := g.committedContract(ctx, address)
+	if err != nil {
+		return nil, -32603, err
+	}
+	if !found {
+		return "0x", 0, nil
+	}
+	return contract.DeployedBytecode, 0, nil
+}
+
+func (g *Gateway) evmCommittedContractCall(ctx context.Context, method string, raw json.RawMessage) (any, int, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil || len(params) < 1 || len(params) > 2 {
+		return nil, -32602, fmt.Errorf("%s requires a call object and optional block tag", method)
+	}
+	if len(params) == 2 {
+		if code, err := g.requireCurrentCommittedTag(ctx, params[1]); err != nil {
+			return nil, code, err
+		}
+	} else if code, err := g.requireCurrentCommittedTag(ctx, json.RawMessage(`"latest"`)); err != nil {
+		return nil, code, err
+	}
+	address, calldata, err := parseBoundedEVMCallObject(params[0])
+	if err != nil {
+		return nil, -32602, err
+	}
+	if _, found, err := g.committedContract(ctx, address); err != nil {
+		return nil, -32603, err
+	} else if !found {
+		return nil, -32000, errors.New("committed bounded contract not found")
+	}
+	var result struct {
+		Address         string `json:"address"`
+		EncodedResult   string `json:"encodedResult"`
+		OpcodeStepCount int    `json:"opcodeStepCount"`
+		RuntimeMode     string `json:"runtimeMode"`
+	}
+	if err := g.queryABCIJSON(ctx, "/ide/call/"+address+"/"+calldata, &result); err != nil {
+		return nil, -32000, err
+	}
+	if result.Address != address || result.RuntimeMode != chain.BoundedContractRuntimeMode || !isCanonicalEVMData(result.EncodedResult, 0, 64<<10) || result.OpcodeStepCount <= 0 {
+		return nil, -32603, errors.New("ABCI bounded contract call evidence is invalid")
+	}
+	if method == "eth_estimateGas" {
+		return "0x1", 0, nil
+	}
+	return result.EncodedResult, 0, nil
+}
+
+func (g *Gateway) requireCurrentCommittedTag(ctx context.Context, raw json.RawMessage) (int, error) {
+	status, err := g.status(ctx)
+	if err != nil {
+		return -32603, err
+	}
+	height, err := parseCommittedBlockTag(raw, status.EarliestBlockHeight, status.Height)
+	if err != nil {
+		return -32602, err
+	}
+	if height != status.Height {
+		return -32602, errors.New("historical contract state is not available from the current CometBFT gateway")
+	}
+	return 0, nil
+}
+
+func (g *Gateway) committedContract(ctx context.Context, address string) (consensus.BFTContract, bool, error) {
+	var contract consensus.BFTContract
+	if err := g.queryABCIJSON(ctx, "/ide/contracts/"+address, &contract); err != nil {
+		if err.Error() == "IDE contract not found" {
+			return consensus.BFTContract{}, false, nil
+		}
+		return consensus.BFTContract{}, false, err
+	}
+	if contract.Address != address || contract.RuntimeMode != chain.BoundedContractRuntimeMode || contract.BlockHeight <= 0 || contract.LastUpdatedHeight < contract.BlockHeight || !transactionHashPattern.MatchString(contract.TxHash) {
+		return consensus.BFTContract{}, false, errors.New("ABCI bounded contract evidence is invalid")
+	}
+	bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
+	if err != nil || bytecodeHash != contract.DeployedBytecodeHash || !isCanonicalEVMData(contract.DeployedBytecode, 1, 12<<10) {
+		return consensus.BFTContract{}, false, errors.New("ABCI bounded contract artifact identity is invalid")
+	}
+	return contract, true, nil
+}
+
+func parseBoundedEVMCallObject(raw json.RawMessage) (string, string, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil || fields == nil {
+		return "", "", errors.New("call parameter must be an object")
+	}
+	allowed := map[string]bool{"to": true, "data": true, "input": true, "from": true, "gas": true, "gasPrice": true, "maxFeePerGas": true, "maxPriorityFeePerGas": true, "value": true}
+	for field := range fields {
+		if !allowed[field] {
+			return "", "", fmt.Errorf("unsupported bounded call field %q", field)
+		}
+	}
+	address, err := requiredEVMStringField(fields, "to")
+	if err != nil || !isCanonicalEVMAddress(address) {
+		return "", "", errors.New("canonical lowercase call target is required")
+	}
+	data, hasData, err := optionalEVMStringField(fields, "data")
+	if err != nil {
+		return "", "", err
+	}
+	input, hasInput, err := optionalEVMStringField(fields, "input")
+	if err != nil {
+		return "", "", err
+	}
+	if !hasData && !hasInput {
+		return "", "", errors.New("bounded call data or input is required")
+	}
+	if hasData && hasInput && data != input {
+		return "", "", errors.New("call data and input differ")
+	}
+	calldata := data
+	if !hasData {
+		calldata = input
+	}
+	if !isCanonicalEVMData(calldata, 4, 4096) {
+		return "", "", errors.New("bounded call data must be canonical lowercase hexadecimal with at least a four-byte selector")
+	}
+	if from, ok, err := optionalEVMStringField(fields, "from"); err != nil || (ok && !isCanonicalEVMAddress(from)) {
+		return "", "", errors.New("call from must be a canonical lowercase EVM address")
+	}
+	for _, field := range []string{"gas", "gasPrice", "maxFeePerGas", "maxPriorityFeePerGas"} {
+		if value, ok, err := optionalEVMStringField(fields, field); err != nil || (ok && !isCanonicalEVMQuantity(value)) {
+			return "", "", fmt.Errorf("call %s must be a canonical hexadecimal quantity", field)
+		}
+	}
+	if value, ok, err := optionalEVMStringField(fields, "value"); err != nil || (ok && value != "0x0") {
+		return "", "", errors.New("bounded static calls do not support non-zero value")
+	}
+	return address, calldata, nil
+}
+
+func requiredEVMStringField(fields map[string]json.RawMessage, name string) (string, error) {
+	value, ok, err := optionalEVMStringField(fields, name)
+	if err != nil {
+		return "", err
+	}
+	if !ok || value == "" {
+		return "", fmt.Errorf("call %s is required", name)
+	}
+	return value, nil
+}
+
+func optionalEVMStringField(fields map[string]json.RawMessage, name string) (string, bool, error) {
+	raw, ok := fields[name]
+	if !ok {
+		return "", false, nil
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", true, fmt.Errorf("call %s must be a string", name)
+	}
+	return value, true, nil
+}
+
+func isCanonicalEVMQuantity(value string) bool {
+	if value == "0x0" {
+		return true
+	}
+	if len(value) < 3 || len(value) > 66 || !strings.HasPrefix(value, "0x") || value[2] == '0' {
+		return false
+	}
+	for _, character := range value[2:] {
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+func isCanonicalEVMData(value string, minBytes, maxBytes int) bool {
+	if !strings.HasPrefix(value, "0x") || len(value)%2 != 0 {
+		return false
+	}
+	byteLength := (len(value) - 2) / 2
+	if byteLength < minBytes || byteLength > maxBytes {
+		return false
+	}
+	for _, character := range value[2:] {
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
 func (g *Gateway) evmSendRawTransaction(ctx context.Context, raw json.RawMessage) (any, int, error) {
 	var params []json.RawMessage
 	if err := json.Unmarshal(raw, &params); err != nil {

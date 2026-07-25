@@ -32,6 +32,7 @@ var implementedCapabilities = []string{
 	"evm-block-by-number-and-hash",
 	"evm-account-balance-and-nonce",
 	"evm-signed-raw-transaction-broadcast",
+	"evm-bounded-contract-code-call-and-gas",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
@@ -1237,6 +1238,22 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 		var code int
 		var err error
 		result, code, err = g.evmSendRawTransaction(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_getCode":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractCode(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
+	case "eth_call", "eth_estimateGas":
+		var code int
+		var err error
+		result, code, err = g.evmCommittedContractCall(r.Context(), request.Method, request.Params)
 		if err != nil {
 			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
 			return
