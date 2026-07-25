@@ -1,17 +1,30 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { centralRegistrationByProduct, parseCentralRegistryDocument, WalletAuthError } from "../src/index.js";
+import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCentralRegistryDocument, WalletAuthError } from "../src/index.js";
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central candidate contains exactly 25 unique, least-privilege, disabled products", () => {
+test("central candidate contains exactly 26 unique, least-privilege, disabled products", () => {
   const registry = parseCentralRegistryDocument(source);
-  assert.equal(registry.products.length, 25);
+  assert.equal(registry.products.length, 26);
   assert.equal(registry.products.every((product) => product.reviewState === "pending-review" && !product.enabled), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
   assert.throws(() => centralRegistrationByProduct(registry, "social"), code("REGISTRY_DISABLED"));
   assert.equal(centralRegistrationByProduct(registry, "social", { requireEnabled: false }).bundleId, "com.ynx.social");
+  assert.deepEqual(centralRegistrationByProduct(registry, "quant", { requireEnabled: false }).scopes, ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"]);
+});
+
+test("registry v1 migrates deterministically by adding disabled least-privilege Quant", () => {
+  const legacy = structuredClone(source);
+  legacy.registryVersion = 1;
+  legacy.products = legacy.products.filter(product => product.productId !== "quant");
+  const migrated = migrateCentralRegistryDocumentV1(legacy);
+  assert.deepEqual(migrated.products.map(product => product.productId), parseCentralRegistryDocument(source).products.map(product => product.productId));
+  assert.equal(centralRegistrationByProduct(migrated, "quant", { requireEnabled: false }).enabled, false);
+  const tampered = structuredClone(legacy);
+  tampered.products[0].productId = "unknown-replacement";
+  assert.throws(() => migrateCentralRegistryDocumentV1(tampered), code("INVALID_REGISTRY"));
 });
 
 test("central registry rejects enablement without approval and identity tamper", () => {

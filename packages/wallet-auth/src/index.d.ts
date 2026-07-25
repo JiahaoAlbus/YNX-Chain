@@ -8,7 +8,7 @@ export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:s
 export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
 export type CentralReviewState = "approved"|"pending-review"|"disabled";
 export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"> & {schemaVersion:3;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
-export type CentralRegistryDocument = Readonly<{registryVersion:1;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
+export type CentralRegistryDocument = Readonly<{registryVersion:2;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
 export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export type CentralRevocationState = Readonly<{revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[]}>;
 export type CentralWalletStoreSnapshot = Readonly<{schemaVersion:1;consumedNonces:readonly string[];consumedRequestDigests:readonly string[];consumedChallenges:readonly string[];sessions:readonly CentralWalletSession[];revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[];audit:readonly Readonly<{sequence:number;type:string;subject:string;at:string;previousHash:string|null;hash:string}>[]}>;
@@ -19,7 +19,8 @@ export declare const YNX_EVM_CHAIN_ID:6423;
 export declare const PRODUCT_DEVICE_ALGORITHM:"p256-sha256";
 export declare const CENTRAL_REGISTRY_SCHEMA_VERSION:2;
 export declare const CENTRAL_VERIFIER_VERSION:"wallet-auth-v1";
-export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION:1;
+export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION:2;
+export declare const CENTRAL_REGISTRY_PRODUCT_COUNT:26;
 export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:3;
 export declare const NATIVE_TRANSACTION_DOMAIN:"YNX_NATIVE_TX_V1";
 export declare const NATIVE_TRANSACTION_CHAIN_ID:6423;
@@ -54,6 +55,7 @@ export declare function centralApprovalDigest(approval:AuthorizationResponse):st
 export declare function centralDeviceBinding(requestOrSession:Pick<CentralWalletSession,"chainId"|"requestingProduct"|"productClientId"|"bundleId"|"callback"|"productDeviceAlgorithm"|"productDeviceKey">,account:string):string;
 export declare function assertCentralWalletSessionActive(session:CentralWalletSession,input:CentralRevocationState,at?:Date):CentralWalletSession;
 export declare function parseCentralRegistryDocument(input:unknown):CentralRegistryDocument;
+export declare function migrateCentralRegistryDocumentV1(input:unknown):CentralRegistryDocument;
 export declare function parseCentralProductRegistration(input:unknown):CentralProductRegistration;
 export declare function centralProtocolEntry(registration:CentralProductRegistration,options?:{requireEnabled?:boolean}):CentralRegistryEntry;
 export declare function centralRegistrationByProduct(document:CentralRegistryDocument,productId:string,options?:{requireEnabled?:boolean}):CentralProductRegistration;
@@ -113,5 +115,6 @@ export declare function productSessionProofSignBytes(input:unknown):string;
 export declare function productSessionProofDigest(input:unknown):string;
 export declare function httpBodyDigest(body:string|Uint8Array):string;
 export declare function verifyProductSessionProof(proof:unknown,session:CentralWalletSession,expected:Readonly<{method:string;path:string;bodyDigest:string}>,at?:Date):Readonly<Record<string,unknown>>;
-export declare class CanonicalWalletGatewayAdapter{constructor(registry:unknown,snapshot?:unknown);complete(input:Readonly<Record<string,unknown>>,at?:Date):CentralWalletSession;introspect(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<{active:true;session:CentralWalletSession}>;revokeSession(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;snapshot():Readonly<Record<string,unknown>>}
+export declare const CANONICAL_GATEWAY_ADAPTER_SCHEMA_VERSION:2;
+export declare class CanonicalWalletGatewayAdapter{constructor(registry:unknown,snapshot?:unknown);complete(input:Readonly<Record<string,unknown>>,at?:Date):CentralWalletSession;introspect(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<{active:true;session:CentralWalletSession}>;revokeSession(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;activateMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;authorizeMandateAction(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;mandateInventory(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):readonly Readonly<Record<string,unknown>>[];revokeMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;killMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;emergencyExitMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;snapshot():Readonly<Record<string,unknown>>}
 export declare function parseGatewayAdapterSnapshot(input:unknown,registryVersion:number):Readonly<Record<string,unknown>>;
