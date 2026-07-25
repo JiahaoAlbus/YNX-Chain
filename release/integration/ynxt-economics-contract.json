@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.economics.integration.v1",
+  "productSlug": "ynxt-economics",
+  "product": "YNXT Economics / Treasury / Stable Settlement",
+  "owner": "17 Economics",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "status": "active",
+  "currentPhase": "FREEZE",
+  "nextPhase": "INTEGRATE",
+  "authority": {
+    "economicPolicy": "17 Economics",
+    "chainExecutionAndFinalState": "01 Chain Core",
+    "walletReviewAndSignedIntent": "02 Wallet/Auth",
+    "exchangeFeeFundingInsuranceSolvency": "07 Exchange",
+    "quantPnLAndPerformanceFee": "08 Quant",
+    "publicEconomicsProjection": "12 Explorer",
+    "economicRiskMonitoring": "13 Monitor",
+    "priceReserveAndDepegReference": "19 Oracle",
+    "bridgeExposureAndCrossChainAssetState": "21 Bridge",
+    "canonicalEventAndBillingLedger": "26 Data Fabric",
+    "publicRoutesAndSEO": "28 Website",
+    "protocolFreezeAndSharedTestnet": "29 Integration",
+    "proposalTimelockAndProtocolControl": "31 Governance"
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "supply": {
+    "asset": "YNXT",
+    "hardCap": null,
+    "hardCapStatus": "not-defined",
+    "genesisSupplyAuthority": "01 Chain Core genesis",
+    "candidateRuntimeInputSupply": "explicit per replay or migration input",
+    "hiddenMintAllowed": false,
+    "administratorArbitraryMintAllowed": false,
+    "annualIssuanceFloorBps": 100,
+    "annualIssuanceCeilingBps": 800,
+    "emergencyIssuanceCeilingBps": 300,
+    "maxAnnualParameterDeltaBps": 100,
+    "governanceTimelockSeconds": 604800,
+    "allocationBps": {
+      "networkSecurity": 7000,
+      "publicGoods": 1500,
+      "governanceApprovedGrants": 1000,
+      "adoptionIncentives": 500
+    },
+    "forbiddenDestinations": [
+      "hidden-team-wallet",
+      "undisclosed-insider-account",
+      "unapproved-market-support-account"
+    ],
+    "source": "internal/economics/runtime.go"
+  },
+  "fees": {
+    "currentChainAuthority": "fixed-fee-v1",
+    "candidatePolicy": "eip1559-per-lane-v1",
+    "candidateActivated": false,
+    "baseFeeBurnBps": 10000,
+    "priorityAndServiceRevenueSplitBps": {
+      "validator": 7000,
+      "provider": 1000,
+      "protocol": 1000,
+      "treasury": 1000
+    },
+    "burnIsRevenue": false,
+    "serviceBurnIsRevenue": false,
+    "testSubsidyIsRevenue": false,
+    "internalTransferIsRevenue": false,
+    "sponsoredFeeAttributionRequired": true,
+    "reconciliationInvariant": "grossFee = baseFeeBurn + serviceBurn + validator + provider + protocol + treasury",
+    "sources": [
+      "internal/economics/runtime.go",
+      "internal/economics/fee_market.go",
+      "internal/consensus/fee_state.go"
+    ]
+  },
+  "staking": {
+    "delegationLifecycleAuthority": "01 Chain Core after accepted integration",
+    "rewardSourceStatus": "inactive-until-governed-activation",
+    "guaranteedApy": false,
+    "riskRuntimeCandidate": {
+      "schemaVersion": 1,
+      "policyVersion": 1,
+      "governanceAuthorization": "threshold-ed25519-action-hash",
+      "governanceTimelockSeconds": 172800,
+      "jailSeconds": 604800,
+      "maximumSlashBps": {
+        "downtime": 100,
+        "doubleSign": 5000,
+        "invalidStateTransition": 2000,
+        "global": 5000
+      },
+      "slashExposure": [
+        "operatorStake",
+        "delegatedStake",
+        "queuedUnbonding"
+      ],
+      "deterministicReplay": true,
+      "restartValidation": true,
+      "tamperRejection": true,
+      "activatedOnSharedTestnet": false,
+      "source": "internal/economics/staking_risk_runtime.go"
+    }
+  },
+  "liquidStaking": {
+    "status": "candidate",
+    "production": false,
+    "guaranteedPeg": false,
+    "guaranteedApy": false,
+    "requiredBeforeActivation": [
+      "contract-audit",
+      "economic-stress-acceptance",
+      "slashing-reconciliation",
+      "withdrawal-queue-stress",
+      "depeg-and-redemption-validation",
+      "governance-approval",
+      "public-risk-disclosure"
+    ],
+    "source": "internal/economics/liquid_staking.go"
+  },
+  "securityPools": {
+    "status": "candidate",
+    "recursiveRestakingAllowed": false,
+    "hiddenRehypothecationAllowed": false,
+    "crossServiceContagionAllowed": false,
+    "isolatedServices": [
+      "oracle",
+      "bridge",
+      "storage",
+      "ai",
+      "indexer"
+    ],
+    "source": "internal/economics/security_pools.go"
+  },
+  "stableSettlement": {
+    "preferredRail": "official-testnet-usdc-cctp-or-reviewed-equivalent",
+    "providerIntegrated": false,
+    "yusdStatus": "sandbox-candidate",
+    "yusdRealityValue": false,
+    "reserveRatio": "1:1",
+    "externalReserveAttested": false,
+    "guaranteedPeg": false,
+    "algorithmicUncollateralizedStablecoinAllowed": false,
+    "decimals": 6,
+    "accountDailyLimitUnits": 100000000000,
+    "globalDailyLimitUnits": 1000000000000,
+    "source": "internal/yusdsandbox"
+  },
+  "treasury": {
+    "aiExecutionAllowed": false,
+    "ordinaryServiceSigningAllowed": false,
+    "secretMarketSupportAllowed": false,
+    "executionActivated": false,
+    "buckets": [
+      "stableReserve",
+      "validatorRunway",
+      "insurance",
+      "liquidityBudget",
+      "developmentAndPublicGoods",
+      "providerObligations",
+      "emergencyReserve"
+    ],
+    "requiredControls": [
+      "allocation-limits",
+      "counterparty-limits",
+      "timelock",
+      "multisig-or-governance",
+      "conflict-disclosure",
+      "public-runway-dashboard",
+      "versioned-policy",
+      "audit",
+      "migration",
+      "emergency-pause",
+      "recovery"
+    ]
+  },
+  "quantPerformanceFee": {
+    "owner": "08 Quant",
+    "basis": "realized-net-profit-only",
+    "deductions": [
+      "tradingFee",
+      "funding",
+      "slippage",
+      "gas",
+      "computeAndDataCost",
+      "otherExplicitCost"
+    ],
+    "highWaterMarkRequired": true,
+    "lossCarryForwardRequired": true,
+    "explicitUserApprovalRequired": true,
+    "unrealizedProfitChargeAllowed": false,
+    "lossChargeAllowed": false,
+    "highWaterMarkResetChargeAllowed": false,
+    "integrationStatus": "handoff-only"
+  },
+  "canonicalEvents": [
+    {
+      "type": "ynx.economics.epoch_settled.v1",
+      "schemaVersion": 1,
+      "owner": "17 Economics",
+      "consumers": ["01 Chain Core", "12 Explorer", "13 Monitor", "26 Data Fabric"]
+    },
+    {
+      "type": "ynx.economics.policy_change_scheduled.v1",
+      "schemaVersion": 1,
+      "owner": "17 Economics",
+      "consumers": ["31 Governance", "12 Explorer", "13 Monitor", "26 Data Fabric"]
+    },
+    {
+      "type": "ynx.economics.policy_change_activated.v1",
+      "schemaVersion": 1,
+      "owner": "17 Economics",
+      "consumers": ["01 Chain Core", "31 Governance", "12 Explorer", "13 Monitor", "26 Data Fabric"]
+    },
+    {
+      "type": "ynx.staking.validator_slashed.v1",
+      "schemaVersion": 1,
+      "owner": "17 Economics",
+      "consumers": ["01 Chain Core", "02 Wallet/Auth", "12 Explorer", "13 Monitor", "26 Data Fabric", "31 Governance"]
+    },
+    {
+      "type": "ynx.staking.validator_unjailed.v1",
+      "schemaVersion": 1,
+      "owner": "17 Economics",
+      "consumers": ["01 Chain Core", "02 Wallet/Auth", "12 Explorer", "13 Monitor", "26 Data Fabric", "31 Governance"]
+    }
+  ],
+  "apis": [
+    {
+      "method": "GET",
+      "path": "/api/economics/disclosure",
+      "owner": "12 Explorer projection",
+      "auth": "public-read",
+      "status": "implemented-local"
+    },
+    {
+      "method": "GET",
+      "path": "/api/economics/health",
+      "owner": "12 Explorer projection",
+      "auth": "public-read",
+      "status": "implemented-local"
+    }
+  ],
+  "localTools": [
+    {
+      "command": "go run ./cmd/ynx-economics-runtime -input economics/examples/runtime-replay.json",
+      "outputSchema": "EconomicRuntimeState.v1"
+    },
+    {
+      "command": "go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json",
+      "outputSchema": "StakingRiskState.v1"
+    }
+  ],
+  "authAndIntent": {
+    "walletTupleStatus": "requires-02-wallet-auth-freeze",
+    "productId": "ynxt-economics",
+    "signedIntentDomains": [
+      "YNX_ECONOMICS_POLICY_V1",
+      "YNX_STAKING_PENALTY_DECISION_V1",
+      "YNX_STAKING_RECOVERY_DECISION_V1"
+    ],
+    "browserLongLivedBearerAllowed": false,
+    "wildcardScopeAllowed": false,
+    "aiSigningAllowed": false
+  },
+  "errorCodes": [
+    "YNX_ECONOMICS_INVALID_POLICY",
+    "YNX_ECONOMICS_INVALID_POLICY_TRANSITION",
+    "YNX_ECONOMICS_GOVERNANCE_REQUIRED",
+    "YNX_ECONOMICS_TIMELOCK_ACTIVE",
+    "YNX_ECONOMICS_SEQUENCE_INVALID",
+    "YNX_ECONOMICS_FEE_RECONCILIATION_FAILED",
+    "YNX_ECONOMICS_SUPPLY_RECONCILIATION_FAILED",
+    "YNX_ECONOMICS_EMERGENCY_BOUND_INVALID",
+    "YNX_ECONOMICS_STATE_TAMPERED",
+    "YNX_STAKING_RISK_INVALID_POLICY",
+    "YNX_STAKING_RISK_INVALID_STATE",
+    "YNX_STAKING_RISK_INVALID_DECISION",
+    "YNX_STAKING_RISK_AUTHORIZATION_FAILED",
+    "YNX_STAKING_RISK_TIMELOCK_ACTIVE",
+    "YNX_STAKING_RISK_VALIDATOR_MISSING",
+    "YNX_STAKING_RISK_INSUFFICIENT_EXPOSURE",
+    "YNX_STAKING_RISK_RECOVERY_UNAVAILABLE",
+    "YNX_STAKING_RISK_DUPLICATE_DECISION"
+  ],
+  "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "migration": {
+    "currentConsensusFeePolicy": "fixed-fee-v1",
+    "candidateRuntimeSchema": 1,
+    "candidateStakingRiskSchema": 1,
+    "activationRequires": [
+      "29-integration-contract-acceptance",
+      "01-chain-core-migration",
+      "31-governance-timelock-approval",
+      "26-data-fabric-event-acceptance",
+      "12-explorer-and-13-monitor-consumer-validation",
+      "rollback-drill"
+    ],
+    "rollback": "retain prior accepted policy and state; reject unsupported candidate state fail-closed"
+  },
+  "externalInputs": [
+    "accepted-chain-core-interface",
+    "accepted-governance-parameters",
+    "secure-signer-or-treasury-multisig",
+    "stablecoin-provider-or-custodian",
+    "reserve-attestation",
+    "oracle-provider",
+    "bridge-contracts",
+    "public-deployment-authority",
+    "domain-and-dns",
+    "testnet-funding",
+    "legal-and-compliance-review"
+  ]
+}

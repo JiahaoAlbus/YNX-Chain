@@ -6,9 +6,15 @@ const integration = JSON.parse(readFileSync("release/economics-integration-manif
 const request = JSON.parse(readFileSync("release/operator-inputs.request.json", "utf8"));
 const security = JSON.parse(readFileSync("release/security-scan-evidence.json", "utf8"));
 const release = JSON.parse(readFileSync("product-release.json", "utf8"));
+const metadata = JSON.parse(readFileSync("public-product-metadata.json", "utf8"));
+const contract = JSON.parse(readFileSync("release/integration/ynxt-economics-contract.json", "utf8"));
 assert.equal(integration.schemaVersion, 1);
 assert.equal(request.schemaVersion, 1);
+assert.equal(contract.schemaVersion, 1);
 assert.equal(integration.sourceCommit, request.sourceCommit);
+assert.equal(integration.sourceCommit, release.sourceCommit);
+assert.equal(integration.sourceCommit, metadata.sourceCommit);
+assert.equal(integration.sourceCommit, contract.sourceCommit);
 assert.match(integration.sourceCommit, /^[0-9a-f]{40}$/);
 execFileSync("git", ["cat-file", "-e", `${integration.sourceCommit}^{commit}`]);
 for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {

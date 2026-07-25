@@ -28,6 +28,8 @@ All paths are repository-relative and refer to the current source commit only af
 | v7/v8 to v9 migration boundary | `internal/consensus/state.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus -run 'MigratesVersion'` |
 | Delegation, unbonding liability, maturity and withdrawal | `internal/consensus/staking_action.go`, `staking_application.go`, `staking_action_test.go` | `go test ./internal/consensus -run Staking` |
 | Staking Gateway and truthful no-yield boundary | `internal/bftgateway/staking.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
+| Governed slash, jail and recovery candidate runtime | `internal/economics/staking_risk_runtime.go`, `staking_risk_runtime_test.go` | `make staking-risk-runtime-check` |
+| Deterministic threshold-signed staking replay vector | `economics/examples/staking-risk-runtime-replay.json`, `evidence/economics/runtime-replay-501db18.json` | `go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json` |
 | Rejected-transaction atomicity | `internal/consensus/application.go`, early-withdrawal/retry path in `staking_action_test.go` | `go test ./internal/consensus -run StakingDelegation` |
 | Consensus Treasury bucket truth | `internal/consensus/treasury_snapshot.go`, `treasury_snapshot_test.go` | `go test ./internal/consensus -run TreasurySnapshot` |
 | Source-labelled Treasury Gateway | `internal/bftgateway/treasury.go`, `staking_test.go` | `go test ./internal/bftgateway -run Staking` |
@@ -58,6 +60,9 @@ All paths are repository-relative and refer to the current source commit only af
 | Quant realized-net high-water-mark ownership and vectors | `docs/coordination/QUANT_FEE_HIGH_WATER_MARK_HANDOFF.md` | On Chain Core worktree: `go test ./internal/assetauth -run PerformanceFee -count=1` |
 | Founder KPI definitions and kill/scale rules | `GROWTH_KPI_FRAMEWORK.md` | Review unavailable-current-value and source requirements |
 | Cross-owner integration inventory and exact false states | `release/economics-integration-manifest.json` | Parse JSON and inspect every activation boundary |
+| Frozen economics integration contract, event owners and error codes | `release/integration/ynxt-economics-contract.json` | `make economics-integration-contract-check` |
+| Cross-product deterministic event and release vectors | `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` | `make economics-integration-contract-check` |
+| Owner acceptance and fail-closed dependency gates | `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` | Review all owner states as pending until direct evidence exists |
 | Requirement-by-requirement completion decision | `DELIVERY_COMPLETION_AUDIT.md` | Confirm partial/missing evidence remains false |
 | One-time secure operator input request | `release/operator-inputs.request.json` | Confirm no secret material is requested |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |

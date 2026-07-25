@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-07-22T00:00:00Z",
-  "sourceCommit": "1085c12bb4b1e992a46d1458e2625ca8cc6a0de6",
+  "asOf": "2026-07-25T05:00:00Z",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
   "product": {
     "name": "YNXT Economics",
     "aliases": ["YNXT", "YNX Economics", "YNX Token Economics"],

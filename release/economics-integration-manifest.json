@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "YNXT Economics",
-  "sourceCommit": "da9308ef7d005d7afaf91b7a71689fa6ebde2d07",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
   "targetOwners": ["Chain Core", "Wallet/Auth", "Gateway", "Explorer/Monitor", "Website", "Governance"],
   "currentAuthority": {
     "feePolicy": "fixed-fee-v1",
@@ -19,10 +19,16 @@
       "activation": "central-review-required"
     },
     {
-      "capability": "candidate-economic-policy",
-      "source": ["internal/economics/model.go", "internal/economics/fee_market.go", "internal/economics/macro_stress.go"],
-      "migration": "not-implemented-candidate-only",
-      "activation": "forbidden-without-governance-timelock-audit-and-rollback"
+      "capability": "candidate-economic-policy-and-deterministic-runtime",
+      "source": ["internal/economics/model.go", "internal/economics/runtime.go", "internal/economics/fee_market.go", "internal/economics/macro_stress.go"],
+      "migration": "runtime-schema-v1-implemented-local-chain-core-migration-pending",
+      "activation": "forbidden-without-governance-timelock-audit-rollback-and-shared-testnet-evidence"
+    },
+    {
+      "capability": "governed-staking-risk-runtime",
+      "source": ["internal/economics/staking_risk_runtime.go", "cmd/ynx-staking-risk-runtime", "economics/examples/staking-risk-runtime-replay.json"],
+      "migration": "staking-risk-schema-v1-implemented-local-chain-core-integration-pending",
+      "activation": "forbidden-without-chain-core-governance-data-fabric-explorer-monitor-acceptance"
     },
     {
       "capability": "liquid-staking-and-security-pools",

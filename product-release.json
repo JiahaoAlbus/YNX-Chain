@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "releaseId": "ynxt-economics-local-candidate-2026-07-22",
+  "releaseId": "ynxt-economics-local-candidate-2026-07-25",
   "product": "YNXT Economics",
-  "asOf": "2026-07-22T00:00:00Z",
-  "sourceCommit": "1085c12bb4b1e992a46d1458e2625ca8cc6a0de6",
+  "asOf": "2026-07-25T05:00:00Z",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
   "releaseClass": "local_testnet_integration_candidate",
   "routes": ["/ynxt", "/economics", "/api/economics/disclosure", "/assets/economics-og.png"],
   "states": {
@@ -18,6 +18,9 @@
     "storeReleased": false
   },
   "verification": [
+    "make economics-integration-contract-check",
+    "make staking-risk-runtime-check",
+    "make economics-local-candidate-check",
     "make economics-public-ui-check",
     "make macro-stress-check",
     "go test ./...",
@@ -55,6 +58,8 @@
     "public screenshots and browser/device accessibility evidence",
     "staging/public deployment and monitor evidence",
     "support, privacy, security and status URLs",
+    "accepted Chain Core migration and Governance activation for dynamic issuance, burn and staking risk",
+    "Data Fabric, Explorer and Monitor consumption of canonical economics and staking-risk events",
     "contract audits and governed candidate activation",
     "unresolved High vulnerability in development-only Hardhat adm-zip chain",
     "external DAST, hosted CI provenance and artifact signing"

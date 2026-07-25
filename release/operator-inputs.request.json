@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "YNXT Economics",
-  "sourceCommit": "da9308ef7d005d7afaf91b7a71689fa6ebde2d07",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
   "requestPolicy": "Provide references or approvals through an approved secure channel; never place secrets, private keys, seeds, PEM contents, validator keys or full provider credentials in chat or git.",
   "inputs": [
     {

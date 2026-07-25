@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx.economics.integration.v1",
+  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "classification": "local-deterministic-integration-vectors",
+  "sharedTestnetEvidence": false,
+  "vectors": [
+    {
+      "id": "economics-runtime-replay-v1",
+      "input": "economics/examples/runtime-replay.json",
+      "command": "go run ./cmd/ynx-economics-runtime -input economics/examples/runtime-replay.json",
+      "eventTypes": ["ynx.economics.epoch_settled.v1"],
+      "expected": {
+        "schemaVersion": 1,
+        "stateVersion": 4,
+        "lastEpoch": 3,
+        "genesisSupplyYnxt": 1000000000,
+        "cumulativeIssuanceYnxt": 82166,
+        "cumulativeBurnYnxt": 1750000,
+        "totalSupplyYnxt": 998332166,
+        "stateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+        "eventIds": [
+          "econ_9e6e741afea9046169464676",
+          "econ_f82a988f6053656cff617b95",
+          "econ_d72921058ac44a645c699871"
+        ],
+        "eventAuditHashes": [
+          "sha256:4bd703a549e09b3cfdd4fbf0f0f8ab5cf040ca8b4994a344f74ecdd5eb6a58d0",
+          "sha256:45cfd3c75eed0f751119545a093c9de52f767c121a1196aa8c100ee5b9875747",
+          "sha256:b4684639309cf20844487bb23ab72e3ef659170c761407c4e9171de332685d5d"
+        ]
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "openingSupply + issuance - burn = closingSupply for every event",
+          "epochs are strictly sequential",
+          "unsupported policy or state versions fail closed"
+        ],
+        "26 Data Fabric": [
+          "burn fields are not classified as revenue",
+          "validator provider protocol and treasury are separately attributable",
+          "event id and audit hash remain byte-for-byte stable"
+        ],
+        "12 Explorer": [
+          "display source policyHash asOf and event version",
+          "display issuance and burn separately"
+        ],
+        "13 Monitor": [
+          "alert on supply reconciliation failure",
+          "alert on non-sequential epochs or changed audit hash"
+        ]
+      }
+    },
+    {
+      "id": "staking-risk-slash-recovery-v1",
+      "input": "economics/examples/staking-risk-runtime-replay.json",
+      "command": "go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json",
+      "eventTypes": [
+        "ynx.staking.validator_slashed.v1",
+        "ynx.staking.validator_unjailed.v1"
+      ],
+      "expected": {
+        "schemaVersion": 1,
+        "stateVersion": 3,
+        "finalValidatorStatus": "active",
+        "openingExposureYnxt": 10000000,
+        "totalSlashYnxt": 1000000,
+        "closingExposureYnxt": 9000000,
+        "verifiedSignatures": 2,
+        "threshold": 2,
+        "slashEventId": "stakeevt_d7b6c5f36a3aa1695c4012fb",
+        "slashAuditHash": "sha256:b14c228b28852a05dd127de8a5a9350f3b7125d57b95bd56cf50639da8bf440d",
+        "recoveryEventId": "stakeevt_756e2091731f609ba3053529",
+        "recoveryAuditHash": "sha256:77011a61cec4813e07e2cd74c11707e2c34f344407df498f957b8f64eff1a577",
+        "stateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764"
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "slash operator delegated and queued-unbonding exposure proportionally",
+          "do not execute before governance timelock",
+          "do not unjail before the jail deadline"
+        ],
+        "02 Wallet/Auth": [
+          "show slash source lock and exit risk without APY guarantee",
+          "require explicit review before future staking mutations"
+        ],
+        "26 Data Fabric": [
+          "preserve proposal evidence action and audit hashes",
+          "reject duplicate proposal ids"
+        ],
+        "12 Explorer": [
+          "show opening exposure slash allocation closing exposure and jail deadline",
+          "show candidate and local-only status"
+        ],
+        "13 Monitor": [
+          "alert on threshold failure signature mismatch and state tampering",
+          "alert on slash amount above published infraction maximum"
+        ],
+        "31 Governance": [
+          "bind signatures to the canonical action hash",
+          "preserve proposal id and timelock evidence"
+        ]
+      }
+    },
+    {
+      "id": "fee-burn-revenue-separation-v1",
+      "sourceVector": "economics/examples/runtime-replay.json#epochs[0]",
+      "eventType": "ynx.economics.epoch_settled.v1",
+      "input": {
+        "grossFeeYnxt": 500000,
+        "baseFeeBurnYnxt": 200000,
+        "serviceBurnYnxt": 50000,
+        "validatorYnxt": 175000,
+        "providerYnxt": 25000,
+        "protocolYnxt": 25000,
+        "treasuryYnxt": 25000
+      },
+      "expected": {
+        "burnYnxt": 250000,
+        "revenueYnxt": 250000,
+        "grossReconciled": true,
+        "burnClassifiedAsRevenue": false
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "gross fee equals burns plus four revenue splits",
+          "base and service burns use burn ledger classes"
+        ],
+        "12 Explorer": [
+          "never label burn as protocol or treasury revenue"
+        ],
+        "13 Monitor": [
+          "raise reconciliation alert when any component is missing or double counted"
+        ]
+      }
+    },
+    {
+      "id": "release-truth-boundary-v1",
+      "source": "release/integration/ynxt-economics-contract.json#releaseStates",
+      "expected": {
+        "implementedLocal": true,
+        "testedLocal": true,
+        "installedLocal": false,
+        "integratedCentral": false,
+        "deployedStaging": false,
+        "deployedPublic": false,
+        "downloadHosted": false,
+        "productionSigned": false,
+        "storeReleased": false
+      },
+      "consumerAssertions": {
+        "28 Website": [
+          "do not publish a deployment or production claim from local evidence",
+          "keep YUSD test units explicitly without real-world value"
+        ],
+        "29 Integration": [
+          "change a release state only when direct evidence is attached to the accepted source commit"
+        ]
+      }
+    }
+  ]
+}
