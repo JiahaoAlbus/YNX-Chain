@@ -50,6 +50,8 @@ type Health struct {
 	LastReconciliation        *string           `json:"lastReconciliation"`
 	Dependencies              map[string]string `json:"dependencies"`
 	RouteCount                int               `json:"routeCount"`
+	ProviderCount             int               `json:"providerCount"`
+	AvailableProviderCount    int               `json:"availableProviderCount"`
 	RelayerCount              int               `json:"relayerCount"`
 	RequiredAttestations      int               `json:"requiredAttestations"`
 	TransferCount             int               `json:"transferCount"`
@@ -898,6 +900,75 @@ func routeCatalogID(key string, policy RoutePolicy) string {
 	return "route_" + hashText(key + "|" + policy.Provider + "|" + policy.Classification)[:24]
 }
 
+func configuredProviderCount(policies map[string]RoutePolicy) int {
+	providers := map[string]struct{}{}
+	for _, policy := range policies {
+		providers[policy.Provider] = struct{}{}
+	}
+	return len(providers)
+}
+
+func (s *Service) ProviderRegistry() ProviderRegistry {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := ProviderRegistry{
+		SchemaVersion: 1,
+		Source:        "ynx-bridge-provider-registry",
+		AsOf:          s.cfg.Now().UTC().Format(timeFormat),
+		Coverage:      "configured-provider-identities-and-routes-only-no-live-provider-session-commercial-rights-or-independent-incident-history",
+		Providers:     []ProviderRegistryEntry{},
+	}
+	keys := make([]string, 0, len(s.policies))
+	for key := range s.policies {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		policy := s.policies[key]
+		routeID := routeCatalogID(key, policy)
+		assets := []string{policy.SourceChain + ":" + policy.SourceAsset, policy.DestinationChain + ":" + policy.DestinationAsset}
+		sort.Strings(assets)
+		result.Providers = append(result.Providers, ProviderRegistryEntry{
+			ID:                      "provider_route_" + hashText(policy.Provider + "|" + routeID)[:24],
+			Provider:                policy.Provider,
+			Product:                 "not-configured",
+			Classification:          policy.Classification,
+			RouteID:                 routeID,
+			SourceChain:             policy.SourceChain,
+			DestinationChain:        policy.DestinationChain,
+			SupportedAssets:         assets,
+			APIVersion:              "not-configured",
+			SDKVersion:              "not-configured",
+			Authentication:          "not-applicable-route-unavailable",
+			RateLimit:               "unknown-route-unavailable",
+			Fees:                    RouteFeeDisclosure{Status: "unavailable-no-executable-route", HiddenSpread: false},
+			Slippage:                RouteSlippageDisclosure{Status: "not-applicable-no-executable-route"},
+			EstimatedTime:           RouteTimingDisclosure{Status: "unavailable-no-provider-route"},
+			Finality:                RouteFinalityDisclosure{SourceConfirmations: policy.MinConfirmations, ProofVerification: "local-relayer-attestation-only-not-independent-chain-proof"},
+			RefundPolicy:            RouteRefundDisclosure{Available: false, Mode: "evidence-recording-only-no-external-refund-execution"},
+			RecoveryProcess:         "record-failure-preserve-evidence-and-require-approved-operator-recovery",
+			Limits:                  policy,
+			Jurisdiction:            "not-approved",
+			License:                 "not-approved",
+			Terms:                   "not-approved",
+			DataRetention:           "not-reviewed",
+			DataRights:              "not-reviewed",
+			CustodyModel:            "not-established",
+			SecurityModel:           "configured-local-relayer-threshold-not-provider-security-review",
+			AuditStatus:             "not-reviewed",
+			IncidentHistory:         []ProviderIncident{},
+			IncidentHistoryComplete: false,
+			Health:                  "not-connected",
+			Fallback:                "none",
+			DecommissionPlan:        "disable-route-preserve-transfer-and-audit-evidence-and-publish-unavailable-status",
+			TestnetStatus:           "unavailable",
+			ProductionStatus:        "unavailable",
+			FailureStatus:           "provider-support-contracts-credentials-agreement-and-funding-unavailable",
+		})
+	}
+	return result
+}
+
 func (s *Service) AssetCatalog() AssetCatalog {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1017,7 +1088,7 @@ func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
 	return ProductStatus{
 		SchemaVersion: 1, Source: "ynx-bridge-status", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "local-coordinator-and-configured-candidates-not-public-provider-health",
 		CoordinatorState: coordinatorState, ExternalBridgeState: "unavailable", FailureStatus: "no-verified-provider-contract-or-public-deployment",
-		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
+		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
 		ProviderConnection: "not-connected", ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
 		Reconciliation: reconciliation,
 		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteExecution: false, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
@@ -1099,7 +1170,7 @@ func (s *Service) Health(build buildinfo.Info) Health {
 		Dependencies: map[string]string{
 			"state": "integrity-sealed", "provider": "unavailable", "contracts": "unavailable", "relayerQuorum": "configured-local", "reconciliation": reconciliationStatus,
 		},
-		RouteCount: len(s.policies), RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
+		RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
 		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: truthfulStatus, Safety: s.state.Safety, Build: normalizedBuild,
 	}
 	lastSuccessfulAt := ""

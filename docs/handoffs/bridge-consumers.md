@@ -10,4 +10,6 @@ No browser, consumer product, AI component, or Wallet UI receives the Bridge ser
 
 The implemented verifier covers domain-separated threshold-relayer attestations. It is not a light client, not independent consensus verification, not a canonical Bridge, and not a trustless Bridge.
 
+Consumers should read `GET /bridge/providers` through SDK `getProviders()` and treat `providerCount` only as the count of configured provider identities. `availableProviderCount=0`, `health=not-connected`, missing credentials/contracts/agreements, and `routeAvailable=false` remain authoritative. An empty `incidentHistory` is not evidence of no incidents unless `incidentHistoryComplete=true`; the current registry deliberately reports false.
+
 The current official stablecoin candidate remains unavailable because no verified YNX provider route, verified source/destination Bridge contracts, provider credential/agreement, or public deployment evidence is present. Consumers may display an unavailable route and its failure reason; they may not present an executable transfer or successful outcome.

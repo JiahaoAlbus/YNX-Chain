@@ -28,13 +28,14 @@ for (const [name, path, source] of [
   ["stateMachine", "/bridge/state-machine", "ynx-bridge-runtime"],
   ["transparency", "/bridge/transparency", "ynx-bridge-coordinator"],
   ["routes", "/bridge/routes", "ynx-bridge-route-registry"],
+  ["providers", "/bridge/providers", "ynx-bridge-provider-registry"],
   ["assets", "/bridge/assets", "ynx-bridge-asset-registry"],
   ["status", "/bridge/status", "ynx-bridge-status"],
 ]) {
   if (publicRead[name]?.path !== path || publicRead[name]?.source !== source || publicRead[name]?.deployedPublic !== false) fail(`public ${name} boundary is invalid`);
 }
-if (publicRead.routes.quotesExecutable !== false || publicRead.assets.contractMetadataVerified !== false || publicRead.assets.externalExecutionEnabled !== false || publicRead.status.externalBridgeAvailable !== false || publicRead.status.providerConnected !== false) fail("public registry/status boundary overclaims execution");
-if (manifest.sdk.path !== "sdk/bridge" || manifest.sdk.package !== "@ynx-chain/bridge-sdk" || manifest.sdk.version !== "0.2.0" || manifest.sdk.access !== "public-read-only" || manifest.sdk.acceptsCredentials !== false || manifest.sdk.registryPublished !== false || manifest.sdk.assetAvailableOnlyAt !== "destination_available" || manifest.sdk.availabilityRequiresExplicitFlag !== true) fail("Bridge SDK handoff boundary is invalid");
+if (publicRead.routes.quotesExecutable !== false || publicRead.providers.credentialsConfigured !== false || publicRead.providers.agreementApproved !== false || publicRead.providers.contractsConfigured !== false || publicRead.providers.routeAvailable !== false || publicRead.assets.contractMetadataVerified !== false || publicRead.assets.externalExecutionEnabled !== false || publicRead.status.externalBridgeAvailable !== false || publicRead.status.providerConnected !== false) fail("public registry/status boundary overclaims execution");
+if (manifest.sdk.path !== "sdk/bridge" || manifest.sdk.package !== "@ynx-chain/bridge-sdk" || manifest.sdk.version !== "0.3.0" || manifest.sdk.access !== "public-read-only" || manifest.sdk.acceptsCredentials !== false || manifest.sdk.registryPublished !== false || manifest.sdk.assetAvailableOnlyAt !== "destination_available" || manifest.sdk.availabilityRequiresExplicitFlag !== true) fail("Bridge SDK handoff boundary is invalid");
 if (sdk.name !== manifest.sdk.package || sdk.version !== manifest.sdk.version || sdk.private !== true || sdk.types !== "./index.d.ts" || !sdk.files.includes("index.d.ts") || sdk.exports?.["."]?.types !== "./index.d.ts") fail("Bridge SDK package state is invalid");
 if (manifest.protectedRuntime.consumerCredentialAccess !== false || manifest.protectedRuntime.browserCredentialAccess !== false || manifest.protectedRuntime.walletSecretAccess !== false || manifest.protectedRuntime.centralGatewayIntegrated !== false || manifest.protectedRuntime.proofVerification.path !== "/bridge/transfers/{id}/proof-verification" || manifest.protectedRuntime.proofVerification.browserAccessible !== false) fail("protected runtime boundary is invalid");
 const expectedConsumers = ["wallet","pay","exchange","dex","finance","explorer","monitor","trust"];
@@ -53,6 +54,8 @@ const availableVector = vectors.vectors.find(({phase}) => phase === "destination
 if (!confirmedVector || confirmedVector.assetAvailable !== false || !availableVector || availableVector.assetAvailable !== true) fail("destination confirmation/availability boundary is missing");
 
 if (integration.contractId !== "ynx.bridge.integration.v1" || integration.owner !== "21-bridge" || integration.sourceCommit !== manifest.sourceCommit || integration.runtimeSchemaVersion !== 7 || integration.stateMachineVersion !== expectedStateMachine || integration.states.join(",") !== expectedPhases.join(",")) fail("frozen Integration Contract is invalid");
+const integrationProviderEndpoint = integration.publicReadEndpoints.find(({path}) => path === "/bridge/providers");
+if (integrationProviderEndpoint?.method !== "GET" || integrationProviderEndpoint?.source !== "ynx-bridge-provider-registry") fail("frozen Integration Contract is missing the Provider Registry endpoint");
 if (integration.availabilityInvariant.assetAvailableOnlyAt !== "destination_available" || integration.availabilityInvariant.explicitFlagRequired !== true || integration.availabilityInvariant.destinationConfirmationIsAvailability !== false || integration.availabilityInvariant.providerWebhookIsFinality !== false) fail("Integration availability invariant is invalid");
 if (integration.proofContract.implementedType !== "threshold-relayer-attestation" || integration.proofContract.lightClientProof !== "unsupported" || integration.proofContract.canonicalBridgeClaim !== false) fail("proof positioning overclaims canonical verification");
 if (integration.dependencies.some(({accepted}) => accepted !== false)) fail("a dependency is marked accepted without evidence");
@@ -69,4 +72,4 @@ if (release.schemaVersion !== 2 || release.sourceCommit !== manifest.sourceCommi
 
 const serialized = JSON.stringify({manifest,vectors,crossProduct,integration,provider,metadata,release});
 for (const forbidden of ["Codex", "Worktree", "/Users/", "localhost", "127.0.0.1"]) if (serialized.includes(forbidden)) fail(`public handoff contains forbidden internal value ${forbidden}`);
-console.log("bridge integration check passed: frozen lifecycle v1, explicit destination availability, proof-verification gate, typed read-only SDK, unavailable provider/contracts, and unaccepted central dependencies");
+console.log("bridge integration check passed: frozen lifecycle v1, explicit destination availability, proof-verification gate, fail-closed Provider Registry, typed read-only SDK, unavailable provider/contracts, and unaccepted central dependencies");

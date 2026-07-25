@@ -18,6 +18,9 @@ const requiredAlerts = [
 for (const alert of requiredAlerts) {
   if (!rules.includes(`alert: ${alert}`)) throw new Error(`missing bridge alert ${alert}`);
 }
+for (const metric of ["ynx_bridge_providers_configured", "ynx_bridge_providers_available"]) {
+  if (!server.includes(metric)) throw new Error(`missing provider observability metric ${metric}`);
+}
 const referenced = [...new Set(rules.match(/ynx_bridge_[a-z_]+/g) ?? [])];
 for (const metric of referenced) {
   if (!server.includes(metric)) throw new Error(`alert references unexported metric ${metric}`);

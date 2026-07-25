@@ -66,6 +66,10 @@ export class YNXBridgeClient {
     return validateRoutes(await this.#request("bridge/routes"));
   }
 
+  async getProviders() {
+    return validateProviders(await this.#request("bridge/providers"));
+  }
+
   async getAssets() {
     return validateAssets(await this.#request("bridge/assets"));
   }
@@ -136,7 +140,7 @@ export function bridgeTransferAvailability(transfer) {
 }
 
 function validateHealth(value) {
-  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || typeof value.ok !== "boolean" || typeof value.degraded !== "boolean" || typeof value.providerStatus !== "string" || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean") {
+  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || typeof value.ok !== "boolean" || typeof value.degraded !== "boolean" || typeof value.providerStatus !== "string" || !validUnavailableProviderCounts(value) || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean") {
     throw new YNXBridgeSDKError("Bridge health contract is invalid");
   }
   if (value.liveBridge && !value.externalSubmissionEnabled) throw new YNXBridgeSDKError("Bridge health claims live status without external submission");
@@ -145,7 +149,7 @@ function validateHealth(value) {
 }
 
 function validateVersion(value) {
-  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.source !== "ynx-bridge-runtime" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || !validTimestamp(value.asOf) || typeof value.degraded !== "boolean" || typeof value.paused !== "boolean" || typeof value.providerStatus !== "string" || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean" || !value.build || typeof value.build !== "object") {
+  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.source !== "ynx-bridge-runtime" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || !validTimestamp(value.asOf) || typeof value.degraded !== "boolean" || typeof value.paused !== "boolean" || typeof value.providerStatus !== "string" || !validUnavailableProviderCounts(value) || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean" || !value.build || typeof value.build !== "object") {
     throw new YNXBridgeSDKError("Bridge version contract is invalid");
   }
   if (value.liveBridge && (!value.externalSubmissionEnabled || value.providerStatus.startsWith("unavailable") || value.contractStatus.startsWith("unavailable"))) throw new YNXBridgeSDKError("Bridge version overclaims live status");
@@ -201,6 +205,25 @@ function validateRoutes(value) {
   return Object.freeze(value);
 }
 
+function validateProviders(value) {
+  if (!value || typeof value !== "object" || value.schemaVersion !== 1 || value.source !== "ynx-bridge-provider-registry" || !validTimestamp(value.asOf) || value.coverage !== "configured-provider-identities-and-routes-only-no-live-provider-session-commercial-rights-or-independent-incident-history" || !Array.isArray(value.providers)) {
+    throw new YNXBridgeSDKError("Bridge provider registry contract is invalid");
+  }
+  for (const provider of value.providers) {
+    const identities = [provider?.id, provider?.provider, provider?.product, provider?.classification, provider?.routeId, provider?.sourceChain, provider?.destinationChain];
+    const unavailable = provider?.testnetStatus === "unavailable" && provider?.productionStatus === "unavailable" && provider?.credentialsConfigured === false && provider?.agreementApproved === false && provider?.contractsConfigured === false && provider?.routeAvailable === false && provider?.executable === false && provider?.health === "not-connected";
+    const missingContracts = provider?.sourceContract === null && provider?.destinationContract === null;
+    const missingVersions = provider?.apiVersion === "not-configured" && provider?.sdkVersion === "not-configured" && provider?.authentication === "not-applicable-route-unavailable" && provider?.rateLimit === "unknown-route-unavailable";
+    const commercialUnknown = provider?.fees?.status === "unavailable-no-executable-route" && provider?.fees?.hiddenSpread === false && provider?.slippage?.status === "not-applicable-no-executable-route" && provider?.estimatedTime?.status === "unavailable-no-provider-route" && provider?.refundPolicy?.available === false;
+    const governanceUnknown = provider?.jurisdiction === "not-approved" && provider?.license === "not-approved" && provider?.terms === "not-approved" && provider?.dataRetention === "not-reviewed" && provider?.dataRights === "not-reviewed" && provider?.custodyModel === "not-established" && provider?.auditStatus === "not-reviewed";
+    const operationsUnknown = Array.isArray(provider?.incidentHistory) && provider.incidentHistory.length === 0 && provider?.incidentHistoryComplete === false && provider?.lastSuccess === null && provider?.lastFailure === null && provider?.fallback === "none";
+    if (!identities.every((item) => typeof item === "string" && item.length >= 3) || !Array.isArray(provider.supportedAssets) || provider.supportedAssets.length < 2 || !provider.supportedAssets.every((item) => typeof item === "string" && item.includes(":")) || !missingContracts || !missingVersions || !commercialUnknown || !governanceUnknown || !operationsUnknown || !unavailable || provider.finality?.sourceConfirmations < 1 || provider.finality?.proofVerification !== "local-relayer-attestation-only-not-independent-chain-proof" || typeof provider.recoveryProcess !== "string" || provider.recoveryProcess.length < 3 || !validRoute(provider.limits) || typeof provider.securityModel !== "string" || provider.securityModel.length < 3 || typeof provider.decommissionPlan !== "string" || provider.decommissionPlan.length < 3 || provider.failureStatus !== "provider-support-contracts-credentials-agreement-and-funding-unavailable") {
+      throw new YNXBridgeSDKError("Bridge provider registry overclaims provider readiness");
+    }
+  }
+  return Object.freeze(value);
+}
+
 function validateAssets(value) {
   if (!value || typeof value !== "object" || value.schemaVersion !== 1 || value.source !== "ynx-bridge-asset-registry" || !validTimestamp(value.asOf) || value.coverage !== "configured-token-allowlist-candidates-not-verified-contracts" || !Array.isArray(value.assets)) {
     throw new YNXBridgeSDKError("Bridge asset catalog contract is invalid");
@@ -218,15 +241,19 @@ function validAssetClass(value) {
   return ASSET_CLASSES.has(value);
 }
 
+function validUnavailableProviderCounts(value) {
+  return Number.isInteger(value?.providerCount) && value.providerCount >= 1 && Number.isInteger(value?.availableProviderCount) && value.availableProviderCount === 0;
+}
+
 function validateStatus(value) {
   const supportURLs = [value?.support?.supportUrl, value?.support?.privacyUrl, value?.support?.securityUrl, value?.support?.publicStatusUrl];
-  const counts = [value?.routeCount, value?.assetCount, value?.transferCount, value?.openExposureTransferCount, value?.reconciliation?.recordCount];
+  const counts = [value?.routeCount, value?.providerCount, value?.availableProviderCount, value?.assetCount, value?.transferCount, value?.openExposureTransferCount, value?.reconciliation?.recordCount];
   const validCounts = counts.every((item) => Number.isInteger(item) && item >= 0);
   const reconciliationStates = new Set(["no-operator-observation", "operator-observed-balanced", "operator-observed-imbalance"]);
   const reconciliationTimeValid = value?.reconciliation?.state === "no-operator-observation" ? value?.reconciliation?.latestRecordedAt === null : validTimestamp(value?.reconciliation?.latestRecordedAt);
   const executionDisabled = value?.externalBridgeState === "unavailable" && value?.providerConnection === "not-connected" && value?.externalSubmissionEnabled === false && value?.userAssetMovementEnabled === false && value?.officialStablecoinRouteAvailable === false && value?.deployedPublic === false;
   const capabilities = value?.capabilities;
-  if (!value || value.schemaVersion !== 1 || value.source !== "ynx-bridge-status" || !validTimestamp(value.asOf) || value.coverage !== "local-coordinator-and-configured-candidates-not-public-provider-health" || value.failureStatus !== "no-verified-provider-contract-or-public-deployment" || !["available-local-coordinator", "paused-local-coordinator"].includes(value.coordinatorState) || !validCounts || !executionDisabled || !reconciliationStates.has(value.reconciliation?.state) || !reconciliationTimeValid || value.reconciliation?.independentVerification !== false || capabilities?.readOnlyEvidence !== true || capabilities?.quoteExecution !== false || capabilities?.sourceSubmission !== false || capabilities?.destinationMintRelease !== false || capabilities?.refundExecution !== false || capabilities?.disputeRecording !== true || capabilities?.emergencyExitExecution !== false || value.support?.configured !== false || !supportURLs.every((item) => item === null)) {
+  if (!value || value.schemaVersion !== 1 || value.source !== "ynx-bridge-status" || !validTimestamp(value.asOf) || value.coverage !== "local-coordinator-and-configured-candidates-not-public-provider-health" || value.failureStatus !== "no-verified-provider-contract-or-public-deployment" || !["available-local-coordinator", "paused-local-coordinator"].includes(value.coordinatorState) || !validCounts || !validUnavailableProviderCounts(value) || !executionDisabled || !reconciliationStates.has(value.reconciliation?.state) || !reconciliationTimeValid || value.reconciliation?.independentVerification !== false || capabilities?.readOnlyEvidence !== true || capabilities?.quoteExecution !== false || capabilities?.sourceSubmission !== false || capabilities?.destinationMintRelease !== false || capabilities?.refundExecution !== false || capabilities?.disputeRecording !== true || capabilities?.emergencyExitExecution !== false || value.support?.configured !== false || !supportURLs.every((item) => item === null)) {
     throw new YNXBridgeSDKError("Bridge product status overclaims readiness");
   }
   if ((value.coordinatorState === "paused-local-coordinator") !== (value.paused === true)) {

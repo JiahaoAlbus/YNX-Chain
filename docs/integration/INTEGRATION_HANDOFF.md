@@ -22,7 +22,7 @@ The current implemented proof verifier revalidates domain-separated threshold-re
 
 ## Current fail-closed status
 
-No verified provider connection, verified source/destination Bridge contracts, public Bridge deployment, official stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review is evidenced by this worktree. Route execution therefore remains unavailable and all release booleans beyond local implementation/testing remain false.
+No verified provider connection, verified source/destination Bridge contracts, public Bridge deployment, official stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review is evidenced by this worktree. `GET /bridge/providers` records configured identities and route bindings, not availability; `availableProviderCount` is zero and incident-history coverage is explicitly incomplete. Route execution therefore remains unavailable and all release booleans beyond local implementation/testing remain false.
 
 ## Owner actions
 

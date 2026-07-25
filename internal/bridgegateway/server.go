@@ -120,6 +120,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /bridge/state-machine", s.handleStateMachine)
 	s.mux.HandleFunc("GET /bridge/transparency", s.handleTransparency)
 	s.mux.HandleFunc("GET /bridge/routes", s.handleRoutes)
+	s.mux.HandleFunc("GET /bridge/providers", s.handleProviders)
 	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
 	s.mux.HandleFunc("GET /bridge/status", s.handleStatus)
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
@@ -147,7 +148,8 @@ func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
 		"service": "ynx-bridged", "source": "ynx-bridge-runtime", "schemaVersion": health.SchemaVersion,
 		"stateMachineVersion": health.StateMachineVersion, "startedAt": health.StartedAt, "asOf": s.service.cfg.Now().UTC().Format(timeFormat),
 		"build": health.Build, "degraded": health.Degraded, "paused": health.Safety.Paused,
-		"providerStatus": health.ProviderStatus, "contractStatus": health.ContractStatus, "reconciliationStatus": health.ReconciliationStatus,
+		"providerStatus": health.ProviderStatus, "providerCount": health.ProviderCount, "availableProviderCount": health.AvailableProviderCount,
+		"contractStatus": health.ContractStatus, "reconciliationStatus": health.ReconciliationStatus,
 		"lastSuccessfulTransfer": health.LastSuccessfulTransfer, "lastReconciliation": health.LastReconciliation,
 		"liveBridge": health.LiveBridge, "externalSubmissionEnabled": health.ExternalSubmissionEnabled,
 	})
@@ -165,6 +167,8 @@ func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_bridge_ready_total{%s} %d\n", labels, health.ReadyCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_finalized_local_total{%s} %d\n", labels, health.FinalizedLocalCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_audit_events_total{%s} %d\n", labels, health.AuditEventCount)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_configured{%s} %d\n", labels, health.ProviderCount)
+	_, _ = fmt.Fprintf(w, "ynx_bridge_providers_available{%s} %d\n", labels, health.AvailableProviderCount)
 	_, _ = fmt.Fprintf(w, "ynx_bridge_external_submission_enabled{%s} 0\n", labels)
 	paused := 0
 	if health.Safety.Paused {
@@ -199,6 +203,10 @@ func (s *Server) handleTransparency(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleRoutes(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.service.RouteCatalog())
+}
+
+func (s *Server) handleProviders(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.ProviderRegistry())
 }
 
 func (s *Server) handleAssets(w http.ResponseWriter, _ *http.Request) {

@@ -19,6 +19,7 @@
     {"method":"GET","path":"/version","source":"ynx-bridge-runtime"},
     {"method":"GET","path":"/bridge/state-machine","source":"ynx-bridge-runtime"},
     {"method":"GET","path":"/bridge/routes","source":"ynx-bridge-route-registry"},
+    {"method":"GET","path":"/bridge/providers","source":"ynx-bridge-provider-registry"},
     {"method":"GET","path":"/bridge/assets","source":"ynx-bridge-asset-registry"},
     {"method":"GET","path":"/bridge/transparency","source":"ynx-bridge-coordinator"},
     {"method":"GET","path":"/bridge/status","source":"ynx-bridge-status"}

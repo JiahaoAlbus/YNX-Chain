@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/bridge-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Read-only YNX Bridge transparency, state-machine, and lifecycle client",
   "type": "module",
   "exports": {

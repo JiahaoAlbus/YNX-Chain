@@ -53,6 +53,8 @@ export interface BridgeHealth {
   stateMachineVersion: "ynx.bridge.lifecycle.v1";
   startedAt: string;
   providerStatus: string;
+  providerCount: number;
+  availableProviderCount: number;
   contractStatus: string;
   reconciliationStatus: string;
   liveBridge: boolean;
@@ -71,6 +73,8 @@ export interface BridgeVersion {
   degraded: boolean;
   paused: boolean;
   providerStatus: string;
+  providerCount: number;
+  availableProviderCount: number;
   contractStatus: string;
   reconciliationStatus: string;
   lastSuccessfulTransfer: string | null;
@@ -102,6 +106,61 @@ export interface BridgeStateMachine {
   legacyAliases: Record<string, BridgePhase>;
 }
 
+export interface BridgeProviderRegistryEntry {
+  id: string;
+  provider: string;
+  product: string;
+  classification: string;
+  routeId: string;
+  sourceChain: string;
+  destinationChain: string;
+  supportedAssets: string[];
+  sourceContract: null;
+  destinationContract: null;
+  apiVersion: "not-configured";
+  sdkVersion: "not-configured";
+  authentication: "not-applicable-route-unavailable";
+  rateLimit: "unknown-route-unavailable";
+  fees: Readonly<Record<string, unknown>>;
+  slippage: Readonly<Record<string, unknown>>;
+  estimatedTime: Readonly<Record<string, unknown>>;
+  finality: Readonly<Record<string, unknown>>;
+  refundPolicy: Readonly<Record<string, unknown>>;
+  recoveryProcess: string;
+  limits: Readonly<Record<string, unknown>>;
+  jurisdiction: "not-approved";
+  license: "not-approved";
+  terms: "not-approved";
+  dataRetention: "not-reviewed";
+  dataRights: "not-reviewed";
+  custodyModel: "not-established";
+  securityModel: string;
+  auditStatus: "not-reviewed";
+  incidentHistory: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  incidentHistoryComplete: false;
+  health: "not-connected";
+  lastSuccess: null;
+  lastFailure: null;
+  fallback: "none";
+  decommissionPlan: string;
+  testnetStatus: "unavailable";
+  productionStatus: "unavailable";
+  credentialsConfigured: false;
+  agreementApproved: false;
+  contractsConfigured: false;
+  routeAvailable: false;
+  executable: false;
+  failureStatus: "provider-support-contracts-credentials-agreement-and-funding-unavailable";
+}
+
+export interface BridgeProviderRegistry {
+  schemaVersion: 1;
+  source: "ynx-bridge-provider-registry";
+  asOf: string;
+  coverage: "configured-provider-identities-and-routes-only-no-live-provider-session-commercial-rights-or-independent-incident-history";
+  providers: BridgeProviderRegistryEntry[];
+}
+
 export interface BridgeTransferAvailabilityInput {
   phase: BridgePhase;
   updatedAt: string;
@@ -130,6 +189,7 @@ export class YNXBridgeClient {
   getStateMachine(): Promise<BridgeStateMachine>;
   getTransparency(): Promise<Readonly<Record<string, unknown>>>;
   getRoutes(): Promise<Readonly<Record<string, unknown>>>;
+  getProviders(): Promise<Readonly<BridgeProviderRegistry>>;
   getAssets(): Promise<Readonly<Record<string, unknown>>>;
   getStatus(): Promise<Readonly<Record<string, unknown>>>;
 }

@@ -25,6 +25,7 @@
     "stateMachine": {"method":"GET","path":"/bridge/state-machine","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
     "transparency": {"method":"GET","path":"/bridge/transparency","source":"ynx-bridge-coordinator","authentication":"none","deployedPublic":false},
     "routes": {"method":"GET","path":"/bridge/routes","source":"ynx-bridge-route-registry","authentication":"none","quotesExecutable":false,"deployedPublic":false},
+    "providers": {"method":"GET","path":"/bridge/providers","source":"ynx-bridge-provider-registry","authentication":"none","credentialsConfigured":false,"agreementApproved":false,"contractsConfigured":false,"routeAvailable":false,"deployedPublic":false},
     "assets": {"method":"GET","path":"/bridge/assets","source":"ynx-bridge-asset-registry","authentication":"none","contractMetadataVerified":false,"externalExecutionEnabled":false,"deployedPublic":false},
     "status": {"method":"GET","path":"/bridge/status","source":"ynx-bridge-status","authentication":"none","externalBridgeAvailable":false,"providerConnected":false,"supportConfigured":false,"deployedPublic":false}
   },
@@ -39,7 +40,7 @@
   "sdk": {
     "path": "sdk/bridge",
     "package": "@ynx-chain/bridge-sdk",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "languageSurface": ["JavaScript", "TypeScript declarations"],
     "access": "public-read-only",
     "acceptsCredentials": false,

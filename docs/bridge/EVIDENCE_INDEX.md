@@ -3,6 +3,7 @@
 - Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`; proof/lifecycle and consumer contract evidence commit `3921629d5deb8cdcab8077d487639b1255f15b23`
 - Process-level verifier: `scripts/verify/bridge-api-check.sh`
 - Unit, migration, proof-tamper, availability, and HTTP vectors: `internal/bridgegateway/gateway_test.go`, `internal/bridgegateway/state_machine_test.go`
+- Provider Registry runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/provider_registry_test.go`, `sdk/bridge/index.test.mjs`
 - Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
 - Central handoff: `docs/integration/INTEGRATION_HANDOFF.md`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`

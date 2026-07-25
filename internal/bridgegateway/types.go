@@ -125,6 +125,69 @@ type RouteCatalog struct {
 	Routes        []RouteCatalogEntry `json:"routes"`
 }
 
+type ProviderIncident struct {
+	ID         string `json:"id"`
+	OccurredAt string `json:"occurredAt"`
+	Status     string `json:"status"`
+	Summary    string `json:"summary"`
+	Evidence   string `json:"evidence"`
+}
+
+type ProviderRegistryEntry struct {
+	ID                      string                  `json:"id"`
+	Provider                string                  `json:"provider"`
+	Product                 string                  `json:"product"`
+	Classification          string                  `json:"classification"`
+	RouteID                 string                  `json:"routeId"`
+	SourceChain             string                  `json:"sourceChain"`
+	DestinationChain        string                  `json:"destinationChain"`
+	SupportedAssets         []string                `json:"supportedAssets"`
+	SourceContract          *string                 `json:"sourceContract"`
+	DestinationContract     *string                 `json:"destinationContract"`
+	APIVersion              string                  `json:"apiVersion"`
+	SDKVersion              string                  `json:"sdkVersion"`
+	Authentication          string                  `json:"authentication"`
+	RateLimit               string                  `json:"rateLimit"`
+	Fees                    RouteFeeDisclosure      `json:"fees"`
+	Slippage                RouteSlippageDisclosure `json:"slippage"`
+	EstimatedTime           RouteTimingDisclosure   `json:"estimatedTime"`
+	Finality                RouteFinalityDisclosure `json:"finality"`
+	RefundPolicy            RouteRefundDisclosure   `json:"refundPolicy"`
+	RecoveryProcess         string                  `json:"recoveryProcess"`
+	Limits                  RoutePolicy             `json:"limits"`
+	Jurisdiction            string                  `json:"jurisdiction"`
+	License                 string                  `json:"license"`
+	Terms                   string                  `json:"terms"`
+	DataRetention           string                  `json:"dataRetention"`
+	DataRights              string                  `json:"dataRights"`
+	CustodyModel            string                  `json:"custodyModel"`
+	SecurityModel           string                  `json:"securityModel"`
+	AuditStatus             string                  `json:"auditStatus"`
+	IncidentHistory         []ProviderIncident      `json:"incidentHistory"`
+	IncidentHistoryComplete bool                    `json:"incidentHistoryComplete"`
+	Health                  string                  `json:"health"`
+	LastSuccess             *string                 `json:"lastSuccess"`
+	LastFailure             *string                 `json:"lastFailure"`
+	Fallback                string                  `json:"fallback"`
+	DecommissionPlan        string                  `json:"decommissionPlan"`
+	TestnetStatus           string                  `json:"testnetStatus"`
+	ProductionStatus        string                  `json:"productionStatus"`
+	CredentialsConfigured   bool                    `json:"credentialsConfigured"`
+	AgreementApproved       bool                    `json:"agreementApproved"`
+	ContractsConfigured     bool                    `json:"contractsConfigured"`
+	RouteAvailable          bool                    `json:"routeAvailable"`
+	Executable              bool                    `json:"executable"`
+	FailureStatus           string                  `json:"failureStatus"`
+}
+
+type ProviderRegistry struct {
+	SchemaVersion int                     `json:"schemaVersion"`
+	Source        string                  `json:"source"`
+	AsOf          string                  `json:"asOf"`
+	Coverage      string                  `json:"coverage"`
+	Providers     []ProviderRegistryEntry `json:"providers"`
+}
+
 type AssetCatalogEntry struct {
 	ID                              string   `json:"id"`
 	Chain                           string   `json:"chain"`
@@ -190,6 +253,8 @@ type ProductStatus struct {
 	FailureStatus                    string               `json:"failureStatus"`
 	Paused                           bool                 `json:"paused"`
 	RouteCount                       int                  `json:"routeCount"`
+	ProviderCount                    int                  `json:"providerCount"`
+	AvailableProviderCount           int                  `json:"availableProviderCount"`
 	AssetCount                       int                  `json:"assetCount"`
 	TransferCount                    int                  `json:"transferCount"`
 	OpenExposureTransferCount        int                  `json:"openExposureTransferCount"`
