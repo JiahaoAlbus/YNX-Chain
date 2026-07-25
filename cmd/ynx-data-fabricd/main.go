@@ -108,7 +108,13 @@ func main() {
 		}
 		cancel()
 		apiConfig.Repository = repository
-		closeBackend = func() { _ = db.Close() }
+		apiConfig.DatabaseKind = "postgresql"
+		_, closePublisher, brokerProbe := localPublisher(*brokerMode, *eventLogPath, *natsURL, *natsStream, *natsCredentials, *natsCA, *natsCert, *natsKey, *natsReplicas)
+		apiConfig.BrokerKind, apiConfig.BrokerProbe = *brokerMode, brokerProbe
+		closeBackend = func() {
+			closePublisher()
+			_ = db.Close()
+		}
 		slog.Info("PostgreSQL authoritative repository selected; Outbox dispatch requires ynx-data-fabric-worker")
 	case "file":
 		if !filepath.IsAbs(*statePath) {
@@ -122,7 +128,9 @@ func main() {
 			fail("persistent integrity audit failed: " + err.Error())
 		}
 		apiConfig.Store = store
-		publisher, closePublisher := localPublisher(*brokerMode, *eventLogPath, *natsURL, *natsStream, *natsCredentials, *natsCA, *natsCert, *natsKey, *natsReplicas)
+		apiConfig.DatabaseKind = "file-local-development"
+		publisher, closePublisher, brokerProbe := localPublisher(*brokerMode, *eventLogPath, *natsURL, *natsStream, *natsCredentials, *natsCA, *natsCert, *natsKey, *natsReplicas)
+		apiConfig.BrokerKind, apiConfig.BrokerProbe = *brokerMode, brokerProbe
 		closeBackend = closePublisher
 		go runDispatcher(shutdownContext, datafabric.Dispatcher{Store: store, Publisher: publisher, BatchSize: 100, MaxAttempts: 8})
 		slog.Warn("local file authoritative repository selected; this mode is not production-capable")
@@ -149,7 +157,7 @@ func main() {
 	}
 }
 
-func localPublisher(mode, eventLogPath, natsURL, natsStream, natsCredentials, natsCA, natsCert, natsKey string, natsReplicas int) (datafabric.Publisher, func()) {
+func localPublisher(mode, eventLogPath, natsURL, natsStream, natsCredentials, natsCA, natsCert, natsKey string, natsReplicas int) (datafabric.Publisher, func(), func(context.Context) error) {
 	switch mode {
 	case "nats":
 		if !strings.HasPrefix(natsURL, "tls://") {
@@ -169,16 +177,17 @@ func localPublisher(mode, eventLogPath, natsURL, natsStream, natsCredentials, na
 		if err != nil {
 			fail(err.Error())
 		}
-		return broker, broker.Close
+		return broker, broker.Close, broker.Health
 	case "file":
 		if !filepath.IsAbs(eventLogPath) {
 			fail("local file broker requires an absolute event log path")
 		}
 		slog.Warn("file event broker is single-node development mode and is not production-capable")
-		return &datafabric.EventLogPublisher{Path: eventLogPath}, func() {}
+		publisher := &datafabric.EventLogPublisher{Path: eventLogPath}
+		return publisher, func() {}, publisher.Health
 	default:
 		fail("broker must be nats or file")
-		return nil, func() {}
+		return nil, func() {}, nil
 	}
 }
 

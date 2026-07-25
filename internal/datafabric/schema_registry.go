@@ -55,6 +55,7 @@ type EventSchemaDefinition struct {
 	EnforceDataClassification bool              `json:"enforceDataClassification"`
 	ErrorCodes                []ErrorCode       `json:"errorCodes"`
 	AllowUnknownPayloadFields bool              `json:"allowUnknownPayloadFields"`
+	RequiredEnvelopeFields    []string          `json:"requiredEnvelopeFields"`
 	PayloadFields             []PayloadField    `json:"payloadFields"`
 }
 
@@ -218,6 +219,22 @@ func CheckSchemaCompatibility(from, to EventSchemaDefinition) CompatibilityRepor
 		report.Compatible = len(report.Violations) == 0
 		return report
 	}
+	fromEnvelopeFields := stringSet(from.RequiredEnvelopeFields)
+	toEnvelopeFields := stringSet(to.RequiredEnvelopeFields)
+	if checkBackward {
+		for field := range toEnvelopeFields {
+			if !fromEnvelopeFields[field] {
+				report.Violations = append(report.Violations, compatibilityViolation(field, "adding a required envelope field breaks old producers"))
+			}
+		}
+	}
+	if checkForward {
+		for field := range fromEnvelopeFields {
+			if !toEnvelopeFields[field] {
+				report.Violations = append(report.Violations, compatibilityViolation(field, "removing a required envelope field breaks old consumers"))
+			}
+		}
+	}
 	for name, oldField := range fromFields {
 		newField, exists := toFields[name]
 		if !exists {
@@ -299,6 +316,16 @@ func validateSchemaDefinition(definition EventSchemaDefinition) error {
 	}
 	if !oneOf(definition.PrivacyClassification, "public", "internal", "confidential", "restricted") || !oneOf(definition.RetentionClass, "transient", "operational", "financial-7y", "audit-7y", "legal-hold") || !oneOf(definition.ResidencyClass, "global", "regional", "account-home", "legal-hold") {
 		return errors.New("schema privacy, retention, or residency classification is invalid")
+	}
+	if len(definition.RequiredEnvelopeFields) == 0 {
+		return errors.New("schema required envelope fields are required")
+	}
+	envelopeFields := map[string]bool{}
+	for _, field := range definition.RequiredEnvelopeFields {
+		if strings.TrimSpace(field) == "" || envelopeFields[field] {
+			return errors.New("schema required envelope fields must be unique")
+		}
+		envelopeFields[field] = true
 	}
 	fieldNames := map[string]bool{}
 	for _, field := range definition.PayloadFields {
@@ -417,6 +444,14 @@ func contains(values []string, target string) bool {
 	return false
 }
 
+func stringSet(values []string) map[string]bool {
+	result := make(map[string]bool, len(values))
+	for _, value := range values {
+		result[value] = true
+	}
+	return result
+}
+
 func compatibilityViolation(field, rule string) CompatibilityViolation {
 	return CompatibilityViolation{Code: CodeSchemaCompatibilityViolation, Field: field, Rule: rule}
 }
@@ -426,6 +461,7 @@ func cloneSchemaDefinition(definition EventSchemaDefinition) EventSchemaDefiniti
 	copy.Consumers = append([]string(nil), definition.Consumers...)
 	copy.TestVectors = append([]string(nil), definition.TestVectors...)
 	copy.ErrorCodes = append([]ErrorCode(nil), definition.ErrorCodes...)
+	copy.RequiredEnvelopeFields = append([]string(nil), definition.RequiredEnvelopeFields...)
 	copy.PayloadFields = append([]PayloadField(nil), definition.PayloadFields...)
 	copy.ExamplePayload = append(json.RawMessage(nil), definition.ExamplePayload...)
 	for index := range copy.PayloadFields {
@@ -456,23 +492,33 @@ func DefaultSchemaRegistry() *SchemaRegistry {
 		"capacity": {"capacity.event.recorded"},
 		"test":     {"test.event.created"},
 	}
+	v1EnvelopeFields := []string{"eventId", "eventType", "schemaVersion", "product", "service", "aggregateId", "actor", "correlationId", "sequence", "timestamp", "effectiveAt", "sourceCommit", "sourceRelease", "integrity", "privacyClassification", "retentionClass", "auditId", "source", "payload"}
+	v2EnvelopeFields := append(append([]string(nil), v1EnvelopeFields...), "producer", "aggregateType", "actorId", "accountId", "productSessionId", "traceId", "requestId", "occurredAt", "receivedAt", "integrityHash", "signature", "residencyClass", "idempotencyKey", "partitionKey", "orderingKey", "metadata")
 	var definitions []EventSchemaDefinition
 	for product, eventTypes := range contracts {
 		for _, eventType := range eventTypes {
-			definitions = append(definitions, EventSchemaDefinition{
+			v1 := EventSchemaDefinition{
 				EventType: eventType, Version: EnvelopeSchemaVersion, Owner: "ynx-" + product,
 				Product: product, Producer: "ynx-" + product, Consumers: []string{"ynx-data-fabric"},
 				CompatibilityMode: CompatibilityFull, EffectiveAt: effectiveAt,
-				Migration: "additive-versioned-event-migration", Rollback: "producer-version-pin-and-consumer-dual-read",
+				Migration: "consumer-dual-read-v1-v2", Rollback: "producer-version-pin-to-v1",
 				SourceCommit: "719e1018267ed5a53e6fae5211c5fd8a1503c35c", Release: "data-fabric-contract-v1",
 				TestVectors: []string{"integration/PRODUCER_TEST_VECTORS.md"}, ExamplePayload: json.RawMessage(`{"status":"recorded"}`),
 				PrivacyClassification: "internal", RetentionClass: "operational", ResidencyClass: "global",
 				ErrorCodes:                []ErrorCode{CodeUnknownField, CodeMissingRequiredField, CodeDuplicate, CodeOutOfOrder, CodeSequenceGap, CodeTampered, CodeWrongProduct, CodeReplay},
-				AllowUnknownPayloadFields: true,
-			})
+				AllowUnknownPayloadFields: true, RequiredEnvelopeFields: v1EnvelopeFields,
+			}
+			v2 := cloneSchemaDefinition(v1)
+			v2.Version = EnvelopeSchemaVersionV2
+			v2.CompatibilityMode = CompatibilityBackward
+			v2.Migration = "promote-v1-envelope-with-dual-field-consistency"
+			v2.Rollback = "consumer-dual-read-and-producer-version-pin-to-v1"
+			v2.Release = "data-fabric-contract-v2"
+			v2.RequiredEnvelopeFields = v2EnvelopeFields
+			definitions = append(definitions, v1, v2)
 		}
 	}
-	registry, err := NewSchemaRegistry("1.0", definitions)
+	registry, err := NewSchemaRegistry("2.0", definitions)
 	if err != nil {
 		panic(err)
 	}

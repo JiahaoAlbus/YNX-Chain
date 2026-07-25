@@ -233,6 +233,23 @@ func (b *Broker) ConsumeProjectionOnce(ctx context.Context, durable string, stor
 	return applied, nil
 }
 
+// Health verifies both the NATS connection and the configured JetStream stream.
+// It is suitable for bounded /health dependency probes and never reports a
+// merely reconnecting client as healthy.
+func (b *Broker) Health(ctx context.Context) error {
+	if b == nil || b.connection == nil || b.connection.Status() != nats.CONNECTED {
+		return errors.New("NATS connection is not established")
+	}
+	info, err := b.StreamInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("read JetStream stream status: %w", err)
+	}
+	if info == nil || info.Config.Name != b.streamName {
+		return errors.New("JetStream stream status does not match the configured stream")
+	}
+	return nil
+}
+
 func (b *Broker) StreamInfo(ctx context.Context) (*jetstream.StreamInfo, error) {
 	if b == nil || b.stream == nil {
 		return nil, errors.New("broker is not initialized")

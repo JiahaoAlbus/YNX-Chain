@@ -120,9 +120,9 @@ func (s *Store) Append(event EventEnvelope, key []byte) error {
 	for _, existing := range s.state.Events {
 		if existing.EventID == event.EventID {
 			if existing.Integrity.Digest == event.Integrity.Digest {
-				return ErrDuplicate
+				return WrapReject(CodeDuplicate, "eventId and integrity digest were already committed", ErrDuplicate, map[string]string{"eventId": event.EventID})
 			}
-			return ErrTampered
+			return WrapReject(CodeTampered, "eventId was reused with different integrity material", ErrTampered, map[string]string{"eventId": event.EventID})
 		}
 	}
 	var last uint64
@@ -131,8 +131,12 @@ func (s *Store) Append(event EventEnvelope, key []byte) error {
 			last = existing.Sequence
 		}
 	}
-	if event.Sequence != last+1 {
-		return fmt.Errorf("%w: aggregate expects sequence %d, got %d", ErrOutOfOrder, last+1, event.Sequence)
+	expected := last + 1
+	if event.Sequence < expected {
+		return WrapReject(CodeOutOfOrder, "event sequence precedes the authoritative aggregate sequence", ErrOutOfOrder, map[string]string{"eventId": event.EventID, "expected": fmt.Sprint(expected), "actual": fmt.Sprint(event.Sequence)})
+	}
+	if event.Sequence > expected {
+		return WrapReject(CodeSequenceGap, "event sequence creates a gap in the authoritative aggregate history", ErrOutOfOrder, map[string]string{"eventId": event.EventID, "expected": fmt.Sprint(expected), "actual": fmt.Sprint(event.Sequence)})
 	}
 	next := cloneState(s.state)
 	next.Events = append(next.Events, event)

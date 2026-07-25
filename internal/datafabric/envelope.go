@@ -16,7 +16,10 @@ import (
 	"time"
 )
 
-const EnvelopeSchemaVersion = "1.0"
+const (
+	EnvelopeSchemaVersion   = "1.0"
+	EnvelopeSchemaVersionV2 = "2.0"
+)
 
 var (
 	ErrDuplicate  = errors.New("data fabric: duplicate event")
@@ -52,33 +55,88 @@ type Integrity struct {
 }
 
 type EventEnvelope struct {
-	EventID               string          `json:"eventId"`
-	EventType             string          `json:"eventType"`
-	SchemaVersion         string          `json:"schemaVersion"`
-	Product               string          `json:"product"`
-	Service               string          `json:"service"`
-	AggregateID           string          `json:"aggregateId"`
-	Actor                 Actor           `json:"actor"`
-	CorrelationID         string          `json:"correlationId"`
-	CausationID           string          `json:"causationId,omitempty"`
-	Sequence              uint64          `json:"sequence"`
-	Timestamp             time.Time       `json:"timestamp"`
-	EffectiveAt           time.Time       `json:"effectiveAt"`
-	SourceCommit          string          `json:"sourceCommit"`
-	SourceRelease         string          `json:"sourceRelease"`
-	Integrity             Integrity       `json:"integrity"`
-	PrivacyClassification string          `json:"privacyClassification"`
-	RetentionClass        string          `json:"retentionClass"`
-	AuditID               string          `json:"auditId"`
-	Source                SourceMetadata  `json:"source"`
-	Payload               json.RawMessage `json:"payload"`
+	EventID               string            `json:"eventId"`
+	EventType             string            `json:"eventType"`
+	SchemaVersion         string            `json:"schemaVersion"`
+	Producer              string            `json:"producer,omitempty"`
+	Product               string            `json:"product"`
+	Service               string            `json:"service"`
+	AggregateType         string            `json:"aggregateType,omitempty"`
+	AggregateID           string            `json:"aggregateId"`
+	Actor                 Actor             `json:"actor"`
+	ActorID               string            `json:"actorId,omitempty"`
+	AccountID             string            `json:"accountId,omitempty"`
+	ProductSessionID      string            `json:"productSessionId,omitempty"`
+	CorrelationID         string            `json:"correlationId"`
+	CausationID           string            `json:"causationId,omitempty"`
+	TraceID               string            `json:"traceId,omitempty"`
+	RequestID             string            `json:"requestId,omitempty"`
+	Sequence              uint64            `json:"sequence"`
+	Timestamp             time.Time         `json:"timestamp"`
+	OccurredAt            time.Time         `json:"occurredAt,omitempty"`
+	EffectiveAt           time.Time         `json:"effectiveAt"`
+	ReceivedAt            time.Time         `json:"receivedAt,omitempty"`
+	SourceCommit          string            `json:"sourceCommit"`
+	SourceRelease         string            `json:"sourceRelease"`
+	Integrity             Integrity         `json:"integrity"`
+	IntegrityHash         string            `json:"integrityHash,omitempty"`
+	Signature             string            `json:"signature,omitempty"`
+	PrivacyClassification string            `json:"privacyClassification"`
+	RetentionClass        string            `json:"retentionClass"`
+	ResidencyClass        string            `json:"residencyClass,omitempty"`
+	AuditID               string            `json:"auditId"`
+	IdempotencyKey        string            `json:"idempotencyKey,omitempty"`
+	Partition             string            `json:"partitionKey,omitempty"`
+	OrderingKey           string            `json:"orderingKey,omitempty"`
+	Source                SourceMetadata    `json:"source"`
+	Payload               json.RawMessage   `json:"payload"`
+	Metadata              map[string]string `json:"metadata,omitempty"`
 }
 
 // PartitionKey is the canonical aggregate-ordering key. Service is included so
 // two bounded contexts cannot accidentally share an ordering sequence merely
 // because they reuse an aggregate identifier.
 func (e EventEnvelope) PartitionKey() string {
+	if e.SchemaVersion == EnvelopeSchemaVersionV2 && e.AggregateType != "" {
+		return e.Product + ":" + e.Service + ":" + e.AggregateType + ":" + e.AggregateID
+	}
 	return e.Product + ":" + e.Service + ":" + e.AggregateID
+}
+
+type V2EnvelopeContext struct {
+	Producer       string
+	AggregateType  string
+	TraceID        string
+	RequestID      string
+	ResidencyClass string
+	IdempotencyKey string
+	ReceivedAt     time.Time
+	Metadata       map[string]string
+}
+
+// PromoteToV2 creates the canonical v2 bindings while retaining the v1 fields
+// during the migration window. Call Sign after promotion so both integrity
+// representations are committed by one digest.
+func (e *EventEnvelope) PromoteToV2(context V2EnvelopeContext) error {
+	if e == nil {
+		return errors.New("event envelope is required")
+	}
+	e.SchemaVersion = EnvelopeSchemaVersionV2
+	e.Producer = context.Producer
+	e.AggregateType = context.AggregateType
+	e.ActorID = e.Actor.ActorID
+	e.AccountID = e.Actor.AccountID
+	e.ProductSessionID = e.Actor.SessionID
+	e.TraceID = context.TraceID
+	e.RequestID = context.RequestID
+	e.OccurredAt = e.Timestamp
+	e.ReceivedAt = context.ReceivedAt.UTC()
+	e.ResidencyClass = context.ResidencyClass
+	e.IdempotencyKey = context.IdempotencyKey
+	e.Metadata = cloneEvidence(context.Metadata)
+	e.Partition = e.PartitionKey()
+	e.OrderingKey = e.Partition
+	return nil
 }
 
 func DecodeEnvelopeStrict(r io.Reader) (EventEnvelope, error) {
@@ -109,8 +167,11 @@ func ensureEOF(decoder *json.Decoder) error {
 }
 
 func (e EventEnvelope) Validate() error {
-	if e.SchemaVersion != EnvelopeSchemaVersion {
-		return fmt.Errorf("unsupported event schema version %q", e.SchemaVersion)
+	if e.SchemaVersion == "" {
+		return Reject(CodeMissingRequiredField, "schemaVersion is required", map[string]string{"field": "schemaVersion"})
+	}
+	if e.SchemaVersion != EnvelopeSchemaVersion && e.SchemaVersion != EnvelopeSchemaVersionV2 {
+		return Reject(CodeUnsupportedVersion, "event schema version is unsupported", map[string]string{"schemaVersion": e.SchemaVersion})
 	}
 	for name, value := range map[string]string{
 		"eventId": e.EventID, "aggregateId": e.AggregateID, "actor.actorId": e.Actor.ActorID,
@@ -172,6 +233,63 @@ func (e EventEnvelope) Validate() error {
 	}
 	if e.Integrity.Algorithm != "hmac-sha256" || !idPattern.MatchString(e.Integrity.KeyID) {
 		return errors.New("integrity algorithm or keyId is invalid")
+	}
+	if e.SchemaVersion == EnvelopeSchemaVersionV2 {
+		if err := e.validateV2(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e EventEnvelope) validateV2() error {
+	for name, value := range map[string]string{"producer": e.Producer, "aggregateType": e.AggregateType} {
+		if !slugPattern.MatchString(value) && !idPattern.MatchString(value) {
+			return Reject(CodeMissingRequiredField, name+" is required and must be canonical", map[string]string{"field": name})
+		}
+	}
+	for name, value := range map[string]string{
+		"actorId": e.ActorID, "accountId": e.AccountID, "productSessionId": e.ProductSessionID, "traceId": e.TraceID,
+		"requestId": e.RequestID, "idempotencyKey": e.IdempotencyKey,
+	} {
+		if !idPattern.MatchString(value) {
+			return Reject(CodeMissingRequiredField, name+" is required and must be canonical", map[string]string{"field": name})
+		}
+	}
+	if e.ActorID != e.Actor.ActorID || e.AccountID != e.Actor.AccountID || e.ProductSessionID != e.Actor.SessionID {
+		return Reject(CodeWrongAggregate, "v2 direct actor bindings must match the compatibility actor object", map[string]string{"eventId": e.EventID})
+	}
+	if e.OccurredAt.IsZero() || e.ReceivedAt.IsZero() || e.OccurredAt.Location() != time.UTC || e.ReceivedAt.Location() != time.UTC {
+		return Reject(CodeMissingRequiredField, "occurredAt and receivedAt are required UTC timestamps", map[string]string{"eventId": e.EventID})
+	}
+	if !e.OccurredAt.Equal(e.Timestamp) {
+		return Reject(CodeInvalidVersion, "occurredAt must equal the v1 timestamp compatibility field", map[string]string{"eventId": e.EventID})
+	}
+	if e.ReceivedAt.Before(e.OccurredAt.Add(-time.Minute)) {
+		return Reject(CodeInvalidVersion, "receivedAt cannot materially precede occurredAt", map[string]string{"eventId": e.EventID})
+	}
+	if e.OccurredAt.After(time.Now().UTC().Add(5 * time.Minute)) {
+		return Reject(CodeFutureTimestamp, "occurredAt exceeds the accepted future clock-skew window", map[string]string{"eventId": e.EventID, "occurredAt": e.OccurredAt.Format(time.RFC3339Nano)})
+	}
+	if !oneOf(e.ResidencyClass, "global", "regional", "account-home", "legal-hold") {
+		return Reject(CodeInvalidPrivacyClassification, "residencyClass is invalid", map[string]string{"eventId": e.EventID, "residencyClass": e.ResidencyClass})
+	}
+	if e.Partition != e.PartitionKey() {
+		return Reject(CodeWrongPartition, "partitionKey does not match the canonical aggregate partition", map[string]string{"eventId": e.EventID, "expected": e.PartitionKey(), "actual": e.Partition})
+	}
+	if e.OrderingKey != e.Partition {
+		return Reject(CodeWrongPartition, "orderingKey must equal partitionKey for ordered aggregate events", map[string]string{"eventId": e.EventID})
+	}
+	if e.IntegrityHash != e.Integrity.Digest || e.Signature != e.Integrity.Signature {
+		return Reject(CodeWrongSignature, "v2 integrityHash and signature must match the compatibility integrity object", map[string]string{"eventId": e.EventID})
+	}
+	if e.Metadata == nil {
+		return Reject(CodeMissingRequiredField, "metadata is required", map[string]string{"field": "metadata"})
+	}
+	for key, value := range e.Metadata {
+		if strings.TrimSpace(key) == "" || len(key) > 64 || len(value) > 1024 {
+			return Reject(CodeOversizedPayload, "metadata keys and values must remain bounded", map[string]string{"eventId": e.EventID})
+		}
 	}
 	return nil
 }
@@ -252,6 +370,8 @@ func (e *EventEnvelope) Sign(keyID string, key []byte) error {
 		return errors.New("event signing key must contain at least 32 bytes")
 	}
 	e.Integrity = Integrity{Algorithm: "hmac-sha256", KeyID: keyID}
+	e.IntegrityHash = ""
+	e.Signature = ""
 	canonical, err := e.integrityMaterial()
 	if err != nil {
 		return err
@@ -261,6 +381,10 @@ func (e *EventEnvelope) Sign(keyID string, key []byte) error {
 	_, _ = mac.Write(digest[:])
 	e.Integrity.Digest = hex.EncodeToString(digest[:])
 	e.Integrity.Signature = hex.EncodeToString(mac.Sum(nil))
+	if e.SchemaVersion == EnvelopeSchemaVersionV2 {
+		e.IntegrityHash = e.Integrity.Digest
+		e.Signature = e.Integrity.Signature
+	}
 	return e.Validate()
 }
 
@@ -293,6 +417,8 @@ func (e EventEnvelope) integrityMaterial() ([]byte, error) {
 	copy := e
 	copy.Integrity.Digest = ""
 	copy.Integrity.Signature = ""
+	copy.IntegrityHash = ""
+	copy.Signature = ""
 	return json.Marshal(copy)
 }
 

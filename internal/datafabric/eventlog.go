@@ -33,6 +33,29 @@ type EventLogRecord struct {
 	RecordHash   string          `json:"recordHash"`
 }
 
+func (p *EventLogPublisher) Health(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if p == nil || !filepath.IsAbs(p.Path) {
+		return errors.New("event log path is invalid")
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if err := os.MkdirAll(filepath.Dir(p.Path), 0o700); err != nil {
+		return err
+	}
+	file, err := os.OpenFile(p.Path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	if err := file.Chmod(0o600); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
+}
+
 func (p *EventLogPublisher) Publish(ctx context.Context, topic, partitionKey string, payload []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err

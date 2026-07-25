@@ -44,8 +44,8 @@ func TestEnvelopeStrictValidationIntegrityAndUnknownFields(t *testing.T) {
 	}
 
 	invalidVersion := decoded
-	invalidVersion.SchemaVersion = "2.0"
-	if err := invalidVersion.Validate(); err == nil || !strings.Contains(err.Error(), "unsupported") {
+	invalidVersion.SchemaVersion = "9.9"
+	if err := invalidVersion.Validate(); ErrorCodeOf(err) != CodeUnsupportedVersion || !strings.Contains(err.Error(), "unsupported") {
 		t.Fatalf("invalid version was not rejected: %v", err)
 	}
 }

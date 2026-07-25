@@ -14,7 +14,7 @@ func TestDefaultSchemaRegistryResolvesRegisteredType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if definition.Product != "pay" || definition.Owner != "ynx-pay" || registry.Version() != "1.0" {
+	if definition.Product != "pay" || definition.Owner != "ynx-pay" || registry.Version() != "2.0" {
 		t.Fatalf("unexpected definition: %+v", definition)
 	}
 	if _, err := registry.Resolve("pay.invoice.unregistered", EnvelopeSchemaVersion, time.Now().UTC()); ErrorCodeOf(err) != CodeUnknownEventType {
@@ -118,7 +118,8 @@ func testSchemaDefinition(version string, mode CompatibilityMode) EventSchemaDef
 		TestVectors: []string{"vector-1"}, ExamplePayload: json.RawMessage(`{"status":"pending"}`),
 		PrivacyClassification: "confidential", RetentionClass: "financial-7y", ResidencyClass: "global", EnforceDataClassification: true,
 		ErrorCodes: []ErrorCode{CodeUnknownField}, AllowUnknownPayloadFields: false,
-		PayloadFields: []PayloadField{{Name: "status", Type: "string", Required: true, Enum: []string{"pending", "paid"}}},
+		RequiredEnvelopeFields: []string{"eventId", "eventType", "schemaVersion", "payload"},
+		PayloadFields:          []PayloadField{{Name: "status", Type: "string", Required: true, Enum: []string{"pending", "paid"}}},
 	}
 }
 

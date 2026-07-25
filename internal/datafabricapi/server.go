@@ -29,6 +29,9 @@ type Config struct {
 	EventKeyProducts   map[string]string
 	PrivacyKey         []byte
 	SchemaRegistry     *datafabric.SchemaRegistry
+	BrokerKind         string
+	DatabaseKind       string
+	BrokerProbe        func(context.Context) error
 	SourceCommit       string
 	SourceRelease      string
 	MaxBodyBytes       int64
@@ -73,6 +76,16 @@ func New(cfg Config) (*Server, error) {
 	}
 	if cfg.SchemaRegistry == nil {
 		cfg.SchemaRegistry = datafabric.DefaultSchemaRegistry()
+	}
+	if cfg.DatabaseKind == "" {
+		if cfg.Store != nil {
+			cfg.DatabaseKind = "file-local-development"
+		} else {
+			cfg.DatabaseKind = "external-transactional"
+		}
+	}
+	if cfg.BrokerKind == "" {
+		cfg.BrokerKind = "unobserved"
 	}
 	repository := cfg.Repository
 	if repository == nil {
@@ -764,18 +777,75 @@ func decodeStrict[T any](w http.ResponseWriter, r *http.Request, maxBytes int64)
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	err := s.repo.AuditIntegrity(r.Context(), s.cfg.EventKeys)
+	asOf := time.Now().UTC()
 	status := http.StatusOK
-	body := map[string]any{"ok": true, "version": s.cfg.SourceRelease, "sourceCommit": s.cfg.SourceCommit, "integrity": "verified", "asOf": time.Now().UTC()}
-	if err != nil {
-		status, body["ok"], body["integrity"] = http.StatusServiceUnavailable, false, "failed"
-		body["failure"] = "persistent integrity audit failed"
+	degraded := []string{}
+	dependencyStatus := map[string]any{
+		"database": map[string]any{"kind": s.cfg.DatabaseKind, "status": "verified"},
+		"broker":   map[string]any{"kind": s.cfg.BrokerKind, "status": "unobserved"},
 	}
+	body := map[string]any{
+		"ok": true, "commit": s.cfg.SourceCommit, "release": s.cfg.SourceRelease,
+		"schemaVersion": s.cfg.SchemaRegistry.Version(), "startedAt": s.startedAt,
+		"asOf": asOf, "databaseStatus": "verified", "brokerStatus": "unobserved",
+		"ledgerStatus": "verified", "consumerLag": uint64(0), "deadLetterCount": uint64(0),
+		"lastReconciliation": nil, "degradedState": degraded, "dependencyStatus": dependencyStatus,
+		"integrity": "verified",
+	}
+	stats, statsErr := s.repo.Stats(r.Context())
+	if statsErr != nil {
+		status = http.StatusServiceUnavailable
+		body["ok"], body["databaseStatus"], body["ledgerStatus"], body["integrity"] = false, "failed", "unknown", "unknown"
+		dependencyStatus["database"] = map[string]any{"kind": s.cfg.DatabaseKind, "status": "failed"}
+		degraded = append(degraded, "authoritative-repository-unavailable")
+	} else {
+		body["consumerLag"] = stats.OutboxPending
+		body["deadLetterCount"] = stats.DeadLetters
+	}
+	if integrityErr := s.repo.AuditIntegrity(r.Context(), s.cfg.EventKeys); integrityErr != nil {
+		status = http.StatusServiceUnavailable
+		body["ok"], body["ledgerStatus"], body["integrity"] = false, "failed", "failed"
+		degraded = append(degraded, "persistent-integrity-audit-failed")
+	}
+	if reconciliations, reconciliationErr := s.repo.Reconciliations(r.Context()); reconciliationErr != nil {
+		status = http.StatusServiceUnavailable
+		body["ok"] = false
+		degraded = append(degraded, "reconciliation-status-unavailable")
+	} else {
+		var last *datafabric.ReconciliationRun
+		for index := range reconciliations {
+			candidate := reconciliations[index]
+			if last == nil || candidate.CompletedAt.After(last.CompletedAt) {
+				copy := candidate
+				last = &copy
+			}
+		}
+		if last != nil {
+			body["lastReconciliation"] = map[string]any{"runId": last.RunID, "status": last.Status, "coverage": last.Coverage, "completedAt": last.CompletedAt}
+		}
+	}
+	if s.cfg.BrokerProbe != nil {
+		probeCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		probeErr := s.cfg.BrokerProbe(probeCtx)
+		cancel()
+		if probeErr != nil {
+			status = http.StatusServiceUnavailable
+			body["ok"], body["brokerStatus"] = false, "failed"
+			dependencyStatus["broker"] = map[string]any{"kind": s.cfg.BrokerKind, "status": "failed"}
+			degraded = append(degraded, "broker-unavailable")
+		} else {
+			body["brokerStatus"] = "verified"
+			dependencyStatus["broker"] = map[string]any{"kind": s.cfg.BrokerKind, "status": "verified"}
+		}
+	} else {
+		degraded = append(degraded, "broker-status-unobserved")
+	}
+	body["degradedState"] = degraded
 	writeJSON(w, status, body)
 }
 
 func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"service": "ynx-data-fabric", "version": s.cfg.SourceRelease, "sourceCommit": s.cfg.SourceCommit})
+	writeJSON(w, http.StatusOK, map[string]any{"service": "ynx-data-fabric", "release": s.cfg.SourceRelease, "commit": s.cfg.SourceCommit, "schemaVersion": s.cfg.SchemaRegistry.Version(), "startedAt": s.startedAt})
 }
 
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {

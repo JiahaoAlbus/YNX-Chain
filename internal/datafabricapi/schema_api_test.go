@@ -15,7 +15,7 @@ func TestSchemaRegistryAPIIsProductScopedAndAuthoritative(t *testing.T) {
 
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodGet, "/v1/schemas", nil, "pay"))
-	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"registryVersion":"1.0"`) || !strings.Contains(response.Body.String(), `"eventType":"pay.invoice.created"`) || strings.Contains(response.Body.String(), `"eventType":"shop.order.created"`) {
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"registryVersion":"2.0"`) || !strings.Contains(response.Body.String(), `"eventType":"pay.invoice.created"`) || !strings.Contains(response.Body.String(), `"version":"2.0"`) || strings.Contains(response.Body.String(), `"eventType":"shop.order.created"`) {
 		t.Fatalf("product-scoped schema registry response is invalid: %d %s", response.Code, response.Body.String())
 	}
 

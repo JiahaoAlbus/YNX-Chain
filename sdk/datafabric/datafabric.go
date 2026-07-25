@@ -8,7 +8,10 @@ import (
 	core "github.com/JiahaoAlbus/YNX-Chain/internal/datafabric"
 )
 
-const EnvelopeSchemaVersion = core.EnvelopeSchemaVersion
+const (
+	EnvelopeSchemaVersion   = core.EnvelopeSchemaVersion
+	EnvelopeSchemaVersionV2 = core.EnvelopeSchemaVersionV2
+)
 
 var (
 	ErrDuplicate  = core.ErrDuplicate
@@ -19,6 +22,7 @@ var (
 type Actor = core.Actor
 type SourceMetadata = core.SourceMetadata
 type Integrity = core.Integrity
+type V2EnvelopeContext = core.V2EnvelopeContext
 type EventEnvelope = core.EventEnvelope
 type OutboxRecord = core.OutboxRecord
 type InboxRecord = core.InboxRecord
