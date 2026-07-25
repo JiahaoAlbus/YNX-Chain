@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-25T06:49:34Z",
+  "generatedAt": "2026-07-25T07:18:00Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "a64bf67ff4ce",
+    "implementationCommit": "05b7d3cd3ffc",
     "committedStateVersion": 11,
-    "contractVersion": "1.2.0",
+    "contractVersion": "1.3.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -62,7 +62,9 @@
     "evm-account-balance-and-nonce-rpc",
     "evm-signed-ynxt-broadcast",
     "evm-committed-transaction-receipt-and-logs",
-    "evm-committed-bounded-contract-code-call-and-resource-estimate"
+    "evm-committed-bounded-contract-code-call-and-resource-estimate",
+    "sponsored-user-operation-bundler-end-to-end",
+    "strategy-vault-lifecycle-and-emergency-exit-guardrails"
   ],
   "currentSourceBoundaries": [
     "Current source is not deployed on the authoritative public runtime.",

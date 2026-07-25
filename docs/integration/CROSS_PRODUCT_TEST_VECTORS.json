@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "a64bf67ff4ce",
+  "sourceCommit": "05b7d3cd3ffc",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -170,6 +170,30 @@
       "errorClass": "limit-exceeded"
     },
     {
+      "id": "bundler-sponsored-user-operation-e2e-accept",
+      "owner": "chain-core",
+      "operation": "bundler-submit-and-read-receipt",
+      "inputSource": "internal/bftgateway/account_abstraction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "bundler-account-nonce-read",
+        "outer-application-action-signature",
+        "comet-commit",
+        "inner-user-operation-signature",
+        "paymaster-exact-fee-debit",
+        "receipt-readback"
+      ]
+    },
+    {
+      "id": "bundler-sponsored-user-operation-replay-reject",
+      "owner": "chain-core",
+      "operation": "bundler-submit-user-operation",
+      "inputSource": "internal/bftgateway/account_abstraction_test.go",
+      "mutation": "resubmit-identical-user-operation-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay"
+    },
+    {
       "id": "strategy-mandate-create-accept",
       "owner": "chain-core",
       "operation": "create-strategy-mandate",
@@ -196,10 +220,64 @@
       "id": "strategy-vault-engine-withdraw-reject",
       "owner": "chain-core",
       "operation": "withdraw-strategy-vault",
-      "inputSource": "internal/assetauth/mandate_test.go",
-      "mutation": "replace-owner-signer-with-engine",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "mutation": "replace-owner-signer-with-engine-or-attacker",
       "expected": "reject",
       "errorClass": "wrong-owner"
+    },
+    {
+      "id": "strategy-vault-funding-after-kill-reject",
+      "owner": "chain-core",
+      "operation": "deposit-strategy-vault",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "mutation": "activate-mandate-kill-switch-before-deposit",
+      "expected": "reject",
+      "errorClass": "mandate-disabled"
+    },
+    {
+      "id": "strategy-vault-funding-after-revoke-or-expiry-reject",
+      "owner": "chain-core",
+      "operation": "create-or-deposit-strategy-vault",
+      "inputSource": "internal/consensus/asset_authorization_action_test.go",
+      "mutation": "revoke-mandate-or-set-block-time-at-expiry",
+      "expected": "reject",
+      "errorClass": "mandate-disabled"
+    },
+    {
+      "id": "strategy-vault-emergency-exit-after-kill-accept",
+      "owner": "chain-core",
+      "operation": "emergency-exit-strategy-vault",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "owner-signature",
+        "zero-final-vault-balance",
+        "closed-at",
+        "returned-traceable-lots"
+      ]
+    },
+    {
+      "id": "strategy-vault-refund-after-close-reject",
+      "owner": "chain-core",
+      "operation": "deposit-strategy-vault",
+      "inputSource": "internal/consensus/asset_authorization_action_test.go",
+      "mutation": "deposit-after-emergency-exit",
+      "expected": "reject",
+      "errorClass": "vault-closed"
+    },
+    {
+      "id": "strategy-vault-rejected-mutation-atomicity",
+      "owner": "chain-core",
+      "operation": "verify-rejected-vault-mutation",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "unchanged-nonce",
+        "unchanged-fee-balance",
+        "unchanged-vault-balance",
+        "unchanged-lots",
+        "no-audit-event"
+      ]
     },
     {
       "id": "staking-withdraw-before-maturity-reject",

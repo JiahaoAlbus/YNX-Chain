@@ -38,6 +38,9 @@ const applicationSource = readFileSync("internal/consensus/application.go", "utf
 const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
 const gatewaySource = readFileSync("internal/bftgateway/gateway.go", "utf8");
 const evmSource = readFileSync("internal/bftgateway/evm.go", "utf8");
+const bundlerSource = readFileSync("internal/bundler/server.go", "utf8");
+const quantGatewaySource = readFileSync("internal/bftgateway/quant.go", "utf8");
+const assetAuthorizationSource = readFileSync("internal/consensus/asset_authorization_action.go", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
 requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
@@ -73,7 +76,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.2.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.3.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -86,6 +89,22 @@ for (const method of contract.evmRpc.methods) {
 }
 for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
+}
+requireValue(contract.accountAbstraction.paymasterFeeYNXT === 1, "Paymaster fee contract drift");
+requireValue(contract.accountAbstraction.replayRejectedByNonceDomain === true, "UserOperation replay boundary drift");
+requireValue(contract.accountAbstraction.testedThroughRealLocalABCICometGatewayBundler === true, "Bundler local E2E evidence missing");
+requireValue(contract.accountAbstraction.publicBundlerDeployed === false, "local Bundler evidence cannot claim public deployment");
+for (const fragment of ["matchesCommittedUserOperation", "http.MethodGet", "\"/accounts/\"", "http.MethodPost", "\"/aa/user-operations\""]) {
+  requireValue(bundlerSource.includes(fragment), `Bundler runtime evidence missing: ${fragment}`);
+}
+requireValue(contract.strategyVault.ownerOnlyWithdrawal === true && contract.strategyVault.ownerOnlyEmergencyExit === true, "Strategy Vault owner boundary drift");
+requireValue(contract.strategyVault.withdrawalAvailableAfterKillOrRevoke === true, "Strategy Vault exit availability drift");
+requireValue(contract.strategyVault.closedVaultCanBeRefunded === false, "closed Strategy Vault cannot accept funding");
+for (const fragment of ["mandateAllowsVaultFunding", "strategy vault is closed", "strategy vault funding is disabled by mandate state"]) {
+  requireValue(assetAuthorizationSource.includes(fragment), `Strategy Vault runtime guard missing: ${fragment}`);
+}
+for (const fragment of ["validQuantAuditEvidence", "validCommittedMandateRecord", "validCommittedVaultRecord"]) {
+  requireValue(quantGatewaySource.includes(fragment), `Quant Gateway evidence validator missing: ${fragment}`);
 }
 
 const statusKeys = [
@@ -134,8 +153,15 @@ for (const required of [
   "wallet-product-session-wrong-product-reject",
   "wallet-product-session-scope-widening-reject",
   "user-operation-sponsored-batch-accept",
+  "bundler-sponsored-user-operation-e2e-accept",
+  "bundler-sponsored-user-operation-replay-reject",
   "strategy-mandate-revoked-action-reject",
   "strategy-vault-engine-withdraw-reject",
+  "strategy-vault-funding-after-kill-reject",
+  "strategy-vault-funding-after-revoke-or-expiry-reject",
+  "strategy-vault-emergency-exit-after-kill-accept",
+  "strategy-vault-refund-after-close-reject",
+  "strategy-vault-rejected-mutation-atomicity",
   "staking-withdraw-before-maturity-reject",
   "solvency-liability-proof-tamper-reject",
   "abci-state-sync-roundtrip-accept",

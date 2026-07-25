@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "a64bf67ff4ce",
-  "contractVersion": "1.2.0",
+  "sourceCommit": "05b7d3cd3ffc",
+  "contractVersion": "1.3.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 14,
@@ -139,6 +139,55 @@
       "transactionRejected": -32003,
       "upstreamOrEvidenceFailure": -32603
     }
+  },
+  "accountAbstraction": {
+    "smartAccountOwnerAuthority": "inner UserOperation signature plus outer Bundler application-action signature",
+    "bundlerNonceSource": "GET /accounts/{bundlerAddress}",
+    "bundlerSubmission": "POST /aa/user-operations",
+    "bundlerReceipt": "GET /aa/user-operations/{id}",
+    "paymasterFeeYNXT": 1,
+    "committedEvidenceRequired": [
+      "operation-id",
+      "operation-hash",
+      "account",
+      "bundler",
+      "fee-payer",
+      "paymaster-id",
+      "call-count",
+      "transferred-value",
+      "fee",
+      "block-height",
+      "executed-at",
+      "transaction-hash",
+      "audit-hash"
+    ],
+    "replayRejectedByNonceDomain": true,
+    "testedThroughRealLocalABCICometGatewayBundler": true,
+    "publicBundlerDeployed": false
+  },
+  "strategyVault": {
+    "ownerOnlyWithdrawal": true,
+    "ownerOnlyEmergencyExit": true,
+    "fundingAllowedOnlyWhen": [
+      "mandate-not-expired",
+      "mandate-not-revoked",
+      "mandate-kill-switch-inactive",
+      "vault-open"
+    ],
+    "withdrawalAvailableAfterKillOrRevoke": true,
+    "closedVaultCanBeRefunded": false,
+    "rejectedMutationAtomicity": [
+      "no-fee",
+      "no-nonce-consumption",
+      "no-balance-change",
+      "no-lot-change",
+      "no-audit-event"
+    ],
+    "gatewayCommittedEvidence": [
+      "canonical-audit-identity",
+      "signed-action-record-binding",
+      "lifecycle-sensitive-final-record"
+    ]
   },
   "schemas": {
     "strategyMandate": "chain/governance/strategy-mandate.schema.json",
