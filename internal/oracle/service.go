@@ -22,6 +22,7 @@ type Service struct {
 	providers map[string]Provider
 	policy    Policy
 	now       func() time.Time
+	startedAt time.Time
 	lastGood  map[string]Price
 	rate      map[string]rateBucket
 }
@@ -54,7 +55,7 @@ func NewService(store *Store, providers []Provider, policy Policy, now func() ti
 	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
 		return nil, errors.New("provider rate policy is invalid")
 	}
-	return &Service{store: store, providers: registry, policy: policy, now: now, lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+	return &Service{store: store, providers: registry, policy: policy, now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
 }
 
 func (service *Service) Ingest(observation Observation) (bool, error) {
@@ -274,25 +275,34 @@ func (service *Service) LiveData(market string, kind DataType, limit int) (Marke
 }
 
 type Health struct {
-	Status              string    `json:"status"`
-	ProductID           string    `json:"productId"`
-	Version             string    `json:"version"`
-	Schema              string    `json:"schema"`
-	PolicyVersion       string    `json:"policyVersion"`
-	NormalizerVersion   string    `json:"normalizerVersion"`
-	StoreVersion        int       `json:"storeVersion"`
-	ProviderCount       int       `json:"providerCount"`
-	ActiveProviderCount int       `json:"activeProviderCount"`
-	MinimumSources      int       `json:"minimumSources"`
-	SourceLimitation    string    `json:"sourceLimitation,omitempty"`
-	AsOf                time.Time `json:"asOf"`
-	EmergencyPaused     bool      `json:"emergencyPaused"`
-	PauseReason         string    `json:"pauseReason,omitempty"`
-	PauseAuditID        string    `json:"pauseAuditId,omitempty"`
+	Status                    string            `json:"status"`
+	Degraded                  bool              `json:"degraded"`
+	ProductID                 string            `json:"productId"`
+	Version                   string            `json:"version"`
+	Release                   string            `json:"release"`
+	Commit                    string            `json:"commit"`
+	Schema                    string            `json:"schema"`
+	PolicyVersion             string            `json:"policyVersion"`
+	NormalizerVersion         string            `json:"normalizerVersion"`
+	StoreVersion              int               `json:"storeVersion"`
+	StartedAt                 time.Time         `json:"startedAt"`
+	ProviderCount             int               `json:"providerCount"`
+	ActiveProviderCount       int               `json:"activeProviderCount"`
+	MinimumSources            int               `json:"minimumSources"`
+	SourceLimitation          string            `json:"sourceLimitation,omitempty"`
+	AsOf                      time.Time         `json:"asOf"`
+	StorageStatus             string            `json:"storageStatus"`
+	StorageGeneration         uint64            `json:"storageGeneration"`
+	LastSuccessfulAggregation time.Time         `json:"lastSuccessfulAggregation,omitempty"`
+	Dependencies              map[string]string `json:"dependencies"`
+	EmergencyPaused           bool              `json:"emergencyPaused"`
+	PauseReason               string            `json:"pauseReason,omitempty"`
+	PauseAuditID              string            `json:"pauseAuditId,omitempty"`
 }
 
 func (service *Service) Health() Health {
 	providers := service.Providers()
+	state := service.store.Snapshot()
 	active := 0
 	for _, provider := range providers {
 		if provider.Status == "active" {
@@ -304,13 +314,26 @@ func (service *Service) Health() Health {
 		status = "degraded"
 		limitation = "fewer than the policy-required active independent providers"
 	}
+	lastSuccessfulAggregation := time.Time{}
+	for index := len(state.AggregateEvents) - 1; index >= 0; index-- {
+		price := state.AggregateEvents[index].Price
+		if price.Quality.Status == "good" && !price.Quality.Stale && !price.Quality.CircuitBreaker {
+			lastSuccessfulAggregation = price.ProducedAt.UTC()
+			break
+		}
+	}
+	if status == "ok" && lastSuccessfulAggregation.IsZero() {
+		status = "degraded"
+		limitation = "no successful aggregation has been persisted"
+	}
 	now := service.now().UTC()
 	paused, reason, auditID := service.store.ControlState(now)
 	if paused {
 		status = "paused"
 		limitation = "authoritative publication is disabled by an audited emergency control event"
 	}
-	return Health{Status: status, ProductID: ProductID, Version: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version, NormalizerVersion: NormalizerVersion, StoreVersion: StoreVersion,
+	return Health{Status: status, Degraded: status != "ok", ProductID: ProductID, Version: Version, Release: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version, NormalizerVersion: NormalizerVersion, StoreVersion: StoreVersion, StartedAt: service.startedAt,
 		ProviderCount: len(providers), ActiveProviderCount: active, MinimumSources: service.policy.MinimumSources,
-		SourceLimitation: limitation, AsOf: now, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
+		SourceLimitation: limitation, AsOf: now, StorageStatus: "ready", StorageGeneration: state.Generation, LastSuccessfulAggregation: lastSuccessfulAggregation,
+		Dependencies: map[string]string{"providerRegistry": "loaded", "storage": "ready"}, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
 }

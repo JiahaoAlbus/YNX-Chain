@@ -76,7 +76,17 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	server.mux.HandleFunc("GET /version", server.version)
 	server.mux.HandleFunc("GET /prices", server.price)
 	server.mux.HandleFunc("GET /v1/prices", server.price)
+	server.mux.HandleFunc("GET /providers", server.providers)
 	server.mux.HandleFunc("GET /v1/providers", server.providers)
+	server.mux.HandleFunc("GET /markets", server.markets)
+	server.mux.HandleFunc("GET /v1/markets", server.markets)
+	server.mux.HandleFunc("GET /status", server.status)
+	server.mux.HandleFunc("GET /v1/status", server.status)
+	server.mux.HandleFunc("GET /history", server.history)
+	server.mux.HandleFunc("GET /v1/history", server.history)
+	server.mux.HandleFunc("GET /corrections", server.corrections)
+	server.mux.HandleFunc("GET /v1/corrections", server.corrections)
+	server.mux.HandleFunc("GET /metrics", server.publicMetrics)
 	server.mux.HandleFunc("GET /v1/replay", server.replay)
 	server.mux.HandleFunc("GET /v1/market-data", server.marketData)
 	server.mux.HandleFunc("POST /internal/v1/observations", server.ingest)
@@ -133,6 +143,7 @@ func (server *Server) MetricsHandler() http.Handler { return server.metrics.Hand
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 	health := server.service.Health()
+	health.Commit = BuildCommit
 	status := http.StatusOK
 	if health.Status != "ok" {
 		status = http.StatusServiceUnavailable
@@ -141,7 +152,23 @@ func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"productId": ProductID, "version": Version, "schema": SchemaVersion, "policyVersion": server.service.policy.Version, "normalizerVersion": NormalizerVersion, "storeVersion": StoreVersion, "commit": BuildCommit})
+	health := server.service.Health()
+	writeJSON(response, http.StatusOK, map[string]any{
+		"productId":                 ProductID,
+		"version":                   Version,
+		"release":                   Version,
+		"schema":                    SchemaVersion,
+		"policyVersion":             server.service.policy.Version,
+		"normalizerVersion":         NormalizerVersion,
+		"storeVersion":              StoreVersion,
+		"commit":                    BuildCommit,
+		"startedAt":                 health.StartedAt,
+		"dependencies":              health.Dependencies,
+		"providerStatus":            health.Status,
+		"storageStatus":             health.StorageStatus,
+		"lastSuccessfulAggregation": health.LastSuccessfulAggregation,
+		"degraded":                  health.Degraded,
+	})
 }
 
 func (server *Server) price(response http.ResponseWriter, request *http.Request) {
@@ -287,7 +314,7 @@ func publicError(err error) string {
 
 func publicReadPath(path string) bool {
 	switch path {
-	case "/health", "/version", "/prices", "/v1/prices", "/v1/providers", "/v1/replay", "/v1/market-data":
+	case "/health", "/version", "/prices", "/v1/prices", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
 		return true
 	default:
 		return false

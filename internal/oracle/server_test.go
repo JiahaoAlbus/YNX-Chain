@@ -279,12 +279,22 @@ func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
 	}
 	publicMetrics := httptest.NewRecorder()
 	server.ServeHTTP(publicMetrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	if publicMetrics.Code != http.StatusNotFound {
-		t.Fatalf("metrics exposed on public mux: %d", publicMetrics.Code)
+	if publicMetrics.Code != http.StatusOK || strings.Contains(publicMetrics.Body.String(), "ynx_oracle_http_requests_total") {
+		t.Fatalf("public metrics must be sanitized JSON: %d %s", publicMetrics.Code, publicMetrics.Body.String())
+	}
+	var publicPayload struct {
+		Health  Health          `json:"health"`
+		Metrics MetricsSnapshot `json:"metrics"`
+	}
+	if err := json.Unmarshal(publicMetrics.Body.Bytes(), &publicPayload); err != nil {
+		t.Fatal(err)
+	}
+	if publicPayload.Metrics.Requests != 1 || publicPayload.Metrics.RequestErrors != 1 || publicPayload.Health.StorageStatus != "ready" {
+		t.Fatalf("sanitized public metrics incomplete: %+v", publicPayload)
 	}
 	metrics := httptest.NewRecorder()
 	server.MetricsHandler().ServeHTTP(metrics, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	if metrics.Code != http.StatusOK || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_requests_total 2") || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_request_errors_total 2") {
+	if metrics.Code != http.StatusOK || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_requests_total 2") || !strings.Contains(metrics.Body.String(), "ynx_oracle_http_request_errors_total 1") {
 		t.Fatalf("metrics=%d %s", metrics.Code, metrics.Body.String())
 	}
 }
