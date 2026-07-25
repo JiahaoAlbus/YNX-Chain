@@ -1,6 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "YNX Bridge",
+  "owner": "21-bridge",
+  "sourceCommit": "b3ccc5c897f861f260150e015d4167e1610705cc",
+  "runtimeSchemaVersion": 7,
+  "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "canonicalRoute": "/bridge",
   "chain": {
     "nativeChainId": "ynx_6423-1",
@@ -8,55 +12,40 @@
     "nativeSymbol": "YNXT"
   },
   "currentIntegrationState": "handoff_only_not_integrated",
+  "runtimeTruth": {
+    "liveBridge": false,
+    "externalSubmissionEnabled": false,
+    "providerStatus": "unavailable-no-verified-provider-connection",
+    "contractStatus": "unavailable-no-verified-contract-deployment",
+    "deployedPublic": false
+  },
   "publicRead": {
-    "method": "GET",
-    "path": "/bridge/transparency",
-    "source": "ynx-bridge-coordinator",
-    "authentication": "none",
-    "deployedPublic": false
+    "health": {"method":"GET","path":"/health","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
+    "version": {"method":"GET","path":"/version","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
+    "stateMachine": {"method":"GET","path":"/bridge/state-machine","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
+    "transparency": {"method":"GET","path":"/bridge/transparency","source":"ynx-bridge-coordinator","authentication":"none","deployedPublic":false},
+    "routes": {"method":"GET","path":"/bridge/routes","source":"ynx-bridge-route-registry","authentication":"none","quotesExecutable":false,"deployedPublic":false},
+    "assets": {"method":"GET","path":"/bridge/assets","source":"ynx-bridge-asset-registry","authentication":"none","contractMetadataVerified":false,"externalExecutionEnabled":false,"deployedPublic":false},
+    "status": {"method":"GET","path":"/bridge/status","source":"ynx-bridge-status","authentication":"none","externalBridgeAvailable":false,"providerConnected":false,"supportConfigured":false,"deployedPublic":false}
   },
-  "routeCatalog": {
-    "method": "GET",
-    "path": "/bridge/routes",
-    "source": "ynx-bridge-route-registry",
-    "authentication": "none",
-    "quotesExecutable": false,
-    "deployedPublic": false
-  },
-  "assetCatalog": {
-    "method": "GET",
-    "path": "/bridge/assets",
-    "source": "ynx-bridge-asset-registry",
-    "authentication": "none",
-    "contractMetadataVerified": false,
-    "externalExecutionEnabled": false,
-    "deployedPublic": false
-  },
-  "statusSurface": {
-    "method": "GET",
-    "path": "/bridge/status",
-    "source": "ynx-bridge-status",
-    "authentication": "none",
-    "externalBridgeAvailable": false,
-    "providerConnected": false,
-    "supportConfigured": false,
-    "deployedPublic": false
-  },
-  "sdk": {
-    "path": "sdk/bridge",
-    "package": "@ynx-chain/bridge-sdk",
-    "version": "0.1.0",
-    "access": "public-read-only",
-    "acceptsCredentials": false,
-    "registryPublished": false,
-    "assetAvailableOnlyAt": "destination_confirmed"
-  },
-  "protectedCoordinatorBoundary": {
+  "protectedRuntime": {
+    "proofVerification": {"method":"POST","path":"/bridge/transfers/{id}/proof-verification","authentication":"bridge-service-key","idempotencyRequired":true,"browserAccessible":false},
     "consumerCredentialAccess": false,
     "browserCredentialAccess": false,
     "walletSecretAccess": false,
     "requiredMediator": "canonical-app-gateway",
     "centralGatewayIntegrated": false
+  },
+  "sdk": {
+    "path": "sdk/bridge",
+    "package": "@ynx-chain/bridge-sdk",
+    "version": "0.2.0",
+    "languageSurface": ["JavaScript", "TypeScript declarations"],
+    "access": "public-read-only",
+    "acceptsCredentials": false,
+    "registryPublished": false,
+    "assetAvailableOnlyAt": "destination_available",
+    "availabilityRequiresExplicitFlag": true
   },
   "proposedProductScopes": [
     "bridge:quote:read",
@@ -71,29 +60,39 @@
     "source_submitted",
     "source_accepted",
     "source_finalized",
-    "proof_attestation",
-    "destination_mint_release",
-    "destination_confirmed",
+    "proof_attestation_available",
+    "proof_verified",
+    "destination_mint_release_submitted",
+    "destination_mint_release_confirmed",
+    "destination_available",
     "failed",
-    "refund_recovery",
-    "dispute",
-    "retry"
+    "retryable",
+    "refund_pending",
+    "refunded",
+    "recovery_required",
+    "disputed",
+    "corrected",
+    "expired",
+    "paused"
   ],
   "consumers": [
     {"id":"wallet","responsibility":"quote, exact route review, fee/risk/finality review, source signature, recovery entry","mutationAuthority":"user-approved canonical Wallet intent only"},
-    {"id":"pay","responsibility":"show bridge funding as pending until destination confirmation before payment","mutationAuthority":"none"},
-    {"id":"exchange","responsibility":"map deposit and withdrawal status to source and destination evidence","mutationAuthority":"custody-approved backend only"},
+    {"id":"pay","responsibility":"keep bridge funding pending through destination confirmation; pay only at destination_available with explicit availability flag","mutationAuthority":"none"},
+    {"id":"exchange","responsibility":"keep deposit pending through destination confirmation; credit only at destination_available with explicit availability flag","mutationAuthority":"custody-approved backend only"},
     {"id":"dex","responsibility":"label route as external and show provider/contracts/slippage/finality/refund","mutationAuthority":"user-approved canonical Wallet intent only"},
     {"id":"finance","responsibility":"read-only exposure and source-qualified reconciliation","mutationAuthority":"none"},
-    {"id":"explorer","responsibility":"deep-link source transaction, source block, destination transaction and receipt","mutationAuthority":"none"},
-    {"id":"monitor","responsibility":"alert on pause, exposure saturation, provider failure and reconciliation age/difference","mutationAuthority":"operator safety action through approved control plane only"},
+    {"id":"explorer","responsibility":"deep-link source transaction, proof status, destination transaction, confirmation, and availability evidence","mutationAuthority":"none"},
+    {"id":"monitor","responsibility":"alert on pause, exposure saturation, provider failure, proof failure, and reconciliation age/difference","mutationAuthority":"operator safety action through approved control plane only"},
     {"id":"trust","responsibility":"open dispute and appeal with immutable evidence references","mutationAuthority":"product-scoped Gateway session without asset authority"}
   ],
   "truthRules": [
     "quote is not source acceptance",
     "source acceptance is not source finality",
-    "provider webhook is not destination availability",
-    "destination release is not destination confirmation",
+    "proof availability is not proof verification",
+    "provider webhook is not chain finality",
+    "destination submission is not destination confirmation",
+    "destination confirmation is not destination asset availability",
+    "asset availability requires destination_available and destinationAssetAvailable=true",
     "operator reconciliation is not independent proof",
     "unavailable provider routes remain unavailable"
   ]

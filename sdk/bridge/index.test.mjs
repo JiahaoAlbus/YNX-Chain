@@ -14,7 +14,16 @@ before(async () => {
     response.setHeader("content-type", "application/json");
     response.setHeader("X-Request-ID", "breq_sdk_test_001");
     if (request.url === "/health") {
-      response.end(JSON.stringify({ok: true, service: "ynx-bridged", liveBridge: false, externalSubmissionEnabled: false, truthfulStatus: "local-coordinator-only-no-external-submission"}));
+      response.end(JSON.stringify({ok: true, degraded: true, service: "ynx-bridged", schemaVersion: 7, stateMachineVersion: "ynx.bridge.lifecycle.v1", startedAt: "2026-07-25T00:00:00Z", providerStatus: "unavailable-no-verified-provider-connection", contractStatus: "unavailable-no-verified-contract-deployment", reconciliationStatus: "not-run", liveBridge: false, externalSubmissionEnabled: false, truthfulStatus: "degraded-local-coordinator-only-no-provider-or-contract"}));
+      return;
+    }
+    if (request.url === "/version") {
+      response.end(JSON.stringify({service: "ynx-bridged", source: "ynx-bridge-runtime", schemaVersion: 7, stateMachineVersion: "ynx.bridge.lifecycle.v1", startedAt: "2026-07-25T00:00:00Z", asOf: "2026-07-25T00:01:00Z", degraded: true, paused: false, providerStatus: "unavailable-no-verified-provider-connection", contractStatus: "unavailable-no-verified-contract-deployment", reconciliationStatus: "not-run", lastSuccessfulTransfer: null, lastReconciliation: null, liveBridge: false, externalSubmissionEnabled: false, build: {commit: "test", release: "test", buildTime: "2026-07-25T00:00:00Z"}}));
+      return;
+    }
+    if (request.url === "/bridge/state-machine") {
+      const phases = ["quote", "user_review", "source_submitted", "source_accepted", "source_finalized", "proof_attestation_available", "proof_verified", "destination_mint_release_submitted", "destination_mint_release_confirmed", "destination_available", "failed", "retryable", "refund_pending", "refunded", "recovery_required", "disputed", "corrected", "expired", "paused"];
+      response.end(JSON.stringify({version: "ynx.bridge.lifecycle.v1", source: "ynx-bridge-runtime", asOf: "2026-07-25T00:01:00Z", states: phases.map((id) => ({id, terminal: ["destination_available", "refunded", "corrected", "expired"].includes(id), destinationAssetAvailable: id === "destination_available", description: `State ${id}`})), transitions: [{from: "destination_mint_release_confirmed", to: "destination_available", condition: "explicit availability observation"}], legacyAliases: {destination_confirmed: "destination_mint_release_confirmed"}}));
       return;
     }
     if (request.url === "/bridge/transparency") {
@@ -47,9 +56,13 @@ before(async () => {
 
 after(async () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
 
-test("reads truthful public Bridge health and transparency without credentials", async () => {
+test("reads truthful public Bridge health, version, state machine, and transparency without credentials", async () => {
   const client = new YNXBridgeClient({baseURL});
   assert.equal((await client.getHealth()).liveBridge, false);
+  assert.equal((await client.getVersion()).degraded, true);
+  const stateMachine = await client.getStateMachine();
+  assert.equal(stateMachine.states.find((state) => state.id === "destination_mint_release_confirmed").destinationAssetAvailable, false);
+  assert.equal(stateMachine.states.find((state) => state.id === "destination_available").destinationAssetAvailable, true);
   const transparency = await client.getTransparency();
   assert.equal(transparency.routes[0].coordinatorOutstanding, "0");
   const routes = await client.getRoutes();
@@ -69,22 +82,25 @@ test("matches every shared consumer lifecycle availability vector", async () => 
   const updatedAt = "2026-07-22T00:00:00Z";
   const vectors = JSON.parse(await readFile(new URL("../../docs/bridge/consumer-lifecycle-vectors.json", import.meta.url), "utf8"));
   for (const vector of vectors.vectors) {
-    const availability = bridgeTransferAvailability({phase: vector.phase, updatedAt});
+    const availability = bridgeTransferAvailability({phase: vector.phase, updatedAt, destinationAssetAvailable: vector.destinationAssetAvailable});
     assert.equal(availability.assetAvailable, vector.assetAvailable, vector.id);
     assert.equal(availability.mayPay, vector.mayPay, vector.id);
     assert.equal(availability.mayCreditExchange, vector.mayCreditExchange, vector.id);
     assert.equal(availability.showRecovery, vector.showRecovery, vector.id);
   }
-  const confirmed = bridgeTransferAvailability({phase: "destination_confirmed", updatedAt});
-  assert.equal(confirmed.assetAvailable, true);
-  assert.equal(confirmed.mayPay, true);
-  assert.equal(confirmed.coverage, "coordinator-recorded-phase-not-independent-chain-proof");
+  const confirmed = bridgeTransferAvailability({phase: "destination_mint_release_confirmed", updatedAt, destinationAssetAvailable: false});
+  assert.equal(confirmed.assetAvailable, false);
+  assert.equal(confirmed.mayPay, false);
+  const available = bridgeTransferAvailability({phase: "destination_available", updatedAt, destinationAssetAvailable: true});
+  assert.equal(available.assetAvailable, true);
+  assert.equal(available.mayPay, true);
+  assert.equal(available.coverage, "coordinator-recorded-phase-and-explicit-availability-not-independent-chain-proof");
 });
 
 test("fails closed on malformed contracts, insecure origins, and bounded errors", async () => {
   assert.throws(() => new YNXBridgeClient({baseURL: "http://bridge.invalid"}), YNXBridgeSDKError);
   assert.throws(() => bridgeTransferAvailability({phase: "provider_webhook", updatedAt: "2026-07-22T00:00:00Z"}), YNXBridgeSDKError);
-  const client = new YNXBridgeClient({baseURL, fetchImpl: async () => new Response(JSON.stringify({ok: true, service: "ynx-bridged", liveBridge: true, externalSubmissionEnabled: false}), {status: 200, headers: {"content-type": "application/json"}})});
+  const client = new YNXBridgeClient({baseURL, fetchImpl: async () => new Response(JSON.stringify({ok: true, degraded: false, service: "ynx-bridged", schemaVersion: 7, stateMachineVersion: "ynx.bridge.lifecycle.v1", startedAt: "2026-07-25T00:00:00Z", providerStatus: "connected", contractStatus: "verified", reconciliationStatus: "current", liveBridge: true, externalSubmissionEnabled: false}), {status: 200, headers: {"content-type": "application/json"}})});
   await assert.rejects(client.getHealth(), /claims live status without external submission/);
 	const failing = new YNXBridgeClient({baseURL, fetchImpl: async () => new Response(JSON.stringify({error: "Bridge unavailable"}), {status: 503, headers: {"X-Request-ID": "breq_1", "X-Error-ID": "berr_1"}})});
 	await assert.rejects(failing.getHealth(), (error) => error.status === 503 && error.requestId === "breq_1" && error.errorId === "berr_1");

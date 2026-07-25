@@ -1,8 +1,12 @@
 # Bridge Evidence Index
 
-- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`
+- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`; proof/lifecycle runtime evidence commit `b3ccc5c897f861f260150e015d4167e1610705cc`
 - Process-level verifier: `scripts/verify/bridge-api-check.sh`
-- Unit and race vectors: `internal/bridgegateway/gateway_test.go`
+- Unit, migration, proof-tamper, availability, and HTTP vectors: `internal/bridgegateway/gateway_test.go`, `internal/bridgegateway/state_machine_test.go`
+- Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
+- Central handoff: `docs/integration/INTEGRATION_HANDOFF.md`
+- Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Deployment dry run: `scripts/deploy/dry-run.sh`
 - Readiness boundary: `docs/bridge/BRIDGE_INTEGRATION_READINESS.md`
 - Feature status: `docs/bridge/FEATURE_COMPLETION_EVIDENCE.md`

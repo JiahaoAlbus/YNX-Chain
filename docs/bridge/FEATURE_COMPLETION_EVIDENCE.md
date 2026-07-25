@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-23.
+Status date: 2026-07-25. Runtime evidence commit: `b3ccc5c897f861f260150e015d4167e1610705cc`.
 
 ## Evidence-backed state
 
@@ -9,17 +9,20 @@ Status date: 2026-07-23.
 | Persistent transfer coordinator | true | true | false | false | false | false |
 | Relayer quorum and replay rejection | true | true | false | false | false | false |
 | Persisted relayer signature/quorum/audit revalidation | true | true | false | false | false | false |
-| Lifecycle, failure, retry, recovery, dispute | true | true | false | false | false | false |
-| Append-only source-qualified lifecycle timeline and v3 migration | true | true | false | false | false | false |
-| Settlement-aware exposure accounting across disputes and v4 migration | true | true | false | false | false | false |
+| Versioned 19-state lifecycle, failure, retry, refund, recovery, dispute, correction, expiry, pause | true | true | false | false | false | false |
+| Domain-separated threshold-relayer proof bundle and explicit proof verification gate | true | true | false | false | false | false |
+| Destination confirmation separated from destination asset availability | true | true | false | false | false | false |
+| Deterministic route ID, message ID, nonce domain, and changed-replay rejection | true | true | false | false | false | false |
+| Append-only source-qualified lifecycle timeline and schema v1-v7 migration | true | true | false | false | false | false |
+| Settlement-aware exposure accounting across dispute, availability, refund, and legacy migration | true | true | false | false | false | false |
 | Pause/resume, route/provider/user/daily limits, large-transfer delay | true | true | false | false | false | false |
 | Public transparency and reconciliation record | true | true | false | false | false | false |
-| Exact persisted reconciliation replay and v1-v5 migration | true | true | false | false | false | false |
+| Exact persisted reconciliation replay and v1-v6 migration into schema v7 | true | true | false | false | false | false |
 | Fail-closed route catalog and provider disclosure | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
-| Truthful local product status and support/readiness boundary | true | true | false | false | false | false |
-| Read-only Bridge JavaScript SDK and lifecycle availability guard | true | true | false | false | false | false |
+| Truthful `/health`, `/version`, state-machine, product status, and readiness boundary | true | true | false | false | false | false |
+| Read-only Bridge JavaScript SDK, TypeScript declarations, and dual availability guard | true | true | false | false | false | false |
 | Data export, retention hold, deletion-request execution, and identity redaction | true | true | false | false | false | false |
 | Service-cessation and user-exit runbook | true | true | false | false | false | false |
 | External source submission | false | false | false | false | false | false |

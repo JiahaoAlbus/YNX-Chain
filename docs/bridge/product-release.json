@@ -1,9 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "YNX Bridge",
   "releaseClass": "local-engineering-candidate",
-  "sourceCommit": null,
+  "sourceCommit": "b3ccc5c897f861f260150e015d4167e1610705cc",
   "sourceCommitRequiredBeforeRelease": true,
+  "runtimeSchemaVersion": 7,
+  "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+  "sdkVersion": "0.2.0",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -15,9 +18,24 @@
   "storeReleased": false,
   "externalSubmissionEnabled": false,
   "officialStablecoinRouteAvailable": false,
+  "providerConnected": false,
+  "contractsVerified": false,
+  "publicTestnetDepositVerified": false,
+  "publicTestnetWithdrawalVerified": false,
+  "proofVerification": {
+    "implementedType": "threshold-relayer-attestation",
+    "testedLocal": true,
+    "lightClientProofVerified": false,
+    "canonicalBridgeClaim": false
+  },
   "artifacts": [],
   "publicUrls": [],
   "transactionEvidence": [],
+  "localEvidence": [
+    {"type":"source-commit","value":"b3ccc5c897f861f260150e015d4167e1610705cc"},
+    {"type":"test-command","value":"go test ./..."},
+    {"type":"test-command","value":"npm test --prefix sdk/bridge"}
+  ],
   "remainingReleaseInputs": [
     "accepted canonical Gateway integration",
     "approved provider or proof-based route",
@@ -25,6 +43,7 @@
     "secure signer path and threshold ceremony",
     "funded Testnet assets and gas",
     "support, privacy, security, and status URLs",
-    "public deployment authority"
+    "public deployment authority",
+    "independent security review"
   ]
 }

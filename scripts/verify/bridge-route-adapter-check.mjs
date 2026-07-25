@@ -21,7 +21,7 @@ const classifications = [
 for (const classification of classifications) {
   if (!docs.includes(classification) || !types.includes(classification)) fail("missing route classification " + classification);
 }
-if (manifest.routeCatalog?.path !== "/bridge/routes" || manifest.routeCatalog?.quotesExecutable !== false || manifest.routeCatalog?.deployedPublic !== false) fail("route catalog handoff overclaims availability");
+if (manifest.publicRead?.routes?.path !== "/bridge/routes" || manifest.publicRead?.routes?.source !== "ynx-bridge-route-registry" || manifest.publicRead?.routes?.quotesExecutable !== false || manifest.publicRead?.routes?.deployedPublic !== false || manifest.runtimeTruth?.providerStatus !== "unavailable-no-verified-provider-connection" || manifest.runtimeTruth?.deployedPublic !== false) fail("route catalog handoff overclaims availability");
 if (!server.includes('GET /bridge/routes') || !sdk.includes("async getRoutes()") || !sdk.includes("configured-fail-closed-candidates-not-live-provider-quotes")) fail("runtime or SDK route catalog is missing");
 if (!server.includes('GET /bridge/assets') || !sdk.includes("async getAssets()") || !sdk.includes("configured-token-allowlist-candidates-not-verified-contracts")) fail("runtime or SDK asset catalog is missing");
 if (!server.includes('GET /bridge/status') || !sdk.includes("async getStatus()") || !sdk.includes("local-coordinator-and-configured-candidates-not-public-provider-health")) fail("runtime or SDK status surface is missing");

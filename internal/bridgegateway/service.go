@@ -1087,6 +1087,11 @@ func (s *Service) Health(build buildinfo.Info) Health {
 			}
 		}
 	}
+	normalizedBuild := buildinfo.Normalize(build)
+	truthfulStatus := "degraded-local-coordinator-only-no-provider-or-contract"
+	if normalizedBuild.Commit == "unknown" {
+		truthfulStatus = "local-coordinator-only-no-external-submission"
+	}
 	health := Health{
 		OK: true, Degraded: true, Service: "ynx-bridged", SchemaVersion: SchemaVersion, StateMachineVersion: StateMachineVersion, StartedAt: s.startedAt,
 		NativeSymbol: "YNXT", Persistence: "atomic-json-file", StateIntegrity: s.state.Integrity,
@@ -1095,7 +1100,7 @@ func (s *Service) Health(build buildinfo.Info) Health {
 			"state": "integrity-sealed", "provider": "unavailable", "contracts": "unavailable", "relayerQuorum": "configured-local", "reconciliation": reconciliationStatus,
 		},
 		RouteCount: len(s.policies), RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
-		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: "degraded-local-coordinator-only-no-provider-or-contract", Safety: s.state.Safety, Build: buildinfo.Normalize(build),
+		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: truthfulStatus, Safety: s.state.Safety, Build: normalizedBuild,
 	}
 	lastSuccessfulAt := ""
 	lastSuccessfulID := ""

@@ -1,19 +1,27 @@
 const DEFAULT_TIMEOUT_MS = 10_000;
+const STATE_MACHINE_VERSION = "ynx.bridge.lifecycle.v1";
 const PHASES = new Set([
   "quote",
   "user_review",
   "source_submitted",
   "source_accepted",
   "source_finalized",
-  "proof_attestation",
-  "destination_mint_release",
-  "destination_confirmed",
+  "proof_attestation_available",
+  "proof_verified",
+  "destination_mint_release_submitted",
+  "destination_mint_release_confirmed",
+  "destination_available",
   "failed",
-  "refund_recovery",
-  "dispute",
-  "retry",
+  "retryable",
+  "refund_pending",
+  "refunded",
+  "recovery_required",
+  "disputed",
+  "corrected",
+  "expired",
+  "paused",
 ]);
-const RECOVERY_PHASES = new Set(["failed", "refund_recovery", "dispute"]);
+const RECOVERY_PHASES = new Set(["failed", "retryable", "refund_pending", "recovery_required", "disputed"]);
 const ASSET_CLASSES = new Set(["testnet-stablecoin", "wrapped-test-asset", "ynxt-bridge-candidate", "other-testnet-asset-candidate"]);
 
 export class YNXBridgeSDKError extends Error {
@@ -40,6 +48,14 @@ export class YNXBridgeClient {
 
   async getHealth() {
     return validateHealth(await this.#request("health"));
+  }
+
+  async getVersion() {
+    return validateVersion(await this.#request("version"));
+  }
+
+  async getStateMachine() {
+    return validateStateMachine(await this.#request("bridge/state-machine"));
   }
 
   async getTransparency() {
@@ -101,12 +117,16 @@ export function bridgeTransferAvailability(transfer) {
   if (typeof transfer.updatedAt !== "string" || !validTimestamp(transfer.updatedAt)) {
     throw new YNXBridgeSDKError("Bridge transfer updatedAt is invalid");
   }
-  const assetAvailable = transfer.phase === "destination_confirmed";
+  if (transfer.stateMachineVersion !== undefined && transfer.stateMachineVersion !== STATE_MACHINE_VERSION) {
+    throw new YNXBridgeSDKError("Bridge transfer state machine version is unsupported");
+  }
+  const assetAvailable = transfer.phase === "destination_available" && transfer.destinationAssetAvailable === true;
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     source: "ynx-bridge-lifecycle",
+    stateMachineVersion: STATE_MACHINE_VERSION,
     asOf: transfer.updatedAt,
-    coverage: "coordinator-recorded-phase-not-independent-chain-proof",
+    coverage: "coordinator-recorded-phase-and-explicit-availability-not-independent-chain-proof",
     phase: transfer.phase,
     assetAvailable,
     mayPay: assetAvailable,
@@ -116,10 +136,39 @@ export function bridgeTransferAvailability(transfer) {
 }
 
 function validateHealth(value) {
-  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || typeof value.ok !== "boolean" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean") {
+  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || typeof value.ok !== "boolean" || typeof value.degraded !== "boolean" || typeof value.providerStatus !== "string" || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean") {
     throw new YNXBridgeSDKError("Bridge health contract is invalid");
   }
   if (value.liveBridge && !value.externalSubmissionEnabled) throw new YNXBridgeSDKError("Bridge health claims live status without external submission");
+  if (value.liveBridge && (value.providerStatus.startsWith("unavailable") || value.contractStatus.startsWith("unavailable"))) throw new YNXBridgeSDKError("Bridge health claims live status with unavailable dependencies");
+  return Object.freeze(value);
+}
+
+function validateVersion(value) {
+  if (!value || typeof value !== "object" || value.service !== "ynx-bridged" || value.source !== "ynx-bridge-runtime" || value.schemaVersion !== 7 || value.stateMachineVersion !== STATE_MACHINE_VERSION || !validTimestamp(value.startedAt) || !validTimestamp(value.asOf) || typeof value.degraded !== "boolean" || typeof value.paused !== "boolean" || typeof value.providerStatus !== "string" || typeof value.contractStatus !== "string" || typeof value.reconciliationStatus !== "string" || typeof value.liveBridge !== "boolean" || typeof value.externalSubmissionEnabled !== "boolean" || !value.build || typeof value.build !== "object") {
+    throw new YNXBridgeSDKError("Bridge version contract is invalid");
+  }
+  if (value.liveBridge && (!value.externalSubmissionEnabled || value.providerStatus.startsWith("unavailable") || value.contractStatus.startsWith("unavailable"))) throw new YNXBridgeSDKError("Bridge version overclaims live status");
+  return Object.freeze(value);
+}
+
+function validateStateMachine(value) {
+  if (!value || typeof value !== "object" || value.version !== STATE_MACHINE_VERSION || value.source !== "ynx-bridge-runtime" || !validTimestamp(value.asOf) || !Array.isArray(value.states) || value.states.length !== PHASES.size || !Array.isArray(value.transitions) || value.transitions.length === 0 || !value.legacyAliases || typeof value.legacyAliases !== "object") {
+    throw new YNXBridgeSDKError("Bridge state machine contract is invalid");
+  }
+  const seen = new Set();
+  for (const state of value.states) {
+    if (!state || typeof state !== "object" || !PHASES.has(state.id) || seen.has(state.id) || typeof state.terminal !== "boolean" || typeof state.destinationAssetAvailable !== "boolean" || typeof state.description !== "string" || state.description.length < 3) {
+      throw new YNXBridgeSDKError("Bridge state machine state is invalid");
+    }
+    seen.add(state.id);
+    if ((state.id === "destination_available") !== state.destinationAssetAvailable) throw new YNXBridgeSDKError("Bridge state machine availability boundary is invalid");
+  }
+  for (const transition of value.transitions) {
+    if (!transition || !PHASES.has(transition.from) || !PHASES.has(transition.to) || typeof transition.condition !== "string" || transition.condition.length < 3) {
+      throw new YNXBridgeSDKError("Bridge state machine transition is invalid");
+    }
+  }
   return Object.freeze(value);
 }
 
