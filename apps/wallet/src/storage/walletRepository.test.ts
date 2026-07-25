@@ -23,6 +23,9 @@ test("creates, confirms backup, switches and deletes multiple secure accounts", 
   assert.equal(manifest.accounts[0]?.backupConfirmed,true);
   manifest=await repository.selectAccount(walletIdentity(SECRET_TWO).account);
   assert.equal(manifest.selectedAccountId,walletIdentity(SECRET_TWO).account);
+  manifest=await repository.renameAccount(walletIdentity(SECRET_TWO).account,"Treasury");
+  assert.equal(manifest.accounts.find((item)=>item.account===walletIdentity(SECRET_TWO).account)?.label,"Treasury");
+  assert.equal((await new WalletRepository(storage).load()).manifest.accounts.find((item)=>item.account===walletIdentity(SECRET_TWO).account)?.label,"Treasury");
   manifest=await repository.deleteAccount(walletIdentity(SECRET_TWO).account);
   assert.equal(manifest.selectedAccountId,walletIdentity(SECRET_ONE).account);
   await assert.rejects(repository.accountSecret(walletIdentity(SECRET_TWO).account),/missing/);

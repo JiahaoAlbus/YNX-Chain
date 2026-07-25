@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { getRandomBytesAsync } from "expo-crypto";
@@ -20,6 +20,7 @@ import { AuthorizationAuditStore, type AuthorizationAuditRecord } from "./src/pr
 import { PersistentNonceStore } from "./src/protocol/replayStore";
 import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./src/protocol/registry";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
+import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
 import { initialLockState, reduceLockState } from "./src/state/lockState";
 import { assertSecureStorageAvailable, platformSecureStorage } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
@@ -57,6 +58,8 @@ function WalletApp(){
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
   const [settings,setSettings]=useState(false);
+  const [privacyAttempt,setPrivacyAttempt]=useState(0);
+  const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
 
   const load=useCallback(async()=>{
@@ -74,6 +77,7 @@ function WalletApp(){
   useEffect(()=>{void load();void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)});const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink,load]);
   useEffect(()=>{const sub=AppState.addEventListener("change",(next)=>{if(next!=="active")dispatchLock({type:"lock",reason:"background"})});return()=>sub.remove()},[]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
+  useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt]);
 
   const unlock=async()=>{
     if(!selected)return;setBusy(true);setError(null);
@@ -84,6 +88,7 @@ function WalletApp(){
   const saved=(next:WalletManifest)=>{setManifest(next);setSetup("closed");setPendingRecovery(null);dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
   const select=async(account:string)=>{try{const next=await repository.selectAccount(account);setManifest(next);dispatchLock({type:"switch",account})}catch(caught){setError(localizeError(locale,caught))}};
 
+  if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;
   if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" onPress={()=>void load()}/><DangerButton label="Reset unreadable local Wallet" onPress={()=>Alert.alert("Reset local Wallet?","Only continue if every account has an offline recovery key.",[{text:"Cancel",style:"cancel"},{text:"Reset",style:"destructive",onPress:()=>void repository.resetCorruptStorage().then(load)}])}/></Screen>;
 
@@ -104,11 +109,12 @@ function EmptyWallet({locale,create,importAccount,recover}:{locale:WalletLocale;
 function Locked({locale,account,busy,unlock,recovery}:{locale:WalletLocale;account:WalletAccount;busy:boolean;unlock:()=>void;recovery:()=>void}){return <Screen><View style={styles.heroIcon}><Lock color={ACTIVE_COLORS.blue} size={32}/></View><Text style={styles.eyebrow}>{translate(locale,"walletLocked")}</Text><Text style={styles.title}>{account.label}</Text><Text style={styles.address}>{short(account.account)}</Text><Button label={busy?translate(locale,"checkingBiometrics"):translate(locale,"unlock")} disabled={busy} onPress={unlock} icon={<Fingerprint color={ACTIVE_COLORS.white} size={19}/>}/><SecondaryButton label={translate(locale,"lostDeviceRecovery")} onPress={recovery}/><Text style={styles.footnote}>{translate(locale,"recovery")}</Text></Screen>}
 
 function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest}:{locale:WalletLocale;manifest:WalletManifest;selected:WalletAccount;select:(v:string)=>void;add:()=>void;create:()=>void;lock:()=>void;onManifest:(v:WalletManifest)=>void}){
-  const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
+  const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
+  const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<{phase:"loading"|"ready"|"failed";account?:ChainAccount;activity:readonly ChainActivity[];error?:string}>({phase:"loading",activity:[]});
   const refreshChain=useCallback(async()=>{setChainState((state)=>({phase:"loading",account:state.account,activity:state.activity}));try{const client=chainClient();const[account,activity]=await Promise.all([client.account(selected.account),client.activity(selected.account)]);setChainState({phase:"ready",account,activity})}catch(caught){setChainState((state)=>({phase:"failed",account:state.account,activity:state.activity,error:message(caught)}))}},[selected.account]);
   useEffect(()=>{void refreshChain()},[refreshChain]);
-  const copy=async()=>{await Clipboard.setStringAsync(selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
+  const copy=async()=>{cancelClipboardClear.current?.();cancelClipboardClear.current=await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
   const revoke=async(record:AuthorizationAuditRecord)=>{try{await authorizeLocalKeyUse("wallet-authorization");await authorizationAudit.revoke(record.requestDigest,new Date().toISOString());setRecords(await authorizationAudit.load())}catch(caught){setAuditError(localizeError(locale,caught))}};
   return <ScrollView contentContainerStyle={styles.dashboard}>
@@ -119,6 +125,8 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest}:
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <InfoCard title={translate(locale,"accountSafety")} body={selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline."}/>
     <SecondaryButton label={copied?"Native ynx1 address copied":"Copy native ynx1 address"} onPress={()=>void copy()}/>
+    <SecondaryButton label="Rename account" onPress={()=>setRename(true)}/>
+    <SecondaryButton label="View offline recovery key" onPress={()=>setRecovery(true)}/>
     <SecondaryButton label="Connected Apps, Sessions and Devices" onPress={()=>setCenter(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
@@ -128,9 +136,10 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest}:
     <SendModal visible={send} account={selected} close={()=>setSend(false)} onSent={()=>void refreshChain()}/>
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
     <WalletControlCenter visible={controls} locale={locale} close={()=>setControls(false)}/>
-    <Modal visible={recovery} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setRecovery(false)}><Sheet title="Recovery and permissions" close={()=>setRecovery(false)}><InfoCard title="If this device is lost" body="Install YNX Wallet on a replacement device and import the offline recovery key. Re-authorize every product device; product sessions are not transferable."/><InfoCard title="Permission audit" body="Wallet approvals are product-, device-, callback-, scope-, network- and expiry-bound. Wallet never exports a key or automatically approves."/></Sheet></Modal>
+    <RecoveryExportModal visible={recovery} account={selected} close={()=>setRecovery(false)}/>
     <Modal visible={auditOpen} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setAuditOpen(false)}><Sheet title={translate(locale,"audit")} close={()=>setAuditOpen(false)}>{auditError?<Text style={styles.error}>{auditError}</Text>:null}{records.length===0?<Text style={styles.sheetText}>No authorization decisions are stored on this device.</Text>:records.slice().reverse().map((record)=><View key={record.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{record.action} · {record.productClientId}</Text><Text style={styles.infoBody}>{formatDateTime(locale,record.at)} · {short(record.account)}{"\n"}{record.scopes.join(", ")}</Text>{record.action==="approval-returned"&&!records.some((item)=>item.action==="approval-revoked"&&item.requestDigest===record.requestDigest)?<SecondaryButton label={translate(locale,"revoke")} onPress={()=>void revoke(record)}/>:null}</View>)}</Sheet></Modal>
     <DeleteModal visible={remove} account={selected} close={()=>setRemove(false)} deleted={(next)=>{setRemove(false);onManifest(next)}}/>
+    <RenameModal visible={rename} account={selected} close={()=>setRename(false)} renamed={(next)=>{setRename(false);onManifest(next)}}/>
   </ScrollView>
 }
 
@@ -165,8 +174,12 @@ function capitalName(value:string){return ({"native-staking":"Native Staking","l
 
 function RecoverySheet({pending,confirmation,setConfirmation,busy,save,close}:{pending:{secretHex:string;label:string};confirmation:string;setConfirmation:(v:string)=>void;busy:boolean;save:()=>void;close:()=>void}){
   useEffect(()=>{void preventScreenCaptureAsync("wallet-recovery");return()=>{void allowScreenCaptureAsync("wallet-recovery")}},[]);
-  return <Sheet title="Back up before saving" close={close}><Text style={styles.sheetText}>Write this recovery key offline. Never paste it into Social, support, AI, a website or another product. YNX cannot recover it.</Text><Text selectable accessibilityLabel="YNX Wallet recovery key" style={styles.recoveryKey}>{pending.secretHex}</Text><Field label="Type BACKED UP to confirm" value={confirmation} onChangeText={setConfirmation}/><Button label="Confirm backup and save" disabled={busy||confirmation!=="BACKED UP"} onPress={save}/></Sheet>
+  return <Sheet title="Back up before saving" close={close}><Text style={styles.sheetText}>Write this recovery key offline. Clipboard export is disabled. Never paste it into Social, support, AI, a website or another product. YNX cannot recover it.</Text><Text accessibilityLabel="YNX Wallet recovery key" style={styles.recoveryKey}>{pending.secretHex}</Text><Field label="Type BACKED UP to confirm" value={confirmation} onChangeText={setConfirmation}/><Button label="Confirm backup and save" disabled={busy||confirmation!=="BACKED UP"} onPress={save}/></Sheet>
 }
+
+function RecoveryExportModal({visible,account,close}:{visible:boolean;account:WalletAccount;close:()=>void}){const[phase,setPhase]=useState<"idle"|"authorizing"|"ready"|"failed">("idle"),[secret,setSecret]=useState<string|null>(null),[error,setError]=useState<string|null>(null);useEffect(()=>{let active=true;if(!visible){setPhase("idle");setSecret(null);setError(null);return()=>{active=false}};setPhase("authorizing");setSecret(null);setError(null);void preventScreenCaptureAsync("wallet-recovery-export");void (async()=>{try{await authorizeLocalKeyUse("recovery-view");const value=await repository.accountSecret(account.account);if(active){setSecret(value);setPhase("ready")}}catch(caught){if(active){setError(message(caught));setPhase("failed")}}})();return()=>{active=false;setSecret(null);void allowScreenCaptureAsync("wallet-recovery-export")}},[visible,account.account]);return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Offline recovery key" close={close}>{phase==="authorizing"?<><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.sheetText}>Confirm strong system biometrics to decrypt this account's recovery key.</Text></>:phase==="ready"&&secret?<><Text style={styles.sheetText}>Write this key offline now. Clipboard export and screenshots are disabled. Product sessions, devices and approvals are not restored with it.</Text><Text accessibilityLabel="YNX Wallet offline recovery key" style={styles.recoveryKey}>{secret}</Text><InfoCard title="Replacement-device boundary" body="Importing this key restores only the native account. Re-authorize each product device through the canonical Gateway."/></>:<><Text style={styles.error}>{error??"Recovery key is unavailable"}</Text><SecondaryButton label="Close recovery view" onPress={close}/></>}</Sheet></Modal>}
+
+function RenameModal({visible,account,close,renamed}:{visible:boolean;account:WalletAccount;close:()=>void;renamed:(manifest:WalletManifest)=>void}){const[label,setLabel]=useState(account.label),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);useEffect(()=>{if(visible){setLabel(account.label);setError(null)}},[visible,account.label]);const save=async()=>{setBusy(true);setError(null);try{renamed(await repository.renameAccount(account.account,label.trim()))}catch(caught){setError(message(caught))}finally{setBusy(false)}};return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Rename account" close={close}><Text style={styles.sheetText}>The label is local metadata. It never changes the ynx1 address, public key, chain history or product authorization binding.</Text><Field label="Account label" value={label} onChangeText={setLabel}/>{error?<Text style={styles.error}>{error}</Text>:null}<Button label={busy?"Saving local label…":"Save account label"} disabled={busy||label.trim()===account.label||label.trim().length<1||label.trim().length>40} onPress={()=>void save()}/></Sheet></Modal>}
 
 function DeleteModal({visible,account,close,deleted}:{visible:boolean;account:WalletAccount;close:()=>void;deleted:(v:WalletManifest)=>void}){const [confirm,setConfirm]=useState("");const remove=async()=>{try{await authorizeLocalKeyUse("account-delete");deleted(await repository.deleteAccount(account.account))}catch(caught){Alert.alert("Account not removed",message(caught))}};return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Remove account?" close={close}><Text style={styles.sheetText}>This permanently removes local key material and revokes its availability in Wallet. It does not erase chain history. Recovery requires the offline key.</Text><Field label={`Type ${account.label} to confirm`} value={confirm} onChangeText={setConfirm}/><DangerButton label="Remove local account" disabled={confirm!==account.label} onPress={()=>void remove()}/></Sheet></Modal>}
 
