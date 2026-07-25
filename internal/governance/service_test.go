@@ -13,7 +13,7 @@ func testService(t *testing.T) *Service {
 	mk := func(account string, role GovernanceRole, threshold uint64) RoleAssignmentInput {
 		return RoleAssignmentInput{Account: account, Role: role, Scopes: []Scope{ScopeBridge}, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: threshold, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:test-genesis-role-evidence"}}
 	}
-	roles := []RoleAssignmentInput{mk("technical-1", RoleTechnicalCouncil, 2), mk("technical-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 3), mk("security-2", RoleSecurityCouncil, 3), mk("security-3", RoleSecurityCouncil, 3), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2)}
+	roles := []RoleAssignmentInput{mk("technical-1", RoleTechnicalCouncil, 2), mk("technical-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 2), mk("security-2", RoleSecurityCouncil, 2), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2), mk("emergency-1", RoleEmergencyCouncil, 3), mk("emergency-2", RoleEmergencyCouncil, 3), mk("emergency-3", RoleEmergencyCouncil, 3)}
 	manifest, err := GenesisRoleManifestHash(roles)
 	if err != nil {
 		t.Fatal(err)

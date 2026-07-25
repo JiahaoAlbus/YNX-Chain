@@ -58,7 +58,7 @@ func TestRolesRequireExecutedProposalHaveTermsAndCanBeRemoved(t *testing.T) {
 		t.Fatal(err)
 	}
 	roles := s.ActiveRoleNames(input.Account, now.Add(5*time.Hour))
-	if !roles["emergency_signer"] || roles["executor"] {
+	if !roles["security_reviewer"] || roles["emergency_signer"] || roles["executor"] {
 		t.Fatalf("bad permissions: %v", roles)
 	}
 	if _, err = s.AssignRole(input, p.ID, now.Add(4*time.Hour)); !errors.Is(err, ErrConflict) {
@@ -106,7 +106,7 @@ func TestGenesisRolesRequirePinnedDistributedManifestAndRunOnce(t *testing.T) {
 	mk := func(account string, role GovernanceRole, threshold uint64) RoleAssignmentInput {
 		return RoleAssignmentInput{Account: account, Role: role, Scopes: allScopes, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: threshold, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:public-genesis-nomination"}}
 	}
-	inputs := []RoleAssignmentInput{mk("tech-1", RoleTechnicalCouncil, 2), mk("tech-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 3), mk("security-2", RoleSecurityCouncil, 3), mk("security-3", RoleSecurityCouncil, 3), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2)}
+	inputs := []RoleAssignmentInput{mk("tech-1", RoleTechnicalCouncil, 2), mk("tech-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 2), mk("security-2", RoleSecurityCouncil, 2), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2), mk("emergency-1", RoleEmergencyCouncil, 3), mk("emergency-2", RoleEmergencyCouncil, 3), mk("emergency-3", RoleEmergencyCouncil, 3)}
 	manifestHash, err := GenesisRoleManifestHash(inputs)
 	if err != nil {
 		t.Fatal(err)
@@ -121,7 +121,7 @@ func TestGenesisRolesRequirePinnedDistributedManifestAndRunOnce(t *testing.T) {
 		t.Fatalf("wrong manifest: %v", err)
 	}
 	roles, err := s.BootstrapRoles(inputs, manifestHash, now)
-	if err != nil || len(roles) != 7 {
+	if err != nil || len(roles) != 9 {
 		t.Fatalf("bootstrap: %d %v", len(roles), err)
 	}
 	if _, err = s.BootstrapRoles(inputs, manifestHash, now); !errors.Is(err, ErrConflict) {

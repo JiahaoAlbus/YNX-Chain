@@ -23,20 +23,25 @@ var (
 type Scope string
 
 const (
-	ScopeProtocolUpgrade Scope = "protocol_upgrade"
-	ScopeGenesis         Scope = "genesis_validator_parameters"
-	ScopeEconomics       Scope = "fee_burn_issuance"
-	ScopeTreasury        Scope = "treasury"
-	ScopeStablecoin      Scope = "stablecoin_reserve_provider"
-	ScopeOracle          Scope = "oracle_provider_threshold"
-	ScopeBridge          Scope = "bridge_provider_limits"
-	ScopeExchange        Scope = "exchange_market"
-	ScopeDEX             Scope = "dex_fee_pool"
-	ScopeVault           Scope = "quant_vault_bounds"
-	ScopeSafety          Scope = "safety_module"
-	ScopeResource        Scope = "resource_provider"
-	ScopeProductRegistry Scope = "product_registry"
-	ScopeGrants          Scope = "public_grants_incentives"
+	ScopeProtocolUpgrade  Scope = "protocol_upgrade"
+	ScopeConsensusUpgrade Scope = "consensus_upgrade"
+	ScopeGenesis          Scope = "genesis_validator_parameters"
+	ScopeEconomics        Scope = "fee_burn_issuance"
+	ScopeTreasury         Scope = "treasury"
+	ScopeStablecoin       Scope = "stablecoin_reserve_provider"
+	ScopeOracle           Scope = "oracle_provider_threshold"
+	ScopeBridge           Scope = "bridge_provider_limits"
+	ScopeExchange         Scope = "exchange_market"
+	ScopeDEX              Scope = "dex_fee_pool"
+	ScopeVault            Scope = "quant_vault_bounds"
+	ScopeSafety           Scope = "safety_module"
+	ScopeServiceSecurity  Scope = "service_security_pool"
+	ScopeResource         Scope = "resource_provider"
+	ScopeProductRegistry  Scope = "product_registry"
+	ScopeGrants           Scope = "public_grants_incentives"
+	ScopeRetentionPolicy  Scope = "retention_policy"
+	ScopeSecurityPolicy   Scope = "security_policy"
+	ScopeReleasePolicy    Scope = "release_policy"
 )
 
 type Status string
@@ -192,6 +197,7 @@ type ParameterRule struct {
 type Service struct {
 	mu               sync.RWMutex
 	policy           Policy
+	registries       RegistrySet
 	proposals        map[string]*Proposal
 	nonces           map[string]struct{}
 	emergencies      map[string]*EmergencyAction
@@ -212,7 +218,11 @@ func NewService(policy Policy) (*Service, error) {
 			return nil, fmt.Errorf("%w: unsafe parameter rule", ErrInvalid)
 		}
 	}
-	return &Service{policy: policy, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
+	registries, err := LoadEmbeddedRegistries()
+	if err != nil {
+		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
+	}
+	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
 func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
@@ -520,7 +530,7 @@ func (s *Service) mutable(id string, now time.Time) (*Proposal, error) {
 }
 
 func validateProposal(input ProposalInput, now time.Time, maxLifetime time.Duration, rules map[string]ParameterRule) error {
-	validScopes := map[Scope]bool{ScopeProtocolUpgrade: true, ScopeGenesis: true, ScopeEconomics: true, ScopeTreasury: true, ScopeStablecoin: true, ScopeOracle: true, ScopeBridge: true, ScopeExchange: true, ScopeDEX: true, ScopeVault: true, ScopeSafety: true, ScopeResource: true, ScopeProductRegistry: true, ScopeGrants: true}
+	validScopes := map[Scope]bool{ScopeProtocolUpgrade: true, ScopeConsensusUpgrade: true, ScopeGenesis: true, ScopeEconomics: true, ScopeTreasury: true, ScopeStablecoin: true, ScopeOracle: true, ScopeBridge: true, ScopeExchange: true, ScopeDEX: true, ScopeVault: true, ScopeSafety: true, ScopeServiceSecurity: true, ScopeResource: true, ScopeProductRegistry: true, ScopeGrants: true, ScopeRetentionPolicy: true, ScopeSecurityPolicy: true, ScopeReleasePolicy: true}
 	if !validScopes[input.Scope] || len(strings.TrimSpace(input.Nonce)) < 8 || len(strings.TrimSpace(input.Proposer)) < 3 || len(strings.TrimSpace(input.Owner)) < 3 || len(strings.TrimSpace(input.Summary)) < 16 || len(strings.TrimSpace(input.EconomicImpact)) < 16 || len(strings.TrimSpace(input.SecurityRisk)) < 16 || len(strings.TrimSpace(input.Migration)) < 16 || len(strings.TrimSpace(input.Rollback)) < 16 || len(input.Evidence) == 0 || len(input.Changes) == 0 || !input.ExpiresAt.After(now) || input.ExpiresAt.After(now.Add(maxLifetime)) {
 		return ErrInvalid
 	}

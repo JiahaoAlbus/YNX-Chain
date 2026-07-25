@@ -79,7 +79,7 @@ func (s *Service) ApproveEmergency(id, signer, role string, now time.Time) (Emer
 	}
 	now = now.UTC()
 	s.expireEmergency(a, now)
-	if a.Status != "pending_approval" || strings.TrimSpace(signer) == "" || (role != "security_council" && role != "technical_council") {
+	if a.Status != "pending_approval" || strings.TrimSpace(signer) == "" || role != "emergency_council" {
 		return EmergencyAction{}, ErrForbidden
 	}
 	if _, ok := a.Approvals[signer]; ok {

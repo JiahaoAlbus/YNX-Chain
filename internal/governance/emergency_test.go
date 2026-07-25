@@ -17,12 +17,8 @@ func TestEmergencyRequiresThresholdExpiresAndNeedsFollowUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, signer := range []string{"security-1", "technical-1", "security-2"} {
-		role := "security_council"
-		if i == 1 {
-			role = "technical_council"
-		}
-		a, err = s.ApproveEmergency(a.ID, signer, role, now.Add(time.Minute))
+	for _, signer := range []string{"emergency-1", "emergency-2", "emergency-3"} {
+		a, err = s.ApproveEmergency(a.ID, signer, "emergency_council", now.Add(time.Minute))
 		if err != nil {
 			t.Fatal(err)
 		}

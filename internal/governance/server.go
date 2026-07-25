@@ -52,6 +52,15 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /metrics", s.metrics)
+	s.mux.HandleFunc("GET /proposals", s.listProposals)
+	s.mux.HandleFunc("GET /proposals/{id}", s.getProposal)
+	s.mux.HandleFunc("GET /roles", s.listRoles)
+	s.mux.HandleFunc("GET /parameters", s.listParameters)
+	s.mux.HandleFunc("GET /emergency-actions", s.listEmergencies)
+	s.mux.HandleFunc("GET /appeals", s.listAppeals)
+	s.mux.HandleFunc("GET /governance/objects", s.listGovernanceObjects)
+	s.mux.HandleFunc("GET /governance/parameters", s.listParameters)
+	s.mux.HandleFunc("GET /governance/role-definitions", s.listRoleDefinitions)
 	s.mux.HandleFunc("GET /governance/proposals", s.listProposals)
 	s.mux.HandleFunc("GET /governance/proposals/{id}", s.getProposal)
 	s.mux.HandleFunc("GET /governance/proposals/{id}/discussion", s.listDiscussion)
@@ -148,7 +157,16 @@ func (s *Server) addDiscussion(w http.ResponseWriter, r *http.Request, p Princip
 	s.mutation(w, http.StatusCreated, out, err)
 }
 func (s *Server) listRoles(w http.ResponseWriter, _ *http.Request) {
-	writeSource(w, http.StatusOK, map[string]any{"roles": s.service.ListRoles()}, s.now())
+	writeSource(w, http.StatusOK, map[string]any{"definitions": s.service.RoleDefinitions(), "assignments": s.service.ListRoles(), "registryDigest": s.service.RegistrySet().Digest}, s.now())
+}
+func (s *Server) listRoleDefinitions(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"roles": s.service.RoleDefinitions(), "registryDigest": s.service.RegistrySet().Digest}, s.now())
+}
+func (s *Server) listGovernanceObjects(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"objects": s.service.GovernanceObjects(), "registryDigest": s.service.RegistrySet().Digest}, s.now())
+}
+func (s *Server) listParameters(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"parameters": s.service.Parameters(), "registryDigest": s.service.RegistrySet().Digest}, s.now())
 }
 func (s *Server) listEmergencies(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"emergencies": s.service.ListEmergencies(s.now())}, s.now())
@@ -381,17 +399,11 @@ func (s *Server) approveEmergency(w http.ResponseWriter, r *http.Request, p Prin
 		writeError(w, http.StatusUnauthorized, "governance role is not authorized for emergency scope")
 		return
 	}
-	role := ""
-	if p.Roles["security_council"] {
-		role = "security_council"
-	} else if p.Roles["technical_council"] {
-		role = "technical_council"
-	}
-	if role == "" {
-		writeError(w, http.StatusUnauthorized, "council role required")
+	if !p.Roles["emergency_council"] {
+		writeError(w, http.StatusUnauthorized, "scoped emergency council role required")
 		return
 	}
-	out, err := s.service.ApproveEmergency(r.PathValue("id"), p.Account, role, s.now())
+	out, err := s.service.ApproveEmergency(r.PathValue("id"), p.Account, "emergency_council", s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) closeEmergency(w http.ResponseWriter, r *http.Request, p Principal) {

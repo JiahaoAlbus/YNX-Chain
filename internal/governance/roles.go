@@ -13,13 +13,18 @@ const genesisRoleManifestVersion = "ynx-governance-genesis-roles/v1"
 type GovernanceRole string
 
 const (
-	RoleTokenHolder      GovernanceRole = "token_holder_delegator"
-	RoleValidator        GovernanceRole = "validator"
-	RoleDelegate         GovernanceRole = "delegate"
-	RoleTechnicalCouncil GovernanceRole = "technical_council"
-	RoleSecurityCouncil  GovernanceRole = "security_council"
-	RoleTreasuryCouncil  GovernanceRole = "treasury_council"
-	RoleObserver         GovernanceRole = "appeal_transparency_observer"
+	RoleTokenHolder       GovernanceRole = "token_holder"
+	RoleDelegator         GovernanceRole = "delegator"
+	RoleValidator         GovernanceRole = "validator"
+	RoleDelegate          GovernanceRole = "delegate"
+	RoleTechnicalCouncil  GovernanceRole = "technical_council"
+	RoleSecurityCouncil   GovernanceRole = "security_council"
+	RoleTreasuryCouncil   GovernanceRole = "treasury_council"
+	RoleEmergencyCouncil  GovernanceRole = "emergency_council"
+	RoleObserver          GovernanceRole = "appeal_transparency_observer"
+	RoleProposalAuthor    GovernanceRole = "proposal_author"
+	RoleExecutionOperator GovernanceRole = "execution_operator"
+	RoleAuditor           GovernanceRole = "auditor"
 )
 
 type RoleAssignmentInput struct {
@@ -86,12 +91,12 @@ func (s *Service) BootstrapRoles(inputs []RoleAssignmentInput, manifestHash stri
 		accounts[input.Account] = true
 		counts[input.Role]++
 	}
-	if counts[RoleTechnicalCouncil] < 2 || counts[RoleSecurityCouncil] < s.policy.EmergencyThreshold || counts[RoleTreasuryCouncil] < 2 {
-		return nil, fmt.Errorf("%w: genesis councils do not satisfy distributed thresholds", ErrForbidden)
+	if counts[RoleTechnicalCouncil] < 2 || counts[RoleSecurityCouncil] < 2 || counts[RoleTreasuryCouncil] < 2 || counts[RoleEmergencyCouncil] < s.policy.EmergencyThreshold {
+		return nil, fmt.Errorf("%w: genesis councils do not satisfy distributed and emergency thresholds", ErrForbidden)
 	}
 	out := make([]RoleAssignment, 0, len(normalized))
 	for _, input := range normalized {
-		if (input.Role == RoleTechnicalCouncil || input.Role == RoleSecurityCouncil || input.Role == RoleTreasuryCouncil) && (input.DecisionThreshold < 2 || input.DecisionThreshold > counts[input.Role]) {
+		if (input.Role == RoleTechnicalCouncil || input.Role == RoleSecurityCouncil || input.Role == RoleTreasuryCouncil || input.Role == RoleEmergencyCouncil) && (input.DecisionThreshold < 2 || input.DecisionThreshold > counts[input.Role]) {
 			return nil, fmt.Errorf("%w: invalid genesis council threshold", ErrForbidden)
 		}
 		id := hash("role", input.Account, string(input.Role), expected, input.TermStartsAt.UTC().Format(time.RFC3339Nano), input.TermEndsAt.UTC().Format(time.RFC3339Nano))
@@ -217,9 +222,17 @@ func (s *Service) ListRoles() []RoleAssignment {
 	return out
 }
 
+func validGovernanceRole(role GovernanceRole) bool {
+	switch role {
+	case RoleTokenHolder, RoleDelegator, RoleValidator, RoleDelegate, RoleTechnicalCouncil, RoleSecurityCouncil, RoleTreasuryCouncil, RoleEmergencyCouncil, RoleObserver, RoleProposalAuthor, RoleExecutionOperator, RoleAuditor:
+		return true
+	default:
+		return false
+	}
+}
+
 func validateRoleInput(input RoleAssignmentInput, now time.Time) error {
-	valid := map[GovernanceRole]bool{RoleTokenHolder: true, RoleValidator: true, RoleDelegate: true, RoleTechnicalCouncil: true, RoleSecurityCouncil: true, RoleTreasuryCouncil: true, RoleObserver: true}
-	if !valid[input.Role] || len(strings.TrimSpace(input.Account)) < 3 || len(input.Scopes) == 0 || input.TermStartsAt.Before(now.Add(-time.Minute)) || !input.TermEndsAt.After(input.TermStartsAt) || input.TermEndsAt.After(input.TermStartsAt.Add(2*365*24*time.Hour)) || input.DecisionThreshold == 0 || len(strings.TrimSpace(input.ConflictDisclosure)) < 8 || len(input.Evidence) == 0 {
+	if !validGovernanceRole(input.Role) || len(strings.TrimSpace(input.Account)) < 3 || len(input.Scopes) == 0 || input.TermStartsAt.Before(now.Add(-time.Minute)) || !input.TermEndsAt.After(input.TermStartsAt) || input.TermEndsAt.After(input.TermStartsAt.Add(2*365*24*time.Hour)) || input.DecisionThreshold == 0 || len(strings.TrimSpace(input.ConflictDisclosure)) < 8 || len(input.Evidence) == 0 {
 		return ErrInvalid
 	}
 	seen := map[Scope]bool{}
@@ -235,18 +248,28 @@ func permissionsForRole(role GovernanceRole) []string {
 	switch role {
 	case RoleTokenHolder:
 		return []string{"proposer", "depositor", "participant", "voter"}
+	case RoleDelegator:
+		return []string{"participant", "voter", "delegator"}
 	case RoleValidator:
 		return []string{"proposer", "depositor", "participant", "voter", "verifier"}
 	case RoleDelegate:
-		return []string{"proposer", "depositor", "participant", "voter"}
+		return []string{"proposer", "depositor", "participant", "voter", "delegate"}
 	case RoleTechnicalCouncil:
-		return []string{"proposer", "participant", "technical_council", "verifier", "emergency_signer"}
+		return []string{"proposer", "participant", "technical_council", "verifier"}
 	case RoleSecurityCouncil:
-		return []string{"proposer", "participant", "verifier", "emergency_proposer", "emergency_signer", "emergency_operator"}
+		return []string{"proposer", "participant", "verifier", "security_reviewer"}
 	case RoleTreasuryCouncil:
-		return []string{"proposer", "participant", "voter", "executor"}
+		return []string{"proposer", "participant", "voter", "treasury_reviewer"}
+	case RoleEmergencyCouncil:
+		return []string{"participant", "emergency_council", "emergency_proposer", "emergency_signer", "emergency_operator"}
 	case RoleObserver:
-		return []string{"participant", "verifier", "appeal_resolver"}
+		return []string{"participant", "appeal_resolver", "transparency_observer"}
+	case RoleProposalAuthor:
+		return []string{"proposer", "participant"}
+	case RoleExecutionOperator:
+		return []string{"participant", "executor"}
+	case RoleAuditor:
+		return []string{"participant", "verifier", "auditor"}
 	default:
 		return nil
 	}

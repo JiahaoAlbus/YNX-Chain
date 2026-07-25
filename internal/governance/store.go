@@ -300,6 +300,9 @@ func (s *Service) validateRestoredEmergency(a *EmergencyAction) error {
 		return fmt.Errorf("%w: unsafe restored emergency duration", ErrForbidden)
 	}
 	for signer, approval := range a.Approvals {
+		if approval.Role != "emergency_council" {
+			return fmt.Errorf("%w: legacy emergency approval role %q requires an explicit migration", ErrForbidden, approval.Role)
+		}
 		if signer != approval.Signer || approval.AuditHash != hash(a.ID, approval.Signer, approval.Role) {
 			return fmt.Errorf("%w: invalid emergency approval audit", ErrForbidden)
 		}
@@ -308,6 +311,9 @@ func (s *Service) validateRestoredEmergency(a *EmergencyAction) error {
 }
 
 func validateRestoredRole(a *RoleAssignment) error {
+	if !validGovernanceRole(a.Input.Role) {
+		return fmt.Errorf("%w: legacy or unknown role %q requires an explicit role migration", ErrForbidden, a.Input.Role)
+	}
 	if a.ID == "" || a.AuditHash != roleAudit(a) || a.CreatedAt.IsZero() || (a.Status != "active" && a.Status != "removed") || (a.Status == "removed" && (a.RemovalProposalID == "" || a.RemovedAt.IsZero())) {
 		return fmt.Errorf("%w: invalid restored role", ErrForbidden)
 	}

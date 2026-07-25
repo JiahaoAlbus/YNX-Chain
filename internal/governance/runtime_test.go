@@ -15,7 +15,7 @@ func runtimeFixture(t *testing.T) (RuntimeConfig, time.Time) {
 	mk := func(account string, role GovernanceRole, count uint64) RoleAssignmentInput {
 		return RoleAssignmentInput{Account: account, Role: role, Scopes: []Scope{ScopeBridge}, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: count, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:public-genesis-nomination"}}
 	}
-	roles := []RoleAssignmentInput{mk("tech-1", RoleTechnicalCouncil, 2), mk("tech-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 3), mk("security-2", RoleSecurityCouncil, 3), mk("security-3", RoleSecurityCouncil, 3), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2)}
+	roles := []RoleAssignmentInput{mk("tech-1", RoleTechnicalCouncil, 2), mk("tech-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 2), mk("security-2", RoleSecurityCouncil, 2), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2), mk("emergency-1", RoleEmergencyCouncil, 3), mk("emergency-2", RoleEmergencyCouncil, 3), mk("emergency-3", RoleEmergencyCouncil, 3)}
 	manifest, _ := GenesisRoleManifestHash(roles)
 	dir := t.TempDir()
 	keyPath := filepath.Join(dir, "gateway.key")
@@ -28,11 +28,11 @@ func runtimeFixture(t *testing.T) (RuntimeConfig, time.Time) {
 func TestRuntimeInitializesRestoresAndRejectsUnsafeConfig(t *testing.T) {
 	cfg, now := runtimeFixture(t)
 	service, auth, err := OpenRuntime(cfg, now)
-	if err != nil || service == nil || auth == nil || len(service.ListRoles()) != 7 {
+	if err != nil || service == nil || auth == nil || len(service.ListRoles()) != 9 {
 		t.Fatalf("open: %v roles=%d", err, len(service.ListRoles()))
 	}
 	restored, _, err := OpenRuntime(cfg, now.Add(time.Hour))
-	if err != nil || len(restored.ListRoles()) != 7 {
+	if err != nil || len(restored.ListRoles()) != 9 {
 		t.Fatalf("restore: %v", err)
 	}
 	cfg.Policy.QuorumBPS = 6000
