@@ -127,6 +127,35 @@ func (r *SchemaRegistry) Version() string {
 	return r.version
 }
 
+// Document returns a deterministic, complete registry snapshot suitable for
+// distribution to producers and consumers. The timestamp is supplied by the
+// release process so repeated builds can be reproduced exactly.
+func (r *SchemaRegistry) Document(generatedAt time.Time) (SchemaRegistryDocument, error) {
+	if r == nil {
+		return SchemaRegistryDocument{}, errors.New("schema registry is unavailable")
+	}
+	if generatedAt.IsZero() || generatedAt.Location() != time.UTC {
+		return SchemaRegistryDocument{}, errors.New("schema registry generatedAt must be UTC")
+	}
+	return SchemaRegistryDocument{
+		RegistryVersion: r.Version(),
+		GeneratedAt:     generatedAt,
+		Definitions:     r.Definitions(""),
+	}, nil
+}
+
+func (r *SchemaRegistry) MarshalDocument(generatedAt time.Time) ([]byte, error) {
+	document, err := r.Document(generatedAt)
+	if err != nil {
+		return nil, err
+	}
+	encoded, err := json.MarshalIndent(document, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("encode schema registry: %w", err)
+	}
+	return append(encoded, '\n'), nil
+}
+
 func (r *SchemaRegistry) Definitions(product string) []EventSchemaDefinition {
 	if r == nil {
 		return nil
@@ -213,11 +242,18 @@ func CheckSchemaCompatibility(from, to EventSchemaDefinition) CompatibilityRepor
 	}
 	fromFields := fieldsByName(from.PayloadFields)
 	toFields := fieldsByName(to.PayloadFields)
+	if from.EventType == to.EventType && from.Version == to.Version {
+		report.Compatible = len(report.Violations) == 0
+		return report
+	}
 	checkBackward := mode == CompatibilityBackward || mode == CompatibilityFull
 	checkForward := mode == CompatibilityForward || mode == CompatibilityFull
 	if mode == CompatibilityNone {
-		report.Compatible = len(report.Violations) == 0
-		return report
+		checkBackward, checkForward = true, true
+		report.Violations = append(report.Violations, CompatibilityViolation{
+			Code: CodeSchemaCompatibilityViolation,
+			Rule: "compatibility mode none provides no cross-version compatibility guarantee",
+		})
 	}
 	fromEnvelopeFields := stringSet(from.RequiredEnvelopeFields)
 	toEnvelopeFields := stringSet(to.RequiredEnvelopeFields)
@@ -462,7 +498,7 @@ func cloneSchemaDefinition(definition EventSchemaDefinition) EventSchemaDefiniti
 	copy.TestVectors = append([]string(nil), definition.TestVectors...)
 	copy.ErrorCodes = append([]ErrorCode(nil), definition.ErrorCodes...)
 	copy.RequiredEnvelopeFields = append([]string(nil), definition.RequiredEnvelopeFields...)
-	copy.PayloadFields = append([]PayloadField(nil), definition.PayloadFields...)
+	copy.PayloadFields = append([]PayloadField{}, definition.PayloadFields...)
 	copy.ExamplePayload = append(json.RawMessage(nil), definition.ExamplePayload...)
 	for index := range copy.PayloadFields {
 		copy.PayloadFields[index].Enum = append([]string(nil), definition.PayloadFields[index].Enum...)
@@ -510,10 +546,12 @@ func DefaultSchemaRegistry() *SchemaRegistry {
 			}
 			v2 := cloneSchemaDefinition(v1)
 			v2.Version = EnvelopeSchemaVersionV2
-			v2.CompatibilityMode = CompatibilityBackward
+			v2.CompatibilityMode = CompatibilityNone
 			v2.Migration = "promote-v1-envelope-with-dual-field-consistency"
 			v2.Rollback = "consumer-dual-read-and-producer-version-pin-to-v1"
 			v2.Release = "data-fabric-contract-v2"
+			v2.SourceCommit = "9fc1986067b92f3dd2ea2347223d94e94cc06de9"
+			v2.TestVectors = []string{"internal/datafabric/envelope_v2_test.go", "internal/datafabric/schema_registry_test.go"}
 			v2.RequiredEnvelopeFields = v2EnvelopeFields
 			definitions = append(definitions, v1, v2)
 		}

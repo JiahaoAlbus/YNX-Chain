@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -21,7 +24,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fatal(errors.New("usage: ynx-data-fabricctl verify|backup|restore|migrate-postgres|backup-postgres|verify-postgres-backup|restore-postgres"))
+		fatal(errors.New("usage: ynx-data-fabricctl verify|backup|restore|export-schema-registry|migrate-postgres|backup-postgres|verify-postgres-backup|restore-postgres"))
 	}
 	var err error
 	switch os.Args[1] {
@@ -31,6 +34,8 @@ func main() {
 		err = backup(os.Args[2:])
 	case "restore":
 		err = restore(os.Args[2:])
+	case "export-schema-registry":
+		err = exportSchemaRegistry(os.Args[2:])
 	case "migrate-postgres":
 		err = migratePostgres(os.Args[2:])
 	case "backup-postgres":
@@ -45,6 +50,91 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
+}
+
+func exportSchemaRegistry(arguments []string) error {
+	flags := flag.NewFlagSet("export-schema-registry", flag.ContinueOnError)
+	outputPath := flags.String("output", "", "absolute schema registry output path")
+	generatedAtText := flags.String("generated-at", "", "required reproducible UTC RFC3339 timestamp")
+	overwrite := flags.Bool("overwrite", false, "replace an existing regular output file")
+	if err := flags.Parse(arguments); err != nil {
+		return err
+	}
+	if !filepath.IsAbs(*outputPath) {
+		return errors.New("schema registry export requires an absolute --output path")
+	}
+	generatedAt, err := time.Parse(time.RFC3339, *generatedAtText)
+	if err != nil || generatedAt.Location() != time.UTC {
+		return errors.New("schema registry export requires a UTC RFC3339 --generated-at timestamp")
+	}
+	registry := datafabric.DefaultSchemaRegistry()
+	encoded, err := registry.MarshalDocument(generatedAt)
+	if err != nil {
+		return err
+	}
+	loaded, err := datafabric.LoadSchemaRegistry(bytes.NewReader(encoded))
+	if err != nil {
+		return fmt.Errorf("self-verify exported schema registry: %w", err)
+	}
+	if loaded.Version() != registry.Version() || len(loaded.Definitions("")) != len(registry.Definitions("")) {
+		return errors.New("self-verified schema registry differs from the runtime registry")
+	}
+	if err := writeAtomicPublicFile(*outputPath, encoded, *overwrite); err != nil {
+		return err
+	}
+	digest := sha256.Sum256(encoded)
+	return output(map[string]any{
+		"status": "exported-and-strictly-reloaded", "path": filepath.Clean(*outputPath),
+		"registryVersion": registry.Version(), "definitions": len(registry.Definitions("")),
+		"generatedAt": generatedAt, "sha256": hex.EncodeToString(digest[:]), "bytes": len(encoded),
+	})
+}
+
+func writeAtomicPublicFile(path string, body []byte, overwrite bool) error {
+	path = filepath.Clean(path)
+	if info, err := os.Lstat(path); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return errors.New("schema registry output must not be a symlink or special file")
+		}
+		if !overwrite {
+			return errors.New("schema registry output already exists; use --overwrite after review")
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	parent := filepath.Dir(path)
+	if info, err := os.Stat(parent); err != nil || !info.IsDir() {
+		return errors.New("schema registry output directory must already exist")
+	}
+	temporary, err := os.CreateTemp(parent, ".schema-registry-*.tmp")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	removeTemporary := true
+	defer func() {
+		_ = temporary.Close()
+		if removeTemporary {
+			_ = os.Remove(temporaryPath)
+		}
+	}()
+	if err := temporary.Chmod(0o644); err != nil {
+		return err
+	}
+	if _, err := temporary.Write(body); err != nil {
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(temporaryPath, path); err != nil {
+		return err
+	}
+	removeTemporary = false
+	return nil
 }
 
 func backupPostgres(arguments []string) error {
