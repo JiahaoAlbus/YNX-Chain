@@ -22,6 +22,12 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 - `packages/wallet-auth/testdata/mobile-native-transfer-v1.json`: exact JS/Go native-transfer vector.
 - Public-testnet transfer hash `0x7bdf19361936215c8bc753696ce61d78ed089f755eac2d8af5cbfbcb1fdc94b2`: scalar-1 test-vector account, amount 1, fee 1, nonce 2. The authoritative account response subsequently reported balance 87 and nonce 2. This is test-vector/testnet activity, not production funds.
 
+## Local account lifecycle and privacy evidence
+
+- Source commit `5aa780f58c4c0c3142116f6340d57b7c5ab5a65c`: real Wallet runtime UI for rename and strong-biometric recovery-key viewing; persisted rename/restart test; global screenshot fail-closed gate; recovery-state erasure; and bounded public-address clipboard expiry.
+- Verification commands: `npm run typecheck`, `npm test` (32/32), `npm run product-check`, `npm run bundle`, and repository `git diff --check`. Android/iOS Hermes exports are local bundle evidence only; current installed APK/Simulator and hosted-artifact states remain false for this source commit.
+- `src/security/clipboardPrivacy.test.ts` proves expiration clears only the unchanged Wallet value, preserves a later user copy, supports cancellation, and rejects retention outside 1–120 seconds.
+
 ## iOS Simulator evidence
 
 GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) executed `.github/workflows/wallet-ios.yml` on macOS 15 with Xcode 26.3. It installed dependencies and pods, passed the SDK and Wallet checks, built the unsigned Release `YNXWallet.app`, booted an available iPhone Simulator from shutdown, installed the app, cold-launched `com.ynxweb4.wallet`, resolved `ynxwallet://authorize?request=invalid`, captured the fail-closed rejection screen and uploaded the app plus command evidence. The exact unsigned Simulator bundle is hosted as an engineering-only release asset; this does not claim production signing, an archive, device installation or App Store release.
