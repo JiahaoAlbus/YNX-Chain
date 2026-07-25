@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/authoritative-facts.schema.json",
+  "title": "YNX authoritative facts index",
+  "allOf": [
+    {"$ref": "./public-record.schema.json"},
+    {
+      "type": "object",
+      "required": ["records"],
+      "properties": {
+        "records": {
+          "type": "object",
+          "required": ["brand", "network", "release", "economics", "compliance", "publicUrls", "evidence", "claims", "glossary", "faq", "localization", "supersededFacts"],
+          "additionalProperties": {"type": "string", "pattern": "^release/facts/[a-z0-9-]+\\.json$"}
+        }
+      }
+    }
+  ]
+}

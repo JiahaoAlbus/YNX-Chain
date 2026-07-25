@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Candidate",
+  "officialSiteName": "YNX Chain",
+  "alternateNames": ["YNX", "YNX Web4", "YNXWeb4"],
+  "applicationEcosystem": "YNX Web4",
+  "domain": "https://ynxweb4.com",
+  "definitions": [
+    "YNX Chain is a Web4 Layer-1 ecosystem.",
+    "YNX Web4 is the application ecosystem powered by YNX Chain.",
+    "YNXT is the native Testnet asset.",
+    "YNX Testnet uses EVM Chain ID 6423.",
+    "YNX is not affiliated with unrelated Lynx-branded products."
+  ],
+  "web4Qualification": "Web4 is a YNX product term and is not represented as an adopted Internet standard.",
+  "neutralDisambiguation": "YNX Chain and YNX Web4 are not affiliated with unrelated Lynx-branded products.",
+  "colors": {
+    "primary": "#002FA7",
+    "background": "#FFFFFF",
+    "neutralPolicy": "Use neutral black and gray tones; avoid full-screen blue and misleading KPI card walls."
+  },
+  "logo": {
+    "path": "assets/brand/ynx-logo.png",
+    "status": "Candidate",
+    "rightsReview": "Needs Legal Review",
+    "usageGuide": "docs/public/BRAND_GUIDE.md"
+  }
+}

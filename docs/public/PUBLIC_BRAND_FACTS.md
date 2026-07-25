@@ -2,13 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 1.0.0-candidate |
-| Effective date | 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
-| Review status | Canonical public wording; deployment and legal review pending |
+| Version | 1.1.0-candidate |
+| Effective date | 2026-07-25 |
+| Evidence source commit | `c8c4ff7263e50afc4c731dac8157aa85e02232dc` |
+| Product release | YNX Testnet documentation and public disclosure candidate 0.2.0 |
+| Last reviewed | 2026-07-25 |
+| Superseded version | 1.0.0-candidate |
+| Review status | Canonical candidate wording; central integration, independent public proof, legal and economic review pending |
 
 ## Canonical identity
 
@@ -103,6 +103,7 @@ Do not claim or imply:
 
 ## Change log
 
+- 1.1.0-candidate (2026-07-25): Bound the public wording to the recovered branch head, added a fail-closed claims/evidence authority layer, separated mixed component endpoint observations from independent public proof, and retained Mainnet, public consensus, legal, audit and deployment claims as blocked.
 - 1.0.0-candidate (2026-07-22): Established canonical identity, definitions,
   status language, disambiguation, risks, approved descriptions and prohibited
   claims.

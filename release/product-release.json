@@ -1,11 +1,11 @@
 {
   "schemaVersion": "1.0.0",
   "product": "YNX Chain Documentation and Public Disclosure Package",
-  "release": "0.1.0-candidate",
+  "release": "0.2.0-candidate",
   "releaseClass": "documentation-candidate",
   "network": "YNX Testnet",
-  "asOf": "2026-07-22T00:00:00+08:00",
-  "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
+  "asOf": "2026-07-25T14:16:21+08:00",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -18,18 +18,19 @@
     "storeReleased": false
   },
   "stateEvidence": {
-    "implementedLocal": "All named documentation-package artifacts exist and the repository docs-compliance gate passes.",
-    "testedLocal": "The complete local preflight and docs-compliance gate passed on the candidate working tree on 2026-07-22; final metadata reconciliation is rechecked before publication.",
-    "installedLocal": "Not applicable until a packaged documentation artifact exists; retained false rather than inferred.",
-    "integratedCentral": "Website handoff has not been accepted or integrated.",
-    "deployedStaging": "No direct staging deployment evidence is recorded.",
-    "deployedPublic": "The main website responded on 2026-07-22, but this candidate package is not deployed and service subdomains were not independently verified.",
-    "downloadHosted": "No immutable documentation package URL, digest, or byte count exists.",
-    "productionSigned": "No production signature evidence exists.",
-    "storeReleased": "No store release applies to this documentation candidate. False is retained for cross-product schema consistency."
+    "implementedLocal": "The named documentation package, 12-class authoritative fact index, schemas, conflict report, evidence records, 12 locale records and integration manifest exist in the recovery worktree.",
+    "testedLocal": "The public disclosure gate, integrated documentation compliance check, placeholder rejection, credential-pattern scan and objective-state check passed on this candidate worktree.",
+    "installedLocal": "No packaged documentation artifact has been installed; false is retained rather than inferred.",
+    "integratedCentral": "No Website or Gateway owner acceptance record binds this fact package into a central release.",
+    "deployedStaging": "No direct staging deployment evidence exists for this documentation package.",
+    "deployedPublic": "The package is not deployed. A bounded operator-host proxy-path scan produced mixed component results and is ineligible as independent public proof.",
+    "downloadHosted": "No immutable documentation package URL, digest and byte count exist.",
+    "productionSigned": "No production signature or certificate-chain evidence exists.",
+    "storeReleased": "No store release applies to this documentation candidate; false remains for cross-product schema consistency."
   },
   "legalReview": "required",
   "securityReview": "required",
   "economicReview": "required",
-  "publicClaimPolicy": "Only claims linked to direct evidence may be published. Candidate, Testnet, preview, test-signed, unsigned, production-signed, and store-released states must remain distinct."
+  "independentPublicProof": false,
+  "publicClaimPolicy": "Only claims linked to direct evidence may be published. Candidate, Testnet, local test, central integration, staging deployment, public deployment, hosted download, production signing and store release remain distinct states."
 }

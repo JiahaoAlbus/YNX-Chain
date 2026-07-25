@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const required = [
   "docs/whitepaper/YNX_CHAIN_WHITEPAPER.md",
@@ -40,7 +41,14 @@ const required = [
   "docs/acceptance/OPERATIONS.md",
   "release/public-product-metadata.json",
   "release/product-release.json",
-  "release/operator-inputs.request.json"
+  "release/operator-inputs.request.json",
+  "release/facts/authoritative-facts.json",
+  "release/schemas/public-record.schema.json",
+  "release/schemas/authoritative-facts.schema.json",
+  "release/schemas/claims-matrix.schema.json",
+  "release/recovery-inventory-2026-07-25.json",
+  "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md",
+  "scripts/verify/public-disclosure-gate.mjs"
 ];
 
 const jsonFiles = [
@@ -52,7 +60,9 @@ const jsonFiles = [
   "release/evidence/local-read-benchmark-2026-07-22.json",
   "release/evidence/supply-chain-2026-07-22.json",
   "release/sbom-npm.cdx.json",
-  "release/go-module-inventory.json"
+  "release/go-module-inventory.json",
+  "release/facts/authoritative-facts.json",
+  "release/recovery-inventory-2026-07-25.json"
 ];
 
 const failures = [];
@@ -105,8 +115,16 @@ function walk(root) {
   });
 }
 
+const disclosureGate = spawnSync(process.execPath, ["scripts/verify/public-disclosure-gate.mjs"], {
+  cwd: process.cwd(),
+  encoding: "utf8"
+});
+if (disclosureGate.status !== 0) {
+  failures.push(`public disclosure gate failed:\n${(disclosureGate.stderr || disclosureGate.stdout || "no output").trim()}`);
+}
+
 if (failures.length > 0) {
   process.stderr.write(`${failures.join("\n")}\n`);
   process.exit(1);
 }
-process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, and ${stateKeys.length} evidence-bound release states\n`);
+process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, ${stateKeys.length} evidence-bound release states, and the public disclosure gate\n`);

@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.1 |
-| Effective date | 2026-07-22 |
-| Source commit reviewed | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Status | In progress; this record is not public-release evidence. |
+| Version | 0.2.0 |
+| Effective date | 2026-07-25 |
+| Source commit reviewed | `c8c4ff7263e50afc4c731dac8157aa85e02232dc` |
+| Product release | YNX Testnet documentation and public disclosure candidate 0.2.0 |
+| Last reviewed | 2026-07-25 |
+| Status | Recovery inventory current; candidate only; not public-release evidence. |
 
 ## Scope
 
@@ -16,7 +16,46 @@ economic disclosures, compliance preparation, brand entity, public content, and
 website handoff. It records facts observed directly from Git and the local
 workspace. Unknown or unavailable evidence remains explicitly unverified.
 
-## Recovered repository state
+## Current 2026-07-25 recovery snapshot
+
+The assigned worktree is on `codex/final-docs-compliance` at
+`c8c4ff7263e50afc4c731dac8157aa85e02232dc`, matching its remote after a bounded
+fetch. The three pre-existing untracked recovery areas—`release/conflict-report.json`,
+`release/evidence/public-url-probe-2026-07-25.json`, and `release/facts/`—were
+preserved and reviewed rather than cleaned or replaced.
+
+The current scan covered local and remote branches, tags, reflog, registered
+worktrees, GitHub Actions, releases, artifacts, sibling dirty changes, AI-bridge
+handoffs, background processes and bounded public endpoint observations. The
+machine-readable inventory is `release/recovery-inventory-2026-07-25.json`.
+
+Key current findings:
+
+- the documentation branch contains five later commits than the original recovery
+  baseline, while public tags, releases and downloadable artifacts remain dated no
+  later than 2026-07-19 or 2026-07-18;
+- no current documentation-branch GitHub Actions run, documentation release or
+  documentation artifact was observed;
+- Tokenomics, Wallet/Auth, Oracle, Bridge, Data Fabric and Security/SRE contain
+  protected owner-worktree changes, and Music and Quant have local-ahead commits;
+- Chain Core's structured handoff explicitly keeps public deployment, production
+  signing and public BFT cutover false without direct evidence;
+- the active workstation network resolved canonical YNX names through the
+  `198.18.0.0/15` benchmark range, so endpoint observations are not independent
+  direct-public proof;
+- through that bounded path, the www site, App Gateway and Faucet returned HTTP 200,
+  while the canonical root, Explorer and EVM RPC hit TLS connection timeouts; and
+- the mixed results prove neither portfolio-wide availability nor a portfolio-wide
+  outage and do not establish deployment of this documentation package.
+
+The recovered fact package initially contained missing schemas, missing evidence and
+supersession records, a dangling FAQ Claim ID, missing locale files, symbolic
+`git:HEAD` source identities and an unstructured smoke fixture. Version 0.2.0 retains
+the fixture as superseded history, binds records to an exact source commit, adds the
+missing records and 12 locale files, and enforces the result through
+`scripts/verify/public-disclosure-gate.mjs`.
+
+## Original 2026-07-22 recovered repository state
 
 | Evidence area | Observed state | Classification |
 | --- | --- | --- |
@@ -74,6 +113,7 @@ classes.
 
 ## Change log
 
+- 0.2.0 (2026-07-25): Re-scanned all recovery surfaces, preserved concurrent dirty work, recorded mixed component endpoint evidence, completed the authoritative fact package and added a fail-closed public disclosure gate.
 - 0.1.1 (2026-07-22): Re-scanned current owner worktrees, processes, releases,
   CI availability, local artifacts, server-input boundary and public endpoints.
 - 0.1.0 (2026-07-22): Recorded initial worktree, ref, documentation, tag, release,

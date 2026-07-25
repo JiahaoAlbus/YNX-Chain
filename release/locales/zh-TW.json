@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.25.1",
+  "sourceCommit": "c8c4ff7263e50afc4c731dac8157aa85e02232dc",
+  "lastReviewed": "2026-07-25",
+  "status": "Machine Draft",
+  "locale": "zh-TW",
+  "direction": "ltr",
+  "coverage": ["chainDescription", "assetDescription"],
+  "reviewStatus": "Machine draft; not human reviewed or legal reviewed",
+  "strings": {
+    "chainDescription": "YNX Chain 是一個 Web4 第一層生態系統。",
+    "assetDescription": "YNXT 是 Testnet 的原生資產。"
+  },
+  "fallbackLocale": "en",
+  "terminologySource": "docs/public/LOCALIZATION_TERMINOLOGY.md"
+}

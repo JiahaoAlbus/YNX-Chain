@@ -1,0 +1,61 @@
+name: docs-compliance
+
+on:
+  push:
+    branches:
+      - main
+      - codex/final-docs-compliance
+    paths:
+      - ".github/workflows/docs-compliance.yml"
+      - "Makefile"
+      - "docs/**"
+      - "release/**"
+      - "scripts/verify/**"
+      - "scripts/validate/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/docs-compliance.yml"
+      - "Makefile"
+      - "docs/**"
+      - "release/**"
+      - "scripts/verify/**"
+      - "scripts/validate/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-compliance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  authority-gate:
+    name: Public disclosure authority gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate authoritative facts
+        run: make public-disclosure-check
+
+      - name: Validate documentation package
+        run: make docs-compliance-check
+
+      - name: Reject placeholders and fake claims
+        run: make no-placeholder-check
+
+      - name: Scan source and release records for secrets
+        run: make secret-scan
+
+      - name: Validate objective release-state boundaries
+        run: make objective-state-check
