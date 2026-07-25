@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "owner": "02-wallet-auth",
-  "sourceCommit": "853b2e0bf923e3d3535685c38b3e2396c2ea56df",
+  "sourceCommit": "d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e",
   "vectors": [
     {
       "id": "wallet-auth-gateway-p256-v1",
@@ -14,6 +14,12 @@
       "path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json",
       "consumers": ["app-gateway", "all-products", "29-integration"],
       "requiredAssertions": ["method-bound", "path-bound", "body-digest-bound", "nonce-replay-rejected", "bundle-substitution-rejected"]
+    },
+    {
+      "id": "wallet-gateway-http-kernel-v1",
+      "path": "packages/wallet-auth/test/gateway-http.test.mjs",
+      "consumers": ["app-gateway", "29-integration", "13-monitor"],
+      "requiredAssertions": ["canonical-business-body", "proof-outside-body", "immutable-registry", "request-atomic-rollback", "state-digest-restart", "response-bounded", "internal-error-redacted", "approval-revoke-self-scoped", "device-revoke-self-scoped", "all-device-logout-wallet-only", "revocation-survives-restart"]
     },
     {
       "id": "wallet-central-lifecycle-v1",
@@ -55,9 +61,12 @@
     }
   ],
   "testCommands": [
-    {"cwd": "packages/wallet-auth", "command": "npm test", "expected": "75/75"},
+    {"cwd": "packages/wallet-auth", "command": "npm test", "expected": "84/84"},
     {"cwd": "packages/wallet-auth", "command": "npm run vector:strategy", "expected": "deterministic digests unchanged"},
-    {"cwd": "packages/wallet-auth", "command": "npm pack --dry-run", "expected": "pass"}
+    {"cwd": "packages/wallet-auth", "command": "npm pack --dry-run", "expected": "pass"},
+    {"cwd": "sdk/browser", "command": "npm ci --ignore-scripts, then npm test", "expected": "7/7"},
+    {"cwd": "sdk/js", "command": "npm test", "expected": "5/5"},
+    {"cwd": ".", "command": "go test ./...", "expected": "pass"}
   ],
   "status": {
     "implementedLocal": true,

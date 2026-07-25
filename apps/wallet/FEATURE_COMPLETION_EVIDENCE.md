@@ -4,8 +4,8 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 
 ## Proven locally
 
-- Canonical Wallet/Auth lifecycle: 30 original SDK tests plus 24 Gateway adapter, Signed Intent, Smart Account, mandate, capital and Credential tests.
-- Wallet native application: 28 unit/integration tests, TypeScript check and product gate.
+- Canonical Wallet/Auth package: 84/84 tests covering lifecycle, Gateway adapter and HTTP kernel, Signed Intent, Smart Account, mandate, capital, Credential, replay, migration and soak/fault cases.
+- Wallet native application: 36/36 unit/integration tests, TypeScript check, product gate and Android/iOS Hermes export.
 - Android API 36 installed/cold-launch evidence and iOS Simulator CI build/install/cold-launch/deep-link rejection evidence.
 - Hosted test-signed Android APK and unsigned iOS Simulator archive with SHA-256 and byte counts.
 - Official eth-infinitism EntryPoint v0.8 plus the YNX Smart Account compile locally with solc 0.8.28. A real local `handleOps` flow covers owner, UV-required WebAuthn, bounded session key, policy rejection and delayed guardian recovery. This is local EDR evidence only.
@@ -15,6 +15,7 @@ Evidence is accepted only when it binds to an exact source commit, command or CI
 - Wallet Android Release no longer inherits debug signing. The Expo config plugin preserves this after prebuild, partial external credential configuration fails during Gradle evaluation, and debug validation uses only a debug-class user keystore. Owner Release credentials remain external and were not requested in chat.
 - Source commit `5aa780f58c4c0c3142116f6340d57b7c5ab5a65c` closes the local account-lifecycle and privacy slice: persisted rename/switch/remove, strong-biometric offline recovery-key viewing, recovery material cleared on close, non-selectable recovery UI, global screenshot protection that blocks the Wallet when unavailable, and 30-second public-address clipboard expiry that never erases a later user copy. Wallet tests pass 32/32; TypeScript, product gate, Android Hermes export and iOS Hermes export pass. No installed-current-binary or public deployment claim is raised for this commit.
 - Source commit `ec8bdc6c7ae61479ed257cff26c41dbbc1366dba` adds a real read-only 0x compatibility and EVM contract-simulation surface. The client verifies chain ID 6423, binds code and `eth_call` to one exact block, rejects missing contract code, computes the deployed-code hash, obtains a bounded gas estimate, validates canonical JSON-RPC IDs/fields/quantities and enforces response-size limits. The UI displays source and `asOf`, and explicitly performs no signature or broadcast. Wallet tests pass 36/36; TypeScript, product gate, Android Hermes export and iOS Hermes export pass. Public RPC method availability, installed-current-binary interaction and public deployment remain unproven.
+- Source commit `d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e` adds the executable canonical Gateway HTTP kernel around adapter snapshot v2. It exposes twelve exact routes, including self-scoped session/approval/device revoke and canonical Wallet-only all-device logout; freezes Registry v2 at construction; requires canonical JSON; transports P-256 Product Session proofs separately from the signed body; enforces a 1 MiB bound; rolls every failed request back to the prior snapshot; emits a deterministic state digest; and prevents failed StrategyMandate transitions from consuming proofs. Wallet/Auth 84/84, Browser SDK 7/7, JS SDK 5/5, package dry-run and `go test ./...` pass. This is merge-ready local code, not central deployment evidence.
 
 ## Not yet proven
 
@@ -22,12 +23,12 @@ Central integration, staging/public product deployment, deployed Bundler/Paymast
 
 The public EVM endpoint returned chainId 6423 and block 442,153 after bounded retries, but returned JSON-RPC `-32601` for `eth_getCode`. This directly contradicts public EntryPoint/code-verification readiness. The required Chain Core runtime and RPC acceptance surface is recorded in `packages/wallet-auth/integration/chain-erc4337-requirements.json`; no deployment state is raised.
 
-The canonical Gateway adapter, manifest, state schema and cross-language proof vector are implemented and tested but have not been merged into or deployed by `ynx-app-gatewayd`; `integratedCentral` therefore remains false.
+The canonical Gateway adapter v2, HTTP kernel v1, manifest v2, state schema v2 and cross-product proof vectors are implemented and tested but have not been merged into or deployed by `ynx-app-gatewayd`; `integratedCentral` therefore remains false.
 
 ## StrategyMandate v2 and Product Session integration
 
 - Source commit `853b2e0bf923e3d3535685c38b3e2396c2ea56df` freezes StrategyMandate v2, StrategyAction v1, a restart-safe mandate store and Gateway adapter snapshot v2.
-- The package test suite passes 75/75. It covers exact Product Session P-256 proof binding, Registry v1-to-v2 migration, mandate activation, typed Vault/Pool/Router boundaries, Exchange subaccount-only rules, action limits, replay after restart, revoke, kill switch and emergency exit.
+- The package test suite passes 84/84. It covers exact Product Session P-256 proof binding, Registry v1-to-v2 migration, canonical HTTP transport, request rollback, mandate activation, typed Vault/Pool/Router boundaries, Exchange subaccount-only rules, action limits, failed-operation proof atomicity, replay after restart, revoke, kill switch and emergency exit.
 - The shared vector `packages/wallet-auth/testdata/strategy-mandate-v2.json` fixes mandate digest `132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270`, action digest `ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45` and nonce key `1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479`.
 - Central Registry document v2 contains 26 exact registrations. Quant is deliberately `pending-review` and disabled. The accepted migration only consumes the exact prior 25-product set and does not enable Quant.
 - `release/integration/wallet-auth-contract.json` and `docs/integration/*` define the adapter and acceptance boundary without claiming central ownership or deployment.

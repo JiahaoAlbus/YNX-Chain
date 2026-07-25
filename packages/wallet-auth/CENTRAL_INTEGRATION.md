@@ -1,12 +1,12 @@
 # Central Wallet Auth integration contract
 
-The executable integration adapter is `src/gateway-adapter.js`; the merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection.
+The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; the merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Source commit `d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e` is the current locally tested candidate.
 
 This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
 ## Canonical registry
 
-`central-registry.json` is the only 25-product candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `1`, chain `ynx_6423-1`, exactly 25 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks.
+`central-registry.json` is the only 26-product candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
 
 Each product registration uses exact schema v3 fields:
 
@@ -82,12 +82,19 @@ assertCentralWalletSessionActive(session, {
 
 The four controls revoke one session, every session from one approval, every session on one product device, or every session for an account issued at/before an all-devices logout. Lists and records are exact, sorted, unique, and bounded. Expiry, future issuance, cross-App reuse, missing scopes, and every revocation fail closed.
 
+## Executable HTTP boundary
+
+`CanonicalWalletGatewayHttpKernel` accepts one strict host-normalized request object: `method`, `path`, exact `contentType`, raw canonical JSON `body`, and a separately decoded `proof` header object. Completion requires `proof: null`; authenticated routes require the exact P-256 Product Session proof outside the body. This avoids a self-referential body digest while still binding the signature to method, path and SHA-256 of the exact business payload.
+
+The kernel freezes the parsed registry at construction, rejects alternate JSON encodings and unknown fields, enforces a 1 MiB body bound, restores the pre-request snapshot on every failure, and returns canonical JSON plus a deterministic state digest. The host remains responsible for TLS, header decoding, request IDs, durable compare-and-swap persistence, audit/event publication, rate limits and process supervision. It must persist `snapshot()` only after a successful state transition and must never convert the kernel into bearer-token compatibility.
+
 ## Required central rollout
 
 1. Resolve `registry-conflict-evidence.json` with each product owner; approve exact tuples individually.
-2. Import this package without forking canonical JSON, digest domains, schemas, or vectors.
-3. Implement durable transactional challenge/session/revocation persistence and authenticated endpoints for completion, introspection, session revoke, approval revoke, device revoke, and account all-devices logout.
-4. Run all package tests and vectors in central Gateway CI, including replay, restart, audit tamper, callback interception, scope mutation, cross-App reuse, and all four revocations.
-5. Deploy registry and verifier atomically to staging, record registry version/hash and deployment evidence, then run real Wallet↔product tests.
+2. Import this package without forking canonical JSON, digest domains, schemas, vectors or proof transport.
+3. Mount all twelve routes in `integration/gateway-integration.manifest.json`, including session, approval and product-device self-revoke plus canonical Wallet-only account logout-all.
+4. Persist Gateway snapshot v2 atomically with Product Sessions, proof replay state, every revocation cutoff, StrategyMandates, action nonces and terminal controls; publish the canonical events only after the same durable commit succeeds.
+5. Run all package tests and vectors in central Gateway CI, including canonical-body rejection, immutable registry authority, request rollback, replay, restart, audit tamper, callback interception, scope mutation, cross-App reuse, mandate limits and all revocations.
+6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, deployment ID and restore evidence, then run real Wallet↔product flows.
 
-Until those steps are complete, truthful status is `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.
+Current local verification is Wallet/Auth 84/84, Browser SDK 7/7, JS SDK 5/5, package dry-run passed and `go test ./...` passed. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "853b2e0bf923e3d3535685c38b3e2396c2ea56df",
+  "sourceCommit": "d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e",
   "phase": "INTEGRATE",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -18,11 +18,22 @@
     "centralRegistryDocument": 2,
     "centralProductRegistration": 3,
     "gatewayAdapterSnapshot": 2,
+    "gatewayHttpKernel": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
     "smartAccountPolicy": 1,
     "signedIntent": 1
+  },
+  "gatewayHttpTransport": {
+    "method": "POST",
+    "contentType": "application/json",
+    "canonicalBody": true,
+    "maxBodyBytes": 1048576,
+    "proofPlacement": "separate-decoded-header-object",
+    "proofIncludedInBodyDigest": false,
+    "stateDigestDomain": "YNX_CANONICAL_GATEWAY_HTTP_STATE_V1",
+    "requestAtomicRollback": true
   },
   "canonicalBindings": [
     "network",
@@ -60,36 +71,73 @@
   "gatewayOperations": [
     {
       "operation": "completeProductSession",
+      "path": "/v1/wallet/sessions/complete",
       "requiredScope": null,
-      "binding": "authorizationRequest+walletApproval+P-256 device challenge"
+      "binding": "authorizationRequest+walletApproval+P-256 device challenge; proof header null"
     },
     {
       "operation": "introspectProductSession",
+      "path": "/v1/wallet/sessions/introspect",
       "requiredScope": "caller-selected subset of granted ordered scopes",
-      "binding": "P-256 method+path+bodyDigest+nonce proof"
+      "binding": "separate P-256 header proof over method+path+canonical bodyDigest+nonce"
+    },
+    {
+      "operation": "revokeProductSession",
+      "path": "/v1/wallet/sessions/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 header proof from the session being revoked"
+    },
+    {
+      "operation": "revokeOwnApproval",
+      "path": "/v1/wallet/approvals/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 proof from a session created by the approval"
+    },
+    {
+      "operation": "revokeOwnProductDevice",
+      "path": "/v1/wallet/devices/revoke",
+      "requiredScope": null,
+      "binding": "separate path-bound P-256 proof from the product device being revoked"
+    },
+    {
+      "operation": "logoutAllAccountDevices",
+      "path": "/v1/wallet/accounts/logout-all",
+      "requiredScope": "wallet:sessions",
+      "binding": "canonical ynx-wallet-v1 and com.ynxweb4.wallet Product Session only"
     },
     {
       "operation": "activateStrategyMandate",
+      "path": "/v1/wallet/mandates/activate",
       "requiredScope": "quant:mandate:create",
       "binding": "account+productClientId+sessionBinding+P-256 request proof"
     },
     {
       "operation": "authorizeStrategyAction",
+      "path": "/v1/wallet/mandates/authorize-action",
       "requiredScope": "quant:mandate:execute",
       "binding": "mandateDigest+nonceDomain+nonce+limits+typed target+P-256 request proof"
     },
     {
       "operation": "listStrategyMandates",
+      "path": "/v1/wallet/mandates",
       "requiredScope": "quant:account",
       "binding": "account+productClientId+P-256 request proof"
     },
     {
-      "operation": "revokeOrKillStrategyMandate",
+      "operation": "revokeStrategyMandate",
+      "path": "/v1/wallet/mandates/revoke",
+      "requiredScope": "quant:mandate:revoke",
+      "binding": "account+productClientId+sessionBinding+P-256 request proof"
+    },
+    {
+      "operation": "killStrategyMandate",
+      "path": "/v1/wallet/mandates/kill",
       "requiredScope": "quant:mandate:revoke",
       "binding": "account+productClientId+sessionBinding+P-256 request proof"
     },
     {
       "operation": "emergencyExitStrategyMandate",
+      "path": "/v1/wallet/mandates/emergency-exit",
       "requiredScope": "quant:mandate:revoke",
       "binding": "existing mandate ownership+bounded exit reason+P-256 request proof"
     }
@@ -106,6 +154,17 @@
   },
   "canonicalErrors": [
     "UNKNOWN_OR_MISSING_FIELD",
+    "METHOD_NOT_ALLOWED",
+    "UNSUPPORTED_MEDIA_TYPE",
+    "INVALID_PATH",
+    "INVALID_BODY",
+    "INVALID_JSON",
+    "NON_CANONICAL_JSON",
+    "INVALID_PROOF_HEADER",
+    "UNEXPECTED_PROOF_HEADER",
+    "PROOF_REQUIRED",
+    "ROUTE_NOT_FOUND",
+    "WALLET_CONTROL_REQUIRED",
     "INVALID_REGISTRY",
     "REGISTRY_DISABLED",
     "SESSION_NOT_FOUND",
@@ -174,8 +233,12 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "75/75 passed",
+    "walletAuthPackageTests": "84/84 passed",
+    "browserSdkTests": "7/7 passed after npm ci from its independent lockfile",
+    "jsSdkTests": "5/5 passed",
+    "goRepositoryTests": "go test ./... passed",
     "packageDryRun": "passed",
+    "gatewayHttpKernel": "twelve exact routes; canonical body; separate proof header; immutable registry; replay; restart; rollback; state digest; self-scoped approval/device revoke; Wallet-only all-device logout tested",
     "directTestnetMandateReceipt": false,
     "directPublicGatewayEvidence": false
   }
