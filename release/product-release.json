@@ -3,7 +3,21 @@
   "productId": "ynx-oracle-market-data",
   "channel": "testnet-candidate",
   "version": "0.1.0-testnet",
-  "sourceCommit": "c0860d008bc4e8ed0169a94b4892a4f46950a8dd",
+  "sourceCommit": "66c110adf43a713af67f88b2381c5ae2e66e4e6d",
+  "schema": "ynx.oracle.v1",
+  "aggregationPolicyVersion": "weighted-median-mad-v1",
+  "derivativesPolicyVersion": "index-funding-mark-v1",
+  "runtimeCapabilities": [
+    "signed provider observation validation",
+    "provider registry market, endpoint, and API-version enforcement",
+    "spot aggregation",
+    "index price derivation",
+    "funding reference derivation",
+    "mark price derivation",
+    "correction lineage",
+    "historical replay",
+    "fail-closed public health and version"
+  ],
   "artifacts": [],
   "publicApi": null,
   "oracleWeb": {
@@ -11,10 +25,12 @@
     "access": "owner_only",
     "deploymentStatus": "succeeded",
     "sourceCommit": "ad7836788e61d396402f286e687d99f723fea0bd",
-    "unauthenticatedHttpStatus": 401
+    "unauthenticatedHttpStatus": 401,
+    "countsAsDeployedPublic": false
   },
   "providerCountActive": 0,
   "requiredProviderCount": 3,
   "sourceLimitation": "No approved provider covers YNXT/YUSD_TEST; authoritative publication remains unavailable.",
+  "centralIntegrationAccepted": false,
   "released": false
 }
