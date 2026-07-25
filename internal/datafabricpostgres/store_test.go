@@ -38,6 +38,31 @@ func TestPostgresAppendCommitsEventAndOutboxTogether(t *testing.T) {
 	}
 }
 
+func TestPostgresAppendV2UsesAggregateTypeSequenceDomain(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	event := postgresTestEvent(t)
+	event.Actor.SessionID = "session.test.0001"
+	if err := event.PromoteToV2(datafabric.V2EnvelopeContext{
+		Producer: "ynx-pay", AggregateType: "invoice", TraceID: "trace.test.0001", RequestID: "request.test.0001",
+		ResidencyClass: "account-home", IdempotencyKey: "idempotency.test.0001", ReceivedAt: event.Timestamp.Add(time.Second),
+		Metadata: map[string]string{"contract": "data-fabric-v2"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := event.Sign("key.datafabric.0001", postgresTestKey); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Append(context.Background(), event, postgresTestKey); err != nil {
+		t.Fatal(err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if !connection.committed || len(connection.execs) != 3 || !strings.Contains(connection.execs[1], "aggregate_type") || !strings.Contains(connection.execs[2], "ynx_fabric.outbox") {
+		t.Fatalf("v2 event was not committed with aggregate type and Outbox: %+v", connection)
+	}
+}
+
 func TestPostgresAppendRejectsSequenceGapWhileHoldingPartitionLock(t *testing.T) {
 	db, connection := openRecordingDB(t)
 	store, _ := NewStore(db)
@@ -129,17 +154,29 @@ func TestPostgresProjectionFailureRollsBackEffectAndInbox(t *testing.T) {
 }
 
 func TestVerifySchemaAcceptsExactEmbeddedChecksumAndRejectsDrift(t *testing.T) {
-	body, err := migrations.ReadFile("migrations/0001_initial.up.sql")
+	files, err := MigrationFiles()
 	if err != nil {
 		t.Fatal(err)
 	}
-	digest := sha256.Sum256(body)
+	checksums := make(map[int64]string, len(files))
+	for _, name := range files {
+		body, err := migrations.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(body)
+		version, err := migrationVersion(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		checksums[version] = hex.EncodeToString(digest[:])
+	}
 	db, connection := openRecordingDB(t)
-	connection.schemaChecksum = hex.EncodeToString(digest[:])
+	connection.schemaChecksums = checksums
 	if err := VerifySchema(context.Background(), db); err != nil {
 		t.Fatalf("exact schema checksum rejected: %v", err)
 	}
-	connection.schemaChecksum = strings.Repeat("0", 64)
+	connection.schemaChecksums[2] = strings.Repeat("0", 64)
 	if err := VerifySchema(context.Background(), db); err == nil || !strings.Contains(err.Error(), "checksum drift") {
 		t.Fatalf("schema checksum drift accepted: %v", err)
 	}
@@ -319,6 +356,7 @@ type recordingConn struct {
 	envelope         []byte
 	existingEnvelope []byte
 	schemaChecksum   string
+	schemaChecksums  map[int64]string
 	claimed          [][]driver.Value
 	journal          *datafabric.JournalEntry
 	eventProduct     string
@@ -361,8 +399,8 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 	switch {
 	case strings.Contains(query, "INSERT INTO ynx_fabric.aggregate_sequences"):
 		candidate := int64(0)
-		if len(arguments) >= 4 {
-			switch value := arguments[3].Value.(type) {
+		if len(arguments) >= 5 {
+			switch value := arguments[4].Value.(type) {
 			case int64:
 				candidate = value
 			case uint64:
@@ -383,7 +421,12 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 	case strings.Contains(query, "SELECT EXISTS"):
 		return &recordingRows{columns: []string{"exists"}, values: [][]driver.Value{{false}}}, nil
 	case strings.Contains(query, "schema_migrations"):
-		return &recordingRows{columns: []string{"checksum"}, values: [][]driver.Value{{c.schemaChecksum}}}, nil
+		checksum := c.schemaChecksum
+		if len(arguments) > 0 && c.schemaChecksums != nil {
+			version, _ := arguments[0].Value.(int64)
+			checksum = c.schemaChecksums[version]
+		}
+		return &recordingRows{columns: []string{"checksum"}, values: [][]driver.Value{{checksum}}}, nil
 	case strings.Contains(query, "WITH selected AS"):
 		return &recordingRows{columns: []string{"event_id", "partition_key", "attempt", "available_at", "lease_owner", "lease_until"}, values: c.claimed}, nil
 	case strings.Contains(query, "FROM ynx_fabric.journal_entries WHERE entry_id"):

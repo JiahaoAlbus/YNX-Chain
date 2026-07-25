@@ -61,19 +61,23 @@ func (s *Store) Append(ctx context.Context, event datafabric.EventEnvelope, veri
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("check canonical event identity: %w", err)
 	}
+	aggregateType := ""
+	if event.SchemaVersion == datafabric.EnvelopeSchemaVersionV2 {
+		aggregateType = event.AggregateType
+	}
 	var committedSequence uint64
 	err = tx.QueryRowContext(ctx, `
 WITH advanced AS (
-    UPDATE ynx_fabric.aggregate_sequences SET last_sequence=$4::bigint
-    WHERE product=$1 AND service=$2 AND aggregate_id=$3 AND last_sequence+1=$4::bigint
+    UPDATE ynx_fabric.aggregate_sequences SET last_sequence=$5::bigint
+    WHERE product=$1 AND service=$2 AND aggregate_type=$3 AND aggregate_id=$4 AND last_sequence+1=$5::bigint
     RETURNING last_sequence
 ), inserted AS (
-    INSERT INTO ynx_fabric.aggregate_sequences(product,service,aggregate_id,last_sequence)
-    SELECT $1,$2,$3,$4::bigint WHERE $4::bigint=1 AND NOT EXISTS (SELECT 1 FROM advanced)
+    INSERT INTO ynx_fabric.aggregate_sequences(product,service,aggregate_type,aggregate_id,last_sequence)
+    SELECT $1,$2,$3,$4,$5::bigint WHERE $5::bigint=1 AND NOT EXISTS (SELECT 1 FROM advanced)
     ON CONFLICT DO NOTHING
     RETURNING last_sequence
 )
-SELECT last_sequence FROM advanced UNION ALL SELECT last_sequence FROM inserted`, event.Product, event.Service, event.AggregateID, event.Sequence).Scan(&committedSequence)
+SELECT last_sequence FROM advanced UNION ALL SELECT last_sequence FROM inserted`, event.Product, event.Service, aggregateType, event.AggregateID, event.Sequence).Scan(&committedSequence)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("%w: aggregate sequence is not the next committed value", datafabric.ErrOutOfOrder)
 	}
@@ -85,14 +89,14 @@ SELECT last_sequence FROM advanced UNION ALL SELECT last_sequence FROM inserted`
 	}
 	_, err = tx.ExecContext(ctx, `
 INSERT INTO ynx_fabric.events (
- event_id,event_type,schema_version,product,service,aggregate_id,actor_id,account_id,session_id,
+ event_id,event_type,schema_version,product,service,aggregate_type,aggregate_id,actor_id,account_id,session_id,
  correlation_id,causation_id,sequence,occurred_at,effective_at,source_commit,source_release,
  integrity_key_id,integrity_digest,integrity_signature,privacy_classification,retention_class,audit_id,
  source_metadata,payload,canonical_envelope
 ) VALUES (
- $1,$2,$3,$4,$5,$6,$7,NULLIF($8,''),NULLIF($9,''),$10,NULLIF($11,''),$12,$13,$14,$15,$16,
- $17,$18,$19,$20,$21,$22,$23::jsonb,$24::jsonb,$25::jsonb
-)`, event.EventID, event.EventType, event.SchemaVersion, event.Product, event.Service, event.AggregateID,
+ $1,$2,$3,$4,$5,$6,$7,$8,NULLIF($9,''),NULLIF($10,''),$11,NULLIF($12,''),$13,$14,$15,$16,$17,
+ $18,$19,$20,$21,$22,$23,$24::jsonb,$25::jsonb,$26::jsonb
+)`, event.EventID, event.EventType, event.SchemaVersion, event.Product, event.Service, aggregateType, event.AggregateID,
 		event.Actor.ActorID, event.Actor.AccountID, event.Actor.SessionID, event.CorrelationID, event.CausationID,
 		event.Sequence, event.Timestamp, event.EffectiveAt, event.SourceCommit, event.SourceRelease,
 		event.Integrity.KeyID, event.Integrity.Digest, event.Integrity.Signature, event.PrivacyClassification,
@@ -116,7 +120,7 @@ func mapEventWriteError(err error) error {
 		if pqError.Constraint == "events_pkey" {
 			return datafabric.ErrDuplicate
 		}
-		if strings.Contains(pqError.Constraint, "aggregate_id_sequence") || strings.Contains(pqError.Constraint, "product_aggregate") {
+		if strings.Contains(pqError.Constraint, "aggregate_sequence") || strings.Contains(pqError.Constraint, "product_aggregate") {
 			return datafabric.ErrOutOfOrder
 		}
 	}

@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-//go:embed migrations/*.up.sql
+//go:embed migrations/*.sql
 var migrations embed.FS
 
 type AppliedMigration struct {
@@ -102,6 +102,30 @@ func MigrationFiles() ([]string, error) {
 	files, err := fs.Glob(migrations, "migrations/*.up.sql")
 	sort.Strings(files)
 	return files, err
+}
+
+func RollbackMigrationFiles() ([]string, error) {
+	files, err := fs.Glob(migrations, "migrations/*.down.sql")
+	sort.Strings(files)
+	return files, err
+}
+
+func RollbackMigration(version int64) ([]byte, error) {
+	files, err := RollbackMigrationFiles()
+	if err != nil {
+		return nil, err
+	}
+	prefix := fmt.Sprintf("migrations/%04d_", version)
+	for _, name := range files {
+		if strings.HasPrefix(name, prefix) {
+			body, err := migrations.ReadFile(name)
+			if err != nil {
+				return nil, err
+			}
+			return append([]byte(nil), body...), nil
+		}
+	}
+	return nil, fmt.Errorf("rollback migration %d is unavailable", version)
 }
 
 // VerifySchema fails closed if any required migration is absent or its stored
