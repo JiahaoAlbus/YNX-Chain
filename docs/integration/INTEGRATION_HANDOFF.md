@@ -4,10 +4,10 @@
 
 - Contract: `release/integration/ynxt-economics-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- Source commit: `501db18aed76bb34cc8b2917480bd9ab0f3ff3a5`
+- Source commit: `cca294f36e84e1c63b3722d705172bed1ad17bd5`
 - Contract owner: 17 Economics
-- Current phase: FREEZE
-- Next gate: INTEGRATE
+- Current phase: INTEGRATE
+- Next gate: TESTNET
 - Long-term goal status: Active
 
 The contract freezes economic policy facts and integration boundaries. It does not activate consensus issuance, burn, slashing, Treasury execution, liquid staking, stablecoin custody, or any public deployment.
@@ -55,6 +55,7 @@ A consumer must reject an unsupported version, missing audit hash, non-sequentia
 
 ```text
 make economics-integration-contract-check
+make economics-integration-adapter-check
 make staking-risk-runtime-check
 make economics-local-candidate-check
 go test ./...

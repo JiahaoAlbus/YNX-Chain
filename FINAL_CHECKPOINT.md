@@ -4,34 +4,50 @@
 
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/17-tokenomics`
 - Branch: `codex/final-tokenomics`
-- Latest protected runtime commit: `501db18aed76bb34cc8b2917480bd9ab0f3ff3a5`
-- Remote branch verified equal to the protected runtime commit before this checkpoint update.
+- Protected runtime commit: `501db18aed76bb34cc8b2917480bd9ab0f3ff3a5`
+- Protected integration-adapter commit: `1aba6902cc22b5bbd1580d25cab8d13349ecffbb`
+- Protected adapter-summary commit and current evidence source: `cca294f36e84e1c63b3722d705172bed1ad17bd5`
+- Local and remote were verified equal after each protected code slice.
 - Long-term goal: Active
-- Current phase: FREEZE, moving to INTEGRATE after the contract slice is committed and pushed.
+- Current phase: INTEGRATE
+- Next gated phase: TESTNET
 
-## Completed in the protected runtime slice
+## Completed and protected
 
-- Added governed staking risk runtime with threshold Ed25519 authorization.
-- Enforced governance timelock, per-infraction slash caps, global cap, jail and governed recovery.
-- Reconciled operator, delegated and queued-unbonding exposure.
-- Added deterministic replay, restart validation, duplicate proposal rejection and tamper detection.
-- Added fixed signed local vectors and CLI replay.
-- Passed `make staking-risk-runtime-check`, `make economics-local-candidate-check` and `go test ./...`.
+- Governed economics runtime for deterministic issuance, burn, fee split and supply reconciliation.
+- Governed staking risk runtime with threshold Ed25519 authorization, timelock, per-infraction slash bounds, jail, recovery, deterministic replay, restart validation and tamper rejection.
+- Single economics contract, owner map, canonical event names, error codes and release-truth boundary.
+- Canonical integration adapter producing:
+  - 5 source-validated event envelopes;
+  - 18 explicit Billing Ledger entries separating burn from revenue;
+  - 5 candidate-only Explorer projections;
+  - 15 source-mapped Monitor checks.
+- Integration bundle for source `cca294f36e84e1c63b3722d705172bed1ad17bd5`:
+  - economics state `sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09`;
+  - staking state `sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764`;
+  - bundle `sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71`.
+- Rehashed payload, ledger, projection and release-state tampering fails closed.
 
-## Freeze slice in this checkpoint
+## Release truth
 
-- Single machine-readable economics contract.
-- Canonical event names, error codes and owner boundaries.
-- Cross-product deterministic vectors for supply, fees, burn, slashing, recovery and release truth.
-- Dependency acceptance and fail-closed handoff.
-- Automated integration-contract verification.
-- Evidence and release-state updates that keep central, staging, public and production states false.
+Only `implementedLocal` and `testedLocal` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.
+
+The adapter is not evidence that Data Fabric, Explorer, Monitor, Chain Core, Governance or Integration have accepted or deployed the contract. No shared-Testnet transaction, block, receipt, public API or public URL is claimed.
+
+## Verification for this checkpoint
+
+- `make economics-integration-adapter-check`
+- `make economics-integration-contract-check`
+- `make economics-release-boundary-check`
+- `make economics-local-candidate-check`
+- `go test ./...`
+- `make no-placeholder-check`
+- `make static-check`
+- `make secret-scan`
 
 ## Next executable work
 
-1. Commit and push this FREEZE slice; verify local and remote SHA equality.
-2. Run full local verification and inspect the resulting CI run.
-3. Continue INTEGRATE work with Chain Core/Data Fabric/Explorer/Monitor adapters and accepted event envelopes inside this worktree only.
-4. Produce shared-Testnet evidence only after the owning interfaces and deployment authority are available.
-
-No completion claim is made for central integration, shared Testnet, public deployment, custody, reserve attestation, signing or production.
+1. Protect this contract/evidence synchronization slice with Commit and Push and verify local/remote SHA equality.
+2. Continue local consumer runtime integration for canonical bundle storage, idempotent ingestion, replay and recovery inside this worktree.
+3. Prepare shared-Testnet execution and evidence collectors without claiming central acceptance.
+4. Keep candidate issuance, burn, staking-risk, Treasury, liquid-staking and YUSD activation fail closed until accepted owners and direct Testnet evidence exist.

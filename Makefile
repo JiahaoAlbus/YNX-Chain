@@ -423,7 +423,7 @@ staking-risk-runtime-check:
 
 economics-integration-adapter-check:
 	go test -race ./internal/economics ./cmd/ynx-economics-integration
-	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 48c9a160e3594f8bfd50cd78eec35e979e9b453a >/dev/null
+	go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary >/dev/null
 
 liquid-staking-candidate-check:
 	go test -race ./internal/economics ./cmd/ynx-liquid-staking-sim

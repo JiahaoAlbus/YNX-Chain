@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "YNXT Economics",
-  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
   "targetOwners": ["Chain Core", "Wallet/Auth", "Gateway", "Explorer/Monitor", "Website", "Governance"],
   "currentAuthority": {
     "feePolicy": "fixed-fee-v1",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "ynx.economics.integration.v1",
-  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
   "classification": "local-deterministic-integration-vectors",
   "sharedTestnetEvidence": false,
   "vectors": [
@@ -131,6 +131,55 @@
         ],
         "13 Monitor": [
           "raise reconciliation alert when any component is missing or double counted"
+        ]
+      }
+    },
+    {
+      "id": "economics-integration-bundle-v1",
+      "economicInput": "economics/examples/runtime-replay.json",
+      "stakingInput": "economics/examples/staking-risk-runtime-replay.json",
+      "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary",
+      "expected": {
+        "contractId": "ynx.economics.integration.v1",
+        "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+        "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+        "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
+        "envelopeCount": 5,
+        "billingCount": 18,
+        "explorerCount": 5,
+        "monitorCount": 15,
+        "releaseStates": {
+          "implementedLocal": true,
+          "testedLocal": true,
+          "installedLocal": false,
+          "integratedCentral": false,
+          "deployedStaging": false,
+          "deployedPublic": false,
+          "downloadHosted": false,
+          "productionSigned": false,
+          "storeReleased": false
+        },
+        "bundleHash": "sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71"
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "ingest only canonical envelopes whose payload and source event audit hashes validate",
+          "preserve six explicit burn and revenue classes for each economics epoch",
+          "reject rehashed ledger tampering and duplicate economic facts"
+        ],
+        "12 Explorer": [
+          "project one candidate-only record per canonical envelope",
+          "preserve source commit event version policy and risk labels",
+          "keep all central staging public and production states false"
+        ],
+        "13 Monitor": [
+          "consume supply fee issuance slash authorization and recovery checks",
+          "reject checks that cannot be mapped to a canonical source event"
+        ],
+        "29 Integration": [
+          "reproduce the exact bundle hash from the accepted source commit",
+          "do not infer central integration from local deterministic evidence"
         ]
       }
     },

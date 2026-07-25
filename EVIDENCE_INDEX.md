@@ -61,6 +61,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Founder KPI definitions and kill/scale rules | `GROWTH_KPI_FRAMEWORK.md` | Review unavailable-current-value and source requirements |
 | Cross-owner integration inventory and exact false states | `release/economics-integration-manifest.json` | Parse JSON and inspect every activation boundary |
 | Frozen economics integration contract, event owners and error codes | `release/integration/ynxt-economics-contract.json` | `make economics-integration-contract-check` |
+| Canonical envelope, Billing Ledger, Explorer and Monitor adapter | `internal/economics/integration_adapter.go`, `internal/economics/integration_adapter_test.go` | `make economics-integration-adapter-check` |
+| Deterministic local integration bundle evidence | `evidence/economics/integration-bundle-cca294f.json` | Re-run the recorded summary command and match `sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71` |
 | Cross-product deterministic event and release vectors | `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` | `make economics-integration-contract-check` |
 | Owner acceptance and fail-closed dependency gates | `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` | Review all owner states as pending until direct evidence exists |
 | Requirement-by-requirement completion decision | `DELIVERY_COMPLETION_AUDIT.md` | Confirm partial/missing evidence remains false |

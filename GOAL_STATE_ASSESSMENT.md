@@ -4,38 +4,44 @@
 
 **Goal state: ACTIVE.**
 
-The repository has substantial local candidate implementation and deterministic evidence, but the long-term goal is not complete. Central integration, shared-Testnet execution, provider/custodian evidence, public deployment and production controls remain unproven and therefore remain false.
+Local economics, staking-risk and integration-adapter code is implemented and tested, but the long-term goal is not complete. Central owner acceptance, shared-Testnet execution, provider/custodian evidence, public deployment and production controls remain unproven and therefore remain false.
 
-## Current phase assessment
+## Stage assessment
 
-| Phase | State | Evidence |
+| Phase | State | Direct evidence and boundary |
 | --- | --- | --- |
-| RECOVER | complete for current branch checkpoint | Branch, status, local/remote SHA, recent commits and reflog were inspected; no destructive recovery was used |
-| PROTECT | complete for runtime slice | Commit `501db18aed76bb34cc8b2917480bd9ab0f3ff3a5` pushed and local/remote SHA verified equal |
-| FREEZE | in progress in this change set | Single integration contract, owner map, event/error definitions, deterministic vectors and automated gate added |
-| INTEGRATE | not complete | No accepted Chain Core, Wallet/Auth, Data Fabric, Explorer, Monitor or Governance consumer records |
-| TESTNET | not complete | No direct shared-Testnet transaction, block, receipt, API, Explorer or Monitor evidence for candidate economics runtime |
-| PUBLIC | not complete | No approved domain, hosted artifact, public URL, browser evidence or production signing |
-| EXPAND | blocked by prior gates | Additional product expansion must not outrun integration and Testnet evidence |
+| RECOVER | complete for the current protected history | Correct worktree/branch, status, local/remote SHA, recent commits, reflog and Actions were inspected without destructive recovery |
+| PROTECT | complete through `cca294f36e84e1c63b3722d705172bed1ad17bd5` | Runtime, adapter and summary code slices were separately committed, pushed and verified local=remote |
+| FREEZE | complete for contract version 1 | Single contract, owner map, event names, error codes, release truth and deterministic vectors are enforced by an executable check |
+| INTEGRATE | active | Local canonical envelope, Billing Ledger, Explorer projection and Monitor adapter exists; owner acceptance and central deployment do not |
+| TESTNET | not complete | No shared-Testnet transaction, block, receipt, accepted Data Fabric record, Explorer proof or Monitor proof exists for candidate economics transitions |
+| PUBLIC | not complete | No approved public domain, hosted artifact, public URL, browser evidence or production signing exists |
+| EXPAND | blocked by prior gates | Additional candidate expansion must not outrun central integration and Testnet evidence |
 
-## Implemented and locally verified
+## Locally implemented and tested
 
 - Deterministic governed economic runtime for issuance, burn, fee split and supply reconciliation.
 - Governed staking risk runtime for slash, jail and recovery with threshold signatures and timelock.
 - Delegation, unbonding and withdrawal branch-local lifecycle.
 - Candidate fee market, liquid staking, Safety Module/service pools, Treasury stress, YUSD sandbox and macro stress.
 - Local Explorer economics routes and disclosure package.
-- Machine-readable release truth, evidence records and integration vectors.
+- Canonical integration bundle for source `cca294f36e84e1c63b3722d705172bed1ad17bd5` with:
+  - 5 source-validated envelopes;
+  - 18 explicit fee/burn Billing Ledger entries;
+  - 5 candidate Explorer projections;
+  - 15 Monitor checks;
+  - bundle hash `sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71`.
+- Rehashed payload, ledger, projection and release-state tampering rejection.
 
-## Not yet proven
+## Still not proven
 
 - Candidate issuance, burn or staking-risk transitions in accepted Chain Core state.
-- Canonical event ingestion and Billing Ledger reconciliation in Data Fabric.
+- Data Fabric acceptance, idempotent central ingestion and Billing Ledger reconciliation.
 - Wallet review/session/revoke flow for staking or capital mutations.
 - Shared-Testnet Explorer and Monitor evidence.
 - Real stable settlement provider, reserve custody, attestation or redemption rail.
 - Treasury multisig, secure signer and governed transfer execution.
-- Audited liquid-staking or security-pool contracts.
+- Audited liquid-staking or service-security-pool contracts.
 - Accepted Quant performance-fee integration.
 - Public deployment, hosted artifacts, signing, store release or Mainnet readiness.
 
@@ -43,4 +49,4 @@ The repository has substantial local candidate implementation and deterministic 
 
 Only `implementedLocal` and `testedLocal` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.
 
-The next work must continue with executable integration adapters, event consumers, migration/recovery tests and shared-Testnet preparation. External inputs are blockers only for the exact actions that require them; they do not justify stopping independent engineering work.
+The next implementation priority is an idempotent local consumer/store and recovery path for the canonical integration bundle, followed by accepted central adapters and shared-Testnet evidence. External inputs block only the exact operations that require them; they do not justify stopping independent engineering work.

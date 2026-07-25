@@ -4,10 +4,10 @@
   "productSlug": "ynxt-economics",
   "product": "YNXT Economics / Treasury / Stable Settlement",
   "owner": "17 Economics",
-  "sourceCommit": "501db18aed76bb34cc8b2917480bd9ab0f3ff3a5",
+  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
   "status": "active",
-  "currentPhase": "FREEZE",
-  "nextPhase": "INTEGRATE",
+  "currentPhase": "INTEGRATE",
+  "nextPhase": "TESTNET",
   "authority": {
     "economicPolicy": "17 Economics",
     "chainExecutionAndFinalState": "01 Chain Core",
@@ -234,6 +234,40 @@
       "consumers": ["01 Chain Core", "02 Wallet/Auth", "12 Explorer", "13 Monitor", "26 Data Fabric", "31 Governance"]
     }
   ],
+  "integrationAdapter": {
+    "schemaVersion": 1,
+    "contractId": "ynx.economics.integration.v1",
+    "source": "internal/economics/integration_adapter.go",
+    "cli": "cmd/ynx-economics-integration",
+    "evidenceClass": "local-deterministic-integration",
+    "bundleHash": "sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71",
+    "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
+    "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
+    "counts": {
+      "canonicalEnvelopes": 5,
+      "billingLedgerEntries": 18,
+      "explorerProjections": 5,
+      "monitorChecks": 15
+    },
+    "billingClasses": [
+      "base_fee_burn",
+      "service_burn",
+      "validator_fee",
+      "provider_fee",
+      "protocol_fee",
+      "treasury_fee"
+    ],
+    "burnRevenueSeparationEnforced": true,
+    "sourcePayloadCanonicalityEnforced": true,
+    "rehashedTamperRejection": true,
+    "releaseTruthEnforced": true,
+    "acceptedByDataFabric": false,
+    "acceptedByExplorer": false,
+    "acceptedByMonitor": false,
+    "sharedTestnetEvidence": false,
+    "publicDeployment": false,
+    "production": false
+  },
   "apis": [
     {
       "method": "GET",
@@ -258,6 +292,10 @@
     {
       "command": "go run ./cmd/ynx-staking-risk-runtime -input economics/examples/staking-risk-runtime-replay.json",
       "outputSchema": "StakingRiskState.v1"
+    },
+    {
+      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary",
+      "outputSchema": "EconomicsIntegrationBundleSummary.v1"
     }
   ],
   "authAndIntent": {
@@ -290,13 +328,19 @@
     "YNX_STAKING_RISK_VALIDATOR_MISSING",
     "YNX_STAKING_RISK_INSUFFICIENT_EXPOSURE",
     "YNX_STAKING_RISK_RECOVERY_UNAVAILABLE",
-    "YNX_STAKING_RISK_DUPLICATE_DECISION"
+    "YNX_STAKING_RISK_DUPLICATE_DECISION",
+    "YNX_ECONOMICS_INTEGRATION_INVALID_ENVELOPE",
+    "YNX_ECONOMICS_INTEGRATION_INVALID_LEDGER",
+    "YNX_ECONOMICS_INTEGRATION_INVALID_PROJECTION",
+    "YNX_ECONOMICS_INTEGRATION_INVALID_MONITOR",
+    "YNX_ECONOMICS_INTEGRATION_INVALID_BUNDLE"
   ],
   "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
     "currentConsensusFeePolicy": "fixed-fee-v1",
     "candidateRuntimeSchema": 1,
     "candidateStakingRiskSchema": 1,
+    "candidateIntegrationSchema": 1,
     "activationRequires": [
       "29-integration-contract-acceptance",
       "01-chain-core-migration",

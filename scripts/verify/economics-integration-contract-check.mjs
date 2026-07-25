@@ -15,8 +15,8 @@ assert.equal(contract.schemaVersion, 1);
 assert.equal(contract.contractId, "ynx.economics.integration.v1");
 assert.equal(contract.owner, "17 Economics");
 assert.equal(contract.status, "active");
-assert.equal(contract.currentPhase, "FREEZE");
-assert.equal(contract.nextPhase, "INTEGRATE");
+assert.equal(contract.currentPhase, "INTEGRATE");
+assert.equal(contract.nextPhase, "TESTNET");
 assert.equal(vectors.schemaVersion, 1);
 assert.equal(vectors.contractId, contract.contractId);
 assert.equal(vectors.sourceCommit, contract.sourceCommit);
@@ -71,6 +71,25 @@ assert.equal(contract.quantPerformanceFee.highWaterMarkResetChargeAllowed, false
 assert.equal(contract.authAndIntent.browserLongLivedBearerAllowed, false);
 assert.equal(contract.authAndIntent.wildcardScopeAllowed, false);
 assert.equal(contract.authAndIntent.aiSigningAllowed, false);
+assert.equal(contract.integrationAdapter.schemaVersion, 1);
+assert.equal(contract.integrationAdapter.contractId, contract.contractId);
+assert.equal(contract.integrationAdapter.evidenceClass, "local-deterministic-integration");
+assert.equal(contract.integrationAdapter.burnRevenueSeparationEnforced, true);
+assert.equal(contract.integrationAdapter.sourcePayloadCanonicalityEnforced, true);
+assert.equal(contract.integrationAdapter.rehashedTamperRejection, true);
+assert.equal(contract.integrationAdapter.releaseTruthEnforced, true);
+assert.equal(contract.integrationAdapter.acceptedByDataFabric, false);
+assert.equal(contract.integrationAdapter.acceptedByExplorer, false);
+assert.equal(contract.integrationAdapter.acceptedByMonitor, false);
+assert.equal(contract.integrationAdapter.sharedTestnetEvidence, false);
+assert.equal(contract.integrationAdapter.publicDeployment, false);
+assert.equal(contract.integrationAdapter.production, false);
+assert.deepEqual(contract.integrationAdapter.counts, {
+  canonicalEnvelopes: 5,
+  billingLedgerEntries: 18,
+  explorerProjections: 5,
+  monitorChecks: 15,
+});
 
 const eventTypes = contract.canonicalEvents.map((event) => event.type);
 assert.equal(new Set(eventTypes).size, eventTypes.length, "canonical event types must be unique");
@@ -92,6 +111,8 @@ for (const requiredPath of [
   "docs/integration/DEPENDENCY_ACCEPTANCE.md",
   "economics/examples/runtime-replay.json",
   "economics/examples/staking-risk-runtime-replay.json",
+  "internal/economics/integration_adapter.go",
+  "cmd/ynx-economics-integration/main.go",
 ]) {
   assert.ok(fs.existsSync(path.join(root, requiredPath)), `missing integration artifact: ${requiredPath}`);
 }
@@ -135,6 +156,30 @@ assert.equal(stakingState.events[0].auditHash, stakingVector.expected.slashAudit
 assert.equal(stakingState.events[1].id, stakingVector.expected.recoveryEventId);
 assert.equal(stakingState.events[1].auditHash, stakingVector.expected.recoveryAuditHash);
 assert.equal(stakingState.stateHash, stakingVector.expected.stateHash);
+
+const integrationVector = vectorById.get("economics-integration-bundle-v1");
+assert.ok(integrationVector);
+assert.equal(integrationVector.sourceCommit, contract.sourceCommit);
+const integrationSummary = runJSON("go", [
+  "run",
+  "./cmd/ynx-economics-integration",
+  "-economics-input",
+  integrationVector.economicInput,
+  "-staking-input",
+  integrationVector.stakingInput,
+  "-source-commit",
+  integrationVector.sourceCommit,
+  "-summary",
+]);
+assert.deepEqual(integrationSummary, integrationVector.expected);
+assert.equal(integrationSummary.bundleHash, contract.integrationAdapter.bundleHash);
+assert.equal(integrationSummary.economicStateHash, contract.integrationAdapter.economicStateHash);
+assert.equal(integrationSummary.stakingStateHash, contract.integrationAdapter.stakingStateHash);
+assert.equal(integrationSummary.envelopeCount, contract.integrationAdapter.counts.canonicalEnvelopes);
+assert.equal(integrationSummary.billingCount, contract.integrationAdapter.counts.billingLedgerEntries);
+assert.equal(integrationSummary.explorerCount, contract.integrationAdapter.counts.explorerProjections);
+assert.equal(integrationSummary.monitorCount, contract.integrationAdapter.counts.monitorChecks);
+assert.deepEqual(integrationSummary.releaseStates, contract.releaseStates);
 
 const feeVector = vectorById.get("fee-burn-revenue-separation-v1");
 assert.ok(feeVector);
