@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -121,6 +122,36 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	default:
 		return nil, errors.New("unsupported committed EVM account method")
 	}
+}
+
+func (g *Gateway) evmSendRawTransaction(ctx context.Context, raw json.RawMessage) (any, int, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil {
+		return nil, -32602, errors.New("JSON-RPC params must be an array")
+	}
+	if len(params) != 1 {
+		return nil, -32602, errors.New("eth_sendRawTransaction requires one signed transaction data value")
+	}
+	var encoded string
+	if err := json.Unmarshal(params[0], &encoded); err != nil || !strings.HasPrefix(encoded, "0x") || len(encoded) <= 2 || len(encoded)%2 != 0 {
+		return nil, -32602, errors.New("signed transaction data must be non-empty, 0x-prefixed, and byte-aligned")
+	}
+	if (len(encoded)-2)/2 > consensus.MaxSignedTransactionSize {
+		return nil, -32602, errors.New("signed transaction data exceeds maximum size")
+	}
+	payload, err := hex.DecodeString(encoded[2:])
+	if err != nil {
+		return nil, -32602, errors.New("signed transaction data must be hexadecimal")
+	}
+	result, err := g.broadcastSignedTransaction(ctx, payload)
+	if err != nil {
+		failure, ok := err.(*signedTransactionBroadcastError)
+		if !ok || failure.Status >= http.StatusInternalServerError {
+			return nil, -32603, err
+		}
+		return nil, -32003, err
+	}
+	return result.Transaction.Hash, 0, nil
 }
 
 func (g *Gateway) evmCommittedBlockResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {

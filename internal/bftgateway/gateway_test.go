@@ -158,7 +158,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 23 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 24 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
@@ -225,6 +225,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"net_version","params":[]}`, "6423")
 	assertRPCResult(t, server.URL+"/", `{"jsonrpc":"2.0","id":2,"method":"eth_chainId","params":[]}`, "0x1917")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_blockNumber","params":[]}`, "0x11")
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":25,"method":"eth_sendRawTransaction","params":["0x%x"]}`, txPayload), txHash)
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":12,"method":"eth_getBalance","params":[%q,"latest"]}`, signed.From), "0x3ce")
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":13,"method":"eth_getTransactionCount","params":[%q,"finalized"]}`, signed.From), "0x1")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":14,"method":"eth_getBalance","params":["0x0000000000000000000000000000000000000000","0x11"]}`, "0x0")
@@ -260,6 +261,8 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":22,"method":"eth_getBlockByNumber","params":["0x011",false]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":23,"method":"eth_getBlockByHash","params":["0xBAD",false]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":24,"method":"eth_getBlockByNumber","params":["latest","false"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":26,"method":"eth_sendRawTransaction","params":["0x0"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":27,"method":"eth_sendRawTransaction","params":["0x%x"]}`, wrongChainPayload), -32003)
 	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getCode","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
@@ -276,6 +279,43 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	if _, err := gateway.status(context.Background()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestEVMSendRawTransactionMapsCometReplayRejection(t *testing.T) {
+	privateKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 9))
+	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 10))
+	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	signed, err := consensus.NewSignedTransfer(privateKey, 6423, recipient, 5, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := consensus.EncodeSignedTransaction(signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/broadcast_tx_commit" || r.URL.Query().Get("tx") != fmt.Sprintf("0x%x", payload) {
+			t.Errorf("unexpected replay request: %s?%s", r.URL.Path, r.URL.RawQuery)
+			http.Error(w, "unexpected replay request", http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+			"check_tx":  map[string]any{"code": 4, "log": "invalid nonce replay", "gas_used": "0"},
+			"tx_result": map[string]any{"code": 0, "log": "", "gas_used": "0"},
+		}})
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(gateway.Handler())
+	defer server.Close()
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"eth_sendRawTransaction","params":["0x%x"]}`, payload), -32003)
 }
 
 func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T) {

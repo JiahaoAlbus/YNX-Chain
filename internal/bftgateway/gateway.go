@@ -31,6 +31,7 @@ var implementedCapabilities = []string{
 	"evm-block-number",
 	"evm-block-by-number-and-hash",
 	"evm-account-balance-and-nonce",
+	"evm-signed-raw-transaction-broadcast",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
@@ -735,6 +736,56 @@ func (g *Gateway) transactionAtHeight(ctx context.Context, hash string, height u
 	return chain.Transaction{}, errors.New("CometBFT transaction is not present in its reported block")
 }
 
+type signedTransactionBroadcastError struct {
+	Status  int
+	Message string
+}
+
+func (e *signedTransactionBroadcastError) Error() string { return e.Message }
+
+func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte) (BroadcastResponse, error) {
+	if len(payload) == 0 {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: "signed transaction payload is required"}
+	}
+	if len(payload) > consensus.MaxSignedTransactionSize {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusRequestEntityTooLarge, Message: "signed transaction exceeds maximum size"}
+	}
+	tx, err := consensus.DecodeSignedTransaction(payload)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: err.Error()}
+	}
+	if err := tx.Verify(6423); err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: err.Error()}
+	}
+	hash := consensus.SignedTransactionHash(payload)
+	var upstream cometBroadcast
+	if err := g.client.get(ctx, "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
+	}
+	if upstream.Error != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: cometError(upstream.Error)}
+	}
+	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
+		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
+		if message == "" {
+			message = "unspecified transaction rejection"
+		}
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: "CometBFT rejected signed transaction: " + message}
+	}
+	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Result.Hash) {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT transaction hash mismatch"}
+	}
+	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
+	if err != nil || height == 0 {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT returned an invalid transaction height"}
+	}
+	mapped, err := g.transactionAtHeight(ctx, hash, height)
+	if err != nil {
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
+	}
+	return BroadcastResponse{Transaction: mapped, Committed: true, Height: height, CometHash: strings.ToLower(upstream.Result.Hash), TruthfulStatus: "cometbft-broadcast-commit"}, nil
+}
+
 func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Request) {
 	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
 		writeJSON(w, http.StatusUnsupportedMediaType, map[string]string{"error": "Content-Type application/json is required"})
@@ -746,45 +797,17 @@ func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Requ
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "signed transaction exceeds maximum size"})
 		return
 	}
-	tx, err := consensus.DecodeSignedTransaction(payload)
+	result, err := g.broadcastSignedTransaction(r.Context(), payload)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		failure, ok := err.(*signedTransactionBroadcastError)
+		if !ok {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, failure.Status, map[string]string{"error": failure.Message})
 		return
 	}
-	if err := tx.Verify(6423); err != nil {
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
-		return
-	}
-	hash := consensus.SignedTransactionHash(payload)
-	var upstream cometBroadcast
-	if err := g.client.get(r.Context(), "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	if upstream.Error != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": cometError(upstream.Error)})
-		return
-	}
-	if upstream.Result.CheckTx.Code != 0 || upstream.Result.TxResult.Code != 0 {
-		message := strings.TrimSpace(upstream.Result.CheckTx.Log + " " + upstream.Result.TxResult.Log)
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "CometBFT rejected signed transaction: " + message})
-		return
-	}
-	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Result.Hash) {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT transaction hash mismatch"})
-		return
-	}
-	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
-	if err != nil || height == 0 {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT returned an invalid transaction height"})
-		return
-	}
-	mapped, err := g.transactionAtHeight(r.Context(), hash, height)
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	writeJSON(w, http.StatusOK, BroadcastResponse{Transaction: mapped, Committed: true, Height: height, CometHash: strings.ToLower(upstream.Result.Hash), TruthfulStatus: "cometbft-broadcast-commit"})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
@@ -1210,6 +1233,14 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_sendRawTransaction":
+		var code int
+		var err error
+		result, code, err = g.evmSendRawTransaction(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
+			return
+		}
 	case "eth_getBlockByNumber", "eth_getBlockByHash":
 		var err error
 		result, err = g.evmCommittedBlockResult(r.Context(), request.Method, request.Params)
