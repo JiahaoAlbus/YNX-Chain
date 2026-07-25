@@ -31,7 +31,7 @@ func TestOracleSchemasFreezeProviderAndDerivedPriceBoundaries(t *testing.T) {
 			t.Fatalf("provider input %s missing from observation schema", providerInput)
 		}
 	}
-	for _, oracleOwned := range []string{"index_price", "mark_price", "funding_reference"} {
+	for _, oracleOwned := range []string{"index_price", "mark_price", "funding_reference", "dex_twap"} {
 		if strings.Contains(observationSchema, `"`+oracleOwned+`"`) {
 			t.Fatalf("Oracle-derived type %s leaked into provider observation schema", oracleOwned)
 		}
@@ -43,6 +43,10 @@ func TestOracleSchemasFreezeProviderAndDerivedPriceBoundaries(t *testing.T) {
 		`"liquidity_weighted_median_spot_index"`,
 		`"premium_plus_basis_with_governance_clamp"`,
 		`"index_times_one_plus_funding_reference"`,
+		`"dex-twap-v1"`,
+		`"confirmed_multi_block_guarded_twap"`,
+		`"confirmationDepth"`,
+		`"rejectedBlockNumbers"`,
 		`"componentLineageHashes"`,
 	} {
 		if !strings.Contains(priceSchema, required) {

@@ -228,13 +228,13 @@ func TestDEXReorgReplacementFailsClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := structuredBase(source, 1, DEXPoolState, now)
-	first.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "100", Reserve1: "100", BlockNumber: 100, BlockHash: strings.Repeat("a", 64)}
+	first.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "100", Reserve1: "100", BlockNumber: 100, BlockHash: strings.Repeat("a", 64), ParentBlockHash: strings.Repeat("c", 64), BlockTime: now.Add(-time.Second), Confirmations: 2}
 	first = source.signed(t, first)
 	if _, err := store.Ingest(first, source.provider); err != nil {
 		t.Fatal(err)
 	}
 	replacement := structuredBase(source, 2, DEXPoolState, now.Add(time.Second))
-	replacement.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "101", Reserve1: "99", BlockNumber: 100, BlockHash: strings.Repeat("b", 64)}
+	replacement.PoolState = &PoolState{ChainID: "ynx-testnet", Pool: "pool-1", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "101", Reserve1: "99", BlockNumber: 100, BlockHash: strings.Repeat("b", 64), ParentBlockHash: strings.Repeat("c", 64), BlockTime: now, Confirmations: 2}
 	replacement = source.signed(t, replacement)
 	if _, err := store.Ingest(replacement, source.provider); err == nil || !strings.Contains(err.Error(), "correction") {
 		t.Fatalf("same-height replacement accepted: %v", err)

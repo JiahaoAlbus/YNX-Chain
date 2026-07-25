@@ -27,7 +27,6 @@
         "trades",
         "clob_order_book",
         "dex_pool_state",
-        "dex_twap",
         "interest_rate_candidate",
         "provider_status"
       ]
@@ -50,7 +49,7 @@
   },
   "oneOf": [
     {
-      "properties": {"type": {"enum": ["spot_price", "fx", "stablecoin_price", "dex_twap"]}, "value": {"type": "integer", "minimum": 1}},
+      "properties": {"type": {"enum": ["spot_price", "fx", "stablecoin_price"]}, "value": {"type": "integer", "minimum": 1}},
       "not": {"anyOf": [{"required": ["candle"]}, {"required": ["trades"]}, {"required": ["orderBook"]}, {"required": ["poolState"]}, {"required": ["providerHealth"]}]}
     },
     {
@@ -117,16 +116,21 @@
     "poolState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["chainId", "pool", "token0", "token1", "reserve0", "reserve1", "blockNumber", "blockHash"],
+      "required": ["chainId", "pool", "token0", "token1", "token0Decimals", "token1Decimals", "reserve0", "reserve1", "blockNumber", "blockHash", "parentBlockHash", "blockTime", "confirmations"],
       "properties": {
         "chainId": {"type": "string", "minLength": 1},
         "pool": {"type": "string", "minLength": 1},
         "token0": {"type": "string", "minLength": 1},
         "token1": {"type": "string", "minLength": 1},
-        "reserve0": {"type": "string", "pattern": "^[0-9]{1,78}$"},
-        "reserve1": {"type": "string", "pattern": "^[0-9]{1,78}$"},
+        "token0Decimals": {"type": "integer", "minimum": 0, "maximum": 38},
+        "token1Decimals": {"type": "integer", "minimum": 0, "maximum": 38},
+        "reserve0": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "reserve1": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
         "blockNumber": {"type": "integer", "minimum": 1},
-        "blockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        "blockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "parentBlockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "blockTime": {"type": "string", "format": "date-time"},
+        "confirmations": {"type": "integer", "minimum": 1}
       }
     },
     "providerHealth": {

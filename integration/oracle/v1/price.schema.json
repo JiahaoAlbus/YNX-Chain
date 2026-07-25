@@ -54,7 +54,7 @@
       "then": {"properties": {"value": {"enum": [0, 1]}}}
     },
     {
-      "if": {"properties": {"type": {"enum": ["index_price", "mark_price", "funding_reference"]}}, "required": ["type"]},
+      "if": {"properties": {"type": {"enum": ["index_price", "mark_price", "funding_reference", "dex_twap"]}}, "required": ["type"]},
       "then": {"required": ["derivation"]},
       "else": {"not": {"required": ["derivation"]}}
     },
@@ -118,6 +118,29 @@
           }
         }
       }
+    },
+    {
+      "if": {"properties": {"type": {"const": "dex_twap"}}, "required": ["type"]},
+      "then": {
+        "properties": {
+          "derivation": {
+            "allOf": [
+              {"$ref": "#/$defs/derivation"},
+              {
+                "required": ["observationWindowSeconds", "startBlock", "endBlock", "confirmationDepth", "chainId", "pool", "observationCount", "reporterCount", "minimumReserve0", "minimumReserve1"],
+                "properties": {
+                  "method": {"const": "confirmed_multi_block_guarded_twap"},
+                  "policyVersion": {"const": "dex-twap-v1"},
+                  "componentTypes": {"prefixItems": [{"const": "dex_pool_state"}], "minItems": 1, "maxItems": 1},
+                  "observationCount": {"type": "integer", "minimum": 5},
+                  "reporterCount": {"type": "integer", "minimum": 3},
+                  "clamped": {"const": false}
+                }
+              }
+            ]
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -154,7 +177,18 @@
         "rawAdjustmentPpm": {"type": "integer"},
         "appliedAdjustmentPpm": {"type": "integer"},
         "clampPpm": {"type": "integer", "minimum": 1, "maximum": 1000000},
-        "clamped": {"type": "boolean"}
+        "clamped": {"type": "boolean"},
+        "observationWindowSeconds": {"type": "integer", "minimum": 1},
+        "startBlock": {"type": "integer", "minimum": 1},
+        "endBlock": {"type": "integer", "minimum": 1},
+        "confirmationDepth": {"type": "integer", "minimum": 1},
+        "chainId": {"type": "string", "minLength": 1},
+        "pool": {"type": "string", "minLength": 1},
+        "observationCount": {"type": "integer", "minimum": 1},
+        "reporterCount": {"type": "integer", "minimum": 1},
+        "rejectedBlockNumbers": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "minimumReserve0": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "minimumReserve1": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"}
       }
     }
   }

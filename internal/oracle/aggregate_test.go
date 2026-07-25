@@ -228,7 +228,7 @@ func TestStructuredMarketDataPayloadsAreStrictAndNeverPriceAggregated(t *testing
 	book.OrderBook = &OrderBookSnapshot{Sequence: 7, Bids: []DepthLevel{{Price: 109, Amount: 3}, {Price: 108, Amount: 5}}, Asks: []DepthLevel{{Price: 110, Amount: 4}, {Price: 111, Amount: 6}}}
 	items = append(items, source.signed(t, book))
 	pool := structuredBase(source, 4, DEXPoolState, now)
-	pool.PoolState = &PoolState{ChainID: "ynx_6423-1", Pool: "0x1111111111111111111111111111111111111111", Token0: "YNXT", Token1: "YUSD_TEST", Reserve0: "1000000000000000000", Reserve1: "1000000000", BlockNumber: 100, BlockHash: strings.Repeat("a", 64)}
+	pool.PoolState = &PoolState{ChainID: "ynx_6423-1", Pool: "0x1111111111111111111111111111111111111111", Token0: "YNXT", Token1: "YUSD_TEST", Token0Decimals: 18, Token1Decimals: 6, Reserve0: "1000000000000000000", Reserve1: "1000000000", BlockNumber: 100, BlockHash: strings.Repeat("a", 64), ParentBlockHash: strings.Repeat("b", 64), BlockTime: now.Add(-time.Second), Confirmations: 2}
 	items = append(items, source.signed(t, pool))
 	health := structuredBase(source, 5, ProviderStatus, now)
 	health.ProviderHealth = &ProviderHealth{Status: "up", LatencyMillis: 20, LastSuccess: now}

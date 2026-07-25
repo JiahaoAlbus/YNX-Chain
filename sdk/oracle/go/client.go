@@ -18,6 +18,7 @@ import (
 const (
 	SchemaVersion            = "ynx.oracle.v1"
 	DerivativesPolicyVersion = "index-funding-mark-v1"
+	DEXTWAPPolicyVersion     = "dex-twap-v1"
 )
 
 type Quality struct {
@@ -52,17 +53,28 @@ type Price struct {
 }
 
 type PriceDerivation struct {
-	Method                 string   `json:"method"`
-	PolicyVersion          string   `json:"policyVersion"`
-	ComponentTypes         []string `json:"componentTypes"`
-	ComponentLineageHashes []string `json:"componentLineageHashes"`
-	FundingWindowSeconds   int64    `json:"fundingWindowSeconds,omitempty"`
-	PremiumPPM             int64    `json:"premiumPpm,omitempty"`
-	BasisPPM               int64    `json:"basisPpm,omitempty"`
-	RawAdjustmentPPM       int64    `json:"rawAdjustmentPpm,omitempty"`
-	AppliedAdjustmentPPM   int64    `json:"appliedAdjustmentPpm,omitempty"`
-	ClampPPM               int64    `json:"clampPpm,omitempty"`
-	Clamped                bool     `json:"clamped"`
+	Method                   string   `json:"method"`
+	PolicyVersion            string   `json:"policyVersion"`
+	ComponentTypes           []string `json:"componentTypes"`
+	ComponentLineageHashes   []string `json:"componentLineageHashes"`
+	FundingWindowSeconds     int64    `json:"fundingWindowSeconds,omitempty"`
+	PremiumPPM               int64    `json:"premiumPpm,omitempty"`
+	BasisPPM                 int64    `json:"basisPpm,omitempty"`
+	RawAdjustmentPPM         int64    `json:"rawAdjustmentPpm,omitempty"`
+	AppliedAdjustmentPPM     int64    `json:"appliedAdjustmentPpm,omitempty"`
+	ClampPPM                 int64    `json:"clampPpm,omitempty"`
+	Clamped                  bool     `json:"clamped"`
+	ObservationWindowSeconds int64    `json:"observationWindowSeconds,omitempty"`
+	StartBlock               uint64   `json:"startBlock,omitempty"`
+	EndBlock                 uint64   `json:"endBlock,omitempty"`
+	ConfirmationDepth        uint64   `json:"confirmationDepth,omitempty"`
+	ChainID                  string   `json:"chainId,omitempty"`
+	Pool                     string   `json:"pool,omitempty"`
+	ObservationCount         int      `json:"observationCount,omitempty"`
+	ReporterCount            int      `json:"reporterCount,omitempty"`
+	RejectedBlockNumbers     []uint64 `json:"rejectedBlockNumbers,omitempty"`
+	MinimumReserve0          string   `json:"minimumReserve0,omitempty"`
+	MinimumReserve1          string   `json:"minimumReserve1,omitempty"`
 }
 
 func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConfidencePPM int64) error {
@@ -114,7 +126,7 @@ func validPriceValue(kind string, value int64) bool {
 }
 
 func (price Price) validateDerivation() error {
-	derived := price.Type == "index_price" || price.Type == "funding_reference" || price.Type == "mark_price"
+	derived := price.Type == "index_price" || price.Type == "funding_reference" || price.Type == "mark_price" || price.Type == "dex_twap"
 	if !derived {
 		if price.Derivation != nil {
 			return errors.New("direct oracle value contains unexpected derivation metadata")
@@ -122,9 +134,15 @@ func (price Price) validateDerivation() error {
 		return nil
 	}
 	value := price.Derivation
-	if value == nil || value.Method == "" || value.PolicyVersion != price.Version || value.PolicyVersion != DerivativesPolicyVersion ||
-		len(value.ComponentTypes) == 0 || len(value.ComponentTypes) != len(value.ComponentLineageHashes) {
+	if value == nil || value.Method == "" || value.PolicyVersion != price.Version || len(value.ComponentTypes) == 0 || len(value.ComponentLineageHashes) == 0 {
 		return errors.New("derived oracle value is missing its versioned derivation")
+	}
+	expectedPolicy := DerivativesPolicyVersion
+	if price.Type == "dex_twap" {
+		expectedPolicy = DEXTWAPPolicyVersion
+	}
+	if value.PolicyVersion != expectedPolicy {
+		return errors.New("derived oracle policy version is unsupported")
 	}
 	for _, hash := range value.ComponentLineageHashes {
 		decoded, err := hex.DecodeString(hash)
@@ -137,24 +155,58 @@ func (price Price) validateDerivation() error {
 	}
 	switch price.Type {
 	case "index_price":
-		if len(value.ComponentTypes) != 1 || value.ComponentTypes[0] != "spot_price" || value.Method != "liquidity_weighted_median_spot_index" {
+		if len(value.ComponentTypes) != 1 || len(value.ComponentLineageHashes) != 1 || value.ComponentTypes[0] != "spot_price" || value.Method != "liquidity_weighted_median_spot_index" {
 			return errors.New("index price derivation is invalid")
 		}
 	case "funding_reference":
-		if len(value.ComponentTypes) != 2 || value.ComponentTypes[0] != "premium_reference" || value.ComponentTypes[1] != "basis_reference" ||
+		if len(value.ComponentTypes) != 2 || len(value.ComponentLineageHashes) != 2 || value.ComponentTypes[0] != "premium_reference" || value.ComponentTypes[1] != "basis_reference" ||
 			value.Method != "premium_plus_basis_with_governance_clamp" || value.FundingWindowSeconds <= 0 || value.ClampPPM <= 0 || value.ClampPPM > 1_000_000 ||
 			value.RawAdjustmentPPM != value.AppliedAdjustmentPPM || value.AppliedAdjustmentPPM > value.ClampPPM || value.AppliedAdjustmentPPM < -value.ClampPPM ||
 			value.AppliedAdjustmentPPM != price.Value || price.Scale != 1_000_000 {
 			return errors.New("funding reference derivation is invalid")
 		}
 	case "mark_price":
-		if len(value.ComponentTypes) != 2 || value.ComponentTypes[0] != "index_price" || value.ComponentTypes[1] != "funding_reference" ||
+		if len(value.ComponentTypes) != 2 || len(value.ComponentLineageHashes) != 2 || value.ComponentTypes[0] != "index_price" || value.ComponentTypes[1] != "funding_reference" ||
 			value.Method != "index_times_one_plus_funding_reference" || value.FundingWindowSeconds <= 0 || value.ClampPPM <= 0 || value.ClampPPM > 1_000_000 ||
 			value.RawAdjustmentPPM != value.AppliedAdjustmentPPM || value.AppliedAdjustmentPPM > value.ClampPPM || value.AppliedAdjustmentPPM < -value.ClampPPM {
 			return errors.New("mark price derivation is invalid")
 		}
+	case "dex_twap":
+		if len(value.ComponentTypes) != 1 || value.ComponentTypes[0] != "dex_pool_state" || value.Method != "confirmed_multi_block_guarded_twap" ||
+			value.ObservationWindowSeconds <= 0 || value.StartBlock == 0 || value.EndBlock < value.StartBlock || value.ConfirmationDepth == 0 ||
+			value.ChainID == "" || value.Pool == "" || value.ObservationCount < 5 || value.ReporterCount < 3 ||
+			!decimalString(value.MinimumReserve0) || !decimalString(value.MinimumReserve1) ||
+			len(value.ComponentLineageHashes) != len(price.ObservationHash) {
+			return errors.New("DEX TWAP derivation is invalid")
+		}
+		for index, hash := range value.ComponentLineageHashes {
+			if hash != price.ObservationHash[index] {
+				return errors.New("DEX TWAP component lineage does not match observations")
+			}
+		}
+		for index, block := range value.RejectedBlockNumbers {
+			if block < value.StartBlock || block > value.EndBlock || (index > 0 && value.RejectedBlockNumbers[index-1] >= block) {
+				return errors.New("DEX TWAP rejected block metadata is invalid")
+			}
+		}
 	}
 	return nil
+}
+
+func decimalString(value string) bool {
+	if value == "" {
+		return false
+	}
+	nonZero := false
+	for _, character := range value {
+		if character < '0' || character > '9' {
+			return false
+		}
+		if character != '0' {
+			nonZero = true
+		}
+	}
+	return nonZero
 }
 
 // ValidateFor binds intrinsic price quality to the exact consumer request and

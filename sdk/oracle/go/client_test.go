@@ -169,6 +169,56 @@ func TestValidateAcceptsSignedFundingAndRequiresExactDerivation(t *testing.T) {
 	}
 }
 
+func validDEXTWAPPrice(now time.Time) Price {
+	hashes := []string{
+		strings.Repeat("1", 64), strings.Repeat("2", 64), strings.Repeat("3", 64),
+		strings.Repeat("4", 64), strings.Repeat("5", 64), strings.Repeat("6", 64),
+	}
+	return Price{
+		Schema: SchemaVersion, Market: "YNXT/YUSD_TEST", Type: "dex_twap", Value: 100_000_000, Scale: 1_000_000,
+		Source: "YNX Oracle manipulation-resistant confirmed multi-block DEX TWAP", Version: DEXTWAPPolicyVersion,
+		AsOf: now.Add(-time.Second), ProducedAt: now,
+		Quality: Quality{Status: "good", SourceCount: 3, RequiredSourceCount: 3, ConfidencePPM: 900_000, CoveragePPM: 1_000_000,
+			SourceLimitation: "single DEX pool is not sole settlement authority"},
+		ObservationIDs:  []string{"a", "b", "c", "d", "e", "f"},
+		ObservationHash: hashes,
+		LineageHash:     strings.Repeat("a", 64),
+		Derivation: &PriceDerivation{
+			Method: "confirmed_multi_block_guarded_twap", PolicyVersion: DEXTWAPPolicyVersion,
+			ComponentTypes: []string{"dex_pool_state"}, ComponentLineageHashes: append([]string(nil), hashes...),
+			ObservationWindowSeconds: 60, StartBlock: 100, EndBlock: 105, ConfirmationDepth: 2,
+			ChainID: "ynx-testnet-1", Pool: "pool-ynxt-yusd-test", ObservationCount: 6, ReporterCount: 3,
+			RejectedBlockNumbers: []uint64{103}, MinimumReserve0: "100000000000000000000", MinimumReserve1: "10000000000",
+		},
+	}
+}
+
+func TestValidateDEXTWAPRequiresConfirmedLineage(t *testing.T) {
+	now := time.Date(2026, 7, 25, 14, 0, 0, 0, time.UTC)
+	price := validDEXTWAPPrice(now)
+	if err := price.ValidateFor("YNXT/YUSD_TEST", "dex_twap", DEXTWAPPolicyVersion, now, 30*time.Second, 800_000, 900_000); err != nil {
+		t.Fatalf("valid DEX TWAP rejected: %v", err)
+	}
+	tests := map[string]func(*Price){
+		"missing derivation":            func(value *Price) { value.Derivation = nil },
+		"provider policy":               func(value *Price) { value.Derivation.PolicyVersion = DerivativesPolicyVersion },
+		"wrong component":               func(value *Price) { value.Derivation.ComponentTypes[0] = "spot_price" },
+		"short window":                  func(value *Price) { value.Derivation.ObservationWindowSeconds = 0 },
+		"insufficient reporters":        func(value *Price) { value.Derivation.ReporterCount = 2 },
+		"lineage mismatch":              func(value *Price) { value.Derivation.ComponentLineageHashes[0] = strings.Repeat("f", 64) },
+		"rejected block outside window": func(value *Price) { value.Derivation.RejectedBlockNumbers[0] = 999 },
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			candidate := validDEXTWAPPrice(now)
+			mutate(&candidate)
+			if err := candidate.Validate(now, 30*time.Second, 800_000); err == nil {
+				t.Fatal("unsafe DEX TWAP accepted")
+			}
+		})
+	}
+}
+
 func TestClientRequiresTimeoutAndRejectsHTTPOffLoopback(t *testing.T) {
 	if _, err := New("http://192.0.2.1", &http.Client{Timeout: time.Second}); err == nil {
 		t.Fatal("remote plain HTTP accepted")

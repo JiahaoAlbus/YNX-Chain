@@ -22,6 +22,7 @@ type Service struct {
 	providers   map[string]Provider
 	policy      Policy
 	derivatives DerivativesPolicy
+	dexTWAP     DEXTWAPPolicy
 	now         func() time.Time
 	startedAt   time.Time
 	lastGood    map[string]Price
@@ -56,7 +57,7 @@ func NewService(store *Store, providers []Provider, policy Policy, now func() ti
 	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
 		return nil, errors.New("provider rate policy is invalid")
 	}
-	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), dexTWAP: DefaultDEXTWAPPolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
 }
 
 func (service *Service) Ingest(observation Observation) (bool, error) {
@@ -134,6 +135,9 @@ func (service *Service) Correct(correction Correction) error {
 }
 
 func (service *Service) aggregateAndPersist(market string, kind DataType) (Price, error) {
+	if kind == DEXTWAP {
+		return service.aggregateDEXTWAPAndPersist(market)
+	}
 	if kind == IndexPrice || kind == FundingReference || kind == MarkPrice {
 		return service.aggregateDerivedAndPersist(market, kind)
 	}
@@ -298,6 +302,7 @@ type Health struct {
 	Schema                    string            `json:"schema"`
 	PolicyVersion             string            `json:"policyVersion"`
 	DerivativesPolicyVersion  string            `json:"derivativesPolicyVersion"`
+	DEXTWAPPolicyVersion      string            `json:"dexTwapPolicyVersion"`
 	NormalizerVersion         string            `json:"normalizerVersion"`
 	StoreVersion              int               `json:"storeVersion"`
 	StartedAt                 time.Time         `json:"startedAt"`

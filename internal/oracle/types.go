@@ -88,7 +88,7 @@ func (value DataType) ProviderInput() bool {
 		return false
 	}
 	switch value {
-	case IndexPrice, MarkPrice, FundingReference, DataCorrection, HistoricalReplay:
+	case IndexPrice, MarkPrice, FundingReference, DEXTWAP, DataCorrection, HistoricalReplay:
 		return false
 	default:
 		return true
@@ -138,14 +138,19 @@ type OrderBookSnapshot struct {
 }
 
 type PoolState struct {
-	ChainID     string `json:"chainId"`
-	Pool        string `json:"pool"`
-	Token0      string `json:"token0"`
-	Token1      string `json:"token1"`
-	Reserve0    string `json:"reserve0"`
-	Reserve1    string `json:"reserve1"`
-	BlockNumber uint64 `json:"blockNumber"`
-	BlockHash   string `json:"blockHash"`
+	ChainID         string    `json:"chainId"`
+	Pool            string    `json:"pool"`
+	Token0          string    `json:"token0"`
+	Token1          string    `json:"token1"`
+	Token0Decimals  uint8     `json:"token0Decimals"`
+	Token1Decimals  uint8     `json:"token1Decimals"`
+	Reserve0        string    `json:"reserve0"`
+	Reserve1        string    `json:"reserve1"`
+	BlockNumber     uint64    `json:"blockNumber"`
+	BlockHash       string    `json:"blockHash"`
+	ParentBlockHash string    `json:"parentBlockHash"`
+	BlockTime       time.Time `json:"blockTime"`
+	Confirmations   uint64    `json:"confirmations"`
 }
 
 type ProviderHealth struct {
@@ -394,7 +399,7 @@ func (observation Observation) validatePayload() error {
 	case DEXPoolState:
 		pool := observation.PoolState
 		decimal := regexp.MustCompile(`^[0-9]{1,78}$`)
-		if pool == nil || pool.ChainID == "" || pool.Pool == "" || pool.Token0 == "" || pool.Token1 == "" || pool.Token0 == pool.Token1 || !decimal.MatchString(pool.Reserve0) || !decimal.MatchString(pool.Reserve1) || pool.Reserve0 == "0" || pool.Reserve1 == "0" || pool.BlockNumber == 0 || !blockHashPattern.MatchString(pool.BlockHash) {
+		if pool == nil || pool.ChainID == "" || pool.Pool == "" || pool.Token0 == "" || pool.Token1 == "" || pool.Token0 == pool.Token1 || pool.Token0Decimals > 38 || pool.Token1Decimals > 38 || !decimal.MatchString(pool.Reserve0) || !decimal.MatchString(pool.Reserve1) || strings.Trim(pool.Reserve0, "0") == "" || strings.Trim(pool.Reserve1, "0") == "" || pool.BlockNumber == 0 || !blockHashPattern.MatchString(pool.BlockHash) || !blockHashPattern.MatchString(pool.ParentBlockHash) || pool.BlockTime.IsZero() || pool.BlockTime.After(observation.ObservedAt) || pool.Confirmations == 0 {
 			return fmt.Errorf("%w: DEX pool state", errInvalid)
 		}
 	case ProviderStatus:
@@ -438,17 +443,28 @@ type Price struct {
 }
 
 type PriceDerivation struct {
-	Method                 string     `json:"method"`
-	PolicyVersion          string     `json:"policyVersion"`
-	ComponentTypes         []DataType `json:"componentTypes"`
-	ComponentLineageHashes []string   `json:"componentLineageHashes"`
-	FundingWindowSeconds   int64      `json:"fundingWindowSeconds,omitempty"`
-	PremiumPPM             int64      `json:"premiumPpm,omitempty"`
-	BasisPPM               int64      `json:"basisPpm,omitempty"`
-	RawAdjustmentPPM       int64      `json:"rawAdjustmentPpm,omitempty"`
-	AppliedAdjustmentPPM   int64      `json:"appliedAdjustmentPpm,omitempty"`
-	ClampPPM               int64      `json:"clampPpm,omitempty"`
-	Clamped                bool       `json:"clamped"`
+	Method                   string     `json:"method"`
+	PolicyVersion            string     `json:"policyVersion"`
+	ComponentTypes           []DataType `json:"componentTypes"`
+	ComponentLineageHashes   []string   `json:"componentLineageHashes"`
+	FundingWindowSeconds     int64      `json:"fundingWindowSeconds,omitempty"`
+	PremiumPPM               int64      `json:"premiumPpm,omitempty"`
+	BasisPPM                 int64      `json:"basisPpm,omitempty"`
+	RawAdjustmentPPM         int64      `json:"rawAdjustmentPpm,omitempty"`
+	AppliedAdjustmentPPM     int64      `json:"appliedAdjustmentPpm,omitempty"`
+	ClampPPM                 int64      `json:"clampPpm,omitempty"`
+	Clamped                  bool       `json:"clamped"`
+	ObservationWindowSeconds int64      `json:"observationWindowSeconds,omitempty"`
+	StartBlock               uint64     `json:"startBlock,omitempty"`
+	EndBlock                 uint64     `json:"endBlock,omitempty"`
+	ConfirmationDepth        uint64     `json:"confirmationDepth,omitempty"`
+	ChainID                  string     `json:"chainId,omitempty"`
+	Pool                     string     `json:"pool,omitempty"`
+	ObservationCount         int        `json:"observationCount,omitempty"`
+	ReporterCount            int        `json:"reporterCount,omitempty"`
+	RejectedBlockNumbers     []uint64   `json:"rejectedBlockNumbers,omitempty"`
+	MinimumReserve0          string     `json:"minimumReserve0,omitempty"`
+	MinimumReserve1          string     `json:"minimumReserve1,omitempty"`
 }
 
 type NormalizedEvent struct {

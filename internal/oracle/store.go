@@ -114,12 +114,22 @@ func (store *Store) Ingest(observation Observation, provider Provider) (bool, er
 	if observation.Type == DEXPoolState {
 		for index := len(store.state.Observations) - 1; index >= 0; index-- {
 			previous := store.state.Observations[index]
-			if previous.ProviderID == observation.ProviderID && previous.Market == observation.Market && previous.Type == DEXPoolState {
-				if previous.PoolState == nil || observation.PoolState == nil || observation.PoolState.BlockNumber <= previous.PoolState.BlockNumber {
-					return false, errors.New("DEX pool block regression or replacement requires audited correction")
-				}
-				break
+			if previous.ProviderID != observation.ProviderID || previous.Market != observation.Market || previous.Type != DEXPoolState || previous.PoolState == nil || observation.PoolState == nil {
+				continue
 			}
+			if previous.PoolState.ChainID != observation.PoolState.ChainID || previous.PoolState.Pool != observation.PoolState.Pool {
+				continue
+			}
+			if observation.PoolState.BlockNumber <= previous.PoolState.BlockNumber {
+				return false, errors.New("DEX pool block regression or replacement requires audited correction")
+			}
+			if !observation.PoolState.BlockTime.After(previous.PoolState.BlockTime) {
+				return false, errors.New("DEX pool block time must increase")
+			}
+			if observation.PoolState.BlockNumber == previous.PoolState.BlockNumber+1 && observation.PoolState.ParentBlockHash != previous.PoolState.BlockHash {
+				return false, errors.New("DEX pool parent hash conflict requires audited correction")
+			}
+			break
 		}
 	}
 	next := cloneState(store.state)
