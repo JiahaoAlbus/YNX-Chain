@@ -28,6 +28,12 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 - Verification commands: `npm run typecheck`, `npm test` (32/32), `npm run product-check`, `npm run bundle`, and repository `git diff --check`. Android/iOS Hermes exports are local bundle evidence only; current installed APK/Simulator and hosted-artifact states remain false for this source commit.
 - `src/security/clipboardPrivacy.test.ts` proves expiration clears only the unchanged Wallet value, preserves a later user copy, supports cancellation, and rejects retention outside 1–120 seconds.
 
+## Local EVM compatibility and simulation evidence
+
+- Source commit `ec8bdc6c7ae61479ed257cff26c41dbbc1366dba`: explicit derived 0x compatibility view plus strict read-only EVM simulation. Code and `eth_call` use the same exact block tag; chain mismatch, empty code, malformed/unknown JSON-RPC fields, noncanonical quantities, provider errors and oversized responses fail closed.
+- `src/chain/evmSimulation.test.ts`: four grouped tests covering the complete method sequence, exact request binding, fixed-block behavior, no-code/wrong-chain rejection, input widening, provider errors and response bounds. The full Wallet test run passes 36/36.
+- Android and iOS Hermes exports pass for this source commit. They are local bundle evidence only; no current installed app, hosted artifact, public RPC capability or transaction execution claim is made.
+
 ## iOS Simulator evidence
 
 GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) executed `.github/workflows/wallet-ios.yml` on macOS 15 with Xcode 26.3. It installed dependencies and pods, passed the SDK and Wallet checks, built the unsigned Release `YNXWallet.app`, booted an available iPhone Simulator from shutdown, installed the app, cold-launched `com.ynxweb4.wallet`, resolved `ynxwallet://authorize?request=invalid`, captured the fail-closed rejection screen and uploaded the app plus command evidence. The exact unsigned Simulator bundle is hosted as an engineering-only release asset; this does not claim production signing, an archive, device installation or App Store release.
