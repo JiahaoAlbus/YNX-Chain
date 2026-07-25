@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "e18ce48378f6",
+  "sourceCommit": "a64bf67ff4ce",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -90,6 +90,39 @@
       "expected": "reject",
       "errorClass": "replay",
       "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-bounded-contract-code-call-accept",
+      "owner": "chain-core",
+      "operation": "eth_getCode-and-eth_call-and-eth_estimateGas",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "consensus-pinned-artifact-identity",
+        "committed-abci-contract-state",
+        "bounded-static-interpreter-result",
+        "one-consensus-resource-unit-estimate"
+      ]
+    },
+    {
+      "id": "evm-bounded-contract-historical-state-reject",
+      "owner": "chain-core",
+      "operation": "eth_getCode",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "mutation": "request-contract-code-at-prior-height",
+      "expected": "reject",
+      "errorClass": "historical-state-unavailable",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-bounded-contract-value-or-state-override-reject",
+      "owner": "chain-core",
+      "operation": "eth_call",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "mutation": "set-non-zero-value-or-state-override",
+      "expected": "reject",
+      "errorClass": "unsupported-execution-context",
+      "expectedRpcCode": -32602
     },
     {
       "id": "wallet-product-session-wrong-product-reject",

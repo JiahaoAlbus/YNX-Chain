@@ -73,14 +73,18 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.1.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.2.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
+requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
 requireValue(contract.evmRpc.pendingBlockAvailable === false, "EVM RPC cannot claim a pending block");
+requireValue(contract.evmRpc.boundedContractRuntimeMode === "pinned-artifact-bounded-evm-subset", "bounded EVM runtime mode drift");
+requireValue(contract.evmRpc.boundedCallNonZeroValue === false, "bounded EVM call cannot claim non-zero value support");
+requireValue(contract.evmRpc.boundedCallStateOverrides === false, "bounded EVM call cannot claim state override support");
 for (const method of contract.evmRpc.methods) {
   requireValue(gatewaySource.includes(`case \"${method}\"`) || gatewaySource.includes(`\"${method}\"`), `runtime EVM method missing: ${method}`);
 }
-for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedAccountResult", "evmCommittedResult"]) {
+for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
 
@@ -124,6 +128,9 @@ for (const required of [
   "evm-historical-account-state-reject",
   "evm-signed-ynxt-broadcast-accept",
   "evm-signed-ynxt-replay-reject",
+  "evm-bounded-contract-code-call-accept",
+  "evm-bounded-contract-historical-state-reject",
+  "evm-bounded-contract-value-or-state-override-reject",
   "wallet-product-session-wrong-product-reject",
   "wallet-product-session-scope-widening-reject",
   "user-operation-sponsored-batch-accept",
