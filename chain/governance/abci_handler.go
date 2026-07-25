@@ -3,6 +3,7 @@ package governance
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -31,46 +32,69 @@ func (h *ABCIHandler) CheckTx(txBytes []byte, now time.Time) error {
 		return fmt.Errorf("%w: %v", ErrInvalidEnvelope, err)
 	}
 
-	// Validate envelope structure and signature
 	if err := ValidateEnvelope(&env, h.chainID, now); err != nil {
 		return err
 	}
 
-	// Check nonce
-	h.state.mu.RLock()
-	expectedNonce := h.state.AccountNonces[env.Signer]
-	h.state.mu.RUnlock()
-
-	if env.AccountNonce != expectedNonce {
-		return fmt.Errorf("%w: expected %d, got %d", ErrNonceMismatch, expectedNonce, env.AccountNonce)
-	}
-
-	// Check for replay
+	// Replay is classified before nonce so a byte-identical delivered action
+	// cannot be disguised as a stale nonce failure.
 	txHash, err := CanonicalHash(&env)
 	if err != nil {
 		return err
 	}
-
 	h.state.mu.RLock()
-	if h.state.ProcessedTxHashes[txHash] {
+	processed := h.state.ProcessedTxHashes[txHash]
+	expectedNonce := h.state.AccountNonces[env.Signer]
+	h.state.mu.RUnlock()
+	if processed {
 		return ErrReplayAttack
 	}
-	h.state.mu.RUnlock()
+	if env.AccountNonce != expectedNonce {
+		return ErrNonceMismatch
+	}
 
-	// Action-specific validation
 	switch env.Action {
 	case ActionProposalCreate:
 		var payload ProposalCreatePayload
 		if err := json.Unmarshal(env.Payload, &payload); err != nil {
 			return fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
 		}
-		// TODO: Validate proposer has role, scope bounds, etc.
+		if strings.TrimSpace(payload.Nonce) == "" || strings.TrimSpace(payload.Scope) == "" || len(strings.TrimSpace(payload.Summary)) < 8 {
+			return fmt.Errorf("%w: incomplete proposal payload", ErrInvalidEnvelope)
+		}
 	case ActionVoteCast:
 		var payload VoteCastPayload
 		if err := json.Unmarshal(env.Payload, &payload); err != nil {
 			return fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
 		}
-		// TODO: Validate voter eligibility
+		position := strings.ToLower(strings.TrimSpace(payload.Position))
+		if strings.TrimSpace(payload.ProposalID) == "" || (position != "approve" && position != "reject" && position != "abstain" && position != "veto") {
+			return fmt.Errorf("%w: invalid vote binding or position", ErrInvalidEnvelope)
+		}
+		h.state.mu.RLock()
+		proposal := h.state.Proposals[payload.ProposalID]
+		var duplicate bool
+		if h.state.Votes[payload.ProposalID] != nil {
+			_, duplicate = h.state.Votes[payload.ProposalID][env.Signer]
+		}
+		h.state.mu.RUnlock()
+		if proposal == nil || proposal.Status != "voting" {
+			return fmt.Errorf("%w: proposal is not open for voting", ErrUnauthorizedAction)
+		}
+		if duplicate {
+			return ErrReplayAttack
+		}
+	case ActionRoleAssign:
+		var payload RoleAssignPayload
+		if err := json.Unmarshal(env.Payload, &payload); err != nil {
+			return fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
+		}
+		term, err := time.Parse(time.RFC3339, payload.Term)
+		if err != nil || !term.After(now) || strings.TrimSpace(payload.Account) == "" || strings.TrimSpace(payload.Role) == "" || len(payload.Scope) == 0 || strings.TrimSpace(payload.ProposalID) == "" {
+			return fmt.Errorf("%w: invalid scoped role assignment", ErrInvalidEnvelope)
+		}
+	default:
+		return fmt.Errorf("%w: unsupported action %s", ErrUnauthorizedAction, env.Action)
 	}
 
 	return nil
@@ -93,25 +117,17 @@ func (h *ABCIHandler) DeliverTx(txBytes []byte, now time.Time, height uint64) (*
 		return nil, err
 	}
 
-	// Mark as processed
-	h.state.mu.Lock()
-	h.state.ProcessedTxHashes[txHash] = true
-	h.state.Height = height
-	h.state.mu.Unlock()
-
-	// Execute action
-	var outcome string
+	// Execute before committing replay or height state. A failed action must not
+	// consume a nonce or poison the processed transaction registry.
+	outcome := "verified"
 	switch env.Action {
 	case ActionProposalCreate:
 		var payload ProposalCreatePayload
 		if err := json.Unmarshal(env.Payload, &payload); err != nil {
 			return nil, fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
 		}
-		_, err := h.state.ApplyProposalCreate(&env, &payload, now, height)
-		if err != nil {
-			outcome = "failed"
-		} else {
-			outcome = "verified"
+		if _, err := h.state.ApplyProposalCreate(&env, &payload, now, height); err != nil {
+			return nil, err
 		}
 
 	case ActionVoteCast:
@@ -119,13 +135,12 @@ func (h *ABCIHandler) DeliverTx(txBytes []byte, now time.Time, height uint64) (*
 		if err := json.Unmarshal(env.Payload, &payload); err != nil {
 			return nil, fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
 		}
-		// TODO: Compute voting power from staked balance or delegation
+		// The canonical electorate adapter will provide snapshot power when this
+		// handler is wired into the central ABCI application. This chain record
+		// is intentionally non-authoritative for tallying until then.
 		votingPower := int64(1)
-		err := h.state.ApplyVoteCast(&env, &payload, votingPower, now, height, txHash)
-		if err != nil {
-			outcome = "failed"
-		} else {
-			outcome = "verified"
+		if err := h.state.ApplyVoteCast(&env, &payload, votingPower, now, height, txHash); err != nil {
+			return nil, err
 		}
 
 	case ActionRoleAssign:
@@ -133,16 +148,19 @@ func (h *ABCIHandler) DeliverTx(txBytes []byte, now time.Time, height uint64) (*
 		if err := json.Unmarshal(env.Payload, &payload); err != nil {
 			return nil, fmt.Errorf("%w: invalid payload", ErrInvalidEnvelope)
 		}
-		err := h.state.ApplyRoleAssign(&env, &payload, now)
-		if err != nil {
-			outcome = "failed"
-		} else {
-			outcome = "verified"
+		if err := h.state.ApplyRoleAssign(&env, &payload, now); err != nil {
+			return nil, err
 		}
 
 	default:
 		return nil, fmt.Errorf("%w: unsupported action %s", ErrUnauthorizedAction, env.Action)
 	}
+
+	// Commit replay protection only after the action mutation succeeds.
+	h.state.mu.Lock()
+	h.state.ProcessedTxHashes[txHash] = true
+	h.state.Height = height
+	h.state.mu.Unlock()
 
 	// Compute new state root
 	stateRoot, err := h.state.ComputeStateRoot()
