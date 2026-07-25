@@ -21,3 +21,13 @@ Central integration, staging/public product deployment, deployed Bundler/Paymast
 The public EVM endpoint returned chainId 6423 and block 442,153 after bounded retries, but returned JSON-RPC `-32601` for `eth_getCode`. This directly contradicts public EntryPoint/code-verification readiness. The required Chain Core runtime and RPC acceptance surface is recorded in `packages/wallet-auth/integration/chain-erc4337-requirements.json`; no deployment state is raised.
 
 The canonical Gateway adapter, manifest, state schema and cross-language proof vector are implemented and tested but have not been merged into or deployed by `ynx-app-gatewayd`; `integratedCentral` therefore remains false.
+
+## StrategyMandate v2 and Product Session integration
+
+- Source commit `853b2e0bf923e3d3535685c38b3e2396c2ea56df` freezes StrategyMandate v2, StrategyAction v1, a restart-safe mandate store and Gateway adapter snapshot v2.
+- The package test suite passes 75/75. It covers exact Product Session P-256 proof binding, Registry v1-to-v2 migration, mandate activation, typed Vault/Pool/Router boundaries, Exchange subaccount-only rules, action limits, replay after restart, revoke, kill switch and emergency exit.
+- The shared vector `packages/wallet-auth/testdata/strategy-mandate-v2.json` fixes mandate digest `132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270`, action digest `ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45` and nonce key `1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479`.
+- Central Registry document v2 contains 26 exact registrations. Quant is deliberately `pending-review` and disabled. The accepted migration only consumes the exact prior 25-product set and does not enable Quant.
+- `release/integration/wallet-auth-contract.json` and `docs/integration/*` define the adapter and acceptance boundary without claiming central ownership or deployment.
+
+No direct YNX Testnet mandate transaction, shared Gateway deployment, Explorer record, Monitor record or public endpoint evidence exists for this slice; those states remain false.

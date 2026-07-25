@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "04979406f95530a1b205ff1fe485730af8031fe6",
+  "commit": "853b2e0bf923e3d3535685c38b3e2396c2ea56df",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -22,7 +22,7 @@
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"522b998077b5f150b86ab56f0a2f62a3a5005b82"},
     "sponsoredUserOperation": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"00815a0d90de1361528e072e1135cf497870f1c0"},
-    "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
+    "strategyMandate": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"schemaVersion":2,"gatewayAdapterSnapshotVersion":2,"evidenceSourceCommit":"853b2e0bf923e3d3535685c38b3e2396c2ea56df","sharedVector":"packages/wallet-auth/testdata/strategy-mandate-v2.json"},
     "capitalReview": {"implementedLocal":true,"testedLocal":true,"installedAndroid":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"04979406f95530a1b205ff1fe485730af8031fe6"},
     "selectiveDisclosureCredential": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false}
   },
@@ -47,20 +47,23 @@
   },
   "centralIntegration": {
     "candidateSchema": 3,
-    "registryProducts": 25,
-    "localExactProductsTested": ["social", "pay", "card"],
+    "registryDocumentVersion": 2,
+    "gatewayAdapterSnapshotVersion": 2,
+    "registryProducts": 26,
+    "localExactProductsTested": ["social", "pay", "card", "quant"],
     "candidateImplemented": true,
     "gatewayMerged": false,
     "registryDeployed": false,
     "lifecycleDeployed": false
   },
   "knownLimitations": [
-    "Central registry and Gateway lifecycle are candidates in this branch and are not merged or deployed.",
+    "Central Registry v2, Gateway adapter v2 and StrategyMandate v2 are tested candidates in this branch and are not merged or deployed by their central owners.",
+    "No direct YNX Testnet StrategyMandate transaction, mandate receipt, Explorer record or Monitor record exists yet.",
     "No staging/public product deployment, production signing or store release exists; hosted binaries are engineering evidence only.",
     "Native iOS development on this host requires full Xcode; the executed macOS CI provides the Simulator build/install evidence.",
     "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "CycloneDX 1.6 review SBOM is reproducible and contains 431 runtime components, but four Expo override ELSPROBLEMS keep release-grade SBOM completeness false; package-lock.json remains authoritative."
   ],
-  "generatedAt": "2026-07-23T00:40:03+08:00"
+  "generatedAt": "2026-07-25T04:12:00Z"
 }

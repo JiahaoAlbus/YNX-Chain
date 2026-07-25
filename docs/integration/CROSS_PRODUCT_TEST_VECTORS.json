@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth",
+  "sourceCommit": "853b2e0bf923e3d3535685c38b3e2396c2ea56df",
+  "vectors": [
+    {
+      "id": "wallet-auth-gateway-p256-v1",
+      "path": "packages/wallet-auth/testdata/gateway-p256-v1.json",
+      "consumers": ["app-gateway", "android", "ios", "29-integration"],
+      "requiredAssertions": ["exact-signing-domain", "wrong-device-rejected", "challenge-replay-rejected", "expiry-rejected"]
+    },
+    {
+      "id": "wallet-product-session-http-proof-v1",
+      "path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json",
+      "consumers": ["app-gateway", "all-products", "29-integration"],
+      "requiredAssertions": ["method-bound", "path-bound", "body-digest-bound", "nonce-replay-rejected", "bundle-substitution-rejected"]
+    },
+    {
+      "id": "wallet-central-lifecycle-v1",
+      "path": "packages/wallet-auth/testdata/central-lifecycle-v1.json",
+      "consumers": ["app-gateway", "26-data-fabric", "12-explorer", "13-monitor", "29-integration"],
+      "requiredAssertions": ["completion-atomic", "restart-safe", "session-revoke", "approval-revoke", "device-revoke", "all-device-logout"]
+    },
+    {
+      "id": "wallet-strategy-mandate-v2",
+      "path": "packages/wallet-auth/testdata/strategy-mandate-v2.json",
+      "consumers": ["quant", "exchange", "dex", "app-gateway", "26-data-fabric", "12-explorer", "13-monitor", "15-trust-center", "29-integration"],
+      "digests": {
+        "mandate": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+        "action": "ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45",
+        "actionNonceKey": "1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479"
+      },
+      "requiredAssertions": [
+        "exact-account-product-session-binding",
+        "independent-nonce-domain",
+        "typed-vault-pool-router-boundary",
+        "no-withdraw",
+        "no-owner-change",
+        "no-arbitrary-transfer",
+        "no-unlimited-approval",
+        "scope-widening-rejected",
+        "wrong-target-rejected",
+        "limit-exceeded-rejected",
+        "future-action-rejected",
+        "unknown-field-rejected",
+        "replay-rejected-after-restart",
+        "revoke-kill-emergency-exit-persisted"
+      ]
+    },
+    {
+      "id": "wallet-native-transfer-v1",
+      "path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json",
+      "consumers": ["01-chain-core", "wallet", "12-explorer", "29-integration"],
+      "requiredAssertions": ["ynx1-address", "0x-compatibility", "exact-chain-id", "signature-tamper-rejected", "receipt-matches-source-commit"]
+    }
+  ],
+  "testCommands": [
+    {"cwd": "packages/wallet-auth", "command": "npm test", "expected": "75/75"},
+    {"cwd": "packages/wallet-auth", "command": "npm run vector:strategy", "expected": "deterministic digests unchanged"},
+    {"cwd": "packages/wallet-auth", "command": "npm pack --dry-run", "expected": "pass"}
+  ],
+  "status": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "executedSharedTestnet": false,
+    "publicEvidence": false
+  }
+}

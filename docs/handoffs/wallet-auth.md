@@ -1,13 +1,13 @@
 # YNX Wallet and canonical Wallet Auth handoff
 
-Handoff date: 2026-07-22. Owned branch: `codex/final-wallet-auth`. Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/02-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
+Handoff date: 2026-07-25. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
 
 ## Git and ownership
 
 - Preserved starting/remote branch tip: `efe827f467107e23482289a5b1f69ac9ff83e694`.
 - Merge base: `b281376eac6fe3cf1ffa8c4b5a44e3546302791f`.
 - Compatibility reference observed on `origin/main`: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`.
-- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol/product source commit: `31de114bf9944dc89b3d4dea4d7f7abd92b018ba`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
+- Recovered hosted-artifact source commit: `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. Current protocol/vector source commit: `853b2e0bf923e3d3535685c38b3e2396c2ea56df`. The final release-record/handoff commit is reported to the controller because a commit cannot contain its own hash.
 - Owned changes are limited to `apps/wallet/**`, `packages/wallet-auth/**`, this handoff and `.github/workflows/wallet-ios.yml`. No central acceptance file, long-term objective, root Makefile or other product source was modified.
 
 ## Honest delivery state
@@ -15,9 +15,9 @@ Handoff date: 2026-07-22. Owned branch: `codex/final-wallet-auth`. Worktree: `/U
 | State | Value | Evidence/boundary |
 |---|---:|---|
 | implemented-local | true | Independent Wallet, canonical lifecycle, Signed Intent, Smart Account policy, mandate/capital and Credential candidates |
-| tested-local | true | Wallet 23/23 and SDK 54/54 plus typecheck/product-check pass on the recovered final branch |
+| tested-local | true | Wallet/Auth SDK 75/75 plus prior Wallet typecheck/product-check evidence; current integration slice is source- and vector-bound |
 | installed-local | Android true; iOS Simulator true | API 36 phone/foldable installed and cold-launched; macOS 15/Xcode 26.3 CI installed and cold-launched the unsigned iOS Simulator app |
-| integrated-central | false | Version 3 candidate exists; not merged into/deployed by central Gateway |
+| integrated-central | false | Registry document v2, product schema v3 and Gateway adapter v2 are tested candidates; not merged into or deployed by central Gateway |
 | deployed-staging | false | No staging endpoint or version health exists |
 | deployed-public | false | No product public deployment exists; public chain RPC use is not product deployment |
 | download-hosted | true | GitHub prerelease hosts the exact test-signed APK and unsigned Simulator app with hashes |
@@ -62,11 +62,11 @@ Revocation boundaries are:
 - product device binding: all sessions for that exact product device;
 - account logout watermark: every account session issued at/before the all-devices logout.
 
-## Version 3 central registry candidate
+## Central Registry document v2 / product schema v3 candidate
 
-`packages/wallet-auth/central-registry.json` contains exactly 25 sorted products: Wallet, Social, Pay, Merchant Console, Card, Exchange, Shop, Seller Console, Developer, Explorer, Monitor, AI, Trust Center, Resource Market, Music, Video, Creator Studio, Cloud, Docs, Browser, Search, Finance, Mail, Calendar and DEX.
+`packages/wallet-auth/central-registry.json` contains exactly 26 sorted products, adding Quant to the prior 25-product set. Registry v1 migrates only from that exact prior set and deterministically adds Quant as disabled and `pending-review`.
 
-Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. All entries are `pending-review` and disabled; schema validation refuses enablement without `approved` review status. The Wallet locally reviews only the exact observed Social, Pay and Card tuples while the central candidate remains disabled.
+Every entry has an exact product ID, requesting product, client, bundle/package, callback list, sorted least-privilege scopes, `maxScopes`, permitted device algorithms, session duration and revocation policy. There are no wildcard values. All entries are `pending-review` and disabled; schema validation refuses enablement without `approved` review status. The Wallet locally tests exact Social, Pay, Card and Quant tuples while the central candidate remains disabled.
 
 The canonical Social tuple is now `ynx-social-v1` / `com.ynx.social` / `ynx-social://com.ynx.social`, matching the independent Social worktree. All executable fixtures, deterministic vectors and the Android proof harness use that tuple. `registry-conflict-evidence.json` is the only retained record of the deleted `com.ynxweb4.social` / `ynxsocial://wallet-auth/callback` fixture and the legacy central Ed25519/session contract. It is conflict evidence, not an accepted runtime alias or deployment claim. Exact migration, verification and rollout requirements are in `CENTRAL_INTEGRATION.md`.
 
@@ -76,6 +76,14 @@ The canonical Social tuple is now `ynx-social-v1` / `com.ynx.social` / `ynx-soci
 - New shared tests complete the exact Pay and Card tuples through Wallet approval, device challenge and product-bound session. Tests reject callback interception, approval/request substitution, scope expansion/reorder, expiry extension, cross-App token use and wrong device/account/introspection.
 - A central deployment and second installed Pay/Card binary are not claimed. The shared vectors/SDK are the integration contract until the controller merges and deploys the lifecycle.
 
+## StrategyMandate v2 integration
+
+StrategyMandate v2 binds account, Product Session, Quant engine commit/release, execution kind/account, independent nonce domain, exact venues/assets/markets/methods, typed Vault/Pool/Router targets, capital/position/leverage/order/slippage/gas/frequency/loss/drawdown limits, fees, expiry, kill, revoke and emergency exit. Exchange mandates are subaccount-only and no-withdraw. DEX mandates prohibit transfer, approval, owner/admin and upgrade selectors.
+
+The Gateway adapter requires a fresh unconsumed P-256 HTTP proof for activation, action authorization, inventory, revoke, kill and emergency exit. The state store persists action nonce/digest consumption and terminal states across restart. The shared vector is `packages/wallet-auth/testdata/strategy-mandate-v2.json`; the machine contract and owner acceptance boundaries are under `release/integration/` and `docs/integration/`.
+
+No central merge, YNX Testnet mandate receipt, Explorer proof or Monitor proof is claimed.
+
 ## Localization, accessibility and visual evidence
 
 Runtime catalogs: en, zh-CN, zh-TW, ja, ko, es, fr, de, pt, ru, ar and id. Onboarding, locked state, primary account actions and authorization safety copy no longer fall back to English in the eleven translated catalogs. Device locale detection/manual persistence, Arabic RTL, `Intl` dates/numbers/YNXT/plurals, system light/dark, high-text-contrast palettes, reduced-motion sheets, font scaling, screen-reader labels/roles/state and touch targets are tested.
@@ -84,7 +92,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Verification performed
 
-- `packages/wallet-auth npm test`: 30/30 pass; `npm pack --dry-run` includes central docs, registry, conflict report, schemas and vectors.
+- `packages/wallet-auth npm test`: 75/75 pass; `npm pack --dry-run` includes central docs, Registry v2, Gateway adapter v2, StrategyMandate runtime and deterministic vectors.
 - `apps/wallet npm run check`: typecheck, 23/23 tests, product boundary check, Android/iOS Hermes exports pass.
 - `apps/wallet npm audit --omit=dev --audit-level=high`: pass with no high/critical; ten moderate Expo build-tool findings documented. SDK audit: zero findings.
 - `npm run hardhat:build && npm run contracts:selectors && go test ./...`: pass after generating the repository's ignored contract fixtures.
@@ -110,7 +118,7 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 
 ## Controller integration requests and external blockers
 
-1. Review the version 3 registry conflicts and exact 25-product entries, approve only verified tuples, merge the shared package into the central Gateway and deploy the atomic lifecycle/introspection/revocation store. Until verified remotely, `integratedCentral` remains false.
+1. Review Central Registry document v2 / product schema v3 conflicts and exact 26-product entries, approve only verified tuples, merge Gateway adapter v2 into the central Gateway and deploy the atomic lifecycle/introspection/revocation/mandate store. Until verified remotely, `integratedCentral` remains false.
 2. Have each product adopt the canonical request/callback/challenge/completion SDK; remove legacy query-field login and custom/local session verifiers. Exercise installed Wallet↔product flows against the deployed central lifecycle.
 3. Provide owner-controlled Android production keystore, Apple signing/provisioning and store accounts; perform physical-device biometric/screen-reader/recovery drills. Engineering artifacts are hosted, but production-signed/store states remain false.
 4. Commission external mobile/cryptographic review and decide whether a chain-compatible native non-exportable transaction signer/device-integrity policy is required before mainnet.
