@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-economics-local-integration-store-72591ce",
+  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+  "capturedAt": "2026-07-25T06:30:00Z",
+  "classification": "local-deterministic-durable-integration-evidence",
+  "contractId": "ynx.economics.integration.v1",
+  "commands": [
+    "make economics-integration-store-check",
+    "go test ./internal/economics -run IntegrationStore -count=1"
+  ],
+  "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449",
+  "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
+  "revision": 2,
+  "acceptedBundles": 1,
+  "recordCounts": {
+    "canonicalEnvelopes": 5,
+    "billingLedgerEntries": 18,
+    "explorerProjections": 5,
+    "monitorChecks": 15
+  },
+  "verifiedBoundaries": {
+    "firstIngestApplied": true,
+    "sameBundleReplayIdempotent": true,
+    "semanticFactsNotDoubleCountedAcrossRewrappedCommits": true,
+    "sourceCommitRebindingRejected": true,
+    "unacceptedRecordSourceRejected": true,
+    "cumulativeRecordCountsReconciled": true,
+    "atomicPersistence": true,
+    "stateFileMode0600": true,
+    "restartRecovery": true,
+    "freshPathRestore": true,
+    "stateHashTamperingRejected": true,
+    "insecurePermissionsRejected": true,
+    "symlinkLoadRejected": true
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "directEvidenceMissing": {
+    "dataFabricAcceptance": true,
+    "sharedTestnetTransactions": true,
+    "sharedTestnetBlocksAndReceipts": true,
+    "explorerAcceptance": true,
+    "monitorAcceptance": true,
+    "publicUrls": true
+  }
+}

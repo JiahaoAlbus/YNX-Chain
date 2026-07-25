@@ -3,7 +3,7 @@
   "releaseId": "ynxt-economics-local-candidate-2026-07-25",
   "product": "YNXT Economics",
   "asOf": "2026-07-25T05:00:00Z",
-  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "releaseClass": "local_testnet_integration_candidate",
   "routes": ["/ynxt", "/economics", "/api/economics/disclosure", "/assets/economics-og.png"],
   "states": {
@@ -20,6 +20,7 @@
   "verification": [
     "make economics-integration-contract-check",
     "make economics-integration-adapter-check",
+    "make economics-integration-store-check",
     "make staking-risk-runtime-check",
     "make economics-local-candidate-check",
     "make economics-public-ui-check",

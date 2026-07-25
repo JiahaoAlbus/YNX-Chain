@@ -90,6 +90,24 @@ assert.deepEqual(contract.integrationAdapter.counts, {
   explorerProjections: 5,
   monitorChecks: 15,
 });
+assert.equal(contract.integrationStore.schemaVersion, 1);
+assert.equal(contract.integrationStore.sourceCommit, contract.sourceCommit);
+assert.equal(contract.integrationStore.bundleHash, contract.integrationAdapter.bundleHash);
+assert.equal(contract.integrationStore.acceptedBundles, 1);
+assert.equal(contract.integrationStore.revision, 2);
+assert.deepEqual(contract.integrationStore.recordCounts, contract.integrationAdapter.counts);
+assert.equal(contract.integrationStore.idempotentReplay, true);
+assert.equal(contract.integrationStore.semanticDeduplication, true);
+assert.equal(contract.integrationStore.commitRebindingRejected, true);
+assert.equal(contract.integrationStore.unacceptedSourceRejected, true);
+assert.equal(contract.integrationStore.atomicPersistence, true);
+assert.equal(contract.integrationStore.fileMode, "0600");
+assert.equal(contract.integrationStore.restartRecovery, true);
+assert.equal(contract.integrationStore.tamperRejection, true);
+assert.equal(contract.integrationStore.acceptedByDataFabric, false);
+assert.equal(contract.integrationStore.sharedTestnetEvidence, false);
+assert.equal(contract.integrationStore.publicDeployment, false);
+assert.equal(contract.integrationStore.production, false);
 
 const eventTypes = contract.canonicalEvents.map((event) => event.type);
 assert.equal(new Set(eventTypes).size, eventTypes.length, "canonical event types must be unique");
@@ -113,6 +131,11 @@ for (const requiredPath of [
   "economics/examples/staking-risk-runtime-replay.json",
   "internal/economics/integration_adapter.go",
   "cmd/ynx-economics-integration/main.go",
+  "internal/economics/integration_store.go",
+  "cmd/ynx-economics-integration-store/main.go",
+  "scripts/verify/economics-integration-store-check.mjs",
+  "evidence/economics/integration-bundle-72591ce.json",
+  "evidence/economics/integration-store-72591ce.json",
 ]) {
   assert.ok(fs.existsSync(path.join(root, requiredPath)), `missing integration artifact: ${requiredPath}`);
 }
@@ -180,6 +203,29 @@ assert.equal(integrationSummary.billingCount, contract.integrationAdapter.counts
 assert.equal(integrationSummary.explorerCount, contract.integrationAdapter.counts.explorerProjections);
 assert.equal(integrationSummary.monitorCount, contract.integrationAdapter.counts.monitorChecks);
 assert.deepEqual(integrationSummary.releaseStates, contract.releaseStates);
+
+const storeVector = vectorById.get("economics-integration-store-v1");
+assert.ok(storeVector);
+assert.equal(storeVector.sourceCommit, contract.sourceCommit);
+assert.equal(storeVector.expected.schemaVersion, contract.integrationStore.schemaVersion);
+assert.equal(storeVector.expected.contractId, contract.contractId);
+assert.equal(storeVector.expected.revision, contract.integrationStore.revision);
+assert.equal(storeVector.expected.acceptedBundles, contract.integrationStore.acceptedBundles);
+assert.equal(storeVector.expected.bundleHash, contract.integrationStore.bundleHash);
+assert.equal(storeVector.expected.storeStateHash, contract.integrationStore.storeStateHash);
+assert.deepEqual(storeVector.expected.recordCounts, {
+  envelopes: contract.integrationStore.recordCounts.canonicalEnvelopes,
+  billingLedger: contract.integrationStore.recordCounts.billingLedgerEntries,
+  explorer: contract.integrationStore.recordCounts.explorerProjections,
+  monitor: contract.integrationStore.recordCounts.monitorChecks,
+});
+assert.equal(storeVector.expected.firstApply, true);
+assert.equal(storeVector.expected.secondApplyIdempotent, true);
+assert.equal(storeVector.expected.fileMode, contract.integrationStore.fileMode);
+assert.equal(storeVector.expected.centralAcceptance, false);
+assert.equal(storeVector.expected.sharedTestnet, false);
+assert.equal(storeVector.expected.publicDeployment, false);
+assert.equal(storeVector.expected.production, false);
 
 const feeVector = vectorById.get("fee-burn-revenue-separation-v1");
 assert.ok(feeVector);

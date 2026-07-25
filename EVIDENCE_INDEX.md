@@ -62,7 +62,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Cross-owner integration inventory and exact false states | `release/economics-integration-manifest.json` | Parse JSON and inspect every activation boundary |
 | Frozen economics integration contract, event owners and error codes | `release/integration/ynxt-economics-contract.json` | `make economics-integration-contract-check` |
 | Canonical envelope, Billing Ledger, Explorer and Monitor adapter | `internal/economics/integration_adapter.go`, `internal/economics/integration_adapter_test.go` | `make economics-integration-adapter-check` |
-| Deterministic local integration bundle evidence | `evidence/economics/integration-bundle-cca294f.json` | Re-run the recorded summary command and match `sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71` |
+| Deterministic local integration bundle evidence | `evidence/economics/integration-bundle-72591ce.json` | Re-run the recorded summary command and match `sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449` |
+| Durable idempotent integration Store and restart evidence | `internal/economics/integration_store.go`, `evidence/economics/integration-store-72591ce.json` | `make economics-integration-store-check`; match Store State `sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed` |
 | Cross-product deterministic event and release vectors | `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` | `make economics-integration-contract-check` |
 | Owner acceptance and fail-closed dependency gates | `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/DEPENDENCY_ACCEPTANCE.md` | Review all owner states as pending until direct evidence exists |
 | Requirement-by-requirement completion decision | `DELIVERY_COMPLETION_AUDIT.md` | Confirm partial/missing evidence remains false |

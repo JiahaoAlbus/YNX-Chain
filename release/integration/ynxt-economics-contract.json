@@ -4,7 +4,7 @@
   "productSlug": "ynxt-economics",
   "product": "YNXT Economics / Treasury / Stable Settlement",
   "owner": "17 Economics",
-  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "status": "active",
   "currentPhase": "INTEGRATE",
   "nextPhase": "TESTNET",
@@ -240,7 +240,7 @@
     "source": "internal/economics/integration_adapter.go",
     "cli": "cmd/ynx-economics-integration",
     "evidenceClass": "local-deterministic-integration",
-    "bundleHash": "sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71",
+    "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449",
     "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
     "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
     "counts": {
@@ -264,6 +264,34 @@
     "acceptedByDataFabric": false,
     "acceptedByExplorer": false,
     "acceptedByMonitor": false,
+    "sharedTestnetEvidence": false,
+    "publicDeployment": false,
+    "production": false
+  },
+  "integrationStore": {
+    "schemaVersion": 1,
+    "source": "internal/economics/integration_store.go",
+    "cli": "cmd/ynx-economics-integration-store",
+    "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+    "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449",
+    "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
+    "acceptedBundles": 1,
+    "revision": 2,
+    "recordCounts": {
+      "canonicalEnvelopes": 5,
+      "billingLedgerEntries": 18,
+      "explorerProjections": 5,
+      "monitorChecks": 15
+    },
+    "idempotentReplay": true,
+    "semanticDeduplication": true,
+    "commitRebindingRejected": true,
+    "unacceptedSourceRejected": true,
+    "atomicPersistence": true,
+    "fileMode": "0600",
+    "restartRecovery": true,
+    "tamperRejection": true,
+    "acceptedByDataFabric": false,
     "sharedTestnetEvidence": false,
     "publicDeployment": false,
     "production": false
@@ -294,8 +322,12 @@
       "outputSchema": "StakingRiskState.v1"
     },
     {
-      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary",
+      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary",
       "outputSchema": "EconomicsIntegrationBundleSummary.v1"
+    },
+    {
+      "command": "go run ./cmd/ynx-economics-integration-store -state var/economics-integration-store.json -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -ingested-at 2026-08-04T00:00:00Z -summary",
+      "outputSchema": "EconomicsIntegrationStoreSummary.v1"
     }
   ],
   "authAndIntent": {
@@ -333,7 +365,12 @@
     "YNX_ECONOMICS_INTEGRATION_INVALID_LEDGER",
     "YNX_ECONOMICS_INTEGRATION_INVALID_PROJECTION",
     "YNX_ECONOMICS_INTEGRATION_INVALID_MONITOR",
-    "YNX_ECONOMICS_INTEGRATION_INVALID_BUNDLE"
+    "YNX_ECONOMICS_INTEGRATION_INVALID_BUNDLE",
+    "YNX_ECONOMICS_INTEGRATION_STORE_INVALID_STATE",
+    "YNX_ECONOMICS_INTEGRATION_STORE_CONFLICT",
+    "YNX_ECONOMICS_INTEGRATION_STORE_INVALID_TIME",
+    "YNX_ECONOMICS_INTEGRATION_STORE_IO",
+    "YNX_ECONOMICS_INTEGRATION_STORE_TAMPERED"
   ],
   "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
@@ -341,6 +378,7 @@
     "candidateRuntimeSchema": 1,
     "candidateStakingRiskSchema": 1,
     "candidateIntegrationSchema": 1,
+    "candidateIntegrationStoreSchema": 1,
     "activationRequires": [
       "29-integration-contract-acceptance",
       "01-chain-core-migration",

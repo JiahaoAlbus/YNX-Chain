@@ -4,7 +4,7 @@
 
 - Contract: `release/integration/ynxt-economics-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- Source commit: `cca294f36e84e1c63b3722d705172bed1ad17bd5`
+- Source commit: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
 - Contract owner: 17 Economics
 - Current phase: INTEGRATE
 - Next gate: TESTNET
@@ -56,6 +56,7 @@ A consumer must reject an unsupported version, missing audit hash, non-sequentia
 ```text
 make economics-integration-contract-check
 make economics-integration-adapter-check
+make economics-integration-store-check
 make staking-risk-runtime-check
 make economics-local-candidate-check
 go test ./...

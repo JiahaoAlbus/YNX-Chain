@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "ynx-economics-integration-store-"));
 const statePath = path.join(directory, "state", "integration.json");
-const sourceCommit = "5830b44cdca912774b4b104970b1c2fcea051eb8";
+const sourceCommit = "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9";
 const args = [
   "run",
   "./cmd/ynx-economics-integration-store",

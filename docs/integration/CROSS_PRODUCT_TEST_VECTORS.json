@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "ynx.economics.integration.v1",
-  "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
   "classification": "local-deterministic-integration-vectors",
   "sharedTestnetEvidence": false,
   "vectors": [
@@ -138,11 +138,11 @@
       "id": "economics-integration-bundle-v1",
       "economicInput": "economics/examples/runtime-replay.json",
       "stakingInput": "economics/examples/staking-risk-runtime-replay.json",
-      "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
-      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit cca294f36e84e1c63b3722d705172bed1ad17bd5 -summary",
+      "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "go run ./cmd/ynx-economics-integration -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -summary",
       "expected": {
         "contractId": "ynx.economics.integration.v1",
-        "sourceCommit": "cca294f36e84e1c63b3722d705172bed1ad17bd5",
+        "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
         "economicStateHash": "sha256:54e5f96297e88f260ef2be35ac0dea6d3c534c731bdd34f0f3c7083412544e09",
         "stakingStateHash": "sha256:702b746f252e323573fc8605da697a285f612959542b03d0a5dee86a029c7764",
         "envelopeCount": 5,
@@ -160,7 +160,7 @@
           "productionSigned": false,
           "storeReleased": false
         },
-        "bundleHash": "sha256:ff6b3a48ef34bb4648ed079ba9204865360960b9457e0ec3199ca2cc2b497a71"
+        "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449"
       },
       "consumerAssertions": {
         "26 Data Fabric": [
@@ -180,6 +180,51 @@
         "29 Integration": [
           "reproduce the exact bundle hash from the accepted source commit",
           "do not infer central integration from local deterministic evidence"
+        ]
+      }
+    },
+    {
+      "id": "economics-integration-store-v1",
+      "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "make economics-integration-store-check",
+      "expected": {
+        "schemaVersion": 1,
+        "contractId": "ynx.economics.integration.v1",
+        "revision": 2,
+        "acceptedBundles": 1,
+        "bundleHash": "sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449",
+        "storeStateHash": "sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed",
+        "recordCounts": {
+          "envelopes": 5,
+          "billingLedger": 18,
+          "explorer": 5,
+          "monitor": 15
+        },
+        "firstApply": true,
+        "secondApplyIdempotent": true,
+        "fileMode": "0600",
+        "centralAcceptance": false,
+        "sharedTestnet": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "consumerAssertions": {
+        "26 Data Fabric": [
+          "same source commit and bundle are idempotent",
+          "same source commit cannot bind a different bundle",
+          "rewrapped identical facts do not double count billing or events",
+          "unaccepted source commits and tampered state hashes fail closed"
+        ],
+        "12 Explorer": [
+          "projection storage remains candidate-only and maps one-to-one to canonical events"
+        ],
+        "13 Monitor": [
+          "monitor checks remain source-bound and survive restart without duplication"
+        ],
+        "29 Integration": [
+          "state is atomically persisted with mode 0600",
+          "restart and fresh-path restore reproduce the same state hash",
+          "local durable ingestion does not set integratedCentral true"
         ]
       }
     },
