@@ -28,6 +28,7 @@ type Config struct {
 	EventKeys          map[string][]byte
 	EventKeyProducts   map[string]string
 	PrivacyKey         []byte
+	SchemaRegistry     *datafabric.SchemaRegistry
 	SourceCommit       string
 	SourceRelease      string
 	MaxBodyBytes       int64
@@ -46,6 +47,7 @@ type Server struct {
 	rates           map[string]rateWindow
 	durationBuckets [11]atomic.Uint64
 	durationNanos   atomic.Uint64
+	startedAt       time.Time
 }
 
 func New(cfg Config) (*Server, error) {
@@ -69,11 +71,14 @@ func New(cfg Config) (*Server, error) {
 	if cfg.RateLimitPerMinute > 10000 {
 		return nil, errors.New("rate limit must be between 1 and 10000 requests per minute")
 	}
+	if cfg.SchemaRegistry == nil {
+		cfg.SchemaRegistry = datafabric.DefaultSchemaRegistry()
+	}
 	repository := cfg.Repository
 	if repository == nil {
 		repository = LocalRepository{Store: cfg.Store}
 	}
-	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow)}
+	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow), startedAt: time.Now().UTC()}
 	s.routes()
 	return s, nil
 }
@@ -82,9 +87,13 @@ func (s *Server) Handler() http.Handler { return s.securityHeaders(s.mux) }
 
 func (s *Server) routes() {
 	datafabricconsole.Register(s.mux)
+	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /healthz", s.health)
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metrics)
+	s.mux.HandleFunc("GET /v1/schemas", s.authorize("fabric.schemas.read", s.listSchemas))
+	s.mux.HandleFunc("GET /v1/schemas/{eventType}/{version}", s.authorize("fabric.schemas.read", s.getSchema))
+	s.mux.HandleFunc("POST /v1/schemas/compatibility", s.authorize("fabric.schemas.read", s.checkSchemaCompatibility))
 	s.mux.HandleFunc("POST /v1/events", s.authorize("fabric.events.write", s.appendEvent))
 	s.mux.HandleFunc("GET /v1/events", s.authorize("fabric.events.read", s.listEvents))
 	s.mux.HandleFunc("POST /v1/ledger/journal", s.authorize("fabric.ledger.write", s.postJournal))
@@ -263,14 +272,74 @@ func (s *Server) consumeReplayBinding(credential Credential, expiresAt time.Time
 	return true
 }
 
+type schemaCompatibilityRequest struct {
+	EventType   string `json:"eventType"`
+	FromVersion string `json:"fromVersion"`
+	ToVersion   string `json:"toVersion"`
+}
+
+func (s *Server) listSchemas(w http.ResponseWriter, _ *http.Request, principal Principal) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"registryVersion": s.cfg.SchemaRegistry.Version(),
+		"schemas":         s.cfg.SchemaRegistry.Definitions(principal.Product),
+		"source":          "ynx-data-fabric-schema-registry",
+		"asOf":            time.Now().UTC(),
+		"status":          "authoritative",
+	})
+}
+
+func (s *Server) getSchema(w http.ResponseWriter, r *http.Request, principal Principal) {
+	definition, err := s.cfg.SchemaRegistry.Resolve(r.PathValue("eventType"), r.PathValue("version"), time.Now().UTC())
+	if err != nil {
+		s.writeDataFabricError(w, http.StatusNotFound, err)
+		return
+	}
+	if definition.Product != principal.Product {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeSchemaProductMismatch), "Schema belongs to another product")
+		return
+	}
+	writeJSON(w, http.StatusOK, definition)
+}
+
+func (s *Server) checkSchemaCompatibility(w http.ResponseWriter, r *http.Request, principal Principal) {
+	input, err := decodeStrict[schemaCompatibilityRequest](w, r, s.cfg.MaxBodyBytes)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, string(datafabric.CodeInvalidVersion), err.Error())
+		return
+	}
+	definition, err := s.cfg.SchemaRegistry.Resolve(input.EventType, input.ToVersion, time.Now().UTC())
+	if err != nil {
+		s.writeDataFabricError(w, http.StatusBadRequest, err)
+		return
+	}
+	if definition.Product != principal.Product {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeSchemaProductMismatch), "Schema belongs to another product")
+		return
+	}
+	report, err := s.cfg.SchemaRegistry.Compatibility(input.EventType, input.FromVersion, input.ToVersion)
+	if err != nil {
+		s.writeDataFabricError(w, http.StatusBadRequest, err)
+		return
+	}
+	status := http.StatusOK
+	if !report.Compatible {
+		status = http.StatusConflict
+	}
+	writeJSON(w, status, report)
+}
+
 func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal Principal) {
 	event, err := datafabric.DecodeEnvelopeStrict(http.MaxBytesReader(w, r.Body, s.cfg.MaxBodyBytes))
 	if err != nil {
-		s.writeError(w, http.StatusBadRequest, "invalid_event", err.Error())
+		s.writeDataFabricError(w, http.StatusBadRequest, err)
 		return
 	}
 	if event.Product != principal.Product || (principal.AccountID != "" && event.Actor.AccountID != principal.AccountID) || (principal.SessionID != "" && event.Actor.SessionID != principal.SessionID) {
-		s.writeError(w, http.StatusForbidden, "authority_mismatch", "Event product, account, or session does not match canonical authorization")
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeWrongProduct), "Event product, account, or session does not match canonical authorization")
+		return
+	}
+	if err := s.cfg.SchemaRegistry.ValidateEnvelope(event); err != nil {
+		s.writeDataFabricError(w, http.StatusUnprocessableEntity, err)
 		return
 	}
 	key, exists := s.cfg.EventKeys[event.Integrity.KeyID]
@@ -287,11 +356,11 @@ func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal P
 		if errors.Is(err, datafabric.ErrTampered) {
 			status = http.StatusForbidden
 		}
-		message := "Canonical event was rejected by the authoritative repository"
-		if errors.Is(err, datafabric.ErrDuplicate) || errors.Is(err, datafabric.ErrOutOfOrder) || errors.Is(err, datafabric.ErrTampered) {
-			message = err.Error()
+		if code := datafabric.ErrorCodeOf(err); code != "" {
+			s.writeDataFabricError(w, status, err)
+		} else {
+			s.writeError(w, status, "DF_EVENT_REJECTED_V1", "Canonical event was rejected by the authoritative repository")
 		}
-		s.writeError(w, status, "event_rejected", message)
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"eventId": event.EventID, "status": "committed-to-outbox", "auditId": event.AuditID})
@@ -758,6 +827,21 @@ func requestDurationMetrics(buckets *[11]atomic.Uint64, nanos uint64) string {
 
 func (s *Server) writeRepositoryError(w http.ResponseWriter) {
 	s.writeError(w, http.StatusServiceUnavailable, "repository_unavailable", "Authoritative Data Fabric repository is unavailable")
+}
+
+func (s *Server) writeDataFabricError(w http.ResponseWriter, status int, err error) {
+	code := datafabric.ErrorCodeOf(err)
+	if code == "" {
+		code = "DF_REQUEST_INVALID_V1"
+	}
+	s.errors.Add(1)
+	random := make([]byte, 8)
+	_, _ = rand.Read(random)
+	body := map[string]any{"error": code, "message": err.Error(), "errorId": "err_" + hex.EncodeToString(random)}
+	if evidence := datafabric.ErrorEvidenceOf(err); len(evidence) != 0 {
+		body["evidence"] = evidence
+	}
+	writeJSON(w, status, body)
 }
 
 func (s *Server) writeError(w http.ResponseWriter, status int, code, message string) {
