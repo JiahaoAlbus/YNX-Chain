@@ -100,6 +100,9 @@ func loadState(path string) (persistentState, error) {
 	if state.SchemaVersion == 5 {
 		return loadLegacyStateV5(state)
 	}
+	if state.SchemaVersion == 6 {
+		return loadLegacyStateV6(state)
+	}
 	if state.SchemaVersion != SchemaVersion || state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
 		return persistentState{}, errors.New("bridge state schema is invalid")
 	}
@@ -172,6 +175,7 @@ func loadLegacyStateV4(state persistentState) (persistentState, error) {
 			return persistentState{}, errors.New("bridge v4 transfer lifecycle is missing")
 		}
 		migrateExposureStatus(&transfer)
+		prepareLegacyTransferForStateMachineMigration(&transfer)
 		state.Transfers[id] = transfer
 	}
 	state.Integrity = ""
@@ -202,6 +206,47 @@ func loadLegacyStateV5(state persistentState) (persistentState, error) {
 	state.ReconciliationReplayUnavailable = legacyReconciliationReplayKeys(state)
 	if state.DataRequests == nil {
 		state.DataRequests = map[string]DataRequest{}
+	}
+	for id, transfer := range state.Transfers {
+		prepareLegacyTransferForStateMachineMigration(&transfer)
+		state.Transfers[id] = transfer
+	}
+	state.Integrity = ""
+	return state, nil
+}
+
+func loadLegacyStateV6(state persistentState) (persistentState, error) {
+	if state.SchemaVersion != 6 {
+		return persistentState{}, errors.New("bridge v6 state schema is invalid")
+	}
+	got := state.Integrity
+	state.Integrity = ""
+	expected, err := stateDigest(state)
+	if err != nil || got != expected {
+		return persistentState{}, errors.New("bridge state integrity mismatch")
+	}
+	if state.Transfers == nil || state.SourceEvents == nil || state.CreateIdempotency == nil || state.FinalizeIdempotency == nil || state.MutationIdempotency == nil || state.Audit == nil {
+		return persistentState{}, errors.New("bridge v6 state schema is invalid")
+	}
+	if err := validateAuditChain(state.Audit); err != nil {
+		return persistentState{}, err
+	}
+	state.SchemaVersion = SchemaVersion
+	if state.Reconciliations == nil {
+		state.Reconciliations = map[string]Reconciliation{}
+	}
+	if state.ReconciliationResults == nil {
+		state.ReconciliationResults = map[string]Reconciliation{}
+	}
+	if state.ReconciliationReplayUnavailable == nil {
+		state.ReconciliationReplayUnavailable = map[string]bool{}
+	}
+	if state.DataRequests == nil {
+		state.DataRequests = map[string]DataRequest{}
+	}
+	for id, transfer := range state.Transfers {
+		prepareLegacyTransferForStateMachineMigration(&transfer)
+		state.Transfers[id] = transfer
 	}
 	state.Integrity = ""
 	return state, nil
@@ -239,6 +284,7 @@ func migrateLegacyState(state persistentState, preserveDataRequests bool) (persi
 	for id, transfer := range state.Transfers {
 		migrateLifecycle(&transfer)
 		migrateExposureStatus(&transfer)
+		prepareLegacyTransferForStateMachineMigration(&transfer)
 		state.Transfers[id] = transfer
 	}
 	state.Integrity = ""
@@ -265,6 +311,20 @@ func migrateExposureStatus(transfer *Transfer) {
 			transfer.ExposureStatus = "refund-recovered"
 		}
 	}
+}
+
+func prepareLegacyTransferForStateMachineMigration(transfer *Transfer) {
+	transfer.StateMachineVersion = ""
+	transfer.RouteID = ""
+	transfer.MessageID = ""
+	transfer.NonceDomain = ""
+	transfer.ProofType = ""
+	transfer.ProofDigest = ""
+	transfer.ProofVerificationStatus = ""
+	transfer.ProofVerifiedAt = ""
+	transfer.DestinationConfirmedAt = ""
+	transfer.DestinationAvailableAt = ""
+	transfer.DestinationAssetAvailable = false
 }
 
 func migrateLifecycle(transfer *Transfer) {

@@ -115,7 +115,9 @@ func randomHex(size int) string {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+	s.mux.HandleFunc("GET /bridge/state-machine", s.handleStateMachine)
 	s.mux.HandleFunc("GET /bridge/transparency", s.handleTransparency)
 	s.mux.HandleFunc("GET /bridge/routes", s.handleRoutes)
 	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
@@ -125,6 +127,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/attestations", s.requireAuth(s.handleAttest))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/finalize", s.requireAuth(s.handleFinalize))
+	s.mux.HandleFunc("POST /bridge/transfers/{id}/proof-verification", s.requireAuth(s.handleProofVerification))
 	s.mux.HandleFunc("POST /bridge/transfers/{id}/outcomes", s.requireAuth(s.handleOutcome))
 	s.mux.HandleFunc("POST /bridge/safety", s.requireAuth(s.handleSafety))
 	s.mux.HandleFunc("POST /bridge/reconciliations", s.requireAuth(s.handleReconciliation))
@@ -136,6 +139,22 @@ func (s *Server) routes() {
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.service.Health(s.build))
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
+	health := s.service.Health(s.build)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service": "ynx-bridged", "source": "ynx-bridge-runtime", "schemaVersion": health.SchemaVersion,
+		"stateMachineVersion": health.StateMachineVersion, "startedAt": health.StartedAt, "asOf": s.service.cfg.Now().UTC().Format(timeFormat),
+		"build": health.Build, "degraded": health.Degraded, "paused": health.Safety.Paused,
+		"providerStatus": health.ProviderStatus, "contractStatus": health.ContractStatus, "reconciliationStatus": health.ReconciliationStatus,
+		"lastSuccessfulTransfer": health.LastSuccessfulTransfer, "lastReconciliation": health.LastReconciliation,
+		"liveBridge": health.LiveBridge, "externalSubmissionEnabled": health.ExternalSubmissionEnabled,
+	})
+}
+
+func (s *Server) handleStateMachine(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.service.StateMachine())
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, _ *http.Request) {
@@ -249,6 +268,19 @@ func (s *Server) handleFinalize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := s.service.Finalize(r.PathValue("id"), request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handleProofVerification(w http.ResponseWriter, r *http.Request) {
+	var request ProofVerificationRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	result, err := s.service.VerifyProof(r.PathValue("id"), request)
 	if err != nil {
 		writeServiceError(w, err)
 		return

@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	SchemaVersion       = 6
+	SchemaVersion       = 7
+	StateMachineVersion = "ynx.bridge.lifecycle.v1"
 	MaxRequestBodyBytes = 64 << 10
 	MaxListLimit        = 100
 )
@@ -203,6 +204,28 @@ type ProductStatus struct {
 	Build                            buildinfo.Info       `json:"build"`
 }
 
+type StateDefinition struct {
+	ID                        string `json:"id"`
+	Terminal                  bool   `json:"terminal"`
+	DestinationAssetAvailable bool   `json:"destinationAssetAvailable"`
+	Description               string `json:"description"`
+}
+
+type StateTransition struct {
+	From      string `json:"from"`
+	To        string `json:"to"`
+	Condition string `json:"condition"`
+}
+
+type StateMachineDescriptor struct {
+	Version       string            `json:"version"`
+	Source        string            `json:"source"`
+	AsOf          string            `json:"asOf"`
+	States        []StateDefinition `json:"states"`
+	Transitions   []StateTransition `json:"transitions"`
+	LegacyAliases map[string]string `json:"legacyAliases"`
+}
+
 type Config struct {
 	StatePath       string
 	APIKey          string
@@ -385,6 +408,12 @@ type FinalizeRequest struct {
 	IdempotencyKey string `json:"idempotencyKey"`
 }
 
+type ProofVerificationRequest struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+	ProofType      string `json:"proofType"`
+	ProofDigest    string `json:"proofDigest"`
+}
+
 type PauseRequest struct {
 	IdempotencyKey string `json:"idempotencyKey"`
 	Paused         bool   `json:"paused"`
@@ -506,6 +535,10 @@ type Transfer struct {
 	ID                        string                 `json:"id"`
 	Status                    string                 `json:"status"`
 	Phase                     string                 `json:"phase"`
+	StateMachineVersion       string                 `json:"stateMachineVersion,omitempty"`
+	RouteID                   string                 `json:"routeId,omitempty"`
+	MessageID                 string                 `json:"messageId,omitempty"`
+	NonceDomain               string                 `json:"nonceDomain,omitempty"`
 	IntentDigest              string                 `json:"intentDigest"`
 	SourceChain               string                 `json:"sourceChain"`
 	SourceTxHash              string                 `json:"sourceTxHash"`
@@ -525,6 +558,14 @@ type Transfer struct {
 	UpdatedAt                 string                 `json:"updatedAt"`
 	FinalizationID            string                 `json:"finalizationId,omitempty"`
 	FinalizedAt               string                 `json:"finalizedAt,omitempty"`
+	ProofType                 string                 `json:"proofType,omitempty"`
+	ProofDigest               string                 `json:"proofDigest,omitempty"`
+	ProofVerificationStatus   string                 `json:"proofVerificationStatus,omitempty"`
+	ProofVerifiedAt           string                 `json:"proofVerifiedAt,omitempty"`
+	DestinationTxHash         string                 `json:"destinationTxHash,omitempty"`
+	DestinationConfirmedAt    string                 `json:"destinationConfirmedAt,omitempty"`
+	DestinationAvailableAt    string                 `json:"destinationAvailableAt,omitempty"`
+	DestinationAssetAvailable bool                   `json:"destinationAssetAvailable"`
 	NotBefore                 string                 `json:"notBefore,omitempty"`
 	LargeTransferDelayApplied bool                   `json:"largeTransferDelayApplied,omitempty"`
 	OutcomeEvidenceRef        string                 `json:"outcomeEvidenceRef,omitempty"`

@@ -23,6 +23,7 @@ import (
 type Service struct {
 	mu              sync.Mutex
 	cfg             Config
+	startedAt       string
 	maxAmounts      map[string]uint64
 	maxOutstanding  map[string]uint64
 	policies        map[string]RoutePolicy
@@ -33,26 +34,36 @@ type Service struct {
 }
 
 type Health struct {
-	OK                        bool           `json:"ok"`
-	Service                   string         `json:"service"`
-	NativeSymbol              string         `json:"nativeSymbol"`
-	Persistence               string         `json:"persistence"`
-	StateIntegrity            string         `json:"stateIntegrity"`
-	RouteCount                int            `json:"routeCount"`
-	RelayerCount              int            `json:"relayerCount"`
-	RequiredAttestations      int            `json:"requiredAttestations"`
-	TransferCount             int            `json:"transferCount"`
-	ReadyCount                int            `json:"readyCount"`
-	FinalizedLocalCount       int            `json:"finalizedLocalCount"`
-	AuditEventCount           int            `json:"auditEventCount"`
-	ExternalSubmissionEnabled bool           `json:"externalSubmissionEnabled"`
-	LiveBridge                bool           `json:"liveBridge"`
-	TruthfulStatus            string         `json:"truthfulStatus"`
-	Safety                    SafetyState    `json:"safety"`
-	RateLimit                 string         `json:"rateLimit"`
-	RateLimitDenied           uint64         `json:"rateLimitDenied"`
-	RetentionPolicy           string         `json:"retentionPolicy"`
-	Build                     buildinfo.Info `json:"build"`
+	OK                        bool              `json:"ok"`
+	Degraded                  bool              `json:"degraded"`
+	Service                   string            `json:"service"`
+	SchemaVersion             int               `json:"schemaVersion"`
+	StateMachineVersion       string            `json:"stateMachineVersion"`
+	StartedAt                 string            `json:"startedAt"`
+	NativeSymbol              string            `json:"nativeSymbol"`
+	Persistence               string            `json:"persistence"`
+	StateIntegrity            string            `json:"stateIntegrity"`
+	ProviderStatus            string            `json:"providerStatus"`
+	ContractStatus            string            `json:"contractStatus"`
+	ReconciliationStatus      string            `json:"reconciliationStatus"`
+	LastSuccessfulTransfer    *string           `json:"lastSuccessfulTransfer"`
+	LastReconciliation        *string           `json:"lastReconciliation"`
+	Dependencies              map[string]string `json:"dependencies"`
+	RouteCount                int               `json:"routeCount"`
+	RelayerCount              int               `json:"relayerCount"`
+	RequiredAttestations      int               `json:"requiredAttestations"`
+	TransferCount             int               `json:"transferCount"`
+	ReadyCount                int               `json:"readyCount"`
+	FinalizedLocalCount       int               `json:"finalizedLocalCount"`
+	AuditEventCount           int               `json:"auditEventCount"`
+	ExternalSubmissionEnabled bool              `json:"externalSubmissionEnabled"`
+	LiveBridge                bool              `json:"liveBridge"`
+	TruthfulStatus            string            `json:"truthfulStatus"`
+	Safety                    SafetyState       `json:"safety"`
+	RateLimit                 string            `json:"rateLimit"`
+	RateLimitDenied           uint64            `json:"rateLimitDenied"`
+	RetentionPolicy           string            `json:"retentionPolicy"`
+	Build                     buildinfo.Info    `json:"build"`
 }
 
 func ValidateConfig(cfg Config) error {
@@ -84,20 +95,45 @@ func New(cfg Config) (*Service, error) {
 		value, _ := strconv.ParseUint(policy.MaxOutstanding, 10, 64)
 		maxOutstanding[routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset)] = value
 	}
-	service := &Service{cfg: normalized, maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state, seen: map[string][]time.Time{}}
+	service := &Service{cfg: normalized, startedAt: normalized.Now().UTC().Format(timeFormat), maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state, seen: map[string][]time.Time{}}
 	migrated := false
 	for id, transfer := range service.state.Transfers {
 		transferMigrated := false
 		if transfer.Phase == "" {
 			switch transfer.Status {
 			case "pending_attestations":
-				transfer.Phase = "source_submitted"
+				transfer.Phase = phaseSourceSubmitted
 			case "ready_for_local_finalization":
-				transfer.Phase = "source_finalized"
+				transfer.Phase = phaseSourceFinalized
 			case "finalized_local":
-				transfer.Phase = "proof_attestation"
+				transfer.Phase = phaseProofAttestationAvailable
 			default:
 				return nil, fmt.Errorf("bridge persisted transfer %s has unknown legacy status", id)
+			}
+			transferMigrated = true
+		}
+		if transfer.StateMachineVersion == "" {
+			route := routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset)
+			transfer.StateMachineVersion = "ynx.bridge.lifecycle.legacy.v0"
+			if policy, ok := policies[route]; ok {
+				transfer.RouteID = routeCatalogID(route, policy)
+			}
+			transfer.MessageID = "msg_" + hashText("ynx-bridge-message-v1|" + transfer.SourceChain + "|" + transfer.SourceTxHash + "|" + strconv.FormatUint(transfer.SourceEventIndex, 10) + "|" + transfer.IntentDigest)[:32]
+			transfer.NonceDomain = "nonce_" + hashText(route)[:24]
+			transfer.Phase = canonicalOutcome(transfer.Phase)
+			transfer.PreviousPhase = canonicalOutcome(transfer.PreviousPhase)
+			for index := range transfer.Lifecycle {
+				transfer.Lifecycle[index].Phase = canonicalOutcome(transfer.Lifecycle[index].Phase)
+			}
+			switch transfer.ExposureStatus {
+			case "destination-confirmed":
+				transfer.ExposureStatus = "destination-confirmed-legacy"
+			case "refund-recovered":
+				transfer.ExposureStatus = "refunded"
+			}
+			transfer.DestinationAssetAvailable = false
+			if transfer.Phase == phaseProofAttestationAvailable || transfer.Phase == phaseDestinationActionSubmitted || transfer.Phase == phaseDestinationActionConfirmed || transfer.Phase == phaseDisputed {
+				transfer.ProofVerificationStatus = "legacy-not-explicitly-verified"
 			}
 			transferMigrated = true
 		}
@@ -240,8 +276,11 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 		notBefore = nowTime.Add(time.Duration(policy.LargeTransferDelaySeconds) * time.Second).Format(timeFormat)
 	}
 	id := "brg_" + digest[len("sha256:"):len("sha256:")+24]
+	routeID := routeCatalogID(route, policy)
+	messageID := "msg_" + hashText("ynx-bridge-message-v1|" + eventKey + "|" + digest)[:32]
 	transfer := Transfer{
-		ID: id, Status: "pending_attestations", Phase: "source_submitted", IntentDigest: digest,
+		ID: id, Status: "pending_attestations", Phase: phaseSourceSubmitted, StateMachineVersion: StateMachineVersion,
+		RouteID: routeID, MessageID: messageID, NonceDomain: "nonce_" + hashText(route)[:24], IntentDigest: digest,
 		SourceChain: normalized.SourceChain, SourceTxHash: normalized.SourceTxHash, SourceEventIndex: normalized.SourceEventIndex, SourceAsset: normalized.SourceAsset,
 		DestinationChain: normalized.DestinationChain, DestinationAsset: normalized.DestinationAsset, Amount: normalized.Amount,
 		Sender: normalized.Sender, Recipient: normalized.Recipient, AssetBoundary: policy.AssetBoundary,
@@ -361,14 +400,78 @@ func (s *Service) Finalize(transferID string, request FinalizeRequest) (Mutation
 	before := cloneState(s.state)
 	now := s.cfg.Now().UTC().Format(timeFormat)
 	transfer.Status = "finalized_local"
-	transfer.Phase = "proof_attestation"
+	transfer.Phase = phaseProofAttestationAvailable
 	transfer.FinalizationID = "brf_" + hashText(transfer.ID + "|" + request.IdempotencyKey)[:24]
 	transfer.FinalizedAt, transfer.UpdatedAt = now, now
+	transfer.ProofType = proofTypeThresholdRelayerAttestation
+	transfer.ProofDigest = proofDigestForTransfer(transfer)
+	transfer.ProofVerificationStatus = "available-unverified"
 	transfer.ExternalSubmissionEnabled = false
-	appendLifecycle(&transfer, "proof_attestation", now, "audit:"+transfer.FinalizationID, "local-finalization-only", "local-coordinator")
+	appendLifecycle(&transfer, phaseProofAttestationAvailable, now, "audit:"+transfer.FinalizationID, "threshold-attestation-bundle-available", "local-coordinator")
 	s.state.Transfers[transferID] = transfer
 	s.state.FinalizeIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: transferID}
 	appendAudit(&s.state, now, "transfer_finalized_local", transferID, digest)
+	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+		s.state = before
+		return MutationResult{}, err
+	}
+	return MutationResult{Transfer: cloneTransfer(transfer)}, nil
+}
+
+func (s *Service) StateMachine() StateMachineDescriptor {
+	return stateMachineDescriptor(s.cfg.Now())
+}
+
+func (s *Service) VerifyProof(transferID string, request ProofVerificationRequest) (MutationResult, error) {
+	transferID = strings.TrimSpace(transferID)
+	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
+	request.ProofType = normalizeName(request.ProofType)
+	request.ProofDigest = strings.ToLower(strings.TrimSpace(request.ProofDigest))
+	if !idempotencyPattern.MatchString(request.IdempotencyKey) || request.ProofType != proofTypeThresholdRelayerAttestation || !accountDigestPattern.MatchString(request.ProofDigest) {
+		return MutationResult{}, fmt.Errorf("%w: proof verification request is invalid", ErrInvalid)
+	}
+	digest := digestJSON(struct {
+		TransferID string                   `json:"transferId"`
+		Request    ProofVerificationRequest `json:"request"`
+	}{transferID, request})
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.state.Safety.Paused {
+		return MutationResult{}, fmt.Errorf("%w: bridge is paused", ErrConflict)
+	}
+	if existing, ok := s.state.MutationIdempotency[request.IdempotencyKey]; ok {
+		if existing.Digest != digest || existing.TransferID != transferID {
+			return MutationResult{}, fmt.Errorf("%w: proof idempotency key reused with changed input", ErrConflict)
+		}
+		return MutationResult{Transfer: cloneTransfer(s.state.Transfers[transferID]), Replayed: true}, nil
+	}
+	transfer, ok := s.state.Transfers[transferID]
+	if !ok {
+		return MutationResult{}, ErrNotFound
+	}
+	if transfer.Phase == phaseProofVerified {
+		return MutationResult{}, fmt.Errorf("%w: proof already verified under another key", ErrConflict)
+	}
+	if transfer.Phase != phaseProofAttestationAvailable || transfer.Status != "finalized_local" || len(transfer.Attestations) < transfer.RequiredAttestations {
+		return MutationResult{}, fmt.Errorf("%w: proof is not available for verification", ErrConflict)
+	}
+	if err := s.validatePersistedAttestations(transfer); err != nil {
+		return MutationResult{}, err
+	}
+	expected := proofDigestForTransfer(transfer)
+	if transfer.ProofType != proofTypeThresholdRelayerAttestation || transfer.ProofDigest != expected || request.ProofDigest != expected {
+		return MutationResult{}, fmt.Errorf("%w: proof digest or domain binding is invalid", ErrInvalid)
+	}
+	before := cloneState(s.state)
+	now := s.cfg.Now().UTC().Format(timeFormat)
+	transfer.Phase = phaseProofVerified
+	transfer.ProofVerificationStatus = "verified-threshold-relayer-attestation"
+	transfer.ProofVerifiedAt = now
+	transfer.UpdatedAt = now
+	appendLifecycle(&transfer, phaseProofVerified, now, transfer.ProofDigest, "domain-separated-threshold-signatures-reverified", "ynx-bridge-proof-verifier")
+	s.state.Transfers[transferID] = transfer
+	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: transferID}
+	appendAudit(&s.state, now, "proof_verified", transferID, digest)
 	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
 		s.state = before
 		return MutationResult{}, err
@@ -410,11 +513,17 @@ func (s *Service) SetPause(request PauseRequest) (SafetyState, bool, error) {
 func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (MutationResult, error) {
 	transferID = strings.TrimSpace(transferID)
 	request.IdempotencyKey = strings.TrimSpace(request.IdempotencyKey)
-	request.Outcome = normalizeName(request.Outcome)
+	rawOutcome := normalizeName(request.Outcome)
+	request.Outcome = rawOutcome
 	request.EvidenceRef = strings.TrimSpace(request.EvidenceRef)
 	request.ReasonCode = normalizeName(request.ReasonCode)
-	allowed := map[string]bool{"destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true, "retry": true}
-	if !idempotencyPattern.MatchString(request.IdempotencyKey) || !allowed[request.Outcome] || !identifierPattern.MatchString(request.EvidenceRef) || !identifierPattern.MatchString(request.ReasonCode) {
+	canonical := canonicalOutcome(rawOutcome)
+	allowed := map[string]bool{
+		phaseDestinationActionSubmitted: true, phaseDestinationActionConfirmed: true, phaseDestinationAvailable: true,
+		phaseFailed: true, phaseRetryable: true, phaseRefundPending: true, phaseRefunded: true,
+		phaseRecoveryRequired: true, phaseDisputed: true, phaseCorrected: true,
+	}
+	if !idempotencyPattern.MatchString(request.IdempotencyKey) || (rawOutcome != "retry" && !allowed[canonical]) || !identifierPattern.MatchString(request.EvidenceRef) || !identifierPattern.MatchString(request.ReasonCode) {
 		return MutationResult{}, fmt.Errorf("%w: outcome evidence is invalid", ErrInvalid)
 	}
 	digest := digestJSON(struct {
@@ -423,6 +532,9 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 	}{transferID, request})
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.state.Safety.Paused {
+		return MutationResult{}, fmt.Errorf("%w: bridge is paused", ErrConflict)
+	}
 	if existing, ok := s.state.MutationIdempotency[request.IdempotencyKey]; ok {
 		if existing.Digest != digest || existing.TransferID != transferID {
 			return MutationResult{}, fmt.Errorf("%w: mutation key reused with changed input", ErrConflict)
@@ -433,40 +545,53 @@ func (s *Service) RecordOutcome(transferID string, request OutcomeRequest) (Muta
 	if !ok {
 		return MutationResult{}, ErrNotFound
 	}
-	if request.Outcome == "retry" {
-		if transfer.Phase != "failed" {
-			return MutationResult{}, fmt.Errorf("%w: only failed transfers can retry", ErrConflict)
+	now := s.cfg.Now().UTC().Format(timeFormat)
+	auditAction := "lifecycle_" + canonical
+	if rawOutcome == "retry" {
+		if transfer.Phase == phaseFailed {
+			appendLifecycle(&transfer, phaseRetryable, now, request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
+			transfer.Phase = phaseRetryable
 		}
-		appendLifecycle(&transfer, "retry", s.cfg.Now().UTC().Format(timeFormat), request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
-		transfer.Phase, transfer.PreviousPhase, transfer.FailureReasonCode = transfer.PreviousPhase, "", ""
+		if transfer.Phase != phaseRetryable || transfer.PreviousPhase == "" || !canonicalPhases[transfer.PreviousPhase] {
+			return MutationResult{}, fmt.Errorf("%w: transfer is not eligible for retry", ErrConflict)
+		}
+		resumePhase := transfer.PreviousPhase
+		transfer.Phase, transfer.PreviousPhase, transfer.FailureReasonCode = resumePhase, "", ""
+		appendLifecycle(&transfer, resumePhase, now, request.EvidenceRef, "bounded-retry-resumed", "operator-submitted-evidence")
+		auditAction = "lifecycle_retry_resumed"
+	} else if rawOutcome == "refund_recovery" && transfer.Phase == phaseFailed {
+		appendLifecycle(&transfer, phaseRefundPending, now, request.EvidenceRef, "legacy-refund-request-confirmed", "operator-submitted-evidence")
+		transfer.Phase = phaseRefundPending
+		appendLifecycle(&transfer, phaseRefunded, now, request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
+		transfer.Phase = phaseRefunded
+		transfer.ExposureStatus = "refunded"
+		auditAction = "lifecycle_refunded"
 	} else {
-		valid := (request.Outcome == "failed" && transfer.Phase != "destination_confirmed" && transfer.Phase != "refund_recovery" && transfer.Phase != "dispute") ||
-			(request.Outcome == "destination_mint_release" && transfer.Phase == "proof_attestation") ||
-			(request.Outcome == "destination_confirmed" && transfer.Phase == "destination_mint_release") ||
-			(request.Outcome == "refund_recovery" && transfer.Phase == "failed") || request.Outcome == "dispute"
-		if !valid {
-			return MutationResult{}, fmt.Errorf("%w: invalid lifecycle transition", ErrConflict)
+		if !directOutcomeTransitionAllowed(transfer.Phase, canonical) {
+			return MutationResult{}, fmt.Errorf("%w: invalid lifecycle transition from %s to %s", ErrConflict, transfer.Phase, canonical)
 		}
-		if request.Outcome == "failed" {
+		if canonical == phaseFailed {
 			transfer.PreviousPhase, transfer.FailureReasonCode = transfer.Phase, request.ReasonCode
 		}
-		transfer.Phase = request.Outcome
-		if request.Outcome == "destination_confirmed" {
-			transfer.ExposureStatus = "destination-confirmed"
-		}
-		if request.Outcome == "refund_recovery" {
-			transfer.ExposureStatus = "refund-recovered"
+		transfer.Phase = canonical
+		appendLifecycle(&transfer, canonical, now, request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
+		switch canonical {
+		case phaseDestinationActionConfirmed:
+			transfer.DestinationConfirmedAt = now
+		case phaseDestinationAvailable:
+			transfer.DestinationAssetAvailable = true
+			transfer.DestinationAvailableAt = now
+			transfer.ExposureStatus = "destination-available"
+		case phaseRefunded:
+			transfer.ExposureStatus = "refunded"
 		}
 	}
 	transfer.OutcomeEvidenceRef = request.EvidenceRef
-	transfer.UpdatedAt = s.cfg.Now().UTC().Format(timeFormat)
-	if request.Outcome != "retry" {
-		appendLifecycle(&transfer, request.Outcome, transfer.UpdatedAt, request.EvidenceRef, request.ReasonCode, "operator-submitted-evidence")
-	}
+	transfer.UpdatedAt = now
 	before := cloneState(s.state)
 	s.state.Transfers[transferID] = transfer
 	s.state.MutationIdempotency[request.IdempotencyKey] = idempotencyRecord{Digest: digest, TransferID: transferID}
-	appendAudit(&s.state, transfer.UpdatedAt, "lifecycle_"+request.Outcome, transferID, digest)
+	appendAudit(&s.state, now, auditAction, transferID, digest)
 	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
 		s.state = before
 		return MutationResult{}, err
@@ -950,9 +1075,30 @@ func (s *Service) Audit(after uint64, limit int) []AuditEvent {
 func (s *Service) Health(build buildinfo.Info) Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	health := Health{OK: true, Service: "ynx-bridged", NativeSymbol: "YNXT", Persistence: "atomic-json-file", StateIntegrity: s.state.Integrity,
+	reconciliationStatus := "not-run"
+	lastReconciliation := ""
+	for _, record := range s.state.Reconciliations {
+		if record.RecordedAt > lastReconciliation {
+			lastReconciliation = record.RecordedAt
+			if record.Balanced {
+				reconciliationStatus = "operator-observed-balanced-not-independent"
+			} else {
+				reconciliationStatus = "operator-observed-imbalance-not-independent"
+			}
+		}
+	}
+	health := Health{
+		OK: true, Degraded: true, Service: "ynx-bridged", SchemaVersion: SchemaVersion, StateMachineVersion: StateMachineVersion, StartedAt: s.startedAt,
+		NativeSymbol: "YNXT", Persistence: "atomic-json-file", StateIntegrity: s.state.Integrity,
+		ProviderStatus: "unavailable-no-verified-provider-connection", ContractStatus: "unavailable-no-verified-contract-deployment", ReconciliationStatus: reconciliationStatus,
+		Dependencies: map[string]string{
+			"state": "integrity-sealed", "provider": "unavailable", "contracts": "unavailable", "relayerQuorum": "configured-local", "reconciliation": reconciliationStatus,
+		},
 		RouteCount: len(s.policies), RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
-		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: "local-coordinator-only-no-external-submission", Safety: s.state.Safety, Build: buildinfo.Normalize(build)}
+		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: "degraded-local-coordinator-only-no-provider-or-contract", Safety: s.state.Safety, Build: buildinfo.Normalize(build),
+	}
+	lastSuccessfulAt := ""
+	lastSuccessfulID := ""
 	for _, transfer := range s.state.Transfers {
 		switch transfer.Status {
 		case "ready_for_local_finalization":
@@ -960,6 +1106,18 @@ func (s *Service) Health(build buildinfo.Info) Health {
 		case "finalized_local":
 			health.FinalizedLocalCount++
 		}
+		if transfer.DestinationAssetAvailable && transfer.DestinationAvailableAt > lastSuccessfulAt {
+			lastSuccessfulAt, lastSuccessfulID = transfer.DestinationAvailableAt, transfer.ID
+		}
+	}
+	if lastSuccessfulID != "" {
+		health.LastSuccessfulTransfer = &lastSuccessfulID
+	}
+	if lastReconciliation != "" {
+		health.LastReconciliation = &lastReconciliation
+	}
+	if s.state.Safety.Paused {
+		health.TruthfulStatus = "paused-local-coordinator-no-provider-or-contract"
 	}
 	health.RateLimit, health.RateLimitDenied = s.RateLimitSnapshot()
 	health.RetentionPolicy = s.RetentionPolicy()
@@ -1037,7 +1195,6 @@ func (s *Service) validateStateLocked() (bool, error) {
 			return false, errors.New("bridge source-event index is inconsistent")
 		}
 	}
-	allowedPhases := map[string]bool{"source_submitted": true, "source_accepted": true, "source_finalized": true, "proof_attestation": true, "destination_mint_release": true, "destination_confirmed": true, "failed": true, "refund_recovery": true, "dispute": true, "retry": true}
 	exposure := map[string]uint64{}
 	userExposure := map[string]uint64{}
 	dailyVolume := map[string]uint64{}
@@ -1045,7 +1202,7 @@ func (s *Service) validateStateLocked() (bool, error) {
 		if transfer.ExternalSubmissionEnabled || transfer.RequiredAttestations != s.cfg.Threshold {
 			return false, errors.New("bridge persisted transfer violates current safety policy")
 		}
-		if !strings.HasPrefix(transfer.IntentDigest, "sha256:") || len(transfer.IntentDigest) != 71 || transfer.ID != "brg_"+strings.TrimPrefix(transfer.IntentDigest, "sha256:")[:24] {
+		if !accountDigestPattern.MatchString(transfer.IntentDigest) || transfer.ID != "brg_"+strings.TrimPrefix(transfer.IntentDigest, "sha256:")[:24] {
 			return false, errors.New("bridge persisted transfer identity is inconsistent")
 		}
 		eventKey := fmt.Sprintf("%s|%s|%d", transfer.SourceChain, transfer.SourceTxHash, transfer.SourceEventIndex)
@@ -1053,40 +1210,87 @@ func (s *Service) validateStateLocked() (bool, error) {
 			return false, errors.New("bridge transfer is missing its source-event index")
 		}
 		key := routeKey(transfer.SourceChain, transfer.DestinationChain, transfer.SourceAsset, transfer.DestinationAsset)
-		if _, ok := s.policies[key]; !ok {
+		policy, ok := s.policies[key]
+		if !ok {
 			return false, errors.New("bridge persisted transfer uses an unsupported route")
 		}
-		if !allowedPhases[transfer.Phase] {
+		expectedMessageID := "msg_" + hashText("ynx-bridge-message-v1|" + eventKey + "|" + transfer.IntentDigest)[:32]
+		if transfer.RouteID != routeCatalogID(key, policy) || transfer.MessageID != expectedMessageID || transfer.NonceDomain != "nonce_"+hashText(key)[:24] {
+			return false, errors.New("bridge persisted transfer route or replay domain is inconsistent")
+		}
+		if transfer.StateMachineVersion != StateMachineVersion && transfer.StateMachineVersion != "ynx.bridge.lifecycle.legacy.v0" {
+			return false, errors.New("bridge persisted transfer state machine version is unsupported")
+		}
+		if !canonicalPhases[transfer.Phase] || len(transfer.Lifecycle) == 0 {
 			return false, errors.New("bridge persisted transfer has an invalid lifecycle phase")
 		}
-		terminalPhase := ""
-		for _, event := range transfer.Lifecycle {
-			if event.Phase == "destination_confirmed" || event.Phase == "refund_recovery" {
-				if terminalPhase != "" && terminalPhase != event.Phase {
-					return false, errors.New("bridge persisted transfer has conflicting exposure resolution")
-				}
-				terminalPhase = event.Phase
-			}
-		}
-		expectedExposure := "open"
-		if terminalPhase == "destination_confirmed" {
-			expectedExposure = "destination-confirmed"
-		}
-		if terminalPhase == "refund_recovery" {
-			expectedExposure = "refund-recovered"
-		}
-		if transfer.ExposureStatus != expectedExposure {
-			return false, errors.New("bridge persisted transfer exposure status is inconsistent")
-		}
-		if len(transfer.Lifecycle) == 0 {
-			return false, errors.New("bridge persisted transfer lifecycle is missing")
-		}
+		sawProofAvailable := false
+		sawProofVerified := false
+		sawDestinationAvailable := false
+		sawRefunded := false
+		sawLegacyDestinationConfirmed := false
 		for i, event := range transfer.Lifecycle {
 			invalidEvidence := event.EvidenceRef != "" && !identifierPattern.MatchString(event.EvidenceRef)
 			invalidReason := event.ReasonCode != "" && !identifierPattern.MatchString(event.ReasonCode)
-			if event.Sequence != uint64(i+1) || !allowedPhases[event.Phase] || !validLifecycleTimestamp(event.At) || invalidEvidence || invalidReason || !identifierPattern.MatchString(event.Source) || !identifierPattern.MatchString(event.Coverage) {
+			if event.Sequence != uint64(i+1) || !canonicalPhases[event.Phase] || !validLifecycleTimestamp(event.At) || invalidEvidence || invalidReason || !identifierPattern.MatchString(event.Source) || !identifierPattern.MatchString(event.Coverage) {
 				return false, errors.New("bridge persisted transfer lifecycle is invalid")
 			}
+			switch event.Phase {
+			case phaseProofAttestationAvailable:
+				sawProofAvailable = true
+			case phaseProofVerified:
+				sawProofVerified = true
+			case phaseDestinationActionConfirmed:
+				sawLegacyDestinationConfirmed = true
+			case phaseDestinationAvailable:
+				sawDestinationAvailable = true
+			case phaseRefunded:
+				sawRefunded = true
+			}
+		}
+		if sawDestinationAvailable && sawRefunded {
+			return false, errors.New("bridge persisted transfer has conflicting exposure resolution")
+		}
+		expectedExposure := "open"
+		expectedAvailable := false
+		if sawDestinationAvailable {
+			expectedExposure, expectedAvailable = "destination-available", true
+		} else if sawRefunded {
+			expectedExposure = "refunded"
+		} else if transfer.StateMachineVersion == "ynx.bridge.lifecycle.legacy.v0" && sawLegacyDestinationConfirmed {
+			expectedExposure = "destination-confirmed-legacy"
+		}
+		if transfer.ExposureStatus != expectedExposure || transfer.DestinationAssetAvailable != expectedAvailable {
+			return false, errors.New("bridge persisted transfer exposure or availability status is inconsistent")
+		}
+		if expectedAvailable {
+			if !validLifecycleTimestamp(transfer.DestinationAvailableAt) {
+				return false, errors.New("bridge persisted destination availability evidence is invalid")
+			}
+		} else if transfer.DestinationAvailableAt != "" {
+			return false, errors.New("bridge persisted transfer exposes an unconfirmed destination availability time")
+		}
+		if transfer.DestinationConfirmedAt != "" && !validLifecycleTimestamp(transfer.DestinationConfirmedAt) {
+			return false, errors.New("bridge persisted destination confirmation time is invalid")
+		}
+		if transfer.StateMachineVersion == StateMachineVersion {
+			if sawProofAvailable {
+				expectedProofDigest := proofDigestForTransfer(transfer)
+				if transfer.ProofType != proofTypeThresholdRelayerAttestation || transfer.ProofDigest != expectedProofDigest {
+					return false, errors.New("bridge persisted proof bundle is inconsistent")
+				}
+				if sawProofVerified {
+					if transfer.ProofVerificationStatus != "verified-threshold-relayer-attestation" || !validLifecycleTimestamp(transfer.ProofVerifiedAt) {
+						return false, errors.New("bridge persisted proof verification is inconsistent")
+					}
+				} else if transfer.ProofVerificationStatus != "available-unverified" || transfer.ProofVerifiedAt != "" {
+					return false, errors.New("bridge persisted unverified proof status is inconsistent")
+				}
+			} else if transfer.ProofType != "" || transfer.ProofDigest != "" || transfer.ProofVerificationStatus != "" || transfer.ProofVerifiedAt != "" {
+				return false, errors.New("bridge persisted transfer has proof fields before proof availability")
+			}
+		} else if transfer.DestinationAssetAvailable {
+			return false, errors.New("bridge legacy transfer cannot claim destination asset availability")
 		}
 		if err := s.validatePersistedAttestations(transfer); err != nil {
 			return false, err

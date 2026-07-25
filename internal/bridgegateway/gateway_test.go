@@ -210,7 +210,7 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	defer server.Close()
 	var health Health
 	doJSON(t, http.MethodGet, server.URL+"/health", "", nil, http.StatusOK, &health)
-	if !health.OK || health.LiveBridge || health.ExternalSubmissionEnabled || health.TruthfulStatus != "local-coordinator-only-no-external-submission" {
+	if !health.OK || !health.Degraded || health.SchemaVersion != SchemaVersion || health.StateMachineVersion != StateMachineVersion || health.StartedAt == "" || health.ProviderStatus != "unavailable-no-verified-provider-connection" || health.ContractStatus != "unavailable-no-verified-contract-deployment" || health.LiveBridge || health.ExternalSubmissionEnabled || health.TruthfulStatus != "degraded-local-coordinator-only-no-provider-or-contract" {
 		t.Fatalf("health overclaims bridge status: %+v", health)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/bridge/transfers", "", nil, http.StatusUnauthorized, nil)
@@ -342,13 +342,20 @@ func TestBridgeDataExportRetentionAndIdentityRedaction(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "privacy-finalize-001"}); err != nil {
+	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "privacy-finalize-001"})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-release-001", Outcome: "destination_mint_release", EvidenceRef: "receipt:privacy-release", ReasonCode: "operator-observed"}); err != nil {
+	if _, err := b.service.VerifyProof(created.Transfer.ID, ProofVerificationRequest{IdempotencyKey: "privacy-proof-verify-001", ProofType: proof.Transfer.ProofType, ProofDigest: proof.Transfer.ProofDigest}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-confirm-001", Outcome: "destination_confirmed", EvidenceRef: "receipt:privacy-confirmed", ReasonCode: "finalized-receipt"}); err != nil {
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "receipt:privacy-release", ReasonCode: "operator-observed"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-confirm-001", Outcome: phaseDestinationActionConfirmed, EvidenceRef: "receipt:privacy-confirmed", ReasonCode: "finalized-receipt"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "privacy-available-001", Outcome: phaseDestinationAvailable, EvidenceRef: "receipt:privacy-available", ReasonCode: "destination-available"}); err != nil {
 		t.Fatal(err)
 	}
 	pending, _, err := b.service.RequestDataDeletion(DataDeletionRequest{IdempotencyKey: "privacy-delete-request-002", Account: created.Transfer.Sender, Reason: "account-closure"})
@@ -364,7 +371,7 @@ func TestBridgeDataExportRetentionAndIdentityRedaction(t *testing.T) {
 		t.Fatalf("eligible identity redaction failed: %+v %v", completed, err)
 	}
 	redacted, err := b.service.Get(created.Transfer.ID)
-	if err != nil || !redacted.SenderRedacted || !strings.HasPrefix(redacted.Sender, "redacted:sha256:") || redacted.RecipientRedacted || redacted.SourceTxHash != created.Transfer.SourceTxHash || redacted.Amount != created.Transfer.Amount || redacted.Phase != "destination_confirmed" {
+	if err != nil || !redacted.SenderRedacted || !strings.HasPrefix(redacted.Sender, "redacted:sha256:") || redacted.RecipientRedacted || redacted.SourceTxHash != created.Transfer.SourceTxHash || redacted.Amount != created.Transfer.Amount || redacted.Phase != phaseDestinationAvailable {
 		t.Fatalf("redaction changed financial evidence or missed identity: %+v %v", redacted, err)
 	}
 	exported, err = b.service.ExportAccount(created.Transfer.Sender)
@@ -625,7 +632,7 @@ func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) 
 		t.Fatalf("v4 settled dispute migration failed: %v", err)
 	}
 	got := migrated.state.Transfers[transfer.ID]
-	if got.ExposureStatus != "destination-confirmed" || got.Phase != "dispute" {
+	if got.ExposureStatus != "destination-confirmed-legacy" || got.Phase != phaseDisputed || got.DestinationAssetAvailable {
 		t.Fatalf("v4 migration reopened settled dispute: %+v", got)
 	}
 	if exposure := migrated.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
@@ -752,27 +759,41 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	}
 	*b.clock = b.now.Add(time.Hour)
 	proof, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "proof-finalize-001"})
-	if err != nil || proof.Transfer.Phase != "proof_attestation" {
+	if err != nil || proof.Transfer.Phase != phaseProofAttestationAvailable || proof.Transfer.ProofVerificationStatus != "available-unverified" {
 		t.Fatalf("proof phase: %+v %v", proof, err)
 	}
+	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-early-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "tx:destination-early", ReasonCode: "operator-observed"}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("destination action before proof verification was accepted: %v", err)
+	}
+	verified, err := b.service.VerifyProof(created.Transfer.ID, ProofVerificationRequest{IdempotencyKey: "proof-verify-001", ProofType: proof.Transfer.ProofType, ProofDigest: proof.Transfer.ProofDigest})
+	if err != nil || verified.Transfer.Phase != phaseProofVerified {
+		t.Fatalf("proof verification: %+v %v", verified, err)
+	}
 	failed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-failed-001", Outcome: "failed", EvidenceRef: "audit:provider-timeout-001", ReasonCode: "provider-timeout"})
-	if err != nil || failed.Transfer.Phase != "failed" || failed.Transfer.PreviousPhase != "proof_attestation" {
+	if err != nil || failed.Transfer.Phase != phaseFailed || failed.Transfer.PreviousPhase != phaseProofVerified {
 		t.Fatalf("failed phase: %+v %v", failed, err)
 	}
 	retried, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-retry-001", Outcome: "retry", EvidenceRef: "audit:operator-review-001", ReasonCode: "approved-retry"})
-	if err != nil || retried.Transfer.Phase != "proof_attestation" {
+	if err != nil || retried.Transfer.Phase != phaseProofVerified {
 		t.Fatalf("retry phase: %+v %v", retried, err)
 	}
-	release, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-release-001", Outcome: "destination_mint_release", EvidenceRef: "tx:destination-001", ReasonCode: "operator-observed"})
-	if err != nil || release.Transfer.Phase != "destination_mint_release" {
+	release, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-release-001", Outcome: phaseDestinationActionSubmitted, EvidenceRef: "tx:destination-001", ReasonCode: "operator-observed"})
+	if err != nil || release.Transfer.Phase != phaseDestinationActionSubmitted {
 		t.Fatalf("release phase: %+v %v", release, err)
 	}
-	confirmed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-confirmed-001", Outcome: "destination_confirmed", EvidenceRef: "receipt:destination-001", ReasonCode: "finalized-receipt"})
-	if err != nil || confirmed.Transfer.Phase != "destination_confirmed" {
+	confirmed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-confirmed-001", Outcome: phaseDestinationActionConfirmed, EvidenceRef: "receipt:destination-001", ReasonCode: "finalized-receipt"})
+	if err != nil || confirmed.Transfer.Phase != phaseDestinationActionConfirmed {
 		t.Fatalf("confirmed phase: %+v %v", confirmed, err)
 	}
+	if confirmed.Transfer.DestinationAssetAvailable || b.service.Transparency().Routes[0].CoordinatorOutstanding != "1000" {
+		t.Fatalf("destination confirmation incorrectly marked funds available: %+v", confirmed.Transfer)
+	}
+	available, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-available-001", Outcome: phaseDestinationAvailable, EvidenceRef: "balance:destination-001", ReasonCode: "destination-balance-observed"})
+	if err != nil || !available.Transfer.DestinationAssetAvailable || available.Transfer.ExposureStatus != "destination-available" {
+		t.Fatalf("destination availability phase: %+v %v", available, err)
+	}
 	disputed, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-dispute-001", Outcome: "dispute", EvidenceRef: "case:destination-dispute-001", ReasonCode: "recipient-appeal"})
-	if err != nil || disputed.Transfer.Phase != "dispute" || disputed.Transfer.ExposureStatus != "destination-confirmed" {
+	if err != nil || disputed.Transfer.Phase != phaseDisputed || disputed.Transfer.ExposureStatus != "destination-available" {
 		t.Fatalf("settled dispute phase or exposure: %+v %v", disputed, err)
 	}
 	transparency := b.service.Transparency()
@@ -782,7 +803,7 @@ func TestBridgePauseExposureAndRecoveryLifecycle(t *testing.T) {
 	if _, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "outcome-fail-dispute-001", Outcome: "failed", EvidenceRef: "case:destination-dispute-001", ReasonCode: "invalid-regression"}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("dispute regressed to failed: %v", err)
 	}
-	wantLifecycle := []string{"source_submitted", "source_accepted", "source_accepted", "source_finalized", "proof_attestation", "failed", "retry", "destination_mint_release", "destination_confirmed", "dispute"}
+	wantLifecycle := []string{phaseSourceSubmitted, phaseSourceAccepted, phaseSourceAccepted, phaseSourceFinalized, phaseProofAttestationAvailable, phaseProofVerified, phaseFailed, phaseRetryable, phaseProofVerified, phaseDestinationActionSubmitted, phaseDestinationActionConfirmed, phaseDestinationAvailable, phaseDisputed}
 	if len(disputed.Transfer.Lifecycle) != len(wantLifecycle) {
 		t.Fatalf("lifecycle length: got=%+v want=%+v", disputed.Transfer.Lifecycle, wantLifecycle)
 	}
@@ -812,7 +833,7 @@ func TestBridgeRefundRecoveryResolvesExposureAndRejectsConflictingSettlement(t *
 		t.Fatalf("refund failure setup: %+v %v", failed, err)
 	}
 	refunded, err := b.service.RecordOutcome(created.Transfer.ID, OutcomeRequest{IdempotencyKey: "refund-recovered-001", Outcome: "refund_recovery", EvidenceRef: "receipt:source-refund-001", ReasonCode: "refund-confirmed"})
-	if err != nil || refunded.Transfer.Phase != "refund_recovery" || refunded.Transfer.ExposureStatus != "refund-recovered" {
+	if err != nil || refunded.Transfer.Phase != phaseRefunded || refunded.Transfer.ExposureStatus != "refunded" {
 		t.Fatalf("refund recovery: %+v %v", refunded, err)
 	}
 	if exposure := b.service.Transparency().Routes[0]; exposure.CoordinatorOutstanding != "0" || exposure.TransferCount != 0 {
@@ -820,7 +841,7 @@ func TestBridgeRefundRecoveryResolvesExposureAndRejectsConflictingSettlement(t *
 	}
 	state := cloneState(b.service.state)
 	transfer := state.Transfers[created.Transfer.ID]
-	appendLifecycle(&transfer, "destination_confirmed", transfer.UpdatedAt, "receipt:conflicting-terminal-001", "invalid-terminal", "operator-submitted-evidence")
+	appendLifecycle(&transfer, phaseDestinationAvailable, transfer.UpdatedAt, "receipt:conflicting-terminal-001", "invalid-terminal", "operator-submitted-evidence")
 	state.Transfers[transfer.ID] = transfer
 	if err := saveState(b.state, &state); err != nil {
 		t.Fatal(err)
@@ -856,8 +877,8 @@ func TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(persisted), `"schemaVersion": 6`) {
-		t.Fatalf("migrated state not persisted as v6: %s", persisted)
+	if !strings.Contains(string(persisted), `"schemaVersion": 7`) {
+		t.Fatalf("migrated state not persisted as v7: %s", persisted)
 	}
 
 	legacy.Integrity = "sha256:" + strings.Repeat("0", 64)
@@ -1051,7 +1072,7 @@ func TestBridgeDailyUserAndLargeTransferControls(t *testing.T) {
 			t.Fatalf("early large finalize accepted: %v", err)
 		}
 		*b.clock = b.now.Add(time.Hour)
-		if result, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); err != nil || result.Transfer.Phase != "proof_attestation" {
+		if result, err := b.service.Finalize(created.Transfer.ID, FinalizeRequest{IdempotencyKey: "large-delay-finalize-001"}); err != nil || result.Transfer.Phase != phaseProofAttestationAvailable {
 			t.Fatalf("elapsed large finalize failed: %+v %v", result, err)
 		}
 	})
