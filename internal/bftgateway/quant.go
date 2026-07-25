@@ -61,7 +61,7 @@ func (g *Gateway) handleQuantMutation(w http.ResponseWriter, r *http.Request) {
 	var evidence *consensus.BFTAssetAuditEvent
 	for index := range events {
 		event := &events[index]
-		if event.TxHash == txHash && event.Type == tx.Action && event.RecordID == recordID && event.Signer == tx.Signer {
+		if event.TxHash == txHash && event.Type == tx.Action && event.RecordID == recordID && event.Signer == tx.Signer && validQuantAuditEvidence(*event) {
 			evidence = event
 			break
 		}
@@ -74,14 +74,14 @@ func (g *Gateway) handleQuantMutation(w http.ResponseWriter, r *http.Request) {
 	response["auditEvent"] = evidence
 	if strings.HasPrefix(tx.Action, "strategy_mandate_") {
 		var record assetauth.StrategyMandate
-		if err := g.queryABCIJSON(r.Context(), "/quant/mandates/"+recordID, &record); err != nil || record.ID != recordID {
+		if err := g.queryABCIJSON(r.Context(), "/quant/mandates/"+recordID, &record); err != nil || record.ID != recordID || !validCommittedMandateRecord(tx, record, evidence.OccurredAt) {
 			writeJSON(w, http.StatusBadGateway, quantFailure("committed strategy mandate evidence mismatch"))
 			return
 		}
 		response["mandate"] = record
 	} else {
 		var record assetauth.StrategyVault
-		if err := g.queryABCIJSON(r.Context(), "/quant/vaults/"+recordID, &record); err != nil || record.ID != recordID {
+		if err := g.queryABCIJSON(r.Context(), "/quant/vaults/"+recordID, &record); err != nil || record.ID != recordID || !validCommittedVaultRecord(tx, record, evidence.OccurredAt) {
 			writeJSON(w, http.StatusBadGateway, quantFailure("committed strategy vault evidence mismatch"))
 			return
 		}
@@ -128,6 +128,49 @@ func quantRouteBinding(r *http.Request, tx consensus.SignedApplicationAction) (s
 		default:
 			return "", "", 0, errors.New("unsupported Quant mutation route")
 		}
+	}
+}
+
+func validQuantAuditEvidence(event consensus.BFTAssetAuditEvent) bool {
+	return event.ID == consensus.ApplicationActionRecordID("asset-audit", event.TxHash) && transactionHashPattern.MatchString(event.TxHash) && blockHashPattern.MatchString(event.AuditHash) && strings.ToLower(event.AuditHash) == event.AuditHash && consensus.IsNativeAddress(event.Signer) && event.BlockHeight > 0 && !event.OccurredAt.IsZero()
+}
+
+func validCommittedMandateRecord(tx consensus.SignedApplicationAction, record assetauth.StrategyMandate, occurredAt time.Time) bool {
+	if record.Validate() != nil || record.Owner != tx.Signer || record.CreatedAt.After(occurredAt) {
+		return false
+	}
+	switch tx.Action {
+	case consensus.ActionStrategyMandateCreate:
+		var input consensus.StrategyMandateCreatePayload
+		return json.Unmarshal(tx.Payload, &input) == nil && record.ID == input.ID && record.EngineIdentity == input.EngineIdentity && record.StrategyHash == input.StrategyHash && record.StrategyVersion == input.StrategyVersion && record.NonceDomain == input.NonceDomain && record.RevokedAt == nil && record.KillSwitchAt == nil
+	case consensus.ActionStrategyMandateRevoke:
+		return record.RevokedAt != nil && !record.RevokedAt.After(occurredAt)
+	case consensus.ActionStrategyMandateKill:
+		return record.KillSwitchAt != nil && !record.KillSwitchAt.After(occurredAt)
+	default:
+		return false
+	}
+}
+
+func validCommittedVaultRecord(tx consensus.SignedApplicationAction, record assetauth.StrategyVault, occurredAt time.Time) bool {
+	if record.Validate() != nil || record.CreatedAt.After(occurredAt) {
+		return false
+	}
+	switch tx.Action {
+	case consensus.ActionStrategyVaultCreate:
+		var input consensus.StrategyVaultCreatePayload
+		return json.Unmarshal(tx.Payload, &input) == nil && record.ID == input.VaultID && record.MandateID == input.MandateID && record.Owner == tx.Signer && record.BalanceYNXT == 0 && record.ClosedAt == nil
+	case consensus.ActionStrategyVaultDeposit:
+		var input consensus.StrategyVaultAmountPayload
+		return json.Unmarshal(tx.Payload, &input) == nil && input.AmountYNXT > 0 && record.ID == input.VaultID && record.ClosedAt == nil
+	case consensus.ActionStrategyVaultWithdraw:
+		var input consensus.StrategyVaultAmountPayload
+		return json.Unmarshal(tx.Payload, &input) == nil && input.AmountYNXT > 0 && record.ID == input.VaultID && record.Owner == tx.Signer && record.ClosedAt == nil
+	case consensus.ActionStrategyVaultExit:
+		var input consensus.StrategyVaultAmountPayload
+		return json.Unmarshal(tx.Payload, &input) == nil && record.ID == input.VaultID && record.Owner == tx.Signer && record.BalanceYNXT == 0 && record.ClosedAt != nil && !record.ClosedAt.After(occurredAt)
+	default:
+		return false
 	}
 }
 

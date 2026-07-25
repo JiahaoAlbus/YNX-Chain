@@ -682,7 +682,7 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 		return a.applyIDEAction(state, payload, tx, height, blockTime)
 	}
 	if isAssetAuthorizationAction(tx.Action) {
-		return a.applyAssetAuthorizationAction(state, payload, tx, height, blockTime)
+		return a.applyAssetAuthorizationAction(state, payload, tx, height, blockTime, validationOnly)
 	}
 	if isAccountAbstractionAction(tx.Action) {
 		return a.applyAccountAbstractionAction(state, payload, tx, height, blockTime, validationOnly)

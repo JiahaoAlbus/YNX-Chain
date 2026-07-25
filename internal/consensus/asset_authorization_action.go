@@ -147,7 +147,7 @@ func mandateFromPayload(input StrategyMandateCreatePayload, owner string, create
 	})
 }
 
-func (a *Application) applyAssetAuthorizationAction(state executionState, payload []byte, tx SignedApplicationAction, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+func (a *Application) applyAssetAuthorizationAction(state executionState, payload []byte, tx SignedApplicationAction, height int64, blockTime time.Time, validationOnly bool) (executionState, transactionExecution, error) {
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
 	}
@@ -174,11 +174,19 @@ func (a *Application) applyAssetAuthorizationAction(state executionState, payloa
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy mandate not found"))
 		}
 		mandate := state.strategyMandates[index]
+		controlTime := blockTime
+		if validationOnly && controlTime.Before(mandate.CreatedAt) {
+			// CheckTx has no deterministic proposal time. Clamp validation-only
+			// owner controls to creation time so mempool admission never rejects a
+			// valid revoke/kill solely because the synthetic timestamp predates the
+			// committed record. FinalizeBlock still enforces the real block time.
+			controlTime = mandate.CreatedAt
+		}
 		var err error
 		if tx.Action == ActionStrategyMandateRevoke {
-			mandate, err = mandate.Revoke(tx.Signer, blockTime)
+			mandate, err = mandate.Revoke(tx.Signer, controlTime)
 		} else {
-			mandate, err = mandate.Kill(tx.Signer, blockTime)
+			mandate, err = mandate.Kill(tx.Signer, controlTime)
 		}
 		if err != nil {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
@@ -194,6 +202,9 @@ func (a *Application) applyAssetAuthorizationAction(state executionState, payloa
 		mandateIndex, exists := strategyMandateIndex(state.strategyMandates, input.MandateID)
 		if !exists || state.strategyMandates[mandateIndex].Owner != tx.Signer {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy vault requires its mandate owner"))
+		}
+		if !mandateAllowsVaultFunding(state.strategyMandates[mandateIndex], blockTime) {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy vault cannot be created for a revoked, killed, or expired mandate"))
 		}
 		vault, err := assetauth.NewStrategyVault(input.VaultID, tx.Signer, input.MandateID, blockTime)
 		if err != nil {
@@ -213,6 +224,13 @@ func (a *Application) applyAssetAuthorizationAction(state executionState, payloa
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT for strategy vault deposit"))
 		}
 		vault := state.strategyVaults[index]
+		if vault.ClosedAt != nil {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy vault is closed"))
+		}
+		mandateIndex, mandateExists := strategyMandateIndex(state.strategyMandates, vault.MandateID)
+		if !mandateExists || !mandateAllowsVaultFunding(state.strategyMandates[mandateIndex], blockTime) {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy vault funding is disabled by mandate state"))
+		}
 		if uint64(input.AmountYNXT) > math.MaxUint64-vault.BalanceYNXT {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("strategy vault balance overflow"))
 		}
@@ -269,6 +287,10 @@ func newAssetAuditEvent(kind, recordID, signer string, height int64, at time.Tim
 	event := BFTAssetAuditEvent{ID: ApplicationActionRecordID("asset-audit", txHash), Type: kind, RecordID: recordID, Signer: signer, BlockHeight: height, OccurredAt: at.UTC(), TxHash: txHash}
 	event.AuditHash = recordAuditHash("YNX_ASSET_AUDIT_V1", event)
 	return event
+}
+
+func mandateAllowsVaultFunding(mandate assetauth.StrategyMandate, at time.Time) bool {
+	return mandate.RevokedAt == nil && mandate.KillSwitchAt == nil && at.Before(mandate.ExpiresAt)
 }
 
 func strategyMandateIndex(values []assetauth.StrategyMandate, id string) (int, bool) {

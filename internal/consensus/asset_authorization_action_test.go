@@ -49,8 +49,11 @@ func TestStrategyMandateAndVaultAreCommittedWithOwnerOnlyWithdrawal(t *testing.T
 	unauthorizedWithdrawal := signedAssetAction(t, engineKey, ActionStrategyVaultWithdraw, StrategyVaultAmountPayload{VaultID: "vault-1", AmountYNXT: 1}, 1)
 	withdraw := signedAssetAction(t, ownerKey, ActionStrategyVaultWithdraw, StrategyVaultAmountPayload{VaultID: "vault-1", AmountYNXT: 4}, 4)
 	kill := signedAssetAction(t, ownerKey, ActionStrategyMandateKill, StrategyMandateControlPayload{MandateID: "mandate-1"}, 5)
+	depositAfterKill := signedAssetAction(t, ownerKey, ActionStrategyVaultDeposit, StrategyVaultAmountPayload{VaultID: "vault-1", AmountYNXT: 1}, 6)
 	exit := signedAssetAction(t, ownerKey, ActionStrategyVaultExit, StrategyVaultAmountPayload{VaultID: "vault-1"}, 6)
-	txs := [][]byte{createMandate, createVault, deposit, unauthorizedWithdrawal, withdraw, kill, exit}
+	depositAfterExit := signedAssetAction(t, ownerKey, ActionStrategyVaultDeposit, StrategyVaultAmountPayload{VaultID: "vault-1", AmountYNXT: 1}, 7)
+	createVaultAfterKill := signedAssetAction(t, ownerKey, ActionStrategyVaultCreate, StrategyVaultCreatePayload{VaultID: "vault-2", MandateID: "mandate-1"}, 7)
+	txs := [][]byte{createMandate, createVault, deposit, unauthorizedWithdrawal, withdraw, kill, depositAfterKill, exit, depositAfterExit, createVaultAfterKill}
 	height := int64(migration.Height) + 1
 	proposal, err := app.ProcessProposal(ctx, &abcitypes.RequestProcessProposal{Height: height, Time: blockTime, Txs: txs})
 	if err != nil || proposal.Status != abcitypes.ResponseProcessProposal_REJECT {
@@ -62,11 +65,20 @@ func TestStrategyMandateAndVaultAreCommittedWithOwnerOnlyWithdrawal(t *testing.T
 	if err != nil || len(finalized.TxResults) != len(txs) {
 		t.Fatalf("asset authorization block failed: %+v %v", finalized, err)
 	}
-	if finalized.TxResults[3].Code == 0 {
-		t.Fatal("engine withdrawal was committed")
+	invalid := map[int]string{
+		3: "engine withdrawal",
+		6: "deposit after kill",
+		8: "deposit after emergency exit",
+		9: "vault creation after kill",
 	}
 	for index, result := range finalized.TxResults {
-		if index != 3 && result.Code != 0 {
+		if label, shouldReject := invalid[index]; shouldReject {
+			if result.Code == 0 {
+				t.Fatalf("%s was committed", label)
+			}
+			continue
+		}
+		if result.Code != 0 {
 			t.Fatalf("valid asset action %d failed: %+v", index, result)
 		}
 	}
@@ -92,6 +104,33 @@ func TestStrategyMandateAndVaultAreCommittedWithOwnerOnlyWithdrawal(t *testing.T
 	assertConsensusAccount(t, app, engine, 20, 0)
 	if err := app.committed.Validate(migration); err != nil {
 		t.Fatalf("committed asset state failed supply/lot validation: %v", err)
+	}
+}
+
+func TestMandateVaultFundingLifecycleRejectsRevokeKillAndExpiry(t *testing.T) {
+	owner := mustNativeAddress(t, deterministicPrivateKey(185))
+	createdAt := time.Date(2026, 7, 25, 7, 0, 0, 0, time.UTC)
+	strategyHash := sha256.Sum256([]byte("strategy/funding-lifecycle/v1"))
+	input := StrategyMandateCreatePayload{
+		ID: "funding-lifecycle", EngineIdentity: owner, StrategyHash: hex.EncodeToString(strategyHash[:]), StrategyVersion: 1,
+		Venues: []string{"venue-1"}, Assets: []string{"ynxt"}, Markets: []string{"ynxt/usd"}, Methods: []string{assetauth.MethodPlaceOrder},
+		CapitalLimitYNXT: 10, PositionLimitYNXT: 5, MaxLeverageBPS: 10_000, MaxSlippageBPS: 100,
+		DailyLossLimitYNXT: 1, DrawdownLimitBPS: 1_000, ValidAfter: createdAt, ExpiresAt: createdAt.Add(time.Hour), NonceDomain: "quant/funding-lifecycle",
+	}
+	mandate, err := mandateFromPayload(input, owner, createdAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !mandateAllowsVaultFunding(mandate, createdAt) || mandateAllowsVaultFunding(mandate, mandate.ExpiresAt) {
+		t.Fatal("mandate expiry boundary did not fail closed")
+	}
+	revoked, err := mandate.Revoke(owner, createdAt.Add(time.Minute))
+	if err != nil || mandateAllowsVaultFunding(revoked, createdAt.Add(2*time.Minute)) {
+		t.Fatalf("revoked mandate still allowed vault funding: %v", err)
+	}
+	killed, err := mandate.Kill(owner, createdAt.Add(time.Minute))
+	if err != nil || mandateAllowsVaultFunding(killed, createdAt.Add(2*time.Minute)) {
+		t.Fatalf("killed mandate still allowed vault funding: %v", err)
 	}
 }
 
