@@ -89,8 +89,16 @@ export declare const ERC_7769_VERSION:"ERC-7769";
 export declare const YNX_TESTNET_CHAIN_QUANTITY:"0x1917";
 export declare function parsePackedUserOperation(input:unknown):PackedUserOperation;
 export declare class ERC7769BundlerClient{constructor(config:{endpoint:string;entryPoint:string;timeoutMs?:number;maxRequestsPerSecond?:number;authentication?:{header:"authorization"|"x-api-key";value:string}});health():Promise<Readonly<Record<string,unknown>>>;estimateUserOperationGas(operation:unknown):Promise<Readonly<Record<string,unknown>>>;sendUserOperation(operation:unknown):Promise<Readonly<Record<string,unknown>>>;getUserOperationByHash(hash:string):Promise<Readonly<Record<string,unknown>>>;getUserOperationReceipt(hash:string):Promise<Readonly<Record<string,unknown>>>;}
+export declare const STRATEGY_MANDATE_SCHEMA_VERSION:2;
+export declare const STRATEGY_ACTION_SCHEMA_VERSION:1;
+export declare const STRATEGY_MANDATE_STORE_SCHEMA_VERSION:1;
 export declare function parseStrategyMandate(input:unknown):Readonly<Record<string,unknown>>;
 export declare function strategyMandateDigest(input:unknown):string;
+export declare function parseStrategyAction(input:unknown):Readonly<Record<string,unknown>>;
+export declare function authorizeStrategyAction(mandate:unknown,action:unknown,at?:Date):Readonly<{authorized:true;mandateId:string;mandateDigest:string;actionDigest:string;nonceDomain:string;nonce:string;at:string}>;
+export declare function strategyActionNonceKey(nonceDomain:string,nonce:string):string;
+export declare function parseStrategyMandateStoreSnapshot(input:unknown):Readonly<Record<string,unknown>>;
+export declare class StrategyMandateStore{constructor(snapshot?:unknown);activate(mandate:unknown,at?:Date):Readonly<Record<string,unknown>>;authorize(mandateId:string,action:unknown,at?:Date):Readonly<{authorized:true;mandateId:string;mandateDigest:string;actionDigest:string;nonceDomain:string;nonce:string;at:string}>;revoke(mandateId:string,at?:Date):string;kill(mandateId:string,at?:Date):string;emergencyExit(mandateId:string,reason:string,at?:Date):Readonly<{mandateDigest:string;at:string;reason:string}>;inventory(account:string,at?:Date):readonly Readonly<{mandate:Readonly<Record<string,unknown>>;mandateDigest:string;status:"active"|"expired"|"revoked"|"killed"|"emergency-exit"}>[];snapshot():Readonly<Record<string,unknown>>;}
 export declare function parseCapitalProductReview(input:unknown):Readonly<Record<string,unknown>>;
 export declare function parseCredentialCandidate(input:unknown,at?:Date):Readonly<Record<string,unknown>>;
 export declare function credentialCandidateDigest(input:unknown,at?:Date):string;
