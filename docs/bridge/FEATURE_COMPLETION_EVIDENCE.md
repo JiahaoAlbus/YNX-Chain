@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-25. Runtime evidence commit: `b3ccc5c897f861f260150e015d4167e1610705cc`.
+Status date: 2026-07-25. Runtime and consumer contract evidence commit: `3921629d5deb8cdcab8077d487639b1255f15b23`.
 
 ## Evidence-backed state
 

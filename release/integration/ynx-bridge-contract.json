@@ -3,7 +3,7 @@
   "contractId": "ynx.bridge.integration.v1",
   "owner": "21-bridge",
   "product": "YNX Bridge",
-  "sourceCommit": "b3ccc5c897f861f260150e015d4167e1610705cc",
+  "sourceCommit": "3921629d5deb8cdcab8077d487639b1255f15b23",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "releaseClass": "local-engineering-candidate",

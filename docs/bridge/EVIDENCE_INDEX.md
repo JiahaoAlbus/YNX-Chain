@@ -1,6 +1,6 @@
 # Bridge Evidence Index
 
-- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`; proof/lifecycle runtime evidence commit `b3ccc5c897f861f260150e015d4167e1610705cc`
+- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`; proof/lifecycle and consumer contract evidence commit `3921629d5deb8cdcab8077d487639b1255f15b23`
 - Process-level verifier: `scripts/verify/bridge-api-check.sh`
 - Unit, migration, proof-tamper, availability, and HTTP vectors: `internal/bridgegateway/gateway_test.go`, `internal/bridgegateway/state_machine_test.go`
 - Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
