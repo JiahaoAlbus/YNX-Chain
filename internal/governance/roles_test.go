@@ -17,7 +17,7 @@ func executedProposal(t *testing.T, s *Service, now time.Time) Proposal {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", Passed: true}, now.Add(2*time.Minute))
+	p, err = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", SecurityEvidence: "security simulation evidence", UserImpactEvidence: "user-impact simulation evidence", Passed: true}, now.Add(2*time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -67,7 +67,7 @@ func (s *Service) ResolveAppeal(id, resolutionProposalID, resolver, outcome, exp
 		return Appeal{}, ErrNotFound
 	}
 	p, ok := s.proposals[resolutionProposalID]
-	if !ok || p.Status != StatusExecuted || a.Status != "pending" || resolutionProposalID == a.Input.ProposalID {
+	if !ok || p.Status != StatusVerified || a.Status != "pending" || resolutionProposalID == a.Input.ProposalID {
 		return Appeal{}, ErrForbidden
 	}
 	if outcome != "accepted" && outcome != "rejected" {

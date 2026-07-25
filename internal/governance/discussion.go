@@ -31,7 +31,7 @@ func (s *Service) AddDiscussion(input DiscussionInput, now time.Time) (Discussio
 	if !ok {
 		return DiscussionEntry{}, ErrNotFound
 	}
-	if proposal.Status != StatusDiscussion && proposal.Status != StatusVoting && proposal.Status != StatusTimelocked {
+	if proposal.Status != StatusDiscussion && proposal.Status != StatusVotingPending && proposal.Status != StatusVotingActive && proposal.Status != StatusApproved && proposal.Status != StatusTimelockPending && proposal.Status != StatusTimelockActive {
 		return DiscussionEntry{}, ErrNotReady
 	}
 	validKind := input.Kind == "comment" || input.Kind == "technical_review" || input.Kind == "economic_review" || input.Kind == "risk_disclosure"

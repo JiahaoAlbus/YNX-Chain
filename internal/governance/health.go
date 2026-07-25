@@ -27,12 +27,14 @@ func (s *Service) Health(now time.Time) Health {
 	h := Health{OK: true, Service: "ynx-governanced", Persistence: "atomic-sha256-mode-0600", ExternalExecution: false, ProposalCount: len(s.proposals), RoleCount: len(s.roles), EmergencyCount: len(s.emergencies), AppealCount: len(s.appeals), DiscussionCount: len(s.discussions), TruthfulStatus: "local-governance-control-plane-not-publicly-deployed"}
 	for _, p := range s.proposals {
 		switch p.Status {
-		case StatusExecuted:
+		case StatusVerified:
 			h.ExecutedProposalCount++
-		case StatusRejected:
+		case StatusRejected, StatusQuorumFailed, StatusThresholdFailed:
 			h.RejectedProposalCount++
-		case StatusDeposit, StatusDiscussion, StatusVoting, StatusTimelocked, StatusExecuting:
-			h.ActiveProposalCount++
+		default:
+			if !terminalProposalStatus(p.Status) {
+				h.ActiveProposalCount++
+			}
 		}
 	}
 	for _, r := range s.roles {

@@ -12,7 +12,10 @@ import (
 	"time"
 )
 
-const snapshotVersion = "ynx-governance-state/v1"
+const (
+	snapshotVersion       = "ynx-governance-state/v2"
+	legacySnapshotVersion = "ynx-governance-state/v1"
+)
 
 type snapshotPayload struct {
 	Version     string            `json:"version"`
@@ -110,8 +113,14 @@ func Load(path string) (*Service, error) {
 		return nil, err
 	}
 	digest := sha256.Sum256(encoded)
-	if envelope.Payload.Version != snapshotVersion || envelope.Digest != hex.EncodeToString(digest[:]) {
+	if envelope.Digest != hex.EncodeToString(digest[:]) {
 		return nil, fmt.Errorf("%w: snapshot integrity mismatch", ErrForbidden)
+	}
+	if envelope.Payload.Version == legacySnapshotVersion {
+		return nil, fmt.Errorf("%w: governance state v1 requires explicit state-machine migration to v2", ErrForbidden)
+	}
+	if envelope.Payload.Version != snapshotVersion {
+		return nil, fmt.Errorf("%w: unsupported governance snapshot version %q", ErrForbidden, envelope.Payload.Version)
 	}
 	s, err := NewService(envelope.Payload.Policy)
 	if err != nil {
@@ -183,7 +192,7 @@ func Load(path string) (*Service, error) {
 		}
 		if a.Resolution != nil {
 			p, ok := s.proposals[a.Resolution.ResolutionProposalID]
-			if !ok || p.Status != StatusExecuted || a.Resolution.ResolutionProposalID == a.Input.ProposalID {
+			if !ok || p.Status != StatusVerified || a.Resolution.ResolutionProposalID == a.Input.ProposalID {
 				return nil, fmt.Errorf("%w: appeal resolution proposal invalid", ErrForbidden)
 			}
 		}
@@ -219,12 +228,16 @@ func Load(path string) (*Service, error) {
 }
 
 func validateRestoredProposal(p *Proposal, policy Policy) error {
-	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, proposalFingerprint(p.Input)) || p.Conflicts == nil || p.Votes == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
+	fingerprint := proposalFingerprint(p.Input)
+	expectedActionHash := hash("action", fingerprint, strings.ToLower(p.Input.SourceCommit), p.Input.Release, strings.ToLower(p.Input.UpgradeHash))
+	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, fingerprint) || p.ActionHash != expectedActionHash || p.Conflicts == nil || p.Votes == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
 		return fmt.Errorf("%w: invalid restored proposal", ErrForbidden)
 	}
-	valid := map[Status]bool{StatusDeposit: true, StatusDiscussion: true, StatusVoting: true, StatusRejected: true, StatusTimelocked: true, StatusExecuting: true, StatusExecuted: true, StatusRolledBack: true, StatusCancelled: true, StatusExpired: true}
-	if !valid[p.Status] {
-		return fmt.Errorf("%w: unknown proposal status", ErrForbidden)
+	if err := validateProposal(p.Input, p.CreatedAt, policy.MaxLifetime, policy.ParameterRules); err != nil {
+		return fmt.Errorf("%w: restored proposal input no longer satisfies canonical policy: %v", ErrForbidden, err)
+	}
+	if err := validateProposalTransitions(p); err != nil {
+		return err
 	}
 	if p.Electorate != nil {
 		if !validHash(p.Electorate.EvidenceHash) || p.Electorate.SourceVersion == "" || p.Electorate.SnapshotAsOf.IsZero() || p.Electorate.SubmittedAt.IsZero() || p.Electorate.Approvals == nil || p.Electorate.AuditHash != electorateAudit(p.Electorate) {
@@ -242,34 +255,54 @@ func validateRestoredProposal(p *Proposal, policy Policy) error {
 			return fmt.Errorf("%w: electorate threshold not met", ErrForbidden)
 		}
 	}
-	if p.Status != StatusDeposit && p.Status != StatusDiscussion && p.Status != StatusRejected && p.Status != StatusCancelled && p.Status != StatusExpired {
-		if p.Electorate == nil || p.Electorate.Status != "approved" {
-			return fmt.Errorf("%w: voting opened without approved electorate", ErrForbidden)
+	if proposalReached(p, StatusSimulationCompleted) {
+		if p.Simulation == nil || p.Simulation.CompletedAt.IsZero() || len(p.Simulation.TechnicalEvidence) < 16 || len(p.Simulation.EconomicEvidence) < 16 || len(p.Simulation.SecurityEvidence) < 16 || len(p.Simulation.UserImpactEvidence) < 16 {
+			return fmt.Errorf("%w: simulation history lacks complete evidence", ErrForbidden)
 		}
+	} else if p.Simulation != nil {
+		return fmt.Errorf("%w: simulation exists before simulation-completed state", ErrForbidden)
 	}
-	if p.Status != StatusDeposit && p.Status != StatusDiscussion {
+	if proposalReached(p, StatusVotingActive) {
+		if p.Electorate == nil || p.Electorate.Status != "approved" || p.VotingEndsAt.IsZero() {
+			return fmt.Errorf("%w: voting opened without an approved electorate", ErrForbidden)
+		}
 		computed, total, err := effectiveVotingPower(VotingSnapshot{BasePower: p.BasePower, Delegations: p.Delegations})
 		if err != nil || total != p.EligiblePower || !samePowers(computed, p.VotingPower) {
 			return fmt.Errorf("%w: invalid electorate snapshot", ErrForbidden)
 		}
+	} else if len(p.Votes) != 0 || p.EligiblePower != 0 || len(p.VotingPower) != 0 || len(p.BasePower) != 0 || len(p.Delegations) != 0 || !p.VotingEndsAt.IsZero() {
+		return fmt.Errorf("%w: voting state exists before voting-active transition", ErrForbidden)
 	}
 	for voter, vote := range p.Votes {
 		if voter != vote.Voter || vote.Power != p.VotingPower[voter] || vote.AuditHash != hash(p.ID, vote.Voter, vote.Choice, fmt.Sprint(vote.Power)) {
 			return fmt.Errorf("%w: invalid vote audit", ErrForbidden)
 		}
 	}
-	if p.Status == StatusCancelled {
+	if proposalReached(p, StatusCancelled) {
 		if p.Cancellation == nil || p.Cancellation.Actor != p.Input.Proposer || p.Cancellation.AuditHash != hash(p.ID, p.Cancellation.Actor, p.Cancellation.Reason, p.Cancellation.CancelledAt.Format(time.RFC3339Nano), strings.Join(p.Cancellation.Evidence, "|")) {
 			return fmt.Errorf("%w: invalid cancellation audit", ErrForbidden)
 		}
+	} else if p.Cancellation != nil {
+		return fmt.Errorf("%w: cancellation exists without cancelled transition", ErrForbidden)
 	}
-	if p.Status == StatusExecuted {
+	if proposalReached(p, StatusTimelockActive) && p.ExecuteAfter.IsZero() {
+		return fmt.Errorf("%w: active timelock has no earliest execution", ErrForbidden)
+	}
+	if proposalReached(p, StatusExecutionSubmitted) && (!validHash(p.ExecutionHash) || p.ExecutionReceipt == nil && (proposalReached(p, StatusExecuted) || proposalReached(p, StatusExecutionFailed))) {
+		return fmt.Errorf("%w: submitted execution lacks bound manifest or receipt", ErrForbidden)
+	}
+	if proposalReached(p, StatusExecuted) {
 		if p.ExecutionReceipt == nil || validateExecutionReceipt(*p.ExecutionReceipt, p.ExecutionHash) != nil || p.ExecutionReceipt.Outcome != "verified" {
 			return fmt.Errorf("%w: invalid executed receipt", ErrForbidden)
 		}
 	}
-	if p.Status == StatusRolledBack {
-		if p.ExecutionReceipt == nil || p.RollbackReceipt == nil || validateExecutionReceipt(*p.ExecutionReceipt, p.ExecutionHash) != nil || p.ExecutionReceipt.Outcome != "failed" || validateExecutionReceipt(*p.RollbackReceipt, p.RollbackHash) != nil || p.RollbackReceipt.Outcome != "verified_rollback" {
+	if proposalReached(p, StatusExecutionFailed) {
+		if p.ExecutionReceipt == nil || validateExecutionReceipt(*p.ExecutionReceipt, p.ExecutionHash) != nil || p.ExecutionReceipt.Outcome != "failed" {
+			return fmt.Errorf("%w: invalid failed execution receipt", ErrForbidden)
+		}
+	}
+	if proposalReached(p, StatusRolledBack) {
+		if p.RollbackReceipt == nil || validateExecutionReceipt(*p.RollbackReceipt, p.RollbackHash) != nil || p.RollbackReceipt.Outcome != "verified_rollback" || strings.EqualFold(p.RollbackHash, p.ExecutionHash) {
 			return fmt.Errorf("%w: invalid rollback receipt", ErrForbidden)
 		}
 	}

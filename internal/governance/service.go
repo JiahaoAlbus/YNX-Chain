@@ -44,21 +44,6 @@ const (
 	ScopeReleasePolicy    Scope = "release_policy"
 )
 
-type Status string
-
-const (
-	StatusDeposit    Status = "deposit"
-	StatusDiscussion Status = "discussion"
-	StatusVoting     Status = "voting"
-	StatusRejected   Status = "rejected"
-	StatusTimelocked Status = "timelocked"
-	StatusExecuting  Status = "executing"
-	StatusExecuted   Status = "executed"
-	StatusRolledBack Status = "rolled_back"
-	StatusCancelled  Status = "cancelled"
-	StatusExpired    Status = "expired"
-)
-
 type ParameterChange struct {
 	Path    string `json:"path"`
 	Before  string `json:"before"`
@@ -69,26 +54,39 @@ type ParameterChange struct {
 }
 
 type ProposalInput struct {
-	Nonce          string            `json:"nonce"`
-	Scope          Scope             `json:"scope"`
-	Proposer       string            `json:"proposer"`
-	Owner          string            `json:"owner"`
-	Summary        string            `json:"summary"`
-	EconomicImpact string            `json:"economicImpact"`
-	SecurityRisk   string            `json:"securityRisk"`
-	Migration      string            `json:"migration"`
-	Rollback       string            `json:"rollback"`
-	Evidence       []string          `json:"evidence"`
-	Changes        []ParameterChange `json:"changes"`
-	ExpiresAt      time.Time         `json:"expiresAt"`
-	UpgradeHash    string            `json:"upgradeHash,omitempty"`
+	Nonce              string            `json:"nonce"`
+	ProposalType       string            `json:"proposalType"`
+	Scope              Scope             `json:"scope"`
+	Proposer           string            `json:"proposer"`
+	Owner              string            `json:"owner"`
+	Summary            string            `json:"summary"`
+	Motivation         string            `json:"motivation"`
+	TechnicalImpact    string            `json:"technicalImpact"`
+	EconomicImpact     string            `json:"economicImpact"`
+	SecurityRisk       string            `json:"securityRisk"`
+	UserImpact         string            `json:"userImpact"`
+	ProviderImpact     string            `json:"providerImpact"`
+	Migration          string            `json:"migration"`
+	Rollback           string            `json:"rollback"`
+	CanaryPlan         string            `json:"canaryPlan"`
+	VerificationPlan   string            `json:"verificationPlan"`
+	ConflictDisclosure string            `json:"conflictDisclosure"`
+	Dependencies       []string          `json:"dependencies"`
+	Evidence           []string          `json:"evidence"`
+	Changes            []ParameterChange `json:"changes"`
+	SourceCommit       string            `json:"sourceCommit"`
+	Release            string            `json:"release"`
+	ExpiresAt          time.Time         `json:"expiresAt"`
+	UpgradeHash        string            `json:"upgradeHash,omitempty"`
 }
 
 type Simulation struct {
-	TechnicalEvidence string    `json:"technicalEvidence"`
-	EconomicEvidence  string    `json:"economicEvidence"`
-	Passed            bool      `json:"passed"`
-	CompletedAt       time.Time `json:"completedAt"`
+	TechnicalEvidence  string    `json:"technicalEvidence"`
+	EconomicEvidence   string    `json:"economicEvidence"`
+	SecurityEvidence   string    `json:"securityEvidence"`
+	UserImpactEvidence string    `json:"userImpactEvidence"`
+	Passed             bool      `json:"passed"`
+	CompletedAt        time.Time `json:"completedAt"`
 }
 
 type Cancellation struct {
@@ -151,8 +149,10 @@ type ElectorateRecord struct {
 
 type Proposal struct {
 	ID               string                        `json:"id"`
+	ActionHash       string                        `json:"actionHash"`
 	Input            ProposalInput                 `json:"input"`
 	Status           Status                        `json:"status"`
+	Transitions      []StateTransition             `json:"transitions"`
 	Deposit          uint64                        `json:"deposit"`
 	Simulation       *Simulation                   `json:"simulation,omitempty"`
 	Cancellation     *Cancellation                 `json:"cancellation,omitempty"`
@@ -242,7 +242,20 @@ func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
 		}
 	}
 	id := hash("proposal", input.Nonce, input.Proposer, fingerprint)
-	p := &Proposal{ID: id, Input: input, Status: StatusDeposit, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, CreatedAt: now, UpdatedAt: now}
+	actionHash := hash("action", fingerprint, strings.ToLower(input.SourceCommit), input.Release, strings.ToLower(input.UpgradeHash))
+	p := &Proposal{ID: id, ActionHash: actionHash, Input: input, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, CreatedAt: now, UpdatedAt: now}
+	for _, step := range []struct {
+		to     Status
+		reason string
+	}{
+		{StatusDraft, "proposal draft accepted into the governance record"},
+		{StatusEligibilityCheck, "proposal identity, scope, evidence, and machine diff passed eligibility checks"},
+		{StatusDepositPending, "eligible proposal awaits the public deposit requirement"},
+	} {
+		if err := transitionProposal(p, step.to, input.Proposer, step.reason, input.Evidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
 	s.proposals[id], s.nonces[input.Nonce] = p, struct{}{}
 	return clone(p), nil
 }
@@ -254,13 +267,19 @@ func (s *Service) Deposit(id string, amount uint64, now time.Time) (Proposal, er
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusDeposit || amount == 0 {
+	if p.Status != StatusDepositPending || amount == 0 {
 		return Proposal{}, ErrNotReady
 	}
 	p.Deposit += amount
 	p.UpdatedAt = now.UTC()
 	if p.Deposit >= s.policy.MinimumDeposit {
-		p.Status = StatusDiscussion
+		evidence := []string{fmt.Sprintf("deposit://%s/%d", p.ID, p.Deposit)}
+		if err = transitionProposal(p, StatusDepositAccepted, p.Input.Proposer, "minimum governance deposit has been accepted", evidence, now); err != nil {
+			return Proposal{}, err
+		}
+		if err = transitionProposal(p, StatusDiscussion, p.Input.Proposer, "accepted proposal entered the public discussion phase", evidence, now); err != nil {
+			return Proposal{}, err
+		}
 	}
 	return clone(p), nil
 }
@@ -272,14 +291,36 @@ func (s *Service) RecordSimulation(id string, simulation Simulation, now time.Ti
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusDiscussion || len(simulation.TechnicalEvidence) < 16 || len(simulation.EconomicEvidence) < 16 {
+	if p.Status != StatusDiscussion || len(simulation.TechnicalEvidence) < 16 || len(simulation.EconomicEvidence) < 16 || len(simulation.SecurityEvidence) < 16 || len(simulation.UserImpactEvidence) < 16 {
 		return Proposal{}, ErrInvalid
+	}
+	evidence := []string{simulation.TechnicalEvidence, simulation.EconomicEvidence, simulation.SecurityEvidence, simulation.UserImpactEvidence}
+	for _, step := range []struct {
+		to     Status
+		reason string
+	}{
+		{StatusTechnicalReview, "technical review began against the machine-readable proposal diff"},
+		{StatusEconomicReview, "technical review completed and economic review began"},
+		{StatusSecurityReview, "economic review completed and security review began"},
+		{StatusConflictDisclosure, "security review completed and conflicts were disclosed for review"},
+		{StatusSimulationPending, "required technical, economic, security, and user-impact simulations were queued"},
+	} {
+		if err = transitionProposal(p, step.to, p.Input.Owner, step.reason, evidence, now); err != nil {
+			return Proposal{}, err
+		}
 	}
 	simulation.CompletedAt = now.UTC()
 	p.Simulation = &simulation
-	p.UpdatedAt = now.UTC()
-	if !simulation.Passed {
-		p.Status = StatusRejected
+	if err = transitionProposal(p, StatusSimulationCompleted, p.Input.Owner, "all required proposal simulations completed with recorded evidence", evidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if simulation.Passed {
+		err = transitionProposal(p, StatusVotingPending, p.Input.Owner, "simulation gates passed and the proposal awaits an approved electorate snapshot", evidence, now)
+	} else {
+		err = transitionProposal(p, StatusRejected, p.Input.Owner, "proposal simulations failed one or more mandatory safety gates", evidence, now)
+	}
+	if err != nil {
+		return Proposal{}, err
 	}
 	return clone(p), nil
 }
@@ -291,14 +332,15 @@ func (s *Service) CancelProposal(id, actor, reason string, evidence []string, no
 	if err != nil {
 		return Proposal{}, err
 	}
-	if (p.Status != StatusDeposit && p.Status != StatusDiscussion) || actor != p.Input.Proposer || len(strings.TrimSpace(reason)) < 16 || len(evidence) == 0 {
+	if (p.Status != StatusDepositPending && p.Status != StatusDiscussion && p.Status != StatusVotingPending && p.Status != StatusTimelockPending && p.Status != StatusTimelockActive) || actor != p.Input.Proposer || len(strings.TrimSpace(reason)) < 16 || len(evidence) == 0 {
 		return Proposal{}, ErrForbidden
 	}
 	c := &Cancellation{Actor: actor, Reason: strings.TrimSpace(reason), Evidence: append([]string(nil), evidence...), CancelledAt: now.UTC()}
 	c.AuditHash = hash(id, c.Actor, c.Reason, c.CancelledAt.Format(time.RFC3339Nano), strings.Join(c.Evidence, "|"))
 	p.Cancellation = c
-	p.Status = StatusCancelled
-	p.UpdatedAt = now.UTC()
+	if err = transitionProposal(p, StatusCancelled, actor, c.Reason, c.Evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	return clone(p), nil
 }
 
@@ -329,7 +371,7 @@ func (s *Service) SubmitElectorate(id string, snapshot VotingSnapshot, evidenceH
 	if err != nil || total == 0 {
 		return Proposal{}, ErrInvalid
 	}
-	if p.Status != StatusDiscussion || p.Simulation == nil || !p.Simulation.Passed || p.Electorate != nil || !validHash(evidenceHash) || len(strings.TrimSpace(sourceVersion)) < 3 || len(strings.TrimSpace(actor)) < 3 || snapshotAsOf.IsZero() || snapshotAsOf.After(now.UTC()) || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
+	if p.Status != StatusVotingPending || p.Simulation == nil || !p.Simulation.Passed || p.Electorate != nil || !validHash(evidenceHash) || len(strings.TrimSpace(sourceVersion)) < 3 || len(strings.TrimSpace(actor)) < 3 || snapshotAsOf.IsZero() || snapshotAsOf.After(now.UTC()) || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
 		return Proposal{}, ErrNotReady
 	}
 	record := &ElectorateRecord{Snapshot: VotingSnapshot{BasePower: clonePowers(snapshot.BasePower), Delegations: cloneStrings(snapshot.Delegations)}, EvidenceHash: strings.ToLower(evidenceHash), SourceVersion: sourceVersion, SnapshotAsOf: snapshotAsOf.UTC(), SubmittedBy: actor, SubmittedAt: now.UTC(), Approvals: map[string]ElectorateApproval{}, Status: "pending_approval"}
@@ -346,7 +388,7 @@ func (s *Service) ApproveElectorate(id, actor string, now time.Time) (Proposal, 
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusDiscussion || p.Electorate == nil || p.Electorate.Status != "pending_approval" || len(strings.TrimSpace(actor)) < 3 || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
+	if p.Status != StatusVotingPending || p.Electorate == nil || p.Electorate.Status != "pending_approval" || len(strings.TrimSpace(actor)) < 3 || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
 		return Proposal{}, ErrNotReady
 	}
 	if _, ok := p.Electorate.Approvals[actor]; ok {
@@ -378,10 +420,13 @@ func (s *Service) OpenVoting(id string, now time.Time) (Proposal, error) {
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusDiscussion || p.Simulation == nil || !p.Simulation.Passed || eligiblePower == 0 {
+	if p.Status != StatusVotingPending || p.Simulation == nil || !p.Simulation.Passed || eligiblePower == 0 {
 		return Proposal{}, ErrNotReady
 	}
-	p.Status, p.EligiblePower, p.VotingPower, p.BasePower, p.Delegations, p.VotingEndsAt, p.UpdatedAt = StatusVoting, eligiblePower, power, clonePowers(snapshot.BasePower), cloneStrings(snapshot.Delegations), now.UTC().Add(s.policy.VotingPeriod), now.UTC()
+	p.EligiblePower, p.VotingPower, p.BasePower, p.Delegations, p.VotingEndsAt = eligiblePower, power, clonePowers(snapshot.BasePower), cloneStrings(snapshot.Delegations), now.UTC().Add(s.policy.VotingPeriod)
+	if err = transitionProposal(p, StatusVotingActive, "ynx-governance-runtime", "approved electorate snapshot opened the bounded voting window", []string{p.Electorate.EvidenceHash}, now); err != nil {
+		return Proposal{}, err
+	}
 	return clone(p), nil
 }
 
@@ -394,7 +439,7 @@ func (s *Service) Vote(id, voter, choice string, now time.Time) (Proposal, error
 	}
 	choice = strings.ToLower(strings.TrimSpace(choice))
 	power := p.VotingPower[voter]
-	if p.Status != StatusVoting || !now.Before(p.VotingEndsAt) || (choice != "yes" && choice != "no" && choice != "abstain" && choice != "veto") || power == 0 || strings.TrimSpace(voter) == "" {
+	if p.Status != StatusVotingActive || !now.Before(p.VotingEndsAt) || (choice != "yes" && choice != "no" && choice != "abstain" && choice != "veto") || power == 0 || strings.TrimSpace(voter) == "" {
 		return Proposal{}, ErrInvalid
 	}
 	if _, exists := p.Votes[voter]; exists {
@@ -415,7 +460,7 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusVoting || now.Before(p.VotingEndsAt) {
+	if p.Status != StatusVotingActive || now.Before(p.VotingEndsAt) {
 		return Proposal{}, ErrNotReady
 	}
 	var participated, yes, no, veto uint64
@@ -431,13 +476,37 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 		}
 	}
 	decisive := yes + no + veto
-	passed := participated*10000 >= p.EligiblePower*s.policy.QuorumBPS && decisive > 0 && yes*10000 >= decisive*s.policy.ThresholdBPS && veto*3 < decisive
-	if passed {
-		p.Status, p.ExecuteAfter = StatusTimelocked, now.UTC().Add(s.policy.Timelock)
-	} else {
-		p.Status = StatusRejected
+	tallyEvidence := []string{fmt.Sprintf("tally://%s/participated=%d/yes=%d/no=%d/veto=%d/eligible=%d", p.ID, participated, yes, no, veto, p.EligiblePower)}
+	if err = transitionProposal(p, StatusVotingClosed, "ynx-governance-runtime", "the bounded voting window closed and the final tally was frozen", tallyEvidence, now); err != nil {
+		return Proposal{}, err
 	}
-	p.UpdatedAt = now.UTC()
+	quorumReached := participated*10000 >= p.EligiblePower*s.policy.QuorumBPS
+	thresholdReached := decisive > 0 && yes*10000 >= decisive*s.policy.ThresholdBPS && veto*3 < decisive
+	if !quorumReached {
+		if err = transitionProposal(p, StatusQuorumFailed, "ynx-governance-runtime", "final participation did not meet the versioned minimum quorum", tallyEvidence, now); err != nil {
+			return Proposal{}, err
+		}
+		return clone(p), nil
+	}
+	if !thresholdReached {
+		if err = transitionProposal(p, StatusThresholdFailed, "ynx-governance-runtime", "final approval or veto thresholds were not satisfied", tallyEvidence, now); err != nil {
+			return Proposal{}, err
+		}
+		return clone(p), nil
+	}
+	p.ExecuteAfter = now.UTC().Add(s.policy.Timelock)
+	for _, step := range []struct {
+		to     Status
+		reason string
+	}{
+		{StatusApproved, "quorum and approval thresholds passed; no execution has occurred"},
+		{StatusTimelockPending, "approved action was bound to a public timelock record"},
+		{StatusTimelockActive, "timelock became active and the parameter change remains unapplied"},
+	} {
+		if err = transitionProposal(p, step.to, "ynx-governance-runtime", step.reason, tallyEvidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
 	return clone(p), nil
 }
 
@@ -448,13 +517,20 @@ func (s *Service) BeginExecution(id, manifestHash string, now time.Time) (Propos
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusTimelocked || now.Before(p.ExecuteAfter) || !validHash(manifestHash) {
+	if p.Status != StatusTimelockActive || now.Before(p.ExecuteAfter) || !now.Before(p.Input.ExpiresAt) || !validHash(manifestHash) {
 		return Proposal{}, ErrNotReady
 	}
-	if p.Input.Scope == ScopeProtocolUpgrade && !strings.EqualFold(p.Input.UpgradeHash, manifestHash) {
+	if (p.Input.Scope == ScopeProtocolUpgrade || p.Input.Scope == ScopeConsensusUpgrade) && !strings.EqualFold(p.Input.UpgradeHash, manifestHash) {
 		return Proposal{}, fmt.Errorf("%w: upgrade manifest mismatch", ErrForbidden)
 	}
-	p.Status, p.ExecutionHash, p.UpdatedAt = StatusExecuting, strings.ToLower(manifestHash), now.UTC()
+	p.ExecutionHash = strings.ToLower(manifestHash)
+	evidence := []string{"manifest://sha256/" + p.ExecutionHash}
+	if err = transitionProposal(p, StatusExecutionReady, "ynx-governance-runtime", "timelock elapsed and the exact action hash entered its bounded execution window", evidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if err = transitionProposal(p, StatusExecutionSubmitted, "execution-operator", "the exact authorized action hash was submitted to the canonical execution owner", evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	return clone(p), nil
 }
 
@@ -465,26 +541,133 @@ func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackR
 	if err != nil {
 		return Proposal{}, err
 	}
-	if p.Status != StatusExecuting {
+	if p.Status != StatusExecutionSubmitted {
 		return Proposal{}, ErrInvalid
 	}
 	if err = validateExecutionReceipt(receipt, p.ExecutionHash); err != nil {
 		return Proposal{}, err
 	}
 	p.ExecutionReceipt = &receipt
-	p.UpdatedAt = now.UTC()
+	executionEvidence := []string{"execution-tx://" + receipt.TxHash, "execution-audit://" + receipt.AuditHash}
 	if receipt.Outcome == "verified" {
 		if rollbackReceipt != nil {
 			return Proposal{}, ErrInvalid
 		}
-		p.Status = StatusExecuted
-	} else if receipt.Outcome == "failed" && rollbackReceipt != nil {
-		if err = validateExecutionReceipt(*rollbackReceipt, rollbackReceipt.ManifestHash); err != nil || rollbackReceipt.Outcome != "verified_rollback" || strings.EqualFold(rollbackReceipt.ManifestHash, p.ExecutionHash) {
-			return Proposal{}, fmt.Errorf("%w: invalid rollback receipt", ErrForbidden)
+		for _, step := range []struct {
+			to     Status
+			reason string
+		}{
+			{StatusExecuted, "canonical execution owner returned a successful transaction receipt"},
+			{StatusVerificationPending, "successful transaction receipt entered independent system-health verification"},
+			{StatusVerified, "transaction, state root, manifest, and post-execution verification all passed"},
+		} {
+			if err = transitionProposal(p, step.to, "ynx-governance-verifier", step.reason, executionEvidence, now); err != nil {
+				return Proposal{}, err
+			}
 		}
-		p.Status, p.RollbackHash, p.RollbackReceipt = StatusRolledBack, strings.ToLower(rollbackReceipt.ManifestHash), rollbackReceipt
-	} else {
-		return Proposal{}, fmt.Errorf("%w: failed execution requires verified rollback receipt", ErrNotReady)
+		return clone(p), nil
+	}
+	if receipt.Outcome != "failed" {
+		return Proposal{}, ErrInvalid
+	}
+	if err = transitionProposal(p, StatusExecutionFailed, "ynx-governance-verifier", "canonical execution receipt reported failure and no healthy state was inferred", executionEvidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if rollbackReceipt == nil {
+		return clone(p), nil
+	}
+	if err = validateExecutionReceipt(*rollbackReceipt, rollbackReceipt.ManifestHash); err != nil || rollbackReceipt.Outcome != "verified_rollback" || strings.EqualFold(rollbackReceipt.ManifestHash, p.ExecutionHash) {
+		return Proposal{}, fmt.Errorf("%w: invalid rollback receipt", ErrForbidden)
+	}
+	p.RollbackHash, p.RollbackReceipt = strings.ToLower(rollbackReceipt.ManifestHash), rollbackReceipt
+	rollbackEvidence := []string{"rollback-tx://" + rollbackReceipt.TxHash, "rollback-audit://" + rollbackReceipt.AuditHash}
+	if err = transitionProposal(p, StatusRollbackPending, "execution-operator", "failed execution entered bounded rollback processing", rollbackEvidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if err = transitionProposal(p, StatusRolledBack, "ynx-governance-verifier", "rollback receipt restored the approved rollback manifest and verified state", rollbackEvidence, now); err != nil {
+		return Proposal{}, err
+	}
+	return clone(p), nil
+}
+
+func (s *Service) VerifyRollback(id string, rollbackReceipt ExecutionReceipt, now time.Time) (Proposal, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, err := s.mutable(id, now)
+	if err != nil {
+		return Proposal{}, err
+	}
+	if p.Status != StatusExecutionFailed || rollbackReceipt.Outcome != "verified_rollback" || strings.EqualFold(rollbackReceipt.ManifestHash, p.ExecutionHash) {
+		return Proposal{}, ErrNotReady
+	}
+	if err = validateExecutionReceipt(rollbackReceipt, rollbackReceipt.ManifestHash); err != nil {
+		return Proposal{}, err
+	}
+	p.RollbackHash, p.RollbackReceipt = strings.ToLower(rollbackReceipt.ManifestHash), &rollbackReceipt
+	evidence := []string{"rollback-tx://" + rollbackReceipt.TxHash, "rollback-audit://" + rollbackReceipt.AuditHash}
+	if err = transitionProposal(p, StatusRollbackPending, "execution-operator", "failed execution entered bounded rollback processing", evidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if err = transitionProposal(p, StatusRolledBack, "ynx-governance-verifier", "rollback receipt restored the approved rollback manifest and verified state", evidence, now); err != nil {
+		return Proposal{}, err
+	}
+	return clone(p), nil
+}
+
+func (s *Service) PauseProposal(id, emergencyActionID, actor string, now time.Time) (Proposal, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, err := s.mutable(id, now)
+	if err != nil {
+		return Proposal{}, err
+	}
+	action, ok := s.emergencies[emergencyActionID]
+	if !ok {
+		return Proposal{}, ErrNotFound
+	}
+	s.expireEmergency(action, now.UTC())
+	if action.Status != "active" || action.Input.Target != id || uint64(len(action.Approvals)) < s.policy.EmergencyThreshold || !s.hasRoleAt(actor, RoleEmergencyCouncil, p.Input.Scope, now) {
+		return Proposal{}, ErrForbidden
+	}
+	evidence := append([]string{"emergency-action://" + action.ID}, action.Input.Evidence...)
+	if err = transitionProposal(p, StatusEmergencyPaused, actor, "active scoped emergency action temporarily paused this proposal", evidence, now); err != nil {
+		return Proposal{}, err
+	}
+	return clone(p), nil
+}
+
+func (s *Service) CorrectProposal(id, correctionProposalID, actor string, now time.Time) (Proposal, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.proposals[id]
+	if !ok {
+		return Proposal{}, ErrNotFound
+	}
+	correction, ok := s.proposals[correctionProposalID]
+	if !ok {
+		return Proposal{}, ErrNotFound
+	}
+	if p.Status != StatusEmergencyPaused || correction.Status != StatusVerified || correction.ID == p.ID || correction.Input.Scope != p.Input.Scope || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
+		return Proposal{}, ErrForbidden
+	}
+	if err := transitionProposal(p, StatusCorrected, actor, "a separately approved and verified correction proposal resolved the emergency pause", []string{"correction-proposal://" + correction.ID}, now); err != nil {
+		return Proposal{}, err
+	}
+	return clone(p), nil
+}
+
+func (s *Service) ArchiveProposal(id, actor string, evidence []string, now time.Time) (Proposal, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p, ok := s.proposals[id]
+	if !ok {
+		return Proposal{}, ErrNotFound
+	}
+	if p.Status == StatusArchived || !terminalProposalStatus(p.Status) || len(evidence) == 0 {
+		return Proposal{}, ErrNotReady
+	}
+	if err := transitionProposal(p, StatusArchived, actor, "terminal proposal record was sealed into the public governance archive", evidence, now); err != nil {
+		return Proposal{}, err
 	}
 	return clone(p), nil
 }
@@ -520,10 +703,12 @@ func (s *Service) mutable(id string, now time.Time) (*Proposal, error) {
 	if !ok {
 		return nil, ErrNotFound
 	}
-	if now.UTC().After(p.Input.ExpiresAt) && p.Status != StatusExecuted && p.Status != StatusRolledBack {
-		p.Status, p.UpdatedAt = StatusExpired, now.UTC()
+	if now.UTC().After(p.Input.ExpiresAt) && !terminalProposalStatus(p.Status) && proposalTransitions[p.Status][StatusExpired] {
+		if err := transitionProposal(p, StatusExpired, "ynx-governance-runtime", "proposal execution window expired before a terminal verified outcome", []string{"expiry://" + p.Input.ExpiresAt.UTC().Format(time.RFC3339Nano)}, now); err != nil {
+			return nil, err
+		}
 	}
-	if p.Status == StatusExpired || p.Status == StatusCancelled || p.Status == StatusRejected || p.Status == StatusExecuted || p.Status == StatusRolledBack {
+	if terminalProposalStatus(p.Status) {
 		return nil, ErrNotReady
 	}
 	return p, nil
@@ -531,8 +716,13 @@ func (s *Service) mutable(id string, now time.Time) (*Proposal, error) {
 
 func validateProposal(input ProposalInput, now time.Time, maxLifetime time.Duration, rules map[string]ParameterRule) error {
 	validScopes := map[Scope]bool{ScopeProtocolUpgrade: true, ScopeConsensusUpgrade: true, ScopeGenesis: true, ScopeEconomics: true, ScopeTreasury: true, ScopeStablecoin: true, ScopeOracle: true, ScopeBridge: true, ScopeExchange: true, ScopeDEX: true, ScopeVault: true, ScopeSafety: true, ScopeServiceSecurity: true, ScopeResource: true, ScopeProductRegistry: true, ScopeGrants: true, ScopeRetentionPolicy: true, ScopeSecurityPolicy: true, ScopeReleasePolicy: true}
-	if !validScopes[input.Scope] || len(strings.TrimSpace(input.Nonce)) < 8 || len(strings.TrimSpace(input.Proposer)) < 3 || len(strings.TrimSpace(input.Owner)) < 3 || len(strings.TrimSpace(input.Summary)) < 16 || len(strings.TrimSpace(input.EconomicImpact)) < 16 || len(strings.TrimSpace(input.SecurityRisk)) < 16 || len(strings.TrimSpace(input.Migration)) < 16 || len(strings.TrimSpace(input.Rollback)) < 16 || len(input.Evidence) == 0 || len(input.Changes) == 0 || !input.ExpiresAt.After(now) || input.ExpiresAt.After(now.Add(maxLifetime)) {
+	if !validScopes[input.Scope] || len(strings.TrimSpace(input.Nonce)) < 8 || len(strings.TrimSpace(input.ProposalType)) < 3 || len(strings.TrimSpace(input.Proposer)) < 3 || len(strings.TrimSpace(input.Owner)) < 3 || len(strings.TrimSpace(input.Summary)) < 16 || len(strings.TrimSpace(input.Motivation)) < 16 || len(strings.TrimSpace(input.TechnicalImpact)) < 16 || len(strings.TrimSpace(input.EconomicImpact)) < 16 || len(strings.TrimSpace(input.SecurityRisk)) < 16 || len(strings.TrimSpace(input.UserImpact)) < 16 || len(strings.TrimSpace(input.ProviderImpact)) < 16 || len(strings.TrimSpace(input.Migration)) < 16 || len(strings.TrimSpace(input.Rollback)) < 16 || len(strings.TrimSpace(input.CanaryPlan)) < 16 || len(strings.TrimSpace(input.VerificationPlan)) < 16 || len(strings.TrimSpace(input.ConflictDisclosure)) < 16 || len(input.Dependencies) == 0 || len(input.Evidence) == 0 || len(input.Changes) == 0 || !validHash(strings.ToLower(input.SourceCommit)) || len(strings.TrimSpace(input.Release)) < 3 || !input.ExpiresAt.After(now) || input.ExpiresAt.After(now.Add(maxLifetime)) {
 		return ErrInvalid
+	}
+	for _, dependency := range input.Dependencies {
+		if len(strings.TrimSpace(dependency)) < 3 {
+			return ErrInvalid
+		}
 	}
 	seen := map[string]bool{}
 	for _, change := range input.Changes {
@@ -557,7 +747,7 @@ func validateProposal(input ProposalInput, now time.Time, maxLifetime time.Durat
 			}
 		}
 	}
-	if input.Scope == ScopeProtocolUpgrade && !validHash(input.UpgradeHash) {
+	if (input.Scope == ScopeProtocolUpgrade || input.Scope == ScopeConsensusUpgrade) && !validHash(input.UpgradeHash) {
 		return fmt.Errorf("%w: upgrade hash required", ErrInvalid)
 	}
 	return nil
@@ -602,8 +792,14 @@ func clone(p *Proposal) Proposal {
 	}
 	out.BasePower = clonePowers(p.BasePower)
 	out.Delegations = cloneStrings(p.Delegations)
+	out.Input.Dependencies = append([]string(nil), p.Input.Dependencies...)
 	out.Input.Evidence = append([]string(nil), p.Input.Evidence...)
 	out.Input.Changes = append([]ParameterChange(nil), p.Input.Changes...)
+	out.Transitions = make([]StateTransition, len(p.Transitions))
+	for i, transition := range p.Transitions {
+		out.Transitions[i] = transition
+		out.Transitions[i].Evidence = append([]string(nil), transition.Evidence...)
+	}
 	if p.Simulation != nil {
 		v := *p.Simulation
 		out.Simulation = &v

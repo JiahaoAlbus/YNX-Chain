@@ -37,6 +37,47 @@ func rewriteSnapshot(t *testing.T, path string, mutate func(*snapshotEnvelope)) 
 	}
 }
 
+func TestLoadRejectsLegacyV1StateEvenWithValidSnapshotDigest(t *testing.T) {
+	now := time.Date(2026, 7, 25, 9, 0, 0, 0, time.UTC)
+	service := testService(t)
+	path := t.TempDir() + "/state.json"
+	if err := service.Save(path, now); err != nil {
+		t.Fatal(err)
+	}
+	rewriteSnapshot(t, path, func(envelope *snapshotEnvelope) {
+		envelope.Payload.Version = legacySnapshotVersion
+	})
+	if _, err := Load(path); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "state-machine migration") {
+		t.Fatalf("legacy state was not rejected: %v", err)
+	}
+}
+
+func TestLoadRejectsTamperedTransitionHistoryEvenWithValidSnapshotDigest(t *testing.T) {
+	now := time.Date(2026, 7, 25, 9, 30, 0, 0, time.UTC)
+	service := testService(t)
+	proposal, err := service.Create(proposalInput(now), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := t.TempDir() + "/state.json"
+	if err = service.Save(path, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	rewriteSnapshot(t, path, func(envelope *snapshotEnvelope) {
+		for i := range envelope.Payload.Proposals {
+			if envelope.Payload.Proposals[i].ID != proposal.ID {
+				continue
+			}
+			envelope.Payload.Proposals[i].Transitions[1].To = StatusApproved
+			envelope.Payload.Proposals[i].Status = StatusApproved
+			envelope.Payload.Proposals[i].Transitions[1].AuditHash = transitionAudit(proposal.ID, envelope.Payload.Proposals[i].Transitions[1])
+		}
+	})
+	if _, err = Load(path); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "transition history") {
+		t.Fatalf("tampered state transition was not rejected: %v", err)
+	}
+}
+
 func TestLoadRejectsLegacyCombinedRoleEvenWithValidSnapshotDigest(t *testing.T) {
 	now := time.Date(2026, 7, 25, 10, 0, 0, 0, time.UTC)
 	service := testService(t)

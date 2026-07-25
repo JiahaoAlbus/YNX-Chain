@@ -133,7 +133,7 @@ func (s *Service) AssignRole(input RoleAssignmentInput, proposalID string, now t
 	defer s.mu.Unlock()
 	now = now.UTC()
 	p, ok := s.proposals[proposalID]
-	if !ok || p.Status != StatusExecuted {
+	if !ok || p.Status != StatusVerified {
 		return RoleAssignment{}, fmt.Errorf("%w: executed governance proposal required", ErrForbidden)
 	}
 	if err := validateRoleInput(input, now); err != nil {
@@ -162,7 +162,7 @@ func (s *Service) RemoveRole(id, proposalID string, now time.Time) (RoleAssignme
 		return RoleAssignment{}, ErrNotFound
 	}
 	p, ok := s.proposals[proposalID]
-	if !ok || p.Status != StatusExecuted || a.Status != "active" {
+	if !ok || p.Status != StatusVerified || a.Status != "active" {
 		return RoleAssignment{}, ErrForbidden
 	}
 	a.Status = "removed"

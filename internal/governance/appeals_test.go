@@ -14,7 +14,7 @@ func executeInput(t *testing.T, s *Service, in ProposalInput, now time.Time) Pro
 		t.Fatal(err)
 	}
 	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
-	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", Passed: true}, now.Add(2*time.Minute))
+	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical simulation evidence", EconomicEvidence: "economic simulation evidence", SecurityEvidence: "security simulation evidence", UserImpactEvidence: "user-impact simulation evidence", Passed: true}, now.Add(2*time.Minute))
 	p, _ = openVoting(t, s, p.ID, VotingSnapshot{BasePower: map[string]uint64{"validator": 100}}, now.Add(3*time.Minute))
 	p, _ = s.Vote(p.ID, "validator", "yes", now.Add(4*time.Minute))
 	p, _ = s.Finalize(p.ID, p.VotingEndsAt)

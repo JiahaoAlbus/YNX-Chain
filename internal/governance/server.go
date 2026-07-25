@@ -32,6 +32,7 @@ type Server struct {
 	auth      Authenticator
 	statePath string
 	now       func() time.Time
+	startedAt time.Time
 	mux       *http.ServeMux
 }
 
@@ -42,7 +43,8 @@ func NewServer(service *Service, auth Authenticator, statePath string, now func(
 	if now == nil {
 		now = time.Now
 	}
-	s := &Server{service: service, auth: auth, statePath: statePath, now: now, mux: http.NewServeMux()}
+	startedAt := now().UTC()
+	s := &Server{service: service, auth: auth, statePath: statePath, now: now, startedAt: startedAt, mux: http.NewServeMux()}
 	s.routes()
 	return s, nil
 }
@@ -51,13 +53,23 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metrics)
 	s.mux.HandleFunc("GET /proposals", s.listProposals)
 	s.mux.HandleFunc("GET /proposals/{id}", s.getProposal)
+	s.mux.HandleFunc("GET /votes", s.listVotes)
+	s.mux.HandleFunc("GET /delegations", s.listDelegations)
 	s.mux.HandleFunc("GET /roles", s.listRoles)
 	s.mux.HandleFunc("GET /parameters", s.listParameters)
+	s.mux.HandleFunc("GET /timelocks", s.listTimelocks)
+	s.mux.HandleFunc("GET /executions", s.listExecutions)
+	s.mux.HandleFunc("GET /upgrades", s.listUpgrades)
 	s.mux.HandleFunc("GET /emergency-actions", s.listEmergencies)
+	s.mux.HandleFunc("GET /treasury", s.listTreasury)
+	s.mux.HandleFunc("GET /providers", s.listProviders)
+	s.mux.HandleFunc("GET /conflicts", s.listConflicts)
 	s.mux.HandleFunc("GET /appeals", s.listAppeals)
+	s.mux.HandleFunc("GET /audit", s.listAudit)
 	s.mux.HandleFunc("GET /governance/objects", s.listGovernanceObjects)
 	s.mux.HandleFunc("GET /governance/parameters", s.listParameters)
 	s.mux.HandleFunc("GET /governance/role-definitions", s.listRoleDefinitions)
@@ -101,7 +113,10 @@ func (s *Server) protected(role string, next func(http.ResponseWriter, *http.Req
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeSource(w, http.StatusOK, s.service.Health(s.now()), s.now())
+	writeSource(w, http.StatusOK, HealthResponse{RuntimeStatus: s.runtimeStatus(), Governance: s.service.Health(s.now())}, s.now())
+}
+func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, s.runtimeStatus(), s.now())
 }
 
 func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
@@ -120,7 +135,34 @@ func (s *Server) metrics(w http.ResponseWriter, _ *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_governance_discussion_entries_total{%s} %d\n", labels, h.DiscussionCount)
 }
 func (s *Server) listProposals(w http.ResponseWriter, _ *http.Request) {
-	writeSource(w, http.StatusOK, map[string]any{"proposals": s.service.ListProposals()}, s.now())
+	writeSource(w, http.StatusOK, map[string]any{"proposals": s.service.ListProposals(), "stateMachine": ProposalStatuses()}, s.now())
+}
+func (s *Server) listVotes(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"votes": s.service.PublicVotes()}, s.now())
+}
+func (s *Server) listDelegations(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"delegations": s.service.PublicDelegations(), "authority": "proposal_electorate_snapshots"}, s.now())
+}
+func (s *Server) listTimelocks(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"timelocks": s.service.PublicTimelocks()}, s.now())
+}
+func (s *Server) listExecutions(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"executions": s.service.PublicExecutions()}, s.now())
+}
+func (s *Server) listUpgrades(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"upgrades": s.service.PublicUpgrades()}, s.now())
+}
+func (s *Server) listTreasury(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"proposals": s.service.ProposalsByScope(ScopeTreasury, ScopeGrants), "executionAuthority": string(RoleExecutionOperator)}, s.now())
+}
+func (s *Server) listProviders(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"proposals": s.service.ProposalsByScope(ScopeStablecoin, ScopeOracle, ScopeBridge, ScopeResource), "silentReplacementAllowed": false}, s.now())
+}
+func (s *Server) listConflicts(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"conflicts": s.service.PublicConflicts()}, s.now())
+}
+func (s *Server) listAudit(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"records": s.service.PublicAudit()}, s.now())
 }
 func (s *Server) getProposal(w http.ResponseWriter, r *http.Request) {
 	p, err := s.service.Get(r.PathValue("id"))

@@ -97,7 +97,7 @@ func TestServerPublicReadsExposeSourceAndNoSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/health", "/proposals", "/roles", "/parameters", "/emergency-actions", "/appeals", "/governance/objects", "/governance/proposals", "/governance/emergencies", "/governance/appeals", "/governance/roles"} {
+	for _, path := range []string{"/health", "/version", "/proposals", "/votes", "/delegations", "/roles", "/parameters", "/timelocks", "/executions", "/upgrades", "/emergency-actions", "/treasury", "/providers", "/conflicts", "/appeals", "/audit", "/governance/objects", "/governance/proposals", "/governance/emergencies", "/governance/appeals", "/governance/roles"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rec := httptest.NewRecorder()
 		server.Handler().ServeHTTP(rec, req)
