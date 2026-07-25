@@ -67,8 +67,9 @@ export class CanonicalWalletGatewayAdapter {
     const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["quant:mandate:create"], at);
     const mandate = parseStrategyMandate(input.mandate);
     assertSessionSubject(mandate, authenticated.session);
+    const activated = this.#mandates.activate(mandate, at);
     this.#consume(authenticated.proof);
-    return this.#mandates.activate(mandate, at);
+    return activated;
   }
 
   authorizeMandateAction(input, request, at = new Date()) {
@@ -77,16 +78,18 @@ export class CanonicalWalletGatewayAdapter {
     const action = parseStrategyAction(input.action);
     if (action.mandateId !== input.mandateId) fail("MANDATE_BINDING_MISMATCH", "Strategy action mandateId does not match the requested mandate");
     assertSessionSubject(action, authenticated.session);
+    const authorized = this.#mandates.authorize(input.mandateId, action, at);
     this.#consume(authenticated.proof);
-    return this.#mandates.authorize(input.mandateId, action, at);
+    return authorized;
   }
 
   mandateInventory(input, request, at = new Date()) {
     exactFields(input, PROOF_FIELDS, "Canonical Gateway mandate inventory input");
     const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["quant:account"], at);
-    this.#consume(authenticated.proof);
-    return Object.freeze(this.#mandates.inventory(authenticated.session.account, at)
+    const inventory = Object.freeze(this.#mandates.inventory(authenticated.session.account, at)
       .filter(item => item.mandate.productClientId === authenticated.session.productClientId));
+    this.#consume(authenticated.proof);
+    return inventory;
   }
 
   revokeMandate(input, request, at = new Date()) {
@@ -101,8 +104,9 @@ export class CanonicalWalletGatewayAdapter {
     exactFields(input, MANDATE_EXIT_FIELDS, "Canonical Gateway mandate emergency exit input");
     const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["quant:mandate:revoke"], at);
     this.#assertMandateOwner(input.mandateId, authenticated.session, at);
+    const exited = this.#mandates.emergencyExit(input.mandateId, input.reason, at);
     this.#consume(authenticated.proof);
-    return this.#mandates.emergencyExit(input.mandateId, input.reason, at);
+    return exited;
   }
 
   snapshot() {
@@ -119,8 +123,9 @@ export class CanonicalWalletGatewayAdapter {
     exactFields(input, MANDATE_TERMINAL_FIELDS, `Canonical Gateway mandate ${action} input`);
     const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["quant:mandate:revoke"], at);
     this.#assertMandateOwner(input.mandateId, authenticated.session, at);
+    const terminated = action === "revoke" ? this.#mandates.revoke(input.mandateId, at) : this.#mandates.kill(input.mandateId, at);
     this.#consume(authenticated.proof);
-    return action === "revoke" ? this.#mandates.revoke(input.mandateId, at) : this.#mandates.kill(input.mandateId, at);
+    return terminated;
   }
 
   #assertMandateOwner(mandateId, session, at) {

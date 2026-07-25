@@ -265,6 +265,22 @@ test("Gateway kill switch and emergency exit remain separate audited controls", 
   assert.equal(gateway.snapshot().mandateStore.audit.at(-1).type, "mandate-emergency-exit");
 });
 
+test("failed duplicate mandate activation does not consume a fresh Product Session proof", () => {
+  const gateway = new CanonicalWalletGatewayAdapter(approvedRegistry());
+  const session = gateway.complete(completion(), NOW);
+  const mandateValue = mandate(session, { mandateId: "gateway-atomic-v2" });
+  const path = "/v1/wallet/mandates/activate";
+  const body = bodyForMandate(mandateValue);
+  gateway.activateMandate({ proof: proof(session, path, body, "gateway_atomic_first_abcdefghijkl"), mandate: mandateValue }, context(path, body), NOW);
+  const before = gateway.snapshot().consumedProductProofs.length;
+  const duplicateProof = proof(session, path, body, "gateway_atomic_second_abcdefghijklm");
+  assert.throws(
+    () => gateway.activateMandate({ proof: duplicateProof, mandate: mandateValue }, context(path, body), NOW),
+    code("MANDATE_EXISTS"),
+  );
+  assert.equal(gateway.snapshot().consumedProductProofs.length, before);
+});
+
 test("Gateway snapshot v1 and registry v1 migrate explicitly to adapter v2 and registry v2", () => {
   const registry = approvedRegistry();
   const gateway = new CanonicalWalletGatewayAdapter(registry);
