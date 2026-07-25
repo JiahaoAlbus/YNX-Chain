@@ -4,7 +4,7 @@
 | --- | --- |
 | Version | 0.1.0-candidate |
 | Effective date | 2026-07-23 |
-| Evidence source commit | TBD |
+| Evidence source commit | `d0f16c2971f33e1e8b9bced947131423f841af2f` |
 | Product release | YNX Testnet documentation candidate |
 | Last reviewed | 2026-07-23 |
 | Superseded version | None |
