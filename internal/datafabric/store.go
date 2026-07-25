@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const storeSchemaVersion = 1
+const storeSchemaVersion = 2
 
 type OutboxRecord struct {
 	EventID      string    `json:"eventId"`
@@ -32,11 +32,13 @@ type InboxRecord struct {
 }
 
 type DeadLetter struct {
-	Consumer   string    `json:"consumer"`
-	EventID    string    `json:"eventId"`
-	Attempts   uint32    `json:"attempts"`
-	Failure    string    `json:"failure"`
-	RecordedAt time.Time `json:"recordedAt"`
+	Consumer       string    `json:"consumer"`
+	EventID        string    `json:"eventId"`
+	Attempts       uint32    `json:"attempts"`
+	Failure        string    `json:"failure"`
+	RecordedAt     time.Time `json:"recordedAt"`
+	RequeuedAt     time.Time `json:"requeuedAt,omitempty"`
+	RequeueAuditID string    `json:"requeueAuditId,omitempty"`
 }
 
 type persistedState struct {
@@ -50,6 +52,7 @@ type persistedState struct {
 	Sagas           []SagaInstance           `json:"sagas"`
 	Reconciliations []ReconciliationRun      `json:"reconciliations"`
 	ErasureRequests map[string]ErasureRecord `json:"erasureRequests"`
+	RedeliveryRuns  map[string]RedeliveryRun `json:"redeliveryRuns"`
 }
 
 type Store struct {
@@ -93,20 +96,35 @@ func OpenStore(path string) (*Store, error) {
 	if err := ensureEOF(decoder); err != nil {
 		return nil, fmt.Errorf("decode data fabric store: %w", err)
 	}
-	if s.state.SchemaVersion != storeSchemaVersion || s.state.Inbox == nil || s.state.Projections == nil {
+	if s.state.SchemaVersion != 1 && s.state.SchemaVersion != storeSchemaVersion || s.state.Inbox == nil || s.state.Projections == nil {
 		return nil, errors.New("data fabric store schema is unsupported or incomplete")
+	}
+	migrated := false
+	if s.state.SchemaVersion == 1 {
+		s.state.SchemaVersion = storeSchemaVersion
+		migrated = true
 	}
 	if s.state.ErasureRequests == nil {
 		s.state.ErasureRequests = map[string]ErasureRecord{}
+		migrated = true
+	}
+	if s.state.RedeliveryRuns == nil {
+		s.state.RedeliveryRuns = map[string]RedeliveryRun{}
+		migrated = true
+	}
+	if migrated {
 		if err := s.commit(s.state); err != nil {
-			return nil, fmt.Errorf("initialize privacy state: %w", err)
+			return nil, fmt.Errorf("migrate data fabric store: %w", err)
 		}
 	}
 	return s, nil
 }
 
 func newState() persistedState {
-	return persistedState{SchemaVersion: storeSchemaVersion, Inbox: map[string]InboxRecord{}, Projections: map[string]string{}, ErasureRequests: map[string]ErasureRecord{}}
+	return persistedState{
+		SchemaVersion: storeSchemaVersion, Inbox: map[string]InboxRecord{}, Projections: map[string]string{},
+		ErasureRequests: map[string]ErasureRecord{}, RedeliveryRuns: map[string]RedeliveryRun{},
+	}
 }
 
 // Append commits the authoritative event and its outbox record with one atomic
@@ -255,22 +273,25 @@ func (s *Store) DeadLetters() []DeadLetter {
 }
 
 func (s *Store) RequeueDeadLetter(eventID string, now time.Time) error {
+	return s.requeueDeadLetter(eventID, "audit.system.deadletter-requeue", now)
+}
+
+func (s *Store) requeueDeadLetter(eventID, auditID string, now time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next := cloneState(s.state)
 	found := false
-	kept := next.DeadLetters[:0]
-	for _, record := range next.DeadLetters {
-		if record.EventID == eventID && record.Consumer == "" {
+	for index := range next.DeadLetters {
+		record := &next.DeadLetters[index]
+		if record.EventID == eventID && record.Consumer == "" && record.RequeuedAt.IsZero() {
+			record.RequeuedAt = now.UTC()
+			record.RequeueAuditID = auditID
 			found = true
-			continue
 		}
-		kept = append(kept, record)
 	}
 	if !found {
 		return os.ErrNotExist
 	}
-	next.DeadLetters = kept
 	for i := range next.Outbox {
 		if next.Outbox[i].EventID == eventID {
 			next.Outbox[i].Attempt = 0
@@ -357,7 +378,12 @@ func (s *Store) Projection(key string) string {
 func (s *Store) Stats() StoreStats {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	stats := StoreStats{Events: uint64(len(s.state.Events)), InboxEffects: uint64(len(s.state.Inbox)), DeadLetters: uint64(len(s.state.DeadLetters)), JournalEntries: uint64(len(s.state.Ledger)), Reconciliations: uint64(len(s.state.Reconciliations)), ErasureRequests: uint64(len(s.state.ErasureRequests))}
+	stats := StoreStats{Events: uint64(len(s.state.Events)), InboxEffects: uint64(len(s.state.Inbox)), JournalEntries: uint64(len(s.state.Ledger)), Reconciliations: uint64(len(s.state.Reconciliations)), ErasureRequests: uint64(len(s.state.ErasureRequests))}
+	for _, record := range s.state.DeadLetters {
+		if record.RequeuedAt.IsZero() {
+			stats.DeadLetters++
+		}
+	}
 	for _, record := range s.state.Outbox {
 		if record.PublishedAt.IsZero() {
 			stats.OutboxPending++

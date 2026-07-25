@@ -7,6 +7,17 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabric"
 )
 
+const sequenceIntegrityQuery = `
+SELECT count(*) FROM (
+    SELECT COALESCE(s.product,e.product) AS product
+    FROM ynx_fabric.aggregate_sequences s
+    FULL JOIN (
+        SELECT product,service,aggregate_type,aggregate_id,max(sequence) AS last_sequence,count(*) AS event_count
+        FROM ynx_fabric.events GROUP BY product,service,aggregate_type,aggregate_id
+    ) e USING (product,service,aggregate_type,aggregate_id)
+    WHERE s.last_sequence IS DISTINCT FROM e.last_sequence OR e.event_count IS DISTINCT FROM e.last_sequence
+) mismatches`
+
 func (s *Store) AuditIntegrity(ctx context.Context, keys map[string][]byte) error {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true, Isolation: sql.LevelRepeatableRead})
 	if err != nil {
@@ -45,16 +56,7 @@ func (s *Store) AuditIntegrity(ctx context.Context, keys map[string][]byte) erro
 		return err
 	}
 	var sequenceMismatches uint64
-	if err := tx.QueryRowContext(ctx, `
-SELECT count(*) FROM (
-    SELECT COALESCE(s.product,e.product) AS product
-    FROM ynx_fabric.aggregate_sequences s
-    FULL JOIN (
-        SELECT product,service,aggregate_id,max(sequence) AS last_sequence,count(*) AS event_count
-        FROM ynx_fabric.events GROUP BY product,service,aggregate_id
-    ) e USING (product,service,aggregate_id)
-    WHERE s.last_sequence IS DISTINCT FROM e.last_sequence OR e.event_count IS DISTINCT FROM e.last_sequence
-) mismatches`).Scan(&sequenceMismatches); err != nil {
+	if err := tx.QueryRowContext(ctx, sequenceIntegrityQuery).Scan(&sequenceMismatches); err != nil {
 		return err
 	}
 	if sequenceMismatches != 0 {

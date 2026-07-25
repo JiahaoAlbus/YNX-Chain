@@ -103,6 +103,99 @@ func (c *Client) Events(ctx context.Context) (EventPage, error) {
 	return page, nil
 }
 
+type RedeliveryPreviewRequest struct {
+	EventType     string     `json:"eventType,omitempty"`
+	AggregateType string     `json:"aggregateType,omitempty"`
+	AggregateID   string     `json:"aggregateId,omitempty"`
+	FromSequence  uint64     `json:"fromSequence,omitempty"`
+	ToSequence    uint64     `json:"toSequence,omitempty"`
+	OccurredFrom  *time.Time `json:"occurredFrom,omitempty"`
+	OccurredTo    *time.Time `json:"occurredTo,omitempty"`
+	Limit         int        `json:"limit"`
+}
+
+type RedeliveryExecutionRequest struct {
+	IdempotencyKey string     `json:"idempotencyKey"`
+	EventType      string     `json:"eventType,omitempty"`
+	AggregateType  string     `json:"aggregateType,omitempty"`
+	AggregateID    string     `json:"aggregateId,omitempty"`
+	FromSequence   uint64     `json:"fromSequence,omitempty"`
+	ToSequence     uint64     `json:"toSequence,omitempty"`
+	OccurredFrom   *time.Time `json:"occurredFrom,omitempty"`
+	OccurredTo     *time.Time `json:"occurredTo,omitempty"`
+	Limit          int        `json:"limit"`
+	PreviewHash    string     `json:"previewHash"`
+	Reason         string     `json:"reason"`
+	ApprovalID     string     `json:"approvalId"`
+	ApprovalStatus string     `json:"approvalStatus"`
+	Confirm        bool       `json:"confirm"`
+	AuditID        string     `json:"auditId"`
+}
+
+type RedeliveryPreviewResult struct {
+	Preview           RedeliveryPreview `json:"preview"`
+	RequiresApproval  bool              `json:"requiresApproval"`
+	ExecutionEndpoint string            `json:"executionEndpoint"`
+}
+
+type RedeliveryExecutionResult struct {
+	Run                RedeliveryRun `json:"run"`
+	BusinessCompletion string        `json:"businessCompletion"`
+	ExactlyOnceClaim   string        `json:"exactlyOnceClaim"`
+}
+
+func (c *Client) PreviewReplay(ctx context.Context, request RedeliveryPreviewRequest) (RedeliveryPreviewResult, error) {
+	return c.previewRedelivery(ctx, "/v1/replay", request)
+}
+
+func (c *Client) PreviewBackfill(ctx context.Context, request RedeliveryPreviewRequest) (RedeliveryPreviewResult, error) {
+	return c.previewRedelivery(ctx, "/v1/backfill", request)
+}
+
+func (c *Client) ExecuteReplay(ctx context.Context, request RedeliveryExecutionRequest) (RedeliveryExecutionResult, error) {
+	return c.executeRedelivery(ctx, "/v1/replay", request)
+}
+
+func (c *Client) ExecuteBackfill(ctx context.Context, request RedeliveryExecutionRequest) (RedeliveryExecutionResult, error) {
+	return c.executeRedelivery(ctx, "/v1/backfill", request)
+}
+
+func (c *Client) previewRedelivery(ctx context.Context, path string, request RedeliveryPreviewRequest) (RedeliveryPreviewResult, error) {
+	body, err := json.Marshal(struct {
+		DryRun bool `json:"dryRun"`
+		RedeliveryPreviewRequest
+	}{DryRun: true, RedeliveryPreviewRequest: request})
+	if err != nil {
+		return RedeliveryPreviewResult{}, err
+	}
+	var result RedeliveryPreviewResult
+	if err := c.do(ctx, http.MethodPost, path, body, &result); err != nil {
+		return RedeliveryPreviewResult{}, err
+	}
+	if !result.RequiresApproval || result.ExecutionEndpoint != path || result.Preview.ScopeHash == "" || result.Preview.CandidateCount != len(result.Preview.Candidates) {
+		return RedeliveryPreviewResult{}, errors.New("Data Fabric returned an inconsistent redelivery preview")
+	}
+	return result, nil
+}
+
+func (c *Client) executeRedelivery(ctx context.Context, path string, request RedeliveryExecutionRequest) (RedeliveryExecutionResult, error) {
+	body, err := json.Marshal(struct {
+		DryRun bool `json:"dryRun"`
+		RedeliveryExecutionRequest
+	}{DryRun: false, RedeliveryExecutionRequest: request})
+	if err != nil {
+		return RedeliveryExecutionResult{}, err
+	}
+	var result RedeliveryExecutionResult
+	if err := c.do(ctx, http.MethodPost, path, body, &result); err != nil {
+		return RedeliveryExecutionResult{}, err
+	}
+	if result.Run.RunID == "" || result.Run.IdempotencyKey != request.IdempotencyKey || result.BusinessCompletion != "pending-consumer-effects" || result.ExactlyOnceClaim != "idempotent-effect-not-broker-delivery" {
+		return RedeliveryExecutionResult{}, errors.New("Data Fabric returned an inconsistent redelivery execution result")
+	}
+	return result, nil
+}
+
 func (c *Client) do(ctx context.Context, method, path string, body []byte, output any) error {
 	digest := sha256.Sum256(body)
 	binding := RequestBinding{Method: method, Path: path, ContentSHA256: hex.EncodeToString(digest[:])}

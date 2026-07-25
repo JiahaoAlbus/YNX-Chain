@@ -28,6 +28,8 @@ type Repository interface {
 	Reconciliations(context.Context) ([]datafabric.ReconciliationRun, error)
 	ExportSubject(context.Context, string, string, time.Time) (datafabric.SubjectExport, error)
 	RecordErasure(context.Context, string, string, []byte, time.Time) (datafabric.ErasureRecord, error)
+	PreviewRedelivery(context.Context, datafabric.RedeliveryMode, datafabric.RedeliveryScope, time.Time) (datafabric.RedeliveryPreview, error)
+	ExecuteRedelivery(context.Context, datafabric.RedeliveryCommand, time.Time) (datafabric.RedeliveryRun, error)
 	AuditIntegrity(context.Context, map[string][]byte) error
 	Stats(context.Context) (datafabric.StoreStats, error)
 }
@@ -87,6 +89,12 @@ func (r LocalRepository) ExportSubject(_ context.Context, accountID, version str
 }
 func (r LocalRepository) RecordErasure(_ context.Context, accountID, auditID string, key []byte, at time.Time) (datafabric.ErasureRecord, error) {
 	return r.Store.RecordErasure(accountID, auditID, key, at)
+}
+func (r LocalRepository) PreviewRedelivery(_ context.Context, mode datafabric.RedeliveryMode, scope datafabric.RedeliveryScope, at time.Time) (datafabric.RedeliveryPreview, error) {
+	return r.Store.PreviewRedelivery(mode, scope, at)
+}
+func (r LocalRepository) ExecuteRedelivery(_ context.Context, command datafabric.RedeliveryCommand, at time.Time) (datafabric.RedeliveryRun, error) {
+	return r.Store.ExecuteRedelivery(command, at)
 }
 func (r LocalRepository) AuditIntegrity(_ context.Context, keys map[string][]byte) error {
 	return r.Store.AuditIntegrity(keys)

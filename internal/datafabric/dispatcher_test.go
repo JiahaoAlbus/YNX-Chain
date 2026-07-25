@@ -55,8 +55,9 @@ func TestDispatcherBrokerOutageDeadLetterAndRequeue(t *testing.T) {
 	publisher.fail = false
 	now = now.Add(time.Minute)
 	report, err = dispatcher.DispatchOnce(context.Background())
-	if err != nil || report.Published != 1 || len(store.DeadLetters()) != 0 {
-		t.Fatalf("requeue publish: %+v %v", report, err)
+	deadLetters := store.DeadLetters()
+	if err != nil || report.Published != 1 || len(deadLetters) != 1 || deadLetters[0].RequeuedAt.IsZero() || deadLetters[0].RequeueAuditID == "" || store.Stats().DeadLetters != 0 {
+		t.Fatalf("requeue publish did not preserve audited Dead Letter history: report=%+v deadLetters=%+v err=%v", report, deadLetters, err)
 	}
 }
 

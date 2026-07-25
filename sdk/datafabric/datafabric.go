@@ -48,6 +48,14 @@ type ReconciliationFinding = core.ReconciliationFinding
 type ReconciliationRun = core.ReconciliationRun
 type SubjectExport = core.SubjectExport
 type ErasureRecord = core.ErasureRecord
+type ErrorCode = core.ErrorCode
+type RejectionError = core.RejectionError
+type RedeliveryMode = core.RedeliveryMode
+type RedeliveryScope = core.RedeliveryScope
+type RedeliveryCandidate = core.RedeliveryCandidate
+type RedeliveryPreview = core.RedeliveryPreview
+type RedeliveryCommand = core.RedeliveryCommand
+type RedeliveryRun = core.RedeliveryRun
 
 const (
 	Debit  = core.Debit
@@ -72,10 +80,22 @@ const (
 	SagaCompensated    = core.SagaCompensated
 	SagaCompleted      = core.SagaCompleted
 	SagaManualRecovery = core.SagaManualRecovery
+
+	RedeliveryReplay   = core.RedeliveryReplay
+	RedeliveryBackfill = core.RedeliveryBackfill
+
+	CodeRedeliveryPreviewStale        = core.CodeRedeliveryPreviewStale
+	CodeRedeliveryIdempotencyConflict = core.CodeRedeliveryIdempotencyConflict
+	CodeRedeliveryNoCandidates        = core.CodeRedeliveryNoCandidates
 )
 
 func DecodeEnvelopeStrict(r io.Reader) (EventEnvelope, error) { return core.DecodeEnvelopeStrict(r) }
 func OpenStore(path string) (*Store, error)                   { return core.OpenStore(path) }
+func ErrorCodeOf(err error) ErrorCode                         { return core.ErrorCodeOf(err) }
+func RedeliveryRequestHash(command RedeliveryCommand) (string, error) {
+	return core.RedeliveryRequestHash(command)
+}
+func RedeliveryRunID(idempotencyKey string) string { return core.RedeliveryRunID(idempotencyKey) }
 func NewSaga(id string, kind SagaKind, aggregateID, correlationID, auditID string, now, deadline time.Time) (SagaInstance, error) {
 	return core.NewSaga(id, kind, aggregateID, correlationID, auditID, now, deadline)
 }

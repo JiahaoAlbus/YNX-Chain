@@ -107,6 +107,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/schemas", s.authorize("fabric.schemas.read", s.listSchemas))
 	s.mux.HandleFunc("GET /v1/schemas/{eventType}/{version}", s.authorize("fabric.schemas.read", s.getSchema))
 	s.mux.HandleFunc("POST /v1/schemas/compatibility", s.authorize("fabric.schemas.read", s.checkSchemaCompatibility))
+	s.mux.HandleFunc("POST /replay", s.authorize("fabric.redelivery.manage", s.redelivery(datafabric.RedeliveryReplay)))
+	s.mux.HandleFunc("POST /backfill", s.authorize("fabric.redelivery.manage", s.redelivery(datafabric.RedeliveryBackfill)))
+	s.mux.HandleFunc("POST /v1/replay", s.authorize("fabric.redelivery.manage", s.redelivery(datafabric.RedeliveryReplay)))
+	s.mux.HandleFunc("POST /v1/backfill", s.authorize("fabric.redelivery.manage", s.redelivery(datafabric.RedeliveryBackfill)))
 	s.mux.HandleFunc("POST /v1/events", s.authorize("fabric.events.write", s.appendEvent))
 	s.mux.HandleFunc("GET /v1/events", s.authorize("fabric.events.read", s.listEvents))
 	s.mux.HandleFunc("POST /v1/ledger/journal", s.authorize("fabric.ledger.write", s.postJournal))
@@ -339,6 +343,75 @@ func (s *Server) checkSchemaCompatibility(w http.ResponseWriter, r *http.Request
 		status = http.StatusConflict
 	}
 	writeJSON(w, status, report)
+}
+
+type redeliveryRequest struct {
+	DryRun         bool       `json:"dryRun"`
+	IdempotencyKey string     `json:"idempotencyKey,omitempty"`
+	EventType      string     `json:"eventType,omitempty"`
+	AggregateType  string     `json:"aggregateType,omitempty"`
+	AggregateID    string     `json:"aggregateId,omitempty"`
+	FromSequence   uint64     `json:"fromSequence,omitempty"`
+	ToSequence     uint64     `json:"toSequence,omitempty"`
+	OccurredFrom   *time.Time `json:"occurredFrom,omitempty"`
+	OccurredTo     *time.Time `json:"occurredTo,omitempty"`
+	Limit          int        `json:"limit"`
+	PreviewHash    string     `json:"previewHash,omitempty"`
+	Reason         string     `json:"reason,omitempty"`
+	ApprovalID     string     `json:"approvalId,omitempty"`
+	ApprovalStatus string     `json:"approvalStatus,omitempty"`
+	Confirm        bool       `json:"confirm"`
+	AuditID        string     `json:"auditId,omitempty"`
+}
+
+func (s *Server) redelivery(mode datafabric.RedeliveryMode) func(http.ResponseWriter, *http.Request, Principal) {
+	return func(w http.ResponseWriter, r *http.Request, principal Principal) {
+		input, err := decodeStrict[redeliveryRequest](w, r, s.cfg.MaxBodyBytes)
+		if err != nil {
+			s.writeError(w, http.StatusBadRequest, "DF_REDELIVERY_REQUEST_INVALID_V1", err.Error())
+			return
+		}
+		scope := datafabric.RedeliveryScope{
+			Product: principal.Product, EventType: input.EventType, AggregateType: input.AggregateType,
+			AggregateID: input.AggregateID, FromSequence: input.FromSequence, ToSequence: input.ToSequence,
+			OccurredFrom: input.OccurredFrom, OccurredTo: input.OccurredTo, Limit: input.Limit,
+		}
+		if err := scope.Validate(); err != nil {
+			s.writeError(w, http.StatusBadRequest, "DF_REDELIVERY_SCOPE_INVALID_V1", err.Error())
+			return
+		}
+		now := time.Now().UTC()
+		if input.DryRun {
+			preview, err := s.repo.PreviewRedelivery(r.Context(), mode, scope, now)
+			if err != nil {
+				s.writeRepositoryError(w)
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"preview": preview, "requiresApproval": true, "executionEndpoint": r.URL.Path})
+			return
+		}
+		command := datafabric.RedeliveryCommand{
+			RequestID: r.Header.Get("X-YNX-Request-ID"), IdempotencyKey: input.IdempotencyKey, Mode: mode, Scope: scope,
+			PreviewHash: input.PreviewHash, Reason: input.Reason, ApprovalID: input.ApprovalID,
+			ApprovalStatus: input.ApprovalStatus, Confirmed: input.Confirm, AuditID: input.AuditID,
+			RequestedBy: principal.AccountID, RequestedAt: now, ControlVersion: "1.0",
+			SourceCommit: s.cfg.SourceCommit, SourceRelease: s.cfg.SourceRelease,
+		}
+		if err := command.Validate(); err != nil {
+			s.writeError(w, http.StatusBadRequest, "DF_REDELIVERY_APPROVAL_INVALID_V1", err.Error())
+			return
+		}
+		run, err := s.repo.ExecuteRedelivery(r.Context(), command, now)
+		if err != nil {
+			if datafabric.ErrorCodeOf(err) != "" {
+				s.writeDataFabricError(w, http.StatusConflict, err)
+			} else {
+				s.writeRepositoryError(w)
+			}
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{"run": run, "businessCompletion": "pending-consumer-effects", "exactlyOnceClaim": "idempotent-effect-not-broker-delivery"})
+	}
 }
 
 func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal Principal) {

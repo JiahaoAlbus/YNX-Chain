@@ -5,17 +5,22 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
 
 type testCredentialProvider struct {
-	t         *testing.T
-	eventBody []byte
+	t            *testing.T
+	expectedPath string
 }
 
 func (p testCredentialProvider) Credentials(_ context.Context, binding RequestBinding) (CanonicalCredentials, error) {
-	if binding.Method == "" || binding.Path != "/v1/events" || len(binding.ContentSHA256) != 64 {
+	expectedPath := p.expectedPath
+	if expectedPath == "" {
+		expectedPath = "/v1/events"
+	}
+	if binding.Method == "" || binding.Path != expectedPath || len(binding.ContentSHA256) != 64 {
 		p.t.Fatalf("SDK supplied incomplete signing binding: %+v", binding)
 	}
 	return CanonicalCredentials{AppSession: "opaque-session", SessionID: "session.sdk.0001", DeviceID: "device.sdk.0001", Product: "pay", BundleID: "app.ynx.pay", RequestID: "request.sdk.0001", RequestNonce: "nonce.sdk.0001", RequestTime: time.Now().UTC(), DeviceSignature: "canonical-device-signature"}, nil
@@ -39,6 +44,57 @@ func TestClientBindsCanonicalCredentialsAndValidatesAppendAcknowledgement(t *tes
 	result, err := client.AppendEvent(context.Background(), event)
 	if err != nil || result.EventID != event.EventID {
 		t.Fatalf("append failed: %+v %v", result, err)
+	}
+}
+
+func TestClientReplayUsesApprovalControlPlaneAndValidatesCompletionTruth(t *testing.T) {
+	previewHash := strings.Repeat("a", 64)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if dryRun, _ := body["dryRun"].(bool); dryRun {
+			_ = json.NewEncoder(w).Encode(RedeliveryPreviewResult{
+				Preview: RedeliveryPreview{
+					Mode:      RedeliveryReplay,
+					Scope:     RedeliveryScope{Product: "pay", AggregateID: "invoice.sdk.0001", Limit: 10},
+					ScopeHash: previewHash, CandidateCount: 1,
+					Candidates:  []RedeliveryCandidate{{EventID: "event.pay.sdk.replay.0001", EventType: "pay.invoice.created", SchemaVersion: EnvelopeSchemaVersion, AggregateID: "invoice.sdk.0001", Sequence: 1, OccurredAt: time.Now().UTC(), IntegrityHash: strings.Repeat("b", 64), DeliveryStatus: "published"}},
+					GeneratedAt: time.Now().UTC(),
+				},
+				RequiresApproval: true, ExecutionEndpoint: "/v1/replay",
+			})
+			return
+		}
+		idempotencyKey, _ := body["idempotencyKey"].(string)
+		_ = json.NewEncoder(w).Encode(RedeliveryExecutionResult{
+			Run: RedeliveryRun{
+				RunID: "redelivery.sdk.0001", IdempotencyKey: idempotencyKey, Mode: RedeliveryReplay,
+				ApprovalStatus: "approved", ControlVersion: "1.0", SourceCommit: "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+				SourceRelease: "data-fabric-testnet-v0", Status: "completed", CandidateCount: 1, EnqueuedCount: 1,
+			},
+			BusinessCompletion: "pending-consumer-effects", ExactlyOnceClaim: "idempotent-effect-not-broker-delivery",
+		})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client(), testCredentialProvider{t: t, expectedPath: "/v1/replay"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := client.PreviewReplay(context.Background(), RedeliveryPreviewRequest{AggregateID: "invoice.sdk.0001", Limit: 10})
+	if err != nil || preview.Preview.ScopeHash != previewHash || !preview.RequiresApproval {
+		t.Fatalf("SDK replay preview failed: %+v err=%v", preview, err)
+	}
+	result, err := client.ExecuteReplay(context.Background(), RedeliveryExecutionRequest{
+		IdempotencyKey: "idempotency.sdk.replay.0001", AggregateID: "invoice.sdk.0001", Limit: 10,
+		PreviewHash: preview.Preview.ScopeHash, Reason: "approved SDK replay after verified outage",
+		ApprovalID: "approval.sdk.replay.0001", ApprovalStatus: "approved", Confirm: true, AuditID: "audit.sdk.replay.0001",
+	})
+	if err != nil || result.Run.EnqueuedCount != 1 || result.BusinessCompletion != "pending-consumer-effects" {
+		t.Fatalf("SDK replay execution failed: %+v err=%v", result, err)
 	}
 }
 

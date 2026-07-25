@@ -7,7 +7,7 @@ import (
 
 func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 2 {
+	if err != nil || len(files) != 3 {
 		t.Fatalf("unexpected migration set: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[0])
@@ -53,7 +53,7 @@ func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 
 func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 2 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
+	if err != nil || len(files) != 3 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
 		t.Fatalf("v2 migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[1])
@@ -77,6 +77,40 @@ func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	}
 	if _, err := RollbackMigration(9999); err == nil {
 		t.Fatal("unknown rollback migration was accepted")
+	}
+}
+
+func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 3 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
+		t.Fatalf("redelivery migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[2])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"CREATE TABLE ynx_fabric.redelivery_runs",
+		"CREATE TABLE ynx_fabric.redelivery_run_events",
+		"candidate_count = enqueued_count + skipped_pending",
+		"redelivery_runs_append_only",
+		"redelivery_run_events_append_only",
+		"dead_letters_requeue_audit_check",
+		"approval_status text NOT NULL CHECK (approval_status = 'approved')",
+		"confirmed boolean NOT NULL CHECK (confirmed)",
+		"source_commit char(40)",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("redelivery migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back redelivery control plane while audit history exists") {
+		t.Fatal("redelivery rollback does not preserve audit history")
 	}
 }
 
