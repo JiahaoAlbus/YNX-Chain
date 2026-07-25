@@ -1,0 +1,138 @@
+{
+  "schema": "ynx-cross-product-test-vectors/v1",
+  "sourceCommit": "a4bfc0d9d141",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "vectors": [
+    {
+      "id": "chain-network-identity-accept",
+      "owner": "chain-core",
+      "operation": "read-status",
+      "inputSource": "chain-metadata/ynx-testnet.json",
+      "expected": "accept"
+    },
+    {
+      "id": "native-transfer-valid-accept",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "expected": "accept"
+    },
+    {
+      "id": "native-transfer-replay-reject",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "mutation": "resubmit-identical-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "replay"
+    },
+    {
+      "id": "native-transfer-wrong-chain-reject",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "mutation": "replace-chain-id",
+      "expected": "reject",
+      "errorClass": "wrong-chain"
+    },
+    {
+      "id": "wallet-product-session-wrong-product-reject",
+      "owner": "wallet-auth",
+      "operation": "forward-signed-mutation",
+      "inputSource": "accepted-wallet-auth-contract",
+      "mutation": "bind-session-to-another-product",
+      "expected": "reject",
+      "errorClass": "wrong-product",
+      "blockedUntil": "accepted Wallet/Auth contract"
+    },
+    {
+      "id": "wallet-product-session-scope-widening-reject",
+      "owner": "wallet-auth",
+      "operation": "forward-signed-mutation",
+      "inputSource": "accepted-wallet-auth-contract",
+      "mutation": "add-unapproved-mutation-scope",
+      "expected": "reject",
+      "errorClass": "scope-widening",
+      "blockedUntil": "accepted Wallet/Auth scope identifiers"
+    },
+    {
+      "id": "user-operation-sponsored-batch-accept",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "internal/consensus/account_abstraction_action_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "user-operation-expired-reject",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "chain/accounts/user-operation.schema.json",
+      "mutation": "set-valid-until-before-block-time",
+      "expected": "reject",
+      "errorClass": "expired"
+    },
+    {
+      "id": "user-operation-paymaster-budget-reject",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "internal/consensus/account_abstraction_action_test.go",
+      "mutation": "raise-fee-above-remaining-paymaster-budget",
+      "expected": "reject",
+      "errorClass": "limit-exceeded"
+    },
+    {
+      "id": "strategy-mandate-create-accept",
+      "owner": "chain-core",
+      "operation": "create-strategy-mandate",
+      "inputSource": "chain/governance/strategy-mandate.schema.json",
+      "expected": "accept"
+    },
+    {
+      "id": "strategy-mandate-revoked-action-reject",
+      "owner": "chain-core",
+      "operation": "execute-strategy-action",
+      "inputSource": "internal/assetauth/mandate_test.go",
+      "mutation": "execute-after-revoke",
+      "expected": "reject",
+      "errorClass": "revoked"
+    },
+    {
+      "id": "strategy-vault-owner-withdraw-accept",
+      "owner": "chain-core",
+      "operation": "withdraw-strategy-vault",
+      "inputSource": "internal/assetauth/vault.go",
+      "expected": "accept"
+    },
+    {
+      "id": "strategy-vault-engine-withdraw-reject",
+      "owner": "chain-core",
+      "operation": "withdraw-strategy-vault",
+      "inputSource": "internal/assetauth/mandate_test.go",
+      "mutation": "replace-owner-signer-with-engine",
+      "expected": "reject",
+      "errorClass": "wrong-owner"
+    },
+    {
+      "id": "staking-withdraw-before-maturity-reject",
+      "owner": "chain-core",
+      "operation": "withdraw-unbonding",
+      "inputSource": "internal/consensus/staking_action_test.go",
+      "mutation": "submit-before-completion-time",
+      "expected": "reject",
+      "errorClass": "state-conflict"
+    },
+    {
+      "id": "solvency-liability-proof-tamper-reject",
+      "owner": "chain-core",
+      "operation": "verify-liability-proof",
+      "inputSource": "internal/consensus/solvency_snapshot_test.go",
+      "mutation": "change-leaf-amount-after-proof-generation",
+      "expected": "reject",
+      "errorClass": "invalid-proof"
+    }
+  ]
+}

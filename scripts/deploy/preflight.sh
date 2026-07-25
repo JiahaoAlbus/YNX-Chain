@@ -6,6 +6,7 @@ make no-placeholder-check
 make secret-scan
 make static-check
 make objective-state-check
+make integration-contract-check
 make deploy-readiness-gate-check
 make deploy-connection-retry-check
 make deploy-source-integrity-check

@@ -1,0 +1,74 @@
+{
+  "schema": "ynx-product-release/v1",
+  "generatedAt": "2026-07-25T03:13:30Z",
+  "product": {
+    "id": "chain-core",
+    "name": "YNX Chain Core",
+    "owner": "01-chain-core",
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "canonicalRoute": "/chain"
+  },
+  "source": {
+    "implementationCommit": "a4bfc0d9d141",
+    "committedStateVersion": 11,
+    "contractVersion": "1.0.0",
+    "releaseRecordVersion": 1
+  },
+  "network": {
+    "name": "YNX Testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1",
+    "evmCompatibilityAddressPrefix": "0x"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "deployedBaseline": {
+    "release": "ynx-chain-02f4ccd8770c",
+    "commit": "02f4ccd8770c",
+    "topology": "authoritative-producer-with-three-read-only-authenticated-followers",
+    "publicFourValidatorBft": false,
+    "matchesCurrentSource": false,
+    "evidence": "release/recovery-evidence.json"
+  },
+  "currentSourceCapabilities": [
+    "signed-native-transfer",
+    "nonce-and-replay-rejection",
+    "fixed-fee-consensus-ledger",
+    "strategy-mandate",
+    "strategy-vault",
+    "validator-delegation-and-exit",
+    "smart-account",
+    "user-operation",
+    "bundler",
+    "paymaster",
+    "treasury-snapshot",
+    "native-liability-solvency-proof",
+    "cometbft-candidate-package"
+  ],
+  "currentSourceBoundaries": [
+    "Current source is not deployed on the authoritative public runtime.",
+    "The public topology is not four-validator CometBFT voting.",
+    "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
+    "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
+    "No owner production signer, public BFT cutover approval, or independent public proof is recorded."
+  ],
+  "evidence": [
+    "FEATURE_COMPLETION_EVIDENCE.md",
+    "CURRENT_RECOVERY_AUDIT.md",
+    "release/recovery-evidence.json",
+    "release/integration/chain-core-contract.json",
+    "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+  ]
+}
