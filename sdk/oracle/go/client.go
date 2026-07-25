@@ -15,7 +15,10 @@ import (
 	"time"
 )
 
-const SchemaVersion = "ynx.oracle.v1"
+const (
+	SchemaVersion            = "ynx.oracle.v1"
+	DerivativesPolicyVersion = "index-funding-mark-v1"
+)
 
 type Quality struct {
 	Status              string   `json:"status"`
@@ -32,23 +35,38 @@ type Quality struct {
 }
 
 type Price struct {
-	Schema          string    `json:"schema"`
-	Market          string    `json:"market"`
-	Type            string    `json:"type"`
-	Value           int64     `json:"value"`
-	Scale           int64     `json:"scale"`
-	Source          string    `json:"source"`
-	Version         string    `json:"version"`
-	AsOf            time.Time `json:"asOf"`
-	ProducedAt      time.Time `json:"producedAt"`
-	Quality         Quality   `json:"quality"`
-	ObservationIDs  []string  `json:"observationIds"`
-	ObservationHash []string  `json:"observationHashes"`
-	LineageHash     string    `json:"lineageHash"`
+	Schema          string           `json:"schema"`
+	Market          string           `json:"market"`
+	Type            string           `json:"type"`
+	Value           int64            `json:"value"`
+	Scale           int64            `json:"scale"`
+	Source          string           `json:"source"`
+	Version         string           `json:"version"`
+	AsOf            time.Time        `json:"asOf"`
+	ProducedAt      time.Time        `json:"producedAt"`
+	Quality         Quality          `json:"quality"`
+	ObservationIDs  []string         `json:"observationIds"`
+	ObservationHash []string         `json:"observationHashes"`
+	LineageHash     string           `json:"lineageHash"`
+	Derivation      *PriceDerivation `json:"derivation,omitempty"`
+}
+
+type PriceDerivation struct {
+	Method                 string   `json:"method"`
+	PolicyVersion          string   `json:"policyVersion"`
+	ComponentTypes         []string `json:"componentTypes"`
+	ComponentLineageHashes []string `json:"componentLineageHashes"`
+	FundingWindowSeconds   int64    `json:"fundingWindowSeconds,omitempty"`
+	PremiumPPM             int64    `json:"premiumPpm,omitempty"`
+	BasisPPM               int64    `json:"basisPpm,omitempty"`
+	RawAdjustmentPPM       int64    `json:"rawAdjustmentPpm,omitempty"`
+	AppliedAdjustmentPPM   int64    `json:"appliedAdjustmentPpm,omitempty"`
+	ClampPPM               int64    `json:"clampPpm,omitempty"`
+	Clamped                bool     `json:"clamped"`
 }
 
 func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConfidencePPM int64) error {
-	if price.Schema != SchemaVersion || price.Market == "" || price.Type == "" || price.Value <= 0 || price.Scale <= 0 ||
+	if price.Schema != SchemaVersion || price.Market == "" || !validPriceValue(price.Type, price.Value) || price.Scale <= 0 ||
 		price.Source == "" || price.Version == "" || price.AsOf.IsZero() || price.ProducedAt.IsZero() || len(price.ObservationIDs) == 0 ||
 		len(price.ObservationIDs) != len(price.ObservationHash) {
 		return errors.New("oracle response is incomplete")
@@ -72,6 +90,68 @@ func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConf
 		decoded, err := hex.DecodeString(hash)
 		if err != nil || len(decoded) != 32 {
 			return errors.New("oracle observation hash is invalid")
+		}
+	}
+	if err := price.validateDerivation(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validPriceValue(kind string, value int64) bool {
+	switch kind {
+	case "funding_reference", "premium_reference", "basis_reference", "interest_rate_candidate":
+		return true
+	case "stablecoin_depeg":
+		return value == 0 || value == 1
+	case "stablecoin_reserve_ratio":
+		return value >= 0
+	case "spot_price", "index_price", "mark_price", "fx", "stablecoin_price", "dex_twap":
+		return value > 0
+	default:
+		return false
+	}
+}
+
+func (price Price) validateDerivation() error {
+	derived := price.Type == "index_price" || price.Type == "funding_reference" || price.Type == "mark_price"
+	if !derived {
+		if price.Derivation != nil {
+			return errors.New("direct oracle value contains unexpected derivation metadata")
+		}
+		return nil
+	}
+	value := price.Derivation
+	if value == nil || value.Method == "" || value.PolicyVersion != price.Version || value.PolicyVersion != DerivativesPolicyVersion ||
+		len(value.ComponentTypes) == 0 || len(value.ComponentTypes) != len(value.ComponentLineageHashes) {
+		return errors.New("derived oracle value is missing its versioned derivation")
+	}
+	for _, hash := range value.ComponentLineageHashes {
+		decoded, err := hex.DecodeString(hash)
+		if err != nil || len(decoded) != 32 {
+			return errors.New("derived oracle component lineage is invalid")
+		}
+	}
+	if value.Clamped {
+		return errors.New("clamped derived oracle value is unsafe")
+	}
+	switch price.Type {
+	case "index_price":
+		if len(value.ComponentTypes) != 1 || value.ComponentTypes[0] != "spot_price" || value.Method != "liquidity_weighted_median_spot_index" {
+			return errors.New("index price derivation is invalid")
+		}
+	case "funding_reference":
+		if len(value.ComponentTypes) != 2 || value.ComponentTypes[0] != "premium_reference" || value.ComponentTypes[1] != "basis_reference" ||
+			value.Method != "premium_plus_basis_with_governance_clamp" || value.FundingWindowSeconds <= 0 || value.ClampPPM <= 0 || value.ClampPPM > 1_000_000 ||
+			value.RawAdjustmentPPM != value.AppliedAdjustmentPPM || value.AppliedAdjustmentPPM > value.ClampPPM || value.AppliedAdjustmentPPM < -value.ClampPPM ||
+			value.AppliedAdjustmentPPM != price.Value || price.Scale != 1_000_000 {
+			return errors.New("funding reference derivation is invalid")
+		}
+	case "mark_price":
+		if len(value.ComponentTypes) != 2 || value.ComponentTypes[0] != "index_price" || value.ComponentTypes[1] != "funding_reference" ||
+			value.Method != "index_times_one_plus_funding_reference" || value.FundingWindowSeconds <= 0 || value.ClampPPM <= 0 || value.ClampPPM > 1_000_000 ||
+			value.RawAdjustmentPPM != value.AppliedAdjustmentPPM || value.AppliedAdjustmentPPM > value.ClampPPM || value.AppliedAdjustmentPPM < -value.ClampPPM {
+			return errors.New("mark price derivation is invalid")
 		}
 	}
 	return nil

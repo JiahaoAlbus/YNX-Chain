@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ynx:oracle:v1:observation",
   "title": "YNX Oracle signed provider observation",
+  "description": "Provider-input schema. Index price, mark price, funding reference, correction events, and historical replay are Oracle-derived or Oracle-owned records and are intentionally not valid provider input types.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "id", "providerId", "reporterId", "sequence", "nonceDomain", "market", "type", "value", "scale", "observedAt", "source", "sourceVersion", "signatureHex", "hash"],
@@ -13,8 +14,25 @@
     "sequence": {"type": "integer", "minimum": 1},
     "nonceDomain": {"type": "string", "pattern": "^[a-z0-9][a-z0-9:_-]{2,127}$"},
     "market": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._/-]{2,63}$"},
-    "type": {"type": "string"},
-    "value": {"type": "integer", "minimum": 0},
+    "type": {
+      "enum": [
+        "spot_price",
+        "premium_reference",
+        "basis_reference",
+        "fx",
+        "stablecoin_price",
+        "stablecoin_reserve_ratio",
+        "stablecoin_depeg",
+        "ohlcv",
+        "trades",
+        "clob_order_book",
+        "dex_pool_state",
+        "dex_twap",
+        "interest_rate_candidate",
+        "provider_status"
+      ]
+    },
+    "value": {"type": "integer"},
     "scale": {"type": "integer", "minimum": 1},
     "liquidity": {"type": "integer", "minimum": 0},
     "volume24h": {"type": "integer", "minimum": 0},
@@ -32,7 +50,19 @@
   },
   "oneOf": [
     {
-      "properties": {"type": {"enum": ["spot_price", "index_price", "mark_price", "funding_reference", "fx", "stablecoin_price", "stablecoin_reserve_ratio", "stablecoin_depeg", "dex_twap", "interest_rate_candidate"]}, "value": {"type": "integer", "minimum": 1}},
+      "properties": {"type": {"enum": ["spot_price", "fx", "stablecoin_price", "dex_twap"]}, "value": {"type": "integer", "minimum": 1}},
+      "not": {"anyOf": [{"required": ["candle"]}, {"required": ["trades"]}, {"required": ["orderBook"]}, {"required": ["poolState"]}, {"required": ["providerHealth"]}]}
+    },
+    {
+      "properties": {"type": {"const": "stablecoin_reserve_ratio"}, "value": {"type": "integer", "minimum": 0}},
+      "not": {"anyOf": [{"required": ["candle"]}, {"required": ["trades"]}, {"required": ["orderBook"]}, {"required": ["poolState"]}, {"required": ["providerHealth"]}]}
+    },
+    {
+      "properties": {"type": {"const": "stablecoin_depeg"}, "value": {"enum": [0, 1]}},
+      "not": {"anyOf": [{"required": ["candle"]}, {"required": ["trades"]}, {"required": ["orderBook"]}, {"required": ["poolState"]}, {"required": ["providerHealth"]}]}
+    },
+    {
+      "properties": {"type": {"enum": ["premium_reference", "basis_reference", "interest_rate_candidate"]}, "value": {"type": "integer"}},
       "not": {"anyOf": [{"required": ["candle"]}, {"required": ["trades"]}, {"required": ["orderBook"]}, {"required": ["poolState"]}, {"required": ["providerHealth"]}]}
     },
     {"properties": {"type": {"const": "ohlcv"}, "value": {"const": 0}}, "required": ["candle"]},
@@ -43,31 +73,72 @@
   ],
   "$defs": {
     "candle": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["open", "high", "low", "close", "volume", "intervalStart", "intervalEnd"],
-      "properties": {"open": {"type": "integer", "minimum": 1}, "high": {"type": "integer", "minimum": 1}, "low": {"type": "integer", "minimum": 1}, "close": {"type": "integer", "minimum": 1}, "volume": {"type": "integer", "minimum": 0}, "intervalStart": {"type": "string", "format": "date-time"}, "intervalEnd": {"type": "string", "format": "date-time"}}
+      "properties": {
+        "open": {"type": "integer", "minimum": 1},
+        "high": {"type": "integer", "minimum": 1},
+        "low": {"type": "integer", "minimum": 1},
+        "close": {"type": "integer", "minimum": 1},
+        "volume": {"type": "integer", "minimum": 0},
+        "intervalStart": {"type": "string", "format": "date-time"},
+        "intervalEnd": {"type": "string", "format": "date-time"}
+      }
     },
     "trade": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "price", "amount", "side", "at"],
-      "properties": {"id": {"type": "string", "minLength": 1}, "price": {"type": "integer", "minimum": 1}, "amount": {"type": "integer", "minimum": 1}, "side": {"enum": ["buy", "sell"]}, "at": {"type": "string", "format": "date-time"}}
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "price": {"type": "integer", "minimum": 1},
+        "amount": {"type": "integer", "minimum": 1},
+        "side": {"enum": ["buy", "sell"]},
+        "at": {"type": "string", "format": "date-time"}
+      }
     },
     "depthLevel": {
-      "type": "object", "additionalProperties": false, "required": ["price", "amount"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["price", "amount"],
       "properties": {"price": {"type": "integer", "minimum": 1}, "amount": {"type": "integer", "minimum": 1}}
     },
     "orderBook": {
-      "type": "object", "additionalProperties": false, "required": ["sequence", "bids", "asks"],
-      "properties": {"sequence": {"type": "integer", "minimum": 1}, "bids": {"type": "array", "minItems": 1, "maxItems": 2000, "items": {"$ref": "#/$defs/depthLevel"}}, "asks": {"type": "array", "minItems": 1, "maxItems": 2000, "items": {"$ref": "#/$defs/depthLevel"}}}
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "bids", "asks"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 1},
+        "bids": {"type": "array", "minItems": 1, "maxItems": 2000, "items": {"$ref": "#/$defs/depthLevel"}},
+        "asks": {"type": "array", "minItems": 1, "maxItems": 2000, "items": {"$ref": "#/$defs/depthLevel"}}
+      }
     },
     "poolState": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["chainId", "pool", "token0", "token1", "reserve0", "reserve1", "blockNumber", "blockHash"],
-      "properties": {"chainId": {"type": "string", "minLength": 1}, "pool": {"type": "string", "minLength": 1}, "token0": {"type": "string", "minLength": 1}, "token1": {"type": "string", "minLength": 1}, "reserve0": {"type": "string", "pattern": "^[0-9]{1,78}$"}, "reserve1": {"type": "string", "pattern": "^[0-9]{1,78}$"}, "blockNumber": {"type": "integer", "minimum": 1}, "blockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+      "properties": {
+        "chainId": {"type": "string", "minLength": 1},
+        "pool": {"type": "string", "minLength": 1},
+        "token0": {"type": "string", "minLength": 1},
+        "token1": {"type": "string", "minLength": 1},
+        "reserve0": {"type": "string", "pattern": "^[0-9]{1,78}$"},
+        "reserve1": {"type": "string", "pattern": "^[0-9]{1,78}$"},
+        "blockNumber": {"type": "integer", "minimum": 1},
+        "blockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
     },
     "providerHealth": {
-      "type": "object", "additionalProperties": false, "required": ["status", "latencyMillis"],
-      "properties": {"status": {"enum": ["up", "degraded", "down"]}, "latencyMillis": {"type": "integer", "minimum": 0}, "lastSuccess": {"type": "string", "format": "date-time"}, "failure": {"type": "string"}}
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "latencyMillis"],
+      "properties": {
+        "status": {"enum": ["up", "degraded", "down"]},
+        "latencyMillis": {"type": "integer", "minimum": 0},
+        "lastSuccess": {"type": "string", "format": "date-time"},
+        "failure": {"type": "string"}
+      }
     }
   }
 }

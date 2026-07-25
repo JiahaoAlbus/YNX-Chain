@@ -193,7 +193,7 @@ func (store *Store) AppendAggregate(price Price) (bool, error) {
 	defer store.mu.Unlock()
 	for _, existing := range store.state.AggregateEvents {
 		if existing.ID == event.ID {
-			if existing.Hash == event.Hash {
+			if aggregatePriceSemanticallyEqual(existing.Price, event.Price) {
 				return false, nil
 			}
 			return false, errors.New("aggregate lineage conflicts with persisted event")
@@ -208,6 +208,14 @@ func (store *Store) AppendAggregate(price Price) (bool, error) {
 	}
 	store.state = next
 	return true, nil
+}
+
+func aggregatePriceSemanticallyEqual(left, right Price) bool {
+	left.ProducedAt = time.Time{}
+	right.ProducedAt = time.Time{}
+	leftData, leftErr := json.Marshal(left)
+	rightData, rightErr := json.Marshal(right)
+	return leftErr == nil && rightErr == nil && bytes.Equal(leftData, rightData)
 }
 
 func (store *Store) LatestGood(market string, kind DataType) (Price, bool) {

@@ -123,7 +123,7 @@ func TestAggregatesAreDurableAndLastGoodSurvivesServiceRestart(t *testing.T) {
 		}
 	}
 	state := service.store.Snapshot()
-	if len(state.NormalizedEvents) != 3 || len(state.AggregateEvents) != 3 || state.AggregateEvents[2].Price.Quality.Status != "good" {
+	if len(state.NormalizedEvents) != 3 || len(state.AggregateEvents) != 4 || state.AggregateEvents[2].Price.Quality.Status != "good" || state.AggregateEvents[3].Price.Type != IndexPrice || state.AggregateEvents[3].Price.Quality.Status != "good" {
 		t.Fatalf("durable pipeline incomplete: normalized=%d aggregates=%+v", len(state.NormalizedEvents), state.AggregateEvents)
 	}
 	restarted, err := NewService(service.store, []Provider{reporters[0].provider, reporters[1].provider, reporters[2].provider}, DefaultPolicy(), func() time.Time { return now })
@@ -299,6 +299,62 @@ func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
 	}
 }
 
+func TestExchangeDerivedEndpointsAndVersionExposeExactPolicy(t *testing.T) {
+	now := time.Date(2026, 7, 25, 13, 0, 0, 0, time.UTC)
+	reporters := []testReporter{
+		reporter(t, "source-a", 1_000_000, now),
+		reporter(t, "source-b", 1_000_000, now),
+		reporter(t, "source-c", 1_000_000, now),
+	}
+	service := testService(t, &now, reporters...)
+	observedAt := now.Add(-time.Second)
+	ingestScalarSet(t, service, reporters, 1, SpotPrice, []int64{99_990_000, 100_000_000, 100_010_000}, 1_000_000, observedAt)
+	ingestScalarSet(t, service, reporters, 2, PremiumReference, []int64{900, 1_000, 1_100}, 1_000_000, observedAt)
+	ingestScalarSet(t, service, reporters, 3, BasisReference, []int64{-250, -200, -150}, 1_000_000, observedAt)
+	server, err := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cases := map[string]struct {
+		kind  DataType
+		value int64
+	}{
+		"/v1/index?market=YNXT/YUSD_TEST":   {kind: IndexPrice, value: 100_000_000},
+		"/v1/funding?market=YNXT/YUSD_TEST": {kind: FundingReference, value: 800},
+		"/v1/mark?market=YNXT/YUSD_TEST":    {kind: MarkPrice, value: 100_080_000},
+	}
+	for path, expected := range cases {
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("path=%s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+		var price Price
+		if err := json.Unmarshal(response.Body.Bytes(), &price); err != nil {
+			t.Fatal(err)
+		}
+		if price.Type != expected.kind || price.Value != expected.value || price.Derivation == nil || price.Version != DerivativesPolicyVersion {
+			t.Fatalf("path=%s price=%+v", path, price)
+		}
+	}
+
+	versionResponse := httptest.NewRecorder()
+	server.ServeHTTP(versionResponse, httptest.NewRequest(http.MethodGet, "/version", nil))
+	if versionResponse.Code != http.StatusOK || !strings.Contains(versionResponse.Body.String(), `"derivativesPolicyVersion":"index-funding-mark-v1"`) {
+		t.Fatalf("version=%d %s", versionResponse.Code, versionResponse.Body.String())
+	}
+	healthResponse := httptest.NewRecorder()
+	server.ServeHTTP(healthResponse, httptest.NewRequest(http.MethodGet, "/health", nil))
+	var health Health
+	if err := json.Unmarshal(healthResponse.Body.Bytes(), &health); err != nil {
+		t.Fatal(err)
+	}
+	if healthResponse.Code != http.StatusOK || health.DerivativesPolicyVersion != DerivativesPolicyVersion || health.Dependencies["derivativesPolicy"] != DerivativesPolicyVersion {
+		t.Fatalf("health=%d %+v", healthResponse.Code, health)
+	}
+}
+
 func TestStructuredLiveFeedIsNormalizedAndExplicitlyStale(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	source := reporter(t, "source-a", 1_000_000, now)
@@ -314,7 +370,7 @@ func TestStructuredLiveFeedIsNormalizedAndExplicitlyStale(t *testing.T) {
 		t.Fatalf("structured pipeline state=%+v", state)
 	}
 	server, _ := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	request := httptest.NewRequest(http.MethodGet, "/v1/market-data?market=BTC/USD&type=clob_order_book&limit=10", nil)
+	request := httptest.NewRequest(http.MethodGet, "/v1/market-data?market=YNXT/YUSD_TEST&type=clob_order_book&limit=10", nil)
 	response := httptest.NewRecorder()
 	server.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {

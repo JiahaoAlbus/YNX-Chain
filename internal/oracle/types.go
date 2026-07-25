@@ -37,6 +37,8 @@ const (
 	IndexPrice        DataType = "index_price"
 	MarkPrice         DataType = "mark_price"
 	FundingReference  DataType = "funding_reference"
+	PremiumReference  DataType = "premium_reference"
+	BasisReference    DataType = "basis_reference"
 	FX                DataType = "fx"
 	StablecoinPrice   DataType = "stablecoin_price"
 	StablecoinReserve DataType = "stablecoin_reserve_ratio"
@@ -54,7 +56,7 @@ const (
 
 func (value DataType) Valid() bool {
 	switch value {
-	case SpotPrice, IndexPrice, MarkPrice, FundingReference, FX, StablecoinPrice,
+	case SpotPrice, IndexPrice, MarkPrice, FundingReference, PremiumReference, BasisReference, FX, StablecoinPrice,
 		StablecoinReserve, StablecoinDepeg, OHLCV, Trades, CLOBOrderBook,
 		DEXPoolState, DEXTWAP, InterestRate, DataCorrection, ProviderStatus, HistoricalReplay:
 		return true
@@ -65,7 +67,7 @@ func (value DataType) Valid() bool {
 
 func (value DataType) Scalar() bool {
 	switch value {
-	case SpotPrice, IndexPrice, MarkPrice, FundingReference, FX, StablecoinPrice, StablecoinReserve, StablecoinDepeg, DEXTWAP, InterestRate:
+	case SpotPrice, IndexPrice, MarkPrice, FundingReference, PremiumReference, BasisReference, FX, StablecoinPrice, StablecoinReserve, StablecoinDepeg, DEXTWAP, InterestRate:
 		return true
 	default:
 		return false
@@ -78,6 +80,31 @@ func (value DataType) Structured() bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func (value DataType) ProviderInput() bool {
+	if !value.Valid() {
+		return false
+	}
+	switch value {
+	case IndexPrice, MarkPrice, FundingReference, DataCorrection, HistoricalReplay:
+		return false
+	default:
+		return true
+	}
+}
+
+func (value DataType) scalarValueValid(number int64) bool {
+	switch value {
+	case PremiumReference, BasisReference, InterestRate:
+		return true
+	case StablecoinDepeg:
+		return number == 0 || number == 1
+	case StablecoinReserve:
+		return number >= 0
+	default:
+		return number > 0
 	}
 }
 
@@ -172,11 +199,30 @@ func (provider Provider) Validate() error {
 		provider.WeightPPM <= 0 || provider.WeightPPM > 1_000_000 || provider.UpdatedAt.IsZero() {
 		return fmt.Errorf("%w: incomplete provider registry entry", errInvalid)
 	}
+	seenMarkets := map[string]struct{}{}
+	for _, market := range provider.AssetMarketCoverage {
+		if !marketPattern.MatchString(market) {
+			return fmt.Errorf("%w: provider market coverage", errInvalid)
+		}
+		if _, exists := seenMarkets[market]; exists {
+			return fmt.Errorf("%w: duplicate provider market coverage", errInvalid)
+		}
+		seenMarkets[market] = struct{}{}
+	}
 	key, err := hex.DecodeString(provider.ReporterPublicKeyHex)
 	if err != nil || len(key) != ed25519.PublicKeySize {
 		return fmt.Errorf("%w: reporter public key", errInvalid)
 	}
 	return nil
+}
+
+func (provider Provider) CoversMarket(market string) bool {
+	for _, covered := range provider.AssetMarketCoverage {
+		if covered == market {
+			return true
+		}
+	}
+	return false
 }
 
 type Observation struct {
@@ -251,11 +297,11 @@ func (observation Observation) CalculatedHash() (string, error) {
 func (observation Observation) Verify(provider Provider, nonceDomain string) error {
 	if observation.Schema != SchemaVersion || observation.ID == "" || observation.ProviderID != provider.ID ||
 		observation.ReporterID != provider.ReporterID || observation.Sequence == 0 ||
-		observation.NonceDomain != nonceDomain || !marketPattern.MatchString(observation.Market) ||
-		!observation.Type.Valid() || observation.Scale <= 0 ||
+		observation.NonceDomain != nonceDomain || !marketPattern.MatchString(observation.Market) || !provider.CoversMarket(observation.Market) ||
+		!observation.Type.ProviderInput() || observation.Scale <= 0 ||
 		observation.ObservedAt.IsZero() || observation.ReceivedAt.IsZero() ||
-		observation.ReceivedAt.Before(observation.ObservedAt) || strings.TrimSpace(observation.Source) == "" ||
-		strings.TrimSpace(observation.SourceVersion) == "" {
+		observation.ReceivedAt.Before(observation.ObservedAt) || observation.Source != provider.Endpoint ||
+		observation.SourceVersion != provider.APIVersion {
 		return errInvalid
 	}
 	if err := observation.validatePayload(); err != nil {
@@ -278,6 +324,9 @@ func (observation Observation) Verify(provider Provider, nonceDomain string) err
 }
 
 func (observation Observation) validatePayload() error {
+	if observation.Liquidity < 0 || observation.Volume24H < 0 {
+		return fmt.Errorf("%w: negative liquidity or volume", errInvalid)
+	}
 	payloads := 0
 	if observation.Candle != nil {
 		payloads++
@@ -295,7 +344,7 @@ func (observation Observation) validatePayload() error {
 		payloads++
 	}
 	if observation.Type.Scalar() {
-		if observation.Value <= 0 || payloads != 0 {
+		if !observation.Type.scalarValueValid(observation.Value) || payloads != 0 {
 			return fmt.Errorf("%w: scalar payload", errInvalid)
 		}
 		return nil
@@ -372,19 +421,34 @@ type Quality struct {
 }
 
 type Price struct {
-	Schema          string    `json:"schema"`
-	Market          string    `json:"market"`
-	Type            DataType  `json:"type"`
-	Value           int64     `json:"value"`
-	Scale           int64     `json:"scale"`
-	Source          string    `json:"source"`
-	Version         string    `json:"version"`
-	AsOf            time.Time `json:"asOf"`
-	ProducedAt      time.Time `json:"producedAt"`
-	Quality         Quality   `json:"quality"`
-	ObservationIDs  []string  `json:"observationIds"`
-	ObservationHash []string  `json:"observationHashes"`
-	LineageHash     string    `json:"lineageHash"`
+	Schema          string           `json:"schema"`
+	Market          string           `json:"market"`
+	Type            DataType         `json:"type"`
+	Value           int64            `json:"value"`
+	Scale           int64            `json:"scale"`
+	Source          string           `json:"source"`
+	Version         string           `json:"version"`
+	AsOf            time.Time        `json:"asOf"`
+	ProducedAt      time.Time        `json:"producedAt"`
+	Quality         Quality          `json:"quality"`
+	ObservationIDs  []string         `json:"observationIds"`
+	ObservationHash []string         `json:"observationHashes"`
+	LineageHash     string           `json:"lineageHash"`
+	Derivation      *PriceDerivation `json:"derivation,omitempty"`
+}
+
+type PriceDerivation struct {
+	Method                 string     `json:"method"`
+	PolicyVersion          string     `json:"policyVersion"`
+	ComponentTypes         []DataType `json:"componentTypes"`
+	ComponentLineageHashes []string   `json:"componentLineageHashes"`
+	FundingWindowSeconds   int64      `json:"fundingWindowSeconds,omitempty"`
+	PremiumPPM             int64      `json:"premiumPpm,omitempty"`
+	BasisPPM               int64      `json:"basisPpm,omitempty"`
+	RawAdjustmentPPM       int64      `json:"rawAdjustmentPpm,omitempty"`
+	AppliedAdjustmentPPM   int64      `json:"appliedAdjustmentPpm,omitempty"`
+	ClampPPM               int64      `json:"clampPpm,omitempty"`
+	Clamped                bool       `json:"clamped"`
 }
 
 type NormalizedEvent struct {

@@ -109,6 +109,66 @@ func TestValidateRejectsEveryUnsafeConsumerState(t *testing.T) {
 	}
 }
 
+func validFundingPrice(now time.Time) Price {
+	return Price{
+		Schema: SchemaVersion, Market: "YNXT/YUSD_TEST", Type: "funding_reference", Value: -200, Scale: 1_000_000,
+		Source: "YNX Oracle funding reference derived from premium and basis candidates", Version: DerivativesPolicyVersion,
+		AsOf: now.Add(-time.Second), ProducedAt: now,
+		Quality:         Quality{Status: "good", SourceCount: 3, RequiredSourceCount: 3, ConfidencePPM: 990_000, CoveragePPM: 1_000_000},
+		ObservationIDs:  []string{"premium-a", "premium-b", "premium-c", "basis-a", "basis-b", "basis-c"},
+		ObservationHash: []string{strings.Repeat("a", 64), strings.Repeat("b", 64), strings.Repeat("c", 64), strings.Repeat("d", 64), strings.Repeat("e", 64), strings.Repeat("f", 64)},
+		LineageHash:     strings.Repeat("1", 64),
+		Derivation: &PriceDerivation{
+			Method: "premium_plus_basis_with_governance_clamp", PolicyVersion: DerivativesPolicyVersion,
+			ComponentTypes:         []string{"premium_reference", "basis_reference"},
+			ComponentLineageHashes: []string{strings.Repeat("2", 64), strings.Repeat("3", 64)},
+			FundingWindowSeconds:   28_800, PremiumPPM: -100, BasisPPM: -100,
+			RawAdjustmentPPM: -200, AppliedAdjustmentPPM: -200, ClampPPM: 5_000,
+		},
+	}
+}
+
+func TestValidateAcceptsSignedFundingAndRequiresExactDerivation(t *testing.T) {
+	now := time.Date(2026, 7, 25, 12, 0, 0, 0, time.UTC)
+	funding := validFundingPrice(now)
+	if err := funding.ValidateFor("YNXT/YUSD_TEST", "funding_reference", DerivativesPolicyVersion, now, 30*time.Second, 800_000, 1_000_000); err != nil {
+		t.Fatalf("valid signed funding rejected: %v", err)
+	}
+	zero := funding
+	zero.Value = 0
+	zero.Derivation = &PriceDerivation{
+		Method: "premium_plus_basis_with_governance_clamp", PolicyVersion: DerivativesPolicyVersion,
+		ComponentTypes: []string{"premium_reference", "basis_reference"}, ComponentLineageHashes: []string{strings.Repeat("2", 64), strings.Repeat("3", 64)},
+		FundingWindowSeconds: 28_800, ClampPPM: 5_000,
+	}
+	if err := zero.Validate(now, 30*time.Second, 800_000); err != nil {
+		t.Fatalf("zero funding rejected: %v", err)
+	}
+
+	tests := map[string]func(*Price){
+		"missing derivation":  func(price *Price) { price.Derivation = nil },
+		"wrong components":    func(price *Price) { price.Derivation.ComponentTypes[0] = "spot_price" },
+		"wrong policy":        func(price *Price) { price.Derivation.PolicyVersion = "unknown" },
+		"clamped":             func(price *Price) { price.Derivation.Clamped = true },
+		"adjustment mismatch": func(price *Price) { price.Derivation.AppliedAdjustmentPPM = -201 },
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			candidate := validFundingPrice(now)
+			mutate(&candidate)
+			if err := candidate.Validate(now, 30*time.Second, 800_000); err == nil {
+				t.Fatal("unsafe derived value accepted")
+			}
+		})
+	}
+
+	direct := validPrice(now)
+	direct.Derivation = funding.Derivation
+	if err := direct.Validate(now, 30*time.Second, 800_000); err == nil {
+		t.Fatal("direct price with misleading derivation accepted")
+	}
+}
+
 func TestClientRequiresTimeoutAndRejectsHTTPOffLoopback(t *testing.T) {
 	if _, err := New("http://192.0.2.1", &http.Client{Timeout: time.Second}); err == nil {
 		t.Fatal("remote plain HTTP accepted")

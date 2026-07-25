@@ -76,6 +76,9 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	server.mux.HandleFunc("GET /version", server.version)
 	server.mux.HandleFunc("GET /prices", server.price)
 	server.mux.HandleFunc("GET /v1/prices", server.price)
+	server.mux.HandleFunc("GET /v1/index", server.fixedPrice(IndexPrice))
+	server.mux.HandleFunc("GET /v1/mark", server.fixedPrice(MarkPrice))
+	server.mux.HandleFunc("GET /v1/funding", server.fixedPrice(FundingReference))
 	server.mux.HandleFunc("GET /providers", server.providers)
 	server.mux.HandleFunc("GET /v1/providers", server.providers)
 	server.mux.HandleFunc("GET /markets", server.markets)
@@ -142,7 +145,7 @@ func (server *Server) ServeHTTP(response http.ResponseWriter, request *http.Requ
 func (server *Server) MetricsHandler() http.Handler { return server.metrics.Handler() }
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
-	health := server.service.Health()
+	health := server.service.PublicHealth()
 	health.Commit = BuildCommit
 	status := http.StatusOK
 	if health.Status != "ok" {
@@ -152,13 +155,14 @@ func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
-	health := server.service.Health()
+	health := server.service.PublicHealth()
 	writeJSON(response, http.StatusOK, map[string]any{
 		"productId":                 ProductID,
 		"version":                   Version,
 		"release":                   Version,
 		"schema":                    SchemaVersion,
 		"policyVersion":             server.service.policy.Version,
+		"derivativesPolicyVersion":  server.service.derivatives.Version,
 		"normalizerVersion":         NormalizerVersion,
 		"storeVersion":              StoreVersion,
 		"commit":                    BuildCommit,
@@ -172,8 +176,16 @@ func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (server *Server) price(response http.ResponseWriter, request *http.Request) {
-	market := request.URL.Query().Get("market")
-	kind := DataType(request.URL.Query().Get("type"))
+	server.servePrice(response, request.URL.Query().Get("market"), DataType(request.URL.Query().Get("type")))
+}
+
+func (server *Server) fixedPrice(kind DataType) http.HandlerFunc {
+	return func(response http.ResponseWriter, request *http.Request) {
+		server.servePrice(response, request.URL.Query().Get("market"), kind)
+	}
+}
+
+func (server *Server) servePrice(response http.ResponseWriter, market string, kind DataType) {
 	price, err := server.service.Price(market, kind)
 	if err != nil {
 		server.metrics.priceUnsafe.Add(1)
@@ -314,7 +326,7 @@ func publicError(err error) string {
 
 func publicReadPath(path string) bool {
 	switch path {
-	case "/health", "/version", "/prices", "/v1/prices", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
+	case "/health", "/version", "/prices", "/v1/prices", "/v1/index", "/v1/mark", "/v1/funding", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
 		return true
 	default:
 		return false

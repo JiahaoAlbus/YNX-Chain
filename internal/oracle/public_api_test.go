@@ -38,7 +38,7 @@ func TestOperationalPublicEndpointsExposeTruthfulRuntimeState(t *testing.T) {
 	if err := json.Unmarshal(marketsResponse.Body.Bytes(), &markets); err != nil {
 		t.Fatal(err)
 	}
-	if len(markets.Items) != 1 || markets.Items[0].Market != "YNXT/YUSD_TEST" || markets.Items[0].AggregateCount != 3 || markets.Items[0].LastQualityStatus != "good" {
+	if len(markets.Items) != 1 || markets.Items[0].Market != "YNXT/YUSD_TEST" || markets.Items[0].AggregateCount != 4 || markets.Items[0].LastQualityStatus != "good" || len(markets.Items[0].Types) != 2 || markets.Items[0].Types[0] != IndexPrice || markets.Items[0].Types[1] != SpotPrice {
 		t.Fatalf("markets=%+v", markets.Items)
 	}
 

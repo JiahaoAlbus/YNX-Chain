@@ -17,14 +17,15 @@ var (
 )
 
 type Service struct {
-	mu        sync.RWMutex
-	store     *Store
-	providers map[string]Provider
-	policy    Policy
-	now       func() time.Time
-	startedAt time.Time
-	lastGood  map[string]Price
-	rate      map[string]rateBucket
+	mu          sync.RWMutex
+	store       *Store
+	providers   map[string]Provider
+	policy      Policy
+	derivatives DerivativesPolicy
+	now         func() time.Time
+	startedAt   time.Time
+	lastGood    map[string]Price
+	rate        map[string]rateBucket
 }
 
 type rateBucket struct {
@@ -55,7 +56,7 @@ func NewService(store *Store, providers []Provider, policy Policy, now func() ti
 	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
 		return nil, errors.New("provider rate policy is invalid")
 	}
-	return &Service{store: store, providers: registry, policy: policy, now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
 }
 
 func (service *Service) Ingest(observation Observation) (bool, error) {
@@ -98,6 +99,11 @@ func (service *Service) Ingest(observation Observation) (bool, error) {
 	if errors.Is(aggregateErr, ErrPersistence) {
 		return true, aggregateErr
 	}
+	for _, dependent := range derivedDependents(observation.Type) {
+		if _, derivedErr := service.aggregateAndPersist(observation.Market, dependent); errors.Is(derivedErr, ErrPersistence) {
+			return true, derivedErr
+		}
+	}
 	return true, nil
 }
 
@@ -119,10 +125,18 @@ func (service *Service) Correct(correction Correction) error {
 	if errors.Is(aggregateErr, ErrPersistence) {
 		return aggregateErr
 	}
+	for _, dependent := range derivedDependents(correction.Corrected.Type) {
+		if _, derivedErr := service.aggregateAndPersist(correction.Corrected.Market, dependent); errors.Is(derivedErr, ErrPersistence) {
+			return derivedErr
+		}
+	}
 	return nil
 }
 
 func (service *Service) aggregateAndPersist(market string, kind DataType) (Price, error) {
+	if kind == IndexPrice || kind == FundingReference || kind == MarkPrice {
+		return service.aggregateDerivedAndPersist(market, kind)
+	}
 	now := service.now().UTC()
 	observations := service.store.Replay(market, kind, now.Add(service.policy.MaximumFutureSkew))
 	service.mu.RLock()
@@ -283,6 +297,7 @@ type Health struct {
 	Commit                    string            `json:"commit"`
 	Schema                    string            `json:"schema"`
 	PolicyVersion             string            `json:"policyVersion"`
+	DerivativesPolicyVersion  string            `json:"derivativesPolicyVersion"`
 	NormalizerVersion         string            `json:"normalizerVersion"`
 	StoreVersion              int               `json:"storeVersion"`
 	StartedAt                 time.Time         `json:"startedAt"`

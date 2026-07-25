@@ -83,13 +83,13 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 	median := unweightedMedian(items)
 	deviations := make([]int64, len(items))
 	for index, item := range items {
-		deviations[index] = absolute(item.observation.Value - median)
+		deviations[index] = absDiff(item.observation.Value, median)
 	}
 	sort.Slice(deviations, func(i, j int) bool { return deviations[i] < deviations[j] })
 	mad := deviations[len(deviations)/2]
 	filtered := items[:0]
 	for _, item := range items {
-		deviation := absolute(item.observation.Value - median)
+		deviation := absDiff(item.observation.Value, median)
 		if mad > 0 && float64(deviation) > policy.OutlierMADMultiple*float64(mad) {
 			rejected = append(rejected, item.observation.ProviderID)
 			continue
@@ -116,7 +116,7 @@ func Aggregate(now time.Time, observations []Observation, providers map[string]P
 			maximum = item.observation.Value
 		}
 	}
-	divergence := ratioPPM(maximum-minimum, value)
+	divergence := divergencePPM(kind, minimum, maximum, value, scale)
 	limited := len(items) < policy.MinimumSources
 	circuit := divergence > policy.MaximumDivergencePPM || (limited && !policy.AllowLimitedSources)
 	coverage := int64(len(items) * 1_000_000 / policy.MinimumSources)
@@ -189,12 +189,18 @@ func weightedMedian(items []weightedObservation) int64 {
 	return items[len(items)-1].observation.Value
 }
 
-func ratioPPM(numerator, denominator int64) int64 {
-	if numerator <= 0 || denominator <= 0 {
-		return 0
+func divergencePPM(kind DataType, minimum, maximum, reference, scale int64) int64 {
+	spread := new(big.Int).Sub(big.NewInt(maximum), big.NewInt(minimum))
+	spread.Abs(spread)
+	denominator := new(big.Int).Abs(big.NewInt(reference))
+	if kind == PremiumReference || kind == BasisReference || kind == InterestRate {
+		denominator.SetInt64(scale)
 	}
-	value := new(big.Int).Mul(big.NewInt(numerator), big.NewInt(1_000_000))
-	value.Div(value, big.NewInt(denominator))
+	if denominator.Sign() <= 0 {
+		denominator.SetInt64(1)
+	}
+	value := new(big.Int).Mul(spread, big.NewInt(1_000_000))
+	value.Div(value, denominator)
 	if !value.IsInt64() {
 		return math.MaxInt64
 	}
@@ -221,9 +227,11 @@ func saturatingMulSqrt(weight, liquidity int64) int64 {
 	return weight * factor
 }
 
-func absolute(value int64) int64 {
-	if value < 0 {
-		return -value
+func absDiff(left, right int64) int64 {
+	value := new(big.Int).Sub(big.NewInt(left), big.NewInt(right))
+	value.Abs(value)
+	if !value.IsInt64() {
+		return math.MaxInt64
 	}
-	return value
+	return value.Int64()
 }

@@ -78,7 +78,7 @@ func (reporter testReporter) signed(t *testing.T, observation Observation) Obser
 
 func structuredBase(source testReporter, sequence uint64, kind DataType, at time.Time) Observation {
 	return Observation{Schema: SchemaVersion, ID: fmt.Sprintf("%s-%s-%d", source.provider.ID, kind, sequence), ProviderID: source.provider.ID,
-		ReporterID: source.provider.ReporterID, Sequence: sequence, NonceDomain: "ynx-oracle-testnet-v1", Market: "BTC/USD",
+		ReporterID: source.provider.ReporterID, Sequence: sequence, NonceDomain: "ynx-oracle-testnet-v1", Market: "YNXT/YUSD_TEST",
 		Type: kind, Scale: 1_000_000, ObservedAt: at, ReceivedAt: at.Add(time.Millisecond), Source: source.provider.Endpoint, SourceVersion: source.provider.APIVersion}
 }
 
