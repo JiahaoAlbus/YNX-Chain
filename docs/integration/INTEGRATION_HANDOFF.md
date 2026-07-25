@@ -16,7 +16,7 @@ Data Fabric owns canonical cross-product event ingestion and billing ledger sema
 
 ## Acceptance boundary
 
-The current branch contains locally tested v11 execution for native transfer, fixed fees, StrategyMandate, Strategy Vault, staking exit lifecycle, Smart Account, UserOperation, Paymaster, Treasury snapshot and native-liability solvency proofs. It also contains ABCI v14 State Sync snapshots with trusted AppHash binding and a local four-validator backup/restore/rollback replay drill. These recovery capabilities are not deployed on the authoritative public runtime and are not centrally integrated with the accepted Wallet/Auth Product Session.
+Source commit `e18ce48378f6` contains locally tested v11 execution for native transfer, fixed fees, StrategyMandate, Strategy Vault, staking exit lifecycle, Smart Account, UserOperation, Paymaster, Treasury snapshot and native-liability solvency proofs. It also contains ABCI v14 State Sync snapshots with trusted AppHash binding and a local four-validator backup/restore/rollback replay drill. The BFT Gateway now exposes committed EVM network, block, account, transaction, receipt and log reads, plus canonical signed YNXT transfer submission through `eth_sendRawTransaction`. These methods reuse CometBFT/ABCI state and reject malformed data, wrong chain, unavailable historical account state and nonce replay without fabricating Ethereum trie semantics. These capabilities are not deployed on the authoritative public runtime and are not centrally integrated with the accepted Wallet/Auth Product Session.
 
 The deployed baseline remains `ynx-chain-02f4ccd8770c`, using one authoritative producer and three authenticated read-only followers. It is not four-validator CometBFT voting.
 

@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "74fc8dc0c2c2",
+  "sourceCommit": "e18ce48378f6",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -38,6 +38,58 @@
       "mutation": "replace-chain-id",
       "expected": "reject",
       "errorClass": "wrong-chain"
+    },
+    {
+      "id": "evm-committed-block-evidence-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBlockByNumber",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "status-bound-block-hash",
+        "migration-parent-anchor",
+        "app-hash",
+        "data-hash",
+        "block-results-gas"
+      ]
+    },
+    {
+      "id": "evm-current-account-state-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBalance-and-eth_getTransactionCount",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "evm-historical-account-state-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBalance",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-retained-height-before-current-state",
+      "expected": "reject",
+      "errorClass": "historical-state-unavailable"
+    },
+    {
+      "id": "evm-signed-ynxt-broadcast-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "expected": "accept",
+      "requiredEvidence": [
+        "comet-broadcast-commit",
+        "transaction-hash-match",
+        "committed-block-membership"
+      ]
+    },
+    {
+      "id": "evm-signed-ynxt-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "resubmit-identical-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "replay",
+      "expectedRpcCode": -32003
     },
     {
       "id": "wallet-product-session-wrong-product-reject",

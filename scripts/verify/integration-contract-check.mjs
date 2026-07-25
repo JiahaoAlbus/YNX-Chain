@@ -37,11 +37,13 @@ const stateSource = readFileSync("internal/consensus/state.go", "utf8");
 const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
 const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
 const gatewaySource = readFileSync("internal/bftgateway/gateway.go", "utf8");
+const evmSource = readFileSync("internal/bftgateway/evm.go", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
 requireValue(contract.schema === "ynx-integration-contract/v1", "unexpected contract schema");
 requireValue(vectors.schema === "ynx-cross-product-test-vectors/v1", "unexpected vector schema");
 requireValue(release.source.implementationCommit === contract.sourceCommit, "release and contract source commits differ");
+requireValue(release.source.contractVersion === contract.contractVersion, "release and contract versions differ");
 requireValue(contract.sourceCommit === vectors.sourceCommit, "contract and vectors source commits differ");
 requireValue(/^[0-9a-f]{12}$/.test(contract.sourceCommit), "source commit must be a 12-character Git identifier");
 execFileSync("git", ["merge-base", "--is-ancestor", contract.sourceCommit, "HEAD"], { stdio: "ignore" });
@@ -70,6 +72,16 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
+}
+requireValue(contract.contractVersion === "1.1.0", "unexpected Chain Core contract version");
+requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
+requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
+requireValue(contract.evmRpc.pendingBlockAvailable === false, "EVM RPC cannot claim a pending block");
+for (const method of contract.evmRpc.methods) {
+  requireValue(gatewaySource.includes(`case \"${method}\"`) || gatewaySource.includes(`\"${method}\"`), `runtime EVM method missing: ${method}`);
+}
+for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedAccountResult", "evmCommittedResult"]) {
+  requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
 
 const statusKeys = [
@@ -107,6 +119,11 @@ for (const vector of vectors.vectors) {
 for (const required of [
   "native-transfer-valid-accept",
   "native-transfer-replay-reject",
+  "evm-committed-block-evidence-accept",
+  "evm-current-account-state-accept",
+  "evm-historical-account-state-reject",
+  "evm-signed-ynxt-broadcast-accept",
+  "evm-signed-ynxt-replay-reject",
   "wallet-product-session-wrong-product-reject",
   "wallet-product-session-scope-widening-reject",
   "user-operation-sponsored-batch-accept",

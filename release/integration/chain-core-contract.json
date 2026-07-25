@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "74fc8dc0c2c2",
-  "contractVersion": "1.0.0",
+  "sourceCommit": "e18ce48378f6",
+  "contractVersion": "1.1.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 14,
@@ -104,6 +104,33 @@
       "POST /evm",
       "POST /{$}"
     ]
+  },
+  "evmRpc": {
+    "transport": "JSON-RPC 2.0",
+    "methods": [
+      "eth_chainId",
+      "net_version",
+      "eth_blockNumber",
+      "eth_getBlockByNumber",
+      "eth_getBlockByHash",
+      "eth_getBalance",
+      "eth_getTransactionCount",
+      "eth_sendRawTransaction",
+      "eth_getTransactionByHash",
+      "eth_getTransactionReceipt",
+      "eth_getLogs"
+    ],
+    "signedTransactionEnvelope": "YNX canonical transfer/v1 encoded as 0x data",
+    "committedOnly": true,
+    "historicalAccountState": false,
+    "pendingBlockAvailable": false,
+    "stateRootSemantics": "CometBFT AppHash over YNX committed state v11",
+    "transactionsRootSemantics": "CometBFT data hash; not an Ethereum MPT",
+    "rejectionCodes": {
+      "invalidParams": -32602,
+      "transactionRejected": -32003,
+      "upstreamOrEvidenceFailure": -32603
+    }
   },
   "schemas": {
     "strategyMandate": "chain/governance/strategy-mandate.schema.json",
