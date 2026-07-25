@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cross-product-test-vectors/v1",
-  "sourceCommit": "a4bfc0d9d141",
+  "sourceCommit": "74fc8dc0c2c2",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainIdDecimal": 6423,
@@ -133,6 +133,29 @@
       "mutation": "change-leaf-amount-after-proof-generation",
       "expected": "reject",
       "errorClass": "invalid-proof"
+    },
+    {
+      "id": "abci-state-sync-roundtrip-accept",
+      "owner": "chain-core",
+      "operation": "restore-committed-state-snapshot",
+      "inputSource": "internal/consensus/snapshot_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "abci-state-sync-tampered-chunk-reject",
+      "owner": "chain-core",
+      "operation": "restore-committed-state-snapshot",
+      "inputSource": "internal/consensus/snapshot_test.go",
+      "mutation": "change-final-chunk-after-offer",
+      "expected": "reject",
+      "errorClass": "invalid-snapshot"
+    },
+    {
+      "id": "validator-backup-rollback-replay-accept",
+      "owner": "chain-core",
+      "operation": "restore-validator-backup-and-replay",
+      "inputSource": "scripts/verify/consensus-quorum-check.sh",
+      "expected": "accept"
     }
   ]
 }

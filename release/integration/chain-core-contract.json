@@ -2,11 +2,14 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "a4bfc0d9d141",
+  "sourceCommit": "74fc8dc0c2c2",
   "contractVersion": "1.0.0",
   "stateSchema": {
     "committedStateVersion": 11,
-    "appHashDomain": "YNX_ABCI_STATE_V11"
+    "applicationVersion": 14,
+    "appHashDomain": "YNX_ABCI_STATE_V11",
+    "stateSyncSnapshotFormat": 1,
+    "stateSyncSnapshotMaxBytes": 67108864
   },
   "networkIdentity": {
     "cosmosChainId": "ynx_6423-1",
@@ -106,6 +109,23 @@
     "strategyMandate": "chain/governance/strategy-mandate.schema.json",
     "userOperation": "chain/accounts/user-operation.schema.json",
     "validatorManifest": "chain/consensus/production-validator-manifest.schema.json"
+  },
+  "recovery": {
+    "abciStateSync": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "trustedAppHashRequired": true,
+      "strictCommittedStateValidation": true,
+      "atomicPersistence": true
+    },
+    "validatorBackupRestoreRollback": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "checksumBound": true,
+      "archiveEntriesValidated": true,
+      "rollbackReplayToCurrentAppHash": true,
+      "remoteDrillComplete": false
+    }
   },
   "releaseStatus": {
     "implementedLocal": true,

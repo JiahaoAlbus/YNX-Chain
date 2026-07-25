@@ -4,7 +4,7 @@
 
 - Network: `ynx_6423-1`; EVM compatibility ID: `6423` / `0x1917`; native asset: `YNXT`.
 - Native user identity defaults to `ynx1...`; `0x...` is EVM compatibility only.
-- Current committed-state schema is v11 with AppHash domain `YNX_ABCI_STATE_V11`.
+- Current committed-state schema is v11 with AppHash domain `YNX_ABCI_STATE_V11`; ABCI application version is 14 and State Sync snapshot format is 1.
 - Chain Core owns final state, AppHash, transaction finality, chain-level events, native fee records and chain-level asset authorization primitives.
 - Exact route classes and schema references are frozen in `release/integration/chain-core-contract.json`.
 
@@ -16,7 +16,7 @@ Data Fabric owns canonical cross-product event ingestion and billing ledger sema
 
 ## Acceptance boundary
 
-The current branch contains locally tested v11 execution for native transfer, fixed fees, StrategyMandate, Strategy Vault, staking exit lifecycle, Smart Account, UserOperation, Paymaster, Treasury snapshot and native-liability solvency proofs. It is not deployed on the authoritative public runtime and is not centrally integrated with the accepted Wallet/Auth Product Session.
+The current branch contains locally tested v11 execution for native transfer, fixed fees, StrategyMandate, Strategy Vault, staking exit lifecycle, Smart Account, UserOperation, Paymaster, Treasury snapshot and native-liability solvency proofs. It also contains ABCI v14 State Sync snapshots with trusted AppHash binding and a local four-validator backup/restore/rollback replay drill. These recovery capabilities are not deployed on the authoritative public runtime and are not centrally integrated with the accepted Wallet/Auth Product Session.
 
 The deployed baseline remains `ynx-chain-02f4ccd8770c`, using one authoritative producer and three authenticated read-only followers. It is not four-validator CometBFT voting.
 

@@ -1,16 +1,17 @@
 # Current Plan
 
-Phase: `TESTNET` local safety baseline.
+Phase: `TESTNET` execution compatibility.
 
-Completed and pushed baseline: release record, integration contract, dependency handoff and cross-product vectors.
+Completed and pushed:
 
-Current recoverable slice:
+- Integration contract and cross-product vectors: `8eb801f`.
+- Four-validator Block Hash/AppHash, 3/4 precommit, fault recovery and replay proof: `f03c93e`.
+- ABCI v14 State Sync snapshot runtime and tests: `913f207`.
+- Stopped-validator backup, full data deletion, restore to an earlier height and rollback replay to current AppHash: `74fc8dc`.
 
-1. Strengthen the four-validator CometBFT quorum gate with byte-identical genesis verification.
-2. Prove fixed-height Block Hash and AppHash equality.
-3. Prove one signed YNXT transfer yields equal account state on all four validators.
-4. Stop one validator, require 3/4 precommit continuity, restart it and require exact recovery.
-5. Replay the committed transaction through the restarted validator and require nonce or mempool replay rejection.
-6. Emit machine-readable local-only evidence to `tmp/consensus-quorum-evidence.json`.
+Current slice:
 
-Next slice after commit: state sync, backup/restore and rollback evidence without public cutover.
+1. Bind the machine release and integration records to implementation baseline `74fc8dc0c2c2`.
+2. Verify EVM RPC identity, block, transaction, receipt, log, nonce and balance compatibility against the four-validator CometBFT application.
+3. Identify and implement the first missing EVM execution or receipt behavior.
+4. Keep public deployment, production signing and public BFT cutover false until direct remote evidence exists.

@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-25T03:13:30Z",
+  "generatedAt": "2026-07-25T04:12:40Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,7 +9,7 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "a4bfc0d9d141",
+    "implementationCommit": "74fc8dc0c2c2",
     "committedStateVersion": 11,
     "contractVersion": "1.0.0",
     "releaseRecordVersion": 1
@@ -55,6 +55,8 @@
     "paymaster",
     "treasury-snapshot",
     "native-liability-solvency-proof",
+    "abci-state-sync-snapshot",
+    "validator-backup-restore-rollback",
     "cometbft-candidate-package"
   ],
   "currentSourceBoundaries": [

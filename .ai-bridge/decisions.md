@@ -5,3 +5,6 @@
 - Product-level `deployedPublic` remains false because the current source commit is not the deployed public runtime.
 - Existing public runtime evidence is preserved as a separate deployed baseline rather than relabeled as current source.
 - CometBFT remains the safety baseline; StreamBFT stays a shadow candidate.
+- ABCI State Sync accepts only format 1 snapshots bound to the trusted-height AppHash, migration anchor and strict v11 committed-state validation.
+- Snapshot persistence must complete before in-memory state changes; persistence failure aborts without partial restore.
+- Local backup/rollback evidence may use disposable validator keys, but no local drill may set remote or public recovery status true.

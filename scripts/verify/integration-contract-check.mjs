@@ -34,6 +34,8 @@ const contract = readJSON("release/integration/chain-core-contract.json");
 const vectors = readJSON("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json");
 const metadata = readJSON("chain-metadata/ynx-testnet.json");
 const stateSource = readFileSync("internal/consensus/state.go", "utf8");
+const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
+const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
 const gatewaySource = readFileSync("internal/bftgateway/gateway.go", "utf8");
 
 requireValue(release.schema === "ynx-product-release/v1", "unexpected product release schema");
@@ -52,8 +54,19 @@ requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
 requireValue(stateSource.includes("const CommittedStateVersion = 11"), "runtime committed-state version drift");
 requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)'), "runtime AppHash domain drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 14"), "runtime ABCI application version drift");
+for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
+  requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
+}
+requireValue(snapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "runtime state sync size bound drift");
 requireValue(contract.stateSchema.committedStateVersion === 11, "contract committed-state version drift");
+requireValue(contract.stateSchema.applicationVersion === 14, "contract ABCI application version drift");
 requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V11", "contract AppHash domain drift");
+requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
+requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
+requireValue(contract.recovery.abciStateSync.implementedLocal === true && contract.recovery.abciStateSync.testedLocal === true, "state sync recovery status drift");
+requireValue(contract.recovery.abciStateSync.trustedAppHashRequired === true && contract.recovery.abciStateSync.atomicPersistence === true, "state sync safety boundary drift");
+requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplete === false, "local recovery evidence cannot claim a remote drill");
 
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
@@ -100,7 +113,10 @@ for (const required of [
   "strategy-mandate-revoked-action-reject",
   "strategy-vault-engine-withdraw-reject",
   "staking-withdraw-before-maturity-reject",
-  "solvency-liability-proof-tamper-reject"
+  "solvency-liability-proof-tamper-reject",
+  "abci-state-sync-roundtrip-accept",
+  "abci-state-sync-tampered-chunk-reject",
+  "validator-backup-rollback-replay-accept"
 ]) {
   requireValue(ids.has(required), `required cross-product vector missing: ${required}`);
 }
