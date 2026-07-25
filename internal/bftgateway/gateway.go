@@ -29,6 +29,7 @@ var implementedCapabilities = []string{
 	"evm-chain-id",
 	"evm-network-version",
 	"evm-block-number",
+	"evm-block-by-number-and-hash",
 	"evm-account-balance-and-nonce",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
@@ -164,6 +165,8 @@ type cometBlock struct {
 				Height      string    `json:"height"`
 				Time        time.Time `json:"time"`
 				Proposer    string    `json:"proposer_address"`
+				AppHash     string    `json:"app_hash"`
+				DataHash    string    `json:"data_hash"`
 				LastBlockID struct {
 					Hash string `json:"hash"`
 				} `json:"last_block_id"`
@@ -173,6 +176,7 @@ type cometBlock struct {
 			} `json:"data"`
 		} `json:"block"`
 	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
 }
 
 type cometABCIQuery struct {
@@ -551,26 +555,82 @@ func (g *Gateway) handleBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, block)
 }
 
+type committedBlockEvidence struct {
+	Block           chain.Block
+	AppHash         string
+	DataHash        string
+	RawTransactions [][]byte
+}
+
 func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error) {
-	var upstream cometBlock
-	if err := g.client.get(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+	evidence, err := g.blockAtHeight(ctx, height)
+	if err != nil {
 		return chain.Block{}, err
 	}
+	return evidence.Block, nil
+}
+
+func (g *Gateway) blockAtHeight(ctx context.Context, height uint64) (committedBlockEvidence, error) {
+	var upstream cometBlock
+	if err := g.client.get(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+		return committedBlockEvidence{}, err
+	}
+	if upstream.Error != nil {
+		return committedBlockEvidence{}, errors.New(cometError(upstream.Error))
+	}
+	return g.mapCometBlock(ctx, upstream, height, "")
+}
+
+func (g *Gateway) blockByHash(ctx context.Context, hash string) (committedBlockEvidence, bool, error) {
+	var upstream cometBlock
+	if err := g.client.get(ctx, "/block_by_hash", url.Values{"hash": {hash}}, &upstream); err != nil {
+		return committedBlockEvidence{}, false, err
+	}
+	if upstream.Error != nil {
+		message := cometError(upstream.Error)
+		if strings.Contains(strings.ToLower(message), "not found") {
+			return committedBlockEvidence{}, false, nil
+		}
+		return committedBlockEvidence{}, false, errors.New(message)
+	}
+	height, err := strconv.ParseUint(upstream.Result.Block.Header.Height, 10, 64)
+	if err != nil || height == 0 {
+		return committedBlockEvidence{}, false, errors.New("CometBFT block-by-hash returned an invalid height")
+	}
+	evidence, err := g.mapCometBlock(ctx, upstream, height, hash)
+	if err != nil {
+		return committedBlockEvidence{}, false, err
+	}
+	return evidence, true, nil
+}
+
+func (g *Gateway) mapCometBlock(ctx context.Context, upstream cometBlock, expectedHeight uint64, expectedHash string) (committedBlockEvidence, error) {
 	parsedHeight, err := strconv.ParseUint(upstream.Result.Block.Header.Height, 10, 64)
-	if err != nil || parsedHeight != height {
-		return chain.Block{}, errors.New("CometBFT block height mismatch")
+	if err != nil || parsedHeight != expectedHeight {
+		return committedBlockEvidence{}, errors.New("CometBFT block height mismatch")
+	}
+	blockHash := strings.ToLower(upstream.Result.BlockID.Hash)
+	if !blockHashPattern.MatchString(blockHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT block hash is invalid")
+	}
+	if expectedHash != "" && blockHash != strings.TrimPrefix(expectedHash, "0x") {
+		return committedBlockEvidence{}, errors.New("CometBFT block-by-hash evidence mismatch")
+	}
+	proposer := strings.ToLower(upstream.Result.Block.Header.Proposer)
+	if len(proposer) != 40 || !blockHashPattern.MatchString(strings.Repeat("0", 24)+proposer) {
+		return committedBlockEvidence{}, errors.New("CometBFT proposer address is invalid")
 	}
 	transactions := make([]chain.Transaction, 0, len(upstream.Result.Block.Data.Txs))
 	for _, payload := range upstream.Result.Block.Data.Txs {
 		tx, err := mappedTransaction(payload, parsedHeight, upstream.Result.BlockID.Hash, upstream.Result.Block.Header.Time)
 		if err != nil {
-			return chain.Block{}, errors.New("block contains an unsupported transaction envelope")
+			return committedBlockEvidence{}, errors.New("block contains an unsupported transaction envelope")
 		}
 		if tx.Type == consensus.ActionResourceSponsor {
 			id := "rss_" + consensus.ApplicationActionRecordID("resource-sponsorship", tx.Hash)
 			var record consensus.BFTResourceSponsorship
 			if err := g.queryABCIJSON(ctx, "/resource/sponsorships/"+id, &record); err != nil || record.TxHash != tx.Hash || record.Beneficiary != tx.From {
-				return chain.Block{}, errors.New("committed Resource sponsorship evidence mismatch")
+				return committedBlockEvidence{}, errors.New("committed Resource sponsorship evidence mismatch")
 			}
 			tx.Sponsor, tx.SponsorPoolID, tx.ResourceSource = record.Sponsor, record.PoolID, record.ResourceSource
 			tx.ResourceType, tx.ResourceConsumed, tx.ActionReference = record.ResourceType, record.Amount, record.ActionReference
@@ -578,19 +638,35 @@ func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error)
 		transactions = append(transactions, tx)
 	}
 	parentHash := strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash)
-	if g.migrationHeight > 0 && height == g.migrationHeight+1 {
+	if parentHash != "" && !blockHashPattern.MatchString(parentHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT parent block hash is invalid")
+	}
+	if g.migrationHeight > 0 && expectedHeight == g.migrationHeight+1 {
 		if parentHash != "" && parentHash != g.migrationBlockHash {
-			return chain.Block{}, errors.New("candidate first block parent differs from the approved migration anchor")
+			return committedBlockEvidence{}, errors.New("candidate first block parent differs from the approved migration anchor")
 		}
 		parentHash = g.migrationBlockHash
 	}
-	return chain.Block{
-		Height:       parsedHeight,
-		Hash:         strings.ToLower(upstream.Result.BlockID.Hash),
-		ParentHash:   parentHash,
-		Time:         upstream.Result.Block.Header.Time,
-		Validator:    strings.ToLower(upstream.Result.Block.Header.Proposer),
-		Transactions: transactions,
+	appHash := strings.ToLower(upstream.Result.Block.Header.AppHash)
+	if appHash != "" && !blockHashPattern.MatchString(appHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT AppHash is invalid")
+	}
+	dataHash := strings.ToLower(upstream.Result.Block.Header.DataHash)
+	if dataHash != "" && !blockHashPattern.MatchString(dataHash) {
+		return committedBlockEvidence{}, errors.New("CometBFT data hash is invalid")
+	}
+	return committedBlockEvidence{
+		Block: chain.Block{
+			Height:       parsedHeight,
+			Hash:         blockHash,
+			ParentHash:   parentHash,
+			Time:         upstream.Result.Block.Header.Time,
+			Validator:    proposer,
+			Transactions: transactions,
+		},
+		AppHash:         appHash,
+		DataHash:        dataHash,
+		RawTransactions: upstream.Result.Block.Data.Txs,
 	}, nil
 }
 
@@ -1134,6 +1210,13 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_getBlockByNumber", "eth_getBlockByHash":
+		var err error
+		result, err = g.evmCommittedBlockResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
 	case "eth_getBalance", "eth_getTransactionCount":
 		var err error
 		result, err = g.evmCommittedAccountResult(r.Context(), request.Method, request.Params)

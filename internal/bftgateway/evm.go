@@ -123,6 +123,152 @@ func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, 
 	}
 }
 
+func (g *Gateway) evmCommittedBlockResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil {
+		return nil, errors.New("JSON-RPC params must be an array")
+	}
+	if len(params) != 2 {
+		return nil, fmt.Errorf("%s requires a block identifier and full-transaction boolean", method)
+	}
+	var full bool
+	if err := json.Unmarshal(params[1], &full); err != nil {
+		return nil, errors.New("full-transaction parameter must be boolean")
+	}
+	var evidence committedBlockEvidence
+	switch method {
+	case "eth_getBlockByNumber":
+		status, err := g.status(ctx)
+		if err != nil {
+			return nil, err
+		}
+		height, found, err := parseCommittedBlockLookupTag(params[0], status.EarliestBlockHeight, status.Height)
+		if err != nil || !found {
+			return nil, err
+		}
+		evidence, err = g.blockAtHeight(ctx, height)
+		if err != nil {
+			return nil, err
+		}
+		if height == status.Height && evidence.Block.Hash != status.LatestBlockHash {
+			return nil, errors.New("CometBFT latest block evidence differs from status")
+		}
+		if height == status.EarliestBlockHeight && evidence.Block.Hash != status.EarliestBlockHash {
+			return nil, errors.New("CometBFT earliest block evidence differs from status")
+		}
+	case "eth_getBlockByHash":
+		var hash string
+		if err := json.Unmarshal(params[0], &hash); err != nil || !transactionHashPattern.MatchString(hash) {
+			return nil, errors.New("canonical lowercase block hash is required")
+		}
+		var found bool
+		var err error
+		evidence, found, err = g.blockByHash(ctx, hash)
+		if err != nil || !found {
+			return nil, err
+		}
+	default:
+		return nil, errors.New("unsupported committed EVM block method")
+	}
+	if evidence.AppHash == "" || !blockHashPattern.MatchString(evidence.AppHash) {
+		return nil, errors.New("CometBFT block is missing a valid AppHash")
+	}
+	if len(evidence.Block.Transactions) > 0 && (evidence.DataHash == "" || !blockHashPattern.MatchString(evidence.DataHash)) {
+		return nil, errors.New("CometBFT transaction block is missing a valid data hash")
+	}
+	gasUsed, err := g.committedBlockGas(ctx, evidence.Block.Height, len(evidence.Block.Transactions))
+	if err != nil {
+		return nil, err
+	}
+	return evmCommittedBlock(evidence, full, gasUsed), nil
+}
+
+func (g *Gateway) committedBlockGas(ctx context.Context, height uint64, transactionCount int) (uint64, error) {
+	var upstream cometBlockResults
+	if err := g.client.get(ctx, "/block_results", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+		return 0, err
+	}
+	if upstream.Error != nil {
+		return 0, errors.New(cometError(upstream.Error))
+	}
+	parsedHeight, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
+	if err != nil || parsedHeight != height || len(upstream.Result.TxsResults) != transactionCount {
+		return 0, errors.New("CometBFT block result count does not match block transactions")
+	}
+	var total uint64
+	for _, result := range upstream.Result.TxsResults {
+		if result.Code != 0 {
+			return 0, errors.New("CometBFT block result contains a failed transaction")
+		}
+		gas, err := parseCometGas(result.GasUsed)
+		if err != nil || total > math.MaxUint64-gas {
+			return 0, errors.New("CometBFT block result has invalid total gas evidence")
+		}
+		total += gas
+	}
+	return total, nil
+}
+
+func evmCommittedBlock(evidence committedBlockEvidence, full bool, gasUsed uint64) map[string]any {
+	transactions := make([]any, 0, len(evidence.Block.Transactions))
+	for index, transaction := range evidence.Block.Transactions {
+		if full {
+			var raw []byte
+			if index < len(evidence.RawTransactions) {
+				raw = evidence.RawTransactions[index]
+			}
+			transactions = append(transactions, evmCommittedTransaction(transaction, uint32(index), raw))
+		} else {
+			transactions = append(transactions, transaction.Hash)
+		}
+	}
+	var parentHash any
+	if evidence.Block.ParentHash != "" {
+		parentHash = "0x" + evidence.Block.ParentHash
+	}
+	result := map[string]any{
+		"number":           hexEVMQuantity(evidence.Block.Height),
+		"hash":             "0x" + evidence.Block.Hash,
+		"parentHash":       parentHash,
+		"timestamp":        hexEVMQuantity(uint64(evidence.Block.Time.Unix())),
+		"miner":            "0x" + evidence.Block.Validator,
+		"stateRoot":        "0x" + evidence.AppHash,
+		"gasUsed":          hexEVMQuantity(gasUsed),
+		"transactions":     transactions,
+		"transactionCount": hexEVMQuantity(uint64(len(transactions))),
+	}
+	if evidence.DataHash != "" {
+		result["transactionsRoot"] = "0x" + evidence.DataHash
+	}
+	return result
+}
+
+func parseCommittedBlockLookupTag(raw json.RawMessage, earliest, latest uint64) (uint64, bool, error) {
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return 0, false, errors.New("block identifier must be a string")
+	}
+	switch value {
+	case "latest", "safe", "finalized":
+		return latest, true, nil
+	case "earliest":
+		return earliest, true, nil
+	case "pending":
+		return 0, false, nil
+	}
+	if !strings.HasPrefix(value, "0x") || len(value) < 3 {
+		return 0, false, errors.New("invalid canonical block quantity")
+	}
+	height, err := strconv.ParseUint(value[2:], 16, 64)
+	if err != nil || value != hexEVMQuantity(height) {
+		return 0, false, errors.New("invalid canonical block quantity")
+	}
+	if height < earliest || height > latest {
+		return 0, false, nil
+	}
+	return height, true, nil
+}
+
 func (g *Gateway) committedTransaction(ctx context.Context, hash string) (cometTx, chain.Transaction, bool, error) {
 	var upstream cometTxLookup
 	if err := g.client.get(ctx, "/tx", url.Values{"hash": {hash}, "prove": {"true"}}, &upstream); err != nil {

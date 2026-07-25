@@ -59,7 +59,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 		case "/status":
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
 				"node_info": map[string]any{"network": "ynx_6423-1"},
-				"sync_info": map[string]any{"earliest_block_hash": strings.Repeat("E", 64), "earliest_block_height": "11", "earliest_block_time": blockTime.Add(-6 * time.Second), "latest_block_hash": strings.Repeat("A", 64), "latest_block_height": "17", "latest_block_time": blockTime, "catching_up": false},
+				"sync_info": map[string]any{"earliest_block_hash": strings.Repeat("E", 64), "earliest_block_height": "11", "earliest_block_time": blockTime.Add(-6 * time.Second), "latest_block_hash": strings.Repeat("B", 64), "latest_block_height": "17", "latest_block_time": blockTime, "catching_up": false},
 			}})
 		case "/validators":
 			validators := make([]map[string]any, 4)
@@ -70,11 +70,24 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				}
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_height": "17", "validators": validators}})
-		case "/block":
+		case "/block", "/block_by_hash":
+			if r.URL.Path == "/block_by_hash" {
+				hash := r.URL.Query().Get("hash")
+				if hash == "0x"+strings.Repeat("0", 64) {
+					w.WriteHeader(http.StatusInternalServerError)
+					_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "block not found"}})
+					return
+				}
+				if hash != "0x"+strings.Repeat("b", 64) {
+					t.Errorf("unexpected block-by-hash query: %s", r.URL.RawQuery)
+				}
+			} else if r.URL.Query().Get("height") != "17" {
+				t.Errorf("unexpected block query: %s", r.URL.RawQuery)
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
 				"block_id": map[string]any{"hash": strings.Repeat("B", 64)},
 				"block": map[string]any{
-					"header": map[string]any{"height": "17", "time": blockTime, "proposer_address": strings.Repeat("C", 40), "last_block_id": map[string]any{"hash": ""}},
+					"header": map[string]any{"height": "17", "time": blockTime, "proposer_address": strings.Repeat("C", 40), "app_hash": strings.Repeat("D", 64), "data_hash": strings.Repeat("A", 64), "last_block_id": map[string]any{"hash": ""}},
 					"data":   map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(txPayload)}},
 				},
 			}})
@@ -145,7 +158,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 22 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 23 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
@@ -215,6 +228,19 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":12,"method":"eth_getBalance","params":[%q,"latest"]}`, signed.From), "0x3ce")
 	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":13,"method":"eth_getTransactionCount","params":[%q,"finalized"]}`, signed.From), "0x1")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":14,"method":"eth_getBalance","params":["0x0000000000000000000000000000000000000000","0x11"]}`, "0x0")
+	evmBlock := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":17,"method":"eth_getBlockByNumber","params":["latest",false]}`)
+	evmBlockTransactions := evmBlock["transactions"].([]any)
+	if evmBlock["number"] != "0x11" || evmBlock["hash"] != "0x"+strings.Repeat("b", 64) || evmBlock["parentHash"] != "0x"+strings.Repeat("f", 64) || evmBlock["stateRoot"] != "0x"+strings.Repeat("d", 64) || evmBlock["transactionsRoot"] != "0x"+strings.Repeat("a", 64) || evmBlock["miner"] != "0x"+strings.Repeat("c", 40) || evmBlock["gasUsed"] != "0x1" || evmBlock["transactionCount"] != "0x1" || len(evmBlockTransactions) != 1 || evmBlockTransactions[0] != txHash {
+		t.Fatalf("unexpected committed EVM block: %+v", evmBlock)
+	}
+	fullEVMBlock := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":18,"method":"eth_getBlockByHash","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",true]}`)
+	fullEVMTransactions := fullEVMBlock["transactions"].([]any)
+	if len(fullEVMTransactions) != 1 || fullEVMTransactions[0].(map[string]any)["hash"] != txHash || fullEVMTransactions[0].(map[string]any)["transactionIndex"] != "0x0" {
+		t.Fatalf("unexpected full committed EVM block: %+v", fullEVMBlock)
+	}
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":19,"method":"eth_getBlockByNumber","params":["pending",false]}`, nil)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":20,"method":"eth_getBlockByNumber","params":["0x12",false]}`, nil)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":21,"method":"eth_getBlockByHash","params":["0x0000000000000000000000000000000000000000000000000000000000000000",false]}`, nil)
 	transaction := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getTransactionByHash","params":[%q]}`, txHash))
 	if transaction["hash"] != txHash || transaction["transactionIndex"] != "0x0" || transaction["blockNumber"] != "0x11" || transaction["input"] != "0x" {
 		t.Fatalf("unexpected committed EVM transaction: %+v", transaction)
@@ -231,6 +257,9 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getTransactionReceipt","params":["0xBAD"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":15,"method":"eth_getBalance","params":[%q,"0x10"]}`, signed.From), -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":16,"method":"eth_getTransactionCount","params":["0xBAD","latest"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":22,"method":"eth_getBlockByNumber","params":["0x011",false]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":23,"method":"eth_getBlockByHash","params":["0xBAD",false]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":24,"method":"eth_getBlockByNumber","params":["latest","false"]}`, -32602)
 	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getCode","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
