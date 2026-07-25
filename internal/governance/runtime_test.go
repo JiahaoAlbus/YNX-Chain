@@ -22,7 +22,7 @@ func runtimeFixture(t *testing.T) (RuntimeConfig, time.Time) {
 	if err := os.WriteFile(keyPath, []byte(hex.EncodeToString([]byte(strings.Repeat("k", 32)))), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return RuntimeConfig{SchemaVersion: "ynx-governanced-config/v1", HTTPAddress: "127.0.0.1:6441", StatePath: filepath.Join(dir, "state.json"), GatewayKeyPath: keyPath, Policy: RuntimePolicyConfig{MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: "1h", Timelock: "2h", MaxLifetime: "720h", EmergencyThreshold: 3, EmergencyMaxDuration: "24h", ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2}, GenesisRoles: roles}, now
+	return RuntimeConfig{SchemaVersion: "ynx-governanced-config/v2", HTTPAddress: "127.0.0.1:6441", StatePath: filepath.Join(dir, "state.json"), GatewayKeyPath: keyPath, Policy: RuntimePolicyConfig{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: "2m", MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: "1h", Timelock: "2h", MaxLifetime: "720h", EmergencyThreshold: 3, EmergencyMaxDuration: "24h", ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2}, GenesisRoles: roles}, now
 }
 
 func TestRuntimeInitializesRestoresAndRejectsUnsafeConfig(t *testing.T) {

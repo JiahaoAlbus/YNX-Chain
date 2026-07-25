@@ -376,13 +376,15 @@ func (s *Server) vote(w http.ResponseWriter, r *http.Request, p Principal) {
 	if !s.authorizedProposal(w, r.PathValue("id"), p) {
 		return
 	}
-	var in struct {
-		Choice string `json:"choice"`
-	}
+	var in SignedVoteEnvelope
 	if !decode(w, r, &in) {
 		return
 	}
-	out, err := s.service.Vote(r.PathValue("id"), p.Account, in.Choice, s.now())
+	if in.ProposalID != r.PathValue("id") || in.Voter != p.Account {
+		writeError(w, http.StatusUnauthorized, "signed vote identity or proposal binding mismatch")
+		return
+	}
+	out, err := s.service.CastSignedVote(in, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) finalize(w http.ResponseWriter, r *http.Request, p Principal) {

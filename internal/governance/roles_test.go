@@ -25,7 +25,7 @@ func executedProposal(t *testing.T, s *Service, now time.Time) Proposal {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err = s.Vote(p.ID, "validator-1", "yes", now.Add(4*time.Minute))
+	p, err = castTestVote(t, s, p.ID, "validator-1", "yes", now.Add(4*time.Minute))
 	if err != nil {
 		t.Fatal(err)
 	}

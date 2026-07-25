@@ -52,6 +52,21 @@ func TestLoadRejectsLegacyV1StateEvenWithValidSnapshotDigest(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsLegacyV2StateWithoutSignedVoteMigration(t *testing.T) {
+	now := time.Date(2026, 7, 25, 9, 15, 0, 0, time.UTC)
+	service := testService(t)
+	path := t.TempDir() + "/state.json"
+	if err := service.Save(path, now); err != nil {
+		t.Fatal(err)
+	}
+	rewriteSnapshot(t, path, func(envelope *snapshotEnvelope) {
+		envelope.Payload.Version = legacyStateMachineSnapshotVersion
+	})
+	if _, err := Load(path); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "signed-vote migration") {
+		t.Fatalf("legacy v2 state was not rejected: %v", err)
+	}
+}
+
 func TestLoadRejectsTamperedTransitionHistoryEvenWithValidSnapshotDigest(t *testing.T) {
 	now := time.Date(2026, 7, 25, 9, 30, 0, 0, time.UTC)
 	service := testService(t)

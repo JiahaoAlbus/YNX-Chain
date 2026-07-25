@@ -48,7 +48,7 @@ func TestCanonicalStateMachineSuccessfulExecutionSequence(t *testing.T) {
 	s := testService(t)
 	p := proposalAtVoting(t, s, now, VotingSnapshot{BasePower: map[string]uint64{"validator-1": 100}})
 	var err error
-	if p, err = s.Vote(p.ID, "validator-1", "yes", now.Add(4*time.Minute)); err != nil {
+	if p, err = castTestVote(t, s, p.ID, "validator-1", "yes", now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p, err = s.Finalize(p.ID, p.VotingEndsAt); err != nil {
@@ -93,7 +93,7 @@ func TestFinalizeSeparatesQuorumAndThresholdFailures(t *testing.T) {
 	now := time.Date(2026, 7, 25, 12, 0, 0, 0, time.UTC)
 	quorumService := testService(t)
 	quorumProposal := proposalAtVoting(t, quorumService, now, VotingSnapshot{BasePower: map[string]uint64{"yes": 40, "silent": 60}})
-	if _, err := quorumService.Vote(quorumProposal.ID, "yes", "yes", now.Add(4*time.Minute)); err != nil {
+	if _, err := castTestVote(t, quorumService, quorumProposal.ID, "yes", "yes", now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	quorumProposal, err := quorumService.Finalize(quorumProposal.ID, quorumProposal.VotingEndsAt)
@@ -103,10 +103,10 @@ func TestFinalizeSeparatesQuorumAndThresholdFailures(t *testing.T) {
 
 	thresholdService := testService(t)
 	thresholdProposal := proposalAtVoting(t, thresholdService, now, VotingSnapshot{BasePower: map[string]uint64{"yes": 60, "no": 40}})
-	if _, err = thresholdService.Vote(thresholdProposal.ID, "yes", "yes", now.Add(4*time.Minute)); err != nil {
+	if _, err = castTestVote(t, thresholdService, thresholdProposal.ID, "yes", "yes", now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = thresholdService.Vote(thresholdProposal.ID, "no", "no", now.Add(4*time.Minute)); err != nil {
+	if _, err = castTestVote(t, thresholdService, thresholdProposal.ID, "no", "no", now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	thresholdProposal, err = thresholdService.Finalize(thresholdProposal.ID, thresholdProposal.VotingEndsAt)
@@ -120,7 +120,7 @@ func TestFailedExecutionRemainsFailedUntilVerifiedRollback(t *testing.T) {
 	s := testService(t)
 	p := proposalAtVoting(t, s, now, VotingSnapshot{BasePower: map[string]uint64{"validator": 100}})
 	var err error
-	if p, err = s.Vote(p.ID, "validator", "yes", now.Add(4*time.Minute)); err != nil {
+	if p, err = castTestVote(t, s, p.ID, "validator", "yes", now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p, err = s.Finalize(p.ID, p.VotingEndsAt); err != nil {

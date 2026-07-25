@@ -6,16 +6,27 @@ import (
 )
 
 type PublicVoteRecord struct {
-	ProposalID         string    `json:"proposalId"`
-	Scope              Scope     `json:"scope"`
-	Voter              string    `json:"voter"`
-	Choice             string    `json:"choice"`
-	Power              uint64    `json:"power"`
-	CastAt             time.Time `json:"castAt"`
-	AuditHash          string    `json:"auditHash"`
-	ElectorateEvidence string    `json:"electorateEvidence"`
-	ElectorateVersion  string    `json:"electorateVersion"`
-	ElectorateSnapshot time.Time `json:"electorateSnapshotAt"`
+	ProposalID          string    `json:"proposalId"`
+	Scope               Scope     `json:"scope"`
+	ChainID             string    `json:"chainId"`
+	Domain              string    `json:"domain"`
+	Voter               string    `json:"voter"`
+	Choice              string    `json:"choice,omitempty"`
+	Power               uint64    `json:"power"`
+	Operation           string    `json:"operation"`
+	Revision            uint64    `json:"revision"`
+	Nonce               string    `json:"nonce"`
+	PublicKey           string    `json:"publicKey"`
+	Signature           string    `json:"signature"`
+	SignedAt            time.Time `json:"signedAt"`
+	ExpiresAt           time.Time `json:"expiresAt"`
+	CastAt              time.Time `json:"castAt"`
+	SupersedesAuditHash string    `json:"supersedesAuditHash,omitempty"`
+	AuditHash           string    `json:"auditHash"`
+	ElectorateEvidence  string    `json:"electorateEvidence"`
+	ElectorateVersion   string    `json:"electorateVersion"`
+	ElectorateSnapshot  time.Time `json:"electorateSnapshotAt"`
+	CurrentRevision     bool      `json:"currentRevision"`
 }
 
 type PublicDelegationRecord struct {
@@ -92,19 +103,19 @@ func (s *Service) PublicVotes() []PublicVoteRecord {
 	proposals := s.ListProposals()
 	out := []PublicVoteRecord{}
 	for _, proposal := range proposals {
-		for _, vote := range proposal.Votes {
-			record := PublicVoteRecord{ProposalID: proposal.ID, Scope: proposal.Input.Scope, Voter: vote.Voter, Choice: vote.Choice, Power: vote.Power, CastAt: vote.CastAt, AuditHash: vote.AuditHash}
-			if proposal.Electorate != nil {
-				record.ElectorateEvidence = proposal.Electorate.EvidenceHash
-				record.ElectorateVersion = proposal.Electorate.SourceVersion
-				record.ElectorateSnapshot = proposal.Electorate.SnapshotAsOf
+		for voter, history := range proposal.VoteHistory {
+			current := proposal.Votes[voter]
+			for _, vote := range history {
+				out = append(out, publicVoteRecordFrom(proposal, vote, vote.AuditHash == current.AuditHash))
 			}
-			out = append(out, record)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].CastAt.Equal(out[j].CastAt) {
 			if out[i].ProposalID == out[j].ProposalID {
+				if out[i].Voter == out[j].Voter {
+					return out[i].Revision < out[j].Revision
+				}
 				return out[i].Voter < out[j].Voter
 			}
 			return out[i].ProposalID < out[j].ProposalID
@@ -213,8 +224,14 @@ func (s *Service) PublicAudit() []PublicAuditRecord {
 		for _, transition := range proposal.Transitions {
 			out = append(out, PublicAuditRecord{AuditID: transition.AuditHash, RecordType: "proposal_transition", ProposalID: proposal.ID, Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At})
 		}
-		for _, vote := range proposal.Votes {
-			out = append(out, PublicAuditRecord{AuditID: vote.AuditHash, RecordType: "vote", ProposalID: proposal.ID, Actor: vote.Voter, Action: vote.Choice, Evidence: []string{"electorate://" + proposal.Electorate.EvidenceHash}, At: vote.CastAt})
+		for _, history := range proposal.VoteHistory {
+			for _, vote := range history {
+				action := vote.Operation
+				if vote.Choice != "" {
+					action += ":" + vote.Choice
+				}
+				out = append(out, PublicAuditRecord{AuditID: vote.AuditHash, RecordType: "signed_vote_revision", ProposalID: proposal.ID, Actor: vote.Voter, Action: action, Evidence: []string{"electorate://" + vote.ElectorateEvidenceHash, "signature://ed25519/" + vote.Signature, "nonce://" + vote.Nonce}, At: vote.CastAt})
+			}
 		}
 		for _, conflict := range proposal.Conflicts {
 			out = append(out, PublicAuditRecord{AuditID: hash(proposal.ID, conflict.Actor, conflict.Description, conflict.DisclosedAt.UTC().Format(time.RFC3339Nano)), RecordType: "conflict_disclosure", ProposalID: proposal.ID, Actor: conflict.Actor, Action: "disclosed", Evidence: []string{conflict.Description}, At: conflict.DisclosedAt})

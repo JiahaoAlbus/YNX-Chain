@@ -18,7 +18,7 @@ func testService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := NewService(Policy{MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
+	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,6 +35,7 @@ func proposalInput(now time.Time) ProposalInput {
 
 func openVoting(t *testing.T, s *Service, id string, snapshot VotingSnapshot, now time.Time) (Proposal, error) {
 	t.Helper()
+	snapshot = normalizeTestSnapshot(snapshot)
 	_, err := s.SubmitElectorate(id, snapshot, strings.Repeat("9", 64), "ynx-electorate-snapshot/v1", "technical-1", now, now)
 	if err != nil {
 		return Proposal{}, err
@@ -70,7 +71,7 @@ func TestProposalVoteTimelockExecution(t *testing.T) {
 		t.Fatalf("open: %+v %v", p, err)
 	}
 	for _, vote := range []struct{ v, c string }{{"validator-1", "yes"}, {"delegate-1", "yes"}, {"observer-1", "abstain"}} {
-		if _, err = s.Vote(p.ID, vote.v, vote.c, now.Add(4*time.Minute)); err != nil {
+		if _, err = castTestVote(t, s, p.ID, vote.v, vote.c, now.Add(4*time.Minute)); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -136,12 +137,12 @@ func TestBoundsReplayConflictRecusalAndRollback(t *testing.T) {
 	}
 	p, _ = s.Deposit(p.ID, 100, now.Add(time.Minute))
 	p, _ = s.RecordSimulation(p.ID, Simulation{TechnicalEvidence: "technical evidence hash", EconomicEvidence: "economic evidence hash", SecurityEvidence: "security evidence hash", UserImpactEvidence: "user impact evidence hash", Passed: true}, now.Add(2*time.Minute))
-	p, _ = s.DiscloseConflict(p.ID, ConflictDisclosure{Actor: "delegate-conflicted", Description: "Provider ownership interest disclosed", Recused: true}, now.Add(3*time.Minute))
+	p, _ = s.DiscloseConflict(p.ID, ConflictDisclosure{Actor: testVoterID("delegate-conflicted"), Description: "Provider ownership interest disclosed", Recused: true}, now.Add(3*time.Minute))
 	p, _ = openVoting(t, s, p.ID, VotingSnapshot{BasePower: map[string]uint64{"delegate-conflicted": 30, "validator-1": 70}}, now.Add(4*time.Minute))
-	if _, err = s.Vote(p.ID, "delegate-conflicted", "yes", now.Add(5*time.Minute)); !errors.Is(err, ErrForbidden) {
+	if _, err = castTestVote(t, s, p.ID, "delegate-conflicted", "yes", now.Add(5*time.Minute)); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("recusal: %v", err)
 	}
-	p, _ = s.Vote(p.ID, "validator-1", "yes", now.Add(5*time.Minute))
+	p, _ = castTestVote(t, s, p.ID, "validator-1", "yes", now.Add(5*time.Minute))
 	p, _ = s.Finalize(p.ID, p.VotingEndsAt)
 	p, _ = s.BeginExecution(p.ID, strings.Repeat("b", 64), p.ExecuteAfter)
 	failed := NewExecutionReceipt("0x"+strings.Repeat("d", 64), 12, "0x"+strings.Repeat("e", 64), "0x"+strings.Repeat("f", 64), strings.Repeat("b", 64), "failed", p.ExecuteAfter.Add(time.Minute))
@@ -170,14 +171,14 @@ func TestVotingSnapshotRejectsCyclesAndFreezesDelegatedPower(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.VotingPower["bob"] != 100 || p.VotingPower["alice"] != 0 || p.EligiblePower != 100 {
+	if p.VotingPower[testVoterID("bob")] != 100 || p.VotingPower[testVoterID("alice")] != 0 || p.EligiblePower != 100 {
 		t.Fatalf("power=%v eligible=%d", p.VotingPower, p.EligiblePower)
 	}
-	if _, err = s.Vote(p.ID, "alice", "yes", now.Add(4*time.Minute)); !errors.Is(err, ErrInvalid) {
+	if _, err = castTestVote(t, s, p.ID, "alice", "yes", now.Add(4*time.Minute)); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("delegator voted: %v", err)
 	}
-	p, err = s.Vote(p.ID, "bob", "yes", now.Add(4*time.Minute))
-	if err != nil || p.Votes["bob"].Power != 100 {
+	p, err = castTestVote(t, s, p.ID, "bob", "yes", now.Add(4*time.Minute))
+	if err != nil || p.Votes[testVoterID("bob")].Power != 100 {
 		t.Fatalf("delegate vote: %+v %v", p.Votes, err)
 	}
 }

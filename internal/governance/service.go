@@ -118,11 +118,23 @@ type ConflictDisclosure struct {
 }
 
 type Vote struct {
-	Voter     string    `json:"voter"`
-	Choice    string    `json:"choice"`
-	Power     uint64    `json:"power"`
-	CastAt    time.Time `json:"castAt"`
-	AuditHash string    `json:"auditHash"`
+	ProposalID             string    `json:"proposalId"`
+	ChainID                string    `json:"chainId"`
+	Domain                 string    `json:"domain"`
+	Voter                  string    `json:"voter"`
+	Choice                 string    `json:"choice,omitempty"`
+	Power                  uint64    `json:"power"`
+	Operation              string    `json:"operation"`
+	Revision               uint64    `json:"revision"`
+	Nonce                  string    `json:"nonce"`
+	PublicKey              string    `json:"publicKey"`
+	Signature              string    `json:"signature"`
+	ElectorateEvidenceHash string    `json:"electorateEvidenceHash"`
+	SignedAt               time.Time `json:"signedAt"`
+	ExpiresAt              time.Time `json:"expiresAt"`
+	CastAt                 time.Time `json:"castAt"`
+	SupersedesAuditHash    string    `json:"supersedesAuditHash,omitempty"`
+	AuditHash              string    `json:"auditHash"`
 }
 
 type VotingSnapshot struct {
@@ -158,6 +170,7 @@ type Proposal struct {
 	Cancellation     *Cancellation                 `json:"cancellation,omitempty"`
 	Conflicts        map[string]ConflictDisclosure `json:"conflicts"`
 	Votes            map[string]Vote               `json:"votes"`
+	VoteHistory      map[string][]Vote             `json:"voteHistory"`
 	EligiblePower    uint64                        `json:"eligiblePower"`
 	VotingPower      map[string]uint64             `json:"votingPower"`
 	BasePower        map[string]uint64             `json:"basePower"`
@@ -174,6 +187,11 @@ type Proposal struct {
 }
 
 type Policy struct {
+	ChainID                     string
+	VoteDomain                  string
+	VoteReplacementPolicy       string
+	VoteWithdrawalPolicy        string
+	VoteMaxClockSkew            time.Duration
 	MinimumDeposit              uint64
 	QuorumBPS                   uint64
 	ThresholdBPS                uint64
@@ -200,6 +218,7 @@ type Service struct {
 	registries       RegistrySet
 	proposals        map[string]*Proposal
 	nonces           map[string]struct{}
+	voteNonces       map[string]struct{}
 	emergencies      map[string]*EmergencyAction
 	emergencyNonces  map[string]struct{}
 	roles            map[string]*RoleAssignment
@@ -210,7 +229,7 @@ type Service struct {
 }
 
 func NewService(policy Policy) (*Service, error) {
-	if policy.MinimumDeposit == 0 || policy.QuorumBPS == 0 || policy.QuorumBPS > 10000 || policy.ThresholdBPS == 0 || policy.ThresholdBPS > 10000 || policy.VotingPeriod <= 0 || policy.Timelock <= 0 || policy.MaxLifetime <= policy.VotingPeriod+policy.Timelock || policy.EmergencyThreshold < 2 || policy.EmergencyMaxDuration <= 0 || policy.EmergencyMaxDuration > 7*24*time.Hour || len(policy.ParameterRules) == 0 || !validHash(policy.GenesisRoleManifestHash) || policy.ElectorateApprovalThreshold < 2 {
+	if len(strings.TrimSpace(policy.ChainID)) < 3 || len(strings.TrimSpace(policy.VoteDomain)) < 8 || policy.VoteReplacementPolicy != "replace_before_deadline" || policy.VoteWithdrawalPolicy != "withdraw_before_deadline" || policy.VoteMaxClockSkew <= 0 || policy.VoteMaxClockSkew > 15*time.Minute || policy.MinimumDeposit == 0 || policy.QuorumBPS == 0 || policy.QuorumBPS > 10000 || policy.ThresholdBPS == 0 || policy.ThresholdBPS > 10000 || policy.VotingPeriod <= 0 || policy.Timelock <= 0 || policy.MaxLifetime <= policy.VotingPeriod+policy.Timelock || policy.EmergencyThreshold < 2 || policy.EmergencyMaxDuration <= 0 || policy.EmergencyMaxDuration > 7*24*time.Hour || len(policy.ParameterRules) == 0 || !validHash(policy.GenesisRoleManifestHash) || policy.ElectorateApprovalThreshold < 2 {
 		return nil, fmt.Errorf("%w: unsafe governance policy", ErrInvalid)
 	}
 	for path, rule := range policy.ParameterRules {
@@ -222,7 +241,7 @@ func NewService(policy Policy) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
 	}
-	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
+	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
 func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
@@ -243,7 +262,7 @@ func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
 	}
 	id := hash("proposal", input.Nonce, input.Proposer, fingerprint)
 	actionHash := hash("action", fingerprint, strings.ToLower(input.SourceCommit), input.Release, strings.ToLower(input.UpgradeHash))
-	p := &Proposal{ID: id, ActionHash: actionHash, Input: input, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, CreatedAt: now, UpdatedAt: now}
+	p := &Proposal{ID: id, ActionHash: actionHash, Input: input, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VoteHistory: map[string][]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, CreatedAt: now, UpdatedAt: now}
 	for _, step := range []struct {
 		to     Status
 		reason string
@@ -430,29 +449,6 @@ func (s *Service) OpenVoting(id string, now time.Time) (Proposal, error) {
 	return clone(p), nil
 }
 
-func (s *Service) Vote(id, voter, choice string, now time.Time) (Proposal, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	p, err := s.mutable(id, now)
-	if err != nil {
-		return Proposal{}, err
-	}
-	choice = strings.ToLower(strings.TrimSpace(choice))
-	power := p.VotingPower[voter]
-	if p.Status != StatusVotingActive || !now.Before(p.VotingEndsAt) || (choice != "yes" && choice != "no" && choice != "abstain" && choice != "veto") || power == 0 || strings.TrimSpace(voter) == "" {
-		return Proposal{}, ErrInvalid
-	}
-	if _, exists := p.Votes[voter]; exists {
-		return Proposal{}, ErrReplay
-	}
-	if conflict, exists := p.Conflicts[voter]; exists && conflict.Recused {
-		return Proposal{}, ErrForbidden
-	}
-	p.Votes[voter] = Vote{Voter: voter, Choice: choice, Power: power, CastAt: now.UTC(), AuditHash: hash(id, voter, choice, fmt.Sprint(power))}
-	p.UpdatedAt = now.UTC()
-	return clone(p), nil
-}
-
 func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -465,6 +461,9 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	}
 	var participated, yes, no, veto uint64
 	for _, vote := range p.Votes {
+		if vote.Operation == VoteOperationWithdraw {
+			continue
+		}
 		participated += vote.Power
 		switch vote.Choice {
 		case "yes":
@@ -785,6 +784,10 @@ func clone(p *Proposal) Proposal {
 	out.Votes = map[string]Vote{}
 	for k, v := range p.Votes {
 		out.Votes[k] = v
+	}
+	out.VoteHistory = map[string][]Vote{}
+	for voter, history := range p.VoteHistory {
+		out.VoteHistory[voter] = append([]Vote(nil), history...)
 	}
 	out.VotingPower = map[string]uint64{}
 	for k, v := range p.VotingPower {

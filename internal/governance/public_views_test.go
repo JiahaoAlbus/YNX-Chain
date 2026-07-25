@@ -14,7 +14,7 @@ func TestPublicViewsAreDerivedFromCanonicalProposalState(t *testing.T) {
 	if p, err = s.DiscloseConflict(p.ID, ConflictDisclosure{Actor: "provider-owner", Description: "Related bridge provider ownership was disclosed before voting.", Recused: true}, now.Add(4*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if p, err = s.Vote(p.ID, "bob", "yes", now.Add(5*time.Minute)); err != nil {
+	if p, err = castTestVote(t, s, p.ID, "bob", "yes", now.Add(5*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	if p, err = s.Finalize(p.ID, p.VotingEndsAt); err != nil {
