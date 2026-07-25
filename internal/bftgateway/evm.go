@@ -80,6 +80,49 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 	}
 }
 
+func (g *Gateway) evmCommittedAccountResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil {
+		return nil, errors.New("JSON-RPC params must be an array")
+	}
+	if len(params) != 2 {
+		return nil, fmt.Errorf("%s requires an address and block tag", method)
+	}
+	var address string
+	if err := json.Unmarshal(params[0], &address); err != nil || !isCanonicalEVMAddress(address) {
+		return nil, errors.New("canonical lowercase EVM account address is required")
+	}
+	status, err := g.status(ctx)
+	if err != nil {
+		return nil, err
+	}
+	height, err := parseCommittedBlockTag(params[1], status.EarliestBlockHeight, status.Height)
+	if err != nil {
+		return nil, err
+	}
+	if height != status.Height {
+		return nil, errors.New("historical account state is not available from the current CometBFT gateway")
+	}
+	var account chain.ConsensusAccount
+	if err := g.queryABCIJSON(ctx, "/accounts/"+address, &account); err != nil {
+		if err.Error() == "YNX account not found" {
+			return "0x0", nil
+		}
+		return nil, err
+	}
+	if account.Address != address || account.Balance < 0 {
+		return nil, errors.New("ABCI account evidence is invalid")
+	}
+	switch method {
+	case "eth_getBalance":
+		return hexEVMQuantity(uint64(account.Balance)), nil
+	case "eth_getTransactionCount":
+		return hexEVMQuantity(account.Nonce), nil
+	default:
+		return nil, errors.New("unsupported committed EVM account method")
+	}
+}
+
 func (g *Gateway) committedTransaction(ctx context.Context, hash string) (cometTx, chain.Transaction, bool, error) {
 	var upstream cometTxLookup
 	if err := g.client.get(ctx, "/tx", url.Values{"hash": {hash}, "prove": {"true"}}, &upstream); err != nil {

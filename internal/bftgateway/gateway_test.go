@@ -91,6 +91,10 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString([]byte("[]"))}}})
 				return
 			}
+			if path == "/accounts/0x0000000000000000000000000000000000000000" {
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "log": "YNX account not found", "height": "17"}}})
+				return
+			}
 			if strings.HasPrefix(path, "/evm/receipts/") {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 1, "log": "EVM receipt not found", "height": "17"}}})
 				return
@@ -141,7 +145,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 20 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 22 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
@@ -205,8 +209,12 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertGetStatus(t, server.URL+"/txs?limit=101", http.StatusBadRequest)
 
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`, "0x1917")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":11,"method":"net_version","params":[]}`, "6423")
 	assertRPCResult(t, server.URL+"/", `{"jsonrpc":"2.0","id":2,"method":"eth_chainId","params":[]}`, "0x1917")
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_blockNumber","params":[]}`, "0x11")
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":12,"method":"eth_getBalance","params":[%q,"latest"]}`, signed.From), "0x3ce")
+	assertRPCResult(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":13,"method":"eth_getTransactionCount","params":[%q,"finalized"]}`, signed.From), "0x1")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":14,"method":"eth_getBalance","params":["0x0000000000000000000000000000000000000000","0x11"]}`, "0x0")
 	transaction := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getTransactionByHash","params":[%q]}`, txHash))
 	if transaction["hash"] != txHash || transaction["transactionIndex"] != "0x0" || transaction["blockNumber"] != "0x11" || transaction["input"] != "0x" {
 		t.Fatalf("unexpected committed EVM transaction: %+v", transaction)
@@ -221,7 +229,9 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":8,"method":"eth_getLogs","params":[{"fromBlock":"0x11","toBlock":"0x10"}]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":9,"method":"eth_getLogs","params":[{"address":"0xBAD"}]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":10,"method":"eth_getTransactionReceipt","params":["0xBAD"]}`, -32602)
-	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getBalance","params":[]}`))
+	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":15,"method":"eth_getBalance","params":[%q,"0x10"]}`, signed.From), -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":16,"method":"eth_getTransactionCount","params":["0xBAD","latest"]}`, -32602)
+	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getCode","params":[]}`))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -27,7 +27,9 @@ var implementedCapabilities = []string{
 	"account-query",
 	"validator-set",
 	"evm-chain-id",
+	"evm-network-version",
 	"evm-block-number",
+	"evm-account-balance-and-nonce",
 	"native-signed-transaction-http-broadcast",
 	"transaction-lookup-and-history",
 	"faucet-state-transition",
@@ -1123,6 +1125,8 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 	switch request.Method {
 	case "eth_chainId":
 		result = "0x1917"
+	case "net_version":
+		result = "6423"
 	case "eth_blockNumber":
 		status, err := g.status(r.Context())
 		if err != nil {
@@ -1130,6 +1134,13 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_getBalance", "eth_getTransactionCount":
+		var err error
+		result, err = g.evmCommittedAccountResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
 	case "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_getLogs":
 		var err error
 		result, err = g.evmCommittedResult(r.Context(), request.Method, request.Params)
