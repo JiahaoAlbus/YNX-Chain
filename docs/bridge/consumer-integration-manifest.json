@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "owner": "21-bridge",
-  "sourceCommit": "3921629d5deb8cdcab8077d487639b1255f15b23",
+  "sourceCommit": "2137cc2e96ca05586c01e6506f9a83f8456a96c6",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "canonicalRoute": "/bridge",
