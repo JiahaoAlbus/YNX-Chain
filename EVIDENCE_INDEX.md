@@ -37,6 +37,7 @@ All paths are repository-relative and refer to the current source commit only af
 | Proposed SLOs and required capacity/soak evidence | `SLO_CAPACITY_PLAN.md` | No achieved thresholds until raw current-source samples exist |
 | Unit-cost definitions and missing financial inputs | `UNIT_ECONOMICS.md` | Provider invoices, service costs, usage, fees and governed subsidy records required |
 | Chain Core recovery and deployed-runtime boundary | `CURRENT_RECOVERY_AUDIT.md`, `release/recovery-evidence.json` | strict SSH audit, exact-release four-node verifier, bounded public ingress diagnostic |
+| Local four-validator CometBFT quorum, AppHash and replay evidence | `scripts/verify/consensus-quorum-check.sh`, generated `tmp/consensus-quorum-evidence.json` | `make consensus-quorum-check` |
 | StreamBFT shadow candidate | `internal/streambft`, `docs/architecture/STREAMBFT_CANDIDATE.md`, `docs/formal/streambft` | `make streambft-candidate-check` |
 | Deterministic parallel/sequential state-root equivalence | `internal/streambft/executor.go`, `internal/streambft/streambft_test.go` | `go test -race ./internal/streambft` |
 | Strategy mandate and owner-only Vault invariants | `internal/assetauth/mandate.go`, `internal/assetauth/vault.go` | `go test -race ./internal/assetauth` |

@@ -6,6 +6,7 @@ cd "$(dirname "$0")/../.."
 work="${YNX_CONSENSUS_QUORUM_WORK:-$(mktemp -d)}"
 network="$work/network"
 manifest="$network/network-manifest.json"
+evidence_path="${YNX_CONSENSUS_QUORUM_EVIDENCE:-tmp/consensus-quorum-evidence.json}"
 base_p2p="${YNX_CONSENSUS_QUORUM_P2P_PORT:-28656}"
 base_rpc="${YNX_CONSENSUS_QUORUM_RPC_PORT:-28757}"
 base_abci="${YNX_CONSENSUS_QUORUM_ABCI_PORT:-28858}"
@@ -154,6 +155,20 @@ assert_same_block() {
   printf '%s' "$first"
 }
 
+assert_same_app_hash() {
+  local height="$1"
+  shift
+  local hashes=()
+  for index in "$@"; do
+    hashes+=("$(rpc_json "$index" "/block?height=$height" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>console.log(JSON.parse(s).result.block.header.app_hash))')")
+  done
+  local first="${hashes[0]}"
+  for hash in "${hashes[@]}"; do
+    [[ -n "$hash" && "$hash" == "$first" ]] || { echo "AppHash mismatch at height $height: ${hashes[*]}" >&2; return 1; }
+  done
+  printf '%s' "$first"
+}
+
 assert_commit_signatures() {
   local index="$1"
   local height="$2"
@@ -175,12 +190,22 @@ for index in 0 1 2 3; do wait_height "$index" 6; done
 
 initial_height=6
 initial_hash="$(assert_same_block "$initial_height" 0 1 2 3)"
+initial_app_hash="$(assert_same_app_hash "$initial_height" 0 1 2 3)"
 assert_commit_signatures 0 "$initial_height" 3
 
 node - "$manifest" "$base_rpc" <<'NODE'
+const crypto = require("crypto");
 const fs = require("fs");
 const manifest = require(process.argv[2]);
 const baseRPC = Number(process.argv[3]);
+const genesisPayloads = manifest.nodes.map(node => fs.readFileSync(`${node.home}/config/genesis.json`, "utf8"));
+for (const payload of genesisPayloads) {
+  if (payload !== genesisPayloads[0]) throw new Error("validator genesis files differ");
+}
+const genesis = JSON.parse(genesisPayloads[0]);
+if (genesis.chain_id !== manifest.chainId) throw new Error(`genesis chain ID ${genesis.chain_id} != ${manifest.chainId}`);
+const genesisHash = crypto.createHash("sha256").update(genesisPayloads[0]).digest("hex");
+if (genesisHash !== manifest.genesisHash) throw new Error(`genesis hash ${genesisHash} != ${manifest.genesisHash}`);
 const expected = [...manifest.nodes.map(node => node.consensusAddress)].sort();
 const validatorRequests = manifest.nodes.map((_, index) => fetch(`http://127.0.0.1:${baseRPC + index}/validators?height=6`).then(response => response.json()));
 const commitRequests = [2, 3, 4, 5, 6].map(height => fetch(`http://127.0.0.1:${baseRPC}/commit?height=${height}`).then(response => response.json()));
@@ -222,14 +247,18 @@ tx_height="$(printf '%s' "$broadcast_result" | node -e '
 tx_hash="$(printf '%s' "$broadcast_result" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>console.log(JSON.parse(s).result.hash))')"
 for index in 0 1 2 3; do wait_height "$index" "$tx_height"; done
 tx_block_hash="$(assert_same_block "$tx_height" 0 1 2 3)"
+tx_state_height=$((tx_height + 1))
+for index in 0 1 2 3; do wait_height "$index" "$tx_state_height"; done
+tx_app_hash="$(assert_same_app_hash "$tx_state_height" 0 1 2 3)"
 
 assert_account() {
-  local address="$1"
-  local expected_balance="$2"
-  local expected_nonce="$3"
+  local index="$1"
+  local address="$2"
+  local expected_balance="$3"
+  local expected_nonce="$4"
   local payload result
   payload="$(node -e 'process.stdout.write(JSON.stringify({jsonrpc:"2.0",id:1,method:"abci_query",params:{path:"/accounts/"+process.argv[1]}}))' "$address")"
-  result="$(rpc_post 0 "$payload")"
+  result="$(rpc_post "$index" "$payload")"
   printf '%s' "$result" | node -e '
     let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
       const response=JSON.parse(s).result.response;
@@ -239,8 +268,10 @@ assert_account() {
       if (account.balance !== balance || account.nonce !== nonce) throw new Error(`unexpected account state: ${JSON.stringify(account)}`);
     });' "$expected_balance" "$expected_nonce"
 }
-assert_account "$fixture_signer" 874 1
-assert_account "$fixture_recipient" 125 0
+for index in 0 1 2 3; do
+  assert_account "$index" "$fixture_signer" 874 1
+  assert_account "$index" "$fixture_recipient" 125 0
+done
 
 before_stop="$(node_height 0)"
 stop_process "${node_pids[3]}"; node_pids[3]=""
@@ -248,6 +279,7 @@ stop_process "${app_pids[3]}"; app_pids[3]=""
 three_validator_height=$((before_stop + 4))
 for index in 0 1 2; do wait_height "$index" "$three_validator_height"; done
 three_validator_hash="$(assert_same_block "$three_validator_height" 0 1 2)"
+three_validator_app_hash="$(assert_same_app_hash "$three_validator_height" 0 1 2)"
 assert_commit_signatures 0 "$three_validator_height" 3
 
 start_app 3
@@ -258,11 +290,71 @@ recovery_target="$(node_height 0)"
 wait_height 3 "$recovery_target"
 for index in 0 1 2; do wait_height "$index" "$recovery_target"; done
 recovery_hash="$(assert_same_block "$recovery_target" 0 1 2 3)"
+recovery_app_hash="$(assert_same_app_hash "$recovery_target" 0 1 2 3)"
+
+replay_result="$(rpc_post 3 "$broadcast_payload")"
+replay_rejection="$(printf '%s' "$replay_result" | node -e '
+  let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+    const data=JSON.parse(s);
+    const failure=data.error ?? {
+      checkCode:Number(data.result?.check_tx?.code ?? 0),
+      checkLog:data.result?.check_tx?.log ?? "",
+      deliverCode:Number(data.result?.tx_result?.code ?? 0),
+      deliverLog:data.result?.tx_result?.log ?? ""
+    };
+    const text=JSON.stringify(failure);
+    const rejected=Boolean(data.error) || failure.checkCode !== 0 || failure.deliverCode !== 0;
+    if (!rejected) throw new Error(`replayed transaction was accepted: ${s}`);
+    if (!/(nonce|replay|already exists|cache|mempool)/i.test(text)) throw new Error(`replay rejection was not attributable to replay protection: ${text}`);
+    console.log("nonce-or-mempool-replay-rejected");
+  });')"
 
 for index in 0 1 2 3; do
   state_height="$(node -e 'const s=require(process.argv[1]); if (!s.initialized || !s.appHash || s.height < 2) process.exit(1); console.log(s.height)' "${state_paths[$index]}")"
   [[ "$state_height" -ge 2 ]] || exit 1
 done
 
+source_commit="$(git rev-parse --short=12 HEAD)"
+generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+node - "$evidence_path" "$manifest" "$source_commit" "$generated_at" "$initial_height" "$initial_hash" "$initial_app_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_height" "$three_validator_hash" "$three_validator_app_hash" "$recovery_target" "$recovery_hash" "$recovery_app_hash" "$replay_rejection" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+const [
+  evidencePath, manifestPath, sourceCommit, generatedAt,
+  initialHeight, initialBlockHash, initialAppHash,
+  txHeight, txHash, txBlockHash, txAppHashHeight, txAppHash,
+  threeValidatorHeight, threeValidatorBlockHash, threeValidatorAppHash,
+  recoveryHeight, recoveryBlockHash, recoveryAppHash, replayClass
+] = process.argv.slice(2);
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const report = {
+  schema: "ynx-consensus-quorum-evidence/v1",
+  generatedAt,
+  sourceCommit,
+  mode: "local-ephemeral-four-validator",
+  deployedPublic: false,
+  productionSigned: false,
+  network: {
+    chainId: manifest.chainId,
+    validatorCount: manifest.nodes.length,
+    genesisHash: manifest.genesisHash,
+    committedStateVersion: 11
+  },
+  evidence: {
+    identicalGenesis: true,
+    initial: { height: Number(initialHeight), blockHash: initialBlockHash, appHash: initialAppHash, minimumPrecommits: 3 },
+    transaction: { height: Number(txHeight), txHash, blockHash: txBlockHash, appHashHeight: Number(txAppHashHeight), appHash: txAppHash, allNodeAccountQueriesEqual: true },
+    oneValidatorStopped: { height: Number(threeValidatorHeight), blockHash: threeValidatorBlockHash, appHash: threeValidatorAppHash, minimumPrecommits: 3 },
+    validatorRecovered: { height: Number(recoveryHeight), blockHash: recoveryBlockHash, appHash: recoveryAppHash },
+    replayRejected: true,
+    replayClass
+  }
+};
+fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
+fs.writeFileSync(evidencePath, `${JSON.stringify(report, null, 2)}\n`);
+NODE
+
 printf 'consensus-quorum-check passed: initialHeight=%s initialHash=%s txHeight=%s txHash=%s txBlockHash=%s threeValidatorHeight=%s threeValidatorHash=%s recoveryHeight=%s recoveryHash=%s validators=4\n' \
   "$initial_height" "$initial_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$three_validator_height" "$three_validator_hash" "$recovery_target" "$recovery_hash"
+printf 'consensus state evidence: initialAppHash=%s txAppHashHeight=%s txAppHash=%s threeValidatorAppHash=%s recoveryAppHash=%s replay=%s\n' \
+  "$initial_app_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_app_hash" "$recovery_app_hash" "$replay_rejection"

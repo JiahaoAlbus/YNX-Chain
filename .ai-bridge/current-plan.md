@@ -1,9 +1,16 @@
 # Current Plan
 
-Phase: `FREEZE` moving into `INTEGRATE` and `TESTNET`.
+Phase: `TESTNET` local safety baseline.
 
-1. Freeze the Chain Core release record, integration contract, dependency handoff and cross-product vectors with a machine gate.
-2. Commit and push the recoverable protocol baseline.
-3. Advance the four-validator CometBFT safety baseline with executable local evidence: same genesis, validator set, fixed-height block/AppHash agreement, 3/4 precommit, one-validator stop/recovery and signed transaction replay rejection.
-4. Keep StreamBFT in shadow mode unless formal and benchmark gates beat CometBFT.
-5. Preserve truthful release states; current source is not deployed publicly.
+Completed and pushed baseline: release record, integration contract, dependency handoff and cross-product vectors.
+
+Current recoverable slice:
+
+1. Strengthen the four-validator CometBFT quorum gate with byte-identical genesis verification.
+2. Prove fixed-height Block Hash and AppHash equality.
+3. Prove one signed YNXT transfer yields equal account state on all four validators.
+4. Stop one validator, require 3/4 precommit continuity, restart it and require exact recovery.
+5. Replay the committed transaction through the restarted validator and require nonce or mempool replay rejection.
+6. Emit machine-readable local-only evidence to `tmp/consensus-quorum-evidence.json`.
+
+Next slice after commit: state sync, backup/restore and rollback evidence without public cutover.
