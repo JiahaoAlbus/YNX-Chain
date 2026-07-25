@@ -120,6 +120,10 @@ node_height() {
   rpc_json "$1" /status | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>console.log(Number(JSON.parse(s).result.sync_info.latest_block_height)))'
 }
 
+file_sha256() {
+  node -e 'const fs=require("fs"),crypto=require("crypto");const h=crypto.createHash("sha256");const s=fs.createReadStream(process.argv[1]);s.on("data",d=>h.update(d));s.on("end",()=>process.stdout.write(h.digest("hex")));s.on("error",e=>{console.error(e);process.exit(1)});' "$1"
+}
+
 wait_rpc() {
   local index="$1"
   for _ in $(seq 1 100); do
@@ -233,6 +237,42 @@ for index in 0 1 2 3; do
   [[ "$peers" -ge 3 ]] || { echo "validator $index has only $peers peers" >&2; exit 1; }
 done
 
+backup_height="$(node_height 3)"
+stop_process "${node_pids[3]}"; node_pids[3]=""
+stop_process "${app_pids[3]}"; app_pids[3]=""
+backup_archive="$work/validator-4-height-${backup_height}.tar.gz"
+backup_partial="$backup_archive.partial"
+tar -czf "$backup_partial" -C "$network" validator-4
+tar -tzf "$backup_partial" | node -e '
+  let s=""; process.stdin.on("data",d=>s+=d); process.stdin.on("end",()=>{
+    const entries=s.split(/\r?\n/).filter(Boolean);
+    if (!entries.length) throw new Error("validator backup archive is empty");
+    for (const entry of entries) {
+      const normalized=entry.endsWith("/") ? entry.slice(0,-1) : entry;
+      const parts=normalized.split("/");
+      if (parts[0] !== "validator-4" || parts.some(part => part === "" || part === "." || part === "..") || entry.startsWith("/")) {
+        throw new Error(`unsafe validator backup entry: ${entry}`);
+      }
+    }
+    for (const required of ["validator-4/config/genesis.json","validator-4/config/priv_validator_key.json","validator-4/data/priv_validator_state.json","validator-4/data/ynx-abci-state.json"]) {
+      if (!entries.includes(required)) throw new Error(`validator backup missing ${required}`);
+    }
+  });'
+mv "$backup_partial" "$backup_archive"
+chmod 0600 "$backup_archive"
+backup_sha256="$(file_sha256 "$backup_archive")"
+backup_bytes="$(wc -c <"$backup_archive" | tr -d ' ')"
+[[ "$backup_sha256" =~ ^[0-9a-f]{64}$ && "$backup_bytes" -gt 0 ]] || { echo "validator backup evidence is invalid" >&2; exit 1; }
+start_app 3
+sleep 0.5
+start_node 3
+wait_rpc 3
+backup_rejoin_target="$(node_height 0)"
+wait_height 3 "$backup_rejoin_target"
+for index in 0 1 2; do wait_height "$index" "$backup_rejoin_target"; done
+backup_rejoin_hash="$(assert_same_block "$backup_rejoin_target" 0 1 2 3)"
+backup_rejoin_app_hash="$(assert_same_app_hash "$backup_rejoin_target" 0 1 2 3)"
+
 fixture_signer="$(tr -d '\n' <"$network/fixture-signer-address")"
 fixture_recipient="0x1111111111111111111111111111111111111111"
 signed_tx_base64="$("$work/ynx-consensus-tx" -key "$network/fixture-signer.key" -chain-id 6423 -to "$fixture_recipient" -amount 125 -nonce 1 | base64 | tr -d '\n')"
@@ -282,6 +322,20 @@ three_validator_hash="$(assert_same_block "$three_validator_height" 0 1 2)"
 three_validator_app_hash="$(assert_same_app_hash "$three_validator_height" 0 1 2)"
 assert_commit_signatures 0 "$three_validator_height" 3
 
+[[ "$(file_sha256 "$backup_archive")" == "$backup_sha256" ]] || { echo "validator backup checksum changed before restore" >&2; exit 1; }
+tampered_backup="$work/validator-4-tampered.tar.gz"
+cp "$backup_archive" "$tampered_backup"
+printf 'tamper' >>"$tampered_backup"
+[[ "$(file_sha256 "$tampered_backup")" != "$backup_sha256" ]] || { echo "tampered validator backup was not detected" >&2; exit 1; }
+rm -f "$tampered_backup"
+rm -rf "${homes[3]}"
+tar -xzf "$backup_archive" -C "$network"
+for required in "${homes[3]}/config/genesis.json" "${homes[3]}/config/priv_validator_key.json" "${homes[3]}/data/priv_validator_state.json" "${state_paths[3]}"; do
+  [[ -s "$required" ]] || { echo "restored validator backup missing $required" >&2; exit 1; }
+done
+restored_state_height="$(node -e 'const s=require(process.argv[1]); if (!s.initialized || !s.appHash) process.exit(1); process.stdout.write(String(s.height));' "${state_paths[3]}")"
+[[ "$restored_state_height" -le "$backup_height" ]] || { echo "restored ABCI state height $restored_state_height exceeds backup height $backup_height" >&2; exit 1; }
+
 start_app 3
 sleep 0.5
 start_node 3
@@ -291,6 +345,10 @@ wait_height 3 "$recovery_target"
 for index in 0 1 2; do wait_height "$index" "$recovery_target"; done
 recovery_hash="$(assert_same_block "$recovery_target" 0 1 2 3)"
 recovery_app_hash="$(assert_same_app_hash "$recovery_target" 0 1 2 3)"
+for index in 0 1 2 3; do
+  assert_account "$index" "$fixture_signer" 874 1
+  assert_account "$index" "$fixture_recipient" 125 0
+done
 
 replay_result="$(rpc_post 3 "$broadcast_payload")"
 replay_rejection="$(printf '%s' "$replay_result" | node -e '
@@ -316,7 +374,7 @@ done
 
 source_commit="$(git rev-parse --short=12 HEAD)"
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-node - "$evidence_path" "$manifest" "$source_commit" "$generated_at" "$initial_height" "$initial_hash" "$initial_app_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_height" "$three_validator_hash" "$three_validator_app_hash" "$recovery_target" "$recovery_hash" "$recovery_app_hash" "$replay_rejection" <<'NODE'
+node - "$evidence_path" "$manifest" "$source_commit" "$generated_at" "$initial_height" "$initial_hash" "$initial_app_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_height" "$three_validator_hash" "$three_validator_app_hash" "$recovery_target" "$recovery_hash" "$recovery_app_hash" "$replay_rejection" "$backup_height" "$backup_sha256" "$backup_bytes" "$backup_rejoin_target" "$backup_rejoin_hash" "$backup_rejoin_app_hash" "$restored_state_height" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 const [
@@ -324,7 +382,8 @@ const [
   initialHeight, initialBlockHash, initialAppHash,
   txHeight, txHash, txBlockHash, txAppHashHeight, txAppHash,
   threeValidatorHeight, threeValidatorBlockHash, threeValidatorAppHash,
-  recoveryHeight, recoveryBlockHash, recoveryAppHash, replayClass
+  recoveryHeight, recoveryBlockHash, recoveryAppHash, replayClass,
+  backupHeight, backupSha256, backupBytes, backupRejoinHeight, backupRejoinBlockHash, backupRejoinAppHash, restoredStateHeight
 ] = process.argv.slice(2);
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const report = {
@@ -343,9 +402,20 @@ const report = {
   evidence: {
     identicalGenesis: true,
     initial: { height: Number(initialHeight), blockHash: initialBlockHash, appHash: initialAppHash, minimumPrecommits: 3 },
+    backupRestoreRollback: {
+      backupHeight: Number(backupHeight),
+      backupSha256,
+      backupBytes: Number(backupBytes),
+      archiveValidated: true,
+      tamperDetected: true,
+      rejoinedBeforeTransaction: { height: Number(backupRejoinHeight), blockHash: backupRejoinBlockHash, appHash: backupRejoinAppHash },
+      restoredStateHeight: Number(restoredStateHeight),
+      rolledBackBelowCurrentHeight: Number(restoredStateHeight) < Number(threeValidatorHeight),
+      replayedToCurrentState: true
+    },
     transaction: { height: Number(txHeight), txHash, blockHash: txBlockHash, appHashHeight: Number(txAppHashHeight), appHash: txAppHash, allNodeAccountQueriesEqual: true },
     oneValidatorStopped: { height: Number(threeValidatorHeight), blockHash: threeValidatorBlockHash, appHash: threeValidatorAppHash, minimumPrecommits: 3 },
-    validatorRecovered: { height: Number(recoveryHeight), blockHash: recoveryBlockHash, appHash: recoveryAppHash },
+    validatorRecovered: { height: Number(recoveryHeight), blockHash: recoveryBlockHash, appHash: recoveryAppHash, allNodeAccountQueriesEqual: true },
     replayRejected: true,
     replayClass
   }
@@ -358,3 +428,5 @@ printf 'consensus-quorum-check passed: initialHeight=%s initialHash=%s txHeight=
   "$initial_height" "$initial_hash" "$tx_height" "$tx_hash" "$tx_block_hash" "$three_validator_height" "$three_validator_hash" "$recovery_target" "$recovery_hash"
 printf 'consensus state evidence: initialAppHash=%s txAppHashHeight=%s txAppHash=%s threeValidatorAppHash=%s recoveryAppHash=%s replay=%s\n' \
   "$initial_app_hash" "$tx_state_height" "$tx_app_hash" "$three_validator_app_hash" "$recovery_app_hash" "$replay_rejection"
+printf 'consensus recovery evidence: backupHeight=%s backupSha256=%s backupBytes=%s restoredStateHeight=%s recoveryHeight=%s rollbackReplay=true\n' \
+  "$backup_height" "$backup_sha256" "$backup_bytes" "$restored_state_height" "$recovery_target"
