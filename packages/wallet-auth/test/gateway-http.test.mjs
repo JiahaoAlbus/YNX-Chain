@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   canonicalJSON,
   CanonicalWalletGatewayHttpKernel,
+  centralProtocolEntry,
   createGatewayChallenge,
   createProductSessionProof,
   gatewayStateDigest,
@@ -14,18 +15,40 @@ import {
 } from "../src/index.js";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, REGISTRY, request } from "./fixtures.mjs";
 
-function approvedRegistry() {
+function approvedRegistry(...productIds) {
+  const ids = productIds.length === 0 ? ["social"] : productIds;
   const value = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
-  const social = value.products.find(product => product.productId === "social");
-  social.reviewState = "approved";
-  social.enabled = true;
+  for (const productId of ids) {
+    const registration = value.products.find(product => product.productId === productId);
+    assert.ok(registration, `missing ${productId} registration`);
+    registration.reviewState = "approved";
+    registration.enabled = true;
+  }
   return value;
 }
 
 function completion() {
   const authorizationRequest = parseAuthorizationRequest(request(), { now: NOW, registry: REGISTRY });
+  return completionForRequest(authorizationRequest, "gateway_challenge_abcdefghijklmnop");
+}
+
+function walletCompletion(registry) {
+  const registration = registry.products.find(product => product.productId === "wallet");
+  const authorizationRequest = parseAuthorizationRequest(request({
+    nonce: "wallet_nonce_abcdefghijklmnopqrstuvwxyz",
+    requestingProduct: registration.requestingProduct,
+    productClientId: registration.productClientId,
+    bundleId: registration.bundleId,
+    callback: registration.callbacks[0],
+    scopes: [...registration.scopes],
+    purpose: "Manage canonical Wallet sessions, device revocation and account logout controls.",
+  }), { now: NOW, registry: { [registration.productClientId]: centralProtocolEntry(registration) } });
+  return completionForRequest(authorizationRequest, "wallet_gateway_challenge_abcdefghijk");
+}
+
+function completionForRequest(authorizationRequest, challengeValue) {
   const walletApproval = signAuthorization(authorizationRequest, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
-  const challenge = createGatewayChallenge(walletApproval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
+  const challenge = createGatewayChallenge(walletApproval, { challenge: challengeValue, expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
   return { authorizationRequest, walletApproval, gatewayCompletion: signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET) };
 }
 
@@ -89,6 +112,64 @@ test("proof header binds the exact canonical business body and replay is atomic"
   assert.equal(altered.status, 403);
   assert.equal(decoded(altered).error.code, "HTTP_BINDING_MISMATCH");
   assert.equal(gatewayStateDigest(kernel.snapshot()), afterAccepted);
+});
+
+test("approval and device revocation are self-scoped, immediate and restart-safe", () => {
+  for (const item of [
+    { path: "/v1/wallet/approvals/revoke", field: "revokedApprovalDigests", subject: "approvalDigest", nonce: "http_approval_revoke_abcdefghijklmnop" },
+    { path: "/v1/wallet/devices/revoke", field: "revokedDeviceBindings", subject: "deviceBinding", nonce: "http_device_revoke_abcdefghijklmnopqr" },
+  ]) {
+    const registry = approvedRegistry();
+    const kernel = new CanonicalWalletGatewayHttpKernel(registry);
+    kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(completion())), NOW);
+    const session = kernel.snapshot().sessionStore.sessions[0];
+    const body = canonicalJSON({});
+    const response = kernel.dispatch(requestInput(item.path, body, proof(session, item.path, body, item.nonce)), NOW);
+    assert.equal(response.status, 200);
+    assert.equal(decoded(response).result, session[item.subject]);
+    assert.deepEqual(kernel.snapshot().sessionStore[item.field], [session[item.subject]]);
+
+    const restarted = new CanonicalWalletGatewayHttpKernel(registry, kernel.snapshot());
+    const introspectPath = "/v1/wallet/sessions/introspect";
+    const introspectBody = canonicalJSON({ requiredScopes: ["account:read"] });
+    const rejected = restarted.dispatch(requestInput(introspectPath, introspectBody, proof(session, introspectPath, introspectBody, `${item.nonce}_post`)), NOW);
+    assert.equal(rejected.status, 403);
+    assert.equal(decoded(rejected).error.code, "REVOKED");
+  }
+});
+
+test("all-device logout requires a canonical Wallet Product Session and survives restart", () => {
+  const registry = approvedRegistry("wallet");
+  const kernel = new CanonicalWalletGatewayHttpKernel(registry);
+  const completed = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletCompletion(registry))), NOW);
+  assert.equal(completed.status, 200);
+  const session = kernel.snapshot().sessionStore.sessions[0];
+  const path = "/v1/wallet/accounts/logout-all";
+  const body = canonicalJSON({});
+  const response = kernel.dispatch(requestInput(path, body, proof(session, path, body, "http_logout_all_abcdefghijklmnopqr")), NOW);
+  assert.equal(response.status, 200);
+  assert.equal(decoded(response).result.account, session.account);
+  assert.equal(kernel.snapshot().sessionStore.accountLogoutRecords.length, 1);
+
+  const restarted = new CanonicalWalletGatewayHttpKernel(registry, kernel.snapshot());
+  const introspectPath = "/v1/wallet/sessions/introspect";
+  const introspectBody = canonicalJSON({ requiredScopes: ["wallet:sessions"] });
+  const rejected = restarted.dispatch(requestInput(introspectPath, introspectBody, proof(session, introspectPath, introspectBody, "http_logout_post_abcdefghijklmnopqr")), NOW);
+  assert.equal(rejected.status, 403);
+  assert.equal(decoded(rejected).error.code, "REVOKED");
+});
+
+test("non-Wallet Product Sessions cannot invoke all-device logout", () => {
+  const kernel = new CanonicalWalletGatewayHttpKernel(approvedRegistry());
+  kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(completion())), NOW);
+  const session = kernel.snapshot().sessionStore.sessions[0];
+  const path = "/v1/wallet/accounts/logout-all";
+  const body = canonicalJSON({});
+  const before = gatewayStateDigest(kernel.snapshot());
+  const response = kernel.dispatch(requestInput(path, body, proof(session, path, body, "http_logout_denied_abcdefghijklmnop")), NOW);
+  assert.equal(response.status, 403);
+  assert.equal(decoded(response).error.code, "SCOPE_NOT_ALLOWED");
+  assert.equal(gatewayStateDigest(kernel.snapshot()), before);
 });
 
 test("HTTP Kernel freezes the approved registry against caller mutation and rollback substitution", () => {

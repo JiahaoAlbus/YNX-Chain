@@ -53,13 +53,37 @@ export class CanonicalWalletGatewayAdapter {
 
   revokeSession(input, request, at = new Date()) {
     exactFields(input, PROOF_FIELDS, "Canonical Gateway session revoke input");
-    const context = parseRequest(request);
-    const session = this.#sessionForProof(input.proof);
-    const proof = verifyProductSessionProof(input.proof, session, context, at);
-    this.#assertUnused(proof);
-    const revoked = this.#store.revokeSession(session.sessionBinding, at);
-    this.#consume(proof);
+    const authenticated = this.#authenticateRevocationProof(input.proof, parseRequest(request), at);
+    const revoked = this.#store.revokeSession(authenticated.session.sessionBinding, at);
+    this.#consume(authenticated.proof);
     return revoked;
+  }
+
+  revokeApproval(input, request, at = new Date()) {
+    exactFields(input, PROOF_FIELDS, "Canonical Gateway approval revoke input");
+    const authenticated = this.#authenticateRevocationProof(input.proof, parseRequest(request), at);
+    const revoked = this.#store.revokeApproval(authenticated.session.approvalDigest, at);
+    this.#consume(authenticated.proof);
+    return revoked;
+  }
+
+  revokeDevice(input, request, at = new Date()) {
+    exactFields(input, PROOF_FIELDS, "Canonical Gateway device revoke input");
+    const authenticated = this.#authenticateRevocationProof(input.proof, parseRequest(request), at);
+    const revoked = this.#store.revokeDevice(authenticated.session.deviceBinding, at);
+    this.#consume(authenticated.proof);
+    return revoked;
+  }
+
+  logoutAllDevices(input, request, at = new Date()) {
+    exactFields(input, PROOF_FIELDS, "Canonical Gateway all-device logout input");
+    const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["wallet:sessions"], at);
+    if (authenticated.session.productClientId !== "ynx-wallet-v1" || authenticated.session.bundleId !== "com.ynxweb4.wallet") {
+      fail("WALLET_CONTROL_REQUIRED", "All-device logout requires the canonical Wallet Product Session");
+    }
+    const logout = this.#store.logoutAllDevices(authenticated.session.account, at);
+    this.#consume(authenticated.proof);
+    return logout;
   }
 
   activateMandate(input, request, at = new Date()) {
@@ -134,6 +158,13 @@ export class CanonicalWalletGatewayAdapter {
       fail("MANDATE_BINDING_MISMATCH", "Strategy mandate is not owned by this Product Session");
     }
     return item;
+  }
+
+  #authenticateRevocationProof(proofInput, request, at) {
+    const session = this.#sessionForProof(proofInput);
+    const proof = verifyProductSessionProof(proofInput, session, request, at);
+    this.#assertUnused(proof);
+    return Object.freeze({ proof, session });
   }
 
   #authenticateProof(proofInput, request, requiredScopes, at) {

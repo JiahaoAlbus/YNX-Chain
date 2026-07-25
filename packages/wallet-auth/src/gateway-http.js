@@ -16,6 +16,9 @@ const ROUTES = Object.freeze({
   "/v1/wallet/sessions/complete": "complete",
   "/v1/wallet/sessions/introspect": "introspect",
   "/v1/wallet/sessions/revoke": "revokeSession",
+  "/v1/wallet/approvals/revoke": "revokeApproval",
+  "/v1/wallet/devices/revoke": "revokeDevice",
+  "/v1/wallet/accounts/logout-all": "logoutAllDevices",
   "/v1/wallet/mandates/activate": "activateMandate",
   "/v1/wallet/mandates/authorize-action": "authorizeMandateAction",
   "/v1/wallet/mandates": "mandateInventory",
@@ -100,7 +103,7 @@ function authenticatedInput(operation, proof, payload) {
 
 function operationFields(operation) {
   if (operation === "introspect") return ["requiredScopes"];
-  if (operation === "revokeSession" || operation === "mandateInventory") return [];
+  if (["revokeSession", "revokeApproval", "revokeDevice", "logoutAllDevices", "mandateInventory"].includes(operation)) return [];
   if (operation === "activateMandate") return ["mandate"];
   if (operation === "authorizeMandateAction") return ["mandateId", "action"];
   if (operation === "revokeMandate" || operation === "killMandate") return ["mandateId"];
@@ -137,7 +140,7 @@ function errorStatus(code) {
   if (code === "UNSUPPORTED_MEDIA_TYPE") return 415;
   if (["REPLAY", "ALREADY_REVOKED", "MANDATE_EXISTS", "MANDATE_TERMINAL", "MANDATE_REVOKED", "MANDATE_KILLED", "MANDATE_EXPIRED"].includes(code)) return 409;
   if (code === "CAPACITY") return 503;
-  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED"].includes(code)) return 403;
+  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED"].includes(code)) return 403;
   return 400;
 }
 
