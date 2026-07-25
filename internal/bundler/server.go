@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -146,11 +147,45 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var committed gatewayUserOperationResponse
-	if json.Unmarshal(payload, &committed) != nil || committed.Failure || committed.Source != "ynx-consensus-abci" || committed.UserOperation.Bundler != s.address || committed.UserOperation.Account != input.Operation.Account || committed.UserOperation.OperationHash != consensus.UserOperationHash(input.Operation) {
+	if json.Unmarshal(payload, &committed) != nil || committed.Failure || committed.Source != "ynx-consensus-abci" || !matchesCommittedUserOperation(committed.UserOperation, input.Operation, s.address) {
 		writeJSON(w, http.StatusBadGateway, failure("committed UserOperation evidence mismatch"))
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"schemaVersion": 1, "source": committed.Source, "asOf": committed.AsOf, "version": committed.Version, "coverage": committed.Coverage, "failure": false, "bundlerAddress": s.address, "userOperation": committed.UserOperation})
+}
+
+func matchesCommittedUserOperation(event consensus.BFTUserOperationEvent, operation assetauth.UserOperation, bundlerAddress string) bool {
+	var total uint64
+	for _, call := range operation.Calls {
+		if ^uint64(0)-total < call.ValueYNXT {
+			return false
+		}
+		total += call.ValueYNXT
+	}
+	if !isCanonicalBundlerHash(event.TransactionHash, true) || !isCanonicalBundlerHash(event.AuditHash, false) || event.ID != consensus.ApplicationActionRecordID("user-operation", event.TransactionHash) || event.OperationHash != consensus.UserOperationHash(operation) || event.Account != operation.Account || event.Bundler != bundlerAddress || event.PaymasterID != operation.PaymasterPolicy || event.CallCount != len(operation.Calls) || event.ValueYNXT != total || event.FeeYNXT != consensus.UserOperationFeeYNXT || event.BlockHeight <= 0 || event.ExecutedAt.IsZero() {
+		return false
+	}
+	if !consensus.IsNativeAddress(event.FeePayer) {
+		return false
+	}
+	return operation.PaymasterPolicy != "" || event.FeePayer == operation.Account
+}
+
+func isCanonicalBundlerHash(value string, prefixed bool) bool {
+	if prefixed {
+		if len(value) != 66 || !strings.HasPrefix(value, "0x") {
+			return false
+		}
+		value = value[2:]
+	} else if len(value) != 64 {
+		return false
+	}
+	for _, character := range value {
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Server) receipt(w http.ResponseWriter, r *http.Request) {

@@ -1,15 +1,18 @@
 package bftgateway
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
+	bundlersvc "github.com/JiahaoAlbus/YNX-Chain/internal/bundler"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -73,15 +76,71 @@ func TestGatewayCommitsSponsoredUserOperationWithAuthoritativeEvidence(t *testin
 	operation := assetauth.UserOperation{Version: 1, ChainID: assetauth.MandateChainID, Account: owner, ProductID: "wallet", NonceDomain: "wallet/main", Calls: []assetauth.AccountCall{{Target: recipient, Method: "transfer", ValueYNXT: 10, Asset: "ynxt", PayloadHash: hex.EncodeToString(callHash[:])}}, MaxFeeYNXT: 1, ValidAfter: start, ValidUntil: start.Add(time.Hour), PaymasterPolicy: "wallet-sponsor"}
 	message, _ := operation.SigningBytes()
 	operation.Signature = ed25519.Sign(userKey, message)
-	execute, _ := consensus.NewSignedApplicationAction(bundlerKey, 6423, consensus.ActionUserOperationExecute, consensus.UserOperationExecutePayload{Operation: operation}, 1)
-	executeRaw, _ := consensus.EncodeSignedApplicationAction(execute)
+	input := consensus.UserOperationExecutePayload{Operation: operation}
+	bundlerService, err := bundlersvc.New(bundlersvc.Config{GatewayURL: server.URL, APIKey: "[REDACTED_SECRET]", PrivateKey: bundlerKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bundlerServer := httptest.NewServer(bundlerService.Handler())
+	defer bundlerServer.Close()
+	operationPayload, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	submitRequest, err := http.NewRequest(http.MethodPost, bundlerServer.URL+"/user-operations", bytes.NewReader(operationPayload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	submitRequest.Header.Set("Content-Type", "application/json")
+	submitRequest.Header.Set("X-YNX-Bundler-Key", "[REDACTED_SECRET]")
+	submitResponse, err := http.DefaultClient.Do(submitRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer submitResponse.Body.Close()
 	var operationResponse struct {
+		Failure        bool                            `json:"failure"`
+		BundlerAddress string                          `json:"bundlerAddress"`
+		UserOperation  consensus.BFTUserOperationEvent `json:"userOperation"`
+	}
+	if submitResponse.StatusCode != http.StatusCreated || json.NewDecoder(submitResponse.Body).Decode(&operationResponse) != nil {
+		t.Fatalf("unexpected Bundler submit status %d", submitResponse.StatusCode)
+	}
+	if operationResponse.Failure || operationResponse.BundlerAddress != bundler || operationResponse.UserOperation.Account != owner || operationResponse.UserOperation.Bundler != bundler || operationResponse.UserOperation.FeePayer != sponsor || operationResponse.UserOperation.PaymasterID != "wallet-sponsor" {
+		t.Fatalf("unexpected user operation response: %+v", operationResponse)
+	}
+
+	receiptRequest, err := http.NewRequest(http.MethodGet, bundlerServer.URL+"/user-operations/"+operationResponse.UserOperation.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receiptRequest.Header.Set("X-YNX-Bundler-Key", "[REDACTED_SECRET]")
+	receiptResponse, err := http.DefaultClient.Do(receiptRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer receiptResponse.Body.Close()
+	var committedReceipt struct {
 		Failure       bool                            `json:"failure"`
 		UserOperation consensus.BFTUserOperationEvent `json:"userOperation"`
 	}
-	postSignedAction(t, server.URL+"/aa/user-operations", executeRaw, http.StatusCreated, &operationResponse)
-	if operationResponse.Failure || operationResponse.UserOperation.Account != owner || operationResponse.UserOperation.Bundler != bundler || operationResponse.UserOperation.FeePayer != sponsor || operationResponse.UserOperation.PaymasterID != "wallet-sponsor" {
-		t.Fatalf("unexpected user operation response: %+v", operationResponse)
+	if receiptResponse.StatusCode != http.StatusOK || json.NewDecoder(receiptResponse.Body).Decode(&committedReceipt) != nil || committedReceipt.Failure || committedReceipt.UserOperation.ID != operationResponse.UserOperation.ID || committedReceipt.UserOperation.TransactionHash != operationResponse.UserOperation.TransactionHash {
+		t.Fatalf("unexpected committed Bundler receipt: %+v status=%d", committedReceipt, receiptResponse.StatusCode)
+	}
+
+	replayRequest, err := http.NewRequest(http.MethodPost, bundlerServer.URL+"/user-operations", bytes.NewReader(operationPayload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayRequest.Header.Set("Content-Type", "application/json")
+	replayRequest.Header.Set("X-YNX-Bundler-Key", "[REDACTED_SECRET]")
+	replayResponse, err := http.DefaultClient.Do(replayRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer replayResponse.Body.Close()
+	if replayResponse.StatusCode != http.StatusUnprocessableEntity {
+		t.Fatalf("replayed UserOperation returned %d", replayResponse.StatusCode)
 	}
 
 	var listed struct {
@@ -92,5 +151,13 @@ func TestGatewayCommitsSponsoredUserOperationWithAuthoritativeEvidence(t *testin
 	if listed.Failure || len(listed.UserOperations) != 1 || listed.UserOperations[0].ID != operationResponse.UserOperation.ID {
 		t.Fatalf("unexpected user operation list: %+v", listed)
 	}
-	postSignedAction(t, server.URL+"/aa/paymasters", executeRaw, http.StatusBadRequest, nil)
+	var committedPaymaster struct {
+		Failure   bool                   `json:"failure"`
+		Paymaster consensus.BFTPaymaster `json:"paymaster"`
+	}
+	getJSON(t, server.URL+"/aa/paymasters/wallet-sponsor", &committedPaymaster)
+	if committedPaymaster.Failure || committedPaymaster.Paymaster.Policy.GlobalSpent != consensus.UserOperationFeeYNXT || committedPaymaster.Paymaster.Policy.AccountSpent[owner] != consensus.UserOperationFeeYNXT {
+		t.Fatalf("unexpected committed Paymaster spend: %+v", committedPaymaster)
+	}
+	postSignedAction(t, server.URL+"/aa/user-operations", paymasterRaw, http.StatusBadRequest, nil)
 }
