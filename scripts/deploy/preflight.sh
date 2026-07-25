@@ -51,6 +51,7 @@ make resource-market-check
 make resource-sponsor-check
 make consensus-migration-check
 make consensus-abci-check
+make consensus-state-sync-check
 make consensus-signed-transfer-check
 make consensus-quorum-check
 make consensus-production-package-check

@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 13
+	ApplicationVersion   = 14
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -28,12 +28,14 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu           sync.RWMutex
-	migration    chain.ConsensusMigrationState
-	committed    CommittedState
-	pending      *CommittedState
-	statePath    string
-	feeRecipient string
+	mu              sync.RWMutex
+	migration       chain.ConsensusMigrationState
+	committed       CommittedState
+	pending         *CommittedState
+	statePath       string
+	feeRecipient    string
+	snapshotExports map[uint64]stateSyncSnapshotExport
+	snapshotRestore *stateSyncSnapshotRestore
 }
 
 type transactionError struct {
