@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -810,7 +811,12 @@ func laterTime(left, right time.Time) time.Time {
 }
 
 func integrationPayloadHash(payload []byte) string {
-	sum := sha256.Sum256(payload)
+	canonical := payload
+	var compact bytes.Buffer
+	if json.Compact(&compact, payload) == nil {
+		canonical = compact.Bytes()
+	}
+	sum := sha256.Sum256(canonical)
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
