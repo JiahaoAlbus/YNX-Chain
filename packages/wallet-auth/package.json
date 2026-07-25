@@ -10,7 +10,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "check": "npm test",
-    "benchmark:gateway": "node scripts/benchmark-gateway.mjs"
+    "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
