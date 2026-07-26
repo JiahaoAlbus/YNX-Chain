@@ -76,6 +76,8 @@ func derivedDependents(kind DataType) []DataType {
 		return []DataType{FundingReference, MarkPrice}
 	case DEXPoolState:
 		return []DataType{DEXTWAP}
+	case ReserveEvidence:
+		return []DataType{StablecoinReserve}
 	default:
 		return nil
 	}

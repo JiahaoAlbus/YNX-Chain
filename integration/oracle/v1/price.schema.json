@@ -54,7 +54,7 @@
       "then": {"properties": {"value": {"enum": [0, 1]}}}
     },
     {
-      "if": {"properties": {"type": {"enum": ["index_price", "mark_price", "funding_reference", "dex_twap"]}}, "required": ["type"]},
+      "if": {"properties": {"type": {"enum": ["index_price", "mark_price", "funding_reference", "stablecoin_reserve_ratio", "dex_twap"]}}, "required": ["type"]},
       "then": {"required": ["derivation"]},
       "else": {"not": {"required": ["derivation"]}}
     },
@@ -112,6 +112,29 @@
                   "method": {"const": "index_times_one_plus_funding_reference"},
                   "policyVersion": {"const": "index-funding-mark-v1"},
                   "componentTypes": {"prefixItems": [{"const": "index_price"}, {"const": "funding_reference"}], "minItems": 2, "maxItems": 2}
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "stablecoin_reserve_ratio"}}, "required": ["type"]},
+      "then": {
+        "properties": {
+          "scale": {"const": 1000000},
+          "derivation": {
+            "allOf": [
+              {"$ref": "#/$defs/derivation"},
+              {
+                "required": ["evidenceId", "issuerId", "attestorId", "assuranceStandard", "jurisdiction", "unit", "reserveAssets", "outstandingClaims", "reportingPeriodEnd", "publishedAt", "expiresAt", "documentHash", "conclusion"],
+                "properties": {
+                  "method": {"const": "reserve_assets_divided_by_outstanding_claims"},
+                  "policyVersion": {"const": "stablecoin-reserve-v1"},
+                  "componentTypes": {"prefixItems": [{"const": "stablecoin_reserve_evidence"}], "minItems": 1, "maxItems": 1},
+                  "conclusion": {"const": "unmodified"},
+                  "clamped": {"const": false}
                 }
               }
             ]
@@ -188,7 +211,20 @@
         "reporterCount": {"type": "integer", "minimum": 1},
         "rejectedBlockNumbers": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
         "minimumReserve0": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
-        "minimumReserve1": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"}
+        "minimumReserve1": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "evidenceId": {"type": "string", "minLength": 1},
+        "issuerId": {"type": "string", "minLength": 1},
+        "attestorId": {"type": "string", "minLength": 1},
+        "assuranceStandard": {"type": "string", "minLength": 1},
+        "jurisdiction": {"type": "string", "minLength": 1},
+        "unit": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._/-]{2,63}$"},
+        "reserveAssets": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "outstandingClaims": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "reportingPeriodEnd": {"type": "string", "format": "date-time"},
+        "publishedAt": {"type": "string", "format": "date-time"},
+        "expiresAt": {"type": "string", "format": "date-time"},
+        "documentHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "conclusion": {"enum": ["unmodified", "qualified", "adverse", "disclaimer"]}
       }
     }
   }

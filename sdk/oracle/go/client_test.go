@@ -219,6 +219,58 @@ func TestValidateDEXTWAPRequiresConfirmedLineage(t *testing.T) {
 	}
 }
 
+func validReserveRatio(now time.Time) Price {
+	hash := strings.Repeat("7", 64)
+	return Price{
+		Schema: SchemaVersion, Market: "YUSD_TEST/USD", Type: "stablecoin_reserve_ratio",
+		Value: 1_020_000, Scale: 1_000_000,
+		Source:  "YNX Oracle ratio derived from signed published reserve evidence",
+		Version: StablecoinReservePolicyVersion, AsOf: now.Add(-24 * time.Hour), ProducedAt: now,
+		Quality: Quality{Status: "good", SourceCount: 1, RequiredSourceCount: 1, ConfidencePPM: 990_000, CoveragePPM: 1_000_000,
+			SourceLimitation: "published reserve evidence only; no audit opinion"},
+		ObservationIDs: []string{"reserve-evidence-1"}, ObservationHash: []string{hash},
+		LineageHash: strings.Repeat("8", 64),
+		Derivation: &PriceDerivation{
+			Method: "reserve_assets_divided_by_outstanding_claims", PolicyVersion: StablecoinReservePolicyVersion,
+			ComponentTypes: []string{"stablecoin_reserve_evidence"}, ComponentLineageHashes: []string{hash},
+			EvidenceID: "evidence-2026-06", IssuerID: "issuer:yusd-test", AttestorID: "attestor:independent-a",
+			AssuranceStandard: "ISAE 3000 limited assurance", Jurisdiction: "US", Unit: "USD",
+			ReserveAssets: "102000000", OutstandingClaims: "100000000",
+			ReportingPeriodEnd: now.Add(-24 * time.Hour), PublishedAt: now.Add(-12 * time.Hour),
+			ExpiresAt: now.Add(30 * 24 * time.Hour), DocumentHash: strings.Repeat("a", 64), Conclusion: "unmodified",
+		},
+	}
+}
+
+func TestValidateReserveRatioRequiresExactEvidenceDerivation(t *testing.T) {
+	now := time.Date(2026, 7, 26, 9, 0, 0, 0, time.UTC)
+	price := validReserveRatio(now)
+	if err := price.ValidateFor("YUSD_TEST/USD", "stablecoin_reserve_ratio", StablecoinReservePolicyVersion, now, 35*24*time.Hour, 800_000, 1_000_000); err != nil {
+		t.Fatalf("valid reserve ratio rejected: %v", err)
+	}
+	tests := map[string]func(*Price){
+		"missing evidence": func(value *Price) { value.Derivation = nil },
+		"provider ratio": func(value *Price) {
+			value.Version = DerivativesPolicyVersion
+			value.Derivation.PolicyVersion = DerivativesPolicyVersion
+		},
+		"ratio mismatch":        func(value *Price) { value.Value-- },
+		"qualified conclusion":  func(value *Price) { value.Derivation.Conclusion = "qualified" },
+		"wrong lineage":         func(value *Price) { value.Derivation.ComponentLineageHashes[0] = strings.Repeat("f", 64) },
+		"issuer is attestor":    func(value *Price) { value.Derivation.AttestorID = value.Derivation.IssuerID },
+		"invalid document hash": func(value *Price) { value.Derivation.DocumentHash = "bad" },
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			candidate := validReserveRatio(now)
+			mutate(&candidate)
+			if err := candidate.Validate(now, 35*24*time.Hour, 800_000); err == nil {
+				t.Fatal("unsafe reserve ratio accepted")
+			}
+		})
+	}
+}
+
 func TestClientRequiresTimeoutAndRejectsHTTPOffLoopback(t *testing.T) {
 	if _, err := New("http://192.0.2.1", &http.Client{Timeout: time.Second}); err == nil {
 		t.Fatal("remote plain HTTP accepted")

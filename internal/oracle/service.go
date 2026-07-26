@@ -23,6 +23,7 @@ type Service struct {
 	policy      Policy
 	derivatives DerivativesPolicy
 	dexTWAP     DEXTWAPPolicy
+	reserve     StablecoinReservePolicy
 	now         func() time.Time
 	startedAt   time.Time
 	lastGood    map[string]Price
@@ -57,7 +58,7 @@ func NewService(store *Store, providers []Provider, policy Policy, now func() ti
 	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
 		return nil, errors.New("provider rate policy is invalid")
 	}
-	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), dexTWAP: DefaultDEXTWAPPolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), dexTWAP: DefaultDEXTWAPPolicy(), reserve: DefaultStablecoinReservePolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
 }
 
 func (service *Service) Ingest(observation Observation) (bool, error) {
@@ -138,6 +139,9 @@ func (service *Service) aggregateAndPersist(market string, kind DataType) (Price
 	if kind == DEXTWAP {
 		return service.aggregateDEXTWAPAndPersist(market)
 	}
+	if kind == StablecoinReserve {
+		return service.aggregateReserveAndPersist(market)
+	}
 	if kind == IndexPrice || kind == FundingReference || kind == MarkPrice {
 		return service.aggregateDerivedAndPersist(market, kind)
 	}
@@ -161,6 +165,29 @@ func (service *Service) aggregateAndPersist(market string, kind DataType) (Price
 		service.lastGood[key] = price
 	}
 	service.mu.Unlock()
+	return price, err
+}
+
+func (service *Service) aggregateReserveAndPersist(market string) (Price, error) {
+	now := service.now().UTC()
+	observations := service.store.Replay(market, ReserveEvidence, now.Add(service.policy.MaximumFutureSkew))
+	service.mu.RLock()
+	providers := make(map[string]Provider, len(service.providers))
+	for key, value := range service.providers {
+		providers[key] = value
+	}
+	service.mu.RUnlock()
+	price, err := deriveStablecoinReserveRatio(now, market, observations, providers, service.reserve)
+	if price.Market != "" && price.LineageHash != "" {
+		if _, persistErr := service.store.AppendAggregate(price); persistErr != nil {
+			return price, fmt.Errorf("%w: reserve aggregate event: %v", ErrPersistence, persistErr)
+		}
+	}
+	if err == nil {
+		service.mu.Lock()
+		service.lastGood[market+"|"+string(StablecoinReserve)] = price
+		service.mu.Unlock()
+	}
 	return price, err
 }
 
@@ -293,31 +320,32 @@ func (service *Service) LiveData(market string, kind DataType, limit int) (Marke
 }
 
 type Health struct {
-	Status                    string            `json:"status"`
-	Degraded                  bool              `json:"degraded"`
-	ProductID                 string            `json:"productId"`
-	Version                   string            `json:"version"`
-	Release                   string            `json:"release"`
-	Commit                    string            `json:"commit"`
-	Schema                    string            `json:"schema"`
-	PolicyVersion             string            `json:"policyVersion"`
-	DerivativesPolicyVersion  string            `json:"derivativesPolicyVersion"`
-	DEXTWAPPolicyVersion      string            `json:"dexTwapPolicyVersion"`
-	NormalizerVersion         string            `json:"normalizerVersion"`
-	StoreVersion              int               `json:"storeVersion"`
-	StartedAt                 time.Time         `json:"startedAt"`
-	ProviderCount             int               `json:"providerCount"`
-	ActiveProviderCount       int               `json:"activeProviderCount"`
-	MinimumSources            int               `json:"minimumSources"`
-	SourceLimitation          string            `json:"sourceLimitation,omitempty"`
-	AsOf                      time.Time         `json:"asOf"`
-	StorageStatus             string            `json:"storageStatus"`
-	StorageGeneration         uint64            `json:"storageGeneration"`
-	LastSuccessfulAggregation time.Time         `json:"lastSuccessfulAggregation,omitempty"`
-	Dependencies              map[string]string `json:"dependencies"`
-	EmergencyPaused           bool              `json:"emergencyPaused"`
-	PauseReason               string            `json:"pauseReason,omitempty"`
-	PauseAuditID              string            `json:"pauseAuditId,omitempty"`
+	Status                         string            `json:"status"`
+	Degraded                       bool              `json:"degraded"`
+	ProductID                      string            `json:"productId"`
+	Version                        string            `json:"version"`
+	Release                        string            `json:"release"`
+	Commit                         string            `json:"commit"`
+	Schema                         string            `json:"schema"`
+	PolicyVersion                  string            `json:"policyVersion"`
+	DerivativesPolicyVersion       string            `json:"derivativesPolicyVersion"`
+	DEXTWAPPolicyVersion           string            `json:"dexTwapPolicyVersion"`
+	StablecoinReservePolicyVersion string            `json:"stablecoinReservePolicyVersion"`
+	NormalizerVersion              string            `json:"normalizerVersion"`
+	StoreVersion                   int               `json:"storeVersion"`
+	StartedAt                      time.Time         `json:"startedAt"`
+	ProviderCount                  int               `json:"providerCount"`
+	ActiveProviderCount            int               `json:"activeProviderCount"`
+	MinimumSources                 int               `json:"minimumSources"`
+	SourceLimitation               string            `json:"sourceLimitation,omitempty"`
+	AsOf                           time.Time         `json:"asOf"`
+	StorageStatus                  string            `json:"storageStatus"`
+	StorageGeneration              uint64            `json:"storageGeneration"`
+	LastSuccessfulAggregation      time.Time         `json:"lastSuccessfulAggregation,omitempty"`
+	Dependencies                   map[string]string `json:"dependencies"`
+	EmergencyPaused                bool              `json:"emergencyPaused"`
+	PauseReason                    string            `json:"pauseReason,omitempty"`
+	PauseAuditID                   string            `json:"pauseAuditId,omitempty"`
 }
 
 func (service *Service) Health() Health {

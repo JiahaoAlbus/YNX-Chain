@@ -81,6 +81,7 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	server.mux.HandleFunc("GET /v1/funding", server.fixedPrice(FundingReference))
 	server.mux.HandleFunc("GET /v1/dex/twap", server.fixedPrice(DEXTWAP))
 	server.mux.HandleFunc("GET /v1/dex/twap/replay", server.dexTWAPReplay)
+	server.mux.HandleFunc("GET /v1/stablecoin/reserve", server.fixedPrice(StablecoinReserve))
 	server.mux.HandleFunc("GET /providers", server.providers)
 	server.mux.HandleFunc("GET /v1/providers", server.providers)
 	server.mux.HandleFunc("GET /markets", server.markets)
@@ -159,22 +160,23 @@ func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
 	health := server.service.PublicHealth()
 	writeJSON(response, http.StatusOK, map[string]any{
-		"productId":                 ProductID,
-		"version":                   Version,
-		"release":                   Version,
-		"schema":                    SchemaVersion,
-		"policyVersion":             server.service.policy.Version,
-		"derivativesPolicyVersion":  server.service.derivatives.Version,
-		"dexTwapPolicyVersion":      server.service.dexTWAP.Version,
-		"normalizerVersion":         NormalizerVersion,
-		"storeVersion":              StoreVersion,
-		"commit":                    BuildCommit,
-		"startedAt":                 health.StartedAt,
-		"dependencies":              health.Dependencies,
-		"providerStatus":            health.Status,
-		"storageStatus":             health.StorageStatus,
-		"lastSuccessfulAggregation": health.LastSuccessfulAggregation,
-		"degraded":                  health.Degraded,
+		"productId":                      ProductID,
+		"version":                        Version,
+		"release":                        Version,
+		"schema":                         SchemaVersion,
+		"policyVersion":                  server.service.policy.Version,
+		"derivativesPolicyVersion":       server.service.derivatives.Version,
+		"dexTwapPolicyVersion":           server.service.dexTWAP.Version,
+		"stablecoinReservePolicyVersion": server.service.reserve.Version,
+		"normalizerVersion":              NormalizerVersion,
+		"storeVersion":                   StoreVersion,
+		"commit":                         BuildCommit,
+		"startedAt":                      health.StartedAt,
+		"dependencies":                   health.Dependencies,
+		"providerStatus":                 health.Status,
+		"storageStatus":                  health.StorageStatus,
+		"lastSuccessfulAggregation":      health.LastSuccessfulAggregation,
+		"degraded":                       health.Degraded,
 	})
 }
 
@@ -348,7 +350,7 @@ func publicError(err error) string {
 
 func publicReadPath(path string) bool {
 	switch path {
-	case "/health", "/version", "/prices", "/v1/prices", "/v1/index", "/v1/mark", "/v1/funding", "/v1/dex/twap", "/v1/dex/twap/replay", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
+	case "/health", "/version", "/prices", "/v1/prices", "/v1/index", "/v1/mark", "/v1/funding", "/v1/dex/twap", "/v1/dex/twap/replay", "/v1/stablecoin/reserve", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
 		return true
 	default:
 		return false

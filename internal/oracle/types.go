@@ -42,6 +42,7 @@ const (
 	FX                DataType = "fx"
 	StablecoinPrice   DataType = "stablecoin_price"
 	StablecoinReserve DataType = "stablecoin_reserve_ratio"
+	ReserveEvidence   DataType = "stablecoin_reserve_evidence"
 	StablecoinDepeg   DataType = "stablecoin_depeg"
 	OHLCV             DataType = "ohlcv"
 	Trades            DataType = "trades"
@@ -57,7 +58,7 @@ const (
 func (value DataType) Valid() bool {
 	switch value {
 	case SpotPrice, IndexPrice, MarkPrice, FundingReference, PremiumReference, BasisReference, FX, StablecoinPrice,
-		StablecoinReserve, StablecoinDepeg, OHLCV, Trades, CLOBOrderBook,
+		StablecoinReserve, ReserveEvidence, StablecoinDepeg, OHLCV, Trades, CLOBOrderBook,
 		DEXPoolState, DEXTWAP, InterestRate, DataCorrection, ProviderStatus, HistoricalReplay:
 		return true
 	default:
@@ -76,7 +77,7 @@ func (value DataType) Scalar() bool {
 
 func (value DataType) Structured() bool {
 	switch value {
-	case OHLCV, Trades, CLOBOrderBook, DEXPoolState, ProviderStatus:
+	case OHLCV, Trades, CLOBOrderBook, DEXPoolState, ReserveEvidence, ProviderStatus:
 		return true
 	default:
 		return false
@@ -88,7 +89,7 @@ func (value DataType) ProviderInput() bool {
 		return false
 	}
 	switch value {
-	case IndexPrice, MarkPrice, FundingReference, DEXTWAP, DataCorrection, HistoricalReplay:
+	case IndexPrice, MarkPrice, FundingReference, StablecoinReserve, DEXTWAP, DataCorrection, HistoricalReplay:
 		return false
 	default:
 		return true
@@ -151,6 +152,22 @@ type PoolState struct {
 	ParentBlockHash string    `json:"parentBlockHash"`
 	BlockTime       time.Time `json:"blockTime"`
 	Confirmations   uint64    `json:"confirmations"`
+}
+
+type StablecoinReserveEvidence struct {
+	EvidenceID         string    `json:"evidenceId"`
+	IssuerID           string    `json:"issuerId"`
+	AttestorID         string    `json:"attestorId"`
+	AssuranceStandard  string    `json:"assuranceStandard"`
+	Jurisdiction       string    `json:"jurisdiction"`
+	Unit               string    `json:"unit"`
+	ReserveAssets      string    `json:"reserveAssets"`
+	OutstandingClaims  string    `json:"outstandingClaims"`
+	ReportingPeriodEnd time.Time `json:"reportingPeriodEnd"`
+	PublishedAt        time.Time `json:"publishedAt"`
+	ExpiresAt          time.Time `json:"expiresAt"`
+	DocumentHash       string    `json:"documentHash"`
+	Conclusion         string    `json:"conclusion"`
 }
 
 type ProviderHealth struct {
@@ -231,52 +248,54 @@ func (provider Provider) CoversMarket(market string) bool {
 }
 
 type Observation struct {
-	Schema         string             `json:"schema"`
-	ID             string             `json:"id"`
-	ProviderID     string             `json:"providerId"`
-	ReporterID     string             `json:"reporterId"`
-	Sequence       uint64             `json:"sequence"`
-	NonceDomain    string             `json:"nonceDomain"`
-	Market         string             `json:"market"`
-	Type           DataType           `json:"type"`
-	Value          int64              `json:"value"`
-	Scale          int64              `json:"scale"`
-	Liquidity      int64              `json:"liquidity,omitempty"`
-	Volume24H      int64              `json:"volume24h,omitempty"`
-	Candle         *Candle            `json:"candle,omitempty"`
-	Trades         []TradePoint       `json:"trades,omitempty"`
-	OrderBook      *OrderBookSnapshot `json:"orderBook,omitempty"`
-	PoolState      *PoolState         `json:"poolState,omitempty"`
-	ProviderHealth *ProviderHealth    `json:"providerHealth,omitempty"`
-	ObservedAt     time.Time          `json:"observedAt"`
-	ReceivedAt     time.Time          `json:"receivedAt"`
-	Source         string             `json:"source"`
-	SourceVersion  string             `json:"sourceVersion"`
-	SignatureHex   string             `json:"signatureHex"`
-	Hash           string             `json:"hash"`
+	Schema          string                     `json:"schema"`
+	ID              string                     `json:"id"`
+	ProviderID      string                     `json:"providerId"`
+	ReporterID      string                     `json:"reporterId"`
+	Sequence        uint64                     `json:"sequence"`
+	NonceDomain     string                     `json:"nonceDomain"`
+	Market          string                     `json:"market"`
+	Type            DataType                   `json:"type"`
+	Value           int64                      `json:"value"`
+	Scale           int64                      `json:"scale"`
+	Liquidity       int64                      `json:"liquidity,omitempty"`
+	Volume24H       int64                      `json:"volume24h,omitempty"`
+	Candle          *Candle                    `json:"candle,omitempty"`
+	Trades          []TradePoint               `json:"trades,omitempty"`
+	OrderBook       *OrderBookSnapshot         `json:"orderBook,omitempty"`
+	PoolState       *PoolState                 `json:"poolState,omitempty"`
+	ReserveEvidence *StablecoinReserveEvidence `json:"reserveEvidence,omitempty"`
+	ProviderHealth  *ProviderHealth            `json:"providerHealth,omitempty"`
+	ObservedAt      time.Time                  `json:"observedAt"`
+	ReceivedAt      time.Time                  `json:"receivedAt"`
+	Source          string                     `json:"source"`
+	SourceVersion   string                     `json:"sourceVersion"`
+	SignatureHex    string                     `json:"signatureHex"`
+	Hash            string                     `json:"hash"`
 }
 
 type observationSigningPayload struct {
-	Schema         string             `json:"schema"`
-	ID             string             `json:"id"`
-	ProviderID     string             `json:"providerId"`
-	ReporterID     string             `json:"reporterId"`
-	Sequence       uint64             `json:"sequence"`
-	NonceDomain    string             `json:"nonceDomain"`
-	Market         string             `json:"market"`
-	Type           DataType           `json:"type"`
-	Value          int64              `json:"value"`
-	Scale          int64              `json:"scale"`
-	Liquidity      int64              `json:"liquidity,omitempty"`
-	Volume24H      int64              `json:"volume24h,omitempty"`
-	Candle         *Candle            `json:"candle,omitempty"`
-	Trades         []TradePoint       `json:"trades,omitempty"`
-	OrderBook      *OrderBookSnapshot `json:"orderBook,omitempty"`
-	PoolState      *PoolState         `json:"poolState,omitempty"`
-	ProviderHealth *ProviderHealth    `json:"providerHealth,omitempty"`
-	ObservedAt     time.Time          `json:"observedAt"`
-	Source         string             `json:"source"`
-	SourceVersion  string             `json:"sourceVersion"`
+	Schema          string                     `json:"schema"`
+	ID              string                     `json:"id"`
+	ProviderID      string                     `json:"providerId"`
+	ReporterID      string                     `json:"reporterId"`
+	Sequence        uint64                     `json:"sequence"`
+	NonceDomain     string                     `json:"nonceDomain"`
+	Market          string                     `json:"market"`
+	Type            DataType                   `json:"type"`
+	Value           int64                      `json:"value"`
+	Scale           int64                      `json:"scale"`
+	Liquidity       int64                      `json:"liquidity,omitempty"`
+	Volume24H       int64                      `json:"volume24h,omitempty"`
+	Candle          *Candle                    `json:"candle,omitempty"`
+	Trades          []TradePoint               `json:"trades,omitempty"`
+	OrderBook       *OrderBookSnapshot         `json:"orderBook,omitempty"`
+	PoolState       *PoolState                 `json:"poolState,omitempty"`
+	ReserveEvidence *StablecoinReserveEvidence `json:"reserveEvidence,omitempty"`
+	ProviderHealth  *ProviderHealth            `json:"providerHealth,omitempty"`
+	ObservedAt      time.Time                  `json:"observedAt"`
+	Source          string                     `json:"source"`
+	SourceVersion   string                     `json:"sourceVersion"`
 }
 
 func (observation Observation) signingBytes() ([]byte, error) {
@@ -284,7 +303,7 @@ func (observation Observation) signingBytes() ([]byte, error) {
 		Schema: observation.Schema, ID: observation.ID, ProviderID: observation.ProviderID, ReporterID: observation.ReporterID,
 		Sequence: observation.Sequence, NonceDomain: observation.NonceDomain, Market: observation.Market, Type: observation.Type,
 		Value: observation.Value, Scale: observation.Scale, Liquidity: observation.Liquidity, Volume24H: observation.Volume24H,
-		Candle: observation.Candle, Trades: observation.Trades, OrderBook: observation.OrderBook, PoolState: observation.PoolState, ProviderHealth: observation.ProviderHealth,
+		Candle: observation.Candle, Trades: observation.Trades, OrderBook: observation.OrderBook, PoolState: observation.PoolState, ReserveEvidence: observation.ReserveEvidence, ProviderHealth: observation.ProviderHealth,
 		ObservedAt: observation.ObservedAt.UTC(), Source: observation.Source, SourceVersion: observation.SourceVersion,
 	}
 	return json.Marshal(payload)
@@ -345,6 +364,9 @@ func (observation Observation) validatePayload() error {
 	if observation.PoolState != nil {
 		payloads++
 	}
+	if observation.ReserveEvidence != nil {
+		payloads++
+	}
 	if observation.ProviderHealth != nil {
 		payloads++
 	}
@@ -401,6 +423,21 @@ func (observation Observation) validatePayload() error {
 		decimal := regexp.MustCompile(`^[0-9]{1,78}$`)
 		if pool == nil || pool.ChainID == "" || pool.Pool == "" || pool.Token0 == "" || pool.Token1 == "" || pool.Token0 == pool.Token1 || pool.Token0Decimals > 38 || pool.Token1Decimals > 38 || !decimal.MatchString(pool.Reserve0) || !decimal.MatchString(pool.Reserve1) || strings.Trim(pool.Reserve0, "0") == "" || strings.Trim(pool.Reserve1, "0") == "" || pool.BlockNumber == 0 || !blockHashPattern.MatchString(pool.BlockHash) || !blockHashPattern.MatchString(pool.ParentBlockHash) || pool.BlockTime.IsZero() || pool.BlockTime.After(observation.ObservedAt) || pool.Confirmations == 0 {
 			return fmt.Errorf("%w: DEX pool state", errInvalid)
+		}
+	case ReserveEvidence:
+		evidence := observation.ReserveEvidence
+		decimal := regexp.MustCompile(`^[0-9]{1,78}$`)
+		if evidence == nil || strings.TrimSpace(evidence.EvidenceID) == "" || strings.TrimSpace(evidence.IssuerID) == "" ||
+			strings.TrimSpace(evidence.AttestorID) == "" || evidence.IssuerID == evidence.AttestorID ||
+			strings.TrimSpace(evidence.AssuranceStandard) == "" || strings.TrimSpace(evidence.Jurisdiction) == "" ||
+			!marketPattern.MatchString(evidence.Unit) || !decimal.MatchString(evidence.ReserveAssets) ||
+			!decimal.MatchString(evidence.OutstandingClaims) || strings.Trim(evidence.ReserveAssets, "0") == "" ||
+			strings.Trim(evidence.OutstandingClaims, "0") == "" || evidence.ReportingPeriodEnd.IsZero() ||
+			evidence.PublishedAt.Before(evidence.ReportingPeriodEnd) || evidence.PublishedAt.After(observation.ObservedAt) ||
+			!evidence.ExpiresAt.After(evidence.PublishedAt) || observation.ObservedAt.After(evidence.ExpiresAt) ||
+			!blockHashPattern.MatchString(evidence.DocumentHash) ||
+			(evidence.Conclusion != "unmodified" && evidence.Conclusion != "qualified" && evidence.Conclusion != "adverse" && evidence.Conclusion != "disclaimer") {
+			return fmt.Errorf("%w: stablecoin reserve evidence", errInvalid)
 		}
 	case ProviderStatus:
 		health := observation.ProviderHealth
@@ -465,33 +502,47 @@ type PriceDerivation struct {
 	RejectedBlockNumbers     []uint64   `json:"rejectedBlockNumbers,omitempty"`
 	MinimumReserve0          string     `json:"minimumReserve0,omitempty"`
 	MinimumReserve1          string     `json:"minimumReserve1,omitempty"`
+	EvidenceID               string     `json:"evidenceId,omitempty"`
+	IssuerID                 string     `json:"issuerId,omitempty"`
+	AttestorID               string     `json:"attestorId,omitempty"`
+	AssuranceStandard        string     `json:"assuranceStandard,omitempty"`
+	Jurisdiction             string     `json:"jurisdiction,omitempty"`
+	Unit                     string     `json:"unit,omitempty"`
+	ReserveAssets            string     `json:"reserveAssets,omitempty"`
+	OutstandingClaims        string     `json:"outstandingClaims,omitempty"`
+	ReportingPeriodEnd       time.Time  `json:"reportingPeriodEnd,omitempty"`
+	PublishedAt              time.Time  `json:"publishedAt,omitempty"`
+	ExpiresAt                time.Time  `json:"expiresAt,omitempty"`
+	DocumentHash             string     `json:"documentHash,omitempty"`
+	Conclusion               string     `json:"conclusion,omitempty"`
 }
 
 type NormalizedEvent struct {
-	Schema            string             `json:"schema"`
-	ID                string             `json:"id"`
-	ObservationID     string             `json:"observationId"`
-	CorrectionID      string             `json:"correctionId,omitempty"`
-	ProviderID        string             `json:"providerId"`
-	Market            string             `json:"market"`
-	Type              DataType           `json:"type"`
-	Value             int64              `json:"value"`
-	Scale             int64              `json:"scale"`
-	Liquidity         int64              `json:"liquidity,omitempty"`
-	Volume24H         int64              `json:"volume24h,omitempty"`
-	Candle            *Candle            `json:"candle,omitempty"`
-	Trades            []TradePoint       `json:"trades,omitempty"`
-	OrderBook         *OrderBookSnapshot `json:"orderBook,omitempty"`
-	PoolState         *PoolState         `json:"poolState,omitempty"`
-	ProviderHealth    *ProviderHealth    `json:"providerHealth,omitempty"`
-	ObservedAt        time.Time          `json:"observedAt"`
-	ReceivedAt        time.Time          `json:"receivedAt"`
-	EffectiveAt       time.Time          `json:"effectiveAt,omitzero"`
-	Source            string             `json:"source"`
-	SourceVersion     string             `json:"sourceVersion"`
-	ObservationHash   string             `json:"observationHash"`
-	NormalizerVersion string             `json:"normalizerVersion"`
-	Hash              string             `json:"hash"`
+	Schema            string                     `json:"schema"`
+	ID                string                     `json:"id"`
+	ObservationID     string                     `json:"observationId"`
+	CorrectionID      string                     `json:"correctionId,omitempty"`
+	ProviderID        string                     `json:"providerId"`
+	Market            string                     `json:"market"`
+	Type              DataType                   `json:"type"`
+	Value             int64                      `json:"value"`
+	Scale             int64                      `json:"scale"`
+	Liquidity         int64                      `json:"liquidity,omitempty"`
+	Volume24H         int64                      `json:"volume24h,omitempty"`
+	Candle            *Candle                    `json:"candle,omitempty"`
+	Trades            []TradePoint               `json:"trades,omitempty"`
+	OrderBook         *OrderBookSnapshot         `json:"orderBook,omitempty"`
+	PoolState         *PoolState                 `json:"poolState,omitempty"`
+	ReserveEvidence   *StablecoinReserveEvidence `json:"reserveEvidence,omitempty"`
+	ProviderHealth    *ProviderHealth            `json:"providerHealth,omitempty"`
+	ObservedAt        time.Time                  `json:"observedAt"`
+	ReceivedAt        time.Time                  `json:"receivedAt"`
+	EffectiveAt       time.Time                  `json:"effectiveAt,omitzero"`
+	Source            string                     `json:"source"`
+	SourceVersion     string                     `json:"sourceVersion"`
+	ObservationHash   string                     `json:"observationHash"`
+	NormalizerVersion string                     `json:"normalizerVersion"`
+	Hash              string                     `json:"hash"`
 }
 
 func normalizeObservation(observation Observation, correctionID string, effectiveAt time.Time) NormalizedEvent {
@@ -500,7 +551,7 @@ func normalizeObservation(observation Observation, correctionID string, effectiv
 		CorrectionID: correctionID, ProviderID: observation.ProviderID, Market: observation.Market,
 		Type: observation.Type, Value: observation.Value, Scale: observation.Scale,
 		Liquidity: observation.Liquidity, Volume24H: observation.Volume24H,
-		Candle: observation.Candle, Trades: append([]TradePoint(nil), observation.Trades...), OrderBook: observation.OrderBook, PoolState: observation.PoolState, ProviderHealth: observation.ProviderHealth,
+		Candle: observation.Candle, Trades: append([]TradePoint(nil), observation.Trades...), OrderBook: observation.OrderBook, PoolState: observation.PoolState, ReserveEvidence: observation.ReserveEvidence, ProviderHealth: observation.ProviderHealth,
 		ObservedAt: observation.ObservedAt.UTC(), ReceivedAt: observation.ReceivedAt.UTC(),
 		EffectiveAt: effectiveAt.UTC(),
 		Source:      observation.Source, SourceVersion: observation.SourceVersion,

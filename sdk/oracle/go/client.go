@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,9 +17,10 @@ import (
 )
 
 const (
-	SchemaVersion            = "ynx.oracle.v1"
-	DerivativesPolicyVersion = "index-funding-mark-v1"
-	DEXTWAPPolicyVersion     = "dex-twap-v1"
+	SchemaVersion                  = "ynx.oracle.v1"
+	DerivativesPolicyVersion       = "index-funding-mark-v1"
+	DEXTWAPPolicyVersion           = "dex-twap-v1"
+	StablecoinReservePolicyVersion = "stablecoin-reserve-v1"
 )
 
 type Quality struct {
@@ -53,28 +55,41 @@ type Price struct {
 }
 
 type PriceDerivation struct {
-	Method                   string   `json:"method"`
-	PolicyVersion            string   `json:"policyVersion"`
-	ComponentTypes           []string `json:"componentTypes"`
-	ComponentLineageHashes   []string `json:"componentLineageHashes"`
-	FundingWindowSeconds     int64    `json:"fundingWindowSeconds,omitempty"`
-	PremiumPPM               int64    `json:"premiumPpm,omitempty"`
-	BasisPPM                 int64    `json:"basisPpm,omitempty"`
-	RawAdjustmentPPM         int64    `json:"rawAdjustmentPpm,omitempty"`
-	AppliedAdjustmentPPM     int64    `json:"appliedAdjustmentPpm,omitempty"`
-	ClampPPM                 int64    `json:"clampPpm,omitempty"`
-	Clamped                  bool     `json:"clamped"`
-	ObservationWindowSeconds int64    `json:"observationWindowSeconds,omitempty"`
-	StartBlock               uint64   `json:"startBlock,omitempty"`
-	EndBlock                 uint64   `json:"endBlock,omitempty"`
-	ConfirmationDepth        uint64   `json:"confirmationDepth,omitempty"`
-	ChainID                  string   `json:"chainId,omitempty"`
-	Pool                     string   `json:"pool,omitempty"`
-	ObservationCount         int      `json:"observationCount,omitempty"`
-	ReporterCount            int      `json:"reporterCount,omitempty"`
-	RejectedBlockNumbers     []uint64 `json:"rejectedBlockNumbers,omitempty"`
-	MinimumReserve0          string   `json:"minimumReserve0,omitempty"`
-	MinimumReserve1          string   `json:"minimumReserve1,omitempty"`
+	Method                   string    `json:"method"`
+	PolicyVersion            string    `json:"policyVersion"`
+	ComponentTypes           []string  `json:"componentTypes"`
+	ComponentLineageHashes   []string  `json:"componentLineageHashes"`
+	FundingWindowSeconds     int64     `json:"fundingWindowSeconds,omitempty"`
+	PremiumPPM               int64     `json:"premiumPpm,omitempty"`
+	BasisPPM                 int64     `json:"basisPpm,omitempty"`
+	RawAdjustmentPPM         int64     `json:"rawAdjustmentPpm,omitempty"`
+	AppliedAdjustmentPPM     int64     `json:"appliedAdjustmentPpm,omitempty"`
+	ClampPPM                 int64     `json:"clampPpm,omitempty"`
+	Clamped                  bool      `json:"clamped"`
+	ObservationWindowSeconds int64     `json:"observationWindowSeconds,omitempty"`
+	StartBlock               uint64    `json:"startBlock,omitempty"`
+	EndBlock                 uint64    `json:"endBlock,omitempty"`
+	ConfirmationDepth        uint64    `json:"confirmationDepth,omitempty"`
+	ChainID                  string    `json:"chainId,omitempty"`
+	Pool                     string    `json:"pool,omitempty"`
+	ObservationCount         int       `json:"observationCount,omitempty"`
+	ReporterCount            int       `json:"reporterCount,omitempty"`
+	RejectedBlockNumbers     []uint64  `json:"rejectedBlockNumbers,omitempty"`
+	MinimumReserve0          string    `json:"minimumReserve0,omitempty"`
+	MinimumReserve1          string    `json:"minimumReserve1,omitempty"`
+	EvidenceID               string    `json:"evidenceId,omitempty"`
+	IssuerID                 string    `json:"issuerId,omitempty"`
+	AttestorID               string    `json:"attestorId,omitempty"`
+	AssuranceStandard        string    `json:"assuranceStandard,omitempty"`
+	Jurisdiction             string    `json:"jurisdiction,omitempty"`
+	Unit                     string    `json:"unit,omitempty"`
+	ReserveAssets            string    `json:"reserveAssets,omitempty"`
+	OutstandingClaims        string    `json:"outstandingClaims,omitempty"`
+	ReportingPeriodEnd       time.Time `json:"reportingPeriodEnd,omitempty"`
+	PublishedAt              time.Time `json:"publishedAt,omitempty"`
+	ExpiresAt                time.Time `json:"expiresAt,omitempty"`
+	DocumentHash             string    `json:"documentHash,omitempty"`
+	Conclusion               string    `json:"conclusion,omitempty"`
 }
 
 func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConfidencePPM int64) error {
@@ -126,7 +141,7 @@ func validPriceValue(kind string, value int64) bool {
 }
 
 func (price Price) validateDerivation() error {
-	derived := price.Type == "index_price" || price.Type == "funding_reference" || price.Type == "mark_price" || price.Type == "dex_twap"
+	derived := price.Type == "index_price" || price.Type == "funding_reference" || price.Type == "mark_price" || price.Type == "dex_twap" || price.Type == "stablecoin_reserve_ratio"
 	if !derived {
 		if price.Derivation != nil {
 			return errors.New("direct oracle value contains unexpected derivation metadata")
@@ -140,6 +155,8 @@ func (price Price) validateDerivation() error {
 	expectedPolicy := DerivativesPolicyVersion
 	if price.Type == "dex_twap" {
 		expectedPolicy = DEXTWAPPolicyVersion
+	} else if price.Type == "stablecoin_reserve_ratio" {
+		expectedPolicy = StablecoinReservePolicyVersion
 	}
 	if value.PolicyVersion != expectedPolicy {
 		return errors.New("derived oracle policy version is unsupported")
@@ -188,6 +205,27 @@ func (price Price) validateDerivation() error {
 			if block < value.StartBlock || block > value.EndBlock || (index > 0 && value.RejectedBlockNumbers[index-1] >= block) {
 				return errors.New("DEX TWAP rejected block metadata is invalid")
 			}
+		}
+	case "stablecoin_reserve_ratio":
+		documentHash, hashErr := hex.DecodeString(value.DocumentHash)
+		if len(value.ComponentTypes) != 1 || len(value.ComponentLineageHashes) != 1 ||
+			value.ComponentTypes[0] != "stablecoin_reserve_evidence" ||
+			value.ComponentLineageHashes[0] != price.ObservationHash[0] ||
+			value.Method != "reserve_assets_divided_by_outstanding_claims" ||
+			value.EvidenceID == "" || value.IssuerID == "" || value.AttestorID == "" || value.IssuerID == value.AttestorID ||
+			value.AssuranceStandard == "" || value.Jurisdiction == "" || value.Unit == "" ||
+			!decimalString(value.ReserveAssets) || !decimalString(value.OutstandingClaims) ||
+			value.ReportingPeriodEnd.IsZero() || value.PublishedAt.Before(value.ReportingPeriodEnd) ||
+			!value.ExpiresAt.After(value.PublishedAt) || value.Conclusion != "unmodified" ||
+			hashErr != nil || len(documentHash) != 32 || price.Scale != 1_000_000 {
+			return errors.New("stablecoin reserve derivation is invalid")
+		}
+		assets, _ := new(big.Int).SetString(value.ReserveAssets, 10)
+		claims, _ := new(big.Int).SetString(value.OutstandingClaims, 10)
+		expected := new(big.Int).Mul(assets, big.NewInt(price.Scale))
+		expected.Div(expected, claims)
+		if !expected.IsInt64() || expected.Int64() != price.Value {
+			return errors.New("stablecoin reserve ratio does not match evidence")
 		}
 	}
 	return nil

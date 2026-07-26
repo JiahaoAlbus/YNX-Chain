@@ -26,12 +26,12 @@ func TestOracleSchemasFreezeProviderAndDerivedPriceBoundaries(t *testing.T) {
 	}
 
 	observationSchema := contents[0]
-	for _, providerInput := range []string{"premium_reference", "basis_reference", "stablecoin_depeg", "dex_pool_state"} {
+	for _, providerInput := range []string{"premium_reference", "basis_reference", "stablecoin_depeg", "stablecoin_reserve_evidence", "dex_pool_state"} {
 		if !strings.Contains(observationSchema, `"`+providerInput+`"`) {
 			t.Fatalf("provider input %s missing from observation schema", providerInput)
 		}
 	}
-	for _, oracleOwned := range []string{"index_price", "mark_price", "funding_reference", "dex_twap"} {
+	for _, oracleOwned := range []string{"index_price", "mark_price", "funding_reference", "stablecoin_reserve_ratio", "dex_twap"} {
 		if strings.Contains(observationSchema, `"`+oracleOwned+`"`) {
 			t.Fatalf("Oracle-derived type %s leaked into provider observation schema", oracleOwned)
 		}
@@ -47,6 +47,9 @@ func TestOracleSchemasFreezeProviderAndDerivedPriceBoundaries(t *testing.T) {
 		`"confirmed_multi_block_guarded_twap"`,
 		`"confirmationDepth"`,
 		`"rejectedBlockNumbers"`,
+		`"stablecoin-reserve-v1"`,
+		`"reserve_assets_divided_by_outstanding_claims"`,
+		`"documentHash"`,
 		`"componentLineageHashes"`,
 	} {
 		if !strings.Contains(priceSchema, required) {
