@@ -4,7 +4,7 @@
   "slug": "governance",
   "version": "0.2.0-testnet-dev",
   "generatedAt": "2026-07-26T00:00:00Z",
-  "sourceCommit": "3a561ddf3c7ab28b1bf7c1aa0158dfea0ee9c570",
+  "sourceCommit": "73ca03234057a19c2f65f26641c613dd5f7aad4b",
   "branch": "codex/final-governance",
   "phase": "FREEZE",
   "status": "Active",
@@ -35,6 +35,11 @@
       "details": "First-class Timelock records bind Proposal ID, exact ActionHash, earliest execution, bounded Grace deadline, public Notice evidence, execution manifest, cancellation, emergency pause, execution outcome, rollback, and an audit-hashed transition history. Early, expired, duplicate, tampered, unauthorized, or divergent operations fail closed."
     },
     {
+      "id": "persistent-upgrade-integrity",
+      "status": "complete",
+      "details": "First-class Upgrade records bind Proposal ID, scope, ActionHash, source commit, release, exact manifest, migration, rollback, canary, verification, execution receipt, rollback receipt, and an audit-hashed transition history. Duplicate manifests, conflicting active scopes, divergent restore state, and tampering fail closed; canary state remains eligible_not_run until independently evaluated."
+    },
+    {
       "id": "public-read-control-plane",
       "status": "complete",
       "details": "Public read APIs expose proposals, signed vote revisions, electorate delegations, roles, parameters, timelocks, executions, upgrades, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics."
@@ -42,7 +47,7 @@
     {
       "id": "migration-and-restore-gates",
       "status": "complete",
-      "details": "Governance state v5 persists vote, delegation, and first-class Timelock state; v1 through v4 require explicit migrations. Runtime config v3 requires bounded Timelock Grace policy, and digest-valid tampering still fails closed."
+      "details": "Governance state v6 persists vote, delegation, first-class Timelock, and first-class Upgrade state; v1 through v5 require explicit migrations. Runtime config v3 requires bounded Timelock Grace policy, and digest-valid tampering still fails closed."
     }
   ],
   "api": {
@@ -115,10 +120,16 @@
       "exact ActionHash and scoped-session cancellation",
       "timelock submitted, expired, cancelled, and paused restart recovery",
       "timelock tamper and proposal-state divergence rejection",
-      "v1 through v4 state migration rejection",
+      "first-class upgrade source, release, manifest, migration, rollback, canary, and verification binding",
+      "duplicate manifest, release identity, and active-scope upgrade conflict rejection",
+      "exact upgrade manifest execution and receipt correlation",
+      "failed upgrade execution and verified rollback receipt correlation",
+      "upgrade restart recovery and digest-valid tamper rejection",
+      "persistent upgrade transitions in public upgrades and audit views",
+      "v1 through v5 state migration rejection",
       "v2 runtime config migration rejection"
     ],
-    "sourceCommit": "3a561ddf3c7ab28b1bf7c1aa0158dfea0ee9c570"
+    "sourceCommit": "73ca03234057a19c2f65f26641c613dd5f7aad4b"
   },
   "dependencies": {
     "chainCore": "not_integrated",
@@ -135,13 +146,15 @@
     "Signed vote integrity is implemented and tested locally.",
     "Persistent signed delegation integrity and electorate snapshot binding are implemented and tested locally.",
     "Persistent Timelock integrity, Grace expiry, exact ActionHash cancellation, and single execution submission are implemented and tested locally.",
+    "Persistent Upgrade integrity, exact manifest execution, restart recovery, and execution or rollback receipt correlation are implemented and tested locally.",
+    "Upgrade canary eligibility is recorded, but no canary is reported as run or passed.",
     "A passed vote is not reported as execution.",
     "A submitted execution is not reported as verified.",
     "Treasury and provider views expose proposal records only; they do not claim external execution.",
     "Central chain execution, Explorer evidence, Monitor alerts, shared Testnet acceptance, and public deployment are not complete."
   ],
   "nextActions": [
-    "Implement first-class Upgrade Runtime records with signed source and manifest identity, migration and rollback binding, canary eligibility, duplicate and conflict rejection, restart recovery, and execution receipt correlation.",
+    "Implement first-class Canary Runtime gates with signed cohort identity, health windows, abort thresholds, evidence, restart recovery, and execution authorization.",
     "Bind proposal parameter validation directly to the canonical Parameter Registry at creation, voting close, timelock, and execution-ready gates.",
     "Integrate canonical execution and audit events with Chain Core, Data Fabric, Explorer, Monitor, Trust, Security/SRE, and 29 Integration."
   ]
