@@ -46,6 +46,25 @@ func LoadStableReserveIntegration(path, publicKeyValue, keyID, asset, network, s
 	return &integration, nil
 }
 
+func StableReserveAdapterReleaseStates(releaseClass string) (economics.IntegrationReleaseStates, error) {
+	states := economics.LocalCandidateIntegrationReleaseStates()
+	switch strings.TrimSpace(releaseClass) {
+	case "local_candidate":
+		return states, nil
+	case "central_testnet":
+		states.IntegratedCentral = true
+		states.DeployedStaging = true
+		return states, nil
+	case "public_testnet":
+		states.IntegratedCentral = true
+		states.DeployedStaging = true
+		states.DeployedPublic = true
+		return states, nil
+	default:
+		return economics.IntegrationReleaseStates{}, errors.New("stable reserve adapter release class must be local_candidate, central_testnet or public_testnet")
+	}
+}
+
 func (s *Server) handleStableReserve(w http.ResponseWriter, r *http.Request) {
 	requestID := economicsRequestID(r)
 	traceID := economicsTraceID(r)
@@ -58,7 +77,8 @@ func (s *Server) handleStableReserve(w http.ResponseWriter, r *http.Request) {
 			"version": 1, "coverage": "unavailable", "confidence": "unavailable",
 			"failure": true, "failureCodes": []string{"YNX_STABLE_RESERVE_UNAVAILABLE"},
 			"requestId": requestID, "traceId": traceID,
-			"release": economics.IntegrationReleaseStates{},
+			"sourceCommit": s.build.Commit, "adapterReleaseClass": s.stableReserveReleaseClass,
+			"release": s.stableReserveRelease,
 		})
 		return
 	}
@@ -67,10 +87,11 @@ func (s *Server) handleStableReserve(w http.ResponseWriter, r *http.Request) {
 		"version": event.Snapshot.Version, "coverage": "provider-signed-reserve-supply-and-pending-redemption",
 		"confidence": "cryptographically-verified-provider-assertion-not-independent-audit",
 		"failure":    event.Snapshot.Failure, "failureCodes": event.Snapshot.FailureCodes,
-		"requestId": requestID, "traceId": traceID, "sourceCommit": integration.SourceCommit,
+		"requestId": requestID, "traceId": traceID, "sourceCommit": s.build.Commit,
 		"eventId": event.ID, "eventType": event.Type, "integrationHash": integration.IntegrationHash,
 		"reserve": event.Snapshot, "explorer": integration.Explorer, "monitor": integration.Monitor,
-		"release": integration.ReleaseStates,
+		"adapterReleaseClass": s.stableReserveReleaseClass, "release": s.stableReserveRelease,
+		"providerIntegrationSourceCommit": integration.SourceCommit, "providerIntegrationRelease": integration.ReleaseStates,
 	})
 }
 

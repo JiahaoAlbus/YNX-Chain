@@ -7,6 +7,7 @@ for (const [source, required] of [
   [deploy, [
     "GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build",
     "YNX_STABLE_RESERVE_SOURCE_COMMIT",
+    "YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS",
     "reserve_mode=\"preserve\"",
     "shasum -a 256",
     "ynx_transport_scp economics-explorer-upload",
@@ -20,6 +21,7 @@ for (const [source, required] of [
     "mv -f \"${destination}.${release}.restore\"",
     "previous binary and configuration restored",
     "for attempt in $(seq 1 12)",
+    "public reserve endpoint did not prove the expected release",
     "systemctl restart ynx-explorerd.service",
     "YNX_STABLE_RESERVE_UNAVAILABLE",
     "externalReserveAttested",

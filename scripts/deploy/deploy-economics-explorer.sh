@@ -13,11 +13,20 @@ PRIMARY_NODE_SSH_KEY="${PRIMARY_NODE_SSH_KEY:-${SSH_KEY_PATH:-/dev/null}}"
 YNX_STABLE_RESERVE_DEPLOY_ENABLED="${YNX_STABLE_RESERVE_DEPLOY_ENABLED:-false}"
 YNX_STABLE_RESERVE_ASSET="${YNX_STABLE_RESERVE_ASSET:-YUSD}"
 YNX_STABLE_RESERVE_NETWORK="${YNX_STABLE_RESERVE_NETWORK:-ynx-testnet}"
+YNX_ECONOMICS_EXPLORER_RELEASE_CLASS="${YNX_ECONOMICS_EXPLORER_RELEASE_CLASS:-central_testnet}"
 
 [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" || "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "false" ]] || {
   echo "YNX_STABLE_RESERVE_DEPLOY_ENABLED must be true or false"
   exit 1
 }
+[[ "$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS" == "central_testnet" || "$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS" == "public_testnet" ]] || {
+  echo "YNX_ECONOMICS_EXPLORER_RELEASE_CLASS must be central_testnet or public_testnet"
+  exit 1
+}
+if [[ "$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS" == "public_testnet" ]]; then
+  ynx_require_env EXPLORER_DOMAIN
+  ynx_reject_unsafe_env_values EXPLORER_DOMAIN
+fi
 if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
   ynx_require_env YNX_STABLE_RESERVE_ATTESTATION_PATH YNX_STABLE_RESERVE_PUBLIC_KEY YNX_STABLE_RESERVE_KEY_ID
   ynx_reject_unsafe_env_values YNX_STABLE_RESERVE_ATTESTATION_PATH YNX_STABLE_RESERVE_PUBLIC_KEY YNX_STABLE_RESERVE_KEY_ID YNX_STABLE_RESERVE_ASSET YNX_STABLE_RESERVE_NETWORK
@@ -50,6 +59,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$ldflags" -o 
 
 cat >"$work/package/config/ynx-explorerd.env" <<EOF
 YNX_STABLE_RESERVE_DEPLOY_ENABLED=${YNX_STABLE_RESERVE_DEPLOY_ENABLED}
+YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=${YNX_ECONOMICS_EXPLORER_RELEASE_CLASS}
 EOF
 if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
   install -m 0600 "$YNX_STABLE_RESERVE_ATTESTATION_PATH" "$work/package/config/stable-reserve-attestation.json"
@@ -110,11 +120,15 @@ fi
 remote="${PRIMARY_NODE_USER}@${PRIMARY_NODE_HOST}"
 remote_archive="/tmp/$release.tar.gz"
 remote_dir="/tmp/$release"
+public_reserve_url="-"
+if [[ "$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS" == "public_testnet" ]]; then
+  public_reserve_url="https://${EXPLORER_DOMAIN}/api/stable/reserve"
+fi
 ynx_transport_scp economics-explorer-upload "$PRIMARY_NODE_SSH_KEY" "$archive" "$remote" "$remote_archive"
 ynx_transport_ssh economics-explorer-stage "$PRIMARY_NODE_SSH_KEY" "$remote" \
   "set -euo pipefail; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; rm -f '$remote_archive'"
 ynx_transport_ssh economics-explorer-install "$PRIMARY_NODE_SSH_KEY" "$remote" \
-  "bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$reserve_mode'"
+  "bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$reserve_mode' '$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS' '$public_reserve_url'"
 ynx_transport_ssh economics-explorer-cleanup "$PRIMARY_NODE_SSH_KEY" "$remote" "rm -rf '$remote_dir'"
 
 echo "scoped Explorer Testnet deployment completed: release=$release sourceCommit=$source_commit"

@@ -34,6 +34,7 @@ func main() {
 	reserveAsset := flag.String("reserve-asset", envOrDefault("YNX_STABLE_RESERVE_ASSET", "YUSD"), "expected reserve asset")
 	reserveNetwork := flag.String("reserve-network", envOrDefault("YNX_STABLE_RESERVE_NETWORK", "ynx-testnet"), "expected reserve network")
 	reserveSourceCommit := flag.String("reserve-source-commit", envOrDefault("YNX_STABLE_RESERVE_SOURCE_COMMIT", strings.TrimSpace(buildCommit)), "full source commit for reserve integration evidence")
+	reserveAdapterReleaseClass := flag.String("reserve-adapter-release-class", envOrDefault("YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS", "local_candidate"), "reserve adapter release class: local_candidate, central_testnet or public_testnet")
 	reserveMaxAge := flag.Duration("reserve-max-age", 24*time.Hour, "maximum accepted reserve attestation age")
 	checkConfig := flag.Bool("check-config", false, "validate explorer and reserve configuration without starting the service")
 	flag.Parse()
@@ -48,6 +49,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	reserveAdapterRelease, err := explorer.StableReserveAdapterReleaseStates(*reserveAdapterReleaseClass)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var reserveIntegration *economics.StableReserveIntegration
 	reserveConfigured := strings.TrimSpace(*reserveAttestation) != "" || strings.TrimSpace(*reservePublicKey) != "" || strings.TrimSpace(*reserveKeyID) != ""
@@ -58,13 +63,13 @@ func main() {
 		}
 	}
 	if *checkConfig {
-		fmt.Printf("ynx-explorerd config check passed; stable reserve attestation configured=%t\n", reserveIntegration != nil)
+		fmt.Printf("ynx-explorerd config check passed; stable reserve attestation configured=%t adapterReleaseClass=%s\n", reserveIntegration != nil, *reserveAdapterReleaseClass)
 		return
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	srv := &http.Server{Addr: *httpAddr, Handler: explorer.NewServerWithBuildAndStableReserve(service, currentBuildInfo(), reserveIntegration).Handler(), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: *httpAddr, Handler: explorer.NewServerWithBuildAndStableReserveRelease(service, currentBuildInfo(), reserveIntegration, reserveAdapterRelease, *reserveAdapterReleaseClass).Handler(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

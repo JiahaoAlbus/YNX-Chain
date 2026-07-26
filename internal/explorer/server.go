@@ -31,8 +31,10 @@ type Server struct {
 	economicsLatencyBuckets [6]atomic.Uint64
 	economicsLastSuccess    atomic.Int64
 
-	stableReserveMu          sync.RWMutex
-	stableReserveIntegration *economics.StableReserveIntegration
+	stableReserveMu           sync.RWMutex
+	stableReserveIntegration  *economics.StableReserveIntegration
+	stableReserveRelease      economics.IntegrationReleaseStates
+	stableReserveReleaseClass string
 }
 
 type streamEvent struct {
@@ -50,12 +52,18 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 }
 
 func NewServerWithBuildAndStableReserve(service *Service, build buildinfo.Info, reserve *economics.StableReserveIntegration) *Server {
+	return NewServerWithBuildAndStableReserveRelease(service, build, reserve, economics.LocalCandidateIntegrationReleaseStates(), "local_candidate")
+}
+
+func NewServerWithBuildAndStableReserveRelease(service *Service, build buildinfo.Info, reserve *economics.StableReserveIntegration, release economics.IntegrationReleaseStates, releaseClass string) *Server {
 	s := &Server{
-		service:                  service,
-		mux:                      http.NewServeMux(),
-		build:                    buildinfo.Normalize(build),
-		streamClients:            make(map[chan streamEvent]struct{}),
-		stableReserveIntegration: reserve,
+		service:                   service,
+		mux:                       http.NewServeMux(),
+		build:                     buildinfo.Normalize(build),
+		streamClients:             make(map[chan streamEvent]struct{}),
+		stableReserveIntegration:  reserve,
+		stableReserveRelease:      release,
+		stableReserveReleaseClass: releaseClass,
 	}
 	s.routes()
 	return s

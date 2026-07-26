@@ -197,6 +197,7 @@ YNX_MUTATION_FREEZE_FILE=/var/lib/ynx-chain/mutation-freeze.json
 EOF
 cat > "$work/config/ynx-explorerd.env" <<EOF
 YNX_STABLE_RESERVE_DEPLOY_ENABLED=${YNX_STABLE_RESERVE_DEPLOY_ENABLED}
+YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=central_testnet
 EOF
 if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
   install -m 0600 "$YNX_STABLE_RESERVE_ATTESTATION_PATH" "$work/config/stable-reserve-attestation.json"

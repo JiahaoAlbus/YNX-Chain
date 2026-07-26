@@ -33,10 +33,42 @@ func TestStableReserveEndpointFailsClosedWithoutFreshInput(t *testing.T) {
 		len(body.FailureCodes) != 1 || body.FailureCodes[0] != "YNX_STABLE_RESERVE_UNAVAILABLE" {
 		t.Fatalf("unavailable response is not truthful: %+v", body)
 	}
-	for _, value := range body.Release {
-		if value {
-			t.Fatalf("unavailable response promoted release state: %+v", body.Release)
+	if !body.Release["implementedLocal"] || !body.Release["testedLocal"] {
+		t.Fatalf("unavailable provider erased adapter implementation truth: %+v", body.Release)
+	}
+	for _, key := range []string{"installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"} {
+		if body.Release[key] {
+			t.Fatalf("local adapter promoted release state %s: %+v", key, body.Release)
 		}
+	}
+}
+
+func TestStableReservePublicAdapterTruthDoesNotClaimProviderAvailability(t *testing.T) {
+	release, err := StableReserveAdapterReleaseStates("public_testnet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServerWithBuildAndStableReserveRelease(nil, buildinfo.Info{Commit: strings.Repeat("9", 40)}, nil, release, "public_testnet")
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/stable/reserve", nil))
+	var body struct {
+		Failure             bool                               `json:"failure"`
+		SourceCommit        string                             `json:"sourceCommit"`
+		AdapterReleaseClass string                             `json:"adapterReleaseClass"`
+		Release             economics.IntegrationReleaseStates `json:"release"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusServiceUnavailable || !body.Failure ||
+		body.SourceCommit != strings.Repeat("9", 40) || body.AdapterReleaseClass != "public_testnet" ||
+		!body.Release.ImplementedLocal || !body.Release.TestedLocal || !body.Release.IntegratedCentral ||
+		!body.Release.DeployedStaging || !body.Release.DeployedPublic ||
+		body.Release.ProductionSigned || body.Release.StoreReleased {
+		t.Fatalf("adapter/provider release truth is inconsistent: %+v", body)
+	}
+	if _, err := StableReserveAdapterReleaseStates("production"); err == nil {
+		t.Fatal("unsupported release class was accepted")
 	}
 }
 
