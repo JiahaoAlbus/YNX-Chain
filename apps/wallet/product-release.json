@@ -2,7 +2,7 @@
   "productId": "wallet",
   "name": "YNX Wallet",
   "branch": "codex/final-wallet-auth",
-  "commit": "d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e",
+  "commit": "b88a40ed37eaf3fd50d6accc5fdc3b7693c82cf5",
   "artifactSourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
   "version": "1.0.0-testnet-preview",
   "surfaces": ["android", "ios"],
@@ -18,6 +18,7 @@
   "capabilityStates": {
     "canonicalAuth": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "canonicalGatewayAdapter": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"gatewayAdapterSnapshotVersion":2,"gatewayHttpKernelVersion":1,"evidenceSourceCommit":"d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e","coverage":["twelve-canonical-routes","canonical-json-body","separate-p256-proof-header","immutable-registry","request-atomic-rollback","state-digest","proof-replay","session-revoke","approval-revoke","device-revoke","wallet-only-all-device-logout","mandate-proof-atomicity"]},
+    "connectedApps": {"implementedLocal":true,"testedLocal":true,"installedAndroid":true,"installedIOS":false,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"b88a40ed37eaf3fd50d6accc5fdc3b7693c82cf5","evidence":"proof/wallet-connected-apps-android-installed-2026-07-26.json","coverage":["account-bound-session-inventory","freshness-bound","strict-envelope","loading-empty-failure-ready-ui"]},
     "signedIntent": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountPolicy": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false},
     "smartAccountContract": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedPublic":false,"evidenceSourceCommit":"522b998077b5f150b86ab56f0a2f62a3a5005b82"},
@@ -69,5 +70,5 @@
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "CycloneDX 1.6 review SBOM is reproducible and contains 431 runtime components, but four Expo override ELSPROBLEMS keep release-grade SBOM completeness false; package-lock.json remains authoritative."
   ],
-  "generatedAt": "2026-07-25T07:22:08Z"
+  "generatedAt": "2026-07-26T12:17:01Z"
 }
