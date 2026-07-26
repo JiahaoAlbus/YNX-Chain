@@ -42,6 +42,9 @@ restore_path() {
   name="$(basename "$destination")"
   if sudo -n test -f "$backup/$name.absent"; then
     sudo -n rm -f "$destination"
+  elif [[ "$destination" == "/usr/local/bin/ynx-explorerd" ]]; then
+    sudo -n install -m 0755 -o root -g root "$backup/$name" "${destination}.${release}.restore"
+    sudo -n mv -f "${destination}.${release}.restore" "$destination"
   else
     sudo -n cp -p "$backup/$name" "$destination"
   fi
@@ -53,6 +56,7 @@ rollback() {
   trap - EXIT
   if [[ "$status" != "0" && "$deployment_complete" == "0" ]]; then
     set +e
+    sudo -n systemctl stop ynx-explorerd.service
     restore_path /usr/local/bin/ynx-explorerd
     restore_path /etc/systemd/system/ynx-explorerd.service
     restore_path /etc/ynx/ynx-explorerd.env
@@ -65,7 +69,8 @@ rollback() {
 }
 trap rollback EXIT
 
-sudo -n install -m 0755 -o root -g root bin/ynx-explorerd /usr/local/bin/ynx-explorerd
+sudo -n install -m 0755 -o root -g root bin/ynx-explorerd "/usr/local/bin/ynx-explorerd.${release}.new"
+sudo -n mv -f "/usr/local/bin/ynx-explorerd.${release}.new" /usr/local/bin/ynx-explorerd
 sudo -n install -m 0644 -o root -g root systemd/ynx-explorerd.service /etc/systemd/system/ynx-explorerd.service
 if [[ "$reserve_mode" == "configure" ]] || ! sudo -n test -f /etc/ynx/ynx-explorerd.env; then
   sudo -n install -m 0600 -o root -g root config/ynx-explorerd.env /etc/ynx/ynx-explorerd.env
@@ -81,11 +86,19 @@ sudo -n systemctl is-active --quiet ynx-explorerd.service
 
 probe="$(mktemp)"
 cleanup_probe() { rm -f "$probe"; }
-trap cleanup_probe RETURN
-curl -fsS --max-time 10 http://127.0.0.1:6427/health >"$probe"
-grep -Fq "\"commit\":\"$source_commit\"" "$probe"
+ready=0
+for attempt in $(seq 1 12); do
+  if curl -sS --max-time 15 http://127.0.0.1:6427/health >"$probe" &&
+    grep -Fq '"service":"ynx-explorerd"' "$probe" &&
+    grep -Fq "\"commit\":\"$source_commit\"" "$probe"; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+[[ "$ready" == "1" ]] || { echo "Explorer did not become ready with the expected build identity"; exit 1; }
 if [[ "$reserve_mode" == "configure" ]]; then
-  curl -fsS --max-time 10 http://127.0.0.1:6427/api/stable/reserve >"$probe"
+  curl -fsS --retry 5 --retry-all-errors --retry-delay 2 --max-time 15 http://127.0.0.1:6427/api/stable/reserve >"$probe"
   grep -Fq '"externalReserveAttested":true' "$probe"
   grep -Fq "\"sourceCommit\":\"$source_commit\"" "$probe"
 else
@@ -98,7 +111,6 @@ else
   fi
 fi
 cleanup_probe
-trap - RETURN
 
 deployment_complete=1
 echo "scoped Explorer deployment verified: release=$release reserveMode=$reserve_mode sourceCommit=$source_commit"
