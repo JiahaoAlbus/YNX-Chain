@@ -140,7 +140,7 @@ func (v Verifier) Verify(attestation Attestation) (Snapshot, error) {
 		severity = "critical"
 	}
 	payloadDigest := sha256.Sum256(payload)
-	return Snapshot{
+	snapshot := Snapshot{
 		SchemaVersion: SchemaVersion, Source: "provider-signed-testnet-reserve-attestation",
 		AsOf: asOf.UTC().Format(time.RFC3339Nano), Version: SchemaVersion,
 		AttestationID: attestation.AttestationID, Provider: attestation.Provider,
@@ -154,7 +154,51 @@ func (v Verifier) Verify(attestation Attestation) (Snapshot, error) {
 		EvidenceURL: attestation.EvidenceURL, EvidenceHash: attestation.EvidenceHash,
 		PayloadHash: "sha256:" + hex.EncodeToString(payloadDigest[:]), KeyID: attestation.KeyID,
 		ExpiresAt: expiresAt.UTC().Format(time.RFC3339Nano),
-	}, nil
+	}
+	if err := ValidateSnapshot(snapshot); err != nil {
+		return Snapshot{}, err
+	}
+	return snapshot, nil
+}
+
+func ValidateSnapshot(snapshot Snapshot) error {
+	if snapshot.SchemaVersion != SchemaVersion ||
+		snapshot.Source != "provider-signed-testnet-reserve-attestation" ||
+		snapshot.Version != SchemaVersion || !snapshot.ExternalReserveAttested ||
+		!snapshot.TestnetOnly || snapshot.RealityValue || snapshot.ProductionReady ||
+		!identifierPattern.MatchString(snapshot.AttestationID) ||
+		!identifierPattern.MatchString(snapshot.Provider) ||
+		!identifierPattern.MatchString(snapshot.Custodian) ||
+		!identifierPattern.MatchString(snapshot.Asset) ||
+		!identifierPattern.MatchString(snapshot.Network) ||
+		!identifierPattern.MatchString(snapshot.KeyID) ||
+		!digestPattern.MatchString(snapshot.EvidenceHash) ||
+		!digestPattern.MatchString(snapshot.PayloadHash) {
+		return fmt.Errorf("%w: verified snapshot metadata is invalid", ErrInvalidAttestation)
+	}
+	asOf, asOfErr := time.Parse(time.RFC3339Nano, snapshot.AsOf)
+	expiresAt, expiryErr := time.Parse(time.RFC3339Nano, snapshot.ExpiresAt)
+	if asOfErr != nil || expiryErr != nil || !expiresAt.After(asOf) {
+		return fmt.Errorf("%w: verified snapshot time is invalid", ErrInvalidAttestation)
+	}
+	required, overflow := add(snapshot.ReportedSupplyUnits, snapshot.PendingRedemptionUnits)
+	if overflow || required != snapshot.RequiredBackingUnits ||
+		snapshot.CoverageBPS != coverageBPS(snapshot.ReserveUnits, required) {
+		return fmt.Errorf("%w: verified snapshot accounting is invalid", ErrInvalidAttestation)
+	}
+	if snapshot.ReserveUnits >= required {
+		if !snapshot.Solvent || snapshot.Failure || snapshot.ExcessReserveUnits != snapshot.ReserveUnits-required ||
+			snapshot.ShortfallUnits != 0 || snapshot.ExplorerStatus != "fully-backed-testnet-attestation" ||
+			snapshot.MonitorSeverity != "ok" || len(snapshot.FailureCodes) != 0 {
+			return fmt.Errorf("%w: solvent snapshot truth is inconsistent", ErrInvalidAttestation)
+		}
+	} else if snapshot.Solvent || !snapshot.Failure || snapshot.ExcessReserveUnits != 0 ||
+		snapshot.ShortfallUnits != required-snapshot.ReserveUnits ||
+		snapshot.ExplorerStatus != "reserve-shortfall" || snapshot.MonitorSeverity != "critical" ||
+		len(snapshot.FailureCodes) != 1 || snapshot.FailureCodes[0] != "YNX_STABLE_RESERVE_SHORTFALL" {
+		return fmt.Errorf("%w: shortfall snapshot truth is inconsistent", ErrInvalidAttestation)
+	}
+	return nil
 }
 
 func SigningPayload(attestation Attestation) ([]byte, error) {

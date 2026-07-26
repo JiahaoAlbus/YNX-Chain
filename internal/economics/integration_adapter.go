@@ -389,6 +389,13 @@ func validateIntegrationEnvelopePayload(envelope EconomicsIntegrationEnvelope) e
 		if err := json.Unmarshal(envelope.Payload, &event); err != nil || event.ID != envelope.EventID || event.Type != envelope.EventType || event.Version != envelope.EventVersion || event.Source != envelope.Source || !event.ExecutedAt.UTC().Equal(envelope.OccurredAt) || event.AuditHash != envelope.SourceEventAuditHash || event.ID != stakingRiskEventID(event) || event.AuditHash != stakingRiskEventAuditHash(event) {
 			return runtimeError(CodeIntegrationInvalidEnvelope, "staking envelope payload is not the canonical source event")
 		}
+	case StableReserveAttestedEventType:
+		event, err := decodeStableReserveEvent(envelope.Payload)
+		if err != nil || event.ID != envelope.EventID || event.Type != envelope.EventType ||
+			event.Version != envelope.EventVersion || event.Source != envelope.Source ||
+			!event.OccurredAt.UTC().Equal(envelope.OccurredAt) || event.AuditHash != envelope.SourceEventAuditHash {
+			return runtimeError(CodeIntegrationInvalidEnvelope, "stable reserve envelope payload is not the canonical source event")
+		}
 	default:
 		return runtimeError(CodeIntegrationInvalidEnvelope, "integration envelope event type is unsupported")
 	}
@@ -415,7 +422,7 @@ func ValidateEconomicsExplorerProjection(projection EconomicsExplorerProjection)
 }
 
 func ValidateEconomicsMonitorCheck(check EconomicsMonitorCheck) error {
-	if check.SchemaVersion != EconomicsIntegrationSchemaVersion || check.ContractID != EconomicsIntegrationContractID || !validIntegrationSourceCommit(check.SourceCommit) || strings.TrimSpace(check.ID) == "" || strings.TrimSpace(check.SourceEventID) == "" || strings.TrimSpace(check.Check) == "" || check.Status != "pass" || (check.Severity != "info" && check.Severity != "critical") || strings.TrimSpace(check.Observed) == "" || strings.TrimSpace(check.Expected) == "" || check.OccurredAt.IsZero() || check.EvidenceClass != IntegrationEvidenceClass || check.SharedTestnet || check.AuditHash != economicsMonitorCheckHash(check) || check.ID != economicsMonitorCheckID(check) {
+	if check.SchemaVersion != EconomicsIntegrationSchemaVersion || check.ContractID != EconomicsIntegrationContractID || !validIntegrationSourceCommit(check.SourceCommit) || strings.TrimSpace(check.ID) == "" || strings.TrimSpace(check.SourceEventID) == "" || strings.TrimSpace(check.Check) == "" || (check.Status != "pass" && check.Status != "fail") || (check.Severity != "info" && check.Severity != "critical") || strings.TrimSpace(check.Observed) == "" || strings.TrimSpace(check.Expected) == "" || check.OccurredAt.IsZero() || check.EvidenceClass != IntegrationEvidenceClass || check.SharedTestnet || check.AuditHash != economicsMonitorCheckHash(check) || check.ID != economicsMonitorCheckID(check) {
 		return runtimeError(CodeIntegrationInvalidMonitor, "monitor check metadata or audit hash is invalid")
 	}
 	return nil
@@ -780,6 +787,22 @@ func validateProjectionAgainstEnvelope(projection EconomicsExplorerProjection, e
 		if err := json.Unmarshal(envelope.Payload, &event); err != nil || projection.Labels["validator"] != event.Validator || projection.Labels["proposalId"] != event.ProposalID || projection.Metrics["openingExposureYnxt"] != event.OpeningExposureYNXT || projection.Metrics["closingExposureYnxt"] != event.ClosingExposureYNXT || projection.Metrics["totalSlashYnxt"] != event.TotalSlashYNXT {
 			return runtimeError(CodeIntegrationInvalidProjection, "staking Explorer projection does not match the source envelope")
 		}
+	case StableReserveAttestedEventType:
+		event, err := decodeStableReserveEvent(envelope.Payload)
+		if err != nil || projection.Labels["asset"] != event.Snapshot.Asset ||
+			projection.Labels["network"] != event.Snapshot.Network ||
+			projection.Labels["provider"] != event.Snapshot.Provider ||
+			projection.Labels["custodian"] != event.Snapshot.Custodian ||
+			projection.Labels["status"] != event.Snapshot.ExplorerStatus ||
+			projection.Labels["externalReserveAttested"] != "true" ||
+			projection.Labels["testnetOnly"] != "true" ||
+			projection.Labels["realityValue"] != "false" ||
+			projection.Labels["productionReady"] != "false" ||
+			projection.Metrics["reserveUnits"] != int64(event.Snapshot.ReserveUnits) ||
+			projection.Metrics["requiredBackingUnits"] != int64(event.Snapshot.RequiredBackingUnits) ||
+			projection.Metrics["coverageBps"] != int64(event.Snapshot.CoverageBPS) {
+			return runtimeError(CodeIntegrationInvalidProjection, "stable reserve Explorer projection does not match the source envelope")
+		}
 	default:
 		return runtimeError(CodeIntegrationInvalidProjection, "Explorer projection references an unsupported event type")
 	}
@@ -788,7 +811,7 @@ func validateProjectionAgainstEnvelope(projection EconomicsExplorerProjection, e
 
 func integrationEventTypeAllowed(eventType string) bool {
 	switch eventType {
-	case "ynx.economics.epoch_settled.v1", "ynx.economics.policy_change_scheduled.v1", "ynx.economics.policy_change_activated.v1", "ynx.staking.validator_slashed.v1", "ynx.staking.validator_unjailed.v1":
+	case "ynx.economics.epoch_settled.v1", "ynx.economics.policy_change_scheduled.v1", "ynx.economics.policy_change_activated.v1", "ynx.staking.validator_slashed.v1", "ynx.staking.validator_unjailed.v1", StableReserveAttestedEventType:
 		return true
 	default:
 		return false

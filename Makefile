@@ -408,7 +408,7 @@ stablecoin-issuer-check:
 	bash ./scripts/verify/stablecoin-issuer-check.sh
 
 stable-reserve-attestation-check:
-	go test -race ./internal/stablereserve ./cmd/ynx-stable-reserve-verify
+	go test -race ./internal/stablereserve ./internal/economics ./cmd/ynx-stable-reserve-verify
 
 yusd-sandbox-check:
 	go test -race ./internal/yusdsandbox ./cmd/ynx-yusd-sandboxd
