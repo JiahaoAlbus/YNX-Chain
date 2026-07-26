@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/economics"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/explorer"
 )
 
@@ -26,6 +27,12 @@ func main() {
 	indexerURL := flag.String("indexer", envOrDefault("YNX_EXPLORER_INDEXER_URL", "http://127.0.0.1:6426"), "YNX indexer URL")
 	publicRPCURL := flag.String("public-rpc", envOrDefault("YNX_EXPLORER_PUBLIC_RPC_URL", *rpcURL), "wallet-visible public RPC URL")
 	publicExplorerURL := flag.String("public-url", envOrDefault("YNX_EXPLORER_PUBLIC_URL", "http://127.0.0.1:6427"), "wallet-visible public explorer URL")
+	reserveAttestation := flag.String("reserve-attestation", strings.TrimSpace(os.Getenv("YNX_STABLE_RESERVE_ATTESTATION_PATH")), "provider-signed stable reserve attestation JSON")
+	reservePublicKey := flag.String("reserve-public-key", strings.TrimSpace(os.Getenv("YNX_STABLE_RESERVE_PUBLIC_KEY")), "base64 raw provider Ed25519 public key")
+	reserveKeyID := flag.String("reserve-key-id", strings.TrimSpace(os.Getenv("YNX_STABLE_RESERVE_KEY_ID")), "provider reserve attestation key ID")
+	reserveAsset := flag.String("reserve-asset", envOrDefault("YNX_STABLE_RESERVE_ASSET", "YUSD"), "expected reserve asset")
+	reserveNetwork := flag.String("reserve-network", envOrDefault("YNX_STABLE_RESERVE_NETWORK", "ynx-testnet"), "expected reserve network")
+	reserveMaxAge := flag.Duration("reserve-max-age", 24*time.Hour, "maximum accepted reserve attestation age")
 	flag.Parse()
 
 	service, err := explorer.New(explorer.Config{
@@ -39,9 +46,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var reserveIntegration *economics.StableReserveIntegration
+	reserveConfigured := strings.TrimSpace(*reserveAttestation) != "" || strings.TrimSpace(*reservePublicKey) != "" || strings.TrimSpace(*reserveKeyID) != ""
+	if reserveConfigured {
+		reserveIntegration, err = explorer.LoadStableReserveIntegration(*reserveAttestation, *reservePublicKey, *reserveKeyID, *reserveAsset, *reserveNetwork, strings.TrimSpace(buildCommit), *reserveMaxAge)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	srv := &http.Server{Addr: *httpAddr, Handler: explorer.NewServerWithBuild(service, currentBuildInfo()).Handler(), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: *httpAddr, Handler: explorer.NewServerWithBuildAndStableReserve(service, currentBuildInfo(), reserveIntegration).Handler(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/economics"
 )
 
 type Server struct {
@@ -29,6 +30,9 @@ type Server struct {
 	economicsLatencyNanos   atomic.Uint64
 	economicsLatencyBuckets [6]atomic.Uint64
 	economicsLastSuccess    atomic.Int64
+
+	stableReserveMu          sync.RWMutex
+	stableReserveIntegration *economics.StableReserveIntegration
 }
 
 type streamEvent struct {
@@ -42,11 +46,16 @@ func NewServer(service *Service) *Server {
 }
 
 func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	return NewServerWithBuildAndStableReserve(service, build, nil)
+}
+
+func NewServerWithBuildAndStableReserve(service *Service, build buildinfo.Info, reserve *economics.StableReserveIntegration) *Server {
 	s := &Server{
-		service:       service,
-		mux:           http.NewServeMux(),
-		build:         buildinfo.Normalize(build),
-		streamClients: make(map[chan streamEvent]struct{}),
+		service:                  service,
+		mux:                      http.NewServeMux(),
+		build:                    buildinfo.Normalize(build),
+		streamClients:            make(map[chan streamEvent]struct{}),
+		stableReserveIntegration: reserve,
 	}
 	s.routes()
 	return s
@@ -67,6 +76,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
 	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
 	s.mux.HandleFunc("GET /api/economics/health", s.handleEconomicsHealth)
+	s.mux.HandleFunc("GET /api/stable/reserve", s.handleStableReserve)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
@@ -380,6 +390,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_explorer_transactions_total gauge\n")
 	_, _ = fmt.Fprintf(w, "ynx_explorer_transactions_total{%s} %d\n", labels, summary.IndexedTxCount)
 	_, _ = fmt.Fprint(w, s.economicsMetricsPrometheus())
+	_, _ = fmt.Fprint(w, s.stableReserveMetricsPrometheus(time.Now().UTC()))
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
