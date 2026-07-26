@@ -154,6 +154,12 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 	if err != nil {
 		return Summary{}, err
 	}
+	if status.ChainID != 6423 || health.ChainID != status.ChainID || health.Network != status.Network {
+		return Summary{}, fmt.Errorf("chain identity mismatch: rpc=%s/%d indexer=%s/%d", status.Network, status.ChainID, health.Network, health.ChainID)
+	}
+	if health.Service != "ynx-indexerd" {
+		return Summary{}, fmt.Errorf("indexer dependency identity mismatch: got %q", health.Service)
+	}
 	if status.NativeCurrencySymbol != "YNXT" || health.NativeSymbol != "YNXT" {
 		return Summary{}, fmt.Errorf("native symbol mismatch: rpc=%s indexer=%s", status.NativeCurrencySymbol, health.NativeSymbol)
 	}
