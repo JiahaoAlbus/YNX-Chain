@@ -10,6 +10,7 @@ expected_release="${3:?missing expected release}"
 [[ "$expected_release" == "ynx-bridge-$expected_commit" ]] || { echo "release name does not match expected commit" >&2; exit 1; }
 [[ -d "$release_dir" && ! -L "$release_dir" ]] || { echo "release directory is missing or unsafe" >&2; exit 1; }
 command -v openssl >/dev/null
+command -v python3 >/dev/null
 command -v sha256sum >/dev/null
 command -v systemctl >/dev/null
 id -u ynx >/dev/null
@@ -66,14 +67,16 @@ relayer_b="$(<"$relayer_dir/relayer-b.pub")"
 
 bridge_env_stage="/etc/ynx/.ynx-bridged.env.$expected_release"
 app_env_stage="/etc/ynx/.ynx-app-gatewayd.env.$expected_release"
+route_policies_json='[{"provider":"unapproved-testnet-candidate","classification":"external-bridge-adapter","sourceChain":"ynx_6423-1","destinationChain":"external-testnet-unavailable","sourceAsset":"YNXT","destinationAsset":"wrapped-YNXT","sourceAssetClass":"ynxt-bridge-candidate","destinationAssetClass":"wrapped-test-asset","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"5000000000","dailyLimit":"10000000000","userOutstandingLimit":"2000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false},{"provider":"circle-cctp-v2","classification":"official-stablecoin-transfer-candidate","sourceChain":"ethereum-sepolia","destinationChain":"base-sepolia","sourceAsset":"sepolia-usdc","destinationAsset":"base-sepolia-usdc","sourceAssetClass":"testnet-stablecoin","destinationAssetClass":"testnet-stablecoin","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"1000000000","dailyLimit":"10000000000","userOutstandingLimit":"1000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-canonical","externalSubmission":false}]'
+provider_routes_json='[{"provider":"circle-cctp-v2","adapter":"circle-cctp-v2","environment":"testnet","baseUrl":"https://iris-api-sandbox.circle.com","sourceChain":"ethereum-sepolia","destinationChain":"base-sepolia","sourceAsset":"sepolia-usdc","destinationAsset":"base-sepolia-usdc","sourceDomain":0,"destinationDomain":6,"sourceSymbol":"USDC","destinationSymbol":"USDC","sourceDecimals":6,"destinationDecimals":6,"sourceTokenContract":"0x1c7d4b196cb0c7b01d743fbc6116a902379c7238","destinationTokenContract":"0x036cbd53842c5426634e7929541ec2318f3dcf7e","sourceContract":"0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa","destinationContract":"0x8fe6b999dc680ccfdd5bf7eb0974218be2542daa","sourceExplorerUrl":"https://sepolia.etherscan.io/address/0x1c7d4b196cb0c7b01d743fbc6116a902379c7238","destinationExplorerUrl":"https://base-sepolia.blockscout.com/address/0x036cbd53842c5426634e7929541ec2318f3dcf7e","finalityThreshold":1000,"estimatedMinSeconds":15,"estimatedMaxSeconds":300,"connectivityProbeEnabled":true,"routeSupportVerified":true,"contractsVerified":true,"agreementApproved":false,"operationalReviewApproved":false,"routeSupportEvidenceUrl":"https://developers.circle.com/cctp/references/contract-addresses","agreementEvidenceUrl":"","operationalReviewUrl":"","license":"not-approved","termsUrl":"https://www.circle.com/legal/developer-terms","jurisdiction":"not-approved","dataRetention":"not-reviewed","dataRights":"not-reviewed","fallback":"none","outageMode":"route-unavailable"}]'
 cat >"$bridge_env_stage" <<EOF
 YNX_BRIDGE_DEPLOY_ENABLED=true
 YNX_BRIDGE_API_KEY=$api_key
 YNX_BRIDGE_GATEWAY_API_KEY=$gateway_key
 YNX_BRIDGE_QUOTE_SEAL_KEY=$quote_seal_key
 YNX_BRIDGE_RELAYERS_JSON='{"relayer-a":"$relayer_a","relayer-b":"$relayer_b"}'
-YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"provider":"unapproved-testnet-candidate","classification":"external-bridge-adapter","sourceChain":"ynx_6423-1","destinationChain":"external-testnet-unavailable","sourceAsset":"YNXT","destinationAsset":"wrapped-YNXT","sourceAssetClass":"ynxt-bridge-candidate","destinationAssetClass":"wrapped-test-asset","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"5000000000","dailyLimit":"10000000000","userOutstandingLimit":"2000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
-YNX_BRIDGE_PROVIDER_ROUTES_JSON='[]'
+YNX_BRIDGE_ROUTE_POLICIES_JSON='$route_policies_json'
+YNX_BRIDGE_PROVIDER_ROUTES_JSON='$provider_routes_json'
 YNX_BRIDGE_RELAYER_THRESHOLD=2
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 YNX_BRIDGE_RATE_LIMIT_WINDOW=1m
@@ -150,7 +153,65 @@ app_health="$(curl -fsS --max-time 8 http://127.0.0.1:6437/health)"
   echo "App Gateway did not report a healthy Bridge upstream" >&2
   exit 1
 }
+provider_probe_verified=0
+for provider_probe_attempt in 1 2 3; do
+  if provider_registry="$(curl -fsS --max-time 8 http://127.0.0.1:6433/bridge/providers)" &&
+    bridge_status="$(curl -fsS --max-time 8 http://127.0.0.1:6433/bridge/status)" &&
+    PROVIDER_REGISTRY="$provider_registry" BRIDGE_STATUS="$bridge_status" python3 - <<'PY'
+import json
+import os
+
+registry = json.loads(os.environ["PROVIDER_REGISTRY"])
+status = json.loads(os.environ["BRIDGE_STATUS"])
+providers = {entry["provider"]: entry for entry in registry["providers"]}
+circle = providers.get("circle-cctp-v2")
+ynx = providers.get("unapproved-testnet-candidate")
+if not circle or not ynx:
+    raise SystemExit("Bridge Provider Registry omitted the Circle probe or unavailable YNX route")
+if (
+    circle["health"] != "connected-live-fee-api"
+    or not circle.get("lastSuccess")
+    or circle["testnetStatus"] != "official-fee-api-connected-route-approval-incomplete"
+    or circle["failureStatus"] != "provider-route-approval-incomplete"
+    or circle["agreementApproved"]
+    or circle["operationalReviewApproved"]
+    or not circle["routeSupportVerified"]
+    or not circle["contractsConfigured"]
+    or circle["routeAvailable"]
+    or circle["executable"]
+):
+    raise SystemExit("Circle connectivity evidence overclaims approval or execution")
+if (
+    ynx["health"] != "not-connected"
+    or ynx["contractsConfigured"]
+    or ynx["routeAvailable"]
+    or ynx["executable"]
+):
+    raise SystemExit("unsupported YNX Provider route did not remain unavailable")
+if (
+    status["availableProviderCount"] != 1
+    or status["providerConnection"] != "connected-live-provider-api-route-execution-disabled"
+    or status["officialStablecoinRouteAvailable"]
+    or status["externalSubmissionEnabled"]
+    or status["userAssetMovementEnabled"]
+    or status["deployedPublic"]
+):
+    raise SystemExit("Bridge status conflates Provider connectivity with route execution")
+PY
+  then
+    provider_probe_verified=1
+    break
+  fi
+  if [[ "$provider_probe_attempt" -lt 3 ]]; then
+    systemctl restart ynx-bridged
+    sleep 2
+  fi
+done
+[[ "$provider_probe_verified" == "1" ]] || {
+  echo "Circle connectivity probe did not pass within three bounded attempts" >&2
+  exit 1
+}
 
 rollback_required=0
 trap - EXIT
-printf 'bridgeTestnetInstall=passed\nrelease=%s\ncommit=%s\nbridgeService=active\nappGatewayBridgeUpstream=healthy\nexternalSubmissionEnabled=false\n' "$expected_release" "$expected_commit"
+printf 'bridgeTestnetInstall=passed\nrelease=%s\ncommit=%s\nbridgeService=active\nappGatewayBridgeUpstream=healthy\nproviderConnectivityProbe=connected-live-fee-api\nynxRouteExecutable=false\nexternalSubmissionEnabled=false\n' "$expected_release" "$expected_commit"

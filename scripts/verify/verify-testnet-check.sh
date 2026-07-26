@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 bash -n scripts/verify/verify-testnet.sh
+bash -n scripts/deploy/install-bridge-testnet-remote.sh
 
 required_patterns=(
   "StrictHostKeyChecking=yes"
@@ -68,6 +69,25 @@ required_patterns=(
 for pattern in "${required_patterns[@]}"; do
   grep -Fq "$pattern" scripts/verify/verify-testnet.sh || {
     echo "verify-testnet.sh missing required verifier pattern: $pattern"
+    exit 1
+  }
+done
+
+bridge_installer_patterns=(
+  "connectivityProbeEnabled"
+  "circle-cctp-v2"
+  "ethereum-sepolia"
+  "base-sepolia"
+  "providerConnectivityProbe=connected-live-fee-api"
+  "ynxRouteExecutable=false"
+  "officialStablecoinRouteAvailable"
+  "externalSubmissionEnabled"
+  "userAssetMovementEnabled"
+)
+
+for pattern in "${bridge_installer_patterns[@]}"; do
+  grep -Fq "$pattern" scripts/deploy/install-bridge-testnet-remote.sh || {
+    echo "Bridge Testnet installer missing Provider boundary: $pattern"
     exit 1
   }
 done
