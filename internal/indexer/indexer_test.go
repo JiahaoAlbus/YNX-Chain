@@ -157,6 +157,42 @@ func TestIndexerFailsClosedWhenResumeHeightWasPruned(t *testing.T) {
 	}
 }
 
+func TestIndexerFailsClosedOnTransactionBlockMismatch(t *testing.T) {
+	tx := chain.Transaction{Hash: "0x" + strings.Repeat("a", 64), BlockNum: 101}
+	source := newMigrationSource(100, 100, map[uint64][]chain.Transaction{100: {tx}})
+	server := httptest.NewServer(source)
+	defer server.Close()
+	idx, err := New(Config{RPCURL: server.URL, StorePath: t.TempDir() + "/index.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := idx.SyncOnce(context.Background()); err == nil || !strings.Contains(err.Error(), "claims block 101") {
+		t.Fatalf("transaction block mismatch did not fail closed: %v", err)
+	}
+	db, err := idx.Store().Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(db.Blocks) != 0 || len(db.Transactions) != 0 {
+		t.Fatalf("invalid transaction was persisted: %+v", db)
+	}
+}
+
+func TestIndexerFailsClosedOnDuplicateTransactionHash(t *testing.T) {
+	hash := "0x" + strings.Repeat("b", 64)
+	txs := []chain.Transaction{{Hash: hash, BlockNum: 100}, {Hash: hash, BlockNum: 100}}
+	source := newMigrationSource(100, 100, map[uint64][]chain.Transaction{100: txs})
+	server := httptest.NewServer(source)
+	defer server.Close()
+	idx, err := New(Config{RPCURL: server.URL, StorePath: t.TempDir() + "/index.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := idx.SyncOnce(context.Background()); err == nil || !strings.Contains(err.Error(), "duplicate transaction hash") {
+		t.Fatalf("duplicate transaction hash did not fail closed: %v", err)
+	}
+}
+
 type migrationSource struct {
 	mu     sync.Mutex
 	status Status

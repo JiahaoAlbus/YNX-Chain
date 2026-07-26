@@ -313,6 +313,9 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		if expectedParent != "" && block.ParentHash != expectedParent {
 			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
 		}
+		if err := validateBlockTransactions(block, db.Transactions); err != nil {
+			return SyncResult{}, err
+		}
 		db, err = i.store.UpsertBlock(i.cfg.RPCURL, status, block)
 		if err != nil {
 			return SyncResult{}, err
@@ -324,6 +327,29 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	result.IndexedBlockCount = len(db.Blocks)
 	result.IndexedTxCount = len(db.Transactions)
 	return result, nil
+}
+
+func validateBlockTransactions(block chain.Block, indexed map[string]chain.Transaction) error {
+	seen := make(map[string]struct{}, len(block.Transactions))
+	for position, tx := range block.Transactions {
+		if strings.TrimSpace(tx.Hash) == "" {
+			return fmt.Errorf("source block %d contains transaction %d without a hash", block.Height, position)
+		}
+		if tx.BlockNum != block.Height {
+			return fmt.Errorf("source transaction %s claims block %d but was returned in block %d", tx.Hash, tx.BlockNum, block.Height)
+		}
+		if tx.BlockHash != "" && tx.BlockHash != block.Hash {
+			return fmt.Errorf("source transaction %s block hash does not match block %d", tx.Hash, block.Height)
+		}
+		if _, ok := seen[tx.Hash]; ok {
+			return fmt.Errorf("source block %d contains duplicate transaction hash %s", block.Height, tx.Hash)
+		}
+		seen[tx.Hash] = struct{}{}
+		if previous, ok := indexed[tx.Hash]; ok && (previous.BlockNum != block.Height || previous.BlockHash != tx.BlockHash) {
+			return fmt.Errorf("source transaction hash %s conflicts with indexed block %d; indexer rebuild required", tx.Hash, previous.BlockNum)
+		}
+	}
+	return nil
 }
 
 func LatestBlocks(db Database, limit int) []chain.Block {
