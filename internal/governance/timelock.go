@@ -59,7 +59,7 @@ var timelockTransitions = map[TimelockStatus]map[TimelockStatus]bool{
 	"":                     {TimelockScheduled: true},
 	TimelockScheduled:      {TimelockActive: true},
 	TimelockActive:         {TimelockCancelled: true, TimelockExpired: true, TimelockPaused: true, TimelockExecutionReady: true},
-	TimelockPaused:         {TimelockCorrected: true},
+	TimelockPaused:         {TimelockCorrected: true, TimelockExpired: true},
 	TimelockExecutionReady: {TimelockSubmitted: true},
 	TimelockSubmitted:      {TimelockExecuted: true, TimelockFailed: true},
 	TimelockFailed:         {TimelockRolledBack: true},
@@ -119,6 +119,9 @@ func (s *Service) CancelTimelock(proposalID, actionHash, actor, reason string, e
 	}
 	cancellation := &Cancellation{Actor: actor, Reason: strings.TrimSpace(reason), Evidence: append([]string(nil), evidence...), CancelledAt: now}
 	cancellation.AuditHash = hash(proposal.ID, cancellation.Actor, cancellation.Reason, cancellation.CancelledAt.Format(time.RFC3339Nano), strings.Join(cancellation.Evidence, "|"))
+	if err := s.transitionUpgradeLocked(proposal, UpgradeCancelled, actor, cancellation.Reason, cancellation.Evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	if err := transitionTimelock(record, TimelockCancelled, actor, cancellation.Reason, cancellation.Evidence, now); err != nil {
 		return Proposal{}, err
 	}
@@ -132,15 +135,27 @@ func (s *Service) CancelTimelock(proposalID, actionHash, actor, reason string, e
 }
 
 func (s *Service) expireTimelockLocked(proposal *Proposal, record *TimelockRecord, now time.Time) error {
-	if record == nil || proposal == nil || record.Status != TimelockActive || !now.After(record.GraceEndsAt) {
+	if record == nil || proposal == nil {
 		return nil
 	}
-	evidence := []string{"timelock-grace-expired://" + record.ID + "/" + record.GraceEndsAt.Format(time.RFC3339Nano)}
-	if err := transitionTimelock(record, TimelockExpired, "ynx-governance-runtime", "timelock grace window expired without execution submission", evidence, now); err != nil {
+	deadline := record.GraceEndsAt
+	if record.Status == TimelockPaused {
+		deadline = proposal.Input.ExpiresAt
+	} else if record.Status != TimelockActive {
+		return nil
+	}
+	if !now.After(deadline) {
+		return nil
+	}
+	evidence := []string{"timelock-expired://" + record.ID + "/" + deadline.Format(time.RFC3339Nano)}
+	if err := s.transitionUpgradeLocked(proposal, UpgradeExpired, "ynx-governance-runtime", "upgrade timelock execution window expired without submission", evidence, now); err != nil {
 		return err
 	}
-	if proposal.Status == StatusTimelockActive {
-		return transitionProposal(proposal, StatusExpired, "ynx-governance-runtime", "timelock grace window expired before execution", evidence, now)
+	if err := transitionTimelock(record, TimelockExpired, "ynx-governance-runtime", "timelock execution window expired without submission", evidence, now); err != nil {
+		return err
+	}
+	if proposal.Status == StatusTimelockActive || proposal.Status == StatusEmergencyPaused {
+		return transitionProposal(proposal, StatusExpired, "ynx-governance-runtime", "timelock execution window expired before submission", evidence, now)
 	}
 	return nil
 }

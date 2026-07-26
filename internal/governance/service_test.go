@@ -11,14 +11,14 @@ func testService(t *testing.T) *Service {
 	t.Helper()
 	now := time.Date(2026, 7, 22, 8, 0, 0, 0, time.UTC)
 	mk := func(account string, role GovernanceRole, threshold uint64) RoleAssignmentInput {
-		return RoleAssignmentInput{Account: account, Role: role, Scopes: []Scope{ScopeBridge}, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: threshold, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:test-genesis-role-evidence"}}
+		return RoleAssignmentInput{Account: account, Role: role, Scopes: []Scope{ScopeBridge, ScopeProtocolUpgrade, ScopeConsensusUpgrade}, TermStartsAt: now, TermEndsAt: now.Add(365 * 24 * time.Hour), DecisionThreshold: threshold, ConflictDisclosure: "No provider ownership or compensation conflict disclosed.", Evidence: []string{"sha256:test-genesis-role-evidence"}}
 	}
 	roles := []RoleAssignmentInput{mk("technical-1", RoleTechnicalCouncil, 2), mk("technical-2", RoleTechnicalCouncil, 2), mk("security-1", RoleSecurityCouncil, 2), mk("security-2", RoleSecurityCouncil, 2), mk("treasury-1", RoleTreasuryCouncil, 2), mk("treasury-2", RoleTreasuryCouncil, 2), mk("emergency-1", RoleEmergencyCouncil, 3), mk("emergency-2", RoleEmergencyCouncil, 3), mk("emergency-3", RoleEmergencyCouncil, 3)}
 	manifest, err := GenesisRoleManifestHash(roles)
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
+	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}, "/protocol/release": {Scope: ScopeProtocolUpgrade, Numeric: false}, "/consensus/release": {Scope: ScopeConsensusUpgrade, Numeric: false}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
 	if err != nil {
 		t.Fatal(err)
 	}

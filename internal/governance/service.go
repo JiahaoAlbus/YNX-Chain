@@ -228,6 +228,7 @@ type Service struct {
 	delegationHistory map[string][]Delegation
 	delegationNonces  map[string]struct{}
 	timelocks         map[string]*TimelockRecord
+	upgrades          map[string]*UpgradeRecord
 	emergencies       map[string]*EmergencyAction
 	emergencyNonces   map[string]struct{}
 	roles             map[string]*RoleAssignment
@@ -250,7 +251,7 @@ func NewService(policy Policy) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
 	}
-	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, timelocks: map[string]*TimelockRecord{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
+	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, timelocks: map[string]*TimelockRecord{}, upgrades: map[string]*UpgradeRecord{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
 func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
@@ -281,6 +282,11 @@ func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
 		{StatusDepositPending, "eligible proposal awaits the public deposit requirement"},
 	} {
 		if err := transitionProposal(p, step.to, input.Proposer, step.reason, input.Evidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
+	if isUpgradeProposal(p) {
+		if _, err := s.createUpgradeLocked(p, now); err != nil {
 			return Proposal{}, err
 		}
 	}
@@ -350,6 +356,11 @@ func (s *Service) RecordSimulation(id string, simulation Simulation, now time.Ti
 	if err != nil {
 		return Proposal{}, err
 	}
+	if !simulation.Passed {
+		if err = s.transitionUpgradeLocked(p, UpgradeRejected, p.Input.Owner, "upgrade simulations failed one or more mandatory safety gates", evidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
 	return clone(p), nil
 }
 
@@ -366,6 +377,9 @@ func (s *Service) CancelProposal(id, actor, reason string, evidence []string, no
 	c := &Cancellation{Actor: actor, Reason: strings.TrimSpace(reason), Evidence: append([]string(nil), evidence...), CancelledAt: now.UTC()}
 	c.AuditHash = hash(id, c.Actor, c.Reason, c.CancelledAt.Format(time.RFC3339Nano), strings.Join(c.Evidence, "|"))
 	p.Cancellation = c
+	if err = s.transitionUpgradeLocked(p, UpgradeCancelled, actor, c.Reason, c.Evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	if err = transitionProposal(p, StatusCancelled, actor, c.Reason, c.Evidence, now); err != nil {
 		return Proposal{}, err
 	}
@@ -482,12 +496,18 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	quorumReached := participated*10000 >= p.EligiblePower*s.policy.QuorumBPS
 	thresholdReached := decisive > 0 && yes*10000 >= decisive*s.policy.ThresholdBPS && veto*3 < decisive
 	if !quorumReached {
+		if err = s.transitionUpgradeLocked(p, UpgradeRejected, "ynx-governance-runtime", "upgrade proposal did not meet the versioned minimum quorum", tallyEvidence, now); err != nil {
+			return Proposal{}, err
+		}
 		if err = transitionProposal(p, StatusQuorumFailed, "ynx-governance-runtime", "final participation did not meet the versioned minimum quorum", tallyEvidence, now); err != nil {
 			return Proposal{}, err
 		}
 		return clone(p), nil
 	}
 	if !thresholdReached {
+		if err = s.transitionUpgradeLocked(p, UpgradeRejected, "ynx-governance-runtime", "upgrade proposal did not meet approval or veto thresholds", tallyEvidence, now); err != nil {
+			return Proposal{}, err
+		}
 		if err = transitionProposal(p, StatusThresholdFailed, "ynx-governance-runtime", "final approval or veto thresholds were not satisfied", tallyEvidence, now); err != nil {
 			return Proposal{}, err
 		}
@@ -497,6 +517,9 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 		return Proposal{}, err
 	}
 	if _, err = s.createTimelockLocked(p, tallyEvidence, now); err != nil {
+		return Proposal{}, err
+	}
+	if err = s.transitionUpgradeLocked(p, UpgradeTimelocked, "ynx-governance-runtime", "approved upgrade entered the exact-manifest timelock and became eligible for canary evaluation", tallyEvidence, now); err != nil {
 		return Proposal{}, err
 	}
 	if err = transitionProposal(p, StatusTimelockPending, "ynx-governance-runtime", "approved action was bound to a persistent public timelock record", tallyEvidence, now); err != nil {
@@ -546,6 +569,16 @@ func (s *Service) BeginExecution(id, manifestHash string, now time.Time) (Propos
 	if err = transitionProposal(p, StatusExecutionSubmitted, "execution-operator", "the exact authorized action hash was submitted to the canonical execution owner", evidence, now); err != nil {
 		return Proposal{}, err
 	}
+	if isUpgradeProposal(p) {
+		record, exists := s.upgrades[p.ID]
+		if !exists {
+			return Proposal{}, fmt.Errorf("%w: first-class upgrade record missing", ErrForbidden)
+		}
+		record.ExecutionManifestHash = p.ExecutionHash
+		if err = s.transitionUpgradeLocked(p, UpgradeSubmitted, "execution-operator", "exact upgrade manifest was submitted to the canonical execution owner", evidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
 	return clone(p), nil
 }
 
@@ -587,6 +620,13 @@ func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackR
 		if err = transitionTimelock(record, TimelockExecuted, "ynx-governance-verifier", "canonical execution receipt and post-execution verification both succeeded", executionEvidence, now); err != nil {
 			return Proposal{}, err
 		}
+		if isUpgradeProposal(p) {
+			upgrade := s.upgrades[p.ID]
+			upgrade.ExecutionReceiptAuditID = receipt.AuditHash
+			if err = s.transitionUpgradeLocked(p, UpgradeVerified, "ynx-governance-verifier", "upgrade execution receipt and post-upgrade verification both succeeded", executionEvidence, now); err != nil {
+				return Proposal{}, err
+			}
+		}
 		return clone(p), nil
 	}
 	if receipt.Outcome != "failed" {
@@ -597,6 +637,13 @@ func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackR
 	}
 	if err = transitionTimelock(record, TimelockFailed, "ynx-governance-verifier", "canonical execution receipt reported failure and no healthy state was inferred", executionEvidence, now); err != nil {
 		return Proposal{}, err
+	}
+	if isUpgradeProposal(p) {
+		upgrade := s.upgrades[p.ID]
+		upgrade.ExecutionReceiptAuditID = receipt.AuditHash
+		if err = s.transitionUpgradeLocked(p, UpgradeFailed, "ynx-governance-verifier", "upgrade execution receipt reported failure and requires verified rollback", executionEvidence, now); err != nil {
+			return Proposal{}, err
+		}
 	}
 	if rollbackReceipt == nil {
 		return clone(p), nil
@@ -614,6 +661,13 @@ func (s *Service) VerifyExecution(id string, receipt ExecutionReceipt, rollbackR
 	}
 	if err = transitionTimelock(record, TimelockRolledBack, "ynx-governance-verifier", "verified rollback restored the approved recovery manifest", rollbackEvidence, now); err != nil {
 		return Proposal{}, err
+	}
+	if isUpgradeProposal(p) {
+		upgrade := s.upgrades[p.ID]
+		upgrade.RollbackManifestHash, upgrade.RollbackReceiptAuditID = p.RollbackHash, rollbackReceipt.AuditHash
+		if err = s.transitionUpgradeLocked(p, UpgradeRolledBack, "ynx-governance-verifier", "verified upgrade rollback restored the approved recovery manifest", rollbackEvidence, now); err != nil {
+			return Proposal{}, err
+		}
 	}
 	return clone(p), nil
 }
@@ -646,6 +700,13 @@ func (s *Service) VerifyRollback(id string, rollbackReceipt ExecutionReceipt, no
 	if err = transitionTimelock(record, TimelockRolledBack, "ynx-governance-verifier", "verified rollback restored the approved recovery manifest", evidence, now); err != nil {
 		return Proposal{}, err
 	}
+	if isUpgradeProposal(p) {
+		upgrade := s.upgrades[p.ID]
+		upgrade.RollbackManifestHash, upgrade.RollbackReceiptAuditID = p.RollbackHash, rollbackReceipt.AuditHash
+		if err = s.transitionUpgradeLocked(p, UpgradeRolledBack, "ynx-governance-verifier", "verified upgrade rollback restored the approved recovery manifest", evidence, now); err != nil {
+			return Proposal{}, err
+		}
+	}
 	return clone(p), nil
 }
 
@@ -672,6 +733,9 @@ func (s *Service) PauseProposal(id, emergencyActionID, actor string, now time.Ti
 		if err = transitionTimelock(record, TimelockPaused, actor, "active scoped emergency action paused the scheduled governance action", evidence, now); err != nil {
 			return Proposal{}, err
 		}
+	}
+	if err = s.transitionUpgradeLocked(p, UpgradeEmergencyPaused, actor, "active scoped emergency action paused this upgrade", evidence, now); err != nil {
+		return Proposal{}, err
 	}
 	if err = transitionProposal(p, StatusEmergencyPaused, actor, "active scoped emergency action temporarily paused this proposal", evidence, now); err != nil {
 		return Proposal{}, err
@@ -700,6 +764,9 @@ func (s *Service) CorrectProposal(id, correctionProposalID, actor string, now ti
 		if err := transitionTimelock(record, TimelockCorrected, actor, "verified correction proposal closed the paused timelock without execution", []string{"correction-proposal://" + correction.ID}, now); err != nil {
 			return Proposal{}, err
 		}
+	}
+	if err := s.transitionUpgradeLocked(p, UpgradeCorrected, actor, "verified correction proposal closed the paused upgrade without execution", []string{"correction-proposal://" + correction.ID}, now); err != nil {
+		return Proposal{}, err
 	}
 	if err := transitionProposal(p, StatusCorrected, actor, "a separately approved and verified correction proposal resolved the emergency pause", []string{"correction-proposal://" + correction.ID}, now); err != nil {
 		return Proposal{}, err
@@ -760,6 +827,9 @@ func (s *Service) mutable(id string, now time.Time) (*Proposal, error) {
 		}
 	}
 	if now.UTC().After(p.Input.ExpiresAt) && !terminalProposalStatus(p.Status) && proposalTransitions[p.Status][StatusExpired] {
+		if err := s.transitionUpgradeLocked(p, UpgradeExpired, "ynx-governance-runtime", "upgrade proposal execution window expired before a verified terminal outcome", []string{"expiry://" + p.Input.ExpiresAt.UTC().Format(time.RFC3339Nano)}, now); err != nil {
+			return nil, err
+		}
 		if err := transitionProposal(p, StatusExpired, "ynx-governance-runtime", "proposal execution window expired before a terminal verified outcome", []string{"expiry://" + p.Input.ExpiresAt.UTC().Format(time.RFC3339Nano)}, now); err != nil {
 			return nil, err
 		}

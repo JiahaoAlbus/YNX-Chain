@@ -68,19 +68,34 @@ type PublicExecutionRecord struct {
 }
 
 type PublicUpgradeRecord struct {
-	ProposalID       string   `json:"proposalId"`
-	ProposalType     string   `json:"proposalType"`
-	Scope            Scope    `json:"scope"`
-	Status           Status   `json:"status"`
-	ActionHash       string   `json:"actionHash"`
-	SourceCommit     string   `json:"sourceCommit"`
-	Release          string   `json:"release"`
-	UpgradeHash      string   `json:"upgradeHash"`
-	Migration        string   `json:"migration"`
-	Rollback         string   `json:"rollback"`
-	CanaryPlan       string   `json:"canaryPlan"`
-	VerificationPlan string   `json:"verificationPlan"`
-	Evidence         []string `json:"evidence"`
+	ID                      string              `json:"id"`
+	ProposalID              string              `json:"proposalId"`
+	ProposalType            string              `json:"proposalType"`
+	Scope                   Scope               `json:"scope"`
+	Status                  Status              `json:"status"`
+	UpgradeStatus           UpgradeStatus       `json:"upgradeStatus"`
+	ActionHash              string              `json:"actionHash"`
+	SourceCommit            string              `json:"sourceCommit"`
+	Release                 string              `json:"release"`
+	UpgradeHash             string              `json:"upgradeHash"`
+	Migration               string              `json:"migration"`
+	MigrationHash           string              `json:"migrationHash"`
+	Rollback                string              `json:"rollback"`
+	RollbackPlanHash        string              `json:"rollbackPlanHash"`
+	CanaryPlan              string              `json:"canaryPlan"`
+	CanaryPlanHash          string              `json:"canaryPlanHash"`
+	CanaryRequired          bool                `json:"canaryRequired"`
+	CanaryEligible          bool                `json:"canaryEligible"`
+	CanaryStatus            string              `json:"canaryStatus"`
+	VerificationPlan        string              `json:"verificationPlan"`
+	VerificationPlanHash    string              `json:"verificationPlanHash"`
+	ExecutionManifestHash   string              `json:"executionManifestHash,omitempty"`
+	ExecutionReceiptAuditID string              `json:"executionReceiptAuditId,omitempty"`
+	RollbackManifestHash    string              `json:"rollbackManifestHash,omitempty"`
+	RollbackReceiptAuditID  string              `json:"rollbackReceiptAuditId,omitempty"`
+	Transitions             []UpgradeTransition `json:"transitions"`
+	Evidence                []string            `json:"evidence"`
+	AuditHash               string              `json:"auditHash"`
 }
 
 type PublicConflictRecord struct {
@@ -194,13 +209,24 @@ func (s *Service) PublicExecutions() []PublicExecutionRecord {
 }
 
 func (s *Service) PublicUpgrades() []PublicUpgradeRecord {
-	proposals := s.ListProposals()
-	out := []PublicUpgradeRecord{}
-	for _, proposal := range proposals {
-		if proposal.Input.Scope != ScopeProtocolUpgrade && proposal.Input.Scope != ScopeConsensusUpgrade {
+	records := s.ListUpgrades()
+	out := make([]PublicUpgradeRecord, 0, len(records))
+	for _, record := range records {
+		proposal, err := s.Get(record.ProposalID)
+		if err != nil {
 			continue
 		}
-		out = append(out, PublicUpgradeRecord{ProposalID: proposal.ID, ProposalType: proposal.Input.ProposalType, Scope: proposal.Input.Scope, Status: proposal.Status, ActionHash: proposal.ActionHash, SourceCommit: proposal.Input.SourceCommit, Release: proposal.Input.Release, UpgradeHash: proposal.Input.UpgradeHash, Migration: proposal.Input.Migration, Rollback: proposal.Input.Rollback, CanaryPlan: proposal.Input.CanaryPlan, VerificationPlan: proposal.Input.VerificationPlan, Evidence: append([]string(nil), proposal.Input.Evidence...)})
+		out = append(out, PublicUpgradeRecord{
+			ID: record.ID, ProposalID: record.ProposalID, ProposalType: record.ProposalType, Scope: record.Scope,
+			Status: proposal.Status, UpgradeStatus: record.Status, ActionHash: record.ActionHash, SourceCommit: record.SourceCommit,
+			Release: record.Release, UpgradeHash: record.ManifestHash, Migration: record.Migration, MigrationHash: record.MigrationHash,
+			Rollback: record.Rollback, RollbackPlanHash: record.RollbackPlanHash, CanaryPlan: record.CanaryPlan,
+			CanaryPlanHash: record.CanaryPlanHash, CanaryRequired: record.CanaryRequired, CanaryEligible: record.CanaryEligible,
+			CanaryStatus: record.CanaryStatus, VerificationPlan: record.VerificationPlan, VerificationPlanHash: record.VerificationPlanHash,
+			ExecutionManifestHash: record.ExecutionManifestHash, ExecutionReceiptAuditID: record.ExecutionReceiptAuditID,
+			RollbackManifestHash: record.RollbackManifestHash, RollbackReceiptAuditID: record.RollbackReceiptAuditID,
+			Transitions: cloneUpgrade(&record).Transitions, Evidence: append([]string(nil), proposal.Input.Evidence...), AuditHash: record.AuditHash,
+		})
 	}
 	return out
 }
@@ -249,6 +275,14 @@ func (s *Service) PublicAudit() []PublicAuditRecord {
 		for _, transition := range timelock.Transitions {
 			out = append(out, PublicAuditRecord{
 				AuditID: transition.AuditHash, RecordType: "timelock_transition", ProposalID: timelock.ProposalID,
+				Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At,
+			})
+		}
+	}
+	for _, upgrade := range s.ListUpgrades() {
+		for _, transition := range upgrade.Transitions {
+			out = append(out, PublicAuditRecord{
+				AuditID: transition.AuditHash, RecordType: "upgrade_transition", ProposalID: upgrade.ProposalID,
 				Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At,
 			})
 		}

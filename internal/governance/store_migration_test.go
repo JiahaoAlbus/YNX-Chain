@@ -97,6 +97,21 @@ func TestLoadRejectsLegacyV4StateWithoutFirstClassTimelockMigration(t *testing.T
 	}
 }
 
+func TestLoadRejectsLegacyV5StateWithoutFirstClassUpgradeMigration(t *testing.T) {
+	now := time.Date(2026, 7, 25, 9, 27, 0, 0, time.UTC)
+	service := testService(t)
+	path := t.TempDir() + "/state.json"
+	if err := service.Save(path, now); err != nil {
+		t.Fatal(err)
+	}
+	rewriteSnapshot(t, path, func(envelope *snapshotEnvelope) {
+		envelope.Payload.Version = legacyTimelockSnapshotVersion
+	})
+	if _, err := Load(path); !errors.Is(err, ErrForbidden) || !strings.Contains(err.Error(), "first-class upgrade migration") {
+		t.Fatalf("legacy v5 state was not rejected: %v", err)
+	}
+}
+
 func TestLoadRejectsTamperedTransitionHistoryEvenWithValidSnapshotDigest(t *testing.T) {
 	now := time.Date(2026, 7, 25, 9, 30, 0, 0, time.UTC)
 	service := testService(t)

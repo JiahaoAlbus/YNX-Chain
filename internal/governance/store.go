@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	snapshotVersion                   = "ynx-governance-state/v5"
+	snapshotVersion                   = "ynx-governance-state/v6"
+	legacyTimelockSnapshotVersion     = "ynx-governance-state/v5"
 	legacyDelegationSnapshotVersion   = "ynx-governance-state/v4"
 	legacySignedVoteSnapshotVersion   = "ynx-governance-state/v3"
 	legacyStateMachineSnapshotVersion = "ynx-governance-state/v2"
@@ -28,6 +29,7 @@ type snapshotPayload struct {
 	DelegationNonces []string          `json:"delegationNonces"`
 	Delegations      []Delegation      `json:"delegations"`
 	Timelocks        []TimelockRecord  `json:"timelocks"`
+	Upgrades         []UpgradeRecord   `json:"upgrades"`
 	Proposals        []Proposal        `json:"proposals"`
 	Emergencies      []EmergencyAction `json:"emergencies"`
 	Roles            []RoleAssignment  `json:"roles"`
@@ -55,6 +57,9 @@ func (s *Service) Save(path string, now time.Time) error {
 	for _, record := range s.timelocks {
 		payload.Timelocks = append(payload.Timelocks, cloneTimelock(record))
 	}
+	for _, record := range s.upgrades {
+		payload.Upgrades = append(payload.Upgrades, cloneUpgrade(record))
+	}
 	for _, p := range s.proposals {
 		payload.Proposals = append(payload.Proposals, clone(p))
 	}
@@ -80,6 +85,7 @@ func (s *Service) Save(path string, now time.Time) error {
 		return payload.Delegations[i].AppliedAt.Before(payload.Delegations[j].AppliedAt)
 	})
 	sort.Slice(payload.Timelocks, func(i, j int) bool { return payload.Timelocks[i].ID < payload.Timelocks[j].ID })
+	sort.Slice(payload.Upgrades, func(i, j int) bool { return payload.Upgrades[i].ID < payload.Upgrades[j].ID })
 	sort.Slice(payload.Proposals, func(i, j int) bool { return payload.Proposals[i].ID < payload.Proposals[j].ID })
 	sort.Slice(payload.Emergencies, func(i, j int) bool { return payload.Emergencies[i].ID < payload.Emergencies[j].ID })
 	sort.Slice(payload.Roles, func(i, j int) bool { return payload.Roles[i].ID < payload.Roles[j].ID })
@@ -155,6 +161,9 @@ func Load(path string) (*Service, error) {
 	}
 	if envelope.Payload.Version == legacyDelegationSnapshotVersion {
 		return nil, fmt.Errorf("%w: governance state v4 requires explicit first-class timelock migration to v5", ErrForbidden)
+	}
+	if envelope.Payload.Version == legacyTimelockSnapshotVersion {
+		return nil, fmt.Errorf("%w: governance state v5 requires explicit first-class upgrade migration to v6", ErrForbidden)
 	}
 	if envelope.Payload.Version != snapshotVersion {
 		return nil, fmt.Errorf("%w: unsupported governance snapshot version %q", ErrForbidden, envelope.Payload.Version)
@@ -251,6 +260,23 @@ func Load(path string) (*Service, error) {
 		if proposalReached(proposal, StatusTimelockPending) != hasTimelock {
 			return nil, fmt.Errorf("%w: proposal and persistent timelock records disagree", ErrForbidden)
 		}
+	}
+	for i := range envelope.Payload.Upgrades {
+		record := envelope.Payload.Upgrades[i]
+		proposal, exists := s.proposals[record.ProposalID]
+		if !exists {
+			return nil, fmt.Errorf("%w: upgrade proposal missing", ErrForbidden)
+		}
+		if _, duplicate := s.upgrades[record.ProposalID]; duplicate {
+			return nil, ErrConflict
+		}
+		if err = validateStoredUpgrade(&record, proposal); err != nil {
+			return nil, err
+		}
+		s.upgrades[record.ProposalID] = &record
+	}
+	if err = validateUpgradeRegistry(s.upgrades, s.proposals); err != nil {
+		return nil, err
 	}
 	for i := range envelope.Payload.Emergencies {
 		a := envelope.Payload.Emergencies[i]
