@@ -247,6 +247,7 @@ type ProviderRouteConfig struct {
 	FinalityThreshold         uint32  `json:"finalityThreshold"`
 	EstimatedMinSeconds       uint64  `json:"estimatedMinSeconds"`
 	EstimatedMaxSeconds       uint64  `json:"estimatedMaxSeconds"`
+	ConnectivityProbeEnabled  bool    `json:"connectivityProbeEnabled"`
 	RouteSupportVerified      bool    `json:"routeSupportVerified"`
 	ContractsVerified         bool    `json:"contractsVerified"`
 	AgreementApproved         bool    `json:"agreementApproved"`
@@ -599,6 +600,9 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		}
 		if route.EstimatedMinSeconds == 0 || route.EstimatedMaxSeconds < route.EstimatedMinSeconds {
 			return Config{}, nil, fmt.Errorf("bridge provider route %d timing bounds are invalid", i)
+		}
+		if route.ConnectivityProbeEnabled && (!route.RouteSupportVerified || !route.ContractsVerified) {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d connectivity probe requires verified route support and contracts", i)
 		}
 		if route.RouteSupportVerified && !validProviderEvidenceURL(route.RouteSupportEvidenceURL) {
 			return Config{}, nil, fmt.Errorf("bridge provider route %d verified route support requires HTTPS evidence", i)

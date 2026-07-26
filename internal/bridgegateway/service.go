@@ -175,6 +175,7 @@ func New(cfg Config) (*Service, error) {
 			return nil, err
 		}
 	}
+	service.probeConfiguredProviderConnectivity()
 	return service, nil
 }
 
@@ -1228,8 +1229,13 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 			}
 			if state.LastSuccess != "" {
 				entry.LastSuccess = stringPointer(state.LastSuccess)
-				entry.TestnetStatus = "official-fee-api-connected-route-execution-disabled"
-				entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
+				if config.AgreementApproved && config.OperationalReviewApproved {
+					entry.TestnetStatus = "official-fee-api-connected-route-execution-disabled"
+					entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
+				} else {
+					entry.TestnetStatus = "official-fee-api-connected-route-approval-incomplete"
+					entry.FailureStatus = "provider-route-approval-incomplete"
+				}
 			}
 			if state.LastFailure != "" {
 				entry.LastFailure = stringPointer(state.LastFailure)

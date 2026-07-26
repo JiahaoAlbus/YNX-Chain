@@ -54,9 +54,11 @@ func (s *Service) providerRouteEntry(key string, policy RoutePolicy) (RouteCatal
 	entry.Source = providerEndpoint(config.SourceChain, config.SourceAsset, policy.SourceAssetClass, config.SourceSymbol, config.SourceDecimals, config.SourceTokenContract, config.SourceExplorerURL, config.ContractsVerified)
 	entry.Destination = providerEndpoint(config.DestinationChain, config.DestinationAsset, policy.DestinationAssetClass, config.DestinationSymbol, config.DestinationDecimals, config.DestinationTokenContract, config.DestinationExplorerURL, config.ContractsVerified)
 	if !config.RouteSupportVerified || !config.ContractsVerified || !config.AgreementApproved || !config.OperationalReviewApproved {
+		if state := s.providerState(key); state.Health != "" {
+			entry.ProviderHealth = state.Health
+		}
 		entry.FailureStatus = "provider-route-approval-incomplete"
 		entry.Risk = []string{"provider route support, contracts, agreement, and operational review must all be verified", "external submission is disabled", "destination asset availability is not proven"}
-		s.recordProviderFailure(key, entry.FailureStatus)
 		return entry, true
 	}
 
@@ -191,6 +193,31 @@ func (s *Service) circleCCTPFees(config ProviderRouteConfig) ([]circleCCTPFee, e
 		seen[fee.FinalityThreshold] = struct{}{}
 	}
 	return fees, nil
+}
+
+func (s *Service) probeConfiguredProviderConnectivity() {
+	for key, config := range s.providerRoutes {
+		if !config.ConnectivityProbeEnabled {
+			continue
+		}
+		fees, err := s.circleCCTPFees(config)
+		if err != nil {
+			s.recordProviderFailure(key, "provider-connectivity-probe-unavailable")
+			continue
+		}
+		tierAvailable := false
+		for _, fee := range fees {
+			if fee.FinalityThreshold == config.FinalityThreshold {
+				tierAvailable = true
+				break
+			}
+		}
+		if !tierAvailable {
+			s.recordProviderFailure(key, "provider-finality-tier-unavailable")
+			continue
+		}
+		s.recordProviderSuccess(key)
+	}
 }
 
 func ensureJSONEOF(decoder *json.Decoder) error {

@@ -234,3 +234,68 @@ func TestCircleCCTPV2IncompleteApprovalDoesNotCallProvider(t *testing.T) {
 		t.Fatalf("incomplete approval contacted provider or enabled route: calls=%d quote=%+v", calls.Load(), quote)
 	}
 }
+
+func TestCircleCCTPV2ConnectivityProbeDoesNotApproveOrExecuteRoute(t *testing.T) {
+	var calls atomic.Int32
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		if request.Method != http.MethodGet || request.URL.String() != "https://iris-api-sandbox.circle.com/v2/burn/USDC/fees/0/6" {
+			t.Fatalf("unexpected provider probe request: %s %s", request.Method, request.URL)
+		}
+		return providerResponse(http.StatusOK, `[{"finalityThreshold":1000,"minimumFee":1},{"finalityThreshold":2000,"minimumFee":0}]`), nil
+	}))
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	cfg.ProviderRoutes[0].AgreementApproved = false
+	cfg.ProviderRoutes[0].AgreementEvidenceURL = ""
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("startup connectivity probe calls=%d, want 1", calls.Load())
+	}
+	quote, err := service.Quote(providerQuoteRequest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 1 || quote.Availability != "unavailable" ||
+		quote.FailureStatus != "provider-route-approval-incomplete" || quote.Executable {
+		t.Fatalf("probe approved, executed, or re-fetched route: calls=%d quote=%+v", calls.Load(), quote)
+	}
+	registry := service.ProviderRegistry()
+	status := service.ProductStatus(buildinfo.Info{})
+	if len(registry.Providers) != 1 || registry.Providers[0].Health != "connected-live-fee-api" ||
+		registry.Providers[0].AgreementApproved || registry.Providers[0].RouteAvailable || registry.Providers[0].Executable ||
+		registry.Providers[0].TestnetStatus != "official-fee-api-connected-route-approval-incomplete" ||
+		registry.Providers[0].FailureStatus != "provider-route-approval-incomplete" ||
+		status.ProviderConnection != "connected-live-provider-api-route-execution-disabled" ||
+		status.OfficialStablecoinRouteAvailable || status.ExternalSubmissionEnabled || status.UserAssetMovementEnabled {
+		t.Fatalf("probe boundary overclaims route: registry=%+v status=%+v", registry, status)
+	}
+}
+
+func TestCircleCCTPV2ConnectivityProbeFailureStartsFailClosed(t *testing.T) {
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("provider unavailable")
+	}))
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registry := service.ProviderRegistry()
+	if len(registry.Providers) != 1 || registry.Providers[0].Health != "unavailable" ||
+		registry.Providers[0].FailureStatus != "provider-connectivity-probe-unavailable" ||
+		registry.Providers[0].RouteAvailable || registry.Providers[0].Executable {
+		t.Fatalf("failed connectivity probe did not stay fail closed: %+v", registry)
+	}
+}
+
+func TestCircleCCTPV2ConnectivityProbeRequiresVerifiedRouteAndContracts(t *testing.T) {
+	cfg := providerTestConfig(t, http.DefaultTransport)
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	cfg.ProviderRoutes[0].ContractsVerified = false
+	if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "connectivity probe requires verified route support and contracts") {
+		t.Fatalf("unverified connectivity probe expected rejection, got %v", err)
+	}
+}
