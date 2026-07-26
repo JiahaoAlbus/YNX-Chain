@@ -13,6 +13,8 @@ var (
 	ErrProviderRateLimit     = errors.New("provider rate limit exceeded")
 	ErrProviderNotRegistered = errors.New("provider is not registered")
 	ErrProviderInactive      = errors.New("provider is not active")
+	ErrAttestorNotRegistered = errors.New("reserve attestor is not registered")
+	ErrAttestorInactive      = errors.New("reserve attestor is not active")
 	ErrPersistence           = errors.New("oracle persistence failed")
 )
 
@@ -20,6 +22,7 @@ type Service struct {
 	mu          sync.RWMutex
 	store       *Store
 	providers   map[string]Provider
+	attestors   map[string]Attestor
 	policy      Policy
 	derivatives DerivativesPolicy
 	dexTWAP     DEXTWAPPolicy
@@ -58,7 +61,46 @@ func NewService(store *Store, providers []Provider, policy Policy, now func() ti
 	if policy.ProviderUpdatesPerSecond <= 0 || policy.ProviderBurst < 1 {
 		return nil, errors.New("provider rate policy is invalid")
 	}
-	return &Service{store: store, providers: registry, policy: policy, derivatives: DefaultDerivativesPolicy(), dexTWAP: DefaultDEXTWAPPolicy(), reserve: DefaultStablecoinReservePolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+	return &Service{store: store, providers: registry, attestors: map[string]Attestor{}, policy: policy, derivatives: DefaultDerivativesPolicy(), dexTWAP: DefaultDEXTWAPPolicy(), reserve: DefaultStablecoinReservePolicy(), now: now, startedAt: now().UTC(), lastGood: map[string]Price{}, rate: map[string]rateBucket{}}, nil
+}
+
+func (service *Service) ConfigureAttestors(attestors []Attestor) error {
+	if len(attestors) == 0 {
+		return errors.New("attestor registry must not be empty")
+	}
+	registry := make(map[string]Attestor, len(attestors))
+	for _, attestor := range attestors {
+		if err := attestor.Validate(); err != nil {
+			return err
+		}
+		if _, exists := registry[attestor.ID]; exists {
+			return errors.New("duplicate attestor ID")
+		}
+		registry[attestor.ID] = attestor
+	}
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	if len(service.attestors) != 0 {
+		return errors.New("attestor registry is already configured")
+	}
+	service.attestors = registry
+	return nil
+}
+
+func (service *Service) verifyReserveAttestation(observation Observation) error {
+	if observation.Type != ReserveEvidence {
+		return nil
+	}
+	if observation.ReserveEvidence == nil {
+		return errInvalid
+	}
+	service.mu.RLock()
+	attestor, exists := service.attestors[observation.ReserveEvidence.AttestorID]
+	service.mu.RUnlock()
+	if !exists {
+		return ErrAttestorNotRegistered
+	}
+	return attestor.VerifyReserveEvidence(*observation.ReserveEvidence)
 }
 
 func (service *Service) Ingest(observation Observation) (bool, error) {
@@ -93,6 +135,9 @@ func (service *Service) Ingest(observation Observation) (bool, error) {
 	if provider.Status != "active" {
 		return false, ErrProviderInactive
 	}
+	if err := service.verifyReserveAttestation(observation); err != nil {
+		return false, err
+	}
 	created, err := service.store.Ingest(observation, provider)
 	if err != nil || !created {
 		return created, err
@@ -119,6 +164,9 @@ func (service *Service) Correct(correction Correction) error {
 	}
 	if provider.Status != "active" {
 		return ErrProviderInactive
+	}
+	if err := service.verifyReserveAttestation(correction.Corrected); err != nil {
+		return err
 	}
 	if err := service.store.Correct(correction, provider); err != nil {
 		return err
@@ -176,8 +224,12 @@ func (service *Service) aggregateReserveAndPersist(market string) (Price, error)
 	for key, value := range service.providers {
 		providers[key] = value
 	}
+	attestors := make(map[string]Attestor, len(service.attestors))
+	for key, value := range service.attestors {
+		attestors[key] = value
+	}
 	service.mu.RUnlock()
-	price, err := deriveStablecoinReserveRatio(now, market, observations, providers, service.reserve)
+	price, err := deriveStablecoinReserveRatio(now, market, observations, providers, attestors, service.reserve)
 	if price.Market != "" && price.LineageHash != "" {
 		if _, persistErr := service.store.AppendAggregate(price); persistErr != nil {
 			return price, fmt.Errorf("%w: reserve aggregate event: %v", ErrPersistence, persistErr)
@@ -245,6 +297,17 @@ func (service *Service) Providers() []Provider {
 	result := make([]Provider, 0, len(service.providers))
 	for _, provider := range service.providers {
 		result = append(result, provider)
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
+	return result
+}
+
+func (service *Service) Attestors() []Attestor {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	result := make([]Attestor, 0, len(service.attestors))
+	for _, attestor := range service.attestors {
+		result = append(result, attestor)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].ID < result[j].ID })
 	return result
@@ -336,6 +399,8 @@ type Health struct {
 	StartedAt                      time.Time         `json:"startedAt"`
 	ProviderCount                  int               `json:"providerCount"`
 	ActiveProviderCount            int               `json:"activeProviderCount"`
+	AttestorCount                  int               `json:"attestorCount"`
+	ActiveAttestorCount            int               `json:"activeAttestorCount"`
 	MinimumSources                 int               `json:"minimumSources"`
 	SourceLimitation               string            `json:"sourceLimitation,omitempty"`
 	AsOf                           time.Time         `json:"asOf"`
@@ -350,11 +415,18 @@ type Health struct {
 
 func (service *Service) Health() Health {
 	providers := service.Providers()
+	attestors := service.Attestors()
 	state := service.store.Snapshot()
 	active := 0
 	for _, provider := range providers {
 		if provider.Status == "active" {
 			active++
+		}
+	}
+	activeAttestors := 0
+	for _, attestor := range attestors {
+		if attestor.Status == "active" {
+			activeAttestors++
 		}
 	}
 	status, limitation := "ok", ""
@@ -381,7 +453,14 @@ func (service *Service) Health() Health {
 		limitation = "authoritative publication is disabled by an audited emergency control event"
 	}
 	return Health{Status: status, Degraded: status != "ok", ProductID: ProductID, Version: Version, Release: Version, Schema: SchemaVersion, PolicyVersion: service.policy.Version, NormalizerVersion: NormalizerVersion, StoreVersion: StoreVersion, StartedAt: service.startedAt,
-		ProviderCount: len(providers), ActiveProviderCount: active, MinimumSources: service.policy.MinimumSources,
+		ProviderCount: len(providers), ActiveProviderCount: active, AttestorCount: len(attestors), ActiveAttestorCount: activeAttestors, MinimumSources: service.policy.MinimumSources,
 		SourceLimitation: limitation, AsOf: now, StorageStatus: "ready", StorageGeneration: state.Generation, LastSuccessfulAggregation: lastSuccessfulAggregation,
-		Dependencies: map[string]string{"providerRegistry": "loaded", "storage": "ready"}, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
+		Dependencies: map[string]string{"providerRegistry": "loaded", "attestorRegistry": attestorRegistryStatus(attestors), "storage": "ready"}, EmergencyPaused: paused, PauseReason: reason, PauseAuditID: auditID}
+}
+
+func attestorRegistryStatus(attestors []Attestor) string {
+	if len(attestors) == 0 {
+		return "not_configured"
+	}
+	return "loaded"
 }

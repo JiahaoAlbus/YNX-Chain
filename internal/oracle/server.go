@@ -84,6 +84,7 @@ func NewServer(service *Service, logger *slog.Logger) (*Server, error) {
 	server.mux.HandleFunc("GET /v1/stablecoin/reserve", server.fixedPrice(StablecoinReserve))
 	server.mux.HandleFunc("GET /providers", server.providers)
 	server.mux.HandleFunc("GET /v1/providers", server.providers)
+	server.mux.HandleFunc("GET /v1/attestors", server.attestors)
 	server.mux.HandleFunc("GET /markets", server.markets)
 	server.mux.HandleFunc("GET /v1/markets", server.markets)
 	server.mux.HandleFunc("GET /status", server.status)
@@ -207,6 +208,10 @@ func (server *Server) servePrice(response http.ResponseWriter, market string, ki
 
 func (server *Server) providers(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]any{"schema": SchemaVersion, "source": "YNX Oracle versioned provider registry", "asOf": server.service.now().UTC(), "items": server.service.Providers()})
+}
+
+func (server *Server) attestors(response http.ResponseWriter, _ *http.Request) {
+	writeJSON(response, http.StatusOK, map[string]any{"schema": SchemaVersion, "source": "YNX Oracle versioned reserve attestor registry", "asOf": server.service.now().UTC(), "items": server.service.Attestors()})
 }
 
 func (server *Server) replay(response http.ResponseWriter, request *http.Request) {
@@ -350,7 +355,7 @@ func publicError(err error) string {
 
 func publicReadPath(path string) bool {
 	switch path {
-	case "/health", "/version", "/prices", "/v1/prices", "/v1/index", "/v1/mark", "/v1/funding", "/v1/dex/twap", "/v1/dex/twap/replay", "/v1/stablecoin/reserve", "/providers", "/v1/providers", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
+	case "/health", "/version", "/prices", "/v1/prices", "/v1/index", "/v1/mark", "/v1/funding", "/v1/dex/twap", "/v1/dex/twap/replay", "/v1/stablecoin/reserve", "/providers", "/v1/providers", "/v1/attestors", "/markets", "/v1/markets", "/status", "/v1/status", "/history", "/v1/history", "/corrections", "/v1/corrections", "/metrics", "/v1/replay", "/v1/market-data":
 		return true
 	default:
 		return false

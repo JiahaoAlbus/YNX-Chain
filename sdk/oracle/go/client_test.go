@@ -2,6 +2,9 @@ package oracleclient
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -233,11 +236,13 @@ func validReserveRatio(now time.Time) Price {
 		Derivation: &PriceDerivation{
 			Method: "reserve_assets_divided_by_outstanding_claims", PolicyVersion: StablecoinReservePolicyVersion,
 			ComponentTypes: []string{"stablecoin_reserve_evidence"}, ComponentLineageHashes: []string{hash},
-			EvidenceID: "evidence-2026-06", IssuerID: "issuer:yusd-test", AttestorID: "attestor:independent-a",
+			AttestationVersion: ReserveAttestationVersion, EvidenceID: "evidence-2026-06",
+			IssuerID: "issuer:yusd-test", AttestorID: "attestor:independent-a",
 			AssuranceStandard: "ISAE 3000 limited assurance", Jurisdiction: "US", Unit: "USD",
 			ReserveAssets: "102000000", OutstandingClaims: "100000000",
 			ReportingPeriodEnd: now.Add(-24 * time.Hour), PublishedAt: now.Add(-12 * time.Hour),
 			ExpiresAt: now.Add(30 * 24 * time.Hour), DocumentHash: strings.Repeat("a", 64), Conclusion: "unmodified",
+			AttestationSignatureHex: strings.Repeat("b", 128),
 		},
 	}
 }
@@ -254,11 +259,12 @@ func TestValidateReserveRatioRequiresExactEvidenceDerivation(t *testing.T) {
 			value.Version = DerivativesPolicyVersion
 			value.Derivation.PolicyVersion = DerivativesPolicyVersion
 		},
-		"ratio mismatch":        func(value *Price) { value.Value-- },
-		"qualified conclusion":  func(value *Price) { value.Derivation.Conclusion = "qualified" },
-		"wrong lineage":         func(value *Price) { value.Derivation.ComponentLineageHashes[0] = strings.Repeat("f", 64) },
-		"issuer is attestor":    func(value *Price) { value.Derivation.AttestorID = value.Derivation.IssuerID },
-		"invalid document hash": func(value *Price) { value.Derivation.DocumentHash = "bad" },
+		"ratio mismatch":                func(value *Price) { value.Value-- },
+		"qualified conclusion":          func(value *Price) { value.Derivation.Conclusion = "qualified" },
+		"wrong lineage":                 func(value *Price) { value.Derivation.ComponentLineageHashes[0] = strings.Repeat("f", 64) },
+		"issuer is attestor":            func(value *Price) { value.Derivation.AttestorID = value.Derivation.IssuerID },
+		"invalid document hash":         func(value *Price) { value.Derivation.DocumentHash = "bad" },
+		"invalid attestation signature": func(value *Price) { value.Derivation.AttestationSignatureHex = "bad" },
 	}
 	for name, mutate := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -268,6 +274,48 @@ func TestValidateReserveRatioRequiresExactEvidenceDerivation(t *testing.T) {
 				t.Fatal("unsafe reserve ratio accepted")
 			}
 		})
+	}
+}
+
+func TestVerifyReserveAttestationUsesAcceptedAttestorKey(t *testing.T) {
+	now := time.Date(2026, 7, 26, 9, 0, 0, 0, time.UTC)
+	public, private, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	price := validReserveRatio(now)
+	value := price.Derivation
+	payload, err := json.Marshal(reserveAttestationPayload{
+		AttestationVersion: value.AttestationVersion,
+		EvidenceID:         value.EvidenceID, IssuerID: value.IssuerID, AttestorID: value.AttestorID,
+		AssuranceStandard: value.AssuranceStandard, Jurisdiction: value.Jurisdiction, Unit: value.Unit,
+		ReserveAssets: value.ReserveAssets, OutstandingClaims: value.OutstandingClaims,
+		ReportingPeriodEnd: value.ReportingPeriodEnd.UTC(), PublishedAt: value.PublishedAt.UTC(),
+		ExpiresAt: value.ExpiresAt.UTC(), DocumentHash: value.DocumentHash, Conclusion: value.Conclusion,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	value.AttestationSignatureHex = hex.EncodeToString(ed25519.Sign(private, payload))
+	attestor := Attestor{
+		ID: value.AttestorID, Name: "Independent attestor", PublicKeyHex: hex.EncodeToString(public), Status: "active",
+		AssuranceStandards: []string{value.AssuranceStandard}, Jurisdictions: []string{value.Jurisdiction},
+		ValidFrom: now.Add(-365 * 24 * time.Hour), ValidUntil: now.Add(365 * 24 * time.Hour), UpdatedAt: now,
+	}
+	if err := price.VerifyReserveAttestation(attestor); err != nil {
+		t.Fatalf("valid attestation rejected: %v", err)
+	}
+	tampered := price
+	tampered.Derivation = new(PriceDerivation)
+	*tampered.Derivation = *price.Derivation
+	tampered.Derivation.DocumentHash = strings.Repeat("c", 64)
+	if err := tampered.VerifyReserveAttestation(attestor); err == nil {
+		t.Fatal("tampered reserve attestation accepted")
+	}
+	revoked := attestor
+	revoked.Status = "revoked"
+	if err := price.VerifyReserveAttestation(revoked); err == nil {
+		t.Fatal("revoked reserve attestor accepted")
 	}
 }
 

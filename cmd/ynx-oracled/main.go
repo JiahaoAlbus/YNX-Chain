@@ -23,6 +23,7 @@ import (
 type registryFile struct {
 	Schema    string            `json:"schema"`
 	Providers []oracle.Provider `json:"providers"`
+	Attestors []oracle.Attestor `json:"attestors,omitempty"`
 }
 
 func main() {
@@ -47,7 +48,7 @@ func run() error {
 	if err != nil || len(key) < 32 {
 		return errors.New("YNX_ORACLE_STATE_HMAC_KEY_HEX must decode to at least 32 bytes")
 	}
-	providers, err := loadRegistry(*registryPath)
+	providers, attestors, err := loadRegistry(*registryPath)
 	if err != nil {
 		return err
 	}
@@ -58,6 +59,11 @@ func run() error {
 	service, err := oracle.NewService(store, providers, oracle.DefaultPolicy(), time.Now)
 	if err != nil {
 		return err
+	}
+	if len(attestors) > 0 {
+		if err := service.ConfigureAttestors(attestors); err != nil {
+			return err
+		}
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	handler, err := oracle.NewServer(service, logger)
@@ -84,7 +90,7 @@ func run() error {
 	if metricsServer != nil {
 		go func() { result <- metricsServer.ListenAndServe() }()
 	}
-	logger.Info("oracle listening", "address", *listen, "product_id", oracle.ProductID, "version", oracle.Version, "provider_count", len(providers))
+	logger.Info("oracle listening", "address", *listen, "product_id", oracle.ProductID, "version", oracle.Version, "provider_count", len(providers), "attestor_count", len(attestors))
 	if metricsServer != nil {
 		logger.Info("oracle metrics listening", "address", *metricsListen)
 	}
@@ -106,22 +112,22 @@ func run() error {
 	}
 }
 
-func loadRegistry(path string) ([]oracle.Provider, error) {
+func loadRegistry(path string) ([]oracle.Provider, []oracle.Attestor, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read provider registry: %w", err)
+		return nil, nil, fmt.Errorf("read provider registry: %w", err)
 	}
 	var registry registryFile
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&registry); err != nil {
-		return nil, fmt.Errorf("decode provider registry: %w", err)
+		return nil, nil, fmt.Errorf("decode provider registry: %w", err)
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return nil, errors.New("provider registry must contain exactly one JSON value")
+		return nil, nil, errors.New("provider registry must contain exactly one JSON value")
 	}
 	if registry.Schema != oracle.SchemaVersion || len(registry.Providers) == 0 {
-		return nil, errors.New("provider registry schema or providers invalid")
+		return nil, nil, errors.New("provider registry schema or providers invalid")
 	}
-	return registry.Providers, nil
+	return registry.Providers, registry.Attestors, nil
 }

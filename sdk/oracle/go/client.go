@@ -3,6 +3,7 @@ package oracleclient
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -21,6 +22,7 @@ const (
 	DerivativesPolicyVersion       = "index-funding-mark-v1"
 	DEXTWAPPolicyVersion           = "dex-twap-v1"
 	StablecoinReservePolicyVersion = "stablecoin-reserve-v1"
+	ReserveAttestationVersion      = "reserve-attestation-ed25519-v1"
 )
 
 type Quality struct {
@@ -35,6 +37,19 @@ type Quality struct {
 	CoveragePPM         int64    `json:"coveragePpm"`
 	CircuitBreaker      bool     `json:"circuitBreaker"`
 	Failure             string   `json:"failure,omitempty"`
+}
+
+type Attestor struct {
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	PublicKeyHex       string    `json:"publicKeyHex"`
+	Status             string    `json:"status"`
+	AssuranceStandards []string  `json:"assuranceStandards"`
+	Jurisdictions      []string  `json:"jurisdictions"`
+	ValidFrom          time.Time `json:"validFrom"`
+	ValidUntil         time.Time `json:"validUntil"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+	RevocationReason   string    `json:"revocationReason,omitempty"`
 }
 
 type Price struct {
@@ -77,6 +92,7 @@ type PriceDerivation struct {
 	RejectedBlockNumbers     []uint64  `json:"rejectedBlockNumbers,omitempty"`
 	MinimumReserve0          string    `json:"minimumReserve0,omitempty"`
 	MinimumReserve1          string    `json:"minimumReserve1,omitempty"`
+	AttestationVersion       string    `json:"attestationVersion,omitempty"`
 	EvidenceID               string    `json:"evidenceId,omitempty"`
 	IssuerID                 string    `json:"issuerId,omitempty"`
 	AttestorID               string    `json:"attestorId,omitempty"`
@@ -90,6 +106,7 @@ type PriceDerivation struct {
 	ExpiresAt                time.Time `json:"expiresAt,omitempty"`
 	DocumentHash             string    `json:"documentHash,omitempty"`
 	Conclusion               string    `json:"conclusion,omitempty"`
+	AttestationSignatureHex  string    `json:"attestationSignatureHex,omitempty"`
 }
 
 func (price Price) Validate(now time.Time, maximumAge time.Duration, minimumConfidencePPM int64) error {
@@ -208,16 +225,19 @@ func (price Price) validateDerivation() error {
 		}
 	case "stablecoin_reserve_ratio":
 		documentHash, hashErr := hex.DecodeString(value.DocumentHash)
+		attestationSignature, signatureErr := hex.DecodeString(value.AttestationSignatureHex)
 		if len(value.ComponentTypes) != 1 || len(value.ComponentLineageHashes) != 1 ||
 			value.ComponentTypes[0] != "stablecoin_reserve_evidence" ||
 			value.ComponentLineageHashes[0] != price.ObservationHash[0] ||
 			value.Method != "reserve_assets_divided_by_outstanding_claims" ||
+			value.AttestationVersion != ReserveAttestationVersion ||
 			value.EvidenceID == "" || value.IssuerID == "" || value.AttestorID == "" || value.IssuerID == value.AttestorID ||
 			value.AssuranceStandard == "" || value.Jurisdiction == "" || value.Unit == "" ||
 			!decimalString(value.ReserveAssets) || !decimalString(value.OutstandingClaims) ||
 			value.ReportingPeriodEnd.IsZero() || value.PublishedAt.Before(value.ReportingPeriodEnd) ||
 			!value.ExpiresAt.After(value.PublishedAt) || value.Conclusion != "unmodified" ||
-			hashErr != nil || len(documentHash) != 32 || price.Scale != 1_000_000 {
+			hashErr != nil || len(documentHash) != 32 || signatureErr != nil || len(attestationSignature) != 64 ||
+			price.Scale != 1_000_000 {
 			return errors.New("stablecoin reserve derivation is invalid")
 		}
 		assets, _ := new(big.Int).SetString(value.ReserveAssets, 10)
@@ -245,6 +265,65 @@ func decimalString(value string) bool {
 		}
 	}
 	return nonZero
+}
+
+type reserveAttestationPayload struct {
+	AttestationVersion string    `json:"attestationVersion"`
+	EvidenceID         string    `json:"evidenceId"`
+	IssuerID           string    `json:"issuerId"`
+	AttestorID         string    `json:"attestorId"`
+	AssuranceStandard  string    `json:"assuranceStandard"`
+	Jurisdiction       string    `json:"jurisdiction"`
+	Unit               string    `json:"unit"`
+	ReserveAssets      string    `json:"reserveAssets"`
+	OutstandingClaims  string    `json:"outstandingClaims"`
+	ReportingPeriodEnd time.Time `json:"reportingPeriodEnd"`
+	PublishedAt        time.Time `json:"publishedAt"`
+	ExpiresAt          time.Time `json:"expiresAt"`
+	DocumentHash       string    `json:"documentHash"`
+	Conclusion         string    `json:"conclusion"`
+}
+
+func (price Price) VerifyReserveAttestation(attestor Attestor) error {
+	if price.Type != "stablecoin_reserve_ratio" || price.Derivation == nil {
+		return errors.New("price is not an evidence-derived stablecoin reserve ratio")
+	}
+	value := price.Derivation
+	if err := price.validateDerivation(); err != nil {
+		return err
+	}
+	if attestor.Status != "active" || attestor.ID != value.AttestorID ||
+		value.PublishedAt.Before(attestor.ValidFrom) || value.PublishedAt.After(attestor.ValidUntil) ||
+		!containsExact(attestor.AssuranceStandards, value.AssuranceStandard) ||
+		!containsExact(attestor.Jurisdictions, value.Jurisdiction) {
+		return errors.New("reserve attestation is outside accepted attestor authority")
+	}
+	key, keyErr := hex.DecodeString(attestor.PublicKeyHex)
+	signature, signatureErr := hex.DecodeString(value.AttestationSignatureHex)
+	if keyErr != nil || len(key) != ed25519.PublicKeySize || signatureErr != nil || len(signature) != ed25519.SignatureSize {
+		return errors.New("reserve attestation key or signature encoding is invalid")
+	}
+	payload, err := json.Marshal(reserveAttestationPayload{
+		AttestationVersion: value.AttestationVersion,
+		EvidenceID:         value.EvidenceID, IssuerID: value.IssuerID, AttestorID: value.AttestorID,
+		AssuranceStandard: value.AssuranceStandard, Jurisdiction: value.Jurisdiction, Unit: value.Unit,
+		ReserveAssets: value.ReserveAssets, OutstandingClaims: value.OutstandingClaims,
+		ReportingPeriodEnd: value.ReportingPeriodEnd.UTC(), PublishedAt: value.PublishedAt.UTC(),
+		ExpiresAt: value.ExpiresAt.UTC(), DocumentHash: value.DocumentHash, Conclusion: value.Conclusion,
+	})
+	if err != nil || !ed25519.Verify(ed25519.PublicKey(key), payload, signature) {
+		return errors.New("reserve attestation signature rejected")
+	}
+	return nil
+}
+
+func containsExact(values []string, expected string) bool {
+	for _, value := range values {
+		if value == expected {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidateFor binds intrinsic price quality to the exact consumer request and

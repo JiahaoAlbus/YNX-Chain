@@ -148,8 +148,9 @@
     "reserveEvidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["evidenceId", "issuerId", "attestorId", "assuranceStandard", "jurisdiction", "unit", "reserveAssets", "outstandingClaims", "reportingPeriodEnd", "publishedAt", "expiresAt", "documentHash", "conclusion"],
+      "required": ["attestationVersion", "evidenceId", "issuerId", "attestorId", "assuranceStandard", "jurisdiction", "unit", "reserveAssets", "outstandingClaims", "reportingPeriodEnd", "publishedAt", "expiresAt", "documentHash", "conclusion", "attestationSignatureHex"],
       "properties": {
+        "attestationVersion": {"const": "reserve-attestation-ed25519-v1"},
         "evidenceId": {"type": "string", "minLength": 1},
         "issuerId": {"type": "string", "minLength": 1},
         "attestorId": {"type": "string", "minLength": 1},
@@ -162,7 +163,8 @@
         "publishedAt": {"type": "string", "format": "date-time"},
         "expiresAt": {"type": "string", "format": "date-time"},
         "documentHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "conclusion": {"enum": ["unmodified", "qualified", "adverse", "disclaimer"]}
+        "conclusion": {"enum": ["unmodified", "qualified", "adverse", "disclaimer"]},
+        "attestationSignatureHex": {"type": "string", "pattern": "^[a-f0-9]{128}$"}
       }
     }
   }

@@ -50,6 +50,8 @@ func TestOracleSchemasFreezeProviderAndDerivedPriceBoundaries(t *testing.T) {
 		`"stablecoin-reserve-v1"`,
 		`"reserve_assets_divided_by_outstanding_claims"`,
 		`"documentHash"`,
+		`"attestationSignatureHex"`,
+		`"reserve-attestation-ed25519-v1"`,
 		`"componentLineageHashes"`,
 	} {
 		if !strings.Contains(priceSchema, required) {

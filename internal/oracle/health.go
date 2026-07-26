@@ -13,5 +13,6 @@ func (service *Service) PublicHealth() Health {
 	health.Dependencies["derivativesPolicy"] = service.derivatives.Version
 	health.Dependencies["dexTwapPolicy"] = service.dexTWAP.Version
 	health.Dependencies["stablecoinReservePolicy"] = service.reserve.Version
+	health.Dependencies["reserveAttestation"] = ReserveAttestationVersion
 	return health
 }

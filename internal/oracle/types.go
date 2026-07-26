@@ -155,19 +155,21 @@ type PoolState struct {
 }
 
 type StablecoinReserveEvidence struct {
-	EvidenceID         string    `json:"evidenceId"`
-	IssuerID           string    `json:"issuerId"`
-	AttestorID         string    `json:"attestorId"`
-	AssuranceStandard  string    `json:"assuranceStandard"`
-	Jurisdiction       string    `json:"jurisdiction"`
-	Unit               string    `json:"unit"`
-	ReserveAssets      string    `json:"reserveAssets"`
-	OutstandingClaims  string    `json:"outstandingClaims"`
-	ReportingPeriodEnd time.Time `json:"reportingPeriodEnd"`
-	PublishedAt        time.Time `json:"publishedAt"`
-	ExpiresAt          time.Time `json:"expiresAt"`
-	DocumentHash       string    `json:"documentHash"`
-	Conclusion         string    `json:"conclusion"`
+	AttestationVersion      string    `json:"attestationVersion"`
+	EvidenceID              string    `json:"evidenceId"`
+	IssuerID                string    `json:"issuerId"`
+	AttestorID              string    `json:"attestorId"`
+	AssuranceStandard       string    `json:"assuranceStandard"`
+	Jurisdiction            string    `json:"jurisdiction"`
+	Unit                    string    `json:"unit"`
+	ReserveAssets           string    `json:"reserveAssets"`
+	OutstandingClaims       string    `json:"outstandingClaims"`
+	ReportingPeriodEnd      time.Time `json:"reportingPeriodEnd"`
+	PublishedAt             time.Time `json:"publishedAt"`
+	ExpiresAt               time.Time `json:"expiresAt"`
+	DocumentHash            string    `json:"documentHash"`
+	Conclusion              string    `json:"conclusion"`
+	AttestationSignatureHex string    `json:"attestationSignatureHex"`
 }
 
 type ProviderHealth struct {
@@ -427,7 +429,8 @@ func (observation Observation) validatePayload() error {
 	case ReserveEvidence:
 		evidence := observation.ReserveEvidence
 		decimal := regexp.MustCompile(`^[0-9]{1,78}$`)
-		if evidence == nil || strings.TrimSpace(evidence.EvidenceID) == "" || strings.TrimSpace(evidence.IssuerID) == "" ||
+		if evidence == nil || evidence.AttestationVersion != ReserveAttestationVersion ||
+			strings.TrimSpace(evidence.EvidenceID) == "" || strings.TrimSpace(evidence.IssuerID) == "" ||
 			strings.TrimSpace(evidence.AttestorID) == "" || evidence.IssuerID == evidence.AttestorID ||
 			strings.TrimSpace(evidence.AssuranceStandard) == "" || strings.TrimSpace(evidence.Jurisdiction) == "" ||
 			!marketPattern.MatchString(evidence.Unit) || !decimal.MatchString(evidence.ReserveAssets) ||
@@ -435,7 +438,7 @@ func (observation Observation) validatePayload() error {
 			strings.Trim(evidence.OutstandingClaims, "0") == "" || evidence.ReportingPeriodEnd.IsZero() ||
 			evidence.PublishedAt.Before(evidence.ReportingPeriodEnd) || evidence.PublishedAt.After(observation.ObservedAt) ||
 			!evidence.ExpiresAt.After(evidence.PublishedAt) || observation.ObservedAt.After(evidence.ExpiresAt) ||
-			!blockHashPattern.MatchString(evidence.DocumentHash) ||
+			!blockHashPattern.MatchString(evidence.DocumentHash) || len(evidence.AttestationSignatureHex) != ed25519.SignatureSize*2 ||
 			(evidence.Conclusion != "unmodified" && evidence.Conclusion != "qualified" && evidence.Conclusion != "adverse" && evidence.Conclusion != "disclaimer") {
 			return fmt.Errorf("%w: stablecoin reserve evidence", errInvalid)
 		}
@@ -502,6 +505,7 @@ type PriceDerivation struct {
 	RejectedBlockNumbers     []uint64   `json:"rejectedBlockNumbers,omitempty"`
 	MinimumReserve0          string     `json:"minimumReserve0,omitempty"`
 	MinimumReserve1          string     `json:"minimumReserve1,omitempty"`
+	AttestationVersion       string     `json:"attestationVersion,omitempty"`
 	EvidenceID               string     `json:"evidenceId,omitempty"`
 	IssuerID                 string     `json:"issuerId,omitempty"`
 	AttestorID               string     `json:"attestorId,omitempty"`
@@ -515,6 +519,7 @@ type PriceDerivation struct {
 	ExpiresAt                time.Time  `json:"expiresAt,omitempty"`
 	DocumentHash             string     `json:"documentHash,omitempty"`
 	Conclusion               string     `json:"conclusion,omitempty"`
+	AttestationSignatureHex  string     `json:"attestationSignatureHex,omitempty"`
 }
 
 type NormalizedEvent struct {

@@ -1,6 +1,9 @@
 package oracle
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,16 +12,55 @@ import (
 	"time"
 )
 
-func reserveObservation(t *testing.T, source testReporter, sequence uint64, now time.Time, assets, claims, conclusion string) Observation {
+type testAttestor struct {
+	registry Attestor
+	private  ed25519.PrivateKey
+}
+
+func reserveAttestor(t *testing.T, id string, now time.Time) testAttestor {
+	t.Helper()
+	public, private, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value := Attestor{
+		ID: id, Name: "Independent reserve attestor " + id, PublicKeyHex: hex.EncodeToString(public), Status: "active",
+		AssuranceStandards: []string{"ISAE 3000 limited assurance"}, Jurisdictions: []string{"US"},
+		ValidFrom: now.Add(-365 * 24 * time.Hour), ValidUntil: now.Add(365 * 24 * time.Hour), UpdatedAt: now,
+	}
+	if err := value.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	return testAttestor{registry: value, private: private}
+}
+
+func configureAttestors(t *testing.T, service *Service, values ...testAttestor) {
+	t.Helper()
+	registry := make([]Attestor, 0, len(values))
+	for _, value := range values {
+		registry = append(registry, value.registry)
+	}
+	if err := service.ConfigureAttestors(registry); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func reserveObservation(t *testing.T, source testReporter, signer testAttestor, sequence uint64, now time.Time, assets, claims, conclusion string) Observation {
 	t.Helper()
 	observation := structuredBase(source, sequence, ReserveEvidence, now)
 	observation.ReserveEvidence = &StablecoinReserveEvidence{
-		EvidenceID: "evidence-2026-06", IssuerID: "issuer:yusd-test", AttestorID: "attestor:independent-a",
+		AttestationVersion: ReserveAttestationVersion,
+		EvidenceID:         "evidence-2026-06", IssuerID: "issuer:yusd-test", AttestorID: signer.registry.ID,
 		AssuranceStandard: "ISAE 3000 limited assurance", Jurisdiction: "US", Unit: "USD",
 		ReserveAssets: assets, OutstandingClaims: claims,
 		ReportingPeriodEnd: now.Add(-24 * time.Hour), PublishedAt: now.Add(-12 * time.Hour),
 		ExpiresAt: now.Add(30 * 24 * time.Hour), DocumentHash: strings.Repeat("a", 64), Conclusion: conclusion,
 	}
+	payload, err := observation.ReserveEvidence.AttestationSigningBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	observation.ReserveEvidence.AttestationSignatureHex = hex.EncodeToString(ed25519.Sign(signer.private, payload))
 	return source.signed(t, observation)
 }
 
@@ -34,8 +76,10 @@ func TestProviderCannotPublishReserveRatioDirectly(t *testing.T) {
 func TestServiceDerivesReserveRatioFromCurrentUnmodifiedEvidence(t *testing.T) {
 	now := time.Date(2026, 7, 26, 9, 0, 0, 0, time.UTC)
 	source := reporter(t, "source-a", 1_000_000, now)
+	attestor := reserveAttestor(t, "attestor:independent-a", now)
 	service := testService(t, &now, source)
-	observation := reserveObservation(t, source, 1, now, "102000000", "100000000", "unmodified")
+	configureAttestors(t, service, attestor)
+	observation := reserveObservation(t, source, attestor, 1, now, "102000000", "100000000", "unmodified")
 	if _, err := service.Ingest(observation); err != nil {
 		t.Fatal(err)
 	}
@@ -47,6 +91,7 @@ func TestServiceDerivesReserveRatioFromCurrentUnmodifiedEvidence(t *testing.T) {
 		price.Derivation == nil || price.Derivation.Method != "reserve_assets_divided_by_outstanding_claims" ||
 		price.Derivation.ReserveAssets != "102000000" || price.Derivation.OutstandingClaims != "100000000" ||
 		price.Derivation.DocumentHash != strings.Repeat("a", 64) || price.Derivation.Conclusion != "unmodified" ||
+		price.Derivation.AttestationSignatureHex == "" ||
 		price.Quality.Status != "good" || price.Quality.SourceLimitation == "" || len(price.LineageHash) != 64 {
 		t.Fatalf("reserve ratio=%+v", price)
 	}
@@ -60,8 +105,10 @@ func TestServiceDerivesReserveRatioFromCurrentUnmodifiedEvidence(t *testing.T) {
 func TestStablecoinReserveEndpointReturnsDerivedEvidence(t *testing.T) {
 	now := time.Date(2026, 7, 26, 9, 0, 0, 0, time.UTC)
 	source := reporter(t, "source-a", 1_000_000, now)
+	attestor := reserveAttestor(t, "attestor:independent-a", now)
 	service := testService(t, &now, source)
-	if _, err := service.Ingest(reserveObservation(t, source, 1, now, "102000000", "100000000", "unmodified")); err != nil {
+	configureAttestors(t, service, attestor)
+	if _, err := service.Ingest(reserveObservation(t, source, attestor, 1, now, "102000000", "100000000", "unmodified")); err != nil {
 		t.Fatal(err)
 	}
 	server, err := NewServer(service, nil)
@@ -87,10 +134,13 @@ func TestReserveRatioFailsClosedForQualifiedExpiredOrConflictingEvidence(t *test
 	now := time.Date(2026, 7, 26, 9, 0, 0, 0, time.UTC)
 	first := reporter(t, "source-a", 1_000_000, now)
 	second := reporter(t, "source-b", 1_000_000, now)
+	firstAttestor := reserveAttestor(t, "attestor:independent-a", now)
+	secondAttestor := reserveAttestor(t, "attestor:independent-b", now)
 
 	t.Run("qualified", func(t *testing.T) {
 		service := testService(t, &now, first)
-		if _, err := service.Ingest(reserveObservation(t, first, 1, now, "102000000", "100000000", "qualified")); err != nil {
+		configureAttestors(t, service, firstAttestor)
+		if _, err := service.Ingest(reserveObservation(t, first, firstAttestor, 1, now, "102000000", "100000000", "qualified")); err != nil {
 			t.Fatal(err)
 		}
 		price, err := service.Price("YNXT/YUSD_TEST", StablecoinReserve)
@@ -101,7 +151,7 @@ func TestReserveRatioFailsClosedForQualifiedExpiredOrConflictingEvidence(t *test
 	})
 
 	t.Run("expired", func(t *testing.T) {
-		observation := reserveObservation(t, first, 1, now, "102000000", "100000000", "unmodified")
+		observation := reserveObservation(t, first, firstAttestor, 1, now, "102000000", "100000000", "unmodified")
 		observation.ReserveEvidence.ExpiresAt = now.Add(-time.Hour)
 		observation = first.signed(t, observation)
 		if err := observation.Verify(first.provider, "ynx-oracle-testnet-v1"); err == nil {
@@ -111,10 +161,15 @@ func TestReserveRatioFailsClosedForQualifiedExpiredOrConflictingEvidence(t *test
 
 	t.Run("conflict", func(t *testing.T) {
 		service := testService(t, &now, first, second)
-		left := reserveObservation(t, first, 1, now, "102000000", "100000000", "unmodified")
-		right := reserveObservation(t, second, 1, now, "99000000", "100000000", "unmodified")
-		right.ReserveEvidence.AttestorID = "attestor:independent-b"
+		configureAttestors(t, service, firstAttestor, secondAttestor)
+		left := reserveObservation(t, first, firstAttestor, 1, now, "102000000", "100000000", "unmodified")
+		right := reserveObservation(t, second, secondAttestor, 1, now, "99000000", "100000000", "unmodified")
 		right.ReserveEvidence.DocumentHash = strings.Repeat("b", 64)
+		payload, err := right.ReserveEvidence.AttestationSigningBytes()
+		if err != nil {
+			t.Fatal(err)
+		}
+		right.ReserveEvidence.AttestationSignatureHex = hex.EncodeToString(ed25519.Sign(secondAttestor.private, payload))
 		right = second.signed(t, right)
 		if _, err := service.Ingest(left); err != nil {
 			t.Fatal(err)

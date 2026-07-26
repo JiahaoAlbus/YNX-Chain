@@ -32,7 +32,7 @@ func (policy StablecoinReservePolicy) validate() error {
 	return nil
 }
 
-func deriveStablecoinReserveRatio(now time.Time, market string, observations []Observation, providers map[string]Provider, policy StablecoinReservePolicy) (Price, error) {
+func deriveStablecoinReserveRatio(now time.Time, market string, observations []Observation, providers map[string]Provider, attestors map[string]Attestor, policy StablecoinReservePolicy) (Price, error) {
 	if err := policy.validate(); err != nil {
 		return Price{}, err
 	}
@@ -42,7 +42,10 @@ func deriveStablecoinReserveRatio(now time.Time, market string, observations []O
 	for _, observation := range observations {
 		provider, exists := providers[observation.ProviderID]
 		evidence := observation.ReserveEvidence
+		attestor, attestorExists := attestors[evidenceAttestorID(evidence)]
+		attestationValid := attestorExists && evidence != nil && attestor.VerifyReserveEvidence(*evidence) == nil
 		if !exists || provider.Status != "active" || observation.Type != ReserveEvidence || evidence == nil ||
+			!attestationValid ||
 			observation.Market != market || !provider.CoversMarket(market) ||
 			observation.Source != provider.Endpoint || observation.SourceVersion != provider.APIVersion ||
 			evidence.ReportingPeriodEnd.After(now) ||
@@ -127,14 +130,23 @@ func deriveStablecoinReserveRatio(now time.Time, market string, observations []O
 		Derivation: &PriceDerivation{
 			Method: "reserve_assets_divided_by_outstanding_claims", PolicyVersion: policy.Version,
 			ComponentTypes: []DataType{ReserveEvidence}, ComponentLineageHashes: []string{selected.Hash},
-			EvidenceID: evidence.EvidenceID, IssuerID: evidence.IssuerID, AttestorID: evidence.AttestorID,
+			AttestationVersion: evidence.AttestationVersion, EvidenceID: evidence.EvidenceID,
+			IssuerID: evidence.IssuerID, AttestorID: evidence.AttestorID,
 			AssuranceStandard: evidence.AssuranceStandard, Jurisdiction: evidence.Jurisdiction, Unit: evidence.Unit,
 			ReserveAssets: evidence.ReserveAssets, OutstandingClaims: evidence.OutstandingClaims,
 			ReportingPeriodEnd: evidence.ReportingPeriodEnd.UTC(), PublishedAt: evidence.PublishedAt.UTC(),
 			ExpiresAt: evidence.ExpiresAt.UTC(), DocumentHash: evidence.DocumentHash, Conclusion: evidence.Conclusion,
+			AttestationSignatureHex: evidence.AttestationSignatureHex,
 		},
 	}
 	return result, nil
+}
+
+func evidenceAttestorID(evidence *StablecoinReserveEvidence) string {
+	if evidence == nil {
+		return ""
+	}
+	return evidence.AttestorID
 }
 
 func failedReservePrice(now time.Time, market string, policy StablecoinReservePolicy, failure string) Price {

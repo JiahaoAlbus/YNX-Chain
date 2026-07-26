@@ -128,7 +128,7 @@
             "allOf": [
               {"$ref": "#/$defs/derivation"},
               {
-                "required": ["evidenceId", "issuerId", "attestorId", "assuranceStandard", "jurisdiction", "unit", "reserveAssets", "outstandingClaims", "reportingPeriodEnd", "publishedAt", "expiresAt", "documentHash", "conclusion"],
+                "required": ["attestationVersion", "evidenceId", "issuerId", "attestorId", "assuranceStandard", "jurisdiction", "unit", "reserveAssets", "outstandingClaims", "reportingPeriodEnd", "publishedAt", "expiresAt", "documentHash", "conclusion", "attestationSignatureHex"],
                 "properties": {
                   "method": {"const": "reserve_assets_divided_by_outstanding_claims"},
                   "policyVersion": {"const": "stablecoin-reserve-v1"},
@@ -212,6 +212,7 @@
         "rejectedBlockNumbers": {"type": "array", "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
         "minimumReserve0": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
         "minimumReserve1": {"type": "string", "maxLength": 78, "pattern": "^0*[1-9][0-9]*$"},
+        "attestationVersion": {"const": "reserve-attestation-ed25519-v1"},
         "evidenceId": {"type": "string", "minLength": 1},
         "issuerId": {"type": "string", "minLength": 1},
         "attestorId": {"type": "string", "minLength": 1},
@@ -224,7 +225,8 @@
         "publishedAt": {"type": "string", "format": "date-time"},
         "expiresAt": {"type": "string", "format": "date-time"},
         "documentHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "conclusion": {"enum": ["unmodified", "qualified", "adverse", "disclaimer"]}
+        "conclusion": {"enum": ["unmodified", "qualified", "adverse", "disclaimer"]},
+        "attestationSignatureHex": {"type": "string", "pattern": "^[a-f0-9]{128}$"}
       }
     }
   }
