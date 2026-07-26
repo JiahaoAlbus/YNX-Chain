@@ -10,6 +10,8 @@ on:
       - "Makefile"
       - "docs/**"
       - "release/**"
+      - "scripts/lib/deterministic-zip.mjs"
+      - "scripts/package/docs-release.mjs"
       - "scripts/verify/**"
       - "scripts/validate/**"
   pull_request:
@@ -20,6 +22,8 @@ on:
       - "Makefile"
       - "docs/**"
       - "release/**"
+      - "scripts/lib/deterministic-zip.mjs"
+      - "scripts/package/docs-release.mjs"
       - "scripts/verify/**"
       - "scripts/validate/**"
   workflow_dispatch:
@@ -59,3 +63,16 @@ jobs:
 
       - name: Validate objective release-state boundaries
         run: make objective-state-check
+
+      - name: Build deterministic website content artifact
+        run: |
+          make docs-release-package
+          node scripts/verify/docs-release-package-check.mjs
+
+      - name: Upload website content candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-website-content-${{ github.sha }}
+          path: tmp/packages/docs-release/
+          if-no-files-found: error
+          retention-days: 30

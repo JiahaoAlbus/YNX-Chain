@@ -103,7 +103,7 @@ Do not claim or imply:
 
 ## Change log
 
-- 1.1.0-candidate (2026-07-25): Bound the public wording to the recovered branch head, added a fail-closed claims/evidence authority layer, separated mixed component endpoint observations from independent public proof, and retained Mainnet, public consensus, legal, audit and deployment claims as blocked.
+- 1.1.0-candidate (2026-07-25): Bound the public wording to the recovered source commit, added a fail-closed claims/evidence authority layer, separated mixed component endpoint observations from independent public proof, and retained Mainnet, public consensus, legal, audit and deployment claims as blocked.
 - 1.0.0-candidate (2026-07-22): Established canonical identity, definitions,
   status language, disambiguation, risks, approved descriptions and prohibited
   claims.
