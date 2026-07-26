@@ -284,7 +284,7 @@ func publicRouteAllowed(service, method, path string) bool {
 		}
 	}
 	if service == "bridge" {
-		return method == "GET" && len(parts) == 2 && (parts[1] == "routes" || parts[1] == "providers" || parts[1] == "assets" || parts[1] == "status" || parts[1] == "transparency" || parts[1] == "state-machine")
+		return method == "GET" && len(parts) == 2 && (parts[1] == "health" || parts[1] == "version" || parts[1] == "routes" || parts[1] == "providers" || parts[1] == "assets" || parts[1] == "status" || parts[1] == "transparency" || parts[1] == "state-machine")
 	}
 	return false
 }

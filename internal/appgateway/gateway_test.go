@@ -50,6 +50,10 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "service": "ynx-" + u.service + "d", "remoteDeployed": false, "truthfulStatus": "local-test"})
 		return
 	}
+	if u.service == "bridge" && r.URL.Path == "/version" {
+		_ = json.NewEncoder(w).Encode(map[string]any{"service": "ynx-bridged", "source": "ynx-bridge-runtime", "schemaVersion": 7, "stateMachineVersion": "ynx.bridge.lifecycle.v1", "externalSubmissionEnabled": false, "liveBridge": false})
+		return
+	}
 	body, _ := io.ReadAll(r.Body)
 	u.mu.Lock()
 	u.requests = append(u.requests, observedRequest{
@@ -181,6 +185,52 @@ func TestNativeProductBindingsAndRouteIsolation(t *testing.T) {
 	}
 	if productForBinding(nativeWalletBinding) != "ynx-wallet" || bridgeScope(http.MethodPost, "/bridge/quotes") != "bridge:quote:read" || bridgeScope(http.MethodPost, "/bridge/wallet-reviews") != "bridge:review:create" {
 		t.Fatal("Wallet product or Bridge scope binding is invalid")
+	}
+}
+
+func TestPublicBridgeHealthVersionMappingAndMutationBoundary(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	bridge, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 20)
+	cfg.BridgeURL = bridgeServer.URL
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+
+	for _, test := range []struct {
+		path, upstreamPath, field string
+	}{
+		{"/app/bridge/health", "/health", `"ok":true`},
+		{"/app/bridge/version", "/version", `"stateMachineVersion":"ynx.bridge.lifecycle.v1"`},
+	} {
+		response, err := http.Get(server.URL + test.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body := readAll(response.Body)
+		response.Body.Close()
+		if response.StatusCode != http.StatusOK || !strings.Contains(body, test.field) || response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s status=%d body=%s headers=%v", test.path, response.StatusCode, body, response.Header)
+		}
+		if !publicRouteAllowed("bridge", http.MethodGet, strings.TrimPrefix(test.path, "/app")) || appUpstreamPath("bridge", strings.TrimPrefix(test.path, "/app")) != test.upstreamPath {
+			t.Fatalf("public Bridge mapping rejected: %+v", test)
+		}
+	}
+	if requests := bridge.snapshot(); len(requests) != 0 {
+		t.Fatalf("health/version probe was recorded as a protected mutation: %+v", requests)
+	}
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/app/bridge/quotes", strings.NewReader(`{}`))
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("public Bridge quote mutation status=%d", response.StatusCode)
 	}
 }
 

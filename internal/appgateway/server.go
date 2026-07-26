@@ -193,7 +193,7 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	base, key, keyHeader, _ := s.gateway.upstream(service)
 	upstreamURL := *base
-	upstreamURL.Path = upstreamPath
+	upstreamURL.Path = appUpstreamPath(service, upstreamPath)
 	upstreamURL.RawPath = ""
 	upstreamURL.RawQuery = r.URL.RawQuery
 	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
@@ -233,6 +233,13 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
+}
+
+func appUpstreamPath(service, path string) string {
+	if service == "bridge" && (path == "/bridge/health" || path == "/bridge/version") {
+		return strings.TrimPrefix(path, "/bridge")
+	}
+	return path
 }
 
 func (s *Server) session(w http.ResponseWriter, r *http.Request, binding string) {
