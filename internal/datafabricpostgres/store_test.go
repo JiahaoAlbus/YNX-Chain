@@ -205,6 +205,53 @@ func TestPostgresJournalCommitsHeaderAndAllPostingsTogether(t *testing.T) {
 	}
 }
 
+func TestPostgresUsageBillingCommitsJournalAndSettlementTogether(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	usageEnd := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	payload, _ := json.Marshal(datafabric.MeteredUsage{Meter: "compute", Unit: "request", Quantity: 250, UsageStart: usageEnd.Add(-time.Hour), UsageEnd: usageEnd})
+	event := datafabric.EventEnvelope{
+		EventID: "event.cloud.usage.postgres.0001", EventType: "cloud.usage.recorded",
+		SchemaVersion: datafabric.EnvelopeSchemaVersion, Product: "cloud", Service: "usage",
+		AggregateID: "usage.cloud.postgres.0001", Actor: datafabric.Actor{ActorID: "actor.billing.postgres.0001", AccountID: "account.billing.user.postgres.0001"},
+		CorrelationID: "correlation.billing.postgres.0001", Sequence: 1, Timestamp: usageEnd, EffectiveAt: usageEnd,
+		SourceCommit: "719e101", SourceRelease: "cloud-test", PrivacyClassification: "confidential",
+		RetentionClass: "financial-7y", AuditID: "audit.event.cloud.usage.postgres.0001",
+		Source:  datafabric.SourceMetadata{Source: "cloud-meter", AsOf: usageEnd, Version: "1", Status: "authoritative"},
+		Payload: payload,
+	}
+	if err := event.Sign("key.datafabric.0001", postgresTestKey); err != nil {
+		t.Fatal(err)
+	}
+	connection.existingEnvelope, _ = json.Marshal(event)
+	connection.billingPlan = &datafabric.BillingRatePlan{
+		PlanID: "rate-plan.postgres.0001", Version: "rate-v1.postgres.0001", Product: "cloud",
+		Meter: "compute", Unit: "request", UnitsPerBlock: 100, UserPriceMinor: 10, ProviderCostMinor: 4,
+		Asset: "USD", Currency: "USD", ChargeCategory: "compute-data-fee",
+		RevenueBoundary: "rated authoritative usage period ended", EffectiveFrom: usageEnd.Add(-24 * time.Hour),
+		SourceCommit: "719e101", SourceRelease: "data-fabric-test", AuditID: "audit.billing.plan.postgres.0001",
+	}
+	request := datafabric.BillingSettlementRequest{
+		SettlementID: "billing.settlement.postgres.0001", UsageEventID: event.EventID,
+		RatePlanID: connection.billingPlan.PlanID, RatePlanVersion: connection.billingPlan.Version, JournalEntryID: "journal.billing.postgres.0001",
+		ProviderAccountID: "account.billing.provider.postgres.0001", ProviderCostAccountID: "account.billing.cost.postgres.0001",
+		ProtocolRevenueAccountID: "account.billing.revenue.postgres.0001", RecordedAt: usageEnd.Add(time.Second),
+		SourceCommit: "719e101", SourceRelease: "data-fabric-test", AuditID: "audit.billing.settlement.postgres.0001",
+		FeeConsent: &datafabric.FeeConsent{ConsentID: "consent.billing.postgres.0001", FeeScheduleVersion: connection.billingPlan.Version, AcceptedAt: usageEnd.Add(-2 * time.Hour), MaximumAmountMinor: 30, Basis: "metered price accepted before usage"},
+	}
+	settlement, err := store.SettleUsage(context.Background(), request)
+	if err != nil || settlement.UserChargeMinor != 30 || settlement.ProviderCostMinor != 12 {
+		t.Fatalf("PostgreSQL usage settlement failed: %+v %v", settlement, err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if !connection.committed || connection.rolledBack || len(connection.execs) != 6 ||
+		!strings.Contains(connection.execs[0], "journal_entries") ||
+		!strings.Contains(connection.execs[5], "billing_settlements") {
+		t.Fatalf("Billing Journal and settlement were not one committed transaction: %+v", connection)
+	}
+}
+
 func TestPostgresCorrectionLocksAndAtomicallyReversesJournal(t *testing.T) {
 	db, connection := openRecordingDB(t)
 	store, _ := NewStore(db)
@@ -427,6 +474,7 @@ type recordingConn struct {
 	schemaChecksums  map[int64]string
 	claimed          [][]driver.Value
 	journal          *datafabric.JournalEntry
+	billingPlan      *datafabric.BillingRatePlan
 	existingReversal string
 	eventProduct     string
 	lastSequence     int64
@@ -498,6 +546,17 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 		return &recordingRows{columns: []string{"checksum"}, values: [][]driver.Value{{checksum}}}, nil
 	case strings.Contains(query, "WITH selected AS"):
 		return &recordingRows{columns: []string{"event_id", "partition_key", "attempt", "available_at", "lease_owner", "lease_until"}, values: c.claimed}, nil
+	case strings.Contains(query, "SELECT settlement_id FROM ynx_fabric.billing_settlements"):
+		return &recordingRows{columns: []string{"settlement_id"}}, nil
+	case strings.Contains(query, "FROM ynx_fabric.billing_rate_plans") && strings.Contains(query, "FOR KEY SHARE"):
+		if c.billingPlan == nil {
+			return &recordingRows{columns: []string{"plan_id"}}, nil
+		}
+		plan := c.billingPlan
+		return &recordingRows{
+			columns: []string{"plan_id", "version", "product", "meter", "unit", "units_per_block", "user_price_minor", "provider_cost_minor", "asset", "currency", "charge_category", "revenue_recognition_boundary", "effective_from", "effective_until", "source_commit", "source_release", "audit_id"},
+			values:  [][]driver.Value{{plan.PlanID, plan.Version, plan.Product, plan.Meter, plan.Unit, plan.UnitsPerBlock, plan.UserPriceMinor, plan.ProviderCostMinor, plan.Asset, plan.Currency, plan.ChargeCategory, plan.RevenueBoundary, plan.EffectiveFrom, nil, plan.SourceCommit, plan.SourceRelease, plan.AuditID}},
+		}, nil
 	case strings.Contains(query, "FROM ynx_fabric.journal_entries WHERE correction_of"):
 		if c.existingReversal == "" {
 			return &recordingRows{columns: []string{"entry_id"}}, nil

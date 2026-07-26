@@ -48,7 +48,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	})
 	applied, err := Migrate(ctx, db)
 	migrationFiles, migrationErr := MigrationFiles()
-	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 5 {
+	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 6 {
 		t.Fatalf("live migration failed: applied=%+v err=%v", applied, err)
 	}
 	if err := VerifySchema(ctx, db); err != nil {
@@ -115,6 +115,38 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	}
 	if err := insertUnbalancedJournal(ctx, db, first, time.Now().UTC()); err == nil {
 		t.Fatal("deferred PostgreSQL balance trigger accepted an unbalanced journal")
+	}
+	usage := liveUsageEvent(t, time.Now().UTC())
+	if err := store.Append(ctx, usage, postgresTestKey); err != nil {
+		t.Fatalf("canonical usage event was not committed: %v", err)
+	}
+	plan := datafabric.BillingRatePlan{
+		PlanID: "rate-plan.live.0001", Version: "rate-v1.live.0001", Product: "cloud",
+		Meter: "compute", Unit: "request", UnitsPerBlock: 100, UserPriceMinor: 10, ProviderCostMinor: 4,
+		Asset: "USD", Currency: "USD", ChargeCategory: "compute-data-fee",
+		RevenueBoundary: "rated authoritative usage period ended", EffectiveFrom: usage.EffectiveAt.Add(-24 * time.Hour),
+		SourceCommit: "719e101", SourceRelease: "data-fabric-live-test", AuditID: "audit.billing.plan.live.0001",
+	}
+	if err := store.RegisterBillingRatePlan(ctx, plan); err != nil {
+		t.Fatalf("immutable PostgreSQL Billing rate was not registered: %v", err)
+	}
+	if err := store.RegisterBillingRatePlan(ctx, plan); datafabric.ErrorCodeOf(err) != datafabric.CodeBillingRatePlanDuplicate {
+		t.Fatalf("duplicate PostgreSQL Billing rate was accepted: %v", err)
+	}
+	billingRequest := datafabric.BillingSettlementRequest{
+		SettlementID: "billing.settlement.live.0001", UsageEventID: usage.EventID,
+		RatePlanID: plan.PlanID, RatePlanVersion: plan.Version, JournalEntryID: "journal.billing.live.0001",
+		ProviderAccountID: "account.billing.provider.live.0001", ProviderCostAccountID: "account.billing.cost.live.0001",
+		ProtocolRevenueAccountID: "account.billing.revenue.live.0001", RecordedAt: usage.Timestamp.Add(time.Second),
+		SourceCommit: "719e101", SourceRelease: "data-fabric-live-test", AuditID: "audit.billing.settlement.live.0001",
+		FeeConsent: &datafabric.FeeConsent{ConsentID: "consent.billing.live.0001", FeeScheduleVersion: plan.Version, AcceptedAt: usage.Timestamp.Add(-2 * time.Hour), MaximumAmountMinor: 30, Basis: "metered price accepted before usage"},
+	}
+	billingSettlement, err := store.SettleUsage(ctx, billingRequest)
+	if err != nil || billingSettlement.UserChargeMinor != 30 || billingSettlement.ProviderCostMinor != 12 {
+		t.Fatalf("PostgreSQL usage Billing settlement failed: %+v %v", billingSettlement, err)
+	}
+	if _, err := store.SettleUsage(ctx, billingRequest); datafabric.ErrorCodeOf(err) != datafabric.CodeBillingAlreadySettled {
+		t.Fatalf("PostgreSQL usage event was billed twice: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE ynx_fabric.events SET event_type='pay.invoice.tampered' WHERE event_id=$1`, first.EventID); err == nil {
 		t.Fatal("append-only event trigger accepted mutation")
@@ -209,7 +241,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 		t.Fatalf("live repository integrity audit failed: %v", err)
 	}
 	stats, err := store.Stats(ctx)
-	if err != nil || stats.Events != 3 || stats.JournalEntries != 1 || stats.Reconciliations != 1 || stats.ErasureRequests != 1 {
+	if err != nil || stats.Events != 4 || stats.JournalEntries != 3 || stats.BillingRatePlans != 1 || stats.BillingSettlements != 1 || stats.Reconciliations != 1 || stats.ErasureRequests != 1 {
 		t.Fatalf("live repository statistics are wrong: %+v %v", stats, err)
 	}
 	var concurrent sync.WaitGroup
@@ -241,6 +273,29 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 func liveEvent(t *testing.T, id, aggregateID, correlationID string, sequence uint64, now time.Time) datafabric.EventEnvelope {
 	t.Helper()
 	event := datafabric.EventEnvelope{EventID: id, EventType: "pay.invoice.state_changed", SchemaVersion: datafabric.EnvelopeSchemaVersion, Product: "pay", Service: "invoice", AggregateID: aggregateID, Actor: datafabric.Actor{ActorID: "actor.live.0001", AccountID: "account.live.0001", SessionID: "session.live.0001"}, CorrelationID: correlationID, Sequence: sequence, Timestamp: now.UTC(), EffectiveAt: now.UTC(), SourceCommit: "719e101", SourceRelease: "data-fabric-live-test", PrivacyClassification: "confidential", RetentionClass: "financial-7y", AuditID: "audit." + id, Source: datafabric.SourceMetadata{Source: "live-postgres-test", AsOf: now.UTC(), Version: "1", Status: "authoritative"}, Payload: json.RawMessage(`{"status":"recorded"}`)}
+	if err := event.Sign("key.datafabric.0001", postgresTestKey); err != nil {
+		t.Fatal(err)
+	}
+	return event
+}
+
+func liveUsageEvent(t *testing.T, now time.Time) datafabric.EventEnvelope {
+	t.Helper()
+	usageEnd := now.UTC()
+	payload, err := json.Marshal(datafabric.MeteredUsage{Meter: "compute", Unit: "request", Quantity: 250, UsageStart: usageEnd.Add(-time.Hour), UsageEnd: usageEnd})
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := datafabric.EventEnvelope{
+		EventID: "event.cloud.usage.live.0001", EventType: "cloud.usage.recorded",
+		SchemaVersion: datafabric.EnvelopeSchemaVersion, Product: "cloud", Service: "usage",
+		AggregateID: "usage.cloud.live.0001", Actor: datafabric.Actor{ActorID: "actor.billing.live.0001", AccountID: "account.billing.user.live.0001"},
+		CorrelationID: "correlation.billing.live.0001", Sequence: 1, Timestamp: usageEnd, EffectiveAt: usageEnd,
+		SourceCommit: "719e101", SourceRelease: "cloud-live-test", PrivacyClassification: "confidential",
+		RetentionClass: "financial-7y", AuditID: "audit.event.cloud.usage.live.0001",
+		Source:  datafabric.SourceMetadata{Source: "cloud-meter", AsOf: usageEnd, Version: "1", Status: "authoritative"},
+		Payload: payload,
+	}
 	if err := event.Sign("key.datafabric.0001", postgresTestKey); err != nil {
 		t.Fatal(err)
 	}

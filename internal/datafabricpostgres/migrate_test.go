@@ -7,7 +7,7 @@ import (
 
 func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 5 {
+	if err != nil || len(files) != 6 {
 		t.Fatalf("unexpected migration set: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[0])
@@ -53,7 +53,7 @@ func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 
 func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 5 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
+	if err != nil || len(files) != 6 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
 		t.Fatalf("v2 migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[1])
@@ -82,7 +82,7 @@ func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 
 func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 5 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
+	if err != nil || len(files) != 6 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
 		t.Fatalf("redelivery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[2])
@@ -116,7 +116,7 @@ func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 
 func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 5 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
+	if err != nil || len(files) != 6 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
 		t.Fatalf("ledger correction migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[3])
@@ -148,7 +148,7 @@ func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing
 
 func TestSagaRecoveryMigrationHasLeasesAndRollbackGuard(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 5 || !strings.Contains(files[4], "0005_saga_recovery_runtime.up.sql") {
+	if err != nil || len(files) != 6 || !strings.Contains(files[4], "0005_saga_recovery_runtime.up.sql") {
 		t.Fatalf("Saga recovery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[4])
@@ -177,6 +177,41 @@ func TestSagaRecoveryMigrationHasLeasesAndRollbackGuard(t *testing.T) {
 	}
 	if !strings.Contains(string(down), "cannot roll back Saga recovery runtime while recovery audit history exists") {
 		t.Fatal("Saga recovery rollback can discard audit history")
+	}
+}
+
+func TestUsageBillingMigrationIsAtomicImmutableAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 6 || !strings.Contains(files[5], "0006_usage_billing_runtime.up.sql") {
+		t.Fatalf("usage Billing migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[5])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"CREATE TABLE ynx_fabric.billing_rate_plans",
+		"CREATE TABLE ynx_fabric.billing_settlements",
+		"usage_event_id text NOT NULL UNIQUE",
+		"journal_entry_id text NOT NULL UNIQUE",
+		"billing_rate_plans_append_only",
+		"billing_settlement_authority",
+		"e.payload->>'quantity'",
+		"ceil(NEW.quantity::numeric / plan_units_per_block::numeric)",
+		"Billing Journal contradicts rated gross revenue or provider cost",
+		"billing_settlements_append_only",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("usage Billing migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back usage Billing runtime while rate or settlement history exists") {
+		t.Fatal("usage Billing rollback can discard immutable history")
 	}
 }
 

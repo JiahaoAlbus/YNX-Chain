@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const storeSchemaVersion = 2
+const storeSchemaVersion = 3
 
 type OutboxRecord struct {
 	EventID      string    `json:"eventId"`
@@ -42,17 +42,19 @@ type DeadLetter struct {
 }
 
 type persistedState struct {
-	SchemaVersion   int                      `json:"schemaVersion"`
-	Events          []EventEnvelope          `json:"events"`
-	Outbox          []OutboxRecord           `json:"outbox"`
-	Inbox           map[string]InboxRecord   `json:"inbox"`
-	Projections     map[string]string        `json:"projections"`
-	DeadLetters     []DeadLetter             `json:"deadLetters"`
-	Ledger          []JournalEntry           `json:"ledger"`
-	Sagas           []SagaInstance           `json:"sagas"`
-	Reconciliations []ReconciliationRun      `json:"reconciliations"`
-	ErasureRequests map[string]ErasureRecord `json:"erasureRequests"`
-	RedeliveryRuns  map[string]RedeliveryRun `json:"redeliveryRuns"`
+	SchemaVersion      int                      `json:"schemaVersion"`
+	Events             []EventEnvelope          `json:"events"`
+	Outbox             []OutboxRecord           `json:"outbox"`
+	Inbox              map[string]InboxRecord   `json:"inbox"`
+	Projections        map[string]string        `json:"projections"`
+	DeadLetters        []DeadLetter             `json:"deadLetters"`
+	Ledger             []JournalEntry           `json:"ledger"`
+	Sagas              []SagaInstance           `json:"sagas"`
+	Reconciliations    []ReconciliationRun      `json:"reconciliations"`
+	ErasureRequests    map[string]ErasureRecord `json:"erasureRequests"`
+	RedeliveryRuns     map[string]RedeliveryRun `json:"redeliveryRuns"`
+	BillingRatePlans   []BillingRatePlan        `json:"billingRatePlans"`
+	BillingSettlements []BillingSettlement      `json:"billingSettlements"`
 }
 
 type Store struct {
@@ -68,6 +70,8 @@ type StoreStats struct {
 	InboxEffects             uint64  `json:"inboxEffects"`
 	DeadLetters              uint64  `json:"deadLetters"`
 	JournalEntries           uint64  `json:"journalEntries"`
+	BillingRatePlans         uint64  `json:"billingRatePlans"`
+	BillingSettlements       uint64  `json:"billingSettlements"`
 	SagasRunning             uint64  `json:"sagasRunning"`
 	SagasRecovery            uint64  `json:"sagasRecovery"`
 	Reconciliations          uint64  `json:"reconciliations"`
@@ -96,11 +100,11 @@ func OpenStore(path string) (*Store, error) {
 	if err := ensureEOF(decoder); err != nil {
 		return nil, fmt.Errorf("decode data fabric store: %w", err)
 	}
-	if s.state.SchemaVersion != 1 && s.state.SchemaVersion != storeSchemaVersion || s.state.Inbox == nil || s.state.Projections == nil {
+	if s.state.SchemaVersion < 1 || s.state.SchemaVersion > storeSchemaVersion || s.state.Inbox == nil || s.state.Projections == nil {
 		return nil, errors.New("data fabric store schema is unsupported or incomplete")
 	}
 	migrated := false
-	if s.state.SchemaVersion == 1 {
+	if s.state.SchemaVersion < storeSchemaVersion {
 		s.state.SchemaVersion = storeSchemaVersion
 		migrated = true
 	}
@@ -378,7 +382,12 @@ func (s *Store) Projection(key string) string {
 func (s *Store) Stats() StoreStats {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	stats := StoreStats{Events: uint64(len(s.state.Events)), InboxEffects: uint64(len(s.state.Inbox)), JournalEntries: uint64(len(s.state.Ledger)), Reconciliations: uint64(len(s.state.Reconciliations)), ErasureRequests: uint64(len(s.state.ErasureRequests))}
+	stats := StoreStats{
+		Events: uint64(len(s.state.Events)), InboxEffects: uint64(len(s.state.Inbox)),
+		JournalEntries: uint64(len(s.state.Ledger)), BillingRatePlans: uint64(len(s.state.BillingRatePlans)),
+		BillingSettlements: uint64(len(s.state.BillingSettlements)), Reconciliations: uint64(len(s.state.Reconciliations)),
+		ErasureRequests: uint64(len(s.state.ErasureRequests)),
+	}
 	for _, record := range s.state.DeadLetters {
 		if record.RequeuedAt.IsZero() {
 			stats.DeadLetters++

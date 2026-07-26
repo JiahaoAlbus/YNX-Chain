@@ -39,6 +39,10 @@ type PostingSide = core.PostingSide
 type Posting = core.Posting
 type JournalEntry = core.JournalEntry
 type FeeConsent = core.FeeConsent
+type BillingRatePlan = core.BillingRatePlan
+type MeteredUsage = core.MeteredUsage
+type BillingSettlementRequest = core.BillingSettlementRequest
+type BillingSettlement = core.BillingSettlement
 type SagaKind = core.SagaKind
 type SagaStatus = core.SagaStatus
 type SagaStep = core.SagaStep
@@ -100,6 +104,13 @@ const (
 	CodeSagaRecoveryLeaseExpired      = core.CodeSagaRecoveryLeaseExpired
 	CodeSagaEventAuthorityMismatch    = core.CodeSagaEventAuthorityMismatch
 	CodeSagaRecoveryRouteRequired     = core.CodeSagaRecoveryRouteRequired
+	CodeBillingRatePlanInvalid        = core.CodeBillingRatePlanInvalid
+	CodeBillingRatePlanNotFound       = core.CodeBillingRatePlanNotFound
+	CodeBillingRatePlanDuplicate      = core.CodeBillingRatePlanDuplicate
+	CodeBillingUsageInvalid           = core.CodeBillingUsageInvalid
+	CodeBillingAlreadySettled         = core.CodeBillingAlreadySettled
+	CodeBillingRatingOverflow         = core.CodeBillingRatingOverflow
+	CodeBillingAuthorityMismatch      = core.CodeBillingAuthorityMismatch
 )
 
 func DecodeEnvelopeStrict(r io.Reader) (EventEnvelope, error) { return core.DecodeEnvelopeStrict(r) }
@@ -114,3 +125,9 @@ func NewSaga(id string, kind SagaKind, aggregateID, correlationID, auditID strin
 }
 func SupportedSagaKinds() []SagaKind           { return core.SupportedSagaKinds() }
 func SagaProduct(kind SagaKind) (string, bool) { return core.SagaProduct(kind) }
+func DecodeMeteredUsage(event EventEnvelope) (MeteredUsage, error) {
+	return core.DecodeMeteredUsage(event)
+}
+func BuildBillingSettlement(plan BillingRatePlan, event EventEnvelope, request BillingSettlementRequest) (BillingSettlement, JournalEntry, error) {
+	return core.BuildBillingSettlement(plan, event, request)
+}

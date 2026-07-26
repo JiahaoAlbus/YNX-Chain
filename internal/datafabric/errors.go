@@ -47,6 +47,13 @@ const (
 	CodeSagaRecoveryLeaseExpired      ErrorCode = "DF_SAGA_RECOVERY_LEASE_EXPIRED_V1"
 	CodeSagaEventAuthorityMismatch    ErrorCode = "DF_SAGA_EVENT_AUTHORITY_MISMATCH_V1"
 	CodeSagaRecoveryRouteRequired     ErrorCode = "DF_SAGA_RECOVERY_ROUTE_REQUIRED_V1"
+	CodeBillingRatePlanInvalid        ErrorCode = "DF_BILLING_RATE_PLAN_INVALID_V1"
+	CodeBillingRatePlanNotFound       ErrorCode = "DF_BILLING_RATE_PLAN_NOT_FOUND_V1"
+	CodeBillingRatePlanDuplicate      ErrorCode = "DF_BILLING_RATE_PLAN_DUPLICATE_V1"
+	CodeBillingUsageInvalid           ErrorCode = "DF_BILLING_USAGE_INVALID_V1"
+	CodeBillingAlreadySettled         ErrorCode = "DF_BILLING_ALREADY_SETTLED_V1"
+	CodeBillingRatingOverflow         ErrorCode = "DF_BILLING_RATING_OVERFLOW_V1"
+	CodeBillingAuthorityMismatch      ErrorCode = "DF_BILLING_AUTHORITY_MISMATCH_V1"
 )
 
 // RejectionError carries the stable code plus bounded evidence suitable for an

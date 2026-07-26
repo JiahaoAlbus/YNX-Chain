@@ -22,7 +22,10 @@ func (s *Store) AuditIntegrity(keys map[string][]byte) error {
 	for _, record := range s.state.ErasureRequests {
 		privacy = append(privacy, record)
 	}
-	return AuditRecords(keys, s.state.Events, s.state.Outbox, inbox, s.state.Ledger, s.state.Sagas, s.state.Reconciliations, privacy)
+	if err := AuditRecords(keys, s.state.Events, s.state.Outbox, inbox, s.state.Ledger, s.state.Sagas, s.state.Reconciliations, privacy); err != nil {
+		return err
+	}
+	return AuditBillingRecords(s.state.Events, s.state.Ledger, s.state.BillingRatePlans, s.state.BillingSettlements)
 }
 
 // AuditRecords is the persistence-independent cold-start/restore integrity

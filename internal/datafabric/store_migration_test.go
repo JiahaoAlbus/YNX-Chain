@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestOpenStoreMigratesSchemaV1ToV2WithoutDroppingState(t *testing.T) {
+func TestOpenStoreMigratesLegacySchemaToCurrentWithoutDroppingState(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "fabric.json")
 	legacy := newState()
 	legacy.SchemaVersion = 1

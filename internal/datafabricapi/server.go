@@ -116,6 +116,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/ledger/journal", s.authorize("fabric.ledger.write", s.postJournal))
 	s.mux.HandleFunc("GET /v1/ledger/journal", s.authorize("fabric.ledger.read", s.listJournal))
 	s.mux.HandleFunc("POST /v1/ledger/journal/{id}/corrections", s.authorize("fabric.ledger.correct", s.postJournalCorrection))
+	s.mux.HandleFunc("POST /v1/billing/rate-plans", s.authorize("fabric.billing.rates.manage", s.registerBillingRatePlan))
+	s.mux.HandleFunc("GET /v1/billing/rate-plans", s.authorize("fabric.billing.rates.read", s.listBillingRatePlans))
+	s.mux.HandleFunc("POST /v1/billing/settlements", s.authorize("fabric.billing.write", s.settleUsage))
+	s.mux.HandleFunc("GET /v1/billing/settlements", s.authorize("fabric.billing.read", s.listBillingSettlements))
 	s.mux.HandleFunc("POST /v1/sagas", s.authorize("fabric.sagas.write", s.startSaga))
 	s.mux.HandleFunc("GET /v1/sagas/{id}", s.authorize("fabric.sagas.read", s.getSaga))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/steps", s.authorize("fabric.sagas.write", s.completeSagaStep))
@@ -560,6 +564,100 @@ func (s *Server) listJournal(w http.ResponseWriter, r *http.Request, principal P
 	writeJSON(w, http.StatusOK, map[string]any{"entries": page, "nextCursor": nextCursor, "source": "ynx-billing-ledger", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
 }
 
+func (s *Server) registerBillingRatePlan(w http.ResponseWriter, r *http.Request, principal Principal) {
+	plan, err := decodeStrict[datafabric.BillingRatePlan](w, r, s.cfg.MaxBodyBytes)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, string(datafabric.CodeBillingRatePlanInvalid), err.Error())
+		return
+	}
+	if plan.Product != principal.Product {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeBillingAuthorityMismatch), "Billing rate plan belongs to another product")
+		return
+	}
+	plan.SourceCommit, plan.SourceRelease = s.cfg.SourceCommit, s.cfg.SourceRelease
+	if err := s.repo.RegisterBillingRatePlan(r.Context(), plan); err != nil {
+		status := http.StatusUnprocessableEntity
+		if datafabric.ErrorCodeOf(err) == datafabric.CodeBillingRatePlanDuplicate {
+			status = http.StatusConflict
+		}
+		s.writeDataFabricError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, plan)
+}
+
+func (s *Server) listBillingRatePlans(w http.ResponseWriter, r *http.Request, principal Principal) {
+	stored, err := s.repo.BillingRatePlans(r.Context())
+	if err != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	plans := make([]datafabric.BillingRatePlan, 0)
+	for _, plan := range stored {
+		if plan.Product == principal.Product {
+			plans = append(plans, plan)
+		}
+	}
+	page, nextCursor, err := paginate(r, plans, func(plan datafabric.BillingRatePlan) string {
+		return plan.PlanID + ":" + plan.Version
+	})
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "invalid_page", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ratePlans": page, "nextCursor": nextCursor, "source": "ynx-billing-rate-authority", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
+}
+
+func (s *Server) settleUsage(w http.ResponseWriter, r *http.Request, principal Principal) {
+	input, err := decodeStrict[datafabric.BillingSettlementRequest](w, r, s.cfg.MaxBodyBytes)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, string(datafabric.CodeBillingUsageInvalid), err.Error())
+		return
+	}
+	event, exists, repositoryErr := s.repo.Event(r.Context(), input.UsageEventID)
+	if repositoryErr != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	if !exists || event.Product != principal.Product {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeBillingAuthorityMismatch), "Usage event is missing or belongs to another product")
+		return
+	}
+	input.SourceCommit, input.SourceRelease = s.cfg.SourceCommit, s.cfg.SourceRelease
+	settlement, err := s.repo.SettleUsage(r.Context(), input)
+	if err != nil {
+		status := http.StatusUnprocessableEntity
+		if datafabric.ErrorCodeOf(err) == datafabric.CodeBillingAlreadySettled {
+			status = http.StatusConflict
+		}
+		s.writeDataFabricError(w, status, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, settlement)
+}
+
+func (s *Server) listBillingSettlements(w http.ResponseWriter, r *http.Request, principal Principal) {
+	stored, err := s.repo.BillingSettlements(r.Context())
+	if err != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	settlements := make([]datafabric.BillingSettlement, 0)
+	for _, settlement := range stored {
+		if settlement.Product == principal.Product {
+			settlements = append(settlements, settlement)
+		}
+	}
+	page, nextCursor, err := paginate(r, settlements, func(settlement datafabric.BillingSettlement) string {
+		return settlement.SettlementID
+	})
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "invalid_page", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"settlements": page, "nextCursor": nextCursor, "source": "ynx-usage-billing-settlement", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
+}
+
 func (s *Server) getSaga(w http.ResponseWriter, r *http.Request, principal Principal) {
 	instance, exists, err := s.repo.Saga(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -875,7 +973,29 @@ func (s *Server) auditExport(w http.ResponseWriter, r *http.Request, principal P
 		s.writeRepositoryError(w)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"product": principal.Product, "events": events, "journal": journal, "sagas": sagas, "reconciliations": runs, "source": "ynx-data-fabric-audit-export", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
+	storedPlans, err := s.repo.BillingRatePlans(r.Context())
+	if err != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	plans := make([]datafabric.BillingRatePlan, 0)
+	for _, plan := range storedPlans {
+		if plan.Product == principal.Product {
+			plans = append(plans, plan)
+		}
+	}
+	storedSettlements, err := s.repo.BillingSettlements(r.Context())
+	if err != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	settlements := make([]datafabric.BillingSettlement, 0)
+	for _, settlement := range storedSettlements {
+		if settlement.Product == principal.Product {
+			settlements = append(settlements, settlement)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"product": principal.Product, "events": events, "journal": journal, "billingRatePlans": plans, "billingSettlements": settlements, "sagas": sagas, "reconciliations": runs, "source": "ynx-data-fabric-audit-export", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
 }
 
 func (s *Server) subjectExport(w http.ResponseWriter, r *http.Request, principal Principal) {
@@ -1038,6 +1158,8 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 			"ynx_data_fabric_inbox_effects "+uintText(stats.InboxEffects)+"\n"+
 			"ynx_data_fabric_dead_letters "+uintText(stats.DeadLetters)+"\n"+
 			"ynx_data_fabric_journal_entries "+uintText(stats.JournalEntries)+"\n"+
+			"ynx_data_fabric_billing_rate_plans "+uintText(stats.BillingRatePlans)+"\n"+
+			"ynx_data_fabric_billing_settlements "+uintText(stats.BillingSettlements)+"\n"+
 			"ynx_data_fabric_sagas_running "+uintText(stats.SagasRunning)+"\n"+
 			"ynx_data_fabric_sagas_recovery "+uintText(stats.SagasRecovery)+"\n"+
 			"ynx_data_fabric_reconciliations "+uintText(stats.Reconciliations)+"\n"+

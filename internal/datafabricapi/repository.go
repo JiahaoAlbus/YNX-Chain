@@ -18,6 +18,10 @@ type Repository interface {
 	PostCorrection(context.Context, datafabric.JournalEntry) error
 	Journal(context.Context) ([]datafabric.JournalEntry, error)
 	JournalEntry(context.Context, string) (datafabric.JournalEntry, bool, error)
+	RegisterBillingRatePlan(context.Context, datafabric.BillingRatePlan) error
+	BillingRatePlans(context.Context) ([]datafabric.BillingRatePlan, error)
+	SettleUsage(context.Context, datafabric.BillingSettlementRequest) (datafabric.BillingSettlement, error)
+	BillingSettlements(context.Context) ([]datafabric.BillingSettlement, error)
 	StartSaga(context.Context, datafabric.SagaInstance) error
 	Saga(context.Context, string) (datafabric.SagaInstance, bool, error)
 	Sagas(context.Context) ([]datafabric.SagaInstance, error)
@@ -60,6 +64,18 @@ func (r LocalRepository) Journal(context.Context) ([]datafabric.JournalEntry, er
 func (r LocalRepository) JournalEntry(_ context.Context, id string) (datafabric.JournalEntry, bool, error) {
 	entry, exists := r.Store.JournalEntry(id)
 	return entry, exists, nil
+}
+func (r LocalRepository) RegisterBillingRatePlan(_ context.Context, plan datafabric.BillingRatePlan) error {
+	return r.Store.RegisterBillingRatePlan(plan)
+}
+func (r LocalRepository) BillingRatePlans(context.Context) ([]datafabric.BillingRatePlan, error) {
+	return r.Store.BillingRatePlans(), nil
+}
+func (r LocalRepository) SettleUsage(_ context.Context, request datafabric.BillingSettlementRequest) (datafabric.BillingSettlement, error) {
+	return r.Store.SettleUsage(request)
+}
+func (r LocalRepository) BillingSettlements(context.Context) ([]datafabric.BillingSettlement, error) {
+	return r.Store.BillingSettlements(), nil
 }
 func (r LocalRepository) StartSaga(_ context.Context, instance datafabric.SagaInstance) error {
 	return r.Store.StartSaga(instance)

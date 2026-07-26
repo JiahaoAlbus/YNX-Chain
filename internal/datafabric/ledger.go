@@ -183,6 +183,15 @@ func ValidateJournalCorrection(target, correction JournalEntry) error {
 }
 
 func (s *Store) postJournalLocked(entry JournalEntry) error {
+	if err := s.validateJournalLocked(entry); err != nil {
+		return err
+	}
+	next := cloneState(s.state)
+	next.Ledger = append(next.Ledger, entry)
+	return s.commit(next)
+}
+
+func (s *Store) validateJournalLocked(entry JournalEntry) error {
 	if err := entry.Validate(); err != nil {
 		return err
 	}
@@ -215,9 +224,7 @@ func (s *Store) postJournalLocked(entry JournalEntry) error {
 			return ErrDuplicate
 		}
 	}
-	next := cloneState(s.state)
-	next.Ledger = append(next.Ledger, entry)
-	return s.commit(next)
+	return nil
 }
 
 func isExactReversal(target, reversal JournalEntry) bool {

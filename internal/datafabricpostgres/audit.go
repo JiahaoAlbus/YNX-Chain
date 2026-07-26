@@ -55,6 +55,17 @@ func (s *Store) AuditIntegrity(ctx context.Context, keys map[string][]byte) erro
 	if err := datafabric.AuditRecords(keys, events, outbox, inbox, journal, sagas, reconciliations, erasures); err != nil {
 		return err
 	}
+	plans, err := billingRatePlansFromQueryer(ctx, tx)
+	if err != nil {
+		return err
+	}
+	settlements, err := billingSettlementsFromQueryer(ctx, tx)
+	if err != nil {
+		return err
+	}
+	if err := datafabric.AuditBillingRecords(events, journal, plans, settlements); err != nil {
+		return err
+	}
 	var sequenceMismatches uint64
 	if err := tx.QueryRowContext(ctx, sequenceIntegrityQuery).Scan(&sequenceMismatches); err != nil {
 		return err
@@ -115,6 +126,8 @@ SELECT
  (SELECT count(*) FROM ynx_fabric.inbox),
  (SELECT count(*) FROM ynx_fabric.dead_letters WHERE requeued_at IS NULL),
  (SELECT count(*) FROM ynx_fabric.journal_entries),
+ (SELECT count(*) FROM ynx_fabric.billing_rate_plans),
+ (SELECT count(*) FROM ynx_fabric.billing_settlements),
  (SELECT count(*) FROM ynx_fabric.sagas WHERE status='running'),
  (SELECT count(*) FROM ynx_fabric.sagas WHERE status IN ('compensating','manual-recovery')),
  (SELECT count(*) FROM ynx_fabric.reconciliation_runs),
@@ -122,6 +135,7 @@ SELECT
  (SELECT count(*) FROM ynx_fabric.erasure_requests),
  (SELECT count(*) FROM ynx_analytics.event_facts)`).Scan(
 		&stats.Events, &stats.OutboxPending, &stats.OutboxOldestUnix, &stats.InboxEffects, &stats.DeadLetters, &stats.JournalEntries,
+		&stats.BillingRatePlans, &stats.BillingSettlements,
 		&stats.SagasRunning, &stats.SagasRecovery, &stats.Reconciliations, &stats.ReconciliationMismatches, &stats.ErasureRequests, &stats.AnalyticsFacts)
 	return stats, err
 }

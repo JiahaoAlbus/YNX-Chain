@@ -112,10 +112,80 @@ func TestHealthAndProtectedRead(t *testing.T) {
 	}
 	response = httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	for _, metric := range []string{"ynx_data_fabric_events", "ynx_data_fabric_outbox_pending", "ynx_data_fabric_dead_letters", "ynx_data_fabric_sagas_recovery", "ynx_data_fabric_reconciliations", "ynx_data_fabric_request_duration_seconds_bucket"} {
+	for _, metric := range []string{"ynx_data_fabric_events", "ynx_data_fabric_outbox_pending", "ynx_data_fabric_dead_letters", "ynx_data_fabric_billing_rate_plans", "ynx_data_fabric_billing_settlements", "ynx_data_fabric_sagas_recovery", "ynx_data_fabric_reconciliations", "ynx_data_fabric_request_duration_seconds_bucket"} {
 		if !strings.Contains(response.Body.String(), metric) {
 			t.Fatalf("metrics missing %s: %s", metric, response.Body.String())
 		}
+	}
+}
+
+func TestUsageBillingRoutesEnforceProductAndCommitLedgerSettlement(t *testing.T) {
+	server, store := newTestServer(t, fakeAuthorizer{})
+	usageStart := time.Date(2026, 7, 22, 13, 0, 0, 0, time.UTC)
+	usageEnd := usageStart.Add(time.Hour)
+	payload, _ := json.Marshal(datafabric.MeteredUsage{Meter: "compute", Unit: "request", Quantity: 250, UsageStart: usageStart, UsageEnd: usageEnd})
+	event := datafabric.EventEnvelope{
+		EventID: "event.cloud.usage.api.0001", EventType: "cloud.usage.recorded",
+		SchemaVersion: datafabric.EnvelopeSchemaVersion, Product: "cloud", Service: "usage",
+		AggregateID: "usage.cloud.api.0001", Actor: datafabric.Actor{ActorID: "actor.wallet.0001", AccountID: "account.wallet.0001"},
+		CorrelationID: "correlation.billing.api.0001", Sequence: 1, Timestamp: usageEnd, EffectiveAt: usageEnd,
+		SourceCommit: "719e101", SourceRelease: "cloud-test", PrivacyClassification: "confidential",
+		RetentionClass: "financial-7y", AuditID: "audit.event.cloud.usage.api.0001",
+		Source:  datafabric.SourceMetadata{Source: "cloud-meter", AsOf: usageEnd, Version: "1", Status: "authoritative"},
+		Payload: payload,
+	}
+	if err := event.Sign("key.datafabric.0001", apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Append(event, apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	plan := datafabric.BillingRatePlan{
+		PlanID: "rate-plan.api.0001", Version: "rate-v1.api.0001", Product: "cloud",
+		Meter: "compute", Unit: "request", UnitsPerBlock: 100, UserPriceMinor: 10, ProviderCostMinor: 4,
+		Asset: "USD", Currency: "USD", ChargeCategory: "compute-data-fee",
+		RevenueBoundary: "rated authoritative usage period ended", EffectiveFrom: usageStart.Add(-time.Hour),
+		SourceCommit: "client-value-replaced", SourceRelease: "client-value-replaced", AuditID: "audit.billing.plan.api.0001",
+	}
+	body, _ := json.Marshal(plan)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/billing/rate-plans", body, "pay"))
+	if response.Code != http.StatusForbidden || len(store.BillingRatePlans()) != 0 {
+		t.Fatalf("cross-product Billing rate authority was accepted: %d %s", response.Code, response.Body.String())
+	}
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/billing/rate-plans", body, "cloud"))
+	if response.Code != http.StatusCreated || len(store.BillingRatePlans()) != 1 || store.BillingRatePlans()[0].SourceCommit != "719e1018267ed5a53e6fae5211c5fd8a1503c35c" {
+		t.Fatalf("authoritative Billing rate was not registered: %d %s", response.Code, response.Body.String())
+	}
+	request := datafabric.BillingSettlementRequest{
+		SettlementID: "billing.settlement.api.0001", UsageEventID: event.EventID,
+		RatePlanID: plan.PlanID, RatePlanVersion: plan.Version, JournalEntryID: "journal.billing.api.0001",
+		ProviderAccountID: "account.billing.provider.api.0001", ProviderCostAccountID: "account.billing.cost.api.0001",
+		ProtocolRevenueAccountID: "account.billing.revenue.api.0001", RecordedAt: usageEnd.Add(time.Second),
+		SourceCommit: "client-value-replaced", SourceRelease: "client-value-replaced", AuditID: "audit.billing.settlement.api.0001",
+		FeeConsent: &datafabric.FeeConsent{ConsentID: "consent.billing.api.0001", FeeScheduleVersion: plan.Version, AcceptedAt: usageStart, MaximumAmountMinor: 30, Basis: "metered price accepted before usage"},
+	}
+	body, _ = json.Marshal(request)
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/billing/settlements", body, "cloud"))
+	if response.Code != http.StatusCreated || len(store.BillingSettlements()) != 1 || len(store.Journal()) != 1 || !strings.Contains(response.Body.String(), `"userChargeMinor":30`) {
+		t.Fatalf("usage, Billing, and Ledger were not atomically settled: %d %s", response.Code, response.Body.String())
+	}
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/billing/settlements", body, "cloud"))
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), string(datafabric.CodeBillingAlreadySettled)) {
+		t.Fatalf("duplicate usage settlement was accepted: %d %s", response.Code, response.Body.String())
+	}
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodGet, "/v1/billing/settlements", nil, "cloud"))
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), request.SettlementID) {
+		t.Fatalf("authorized Billing settlement read is incomplete: %d %s", response.Code, response.Body.String())
+	}
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodGet, "/v1/audit/export", nil, "cloud"))
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), plan.PlanID) || !strings.Contains(response.Body.String(), request.SettlementID) {
+		t.Fatalf("Billing audit export is incomplete: %d %s", response.Code, response.Body.String())
 	}
 }
 
