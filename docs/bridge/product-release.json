@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "product": "YNX Bridge",
-  "releaseClass": "local-engineering-candidate",
-  "sourceCommit": "418ab78ffebe987353765a8427338e6fe298b711",
+  "releaseClass": "remote-testnet-coordinator-candidate",
+  "sourceCommit": "69e5e2b1fe82ed4e507e165c876175d41a6b6e8f",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -10,8 +10,8 @@
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
-  "integratedCentral": false,
-  "deployedStaging": false,
+  "integratedCentral": true,
+  "deployedStaging": true,
   "deployedPublic": false,
   "downloadHosted": false,
   "productionSigned": false,
@@ -30,7 +30,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "appGatewayPatchImplementedLocal": true,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "walletSignatureVerified": false,
     "sourceSubmissionEnabled": false
   },
@@ -42,6 +42,16 @@
     "remoteSupportedDomainProbe": "ethereum-sepolia-domain-0-to-base-sepolia-domain-6",
     "ynxRouteSupported": false,
     "ynxRouteExecutable": false,
+    "externalSubmissionEnabled": false
+  },
+  "testnetDeployment": {
+    "evidence": "docs/bridge/testnet-deployment-evidence.json",
+    "release": "ynx-bridge-69e5e2b1fe82",
+    "coordinatorInstalled": true,
+    "appGatewayIntegrated": true,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "executableRouteAvailable": false,
     "externalSubmissionEnabled": false
   },
   "publicTestnetDepositVerified": false,
@@ -56,12 +66,12 @@
   "publicUrls": [],
   "transactionEvidence": [],
   "localEvidence": [
-    {"type":"source-commit","value":"418ab78ffebe987353765a8427338e6fe298b711"},
+    {"type":"source-commit","value":"69e5e2b1fe82ed4e507e165c876175d41a6b6e8f"},
+    {"type":"remote-testnet-evidence","value":"docs/bridge/testnet-deployment-evidence.json"},
     {"type":"test-command","value":"go test ./..."},
     {"type":"test-command","value":"npm test --prefix sdk/bridge"}
   ],
   "remainingReleaseInputs": [
-    "accepted canonical Gateway integration",
     "approved provider or proof-based route",
     "verified source and destination contracts",
     "secure signer path and threshold ceremony",

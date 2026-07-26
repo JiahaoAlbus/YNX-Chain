@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "remote-testnet-coordinator-installation",
+  "observedAt": "2026-07-26T13:15:57Z",
+  "sourceCommit": "69e5e2b1fe82ed4e507e165c876175d41a6b6e8f",
+  "release": "ynx-bridge-69e5e2b1fe82",
+  "targetRole": "primary-testnet",
+  "deploymentState": {
+    "integratedCentral": true,
+    "deployedStaging": true,
+    "deployedPublic": false,
+    "externalSubmissionEnabled": false,
+    "userAssetMovementEnabled": false
+  },
+  "package": {
+    "sha256": "adee954ce67849e6843f60b33a55907aeada2fbd35aea4eb004309c4d8d46c51",
+    "checksumsVerifiedRemote": true
+  },
+  "artifacts": {
+    "ynxBridgedSha256": "a780226c2c3203002b3bc96b0d23eedbd5d3078c74d65b47b0b072d6e55eeb5d",
+    "ynxAppGatewaydSha256": "5dd2c5926736b14d87d4afb13b4b0c14df9cb11148cdbd797f123c9955799b09"
+  },
+  "installation": {
+    "bridgeServiceActive": true,
+    "bridgeServiceEnabled": true,
+    "appGatewayServiceActive": true,
+    "bridgeEnvironmentMode": "0600",
+    "bridgeStateDirectoryMode": "0700",
+    "bridgeStateMode": "0600",
+    "stateIntegritySealed": true
+  },
+  "runtime": {
+    "service": "ynx-bridged",
+    "schemaVersion": 7,
+    "stateMachineVersion": "ynx.bridge.lifecycle.v1",
+    "buildCommit": "69e5e2b1fe82",
+    "buildRelease": "ynx-bridge-69e5e2b1fe82",
+    "coordinatorState": "available-local-coordinator",
+    "externalBridgeState": "unavailable",
+    "providerConnection": "not-connected",
+    "availableProviderCount": 0,
+    "contractStatus": "unavailable-no-verified-contract-deployment",
+    "routeCount": 1,
+    "allRoutesExecutable": false,
+    "allProviderRoutesAvailable": false,
+    "allAssetsExternalExecutionEnabled": false
+  },
+  "appGateway": {
+    "remoteDeployed": true,
+    "bridgeUpstreamHealthy": true,
+    "browserCredentialAccess": false,
+    "walletSecretAccess": false
+  },
+  "missingEvidence": [
+    "public Bridge ingress",
+    "verified YNX provider route",
+    "verified source and destination contracts",
+    "funded Testnet deposit",
+    "funded Testnet withdrawal",
+    "independent security review"
+  ]
+}

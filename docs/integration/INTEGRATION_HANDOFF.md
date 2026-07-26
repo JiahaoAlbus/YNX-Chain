@@ -1,8 +1,8 @@
 # YNX Bridge Integration Handoff
 
-Status: local implementation tested; central integration, Testnet deployment, provider connection, and contract deployment are not complete.
+Status: remote Testnet coordinator and canonical App Gateway integration deployed; provider route, contracts, public ingress, and funded transfer execution are not complete.
 
-Source runtime, consumer contract, Provider Registry, Quote Runtime, Wallet Review Runtime, and Provider Runtime commit: `418ab78ffebe987353765a8427338e6fe298b711`
+Deployed Testnet source commit: `69e5e2b1fe82ed4e507e165c876175d41a6b6e8f`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -17,13 +17,13 @@ Pay must not execute payment and Exchange must not credit a deposit before that 
 
 ## Protected mutation boundary
 
-The public SDK is read-only and contains no Bridge API key, provider credential, relayer key, Wallet secret, private key, seed, or signing authority. The local App Gateway patch now mediates digest-bound quote and Wallet review generation with Product Session, account, device, expiry, and scope context; central Gateway acceptance and Wallet signature integration remain incomplete. The Bridge service never signs the user's source transaction.
+The public SDK is read-only and contains no Bridge API key, provider credential, relayer key, Wallet secret, private key, seed, or signing authority. The deployed canonical App Gateway mediates digest-bound quote and Wallet review generation with Product Session, account, device, expiry, and scope context; Wallet signature integration remains incomplete. The Bridge service never signs the user's source transaction.
 
 The current implemented proof verifier revalidates domain-separated threshold-relayer attestations. It is not a light client, does not prove independent consensus, and does not authorize a canonical or trustless Bridge claim.
 
 ## Current fail-closed status
 
-The official Circle CCTP V2 Sandbox fee API is verified reachable for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route. YNX is not listed in the inspected official domain/contract references, so this does not prove a YNX provider route. No verified YNX provider connection, verified YNX source/destination Bridge contracts, public Bridge deployment, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review is evidenced by this worktree. The current deployment configuration keeps Provider routes empty; `availableProviderCount` is zero and incident-history coverage is explicitly incomplete. Route execution therefore remains unavailable and all release booleans beyond local implementation/testing remain false.
+The remote Testnet coordinator and canonical App Gateway upstream are directly verified active for release `ynx-bridge-69e5e2b1fe82`; the service remains loopback-only with no public Bridge ingress. The official Circle CCTP V2 Sandbox fee API is verified reachable for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route. YNX is not listed in the inspected official domain/contract references, so this does not prove a YNX provider route. No verified YNX provider connection, verified YNX source/destination Bridge contracts, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review exists. Provider routes remain empty, `availableProviderCount` is zero, and external submission and user asset movement remain disabled.
 
 ## Owner actions
 

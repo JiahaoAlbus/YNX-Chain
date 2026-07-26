@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "owner": "21-bridge",
-  "sourceCommit": "418ab78ffebe987353765a8427338e6fe298b711",
+  "sourceCommit": "69e5e2b1fe82ed4e507e165c876175d41a6b6e8f",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "canonicalRoute": "/bridge",
@@ -11,7 +11,7 @@
     "evmChainId": 6423,
     "nativeSymbol": "YNXT"
   },
-  "currentIntegrationState": "handoff_only_not_integrated",
+  "currentIntegrationState": "testnet-app-gateway-integrated-route-execution-disabled",
   "runtimeTruth": {
     "liveBridge": false,
     "externalSubmissionEnabled": false,
@@ -35,7 +35,7 @@
     "browserCredentialAccess": false,
     "walletSecretAccess": false,
     "requiredMediator": "canonical-app-gateway",
-    "centralGatewayIntegrated": false
+    "centralGatewayIntegrated": true
   },
   "sdk": {
     "path": "sdk/bridge",
