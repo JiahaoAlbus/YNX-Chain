@@ -48,7 +48,7 @@ func newTestBridge(t *testing.T) *testBridge {
 	now := time.Date(2026, 7, 14, 1, 2, 3, 0, time.UTC)
 	state := filepath.Join(t.TempDir(), "bridge", "state.json")
 	cfg := Config{
-		StatePath: state, APIKey: testAPIKey, GatewayAPIKey: testGatewayAPIKey, Relayers: public, Threshold: 2,
+		StatePath: state, APIKey: testAPIKey, GatewayAPIKey: testGatewayAPIKey, QuoteSealKey: "bridge-quote-seal-key-for-tests-0001", Relayers: public, Threshold: 2,
 		Policies: []RoutePolicy{{
 			Provider:       "local-test-provider",
 			Classification: "external-bridge-adapter",
@@ -182,6 +182,16 @@ func TestBridgeWalletReviewBindsCanonicalSessionAndRejectsQuoteTamper(t *testing
 	changed.Fees.ProviderFee = &fee
 	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: changed}); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("changed quote fee expected rejection, got %v", err)
+	}
+	otherConfig := b.cfg
+	otherConfig.StatePath = filepath.Join(t.TempDir(), "other-runtime", "state.json")
+	otherConfig.QuoteSealKey = "different-bridge-quote-seal-key-000001"
+	otherService, err := New(otherConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := otherService.ReviewQuote(session, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("quote from a different seal-key domain expected rejection, got %v", err)
 	}
 	wrongScope := session
 	wrongScope.Scope = "bridge:quote:read"
@@ -790,7 +800,7 @@ func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) 
 
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", GatewayAPIKey: testGatewayAPIKey, Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", GatewayAPIKey: testGatewayAPIKey, QuoteSealKey: "bridge-quote-seal-key-for-tests-0001", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
@@ -819,6 +829,11 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	if err := ValidateConfig(base); err != nil {
 		t.Fatalf("minimum bounded retention policy rejected: %v", err)
 	}
+	base.QuoteSealKey = testAPIKey
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("shared operator and quote seal credential unexpectedly passed")
+	}
+	base.QuoteSealKey = "bridge-quote-seal-key-for-tests-0001"
 	base.QuoteTTL = 29 * time.Second
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("sub-30-second quote ttl unexpectedly passed")

@@ -6,7 +6,7 @@
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-  "sdkVersion": "0.3.0",
+  "sdkVersion": "0.3.1",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,

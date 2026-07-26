@@ -51,7 +51,7 @@ if [[ -n "${ENV_FILE:-}" || -f .env.deploy || -f .env ]]; then
     *) echo "YNX_BRIDGE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
   esac
   if [[ "$YNX_BRIDGE_DEPLOY_ENABLED" == "true" ]]; then
-    bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
+    bridge_required=(YNX_BRIDGE_API_KEY YNX_BRIDGE_GATEWAY_API_KEY YNX_BRIDGE_QUOTE_SEAL_KEY YNX_BRIDGE_RELAYERS_JSON YNX_BRIDGE_ROUTE_POLICIES_JSON YNX_BRIDGE_PROVIDER_ROUTES_JSON YNX_BRIDGE_RELAYER_THRESHOLD YNX_BRIDGE_HTTP_ADDR)
     ynx_require_env "${bridge_required[@]}"
     ynx_reject_unsafe_env_values "${bridge_required[@]}"
   fi

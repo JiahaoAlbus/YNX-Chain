@@ -11,7 +11,7 @@ Every configured chain/asset has exactly one class:
 - `ynxt-bridge-candidate`
 - `other-testnet-asset-candidate`
 
-The same chain/asset cannot be assigned conflicting classes or be canonical on one route and represented on another. A catalog entry identifies its canonicality and observation-only movement boundary: lock or burn on a source side, and mint or release on a destination side. These labels describe intended accounting semantics only; no contract call or asset movement is implemented.
+The same chain/asset cannot be assigned conflicting classes or be canonical on one route and represented on another. A catalog entry identifies its canonicality and observation-only movement boundary: lock or burn on a source side, and mint or release on a destination side. Official native stablecoin burn/mint candidates use `canonical-to-canonical`; wrapped-asset candidates retain `canonical-to-represented` or `represented-to-canonical`. These labels describe intended accounting semantics only; no contract call or asset movement is implemented.
 
 Current entries are `availability=unavailable` and `externalExecutionEnabled=false`. Contract, symbol, decimals, and explorer URL are JSON `null`; contract verification is false; supply authority is `not-configured`; reserve evidence is only an operator reconciliation reference and not independent proof. Allowlisting permits a bounded coordinator intent record, not source submission, minting, release, liquidity, issuer support, or user availability.
 

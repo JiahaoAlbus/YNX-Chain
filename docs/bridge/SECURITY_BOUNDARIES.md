@@ -9,6 +9,6 @@
 - Explorer and Monitor consume read-only evidence. Trust consumes evidence references for dispute/appeal without asset authority.
 - Browser, Pay, DEX, Exchange UI, Finance, AI, and other consumers never receive Bridge service or provider secrets.
 
-The current Bridge API key is an operator-service boundary, not a substitute for canonical Wallet/Auth/Gateway. Public deployment remains prohibited until exact Gateway scopes and product/device/session vectors are centrally accepted.
+The Bridge operator API key, App Gateway upstream key, and Quote HMAC seal key are distinct server-side credentials. The seal key authenticates the complete expiring quote envelope across Provider fee changes and restarts; it never signs a user transaction and must remain stable across a deployment while issued quotes are valid. None is a substitute for canonical Wallet/Auth/Gateway, and none may reach a browser or consumer. Public deployment remains prohibited until exact Gateway scopes and product/device/session vectors are centrally accepted.
 
 The coordinator stores no relayer private key. HSM/MPC-backed signing can therefore remain outside the process, but no production device, ceremony, guardian set, key-version registry, rotation, or recovery evidence exists. Follow `RELAYER_KEY_LIFECYCLE.md`; ordinary config replacement is not a safe rotation mechanism.

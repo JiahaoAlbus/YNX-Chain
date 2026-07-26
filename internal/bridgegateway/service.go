@@ -2,6 +2,7 @@ package bridgegateway
 
 import (
 	"crypto/ed25519"
+	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"sort"
 	"strconv"
@@ -28,6 +30,10 @@ type Service struct {
 	maxOutstanding  map[string]uint64
 	policies        map[string]RoutePolicy
 	state           persistentState
+	providerRoutes  map[string]ProviderRouteConfig
+	providerClient  *http.Client
+	providerMu      sync.Mutex
+	providerStates  map[string]providerRuntimeState
 	rateMu          sync.Mutex
 	seen            map[string][]time.Time
 	rateLimitDenied uint64
@@ -97,7 +103,16 @@ func New(cfg Config) (*Service, error) {
 		value, _ := strconv.ParseUint(policy.MaxOutstanding, 10, 64)
 		maxOutstanding[routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset)] = value
 	}
-	service := &Service{cfg: normalized, startedAt: normalized.Now().UTC().Format(timeFormat), maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state, seen: map[string][]time.Time{}}
+	providerRoutes := make(map[string]ProviderRouteConfig, len(normalized.ProviderRoutes))
+	for _, route := range normalized.ProviderRoutes {
+		providerRoutes[routeKey(route.SourceChain, route.DestinationChain, route.SourceAsset, route.DestinationAsset)] = route
+	}
+	service := &Service{
+		cfg: normalized, startedAt: normalized.Now().UTC().Format(timeFormat),
+		maxAmounts: maxAmounts, maxOutstanding: maxOutstanding, policies: policies, state: state,
+		providerRoutes: providerRoutes, providerClient: newProviderHTTPClient(normalized.ProviderClient), providerStates: map[string]providerRuntimeState{},
+		seen: map[string][]time.Time{},
+	}
 	migrated := false
 	for id, transfer := range service.state.Transfers {
 		transferMigrated := false
@@ -333,59 +348,35 @@ func (s *Service) quoteAt(request QuoteRequest, asOf time.Time) (Quote, error) {
 	key := routeKey(request.SourceChain, request.DestinationChain, request.SourceAsset, request.DestinationAsset)
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	policy, ok := s.policies[key]
 	if !ok {
+		s.mu.Unlock()
 		return Quote{}, fmt.Errorf("%w: bridge quote route is not allowed", ErrInvalid)
 	}
 	maximum := s.maxAmounts[key]
 	if amount > maximum {
+		s.mu.Unlock()
 		return Quote{}, fmt.Errorf("%w: quote amount exceeds route policy", ErrInvalid)
 	}
+	paused := s.state.Safety.Paused
+	s.mu.Unlock()
 	asOf = asOf.UTC()
 	expiresAt := asOf.Add(s.cfg.QuoteTTL)
-	entry := unavailableRouteCatalogEntry(key, policy)
+	entry, providerConfigured := s.providerRouteEntry(key, policy)
 	failureStatus := entry.FailureStatus
-	if s.state.Safety.Paused {
+	if paused {
 		failureStatus = "bridge-paused"
 	}
-	material := struct {
-		SchemaVersion       int                     `json:"schemaVersion"`
-		RouteID             string                  `json:"routeId"`
-		Provider            string                  `json:"provider"`
-		Classification      string                  `json:"classification"`
-		SourceEndpoint      RouteAssetEndpoint      `json:"sourceEndpoint"`
-		DestinationEndpoint RouteAssetEndpoint      `json:"destinationEndpoint"`
-		Amount              string                  `json:"amount"`
-		Sender              string                  `json:"sender"`
-		Recipient           string                  `json:"recipient"`
-		Fees                RouteFeeDisclosure      `json:"fees"`
-		Slippage            RouteSlippageDisclosure `json:"slippage"`
-		Timing              RouteTimingDisclosure   `json:"timing"`
-		Finality            RouteFinalityDisclosure `json:"finality"`
-		Refund              RouteRefundDisclosure   `json:"refund"`
-		Risk                []string                `json:"risk"`
-		Limits              RoutePolicy             `json:"limits"`
-		Availability        string                  `json:"availability"`
-		FailureStatus       string                  `json:"failureStatus"`
-		Executable          bool                    `json:"executable"`
-		AsOf                string                  `json:"asOf"`
-		ExpiresAt           string                  `json:"expiresAt"`
-	}{
-		SchemaVersion: 1, RouteID: entry.ID, Provider: entry.Provider, Classification: entry.Classification,
-		SourceEndpoint: entry.Source, DestinationEndpoint: entry.Destination,
-		Amount: request.Amount, Sender: request.Sender, Recipient: request.Recipient,
-		Fees: entry.Fees, Slippage: entry.Slippage, Timing: entry.Timing, Finality: entry.Finality, Refund: entry.Refund,
-		Risk: entry.Risk, Limits: policy,
-		Availability: entry.Availability, FailureStatus: failureStatus, Executable: false,
-		AsOf: asOf.Format(timeFormat), ExpiresAt: expiresAt.Format(timeFormat),
+	coverage := "local-policy-bound-quote-no-live-provider-price-or-execution"
+	if providerConfigured {
+		coverage = "official-circle-cctp-v2-configured-no-live-provider-terms"
+		if entry.Fees.Status == "live-circle-cctp-v2-fee-bps" {
+			coverage = "official-circle-cctp-v2-fee-terms-with-external-submission-disabled"
+		}
 	}
-	digest := digestJSON(material)
-	return Quote{
-		SchemaVersion: 1, Source: "ynx-bridge-quote-runtime", AsOf: material.AsOf,
-		Coverage: "local-policy-bound-quote-no-live-provider-price-or-execution",
-		ID:       "quote_" + hashText(digest)[:24], Digest: digest,
-		Nonce: "quote_nonce_" + hashText(digest + "|" + entry.ID)[:24], ExpiresAt: material.ExpiresAt,
+	quote := Quote{
+		SchemaVersion: 1, Source: "ynx-bridge-quote-runtime", AsOf: asOf.Format(timeFormat),
+		Coverage: coverage, ExpiresAt: expiresAt.Format(timeFormat),
 		RouteID: entry.ID, Provider: entry.Provider, Classification: entry.Classification,
 		SourceEndpoint: entry.Source, DestinationEndpoint: entry.Destination,
 		Amount: request.Amount, Sender: request.Sender, Recipient: request.Recipient,
@@ -393,7 +384,11 @@ func (s *Service) quoteAt(request QuoteRequest, asOf time.Time) (Quote, error) {
 		Risk: append([]string(nil), entry.Risk...), Limits: policy,
 		Availability: entry.Availability, FailureStatus: failureStatus, Executable: false,
 		UserSigning: entry.UserSigning, CredentialBoundary: entry.CredentialBoundary,
-	}, nil
+	}
+	quote.Digest = s.sealQuote(quote)
+	quote.ID = "quote_" + hashText(quote.Digest)[:24]
+	quote.Nonce = "quote_nonce_" + hashText(quote.Digest + "|" + entry.ID)[:24]
+	return quote, nil
 }
 
 func (s *Service) ReviewQuote(session GatewaySessionContext, request WalletReviewRequest) (WalletReview, error) {
@@ -418,19 +413,27 @@ func (s *Service) ReviewQuote(session GatewaySessionContext, request WalletRevie
 	if err != nil || !now.Before(quoteExpiresAt) {
 		return WalletReview{}, fmt.Errorf("%w: quote is expired", ErrConflict)
 	}
-	expected, err := s.quoteAt(QuoteRequest{
-		SourceChain: submitted.SourceEndpoint.Chain, SourceAsset: submitted.SourceEndpoint.Asset,
-		DestinationChain: submitted.DestinationEndpoint.Chain, DestinationAsset: submitted.DestinationEndpoint.Asset,
-		Amount: submitted.Amount, Sender: submitted.Sender, Recipient: submitted.Recipient,
-	}, quoteAsOf)
-	if err != nil {
-		return WalletReview{}, err
-	}
-	expectedDigest := digestJSON(expected)
-	submittedDigest := digestJSON(submitted)
-	if len(expected.Digest) != len(submitted.Digest) || subtle.ConstantTimeCompare([]byte(expected.Digest), []byte(submitted.Digest)) != 1 ||
-		len(expectedDigest) != len(submittedDigest) || subtle.ConstantTimeCompare([]byte(expectedDigest), []byte(submittedDigest)) != 1 {
+	key := routeKey(submitted.SourceEndpoint.Chain, submitted.DestinationEndpoint.Chain, submitted.SourceEndpoint.Asset, submitted.DestinationEndpoint.Asset)
+	s.mu.Lock()
+	policy, routeAllowed := s.policies[key]
+	maximum := s.maxAmounts[key]
+	paused := s.state.Safety.Paused
+	s.mu.Unlock()
+	amount, amountErr := strconv.ParseUint(submitted.Amount, 10, 64)
+	expectedDigest := s.sealQuote(submitted)
+	expectedID := "quote_" + hashText(expectedDigest)[:24]
+	expectedNonce := "quote_nonce_" + hashText(expectedDigest + "|" + submitted.RouteID)[:24]
+	if !routeAllowed || submitted.RouteID != routeCatalogID(key, policy) || submitted.Provider != policy.Provider || submitted.Classification != policy.Classification ||
+		amountErr != nil || amount == 0 || amount > maximum || submitted.Amount != strconv.FormatUint(amount, 10) ||
+		len(expectedDigest) != len(submitted.Digest) || subtle.ConstantTimeCompare([]byte(expectedDigest), []byte(submitted.Digest)) != 1 ||
+		len(expectedID) != len(submitted.ID) || subtle.ConstantTimeCompare([]byte(expectedID), []byte(submitted.ID)) != 1 ||
+		len(expectedNonce) != len(submitted.Nonce) || subtle.ConstantTimeCompare([]byte(expectedNonce), []byte(submitted.Nonce)) != 1 {
 		return WalletReview{}, fmt.Errorf("%w: quote fields or digest were changed", ErrInvalid)
+	}
+	expected := submitted
+	if paused {
+		expected.FailureStatus = "bridge-paused"
+		expected.Executable = false
 	}
 	approvalAllowed := expected.Executable && expected.Availability == "available" && expected.FailureStatus == ""
 	status := "blocked"
@@ -483,6 +486,16 @@ func (s *Service) ReviewQuote(session GatewaySessionContext, request WalletRevie
 		SourceSubmissionAllowed: false, FailureStatus: failureStatus,
 		CredentialBoundary: "wallet-signs-source-intent-bridge-and-gateway-never-hold-user-private-key",
 	}, nil
+}
+
+func (s *Service) sealQuote(quote Quote) string {
+	quote.ID = ""
+	quote.Digest = ""
+	quote.Nonce = ""
+	encoded, _ := json.Marshal(quote)
+	mac := hmac.New(sha256.New, []byte(s.cfg.QuoteSealKey))
+	_, _ = mac.Write(encoded)
+	return "sha256:" + hex.EncodeToString(mac.Sum(nil))
 }
 
 func (s *Service) AddAttestation(transferID string, request AttestationRequest) (MutationResult, error) {
@@ -1060,7 +1073,7 @@ func (s *Service) RouteCatalog() RouteCatalog {
 	sort.Strings(keys)
 	for _, key := range keys {
 		policy := s.policies[key]
-		result.Routes = append(result.Routes, unavailableRouteCatalogEntry(key, policy))
+		result.Routes = append(result.Routes, s.providerCatalogEntry(key, policy))
 	}
 	return result
 }
@@ -1098,11 +1111,15 @@ func configuredProviderCount(policies map[string]RoutePolicy) int {
 func (s *Service) ProviderRegistry() ProviderRegistry {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	coverage := "configured-provider-identities-and-routes-only-no-live-provider-session-commercial-rights-or-independent-incident-history"
+	if len(s.providerRoutes) > 0 {
+		coverage = "configured-provider-routes-and-cached-live-api-health-no-executable-route-or-independent-incident-history"
+	}
 	result := ProviderRegistry{
 		SchemaVersion: 1,
 		Source:        "ynx-bridge-provider-registry",
 		AsOf:          s.cfg.Now().UTC().Format(timeFormat),
-		Coverage:      "configured-provider-identities-and-routes-only-no-live-provider-session-commercial-rights-or-independent-incident-history",
+		Coverage:      coverage,
 		Providers:     []ProviderRegistryEntry{},
 	}
 	keys := make([]string, 0, len(s.policies))
@@ -1115,7 +1132,7 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 		routeID := routeCatalogID(key, policy)
 		assets := []string{policy.SourceChain + ":" + policy.SourceAsset, policy.DestinationChain + ":" + policy.DestinationAsset}
 		sort.Strings(assets)
-		result.Providers = append(result.Providers, ProviderRegistryEntry{
+		entry := ProviderRegistryEntry{
 			ID:                      "provider_route_" + hashText(policy.Provider + "|" + routeID)[:24],
 			Provider:                policy.Provider,
 			Product:                 "not-configured",
@@ -1151,7 +1168,74 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 			TestnetStatus:           "unavailable",
 			ProductionStatus:        "unavailable",
 			FailureStatus:           "provider-support-contracts-credentials-agreement-and-funding-unavailable",
-		})
+		}
+		if config, configured := s.providerRoutes[key]; configured {
+			minSeconds, maxSeconds := config.EstimatedMinSeconds, config.EstimatedMaxSeconds
+			destinationRule := "circle-cctp-v2-attestation-plus-destination-receive-message"
+			entry.Product = "Circle CCTP V2"
+			entry.APIVersion = "v2"
+			entry.SDKVersion = "direct-official-http-api"
+			entry.Authentication = "permissionless-public-api-no-key"
+			entry.RateLimit = "35-requests-per-second-then-five-minute-block"
+			entry.SourceContract = stringPointer(config.SourceContract)
+			entry.DestinationContract = stringPointer(config.DestinationContract)
+			entry.Slippage = RouteSlippageDisclosure{Status: "not-applicable-native-usdc-burn-mint"}
+			entry.EstimatedTime = RouteTimingDisclosure{Status: "configured-reviewed-estimate", EstimatedMinSeconds: &minSeconds, EstimatedMaxSeconds: &maxSeconds}
+			entry.Finality = RouteFinalityDisclosure{SourceConfirmations: policy.MinConfirmations, DestinationRule: &destinationRule, ProofVerification: "circle-attestation-provider-not-independent-ynx-light-client"}
+			entry.RefundPolicy = RouteRefundDisclosure{Available: false, Mode: "provider-protocol-no-automatic-refund-after-source-burn"}
+			entry.RecoveryProcess = "fail-closed-preserve-provider-and-chain-evidence-require-approved-operator-recovery"
+			if config.Jurisdiction != "" {
+				entry.Jurisdiction = config.Jurisdiction
+			}
+			if config.License != "" {
+				entry.License = config.License
+			}
+			if config.TermsURL != "" {
+				entry.Terms = config.TermsURL
+			}
+			if config.DataRetention != "" {
+				entry.DataRetention = config.DataRetention
+			}
+			if config.DataRights != "" {
+				entry.DataRights = config.DataRights
+			}
+			entry.CustodyModel = "non-custodial-native-usdc-burn-mint-candidate"
+			entry.SecurityModel = "Circle-attestation-plus-onchain-CCTP-contracts-not-YNX-light-client"
+			if config.OperationalReviewApproved {
+				entry.AuditStatus = "operator-operational-review-approved"
+			}
+			entry.CredentialsRequired = false
+			entry.CredentialsConfigured = true
+			entry.RouteSupportEvidence = stringPointer(config.RouteSupportEvidenceURL)
+			entry.AgreementEvidence = stringPointer(config.AgreementEvidenceURL)
+			entry.OperationalReviewEvidence = stringPointer(config.OperationalReviewURL)
+			entry.OutageMode = config.OutageMode
+			entry.RouteSupportVerified = config.RouteSupportVerified
+			entry.OperationalReviewApproved = config.OperationalReviewApproved
+			entry.AgreementApproved = config.AgreementApproved
+			entry.ContractsConfigured = config.ContractsVerified
+			if config.Fallback != "" {
+				entry.Fallback = config.Fallback
+			}
+			entry.RouteAvailable = false
+			entry.Executable = false
+			entry.TestnetStatus = "provider-api-configured-route-execution-disabled"
+			entry.FailureStatus = "provider-not-probed"
+			state := s.providerState(key)
+			if state.Health != "" {
+				entry.Health = state.Health
+				entry.FailureStatus = state.Failure
+			}
+			if state.LastSuccess != "" {
+				entry.LastSuccess = stringPointer(state.LastSuccess)
+				entry.TestnetStatus = "official-fee-api-connected-route-execution-disabled"
+				entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
+			}
+			if state.LastFailure != "" {
+				entry.LastFailure = stringPointer(state.LastFailure)
+			}
+		}
+		result.Providers = append(result.Providers, entry)
 	}
 	return result
 }
@@ -1159,12 +1243,20 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 func (s *Service) AssetCatalog() AssetCatalog {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	result := AssetCatalog{SchemaVersion: 1, Source: "ynx-bridge-asset-registry", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "configured-token-allowlist-candidates-not-verified-contracts", Assets: []AssetCatalogEntry{}}
+	coverage := "configured-token-allowlist-candidates-not-verified-contracts"
+	if len(s.providerRoutes) > 0 {
+		coverage = "configured-token-allowlist-plus-provider-contract-metadata-not-executable-or-independent-reserve-proof"
+	}
+	result := AssetCatalog{SchemaVersion: 1, Source: "ynx-bridge-asset-registry", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: coverage, Assets: []AssetCatalogEntry{}}
 	entries := map[string]AssetCatalogEntry{}
 	for key, policy := range s.policies {
 		routeID := routeCatalogID(key, policy)
 		addAssetCatalogEntry(entries, policy.SourceChain, policy.SourceAsset, policy.SourceAssetClass, sourceCanonicality(policy.AssetBoundary), sourceMovementMode(policy.AssetBoundary), routeID)
 		addAssetCatalogEntry(entries, policy.DestinationChain, policy.DestinationAsset, policy.DestinationAssetClass, destinationCanonicality(policy.AssetBoundary), destinationMovementMode(policy.AssetBoundary), routeID)
+		if config, configured := s.providerRoutes[key]; configured {
+			applyProviderAssetMetadata(entries, config.SourceChain, config.SourceAsset, config.SourceSymbol, config.SourceDecimals, config.SourceTokenContract, config.SourceExplorerURL, config.ContractsVerified)
+			applyProviderAssetMetadata(entries, config.DestinationChain, config.DestinationAsset, config.DestinationSymbol, config.DestinationDecimals, config.DestinationTokenContract, config.DestinationExplorerURL, config.ContractsVerified)
+		}
 	}
 	keys := make([]string, 0, len(entries))
 	for key := range entries {
@@ -1178,6 +1270,21 @@ func (s *Service) AssetCatalog() AssetCatalog {
 		result.Assets = append(result.Assets, entry)
 	}
 	return result
+}
+
+func applyProviderAssetMetadata(entries map[string]AssetCatalogEntry, chain, asset, symbol string, decimals *uint8, contract, explorer string, verified bool) {
+	key := chain + "|" + asset
+	entry, exists := entries[key]
+	if !exists {
+		return
+	}
+	entry.Symbol = stringPointer(symbol)
+	entry.Decimals = decimals
+	entry.Contract = stringPointer(contract)
+	entry.ContractVerified = verified
+	entry.ExplorerURL = stringPointer(explorer)
+	entry.Risk = []string{"provider contract metadata does not prove source submission or destination availability", "mint and burn execution remain disabled", "reserve evidence is operator-submitted and not independently verified"}
+	entries[key] = entry
 }
 
 func addAssetCatalogEntry(entries map[string]AssetCatalogEntry, chain, asset, assetClass, canonicality, movementMode, routeID string) {
@@ -1209,7 +1316,7 @@ func containsString(values []string, target string) bool {
 }
 
 func sourceCanonicality(boundary string) string {
-	if boundary == "canonical-to-represented" {
+	if boundary == "canonical-to-represented" || boundary == "canonical-to-canonical" {
 		return "canonical"
 	}
 	return "represented"
@@ -1230,7 +1337,7 @@ func sourceMovementMode(boundary string) string {
 }
 
 func destinationMovementMode(boundary string) string {
-	if boundary == "canonical-to-represented" {
+	if boundary == "canonical-to-represented" || boundary == "canonical-to-canonical" {
 		return "mint-observation-only-not-executed"
 	}
 	return "release-observation-only-not-executed"
@@ -1272,11 +1379,20 @@ func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
 	if s.state.Safety.Paused {
 		coordinatorState = "paused-local-coordinator"
 	}
+	availableProviders, providerConnection := s.providerConnectionSnapshot()
+	externalBridgeState := "unavailable"
+	failureStatus := "no-verified-provider-contract-or-public-deployment"
+	coverage := "local-coordinator-and-configured-candidates-not-public-provider-health"
+	if availableProviders > 0 {
+		externalBridgeState = "provider-api-connected-route-execution-unavailable"
+		failureStatus = "source-intent-builder-testnet-execution-and-public-deployment-unavailable"
+		coverage = "local-coordinator-plus-live-provider-api-observation-not-executable-route-or-public-deployment"
+	}
 	return ProductStatus{
-		SchemaVersion: 1, Source: "ynx-bridge-status", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: "local-coordinator-and-configured-candidates-not-public-provider-health",
-		CoordinatorState: coordinatorState, ExternalBridgeState: "unavailable", FailureStatus: "no-verified-provider-contract-or-public-deployment",
-		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
-		ProviderConnection: "not-connected", ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
+		SchemaVersion: 1, Source: "ynx-bridge-status", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: coverage,
+		CoordinatorState: coordinatorState, ExternalBridgeState: externalBridgeState, FailureStatus: failureStatus,
+		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: availableProviders, AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
+		ProviderConnection: providerConnection, ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
 		Reconciliation: reconciliation,
 		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteGeneration: true, QuoteExecution: false, WalletReviewGeneration: true, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
 		Support:        StatusSupport{Configured: false}, Build: buildinfo.Normalize(build),
@@ -1350,14 +1466,22 @@ func (s *Service) Health(build buildinfo.Info) Health {
 	if normalizedBuild.Commit == "unknown" {
 		truthfulStatus = "local-coordinator-only-no-external-submission"
 	}
+	availableProviders, providerConnection := s.providerConnectionSnapshot()
+	providerStatus := "unavailable-no-verified-provider-connection"
+	providerDependency := "unavailable"
+	if availableProviders > 0 {
+		providerStatus = "connected-live-provider-api-route-execution-disabled"
+		providerDependency = providerConnection
+		truthfulStatus = "degraded-live-provider-api-no-executable-route-or-contract"
+	}
 	health := Health{
 		OK: true, Degraded: true, Service: "ynx-bridged", SchemaVersion: SchemaVersion, StateMachineVersion: StateMachineVersion, StartedAt: s.startedAt,
 		NativeSymbol: "YNXT", Persistence: "atomic-json-file", StateIntegrity: s.state.Integrity,
-		ProviderStatus: "unavailable-no-verified-provider-connection", ContractStatus: "unavailable-no-verified-contract-deployment", ReconciliationStatus: reconciliationStatus,
+		ProviderStatus: providerStatus, ContractStatus: "unavailable-no-verified-contract-deployment", ReconciliationStatus: reconciliationStatus,
 		Dependencies: map[string]string{
-			"state": "integrity-sealed", "provider": "unavailable", "contracts": "unavailable", "relayerQuorum": "configured-local", "reconciliation": reconciliationStatus,
+			"state": "integrity-sealed", "provider": providerDependency, "contracts": "unavailable", "relayerQuorum": "configured-local", "reconciliation": reconciliationStatus,
 		},
-		RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
+		RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: availableProviders, RelayerCount: len(s.cfg.Relayers), RequiredAttestations: s.cfg.Threshold, TransferCount: len(s.state.Transfers), AuditEventCount: len(s.state.Audit),
 		ExternalSubmissionEnabled: false, LiveBridge: false, TruthfulStatus: truthfulStatus, Safety: s.state.Safety, Build: normalizedBuild,
 	}
 	lastSuccessfulAt := ""

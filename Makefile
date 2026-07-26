@@ -412,12 +412,15 @@ bridge-supply-chain-check:
 bridge-observability-check:
 	node ./scripts/verify/bridge-observability-check.mjs
 
-.PHONY: bridge-sdk-check bridge-route-adapter-check
+.PHONY: bridge-sdk-check bridge-route-adapter-check bridge-provider-check
 bridge-sdk-check:
 	bash ./scripts/verify/bridge-sdk-check.sh
 
 bridge-route-adapter-check:
 	node ./scripts/verify/bridge-route-adapter-check.mjs
+
+bridge-provider-check:
+	bash ./scripts/verify/bridge-provider-check.sh
 
 .PHONY: bridge-data-lifecycle-check
 bridge-data-lifecycle-check:

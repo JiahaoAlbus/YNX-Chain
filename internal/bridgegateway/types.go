@@ -5,6 +5,8 @@ import (
 	"crypto/ed25519"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,14 +23,40 @@ const (
 )
 
 var (
-	ErrNotFound            = errors.New("bridge transfer not found")
-	ErrConflict            = errors.New("bridge request conflicts with existing state")
-	ErrInvalid             = errors.New("invalid bridge request")
-	ErrUnauthorizedRelayer = errors.New("bridge relayer is not authorized")
-	ErrInsufficientQuorum  = errors.New("bridge transfer has insufficient finality or attestations")
-	identifierPattern      = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/@-]{2,127}$`)
-	idempotencyPattern     = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$`)
-	accountDigestPattern   = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	ErrNotFound              = errors.New("bridge transfer not found")
+	ErrConflict              = errors.New("bridge request conflicts with existing state")
+	ErrInvalid               = errors.New("invalid bridge request")
+	ErrUnauthorizedRelayer   = errors.New("bridge relayer is not authorized")
+	ErrInsufficientQuorum    = errors.New("bridge transfer has insufficient finality or attestations")
+	identifierPattern        = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/@-]{2,127}$`)
+	idempotencyPattern       = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$`)
+	accountDigestPattern     = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	circleCCTPTestnetDomains = map[string]uint32{
+		"ethereum-sepolia":    0,
+		"avalanche-fuji":      1,
+		"op-sepolia":          2,
+		"arbitrum-sepolia":    3,
+		"solana-devnet":       5,
+		"base-sepolia":        6,
+		"polygon-amoy":        7,
+		"unichain-sepolia":    10,
+		"linea-sepolia":       11,
+		"codex-testnet":       12,
+		"sonic-testnet":       13,
+		"world-chain-sepolia": 14,
+		"monad-testnet":       15,
+		"sei-testnet":         16,
+		"hyperevm-testnet":    19,
+		"ink-sepolia":         21,
+		"plume-testnet":       22,
+		"starknet-sepolia":    25,
+		"arc-testnet":         26,
+		"stellar-testnet":     27,
+		"edge-testnet":        28,
+		"injective-testnet":   29,
+		"morph-hoodi":         30,
+		"pharos-testnet":      31,
+	}
 )
 
 type RoutePolicy struct {
@@ -134,50 +162,57 @@ type ProviderIncident struct {
 }
 
 type ProviderRegistryEntry struct {
-	ID                      string                  `json:"id"`
-	Provider                string                  `json:"provider"`
-	Product                 string                  `json:"product"`
-	Classification          string                  `json:"classification"`
-	RouteID                 string                  `json:"routeId"`
-	SourceChain             string                  `json:"sourceChain"`
-	DestinationChain        string                  `json:"destinationChain"`
-	SupportedAssets         []string                `json:"supportedAssets"`
-	SourceContract          *string                 `json:"sourceContract"`
-	DestinationContract     *string                 `json:"destinationContract"`
-	APIVersion              string                  `json:"apiVersion"`
-	SDKVersion              string                  `json:"sdkVersion"`
-	Authentication          string                  `json:"authentication"`
-	RateLimit               string                  `json:"rateLimit"`
-	Fees                    RouteFeeDisclosure      `json:"fees"`
-	Slippage                RouteSlippageDisclosure `json:"slippage"`
-	EstimatedTime           RouteTimingDisclosure   `json:"estimatedTime"`
-	Finality                RouteFinalityDisclosure `json:"finality"`
-	RefundPolicy            RouteRefundDisclosure   `json:"refundPolicy"`
-	RecoveryProcess         string                  `json:"recoveryProcess"`
-	Limits                  RoutePolicy             `json:"limits"`
-	Jurisdiction            string                  `json:"jurisdiction"`
-	License                 string                  `json:"license"`
-	Terms                   string                  `json:"terms"`
-	DataRetention           string                  `json:"dataRetention"`
-	DataRights              string                  `json:"dataRights"`
-	CustodyModel            string                  `json:"custodyModel"`
-	SecurityModel           string                  `json:"securityModel"`
-	AuditStatus             string                  `json:"auditStatus"`
-	IncidentHistory         []ProviderIncident      `json:"incidentHistory"`
-	IncidentHistoryComplete bool                    `json:"incidentHistoryComplete"`
-	Health                  string                  `json:"health"`
-	LastSuccess             *string                 `json:"lastSuccess"`
-	LastFailure             *string                 `json:"lastFailure"`
-	Fallback                string                  `json:"fallback"`
-	DecommissionPlan        string                  `json:"decommissionPlan"`
-	TestnetStatus           string                  `json:"testnetStatus"`
-	ProductionStatus        string                  `json:"productionStatus"`
-	CredentialsConfigured   bool                    `json:"credentialsConfigured"`
-	AgreementApproved       bool                    `json:"agreementApproved"`
-	ContractsConfigured     bool                    `json:"contractsConfigured"`
-	RouteAvailable          bool                    `json:"routeAvailable"`
-	Executable              bool                    `json:"executable"`
-	FailureStatus           string                  `json:"failureStatus"`
+	ID                        string                  `json:"id"`
+	Provider                  string                  `json:"provider"`
+	Product                   string                  `json:"product"`
+	Classification            string                  `json:"classification"`
+	RouteID                   string                  `json:"routeId"`
+	SourceChain               string                  `json:"sourceChain"`
+	DestinationChain          string                  `json:"destinationChain"`
+	SupportedAssets           []string                `json:"supportedAssets"`
+	SourceContract            *string                 `json:"sourceContract"`
+	DestinationContract       *string                 `json:"destinationContract"`
+	APIVersion                string                  `json:"apiVersion"`
+	SDKVersion                string                  `json:"sdkVersion"`
+	Authentication            string                  `json:"authentication"`
+	RateLimit                 string                  `json:"rateLimit"`
+	Fees                      RouteFeeDisclosure      `json:"fees"`
+	Slippage                  RouteSlippageDisclosure `json:"slippage"`
+	EstimatedTime             RouteTimingDisclosure   `json:"estimatedTime"`
+	Finality                  RouteFinalityDisclosure `json:"finality"`
+	RefundPolicy              RouteRefundDisclosure   `json:"refundPolicy"`
+	RecoveryProcess           string                  `json:"recoveryProcess"`
+	Limits                    RoutePolicy             `json:"limits"`
+	Jurisdiction              string                  `json:"jurisdiction"`
+	License                   string                  `json:"license"`
+	Terms                     string                  `json:"terms"`
+	DataRetention             string                  `json:"dataRetention"`
+	DataRights                string                  `json:"dataRights"`
+	CustodyModel              string                  `json:"custodyModel"`
+	SecurityModel             string                  `json:"securityModel"`
+	AuditStatus               string                  `json:"auditStatus"`
+	IncidentHistory           []ProviderIncident      `json:"incidentHistory"`
+	IncidentHistoryComplete   bool                    `json:"incidentHistoryComplete"`
+	Health                    string                  `json:"health"`
+	LastSuccess               *string                 `json:"lastSuccess"`
+	LastFailure               *string                 `json:"lastFailure"`
+	Fallback                  string                  `json:"fallback"`
+	DecommissionPlan          string                  `json:"decommissionPlan"`
+	TestnetStatus             string                  `json:"testnetStatus"`
+	ProductionStatus          string                  `json:"productionStatus"`
+	CredentialsRequired       bool                    `json:"credentialsRequired"`
+	CredentialsConfigured     bool                    `json:"credentialsConfigured"`
+	RouteSupportEvidence      *string                 `json:"routeSupportEvidence"`
+	AgreementEvidence         *string                 `json:"agreementEvidence"`
+	OperationalReviewEvidence *string                 `json:"operationalReviewEvidence"`
+	OutageMode                string                  `json:"outageMode"`
+	RouteSupportVerified      bool                    `json:"routeSupportVerified"`
+	OperationalReviewApproved bool                    `json:"operationalReviewApproved"`
+	AgreementApproved         bool                    `json:"agreementApproved"`
+	ContractsConfigured       bool                    `json:"contractsConfigured"`
+	RouteAvailable            bool                    `json:"routeAvailable"`
+	Executable                bool                    `json:"executable"`
+	FailureStatus             string                  `json:"failureStatus"`
 }
 
 type ProviderRegistry struct {
@@ -186,6 +221,46 @@ type ProviderRegistry struct {
 	AsOf          string                  `json:"asOf"`
 	Coverage      string                  `json:"coverage"`
 	Providers     []ProviderRegistryEntry `json:"providers"`
+}
+
+type ProviderRouteConfig struct {
+	Provider                  string  `json:"provider"`
+	Adapter                   string  `json:"adapter"`
+	Environment               string  `json:"environment"`
+	BaseURL                   string  `json:"baseUrl"`
+	SourceChain               string  `json:"sourceChain"`
+	DestinationChain          string  `json:"destinationChain"`
+	SourceAsset               string  `json:"sourceAsset"`
+	DestinationAsset          string  `json:"destinationAsset"`
+	SourceDomain              *uint32 `json:"sourceDomain"`
+	DestinationDomain         *uint32 `json:"destinationDomain"`
+	SourceSymbol              string  `json:"sourceSymbol"`
+	DestinationSymbol         string  `json:"destinationSymbol"`
+	SourceDecimals            *uint8  `json:"sourceDecimals"`
+	DestinationDecimals       *uint8  `json:"destinationDecimals"`
+	SourceTokenContract       string  `json:"sourceTokenContract"`
+	DestinationTokenContract  string  `json:"destinationTokenContract"`
+	SourceContract            string  `json:"sourceContract"`
+	DestinationContract       string  `json:"destinationContract"`
+	SourceExplorerURL         string  `json:"sourceExplorerUrl"`
+	DestinationExplorerURL    string  `json:"destinationExplorerUrl"`
+	FinalityThreshold         uint32  `json:"finalityThreshold"`
+	EstimatedMinSeconds       uint64  `json:"estimatedMinSeconds"`
+	EstimatedMaxSeconds       uint64  `json:"estimatedMaxSeconds"`
+	RouteSupportVerified      bool    `json:"routeSupportVerified"`
+	ContractsVerified         bool    `json:"contractsVerified"`
+	AgreementApproved         bool    `json:"agreementApproved"`
+	OperationalReviewApproved bool    `json:"operationalReviewApproved"`
+	RouteSupportEvidenceURL   string  `json:"routeSupportEvidenceUrl"`
+	AgreementEvidenceURL      string  `json:"agreementEvidenceUrl"`
+	OperationalReviewURL      string  `json:"operationalReviewUrl"`
+	License                   string  `json:"license"`
+	TermsURL                  string  `json:"termsUrl"`
+	Jurisdiction              string  `json:"jurisdiction"`
+	DataRetention             string  `json:"dataRetention"`
+	DataRights                string  `json:"dataRights"`
+	Fallback                  string  `json:"fallback"`
+	OutageMode                string  `json:"outageMode"`
 }
 
 type AssetCatalogEntry struct {
@@ -297,9 +372,12 @@ type Config struct {
 	StatePath       string
 	APIKey          string
 	GatewayAPIKey   string
+	QuoteSealKey    string
 	Relayers        map[string]ed25519.PublicKey
 	Threshold       int
 	Policies        []RoutePolicy
+	ProviderRoutes  []ProviderRouteConfig
+	ProviderClient  *http.Client
 	Now             func() time.Time
 	RateLimitWindow time.Duration
 	RateLimitMax    int
@@ -311,6 +389,7 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	c.StatePath = strings.TrimSpace(c.StatePath)
 	c.APIKey = strings.TrimSpace(c.APIKey)
 	c.GatewayAPIKey = strings.TrimSpace(c.GatewayAPIKey)
+	c.QuoteSealKey = strings.TrimSpace(c.QuoteSealKey)
 	if c.StatePath == "" {
 		return Config{}, nil, errors.New("YNX_BRIDGE_STATE_PATH is required")
 	}
@@ -325,6 +404,12 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	}
 	if c.GatewayAPIKey == c.APIKey {
 		return Config{}, nil, errors.New("YNX_BRIDGE_GATEWAY_API_KEY must be distinct from the operator API key")
+	}
+	if len(c.QuoteSealKey) < 32 {
+		return Config{}, nil, errors.New("YNX_BRIDGE_QUOTE_SEAL_KEY must contain at least 32 characters")
+	}
+	if c.QuoteSealKey == c.APIKey || c.QuoteSealKey == c.GatewayAPIKey {
+		return Config{}, nil, errors.New("YNX_BRIDGE_QUOTE_SEAL_KEY must be distinct from Bridge access keys")
 	}
 	if len(c.Relayers) < 2 || c.Threshold < 2 || c.Threshold > len(c.Relayers) {
 		return Config{}, nil, errors.New("bridge relayer threshold must be between 2 and the configured relayer count")
@@ -370,7 +455,7 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		if policy.SourceChain == policy.DestinationChain || policy.MinConfirmations == 0 || policy.ExternalSubmission {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d must be cross-chain, finalized, and external-submission-disabled", i)
 		}
-		if policy.AssetBoundary != "canonical-to-represented" && policy.AssetBoundary != "represented-to-canonical" {
+		if policy.AssetBoundary != "canonical-to-represented" && policy.AssetBoundary != "represented-to-canonical" && policy.AssetBoundary != "canonical-to-canonical" {
 			return Config{}, nil, fmt.Errorf("bridge route policy %d asset boundary is invalid", i)
 		}
 		classifications := map[string]bool{"official-stablecoin-transfer-candidate": true, "proof-based-canonical-bridge-candidate": true, "external-bridge-adapter": true, "route-aggregator": true, "manual-operator-testnet-transfer": true}
@@ -439,6 +524,101 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		}
 		maxAmounts[key] = maximum
 	}
+	providerRoutes := make(map[string]struct{}, len(c.ProviderRoutes))
+	providerAssets := make(map[string]string)
+	for i := range c.ProviderRoutes {
+		route := &c.ProviderRoutes[i]
+		route.Provider = normalizeName(route.Provider)
+		route.Adapter = normalizeName(route.Adapter)
+		route.Environment = normalizeName(route.Environment)
+		route.BaseURL = strings.TrimRight(strings.TrimSpace(route.BaseURL), "/")
+		route.SourceChain = normalizeName(route.SourceChain)
+		route.DestinationChain = normalizeName(route.DestinationChain)
+		route.SourceAsset = normalizeAsset(route.SourceAsset)
+		route.DestinationAsset = normalizeAsset(route.DestinationAsset)
+		route.SourceSymbol = strings.ToUpper(strings.TrimSpace(route.SourceSymbol))
+		route.DestinationSymbol = strings.ToUpper(strings.TrimSpace(route.DestinationSymbol))
+		route.SourceTokenContract = strings.TrimSpace(route.SourceTokenContract)
+		route.DestinationTokenContract = strings.TrimSpace(route.DestinationTokenContract)
+		route.SourceContract = strings.TrimSpace(route.SourceContract)
+		route.DestinationContract = strings.TrimSpace(route.DestinationContract)
+		route.SourceExplorerURL = strings.TrimSpace(route.SourceExplorerURL)
+		route.DestinationExplorerURL = strings.TrimSpace(route.DestinationExplorerURL)
+		route.RouteSupportEvidenceURL = strings.TrimSpace(route.RouteSupportEvidenceURL)
+		route.AgreementEvidenceURL = strings.TrimSpace(route.AgreementEvidenceURL)
+		route.OperationalReviewURL = strings.TrimSpace(route.OperationalReviewURL)
+		route.License = strings.TrimSpace(route.License)
+		route.TermsURL = strings.TrimSpace(route.TermsURL)
+		route.Jurisdiction = strings.TrimSpace(route.Jurisdiction)
+		route.DataRetention = strings.TrimSpace(route.DataRetention)
+		route.DataRights = strings.TrimSpace(route.DataRights)
+		route.Fallback = strings.TrimSpace(route.Fallback)
+		route.OutageMode = strings.TrimSpace(route.OutageMode)
+		key := routeKey(route.SourceChain, route.DestinationChain, route.SourceAsset, route.DestinationAsset)
+		policyIndex := -1
+		for j := range c.Policies {
+			policy := c.Policies[j]
+			if routeKey(policy.SourceChain, policy.DestinationChain, policy.SourceAsset, policy.DestinationAsset) == key {
+				policyIndex = j
+				break
+			}
+		}
+		if policyIndex < 0 || c.Policies[policyIndex].Provider != route.Provider {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d does not match an owned route policy", i)
+		}
+		if _, exists := providerRoutes[key]; exists {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d is duplicated", i)
+		}
+		providerRoutes[key] = struct{}{}
+		if route.Adapter != "circle-cctp-v2" || route.Environment != "testnet" || route.BaseURL != "https://iris-api-sandbox.circle.com" {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must use the official Circle CCTP V2 testnet API", i)
+		}
+		if route.SourceDomain == nil || route.DestinationDomain == nil || *route.SourceDomain == *route.DestinationDomain {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must bind distinct official CCTP domains", i)
+		}
+		sourceDomain, sourceSupported := circleCCTPTestnetDomains[route.SourceChain]
+		destinationDomain, destinationSupported := circleCCTPTestnetDomains[route.DestinationChain]
+		if !sourceSupported || !destinationSupported || sourceDomain != *route.SourceDomain || destinationDomain != *route.DestinationDomain {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d chain/domain pair is not in the inspected official CCTP testnet domain table", i)
+		}
+		policy := c.Policies[policyIndex]
+		if policy.Classification != "official-stablecoin-transfer-candidate" || policy.SourceAssetClass != "testnet-stablecoin" || policy.DestinationAssetClass != "testnet-stablecoin" {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must bind an official testnet stablecoin candidate policy", i)
+		}
+		if policy.AssetBoundary != "canonical-to-canonical" {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must preserve native stablecoin canonicality", i)
+		}
+		if route.SourceSymbol != "USDC" || route.DestinationSymbol != "USDC" || route.SourceDecimals == nil || route.DestinationDecimals == nil || *route.SourceDecimals != 6 || *route.DestinationDecimals != 6 {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must bind native USDC metadata", i)
+		}
+		if !identifierPattern.MatchString(route.SourceTokenContract) || !identifierPattern.MatchString(route.DestinationTokenContract) || !identifierPattern.MatchString(route.SourceContract) || !identifierPattern.MatchString(route.DestinationContract) || !validProviderEvidenceURL(route.SourceExplorerURL) || !validProviderEvidenceURL(route.DestinationExplorerURL) {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d must bind token/bridge contracts and explorer evidence", i)
+		}
+		if route.FinalityThreshold != 1000 && route.FinalityThreshold != 2000 {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d finality threshold must be 1000 or 2000", i)
+		}
+		if route.EstimatedMinSeconds == 0 || route.EstimatedMaxSeconds < route.EstimatedMinSeconds {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d timing bounds are invalid", i)
+		}
+		if route.RouteSupportVerified && !validProviderEvidenceURL(route.RouteSupportEvidenceURL) {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d verified route support requires HTTPS evidence", i)
+		}
+		if route.AgreementApproved && (!validProviderEvidenceURL(route.AgreementEvidenceURL) || !validProviderEvidenceURL(route.TermsURL) || route.License == "") {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d approved agreement requires terms, license, and HTTPS evidence", i)
+		}
+		if route.OperationalReviewApproved && (!validProviderEvidenceURL(route.OperationalReviewURL) || route.Jurisdiction == "" || route.DataRetention == "" || route.DataRights == "" || route.Fallback == "" || route.OutageMode == "") {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d approved operational review requires complete evidence and policy", i)
+		}
+		for assetKey, metadata := range map[string]string{
+			route.SourceChain + "|" + route.SourceAsset:           fmt.Sprintf("%s|%d|%s|%s", route.SourceSymbol, *route.SourceDecimals, route.SourceTokenContract, route.SourceExplorerURL),
+			route.DestinationChain + "|" + route.DestinationAsset: fmt.Sprintf("%s|%d|%s|%s", route.DestinationSymbol, *route.DestinationDecimals, route.DestinationTokenContract, route.DestinationExplorerURL),
+		} {
+			if existing, ok := providerAssets[assetKey]; ok && existing != metadata {
+				return Config{}, nil, fmt.Errorf("bridge provider route %d conflicts with provider asset metadata", i)
+			}
+			providerAssets[assetKey] = metadata
+		}
+	}
 	if c.Now == nil {
 		c.Now = func() time.Time { return time.Now().UTC() }
 	}
@@ -464,6 +644,11 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		return Config{}, nil, errors.New("bridge quote ttl must be between 30s and 15m")
 	}
 	return c, maxAmounts, nil
+}
+
+func validProviderEvidenceURL(raw string) bool {
+	parsed, err := url.Parse(raw)
+	return err == nil && parsed.Scheme == "https" && parsed.Host != "" && parsed.User == nil && parsed.RawQuery == "" && parsed.Fragment == ""
 }
 
 type QuoteRequest struct {

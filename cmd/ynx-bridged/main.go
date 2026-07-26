@@ -47,7 +47,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), GatewayAPIKey: os.Getenv("YNX_BRIDGE_GATEWAY_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention, QuoteTTL: *quoteTTL}
+	providerRoutes, err := parseProviderRoutes(envOrDefault("YNX_BRIDGE_PROVIDER_ROUTES_JSON", "[]"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg := bridgegateway.Config{
+		StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), GatewayAPIKey: os.Getenv("YNX_BRIDGE_GATEWAY_API_KEY"), QuoteSealKey: os.Getenv("YNX_BRIDGE_QUOTE_SEAL_KEY"),
+		Relayers: relayers, Threshold: *threshold, Policies: policies, ProviderRoutes: providerRoutes,
+		RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention, QuoteTTL: *quoteTTL,
+	}
 	if *checkConfig {
 		if err := bridgegateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
@@ -97,6 +105,14 @@ func parsePolicies(raw string) ([]bridgegateway.RoutePolicy, error) {
 		return nil, fmt.Errorf("YNX_BRIDGE_ROUTE_POLICIES_JSON: %w", err)
 	}
 	return policies, nil
+}
+
+func parseProviderRoutes(raw string) ([]bridgegateway.ProviderRouteConfig, error) {
+	var routes []bridgegateway.ProviderRouteConfig
+	if err := decodeStrict(raw, &routes); err != nil {
+		return nil, fmt.Errorf("YNX_BRIDGE_PROVIDER_ROUTES_JSON: %w", err)
+	}
+	return routes, nil
 }
 
 func decodeStrict(raw string, target any) error {

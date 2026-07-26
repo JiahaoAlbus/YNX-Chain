@@ -99,8 +99,10 @@ YNX_RESOURCE_GATEWAY_RATE_LIMIT_MAX=60
 YNX_BRIDGE_DEPLOY_ENABLED=true
 YNX_BRIDGE_API_KEY=dry-run-bridge-api-key
 YNX_BRIDGE_GATEWAY_API_KEY=dry-run-bridge-gateway-api-key
+YNX_BRIDGE_QUOTE_SEAL_KEY=dry-run-bridge-quote-seal-key-0000000001
 YNX_BRIDGE_RELAYERS_JSON='{"relayer-a":"MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=","relayer-b":"MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI="}'
 YNX_BRIDGE_ROUTE_POLICIES_JSON='[{"provider":"unapproved-testnet-candidate","classification":"external-bridge-adapter","sourceChain":"ynx-testnet","destinationChain":"external-testnet","sourceAsset":"YNXT","destinationAsset":"wrapped-ynxt","sourceAssetClass":"ynxt-bridge-candidate","destinationAssetClass":"wrapped-test-asset","minConfirmations":12,"maxAmount":"1000000000","maxOutstanding":"5000000000","dailyLimit":"10000000000","userOutstandingLimit":"2000000000","largeTransferThreshold":"500000000","largeTransferDelaySeconds":3600,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
+YNX_BRIDGE_PROVIDER_ROUTES_JSON='[]'
 YNX_BRIDGE_RELAYER_THRESHOLD=2
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6433
 YNX_BRIDGE_RATE_LIMIT_WINDOW=1m
@@ -165,8 +167,10 @@ grep -Fq "YNX_RESOURCE_GATEWAY_UPSTREAM_KEY=" "$release_dir/config/ynx-chaind.en
 grep -Fq "YNX_BRIDGE_DEPLOY_ENABLED=true" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing deploy gate"; exit 1; }
 grep -Fq "YNX_BRIDGE_API_KEY=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing API key"; exit 1; }
 grep -Fq "YNX_BRIDGE_GATEWAY_API_KEY=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing distinct Gateway API key"; exit 1; }
+grep -Fq "YNX_BRIDGE_QUOTE_SEAL_KEY=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing quote seal key"; exit 1; }
 grep -Fq "YNX_BRIDGE_RELAYERS_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing relayer allowlist"; exit 1; }
 grep -Fq "YNX_BRIDGE_ROUTE_POLICIES_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing route policies"; exit 1; }
+grep -Fq "YNX_BRIDGE_PROVIDER_ROUTES_JSON=" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing provider route bindings"; exit 1; }
 grep -Fq "YNX_BRIDGE_RATE_LIMIT_WINDOW=1m" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing rate window"; exit 1; }
 grep -Fq "YNX_BRIDGE_RATE_LIMIT_MAX=5000" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing rate max"; exit 1; }
 grep -Fq "YNX_BRIDGE_RETENTION_PERIOD=61320h" "$release_dir/config/ynx-bridged.env" || { echo "Bridge env missing retention period"; exit 1; }
@@ -213,7 +217,7 @@ if grep -Eq '^YNX_RESOURCE_API_KEY=' "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain Resource client access key"
   exit 1
 fi
-if grep -Eq '^YNX_BRIDGE_(API_KEY|GATEWAY_API_KEY|RELAYERS_JSON|ROUTE_POLICIES_JSON)=' "$release_dir/config/ynx-chaind.env"; then
+if grep -Eq '^YNX_BRIDGE_(API_KEY|GATEWAY_API_KEY|QUOTE_SEAL_KEY|RELAYERS_JSON|ROUTE_POLICIES_JSON|PROVIDER_ROUTES_JSON)=' "$release_dir/config/ynx-chaind.env"; then
   echo "shared chain env must not contain Bridge access or relayer policy configuration"
   exit 1
 fi
