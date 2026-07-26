@@ -1,0 +1,72 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.07.26.1",
+  "sourceCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+  "lastReviewed": "2026-07-26",
+  "observedAt": "2026-07-26T21:16:43+08:00",
+  "status": "Verified Public Candidate",
+  "scope": "Website owner acceptance and direct public deployment of the YNX Chain documentation authority bundle",
+  "centralAcceptance": {
+    "documentationRepositoryMergeCommit": "03a542d55b37239c8b05e76898db9a3d2715cd93",
+    "documentationContentCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+    "websitePullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/1",
+    "websiteHeadCommit": "d3c9ea04ee00c4668cd3089d38a4d53c3104a96b",
+    "websiteMergeCommit": "aee12104cae241c612ce32e1d60eb213f14bcdb9",
+    "websiteCiRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30203356668",
+    "websiteCiConclusion": "success"
+  },
+  "publicRuntime": {
+    "vantage": "Direct production browser from the current operator-controlled environment; not independent third-party proof",
+    "routes": [
+      {
+        "url": "https://ynxweb4.com",
+        "result": "HTTP 308 redirect to https://www.ynxweb4.com/",
+        "publicAvailabilityProved": true
+      },
+      {
+        "url": "https://www.ynxweb4.com/what-is-ynx-chain",
+        "renderedH1": "What Is YNX Chain?",
+        "canonical": "https://ynxweb4.com/what-is-ynx-chain",
+        "jsonLdType": "TechArticle",
+        "bundleSourceCommit": "2b7a86436944",
+        "horizontalOverflow": false
+      },
+      {
+        "url": "https://www.ynxweb4.com/support",
+        "renderedH1": "Use public evidence first",
+        "horizontalOverflow": false
+      },
+      {
+        "url": "https://www.ynxweb4.com/privacy",
+        "renderedH1": "Privacy boundary",
+        "horizontalOverflow": false
+      },
+      {
+        "url": "https://www.ynxweb4.com/security",
+        "renderedH1": "YNX Security",
+        "horizontalOverflow": false
+      },
+      {
+        "url": "https://www.ynxweb4.com/status",
+        "renderedH1": "Public testnet evidence and limitations",
+        "horizontalOverflow": false
+      }
+    ],
+    "artifactManifest": {
+      "url": "https://www.ynxweb4.com/docs-authority/artifact-manifest.json",
+      "sourceCommit": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+      "sha256": "cf5b7f7a6fe01e0a8c16d0f4c1c7fa8c45b620c76aa1360a1166e7a2c8e8f446",
+      "bytes": 128893,
+      "downloadHosted": false,
+      "productionSigned": false
+    }
+  },
+  "stateConclusion": {
+    "integratedCentral": true,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "independentPublicProof": false
+  }
+}

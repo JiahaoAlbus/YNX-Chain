@@ -57,6 +57,7 @@ const jsonFiles = [
   "release/product-release.json",
   "release/operator-inputs.request.json",
   "release/structured-data-suggestions.json",
+  "release/evidence/website-public-acceptance-2026-07-26.json",
   "release/evidence/local-read-benchmark-2026-07-22.json",
   "release/evidence/supply-chain-2026-07-22.json",
   "release/sbom-npm.cdx.json",
@@ -75,7 +76,7 @@ for (const file of jsonFiles) {
 
 const release = JSON.parse(fs.readFileSync("release/product-release.json", "utf8"));
 const stateKeys = ["implementedLocal", "testedLocal", "installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"];
-const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: false, deployedStaging: false, deployedPublic: false, downloadHosted: false, productionSigned: false, storeReleased: false};
+const expectedStates = {implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: true, deployedStaging: false, deployedPublic: true, downloadHosted: false, productionSigned: false, storeReleased: false};
 for (const key of stateKeys) {
   if (typeof release.states?.[key] !== "boolean") failures.push(`release state is not boolean: ${key}`);
   if (release.states?.[key] !== expectedStates[key]) failures.push(`release state does not match recorded direct evidence: ${key}`);
