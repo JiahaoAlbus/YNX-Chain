@@ -47,7 +47,11 @@ case "$url" in
     printf '%s\n' '{"service":"ynx-bridged","source":"ynx-bridge-runtime","schemaVersion":7,"stateMachineVersion":"ynx.bridge.lifecycle.v1","degraded":true,"providerStatus":"unavailable-no-verified-provider-connection","availableProviderCount":0,"contractStatus":"unavailable-no-verified-contract-deployment","liveBridge":false,"externalSubmissionEnabled":false,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6433/bridge/status)
-    printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-status","coordinatorState":"available-local-coordinator","externalBridgeState":"unavailable","failureStatus":"no-verified-provider-contract-or-public-deployment","routeCount":1,"providerCount":1,"availableProviderCount":0,"assetCount":2,"providerConnection":"not-connected","externalSubmissionEnabled":false,"userAssetMovementEnabled":false,"officialStablecoinRouteAvailable":false,"deployedPublic":false,"capabilities":{"readOnlyEvidence":true,"quoteGeneration":true,"quoteExecution":false,"walletReviewGeneration":true,"sourceSubmission":false,"destinationMintRelease":false,"refundExecution":false,"disputeRecording":true,"emergencyExitExecution":false},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    if [[ "${YNX_CHECK_LOCAL_SERVICES_SELF_TEST_PROVIDER_CONNECTED:-0}" == "1" ]]; then
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-status","coordinatorState":"available-local-coordinator","externalBridgeState":"provider-api-connected-route-execution-unavailable","failureStatus":"source-intent-builder-testnet-execution-and-public-deployment-unavailable","routeCount":2,"providerCount":2,"availableProviderCount":1,"assetCount":4,"providerConnection":"connected-live-provider-api-route-execution-disabled","externalSubmissionEnabled":false,"userAssetMovementEnabled":false,"officialStablecoinRouteAvailable":false,"deployedPublic":false,"capabilities":{"readOnlyEvidence":true,"quoteGeneration":true,"quoteExecution":false,"walletReviewGeneration":true,"sourceSubmission":false,"destinationMintRelease":false,"refundExecution":false,"disputeRecording":true,"emergencyExitExecution":false},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    else
+      printf '%s\n' '{"schemaVersion":1,"source":"ynx-bridge-status","coordinatorState":"available-local-coordinator","externalBridgeState":"unavailable","failureStatus":"no-verified-provider-contract-or-public-deployment","routeCount":1,"providerCount":1,"availableProviderCount":0,"assetCount":2,"providerConnection":"not-connected","externalSubmissionEnabled":false,"userAssetMovementEnabled":false,"officialStablecoinRouteAvailable":false,"deployedPublic":false,"capabilities":{"readOnlyEvidence":true,"quoteGeneration":true,"quoteExecution":false,"walletReviewGeneration":true,"sourceSubmission":false,"destinationMintRelease":false,"refundExecution":false,"disputeRecording":true,"emergencyExitExecution":false},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    fi
     ;;
   http://127.0.0.1:6433/bridge/routes)
     if [[ "${YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE:-0}" == "1" ]]; then
@@ -83,6 +87,7 @@ EOF
   chmod +x "$tmp/bin/curl"
   YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
   PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge
+  YNX_CHECK_LOCAL_SERVICES_SELF_TEST_PROVIDER_CONNECTED=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge
   if YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge >"$tmp/unsafe-route.log" 2>&1; then
     echo "check-local-services self-test accepted an executable Bridge route" >&2
     exit 1
@@ -132,6 +137,20 @@ require_absent() {
   fi
 }
 
+require_one_of() {
+  local name="$1" body="$2"
+  shift 2
+  local needle
+  for needle in "$@"; do
+    if [[ "$body" == *"$needle"* ]]; then
+      return 0
+    fi
+  done
+  echo "local service check failed: $name missing every accepted value: $*" >&2
+  echo "$body" >&2
+  return 1
+}
+
 check_chain_surface() {
   local status identity
   fetch_with_retry "chain health" "http://127.0.0.1:6420/health" >/dev/null
@@ -177,7 +196,15 @@ check_bridge_surface() {
   bridge_status="$(fetch_with_retry "Bridge product status" "http://127.0.0.1:6433/bridge/status")"
   require_contains "Bridge product status" "$bridge_status" '"source":"ynx-bridge-status"'
   require_contains "Bridge product status" "$bridge_status" '"coordinatorState":"available-local-coordinator"'
-  require_contains "Bridge product status" "$bridge_status" '"externalBridgeState":"unavailable"'
+  require_one_of "Bridge product status external state" "$bridge_status" \
+    '"externalBridgeState":"unavailable"' \
+    '"externalBridgeState":"provider-api-connected-route-execution-unavailable"'
+  require_one_of "Bridge product status Provider connection" "$bridge_status" \
+    '"providerConnection":"not-connected"' \
+    '"providerConnection":"connected-live-provider-api-route-execution-disabled"'
+  require_one_of "Bridge product status available Provider count" "$bridge_status" \
+    '"availableProviderCount":0' \
+    '"availableProviderCount":1'
   require_contains "Bridge product status" "$bridge_status" '"externalSubmissionEnabled":false'
   require_contains "Bridge product status" "$bridge_status" '"userAssetMovementEnabled":false'
   require_contains "Bridge product status" "$bridge_status" '"officialStablecoinRouteAvailable":false'
