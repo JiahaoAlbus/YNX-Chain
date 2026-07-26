@@ -117,9 +117,11 @@ if (index) {
     }
     expect(release.states?.implementedLocal === true, `${records.release} implementedLocal must remain evidence-bound true`);
     expect(release.states?.testedLocal === true, `${records.release} testedLocal must remain evidence-bound true`);
-    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal"].includes(key))) {
+    for (const key of releaseStateKeys.filter((key) => !["implementedLocal", "testedLocal", "integratedCentral", "deployedPublic"].includes(key))) {
       expect(release.states?.[key] === false, `${records.release} ${key} must remain false without stronger evidence`);
     }
+    expect(release.states?.integratedCentral === true, `${records.release} integratedCentral must match Website owner acceptance evidence`);
+    expect(release.states?.deployedPublic === true, `${records.release} deployedPublic must match direct production-route evidence`);
   }
 
   const claims = readJson(records.claims);
