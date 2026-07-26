@@ -318,8 +318,10 @@ func (s *Service) PrepareBody(path string, body []byte) ([]byte, error) {
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (*http.Response, error) {
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
-		if strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle") {
-			return nil, errors.New("invoice settlement is not implemented for candidate BFT Pay mode")
+		invoiceSettlement := strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle")
+		refundCompletion := strings.HasPrefix(path, "/pay/refunds/") && strings.HasSuffix(path, "/complete")
+		if invoiceSettlement || refundCompletion {
+			return nil, errors.New("settlement completion is not implemented for candidate BFT Pay mode")
 		}
 		return s.proxyBFTMutation(ctx, path, body, requestID)
 	}

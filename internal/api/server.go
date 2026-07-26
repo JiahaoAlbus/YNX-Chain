@@ -106,6 +106,8 @@ func (s *Server) routes() {
 	s.payRoute("POST /pay/invoices/{id}/settle", s.handleInvoiceSettlement)
 	s.payRoute("GET /pay/invoices/{id}/settlement", s.handleInvoiceSettlementLookup)
 	s.payRoute("POST /pay/refunds", s.handleRefund)
+	s.payRoute("GET /pay/refunds/{id}", s.handleRefundLookup)
+	s.payRoute("POST /pay/refunds/{id}/complete", s.handleRefundCompletion)
 	s.payRoute("POST /pay/webhook-signatures", s.handleWebhookSignature)
 	s.payRoute("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
 	s.payRoute("GET /pay/events", s.handlePayEvents)
@@ -730,6 +732,29 @@ func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	refund, err := s.devnet.CreateRefundWithIdempotency(req.IntentID, req.Amount, req.Reason, req.IdempotencyKey)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, refund)
+}
+func (s *Server) handleRefundLookup(w http.ResponseWriter, r *http.Request) {
+	refund, ok := s.devnet.Refund(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "refund not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, refund)
+}
+func (s *Server) handleRefundCompletion(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TransactionHash string `json:"transactionHash"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	refund, err := s.devnet.CompleteRefund(r.PathValue("id"), req.TransactionHash, req.IdempotencyKey)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

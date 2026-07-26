@@ -772,6 +772,23 @@ func TestPayInvoiceSettlementAPI(t *testing.T) {
 	if lookedUp != settlement {
 		t.Fatalf("settlement lookup changed record: %+v != %+v", lookedUp, settlement)
 	}
+	var refund chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intent.ID, "amount": 5, "reason": "settlement API refund", "idempotencyKey": "refund-api"}, http.StatusCreated, &refund)
+	refundTx, err := devnet.Transfer(merchant, payer, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	var completed chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds/"+refund.ID+"/complete", map[string]any{"transactionHash": refundTx.Hash, "idempotencyKey": "refund-completion-api"}, http.StatusCreated, &completed)
+	if completed.Status != "completed" || completed.InvoiceID != invoice.ID || completed.SettlementID != settlement.ID || completed.TransactionHash != refundTx.Hash || completed.AuditHash == "" {
+		t.Fatalf("unexpected refund completion: %+v", completed)
+	}
+	var lookedUpRefund chain.RefundRecord
+	doJSON(t, http.MethodGet, server.URL+"/pay/refunds/"+refund.ID, nil, http.StatusOK, &lookedUpRefund)
+	if lookedUpRefund.AuditHash != completed.AuditHash || lookedUpRefund.TransactionHash != completed.TransactionHash {
+		t.Fatalf("refund completion lookup changed authority: %+v != %+v", lookedUpRefund, completed)
+	}
 }
 
 func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {

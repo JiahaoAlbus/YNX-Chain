@@ -57,7 +57,16 @@ func TestPayAuthorityBridgeCommitsCanonicalEventsAndIdempotentConsumerEffects(t 
 	if _, err := product.SettleInvoice(invoice.ID, payerNative, transfer.Hash, "settlement-integration"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := product.CreateRefundWithIdempotency(intent.ID, 5, "integration", "refund-integration"); err != nil {
+	refund, err := product.CreateRefundWithIdempotency(intent.ID, 5, "integration", "refund-integration")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refundTransfer, err := product.Transfer(merchant, payer, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	product.ProduceBlock()
+	if _, err := product.CompleteRefund(refund.ID, refundTransfer.Hash, "refund-completion-integration"); err != nil {
 		t.Fatal(err)
 	}
 	reloadedProduct, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), productDir)
@@ -67,7 +76,7 @@ func TestPayAuthorityBridgeCommitsCanonicalEventsAndIdempotentConsumerEffects(t 
 	sourceEvents := reloadedProduct.PayEvents(intent.ID)
 	upstreamKey := "pay-authority-upstream-key-00000001"
 	paySourceCommit, paySourceRelease := strings.Repeat("c", 40), "pay-integration-test"
-	if len(sourceEvents) != 4 {
+	if len(sourceEvents) != 5 {
 		t.Fatalf("persistent Pay authority did not retain its source event history: %+v", sourceEvents)
 	}
 	reloadedProduct.SetNodeIdentityConfig(chain.NodeIdentityConfig{Build: chain.BuildInfo{Commit: paySourceCommit, Release: paySourceRelease, BuildTime: "2026-07-26T09:00:00Z"}})
@@ -102,17 +111,26 @@ func TestPayAuthorityBridgeCommitsCanonicalEventsAndIdempotentConsumerEffects(t 
 		t.Fatal(err)
 	}
 	report, err := bridge.SyncOnce(context.Background())
-	if err != nil || report.SourceEvents != 4 || report.MappedSourceEvents != 2 || report.UnmappedSourceEvents != 2 || report.CanonicalEvents != 3 || report.Committed != 3 {
+	if err != nil || report.SourceEvents != 5 || report.MappedSourceEvents != 3 || report.UnmappedSourceEvents != 2 || report.CanonicalEvents != 4 || report.Committed != 4 {
 		t.Fatalf("Pay integration cycle failed: %+v %v", report, err)
 	}
 	events := store.Events()
-	if len(events) != 3 || len(store.PendingOutbox(time.Now().UTC().Add(time.Minute), 10)) != 3 {
+	if len(events) != 4 || len(store.PendingOutbox(time.Now().UTC().Add(time.Minute), 10)) != 4 {
 		t.Fatalf("Pay producer did not commit canonical event plus Outbox: %+v", events)
 	}
-	wantTypes := []string{"pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued"}
+	wantTypes := []string{"pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued", "pay.refund.completed"}
 	for index, event := range events {
 		if event.EventType != wantTypes[index] || event.AggregateID != invoice.ID || event.Sequence != uint64(index+1) || event.Product != "pay" || event.Source.Status != "authoritative" {
 			t.Fatalf("canonical Pay mapping is wrong at %d: %+v", index, event)
+		}
+		if event.EventType == "pay.refund.completed" {
+			var payload map[string]any
+			if err := json.Unmarshal(event.Payload, &payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload["status"] != "completed" || payload["settlementId"] == "" || payload["transactionHash"] != refundTransfer.Hash || payload["sourceAuditHash"] == "" {
+				t.Fatalf("refund completion lost chain authority: %+v", payload)
+			}
 		}
 		applied, err := store.ApplyProjection("pay-integration-consumer", event.EventID, func(received datafabric.EventEnvelope, _ map[string]string) (string, error) {
 			return "effect." + received.Integrity.Digest, nil
@@ -128,7 +146,7 @@ func TestPayAuthorityBridgeCommitsCanonicalEventsAndIdempotentConsumerEffects(t 
 		}
 	}
 	report, err = bridge.SyncOnce(context.Background())
-	if err != nil || report.AlreadyCommitted != 3 || report.Committed != 0 || len(store.Events()) != 3 {
+	if err != nil || report.AlreadyCommitted != 4 || report.Committed != 0 || len(store.Events()) != 4 {
 		t.Fatalf("Pay producer redelivery was not idempotent: %+v %v", report, err)
 	}
 	if err := store.AuditIntegrity(map[string][]byte{keyID: payIntegrationKey}); err != nil {

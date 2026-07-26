@@ -252,18 +252,21 @@ func validateSourceEvent(event chain.PayEvent) error {
 		return errors.New("Pay source event identity or timestamp is incomplete")
 	}
 	switch event.Type {
-	case "payment_intent.created", "invoice.issued", "invoice.paid", "refund.recorded", "webhook.signed":
+	case "payment_intent.created", "invoice.issued", "invoice.paid", "refund.recorded", "refund.completed", "webhook.signed":
 	default:
 		return fmt.Errorf("unsupported Pay source event type %q", event.Type)
 	}
 	if event.ID != paySourceEventID(event) || event.AuditHash != paySourceAuditHash(event) {
 		return fmt.Errorf("Pay source event %s failed authoritative audit verification", event.ID)
 	}
-	if (event.Type == "invoice.issued" || event.Type == "invoice.paid" || event.Type == "refund.recorded") && (event.Amount <= 0 || strings.TrimSpace(event.Currency) == "") {
+	if (event.Type == "invoice.issued" || event.Type == "invoice.paid" || event.Type == "refund.recorded" || event.Type == "refund.completed") && (event.Amount <= 0 || strings.TrimSpace(event.Currency) == "") {
 		return fmt.Errorf("Pay source event %s has invalid financial authority", event.ID)
 	}
 	if event.Type == "invoice.paid" && (strings.TrimSpace(event.Payer) == "" || strings.TrimSpace(event.TransactionHash) == "") {
 		return fmt.Errorf("Pay source settlement %s is incomplete", event.ID)
+	}
+	if event.Type == "refund.completed" && (strings.TrimSpace(event.InvoiceID) == "" || strings.TrimSpace(event.SettlementID) == "" || strings.TrimSpace(event.PayoutAddress) == "" || strings.TrimSpace(event.Payer) == "" || strings.TrimSpace(event.TransactionHash) == "") {
+		return fmt.Errorf("Pay source refund completion %s is incomplete", event.ID)
 	}
 	return nil
 }
@@ -275,6 +278,10 @@ func canonicalEventTypes(source chain.PayEvent) []string {
 	case "invoice.paid":
 		if source.InvoiceID != "" {
 			return []string{"pay.invoice.authorized", "pay.receipt.issued"}
+		}
+	case "refund.completed":
+		if source.InvoiceID != "" && source.SettlementID != "" {
+			return []string{"pay.refund.completed"}
 		}
 	default:
 		return nil
@@ -288,11 +295,16 @@ func (b *Bridge) buildEnvelope(source chain.PayEvent, aggregateID, eventType str
 	if account == "" {
 		account = source.Merchant
 	}
+	status := strings.ReplaceAll(kind, ".", "-")
+	if eventType == "pay.refund.completed" {
+		status = "completed"
+	}
 	payload, err := json.Marshal(map[string]any{
-		"status":            strings.ReplaceAll(kind, ".", "-"),
+		"status":            status,
 		"sourceEventId":     source.ID,
 		"sourceAuditHash":   source.AuditHash,
 		"invoiceId":         aggregateID,
+		"settlementId":      source.SettlementID,
 		"objectId":          source.ObjectID,
 		"merchant":          source.Merchant,
 		"payer":             source.Payer,
@@ -349,6 +361,9 @@ func paySourceAuditHash(event chain.PayEvent) string {
 			return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 		}
 		return hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.Type == "refund.completed" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.SettlementID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 	}
 	if event.InvoiceID != "" {
 		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))

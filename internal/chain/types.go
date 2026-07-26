@@ -374,6 +374,8 @@ type PayIntent struct {
 	Amount         int64     `json:"amount"`
 	Currency       string    `json:"currency"`
 	Status         string    `json:"status"`
+	RefundedAmount int64     `json:"refundedAmount,omitempty"`
+	RefundStatus   string    `json:"refundStatus,omitempty"`
 	CreatedAt      time.Time `json:"createdAt"`
 	CallbackURL    string    `json:"callbackUrl,omitempty"`
 	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
@@ -387,6 +389,8 @@ type Invoice struct {
 	Amount         int64     `json:"amount"`
 	Currency       string    `json:"currency"`
 	Status         string    `json:"status"`
+	RefundedAmount int64     `json:"refundedAmount,omitempty"`
+	RefundStatus   string    `json:"refundStatus,omitempty"`
 	DueAt          time.Time `json:"dueAt"`
 	CreatedAt      time.Time `json:"createdAt"`
 	PaymentLink    string    `json:"paymentLink,omitempty"`
@@ -411,14 +415,24 @@ type PaySettlement struct {
 }
 
 type RefundRecord struct {
-	ID             string    `json:"id"`
-	IntentID       string    `json:"intentId"`
-	Amount         int64     `json:"amount"`
-	Currency       string    `json:"currency"`
-	Reason         string    `json:"reason,omitempty"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"createdAt"`
-	IdempotencyKey string    `json:"idempotencyKey,omitempty"`
+	ID                       string     `json:"id"`
+	IntentID                 string     `json:"intentId"`
+	InvoiceID                string     `json:"invoiceId,omitempty"`
+	SettlementID             string     `json:"settlementId,omitempty"`
+	Merchant                 string     `json:"merchant,omitempty"`
+	PayoutAddress            string     `json:"payoutAddress,omitempty"`
+	Payer                    string     `json:"payer,omitempty"`
+	Amount                   int64      `json:"amount"`
+	Currency                 string     `json:"currency"`
+	Reason                   string     `json:"reason,omitempty"`
+	Status                   string     `json:"status"`
+	TransactionHash          string     `json:"transactionHash,omitempty"`
+	BlockNumber              uint64     `json:"blockNumber,omitempty"`
+	CreatedAt                time.Time  `json:"createdAt"`
+	CompletedAt              *time.Time `json:"completedAt,omitempty"`
+	IdempotencyKey           string     `json:"idempotencyKey,omitempty"`
+	CompletionIdempotencyKey string     `json:"completionIdempotencyKey,omitempty"`
+	AuditHash                string     `json:"auditHash,omitempty"`
 }
 
 type WebhookSignature struct {
@@ -438,6 +452,7 @@ type PayEvent struct {
 	Type            string    `json:"type"`
 	IntentID        string    `json:"intentId,omitempty"`
 	InvoiceID       string    `json:"invoiceId,omitempty"`
+	SettlementID    string    `json:"settlementId,omitempty"`
 	ObjectID        string    `json:"objectId,omitempty"`
 	Merchant        string    `json:"merchant,omitempty"`
 	PayoutAddress   string    `json:"payoutAddress,omitempty"`
