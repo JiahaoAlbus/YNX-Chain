@@ -127,6 +127,41 @@ func TestJetStreamNetworkOutageRetainsOutboxAndRecovers(t *testing.T) {
 	}
 }
 
+func TestJetStreamEventHandlerRetriesBeforeAcknowledgement(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	natsServer := startServer(t, testServerOptions(t.TempDir(), -1))
+	defer natsServer.Shutdown()
+	broker, err := Connect(ctx, Config{URL: natsServer.ClientURL(), MaxBytes: 32 << 20, PublishTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer broker.Close()
+	event := testEvent(t, 1)
+	encoded, _ := json.Marshal(event)
+	if err := broker.Publish(ctx, "ynx.events."+event.EventType, event.PartitionKey(), encoded); err != nil {
+		t.Fatal(err)
+	}
+	attempts := 0
+	handler := func(_ context.Context, received datafabric.EventEnvelope) (bool, error) {
+		attempts++
+		if received.EventID != event.EventID {
+			t.Fatalf("wrong canonical event delivered: %s", received.EventID)
+		}
+		if attempts == 1 {
+			return false, context.DeadlineExceeded
+		}
+		return true, nil
+	}
+	if applied, err := broker.ConsumeEventOnce(ctx, "pay-ledger-handler-test", "ynx.events.pay.>", handler); applied || err == nil {
+		t.Fatalf("failed handler was acknowledged: applied=%t err=%v", applied, err)
+	}
+	time.Sleep(1100 * time.Millisecond)
+	if applied, err := broker.ConsumeEventOnce(ctx, "pay-ledger-handler-test", "ynx.events.pay.>", handler); err != nil || !applied || attempts != 2 {
+		t.Fatalf("NAK event was not redelivered: applied=%t attempts=%d err=%v", applied, attempts, err)
+	}
+}
+
 func testServerOptions(storeDir string, port int) *server.Options {
 	return &server.Options{Host: "127.0.0.1", Port: port, NoLog: true, NoSigs: true, JetStream: true, StoreDir: storeDir, SyncAlways: true}
 }

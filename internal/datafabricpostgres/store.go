@@ -147,6 +147,20 @@ func decodeStoredEnvelope(encoded []byte) (datafabric.EventEnvelope, error) {
 	return event, nil
 }
 
+// ProjectionApplied is a read-only fast path for broker redelivery after a
+// committed business effect but before acknowledgement. ApplyProjection still
+// performs the authoritative check inside its transaction.
+func (s *Store) ProjectionApplied(ctx context.Context, consumer, eventID string) (bool, error) {
+	if s == nil || strings.TrimSpace(consumer) == "" || strings.TrimSpace(eventID) == "" {
+		return false, errors.New("projection consumer and eventId are required")
+	}
+	var exists bool
+	if err := s.db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM ynx_fabric.inbox WHERE consumer=$1 AND event_id=$2)`, consumer, eventID).Scan(&exists); err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
 type ClaimedOutbox struct {
 	EventID      string
 	PartitionKey string
@@ -313,13 +327,29 @@ func (s *Store) PostJournal(ctx context.Context, entry datafabric.JournalEntry) 
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
-	if err := insertJournal(ctx, tx, entry); err != nil {
+	if err := PostJournalTx(ctx, tx, entry); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
 		return mapJournalError(err)
 	}
 	return nil
+}
+
+// PostJournalTx validates and writes a journal entry inside a caller-owned
+// transaction. It exists for consumers that must commit their business effect
+// and Inbox marker atomically through ApplyProjection.
+func PostJournalTx(ctx context.Context, tx *sql.Tx, entry datafabric.JournalEntry) error {
+	if tx == nil {
+		return errors.New("journal transaction is required")
+	}
+	if entry.CorrectionOf != "" {
+		return datafabric.Reject(datafabric.CodeLedgerCorrectionRouteRequired, "journal corrections must use the immutable correction route", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	if err := entry.Validate(); err != nil {
+		return err
+	}
+	return insertJournal(ctx, tx, entry)
 }
 
 // PostCorrection locks the target journal row, proves an exact reversal, and
@@ -336,6 +366,28 @@ func (s *Store) PostCorrection(ctx context.Context, entry datafabric.JournalEntr
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
+	if err := PostCorrectionTx(ctx, tx, entry); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return mapJournalError(err)
+	}
+	return nil
+}
+
+// PostCorrectionTx locks and appends one exact reversal inside a caller-owned
+// transaction, preserving the same immutable correction contract as
+// Store.PostCorrection.
+func PostCorrectionTx(ctx context.Context, tx *sql.Tx, entry datafabric.JournalEntry) error {
+	if tx == nil {
+		return errors.New("journal correction transaction is required")
+	}
+	if err := entry.Validate(); err != nil {
+		return err
+	}
+	if entry.CorrectionOf == "" || entry.CorrectionOf == entry.EntryID {
+		return datafabric.Reject(datafabric.CodeLedgerCorrectionInvalid, "correctionOf must identify a different prior journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
 	target, exists, err := loadJournalEntryForUpdate(ctx, tx, entry.CorrectionOf)
 	if err != nil {
 		return err
@@ -356,9 +408,6 @@ func (s *Store) PostCorrection(ctx context.Context, entry datafabric.JournalEntr
 	}
 	if err := insertJournal(ctx, tx, entry); err != nil {
 		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return mapJournalError(err)
 	}
 	return nil
 }

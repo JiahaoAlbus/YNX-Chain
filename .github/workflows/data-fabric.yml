@@ -17,6 +17,7 @@ on:
       - "internal/datafabricconsole/**"
       - "internal/datafabricnats/**"
       - "internal/datafabricpay/**"
+      - "internal/datafabricpayledger/**"
       - "internal/datafabricpgbackup/**"
       - "internal/datafabricpostgres/**"
       - "internal/datafabricpgbackup/**"
@@ -59,9 +60,9 @@ jobs:
       - name: Test the complete Go repository
         run: go test ./... -count=1
       - name: Race-test Data Fabric state transitions
-        run: go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric -count=1
+        run: go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric -count=1
       - name: Vet Data Fabric binaries and libraries
-        run: go vet ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./cmd/ynx-pay-data-fabric-bridge ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric
+        run: go vet ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./cmd/ynx-pay-data-fabric-bridge ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric
       - name: Analyze reachable Go vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
       - name: Build reproducible-path Linux binaries

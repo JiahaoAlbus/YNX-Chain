@@ -14,6 +14,7 @@ runtime_paths=(
   internal/datafabricconfig
   internal/datafabricnats
   internal/datafabricpay
+  internal/datafabricpayledger
   internal/datafabricpostgres
   sdk/datafabric
   schemas/data-fabric

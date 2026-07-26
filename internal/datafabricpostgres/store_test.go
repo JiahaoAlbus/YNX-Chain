@@ -153,6 +153,72 @@ func TestPostgresProjectionFailureRollsBackEffectAndInbox(t *testing.T) {
 	}
 }
 
+func TestPostgresProjectionAppliedReadsCommittedInbox(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	connection.inboxExists = true
+	applied, err := store.ProjectionApplied(context.Background(), "pay-ledger-reconciliation-v1", "event.pay.refund.completed.0001")
+	if err != nil || !applied {
+		t.Fatalf("committed Inbox was not detected: applied=%t err=%v", applied, err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if connection.begun != 0 || len(connection.execs) != 0 {
+		t.Fatalf("Inbox fast path performed a write: %+v", connection)
+	}
+}
+
+func TestPostgresProjectionComposesJournalReconciliationAndInboxAtomically(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	event := postgresTestEvent(t)
+	connection.envelope, _ = json.Marshal(event)
+	connection.eventProduct = "pay"
+	now := time.Now().UTC()
+	entry := datafabric.JournalEntry{
+		EntryID: "journal.pay.refund.atomic.0001", CorrelationID: event.CorrelationID, EventID: event.EventID,
+		EffectiveAt: now, RecordedAt: now, Description: "Atomic Pay refund", RevenueBoundary: "committed-native-refund",
+		Postings: []datafabric.Posting{
+			{AccountID: "account.merchant.0001", Asset: "YNXT", Currency: "YNXT", Side: datafabric.Debit, Amount: 5, Category: "refund"},
+			{AccountID: "account.payer.0001", Asset: "YNXT", Currency: "YNXT", Side: datafabric.Credit, Amount: 5, Category: "refund"},
+		},
+		SourceCommit: "719e101", SourceRelease: "data-fabric-test", AuditID: "audit.pay.refund.atomic.0001",
+	}
+	connection.journal = &entry
+	metadata := datafabric.SourceMetadata{Source: "test-authority", AsOf: now, Version: "1", Status: "authoritative"}
+	observations := []datafabric.SettlementObservation{
+		{Source: "chain", ReferenceID: "transaction.refund.0001", Asset: "YNXT", Currency: "YNXT", AmountMinor: 5, ObservedAt: now, Metadata: metadata, EvidenceHash: strings.Repeat("a", 64)},
+		{Source: "pay", ReferenceID: "refund.pay.0001", Asset: "YNXT", Currency: "YNXT", AmountMinor: 5, ObservedAt: now, Metadata: metadata, EvidenceHash: strings.Repeat("b", 64)},
+	}
+	applied, err := store.ApplyProjection(context.Background(), "pay-ledger-reconciliation-v1", event.EventID, func(ctx context.Context, tx *sql.Tx, _ datafabric.EventEnvelope) (string, error) {
+		if err := PostJournalTx(ctx, tx, entry); err != nil {
+			return "", err
+		}
+		run, err := ReconcileJournalTx(ctx, tx, "reconcile.pay.refund.0001", entry.EntryID, "audit.reconcile.pay.0001", "719e101", "data-fabric-test", []string{"chain", "pay"}, observations, now)
+		if err != nil {
+			return "", err
+		}
+		if run.Status != "matched" || run.Coverage != 1 {
+			return "", errors.New("reconciliation did not match")
+		}
+		return "effect.pay.refund.atomic.0001", nil
+	})
+	if err != nil || !applied {
+		t.Fatalf("atomic Pay Ledger projection failed: applied=%t err=%v", applied, err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	joined := strings.Join(connection.execs, "\n")
+	for _, required := range []string{"INSERT INTO ynx_fabric.journal_entries", "INSERT INTO ynx_fabric.postings", "INSERT INTO ynx_fabric.reconciliation_runs", "INSERT INTO ynx_fabric.reconciliation_findings", "INSERT INTO ynx_fabric.inbox"} {
+		if !strings.Contains(joined, required) {
+			t.Fatalf("atomic projection did not execute %q: %s", required, joined)
+		}
+	}
+	if connection.begun != 1 || !connection.committed || connection.rolledBack {
+		t.Fatalf("journal, reconciliation, and Inbox were not one transaction: %+v", connection)
+	}
+}
+
 func TestVerifySchemaAcceptsExactEmbeddedChecksumAndRejectsDrift(t *testing.T) {
 	files, err := MigrationFiles()
 	if err != nil {
@@ -477,6 +543,7 @@ type recordingConn struct {
 	billingPlan      *datafabric.BillingRatePlan
 	existingReversal string
 	eventProduct     string
+	inboxExists      bool
 	lastSequence     int64
 	begun            int
 	committed        bool
@@ -536,7 +603,7 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 	case strings.Contains(query, "canonical_envelope"):
 		return &recordingRows{columns: []string{"canonical_envelope"}, values: [][]driver.Value{{append([]byte(nil), c.envelope...)}}}, nil
 	case strings.Contains(query, "SELECT EXISTS"):
-		return &recordingRows{columns: []string{"exists"}, values: [][]driver.Value{{false}}}, nil
+		return &recordingRows{columns: []string{"exists"}, values: [][]driver.Value{{c.inboxExists}}}, nil
 	case strings.Contains(query, "schema_migrations"):
 		checksum := c.schemaChecksum
 		if len(arguments) > 0 && c.schemaChecksums != nil {

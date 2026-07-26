@@ -17,6 +17,23 @@ func (s *Store) ReconcileJournal(ctx context.Context, runID, entryID, auditID, s
 		return datafabric.ReconciliationRun{}, err
 	}
 	defer tx.Rollback() //nolint:errcheck
+	run, err := ReconcileJournalTx(ctx, tx, runID, entryID, auditID, sourceCommit, sourceRelease, requiredSources, observations, now)
+	if err != nil {
+		return datafabric.ReconciliationRun{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return datafabric.ReconciliationRun{}, mapReconciliationError(err)
+	}
+	return run, nil
+}
+
+// ReconcileJournalTx builds and persists a reconciliation run inside a
+// caller-owned transaction so an event consumer can atomically commit its
+// journal effect, reconciliation findings, and Inbox marker.
+func ReconcileJournalTx(ctx context.Context, tx *sql.Tx, runID, entryID, auditID, sourceCommit, sourceRelease string, requiredSources []string, observations []datafabric.SettlementObservation, now time.Time) (datafabric.ReconciliationRun, error) {
+	if tx == nil {
+		return datafabric.ReconciliationRun{}, errors.New("reconciliation transaction is required")
+	}
 	entry, exists, err := loadJournalEntry(ctx, tx, entryID)
 	if err != nil {
 		return datafabric.ReconciliationRun{}, err
@@ -40,9 +57,6 @@ func (s *Store) ReconcileJournal(ctx context.Context, runID, entryID, auditID, s
 		if _, err := tx.ExecContext(ctx, `INSERT INTO ynx_fabric.reconciliation_findings(run_id,finding_index,source,reference_id,asset,currency,expected_minor,observed_minor,difference_minor,status,failure) VALUES ($1,$2,$3,NULLIF($4,''),NULLIF($5,''),NULLIF($6,''),$7,$8,$9,$10,NULLIF($11,''))`, run.RunID, index, finding.Source, finding.ReferenceID, finding.Asset, finding.Currency, finding.ExpectedMinor, finding.ObservedMinor, finding.Difference, finding.Status, finding.Failure); err != nil {
 			return datafabric.ReconciliationRun{}, mapReconciliationError(err)
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return datafabric.ReconciliationRun{}, mapReconciliationError(err)
 	}
 	return run, nil
 }

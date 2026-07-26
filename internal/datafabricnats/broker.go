@@ -174,6 +174,7 @@ func (b *Broker) Publish(ctx context.Context, topic, partitionKey string, payloa
 }
 
 type ProjectionFunc func(datafabric.EventEnvelope, map[string]string) (string, error)
+type EventHandler func(context.Context, datafabric.EventEnvelope) (bool, error)
 
 // ConsumeProjectionOnce processes at most one event. The projection effect and
 // local Inbox marker commit atomically before a server-confirmed double ack.
@@ -182,6 +183,18 @@ type ProjectionFunc func(datafabric.EventEnvelope, map[string]string) (string, e
 func (b *Broker) ConsumeProjectionOnce(ctx context.Context, durable string, store *datafabric.Store, apply ProjectionFunc) (bool, error) {
 	if b == nil || store == nil || apply == nil || strings.TrimSpace(durable) == "" {
 		return false, errors.New("broker, durable consumer, store, and projection are required")
+	}
+	return b.ConsumeEventOnce(ctx, durable, DefaultSubject, func(_ context.Context, event datafabric.EventEnvelope) (bool, error) {
+		return store.ApplyProjection(durable, event.EventID, apply)
+	})
+}
+
+// ConsumeEventOnce processes at most one filtered canonical event and only
+// acknowledges it after the handler reports that its durable transaction
+// completed. Handlers own their Inbox/business-effect atomicity.
+func (b *Broker) ConsumeEventOnce(ctx context.Context, durable, filterSubject string, handle EventHandler) (bool, error) {
+	if b == nil || handle == nil || strings.TrimSpace(durable) == "" || !strings.HasPrefix(filterSubject, "ynx.events.") {
+		return false, errors.New("broker, durable consumer, canonical filter, and event handler are required")
 	}
 	consumer, err := b.stream.CreateOrUpdateConsumer(ctx, jetstream.ConsumerConfig{
 		Name:          durable,
@@ -192,7 +205,7 @@ func (b *Broker) ConsumeProjectionOnce(ctx context.Context, durable string, stor
 		AckWait:       2 * time.Second,
 		MaxDeliver:    8,
 		BackOff:       []time.Duration{time.Second, 2 * time.Second, 5 * time.Second, 15 * time.Second},
-		FilterSubject: DefaultSubject,
+		FilterSubject: filterSubject,
 		ReplayPolicy:  jetstream.ReplayInstantPolicy,
 	})
 	if err != nil {
@@ -222,10 +235,10 @@ func (b *Broker) ConsumeProjectionOnce(ctx context.Context, durable string, stor
 		_ = message.TermWithReason("event header mismatch")
 		return false, errors.New("JetStream event headers do not match signed envelope")
 	}
-	applied, err := store.ApplyProjection(durable, event.EventID, apply)
+	applied, err := handle(ctx, event)
 	if err != nil {
 		_ = message.NakWithDelay(time.Second)
-		return false, fmt.Errorf("commit projection and Inbox marker: %w", err)
+		return false, fmt.Errorf("commit event handler and Inbox marker: %w", err)
 	}
 	if err := message.DoubleAck(ctx); err != nil {
 		return applied, fmt.Errorf("confirm JetStream acknowledgement: %w", err)

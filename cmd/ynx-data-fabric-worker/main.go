@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -15,12 +16,17 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabricconfig"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabricnats"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabricpayledger"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/datafabricpostgres"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	payLedgerDefault, err := envBool("YNX_DATA_FABRIC_PAY_LEDGER_ENABLED")
+	if err != nil {
+		fail(err.Error())
+	}
 	dsnFile := flag.String("postgres-dsn-file", os.Getenv("YNX_DATA_FABRIC_POSTGRES_DSN_FILE"), "absolute private PostgreSQL DSN path")
 	dispatcherID := flag.String("dispatcher-id", os.Getenv("YNX_DATA_FABRIC_DISPATCHER_ID"), "stable unique dispatcher instance ID")
 	natsURL := flag.String("nats-url", env("YNX_DATA_FABRIC_NATS_URL", "tls://127.0.0.1:4222"), "NATS server URL")
@@ -32,6 +38,10 @@ func main() {
 	natsReplicas := flag.Int("nats-replicas", 3, "JetStream replica count")
 	batchSize := flag.Int("batch-size", 100, "Outbox records per dispatch cycle")
 	sagaTimeoutBatch := flag.Int("saga-timeout-batch", 100, "expired Sagas transitioned per worker cycle")
+	payLedgerEnabled := flag.Bool("pay-ledger-consumer", payLedgerDefault, "consume authoritative Pay receipt/refund events into Ledger and reconciliation")
+	payChainURL := flag.String("pay-chain-url", os.Getenv("YNX_DATA_FABRIC_PAY_CHAIN_URL"), "independent authoritative chain origin for Pay refund reconciliation")
+	payChainCommit := flag.String("pay-chain-commit", os.Getenv("YNX_DATA_FABRIC_PAY_CHAIN_COMMIT"), "exact independent chain observer commit")
+	payChainRelease := flag.String("pay-chain-release", os.Getenv("YNX_DATA_FABRIC_PAY_CHAIN_RELEASE"), "exact independent chain observer release")
 	interval := flag.Duration("interval", 250*time.Millisecond, "dispatch interval")
 	lease := flag.Duration("lease", 30*time.Second, "Outbox lease duration")
 	flag.Parse()
@@ -87,17 +97,31 @@ func main() {
 	if err != nil {
 		fail(err.Error())
 	}
+	var payLedger *datafabricpayledger.Processor
+	if *payLedgerEnabled {
+		observer, err := datafabricpayledger.NewHTTPChainObserver(datafabricpayledger.HTTPChainObserverConfig{
+			Origin: *payChainURL, SourceCommit: *payChainCommit, SourceRelease: *payChainRelease,
+			ChainID: 6423,
+		})
+		if err != nil {
+			fail(err.Error())
+		}
+		payLedger = &datafabricpayledger.Processor{Store: store, Observer: observer}
+	}
 	dispatcher := datafabricpostgres.Dispatcher{Store: store, Publisher: broker, Owner: *dispatcherID, BatchSize: *batchSize, Lease: *lease, MaxAttempts: 8}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	slog.Info("YNX Data Fabric PostgreSQL Outbox worker started", "dispatcherId", *dispatcherID, "batchSize", *batchSize)
-	if err := run(ctx, dispatcher, store, *interval, *sagaTimeoutBatch); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(ctx, dispatcher, store, broker, payLedger, *interval, *sagaTimeoutBatch); err != nil && !errors.Is(err, context.Canceled) {
 		fail(err.Error())
 	}
 	slog.Info("YNX Data Fabric PostgreSQL Outbox worker stopped", "dispatcherId", *dispatcherID)
 }
 
-func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, store *datafabricpostgres.Store, interval time.Duration, sagaTimeoutBatch int) error {
+func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, store *datafabricpostgres.Store, broker *datafabricnats.Broker, payLedger *datafabricpayledger.Processor, interval time.Duration, sagaTimeoutBatch int) error {
+	if payLedger != nil {
+		go runPayLedgerConsumer(ctx, broker, payLedger, interval)
+	}
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -123,11 +147,48 @@ func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, store *d
 	}
 }
 
+func runPayLedgerConsumer(ctx context.Context, broker *datafabricnats.Broker, processor *datafabricpayledger.Processor, retryDelay time.Duration) {
+	for ctx.Err() == nil {
+		applied, err := broker.ConsumeEventOnce(ctx, datafabricpayledger.ConsumerName, "ynx.events.pay.>", processor.Process)
+		if err == nil {
+			if applied {
+				slog.Info("Pay Ledger reconciliation event committed")
+			}
+			continue
+		}
+		if errors.Is(err, context.Canceled) || ctx.Err() != nil {
+			return
+		}
+		slog.Error("Pay Ledger reconciliation consumer failed", "error", err)
+		timer := time.NewTimer(retryDelay)
+		select {
+		case <-ctx.Done():
+			if !timer.Stop() {
+				<-timer.C
+			}
+			return
+		case <-timer.C:
+		}
+	}
+}
+
 func env(name, fallback string) string {
 	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 		return value
 	}
 	return fallback
+}
+
+func envBool(name string) (bool, error) {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(name)))
+	switch value {
+	case "", "0", "false", "no":
+		return false, nil
+	case "1", "true", "yes":
+		return true, nil
+	default:
+		return false, fmt.Errorf("%s must be true/false, yes/no, or 1/0", name)
+	}
 }
 
 func fail(message string) {

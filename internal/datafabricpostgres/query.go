@@ -80,6 +80,15 @@ func (s *Store) JournalEntry(ctx context.Context, id string) (datafabric.Journal
 	return loadJournalEntry(ctx, s.db, id)
 }
 
+// JournalEntryTx reads one immutable journal entry through a caller-owned
+// transaction for atomic projection composition.
+func JournalEntryTx(ctx context.Context, tx *sql.Tx, id string) (datafabric.JournalEntry, bool, error) {
+	if tx == nil {
+		return datafabric.JournalEntry{}, false, errors.New("journal query transaction is required")
+	}
+	return loadJournalEntry(ctx, tx, id)
+}
+
 func loadJournalEntry(ctx context.Context, queryer sqlQueryer, id string) (datafabric.JournalEntry, bool, error) {
 	var entry datafabric.JournalEntry
 	var correction sql.NullString
