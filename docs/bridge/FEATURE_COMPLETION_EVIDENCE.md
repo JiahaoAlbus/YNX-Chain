@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, Quote Runtime, and Wallet Review Runtime evidence commit: `41ed57c926443317436e3b0c29b4840b309db6cc`.
+Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, Quote Runtime, Wallet Review Runtime, and Provider Runtime evidence commit: `418ab78ffebe987353765a8427338e6fe298b711`.
 
 ## Evidence-backed state
 
@@ -22,6 +22,7 @@ Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, Quote Ru
 | Machine-readable fail-closed Provider Registry with incomplete-incident-history marker | true | true | false | false | false | false |
 | Digest-bound, expiring, fail-closed Quote Runtime with explicit unavailable provider terms | true | true | false | false | false | false |
 | Product Session-bound Wallet Review Runtime through the local App Gateway patch | true | true | false | false | false | false |
+| Official Circle CCTP V2 fee adapter and supported-domain Sandbox probe, with YNX route kept unavailable | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
 | Truthful `/health`, `/version`, state-machine, product status, and readiness boundary | true | true | false | false | false | false |
@@ -40,6 +41,7 @@ Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, Quote Ru
 - `go test -race ./internal/appgateway ./cmd/ynx-app-gatewayd`
 - `make app-gateway-check`
 - `make bridge-api-check`
+- `make bridge-provider-check`
 - `make bridge-integration-check`
 - `make bridge-route-adapter-check`
 - `make bridge-observability-check`
@@ -57,4 +59,4 @@ The API check launches the compiled daemon and exercises public fail-closed rout
 
 ## Missing completion evidence
 
-No source-chain transaction hash, destination transaction hash, verified contract, issuer attestation, public Bridge URL, remote deployment, independent security review, funded route, or public Testnet deposit/withdrawal exists in this branch. Those states remain false.
+The official Circle CCTP V2 Sandbox fee API was reached for supported domains 0 to 6. This is Provider API evidence, not YNX route support. No YNX source-chain transaction hash, destination transaction hash, verified YNX Bridge contract, issuer attestation for YNX, public Bridge URL, remote deployment, independent security review, funded YNX route, or public Testnet deposit/withdrawal exists in this branch. Those states remain false.

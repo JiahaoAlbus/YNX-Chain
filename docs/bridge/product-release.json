@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "releaseClass": "local-engineering-candidate",
-  "sourceCommit": "41ed57c926443317436e3b0c29b4840b309db6cc",
+  "sourceCommit": "418ab78ffebe987353765a8427338e6fe298b711",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -34,6 +34,16 @@
     "walletSignatureVerified": false,
     "sourceSubmissionEnabled": false
   },
+  "providerRuntime": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "provider": "Circle CCTP V2",
+    "officialSandboxAPIConnected": true,
+    "remoteSupportedDomainProbe": "ethereum-sepolia-domain-0-to-base-sepolia-domain-6",
+    "ynxRouteSupported": false,
+    "ynxRouteExecutable": false,
+    "externalSubmissionEnabled": false
+  },
   "publicTestnetDepositVerified": false,
   "publicTestnetWithdrawalVerified": false,
   "proofVerification": {
@@ -46,7 +56,7 @@
   "publicUrls": [],
   "transactionEvidence": [],
   "localEvidence": [
-    {"type":"source-commit","value":"41ed57c926443317436e3b0c29b4840b309db6cc"},
+    {"type":"source-commit","value":"418ab78ffebe987353765a8427338e6fe298b711"},
     {"type":"test-command","value":"go test ./..."},
     {"type":"test-command","value":"npm test --prefix sdk/bridge"}
   ],

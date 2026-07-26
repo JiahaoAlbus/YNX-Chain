@@ -2,7 +2,7 @@
 
 Status: local implementation tested; central integration, Testnet deployment, provider connection, and contract deployment are not complete.
 
-Source runtime, consumer contract, Provider Registry, Quote Runtime, and Wallet Review Runtime commit: `41ed57c926443317436e3b0c29b4840b309db6cc`
+Source runtime, consumer contract, Provider Registry, Quote Runtime, Wallet Review Runtime, and Provider Runtime commit: `418ab78ffebe987353765a8427338e6fe298b711`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -23,7 +23,7 @@ The current implemented proof verifier revalidates domain-separated threshold-re
 
 ## Current fail-closed status
 
-No verified provider connection, verified source/destination Bridge contracts, public Bridge deployment, official stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review is evidenced by this worktree. `GET /bridge/providers` records configured identities and route bindings, not availability; `availableProviderCount` is zero and incident-history coverage is explicitly incomplete. Route execution therefore remains unavailable and all release booleans beyond local implementation/testing remain false.
+The official Circle CCTP V2 Sandbox fee API is verified reachable for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route. YNX is not listed in the inspected official domain/contract references, so this does not prove a YNX provider route. No verified YNX provider connection, verified YNX source/destination Bridge contracts, public Bridge deployment, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review is evidenced by this worktree. The current deployment configuration keeps Provider routes empty; `availableProviderCount` is zero and incident-history coverage is explicitly incomplete. Route execution therefore remains unavailable and all release booleans beyond local implementation/testing remain false.
 
 ## Owner actions
 
