@@ -82,7 +82,8 @@ esac
 EOF
   chmod +x "$tmp/bin/curl"
   YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
-  if YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE=1 YNX_EXPECT_BRIDGE_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full >"$tmp/unsafe-route.log" 2>&1; then
+  PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge
+  if YNX_CHECK_LOCAL_SERVICES_SELF_TEST_UNSAFE_ROUTE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 bridge >"$tmp/unsafe-route.log" 2>&1; then
     echo "check-local-services self-test accepted an executable Bridge route" >&2
     exit 1
   fi
@@ -145,8 +146,68 @@ check_chain_surface() {
   require_contains "node identity release" "$identity" "$expected_release"
 }
 
+check_bridge_surface() {
+  local bridge_gateway bridge_version bridge_status bridge_routes bridge_providers bridge_assets
+  bridge_gateway="$(fetch_with_retry "Bridge coordinator health" "http://127.0.0.1:6433/health")"
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"ok":true'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"degraded":true'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"service":"ynx-bridged"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"schemaVersion":7'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" "YNXT"
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"persistence":"atomic-json-file"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"stateIntegrity":"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"contractStatus":"unavailable-no-verified-contract-deployment"'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"externalSubmissionEnabled":false'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"liveBridge":false'
+  require_contains "Bridge coordinator health" "$bridge_gateway" '"truthfulStatus":"degraded-'
+  require_contains "Bridge coordinator health build commit" "$bridge_gateway" "$expected_commit"
+  require_contains "Bridge coordinator health release" "$bridge_gateway" "$expected_release"
+
+  bridge_version="$(fetch_with_retry "Bridge coordinator version" "http://127.0.0.1:6433/version")"
+  require_contains "Bridge coordinator version" "$bridge_version" '"service":"ynx-bridged"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"source":"ynx-bridge-runtime"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"schemaVersion":7'
+  require_contains "Bridge coordinator version" "$bridge_version" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
+  require_contains "Bridge coordinator version" "$bridge_version" '"externalSubmissionEnabled":false'
+  require_contains "Bridge coordinator version" "$bridge_version" '"liveBridge":false'
+  require_contains "Bridge coordinator version build commit" "$bridge_version" "$expected_commit"
+  require_contains "Bridge coordinator version release" "$bridge_version" "$expected_release"
+
+  bridge_status="$(fetch_with_retry "Bridge product status" "http://127.0.0.1:6433/bridge/status")"
+  require_contains "Bridge product status" "$bridge_status" '"source":"ynx-bridge-product-status"'
+  require_contains "Bridge product status" "$bridge_status" '"coordinatorState":"available-local-coordinator"'
+  require_contains "Bridge product status" "$bridge_status" '"externalBridgeState":"unavailable"'
+  require_contains "Bridge product status" "$bridge_status" '"externalSubmissionEnabled":false'
+  require_contains "Bridge product status" "$bridge_status" '"userAssetMovementEnabled":false'
+  require_contains "Bridge product status" "$bridge_status" '"officialStablecoinRouteAvailable":false'
+  require_contains "Bridge product status" "$bridge_status" '"deployedPublic":false'
+  require_contains "Bridge product status" "$bridge_status" '"quoteExecution":false'
+  require_contains "Bridge product status" "$bridge_status" '"sourceSubmission":false'
+  require_contains "Bridge product status" "$bridge_status" '"destinationMintRelease":false'
+  require_contains "Bridge product status build commit" "$bridge_status" "$expected_commit"
+  require_contains "Bridge product status release" "$bridge_status" "$expected_release"
+
+  bridge_routes="$(fetch_with_retry "Bridge routes" "http://127.0.0.1:6433/bridge/routes")"
+  require_contains "Bridge routes" "$bridge_routes" '"source":"ynx-bridge-route-registry"'
+  require_contains "Bridge routes" "$bridge_routes" '"routes":['
+  require_absent "Bridge routes" "$bridge_routes" '"executable":true'
+  require_absent "Bridge routes" "$bridge_routes" '"externalSubmissionEnabled":true'
+
+  bridge_providers="$(fetch_with_retry "Bridge providers" "http://127.0.0.1:6433/bridge/providers")"
+  require_contains "Bridge providers" "$bridge_providers" '"source":"ynx-bridge-provider-registry"'
+  require_contains "Bridge providers" "$bridge_providers" '"providers":['
+  require_absent "Bridge providers" "$bridge_providers" '"routeAvailable":true'
+  require_absent "Bridge providers" "$bridge_providers" '"executable":true'
+
+  bridge_assets="$(fetch_with_retry "Bridge assets" "http://127.0.0.1:6433/bridge/assets")"
+  require_contains "Bridge assets" "$bridge_assets" '"source":"ynx-bridge-asset-registry"'
+  require_contains "Bridge assets" "$bridge_assets" '"assets":['
+  require_absent "Bridge assets" "$bridge_assets" '"externalExecutionEnabled":true'
+}
+
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway bridge_version bridge_status bridge_routes bridge_providers bridge_assets stablecoin_gateway chat_gateway square_gateway app_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -197,62 +258,7 @@ check_full_stack_surface() {
   require_contains "Resource Gateway health release" "$resource_gateway" "$expected_release"
 
   if [[ "${YNX_EXPECT_BRIDGE_SERVICE:-0}" == "1" ]]; then
-    bridge_gateway="$(fetch_with_retry "Bridge coordinator health" "http://127.0.0.1:6433/health")"
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"ok":true'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"degraded":true'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"service":"ynx-bridged"'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"schemaVersion":7'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
-    require_contains "Bridge coordinator health" "$bridge_gateway" "YNXT"
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"persistence":"atomic-json-file"'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"stateIntegrity":"'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"contractStatus":"unavailable-no-verified-contract-deployment"'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"externalSubmissionEnabled":false'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"liveBridge":false'
-    require_contains "Bridge coordinator health" "$bridge_gateway" '"truthfulStatus":"degraded-'
-    require_contains "Bridge coordinator health build commit" "$bridge_gateway" "$expected_commit"
-    require_contains "Bridge coordinator health release" "$bridge_gateway" "$expected_release"
-
-    bridge_version="$(fetch_with_retry "Bridge coordinator version" "http://127.0.0.1:6433/version")"
-    require_contains "Bridge coordinator version" "$bridge_version" '"service":"ynx-bridged"'
-    require_contains "Bridge coordinator version" "$bridge_version" '"source":"ynx-bridge-runtime"'
-    require_contains "Bridge coordinator version" "$bridge_version" '"schemaVersion":7'
-    require_contains "Bridge coordinator version" "$bridge_version" '"stateMachineVersion":"ynx.bridge.lifecycle.v1"'
-    require_contains "Bridge coordinator version" "$bridge_version" '"externalSubmissionEnabled":false'
-    require_contains "Bridge coordinator version" "$bridge_version" '"liveBridge":false'
-    require_contains "Bridge coordinator version build commit" "$bridge_version" "$expected_commit"
-    require_contains "Bridge coordinator version release" "$bridge_version" "$expected_release"
-
-    bridge_status="$(fetch_with_retry "Bridge product status" "http://127.0.0.1:6433/bridge/status")"
-    require_contains "Bridge product status" "$bridge_status" '"source":"ynx-bridge-product-status"'
-    require_contains "Bridge product status" "$bridge_status" '"coordinatorState":"available-local-coordinator"'
-    require_contains "Bridge product status" "$bridge_status" '"externalBridgeState":"unavailable"'
-    require_contains "Bridge product status" "$bridge_status" '"externalSubmissionEnabled":false'
-    require_contains "Bridge product status" "$bridge_status" '"userAssetMovementEnabled":false'
-    require_contains "Bridge product status" "$bridge_status" '"officialStablecoinRouteAvailable":false'
-    require_contains "Bridge product status" "$bridge_status" '"deployedPublic":false'
-    require_contains "Bridge product status" "$bridge_status" '"quoteExecution":false'
-    require_contains "Bridge product status" "$bridge_status" '"sourceSubmission":false'
-    require_contains "Bridge product status" "$bridge_status" '"destinationMintRelease":false'
-    require_contains "Bridge product status build commit" "$bridge_status" "$expected_commit"
-    require_contains "Bridge product status release" "$bridge_status" "$expected_release"
-
-    bridge_routes="$(fetch_with_retry "Bridge routes" "http://127.0.0.1:6433/bridge/routes")"
-    require_contains "Bridge routes" "$bridge_routes" '"source":"ynx-bridge-route-registry"'
-    require_contains "Bridge routes" "$bridge_routes" '"routes":['
-    require_absent "Bridge routes" "$bridge_routes" '"executable":true'
-    require_absent "Bridge routes" "$bridge_routes" '"externalSubmissionEnabled":true'
-
-    bridge_providers="$(fetch_with_retry "Bridge providers" "http://127.0.0.1:6433/bridge/providers")"
-    require_contains "Bridge providers" "$bridge_providers" '"source":"ynx-bridge-provider-registry"'
-    require_contains "Bridge providers" "$bridge_providers" '"providers":['
-    require_absent "Bridge providers" "$bridge_providers" '"routeAvailable":true'
-    require_absent "Bridge providers" "$bridge_providers" '"executable":true'
-
-    bridge_assets="$(fetch_with_retry "Bridge assets" "http://127.0.0.1:6433/bridge/assets")"
-    require_contains "Bridge assets" "$bridge_assets" '"source":"ynx-bridge-asset-registry"'
-    require_contains "Bridge assets" "$bridge_assets" '"assets":['
-    require_absent "Bridge assets" "$bridge_assets" '"externalExecutionEnabled":true'
+    check_bridge_surface
   fi
 
   if [[ "${YNX_EXPECT_STABLECOIN_SERVICE:-0}" == "1" ]]; then
@@ -301,6 +307,9 @@ check_full_stack_surface() {
 case "$mode" in
   validator)
     check_chain_surface
+    ;;
+  bridge)
+    check_bridge_surface
     ;;
   full)
     check_chain_surface
