@@ -237,7 +237,7 @@ func TestIndexerHTTPServer(t *testing.T) {
 	httpServer := httptest.NewServer(server.Handler())
 	defer httpServer.Close()
 
-	for _, path := range []string{"/health", "/ynx/overview", "/metrics", "/blocks/latest", "/txs"} {
+	for _, path := range []string{"/health", "/version", "/ynx/overview", "/metrics", "/blocks/latest", "/txs"} {
 		resp, err := http.Get(httpServer.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -283,5 +283,68 @@ func TestIndexerHTTPServer(t *testing.T) {
 	}
 	if overview["chainId"].(float64) != 6423 || overview["nativeCurrencySymbol"] != "YNXT" || overview["service"] != "ynx-indexerd" {
 		t.Fatalf("unexpected indexer overview: %+v", overview)
+	}
+}
+
+func TestIndexerHealthFailsClosedUntilFirstSuccessfulSync(t *testing.T) {
+	idx, err := New(Config{RPCURL: "http://127.0.0.1:1", StorePath: t.TempDir() + "/indexer-db.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServerWithBuild(idx, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123"})
+	httpServer := httptest.NewServer(server.Handler())
+	defer httpServer.Close()
+
+	resp, err := http.Get(httpServer.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("health before first sync returned %d", resp.StatusCode)
+	}
+	var health map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	if health["ok"] != false || health["startedAt"] == "" {
+		t.Fatalf("health did not fail closed with process identity: %+v", health)
+	}
+	dependencies := health["dependencies"].(map[string]any)
+	chainRPC := dependencies["chainRpc"].(map[string]any)
+	if chainRPC["status"] != "not-yet-synced" {
+		t.Fatalf("unexpected dependency status: %+v", chainRPC)
+	}
+	if _, err := server.SyncOnce(context.Background()); err == nil {
+		t.Fatal("expected unavailable chain RPC to fail sync")
+	}
+	failureResp, err := http.Get(httpServer.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer failureResp.Body.Close()
+	var failureHealth map[string]any
+	if err := json.NewDecoder(failureResp.Body).Decode(&failureHealth); err != nil {
+		t.Fatal(err)
+	}
+	failureDependency := failureHealth["dependencies"].(map[string]any)["chainRpc"].(map[string]any)
+	if failureResp.StatusCode != http.StatusServiceUnavailable || failureDependency["status"] != "unavailable" {
+		t.Fatalf("failed dependency was not reported unavailable: %+v", failureHealth)
+	}
+
+	versionResp, err := http.Get(httpServer.URL + "/version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer versionResp.Body.Close()
+	if versionResp.StatusCode != http.StatusOK {
+		t.Fatalf("version returned %d", versionResp.StatusCode)
+	}
+	var version map[string]any
+	if err := json.NewDecoder(versionResp.Body).Decode(&version); err != nil {
+		t.Fatal(err)
+	}
+	if version["service"] != "ynx-indexerd" || version["schemaVersion"] != float64(2) || version["startedAt"] == "" {
+		t.Fatalf("unexpected version response: %+v", version)
 	}
 }
