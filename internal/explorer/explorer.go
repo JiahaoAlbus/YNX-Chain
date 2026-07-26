@@ -129,6 +129,7 @@ type Summary struct {
 	IndexerError      string              `json:"indexerError,omitempty"`
 	Wallet            WalletConfig        `json:"wallet"`
 	Build             buildinfo.Info      `json:"build"`
+	StartedAt         time.Time           `json:"startedAt"`
 	ResourceStatus    string              `json:"resourceStatus"`
 	FeeStatus         string              `json:"feeStatus"`
 	TruthfulStatus    string              `json:"truthfulStatus"`
