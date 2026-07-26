@@ -1162,7 +1162,10 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 	}
 	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
 	d.invoices[invoice.ID] = invoice
-	d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event := d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event.InvoiceID = invoice.ID
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return invoice, err
@@ -1320,6 +1323,139 @@ func (d *Devnet) CreateRefundWithIdempotency(intentID string, amount int64, reas
 	d.refunds[refund.ID] = refund
 	d.recordPayEventLocked("refund.recorded", refund.IntentID, refund.ID, intent.Merchant, refund.Amount, refund.Currency, refund.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return refund, err
+}
+
+func (d *Devnet) Refund(id string) (RefundRecord, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	refund, ok := d.refunds[strings.TrimSpace(id)]
+	return refund, ok
+}
+
+func (d *Devnet) CompleteRefund(refundID, transactionHash, idempotencyKey string) (RefundRecord, error) {
+	refundID = strings.TrimSpace(refundID)
+	transactionHash = strings.TrimSpace(transactionHash)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
+	if refundID == "" {
+		return RefundRecord{}, errors.New("refundId is required")
+	}
+	if !transactionHashPattern.MatchString(transactionHash) || transactionHash != strings.ToLower(transactionHash) {
+		return RefundRecord{}, errors.New("transactionHash must be canonical lowercase 32-byte hex")
+	}
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		return RefundRecord{}, errors.New("idempotencyKey must contain 1 to 128 characters")
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	refund, ok := d.refunds[refundID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund not found")
+	}
+	if refund.Status == "completed" {
+		if refund.TransactionHash == transactionHash && refund.CompletionIdempotencyKey == idempotencyKey {
+			return refund, nil
+		}
+		if refund.CompletionIdempotencyKey == idempotencyKey {
+			return RefundRecord{}, errors.New("idempotencyKey was already used with a different refund transaction")
+		}
+		return RefundRecord{}, errors.New("refund is already completed")
+	}
+	if refund.Status != "recorded" {
+		return RefundRecord{}, errors.New("refund is not eligible for completion")
+	}
+	intent, ok := d.payIntents[refund.IntentID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund payment intent is unavailable")
+	}
+	var settlement PaySettlement
+	for _, candidate := range d.paySettlements {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "paid" {
+			continue
+		}
+		if settlement.ID != "" {
+			return RefundRecord{}, errors.New("refund payment intent has multiple paid settlements")
+		}
+		settlement = candidate
+	}
+	if settlement.ID == "" {
+		return RefundRecord{}, errors.New("refund requires a paid invoice settlement")
+	}
+	invoice, ok := d.invoices[settlement.InvoiceID]
+	if !ok || invoice.IntentID != refund.IntentID || invoice.Status != "paid" || settlement.Amount != intent.Amount || settlement.Currency != refund.Currency {
+		return RefundRecord{}, errors.New("refund paid settlement authority is inconsistent")
+	}
+	for _, candidate := range d.paySettlements {
+		if candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to an invoice settlement")
+		}
+	}
+	for _, candidate := range d.refunds {
+		if candidate.ID != refund.ID && candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to another refund")
+		}
+	}
+	var completedBefore int64
+	for _, candidate := range d.refunds {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "completed" {
+			continue
+		}
+		if candidate.Amount <= 0 || candidate.Amount > settlement.Amount-completedBefore {
+			return RefundRecord{}, errors.New("completed refunds exceed paid settlement authority")
+		}
+		completedBefore += candidate.Amount
+	}
+	if refund.Amount > settlement.Amount-completedBefore {
+		return RefundRecord{}, errors.New("refund exceeds remaining paid settlement amount")
+	}
+	tx, found := d.transactionLocked(transactionHash)
+	if !found || tx.BlockNum == 0 || tx.BlockHash == "" {
+		return RefundRecord{}, errors.New("refund transaction is not committed")
+	}
+	_, payoutCanonical, err := normalizePayAddress(settlement.PayoutAddress)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund merchant payout address is invalid")
+	}
+	_, payerCanonical, err := normalizePayAddress(settlement.Payer)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund payer address is invalid")
+	}
+	if tx.Type != "transfer" || tx.From != payoutCanonical || tx.To != payerCanonical || tx.Amount != refund.Amount || tx.Fee != 1 {
+		return RefundRecord{}, errors.New("refund transaction does not match merchant, payer, amount, and native fee")
+	}
+	if tx.Timestamp.Before(refund.CreatedAt) || tx.Timestamp.Before(settlement.CreatedAt) {
+		return RefundRecord{}, errors.New("refund transaction predates refund authority")
+	}
+
+	now := time.Now().UTC()
+	refund.InvoiceID = settlement.InvoiceID
+	refund.SettlementID = settlement.ID
+	refund.Merchant = settlement.Merchant
+	refund.PayoutAddress = settlement.PayoutAddress
+	refund.Payer = settlement.Payer
+	refund.Status = "completed"
+	refund.TransactionHash = transactionHash
+	refund.BlockNumber = tx.BlockNum
+	refund.CompletedAt = &now
+	refund.CompletionIdempotencyKey = idempotencyKey
+	refund.AuditHash = payRefundAuditHash(refund)
+	d.refunds[refund.ID] = refund
+
+	completed := completedBefore + refund.Amount
+	status := "partially_refunded"
+	if completed == settlement.Amount {
+		status = "refunded"
+	}
+	intent.RefundedAmount = completed
+	intent.RefundStatus = status
+	d.payIntents[intent.ID] = intent
+	invoice.RefundedAmount = completed
+	invoice.RefundStatus = status
+	d.invoices[invoice.ID] = invoice
+	d.recordPayRefundCompletionEventLocked(refund)
+	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return refund, err
 }
@@ -3490,19 +3626,45 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 		IdempotencyKey: idempotencyKey,
 		CreatedAt:      createdAt,
 	}
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
 }
 
 func (d *Devnet) recordPaySettlementEventLocked(settlement PaySettlement) PayEvent {
 	event := d.recordPayEventLocked("invoice.paid", settlement.IntentID, settlement.ID, settlement.Merchant, settlement.Amount, settlement.Currency, settlement.IdempotencyKey, settlement.CreatedAt)
+	event.InvoiceID = settlement.InvoiceID
 	event.PayoutAddress = settlement.PayoutAddress
 	event.Payer = settlement.Payer
 	event.TransactionHash = settlement.TransactionHash
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func (d *Devnet) recordPayRefundCompletionEventLocked(refund RefundRecord) PayEvent {
+	event := d.recordPayEventLocked("refund.completed", refund.IntentID, refund.ID, refund.Merchant, refund.Amount, refund.Currency, refund.CompletionIdempotencyKey, *refund.CompletedAt)
+	event.InvoiceID = refund.InvoiceID
+	event.SettlementID = refund.SettlementID
+	event.PayoutAddress = refund.PayoutAddress
+	event.Payer = refund.Payer
+	event.TransactionHash = refund.TransactionHash
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
+	return event
+}
+
+func payEventAuditHash(event PayEvent) string {
+	if event.Type == "invoice.paid" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.Type == "refund.completed" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.SettlementID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.InvoiceID != "" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	return hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 }
 
 func normalizePayAddress(value string) (native, canonical string, err error) {
@@ -3519,6 +3681,14 @@ func normalizePayAddress(value string) (native, canonical string, err error) {
 
 func paySettlementAuditHash(value PaySettlement) string {
 	return hashParts("pay-settlement-audit", value.ID, value.IntentID, value.InvoiceID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.Status, value.IdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano))
+}
+
+func payRefundAuditHash(value RefundRecord) string {
+	completedAt := ""
+	if value.CompletedAt != nil {
+		completedAt = value.CompletedAt.UTC().Format(time.RFC3339Nano)
+	}
+	return hashParts("pay-refund-audit", value.ID, value.IntentID, value.InvoiceID, value.SettlementID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.Reason, value.Status, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.IdempotencyKey, value.CompletionIdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano), completedAt)
 }
 
 func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {
