@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -36,7 +37,11 @@ func NewOfficialHTTP(client *http.Client) (*OfficialHTTP, error) {
 	if client.Timeout <= 0 {
 		return nil, errors.New("provider HTTP client requires an overall timeout")
 	}
-	return &OfficialHTTP{client: client}, nil
+	clientCopy := *client
+	clientCopy.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return errors.New("official provider redirects are rejected")
+	}
+	return &OfficialHTTP{client: &clientCopy}, nil
 }
 
 func (adapter *OfficialHTTP) CoinbaseTicker(ctx context.Context, product, market string, scale int64) (Candidate, error) {
@@ -123,6 +128,10 @@ func (adapter *OfficialHTTP) get(ctx context.Context, endpoint string, target an
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("official provider unavailable: HTTP %d", response.StatusCode)
+	}
+	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	if err != nil || contentType != "application/json" {
+		return errors.New("official provider response content type invalid")
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maximumResponseBytes+1))
 	if err != nil {

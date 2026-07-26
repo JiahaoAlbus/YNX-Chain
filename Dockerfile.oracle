@@ -7,12 +7,15 @@ ENV GOTOOLCHAIN=auto
 WORKDIR /src
 COPY go.mod go.sum ./
 COPY cmd/ynx-oracled ./cmd/ynx-oracled
+COPY cmd/ynx-oracle-provider ./cmd/ynx-oracle-provider
 COPY internal/oracle ./internal/oracle
-RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracled ./cmd/ynx-oracled
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracled ./cmd/ynx-oracled \
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w -buildid=" -o /out/ynx-oracle-provider ./cmd/ynx-oracle-provider
 
 FROM ${RUNTIME_IMAGE}
 RUN addgroup -S -g 65532 oracle && adduser -S -D -H -u 65532 -G oracle oracle
 COPY --from=build --chown=65532:65532 /out/ynx-oracled /usr/local/bin/ynx-oracled
+COPY --from=build --chown=65532:65532 /out/ynx-oracle-provider /usr/local/bin/ynx-oracle-provider
 RUN mkdir -p /var/lib/ynx-oracle /etc/ynx-oracle && chown -R 65532:65532 /var/lib/ynx-oracle /etc/ynx-oracle
 USER 65532:65532
 EXPOSE 6470

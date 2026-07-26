@@ -69,4 +69,11 @@ func TestOfficialAdaptersFailClosed(t *testing.T) {
 	if _, err := decimalToScaled("1.0", 3); err == nil {
 		t.Fatal("non-decimal scale accepted")
 	}
+	plainTextClient := &http.Client{Timeout: time.Second, Transport: roundTrip(func(request *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"text/plain"}}, Body: io.NopCloser(strings.NewReader(`{"price":"1"}`)), Request: request}, nil
+	})}
+	adapter, _ = NewOfficialHTTP(plainTextClient)
+	if _, err := adapter.CoinbaseTicker(context.Background(), "BTC-USD", "BTC/USD", 1_000_000); err == nil {
+		t.Fatal("non-JSON provider response accepted")
+	}
 }
