@@ -6,7 +6,8 @@
   "type": "module",
   "exports": "./src/index.js",
   "types": "./src/index.d.ts",
-  "files": ["src", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "bin": {"ynx-wallet-gatewayd":"scripts/ynx-wallet-gatewayd.mjs"},
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "check": "npm test",
