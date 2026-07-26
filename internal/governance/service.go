@@ -138,8 +138,10 @@ type Vote struct {
 }
 
 type VotingSnapshot struct {
-	BasePower   map[string]uint64 `json:"basePower"`
-	Delegations map[string]string `json:"delegations"`
+	BasePower           map[string]uint64 `json:"basePower"`
+	Delegations         map[string]string `json:"delegations"`
+	DelegatedPower      map[string]uint64 `json:"delegatedPower,omitempty"`
+	DelegationOverrides map[string]bool   `json:"delegationOverrides,omitempty"`
 }
 
 type ElectorateApproval struct {
@@ -160,30 +162,32 @@ type ElectorateRecord struct {
 }
 
 type Proposal struct {
-	ID               string                        `json:"id"`
-	ActionHash       string                        `json:"actionHash"`
-	Input            ProposalInput                 `json:"input"`
-	Status           Status                        `json:"status"`
-	Transitions      []StateTransition             `json:"transitions"`
-	Deposit          uint64                        `json:"deposit"`
-	Simulation       *Simulation                   `json:"simulation,omitempty"`
-	Cancellation     *Cancellation                 `json:"cancellation,omitempty"`
-	Conflicts        map[string]ConflictDisclosure `json:"conflicts"`
-	Votes            map[string]Vote               `json:"votes"`
-	VoteHistory      map[string][]Vote             `json:"voteHistory"`
-	EligiblePower    uint64                        `json:"eligiblePower"`
-	VotingPower      map[string]uint64             `json:"votingPower"`
-	BasePower        map[string]uint64             `json:"basePower"`
-	Delegations      map[string]string             `json:"delegations"`
-	Electorate       *ElectorateRecord             `json:"electorate,omitempty"`
-	VotingEndsAt     time.Time                     `json:"votingEndsAt,omitempty"`
-	ExecuteAfter     time.Time                     `json:"executeAfter,omitempty"`
-	ExecutionHash    string                        `json:"executionHash,omitempty"`
-	ExecutionReceipt *ExecutionReceipt             `json:"executionReceipt,omitempty"`
-	RollbackHash     string                        `json:"rollbackHash,omitempty"`
-	RollbackReceipt  *ExecutionReceipt             `json:"rollbackReceipt,omitempty"`
-	CreatedAt        time.Time                     `json:"createdAt"`
-	UpdatedAt        time.Time                     `json:"updatedAt"`
+	ID                  string                        `json:"id"`
+	ActionHash          string                        `json:"actionHash"`
+	Input               ProposalInput                 `json:"input"`
+	Status              Status                        `json:"status"`
+	Transitions         []StateTransition             `json:"transitions"`
+	Deposit             uint64                        `json:"deposit"`
+	Simulation          *Simulation                   `json:"simulation,omitempty"`
+	Cancellation        *Cancellation                 `json:"cancellation,omitempty"`
+	Conflicts           map[string]ConflictDisclosure `json:"conflicts"`
+	Votes               map[string]Vote               `json:"votes"`
+	VoteHistory         map[string][]Vote             `json:"voteHistory"`
+	EligiblePower       uint64                        `json:"eligiblePower"`
+	VotingPower         map[string]uint64             `json:"votingPower"`
+	BasePower           map[string]uint64             `json:"basePower"`
+	Delegations         map[string]string             `json:"delegations"`
+	DelegatedPower      map[string]uint64             `json:"delegatedPower"`
+	DelegationOverrides map[string]bool               `json:"delegationOverrides"`
+	Electorate          *ElectorateRecord             `json:"electorate,omitempty"`
+	VotingEndsAt        time.Time                     `json:"votingEndsAt,omitempty"`
+	ExecuteAfter        time.Time                     `json:"executeAfter,omitempty"`
+	ExecutionHash       string                        `json:"executionHash,omitempty"`
+	ExecutionReceipt    *ExecutionReceipt             `json:"executionReceipt,omitempty"`
+	RollbackHash        string                        `json:"rollbackHash,omitempty"`
+	RollbackReceipt     *ExecutionReceipt             `json:"rollbackReceipt,omitempty"`
+	CreatedAt           time.Time                     `json:"createdAt"`
+	UpdatedAt           time.Time                     `json:"updatedAt"`
 }
 
 type Policy struct {
@@ -213,19 +217,22 @@ type ParameterRule struct {
 }
 
 type Service struct {
-	mu               sync.RWMutex
-	policy           Policy
-	registries       RegistrySet
-	proposals        map[string]*Proposal
-	nonces           map[string]struct{}
-	voteNonces       map[string]struct{}
-	emergencies      map[string]*EmergencyAction
-	emergencyNonces  map[string]struct{}
-	roles            map[string]*RoleAssignment
-	appeals          map[string]*Appeal
-	appealNonces     map[string]struct{}
-	discussions      map[string]*DiscussionEntry
-	discussionNonces map[string]struct{}
+	mu                sync.RWMutex
+	policy            Policy
+	registries        RegistrySet
+	proposals         map[string]*Proposal
+	nonces            map[string]struct{}
+	voteNonces        map[string]struct{}
+	delegations       map[string]Delegation
+	delegationHistory map[string][]Delegation
+	delegationNonces  map[string]struct{}
+	emergencies       map[string]*EmergencyAction
+	emergencyNonces   map[string]struct{}
+	roles             map[string]*RoleAssignment
+	appeals           map[string]*Appeal
+	appealNonces      map[string]struct{}
+	discussions       map[string]*DiscussionEntry
+	discussionNonces  map[string]struct{}
 }
 
 func NewService(policy Policy) (*Service, error) {
@@ -241,7 +248,7 @@ func NewService(policy Policy) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
 	}
-	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
+	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
 func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
@@ -262,7 +269,7 @@ func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
 	}
 	id := hash("proposal", input.Nonce, input.Proposer, fingerprint)
 	actionHash := hash("action", fingerprint, strings.ToLower(input.SourceCommit), input.Release, strings.ToLower(input.UpgradeHash))
-	p := &Proposal{ID: id, ActionHash: actionHash, Input: input, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VoteHistory: map[string][]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, CreatedAt: now, UpdatedAt: now}
+	p := &Proposal{ID: id, ActionHash: actionHash, Input: input, Conflicts: map[string]ConflictDisclosure{}, Votes: map[string]Vote{}, VoteHistory: map[string][]Vote{}, VotingPower: map[string]uint64{}, BasePower: map[string]uint64{}, Delegations: map[string]string{}, DelegatedPower: map[string]uint64{}, DelegationOverrides: map[string]bool{}, CreatedAt: now, UpdatedAt: now}
 	for _, step := range []struct {
 		to     Status
 		reason string
@@ -386,6 +393,10 @@ func (s *Service) SubmitElectorate(id string, snapshot VotingSnapshot, evidenceH
 	if err != nil {
 		return Proposal{}, err
 	}
+	snapshot, err = s.bindPersistentDelegationsLocked(p.Input.Scope, snapshot, snapshotAsOf)
+	if err != nil {
+		return Proposal{}, err
+	}
 	_, total, err := effectiveVotingPower(snapshot)
 	if err != nil || total == 0 {
 		return Proposal{}, ErrInvalid
@@ -393,7 +404,7 @@ func (s *Service) SubmitElectorate(id string, snapshot VotingSnapshot, evidenceH
 	if p.Status != StatusVotingPending || p.Simulation == nil || !p.Simulation.Passed || p.Electorate != nil || !validHash(evidenceHash) || len(strings.TrimSpace(sourceVersion)) < 3 || len(strings.TrimSpace(actor)) < 3 || snapshotAsOf.IsZero() || snapshotAsOf.After(now.UTC()) || !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, now) {
 		return Proposal{}, ErrNotReady
 	}
-	record := &ElectorateRecord{Snapshot: VotingSnapshot{BasePower: clonePowers(snapshot.BasePower), Delegations: cloneStrings(snapshot.Delegations)}, EvidenceHash: strings.ToLower(evidenceHash), SourceVersion: sourceVersion, SnapshotAsOf: snapshotAsOf.UTC(), SubmittedBy: actor, SubmittedAt: now.UTC(), Approvals: map[string]ElectorateApproval{}, Status: "pending_approval"}
+	record := &ElectorateRecord{Snapshot: cloneVotingSnapshot(snapshot), EvidenceHash: strings.ToLower(evidenceHash), SourceVersion: sourceVersion, SnapshotAsOf: snapshotAsOf.UTC(), SubmittedBy: actor, SubmittedAt: now.UTC(), Approvals: map[string]ElectorateApproval{}, Status: "pending_approval"}
 	record.AuditHash = electorateAudit(record)
 	p.Electorate = record
 	p.UpdatedAt = now.UTC()
@@ -442,7 +453,7 @@ func (s *Service) OpenVoting(id string, now time.Time) (Proposal, error) {
 	if p.Status != StatusVotingPending || p.Simulation == nil || !p.Simulation.Passed || eligiblePower == 0 {
 		return Proposal{}, ErrNotReady
 	}
-	p.EligiblePower, p.VotingPower, p.BasePower, p.Delegations, p.VotingEndsAt = eligiblePower, power, clonePowers(snapshot.BasePower), cloneStrings(snapshot.Delegations), now.UTC().Add(s.policy.VotingPeriod)
+	p.EligiblePower, p.VotingPower, p.BasePower, p.Delegations, p.DelegatedPower, p.DelegationOverrides, p.VotingEndsAt = eligiblePower, power, clonePowers(snapshot.BasePower), cloneStrings(snapshot.Delegations), clonePowers(snapshot.DelegatedPower), cloneBools(snapshot.DelegationOverrides), now.UTC().Add(s.policy.VotingPeriod)
 	if err = transitionProposal(p, StatusVotingActive, "ynx-governance-runtime", "approved electorate snapshot opened the bounded voting window", []string{p.Electorate.EvidenceHash}, now); err != nil {
 		return Proposal{}, err
 	}
@@ -460,20 +471,7 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 		return Proposal{}, ErrNotReady
 	}
 	var participated, yes, no, veto uint64
-	for _, vote := range p.Votes {
-		if vote.Operation == VoteOperationWithdraw {
-			continue
-		}
-		participated += vote.Power
-		switch vote.Choice {
-		case "yes":
-			yes += vote.Power
-		case "no":
-			no += vote.Power
-		case "veto":
-			veto += vote.Power
-		}
-	}
+	participated, yes, no, veto = proposalTally(p)
 	decisive := yes + no + veto
 	tallyEvidence := []string{fmt.Sprintf("tally://%s/participated=%d/yes=%d/no=%d/veto=%d/eligible=%d", p.ID, participated, yes, no, veto, p.EligiblePower)}
 	if err = transitionProposal(p, StatusVotingClosed, "ynx-governance-runtime", "the bounded voting window closed and the final tally was frozen", tallyEvidence, now); err != nil {
@@ -795,6 +793,8 @@ func clone(p *Proposal) Proposal {
 	}
 	out.BasePower = clonePowers(p.BasePower)
 	out.Delegations = cloneStrings(p.Delegations)
+	out.DelegatedPower = clonePowers(p.DelegatedPower)
+	out.DelegationOverrides = cloneBools(p.DelegationOverrides)
 	out.Input.Dependencies = append([]string(nil), p.Input.Dependencies...)
 	out.Input.Evidence = append([]string(nil), p.Input.Evidence...)
 	out.Input.Changes = append([]ParameterChange(nil), p.Input.Changes...)
@@ -814,8 +814,7 @@ func clone(p *Proposal) Proposal {
 	}
 	if p.Electorate != nil {
 		v := *p.Electorate
-		v.Snapshot.BasePower = clonePowers(p.Electorate.Snapshot.BasePower)
-		v.Snapshot.Delegations = cloneStrings(p.Electorate.Snapshot.Delegations)
+		v.Snapshot = cloneVotingSnapshot(p.Electorate.Snapshot)
 		v.Approvals = map[string]ElectorateApproval{}
 		for k, a := range p.Electorate.Approvals {
 			v.Approvals[k] = a
@@ -844,30 +843,83 @@ func effectiveVotingPower(snapshot VotingSnapshot) (map[string]uint64, uint64, e
 			return nil, 0, ErrInvalid
 		}
 		total += power
-		target := account
-		seen := map[string]bool{account: true}
-		for {
-			next, ok := snapshot.Delegations[target]
-			if !ok || next == "" {
-				break
+		target, delegated := snapshot.Delegations[account]
+		if !delegated || target == "" {
+			if effective[account] > ^uint64(0)-power {
+				return nil, 0, ErrInvalid
 			}
-			if snapshot.BasePower[next] == 0 || seen[next] {
-				return nil, 0, fmt.Errorf("%w: delegation cycle or unknown delegate", ErrForbidden)
-			}
-			seen[next] = true
-			target = next
+			effective[account] += power
+			continue
 		}
-		if effective[target] > ^uint64(0)-power {
+		if snapshot.BasePower[target] == 0 || target == account || snapshot.Delegations[target] != "" {
+			return nil, 0, fmt.Errorf("%w: invalid, cyclic, or multi-hop delegation", ErrForbidden)
+		}
+		amount := snapshot.DelegatedPower[account]
+		if amount == 0 {
+			amount = power
+		}
+		if amount > power || effective[target] > ^uint64(0)-amount {
 			return nil, 0, ErrInvalid
 		}
-		effective[target] += power
+		effective[account] += power - amount
+		effective[target] += amount
 	}
 	for from, to := range snapshot.Delegations {
-		if snapshot.BasePower[from] == 0 || snapshot.BasePower[to] == 0 || from == to {
+		if snapshot.BasePower[from] == 0 || snapshot.BasePower[to] == 0 || from == to || (snapshot.DelegatedPower[from] != 0 && snapshot.DelegatedPower[from] > snapshot.BasePower[from]) {
 			return nil, 0, fmt.Errorf("%w: invalid delegation", ErrForbidden)
 		}
 	}
 	return effective, total, nil
+}
+
+func proposalTally(proposal *Proposal) (participated, yes, no, veto uint64) {
+	add := func(voter string, power uint64) {
+		vote, ok := proposal.Votes[voter]
+		if !ok || vote.Operation == VoteOperationWithdraw || power == 0 {
+			return
+		}
+		participated += power
+		switch vote.Choice {
+		case "yes":
+			yes += power
+		case "no":
+			no += power
+		case "veto":
+			veto += power
+		}
+	}
+	for account, base := range proposal.BasePower {
+		delegate := proposal.Delegations[account]
+		if delegate == "" {
+			add(account, base)
+			continue
+		}
+		amount := proposal.DelegatedPower[account]
+		if amount == 0 {
+			amount = base
+		}
+		add(account, base-amount)
+		if proposal.DelegationOverrides[account] {
+			if vote, ok := proposal.Votes[account]; ok && vote.Operation != VoteOperationWithdraw {
+				add(account, amount)
+				continue
+			}
+		}
+		add(delegate, amount)
+	}
+	return participated, yes, no, veto
+}
+
+func cloneVotingSnapshot(in VotingSnapshot) VotingSnapshot {
+	return VotingSnapshot{BasePower: clonePowers(in.BasePower), Delegations: cloneStrings(in.Delegations), DelegatedPower: clonePowers(in.DelegatedPower), DelegationOverrides: cloneBools(in.DelegationOverrides)}
+}
+
+func cloneBools(in map[string]bool) map[string]bool {
+	out := map[string]bool{}
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }
 func cloneStrings(in map[string]string) map[string]string {
 	out := map[string]string{}
@@ -921,7 +973,7 @@ func electorateAudit(record *ElectorateRecord) string {
 	}
 	sort.Strings(accounts)
 	for _, account := range accounts {
-		parts = append(parts, account, fmt.Sprint(record.Snapshot.BasePower[account]), record.Snapshot.Delegations[account])
+		parts = append(parts, account, fmt.Sprint(record.Snapshot.BasePower[account]), record.Snapshot.Delegations[account], fmt.Sprint(record.Snapshot.DelegatedPower[account]), fmt.Sprint(record.Snapshot.DelegationOverrides[account]))
 	}
 	return hash(parts...)
 }

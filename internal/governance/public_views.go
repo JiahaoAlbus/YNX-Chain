@@ -125,7 +125,7 @@ func (s *Service) PublicVotes() []PublicVoteRecord {
 	return out
 }
 
-func (s *Service) PublicDelegations() []PublicDelegationRecord {
+func (s *Service) PublicElectorateDelegations() []PublicDelegationRecord {
 	proposals := s.ListProposals()
 	out := []PublicDelegationRecord{}
 	for _, proposal := range proposals {
@@ -236,6 +236,14 @@ func (s *Service) PublicAudit() []PublicAuditRecord {
 		for _, conflict := range proposal.Conflicts {
 			out = append(out, PublicAuditRecord{AuditID: hash(proposal.ID, conflict.Actor, conflict.Description, conflict.DisclosedAt.UTC().Format(time.RFC3339Nano)), RecordType: "conflict_disclosure", ProposalID: proposal.ID, Actor: conflict.Actor, Action: "disclosed", Evidence: []string{conflict.Description}, At: conflict.DisclosedAt})
 		}
+	}
+	for _, delegation := range s.ListDelegations() {
+		out = append(out, PublicAuditRecord{
+			AuditID: delegation.AuditHash, RecordType: "signed_delegation_revision", Actor: delegation.Delegator,
+			Action:   delegation.Operation + ":" + string(delegation.Scope),
+			Evidence: []string{"delegate://" + delegation.Delegate, "signature://ed25519/" + delegation.Signature, "nonce://" + delegation.Nonce},
+			At:       delegation.AppliedAt,
+		})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].At.Equal(out[j].At) {

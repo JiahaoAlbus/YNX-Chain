@@ -120,7 +120,7 @@ func (s *Service) CastSignedVote(envelope SignedVoteEnvelope, now time.Time) (Pr
 	if _, exists := s.voteNonces[nonceID]; exists {
 		return Proposal{}, ErrReplay
 	}
-	power := proposal.VotingPower[envelope.Voter]
+	power := eligibleVotePower(proposal, envelope.Voter)
 	if power == 0 {
 		return Proposal{}, fmt.Errorf("%w: voter is not eligible in the bound snapshot", ErrForbidden)
 	}
@@ -230,7 +230,7 @@ func voteAudit(vote Vote) string {
 }
 
 func validateStoredVote(vote Vote, proposal *Proposal, policy Policy) error {
-	if proposal == nil || vote.ProposalID != proposal.ID || vote.Power != proposal.VotingPower[vote.Voter] || vote.AuditHash != voteAudit(vote) || vote.CastAt.IsZero() {
+	if proposal == nil || vote.ProposalID != proposal.ID || vote.Power != eligibleVotePower(proposal, vote.Voter) || vote.AuditHash != voteAudit(vote) || vote.CastAt.IsZero() {
 		return fmt.Errorf("%w: invalid stored vote audit", ErrForbidden)
 	}
 	envelope := SignedVoteEnvelope{
@@ -254,6 +254,20 @@ func validateStoredVote(vote Vote, proposal *Proposal, policy Policy) error {
 		return fmt.Errorf("%w: invalid stored signed vote: %v", ErrForbidden, err)
 	}
 	return nil
+}
+
+func eligibleVotePower(proposal *Proposal, voter string) uint64 {
+	power := proposal.VotingPower[voter]
+	if proposal.DelegationOverrides[voter] && proposal.Delegations[voter] != "" {
+		amount := proposal.DelegatedPower[voter]
+		if amount == 0 {
+			amount = proposal.BasePower[voter]
+		}
+		if power <= ^uint64(0)-amount {
+			power += amount
+		}
+	}
+	return power
 }
 
 func validateProposalVoteHistory(proposal *Proposal, policy Policy) (map[string]struct{}, error) {

@@ -86,6 +86,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /governance/proposals/{id}/electorate/approve", s.protected("technical_council", s.approveElectorate))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/voting", s.protected("technical_council", s.openVoting))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/votes", s.protected("voter", s.vote))
+	s.mux.HandleFunc("POST /governance/delegations", s.protected("delegator", s.applyDelegation))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/finalize", s.protected("technical_council", s.finalize))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/execute", s.protected("executor", s.execute))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/verify", s.protected("verifier", s.verify))
@@ -141,7 +142,7 @@ func (s *Server) listVotes(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"votes": s.service.PublicVotes()}, s.now())
 }
 func (s *Server) listDelegations(w http.ResponseWriter, _ *http.Request) {
-	writeSource(w, http.StatusOK, map[string]any{"delegations": s.service.PublicDelegations(), "authority": "proposal_electorate_snapshots"}, s.now())
+	writeSource(w, http.StatusOK, map[string]any{"delegations": s.service.PublicDelegations(), "electorateSnapshots": s.service.PublicElectorateDelegations(), "authority": "persistent_signed_delegation_registry"}, s.now())
 }
 func (s *Server) listTimelocks(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"timelocks": s.service.PublicTimelocks()}, s.now())
@@ -349,6 +350,20 @@ func (s *Server) openVoting(w http.ResponseWriter, r *http.Request, p Principal)
 	out, err := s.service.OpenVoting(r.PathValue("id"), s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
+
+func (s *Server) applyDelegation(w http.ResponseWriter, r *http.Request, p Principal) {
+	var envelope SignedDelegationEnvelope
+	if !decode(w, r, &envelope) {
+		return
+	}
+	if envelope.Delegator != p.Account || !p.Scopes[envelope.Scope] {
+		writeError(w, http.StatusUnauthorized, "delegation signer must match the scoped product session")
+		return
+	}
+	out, err := s.service.ApplySignedDelegation(envelope, s.now())
+	s.mutation(w, http.StatusCreated, out, err)
+}
+
 func (s *Server) submitElectorate(w http.ResponseWriter, r *http.Request, p Principal) {
 	if !s.authorizedProposal(w, r.PathValue("id"), p) {
 		return

@@ -13,21 +13,24 @@ import (
 )
 
 const (
-	snapshotVersion                   = "ynx-governance-state/v3"
+	snapshotVersion                   = "ynx-governance-state/v4"
+	legacySignedVoteSnapshotVersion   = "ynx-governance-state/v3"
 	legacyStateMachineSnapshotVersion = "ynx-governance-state/v2"
 	legacySnapshotVersion             = "ynx-governance-state/v1"
 )
 
 type snapshotPayload struct {
-	Version     string            `json:"version"`
-	SavedAt     time.Time         `json:"savedAt"`
-	Policy      Policy            `json:"policy"`
-	VoteNonces  []string          `json:"voteNonces"`
-	Proposals   []Proposal        `json:"proposals"`
-	Emergencies []EmergencyAction `json:"emergencies"`
-	Roles       []RoleAssignment  `json:"roles"`
-	Appeals     []Appeal          `json:"appeals"`
-	Discussions []DiscussionEntry `json:"discussions"`
+	Version          string            `json:"version"`
+	SavedAt          time.Time         `json:"savedAt"`
+	Policy           Policy            `json:"policy"`
+	VoteNonces       []string          `json:"voteNonces"`
+	DelegationNonces []string          `json:"delegationNonces"`
+	Delegations      []Delegation      `json:"delegations"`
+	Proposals        []Proposal        `json:"proposals"`
+	Emergencies      []EmergencyAction `json:"emergencies"`
+	Roles            []RoleAssignment  `json:"roles"`
+	Appeals          []Appeal          `json:"appeals"`
+	Discussions      []DiscussionEntry `json:"discussions"`
 }
 
 type snapshotEnvelope struct {
@@ -40,6 +43,12 @@ func (s *Service) Save(path string, now time.Time) error {
 	payload := snapshotPayload{Version: snapshotVersion, SavedAt: now.UTC(), Policy: s.policy}
 	for nonce := range s.voteNonces {
 		payload.VoteNonces = append(payload.VoteNonces, nonce)
+	}
+	for nonce := range s.delegationNonces {
+		payload.DelegationNonces = append(payload.DelegationNonces, nonce)
+	}
+	for _, history := range s.delegationHistory {
+		payload.Delegations = append(payload.Delegations, history...)
 	}
 	for _, p := range s.proposals {
 		payload.Proposals = append(payload.Proposals, clone(p))
@@ -58,6 +67,13 @@ func (s *Service) Save(path string, now time.Time) error {
 	}
 	s.mu.RUnlock()
 	sort.Strings(payload.VoteNonces)
+	sort.Strings(payload.DelegationNonces)
+	sort.Slice(payload.Delegations, func(i, j int) bool {
+		if payload.Delegations[i].AppliedAt.Equal(payload.Delegations[j].AppliedAt) {
+			return payload.Delegations[i].ID < payload.Delegations[j].ID
+		}
+		return payload.Delegations[i].AppliedAt.Before(payload.Delegations[j].AppliedAt)
+	})
 	sort.Slice(payload.Proposals, func(i, j int) bool { return payload.Proposals[i].ID < payload.Proposals[j].ID })
 	sort.Slice(payload.Emergencies, func(i, j int) bool { return payload.Emergencies[i].ID < payload.Emergencies[j].ID })
 	sort.Slice(payload.Roles, func(i, j int) bool { return payload.Roles[i].ID < payload.Roles[j].ID })
@@ -128,6 +144,9 @@ func Load(path string) (*Service, error) {
 	if envelope.Payload.Version == legacyStateMachineSnapshotVersion {
 		return nil, fmt.Errorf("%w: governance state v2 requires explicit signed-vote migration to v3", ErrForbidden)
 	}
+	if envelope.Payload.Version == legacySignedVoteSnapshotVersion {
+		return nil, fmt.Errorf("%w: governance state v3 requires explicit persistent-delegation migration to v4", ErrForbidden)
+	}
 	if envelope.Payload.Version != snapshotVersion {
 		return nil, fmt.Errorf("%w: unsupported governance snapshot version %q", ErrForbidden, envelope.Payload.Version)
 	}
@@ -181,6 +200,29 @@ func Load(path string) (*Service, error) {
 		}
 	}
 	s.voteNonces = actualVoteNonces
+	storedDelegationNonces := map[string]struct{}{}
+	for _, nonce := range envelope.Payload.DelegationNonces {
+		if !validHash(nonce) {
+			return nil, fmt.Errorf("%w: invalid persisted delegation nonce", ErrForbidden)
+		}
+		if _, exists := storedDelegationNonces[nonce]; exists {
+			return nil, ErrReplay
+		}
+		storedDelegationNonces[nonce] = struct{}{}
+	}
+	for _, record := range envelope.Payload.Delegations {
+		if err = s.restoreDelegation(record); err != nil {
+			return nil, err
+		}
+	}
+	if len(storedDelegationNonces) != len(s.delegationNonces) {
+		return nil, fmt.Errorf("%w: persisted delegation nonce registry does not match history", ErrForbidden)
+	}
+	for nonce := range s.delegationNonces {
+		if _, exists := storedDelegationNonces[nonce]; !exists {
+			return nil, fmt.Errorf("%w: delegation nonce missing from persisted registry", ErrForbidden)
+		}
+	}
 	for i := range envelope.Payload.Emergencies {
 		a := envelope.Payload.Emergencies[i]
 		if err = s.validateRestoredEmergency(&a); err != nil {
@@ -271,7 +313,7 @@ func Load(path string) (*Service, error) {
 func validateRestoredProposal(p *Proposal, policy Policy) error {
 	fingerprint := proposalFingerprint(p.Input)
 	expectedActionHash := hash("action", fingerprint, strings.ToLower(p.Input.SourceCommit), p.Input.Release, strings.ToLower(p.Input.UpgradeHash))
-	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, fingerprint) || p.ActionHash != expectedActionHash || p.Conflicts == nil || p.Votes == nil || p.VoteHistory == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
+	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, fingerprint) || p.ActionHash != expectedActionHash || p.Conflicts == nil || p.Votes == nil || p.VoteHistory == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.DelegatedPower == nil || p.DelegationOverrides == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
 		return fmt.Errorf("%w: invalid restored proposal", ErrForbidden)
 	}
 	if err := validateProposal(p.Input, p.CreatedAt, policy.MaxLifetime, policy.ParameterRules); err != nil {
@@ -307,11 +349,11 @@ func validateRestoredProposal(p *Proposal, policy Policy) error {
 		if p.Electorate == nil || p.Electorate.Status != "approved" || p.VotingEndsAt.IsZero() {
 			return fmt.Errorf("%w: voting opened without an approved electorate", ErrForbidden)
 		}
-		computed, total, err := effectiveVotingPower(VotingSnapshot{BasePower: p.BasePower, Delegations: p.Delegations})
+		computed, total, err := effectiveVotingPower(VotingSnapshot{BasePower: p.BasePower, Delegations: p.Delegations, DelegatedPower: p.DelegatedPower, DelegationOverrides: p.DelegationOverrides})
 		if err != nil || total != p.EligiblePower || !samePowers(computed, p.VotingPower) {
 			return fmt.Errorf("%w: invalid electorate snapshot", ErrForbidden)
 		}
-	} else if len(p.Votes) != 0 || p.EligiblePower != 0 || len(p.VotingPower) != 0 || len(p.BasePower) != 0 || len(p.Delegations) != 0 || !p.VotingEndsAt.IsZero() {
+	} else if len(p.Votes) != 0 || p.EligiblePower != 0 || len(p.VotingPower) != 0 || len(p.BasePower) != 0 || len(p.Delegations) != 0 || len(p.DelegatedPower) != 0 || len(p.DelegationOverrides) != 0 || !p.VotingEndsAt.IsZero() {
 		return fmt.Errorf("%w: voting state exists before voting-active transition", ErrForbidden)
 	}
 	if _, err := validateProposalVoteHistory(p, policy); err != nil {
