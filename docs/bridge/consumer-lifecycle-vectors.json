@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-  "sourceCommit": "2fa578a0d04f9d368e66f63824e021c31218a5e9",
+  "sourceCommit": "41ed57c926443317436e3b0c29b4840b309db6cc",
   "availabilityRule": "assetAvailable requires phase=destination_available and destinationAssetAvailable=true",
   "vectors": [
     {"id":"quote-only","phase":"quote","destinationAssetAvailable":false,"assetAvailable":false,"mayPay":false,"mayCreditExchange":false,"showRecovery":false},

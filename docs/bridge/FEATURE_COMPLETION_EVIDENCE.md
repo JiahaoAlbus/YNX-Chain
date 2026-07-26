@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, and Quote Runtime evidence commit: `2fa578a0d04f9d368e66f63824e021c31218a5e9`.
+Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, Quote Runtime, and Wallet Review Runtime evidence commit: `41ed57c926443317436e3b0c29b4840b309db6cc`.
 
 ## Evidence-backed state
 
@@ -21,6 +21,7 @@ Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, and Quot
 | Fail-closed route catalog and route execution disclosure | true | true | false | false | false | false |
 | Machine-readable fail-closed Provider Registry with incomplete-incident-history marker | true | true | false | false | false | false |
 | Digest-bound, expiring, fail-closed Quote Runtime with explicit unavailable provider terms | true | true | false | false | false | false |
+| Product Session-bound Wallet Review Runtime through the local App Gateway patch | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
 | Truthful `/health`, `/version`, state-machine, product status, and readiness boundary | true | true | false | false | false | false |
@@ -36,6 +37,8 @@ Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, and Quot
 ## Direct local evidence
 
 - `go test -race ./internal/bridgegateway ./cmd/ynx-bridged`
+- `go test -race ./internal/appgateway ./cmd/ynx-app-gatewayd`
+- `make app-gateway-check`
 - `make bridge-api-check`
 - `make bridge-integration-check`
 - `make bridge-route-adapter-check`

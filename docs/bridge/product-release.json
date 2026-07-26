@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "releaseClass": "local-engineering-candidate",
-  "sourceCommit": "2fa578a0d04f9d368e66f63824e021c31218a5e9",
+  "sourceCommit": "41ed57c926443317436e3b0c29b4840b309db6cc",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -26,6 +26,14 @@
     "providerQuoteConnected": false,
     "executable": false
   },
+  "walletReviewRuntime": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "appGatewayPatchImplementedLocal": true,
+    "integratedCentral": false,
+    "walletSignatureVerified": false,
+    "sourceSubmissionEnabled": false
+  },
   "publicTestnetDepositVerified": false,
   "publicTestnetWithdrawalVerified": false,
   "proofVerification": {
@@ -38,7 +46,7 @@
   "publicUrls": [],
   "transactionEvidence": [],
   "localEvidence": [
-    {"type":"source-commit","value":"2fa578a0d04f9d368e66f63824e021c31218a5e9"},
+    {"type":"source-commit","value":"41ed57c926443317436e3b0c29b4840b309db6cc"},
     {"type":"test-command","value":"go test ./..."},
     {"type":"test-command","value":"npm test --prefix sdk/bridge"}
   ],

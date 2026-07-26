@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "contractId": "ynx.bridge.integration.v1",
-  "sourceCommit": "2fa578a0d04f9d368e66f63824e021c31218a5e9",
+  "sourceCommit": "41ed57c926443317436e3b0c29b4840b309db6cc",
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "vectors": [
     {

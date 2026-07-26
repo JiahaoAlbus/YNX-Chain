@@ -2,7 +2,7 @@
 
 Status: local implementation tested; central integration, Testnet deployment, provider connection, and contract deployment are not complete.
 
-Source runtime, consumer contract, Provider Registry, and Quote Runtime commit: `2fa578a0d04f9d368e66f63824e021c31218a5e9`
+Source runtime, consumer contract, Provider Registry, Quote Runtime, and Wallet Review Runtime commit: `41ed57c926443317436e3b0c29b4840b309db6cc`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -17,7 +17,7 @@ Pay must not execute payment and Exchange must not credit a deposit before that 
 
 ## Protected mutation boundary
 
-The public SDK is read-only and contains no Bridge API key, provider credential, relayer key, Wallet secret, private key, seed, or signing authority. Future mutations must be mediated by the accepted App Gateway and a canonical Wallet review/signature flow. The Bridge service never signs the user's source transaction.
+The public SDK is read-only and contains no Bridge API key, provider credential, relayer key, Wallet secret, private key, seed, or signing authority. The local App Gateway patch now mediates digest-bound quote and Wallet review generation with Product Session, account, device, expiry, and scope context; central Gateway acceptance and Wallet signature integration remain incomplete. The Bridge service never signs the user's source transaction.
 
 The current implemented proof verifier revalidates domain-separated threshold-relayer attestations. It is not a light client, does not prove independent consensus, and does not authorize a canonical or trustless Bridge claim.
 
