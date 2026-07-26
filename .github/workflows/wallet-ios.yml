@@ -1,8 +1,9 @@
 name: wallet-ios
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main, codex/ecosystem-wallet-auth]
+    branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth]
     paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
   pull_request:
     paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
