@@ -2,7 +2,8 @@
 
 Status: local implementation tested; central integration, Testnet deployment, provider connection, and contract deployment are not complete.
 
-Source runtime, consumer contract, and Provider Registry commit: `2137cc2e96ca05586c01e6506f9a83f8456a96c6`  
+Source runtime, consumer contract, Provider Registry, and Quote Runtime commit: `2fa578a0d04f9d368e66f63824e021c31218a5e9`
+
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 

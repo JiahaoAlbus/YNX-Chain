@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-25. Runtime, consumer contract, and Provider Registry evidence commit: `2137cc2e96ca05586c01e6506f9a83f8456a96c6`.
+Status date: 2026-07-26. Runtime, consumer contract, Provider Registry, and Quote Runtime evidence commit: `2fa578a0d04f9d368e66f63824e021c31218a5e9`.
 
 ## Evidence-backed state
 
@@ -20,6 +20,7 @@ Status date: 2026-07-25. Runtime, consumer contract, and Provider Registry evide
 | Exact persisted reconciliation replay and v1-v6 migration into schema v7 | true | true | false | false | false | false |
 | Fail-closed route catalog and route execution disclosure | true | true | false | false | false | false |
 | Machine-readable fail-closed Provider Registry with incomplete-incident-history marker | true | true | false | false | false | false |
+| Digest-bound, expiring, fail-closed Quote Runtime with explicit unavailable provider terms | true | true | false | false | false | false |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
 | Trace propagation, metrics, alert rules, and dashboard definition | true | true | false | false | false | false |
 | Truthful `/health`, `/version`, state-machine, product status, and readiness boundary | true | true | false | false | false | false |
