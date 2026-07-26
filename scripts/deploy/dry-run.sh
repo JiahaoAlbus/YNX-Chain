@@ -113,6 +113,8 @@ YNX_SQUARE_API_KEY=dry-run-square-api-key-123456789
 YNX_SQUARE_HTTP_ADDR=127.0.0.1:6436
 YNX_APP_GATEWAY_DEPLOY_ENABLED=true
 YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:6437
+YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true
+YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6438
 YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynx.test,https://ynx.test
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
@@ -181,6 +183,10 @@ grep -Fq "YNX_APP_GATEWAY_STATE_PATH=/var/lib/ynx-chain/app-gateway/state.json" 
 grep -Fq "YNX_APP_GATEWAY_CHAIN_ID=6423" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing chain identity"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_CHALLENGE_TTL=5m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded challenge TTL"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_SESSION_TTL=30m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded session TTL"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing independent deploy gate"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6438" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing listen address"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing state path"; exit 1; }
+grep -Fq "wallet-gateway/packages/wallet-auth/central-registry.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing immutable registry"; exit 1; }
 app_gateway_origins="$(set -a; source "$release_dir/config/ynx-app-gatewayd.env"; printf '%s' "$YNX_APP_GATEWAY_ALLOWED_ORIGINS")"
 [[ "$app_gateway_origins" == "https://www.ynx.test,https://ynx.test" ]] || { echo "App Gateway env missing exact origins"; exit 1; }
 if grep -Fq "FAUCET_PRIVATE_KEY=" "$release_dir/config/ynx-chaind.env"; then
@@ -257,12 +263,18 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-squared.servic
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-app-gatewayd" || { echo "release tarball missing App Gateway binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-app-gatewayd.env" || { echo "release tarball missing App Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-app-gatewayd.service" || { echo "release tarball missing App Gateway systemd unit"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs" || { echo "release tarball missing canonical Wallet Gateway runtime"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./wallet-gateway/packages/wallet-auth/central-registry.json" || { echo "release tarball missing canonical Wallet Registry"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-wallet-gatewayd.env" || { echo "release tarball missing canonical Wallet Gateway env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-wallet-gatewayd.service" || { echo "release tarball missing canonical Wallet Gateway systemd unit"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }
 grep -Fq "server_name resource.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Resource Gateway domain block"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6437;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing App Gateway route"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6438;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing canonical Wallet Gateway route"; exit 1; }
+grep -Fq "handle /v1/wallet/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing canonical Wallet Gateway route"; exit 1; }
 grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing App Gateway route"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
 grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
@@ -418,6 +430,9 @@ grep -Fq "EnvironmentFile=/etc/ynx/ynx-app-gatewayd.env" "$release_dir/systemd/y
 grep -Fq "ExecStart=/usr/local/bin/ynx-app-gatewayd" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing executable"; exit 1; }
 grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing strict filesystem protection"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/app-gateway" "$release_dir/systemd/ynx-app-gatewayd.service" || { echo "App Gateway service missing bounded state path"; exit 1; }
+grep -Fq 'ExecStart=/usr/bin/node ${YNX_WALLET_GATEWAY_RUNTIME}' "$release_dir/systemd/ynx-wallet-gatewayd.service" || { echo "canonical Wallet Gateway service missing Node runtime"; exit 1; }
+grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-wallet-gatewayd.service" || { echo "canonical Wallet Gateway service missing strict filesystem protection"; exit 1; }
+grep -Fq "ReadWritePaths=/var/lib/ynx-chain/wallet-gateway" "$release_dir/systemd/ynx-wallet-gatewayd.service" || { echo "canonical Wallet Gateway service missing bounded state path"; exit 1; }
 grep -Fq "scripts/install-caddy-ingress.sh" "$dry_run_out" || { echo "dry-run output missing Caddy managed install script command"; exit 1; }
 grep -Fq "caddy/ynx-chain.caddy" "$dry_run_out" || { echo "dry-run output missing Caddy ingress snippet command"; exit 1; }
 grep -Fq "scripts/check-local-services.sh" "$dry_run_out" || { echo "dry-run output missing local service check command"; exit 1; }
@@ -431,6 +446,7 @@ grep -Fq "ynx-chatd\\ --check-config" "$dry_run_out" || { echo "dry-run output m
 grep -Fq "YNX_EXPECT_SQUARE_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Square health expectation"; exit 1; }
 grep -Fq "ynx-squared\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Square config check"; exit 1; }
 grep -Fq "YNX_EXPECT_APP_GATEWAY_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing App Gateway health expectation"; exit 1; }
+grep -Fq "YNX_EXPECT_WALLET_GATEWAY_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing canonical Wallet Gateway health expectation"; exit 1; }
 grep -Fq "ynx-app-gatewayd\\ --check-config" "$dry_run_out" || { echo "dry-run output missing App Gateway config check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*singapore.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing singapore local service check"; exit 1; }
 grep -Eq "check-local-services\\.sh.*silicon-valley.*${commit}.*${release}.*6423.*validator" "$dry_run_out" || { echo "dry-run output missing silicon-valley local service check"; exit 1; }
