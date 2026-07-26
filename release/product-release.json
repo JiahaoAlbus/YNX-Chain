@@ -1,62 +1,135 @@
 {
   "schemaVersion": "ynx-product-release/v1",
-  "product": "YNX Governance",
-  "canonicalRoute": "/governance",
-  "releaseChannel": "local-development",
-  "version": "0.2.0-local",
-  "implementedLocal": true,
-  "testedLocal": true,
-  "installedLocal": false,
-  "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": false,
-  "downloadHosted": false,
-  "productionSigned": false,
-  "storeReleased": false,
-  "externalExecutionEnabled": false,
-  "knownMissingEvidence": [
-    "central Gateway integration",
-    "BFT execution receipts from testnet",
-    "smart contract tests (Hardhat/Foundry)",
-    "UI component tests (Vitest)",
-    "ABCI application wiring",
-    "end-to-end testnet deployment",
-    "Explorer/Monitor integration",
-    "12-language internationalization",
-    "remote backup drill",
-    "capacity measurements",
-    "staging and public deployment",
-    "signed hosted artifacts"
-  ],
-  "completedWork": {
-    "goService": {
-      "location": "internal/governance/",
-      "lines": 2500,
-      "tests": 20,
-      "status": "complete"
+  "product": "YNX Governance & Protocol Control",
+  "slug": "governance",
+  "version": "0.2.0-testnet-dev",
+  "generatedAt": "2026-07-26T00:00:00Z",
+  "sourceCommit": "91ee97080634e355326d416555206ff63ac49f9b",
+  "branch": "codex/final-governance",
+  "phase": "FREEZE",
+  "status": "Active",
+  "completedWork": [
+    {
+      "id": "runtime-control-registries",
+      "status": "complete",
+      "details": "34 governance objects, 32 bounded parameters, and 12 scoped roles load through a fail-closed runtime startup gate."
     },
-    "bftIntegration": {
-      "location": "chain/governance/",
-      "lines": 840,
-      "tests": 4,
-      "status": "complete"
+    {
+      "id": "canonical-proposal-state-machine",
+      "status": "complete",
+      "details": "The 33-state canonical proposal lifecycle has audit-hashed transition history and explicit separation of approval, timelock, submission, execution, verification, failure, and rollback."
     },
-    "smartContracts": {
-      "location": "contracts/governance/",
-      "lines": 1060,
-      "tests": 0,
-      "status": "untested"
+    {
+      "id": "signed-vote-integrity",
+      "status": "complete",
+      "details": "Ed25519 signed vote envelopes bind chain, domain, proposal, voter, electorate snapshot, choice, operation, revision, nonce, timestamp, and expiry. Replay, duplicate, tamper, wrong binding, replacement, and withdrawal rules are enforced and persisted."
     },
-    "ui": {
-      "location": "apps/governance/",
-      "lines": 1200,
-      "tests": 0,
-      "status": "untested"
+    {
+      "id": "persistent-delegation-integrity",
+      "status": "complete",
+      "details": "Ed25519 signed persistent delegation revisions bind chain, domain, delegator, delegate, scope, amount, operation, revision, nonce, start, expiry, direct-vote override policy, and superseded audit hash. Registration, redelegation, revocation, replay, self-delegation, multi-hop, cycles, historical snapshots, partial power, and double counting are enforced fail closed."
+    },
+    {
+      "id": "public-read-control-plane",
+      "status": "complete",
+      "details": "Public read APIs expose proposals, signed vote revisions, electorate delegations, roles, parameters, timelocks, executions, upgrades, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics."
+    },
+    {
+      "id": "migration-and-restore-gates",
+      "status": "complete",
+      "details": "Governance state v4 persists vote and delegation nonce replay state plus immutable revision histories; v1, v2, and v3 require explicit migrations, and digest-valid tampering still fails closed."
     }
+  ],
+  "api": {
+    "schema": "ynx-governance-api/v1",
+    "health": "/health",
+    "version": "/version",
+    "metrics": "/metrics",
+    "publicReadEndpoints": [
+      "/proposals",
+      "/proposals/{id}",
+      "/votes",
+      "/delegations",
+      "/roles",
+      "/parameters",
+      "/timelocks",
+      "/executions",
+      "/upgrades",
+      "/emergency-actions",
+      "/treasury",
+      "/providers",
+      "/conflicts",
+      "/appeals",
+      "/audit"
+    ],
+    "authenticatedMutationPrefix": "/governance"
   },
-  "commits": [
-    "4b010b9 - docs(governance): record reproducible artifact evidence",
-    "75d3412 - feat(governance): add BFT chain integration and smart contracts",
-    "7d0b5ce - feat(governance): add standalone UI with proposal list and voting interface"
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidence": {
+    "targetedTests": [
+      "go test ./internal/governance ./chain/governance"
+    ],
+    "fullRepositoryTests": [
+      "go test ./..."
+    ],
+    "verifiedBehaviors": [
+      "valid signed vote",
+      "wrong chain rejection",
+      "wrong domain rejection",
+      "wrong proposal rejection",
+      "wrong voter and public-key rejection",
+      "choice tamper rejection",
+      "wrong electorate snapshot rejection",
+      "expired and future vote rejection",
+      "exact replay rejection",
+      "duplicate vote rejection",
+      "vote replacement revision chain",
+      "vote withdrawal without double counting",
+      "persisted replay rejection after restore",
+      "signature tamper rejection with recomputed snapshot digest",
+      "session voter identity binding",
+      "signed delegation registration, redelegation, and revocation",
+      "delegation replay, tamper, self, multi-hop, and cycle rejection",
+      "partial delegation and direct-vote override without double counting",
+      "historical delegation snapshot binding",
+      "delegation persistence and nonce reconciliation",
+      "session delegator identity and scope binding",
+      "v1, v2, and v3 migration rejection"
+    ],
+    "sourceCommit": "91ee97080634e355326d416555206ff63ac49f9b"
+  },
+  "dependencies": {
+    "chainCore": "not_integrated",
+    "walletAuth": "gateway_assertion_adapter_configured",
+    "explorer": "not_integrated",
+    "monitor": "not_integrated",
+    "trust": "local_appeal_adapter_only",
+    "dataFabric": "not_integrated",
+    "securitySRE": "not_integrated",
+    "integration": "not_accepted",
+    "website": "not_integrated"
+  },
+  "truthfulClaims": [
+    "Signed vote integrity is implemented and tested locally.",
+    "Persistent signed delegation integrity and electorate snapshot binding are implemented and tested locally.",
+    "A passed vote is not reported as execution.",
+    "A submitted execution is not reported as verified.",
+    "Treasury and provider views expose proposal records only; they do not claim external execution.",
+    "Central chain execution, Explorer evidence, Monitor alerts, shared Testnet acceptance, and public deployment are not complete."
+  ],
+  "nextActions": [
+    "Bind proposal parameter validation directly to the canonical Parameter Registry at creation, voting close, timelock, and execution-ready gates.",
+    "Implement first-class Timelock records with action-hash cancellation, grace period, duplicate execution rejection, and public notice evidence.",
+    "Integrate canonical execution and audit events with Chain Core, Data Fabric, Explorer, Monitor, Trust, Security/SRE, and 29 Integration."
   ]
 }
