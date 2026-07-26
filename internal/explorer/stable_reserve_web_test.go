@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -36,6 +37,36 @@ func TestStableReserveEndpointFailsClosedWithoutFreshInput(t *testing.T) {
 		if value {
 			t.Fatalf("unavailable response promoted release state: %+v", body.Release)
 		}
+	}
+}
+
+func TestLoadStableReserveIntegrationFromProviderFile(t *testing.T) {
+	integration := explorerReserveIntegration(t, 1_200_000_000)
+	var event economics.StableReserveEvent
+	if err := json.Unmarshal(integration.Envelope.Payload, &event); err != nil {
+		t.Fatal(err)
+	}
+	publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
+	now := time.Now().UTC()
+	attestation := stablereserve.Attestation{
+		SchemaVersion: 1, AttestationID: "attestation-loader-0001",
+		Provider: "reviewed-testnet-provider", Custodian: "reviewed-testnet-custodian",
+		Asset: "YUSD", Network: "ynx-testnet", AsOf: now.Format(time.RFC3339Nano),
+		ExpiresAt: now.Add(time.Hour).Format(time.RFC3339Nano), ReserveUnits: event.Snapshot.ReserveUnits,
+		ReportedSupplyUnits: 800_000_000, PendingRedemptionUnits: 200_000_000,
+		EvidenceURL:  "https://attestations.testnet.invalid/yusd/loader",
+		EvidenceHash: "sha256:" + strings.Repeat("e", 64), KeyID: "testnet-reserve-key-loader",
+	}
+	payload, _ := stablereserve.SigningPayload(attestation)
+	attestation.Signature = base64.RawStdEncoding.EncodeToString(ed25519.Sign(privateKey, payload))
+	raw, _ := json.Marshal(attestation)
+	path := t.TempDir() + "/reserve.json"
+	if err := os.WriteFile(path, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	loaded, err := LoadStableReserveIntegration(path, base64.RawStdEncoding.EncodeToString(publicKey), attestation.KeyID, "YUSD", "ynx-testnet", strings.Repeat("f", 40), time.Hour)
+	if err != nil || loaded.Explorer.Metrics["coverageBps"] != 12_000 {
+		t.Fatalf("load failed: integration=%+v err=%v", loaded, err)
 	}
 }
 

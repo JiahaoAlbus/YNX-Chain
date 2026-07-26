@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -32,7 +33,9 @@ func main() {
 	reserveKeyID := flag.String("reserve-key-id", strings.TrimSpace(os.Getenv("YNX_STABLE_RESERVE_KEY_ID")), "provider reserve attestation key ID")
 	reserveAsset := flag.String("reserve-asset", envOrDefault("YNX_STABLE_RESERVE_ASSET", "YUSD"), "expected reserve asset")
 	reserveNetwork := flag.String("reserve-network", envOrDefault("YNX_STABLE_RESERVE_NETWORK", "ynx-testnet"), "expected reserve network")
+	reserveSourceCommit := flag.String("reserve-source-commit", envOrDefault("YNX_STABLE_RESERVE_SOURCE_COMMIT", strings.TrimSpace(buildCommit)), "full source commit for reserve integration evidence")
 	reserveMaxAge := flag.Duration("reserve-max-age", 24*time.Hour, "maximum accepted reserve attestation age")
+	checkConfig := flag.Bool("check-config", false, "validate explorer and reserve configuration without starting the service")
 	flag.Parse()
 
 	service, err := explorer.New(explorer.Config{
@@ -49,10 +52,14 @@ func main() {
 	var reserveIntegration *economics.StableReserveIntegration
 	reserveConfigured := strings.TrimSpace(*reserveAttestation) != "" || strings.TrimSpace(*reservePublicKey) != "" || strings.TrimSpace(*reserveKeyID) != ""
 	if reserveConfigured {
-		reserveIntegration, err = explorer.LoadStableReserveIntegration(*reserveAttestation, *reservePublicKey, *reserveKeyID, *reserveAsset, *reserveNetwork, strings.TrimSpace(buildCommit), *reserveMaxAge)
+		reserveIntegration, err = explorer.LoadStableReserveIntegration(*reserveAttestation, *reservePublicKey, *reserveKeyID, *reserveAsset, *reserveNetwork, *reserveSourceCommit, *reserveMaxAge)
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+	if *checkConfig {
+		fmt.Printf("ynx-explorerd config check passed; stable reserve attestation configured=%t\n", reserveIntegration != nil)
+		return
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
