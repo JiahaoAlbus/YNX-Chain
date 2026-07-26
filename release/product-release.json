@@ -4,7 +4,7 @@
   "slug": "governance",
   "version": "0.2.0-testnet-dev",
   "generatedAt": "2026-07-26T00:00:00Z",
-  "sourceCommit": "91ee97080634e355326d416555206ff63ac49f9b",
+  "sourceCommit": "3a561ddf3c7ab28b1bf7c1aa0158dfea0ee9c570",
   "branch": "codex/final-governance",
   "phase": "FREEZE",
   "status": "Active",
@@ -30,6 +30,11 @@
       "details": "Ed25519 signed persistent delegation revisions bind chain, domain, delegator, delegate, scope, amount, operation, revision, nonce, start, expiry, direct-vote override policy, and superseded audit hash. Registration, redelegation, revocation, replay, self-delegation, multi-hop, cycles, historical snapshots, partial power, and double counting are enforced fail closed."
     },
     {
+      "id": "persistent-timelock-integrity",
+      "status": "complete",
+      "details": "First-class Timelock records bind Proposal ID, exact ActionHash, earliest execution, bounded Grace deadline, public Notice evidence, execution manifest, cancellation, emergency pause, execution outcome, rollback, and an audit-hashed transition history. Early, expired, duplicate, tampered, unauthorized, or divergent operations fail closed."
+    },
+    {
       "id": "public-read-control-plane",
       "status": "complete",
       "details": "Public read APIs expose proposals, signed vote revisions, electorate delegations, roles, parameters, timelocks, executions, upgrades, emergencies, treasury/provider proposal records, conflicts, appeals, audit, health, version, and metrics."
@@ -37,7 +42,7 @@
     {
       "id": "migration-and-restore-gates",
       "status": "complete",
-      "details": "Governance state v4 persists vote and delegation nonce replay state plus immutable revision histories; v1, v2, and v3 require explicit migrations, and digest-valid tampering still fails closed."
+      "details": "Governance state v5 persists vote, delegation, and first-class Timelock state; v1 through v4 require explicit migrations. Runtime config v3 requires bounded Timelock Grace policy, and digest-valid tampering still fails closed."
     }
   ],
   "api": {
@@ -104,9 +109,16 @@
       "historical delegation snapshot binding",
       "delegation persistence and nonce reconciliation",
       "session delegator identity and scope binding",
-      "v1, v2, and v3 migration rejection"
+      "first-class timelock ActionHash and public notice binding",
+      "early and post-grace execution rejection",
+      "duplicate execution submission replay rejection",
+      "exact ActionHash and scoped-session cancellation",
+      "timelock submitted, expired, cancelled, and paused restart recovery",
+      "timelock tamper and proposal-state divergence rejection",
+      "v1 through v4 state migration rejection",
+      "v2 runtime config migration rejection"
     ],
-    "sourceCommit": "91ee97080634e355326d416555206ff63ac49f9b"
+    "sourceCommit": "3a561ddf3c7ab28b1bf7c1aa0158dfea0ee9c570"
   },
   "dependencies": {
     "chainCore": "not_integrated",
@@ -122,14 +134,15 @@
   "truthfulClaims": [
     "Signed vote integrity is implemented and tested locally.",
     "Persistent signed delegation integrity and electorate snapshot binding are implemented and tested locally.",
+    "Persistent Timelock integrity, Grace expiry, exact ActionHash cancellation, and single execution submission are implemented and tested locally.",
     "A passed vote is not reported as execution.",
     "A submitted execution is not reported as verified.",
     "Treasury and provider views expose proposal records only; they do not claim external execution.",
     "Central chain execution, Explorer evidence, Monitor alerts, shared Testnet acceptance, and public deployment are not complete."
   ],
   "nextActions": [
+    "Implement first-class Upgrade Runtime records with signed source and manifest identity, migration and rollback binding, canary eligibility, duplicate and conflict rejection, restart recovery, and execution receipt correlation.",
     "Bind proposal parameter validation directly to the canonical Parameter Registry at creation, voting close, timelock, and execution-ready gates.",
-    "Implement first-class Timelock records with action-hash cancellation, grace period, duplicate execution rejection, and public notice evidence.",
     "Integrate canonical execution and audit events with Chain Core, Data Fabric, Explorer, Monitor, Trust, Security/SRE, and 29 Integration."
   ]
 }
