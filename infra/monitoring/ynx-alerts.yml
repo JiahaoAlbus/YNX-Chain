@@ -113,6 +113,30 @@ groups:
         annotations:
           summary: YNXT economics disclosure has no recent success
           description: No successful disclosure response has been observed for more than five minutes.
+      - alert: YNXStableReserveProviderUnavailable
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD reserve provider attestation is unavailable
+          description: Explorer has no fresh provider-signed reserve attestation. Stable settlement remains fail-closed until a verified attestation is available.
+      - alert: YNXStableReserveShortfall
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 1 and ynx_explorer_stable_reserve_solvent{job="ynx-explorerd"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YUSD verified reserve coverage is below required backing
+          description: The fresh provider-signed reserve attestation reports less reserve than supply plus pending redemptions. Keep issuance and redemption risk controls fail-closed.
+      - alert: YNXStableReserveAttestationExpiring
+        expr: ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd"} == 1 and (ynx_explorer_stable_reserve_attestation_expiry_timestamp_seconds{job="ynx-explorerd"} - time()) <= 3600 and (ynx_explorer_stable_reserve_attestation_expiry_timestamp_seconds{job="ynx-explorerd"} - time()) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: YUSD reserve attestation expires within one hour
+          description: Obtain and verify the next provider-signed reserve attestation before the current evidence expires.
       - alert: YNXFaucetDown
         expr: up{job="ynx-faucetd"} == 0
         for: 2m

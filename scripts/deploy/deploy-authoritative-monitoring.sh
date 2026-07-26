@@ -46,6 +46,7 @@ if [[ -n "$PROMETHEUS_ARCHIVE_PATH" ]]; then
 fi
 ynx_transport_scp monitoring-config "$PRIMARY_NODE_SSH_KEY" infra/monitoring/prometheus-authoritative.yml "$remote" "$remote_work/prometheus.yml"
 ynx_transport_scp monitoring-rules "$PRIMARY_NODE_SSH_KEY" infra/monitoring/ynx-alerts.yml "$remote" "$remote_work/ynx-alerts.yml"
+ynx_transport_scp monitoring-reserve-rule-tests "$PRIMARY_NODE_SSH_KEY" infra/monitoring/stable-reserve-alerts.test.yml "$remote" "$remote_work/stable-reserve-alerts.test.yml"
 ynx_transport_scp monitoring-unit "$PRIMARY_NODE_SSH_KEY" infra/monitoring/systemd/ynx-prometheus.service "$remote" "$remote_work/ynx-prometheus.service"
 
 ynx_transport_ssh monitoring-install "$PRIMARY_NODE_SSH_KEY" "$remote" \
@@ -72,6 +73,7 @@ fi
 sed "s#/etc/ynx/prometheus/ynx-alerts.yml#$work/ynx-alerts.yml#" "$work/prometheus.yml" >"$work/prometheus-check.yml"
 "$work/promtool" check config "$work/prometheus-check.yml"
 "$work/promtool" check rules "$work/ynx-alerts.yml"
+(cd "$work" && "$work/promtool" test rules stable-reserve-alerts.test.yml)
 ip -4 address show dev ynxwg0 | grep -Fq '10.77.42.1/32' || { echo "primary WireGuard monitoring address is absent"; exit 1; }
 for target in 10.77.42.2 10.77.42.3 10.77.42.4; do
   curl -fsS --max-time 8 --retry 3 --retry-all-errors --retry-delay 2 \
@@ -91,15 +93,18 @@ sudo -n systemctl enable --now ynx-prometheus.service
 REMOTE
 
 for attempt in $(seq 1 12); do
-  if evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
+  if chain_evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
     "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-chaind%22%7D'")" && \
-    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$evidence"; then
-    printf '%s\n' "$evidence"
-    echo "authoritative monitoring deployed: four exact Prometheus targets are up through loopback/WireGuard"
+    explorer_evidence="$(ynx_transport_ssh monitoring-explorer-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
+    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-explorerd%22%7D'")" && \
+    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$chain_evidence" && \
+    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==1||r[0].value?.[1]!=="1")process.exit(1)' "$explorer_evidence"; then
+    printf '%s\n%s\n' "$chain_evidence" "$explorer_evidence"
+    echo "authoritative monitoring deployed: four Chain targets and the primary Explorer target are up"
     exit 0
   fi
   sleep 5
 done
 
-echo "authoritative monitoring failed to prove four healthy targets" >&2
+echo "authoritative monitoring failed to prove four healthy Chain targets and one healthy Explorer target" >&2
 exit 1

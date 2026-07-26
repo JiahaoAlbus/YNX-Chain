@@ -37,4 +37,13 @@ scrape_configs:
           service: ynx-chaind
           role: seoul
           transport: wireguard
-
+  - job_name: ynx-explorerd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 127.0.0.1:6427
+        labels:
+          network: ynx-testnet
+          service: ynx-explorerd
+          role: primary
+          transport: loopback

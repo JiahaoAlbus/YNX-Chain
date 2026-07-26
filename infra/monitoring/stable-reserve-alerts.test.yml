@@ -1,0 +1,87 @@
+rule_files:
+  - ynx-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: reserve provider unavailable fires and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd",instance="primary",asset="unavailable",network="unavailable",provider="unavailable"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXStableReserveProviderUnavailable
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXStableReserveProviderUnavailable
+        exp_alerts:
+          - exp_labels:
+              asset: unavailable
+              instance: primary
+              job: ynx-explorerd
+              network: unavailable
+              provider: unavailable
+              severity: critical
+            exp_annotations:
+              summary: YUSD reserve provider attestation is unavailable
+              description: Explorer has no fresh provider-signed reserve attestation. Stable settlement remains fail-closed until a verified attestation is available.
+      - eval_time: 3m
+        alertname: YNXStableReserveProviderUnavailable
+        exp_alerts: []
+
+  - name: verified reserve shortfall fires and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd",instance="primary",asset="YUSD",network="ynx-testnet",provider="custodian-a"}'
+        values: '1x4'
+      - series: 'ynx_explorer_stable_reserve_solvent{job="ynx-explorerd",instance="primary",asset="YUSD",network="ynx-testnet",provider="custodian-a"}'
+        values: '0x1 1x2'
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: YNXStableReserveShortfall
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: YNXStableReserveShortfall
+        exp_alerts:
+          - exp_labels:
+              asset: YUSD
+              instance: primary
+              job: ynx-explorerd
+              network: ynx-testnet
+              provider: custodian-a
+              severity: critical
+            exp_annotations:
+              summary: YUSD verified reserve coverage is below required backing
+              description: The fresh provider-signed reserve attestation reports less reserve than supply plus pending redemptions. Keep issuance and redemption risk controls fail-closed.
+      - eval_time: 2m
+        alertname: YNXStableReserveShortfall
+        exp_alerts: []
+
+  - name: reserve attestation expiry warning fires and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_explorer_stable_reserve_attestation_available{job="ynx-explorerd",instance="primary",asset="YUSD",network="ynx-testnet",provider="custodian-a"}'
+        values: '1x1 0x2'
+      - series: 'ynx_explorer_stable_reserve_attestation_expiry_timestamp_seconds{job="ynx-explorerd",instance="primary",asset="YUSD",network="ynx-testnet",provider="custodian-a"}'
+        values: '3600x4'
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: YNXStableReserveAttestationExpiring
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: YNXStableReserveAttestationExpiring
+        exp_alerts:
+          - exp_labels:
+              asset: YUSD
+              instance: primary
+              job: ynx-explorerd
+              network: ynx-testnet
+              provider: custodian-a
+              severity: warning
+            exp_annotations:
+              summary: YUSD reserve attestation expires within one hour
+              description: Obtain and verify the next provider-signed reserve attestation before the current evidence expires.
+      - eval_time: 2m
+        alertname: YNXStableReserveAttestationExpiring
+        exp_alerts: []
