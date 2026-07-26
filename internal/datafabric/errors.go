@@ -36,6 +36,12 @@ const (
 	CodeRedeliveryPreviewStale        ErrorCode = "DF_REDELIVERY_PREVIEW_STALE_V1"
 	CodeRedeliveryIdempotencyConflict ErrorCode = "DF_REDELIVERY_IDEMPOTENCY_CONFLICT_V1"
 	CodeRedeliveryNoCandidates        ErrorCode = "DF_REDELIVERY_NO_CANDIDATES_V1"
+	CodeLedgerUnbalanced              ErrorCode = "DF_LEDGER_UNBALANCED_V1"
+	CodeLedgerCorrectionRouteRequired ErrorCode = "DF_LEDGER_CORRECTION_ROUTE_REQUIRED_V1"
+	CodeLedgerCorrectionInvalid       ErrorCode = "DF_LEDGER_CORRECTION_INVALID_V1"
+	CodeLedgerCorrectionTargetMissing ErrorCode = "DF_LEDGER_CORRECTION_TARGET_MISSING_V1"
+	CodeLedgerReversalMismatch        ErrorCode = "DF_LEDGER_REVERSAL_MISMATCH_V1"
+	CodeLedgerDuplicateReversal       ErrorCode = "DF_LEDGER_DUPLICATE_REVERSAL_V1"
 )
 
 // RejectionError carries the stable code plus bounded evidence suitable for an

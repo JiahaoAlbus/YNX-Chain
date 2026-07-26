@@ -155,12 +155,15 @@ func TestLedgerBalanceCorrectionsAndRestore(t *testing.T) {
 		t.Fatalf("charge above consent accepted: %v", err)
 	}
 	missing := journalEntry("journal.correction.0001", "journal.missing.0001")
-	if err := store.PostJournal(missing); err == nil || !strings.Contains(err.Error(), "unknown") {
+	missing.FeeConsent = nil
+	for index := range missing.Postings {
+		missing.Postings[index].Side = oppositeSide(missing.Postings[index].Side)
+	}
+	if err := store.PostCorrection(missing); ErrorCodeOf(err) != CodeLedgerCorrectionTargetMissing {
 		t.Fatalf("unknown correction accepted: %v", err)
 	}
-	correction := journalEntry("journal.correction.0002", entry.EntryID)
-	correction.Description = "Reverse incorrect provider allocation"
-	if err := store.PostJournal(correction); err != nil {
+	correction := exactReversal(entry, "journal.correction.0002", "audit.journal.correction.0002")
+	if err := store.PostCorrection(correction); err != nil {
 		t.Fatal(err)
 	}
 	if len(store.Journal()) != 2 {

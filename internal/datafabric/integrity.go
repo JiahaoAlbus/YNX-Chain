@@ -103,18 +103,13 @@ func AuditRecords(keys map[string][]byte, eventRecords []EventEnvelope, outboxRe
 		if !exists || prior.RecordedAt.After(entry.RecordedAt) {
 			return fmt.Errorf("journal correction %s does not reference prior history", entry.EntryID)
 		}
-		seen := map[string]bool{entry.EntryID: true}
-		cursor := prior
-		for cursor.CorrectionOf != "" {
-			if seen[cursor.EntryID] {
-				return fmt.Errorf("journal correction cycle at %s", entry.EntryID)
+		if prior.CorrectionOf != "" || entry.CorrelationID != prior.CorrelationID || !isExactReversal(prior, entry) {
+			return fmt.Errorf("journal correction %s is not an exact reversal of prior history", entry.EntryID)
+		}
+		for _, candidate := range journal {
+			if candidate.EntryID != entry.EntryID && candidate.CorrectionOf == entry.CorrectionOf {
+				return fmt.Errorf("journal entry %s has multiple reversals", entry.CorrectionOf)
 			}
-			seen[cursor.EntryID] = true
-			next, exists := journalByID[cursor.CorrectionOf]
-			if !exists {
-				return fmt.Errorf("journal correction chain is missing %s", cursor.CorrectionOf)
-			}
-			cursor = next
 		}
 	}
 	seenSagas := map[string]bool{}

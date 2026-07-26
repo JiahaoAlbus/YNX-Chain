@@ -102,7 +102,7 @@ func (entry JournalEntry) Validate() error {
 	}
 	for key, total := range totals {
 		if total != 0 {
-			return fmt.Errorf("journal is unbalanced for %q by %d minor units", key, total)
+			return Reject(CodeLedgerUnbalanced, fmt.Sprintf("journal is unbalanced for %q by %d minor units", key, total), map[string]string{"entryId": entry.EntryID})
 		}
 	}
 	return nil
@@ -120,6 +120,51 @@ func consentCategory(category string) bool {
 func (s *Store) PostJournal(entry JournalEntry) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if entry.CorrectionOf != "" {
+		return Reject(CodeLedgerCorrectionRouteRequired, "journal corrections must use the immutable correction route", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	return s.postJournalLocked(entry)
+}
+
+// PostCorrection appends one exact reversal of a prior journal entry. The
+// original entry remains immutable and a second reversal of the same target is
+// rejected so retries cannot apply a financial effect twice.
+func (s *Store) PostCorrection(entry JournalEntry) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := entry.Validate(); err != nil {
+		return err
+	}
+	if entry.CorrectionOf == "" || entry.CorrectionOf == entry.EntryID {
+		return Reject(CodeLedgerCorrectionInvalid, "correctionOf must identify a different prior journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	var target JournalEntry
+	targetFound := false
+	for _, existing := range s.state.Ledger {
+		if existing.EntryID == entry.EntryID {
+			return ErrDuplicate
+		}
+		if existing.CorrectionOf == entry.CorrectionOf {
+			return Reject(CodeLedgerDuplicateReversal, "journal entry already has an authoritative reversal", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf, "existingReversalId": existing.EntryID})
+		}
+		if existing.EntryID == entry.CorrectionOf {
+			target = existing
+			targetFound = true
+		}
+	}
+	if !targetFound {
+		return Reject(CodeLedgerCorrectionTargetMissing, "correction references an unknown journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	if target.CorrectionOf != "" || entry.RecordedAt.Before(target.RecordedAt) || entry.CorrelationID != target.CorrelationID {
+		return Reject(CodeLedgerCorrectionInvalid, "correction must reverse a prior original entry in the same correlation", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	if !isExactReversal(target, entry) {
+		return Reject(CodeLedgerReversalMismatch, "correction postings must exactly reverse the target entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	return s.postJournalLocked(entry)
+}
+
+func (s *Store) postJournalLocked(entry JournalEntry) error {
 	if err := entry.Validate(); err != nil {
 		return err
 	}
@@ -147,21 +192,51 @@ func (s *Store) PostJournal(entry JournalEntry) error {
 	if entry.FeeConsent != nil && !userAccountPosted {
 		return errors.New("consent-bound debit does not belong to the canonical event account")
 	}
-	correctionFound := entry.CorrectionOf == ""
 	for _, existing := range s.state.Ledger {
 		if existing.EntryID == entry.EntryID {
 			return ErrDuplicate
 		}
-		if existing.EntryID == entry.CorrectionOf {
-			correctionFound = true
-		}
-	}
-	if !correctionFound {
-		return errors.New("correction references an unknown journal entry")
 	}
 	next := cloneState(s.state)
 	next.Ledger = append(next.Ledger, entry)
 	return s.commit(next)
+}
+
+func isExactReversal(target, reversal JournalEntry) bool {
+	if len(target.Postings) != len(reversal.Postings) || reversal.FeeConsent != nil {
+		return false
+	}
+	expected := make(map[string]int, len(target.Postings))
+	for _, posting := range target.Postings {
+		expected[reversalPostingKey(posting, oppositeSide(posting.Side))]++
+	}
+	for _, posting := range reversal.Postings {
+		key := reversalPostingKey(posting, posting.Side)
+		if expected[key] == 0 {
+			return false
+		}
+		expected[key]--
+	}
+	for _, count := range expected {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func oppositeSide(side PostingSide) PostingSide {
+	if side == Debit {
+		return Credit
+	}
+	if side == Credit {
+		return Debit
+	}
+	return ""
+}
+
+func reversalPostingKey(posting Posting, side PostingSide) string {
+	return strings.Join([]string{posting.AccountID, posting.Asset, posting.Currency, string(side), fmt.Sprint(posting.Amount), posting.Category}, "\x00")
 }
 
 func (s *Store) Journal() []JournalEntry {
@@ -184,13 +259,14 @@ func (s *Store) JournalEntry(id string) (JournalEntry, bool) {
 func (s *Store) VerifyLedger() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	seen := map[string]bool{}
+	seen := map[string]JournalEntry{}
+	reversed := map[string]bool{}
 	events := map[string]EventEnvelope{}
 	for _, event := range s.state.Events {
 		events[event.EventID] = event
 	}
 	for _, entry := range s.state.Ledger {
-		if seen[entry.EntryID] {
+		if _, exists := seen[entry.EntryID]; exists {
 			return fmt.Errorf("duplicate journal entry %s", entry.EntryID)
 		}
 		if err := entry.Validate(); err != nil {
@@ -200,10 +276,17 @@ func (s *Store) VerifyLedger() error {
 		if !exists || event.CorrelationID != entry.CorrelationID {
 			return fmt.Errorf("journal entry %s is not linked to its canonical event", entry.EntryID)
 		}
-		if entry.CorrectionOf != "" && !seen[entry.CorrectionOf] {
-			return fmt.Errorf("journal correction %s does not reference prior history", entry.EntryID)
+		if entry.CorrectionOf != "" {
+			target, targetExists := seen[entry.CorrectionOf]
+			if !targetExists || target.CorrectionOf != "" || target.RecordedAt.After(entry.RecordedAt) || target.CorrelationID != entry.CorrelationID {
+				return fmt.Errorf("journal correction %s does not reference valid prior history", entry.EntryID)
+			}
+			if reversed[entry.CorrectionOf] || !isExactReversal(target, entry) {
+				return fmt.Errorf("journal correction %s is not the unique exact reversal of %s", entry.EntryID, entry.CorrectionOf)
+			}
+			reversed[entry.CorrectionOf] = true
 		}
-		seen[entry.EntryID] = true
+		seen[entry.EntryID] = entry
 	}
 	return nil
 }

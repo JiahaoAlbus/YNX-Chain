@@ -18,7 +18,7 @@ func TestLedgerRejectsUnbalancedEntry(t *testing.T) {
 		SourceCommit: "719e101", SourceRelease: "test-v0", AuditID: "audit.test.0001",
 	}
 	err := store.PostJournal(entry)
-	if err == nil || err.Error() != "journal is unbalanced for \"YNX\\x00YNX\" by 100 minor units" {
+	if ErrorCodeOf(err) != CodeLedgerUnbalanced {
 		t.Fatalf("expected unbalanced rejection, got: %v", err)
 	}
 }
@@ -156,7 +156,7 @@ func TestLedgerCorrectionReferencesOriginal(t *testing.T) {
 		},
 		SourceCommit: "719e101", SourceRelease: "test-v0", AuditID: "audit.test.0002",
 	}
-	if err := store.PostJournal(correction); err != nil {
+	if err := store.PostCorrection(correction); err != nil {
 		t.Fatalf("valid correction rejected: %v", err)
 	}
 	journal := store.Journal()
@@ -177,9 +177,58 @@ func TestLedgerRejectsCorrectionOfNonexistent(t *testing.T) {
 		},
 		SourceCommit: "719e101", SourceRelease: "test-v0", AuditID: "audit.test.0001",
 	}
-	err := store.PostJournal(correction)
-	if err == nil || err.Error() != "correction references an unknown journal entry" {
+	err := store.PostCorrection(correction)
+	if ErrorCodeOf(err) != CodeLedgerCorrectionTargetMissing {
 		t.Fatalf("expected correction rejection, got: %v", err)
+	}
+}
+
+func TestLedgerCorrectionRequiresDedicatedRouteAndExactReversal(t *testing.T) {
+	store := setupLedgerFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	original := JournalEntry{
+		EntryID: "journal.test.0011", CorrelationID: "correlation.test.0001", EventID: store.state.Events[0].EventID,
+		EffectiveAt: now, RecordedAt: now, Description: "Original entry", RevenueBoundary: "test",
+		Postings: []Posting{
+			{AccountID: "account.test.0001", Asset: "YNX", Currency: "YNX", Side: Debit, Amount: 1000, Category: "protocol-revenue"},
+			{AccountID: "account.test.0002", Asset: "YNX", Currency: "YNX", Side: Credit, Amount: 1000, Category: "protocol-revenue"},
+		},
+		SourceCommit: "719e101", SourceRelease: "test-v0", AuditID: "audit.test.0011",
+	}
+	if err := store.PostJournal(original); err != nil {
+		t.Fatal(err)
+	}
+	reversal := exactReversal(original, "journal.test.0012", "audit.test.0012")
+	if err := store.PostJournal(reversal); ErrorCodeOf(err) != CodeLedgerCorrectionRouteRequired {
+		t.Fatalf("correction bypassed dedicated route: %v", err)
+	}
+	reversal.Postings[0].Amount--
+	reversal.Postings[1].Amount--
+	if err := store.PostCorrection(reversal); ErrorCodeOf(err) != CodeLedgerReversalMismatch {
+		t.Fatalf("non-exact reversal was accepted: %v", err)
+	}
+}
+
+func TestLedgerRejectsDuplicateReversal(t *testing.T) {
+	store := setupLedgerFixture(t)
+	now := time.Date(2026, 7, 22, 14, 0, 0, 0, time.UTC)
+	original := JournalEntry{
+		EntryID: "journal.test.0013", CorrelationID: "correlation.test.0001", EventID: store.state.Events[0].EventID,
+		EffectiveAt: now, RecordedAt: now, Description: "Original entry", RevenueBoundary: "test",
+		Postings: []Posting{
+			{AccountID: "account.test.0001", Asset: "YNX", Currency: "YNX", Side: Debit, Amount: 1000, Category: "protocol-revenue"},
+			{AccountID: "account.test.0002", Asset: "YNX", Currency: "YNX", Side: Credit, Amount: 1000, Category: "protocol-revenue"},
+		},
+		SourceCommit: "719e101", SourceRelease: "test-v0", AuditID: "audit.test.0013",
+	}
+	if err := store.PostJournal(original); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.PostCorrection(exactReversal(original, "journal.test.0014", "audit.test.0014")); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.PostCorrection(exactReversal(original, "journal.test.0015", "audit.test.0015")); ErrorCodeOf(err) != CodeLedgerDuplicateReversal {
+		t.Fatalf("duplicate reversal was accepted: %v", err)
 	}
 }
 
@@ -228,4 +277,18 @@ func setupLedgerFixture(t *testing.T) *Store {
 		t.Fatal(err)
 	}
 	return store
+}
+
+func exactReversal(original JournalEntry, entryID, auditID string) JournalEntry {
+	reversal := original
+	reversal.EntryID = entryID
+	reversal.AuditID = auditID
+	reversal.Description = "Exact reversal"
+	reversal.CorrectionOf = original.EntryID
+	reversal.FeeConsent = nil
+	reversal.Postings = append([]Posting(nil), original.Postings...)
+	for i := range reversal.Postings {
+		reversal.Postings[i].Side = oppositeSide(reversal.Postings[i].Side)
+	}
+	return reversal
 }
