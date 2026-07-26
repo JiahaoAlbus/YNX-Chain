@@ -229,6 +229,7 @@ type StatusCapabilities struct {
 	ReadOnlyEvidence       bool `json:"readOnlyEvidence"`
 	QuoteGeneration        bool `json:"quoteGeneration"`
 	QuoteExecution         bool `json:"quoteExecution"`
+	WalletReviewGeneration bool `json:"walletReviewGeneration"`
 	SourceSubmission       bool `json:"sourceSubmission"`
 	DestinationMintRelease bool `json:"destinationMintRelease"`
 	RefundExecution        bool `json:"refundExecution"`
@@ -295,6 +296,7 @@ type StateMachineDescriptor struct {
 type Config struct {
 	StatePath       string
 	APIKey          string
+	GatewayAPIKey   string
 	Relayers        map[string]ed25519.PublicKey
 	Threshold       int
 	Policies        []RoutePolicy
@@ -308,6 +310,7 @@ type Config struct {
 func (c Config) normalized() (Config, map[string]uint64, error) {
 	c.StatePath = strings.TrimSpace(c.StatePath)
 	c.APIKey = strings.TrimSpace(c.APIKey)
+	c.GatewayAPIKey = strings.TrimSpace(c.GatewayAPIKey)
 	if c.StatePath == "" {
 		return Config{}, nil, errors.New("YNX_BRIDGE_STATE_PATH is required")
 	}
@@ -316,6 +319,12 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	}
 	if len(c.APIKey) < 16 {
 		return Config{}, nil, errors.New("YNX_BRIDGE_API_KEY must contain at least 16 characters")
+	}
+	if len(c.GatewayAPIKey) < 16 {
+		return Config{}, nil, errors.New("YNX_BRIDGE_GATEWAY_API_KEY must contain at least 16 characters")
+	}
+	if c.GatewayAPIKey == c.APIKey {
+		return Config{}, nil, errors.New("YNX_BRIDGE_GATEWAY_API_KEY must be distinct from the operator API key")
 	}
 	if len(c.Relayers) < 2 || c.Threshold < 2 || c.Threshold > len(c.Relayers) {
 		return Config{}, nil, errors.New("bridge relayer threshold must be between 2 and the configured relayer count")
@@ -496,6 +505,56 @@ type Quote struct {
 	Executable          bool                    `json:"executable"`
 	UserSigning         string                  `json:"userSigning"`
 	CredentialBoundary  string                  `json:"credentialBoundary"`
+}
+
+type GatewaySessionContext struct {
+	Product   string
+	SessionID string
+	Account   string
+	DeviceID  string
+	Scope     string
+	ExpiresAt time.Time
+}
+
+type WalletReviewRequest struct {
+	Quote Quote `json:"quote"`
+}
+
+type WalletReview struct {
+	SchemaVersion           int                     `json:"schemaVersion"`
+	Source                  string                  `json:"source"`
+	AsOf                    string                  `json:"asOf"`
+	Coverage                string                  `json:"coverage"`
+	ID                      string                  `json:"id"`
+	ReviewDigest            string                  `json:"reviewDigest"`
+	QuoteDigest             string                  `json:"quoteDigest"`
+	QuoteExpiresAt          string                  `json:"quoteExpiresAt"`
+	Product                 string                  `json:"product"`
+	Account                 string                  `json:"account"`
+	DeviceID                string                  `json:"deviceId"`
+	SessionID               string                  `json:"sessionId"`
+	SessionExpiresAt        string                  `json:"sessionExpiresAt"`
+	RouteID                 string                  `json:"routeId"`
+	Provider                string                  `json:"provider"`
+	Classification          string                  `json:"classification"`
+	SourceEndpoint          RouteAssetEndpoint      `json:"sourceEndpoint"`
+	DestinationEndpoint     RouteAssetEndpoint      `json:"destinationEndpoint"`
+	Amount                  string                  `json:"amount"`
+	Sender                  string                  `json:"sender"`
+	Recipient               string                  `json:"recipient"`
+	Fees                    RouteFeeDisclosure      `json:"fees"`
+	Slippage                RouteSlippageDisclosure `json:"slippage"`
+	Timing                  RouteTimingDisclosure   `json:"timing"`
+	Finality                RouteFinalityDisclosure `json:"finality"`
+	Refund                  RouteRefundDisclosure   `json:"refund"`
+	Risk                    []string                `json:"risk"`
+	Limits                  RoutePolicy             `json:"limits"`
+	Status                  string                  `json:"status"`
+	ApprovalAllowed         bool                    `json:"approvalAllowed"`
+	WalletSignatureRequired bool                    `json:"walletSignatureRequired"`
+	SourceSubmissionAllowed bool                    `json:"sourceSubmissionAllowed"`
+	FailureStatus           string                  `json:"failureStatus"`
+	CredentialBoundary      string                  `json:"credentialBoundary"`
 }
 
 type CreateTransferRequest struct {

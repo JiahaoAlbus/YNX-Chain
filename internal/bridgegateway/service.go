@@ -171,6 +171,14 @@ func (s *Service) Authorized(value string) bool {
 	return subtle.ConstantTimeCompare([]byte(value), []byte(s.cfg.APIKey)) == 1
 }
 
+func (s *Service) AuthorizedGateway(value string) bool {
+	value = strings.TrimSpace(strings.TrimPrefix(value, "Bearer "))
+	if value == "" || len(value) != len(s.cfg.GatewayAPIKey) {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(value), []byte(s.cfg.GatewayAPIKey)) == 1
+}
+
 func (s *Service) Allow(remoteAddr, accessKey string, now time.Time) bool {
 	host, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr))
 	if err != nil {
@@ -303,6 +311,10 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 }
 
 func (s *Service) Quote(request QuoteRequest) (Quote, error) {
+	return s.quoteAt(request, s.cfg.Now().UTC())
+}
+
+func (s *Service) quoteAt(request QuoteRequest, asOf time.Time) (Quote, error) {
 	request.SourceChain = normalizeName(request.SourceChain)
 	request.DestinationChain = normalizeName(request.DestinationChain)
 	request.SourceAsset = normalizeAsset(request.SourceAsset)
@@ -330,7 +342,7 @@ func (s *Service) Quote(request QuoteRequest) (Quote, error) {
 	if amount > maximum {
 		return Quote{}, fmt.Errorf("%w: quote amount exceeds route policy", ErrInvalid)
 	}
-	asOf := s.cfg.Now().UTC()
+	asOf = asOf.UTC()
 	expiresAt := asOf.Add(s.cfg.QuoteTTL)
 	entry := unavailableRouteCatalogEntry(key, policy)
 	failureStatus := entry.FailureStatus
@@ -381,6 +393,95 @@ func (s *Service) Quote(request QuoteRequest) (Quote, error) {
 		Risk: append([]string(nil), entry.Risk...), Limits: policy,
 		Availability: entry.Availability, FailureStatus: failureStatus, Executable: false,
 		UserSigning: entry.UserSigning, CredentialBoundary: entry.CredentialBoundary,
+	}, nil
+}
+
+func (s *Service) ReviewQuote(session GatewaySessionContext, request WalletReviewRequest) (WalletReview, error) {
+	session.Product = normalizeName(session.Product)
+	session.SessionID = strings.TrimSpace(session.SessionID)
+	session.Account = normalizeAccount(session.Account)
+	session.DeviceID = strings.TrimSpace(session.DeviceID)
+	session.Scope = strings.TrimSpace(session.Scope)
+	now := s.cfg.Now().UTC()
+	if (session.Product != "ynx-wallet" && session.Product != "ynx-web") || !identifierPattern.MatchString(session.SessionID) || !identifierPattern.MatchString(session.Account) || !strings.HasPrefix(session.Account, "ynx1") || session.Account != strings.ToLower(session.Account) || !identifierPattern.MatchString(session.DeviceID) || session.Scope != "bridge:review:create" || !now.Before(session.ExpiresAt) {
+		return WalletReview{}, fmt.Errorf("%w: canonical Wallet session context is invalid or expired", ErrInvalid)
+	}
+	submitted := request.Quote
+	if submitted.SchemaVersion != 1 || submitted.Source != "ynx-bridge-quote-runtime" || submitted.Digest == "" {
+		return WalletReview{}, fmt.Errorf("%w: Wallet review requires a Bridge Quote Runtime response", ErrInvalid)
+	}
+	quoteAsOf, err := time.Parse(time.RFC3339Nano, submitted.AsOf)
+	if err != nil || quoteAsOf.After(now) {
+		return WalletReview{}, fmt.Errorf("%w: quote issuance time is invalid", ErrInvalid)
+	}
+	quoteExpiresAt, err := time.Parse(time.RFC3339Nano, submitted.ExpiresAt)
+	if err != nil || !now.Before(quoteExpiresAt) {
+		return WalletReview{}, fmt.Errorf("%w: quote is expired", ErrConflict)
+	}
+	expected, err := s.quoteAt(QuoteRequest{
+		SourceChain: submitted.SourceEndpoint.Chain, SourceAsset: submitted.SourceEndpoint.Asset,
+		DestinationChain: submitted.DestinationEndpoint.Chain, DestinationAsset: submitted.DestinationEndpoint.Asset,
+		Amount: submitted.Amount, Sender: submitted.Sender, Recipient: submitted.Recipient,
+	}, quoteAsOf)
+	if err != nil {
+		return WalletReview{}, err
+	}
+	expectedDigest := digestJSON(expected)
+	submittedDigest := digestJSON(submitted)
+	if len(expected.Digest) != len(submitted.Digest) || subtle.ConstantTimeCompare([]byte(expected.Digest), []byte(submitted.Digest)) != 1 ||
+		len(expectedDigest) != len(submittedDigest) || subtle.ConstantTimeCompare([]byte(expectedDigest), []byte(submittedDigest)) != 1 {
+		return WalletReview{}, fmt.Errorf("%w: quote fields or digest were changed", ErrInvalid)
+	}
+	approvalAllowed := expected.Executable && expected.Availability == "available" && expected.FailureStatus == ""
+	status := "blocked"
+	failureStatus := expected.FailureStatus
+	if approvalAllowed {
+		status = "ready-for-wallet-signature"
+		failureStatus = ""
+	}
+	reviewedAt := now.Format(timeFormat)
+	sessionExpiresAt := session.ExpiresAt.UTC().Format(timeFormat)
+	material := struct {
+		SchemaVersion    int    `json:"schemaVersion"`
+		Product          string `json:"product"`
+		Account          string `json:"account"`
+		DeviceID         string `json:"deviceId"`
+		SessionID        string `json:"sessionId"`
+		SessionExpiresAt string `json:"sessionExpiresAt"`
+		QuoteDigest      string `json:"quoteDigest"`
+		QuoteExpiresAt   string `json:"quoteExpiresAt"`
+		RouteID          string `json:"routeId"`
+		Provider         string `json:"provider"`
+		Amount           string `json:"amount"`
+		Sender           string `json:"sender"`
+		Recipient        string `json:"recipient"`
+		Status           string `json:"status"`
+		ApprovalAllowed  bool   `json:"approvalAllowed"`
+		ReviewedAt       string `json:"reviewedAt"`
+	}{
+		SchemaVersion: 1, Product: session.Product, Account: session.Account, DeviceID: session.DeviceID,
+		SessionID: session.SessionID, SessionExpiresAt: sessionExpiresAt,
+		QuoteDigest: expected.Digest, QuoteExpiresAt: expected.ExpiresAt,
+		RouteID: expected.RouteID, Provider: expected.Provider, Amount: expected.Amount,
+		Sender: expected.Sender, Recipient: expected.Recipient, Status: status,
+		ApprovalAllowed: approvalAllowed, ReviewedAt: reviewedAt,
+	}
+	reviewDigest := digestJSON(material)
+	return WalletReview{
+		SchemaVersion: 1, Source: "ynx-bridge-wallet-review-runtime", AsOf: reviewedAt,
+		Coverage: "canonical-app-gateway-session-bound-review-no-wallet-signature-or-asset-movement",
+		ID:       "review_" + hashText(reviewDigest)[:24], ReviewDigest: reviewDigest,
+		QuoteDigest: expected.Digest, QuoteExpiresAt: expected.ExpiresAt,
+		Product: session.Product, Account: session.Account, DeviceID: session.DeviceID,
+		SessionID: session.SessionID, SessionExpiresAt: sessionExpiresAt,
+		RouteID: expected.RouteID, Provider: expected.Provider, Classification: expected.Classification,
+		SourceEndpoint: expected.SourceEndpoint, DestinationEndpoint: expected.DestinationEndpoint,
+		Amount: expected.Amount, Sender: expected.Sender, Recipient: expected.Recipient,
+		Fees: expected.Fees, Slippage: expected.Slippage, Timing: expected.Timing, Finality: expected.Finality, Refund: expected.Refund,
+		Risk: append([]string(nil), expected.Risk...), Limits: expected.Limits,
+		Status: status, ApprovalAllowed: approvalAllowed, WalletSignatureRequired: approvalAllowed,
+		SourceSubmissionAllowed: false, FailureStatus: failureStatus,
+		CredentialBoundary: "wallet-signs-source-intent-bridge-and-gateway-never-hold-user-private-key",
 	}, nil
 }
 
@@ -1177,7 +1278,7 @@ func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
 		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
 		ProviderConnection: "not-connected", ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
 		Reconciliation: reconciliation,
-		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteGeneration: true, QuoteExecution: false, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
+		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteGeneration: true, QuoteExecution: false, WalletReviewGeneration: true, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
 		Support:        StatusSupport{Configured: false}, Build: buildinfo.Normalize(build),
 	}
 }

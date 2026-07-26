@@ -26,6 +26,7 @@
   ],
   "protectedEndpoints": [
     {"method":"POST","path":"/bridge/quotes","scope":"bridge:quote:read","idempotencyRequired":false},
+    {"method":"POST","path":"/bridge/wallet-reviews","scope":"bridge:review:create","idempotencyRequired":false},
     {"method":"POST","path":"/bridge/transfers","scope":"bridge:transfer:create","idempotencyRequired":true},
     {"method":"GET","path":"/bridge/transfers/{id}","scope":"bridge:transfer:read","idempotencyRequired":false},
     {"method":"POST","path":"/bridge/transfers/{id}/attestations","scope":"bridge:attestation:submit","idempotencyRequired":true},

@@ -47,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention, QuoteTTL: *quoteTTL}
+	cfg := bridgegateway.Config{StatePath: *statePath, APIKey: os.Getenv("YNX_BRIDGE_API_KEY"), GatewayAPIKey: os.Getenv("YNX_BRIDGE_GATEWAY_API_KEY"), Relayers: relayers, Threshold: *threshold, Policies: policies, RateLimitWindow: *rateWindow, RateLimitMax: *rateMax, RetentionPeriod: *retention, QuoteTTL: *quoteTTL}
 	if *checkConfig {
 		if err := bridgegateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)

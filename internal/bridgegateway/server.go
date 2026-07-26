@@ -63,6 +63,9 @@ func (s *Server) observeAndLimit(next http.Handler) http.Handler {
 		started := time.Now()
 		accessKey := r.Header.Get("X-YNX-Bridge-Key")
 		if accessKey == "" {
+			accessKey = r.Header.Get("X-YNX-Bridge-Gateway-Key")
+		}
+		if accessKey == "" {
 			accessKey = r.Header.Get("Authorization")
 		}
 		writer := &statusWriter{ResponseWriter: w}
@@ -123,7 +126,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /bridge/providers", s.handleProviders)
 	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
 	s.mux.HandleFunc("GET /bridge/status", s.handleStatus)
-	s.mux.HandleFunc("POST /bridge/quotes", s.requireAuth(s.handleQuote))
+	s.mux.HandleFunc("POST /bridge/quotes", s.requireQuoteAuth(s.handleQuote))
+	s.mux.HandleFunc("POST /bridge/wallet-reviews", s.requireGatewayAuth(s.handleWalletReview))
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
 	s.mux.HandleFunc("GET /bridge/transfers", s.requireAuth(s.handleList))
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
@@ -219,6 +223,12 @@ func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleQuote(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-YNX-App-Gateway") == "1" {
+		if _, ok := s.gatewaySession(r, "bridge:quote:read"); !ok {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical Wallet session and quote scope required"})
+			return
+		}
+	}
 	var request QuoteRequest
 	if !decodeJSON(w, r, &request) {
 		return
@@ -229,6 +239,46 @@ func (s *Server) handleQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, quote)
+}
+
+func (s *Server) handleWalletReview(w http.ResponseWriter, r *http.Request) {
+	session, ok := s.gatewaySession(r, "bridge:review:create")
+	if !ok || (session.Product != "ynx-wallet" && session.Product != "ynx-web") {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical Wallet session and review scope required"})
+		return
+	}
+	var request WalletReviewRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	review, err := s.service.ReviewQuote(session, request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, review)
+}
+
+func (s *Server) gatewaySession(r *http.Request, expectedScope string) (GatewaySessionContext, bool) {
+	if r.Header.Get("X-YNX-App-Gateway") != "1" {
+		return GatewaySessionContext{}, false
+	}
+	session := GatewaySessionContext{
+		Product: strings.TrimSpace(r.Header.Get("X-YNX-App-Product")), SessionID: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-ID")),
+		Account: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Account")), DeviceID: strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Device")),
+		Scope: strings.TrimSpace(r.Header.Get("X-YNX-App-Scope")),
+	}
+	expiresAt, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(r.Header.Get("X-YNX-App-Session-Expires-At")))
+	if err != nil {
+		return GatewaySessionContext{}, false
+	}
+	session.ExpiresAt = expiresAt.UTC()
+	now := s.service.cfg.Now().UTC()
+	if !identifierPattern.MatchString(session.Product) || !identifierPattern.MatchString(session.SessionID) || !identifierPattern.MatchString(session.Account) || !strings.HasPrefix(session.Account, "ynx1") || session.Account != strings.ToLower(session.Account) ||
+		!identifierPattern.MatchString(session.DeviceID) || session.Scope != expectedScope || r.Header.Get("X-YNX-Device-ID") != session.DeviceID || !now.Before(session.ExpiresAt) {
+		return GatewaySessionContext{}, false
+	}
+	return session, true
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
@@ -414,6 +464,31 @@ func (s *Server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		if !s.service.Authorized(value) {
 			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge API key required"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+func (s *Server) requireQuoteAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-YNX-App-Gateway") == "1" {
+			if !s.service.AuthorizedGateway(r.Header.Get("X-YNX-Bridge-Gateway-Key")) {
+				writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge Gateway credential required"})
+				return
+			}
+		} else if !s.service.Authorized(r.Header.Get("X-YNX-Bridge-Key")) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid Bridge operator credential required"})
+			return
+		}
+		next(w, r)
+	}
+}
+
+func (s *Server) requireGatewayAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-YNX-App-Gateway") != "1" || !s.service.AuthorizedGateway(r.Header.Get("X-YNX-Bridge-Gateway-Key")) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "valid canonical App Gateway credential required"})
 			return
 		}
 		next(w, r)

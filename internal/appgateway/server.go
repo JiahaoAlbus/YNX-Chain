@@ -32,6 +32,7 @@ type Health struct {
 	Service         string                    `json:"service"`
 	BrowserBoundary string                    `json:"browserBoundary"`
 	NativeBoundary  string                    `json:"nativeBoundary"`
+	NativeProducts  []string                  `json:"nativeProducts"`
 	OwnershipProof  string                    `json:"ownershipProof"`
 	SessionStorage  string                    `json:"sessionStorage"`
 	ActiveSessions  int                       `json:"activeSessions"`
@@ -76,7 +77,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay"} {
+	for _, service := range []string{"chat", "square", "pay", "bridge"} {
 		base, _, _, _ := s.gateway.upstream(service)
 		request, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, base.String()+"/health", nil)
 		response, err := s.client.Do(request)
@@ -104,7 +105,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: nativeMobileClient, OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: "explicit-product-client-bindings", NativeProducts: []string{nativeMobileClient, nativeSocialClient, nativeWalletClient}, OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
@@ -147,6 +148,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	protected := protectedRouteAllowed(service, r.Method, upstreamPath)
 	if !public && !protected {
 		writeError(w, http.StatusNotFound, "app route not found")
+		return
+	}
+	if protected && service == "bridge" && upstreamPath == "/bridge/wallet-reviews" && !s.gateway.WalletReviewBindingAllowed(binding) {
+		writeError(w, http.StatusNotFound, "Wallet review route not available to this product")
 		return
 	}
 	var body []byte
@@ -203,6 +208,14 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	}
 	request.Header.Set(keyHeader, key)
 	request.Header.Set("X-YNX-App-Gateway", "1")
+	if protected && service == "bridge" {
+		request.Header.Set("X-YNX-App-Session-ID", authenticatedSession.ID)
+		request.Header.Set("X-YNX-App-Session-Account", authenticatedSession.Account)
+		request.Header.Set("X-YNX-App-Session-Device", authenticatedSession.DeviceID)
+		request.Header.Set("X-YNX-App-Session-Expires-At", authenticatedSession.ExpiresAt.UTC().Format(time.RFC3339Nano))
+		request.Header.Set("X-YNX-App-Product", productForBinding(binding))
+		request.Header.Set("X-YNX-App-Scope", bridgeScope(r.Method, upstreamPath))
+	}
 	response, err := s.client.Do(request)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream service unavailable")
@@ -320,7 +333,7 @@ func resolveAppPath(escapedPath string) (string, string, bool) {
 		return "", "", false
 	}
 	pieces := strings.SplitN(strings.TrimPrefix(escapedPath, "/app/"), "/", 2)
-	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay") {
+	if len(pieces) != 2 || (pieces[0] != "chat" && pieces[0] != "square" && pieces[0] != "pay" && pieces[0] != "bridge") {
 		return "", "", false
 	}
 	return pieces[0], "/" + pieces[0] + "/" + pieces[1], true

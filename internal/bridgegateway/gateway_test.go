@@ -20,7 +20,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
-const testAPIKey = "bridge-api-key-for-tests"
+const (
+	testAPIKey        = "bridge-api-key-for-tests"
+	testGatewayAPIKey = "bridge-gateway-key-for-tests"
+)
 
 type testBridge struct {
 	service *Service
@@ -45,7 +48,7 @@ func newTestBridge(t *testing.T) *testBridge {
 	now := time.Date(2026, 7, 14, 1, 2, 3, 0, time.UTC)
 	state := filepath.Join(t.TempDir(), "bridge", "state.json")
 	cfg := Config{
-		StatePath: state, APIKey: testAPIKey, Relayers: public, Threshold: 2,
+		StatePath: state, APIKey: testAPIKey, GatewayAPIKey: testGatewayAPIKey, Relayers: public, Threshold: 2,
 		Policies: []RoutePolicy{{
 			Provider:       "local-test-provider",
 			Classification: "external-bridge-adapter",
@@ -135,6 +138,59 @@ func TestBridgeQuoteRuntimeIsDigestBoundAndFailClosed(t *testing.T) {
 	paused, err := b.service.Quote(request)
 	if err != nil || paused.FailureStatus != "bridge-paused" || paused.Executable {
 		t.Fatalf("paused quote did not fail closed: %+v %v", paused, err)
+	}
+}
+
+func TestBridgeWalletReviewBindsCanonicalSessionAndRejectsQuoteTamper(t *testing.T) {
+	b := newTestBridge(t)
+	quote, err := b.service.Quote(QuoteRequest{
+		SourceChain: "ethereum-sepolia", SourceAsset: "sepolia-usdc",
+		DestinationChain: "ynx_6423-1", DestinationAsset: "ynx-usdc", Amount: "100",
+		Sender: "0x" + strings.Repeat("b", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := GatewaySessionContext{
+		Product: "ynx-wallet", SessionID: "session-review-001",
+		Account: "ynx1walletreview00000000000000000000000000001", DeviceID: "device-review-001",
+		Scope: "bridge:review:create", ExpiresAt: b.now.Add(30 * time.Minute),
+	}
+	review, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: quote})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if review.SchemaVersion != 1 || review.Source != "ynx-bridge-wallet-review-runtime" || review.Product != session.Product || review.Account != session.Account || review.DeviceID != session.DeviceID || review.SessionID != session.SessionID {
+		t.Fatalf("Wallet review session tuple is invalid: %+v", review)
+	}
+	if !accountDigestPattern.MatchString(review.ReviewDigest) || !strings.HasPrefix(review.ID, "review_") || review.QuoteDigest != quote.Digest || review.RouteID != quote.RouteID {
+		t.Fatalf("Wallet review digest or route binding is invalid: %+v", review)
+	}
+	if review.Status != "blocked" || review.ApprovalAllowed || review.WalletSignatureRequired || review.SourceSubmissionAllowed || review.FailureStatus != "provider-or-contract-route-unavailable" {
+		t.Fatalf("Wallet review overclaims unavailable route approval: %+v", review)
+	}
+	if review.CredentialBoundary != "wallet-signs-source-intent-bridge-and-gateway-never-hold-user-private-key" || review.Fees.ProviderFee != nil || review.Refund.Available {
+		t.Fatalf("Wallet review omits signing boundary or invents provider terms: %+v", review)
+	}
+	changed := quote
+	changed.Amount = "101"
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: changed}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("changed quote amount expected rejection, got %v", err)
+	}
+	changed = quote
+	fee := "1"
+	changed.Fees.ProviderFee = &fee
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: changed}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("changed quote fee expected rejection, got %v", err)
+	}
+	wrongScope := session
+	wrongScope.Scope = "bridge:quote:read"
+	if _, err := b.service.ReviewQuote(wrongScope, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("wrong review scope expected rejection, got %v", err)
+	}
+	*b.clock = b.now.Add(6 * time.Minute)
+	if _, err := b.service.ReviewQuote(session, WalletReviewRequest{Quote: quote}); !errors.Is(err, ErrConflict) {
+		t.Fatalf("expired quote expected conflict, got %v", err)
 	}
 }
 
@@ -285,6 +341,26 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	if quote.Source != "ynx-bridge-quote-runtime" || quote.Digest == "" || quote.Executable || quote.Availability != "unavailable" {
 		t.Fatalf("quote endpoint overclaims availability: %+v", quote)
 	}
+	doJSON(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, WalletReviewRequest{Quote: quote}, http.StatusUnauthorized, nil)
+	sessionHeaders := map[string]string{
+		"X-YNX-App-Gateway": "1", "X-YNX-App-Product": "ynx-wallet",
+		"X-YNX-Bridge-Gateway-Key": testGatewayAPIKey,
+		"X-YNX-App-Session-ID":     "session-http-review-001", "X-YNX-App-Session-Account": "ynx1walletreview00000000000000000000000000001",
+		"X-YNX-App-Session-Device": "device-http-review-001", "X-YNX-Device-ID": "device-http-review-001",
+		"X-YNX-App-Session-Expires-At": b.now.Add(30 * time.Minute).Format(timeFormat), "X-YNX-App-Scope": "bridge:review:create",
+	}
+	var review WalletReview
+	doJSONWithHeaders(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, sessionHeaders, WalletReviewRequest{Quote: quote}, http.StatusOK, &review)
+	if review.Source != "ynx-bridge-wallet-review-runtime" || review.Account != sessionHeaders["X-YNX-App-Session-Account"] || review.DeviceID != sessionHeaders["X-YNX-Device-ID"] || review.ApprovalAllowed || review.SourceSubmissionAllowed {
+		t.Fatalf("Wallet review endpoint boundary is invalid: %+v", review)
+	}
+	wrongScopeHeaders := map[string]string{}
+	for key, value := range sessionHeaders {
+		wrongScopeHeaders[key] = value
+	}
+	wrongScopeHeaders["X-YNX-App-Scope"] = "bridge:quote:read"
+	doJSONWithHeaders(t, http.MethodPost, server.URL+"/bridge/wallet-reviews", testAPIKey, wrongScopeHeaders, WalletReviewRequest{Quote: quote}, http.StatusUnauthorized, nil)
+	doJSONWithHeaders(t, http.MethodGet, server.URL+"/bridge/transfers", "", map[string]string{"X-YNX-Bridge-Gateway-Key": testGatewayAPIKey}, nil, http.StatusUnauthorized, nil)
 	doJSON(t, http.MethodGet, server.URL+"/bridge/transfers", "", nil, http.StatusUnauthorized, nil)
 	doJSON(t, http.MethodPost, server.URL+"/bridge/transfers", testAPIKey, map[string]any{
 		"idempotencyKey": "freeze-native-001", "sourceChain": "ethereum-sepolia", "sourceTxHash": "0x" + strings.Repeat("e", 64), "sourceEventIndex": 1,
@@ -714,11 +790,16 @@ func TestBridgeV4MigrationPreservesResolvedExposureThroughDispute(t *testing.T) 
 
 func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	pub, _, _ := ed25519.GenerateKey(rand.Reader)
-	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
+	base := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: "key", GatewayAPIKey: testGatewayAPIKey, Relayers: map[string]ed25519.PublicKey{"only-one": pub}, Threshold: 1, Policies: []RoutePolicy{{Provider: "test-provider", Classification: "external-bridge-adapter", SourceChain: "a-chain", DestinationChain: "b-chain", SourceAsset: "asset-a", DestinationAsset: "asset-b", SourceAssetClass: "other-testnet-asset-candidate", DestinationAssetClass: "wrapped-test-asset", MinConfirmations: 1, MaxAmount: "1", AssetBoundary: "canonical-to-represented"}}}
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("weak API key and single relayer topology unexpectedly passed")
 	}
 	base.APIKey = testAPIKey
+	base.GatewayAPIKey = testAPIKey
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("shared operator and Gateway credential unexpectedly passed")
+	}
+	base.GatewayAPIKey = testGatewayAPIKey
 	if err := ValidateConfig(base); err == nil {
 		t.Fatal("single relayer topology unexpectedly passed")
 	}
@@ -1200,6 +1281,11 @@ func TestBridgeDailyUserAndLargeTransferControls(t *testing.T) {
 
 func doJSON(t *testing.T, method, url, key string, body any, expected int, target any) {
 	t.Helper()
+	doJSONWithHeaders(t, method, url, key, nil, body, expected, target)
+}
+
+func doJSONWithHeaders(t *testing.T, method, url, key string, headers map[string]string, body any, expected int, target any) {
+	t.Helper()
 	var reader io.Reader
 	if body != nil {
 		raw, err := json.Marshal(body)
@@ -1217,6 +1303,9 @@ func doJSON(t *testing.T, method, url, key string, body any, expected int, targe
 	}
 	if key != "" {
 		req.Header.Set("X-YNX-Bridge-Key", key)
+	}
+	for name, value := range headers {
+		req.Header.Set(name, value)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

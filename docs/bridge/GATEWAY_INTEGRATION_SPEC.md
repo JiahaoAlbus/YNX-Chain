@@ -103,7 +103,7 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
     case "pay":
         return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
     case "bridge":
-        return g.bridgeURL, g.cfg.BridgeAPIKey, "X-YNX-Bridge-Key", true
+        return g.bridgeURL, g.cfg.BridgeAPIKey, "X-YNX-Bridge-Gateway-Key", true
     default:
         return nil, "", "", false
     }
@@ -115,11 +115,12 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 ```bash
 # App Gateway
 YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:6440
-YNX_APP_GATEWAY_BRIDGE_API_KEY=<generated-key>
+YNX_APP_GATEWAY_BRIDGE_API_KEY=<gateway-only-generated-key>
 
 # Bridge Coordinator
 YNX_BRIDGE_HTTP_ADDR=127.0.0.1:6440
-YNX_BRIDGE_API_KEY=<same-generated-key>
+YNX_BRIDGE_API_KEY=<operator-only-generated-key>
+YNX_BRIDGE_GATEWAY_API_KEY=<gateway-only-generated-key>
 YNX_BRIDGE_GATEWAY_SESSION_MODE=enabled
 ```
 

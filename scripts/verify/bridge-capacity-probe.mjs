@@ -13,7 +13,7 @@ const state = path.join(temp, "state.json");
 const url = "http://127.0.0.1:16434";
 const apiKey = "bridge-capacity-local-key";
 const env = {...process.env,
-  YNX_BRIDGE_HTTP_ADDR:"127.0.0.1:16434", YNX_BRIDGE_STATE_PATH:state, YNX_BRIDGE_API_KEY:apiKey, YNX_BRIDGE_RELAYER_THRESHOLD:"2",
+  YNX_BRIDGE_HTTP_ADDR:"127.0.0.1:16434", YNX_BRIDGE_STATE_PATH:state, YNX_BRIDGE_API_KEY:apiKey, YNX_BRIDGE_GATEWAY_API_KEY:"bridge-capacity-gateway-key", YNX_BRIDGE_RELAYER_THRESHOLD:"2",
   YNX_BRIDGE_RELAYERS_JSON:'{"relayer-a":"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=","relayer-b":"PUAXw+hDiVqStwqnTRt+vJyYLM8uxJaMwM1V8Sr0Zgw="}',
   YNX_BRIDGE_ROUTE_POLICIES_JSON:'[{"provider":"local-capacity-probe","classification":"external-bridge-adapter","sourceChain":"ethereum-sepolia","destinationChain":"ynx_6423-1","sourceAsset":"sepolia-usdc","destinationAsset":"ynx-usdc","sourceAssetClass":"testnet-stablecoin","destinationAssetClass":"wrapped-test-asset","minConfirmations":12,"maxAmount":"1000","maxOutstanding":"1000000","dailyLimit":"1000000","userOutstandingLimit":"1000000","largeTransferThreshold":"1000","largeTransferDelaySeconds":0,"assetBoundary":"canonical-to-represented","externalSubmission":false}]'
 };

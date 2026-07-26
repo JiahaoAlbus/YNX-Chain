@@ -20,6 +20,8 @@ type Config struct {
 	SquareAPIKey     string
 	PayURL           string
 	PayAPIKey        string
+	BridgeURL        string
+	BridgeAPIKey     string
 	AllowedOrigins   []string
 	MaxBodyBytes     int64
 	MaxResponseBytes int64
@@ -39,6 +41,7 @@ type Gateway struct {
 	chatURL   *url.URL
 	squareURL *url.URL
 	payURL    *url.URL
+	bridgeURL *url.URL
 	origins   map[string]struct{}
 	mu        sync.Mutex
 	visitors  map[string]visitor
@@ -73,6 +76,7 @@ func New(cfg Config) (*Gateway, error) {
 	chatURL, _ := url.Parse(cfg.ChatURL)
 	squareURL, _ := url.Parse(cfg.SquareURL)
 	payURL, _ := url.Parse(cfg.PayURL)
+	bridgeURL, _ := url.Parse(cfg.BridgeURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
 		origins[strings.TrimSpace(origin)] = struct{}{}
@@ -87,7 +91,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, bridgeURL: bridgeURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -106,6 +110,9 @@ func ValidateConfig(cfg Config) error {
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_URL", cfg.PayURL); err != nil {
 		return err
 	}
+	if err := validateLoopbackURL("YNX_APP_GATEWAY_BRIDGE_URL", cfg.BridgeURL); err != nil {
+		return err
+	}
 	if len(strings.TrimSpace(cfg.ChatAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_CHAT_API_KEY must contain at least 16 characters")
 	}
@@ -114,6 +121,9 @@ func ValidateConfig(cfg Config) error {
 	}
 	if len(strings.TrimSpace(cfg.PayAPIKey)) < 16 {
 		return errors.New("YNX_APP_GATEWAY_PAY_API_KEY must contain at least 16 characters")
+	}
+	if len(strings.TrimSpace(cfg.BridgeAPIKey)) < 16 {
+		return errors.New("YNX_APP_GATEWAY_BRIDGE_API_KEY must contain at least 16 characters")
 	}
 	if len(cfg.AllowedOrigins) == 0 {
 		return errors.New("YNX_APP_GATEWAY_ALLOWED_ORIGINS must contain at least one exact HTTPS origin")
@@ -202,7 +212,7 @@ func productRouteAllowed(binding, service string) bool {
 	case nativeSocialBinding:
 		return service == "chat" || service == "square"
 	case nativeWalletBinding:
-		return false
+		return service == "bridge"
 	default:
 		return true
 	}
@@ -237,6 +247,8 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 		return g.squareURL, g.cfg.SquareAPIKey, "X-YNX-Square-Key", true
 	case "pay":
 		return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
+	case "bridge":
+		return g.bridgeURL, g.cfg.BridgeAPIKey, "X-YNX-Bridge-Gateway-Key", true
 	default:
 		return nil, "", "", false
 	}
@@ -270,6 +282,9 @@ func publicRouteAllowed(service, method, path string) bool {
 		case len(parts) == 4 && parts[1] == "invoices" && parts[3] == "settlement":
 			return method == "GET" && validSegment(parts[2])
 		}
+	}
+	if service == "bridge" {
+		return method == "GET" && len(parts) == 2 && (parts[1] == "routes" || parts[1] == "providers" || parts[1] == "assets" || parts[1] == "status" || parts[1] == "transparency" || parts[1] == "state-machine")
 	}
 	return false
 }
@@ -322,8 +337,41 @@ func protectedRouteAllowed(service, method, path string) bool {
 		}
 	case "pay":
 		return len(parts) == 4 && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "settle" && method == "POST"
+	case "bridge":
+		return method == "POST" && len(parts) == 2 && (parts[1] == "quotes" || parts[1] == "wallet-reviews")
 	}
 	return false
+}
+
+func productForBinding(binding string) string {
+	switch binding {
+	case nativeWalletBinding:
+		return "ynx-wallet"
+	case nativeMobileBinding:
+		return "ynx-mobile"
+	case nativeSocialBinding:
+		return "ynx-social"
+	default:
+		return "ynx-web"
+	}
+}
+
+func (g *Gateway) WalletReviewBindingAllowed(binding string) bool {
+	return binding == nativeWalletBinding || g.OriginAllowed(binding)
+}
+
+func bridgeScope(method, path string) string {
+	if method != "POST" {
+		return ""
+	}
+	switch strings.Trim(path, "/") {
+	case "bridge/quotes":
+		return "bridge:quote:read"
+	case "bridge/wallet-reviews":
+		return "bridge:review:create"
+	default:
+		return ""
+	}
 }
 
 func validSegment(value string) bool {
