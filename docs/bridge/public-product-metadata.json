@@ -21,16 +21,16 @@
     "operator reconciliation is not independent proof",
     "provider, contract, finality, signer, and liquidity risk require route-specific review"
   ],
-  "status": "local-engineering-candidate",
+  "status": "public-read-only-testnet-coordinator",
   "screenshots": [],
   "downloads": [],
   "supportUrl": null,
   "privacyUrl": null,
   "securityUrl": null,
-  "statusUrl": null,
+  "statusUrl": "https://rest.ynxweb4.com/app/bridge/status",
   "structuredDataSuggestion": {"type":"SoftwareApplication","applicationCategory":"DeveloperApplication","operatingSystem":"Linux server"},
   "faq": [
-    {"question":"Is YNX Bridge live?","answer":"No. The current coordinator is a local engineering candidate and external submission is disabled."},
+    {"question":"Is YNX Bridge live?","answer":"The Testnet coordinator has a public read-only status surface, but no executable Bridge route is live and external submission is disabled."},
     {"question":"When is a transferred asset available?","answer":"Only after destination confirmation. A quote, source acceptance, source finality, attestation, or provider callback is insufficient."},
     {"question":"Is CCTP available for YNX?","answer":"No YNX route was listed in the inspected official CCTP testnet contract reference as of 2026-07-22, so the route is unavailable."},
     {"question":"How are failures handled?","answer":"The lifecycle records failure, retry, refund or recovery, and dispute evidence without hiding an unresolved state."}

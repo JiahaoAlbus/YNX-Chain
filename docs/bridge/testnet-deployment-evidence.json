@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "remote-testnet-coordinator-installation",
-  "observedAt": "2026-07-26T13:15:57Z",
-  "sourceCommit": "69e5e2b1fe82ed4e507e165c876175d41a6b6e8f",
-  "release": "ynx-bridge-69e5e2b1fe82",
+  "observedAt": "2026-07-26T13:39:18Z",
+  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
+  "release": "ynx-bridge-f4d1a191d45e",
   "targetRole": "primary-testnet",
   "deploymentState": {
     "integratedCentral": true,
@@ -13,12 +13,12 @@
     "userAssetMovementEnabled": false
   },
   "package": {
-    "sha256": "adee954ce67849e6843f60b33a55907aeada2fbd35aea4eb004309c4d8d46c51",
+    "sha256": "5125123d3ccf579d86c791bb58a3634239a04979117ae2ac7fd85fa6068be455",
     "checksumsVerifiedRemote": true
   },
   "artifacts": {
-    "ynxBridgedSha256": "a780226c2c3203002b3bc96b0d23eedbd5d3078c74d65b47b0b072d6e55eeb5d",
-    "ynxAppGatewaydSha256": "5dd2c5926736b14d87d4afb13b4b0c14df9cb11148cdbd797f123c9955799b09"
+    "ynxBridgedSha256": "8fb27647eeb6b7a05f78ca0d6363d452fb2e90a8df0f83981ac9aa1f1d96d439",
+    "ynxAppGatewaydSha256": "741775ee314fe72e11a9a18bc6caf936ce72eb7b88c3dd52a72aa63005adfaa2"
   },
   "installation": {
     "bridgeServiceActive": true,
@@ -33,8 +33,8 @@
     "service": "ynx-bridged",
     "schemaVersion": 7,
     "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-    "buildCommit": "69e5e2b1fe82",
-    "buildRelease": "ynx-bridge-69e5e2b1fe82",
+    "buildCommit": "f4d1a191d45e",
+    "buildRelease": "ynx-bridge-f4d1a191d45e",
     "coordinatorState": "available-local-coordinator",
     "externalBridgeState": "unavailable",
     "providerConnection": "not-connected",
@@ -52,7 +52,6 @@
     "walletSecretAccess": false
   },
   "missingEvidence": [
-    "public Bridge ingress",
     "verified YNX provider route",
     "verified source and destination contracts",
     "funded Testnet deposit",

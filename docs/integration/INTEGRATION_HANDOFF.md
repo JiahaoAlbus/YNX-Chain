@@ -1,8 +1,8 @@
 # YNX Bridge Integration Handoff
 
-Status: remote Testnet coordinator and canonical App Gateway integration deployed; provider route, contracts, public ingress, and funded transfer execution are not complete.
+Status: remote Testnet coordinator, canonical App Gateway integration, and public read-only ingress deployed; provider route, contracts, and funded transfer execution are not complete.
 
-Deployed Testnet source commit: `69e5e2b1fe82ed4e507e165c876175d41a6b6e8f`
+Deployed Testnet source commit: `f4d1a191d45e11b4e55e75242dcebbc414ba7579`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -23,7 +23,7 @@ The current implemented proof verifier revalidates domain-separated threshold-re
 
 ## Current fail-closed status
 
-The remote Testnet coordinator and canonical App Gateway upstream are directly verified active for release `ynx-bridge-69e5e2b1fe82`; the service remains loopback-only with no public Bridge ingress. The official Circle CCTP V2 Sandbox fee API is verified reachable for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route. YNX is not listed in the inspected official domain/contract references, so this does not prove a YNX provider route. No verified YNX provider connection, verified YNX source/destination Bridge contracts, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review exists. Provider routes remain empty, `availableProviderCount` is zero, and external submission and user asset movement remain disabled.
+The remote Testnet coordinator and canonical App Gateway upstream are directly verified active for release `ynx-bridge-f4d1a191d45e`. Public TLS read-only health, version, status, route, provider, asset, transparency, and state-machine paths are verified through `https://rest.ynxweb4.com/app/bridge`; the coordinator itself remains loopback-only and no public mutation route exists. The official Circle CCTP V2 Sandbox fee API is verified reachable for supported domains 0 to 6, but YNX is not listed in the inspected official references. No verified YNX provider connection, verified YNX source/destination contracts, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review exists. `availableProviderCount` is zero, and external submission and user asset movement remain disabled.
 
 ## Owner actions
 

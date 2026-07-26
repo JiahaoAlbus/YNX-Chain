@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "releaseClass": "remote-testnet-coordinator-candidate",
-  "sourceCommit": "69e5e2b1fe82ed4e507e165c876175d41a6b6e8f",
+  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
   "sourceCommitRequiredBeforeRelease": true,
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
@@ -46,13 +46,20 @@
   },
   "testnetDeployment": {
     "evidence": "docs/bridge/testnet-deployment-evidence.json",
-    "release": "ynx-bridge-69e5e2b1fe82",
+    "release": "ynx-bridge-f4d1a191d45e",
     "coordinatorInstalled": true,
     "appGatewayIntegrated": true,
     "deployedStaging": true,
     "deployedPublic": false,
     "executableRouteAvailable": false,
     "externalSubmissionEnabled": false
+  },
+  "publicReadDeployment": {
+    "evidence": "docs/bridge/public-read-evidence.json",
+    "baseUrl": "https://rest.ynxweb4.com/app/bridge",
+    "deployedPublic": true,
+    "tlsVerified": true,
+    "mutationRoutesExposed": false
   },
   "publicTestnetDepositVerified": false,
   "publicTestnetWithdrawalVerified": false,
@@ -63,11 +70,14 @@
     "canonicalBridgeClaim": false
   },
   "artifacts": [],
-  "publicUrls": [],
+  "publicUrls": [
+    {"type":"testnet-read-only","url":"https://rest.ynxweb4.com/app/bridge","evidence":"docs/bridge/public-read-evidence.json"}
+  ],
   "transactionEvidence": [],
   "localEvidence": [
-    {"type":"source-commit","value":"69e5e2b1fe82ed4e507e165c876175d41a6b6e8f"},
+    {"type":"source-commit","value":"f4d1a191d45e11b4e55e75242dcebbc414ba7579"},
     {"type":"remote-testnet-evidence","value":"docs/bridge/testnet-deployment-evidence.json"},
+    {"type":"public-read-evidence","value":"docs/bridge/public-read-evidence.json"},
     {"type":"test-command","value":"go test ./..."},
     {"type":"test-command","value":"npm test --prefix sdk/bridge"}
   ],
