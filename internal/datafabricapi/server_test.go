@@ -98,6 +98,64 @@ func TestServerFailsClosedAndCommitsAuthorizedEvent(t *testing.T) {
 	}
 }
 
+func TestProductProducerIngressBindsKeyBodyFreshnessAndReplay(t *testing.T) {
+	server, store := newTestServer(t, fakeAuthorizer{})
+	event := apiEvent(t)
+	body, _ := json.Marshal(event)
+	at := time.Now().UTC().Format(time.RFC3339Nano)
+	request := producerRequest(t, body, at, "nonce.producer.api.0001", "key.datafabric.0001", apiTestKey)
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != http.StatusAccepted || len(store.Events()) != 1 || !strings.Contains(response.Body.String(), `"status":"committed-to-outbox"`) {
+		t.Fatalf("valid product producer event was not committed: %d %s", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, producerRequest(t, body, at, "nonce.producer.api.0001", "key.datafabric.0001", apiTestKey))
+	if response.Code != http.StatusUnauthorized || !strings.Contains(response.Body.String(), string(datafabric.CodeReplay)) {
+		t.Fatalf("producer nonce replay was accepted: %d %s", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, producerRequest(t, body, time.Now().UTC().Format(time.RFC3339Nano), "nonce.producer.api.0002", "key.datafabric.0001", apiTestKey))
+	if response.Code != http.StatusOK || len(store.Events()) != 1 || !strings.Contains(response.Body.String(), `"status":"already-committed"`) {
+		t.Fatalf("idempotent product redelivery was not acknowledged: %d %s", response.Code, response.Body.String())
+	}
+
+	tamperedBody := append([]byte(nil), body...)
+	tamperedBody[len(tamperedBody)-2] ^= 1
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, producerRequestWithSignature(t, tamperedBody, time.Now().UTC().Format(time.RFC3339Nano), "nonce.producer.api.0003", "key.datafabric.0001", body, apiTestKey))
+	if response.Code != http.StatusUnauthorized || len(store.Events()) != 1 {
+		t.Fatalf("producer body tampering was accepted: %d %s", response.Code, response.Body.String())
+	}
+
+	stale := time.Now().UTC().Add(-3 * time.Minute).Format(time.RFC3339Nano)
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, producerRequest(t, body, stale, "nonce.producer.api.0004", "key.datafabric.0001", apiTestKey))
+	if response.Code != http.StatusUnauthorized || !strings.Contains(response.Body.String(), string(datafabric.CodeReplay)) {
+		t.Fatalf("stale producer delivery was accepted: %d %s", response.Code, response.Body.String())
+	}
+
+	wrongProduct := event
+	wrongProduct.EventID = "event.shop.order.producer.0001"
+	wrongProduct.EventType = "shop.order.created"
+	wrongProduct.Product = "shop"
+	wrongProduct.Service = "order"
+	wrongProduct.AggregateID = "order.producer.0001"
+	wrongProduct.CorrelationID = "correlation.shop.producer.0001"
+	wrongProduct.AuditID = "audit.shop.producer.0001"
+	if err := wrongProduct.Sign("key.datafabric.0001", apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	wrongBody, _ := json.Marshal(wrongProduct)
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, producerRequest(t, wrongBody, time.Now().UTC().Format(time.RFC3339Nano), "nonce.producer.api.0005", "key.datafabric.0001", apiTestKey))
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), string(datafabric.CodeWrongProduct)) || len(store.Events()) != 1 {
+		t.Fatalf("cross-product producer key was accepted: %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestHealthAndProtectedRead(t *testing.T) {
 	server, _ := newTestServer(t, fakeAuthorizer{})
 	response := httptest.NewRecorder()
@@ -556,6 +614,25 @@ func authorizedRequest(t *testing.T, method, path string, body []byte, product s
 	request.Header.Set("X-YNX-Timestamp", time.Now().UTC().Format(time.RFC3339))
 	request.Header.Set("X-YNX-Device-Signature", "device-signature")
 	request.Header.Set("X-YNX-Content-SHA256", fmt.Sprintf("%x", sha256.Sum256(body)))
+	return request
+}
+
+func producerRequest(t *testing.T, body []byte, timestamp, nonce, keyID string, key []byte) *http.Request {
+	t.Helper()
+	return producerRequestWithSignature(t, body, timestamp, nonce, keyID, body, key)
+}
+
+func producerRequestWithSignature(t *testing.T, body []byte, timestamp, nonce, keyID string, signedBody, key []byte) *http.Request {
+	t.Helper()
+	signature, err := datafabric.ProducerDeliverySignature(keyID, timestamp, nonce, signedBody, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, datafabric.ProducerEventsPath, bytes.NewReader(body))
+	request.Header.Set(datafabric.ProducerKeyIDHeader, keyID)
+	request.Header.Set(datafabric.ProducerTimestampHeader, timestamp)
+	request.Header.Set(datafabric.ProducerNonceHeader, nonce)
+	request.Header.Set(datafabric.ProducerSignatureHeader, signature)
 	return request
 }
 

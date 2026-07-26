@@ -437,6 +437,7 @@ type PayEvent struct {
 	ID              string    `json:"id"`
 	Type            string    `json:"type"`
 	IntentID        string    `json:"intentId,omitempty"`
+	InvoiceID       string    `json:"invoiceId,omitempty"`
 	ObjectID        string    `json:"objectId,omitempty"`
 	Merchant        string    `json:"merchant,omitempty"`
 	PayoutAddress   string    `json:"payoutAddress,omitempty"`

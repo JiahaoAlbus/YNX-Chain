@@ -9,12 +9,14 @@ on:
       - "cmd/ynx-data-fabricctl/**"
       - "cmd/ynx-data-fabricd/**"
       - "cmd/ynx-data-fabric-worker/**"
+      - "cmd/ynx-pay-data-fabric-bridge/**"
       - "internal/datafabric/**"
       - "internal/datafabricapi/**"
       - "internal/datafabricbackup/**"
       - "internal/datafabricconfig/**"
       - "internal/datafabricconsole/**"
       - "internal/datafabricnats/**"
+      - "internal/datafabricpay/**"
       - "internal/datafabricpgbackup/**"
       - "internal/datafabricpostgres/**"
       - "internal/datafabricpgbackup/**"
@@ -57,9 +59,9 @@ jobs:
       - name: Test the complete Go repository
         run: go test ./... -count=1
       - name: Race-test Data Fabric state transitions
-        run: go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpostgres ./internal/datafabricpgbackup -count=1
+        run: go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric -count=1
       - name: Vet Data Fabric binaries and libraries
-        run: go vet ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric
+        run: go vet ./cmd/ynx-data-fabricctl ./cmd/ynx-data-fabricd ./cmd/ynx-data-fabric-worker ./cmd/ynx-pay-data-fabric-bridge ./internal/datafabric ./internal/datafabricapi ./internal/datafabricbackup ./internal/datafabricconfig ./internal/datafabricconsole ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpostgres ./internal/datafabricpgbackup ./sdk/datafabric
       - name: Analyze reachable Go vulnerabilities
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
       - name: Build reproducible-path Linux binaries
@@ -68,10 +70,12 @@ jobs:
           CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricd ./cmd/ynx-data-fabricd
           CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricctl ./cmd/ynx-data-fabricctl
           CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-data-fabric-worker ./cmd/ynx-data-fabric-worker
+          CGO_ENABLED=0 go build -trimpath -buildvcs=true -o dist/ynx-pay-data-fabric-bridge ./cmd/ynx-pay-data-fabric-bridge
           go version -m dist/ynx-data-fabricd
           go version -m dist/ynx-data-fabricctl
           go version -m dist/ynx-data-fabric-worker
-          sha256sum dist/ynx-data-fabricd dist/ynx-data-fabricctl dist/ynx-data-fabric-worker
+          go version -m dist/ynx-pay-data-fabric-bridge
+          sha256sum dist/ynx-data-fabricd dist/ynx-data-fabricctl dist/ynx-data-fabric-worker dist/ynx-pay-data-fabric-bridge
       - name: Generate and validate SPDX SBOM
         run: |
           npm sbom --sbom-format spdx > dist/npm-sbom.spdx.json

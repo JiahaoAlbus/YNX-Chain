@@ -7,11 +7,13 @@ runtime_paths=(
   cmd/ynx-data-fabricctl
   cmd/ynx-data-fabricd
   cmd/ynx-data-fabric-worker
+  cmd/ynx-pay-data-fabric-bridge
   internal/datafabric
   internal/datafabricapi
   internal/datafabricbackup
   internal/datafabricconfig
   internal/datafabricnats
+  internal/datafabricpay
   internal/datafabricpostgres
   sdk/datafabric
   schemas/data-fabric

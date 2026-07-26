@@ -1,8 +1,10 @@
 package chain
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
@@ -67,8 +69,66 @@ func TestPaySettlementBindsCommittedNativeTransferAndPersists(t *testing.T) {
 	}
 	events := reloaded.PayEvents(intent.ID)
 	last := events[len(events)-1]
-	if last.Type != "invoice.paid" || last.Payer != payerNative || last.PayoutAddress != merchantNative || last.TransactionHash != tx.Hash || len(last.AuditHash) != 64 {
+	if last.Type != "invoice.paid" || last.InvoiceID != invoice.ID || last.Payer != payerNative || last.PayoutAddress != merchantNative || last.TransactionHash != tx.Hash || len(last.AuditHash) != 64 {
 		t.Fatalf("settlement event is incomplete: %+v", last)
+	}
+}
+
+func TestEnsureStateDefaultsEnrichesLegacyPayEventInvoiceBinding(t *testing.T) {
+	payer := "0x5555555555555555555555555555555555555555"
+	merchant := "0x6666666666666666666666666666666666666666"
+	payerNative, _ := accountaddress.Encode(payer)
+	merchantNative, _ := accountaddress.Encode(merchant)
+	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet(payer, 100); err != nil {
+		t.Fatalf("fund payer: %v", err)
+	}
+	devnet.ProduceBlock()
+	intent, err := devnet.CreatePayIntentForPayoutWithIdempotency("legacy-pay-merchant", merchantNative, 25, "", "legacy-intent")
+	if err != nil {
+		t.Fatalf("create intent: %v", err)
+	}
+	invoice, err := devnet.CreateInvoiceWithIdempotency(intent.ID, 24, "legacy-invoice")
+	if err != nil {
+		t.Fatalf("create invoice: %v", err)
+	}
+	tx, err := devnet.Transfer(payer, merchant, 25)
+	if err != nil {
+		t.Fatalf("submit payment: %v", err)
+	}
+	devnet.ProduceBlock()
+	settlement, err := devnet.SettleInvoice(invoice.ID, payerNative, tx.Hash, "legacy-settlement")
+	if err != nil {
+		t.Fatalf("settle invoice: %v", err)
+	}
+
+	for id, event := range devnet.payEvents {
+		if event.Type != "invoice.issued" && event.Type != "invoice.paid" {
+			continue
+		}
+		event.InvoiceID = ""
+		if event.Type == "invoice.paid" {
+			event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+		} else {
+			event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+		}
+		devnet.payEvents[id] = event
+	}
+
+	devnet.ensureStateDefaults()
+	for _, event := range devnet.PayEvents(intent.ID) {
+		if event.Type != "invoice.issued" && event.Type != "invoice.paid" {
+			continue
+		}
+		if event.InvoiceID != invoice.ID {
+			t.Fatalf("legacy %s event invoice binding = %q, want %q", event.Type, event.InvoiceID, invoice.ID)
+		}
+		if event.AuditHash != payEventAuditHash(event) {
+			t.Fatalf("legacy %s event audit hash was not migrated", event.Type)
+		}
+	}
+	if settlement.InvoiceID != invoice.ID {
+		t.Fatalf("settlement invoice binding = %q, want %q", settlement.InvoiceID, invoice.ID)
 	}
 }
 

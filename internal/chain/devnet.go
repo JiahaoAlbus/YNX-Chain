@@ -1135,7 +1135,10 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 	}
 	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
 	d.invoices[invoice.ID] = invoice
-	d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event := d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event.InvoiceID = invoice.ID
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return invoice, err
@@ -3138,6 +3141,22 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.payEvents == nil {
 		d.payEvents = map[string]PayEvent{}
 	}
+	for id, event := range d.payEvents {
+		switch {
+		case event.Type == "invoice.issued" && event.InvoiceID == "" && event.ObjectID != "":
+			if invoice, ok := d.invoices[event.ObjectID]; ok && invoice.IntentID == event.IntentID {
+				event.InvoiceID = invoice.ID
+				event.AuditHash = payEventAuditHash(event)
+				d.payEvents[id] = event
+			}
+		case event.Type == "invoice.paid" && event.InvoiceID == "" && event.ObjectID != "":
+			if settlement, ok := d.paySettlements[event.ObjectID]; ok && settlement.IntentID == event.IntentID {
+				event.InvoiceID = settlement.InvoiceID
+				event.AuditHash = payEventAuditHash(event)
+				d.payEvents[id] = event
+			}
+		}
+	}
 	if d.riskLabels == nil {
 		d.riskLabels = map[string][]RiskLabel{}
 	}
@@ -3422,19 +3441,30 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 		IdempotencyKey: idempotencyKey,
 		CreatedAt:      createdAt,
 	}
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
 }
 
 func (d *Devnet) recordPaySettlementEventLocked(settlement PaySettlement) PayEvent {
 	event := d.recordPayEventLocked("invoice.paid", settlement.IntentID, settlement.ID, settlement.Merchant, settlement.Amount, settlement.Currency, settlement.IdempotencyKey, settlement.CreatedAt)
+	event.InvoiceID = settlement.InvoiceID
 	event.PayoutAddress = settlement.PayoutAddress
 	event.Payer = settlement.Payer
 	event.TransactionHash = settlement.TransactionHash
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func payEventAuditHash(event PayEvent) string {
+	if event.Type == "invoice.paid" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.InvoiceID != "" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	return hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 }
 
 func normalizePayAddress(value string) (native, canonical string, err error) {

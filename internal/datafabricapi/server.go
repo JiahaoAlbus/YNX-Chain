@@ -1,6 +1,7 @@
 package datafabricapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -113,6 +114,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/backfill", s.authorize("fabric.redelivery.manage", s.redelivery(datafabric.RedeliveryBackfill)))
 	s.mux.HandleFunc("POST /v1/events", s.authorize("fabric.events.write", s.appendEvent))
 	s.mux.HandleFunc("GET /v1/events", s.authorize("fabric.events.read", s.listEvents))
+	s.mux.HandleFunc("POST "+datafabric.ProducerEventsPath, s.appendProducerEvent)
 	s.mux.HandleFunc("POST /v1/ledger/journal", s.authorize("fabric.ledger.write", s.postJournal))
 	s.mux.HandleFunc("GET /v1/ledger/journal", s.authorize("fabric.ledger.read", s.listJournal))
 	s.mux.HandleFunc("POST /v1/ledger/journal/{id}/corrections", s.authorize("fabric.ledger.correct", s.postJournalCorrection))
@@ -276,8 +278,12 @@ func verifyRequestContent(r *http.Request, maxBodyBytes int64) error {
 }
 
 func (s *Server) consumeReplayBinding(credential Credential, expiresAt time.Time) bool {
-	now := time.Now().UTC()
 	key := credential.SessionID + "\x00" + credential.DeviceID + "\x00" + credential.RequestNonce
+	return s.consumeReplayKey(key, expiresAt)
+}
+
+func (s *Server) consumeReplayKey(key string, expiresAt time.Time) bool {
+	now := time.Now().UTC()
 	s.replayMu.Lock()
 	defer s.replayMu.Unlock()
 	for candidate, expiry := range s.replays {
@@ -476,6 +482,83 @@ func (s *Server) listEvents(w http.ResponseWriter, r *http.Request, principal Pr
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"events": page, "nextCursor": nextCursor, "source": "ynx-operational-event-store", "asOf": time.Now().UTC(), "version": s.cfg.SourceRelease, "status": "authoritative"})
+}
+
+func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
+	keyID := strings.TrimSpace(r.Header.Get(datafabric.ProducerKeyIDHeader))
+	timestamp := strings.TrimSpace(r.Header.Get(datafabric.ProducerTimestampHeader))
+	nonce := strings.TrimSpace(r.Header.Get(datafabric.ProducerNonceHeader))
+	signature := strings.TrimSpace(r.Header.Get(datafabric.ProducerSignatureHeader))
+	key, exists := s.cfg.EventKeys[keyID]
+	if !exists {
+		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeWrongSignature), "Product producer key is not registered")
+		return
+	}
+	requestTime, err := time.Parse(time.RFC3339Nano, timestamp)
+	if err != nil || requestTime.Location() != time.UTC || requestTime.Before(time.Now().UTC().Add(-2*time.Minute)) || requestTime.After(time.Now().UTC().Add(30*time.Second)) {
+		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeReplay), "Product producer timestamp is outside the accepted freshness window")
+		return
+	}
+	body, err := readBoundedBody(r, s.cfg.MaxBodyBytes)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, string(datafabric.CodeOversizedPayload), "Product producer body exceeds the canonical limit")
+		return
+	}
+	if err := datafabric.VerifyProducerDeliverySignature(signature, keyID, timestamp, nonce, body, key); err != nil {
+		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeWrongSignature), "Product producer delivery signature is invalid")
+		return
+	}
+	if !s.consumeReplayKey("producer\x00"+keyID+"\x00"+nonce, requestTime.Add(10*time.Minute)) {
+		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeReplay), "Product producer delivery nonce was already consumed")
+		return
+	}
+	event, err := datafabric.DecodeEnvelopeStrict(bytes.NewReader(body))
+	if err != nil {
+		s.writeDataFabricError(w, http.StatusBadRequest, err)
+		return
+	}
+	if s.cfg.EventKeyProducts[keyID] != event.Product || event.Integrity.KeyID != keyID {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeWrongProduct), "Product producer key does not own this event")
+		return
+	}
+	if !s.allowSessionRequest(Principal{SessionID: keyID, DeviceID: "product-producer", Product: event.Product}) {
+		w.Header().Set("Retry-After", "60")
+		s.writeError(w, http.StatusTooManyRequests, "producer_rate_limited", "Product producer request rate exceeded the service limit")
+		return
+	}
+	if err := s.cfg.SchemaRegistry.ValidateEnvelope(event); err != nil {
+		s.writeDataFabricError(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+	if err := s.repo.Append(r.Context(), event, key); err != nil {
+		if errors.Is(err, datafabric.ErrDuplicate) {
+			writeJSON(w, http.StatusOK, map[string]any{"eventId": event.EventID, "status": "already-committed", "auditId": event.AuditID})
+			return
+		}
+		status := http.StatusConflict
+		if errors.Is(err, datafabric.ErrTampered) {
+			status = http.StatusForbidden
+		}
+		if code := datafabric.ErrorCodeOf(err); code != "" {
+			s.writeDataFabricError(w, status, err)
+		} else {
+			s.writeError(w, status, "DF_EVENT_REJECTED_V1", "Product event was rejected by the authoritative repository")
+		}
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{"eventId": event.EventID, "status": "committed-to-outbox", "auditId": event.AuditID})
+}
+
+func readBoundedBody(r *http.Request, maxBodyBytes int64) ([]byte, error) {
+	source := io.Reader(http.NoBody)
+	if r.Body != nil {
+		source = r.Body
+	}
+	body, err := io.ReadAll(io.LimitReader(source, maxBodyBytes+1))
+	if err != nil || int64(len(body)) > maxBodyBytes {
+		return nil, errors.New("body exceeds canonical limit")
+	}
+	return body, nil
 }
 
 func (s *Server) postJournal(w http.ResponseWriter, r *http.Request, principal Principal) {

@@ -11,6 +11,11 @@ import (
 const (
 	EnvelopeSchemaVersion   = core.EnvelopeSchemaVersion
 	EnvelopeSchemaVersionV2 = core.EnvelopeSchemaVersionV2
+	ProducerEventsPath      = core.ProducerEventsPath
+	ProducerKeyIDHeader     = core.ProducerKeyIDHeader
+	ProducerTimestampHeader = core.ProducerTimestampHeader
+	ProducerNonceHeader     = core.ProducerNonceHeader
+	ProducerSignatureHeader = core.ProducerSignatureHeader
 )
 
 var (
@@ -130,4 +135,7 @@ func DecodeMeteredUsage(event EventEnvelope) (MeteredUsage, error) {
 }
 func BuildBillingSettlement(plan BillingRatePlan, event EventEnvelope, request BillingSettlementRequest) (BillingSettlement, JournalEntry, error) {
 	return core.BuildBillingSettlement(plan, event, request)
+}
+func ProducerDeliverySignature(keyID, timestamp, nonce string, body, key []byte) (string, error) {
+	return core.ProducerDeliverySignature(keyID, timestamp, nonce, body, key)
 }
