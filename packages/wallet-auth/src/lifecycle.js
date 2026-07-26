@@ -8,6 +8,8 @@ const SNAPSHOT_FIELDS = [
 const AUDIT_FIELDS = ["sequence", "type", "subject", "at", "previousHash", "hash"];
 const INTROSPECTION_FIELDS = ["productClientId", "bundleId", "productDeviceKey", "requiredScopes"];
 
+export const CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION = 1;
+
 export class CentralWalletSessionStore {
   #state;
   constructor(snapshot = emptySnapshot()) { this.#state = parseSnapshot(snapshot); }
@@ -45,6 +47,23 @@ export class CentralWalletSessionStore {
     const required = sortedStrings(context.requiredScopes, "requiredScopes", 1, 8, /^[a-z][a-z0-9._:-]{1,63}$/);
     if (required.some((scope) => !active.scopes.includes(scope))) throw new WalletAuthError("SCOPE_NOT_ALLOWED", "Wallet product session lacks a required scope");
     return Object.freeze({ active: true, session: active });
+  }
+
+  inventory(account, at = new Date()) {
+    const normalized = strictAccount(account);
+    const asOf = validDate(at).toISOString();
+    const sessions = this.#state.sessions
+      .filter((session) => session.account === normalized)
+      .map((session) => inventorySession(session, this.#state, asOf));
+    return Object.freeze({
+      schemaVersion: CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION,
+      account: normalized,
+      asOf,
+      connectedApps: groupConnectedApps(sessions),
+      approvals: groupApprovals(sessions, this.#state.revokedApprovalDigests),
+      devices: groupDevices(sessions, this.#state.revokedDeviceBindings),
+      sessions: Object.freeze(sessions),
+    });
   }
 
   revokeSession(sessionBinding, at = new Date()) { return this.#revoke("revokedSessionBindings", strictDigest(sessionBinding, "sessionBinding"), "session-revoked", at); }
@@ -145,6 +164,108 @@ function appendAudit(state, type, subject, at) {
   const unsigned = { sequence: state.audit.length + 1, type, subject, at: validDate(at).toISOString(), previousHash: state.audit.at(-1)?.hash ?? null };
   state.audit.push(Object.freeze({ ...unsigned, hash: digestHex("YNX_WALLET_CENTRAL_AUDIT_V1", unsigned) }));
 }
+
+function inventorySession(session, state, asOf) {
+  const inactiveReasons = [];
+  if (session.issuedAt > asOf) inactiveReasons.push("issued-in-future");
+  if (session.expiresAt <= asOf) inactiveReasons.push("expired");
+  if (state.revokedSessionBindings.includes(session.sessionBinding)) inactiveReasons.push("session-revoked");
+  if (state.revokedApprovalDigests.includes(session.approvalDigest)) inactiveReasons.push("approval-revoked");
+  if (state.revokedDeviceBindings.includes(session.deviceBinding)) inactiveReasons.push("device-revoked");
+  if (state.accountLogoutRecords.some((record) => record.account === session.account && session.issuedAt <= record.before)) inactiveReasons.push("account-logout");
+  return Object.freeze({
+    sessionBinding: session.sessionBinding,
+    requestingProduct: session.requestingProduct,
+    productClientId: session.productClientId,
+    bundleId: session.bundleId,
+    callback: session.callback,
+    productDeviceAlgorithm: session.productDeviceAlgorithm,
+    productDeviceKey: session.productDeviceKey,
+    deviceBinding: session.deviceBinding,
+    approvalDigest: session.approvalDigest,
+    scopes: Object.freeze([...session.scopes]),
+    purpose: session.purpose,
+    issuedAt: session.issuedAt,
+    expiresAt: session.expiresAt,
+    active: inactiveReasons.length === 0,
+    inactiveReasons: Object.freeze(inactiveReasons),
+  });
+}
+
+function groupConnectedApps(sessions) {
+  const groups = new Map();
+  for (const session of sessions) {
+    const key = `${session.productClientId}\n${session.bundleId}`;
+    const current = groups.get(key) ?? {
+      requestingProduct: session.requestingProduct,
+      productClientId: session.productClientId,
+      bundleId: session.bundleId,
+      sessionBindings: [],
+      activeSessionBindings: [],
+      approvalDigests: [],
+      deviceBindings: [],
+    };
+    current.sessionBindings.push(session.sessionBinding);
+    if (session.active) current.activeSessionBindings.push(session.sessionBinding);
+    current.approvalDigests.push(session.approvalDigest);
+    current.deviceBindings.push(session.deviceBinding);
+    groups.set(key, current);
+  }
+  return freezeGrouped(groups, (group) => ({ ...group, active: group.activeSessionBindings.length > 0 }));
+}
+
+function groupApprovals(sessions, revokedApprovalDigests) {
+  const groups = new Map();
+  for (const session of sessions) {
+    const current = groups.get(session.approvalDigest) ?? {
+      approvalDigest: session.approvalDigest,
+      requestingProduct: session.requestingProduct,
+      productClientId: session.productClientId,
+      bundleId: session.bundleId,
+      sessionBindings: [],
+      activeSessionBindings: [],
+    };
+    current.sessionBindings.push(session.sessionBinding);
+    if (session.active) current.activeSessionBindings.push(session.sessionBinding);
+    groups.set(session.approvalDigest, current);
+  }
+  return freezeGrouped(groups, (group) => ({ ...group, revoked: revokedApprovalDigests.includes(group.approvalDigest) }));
+}
+
+function groupDevices(sessions, revokedDeviceBindings) {
+  const groups = new Map();
+  for (const session of sessions) {
+    const current = groups.get(session.deviceBinding) ?? {
+      deviceBinding: session.deviceBinding,
+      requestingProduct: session.requestingProduct,
+      productClientId: session.productClientId,
+      bundleId: session.bundleId,
+      productDeviceAlgorithm: session.productDeviceAlgorithm,
+      productDeviceKey: session.productDeviceKey,
+      sessionBindings: [],
+      activeSessionBindings: [],
+    };
+    current.sessionBindings.push(session.sessionBinding);
+    if (session.active) current.activeSessionBindings.push(session.sessionBinding);
+    groups.set(session.deviceBinding, current);
+  }
+  return freezeGrouped(groups, (group) => ({ ...group, revoked: revokedDeviceBindings.includes(group.deviceBinding) }));
+}
+
+function freezeGrouped(groups, finalize) {
+  const output = [...groups.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, group]) => Object.freeze(finalize({
+      ...group,
+      sessionBindings: Object.freeze(uniqueSorted(group.sessionBindings)),
+      activeSessionBindings: Object.freeze(uniqueSorted(group.activeSessionBindings)),
+      ...(group.approvalDigests ? { approvalDigests: Object.freeze(uniqueSorted(group.approvalDigests)) } : {}),
+      ...(group.deviceBindings ? { deviceBindings: Object.freeze(uniqueSorted(group.deviceBindings)) } : {}),
+    })));
+  return Object.freeze(output);
+}
+
+function uniqueSorted(values) { return [...new Set(values)].sort(); }
 
 function sortState(state) {
   for (const field of ["consumedNonces", "consumedRequestDigests", "consumedChallenges", "revokedSessionBindings", "revokedApprovalDigests", "revokedDeviceBindings"]) state[field].sort();

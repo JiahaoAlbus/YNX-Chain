@@ -75,12 +75,19 @@ export class CanonicalWalletGatewayAdapter {
     return revoked;
   }
 
+  sessionInventory(input, request, at = new Date()) {
+    exactFields(input, PROOF_FIELDS, "Canonical Gateway session inventory input");
+    const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["wallet:sessions"], at);
+    this.#assertWalletControlSession(authenticated.session, "Session inventory");
+    const inventory = this.#store.inventory(authenticated.session.account, at);
+    this.#consume(authenticated.proof);
+    return inventory;
+  }
+
   logoutAllDevices(input, request, at = new Date()) {
     exactFields(input, PROOF_FIELDS, "Canonical Gateway all-device logout input");
     const authenticated = this.#authenticateProof(input.proof, parseRequest(request), ["wallet:sessions"], at);
-    if (authenticated.session.productClientId !== "ynx-wallet-v1" || authenticated.session.bundleId !== "com.ynxweb4.wallet") {
-      fail("WALLET_CONTROL_REQUIRED", "All-device logout requires the canonical Wallet Product Session");
-    }
+    this.#assertWalletControlSession(authenticated.session, "All-device logout");
     const logout = this.#store.logoutAllDevices(authenticated.session.account, at);
     this.#consume(authenticated.proof);
     return logout;
@@ -158,6 +165,12 @@ export class CanonicalWalletGatewayAdapter {
       fail("MANDATE_BINDING_MISMATCH", "Strategy mandate is not owned by this Product Session");
     }
     return item;
+  }
+
+  #assertWalletControlSession(session, operation) {
+    if (session.productClientId !== "ynx-wallet-v1" || session.bundleId !== "com.ynxweb4.wallet") {
+      fail("WALLET_CONTROL_REQUIRED", `${operation} requires the canonical Wallet Product Session`);
+    }
   }
 
   #authenticateRevocationProof(proofInput, request, at) {

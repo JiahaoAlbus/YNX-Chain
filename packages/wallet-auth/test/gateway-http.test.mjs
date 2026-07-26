@@ -46,6 +46,22 @@ function walletCompletion(registry) {
   return completionForRequest(authorizationRequest, "wallet_gateway_challenge_abcdefghijk");
 }
 
+function nonWalletControlCompletion(registry) {
+  const registration = registry.products.find(product => product.productId === "social");
+  registration.scopes = ["wallet:sessions"];
+  registration.maxScopes = 1;
+  const authorizationRequest = parseAuthorizationRequest(request({
+    nonce: "impostor_wallet_scope_abcdefghijklmnop",
+    requestingProduct: registration.requestingProduct,
+    productClientId: registration.productClientId,
+    bundleId: registration.bundleId,
+    callback: registration.callbacks[0],
+    scopes: ["wallet:sessions"],
+    purpose: "Attempt Wallet control through a non-Wallet product identity.",
+  }), { now: NOW, registry: { [registration.productClientId]: centralProtocolEntry(registration) } });
+  return completionForRequest(authorizationRequest, "impostor_gateway_challenge_abcdefgh");
+}
+
 function completionForRequest(authorizationRequest, challengeValue) {
   const walletApproval = signAuthorization(authorizationRequest, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
   const challenge = createGatewayChallenge(walletApproval, { challenge: challengeValue, expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
@@ -136,6 +152,57 @@ test("approval and device revocation are self-scoped, immediate and restart-safe
     assert.equal(rejected.status, 403);
     assert.equal(decoded(rejected).error.code, "REVOKED");
   }
+});
+
+test("Wallet-only session inventory returns connected Apps, approvals, devices and restart-safe status", () => {
+  const registry = approvedRegistry("social", "wallet");
+  const kernel = new CanonicalWalletGatewayHttpKernel(registry);
+  assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(completion())), NOW).status, 200);
+  assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletCompletion(registry))), NOW).status, 200);
+  const sessions = kernel.snapshot().sessionStore.sessions;
+  const social = sessions.find(session => session.productClientId === "ynx-social-v1");
+  const wallet = sessions.find(session => session.productClientId === "ynx-wallet-v1");
+  assert.ok(social);
+  assert.ok(wallet);
+  const path = "/v1/wallet/sessions";
+  const body = canonicalJSON({});
+
+  const beforeDenied = gatewayStateDigest(kernel.snapshot());
+  const denied = kernel.dispatch(requestInput(path, body, proof(social, path, body, "http_inventory_social_denied_abcdefgh")), NOW);
+  assert.equal(denied.status, 403);
+  assert.equal(decoded(denied).error.code, "SCOPE_NOT_ALLOWED");
+  assert.equal(gatewayStateDigest(kernel.snapshot()), beforeDenied);
+
+  const inventoryProof = proof(wallet, path, body, "http_inventory_wallet_abcdefghijklmnop");
+  const response = kernel.dispatch(requestInput(path, body, inventoryProof), NOW);
+  assert.equal(response.status, 200);
+  const inventory = decoded(response).result;
+  assert.equal(inventory.schemaVersion, 1);
+  assert.equal(inventory.account, wallet.account);
+  assert.equal(inventory.connectedApps.length, 2);
+  assert.equal(inventory.approvals.length, 2);
+  assert.equal(inventory.devices.length, 2);
+  assert.equal(inventory.sessions.length, 2);
+  assert.equal(inventory.connectedApps.every(item => item.active), true);
+  assert.equal(inventory.sessions.every(item => item.active), true);
+  const replay = kernel.dispatch(requestInput(path, body, inventoryProof), NOW);
+  assert.equal(replay.status, 409);
+  assert.equal(decoded(replay).error.code, "REPLAY");
+
+  const revokePath = "/v1/wallet/devices/revoke";
+  const revoked = kernel.dispatch(requestInput(revokePath, body, proof(social, revokePath, body, "http_inventory_social_revoke_abcdefgh")), NOW);
+  assert.equal(revoked.status, 200);
+  const restarted = new CanonicalWalletGatewayHttpKernel(registry, kernel.snapshot());
+  const after = restarted.dispatch(requestInput(path, body, proof(wallet, path, body, "http_inventory_wallet_restart_abcdefgh")), NOW);
+  assert.equal(after.status, 200);
+  const afterInventory = decoded(after).result;
+  const socialSession = afterInventory.sessions.find(item => item.productClientId === "ynx-social-v1");
+  const walletSession = afterInventory.sessions.find(item => item.productClientId === "ynx-wallet-v1");
+  const socialDevice = afterInventory.devices.find(item => item.productClientId === "ynx-social-v1");
+  assert.deepEqual(socialSession.inactiveReasons, ["device-revoked"]);
+  assert.equal(socialSession.active, false);
+  assert.equal(socialDevice.revoked, true);
+  assert.equal(walletSession.active, true);
 });
 
 test("all-device logout requires a canonical Wallet Product Session and survives restart", () => {

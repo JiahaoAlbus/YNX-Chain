@@ -15,6 +15,7 @@ const RESPONSE_HEADERS = Object.freeze({
 const ROUTES = Object.freeze({
   "/v1/wallet/sessions/complete": "complete",
   "/v1/wallet/sessions/introspect": "introspect",
+  "/v1/wallet/sessions": "sessionInventory",
   "/v1/wallet/sessions/revoke": "revokeSession",
   "/v1/wallet/approvals/revoke": "revokeApproval",
   "/v1/wallet/devices/revoke": "revokeDevice",
@@ -103,7 +104,7 @@ function authenticatedInput(operation, proof, payload) {
 
 function operationFields(operation) {
   if (operation === "introspect") return ["requiredScopes"];
-  if (["revokeSession", "revokeApproval", "revokeDevice", "logoutAllDevices", "mandateInventory"].includes(operation)) return [];
+  if (["sessionInventory", "revokeSession", "revokeApproval", "revokeDevice", "logoutAllDevices", "mandateInventory"].includes(operation)) return [];
   if (operation === "activateMandate") return ["mandate"];
   if (operation === "authorizeMandateAction") return ["mandateId", "action"];
   if (operation === "revokeMandate" || operation === "killMandate") return ["mandateId"];

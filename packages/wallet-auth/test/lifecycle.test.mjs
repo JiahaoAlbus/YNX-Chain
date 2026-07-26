@@ -70,4 +70,34 @@ test("session, approval, device and all-device account revocation fail closed", 
   }
 });
 
+test("session inventory groups apps, approvals and devices without hiding revocation reasons", () => {
+  const store = new CentralWalletSessionStore();
+  const session = store.complete(completionInput(), NOW);
+  const active = store.inventory(session.account, NOW);
+  assert.equal(active.schemaVersion, 1);
+  assert.equal(active.account, session.account);
+  assert.equal(active.connectedApps.length, 1);
+  assert.equal(active.connectedApps[0].productClientId, session.productClientId);
+  assert.equal(active.connectedApps[0].active, true);
+  assert.deepEqual(active.connectedApps[0].sessionBindings, [session.sessionBinding]);
+  assert.deepEqual(active.approvals[0].activeSessionBindings, [session.sessionBinding]);
+  assert.equal(active.approvals[0].revoked, false);
+  assert.equal(active.devices[0].revoked, false);
+  assert.equal(active.sessions[0].active, true);
+  assert.deepEqual(active.sessions[0].inactiveReasons, []);
+  assert.equal(Object.isFrozen(active), true);
+  assert.equal(Object.isFrozen(active.sessions), true);
+  assert.equal(Object.isFrozen(active.sessions[0].inactiveReasons), true);
+
+  store.revokeApproval(session.approvalDigest, NOW);
+  store.revokeDevice(session.deviceBinding, NOW);
+  const inactive = new CentralWalletSessionStore(store.snapshot()).inventory(session.account, NOW);
+  assert.equal(inactive.connectedApps[0].active, false);
+  assert.equal(inactive.approvals[0].revoked, true);
+  assert.equal(inactive.devices[0].revoked, true);
+  assert.equal(inactive.sessions[0].active, false);
+  assert.deepEqual(inactive.sessions[0].inactiveReasons, ["approval-revoked", "device-revoked"]);
+  assert.deepEqual(new CentralWalletSessionStore().inventory(session.account, NOW).sessions, []);
+});
+
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
