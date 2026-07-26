@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	snapshotVersion                   = "ynx-governance-state/v4"
+	snapshotVersion                   = "ynx-governance-state/v5"
+	legacyDelegationSnapshotVersion   = "ynx-governance-state/v4"
 	legacySignedVoteSnapshotVersion   = "ynx-governance-state/v3"
 	legacyStateMachineSnapshotVersion = "ynx-governance-state/v2"
 	legacySnapshotVersion             = "ynx-governance-state/v1"
@@ -26,6 +27,7 @@ type snapshotPayload struct {
 	VoteNonces       []string          `json:"voteNonces"`
 	DelegationNonces []string          `json:"delegationNonces"`
 	Delegations      []Delegation      `json:"delegations"`
+	Timelocks        []TimelockRecord  `json:"timelocks"`
 	Proposals        []Proposal        `json:"proposals"`
 	Emergencies      []EmergencyAction `json:"emergencies"`
 	Roles            []RoleAssignment  `json:"roles"`
@@ -49,6 +51,9 @@ func (s *Service) Save(path string, now time.Time) error {
 	}
 	for _, history := range s.delegationHistory {
 		payload.Delegations = append(payload.Delegations, history...)
+	}
+	for _, record := range s.timelocks {
+		payload.Timelocks = append(payload.Timelocks, cloneTimelock(record))
 	}
 	for _, p := range s.proposals {
 		payload.Proposals = append(payload.Proposals, clone(p))
@@ -74,6 +79,7 @@ func (s *Service) Save(path string, now time.Time) error {
 		}
 		return payload.Delegations[i].AppliedAt.Before(payload.Delegations[j].AppliedAt)
 	})
+	sort.Slice(payload.Timelocks, func(i, j int) bool { return payload.Timelocks[i].ID < payload.Timelocks[j].ID })
 	sort.Slice(payload.Proposals, func(i, j int) bool { return payload.Proposals[i].ID < payload.Proposals[j].ID })
 	sort.Slice(payload.Emergencies, func(i, j int) bool { return payload.Emergencies[i].ID < payload.Emergencies[j].ID })
 	sort.Slice(payload.Roles, func(i, j int) bool { return payload.Roles[i].ID < payload.Roles[j].ID })
@@ -146,6 +152,9 @@ func Load(path string) (*Service, error) {
 	}
 	if envelope.Payload.Version == legacySignedVoteSnapshotVersion {
 		return nil, fmt.Errorf("%w: governance state v3 requires explicit persistent-delegation migration to v4", ErrForbidden)
+	}
+	if envelope.Payload.Version == legacyDelegationSnapshotVersion {
+		return nil, fmt.Errorf("%w: governance state v4 requires explicit first-class timelock migration to v5", ErrForbidden)
 	}
 	if envelope.Payload.Version != snapshotVersion {
 		return nil, fmt.Errorf("%w: unsupported governance snapshot version %q", ErrForbidden, envelope.Payload.Version)
@@ -223,6 +232,26 @@ func Load(path string) (*Service, error) {
 			return nil, fmt.Errorf("%w: delegation nonce missing from persisted registry", ErrForbidden)
 		}
 	}
+	for i := range envelope.Payload.Timelocks {
+		record := envelope.Payload.Timelocks[i]
+		proposal, exists := s.proposals[record.ProposalID]
+		if !exists {
+			return nil, fmt.Errorf("%w: timelock proposal missing", ErrForbidden)
+		}
+		if _, duplicate := s.timelocks[record.ProposalID]; duplicate {
+			return nil, ErrConflict
+		}
+		if err = validateStoredTimelock(&record, proposal, s.policy); err != nil {
+			return nil, err
+		}
+		s.timelocks[record.ProposalID] = &record
+	}
+	for _, proposal := range s.proposals {
+		_, hasTimelock := s.timelocks[proposal.ID]
+		if proposalReached(proposal, StatusTimelockPending) != hasTimelock {
+			return nil, fmt.Errorf("%w: proposal and persistent timelock records disagree", ErrForbidden)
+		}
+	}
 	for i := range envelope.Payload.Emergencies {
 		a := envelope.Payload.Emergencies[i]
 		if err = s.validateRestoredEmergency(&a); err != nil {
@@ -256,6 +285,15 @@ func Load(path string) (*Service, error) {
 				if !s.hasRoleAt(actor, RoleTechnicalCouncil, p.Input.Scope, approval.ApprovedAt) {
 					return nil, fmt.Errorf("%w: electorate approver role invalid", ErrForbidden)
 				}
+			}
+		}
+		if p.Cancellation != nil {
+			if proposalReached(p, StatusTimelockPending) {
+				if p.Cancellation.Actor != p.Input.Proposer && !s.hasRoleAt(p.Cancellation.Actor, RoleTechnicalCouncil, p.Input.Scope, p.Cancellation.CancelledAt) {
+					return nil, fmt.Errorf("%w: timelock cancellation actor role invalid", ErrForbidden)
+				}
+			} else if p.Cancellation.Actor != p.Input.Proposer {
+				return nil, fmt.Errorf("%w: pre-timelock cancellation actor invalid", ErrForbidden)
 			}
 		}
 	}
@@ -316,7 +354,7 @@ func validateRestoredProposal(p *Proposal, policy Policy) error {
 	if p.ID != hash("proposal", p.Input.Nonce, p.Input.Proposer, fingerprint) || p.ActionHash != expectedActionHash || p.Conflicts == nil || p.Votes == nil || p.VoteHistory == nil || p.VotingPower == nil || p.BasePower == nil || p.Delegations == nil || p.DelegatedPower == nil || p.DelegationOverrides == nil || p.CreatedAt.IsZero() || p.UpdatedAt.Before(p.CreatedAt) {
 		return fmt.Errorf("%w: invalid restored proposal", ErrForbidden)
 	}
-	if err := validateProposal(p.Input, p.CreatedAt, policy.MaxLifetime, policy.ParameterRules); err != nil {
+	if err := validateProposal(p.Input, p.CreatedAt, policy.VotingPeriod+policy.Timelock+policy.TimelockGrace, policy.MaxLifetime, policy.ParameterRules); err != nil {
 		return fmt.Errorf("%w: restored proposal input no longer satisfies canonical policy: %v", ErrForbidden, err)
 	}
 	if err := validateProposalTransitions(p); err != nil {
@@ -360,7 +398,7 @@ func validateRestoredProposal(p *Proposal, policy Policy) error {
 		return err
 	}
 	if proposalReached(p, StatusCancelled) {
-		if p.Cancellation == nil || p.Cancellation.Actor != p.Input.Proposer || p.Cancellation.AuditHash != hash(p.ID, p.Cancellation.Actor, p.Cancellation.Reason, p.Cancellation.CancelledAt.Format(time.RFC3339Nano), strings.Join(p.Cancellation.Evidence, "|")) {
+		if p.Cancellation == nil || strings.TrimSpace(p.Cancellation.Actor) == "" || p.Cancellation.AuditHash != hash(p.ID, p.Cancellation.Actor, p.Cancellation.Reason, p.Cancellation.CancelledAt.Format(time.RFC3339Nano), strings.Join(p.Cancellation.Evidence, "|")) {
 			return fmt.Errorf("%w: invalid cancellation audit", ErrForbidden)
 		}
 	} else if p.Cancellation != nil {

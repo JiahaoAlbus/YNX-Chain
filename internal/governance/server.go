@@ -81,6 +81,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /governance/proposals/{id}/deposit", s.protected("depositor", s.deposit))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/simulation", s.protected("technical_council", s.simulation))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/cancel", s.protected("proposer", s.cancelProposal))
+	s.mux.HandleFunc("POST /governance/proposals/{id}/timelock/cancel", s.protectedAny([]string{"proposer", "technical_council"}, s.cancelTimelock))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/conflicts", s.protected("participant", s.conflict))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/electorate", s.protected("technical_council", s.submitElectorate))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/electorate/approve", s.protected("technical_council", s.approveElectorate))
@@ -103,9 +104,17 @@ func (s *Server) routes() {
 }
 
 func (s *Server) protected(role string, next func(http.ResponseWriter, *http.Request, Principal)) http.HandlerFunc {
+	return s.protectedAny([]string{role}, next)
+}
+
+func (s *Server) protectedAny(roles []string, next func(http.ResponseWriter, *http.Request, Principal)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, err := s.auth.Authenticate(r)
-		if err != nil || p.Account == "" || p.Product != "governance" || p.DeviceID == "" || p.SessionID == "" || !p.Roles[role] {
+		authorizedRole := false
+		for _, role := range roles {
+			authorizedRole = authorizedRole || p.Roles[role]
+		}
+		if err != nil || p.Account == "" || p.Product != "governance" || p.DeviceID == "" || p.SessionID == "" || !authorizedRole {
 			writeError(w, http.StatusUnauthorized, "valid governance product session and scoped role required")
 			return
 		}
@@ -145,7 +154,7 @@ func (s *Server) listDelegations(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"delegations": s.service.PublicDelegations(), "electorateSnapshots": s.service.PublicElectorateDelegations(), "authority": "persistent_signed_delegation_registry"}, s.now())
 }
 func (s *Server) listTimelocks(w http.ResponseWriter, _ *http.Request) {
-	writeSource(w, http.StatusOK, map[string]any{"timelocks": s.service.PublicTimelocks()}, s.now())
+	writeSource(w, http.StatusOK, map[string]any{"timelocks": s.service.PublicTimelocks(s.now())}, s.now())
 }
 func (s *Server) listExecutions(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"executions": s.service.PublicExecutions()}, s.now())
@@ -329,6 +338,22 @@ func (s *Server) cancelProposal(w http.ResponseWriter, r *http.Request, p Princi
 		return
 	}
 	out, err := s.service.CancelProposal(r.PathValue("id"), p.Account, in.Reason, in.Evidence, s.now())
+	s.mutation(w, http.StatusOK, out, err)
+}
+
+func (s *Server) cancelTimelock(w http.ResponseWriter, r *http.Request, p Principal) {
+	if !s.authorizedProposal(w, r.PathValue("id"), p) {
+		return
+	}
+	var in struct {
+		ActionHash string   `json:"actionHash"`
+		Reason     string   `json:"reason"`
+		Evidence   []string `json:"evidence"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	out, err := s.service.CancelTimelock(r.PathValue("id"), in.ActionHash, p.Account, in.Reason, in.Evidence, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) conflict(w http.ResponseWriter, r *http.Request, p Principal) {

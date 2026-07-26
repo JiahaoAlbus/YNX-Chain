@@ -20,11 +20,11 @@ func TestPublicViewsAreDerivedFromCanonicalProposalState(t *testing.T) {
 	if p, err = s.Finalize(p.ID, p.VotingEndsAt); err != nil {
 		t.Fatal(err)
 	}
-	if len(s.PublicVotes()) != 1 || len(s.PublicElectorateDelegations()) != 1 || len(s.PublicTimelocks()) != 1 || len(s.PublicConflicts()) != 1 {
-		t.Fatalf("derived views missing: votes=%v delegations=%v timelocks=%v conflicts=%v", s.PublicVotes(), s.PublicElectorateDelegations(), s.PublicTimelocks(), s.PublicConflicts())
+	if len(s.PublicVotes()) != 1 || len(s.PublicElectorateDelegations()) != 1 || len(s.PublicTimelocks(p.ExecuteAfter)) != 1 || len(s.PublicConflicts()) != 1 {
+		t.Fatalf("derived views missing: votes=%v delegations=%v timelocks=%v conflicts=%v", s.PublicVotes(), s.PublicElectorateDelegations(), s.PublicTimelocks(p.ExecuteAfter), s.PublicConflicts())
 	}
-	timelock := s.PublicTimelocks()[0]
-	if timelock.ActionHash != p.ActionHash || timelock.EarliestExecution != p.ExecuteAfter || timelock.LatestExecution != p.Input.ExpiresAt || timelock.ExecutionAuthority != string(RoleExecutionOperator) {
+	timelock := s.PublicTimelocks(p.ExecuteAfter)[0]
+	if timelock.ActionHash != p.ActionHash || timelock.EarliestExecution != p.ExecuteAfter || timelock.LatestExecution != p.ExecuteAfter.Add(s.policy.TimelockGrace) || timelock.ExecutionAuthority != string(RoleExecutionOperator) || timelock.AuditHash == "" {
 		t.Fatalf("invalid timelock view: %+v", timelock)
 	}
 	if len(s.PublicExecutions()) != 0 {

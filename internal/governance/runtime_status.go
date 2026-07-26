@@ -114,21 +114,21 @@ func (s *Server) runtimeStatus() RuntimeStatus {
 	}
 	status.DegradedReasons = append(status.DegradedReasons, "chain_execution_not_integrated", "central_evidence_dependencies_pending")
 
-	proposals := s.service.ListProposals()
-	var lastVerified time.Time
-	for _, proposal := range proposals {
-		switch proposal.Status {
-		case StatusTimelockPending:
-			status.TimelockStatus["pending"]++
-		case StatusTimelockActive:
-			if now.Before(proposal.ExecuteAfter) {
+	for _, record := range s.service.ListTimelocks(now) {
+		switch record.Status {
+		case TimelockActive:
+			if now.Before(record.EarliestExecution) {
 				status.TimelockStatus["active"]++
 			} else {
 				status.TimelockStatus["elapsed"]++
 			}
-		case StatusExecutionReady:
-			status.TimelockStatus["execution_ready"]++
+		default:
+			status.TimelockStatus[string(record.Status)]++
 		}
+	}
+	proposals := s.service.ListProposals()
+	var lastVerified time.Time
+	for _, proposal := range proposals {
 		switch proposal.Status {
 		case StatusExecutionReady:
 			status.ExecutionQueue["ready"]++

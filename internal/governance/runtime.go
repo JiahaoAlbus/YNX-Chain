@@ -24,6 +24,7 @@ type RuntimePolicyConfig struct {
 	ThresholdBPS                uint64                   `json:"thresholdBps"`
 	VotingPeriod                string                   `json:"votingPeriod"`
 	Timelock                    string                   `json:"timelock"`
+	TimelockGrace               string                   `json:"timelockGrace"`
 	MaxLifetime                 string                   `json:"maxLifetime"`
 	EmergencyThreshold          uint64                   `json:"emergencyThreshold"`
 	EmergencyMaxDuration        string                   `json:"emergencyMaxDuration"`
@@ -68,6 +69,10 @@ func (cfg RuntimeConfig) PolicyValue() (Policy, error) {
 	if err != nil {
 		return Policy{}, ErrInvalid
 	}
+	timelockGrace, err := time.ParseDuration(cfg.Policy.TimelockGrace)
+	if err != nil {
+		return Policy{}, ErrInvalid
+	}
 	lifetime, err := time.ParseDuration(cfg.Policy.MaxLifetime)
 	if err != nil {
 		return Policy{}, ErrInvalid
@@ -76,14 +81,17 @@ func (cfg RuntimeConfig) PolicyValue() (Policy, error) {
 	if err != nil {
 		return Policy{}, ErrInvalid
 	}
-	return Policy{ChainID: cfg.Policy.ChainID, VoteDomain: cfg.Policy.VoteDomain, VoteReplacementPolicy: cfg.Policy.VoteReplacementPolicy, VoteWithdrawalPolicy: cfg.Policy.VoteWithdrawalPolicy, VoteMaxClockSkew: voteClockSkew, MinimumDeposit: cfg.Policy.MinimumDeposit, QuorumBPS: cfg.Policy.QuorumBPS, ThresholdBPS: cfg.Policy.ThresholdBPS, VotingPeriod: voting, Timelock: timelock, MaxLifetime: lifetime, EmergencyThreshold: cfg.Policy.EmergencyThreshold, EmergencyMaxDuration: emergency, ParameterRules: cfg.Policy.ParameterRules, GenesisRoleManifestHash: cfg.Policy.GenesisRoleManifestHash, ElectorateApprovalThreshold: cfg.Policy.ElectorateApprovalThreshold}, nil
+	return Policy{ChainID: cfg.Policy.ChainID, VoteDomain: cfg.Policy.VoteDomain, VoteReplacementPolicy: cfg.Policy.VoteReplacementPolicy, VoteWithdrawalPolicy: cfg.Policy.VoteWithdrawalPolicy, VoteMaxClockSkew: voteClockSkew, MinimumDeposit: cfg.Policy.MinimumDeposit, QuorumBPS: cfg.Policy.QuorumBPS, ThresholdBPS: cfg.Policy.ThresholdBPS, VotingPeriod: voting, Timelock: timelock, TimelockGrace: timelockGrace, MaxLifetime: lifetime, EmergencyThreshold: cfg.Policy.EmergencyThreshold, EmergencyMaxDuration: emergency, ParameterRules: cfg.Policy.ParameterRules, GenesisRoleManifestHash: cfg.Policy.GenesisRoleManifestHash, ElectorateApprovalThreshold: cfg.Policy.ElectorateApprovalThreshold}, nil
 }
 
 func ValidateRuntimeConfig(cfg RuntimeConfig) (Policy, []byte, error) {
 	if cfg.SchemaVersion == "ynx-governanced-config/v1" {
-		return Policy{}, nil, fmt.Errorf("%w: governance runtime config v1 requires signed-vote policy migration to v2", ErrForbidden)
+		return Policy{}, nil, fmt.Errorf("%w: governance runtime config v1 requires signed-vote policy migration", ErrForbidden)
 	}
-	if cfg.SchemaVersion != "ynx-governanced-config/v2" {
+	if cfg.SchemaVersion == "ynx-governanced-config/v2" {
+		return Policy{}, nil, fmt.Errorf("%w: governance runtime config v2 requires explicit timelock-grace migration to v3", ErrForbidden)
+	}
+	if cfg.SchemaVersion != "ynx-governanced-config/v3" {
 		return Policy{}, nil, fmt.Errorf("%w: unsupported runtime config version", ErrInvalid)
 	}
 	host, _, err := net.SplitHostPort(cfg.HTTPAddress)

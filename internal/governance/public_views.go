@@ -43,15 +43,18 @@ type PublicDelegationRecord struct {
 }
 
 type PublicTimelockRecord struct {
-	TimelockID         string    `json:"timelockId"`
-	ProposalID         string    `json:"proposalId"`
-	ActionHash         string    `json:"actionHash"`
-	Status             Status    `json:"status"`
-	EarliestExecution  time.Time `json:"earliestExecution"`
-	LatestExecution    time.Time `json:"latestExecution"`
-	GracePeriod        string    `json:"gracePeriod"`
-	ExecutionAuthority string    `json:"executionAuthority"`
-	PublicNotice       string    `json:"publicNotice"`
+	TimelockID         string         `json:"timelockId"`
+	ProposalID         string         `json:"proposalId"`
+	ActionHash         string         `json:"actionHash"`
+	Status             TimelockStatus `json:"status"`
+	ProposalStatus     Status         `json:"proposalStatus"`
+	EarliestExecution  time.Time      `json:"earliestExecution"`
+	LatestExecution    time.Time      `json:"latestExecution"`
+	GracePeriod        string         `json:"gracePeriod"`
+	ExecutionAuthority string         `json:"executionAuthority"`
+	PublicNotice       string         `json:"publicNotice"`
+	NoticeEvidence     []string       `json:"noticeEvidence"`
+	AuditHash          string         `json:"auditHash"`
 }
 
 type PublicExecutionRecord struct {
@@ -151,23 +154,20 @@ func (s *Service) PublicElectorateDelegations() []PublicDelegationRecord {
 	return out
 }
 
-func (s *Service) PublicTimelocks() []PublicTimelockRecord {
-	proposals := s.ListProposals()
+func (s *Service) PublicTimelocks(now time.Time) []PublicTimelockRecord {
+	records := s.ListTimelocks(now)
 	out := []PublicTimelockRecord{}
-	for _, proposal := range proposals {
-		if !proposalReached(&proposal, StatusTimelockPending) {
+	for _, record := range records {
+		proposal, err := s.Get(record.ProposalID)
+		if err != nil {
 			continue
 		}
-		grace := time.Duration(0)
-		if !proposal.ExecuteAfter.IsZero() && proposal.Input.ExpiresAt.After(proposal.ExecuteAfter) {
-			grace = proposal.Input.ExpiresAt.Sub(proposal.ExecuteAfter)
-		}
 		out = append(out, PublicTimelockRecord{
-			TimelockID: hash("timelock", proposal.ID, proposal.ActionHash), ProposalID: proposal.ID,
-			ActionHash: proposal.ActionHash, Status: proposal.Status, EarliestExecution: proposal.ExecuteAfter,
-			LatestExecution: proposal.Input.ExpiresAt, GracePeriod: grace.String(),
+			TimelockID: record.ID, ProposalID: proposal.ID,
+			ActionHash: record.ActionHash, Status: record.Status, ProposalStatus: proposal.Status, EarliestExecution: record.EarliestExecution,
+			LatestExecution: record.GraceEndsAt, GracePeriod: record.GraceEndsAt.Sub(record.EarliestExecution).String(),
 			ExecutionAuthority: string(RoleExecutionOperator),
-			PublicNotice:       "Approved action remains unapplied until the exact action hash reaches execution-ready status.",
+			PublicNotice:       record.PublicNotice, NoticeEvidence: append([]string(nil), record.NoticeEvidence...), AuditHash: record.AuditHash,
 		})
 	}
 	return out
@@ -244,6 +244,14 @@ func (s *Service) PublicAudit() []PublicAuditRecord {
 			Evidence: []string{"delegate://" + delegation.Delegate, "signature://ed25519/" + delegation.Signature, "nonce://" + delegation.Nonce},
 			At:       delegation.AppliedAt,
 		})
+	}
+	for _, timelock := range s.ListTimelocks(time.Time{}) {
+		for _, transition := range timelock.Transitions {
+			out = append(out, PublicAuditRecord{
+				AuditID: transition.AuditHash, RecordType: "timelock_transition", ProposalID: timelock.ProposalID,
+				Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At,
+			})
+		}
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].At.Equal(out[j].At) {

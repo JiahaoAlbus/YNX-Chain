@@ -18,7 +18,7 @@ func testService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
+	s, err := NewService(Policy{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: 2 * time.Minute, MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: time.Hour, Timelock: 2 * time.Hour, TimelockGrace: 6 * time.Hour, MaxLifetime: 30 * 24 * time.Hour, EmergencyThreshold: 3, EmergencyMaxDuration: 24 * time.Hour, ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2})
 	if err != nil {
 		t.Fatal(err)
 	}

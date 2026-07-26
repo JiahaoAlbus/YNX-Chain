@@ -22,7 +22,7 @@ func runtimeFixture(t *testing.T) (RuntimeConfig, time.Time) {
 	if err := os.WriteFile(keyPath, []byte(hex.EncodeToString([]byte(strings.Repeat("k", 32)))), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return RuntimeConfig{SchemaVersion: "ynx-governanced-config/v2", HTTPAddress: "127.0.0.1:6441", StatePath: filepath.Join(dir, "state.json"), GatewayKeyPath: keyPath, Policy: RuntimePolicyConfig{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: "2m", MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: "1h", Timelock: "2h", MaxLifetime: "720h", EmergencyThreshold: 3, EmergencyMaxDuration: "24h", ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2}, GenesisRoles: roles}, now
+	return RuntimeConfig{SchemaVersion: "ynx-governanced-config/v3", HTTPAddress: "127.0.0.1:6441", StatePath: filepath.Join(dir, "state.json"), GatewayKeyPath: keyPath, Policy: RuntimePolicyConfig{ChainID: "ynx-governance-testnet-1", VoteDomain: "ynx-governance.vote.v1", VoteReplacementPolicy: "replace_before_deadline", VoteWithdrawalPolicy: "withdraw_before_deadline", VoteMaxClockSkew: "2m", MinimumDeposit: 100, QuorumBPS: 5000, ThresholdBPS: 6667, VotingPeriod: "1h", Timelock: "2h", TimelockGrace: "6h", MaxLifetime: "720h", EmergencyThreshold: 3, EmergencyMaxDuration: "24h", ParameterRules: map[string]ParameterRule{"/bridge/dailyLimit": {Scope: ScopeBridge, Numeric: true, Minimum: 10, Maximum: 100}}, GenesisRoleManifestHash: manifest, ElectorateApprovalThreshold: 2}, GenesisRoles: roles}, now
 }
 
 func TestRuntimeInitializesRestoresAndRejectsUnsafeConfig(t *testing.T) {
@@ -50,5 +50,14 @@ func TestRuntimeInitializesRestoresAndRejectsUnsafeConfig(t *testing.T) {
 	cfg.HTTPAddress = "0.0.0.0:6441"
 	if _, _, err = OpenRuntime(cfg, now); err == nil {
 		t.Fatal("public bind accepted")
+	}
+}
+
+func TestRuntimeRejectsV2WithoutExplicitTimelockGraceMigration(t *testing.T) {
+	cfg, _ := runtimeFixture(t)
+	cfg.SchemaVersion = "ynx-governanced-config/v2"
+	cfg.Policy.TimelockGrace = ""
+	if _, _, err := ValidateRuntimeConfig(cfg); err == nil || !strings.Contains(err.Error(), "timelock-grace migration") {
+		t.Fatalf("legacy runtime config accepted: %v", err)
 	}
 }
