@@ -31,6 +31,7 @@ func main() {
 	natsKey := flag.String("nats-key", os.Getenv("YNX_DATA_FABRIC_NATS_KEY_FILE"), "absolute NATS TLS client key path")
 	natsReplicas := flag.Int("nats-replicas", 3, "JetStream replica count")
 	batchSize := flag.Int("batch-size", 100, "Outbox records per dispatch cycle")
+	sagaTimeoutBatch := flag.Int("saga-timeout-batch", 100, "expired Sagas transitioned per worker cycle")
 	interval := flag.Duration("interval", 250*time.Millisecond, "dispatch interval")
 	lease := flag.Duration("lease", 30*time.Second, "Outbox lease duration")
 	flag.Parse()
@@ -38,8 +39,8 @@ func main() {
 	if strings.TrimSpace(*dispatcherID) == "" || len(*dispatcherID) > 128 {
 		fail("dispatcher-id is required and must not exceed 128 bytes")
 	}
-	if *batchSize <= 0 || *batchSize > 1000 || *interval <= 0 || *lease <= 0 {
-		fail("batch-size must be 1..1000 and interval/lease must be positive")
+	if *batchSize <= 0 || *batchSize > 1000 || *sagaTimeoutBatch <= 0 || *sagaTimeoutBatch > 1000 || *interval <= 0 || *lease <= 0 {
+		fail("batch-size and saga-timeout-batch must be 1..1000 and interval/lease must be positive")
 	}
 	if !strings.HasPrefix(*natsURL, "tls://") {
 		fail("production NATS URL must use tls://")
@@ -90,13 +91,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	slog.Info("YNX Data Fabric PostgreSQL Outbox worker started", "dispatcherId", *dispatcherID, "batchSize", *batchSize)
-	if err := run(ctx, dispatcher, *interval); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(ctx, dispatcher, store, *interval, *sagaTimeoutBatch); err != nil && !errors.Is(err, context.Canceled) {
 		fail(err.Error())
 	}
 	slog.Info("YNX Data Fabric PostgreSQL Outbox worker stopped", "dispatcherId", *dispatcherID)
 }
 
-func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, interval time.Duration) error {
+func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, store *datafabricpostgres.Store, interval time.Duration, sagaTimeoutBatch int) error {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -104,6 +105,12 @@ func run(ctx context.Context, dispatcher datafabricpostgres.Dispatcher, interval
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
+			expired, err := store.ExpireSagas(ctx, time.Now().UTC(), sagaTimeoutBatch)
+			if err != nil {
+				slog.Error("Saga timeout cycle failed", "error", err)
+			} else if len(expired) > 0 {
+				slog.Info("Saga timeout cycle", "expired", len(expired))
+			}
 			report, err := dispatcher.DispatchOnce(ctx)
 			if err != nil {
 				slog.Error("Outbox dispatch cycle failed", "error", err)

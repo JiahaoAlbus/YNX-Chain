@@ -23,7 +23,8 @@ type Repository interface {
 	Sagas(context.Context) ([]datafabric.SagaInstance, error)
 	CompleteSagaStep(context.Context, string, string, time.Time) error
 	FailSaga(context.Context, string, string, time.Time) error
-	CompleteSagaCompensation(context.Context, string, string, time.Time) error
+	ClaimSagaRecoveries(context.Context, string, string, time.Time, time.Duration, int) ([]datafabric.SagaRecoveryTask, error)
+	CompleteSagaRecovery(context.Context, string, string, string, string, time.Time) error
 	RequireSagaManualRecovery(context.Context, string, string, time.Time) error
 	ReconcileJournal(context.Context, string, string, string, string, string, []string, []datafabric.SettlementObservation, time.Time) (datafabric.ReconciliationRun, error)
 	Reconciliations(context.Context) ([]datafabric.ReconciliationRun, error)
@@ -76,8 +77,11 @@ func (r LocalRepository) CompleteSagaStep(_ context.Context, id, eventID string,
 func (r LocalRepository) FailSaga(_ context.Context, id, reason string, at time.Time) error {
 	return r.Store.FailSaga(id, reason, at)
 }
-func (r LocalRepository) CompleteSagaCompensation(_ context.Context, id, eventID string, at time.Time) error {
-	return r.Store.CompleteSagaCompensation(id, eventID, at)
+func (r LocalRepository) ClaimSagaRecoveries(_ context.Context, product, owner string, now time.Time, lease time.Duration, limit int) ([]datafabric.SagaRecoveryTask, error) {
+	return r.Store.ClaimSagaRecoveries(product, owner, now, lease, limit)
+}
+func (r LocalRepository) CompleteSagaRecovery(_ context.Context, id, taskID, owner, eventID string, at time.Time) error {
+	return r.Store.CompleteSagaRecovery(id, taskID, owner, eventID, at)
 }
 func (r LocalRepository) RequireSagaManualRecovery(_ context.Context, id, reason string, at time.Time) error {
 	return r.Store.RequireSagaManualRecovery(id, reason, at)

@@ -120,6 +120,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/sagas/{id}", s.authorize("fabric.sagas.read", s.getSaga))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/steps", s.authorize("fabric.sagas.write", s.completeSagaStep))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/fail", s.authorize("fabric.sagas.write", s.failSaga))
+	s.mux.HandleFunc("POST /v1/sagas/recovery/claims", s.authorize("fabric.sagas.recover", s.claimSagaRecoveries))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/compensations", s.authorize("fabric.sagas.write", s.completeSagaCompensation))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/manual-recovery", s.authorize("fabric.sagas.recover", s.manualSagaRecovery))
 	s.mux.HandleFunc("POST /v1/reconciliations", s.authorize("fabric.reconciliation.write", s.reconcile))
@@ -644,6 +645,17 @@ type sagaFailureRequest struct {
 	Reason string `json:"reason"`
 }
 
+type sagaRecoveryClaimRequest struct {
+	LeaseSeconds uint32 `json:"leaseSeconds"`
+	Limit        int    `json:"limit"`
+}
+
+type sagaRecoveryCompletionRequest struct {
+	TaskID     string `json:"taskId"`
+	LeaseOwner string `json:"leaseOwner"`
+	EventID    string `json:"eventId"`
+}
+
 func (s *Server) startSaga(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[startSagaRequest](w, r, s.cfg.MaxBodyBytes)
 	if err != nil {
@@ -669,7 +681,7 @@ func (s *Server) startSaga(w http.ResponseWriter, r *http.Request, principal Pri
 
 func (s *Server) completeSagaStep(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[sagaEventRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal.Product)
+	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal.Product)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -705,9 +717,24 @@ func (s *Server) failSaga(w http.ResponseWriter, r *http.Request, principal Prin
 	writeJSON(w, http.StatusOK, instance)
 }
 
+func (s *Server) claimSagaRecoveries(w http.ResponseWriter, r *http.Request, principal Principal) {
+	input, err := decodeStrict[sagaRecoveryClaimRequest](w, r, s.cfg.MaxBodyBytes)
+	if err != nil || input.LeaseSeconds < 5 || input.LeaseSeconds > 900 || input.Limit <= 0 || input.Limit > 200 {
+		s.writeError(w, http.StatusBadRequest, "invalid_saga_recovery_claim", "Saga recovery claim is invalid")
+		return
+	}
+	now := time.Now().UTC()
+	tasks, err := s.repo.ClaimSagaRecoveries(r.Context(), principal.Product, principal.DeviceID, now, time.Duration(input.LeaseSeconds)*time.Second, input.Limit)
+	if err != nil {
+		s.writeError(w, http.StatusConflict, "saga_recovery_claim_rejected", "Saga recovery claim was rejected by the authoritative repository")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tasks": tasks, "source": "ynx-saga-recovery", "asOf": now, "version": s.cfg.SourceRelease, "status": "authoritative"})
+}
+
 func (s *Server) completeSagaCompensation(w http.ResponseWriter, r *http.Request, principal Principal) {
-	input, err := decodeStrict[sagaEventRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal.Product)
+	input, err := decodeStrict[sagaRecoveryCompletionRequest](w, r, s.cfg.MaxBodyBytes)
+	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal.Product)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -716,8 +743,17 @@ func (s *Server) completeSagaCompensation(w http.ResponseWriter, r *http.Request
 		s.writeError(w, http.StatusForbidden, "saga_compensation_rejected", "Saga request or authority is invalid")
 		return
 	}
-	if err := s.repo.CompleteSagaCompensation(r.Context(), r.PathValue("id"), input.EventID, time.Now().UTC()); err != nil {
-		s.writeError(w, http.StatusConflict, "saga_compensation_rejected", "Saga compensation was rejected by the authoritative repository")
+	if input.LeaseOwner != principal.DeviceID {
+		s.writeError(w, http.StatusForbidden, "saga_compensation_rejected", "Saga recovery lease belongs to another canonical device")
+		return
+	}
+	if err := s.repo.CompleteSagaRecovery(r.Context(), r.PathValue("id"), input.TaskID, principal.DeviceID, input.EventID, time.Now().UTC()); err != nil {
+		code := datafabric.ErrorCodeOf(err)
+		if code == "" {
+			s.writeError(w, http.StatusConflict, "saga_compensation_rejected", "Saga compensation was rejected by the authoritative repository")
+			return
+		}
+		s.writeError(w, http.StatusConflict, string(code), "Saga compensation was rejected by the authoritative repository")
 		return
 	}
 	instance, _, _ := s.repo.Saga(r.Context(), r.PathValue("id"))
@@ -746,6 +782,18 @@ func (s *Server) manualSagaRecovery(w http.ResponseWriter, r *http.Request, prin
 func (s *Server) authorizedSaga(ctx context.Context, id, product string) (bool, error) {
 	instance, exists, err := s.repo.Saga(ctx, id)
 	return exists && instance.Product == product, err
+}
+
+func (s *Server) authorizedSagaEvent(ctx context.Context, sagaID, eventID, product string) (bool, error) {
+	instance, exists, err := s.repo.Saga(ctx, sagaID)
+	if err != nil || !exists || instance.Product != product {
+		return false, err
+	}
+	event, eventExists, err := s.repo.Event(ctx, eventID)
+	if err != nil {
+		return false, err
+	}
+	return eventExists && event.Product == product && event.CorrelationID == instance.CorrelationID, nil
 }
 
 type reconcileRequest struct {

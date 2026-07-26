@@ -128,6 +128,43 @@ func TestClientBindsAndValidatesJournalCorrection(t *testing.T) {
 	}
 }
 
+func TestClientClaimsAndCompletesSagaRecovery(t *testing.T) {
+	now := time.Now().UTC()
+	task := SagaRecoveryTask{
+		TaskID: "saga-recovery.0123456789abcdef0123456789abcdef", SagaID: "saga.pay.sdk.recovery.0001",
+		Product: "pay", AggregateID: "invoice.sdk.recovery.0001", CorrelationID: "correlation.sdk.recovery.0001",
+		StepIndex: 0, Compensation: "void-authorization", Failure: "timeout", AuditID: "audit.sdk.recovery.0001",
+		LeaseOwner: "worker.pay.sdk.0001", LeaseUntil: now.Add(time.Minute), Attempt: 1,
+	}
+	var calls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		switch r.URL.Path {
+		case "/v1/sagas/recovery/claims":
+			_ = json.NewEncoder(w).Encode(SagaRecoveryClaimResult{Tasks: []SagaRecoveryTask{task}, Source: "ynx-saga-recovery", AsOf: now, Version: "data-fabric-testnet-v0", Status: "authoritative"})
+		case "/v1/sagas/" + task.SagaID + "/compensations":
+			_ = json.NewEncoder(w).Encode(SagaInstance{SagaID: task.SagaID, Product: task.Product, Status: SagaCompensated})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	provider := testCredentialProvider{t: t, expectedPath: "/v1/sagas/recovery/claims"}
+	client, err := NewClient(server.URL, server.Client(), provider)
+	if err != nil {
+		t.Fatal(err)
+	}
+	claimed, err := client.ClaimSagaRecoveries(context.Background(), 60, 10)
+	if err != nil || len(claimed.Tasks) != 1 {
+		t.Fatalf("SDK Saga recovery claim failed: %+v %v", claimed, err)
+	}
+	client.credentials = testCredentialProvider{t: t, expectedPath: "/v1/sagas/" + task.SagaID + "/compensations"}
+	instance, err := client.CompleteSagaRecovery(context.Background(), claimed.Tasks[0], "event.pay.sdk.voided.0001")
+	if err != nil || instance.Status != SagaCompensated || calls != 2 {
+		t.Fatalf("SDK Saga recovery completion failed: %+v %v", instance, err)
+	}
+}
+
 func TestClientRejectsInsecureRemoteEndpoint(t *testing.T) {
 	if _, err := NewClient("http://data-fabric.invalid", nil, testCredentialProvider{t: t}); err == nil {
 		t.Fatal("insecure remote endpoint was accepted")

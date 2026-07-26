@@ -356,6 +356,34 @@ func TestProductIsolationSagaRecoveryAndAuditExport(t *testing.T) {
 	if err := store.Append(event, apiTestKey); err != nil {
 		t.Fatal(err)
 	}
+	authorizationEvent := event
+	authorizationEvent.EventID = "event.pay.authorization.0001"
+	authorizationEvent.EventType = "pay.invoice.authorized"
+	authorizationEvent.Sequence = 2
+	authorizationEvent.Timestamp = event.Timestamp.Add(time.Second)
+	authorizationEvent.EffectiveAt = authorizationEvent.Timestamp
+	authorizationEvent.Source.AsOf = authorizationEvent.Timestamp
+	authorizationEvent.Payload = json.RawMessage(`{"status":"authorized"}`)
+	if err := authorizationEvent.Sign("key.datafabric.0001", apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Append(authorizationEvent, apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	compensationEvent := event
+	compensationEvent.EventID = "event.pay.authorization.voided.0001"
+	compensationEvent.EventType = "pay.refund.completed"
+	compensationEvent.Sequence = 3
+	compensationEvent.Timestamp = event.Timestamp.Add(2 * time.Second)
+	compensationEvent.EffectiveAt = compensationEvent.Timestamp
+	compensationEvent.Source.AsOf = compensationEvent.Timestamp
+	compensationEvent.Payload = json.RawMessage(`{"status":"voided"}`)
+	if err := compensationEvent.Sign("key.datafabric.0001", apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Append(compensationEvent, apiTestKey); err != nil {
+		t.Fatal(err)
+	}
 
 	response := httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodGet, "/v1/events", nil, "shop"))
@@ -371,7 +399,13 @@ func TestProductIsolationSagaRecoveryAndAuditExport(t *testing.T) {
 		t.Fatalf("saga start failed: %d %s", response.Code, response.Body.String())
 	}
 
-	step, _ := json.Marshal(map[string]string{"eventId": "event.pay.authorization.0001"})
+	missingStep, _ := json.Marshal(map[string]string{"eventId": "event.pay.authorization.missing.0001"})
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/sagas/saga.pay.api.0001/steps", missingStep, "pay"))
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("Saga accepted a missing canonical event: %d %s", response.Code, response.Body.String())
+	}
+	step, _ := json.Marshal(map[string]string{"eventId": authorizationEvent.EventID})
 	response = httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/sagas/saga.pay.api.0001/steps", step, "pay"))
 	if response.Code != http.StatusOK {
@@ -383,7 +417,19 @@ func TestProductIsolationSagaRecoveryAndAuditExport(t *testing.T) {
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"status":"compensating"`) {
 		t.Fatalf("saga fail failed: %d %s", response.Code, response.Body.String())
 	}
-	compensation, _ := json.Marshal(map[string]string{"eventId": "event.pay.authorization.voided.0001"})
+	claim, _ := json.Marshal(map[string]any{"leaseSeconds": 60, "limit": 10})
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/sagas/recovery/claims", claim, "pay"))
+	var claimed struct {
+		Tasks []datafabric.SagaRecoveryTask `json:"tasks"`
+	}
+	if response.Code != http.StatusOK {
+		t.Fatalf("Saga recovery claim failed: %d %s", response.Code, response.Body.String())
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &claimed); err != nil || len(claimed.Tasks) != 1 || claimed.Tasks[0].Compensation != "void-authorization" {
+		t.Fatalf("Saga recovery task is invalid: %+v err=%v", claimed, err)
+	}
+	compensation, _ := json.Marshal(map[string]string{"taskId": claimed.Tasks[0].TaskID, "leaseOwner": claimed.Tasks[0].LeaseOwner, "eventId": compensationEvent.EventID})
 	response = httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/sagas/saga.pay.api.0001/compensations", compensation, "pay"))
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"status":"compensated"`) {

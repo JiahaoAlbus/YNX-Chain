@@ -129,6 +129,57 @@ func (c *Client) CorrectJournal(ctx context.Context, correction JournalEntry) (J
 	return result, nil
 }
 
+type SagaRecoveryClaimResult struct {
+	Tasks   []SagaRecoveryTask `json:"tasks"`
+	Source  string             `json:"source"`
+	AsOf    time.Time          `json:"asOf"`
+	Version string             `json:"version"`
+	Status  string             `json:"status"`
+}
+
+func (c *Client) ClaimSagaRecoveries(ctx context.Context, leaseSeconds uint32, limit int) (SagaRecoveryClaimResult, error) {
+	body, err := json.Marshal(struct {
+		LeaseSeconds uint32 `json:"leaseSeconds"`
+		Limit        int    `json:"limit"`
+	}{LeaseSeconds: leaseSeconds, Limit: limit})
+	if err != nil {
+		return SagaRecoveryClaimResult{}, err
+	}
+	var result SagaRecoveryClaimResult
+	if err := c.do(ctx, http.MethodPost, "/v1/sagas/recovery/claims", body, &result); err != nil {
+		return SagaRecoveryClaimResult{}, err
+	}
+	if result.Source != "ynx-saga-recovery" || result.Status != "authoritative" || result.AsOf.IsZero() || result.Version == "" {
+		return SagaRecoveryClaimResult{}, errors.New("Data Fabric returned incomplete Saga recovery source metadata")
+	}
+	for _, task := range result.Tasks {
+		if task.TaskID == "" || task.SagaID == "" || task.LeaseOwner == "" || task.LeaseUntil.IsZero() || task.Compensation == "" {
+			return SagaRecoveryClaimResult{}, errors.New("Data Fabric returned an invalid Saga recovery task")
+		}
+	}
+	return result, nil
+}
+
+func (c *Client) CompleteSagaRecovery(ctx context.Context, task SagaRecoveryTask, eventID string) (SagaInstance, error) {
+	body, err := json.Marshal(struct {
+		TaskID     string `json:"taskId"`
+		LeaseOwner string `json:"leaseOwner"`
+		EventID    string `json:"eventId"`
+	}{TaskID: task.TaskID, LeaseOwner: task.LeaseOwner, EventID: eventID})
+	if err != nil {
+		return SagaInstance{}, err
+	}
+	path := "/v1/sagas/" + url.PathEscape(task.SagaID) + "/compensations"
+	var instance SagaInstance
+	if err := c.do(ctx, http.MethodPost, path, body, &instance); err != nil {
+		return SagaInstance{}, err
+	}
+	if instance.SagaID != task.SagaID || instance.Product != task.Product || (instance.Status != SagaCompensating && instance.Status != SagaCompensated) {
+		return SagaInstance{}, errors.New("Data Fabric returned an inconsistent Saga recovery completion")
+	}
+	return instance, nil
+}
+
 type RedeliveryPreviewRequest struct {
 	EventType     string     `json:"eventType,omitempty"`
 	AggregateType string     `json:"aggregateType,omitempty"`

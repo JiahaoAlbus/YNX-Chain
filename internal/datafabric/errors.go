@@ -42,6 +42,11 @@ const (
 	CodeLedgerCorrectionTargetMissing ErrorCode = "DF_LEDGER_CORRECTION_TARGET_MISSING_V1"
 	CodeLedgerReversalMismatch        ErrorCode = "DF_LEDGER_REVERSAL_MISMATCH_V1"
 	CodeLedgerDuplicateReversal       ErrorCode = "DF_LEDGER_DUPLICATE_REVERSAL_V1"
+	CodeSagaRecoveryLeaseConflict     ErrorCode = "DF_SAGA_RECOVERY_LEASE_CONFLICT_V1"
+	CodeSagaRecoveryTaskMismatch      ErrorCode = "DF_SAGA_RECOVERY_TASK_MISMATCH_V1"
+	CodeSagaRecoveryLeaseExpired      ErrorCode = "DF_SAGA_RECOVERY_LEASE_EXPIRED_V1"
+	CodeSagaEventAuthorityMismatch    ErrorCode = "DF_SAGA_EVENT_AUTHORITY_MISMATCH_V1"
+	CodeSagaRecoveryRouteRequired     ErrorCode = "DF_SAGA_RECOVERY_ROUTE_REQUIRED_V1"
 )
 
 // RejectionError carries the stable code plus bounded evidence suitable for an

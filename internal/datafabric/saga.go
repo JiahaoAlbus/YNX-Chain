@@ -1,6 +1,7 @@
 package datafabric
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -72,19 +73,43 @@ type SagaStep struct {
 }
 
 type SagaInstance struct {
-	SagaID            string     `json:"sagaId"`
-	Kind              SagaKind   `json:"kind"`
-	Product           string     `json:"product"`
-	AggregateID       string     `json:"aggregateId"`
-	CorrelationID     string     `json:"correlationId"`
-	Status            SagaStatus `json:"status"`
-	UserVisibleStatus string     `json:"userVisibleStatus"`
-	CreatedAt         time.Time  `json:"createdAt"`
-	UpdatedAt         time.Time  `json:"updatedAt"`
-	Deadline          time.Time  `json:"deadline"`
-	AuditID           string     `json:"auditId"`
-	Failure           string     `json:"failure,omitempty"`
-	Steps             []SagaStep `json:"steps"`
+	SagaID            string             `json:"sagaId"`
+	Kind              SagaKind           `json:"kind"`
+	Product           string             `json:"product"`
+	AggregateID       string             `json:"aggregateId"`
+	CorrelationID     string             `json:"correlationId"`
+	Status            SagaStatus         `json:"status"`
+	UserVisibleStatus string             `json:"userVisibleStatus"`
+	CreatedAt         time.Time          `json:"createdAt"`
+	UpdatedAt         time.Time          `json:"updatedAt"`
+	Deadline          time.Time          `json:"deadline"`
+	AuditID           string             `json:"auditId"`
+	Failure           string             `json:"failure,omitempty"`
+	Steps             []SagaStep         `json:"steps"`
+	RecoveryLease     *SagaRecoveryLease `json:"recoveryLease,omitempty"`
+	RecoveryAttempt   uint32             `json:"recoveryAttempt,omitempty"`
+}
+
+type SagaRecoveryLease struct {
+	TaskID     string    `json:"taskId"`
+	Owner      string    `json:"owner"`
+	AcquiredAt time.Time `json:"acquiredAt"`
+	ExpiresAt  time.Time `json:"expiresAt"`
+}
+
+type SagaRecoveryTask struct {
+	TaskID        string    `json:"taskId"`
+	SagaID        string    `json:"sagaId"`
+	Product       string    `json:"product"`
+	AggregateID   string    `json:"aggregateId"`
+	CorrelationID string    `json:"correlationId"`
+	StepIndex     int       `json:"stepIndex"`
+	Compensation  string    `json:"compensation"`
+	Failure       string    `json:"failure"`
+	AuditID       string    `json:"auditId"`
+	LeaseOwner    string    `json:"leaseOwner"`
+	LeaseUntil    time.Time `json:"leaseUntil"`
+	Attempt       uint32    `json:"attempt"`
 }
 
 func NewSaga(id string, kind SagaKind, aggregateID, correlationID, auditID string, now, deadline time.Time) (SagaInstance, error) {
@@ -103,6 +128,22 @@ func NewSaga(id string, kind SagaKind, aggregateID, correlationID, auditID strin
 		steps[i] = SagaStep{Action: step.Action, Compensation: step.Compensation}
 	}
 	return SagaInstance{SagaID: id, Kind: kind, Product: sagaProducts[kind], AggregateID: aggregateID, CorrelationID: correlationID, AuditID: auditID, Status: SagaRunning, UserVisibleStatus: "processing", CreatedAt: now, UpdatedAt: now, Deadline: deadline, Steps: steps}, nil
+}
+
+func ValidateInitialSaga(instance SagaInstance) error {
+	expected, err := NewSaga(instance.SagaID, instance.Kind, instance.AggregateID, instance.CorrelationID, instance.AuditID, instance.CreatedAt, instance.Deadline)
+	if err != nil {
+		return err
+	}
+	if instance.Product != expected.Product || instance.Status != expected.Status || instance.UserVisibleStatus != expected.UserVisibleStatus || !instance.UpdatedAt.Equal(instance.CreatedAt) || instance.Failure != "" || instance.RecoveryLease != nil || instance.RecoveryAttempt != 0 || len(instance.Steps) != len(expected.Steps) {
+		return errors.New("Saga initial state is not canonical")
+	}
+	for index := range expected.Steps {
+		if instance.Steps[index] != expected.Steps[index] {
+			return errors.New("Saga steps do not match the canonical definition")
+		}
+	}
+	return nil
 }
 
 func (s *SagaInstance) CompleteStep(eventID string, at time.Time) error {
@@ -145,7 +186,7 @@ func (s *SagaInstance) CompleteCompensation(eventID string, at time.Time) error 
 			if !idPattern.MatchString(eventID) {
 				return errors.New("compensation eventId is invalid")
 			}
-			step.CompensatedAt, step.CompensationID, s.UpdatedAt = at.UTC(), eventID, at.UTC()
+			step.CompensatedAt, step.CompensationID, s.UpdatedAt, s.RecoveryLease = at.UTC(), eventID, at.UTC(), nil
 			for j := i - 1; j >= 0; j-- {
 				if !s.Steps[j].CompletedAt.IsZero() && s.Steps[j].CompensatedAt.IsZero() {
 					return nil
@@ -155,7 +196,7 @@ func (s *SagaInstance) CompleteCompensation(eventID string, at time.Time) error 
 			return nil
 		}
 	}
-	s.Status, s.UserVisibleStatus, s.UpdatedAt = SagaCompensated, "recovered", at.UTC()
+	s.Status, s.UserVisibleStatus, s.UpdatedAt, s.RecoveryLease = SagaCompensated, "recovered", at.UTC(), nil
 	return nil
 }
 
@@ -163,8 +204,74 @@ func (s *SagaInstance) RequireManualRecovery(reason string, at time.Time) error 
 	if s.Status != SagaCompensating || reason == "" {
 		return errors.New("manual recovery requires a compensating saga and reason")
 	}
-	s.Status, s.UserVisibleStatus, s.Failure, s.UpdatedAt = SagaManualRecovery, "action-required", reason, at.UTC()
+	s.Status, s.UserVisibleStatus, s.Failure, s.UpdatedAt, s.RecoveryLease = SagaManualRecovery, "action-required", reason, at.UTC(), nil
 	return nil
+}
+
+func (s *SagaInstance) ClaimRecovery(owner string, at, leaseUntil time.Time) (SagaRecoveryTask, bool, error) {
+	if s.Status != SagaCompensating {
+		return SagaRecoveryTask{}, false, errors.New("saga is not compensating")
+	}
+	if !idPattern.MatchString(owner) || at.IsZero() || at.Location() != time.UTC || at.Before(s.UpdatedAt) || leaseUntil.IsZero() || leaseUntil.Location() != time.UTC || !leaseUntil.After(at) {
+		return SagaRecoveryTask{}, false, errors.New("Saga recovery lease is invalid")
+	}
+	if s.RecoveryLease != nil && s.RecoveryLease.ExpiresAt.After(at) {
+		return SagaRecoveryTask{}, false, Reject(CodeSagaRecoveryLeaseConflict, "Saga recovery task is already leased", map[string]string{"sagaId": s.SagaID, "taskId": s.RecoveryLease.TaskID})
+	}
+	stepIndex, exists := s.nextCompensationStep()
+	if !exists {
+		s.RecoveryLease = nil
+		if err := s.CompleteCompensation("", at); err != nil {
+			return SagaRecoveryTask{}, false, err
+		}
+		return SagaRecoveryTask{}, false, nil
+	}
+	taskID := sagaRecoveryTaskID(s.SagaID, stepIndex)
+	if !idPattern.MatchString(taskID) {
+		return SagaRecoveryTask{}, false, errors.New("Saga recovery task identifier is invalid")
+	}
+	if s.RecoveryAttempt >= 2147483647 {
+		return SagaRecoveryTask{}, false, errors.New("Saga recovery attempt limit is exhausted")
+	}
+	s.RecoveryAttempt++
+	s.RecoveryLease = &SagaRecoveryLease{TaskID: taskID, Owner: owner, AcquiredAt: at, ExpiresAt: leaseUntil}
+	s.UpdatedAt = at
+	step := s.Steps[stepIndex]
+	return SagaRecoveryTask{
+		TaskID: taskID, SagaID: s.SagaID, Product: s.Product, AggregateID: s.AggregateID,
+		CorrelationID: s.CorrelationID, StepIndex: stepIndex, Compensation: step.Compensation,
+		Failure: s.Failure, AuditID: s.AuditID, LeaseOwner: owner, LeaseUntil: leaseUntil,
+		Attempt: s.RecoveryAttempt,
+	}, true, nil
+}
+
+func (s *SagaInstance) CompleteClaimedRecovery(taskID, owner, eventID string, at time.Time) error {
+	if s.Status != SagaCompensating || s.RecoveryLease == nil || s.RecoveryLease.TaskID != taskID || s.RecoveryLease.Owner != owner {
+		return Reject(CodeSagaRecoveryTaskMismatch, "Saga recovery completion does not match the active lease", map[string]string{"sagaId": s.SagaID, "taskId": taskID})
+	}
+	if at.IsZero() || at.Location() != time.UTC || at.Before(s.RecoveryLease.AcquiredAt) || at.After(s.RecoveryLease.ExpiresAt) {
+		return Reject(CodeSagaRecoveryLeaseExpired, "Saga recovery lease expired before completion", map[string]string{"sagaId": s.SagaID, "taskId": taskID, "leaseUntil": s.RecoveryLease.ExpiresAt.Format(time.RFC3339Nano)})
+	}
+	expectedIndex, exists := s.nextCompensationStep()
+	if !exists || taskID != sagaRecoveryTaskID(s.SagaID, expectedIndex) {
+		return Reject(CodeSagaRecoveryTaskMismatch, "Saga recovery task no longer matches the next compensation", map[string]string{"sagaId": s.SagaID, "taskId": taskID})
+	}
+	s.RecoveryLease = nil
+	return s.CompleteCompensation(eventID, at)
+}
+
+func sagaRecoveryTaskID(sagaID string, stepIndex int) string {
+	digest := sha256.Sum256([]byte(fmt.Sprintf("%s\x00%d", sagaID, stepIndex)))
+	return fmt.Sprintf("saga-recovery.%x", digest[:16])
+}
+
+func (s *SagaInstance) nextCompensationStep() (int, bool) {
+	for index := len(s.Steps) - 1; index >= 0; index-- {
+		if !s.Steps[index].CompletedAt.IsZero() && s.Steps[index].CompensatedAt.IsZero() {
+			return index, true
+		}
+	}
+	return 0, false
 }
 
 func SupportedSagaKinds() []SagaKind {

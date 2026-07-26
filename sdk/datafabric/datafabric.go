@@ -43,6 +43,8 @@ type SagaKind = core.SagaKind
 type SagaStatus = core.SagaStatus
 type SagaStep = core.SagaStep
 type SagaInstance = core.SagaInstance
+type SagaRecoveryLease = core.SagaRecoveryLease
+type SagaRecoveryTask = core.SagaRecoveryTask
 type SettlementObservation = core.SettlementObservation
 type ReconciliationFinding = core.ReconciliationFinding
 type ReconciliationRun = core.ReconciliationRun
@@ -93,6 +95,11 @@ const (
 	CodeLedgerCorrectionTargetMissing = core.CodeLedgerCorrectionTargetMissing
 	CodeLedgerReversalMismatch        = core.CodeLedgerReversalMismatch
 	CodeLedgerDuplicateReversal       = core.CodeLedgerDuplicateReversal
+	CodeSagaRecoveryLeaseConflict     = core.CodeSagaRecoveryLeaseConflict
+	CodeSagaRecoveryTaskMismatch      = core.CodeSagaRecoveryTaskMismatch
+	CodeSagaRecoveryLeaseExpired      = core.CodeSagaRecoveryLeaseExpired
+	CodeSagaEventAuthorityMismatch    = core.CodeSagaEventAuthorityMismatch
+	CodeSagaRecoveryRouteRequired     = core.CodeSagaRecoveryRouteRequired
 )
 
 func DecodeEnvelopeStrict(r io.Reader) (EventEnvelope, error) { return core.DecodeEnvelopeStrict(r) }

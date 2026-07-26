@@ -7,7 +7,7 @@ import (
 
 func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 4 {
+	if err != nil || len(files) != 5 {
 		t.Fatalf("unexpected migration set: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[0])
@@ -53,7 +53,7 @@ func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 
 func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 4 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
+	if err != nil || len(files) != 5 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
 		t.Fatalf("v2 migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[1])
@@ -82,7 +82,7 @@ func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 
 func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 4 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
+	if err != nil || len(files) != 5 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
 		t.Fatalf("redelivery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[2])
@@ -116,7 +116,7 @@ func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 
 func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 4 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
+	if err != nil || len(files) != 5 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
 		t.Fatalf("ledger correction migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[3])
@@ -143,6 +143,40 @@ func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing
 	}
 	if !strings.Contains(string(down), "cannot roll back immutable ledger corrections while correction history exists") {
 		t.Fatal("ledger correction rollback can discard enforced history")
+	}
+}
+
+func TestSagaRecoveryMigrationHasLeasesAndRollbackGuard(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 5 || !strings.Contains(files[4], "0005_saga_recovery_runtime.up.sql") {
+		t.Fatalf("Saga recovery migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[4])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"recovery_task_id",
+		"recovery_lease_owner",
+		"recovery_acquired_at",
+		"recovery_lease_until",
+		"recovery_attempt",
+		"saga_recovery_lease_complete",
+		"saga_recovery_lease_status",
+		"CREATE INDEX sagas_recovery_claim_idx",
+		"CREATE UNIQUE INDEX sagas_recovery_task_id_unique",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("Saga recovery migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back Saga recovery runtime while recovery audit history exists") {
+		t.Fatal("Saga recovery rollback can discard audit history")
 	}
 }
 

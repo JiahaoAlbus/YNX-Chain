@@ -47,7 +47,8 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 		_, _ = db.ExecContext(cleanupCtx, `DROP SCHEMA IF EXISTS ynx_analytics CASCADE; DROP SCHEMA IF EXISTS ynx_fabric CASCADE`)
 	})
 	applied, err := Migrate(ctx, db)
-	if err != nil || len(applied) != 1 || applied[0].Version != 1 {
+	migrationFiles, migrationErr := MigrationFiles()
+	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 5 {
 		t.Fatalf("live migration failed: applied=%+v err=%v", applied, err)
 	}
 	if err := VerifySchema(ctx, db); err != nil {
@@ -132,6 +133,47 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	}
 	if err := store.CompleteSagaStep(ctx, saga.SagaID, first.EventID, now.Add(time.Second)); err != nil {
 		t.Fatalf("canonical Saga event was rejected: %v", err)
+	}
+	timeoutSaga, err := datafabric.NewSaga("saga.pay.timeout.live.0001", datafabric.SagaPay, first.AggregateID, first.CorrelationID, "audit.saga.timeout.live.0001", now, now.Add(2*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.StartSaga(ctx, timeoutSaga); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.CompleteSagaStep(ctx, timeoutSaga.SagaID, first.EventID, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	expired, err := store.ExpireSagas(ctx, now.Add(3*time.Second), 10)
+	if err != nil || len(expired) != 1 || expired[0] != timeoutSaga.SagaID {
+		t.Fatalf("PostgreSQL Saga timeout scheduler failed: %+v %v", expired, err)
+	}
+	recoveryTasks, err := store.ClaimSagaRecoveries(ctx, "pay", "worker.pay.live.0001", now.Add(4*time.Second), time.Minute, 10)
+	if err != nil || len(recoveryTasks) != 1 || recoveryTasks[0].SagaID != timeoutSaga.SagaID || recoveryTasks[0].Compensation != "void-authorization" {
+		t.Fatalf("PostgreSQL Saga recovery claim failed: %+v %v", recoveryTasks, err)
+	}
+	if err := store.CompleteSagaRecovery(ctx, timeoutSaga.SagaID, recoveryTasks[0].TaskID, recoveryTasks[0].LeaseOwner, second.EventID, now.Add(5*time.Second)); err != nil {
+		t.Fatalf("PostgreSQL Saga claimed recovery failed: %v", err)
+	}
+	recoveredSaga, exists, err := store.Saga(ctx, timeoutSaga.SagaID)
+	if err != nil || !exists || recoveredSaga.Status != datafabric.SagaCompensated || recoveredSaga.RecoveryLease != nil {
+		t.Fatalf("PostgreSQL Saga recovery truth is invalid: %+v %v", recoveredSaga, err)
+	}
+	emptyNow := now.Add(10 * time.Second)
+	emptyTimeoutSaga, err := datafabric.NewSaga("saga.pay.empty-timeout.live.0001", datafabric.SagaPay, first.AggregateID, first.CorrelationID, "audit.saga.empty-timeout.live.0001", emptyNow, emptyNow.Add(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.StartSaga(ctx, emptyTimeoutSaga); err != nil {
+		t.Fatal(err)
+	}
+	expired, err = store.ExpireSagas(ctx, emptyNow.Add(2*time.Second), 10)
+	if err != nil || len(expired) != 1 || expired[0] != emptyTimeoutSaga.SagaID {
+		t.Fatalf("empty PostgreSQL Saga timeout failed: %+v %v", expired, err)
+	}
+	emptyRecovered, exists, err := store.Saga(ctx, emptyTimeoutSaga.SagaID)
+	if err != nil || !exists || emptyRecovered.Status != datafabric.SagaCompensated {
+		t.Fatalf("empty PostgreSQL Saga did not auto-recover: %+v %v", emptyRecovered, err)
 	}
 
 	observation := datafabric.SettlementObservation{Source: "chain", ReferenceID: "receipt.chain.live.0001", Asset: "USD", Currency: "USD", AmountMinor: 100, ObservedAt: now, EvidenceHash: strings.Repeat("a", 64), Metadata: datafabric.SourceMetadata{Source: "chain-testnet", AsOf: now, Version: "1", Status: "authoritative"}}
