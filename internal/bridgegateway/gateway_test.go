@@ -76,6 +76,68 @@ func (b *testBridge) signedAttestation(t *testing.T, transfer Transfer, relayer,
 	return AttestationRequest{Relayer: relayer, SourceBlockHash: block, Confirmations: confirmations, Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(b.private[relayer], payload))}
 }
 
+func TestBridgeQuoteRuntimeIsDigestBoundAndFailClosed(t *testing.T) {
+	b := newTestBridge(t)
+	request := QuoteRequest{
+		SourceChain: " ETHEREUM-SEPOLIA ", SourceAsset: "sepolia-usdc",
+		DestinationChain: "YNX_6423-1", DestinationAsset: "ynx-usdc", Amount: "0100",
+		Sender: "0x" + strings.Repeat("B", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	}
+	quote, err := b.service.Quote(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedExpiry := b.now.Add(5 * time.Minute).Format(timeFormat)
+	if quote.SchemaVersion != 1 || quote.Source != "ynx-bridge-quote-runtime" || quote.AsOf != b.now.Format(timeFormat) || quote.ExpiresAt != expectedExpiry {
+		t.Fatalf("quote envelope is invalid: %+v", quote)
+	}
+	if !accountDigestPattern.MatchString(quote.Digest) || !strings.HasPrefix(quote.ID, "quote_") || !strings.HasPrefix(quote.Nonce, "quote_nonce_") {
+		t.Fatalf("quote identity is not digest bound: %+v", quote)
+	}
+	if quote.RouteID == "" || quote.Provider != "local-test-provider" || quote.Classification != "external-bridge-adapter" || quote.Amount != "100" {
+		t.Fatalf("quote route or normalized amount is invalid: %+v", quote)
+	}
+	if quote.Sender != "0x"+strings.Repeat("b", 40) || quote.Recipient != request.Recipient {
+		t.Fatalf("quote account binding is invalid: %+v", quote)
+	}
+	if quote.Availability != "unavailable" || quote.FailureStatus != "provider-or-contract-route-unavailable" || quote.Executable {
+		t.Fatalf("quote overclaims execution availability: %+v", quote)
+	}
+	if quote.Fees.Status != "unavailable-no-executable-route" || quote.Fees.Currency != nil || quote.Fees.ProviderFee != nil || quote.Fees.HiddenSpread || quote.Slippage.MaximumBPS != nil || quote.Timing.EstimatedMaxSeconds != nil || quote.Refund.Available {
+		t.Fatalf("quote invents commercial terms: %+v", quote)
+	}
+	if quote.UserSigning != "canonical-wallet-required" || quote.CredentialBoundary != "browser-and-consumers-have-no-bridge-or-provider-secret" || len(quote.Risk) == 0 {
+		t.Fatalf("quote omits wallet or risk boundary: %+v", quote)
+	}
+	replay, err := b.service.Quote(request)
+	if err != nil || replay.Digest != quote.Digest || replay.ID != quote.ID || replay.Nonce != quote.Nonce {
+		t.Fatalf("same quote input at the same instant is not deterministic: %+v %v", replay, err)
+	}
+	changed := request
+	changed.Amount = "101"
+	different, err := b.service.Quote(changed)
+	if err != nil || different.Digest == quote.Digest || different.ID == quote.ID || different.Nonce == quote.Nonce {
+		t.Fatalf("changed quote input did not change bound identity: %+v %v", different, err)
+	}
+	overLimit := request
+	overLimit.Amount = "1001"
+	if _, err := b.service.Quote(overLimit); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("over-limit quote expected invalid, got %v", err)
+	}
+	unsupported := request
+	unsupported.DestinationAsset = "unsupported"
+	if _, err := b.service.Quote(unsupported); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("unsupported quote expected invalid, got %v", err)
+	}
+	if _, _, err := b.service.SetPause(PauseRequest{IdempotencyKey: "quote-pause-001", Paused: true, Reason: "quote-safety-drill"}); err != nil {
+		t.Fatal(err)
+	}
+	paused, err := b.service.Quote(request)
+	if err != nil || paused.FailureStatus != "bridge-paused" || paused.Executable {
+		t.Fatalf("paused quote did not fail closed: %+v %v", paused, err)
+	}
+}
+
 func TestBridgeLifecyclePersistenceAndIdempotency(t *testing.T) {
 	b := newTestBridge(t)
 	created, err := b.service.CreateTransfer(validCreate("create-intent-001"))
@@ -212,6 +274,16 @@ func TestBridgeHTTPBoundariesAndTruthfulHealth(t *testing.T) {
 	doJSON(t, http.MethodGet, server.URL+"/health", "", nil, http.StatusOK, &health)
 	if !health.OK || !health.Degraded || health.SchemaVersion != SchemaVersion || health.StateMachineVersion != StateMachineVersion || health.StartedAt == "" || health.ProviderStatus != "unavailable-no-verified-provider-connection" || health.ContractStatus != "unavailable-no-verified-contract-deployment" || health.LiveBridge || health.ExternalSubmissionEnabled || health.TruthfulStatus != "degraded-local-coordinator-only-no-provider-or-contract" {
 		t.Fatalf("health overclaims bridge status: %+v", health)
+	}
+	doJSON(t, http.MethodPost, server.URL+"/bridge/quotes", "", QuoteRequest{}, http.StatusUnauthorized, nil)
+	var quote Quote
+	doJSON(t, http.MethodPost, server.URL+"/bridge/quotes", testAPIKey, QuoteRequest{
+		SourceChain: "ethereum-sepolia", SourceAsset: "sepolia-usdc",
+		DestinationChain: "ynx_6423-1", DestinationAsset: "ynx-usdc", Amount: "100",
+		Sender: "0x" + strings.Repeat("b", 40), Recipient: "ynx1recipient000000000000000000000000000001",
+	}, http.StatusOK, &quote)
+	if quote.Source != "ynx-bridge-quote-runtime" || quote.Digest == "" || quote.Executable || quote.Availability != "unavailable" {
+		t.Fatalf("quote endpoint overclaims availability: %+v", quote)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/bridge/transfers", "", nil, http.StatusUnauthorized, nil)
 	doJSON(t, http.MethodPost, server.URL+"/bridge/transfers", testAPIKey, map[string]any{
@@ -665,6 +737,14 @@ func TestBridgeConfigRejectsUnsafeTopology(t *testing.T) {
 	base.RetentionPeriod = 24 * time.Hour
 	if err := ValidateConfig(base); err != nil {
 		t.Fatalf("minimum bounded retention policy rejected: %v", err)
+	}
+	base.QuoteTTL = 29 * time.Second
+	if err := ValidateConfig(base); err == nil {
+		t.Fatal("sub-30-second quote ttl unexpectedly passed")
+	}
+	base.QuoteTTL = 15 * time.Minute
+	if err := ValidateConfig(base); err != nil {
+		t.Fatalf("maximum bounded quote ttl rejected: %v", err)
 	}
 	base.Policies[0].SourceAssetClass = "unsupported-asset-class"
 	if err := ValidateConfig(base); err == nil {

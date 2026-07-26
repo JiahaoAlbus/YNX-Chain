@@ -227,6 +227,7 @@ type StatusReconciliation struct {
 
 type StatusCapabilities struct {
 	ReadOnlyEvidence       bool `json:"readOnlyEvidence"`
+	QuoteGeneration        bool `json:"quoteGeneration"`
 	QuoteExecution         bool `json:"quoteExecution"`
 	SourceSubmission       bool `json:"sourceSubmission"`
 	DestinationMintRelease bool `json:"destinationMintRelease"`
@@ -301,6 +302,7 @@ type Config struct {
 	RateLimitWindow time.Duration
 	RateLimitMax    int
 	RetentionPeriod time.Duration
+	QuoteTTL        time.Duration
 }
 
 func (c Config) normalized() (Config, map[string]uint64, error) {
@@ -446,7 +448,54 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 	if c.RetentionPeriod < 24*time.Hour || c.RetentionPeriod > 10*365*24*time.Hour {
 		return Config{}, nil, errors.New("bridge retention period must be between 24h and 10 years")
 	}
+	if c.QuoteTTL == 0 {
+		c.QuoteTTL = 5 * time.Minute
+	}
+	if c.QuoteTTL < 30*time.Second || c.QuoteTTL > 15*time.Minute {
+		return Config{}, nil, errors.New("bridge quote ttl must be between 30s and 15m")
+	}
 	return c, maxAmounts, nil
+}
+
+type QuoteRequest struct {
+	SourceChain      string `json:"sourceChain"`
+	SourceAsset      string `json:"sourceAsset"`
+	DestinationChain string `json:"destinationChain"`
+	DestinationAsset string `json:"destinationAsset"`
+	Amount           string `json:"amount"`
+	Sender           string `json:"sender"`
+	Recipient        string `json:"recipient"`
+}
+
+type Quote struct {
+	SchemaVersion       int                     `json:"schemaVersion"`
+	Source              string                  `json:"source"`
+	AsOf                string                  `json:"asOf"`
+	Coverage            string                  `json:"coverage"`
+	ID                  string                  `json:"id"`
+	Digest              string                  `json:"quoteDigest"`
+	Nonce               string                  `json:"nonce"`
+	ExpiresAt           string                  `json:"expiresAt"`
+	RouteID             string                  `json:"routeId"`
+	Provider            string                  `json:"provider"`
+	Classification      string                  `json:"classification"`
+	SourceEndpoint      RouteAssetEndpoint      `json:"sourceEndpoint"`
+	DestinationEndpoint RouteAssetEndpoint      `json:"destinationEndpoint"`
+	Amount              string                  `json:"amount"`
+	Sender              string                  `json:"sender"`
+	Recipient           string                  `json:"recipient"`
+	Fees                RouteFeeDisclosure      `json:"fees"`
+	Slippage            RouteSlippageDisclosure `json:"slippage"`
+	Timing              RouteTimingDisclosure   `json:"timing"`
+	Finality            RouteFinalityDisclosure `json:"finality"`
+	Refund              RouteRefundDisclosure   `json:"refund"`
+	Risk                []string                `json:"risk"`
+	Limits              RoutePolicy             `json:"limits"`
+	Availability        string                  `json:"availability"`
+	FailureStatus       string                  `json:"failureStatus"`
+	Executable          bool                    `json:"executable"`
+	UserSigning         string                  `json:"userSigning"`
+	CredentialBoundary  string                  `json:"credentialBoundary"`
 }
 
 type CreateTransferRequest struct {

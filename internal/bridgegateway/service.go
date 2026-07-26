@@ -302,6 +302,88 @@ func (s *Service) CreateTransfer(request CreateTransferRequest) (MutationResult,
 	return MutationResult{Transfer: cloneTransfer(transfer)}, nil
 }
 
+func (s *Service) Quote(request QuoteRequest) (Quote, error) {
+	request.SourceChain = normalizeName(request.SourceChain)
+	request.DestinationChain = normalizeName(request.DestinationChain)
+	request.SourceAsset = normalizeAsset(request.SourceAsset)
+	request.DestinationAsset = normalizeAsset(request.DestinationAsset)
+	request.Amount = strings.TrimSpace(request.Amount)
+	request.Sender = normalizeAccount(request.Sender)
+	request.Recipient = normalizeAccount(request.Recipient)
+	if !identifierPattern.MatchString(request.Sender) || !identifierPattern.MatchString(request.Recipient) {
+		return Quote{}, fmt.Errorf("%w: quote account identity is invalid", ErrInvalid)
+	}
+	amount, err := strconv.ParseUint(request.Amount, 10, 64)
+	if err != nil || amount == 0 {
+		return Quote{}, fmt.Errorf("%w: quote amount must be a positive uint64 decimal string", ErrInvalid)
+	}
+	request.Amount = strconv.FormatUint(amount, 10)
+	key := routeKey(request.SourceChain, request.DestinationChain, request.SourceAsset, request.DestinationAsset)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	policy, ok := s.policies[key]
+	if !ok {
+		return Quote{}, fmt.Errorf("%w: bridge quote route is not allowed", ErrInvalid)
+	}
+	maximum := s.maxAmounts[key]
+	if amount > maximum {
+		return Quote{}, fmt.Errorf("%w: quote amount exceeds route policy", ErrInvalid)
+	}
+	asOf := s.cfg.Now().UTC()
+	expiresAt := asOf.Add(s.cfg.QuoteTTL)
+	entry := unavailableRouteCatalogEntry(key, policy)
+	failureStatus := entry.FailureStatus
+	if s.state.Safety.Paused {
+		failureStatus = "bridge-paused"
+	}
+	material := struct {
+		SchemaVersion       int                     `json:"schemaVersion"`
+		RouteID             string                  `json:"routeId"`
+		Provider            string                  `json:"provider"`
+		Classification      string                  `json:"classification"`
+		SourceEndpoint      RouteAssetEndpoint      `json:"sourceEndpoint"`
+		DestinationEndpoint RouteAssetEndpoint      `json:"destinationEndpoint"`
+		Amount              string                  `json:"amount"`
+		Sender              string                  `json:"sender"`
+		Recipient           string                  `json:"recipient"`
+		Fees                RouteFeeDisclosure      `json:"fees"`
+		Slippage            RouteSlippageDisclosure `json:"slippage"`
+		Timing              RouteTimingDisclosure   `json:"timing"`
+		Finality            RouteFinalityDisclosure `json:"finality"`
+		Refund              RouteRefundDisclosure   `json:"refund"`
+		Risk                []string                `json:"risk"`
+		Limits              RoutePolicy             `json:"limits"`
+		Availability        string                  `json:"availability"`
+		FailureStatus       string                  `json:"failureStatus"`
+		Executable          bool                    `json:"executable"`
+		AsOf                string                  `json:"asOf"`
+		ExpiresAt           string                  `json:"expiresAt"`
+	}{
+		SchemaVersion: 1, RouteID: entry.ID, Provider: entry.Provider, Classification: entry.Classification,
+		SourceEndpoint: entry.Source, DestinationEndpoint: entry.Destination,
+		Amount: request.Amount, Sender: request.Sender, Recipient: request.Recipient,
+		Fees: entry.Fees, Slippage: entry.Slippage, Timing: entry.Timing, Finality: entry.Finality, Refund: entry.Refund,
+		Risk: entry.Risk, Limits: policy,
+		Availability: entry.Availability, FailureStatus: failureStatus, Executable: false,
+		AsOf: asOf.Format(timeFormat), ExpiresAt: expiresAt.Format(timeFormat),
+	}
+	digest := digestJSON(material)
+	return Quote{
+		SchemaVersion: 1, Source: "ynx-bridge-quote-runtime", AsOf: material.AsOf,
+		Coverage: "local-policy-bound-quote-no-live-provider-price-or-execution",
+		ID:       "quote_" + hashText(digest)[:24], Digest: digest,
+		Nonce: "quote_nonce_" + hashText(digest + "|" + entry.ID)[:24], ExpiresAt: material.ExpiresAt,
+		RouteID: entry.ID, Provider: entry.Provider, Classification: entry.Classification,
+		SourceEndpoint: entry.Source, DestinationEndpoint: entry.Destination,
+		Amount: request.Amount, Sender: request.Sender, Recipient: request.Recipient,
+		Fees: entry.Fees, Slippage: entry.Slippage, Timing: entry.Timing, Finality: entry.Finality, Refund: entry.Refund,
+		Risk: append([]string(nil), entry.Risk...), Limits: policy,
+		Availability: entry.Availability, FailureStatus: failureStatus, Executable: false,
+		UserSigning: entry.UserSigning, CredentialBoundary: entry.CredentialBoundary,
+	}, nil
+}
+
 func (s *Service) AddAttestation(transferID string, request AttestationRequest) (MutationResult, error) {
 	transferID = strings.TrimSpace(transferID)
 	relayer := normalizeName(request.Relayer)
@@ -877,23 +959,27 @@ func (s *Service) RouteCatalog() RouteCatalog {
 	sort.Strings(keys)
 	for _, key := range keys {
 		policy := s.policies[key]
-		result.Routes = append(result.Routes, RouteCatalogEntry{
-			ID:       routeCatalogID(key, policy),
-			Provider: policy.Provider, Classification: policy.Classification,
-			Availability: "unavailable", FailureStatus: "provider-or-contract-route-unavailable", ProviderHealth: "not-connected",
-			Source:      RouteAssetEndpoint{Chain: policy.SourceChain, Asset: policy.SourceAsset, AssetClass: policy.SourceAssetClass},
-			Destination: RouteAssetEndpoint{Chain: policy.DestinationChain, Asset: policy.DestinationAsset, AssetClass: policy.DestinationAssetClass},
-			Fees:        RouteFeeDisclosure{Status: "unavailable-no-executable-route", HiddenSpread: false},
-			Slippage:    RouteSlippageDisclosure{Status: "not-applicable-no-executable-route"},
-			Timing:      RouteTimingDisclosure{Status: "unavailable-no-provider-route"},
-			Finality:    RouteFinalityDisclosure{SourceConfirmations: policy.MinConfirmations, ProofVerification: "local-relayer-attestation-only-not-independent-chain-proof"},
-			Refund:      RouteRefundDisclosure{Available: false, Mode: "evidence-recording-only-no-external-refund-execution"},
-			Risk:        []string{"provider support is not verified", "source and destination contracts are not configured or verified", "destination finality is not independently verified", "route has no funded testnet evidence", "external submission is disabled"},
-			Limits:      policy, Executable: false, ExternalSubmissionEnabled: false,
-			UserSigning: "canonical-wallet-required", CredentialBoundary: "browser-and-consumers-have-no-bridge-or-provider-secret",
-		})
+		result.Routes = append(result.Routes, unavailableRouteCatalogEntry(key, policy))
 	}
 	return result
+}
+
+func unavailableRouteCatalogEntry(key string, policy RoutePolicy) RouteCatalogEntry {
+	return RouteCatalogEntry{
+		ID:       routeCatalogID(key, policy),
+		Provider: policy.Provider, Classification: policy.Classification,
+		Availability: "unavailable", FailureStatus: "provider-or-contract-route-unavailable", ProviderHealth: "not-connected",
+		Source:      RouteAssetEndpoint{Chain: policy.SourceChain, Asset: policy.SourceAsset, AssetClass: policy.SourceAssetClass},
+		Destination: RouteAssetEndpoint{Chain: policy.DestinationChain, Asset: policy.DestinationAsset, AssetClass: policy.DestinationAssetClass},
+		Fees:        RouteFeeDisclosure{Status: "unavailable-no-executable-route", HiddenSpread: false},
+		Slippage:    RouteSlippageDisclosure{Status: "not-applicable-no-executable-route"},
+		Timing:      RouteTimingDisclosure{Status: "unavailable-no-provider-route"},
+		Finality:    RouteFinalityDisclosure{SourceConfirmations: policy.MinConfirmations, ProofVerification: "local-relayer-attestation-only-not-independent-chain-proof"},
+		Refund:      RouteRefundDisclosure{Available: false, Mode: "evidence-recording-only-no-external-refund-execution"},
+		Risk:        []string{"provider support is not verified", "source and destination contracts are not configured or verified", "destination finality is not independently verified", "route has no funded testnet evidence", "external submission is disabled"},
+		Limits:      policy, Executable: false, ExternalSubmissionEnabled: false,
+		UserSigning: "canonical-wallet-required", CredentialBoundary: "browser-and-consumers-have-no-bridge-or-provider-secret",
+	}
 }
 
 func routeCatalogID(key string, policy RoutePolicy) string {
@@ -1091,7 +1177,7 @@ func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
 		Paused: s.state.Safety.Paused, RouteCount: len(s.policies), ProviderCount: configuredProviderCount(s.policies), AvailableProviderCount: 0, AssetCount: len(assetKeys), TransferCount: len(s.state.Transfers), OpenExposureTransferCount: openExposure,
 		ProviderConnection: "not-connected", ExternalSubmissionEnabled: false, UserAssetMovementEnabled: false, OfficialStablecoinRouteAvailable: false, DeployedPublic: false,
 		Reconciliation: reconciliation,
-		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteExecution: false, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
+		Capabilities:   StatusCapabilities{ReadOnlyEvidence: true, QuoteGeneration: true, QuoteExecution: false, SourceSubmission: false, DestinationMintRelease: false, RefundExecution: false, DisputeRecording: true, EmergencyExitExecution: false},
 		Support:        StatusSupport{Configured: false}, Build: buildinfo.Normalize(build),
 	}
 }

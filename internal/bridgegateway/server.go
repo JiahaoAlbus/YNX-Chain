@@ -123,6 +123,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /bridge/providers", s.handleProviders)
 	s.mux.HandleFunc("GET /bridge/assets", s.handleAssets)
 	s.mux.HandleFunc("GET /bridge/status", s.handleStatus)
+	s.mux.HandleFunc("POST /bridge/quotes", s.requireAuth(s.handleQuote))
 	s.mux.HandleFunc("POST /bridge/transfers", s.requireAuth(s.handleCreate))
 	s.mux.HandleFunc("GET /bridge/transfers", s.requireAuth(s.handleList))
 	s.mux.HandleFunc("GET /bridge/transfers/{id}", s.requireAuth(s.handleGet))
@@ -215,6 +216,19 @@ func (s *Server) handleAssets(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleStatus(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.service.ProductStatus(s.build))
+}
+
+func (s *Server) handleQuote(w http.ResponseWriter, r *http.Request) {
+	var request QuoteRequest
+	if !decodeJSON(w, r, &request) {
+		return
+	}
+	quote, err := s.service.Quote(request)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, quote)
 }
 
 func (s *Server) handleCreate(w http.ResponseWriter, r *http.Request) {
