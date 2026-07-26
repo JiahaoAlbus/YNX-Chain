@@ -56,6 +56,13 @@ required_patterns=(
   "replica_hash"
   "primary_hash"
   "replicationReadOnly"
+  "YNX_EXPECT_BRIDGE_SERVICE"
+  "ynx-bridged"
+  "bridge-testnet-surface"
+  "/etc/ynx/ynx-bridged.env"
+  "/var/lib/ynx-chain/bridge/state.json"
+  "bin/ynx-bridged"
+  "check-local-services.sh"
 )
 
 for pattern in "${required_patterns[@]}"; do
@@ -79,6 +86,8 @@ for pattern in "${remote_smoke_patterns[@]}"; do
     exit 1
   }
 done
+
+bash scripts/deploy/check-local-services.sh --self-test
 
 if grep -Eq 'cat[[:space:]]+/etc/ynx/ynx-chaind.env|head[[:space:]].*/etc/ynx/ynx-chaind.env' scripts/verify/verify-testnet.sh; then
   echo "verify-testnet.sh must not print the full remote chain env"

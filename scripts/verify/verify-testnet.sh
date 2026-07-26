@@ -36,6 +36,11 @@ report="$out/ssh-services.txt"
 : > "$report"
 
 failures=0
+YNX_EXPECT_BRIDGE_SERVICE="${YNX_EXPECT_BRIDGE_SERVICE:-0}"
+case "$YNX_EXPECT_BRIDGE_SERVICE" in
+  0 | 1) ;;
+  *) echo "YNX_EXPECT_BRIDGE_SERVICE must be 0 or 1"; exit 1 ;;
+esac
 
 check_node() {
   local name="$1" user="$2" host="$3" key="$4" services="$5" expected_validator="$6" observer_file="${7:-}"
@@ -222,10 +227,46 @@ REMOTE
   fi
 }
 
-check_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd" "$PRIMARY_VALIDATOR_ADDRESS"
+primary_services="ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd"
+if [[ "$YNX_EXPECT_BRIDGE_SERVICE" == "1" ]]; then
+  primary_services="$primary_services ynx-bridged"
+fi
+check_node "primary" "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$primary_services" "$PRIMARY_VALIDATOR_ADDRESS"
 check_node "singapore" "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" "ynx-chaind" "$SG_VALIDATOR_ADDRESS" "$SG_OBSERVER_FILE"
 check_node "silicon-valley" "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" "ynx-chaind" "$SILICON_VALLEY_VALIDATOR_ADDRESS"
 check_node "seoul" "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" "ynx-chaind" "$SEOUL_VALIDATOR_ADDRESS"
+
+check_bridge_testnet_surface() {
+  local node_out="$out/bridge-testnet.txt"
+  local release_dir="/opt/ynx-chain/releases/$EXPECTED_RELEASE_NAME"
+  local remote_script
+  remote_script="set -eu
+test \"\$(systemctl is-active ynx-bridged)\" = active
+test \"\$(systemctl is-enabled ynx-bridged)\" = enabled
+test \"\$(sudo -n stat -c '%a' /etc/ynx/ynx-bridged.env)\" = 600
+test \"\$(sudo -n stat -c '%a' /var/lib/ynx-chain/bridge)\" = 700
+test \"\$(sudo -n stat -c '%a' /var/lib/ynx-chain/bridge/state.json)\" = 600
+manifest='$release_dir/config/release-manifest.json'
+binary_sha=\"\$(sha256sum /usr/local/bin/ynx-bridged | awk '{print \$1}')\"
+grep -Fq '\"path\":\"bin/ynx-bridged\"' \"\$manifest\"
+grep -Fq \"\\\"sha256\\\":\\\"\$binary_sha\\\"\" \"\$manifest\"
+YNX_EXPECT_BRIDGE_SERVICE=1 YNX_LOCAL_SERVICE_CHECK_ATTEMPTS=3 YNX_LOCAL_SERVICE_CHECK_SLEEP_SECONDS=1 bash '$release_dir/scripts/check-local-services.sh' primary '$EXPECTED_RELEASE_COMMIT' '$EXPECTED_RELEASE_NAME' 6423 full
+printf 'bridge.service=active-enabled\\nbridge.envMode=600\\nbridge.stateDirMode=700\\nbridge.stateMode=600\\nbridge.binarySha256=%s\\n' \"\$binary_sha\""
+  if ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "$remote_script" >"$node_out" 2>&1; then
+    cat "$node_out" | tee -a "$report"
+    echo "OK bridge-testnet-surface" | tee -a "$report"
+  else
+    cat "$node_out" | tee -a "$report"
+    echo "FAIL bridge-testnet-surface" | tee -a "$report"
+    return 1
+  fi
+}
+
+if [[ "$YNX_EXPECT_BRIDGE_SERVICE" == "1" ]]; then
+  if ! check_bridge_testnet_surface; then
+    failures=$((failures + 1))
+  fi
+fi
 
 check_replication_convergence() {
   check_replica() {
