@@ -99,6 +99,19 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	if err := store.PostJournal(ctx, entry); err != nil {
 		t.Fatal(err)
 	}
+	if err := insertMismatchedCorrection(ctx, db, entry, time.Now().UTC()); err == nil {
+		t.Fatal("deferred PostgreSQL correction trigger accepted a balanced non-reversal")
+	}
+	reversal := liveReversal(entry, time.Now().UTC())
+	if err := store.PostCorrection(ctx, reversal); err != nil {
+		t.Fatalf("exact PostgreSQL correction was rejected: %v", err)
+	}
+	duplicate := reversal
+	duplicate.EntryID = "journal.live.reversal.duplicate.0001"
+	duplicate.AuditID = "audit.journal.live.reversal.duplicate.0001"
+	if err := store.PostCorrection(ctx, duplicate); datafabric.ErrorCodeOf(err) != datafabric.CodeLedgerDuplicateReversal {
+		t.Fatalf("duplicate PostgreSQL reversal was accepted: %v", err)
+	}
 	if err := insertUnbalancedJournal(ctx, db, first, time.Now().UTC()); err == nil {
 		t.Fatal("deferred PostgreSQL balance trigger accepted an unbalanced journal")
 	}
@@ -194,6 +207,41 @@ func liveEvent(t *testing.T, id, aggregateID, correlationID string, sequence uin
 
 func liveJournal(event datafabric.EventEnvelope, now time.Time) datafabric.JournalEntry {
 	return datafabric.JournalEntry{EntryID: "journal.live.0001", CorrelationID: event.CorrelationID, EventID: event.EventID, EffectiveAt: now, RecordedAt: now, Description: "live balanced journal", RevenueBoundary: "payment-settled", SourceCommit: "719e101", SourceRelease: "data-fabric-live-test", AuditID: "audit.journal.live.0001", Postings: []datafabric.Posting{{AccountID: event.Actor.AccountID, Asset: "USD", Currency: "USD", Side: datafabric.Debit, Amount: 100, Category: "refund"}, {AccountID: "account.provider.live.0001", Asset: "USD", Currency: "USD", Side: datafabric.Credit, Amount: 100, Category: "provider-net"}}}
+}
+
+func liveReversal(original datafabric.JournalEntry, now time.Time) datafabric.JournalEntry {
+	reversal := original
+	reversal.EntryID = "journal.live.reversal.0001"
+	reversal.CorrectionOf = original.EntryID
+	reversal.RecordedAt = now.UTC()
+	reversal.Description = "exact live reversal"
+	reversal.AuditID = "audit.journal.live.reversal.0001"
+	reversal.FeeConsent = nil
+	reversal.Postings = append([]datafabric.Posting(nil), original.Postings...)
+	for index := range reversal.Postings {
+		if reversal.Postings[index].Side == datafabric.Debit {
+			reversal.Postings[index].Side = datafabric.Credit
+		} else {
+			reversal.Postings[index].Side = datafabric.Debit
+		}
+	}
+	return reversal
+}
+
+func insertMismatchedCorrection(ctx context.Context, db *sql.DB, original datafabric.JournalEntry, now time.Time) error {
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	_, err = tx.ExecContext(ctx, `INSERT INTO ynx_fabric.journal_entries(entry_id,correlation_id,event_id,effective_at,recorded_at,description,correction_of,revenue_recognition_boundary,source_commit,source_release,audit_id) VALUES ('journal.live.bad-reversal.0001',$1,$2,$3,$3,'balanced but mismatched correction',$4,'payment-settled','719e101','data-fabric-live-test','audit.journal.live.bad-reversal.0001')`, original.CorrelationID, original.EventID, now.UTC(), original.EntryID)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO ynx_fabric.postings(entry_id,account_id,asset,currency,side,amount_minor,category) VALUES ('journal.live.bad-reversal.0001',$1,'USD','USD','credit',99,'refund'),('journal.live.bad-reversal.0001','account.provider.live.0001','USD','USD','debit',99,'provider-net')`, original.Postings[0].AccountID); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func insertUnbalancedJournal(ctx context.Context, db *sql.DB, event datafabric.EventEnvelope, now time.Time) error {

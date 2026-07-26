@@ -98,6 +98,36 @@ func TestClientReplayUsesApprovalControlPlaneAndValidatesCompletionTruth(t *test
 	}
 }
 
+func TestClientBindsAndValidatesJournalCorrection(t *testing.T) {
+	now := time.Date(2026, 7, 22, 16, 5, 0, 0, time.UTC)
+	correction := JournalEntry{
+		EntryID: "journal.sdk.reversal.0001", CorrectionOf: "journal.sdk.original.0001",
+		CorrelationID: "correlation.sdk.0001", EventID: "event.pay.sdk.0001",
+		EffectiveAt: now, RecordedAt: now, Description: "exact reversal", RevenueBoundary: "payment-settled",
+		SourceCommit: "719e101", SourceRelease: "data-fabric-testnet-v0", AuditID: "audit.sdk.reversal.0001",
+		Postings: []Posting{
+			{AccountID: "account.sdk.0001", Asset: "USD", Currency: "USD", Side: Credit, Amount: 100, Category: "refund"},
+			{AccountID: "account.provider.sdk.0001", Asset: "USD", Currency: "USD", Side: Debit, Amount: 100, Category: "provider-net"},
+		},
+	}
+	path := "/v1/ledger/journal/" + correction.CorrectionOf + "/corrections"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != path {
+			t.Errorf("unexpected correction request: %s %s", r.Method, r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(JournalCorrectionResult{EntryID: correction.EntryID, CorrectionOf: correction.CorrectionOf, Status: "reversal-recorded", AuditID: correction.AuditID})
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, server.Client(), testCredentialProvider{t: t, expectedPath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.CorrectJournal(context.Background(), correction)
+	if err != nil || result.EntryID != correction.EntryID {
+		t.Fatalf("SDK journal correction failed: %+v err=%v", result, err)
+	}
+}
+
 func TestClientRejectsInsecureRemoteEndpoint(t *testing.T) {
 	if _, err := NewClient("http://data-fabric.invalid", nil, testCredentialProvider{t: t}); err == nil {
 		t.Fatal("insecure remote endpoint was accepted")

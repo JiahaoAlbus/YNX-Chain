@@ -115,6 +115,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /v1/events", s.authorize("fabric.events.read", s.listEvents))
 	s.mux.HandleFunc("POST /v1/ledger/journal", s.authorize("fabric.ledger.write", s.postJournal))
 	s.mux.HandleFunc("GET /v1/ledger/journal", s.authorize("fabric.ledger.read", s.listJournal))
+	s.mux.HandleFunc("POST /v1/ledger/journal/{id}/corrections", s.authorize("fabric.ledger.correct", s.postJournalCorrection))
 	s.mux.HandleFunc("POST /v1/sagas", s.authorize("fabric.sagas.write", s.startSaga))
 	s.mux.HandleFunc("GET /v1/sagas/{id}", s.authorize("fabric.sagas.read", s.getSaga))
 	s.mux.HandleFunc("POST /v1/sagas/{id}/steps", s.authorize("fabric.sagas.write", s.completeSagaStep))
@@ -488,10 +489,60 @@ func (s *Server) postJournal(w http.ResponseWriter, r *http.Request, principal P
 		return
 	}
 	if err := s.repo.PostJournal(r.Context(), entry); err != nil {
-		s.writeError(w, http.StatusConflict, "journal_rejected", "Journal was rejected by the authoritative repository")
+		code := datafabric.ErrorCodeOf(err)
+		if code == "" {
+			s.writeError(w, http.StatusConflict, "journal_rejected", "Journal was rejected by the authoritative repository")
+			return
+		}
+		s.writeError(w, http.StatusConflict, string(code), "Journal was rejected by the authoritative repository")
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{"entryId": entry.EntryID, "status": "recorded", "auditId": entry.AuditID})
+}
+
+func (s *Server) postJournalCorrection(w http.ResponseWriter, r *http.Request, principal Principal) {
+	entry, err := decodeStrict[datafabric.JournalEntry](w, r, s.cfg.MaxBodyBytes)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "invalid_journal_correction", err.Error())
+		return
+	}
+	targetID := r.PathValue("id")
+	if entry.CorrectionOf != targetID {
+		s.writeError(w, http.StatusBadRequest, string(datafabric.CodeLedgerCorrectionInvalid), "Correction target does not match the canonical route")
+		return
+	}
+	target, exists, repositoryErr := s.repo.JournalEntry(r.Context(), targetID)
+	if repositoryErr != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	if !exists {
+		s.writeError(w, http.StatusNotFound, string(datafabric.CodeLedgerCorrectionTargetMissing), "Correction target was not found")
+		return
+	}
+	targetEvent, exists, repositoryErr := s.repo.Event(r.Context(), target.EventID)
+	if repositoryErr != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	correctionEvent, correctionEventExists, repositoryErr := s.repo.Event(r.Context(), entry.EventID)
+	if repositoryErr != nil {
+		s.writeRepositoryError(w)
+		return
+	}
+	if !exists || !correctionEventExists || targetEvent.Product != principal.Product || correctionEvent.Product != principal.Product {
+		s.writeError(w, http.StatusForbidden, "journal_authority_mismatch", "Correction authority does not belong to this product")
+		return
+	}
+	if err := s.repo.PostCorrection(r.Context(), entry); err != nil {
+		code := datafabric.ErrorCodeOf(err)
+		if code == "" {
+			code = datafabric.CodeLedgerCorrectionInvalid
+		}
+		s.writeError(w, http.StatusConflict, string(code), "Journal correction was rejected by the authoritative repository")
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf, "status": "reversal-recorded", "auditId": entry.AuditID})
 }
 
 func (s *Server) listJournal(w http.ResponseWriter, r *http.Request, principal Principal) {

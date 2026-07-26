@@ -103,6 +103,32 @@ func (c *Client) Events(ctx context.Context) (EventPage, error) {
 	return page, nil
 }
 
+type JournalCorrectionResult struct {
+	EntryID      string `json:"entryId"`
+	CorrectionOf string `json:"correctionOf"`
+	Status       string `json:"status"`
+	AuditID      string `json:"auditId"`
+}
+
+func (c *Client) CorrectJournal(ctx context.Context, correction JournalEntry) (JournalCorrectionResult, error) {
+	if correction.CorrectionOf == "" {
+		return JournalCorrectionResult{}, errors.New("journal correction target is required")
+	}
+	body, err := json.Marshal(correction)
+	if err != nil {
+		return JournalCorrectionResult{}, err
+	}
+	path := "/v1/ledger/journal/" + url.PathEscape(correction.CorrectionOf) + "/corrections"
+	var result JournalCorrectionResult
+	if err := c.do(ctx, http.MethodPost, path, body, &result); err != nil {
+		return JournalCorrectionResult{}, err
+	}
+	if result.EntryID != correction.EntryID || result.CorrectionOf != correction.CorrectionOf || result.AuditID != correction.AuditID || result.Status != "reversal-recorded" {
+		return JournalCorrectionResult{}, errors.New("Data Fabric returned an inconsistent journal correction acknowledgement")
+	}
+	return result, nil
+}
+
 type RedeliveryPreviewRequest struct {
 	EventType     string     `json:"eventType,omitempty"`
 	AggregateType string     `json:"aggregateType,omitempty"`

@@ -7,7 +7,7 @@ import (
 
 func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 3 {
+	if err != nil || len(files) != 4 {
 		t.Fatalf("unexpected migration set: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[0])
@@ -53,7 +53,7 @@ func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 
 func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 3 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
+	if err != nil || len(files) != 4 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
 		t.Fatalf("v2 migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[1])
@@ -82,7 +82,7 @@ func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 
 func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 3 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
+	if err != nil || len(files) != 4 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
 		t.Fatalf("redelivery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[2])
@@ -111,6 +111,38 @@ func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 	}
 	if !strings.Contains(string(down), "cannot roll back redelivery control plane while audit history exists") {
 		t.Fatal("redelivery rollback does not preserve audit history")
+	}
+}
+
+func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 4 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
+		t.Fatalf("ledger correction migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[3])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"CREATE UNIQUE INDEX journal_one_reversal_per_entry",
+		"prior_correction_of IS NOT NULL",
+		"journal reversal cannot attach fee consent",
+		"EXCEPT ALL",
+		"CREATE CONSTRAINT TRIGGER journal_correction_exact",
+		"CREATE CONSTRAINT TRIGGER postings_correction_exact",
+		"DEFERRABLE INITIALLY DEFERRED",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("ledger correction migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back immutable ledger corrections while correction history exists") {
+		t.Fatal("ledger correction rollback can discard enforced history")
 	}
 }
 

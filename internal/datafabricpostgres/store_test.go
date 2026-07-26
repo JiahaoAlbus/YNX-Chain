@@ -205,6 +205,70 @@ func TestPostgresJournalCommitsHeaderAndAllPostingsTogether(t *testing.T) {
 	}
 }
 
+func TestPostgresCorrectionLocksAndAtomicallyReversesJournal(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	now := time.Now().UTC()
+	original := datafabric.JournalEntry{
+		EntryID: "journal.test.original.0001", CorrelationID: "correlation.test.0001", EventID: "event.pay.invoice.created.0001",
+		EffectiveAt: now, RecordedAt: now, Description: "original journal", RevenueBoundary: "payment-settled",
+		SourceCommit: "719e101", SourceRelease: "data-fabric-test", AuditID: "audit.test.original.0001",
+		Postings: []datafabric.Posting{
+			{AccountID: "account.user.0001", Asset: "USD", Currency: "USD", Side: datafabric.Debit, Amount: 100, Category: "refund"},
+			{AccountID: "account.cash.0001", Asset: "USD", Currency: "USD", Side: datafabric.Credit, Amount: 100, Category: "provider-net"},
+		},
+	}
+	connection.journal = &original
+	reversal := original
+	reversal.EntryID = "journal.test.reversal.0001"
+	reversal.CorrectionOf = original.EntryID
+	reversal.Description = "exact reversal"
+	reversal.AuditID = "audit.test.reversal.0001"
+	reversal.Postings = append([]datafabric.Posting(nil), original.Postings...)
+	reversal.Postings[0].Side = datafabric.Credit
+	reversal.Postings[1].Side = datafabric.Debit
+	if err := store.PostCorrection(context.Background(), reversal); err != nil {
+		t.Fatal(err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if !connection.committed || connection.begun != 1 || len(connection.execs) != 3 || !strings.Contains(connection.execs[0], "journal_entries") {
+		t.Fatalf("correction header and postings were not one transaction: %+v", connection)
+	}
+}
+
+func TestPostgresCorrectionRejectsExistingReversalBeforeWrite(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	now := time.Now().UTC()
+	original := datafabric.JournalEntry{
+		EntryID: "journal.test.original.0002", CorrelationID: "correlation.test.0001", EventID: "event.pay.invoice.created.0001",
+		EffectiveAt: now, RecordedAt: now, Description: "original journal", RevenueBoundary: "payment-settled",
+		SourceCommit: "719e101", SourceRelease: "data-fabric-test", AuditID: "audit.test.original.0002",
+		Postings: []datafabric.Posting{
+			{AccountID: "account.user.0001", Asset: "USD", Currency: "USD", Side: datafabric.Debit, Amount: 100, Category: "refund"},
+			{AccountID: "account.cash.0001", Asset: "USD", Currency: "USD", Side: datafabric.Credit, Amount: 100, Category: "provider-net"},
+		},
+	}
+	connection.journal = &original
+	connection.existingReversal = "journal.test.existing-reversal.0001"
+	reversal := original
+	reversal.EntryID = "journal.test.reversal.0002"
+	reversal.CorrectionOf = original.EntryID
+	reversal.AuditID = "audit.test.reversal.0002"
+	reversal.Postings = append([]datafabric.Posting(nil), original.Postings...)
+	reversal.Postings[0].Side = datafabric.Credit
+	reversal.Postings[1].Side = datafabric.Debit
+	if err := store.PostCorrection(context.Background(), reversal); datafabric.ErrorCodeOf(err) != datafabric.CodeLedgerDuplicateReversal {
+		t.Fatalf("existing PostgreSQL reversal was not rejected: %v", err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if connection.committed || len(connection.execs) != 0 {
+		t.Fatalf("duplicate reversal reached PostgreSQL writes: %+v", connection)
+	}
+}
+
 func TestPostgresSagaHeaderAndCanonicalStepsCommitTogether(t *testing.T) {
 	db, connection := openRecordingDB(t)
 	store, _ := NewStore(db)
@@ -321,6 +385,10 @@ func TestPostgresStoreRejectsInvalidWritesBeforeDatabaseAccess(t *testing.T) {
 	if err := store.PostJournal(context.Background(), datafabric.JournalEntry{}); err == nil {
 		t.Fatal("invalid journal accepted")
 	}
+	correction := datafabric.JournalEntry{CorrectionOf: "journal.test.0001"}
+	if err := store.PostJournal(context.Background(), correction); datafabric.ErrorCodeOf(err) != datafabric.CodeLedgerCorrectionRouteRequired {
+		t.Fatalf("correction bypassed dedicated PostgreSQL route: %v", err)
+	}
 	connection.mu.Lock()
 	defer connection.mu.Unlock()
 	if len(connection.execs) != 0 || connection.begun != 0 {
@@ -359,6 +427,7 @@ type recordingConn struct {
 	schemaChecksums  map[int64]string
 	claimed          [][]driver.Value
 	journal          *datafabric.JournalEntry
+	existingReversal string
 	eventProduct     string
 	lastSequence     int64
 	begun            int
@@ -429,6 +498,16 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 		return &recordingRows{columns: []string{"checksum"}, values: [][]driver.Value{{checksum}}}, nil
 	case strings.Contains(query, "WITH selected AS"):
 		return &recordingRows{columns: []string{"event_id", "partition_key", "attempt", "available_at", "lease_owner", "lease_until"}, values: c.claimed}, nil
+	case strings.Contains(query, "FROM ynx_fabric.journal_entries WHERE correction_of"):
+		if c.existingReversal == "" {
+			return &recordingRows{columns: []string{"entry_id"}}, nil
+		}
+		return &recordingRows{columns: []string{"entry_id"}, values: [][]driver.Value{{c.existingReversal}}}, nil
+	case strings.Contains(query, "SELECT entry_id FROM ynx_fabric.journal_entries WHERE entry_id") && strings.Contains(query, "FOR UPDATE"):
+		if c.journal == nil {
+			return &recordingRows{columns: []string{"entry_id"}}, nil
+		}
+		return &recordingRows{columns: []string{"entry_id"}, values: [][]driver.Value{{c.journal.EntryID}}}, nil
 	case strings.Contains(query, "FROM ynx_fabric.journal_entries WHERE entry_id"):
 		if c.journal == nil {
 			return &recordingRows{columns: []string{"entry_id"}}, nil

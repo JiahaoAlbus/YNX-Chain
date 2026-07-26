@@ -302,6 +302,9 @@ func (s *Store) ApplyProjection(ctx context.Context, consumer, eventID string, a
 // Deferred database triggers re-check balance, fee consent, event authority,
 // and canonical account ownership at commit.
 func (s *Store) PostJournal(ctx context.Context, entry datafabric.JournalEntry) error {
+	if entry.CorrectionOf != "" {
+		return datafabric.Reject(datafabric.CodeLedgerCorrectionRouteRequired, "journal corrections must use the immutable correction route", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
 	if err := entry.Validate(); err != nil {
 		return err
 	}
@@ -310,13 +313,64 @@ func (s *Store) PostJournal(ctx context.Context, entry datafabric.JournalEntry) 
 		return err
 	}
 	defer tx.Rollback() //nolint:errcheck
+	if err := insertJournal(ctx, tx, entry); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return mapJournalError(err)
+	}
+	return nil
+}
+
+// PostCorrection locks the target journal row, proves an exact reversal, and
+// appends the correction header and postings in one serializable transaction.
+func (s *Store) PostCorrection(ctx context.Context, entry datafabric.JournalEntry) error {
+	if err := entry.Validate(); err != nil {
+		return err
+	}
+	if entry.CorrectionOf == "" || entry.CorrectionOf == entry.EntryID {
+		return datafabric.Reject(datafabric.CodeLedgerCorrectionInvalid, "correctionOf must identify a different prior journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+	target, exists, err := loadJournalEntryForUpdate(ctx, tx, entry.CorrectionOf)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return datafabric.Reject(datafabric.CodeLedgerCorrectionTargetMissing, "correction references an unknown journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	}
+	var existingReversal string
+	err = tx.QueryRowContext(ctx, `SELECT entry_id FROM ynx_fabric.journal_entries WHERE correction_of=$1 LIMIT 1 FOR KEY SHARE`, entry.CorrectionOf).Scan(&existingReversal)
+	if err == nil {
+		return datafabric.Reject(datafabric.CodeLedgerDuplicateReversal, "journal entry already has an authoritative reversal", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf, "existingReversalId": existingReversal})
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	if err := datafabric.ValidateJournalCorrection(target, entry); err != nil {
+		return err
+	}
+	if err := insertJournal(ctx, tx, entry); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return mapJournalError(err)
+	}
+	return nil
+}
+
+func insertJournal(ctx context.Context, tx *sql.Tx, entry datafabric.JournalEntry) error {
 	var consentID, schedule, basis any
 	var acceptedAt, maximum any
 	if entry.FeeConsent != nil {
 		consentID, schedule, basis = entry.FeeConsent.ConsentID, entry.FeeConsent.FeeScheduleVersion, entry.FeeConsent.Basis
 		acceptedAt, maximum = entry.FeeConsent.AcceptedAt, entry.FeeConsent.MaximumAmountMinor
 	}
-	_, err = tx.ExecContext(ctx, `
+	_, err := tx.ExecContext(ctx, `
 INSERT INTO ynx_fabric.journal_entries (
  entry_id,correlation_id,event_id,effective_at,recorded_at,description,correction_of,
  revenue_recognition_boundary,source_commit,source_release,audit_id,fee_consent_id,
@@ -333,10 +387,25 @@ INSERT INTO ynx_fabric.journal_entries (
 			return mapJournalError(err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return mapJournalError(err)
-	}
 	return nil
+}
+
+func loadJournalEntryForUpdate(ctx context.Context, tx *sql.Tx, id string) (datafabric.JournalEntry, bool, error) {
+	entry, exists, err := loadJournalEntry(ctx, tx, id)
+	if err != nil || !exists {
+		return entry, exists, err
+	}
+	var lockedID string
+	if err := tx.QueryRowContext(ctx, `SELECT entry_id FROM ynx_fabric.journal_entries WHERE entry_id=$1 FOR UPDATE`, id).Scan(&lockedID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return datafabric.JournalEntry{}, false, nil
+		}
+		return datafabric.JournalEntry{}, false, err
+	}
+	if lockedID != id {
+		return datafabric.JournalEntry{}, false, errors.New("locked journal target identity mismatch")
+	}
+	return entry, true, nil
 }
 
 func mapJournalError(err error) error {
@@ -344,6 +413,9 @@ func mapJournalError(err error) error {
 	if errors.As(err, &pqError) {
 		switch pqError.Code {
 		case "23505":
+			if pqError.Constraint == "journal_one_reversal_per_entry" {
+				return datafabric.Reject(datafabric.CodeLedgerDuplicateReversal, "journal entry already has an authoritative reversal", nil)
+			}
 			return datafabric.ErrDuplicate
 		case "23503", "23514":
 			return fmt.Errorf("journal database invariant rejected: %w", err)

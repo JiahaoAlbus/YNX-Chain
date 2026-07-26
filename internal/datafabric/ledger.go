@@ -155,13 +155,31 @@ func (s *Store) PostCorrection(entry JournalEntry) error {
 	if !targetFound {
 		return Reject(CodeLedgerCorrectionTargetMissing, "correction references an unknown journal entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
 	}
-	if target.CorrectionOf != "" || entry.RecordedAt.Before(target.RecordedAt) || entry.CorrelationID != target.CorrelationID {
-		return Reject(CodeLedgerCorrectionInvalid, "correction must reverse a prior original entry in the same correlation", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
-	}
-	if !isExactReversal(target, entry) {
-		return Reject(CodeLedgerReversalMismatch, "correction postings must exactly reverse the target entry", map[string]string{"entryId": entry.EntryID, "correctionOf": entry.CorrectionOf})
+	if err := ValidateJournalCorrection(target, entry); err != nil {
+		return err
 	}
 	return s.postJournalLocked(entry)
+}
+
+// ValidateJournalCorrection applies the persistence-independent correction
+// contract shared by file and PostgreSQL repositories.
+func ValidateJournalCorrection(target, correction JournalEntry) error {
+	if err := correction.Validate(); err != nil {
+		return err
+	}
+	if correction.CorrectionOf == "" || correction.CorrectionOf == correction.EntryID {
+		return Reject(CodeLedgerCorrectionInvalid, "correctionOf must identify a different prior journal entry", map[string]string{"entryId": correction.EntryID, "correctionOf": correction.CorrectionOf})
+	}
+	if target.EntryID == "" || target.EntryID != correction.CorrectionOf {
+		return Reject(CodeLedgerCorrectionTargetMissing, "correction references an unknown journal entry", map[string]string{"entryId": correction.EntryID, "correctionOf": correction.CorrectionOf})
+	}
+	if target.CorrectionOf != "" || correction.RecordedAt.Before(target.RecordedAt) || correction.CorrelationID != target.CorrelationID {
+		return Reject(CodeLedgerCorrectionInvalid, "correction must reverse a prior original entry in the same correlation", map[string]string{"entryId": correction.EntryID, "correctionOf": correction.CorrectionOf})
+	}
+	if !isExactReversal(target, correction) {
+		return Reject(CodeLedgerReversalMismatch, "correction postings must exactly reverse the target entry", map[string]string{"entryId": correction.EntryID, "correctionOf": correction.CorrectionOf})
+	}
+	return nil
 }
 
 func (s *Store) postJournalLocked(entry JournalEntry) error {

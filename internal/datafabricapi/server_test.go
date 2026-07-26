@@ -119,6 +119,58 @@ func TestHealthAndProtectedRead(t *testing.T) {
 	}
 }
 
+func TestJournalCorrectionUsesDedicatedAuthorizedRoute(t *testing.T) {
+	server, store := newTestServer(t, fakeAuthorizer{})
+	event := apiEvent(t)
+	if err := store.Append(event, apiTestKey); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 7, 22, 15, 5, 0, 0, time.UTC)
+	original := datafabric.JournalEntry{
+		EntryID: "journal.api.original.0001", CorrelationID: event.CorrelationID, EventID: event.EventID,
+		EffectiveAt: now, RecordedAt: now, Description: "original journal", RevenueBoundary: "payment-settled",
+		SourceCommit: "719e101", SourceRelease: "data-fabric-testnet-v0", AuditID: "audit.api.original.0001",
+		Postings: []datafabric.Posting{
+			{AccountID: event.Actor.AccountID, Asset: "USD", Currency: "USD", Side: datafabric.Debit, Amount: 100, Category: "refund"},
+			{AccountID: "account.provider.api.0001", Asset: "USD", Currency: "USD", Side: datafabric.Credit, Amount: 100, Category: "provider-net"},
+		},
+	}
+	if err := store.PostJournal(original); err != nil {
+		t.Fatal(err)
+	}
+	reversal := original
+	reversal.EntryID = "journal.api.reversal.0001"
+	reversal.CorrectionOf = original.EntryID
+	reversal.Description = "exact reversal"
+	reversal.AuditID = "audit.api.reversal.0001"
+	reversal.Postings = append([]datafabric.Posting(nil), original.Postings...)
+	reversal.Postings[0].Side = datafabric.Credit
+	reversal.Postings[1].Side = datafabric.Debit
+	body, _ := json.Marshal(reversal)
+
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, "/v1/ledger/journal", body, "pay"))
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), string(datafabric.CodeLedgerCorrectionRouteRequired)) {
+		t.Fatalf("ordinary journal route accepted a correction: %d %s", response.Code, response.Body.String())
+	}
+
+	response = httptest.NewRecorder()
+	path := "/v1/ledger/journal/" + original.EntryID + "/corrections"
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, path, body, "pay"))
+	if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"status":"reversal-recorded"`) || len(store.Journal()) != 2 {
+		t.Fatalf("dedicated correction route did not append reversal: %d %s", response.Code, response.Body.String())
+	}
+
+	reversal.EntryID = "journal.api.reversal.0002"
+	reversal.AuditID = "audit.api.reversal.0002"
+	body, _ = json.Marshal(reversal)
+	response = httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, authorizedRequest(t, http.MethodPost, path, body, "pay"))
+	if response.Code != http.StatusConflict || !strings.Contains(response.Body.String(), string(datafabric.CodeLedgerDuplicateReversal)) {
+		t.Fatalf("duplicate reversal was accepted: %d %s", response.Code, response.Body.String())
+	}
+}
+
 func TestOperatorConsoleShellHasStrictBrowserBoundary(t *testing.T) {
 	server, _ := newTestServer(t, fakeAuthorizer{})
 	response := httptest.NewRecorder()

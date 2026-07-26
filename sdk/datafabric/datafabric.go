@@ -87,6 +87,12 @@ const (
 	CodeRedeliveryPreviewStale        = core.CodeRedeliveryPreviewStale
 	CodeRedeliveryIdempotencyConflict = core.CodeRedeliveryIdempotencyConflict
 	CodeRedeliveryNoCandidates        = core.CodeRedeliveryNoCandidates
+	CodeLedgerUnbalanced              = core.CodeLedgerUnbalanced
+	CodeLedgerCorrectionRouteRequired = core.CodeLedgerCorrectionRouteRequired
+	CodeLedgerCorrectionInvalid       = core.CodeLedgerCorrectionInvalid
+	CodeLedgerCorrectionTargetMissing = core.CodeLedgerCorrectionTargetMissing
+	CodeLedgerReversalMismatch        = core.CodeLedgerReversalMismatch
+	CodeLedgerDuplicateReversal       = core.CodeLedgerDuplicateReversal
 )
 
 func DecodeEnvelopeStrict(r io.Reader) (EventEnvelope, error) { return core.DecodeEnvelopeStrict(r) }

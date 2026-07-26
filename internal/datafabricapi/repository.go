@@ -15,6 +15,7 @@ type Repository interface {
 	Events(context.Context) ([]datafabric.EventEnvelope, error)
 	Event(context.Context, string) (datafabric.EventEnvelope, bool, error)
 	PostJournal(context.Context, datafabric.JournalEntry) error
+	PostCorrection(context.Context, datafabric.JournalEntry) error
 	Journal(context.Context) ([]datafabric.JournalEntry, error)
 	JournalEntry(context.Context, string) (datafabric.JournalEntry, bool, error)
 	StartSaga(context.Context, datafabric.SagaInstance) error
@@ -48,6 +49,9 @@ func (r LocalRepository) Event(_ context.Context, id string) (datafabric.EventEn
 }
 func (r LocalRepository) PostJournal(_ context.Context, entry datafabric.JournalEntry) error {
 	return r.Store.PostJournal(entry)
+}
+func (r LocalRepository) PostCorrection(_ context.Context, entry datafabric.JournalEntry) error {
+	return r.Store.PostCorrection(entry)
 }
 func (r LocalRepository) Journal(context.Context) ([]datafabric.JournalEntry, error) {
 	return r.Store.Journal(), nil
