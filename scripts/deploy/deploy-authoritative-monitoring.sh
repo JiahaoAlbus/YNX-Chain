@@ -89,22 +89,34 @@ sudo -n install -o root -g ynx-prometheus -m 0640 "$work/prometheus.yml" /etc/yn
 sudo -n install -o root -g ynx-prometheus -m 0640 "$work/ynx-alerts.yml" /etc/ynx/prometheus/ynx-alerts.yml
 sudo -n install -o root -g root -m 0644 "$work/ynx-prometheus.service" /etc/systemd/system/ynx-prometheus.service
 sudo -n systemctl daemon-reload
-sudo -n systemctl enable --now ynx-prometheus.service
+sudo -n systemctl enable ynx-prometheus.service
+sudo -n systemctl restart ynx-prometheus.service
 REMOTE
 
 for attempt in $(seq 1 12); do
-  if chain_evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
-    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-chaind%22%7D'")" && \
-    explorer_evidence="$(ynx_transport_ssh monitoring-explorer-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
-    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-explorerd%22%7D'")" && \
-    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$chain_evidence" && \
-    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==1||r[0].value?.[1]!=="1")process.exit(1)' "$explorer_evidence"; then
-    printf '%s\n%s\n' "$chain_evidence" "$explorer_evidence"
-    echo "authoritative monitoring deployed: four Chain targets and the primary Explorer target are up"
+  if target_evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
+    "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/targets'")" && \
+    node -e '
+      const d=JSON.parse(process.argv[1]);
+      const targets=d?.data?.activeTargets||[];
+      const chain=targets.filter(x=>x.labels?.job==="ynx-chaind").map(x=>x.labels.instance).sort();
+      const explorer=targets.filter(x=>x.labels?.job==="ynx-explorerd");
+      const expected=["10.77.42.2:6420","10.77.42.3:6420","10.77.42.4:6420","127.0.0.1:6420"].sort();
+      if(JSON.stringify(chain)!==JSON.stringify(expected)||explorer.length!==1||
+         explorer[0].labels?.instance!=="127.0.0.1:6427"||explorer[0].health!=="up")process.exit(1);
+    ' "$target_evidence"; then
+    node -e '
+      const d=JSON.parse(process.argv[1]);
+      const targets=d.data.activeTargets;
+      const chain=targets.filter(x=>x.labels.job==="ynx-chaind");
+      const explorer=targets.find(x=>x.labels.job==="ynx-explorerd");
+      console.log(JSON.stringify({chainTargets:chain.length,chainUp:chain.filter(x=>x.health==="up").length,explorerTarget:explorer.labels.instance,explorerHealth:explorer.health}));
+    ' "$target_evidence"
+    echo "authoritative monitoring deployed: four exact Chain targets are monitored and the primary Explorer target is up"
     exit 0
   fi
   sleep 5
 done
 
-echo "authoritative monitoring failed to prove four healthy Chain targets and one healthy Explorer target" >&2
+echo "authoritative monitoring failed to load four exact Chain targets and one healthy Explorer target" >&2
 exit 1
