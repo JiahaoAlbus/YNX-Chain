@@ -2,7 +2,7 @@
 
 ## Build and verification
 
-Run `npm ci && npm run check` in this directory and `npm test` in `packages/wallet-auth`. From the repository root, generate the existing contract fixtures with `npm ci && npm run hardhat:build && npm run contracts:selectors` before `make test`; those generated artifacts are ignored and are not Wallet deliverables.
+Run `npm ci && npm run check` in this directory and `npm test` in `packages/wallet-auth`. The Wallet check includes TypeScript, unit/integration tests, product invariants, a no-external-binary release content/secret gate, the full-goal coverage matrix gate, deterministic SBOM verification and Android/iOS Hermes exports. From the repository root, generate the existing contract fixtures with `npm ci && npm run hardhat:build && npm run contracts:selectors` before `make test`; those generated artifacts are ignored and are not Wallet deliverables.
 
 Run `npm run hardhat:test:wallet` for the local official EntryPoint, account, passkey, session, guardian, counterfactual factory and Paymaster flow. Public deployment uses `npm run hardhat:deploy:wallet-smart-account` only through the secure operator environment. It refuses non-6423 networks, requires an exact source commit and public signer/officer addresses, deploys the Paymaster disabled with zero deposit and emits code hashes; funding, policy enablement and Bundler submission are separate approved operations.
 
@@ -18,7 +18,7 @@ adb shell am start -S -W -n com.ynxweb4.wallet/.MainActivity
 
 The checked CI workflow `.github/workflows/wallet-ios.yml` performs dependency installation, tests, bundle export, CocoaPods installation and an unsigned Simulator build on macOS 15. It uploads the Simulator product; production archive/signing is deliberately outside CI until owner-controlled Apple credentials exist.
 
-Generate the review SBOM with `npx @cyclonedx/cyclonedx-npm --ignore-npm-errors --output-file sbom.cdx.json --output-format JSON --spec-version 1.6 --omit dev`. Any npm tree error keeps SBOM release readiness false even if a graph is emitted.
+Generate the pinned deterministic CycloneDX 1.6 runtime SBOM with `npm run sbom:generate`, then prove the clean production npm tree, generator version, component identity, unique references, complete license metadata and byte-for-byte reproducibility with `npm run sbom:check`. The check fails closed on any npm tree error, stale committed graph or missing license metadata; `--ignore-npm-errors` is prohibited.
 
 ## Runtime checks
 

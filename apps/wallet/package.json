@@ -13,8 +13,12 @@
     "bundle:android": "expo export --platform android --output-dir dist-android",
     "bundle:ios": "expo export --platform ios --output-dir dist-ios",
     "bundle": "npm run bundle:android && npm run bundle:ios",
+    "sbom:generate": "node scripts/sbom-check.mjs --write",
+    "sbom:check": "node scripts/sbom-check.mjs",
+    "release-content:check": "node scripts/release-content-check.mjs",
+    "goal-coverage:check": "node scripts/full-goal-coverage-check.mjs",
     "product-check": "node scripts/product-check.mjs",
-    "check": "npm run typecheck && npm test && npm run product-check && npm run bundle"
+    "check": "npm run typecheck && npm test && npm run product-check && npm run release-content:check && npm run goal-coverage:check && npm run sbom:check && npm run bundle"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
@@ -35,9 +39,15 @@
     "react-native-svg": "15.15.4"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "6.0.0",
     "@types/react": "~19.2.2",
     "tsx": "4.23.1",
     "typescript": "~6.0.3"
   },
-  "overrides": {"@expo/package-manager":"1.13.0","@expo/prebuild-config":"57.0.5","@expo/schema-utils":"57.0.1","expo-server":"57.0.0"}
+  "overrides": {
+    "@expo/package-manager": "1.13.0",
+    "@expo/prebuild-config": "57.0.5",
+    "@expo/schema-utils": "57.0.1",
+    "expo-server": "57.0.0"
+  }
 }

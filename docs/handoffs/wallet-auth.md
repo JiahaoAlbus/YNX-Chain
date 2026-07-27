@@ -1,6 +1,6 @@
 # YNX Wallet and canonical Wallet Auth handoff
 
-Handoff date: 2026-07-25. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
+Handoff date: 2026-07-27. Owned branch: `codex/final-wallet-auth`. Recovery source: preserved `codex/ecosystem-wallet-auth` tip plus its six byte-for-byte verified dirty artifacts.
 
 ## Git and ownership
 
@@ -102,7 +102,8 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 - API 36 phone install: success; cold launch 2140/2274 ms and second cold launch 477/513 ms, focused MainActivity verified.
 - Pixel 9 Pro Fold install: success; 2076×2152, cold launch 15082/15742 ms.
 - iOS: Android/iOS Hermes exports pass; all iOS plists pass `plutil`. GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) passed SDK/Wallet checks and pods, built with Xcode 26.3, booted an iPhone Simulator, installed the unsigned Release app, cold-launched `com.ynxweb4.wallet`, routed a malformed `ynxwallet://authorize` URL to the fail-closed rejection UI, captured a screenshot and uploaded the app/evidence artifact. This host still has CommandLineTools only.
-- Dependency/license boundary and the reproducible 431-component CycloneDX review SBOM are documented in `DEPENDENCY_REVIEW.md`. Four Expo override tree errors keep release-grade completeness false; package locks remain authoritative.
+- Dependency/license boundary now includes a release-grade deterministic CycloneDX 1.6 runtime SBOM. The generator is pinned to `@cyclonedx/cyclonedx-npm@6.0.0`; `npm run sbom:check` proves a clean production npm tree, 431 components, 518 dependency nodes, license metadata for all 431 components and exact SHA-256 `1635d076a429028b7169d4cc97b6b9cc71269f9f7c0361e53295f474b3d48d74` without `--ignore-npm-errors`.
+- The Wallet-owned `release-content:check` scans 22 runtime/config/public-metadata files without external binaries. It replaces no central owner capability: `docs/integration/SECURITY_GATE_CONFLICT.md` records that repository-level placeholder/secret scripts produced false success when `rg` was missing. The 39-item `.ai-bridge/full-goal-coverage.json` is also executable-validated for unique IDs, allowed states, exact commits, evidence paths and concrete blockers.
 - `git diff --check`, owned-path, secret/placeholder and final worktree checks are rerun before push.
 - Smart Account policy/mandate/Credential/Signed Intent gates cover property/fuzz/fault, 10,000 sponsorship evaluations, 5,000 Credential parses, 2,000 signed export verifications and a 20,000-evaluation sponsorship benchmark. The new Solidity account additionally executes owner, UV-required WebAuthn and bounded-session UserOperations through the official EntryPoint on local Hardhat EDR, rejects missing UV/wrong target/over-limit/post-recovery sessions, and runs a 50-operation soak.
 - The default-disabled Paymaster executes local first-action, merchant, developer and product sponsorship, conservatively reserves product/subject budgets, observes postOp cost, rejects tamper/replay/second-first-action/unapproved target and restricts Risk Officer authority to disabling. The ERC-7769 adapter adds strict health/estimate/send/lookup/receipt with 4 dedicated tests and a 100-request isolated-fixture soak. Neither is deployed publicly.
@@ -122,4 +123,3 @@ Installed evidence includes English phone/light, Arabic main/selector RTL, dark 
 2. Have each product adopt the canonical request/callback/challenge/completion SDK; remove legacy query-field login and custom/local session verifiers. Exercise installed Wallet↔product flows against the deployed central lifecycle.
 3. Provide owner-controlled Android production keystore, Apple signing/provisioning and store accounts; perform physical-device biometric/screen-reader/recovery drills. Engineering artifacts are hosted, but production-signed/store states remain false.
 4. Commission external mobile/cryptographic review and decide whether a chain-compatible native non-exportable transaction signer/device-integrity policy is required before mainnet.
-5. Normalize the Expo dependency tree so a complete CycloneDX SBOM can be generated without `ESBOMPROBLEMS`; do not publish an incomplete SBOM.
