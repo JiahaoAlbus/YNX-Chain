@@ -2,13 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 1.1.1-candidate |
+| Version | 1.1.2-candidate |
 | Effective date | 2026-07-27 |
-| Source commit | `be7c9aabdff51ee29e373baf3342d4837735b9cc` |
+| Source commit | `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` |
 | Product release | 0.2.0-candidate |
 | Last reviewed | 2026-07-27 |
-| Superseded version | 1.1.0-candidate |
-| Review status | Website integration handoff; the be7c9aa package is locally verified but not yet Website-accepted or hosted |
+| Superseded version | 1.1.1-candidate |
+| Review status | Website integration handoff; the 2d38cac package is locally and CI verified but not yet Website-accepted or publicly hosted |
 
 ## Canonical identity
 
@@ -78,12 +78,14 @@ review are recorded.
 
 ## Next website-content candidate
 
-Source `be7c9aabdff51ee29e373baf3342d4837735b9cc` adds a machine-readable
-high-authority document metadata inventory and includes the normalized technical
-whitepaper, YNXT tokenomics, security/privacy/AI governance, Terms draft and Brand
-Guide in the deterministic website-content package. The locally verified archive is
-`ynx-website-content-be7c9aabdff5.zip`, 190,008 bytes, SHA-256
-`afd3aca6e91f03199821c033e5294cce18eb6f22aa0307450e2c7b2d2540b5aa`.
+Source `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` expands the machine-readable
+high-authority document metadata inventory to thirteen technical, economic, security,
+legal, brand and Website documents. The locally verified deterministic archive is
+`ynx-website-content-2d38cacd11a4.zip`, 268,746 bytes, SHA-256
+`4ee1913606d4fdd17af44b0b206a0adfc21044747a69577c7e7f498829318861`. GitHub
+Actions run `30280631459` passed for the same source; artifact `8658642162` is
+unexpired. The deterministic archive digest and GitHub artifact-container digest are
+separate evidence values.
 
 This candidate is not yet Website-accepted, publicly hosted or production signed.
 The currently hosted archive and release booleans remain governed by
@@ -100,6 +102,9 @@ responses and artifact hashes. No release boolean may change without direct proo
 
 ## Change log
 
+- 1.1.2-candidate (2026-07-27): Rebound the next Website-content candidate to the
+  thirteen-document `2d38cac` package and exact CI evidence without promoting Website
+  acceptance, hosted-download or signing states.
 - 1.1.1-candidate (2026-07-27): Normalized the complete metadata tuple and recorded
   the locally verified `be7c9aa` content candidate without promoting Website
   acceptance, hosted-download or signing states.

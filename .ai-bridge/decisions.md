@@ -39,7 +39,13 @@
 14. `release/document-metadata-inventory.json` is the bounded authority for the complete
     public-document metadata tuple. The gate compares rendered Markdown metadata and
     change-log identity exactly; prose-only version labels are insufficient.
-15. The `3dd06bf` website-content archive is a locally and CI-verified candidate only.
+15. The `2d38cac` website-content archive is a locally and CI-verified candidate only.
     Its inner-package digest and GitHub Actions artifact digest are separate evidence
     values. Existing hosted-download and public-release facts cannot be rebound until
     YNX 28 returns exact acceptance, deployment and public artifact evidence.
+16. Metadata normalization does not refresh substantive runtime, economic or legal
+    claims. Where a document describes an accepted runtime and a separate reviewed
+    candidate, both source identities remain explicit and promotion stays fail closed.
+17. The thirteen-document inventory is an intermediate authority cohort, not completion.
+    Staking, trading, Wallet/Auth, Bridge/Oracle/Data Fabric, Quant, Trust, Product
+    Architecture and principal guide documents remain autonomous work.

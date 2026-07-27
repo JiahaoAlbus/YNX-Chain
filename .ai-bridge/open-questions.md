@@ -19,12 +19,13 @@
 
 ## Autonomous next question
 
-Which next-cohort high-authority documents should be normalized after the technical
-whitepaper, YNXT tokenomics, security/privacy/AI governance, Terms draft, Brand Guide and
-Website handoff? The current priority order is StreamBFT, execution/local fee markets,
-treasury/revenue/burn, stablecoin reserve/redemption, proof of solvency, Privacy Notice
-and AUP. YNX 18 can normalize these without external credentials while preserving all
-substantive claims and review limitations.
+Which remaining high-authority documents should enter the third metadata cohort after the
+thirteen-document technical, economic, security, legal, brand and Website set? The current
+priority is staking/liquid staking/safety module, trading core/UltraLiquidity/FairFlow,
+Wallet/Auth smart-account mandate, Bridge/Oracle/Data Fabric, Quant architecture,
+Trust/appeals/market integrity, Product Architecture and the principal Validator,
+Developer, Wallet, Exchange, DEX, Quant, Card and Cloud guides. YNX 18 can normalize these
+without external credentials while preserving owner boundaries and substantive claims.
 
 Until each external owner answers with direct evidence, the corresponding release
 state or public claim remains false, blocked or candidate-only.

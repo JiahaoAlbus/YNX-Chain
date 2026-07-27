@@ -6,46 +6,49 @@ Branch: codex/final-docs-compliance
 
 ## Current phase
 
-PUBLIC. The accepted documentation authority bundle remains centrally integrated,
-publicly rendered and immutably hosted as an unsigned candidate. Source
-`3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a` creates a newer locally and CI-verified
-website-content candidate; it is not yet Website-accepted, publicly hosted or production
-signed. The long-term goal remains Active.
+PUBLIC. The accepted documentation bundle remains centrally integrated, publicly rendered
+and immutably hosted as an unsigned candidate. Source
+`2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` is a newer locally and CI-verified
+website-content candidate covering thirteen high-authority documents; it is not yet
+Website-accepted, publicly hosted or production signed. The long-term goal remains Active.
 
-## Completed slice
+## Completed slices
 
-- Added `release/document-metadata-inventory.json` and a fail-closed metadata gate.
-- Normalized the complete metadata tuple for the technical whitepaper, YNXT tokenomics,
-  security/privacy/AI governance, Terms draft and Brand Guide in implementation commit
-  `be7c9aa`; this evidence follow-up also normalizes the Website handoff.
-- Corrected the whitepaper's stale claim that the documentation package was not deployed,
-  while preserving unsigned-candidate and named-review limitations.
-- Added the first five normalized documents and metadata inventory to the deterministic
-  website-content package and required them in package verification. The normalized
-  Website handoff is included in the verified `3dd06bf` package.
-- Built and verified the six-document candidate
-  `ynx-website-content-3dd06bfc272a.zip`: 192,324 bytes, SHA-256
-  `5eff155c7ce495449f656df3d0567dc23f772b17e53b7d6c7bb0f0f4c50c470d`.
-- GitHub Actions run `30277299345` passed for exact source `3dd06bf` and retained
-  unexpired artifact `8657308310`; this CI artifact is not the public hosted download.
-- Pushed commits `be7c9aabdff51ee29e373baf3342d4837735b9cc` and
-  `3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a`, then verified local and remote SHA
-  equality with Ahead/Behind 0/0.
+- Created `release/document-metadata-inventory.json` and a fail-closed gate that compares
+  Markdown metadata and change-log identity exactly.
+- Normalized the technical whitepaper, YNXT tokenomics, security/privacy/AI governance,
+  Terms draft, Brand Guide and Website Integration Handoff.
+- Expanded the same authority to StreamBFT, execution/local fee markets,
+  Treasury/revenue/burn, stablecoin reserve/redemption, proof of solvency, Privacy Notice
+  and Acceptable Use Policy.
+- Preserved all candidate and failure boundaries: no public StreamBFT activation, active
+  local fee market, Treasury audit, burn/buyback, official stablecoin, reserve/redemption,
+  solvency attestation or effective legal notice was claimed.
+- Added all thirteen documents to the deterministic website-content package and required
+  them in package verification.
+- Built and verified `ynx-website-content-2d38cacd11a4.zip`: 268,746 bytes, SHA-256
+  `4ee1913606d4fdd17af44b0b206a0adfc21044747a69577c7e7f498829318861`.
+- GitHub Actions run `30280631459` passed for exact source `2d38cac`; unexpired artifact
+  `8658642162` has workflow-container digest
+  `sha256:b25b64cfd2bc38f6c5961fad8cbb7eef3a5d3f374c7310ee594ee8e5775356b0`.
+- Pushed implementation commit `2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012` and verified
+  Local SHA = Remote SHA with Ahead/Behind 0/0.
 
 ## Next autonomous slice
 
-Expand the inventory and metadata gate to the next highest-authority cohort:
-StreamBFT, execution/local fee markets, treasury/revenue/burn, stablecoin reserve and
-redemption, proof of solvency, Privacy Notice and AUP. Preserve substantive claims unless
-accepted owner evidence changes. Rebuild the deterministic package after the cohort is
-committed; do not mark the new archive hosted or Website-accepted without direct YNX 28
-evidence.
+Expand metadata authority to the next highest-impact cohort: staking/liquid staking and
+safety module, trading core/UltraLiquidity/FairFlow, Wallet/Auth smart-account mandate,
+Bridge/Oracle/Data Fabric, Quant architecture, Trust/appeals/market integrity, Product
+Architecture and the principal Validator/Developer/Wallet/Exchange/DEX/Quant/Card/Cloud
+guides. Preserve owner boundaries and substantive claims. Rebuild and verify the package
+from the next committed source; do not change Website acceptance, hosted-download or
+signing states without direct evidence from YNX 28 and YNX 30.
 
 ## External blockers
 
 - clean exact-commit handoffs from Wallet/Auth, Economics, Oracle, Bridge, Data Fabric
   and Security/SRE;
-- named legal, economic, security, privacy and independent-audit reviews;
+- named legal, economic, consensus, security, privacy and independent-audit reviews;
 - approved media rights and final asset variants;
 - production signing authority and certificate-chain evidence;
 - independent public/search/indexing evidence; and
@@ -55,6 +58,6 @@ evidence.
 
 Do not reset, clean, force-push, modify sibling worktrees, expose secrets, execute
 value-moving actions or infer stronger release states. Every slice must run focused gates,
-review the diff, commit, push, verify local/remote SHA equality and leave an exact next
-action. The `be7c9aa` package remains local until separate Website and hosting evidence is
-returned.
+review the diff, commit, push, verify Local SHA = Remote SHA and leave an exact next
+action. The `2d38cac` package remains a local/CI candidate until separate Website,
+public-hosting and signing evidence is returned.

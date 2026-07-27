@@ -3,7 +3,7 @@
   "productNumber": 18,
   "productSlug": "docs-compliance-brand",
   "productRelease": "0.2.0-candidate",
-  "sourceCommit": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
+  "sourceCommit": "2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012",
   "lastUpdated": "2026-07-27",
   "scope": "Bounded current cohort of highest-authority public documents. Inclusion validates metadata completeness; it does not imply named professional review, Website acceptance, production signing or Mainnet status.",
   "requiredMetadataFields": [
@@ -116,15 +116,15 @@
       "path": "docs/public/WEBSITE_INTEGRATION_HANDOFF.md",
       "authorityClass": "website-integration-handoff",
       "metadata": {
-        "Version": "1.1.1-candidate",
+        "Version": "1.1.2-candidate",
         "Effective date": "2026-07-27",
-        "Source commit": "be7c9aabdff51ee29e373baf3342d4837735b9cc",
+        "Source commit": "2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012",
         "Product release": "0.2.0-candidate",
         "Last reviewed": "2026-07-27",
-        "Superseded version": "1.1.0-candidate",
-        "Review status": "Website integration handoff; the be7c9aa package is locally verified but not yet Website-accepted or hosted"
+        "Superseded version": "1.1.1-candidate",
+        "Review status": "Website integration handoff; the 2d38cac package is locally and CI verified but not yet Website-accepted or publicly hosted"
       },
-      "changeLogVersion": "1.1.1-candidate",
+      "changeLogVersion": "1.1.2-candidate",
       "publicEvidence": [
         "release/evidence/document-metadata-2026-07-27.json",
         "release/evidence/website-public-acceptance-2026-07-26.json"

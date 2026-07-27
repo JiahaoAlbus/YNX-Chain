@@ -3,17 +3,17 @@
   "evidenceId": "YNX18-DOCUMENT-METADATA-2026-07-27",
   "productNumber": 18,
   "productSlug": "docs-compliance-brand",
-  "evidenceClass": "local-tested-candidate",
-  "sourceCommit": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
-  "recordedAt": "2026-07-27T22:55:00+08:00",
-  "scope": "High-authority public-document metadata normalization, Website handoff normalization and deterministic website-content packaging.",
-  "documentsValidated": 6,
+  "evidenceClass": "local-and-ci-tested-candidate",
+  "sourceCommit": "2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012",
+  "recordedAt": "2026-07-27T23:38:00+08:00",
+  "scope": "Thirteen high-authority public documents normalized to a seven-field versioning tuple and included in a deterministic website-content candidate.",
+  "documentsValidated": 13,
   "requiredMetadataFields": 7,
   "tests": [
     {
       "command": "make document-metadata-check",
       "result": "passed",
-      "detail": "Six documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
+      "detail": "Thirteen documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
     },
     {
       "command": "make docs-compliance-check",
@@ -24,6 +24,11 @@
       "command": "make public-disclosure-check",
       "result": "passed",
       "detail": "30 JSON records, 12 authoritative fact classes and nine release states passed."
+    },
+    {
+      "command": "make docs-release-package-check",
+      "result": "passed",
+      "detail": "Package builder and verifier negative self-tests passed."
     },
     {
       "command": "make no-placeholder-check",
@@ -41,6 +46,11 @@
       "detail": "Go vet, Shell syntax and JavaScript syntax checks passed."
     },
     {
+      "command": "make objective-state-check",
+      "result": "passed",
+      "detail": "README positioning and objective-state records passed."
+    },
+    {
       "command": "go test ./...",
       "result": "passed",
       "detail": "All Go packages passed or contained no test files."
@@ -48,26 +58,26 @@
     {
       "command": "node ./scripts/verify/docs-release-package-check.mjs tmp/packages/docs-release",
       "result": "passed",
-      "detail": "The committed-source candidate archive passed source-commit, byte-count, SHA-256, manifest completeness and required-input verification."
+      "detail": "The exact committed-source archive passed source-commit, byte-count, SHA-256, manifest completeness and required-input verification."
     }
   ],
   "artifact": {
-    "name": "ynx-website-content-3dd06bfc272a.zip",
-    "bytes": 192324,
-    "sha256": "5eff155c7ce495449f656df3d0567dc23f772b17e53b7d6c7bb0f0f4c50c470d",
+    "name": "ynx-website-content-2d38cacd11a4.zip",
+    "bytes": 268746,
+    "sha256": "4ee1913606d4fdd17af44b0b206a0adfc21044747a69577c7e7f498829318861",
     "productionSigned": false,
     "downloadHosted": false,
     "websiteAccepted": false
   },
   "continuousIntegration": {
     "workflow": "docs-compliance",
-    "runId": 30277299345,
+    "runId": 30280631459,
     "result": "success",
-    "headSha": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
-    "artifactId": 8657308310,
-    "artifactName": "ynx-website-content-3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
-    "artifactBytes": 56649,
-    "artifactDigest": "sha256:e4d899578eade2b572a2f1974b284e67f7dce42462a0c697823d622e74be3670",
+    "headSha": "2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012",
+    "artifactId": 8658642162,
+    "artifactName": "ynx-website-content-2d38cacd11a46efc5c4ef9adb4ebcc992ba6f012",
+    "artifactBytes": 80380,
+    "artifactDigest": "sha256:b25b64cfd2bc38f6c5961fad8cbb7eef3a5d3f374c7310ee594ee8e5775356b0",
     "expired": false
   },
   "git": {
@@ -78,8 +88,9 @@
     "behind": 0
   },
   "limitations": [
-    "The locally and CI-verified 3dd06bf artifact is not the currently hosted public archive.",
+    "The locally and CI-verified 2d38cac artifact is not the currently Website-accepted or publicly hosted archive.",
     "Website acceptance, public hosting and production signing require separate direct evidence.",
-    "Named legal, economic, security, privacy and asset-rights reviews remain external."
+    "Public StreamBFT activation, Treasury audit, stablecoin reserve/redemption, solvency attestation and effective legal notices are not claimed.",
+    "Named legal, economic, consensus, security, privacy and asset-rights reviews remain external."
   ]
 }
