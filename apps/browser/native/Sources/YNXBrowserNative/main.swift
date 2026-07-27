@@ -2,6 +2,7 @@ import AppKit
 import WebKit
 import CryptoKit
 import Security
+import OSLog
 import YNXBrowserCore
 
 struct TabRecord: Codable { let id: UUID; var url: String; var title: String; let isPrivate: Bool; var crashed: Bool; var group: String? }
@@ -25,6 +26,7 @@ final class TabButton: NSButton { var tabID: UUID? }
     private var activeID: UUID?
     private var selectedLibrary = "history"
     private let defaults = UserDefaults.standard
+    private let auditLogger = Logger(subsystem: "com.ynxweb4.browser.macos", category: "security-boundary")
     private let environment = ProcessInfo.processInfo.environment
     private lazy var searchURL = environment["YNX_SEARCH_URL"] ?? "https://search-staging.43.153.202.237.sslip.io"
     private lazy var phishingOrigins = Set(environment["YNX_BROWSER_BLOCKED_ORIGINS"]?.split(separator: ",").map(String.init) ?? [])
@@ -252,12 +254,15 @@ final class TabButton: NSButton { var tabID: UUID? }
                 signingKey: signingKey,
                 bindings: bindings
             )
+            auditLogger.notice("wallet_request_pending code=BR-WALLET-REQUEST-PENDING")
             if !NSWorkspace.shared.open(link) {
                 BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+                auditLogger.error("wallet_request_open_failed code=BR-WALLET-REQUEST-APP-UNAVAILABLE")
                 security.stringValue = "YNX Wallet is unavailable. No session was created."
             }
         } catch {
             BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+            auditLogger.error("wallet_request_failed code=BR-WALLET-REQUEST-INTERNAL")
             security.stringValue = "Wallet request failed. No session was created."
         }
     }
@@ -274,6 +279,7 @@ final class TabButton: NSButton { var tabID: UUID? }
         defaults.removeObject(forKey: "permissions")
         defaults.removeObject(forKey: "tabs")
         BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+        auditLogger.notice("local_data_cleared code=BR-DATA-CLEAR")
         security.stringValue = "Local browsing data and pending Wallet review cleared. Bookmarks and downloaded files remain."
         refreshLibrary()
     }
@@ -348,20 +354,25 @@ final class TabButton: NSButton { var tabID: UUID? }
             activeWebView()?.load(URLRequest(url: value))
             return
         }
+        auditLogger.error("external_link_rejected code=BR-DEEPLINK-SCHEME")
         security.stringValue = "External link rejected [BR-DEEPLINK-SCHEME]. Only HTTPS/HTTP navigation and the exact Wallet callback route are accepted."
     }
     private func handleWalletCallback(_ url: URL) {
         do {
             let key = try deviceSigningKey()
-            security.stringValue = try BrowserWalletCallbackPolicy.validateAndConsume(
+            let message = try BrowserWalletCallbackPolicy.validateAndConsume(
                 url: url,
                 defaults: defaults,
                 verificationKey: key.publicKey,
                 bindings: .macOS
             )
+            auditLogger.notice("wallet_callback_preliminary_valid code=BR-WALLET-CALLBACK-PRELIMINARY")
+            security.stringValue = message
         } catch let error as BrowserWalletCallbackError {
+            auditLogger.error("wallet_callback_rejected code=\(error.code, privacy: .public)")
             security.stringValue = "Wallet callback rejected [\(error.code)]: \(error.localizedDescription). No session was created."
         } catch {
+            auditLogger.error("wallet_callback_rejected code=BR-WALLET-CALLBACK-INTERNAL")
             security.stringValue = "Wallet callback rejected [BR-WALLET-CALLBACK-INTERNAL]. No session was created."
         }
     }
