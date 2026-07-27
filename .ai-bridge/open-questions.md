@@ -13,7 +13,6 @@
 
 - Which accessibility tooling is already installed under `apps/oracle` for direct keyboard, RTL, large-text, reduced-motion, theme and 390px verification?
 - Can the host `python3` SIGKILL condition be isolated without changing system configuration, or should the shared SDK suite remain recorded as an environment blocker while Oracle-specific consumers stay green?
-- Does GitHub/MCP Push recover after the protected evidence commit, allowing Local SHA = Remote SHA before the accessibility slice begins?
 
 ## Resolved in this slice
 
