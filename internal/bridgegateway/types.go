@@ -248,6 +248,7 @@ type ProviderRouteConfig struct {
 	EstimatedMinSeconds       uint64  `json:"estimatedMinSeconds"`
 	EstimatedMaxSeconds       uint64  `json:"estimatedMaxSeconds"`
 	ConnectivityProbeEnabled  bool    `json:"connectivityProbeEnabled"`
+	ConnectivityProbeInterval uint64  `json:"connectivityProbeIntervalSeconds"`
 	RouteSupportVerified      bool    `json:"routeSupportVerified"`
 	ContractsVerified         bool    `json:"contractsVerified"`
 	AgreementApproved         bool    `json:"agreementApproved"`
@@ -603,6 +604,16 @@ func (c Config) normalized() (Config, map[string]uint64, error) {
 		}
 		if route.ConnectivityProbeEnabled && (!route.RouteSupportVerified || !route.ContractsVerified) {
 			return Config{}, nil, fmt.Errorf("bridge provider route %d connectivity probe requires verified route support and contracts", i)
+		}
+		if route.ConnectivityProbeEnabled {
+			if route.ConnectivityProbeInterval == 0 {
+				route.ConnectivityProbeInterval = providerConnectivityProbeDefaultIntervalSeconds
+			}
+			if route.ConnectivityProbeInterval < providerConnectivityProbeMinIntervalSeconds || route.ConnectivityProbeInterval > providerConnectivityProbeMaxIntervalSeconds {
+				return Config{}, nil, fmt.Errorf("bridge provider route %d connectivity probe interval must be between %d and %d seconds", i, providerConnectivityProbeMinIntervalSeconds, providerConnectivityProbeMaxIntervalSeconds)
+			}
+		} else if route.ConnectivityProbeInterval != 0 {
+			return Config{}, nil, fmt.Errorf("bridge provider route %d connectivity probe interval requires the probe to be enabled", i)
 		}
 		if route.RouteSupportVerified && !validProviderEvidenceURL(route.RouteSupportEvidenceURL) {
 			return Config{}, nil, fmt.Errorf("bridge provider route %d verified route support requires HTTPS evidence", i)

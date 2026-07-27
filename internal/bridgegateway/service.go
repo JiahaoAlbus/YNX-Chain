@@ -23,20 +23,21 @@ import (
 )
 
 type Service struct {
-	mu              sync.Mutex
-	cfg             Config
-	startedAt       string
-	maxAmounts      map[string]uint64
-	maxOutstanding  map[string]uint64
-	policies        map[string]RoutePolicy
-	state           persistentState
-	providerRoutes  map[string]ProviderRouteConfig
-	providerClient  *http.Client
-	providerMu      sync.Mutex
-	providerStates  map[string]providerRuntimeState
-	rateMu          sync.Mutex
-	seen            map[string][]time.Time
-	rateLimitDenied uint64
+	mu                 sync.Mutex
+	cfg                Config
+	startedAt          string
+	maxAmounts         map[string]uint64
+	maxOutstanding     map[string]uint64
+	policies           map[string]RoutePolicy
+	state              persistentState
+	providerRoutes     map[string]ProviderRouteConfig
+	providerClient     *http.Client
+	providerMu         sync.Mutex
+	providerStates     map[string]providerRuntimeState
+	providerProbeStart sync.Once
+	rateMu             sync.Mutex
+	seen               map[string][]time.Time
+	rateLimitDenied    uint64
 }
 
 type Health struct {
@@ -1229,6 +1230,8 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 			}
 			if state.LastSuccess != "" {
 				entry.LastSuccess = stringPointer(state.LastSuccess)
+			}
+			if state.Health == "connected-live-fee-api" {
 				if config.AgreementApproved && config.OperationalReviewApproved {
 					entry.TestnetStatus = "official-fee-api-connected-route-execution-disabled"
 					entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
@@ -1239,6 +1242,12 @@ func (s *Service) ProviderRegistry() ProviderRegistry {
 			}
 			if state.LastFailure != "" {
 				entry.LastFailure = stringPointer(state.LastFailure)
+			}
+			switch state.Health {
+			case "stale":
+				entry.TestnetStatus = "provider-api-stale-route-unavailable"
+			case "unavailable":
+				entry.TestnetStatus = "provider-api-unavailable-route-unavailable"
 			}
 		}
 		result.Providers = append(result.Providers, entry)
@@ -1393,6 +1402,15 @@ func (s *Service) ProductStatus(build buildinfo.Info) ProductStatus {
 		externalBridgeState = "provider-api-connected-route-execution-unavailable"
 		failureStatus = "source-intent-builder-testnet-execution-and-public-deployment-unavailable"
 		coverage = "local-coordinator-plus-live-provider-api-observation-not-executable-route-or-public-deployment"
+	} else {
+		switch providerConnection {
+		case "configured-provider-api-stale":
+			failureStatus = "provider-connectivity-observation-stale"
+			coverage = "local-coordinator-plus-stale-provider-api-observation-route-unavailable"
+		case "configured-provider-api-unavailable":
+			failureStatus = "provider-connectivity-probe-unavailable"
+			coverage = "local-coordinator-plus-failed-provider-api-observation-route-unavailable"
+		}
 	}
 	return ProductStatus{
 		SchemaVersion: 1, Source: "ynx-bridge-status", AsOf: s.cfg.Now().UTC().Format(timeFormat), Coverage: coverage,
@@ -1479,6 +1497,10 @@ func (s *Service) Health(build buildinfo.Info) Health {
 		providerStatus = "connected-live-provider-api-route-execution-disabled"
 		providerDependency = providerConnection
 		truthfulStatus = "degraded-live-provider-api-no-executable-route-or-contract"
+	} else if providerConnection == "configured-provider-api-stale" || providerConnection == "configured-provider-api-unavailable" {
+		providerStatus = providerConnection
+		providerDependency = providerConnection
+		truthfulStatus = "degraded-provider-api-unavailable-no-executable-route-or-contract"
 	}
 	health := Health{
 		OK: true, Degraded: true, Service: "ynx-bridged", SchemaVersion: SchemaVersion, StateMachineVersion: StateMachineVersion, StartedAt: s.startedAt,

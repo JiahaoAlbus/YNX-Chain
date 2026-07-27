@@ -1,6 +1,7 @@
 package bridgegateway
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -263,6 +264,7 @@ func TestCircleCCTPV2ConnectivityProbeDoesNotApproveOrExecuteRoute(t *testing.T)
 		t.Fatalf("probe approved, executed, or re-fetched route: calls=%d quote=%+v", calls.Load(), quote)
 	}
 	registry := service.ProviderRegistry()
+	routes := service.RouteCatalog()
 	status := service.ProductStatus(buildinfo.Info{})
 	if len(registry.Providers) != 1 || registry.Providers[0].Health != "connected-live-fee-api" ||
 		registry.Providers[0].AgreementApproved || registry.Providers[0].RouteAvailable || registry.Providers[0].Executable ||
@@ -271,6 +273,12 @@ func TestCircleCCTPV2ConnectivityProbeDoesNotApproveOrExecuteRoute(t *testing.T)
 		status.ProviderConnection != "connected-live-provider-api-route-execution-disabled" ||
 		status.OfficialStablecoinRouteAvailable || status.ExternalSubmissionEnabled || status.UserAssetMovementEnabled {
 		t.Fatalf("probe boundary overclaims route: registry=%+v status=%+v", registry, status)
+	}
+	if len(routes.Routes) != 1 || routes.Routes[0].ProviderHealth != "connected-live-fee-api" ||
+		routes.Routes[0].Availability != "unavailable" ||
+		routes.Routes[0].FailureStatus != "provider-route-approval-incomplete" ||
+		routes.Routes[0].Executable || routes.Routes[0].ExternalSubmissionEnabled {
+		t.Fatalf("public route catalog conflates connectivity with approval: %+v", routes)
 	}
 }
 
@@ -298,4 +306,137 @@ func TestCircleCCTPV2ConnectivityProbeRequiresVerifiedRouteAndContracts(t *testi
 	if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "connectivity probe requires verified route support and contracts") {
 		t.Fatalf("unverified connectivity probe expected rejection, got %v", err)
 	}
+	cfg = providerTestConfig(t, http.DefaultTransport)
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	cfg.ProviderRoutes[0].ConnectivityProbeInterval = providerConnectivityProbeMinIntervalSeconds - 1
+	if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "connectivity probe interval must be between") {
+		t.Fatalf("unsafe connectivity probe interval expected rejection, got %v", err)
+	}
+	cfg = providerTestConfig(t, http.DefaultTransport)
+	cfg.ProviderRoutes[0].ConnectivityProbeInterval = providerConnectivityProbeDefaultIntervalSeconds
+	if _, err := New(cfg); err == nil || !strings.Contains(err.Error(), "connectivity probe interval requires the probe to be enabled") {
+		t.Fatalf("orphan connectivity probe interval expected rejection, got %v", err)
+	}
+}
+
+func TestCircleCCTPV2ConnectivityProbeExpiresStaleSuccess(t *testing.T) {
+	now := time.Date(2026, 7, 27, 1, 2, 3, 0, time.UTC)
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return providerResponse(http.StatusOK, `[{"finalityThreshold":1000,"minimumFee":1},{"finalityThreshold":2000,"minimumFee":0}]`), nil
+	}))
+	cfg.Now = func() time.Time { return now }
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	cfg.ProviderRoutes[0].ConnectivityProbeInterval = providerConnectivityProbeMinIntervalSeconds
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Duration(providerConnectivityProbeMinIntervalSeconds*providerConnectivityProbeStaleIntervalMultiplier)*time.Second + time.Nanosecond)
+	registry := service.ProviderRegistry()
+	routes := service.RouteCatalog()
+	status := service.ProductStatus(buildinfo.Info{})
+	if len(registry.Providers) != 1 || registry.Providers[0].Health != "stale" ||
+		registry.Providers[0].FailureStatus != "provider-connectivity-observation-stale" ||
+		registry.Providers[0].TestnetStatus != "provider-api-stale-route-unavailable" ||
+		registry.Providers[0].LastSuccess == nil || registry.Providers[0].RouteAvailable || registry.Providers[0].Executable {
+		t.Fatalf("stale Provider success remained connected: %+v", registry)
+	}
+	if len(routes.Routes) != 1 || routes.Routes[0].ProviderHealth != "stale" ||
+		routes.Routes[0].Availability != "unavailable" ||
+		routes.Routes[0].FailureStatus != "provider-connectivity-observation-stale" ||
+		routes.Routes[0].Executable || routes.Routes[0].ExternalSubmissionEnabled {
+		t.Fatalf("stale Provider route remained available: %+v", routes)
+	}
+	if status.AvailableProviderCount != 0 || status.ProviderConnection != "configured-provider-api-stale" ||
+		status.FailureStatus != "provider-connectivity-observation-stale" ||
+		status.OfficialStablecoinRouteAvailable || status.ExternalSubmissionEnabled || status.UserAssetMovementEnabled {
+		t.Fatalf("stale Provider status remained connected: %+v", status)
+	}
+	health := service.Health(buildinfo.Info{Commit: strings.Repeat("a", 40)})
+	if health.ProviderStatus != "configured-provider-api-stale" ||
+		health.Dependencies["provider"] != "configured-provider-api-stale" ||
+		health.AvailableProviderCount != 0 || health.LiveBridge || health.ExternalSubmissionEnabled {
+		t.Fatalf("stale Provider health remained connected: %+v", health)
+	}
+}
+
+func TestCircleCCTPV2QuoteObservationExpiresWithoutBackgroundProbe(t *testing.T) {
+	now := time.Date(2026, 7, 27, 1, 2, 3, 0, time.UTC)
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		return providerResponse(http.StatusOK, `[{"finalityThreshold":1000,"minimumFee":1},{"finalityThreshold":2000,"minimumFee":0}]`), nil
+	}))
+	cfg.Now = func() time.Time { return now }
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Quote(providerQuoteRequest()); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(time.Duration(providerConnectivityProbeDefaultIntervalSeconds*providerConnectivityProbeStaleIntervalMultiplier)*time.Second + time.Nanosecond)
+	registry := service.ProviderRegistry()
+	status := service.ProductStatus(buildinfo.Info{})
+	if len(registry.Providers) != 1 || registry.Providers[0].Health != "stale" ||
+		registry.Providers[0].FailureStatus != "provider-connectivity-observation-stale" ||
+		status.AvailableProviderCount != 0 || status.ProviderConnection != "configured-provider-api-stale" {
+		t.Fatalf("quote-only Provider observation remained connected: registry=%+v status=%+v", registry, status)
+	}
+}
+
+func TestCircleCCTPV2PeriodicProbeFailsClosedRecoversAndStops(t *testing.T) {
+	var calls atomic.Int32
+	var unavailable atomic.Bool
+	cfg := providerTestConfig(t, providerRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls.Add(1)
+		if unavailable.Load() {
+			return nil, errors.New("provider unavailable")
+		}
+		return providerResponse(http.StatusOK, `[{"finalityThreshold":1000,"minimumFee":1},{"finalityThreshold":2000,"minimumFee":0}]`), nil
+	}))
+	cfg.ProviderRoutes[0].ConnectivityProbeEnabled = true
+	service, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := routeKey(cfg.ProviderRoutes[0].SourceChain, cfg.ProviderRoutes[0].DestinationChain, cfg.ProviderRoutes[0].SourceAsset, cfg.ProviderRoutes[0].DestinationAsset)
+	config := service.providerRoutes[key]
+	ctx, cancel := context.WithCancel(context.Background())
+	done := service.startProviderProbe(ctx, key, config, 5*time.Millisecond)
+	unavailable.Store(true)
+	waitForProviderHealth(t, service, "unavailable")
+	if status := service.ProductStatus(buildinfo.Info{}); status.AvailableProviderCount != 0 || status.ProviderConnection != "configured-provider-api-unavailable" || status.FailureStatus != "provider-connectivity-probe-unavailable" {
+		t.Fatalf("periodic Provider failure did not degrade status: %+v", status)
+	}
+	failedRegistry := service.ProviderRegistry()
+	if failedRegistry.Providers[0].TestnetStatus != "provider-api-unavailable-route-unavailable" ||
+		failedRegistry.Providers[0].FailureStatus != "provider-connectivity-probe-unavailable" {
+		t.Fatalf("periodic Provider failure did not degrade registry: %+v", failedRegistry)
+	}
+	unavailable.Store(false)
+	waitForProviderHealth(t, service, "connected-live-fee-api")
+	if status := service.ProductStatus(buildinfo.Info{}); status.AvailableProviderCount != 1 || status.ProviderConnection != "connected-live-provider-api-route-execution-disabled" {
+		t.Fatalf("periodic Provider recovery did not restore connectivity: %+v", status)
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("periodic Provider probe did not stop after context cancellation")
+	}
+	if calls.Load() < 3 {
+		t.Fatalf("periodic Provider probe calls=%d, want startup, failure, and recovery", calls.Load())
+	}
+}
+
+func waitForProviderHealth(t *testing.T, service *Service, expected string) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		registry := service.ProviderRegistry()
+		if len(registry.Providers) == 1 && registry.Providers[0].Health == expected {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("Provider health did not become %q: %+v", expected, service.ProviderRegistry())
 }

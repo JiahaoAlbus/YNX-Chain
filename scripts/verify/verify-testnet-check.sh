@@ -75,6 +75,7 @@ done
 
 bridge_installer_patterns=(
   "connectivityProbeEnabled"
+  "connectivityProbeIntervalSeconds"
   "circle-cctp-v2"
   "ethereum-sepolia"
   "base-sepolia"

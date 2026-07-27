@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/bridgegateway"
@@ -68,8 +69,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	service.StartProviderProbes(ctx)
 	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(bridgegateway.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()

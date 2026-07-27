@@ -13,7 +13,13 @@ import (
 	"time"
 )
 
-const circleCCTPProviderResponseLimit = 64 << 10
+const (
+	circleCCTPProviderResponseLimit                  = 64 << 10
+	providerConnectivityProbeDefaultIntervalSeconds  = 60
+	providerConnectivityProbeMinIntervalSeconds      = 30
+	providerConnectivityProbeMaxIntervalSeconds      = 3600
+	providerConnectivityProbeStaleIntervalMultiplier = 2
+)
 
 type providerRuntimeState struct {
 	Health      string
@@ -119,9 +125,15 @@ func (s *Service) providerCatalogEntry(key string, policy RoutePolicy) RouteCata
 		entry.FailureStatus = state.Failure
 	}
 	if state.Health == "connected-live-fee-api" {
-		entry.Availability = "live-provider-terms-on-authenticated-quote-request"
-		entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
-		entry.Risk = []string{"provider connectivity does not prove YNX route execution", "live fee terms require a protected quote request", "external submission and destination availability remain disabled"}
+		if config.AgreementApproved && config.OperationalReviewApproved {
+			entry.Availability = "live-provider-terms-on-authenticated-quote-request"
+			entry.FailureStatus = "source-intent-builder-and-testnet-execution-unavailable"
+			entry.Risk = []string{"provider connectivity does not prove YNX route execution", "live fee terms require a protected quote request", "external submission and destination availability remain disabled"}
+		} else {
+			entry.Availability = "unavailable"
+			entry.FailureStatus = "provider-route-approval-incomplete"
+			entry.Risk = []string{"Provider API connectivity does not approve the route", "agreement and operational review are incomplete", "external submission and destination availability remain disabled"}
+		}
 	}
 	return entry
 }
@@ -143,11 +155,15 @@ func stringPointer(value string) *string {
 }
 
 func (s *Service) circleCCTPFees(config ProviderRouteConfig) ([]circleCCTPFee, error) {
+	return s.circleCCTPFeesContext(context.Background(), config)
+}
+
+func (s *Service) circleCCTPFeesContext(parent context.Context, config ProviderRouteConfig) ([]circleCCTPFee, error) {
 	if config.SourceDomain == nil || config.DestinationDomain == nil {
 		return nil, errors.New("CCTP domains are not configured")
 	}
 	endpoint := fmt.Sprintf("%s/v2/burn/USDC/fees/%d/%d", config.BaseURL, *config.SourceDomain, *config.DestinationDomain)
-	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 8*time.Second)
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -200,24 +216,51 @@ func (s *Service) probeConfiguredProviderConnectivity() {
 		if !config.ConnectivityProbeEnabled {
 			continue
 		}
-		fees, err := s.circleCCTPFees(config)
-		if err != nil {
-			s.recordProviderFailure(key, "provider-connectivity-probe-unavailable")
-			continue
+		s.probeProviderConnectivity(context.Background(), key, config)
+	}
+}
+
+func (s *Service) probeProviderConnectivity(ctx context.Context, key string, config ProviderRouteConfig) {
+	fees, err := s.circleCCTPFeesContext(ctx, config)
+	if err != nil {
+		s.recordProviderFailure(key, "provider-connectivity-probe-unavailable")
+		return
+	}
+	for _, fee := range fees {
+		if fee.FinalityThreshold == config.FinalityThreshold {
+			s.recordProviderSuccess(key)
+			return
 		}
-		tierAvailable := false
-		for _, fee := range fees {
-			if fee.FinalityThreshold == config.FinalityThreshold {
-				tierAvailable = true
-				break
+	}
+	s.recordProviderFailure(key, "provider-finality-tier-unavailable")
+}
+
+func (s *Service) StartProviderProbes(ctx context.Context) {
+	s.providerProbeStart.Do(func() {
+		for key, config := range s.providerRoutes {
+			if config.ConnectivityProbeEnabled {
+				s.startProviderProbe(ctx, key, config, time.Duration(config.ConnectivityProbeInterval)*time.Second)
 			}
 		}
-		if !tierAvailable {
-			s.recordProviderFailure(key, "provider-finality-tier-unavailable")
-			continue
+	})
+}
+
+func (s *Service) startProviderProbe(ctx context.Context, key string, config ProviderRouteConfig, interval time.Duration) <-chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				s.probeProviderConnectivity(ctx, key, config)
+			case <-ctx.Done():
+				return
+			}
 		}
-		s.recordProviderSuccess(key)
-	}
+	}()
+	return done
 }
 
 func ensureJSONEOF(decoder *json.Decoder) error {
@@ -251,23 +294,51 @@ func (s *Service) recordProviderFailure(key, failure string) {
 
 func (s *Service) providerState(key string) providerRuntimeState {
 	s.providerMu.Lock()
-	defer s.providerMu.Unlock()
-	return s.providerStates[key]
+	state := s.providerStates[key]
+	s.providerMu.Unlock()
+	if state.Health != "connected-live-fee-api" {
+		return state
+	}
+	config, configured := s.providerRoutes[key]
+	if !configured {
+		return state
+	}
+	intervalSeconds := config.ConnectivityProbeInterval
+	if intervalSeconds == 0 {
+		intervalSeconds = providerConnectivityProbeDefaultIntervalSeconds
+	}
+	lastSuccess, err := time.Parse(timeFormat, state.LastSuccess)
+	staleAfter := time.Duration(intervalSeconds*providerConnectivityProbeStaleIntervalMultiplier) * time.Second
+	if err != nil || !s.cfg.Now().UTC().Before(lastSuccess.Add(staleAfter)) {
+		state.Health = "stale"
+		state.Failure = "provider-connectivity-observation-stale"
+	}
+	return state
 }
 
 func (s *Service) providerConnectionSnapshot() (int, string) {
-	s.providerMu.Lock()
-	defer s.providerMu.Unlock()
 	connected := map[string]struct{}{}
-	for key, state := range s.providerStates {
-		if state.Health == "connected-live-fee-api" {
-			if route, ok := s.providerRoutes[key]; ok {
-				connected[route.Provider] = struct{}{}
-			}
+	stale := false
+	unavailable := false
+	for key, route := range s.providerRoutes {
+		state := s.providerState(key)
+		switch state.Health {
+		case "connected-live-fee-api":
+			connected[route.Provider] = struct{}{}
+		case "stale":
+			stale = true
+		case "unavailable":
+			unavailable = true
 		}
 	}
 	if len(connected) > 0 {
 		return len(connected), "connected-live-provider-api-route-execution-disabled"
+	}
+	if stale {
+		return 0, "configured-provider-api-stale"
+	}
+	if unavailable {
+		return 0, "configured-provider-api-unavailable"
 	}
 	if len(s.providerRoutes) > 0 {
 		return 0, "configured-not-connected"
