@@ -37,8 +37,9 @@ try{
   if(error?.code!=="ENOENT")throw error;
 }
 
-const [server,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
+const [server,gatewayServer,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyReview,gatewayPatch,walletPatch]=await Promise.all([
   readFile(new URL("../../internal/aiproduct/server.go",root),"utf8"),
+  readFile(new URL("../../internal/aigateway/server.go",root),"utf8"),
   readFile(new URL("web/app.js",root),"utf8"),
   readFile(new URL("mobile/src/api.ts",root),"utf8"),
   readFile(new URL("../../.github/workflows/ynx-ai-mobile.yml",root),"utf8"),
@@ -53,6 +54,11 @@ const [server,web,mobile,workflow,envExample,uiAudit,evidence,sbom,dependencyRev
 assert.doesNotMatch(server+web+mobile,/OPENAI_API_KEY\s*=|sk-[A-Za-z0-9]{20,}/);
 assert.doesNotMatch(mobile,/\?prompt=|searchParams\.set\(["']prompt/);
 assert.match(server,/http\.MethodPost, "\/ai\/stream"/);
+assert.match(gatewayServer,/HandleFunc\("POST \/ai\/stream"/);
+assert.doesNotMatch(gatewayServer,/HandleFunc\("GET \/ai\/stream"/);
+assert.match(gatewayServer,/query parameters are not allowed on the AI stream endpoint/);
+assert.match(gatewayServer,/DisallowUnknownFields\(\)/);
+assert.match(gatewayServer,/http\.MaxBytesReader/);
 assert.match(server,/AllowLocalFixtureAuth/);
 assert.match(envExample,/YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH=0/);
 for(const command of ["xcodebuild","simctl install","simctl launch","simctl openurl","shasum -a 256"])assert.ok(workflow.includes(command),`iOS CI missing ${command}`);

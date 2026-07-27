@@ -2,7 +2,7 @@
   "productId": "ynx-ai",
   "name": "YNX AI",
   "branch": "codex/final-ai",
-  "commit": "859f340632932d4c98395f9ef11733bbb526092c",
+  "commit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
   "version": "1.0.0-testnet-preview",
   "surfaces": [
     "web",
@@ -54,16 +54,16 @@
   },
   "centralIntegration": {
     "walletAuth": "not integrated; exact schema-v2 entry/vector/patch supplied under apps/ai/integration; production local-auth routes fail closed by default",
-    "aiGateway": "not integrated; origin/main exposes GET query-prompt route while product requires POST JSON body",
+    "aiGateway": "POST JSON-body stream contract implemented and race-tested at a1cfb21776a5f838427e9a92c006342efd0671ba; not deployed or centrally accepted",
     "provider": "no provider-backed successful staging output evidenced; generationLive=false"
   },
   "knownLimitations": [
     "Canonical Wallet Auth AI registry and verifier are not merged or deployed.",
-    "Central AI Gateway POST-body stream contract is not merged or deployed.",
+    "Central AI Gateway POST-body stream contract is implemented and tested on codex/final-ai, but is not deployed or accepted as central evidence.",
     "No staging/public URL, hosted download, production signing, or store release exists.",
     "No true provider success is claimed; current central provider evidence reports quota/rate-limit failure.",
     "Local host lacks Xcode; iOS evidence depends on the runnable CI workflow and is not yet a successful run.",
     "Durable screenshot coverage is incomplete; browser light/dark/mobile failure states were inspected interactively."
   ],
-  "generatedAt": "2026-07-19T01:55:00+08:00"
+  "generatedAt": "2026-07-27"
 }

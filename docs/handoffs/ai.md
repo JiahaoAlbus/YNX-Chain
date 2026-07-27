@@ -191,11 +191,14 @@ emulator with no fatal/runtime script error.
    `ai:conversations`, `ai:data-control`, `ai:generate`, `ai:permissions` before
    a real cross-App Wallet approval can succeed. This branch does not bypass the
    registry or fabricate approval.
-2. **Central Gateway POST route:** this client now requires `POST /ai/stream` and
-   never sends prompts in query parameters. The central Gateway in the baseline
-   still registers only `GET /ai/stream`; its owning integration thread must add
-   the authenticated POST-body equivalent before provider generation can work.
-   Until then the client truthfully shows Gateway/provider failure.
+2. **Central Gateway deployment:** source commit
+   `a1cfb21776a5f838427e9a92c006342efd0671ba` implements and race-tests the
+   strict `POST /ai/stream` JSON contract in `internal/aigateway`. It rejects
+   query strings, unknown fields, implicit attachment context and oversized
+   bodies, and audits only the original prompt hash. This is local implementation
+   evidence, not staging deployment or provider-backed central proof; the owner
+   must deploy that commit and run the remote vectors before `integratedCentral`
+   or `generationLive` can become true.
 3. **Provider metadata:** add authenticated provider catalog/capabilities, quota,
    actual provider token/resource charge and money metadata. Until supplied, one
    configured model is shown and quota/actual cost remain unknown.

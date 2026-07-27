@@ -15,9 +15,16 @@
       "status": "tested-local"
     },
     {
-      "requirement": "POST-body SSE, cancel, provider unavailable and 429 truth",
-      "source": "internal/aiproduct/server_test.go; internal/aiproduct/provider_stream_test.go; apps/ai/mobile/src/api.test.ts",
-      "status": "tested-local"
+      "requirement": "Strict POST-body SSE transport, query rejection, explicit attachment context, provider unavailable and 429 truth",
+      "source": "internal/aigateway/server.go; internal/aigateway/gateway_test.go; internal/aigateway/stream_contract_test.go; internal/aiproduct/server_test.go; internal/aiproduct/provider_stream_test.go; apps/ai/mobile/src/api.test.ts",
+      "status": "tested-local-race",
+      "tests": [
+        "go test ./internal/aigateway",
+        "go test -race ./internal/aigateway",
+        "go test ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd"
+      ],
+      "sourceCommit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
+      "centralClaim": false
     },
     {
       "requirement": "Generation cancellation is bound to the owning Wallet account and does not disclose another account's active generation",
@@ -27,7 +34,7 @@
         "go test ./internal/aiproduct",
         "go test -race ./internal/aiproduct"
       ],
-      "sourceCommit": null
+      "sourceCommit": "a427a7558e075696265c14162d853ab23c352625"
     },
     {
       "requirement": "Encrypted persistence, attachment bounds/tamper, search and branch",

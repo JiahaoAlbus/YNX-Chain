@@ -1,10 +1,29 @@
-# YNX AI central integration request
+# YNX AI central integration status
 
-These files are merge inputs, not evidence of central integration or deployment.
+These files separate local implementation evidence from central deployment claims.
+
+## Wallet/Auth
 
 - `wallet-registry-entry.json` is the exact schema-v2 AI product registration.
 - `wallet-auth-vector.json` binds the AI client, bundle, callback, device algorithm, network, ordered scopes, purpose, lifetime, and canonical request digest.
-- `wallet-registry.patch` is for the Wallet-auth owner branch. The owner must run the canonical package's parser, signer, replay, tamper, expiry, callback interception, scope escalation, cross-app and restart suites.
-- `central-ai-gateway-post.patch` replaces the query-prompt route with an exact JSON POST body. The Gateway owner must extend the accepted body schema deliberately before accepting optional context and attachment fields; unknown fields remain fail-closed.
+- `wallet-registry.patch` remains a merge input for the Wallet/Auth owner.
+- Production must call `verifyCentralWalletSession` transactionally and `assertCentralWalletSessionActive` before every protected use.
+- The local verifier is a test fixture only. Until the canonical registry and shared verifier are merged and deployed, production Wallet sign-in remains fail-closed and `integratedCentral` remains false.
 
-Production must call `verifyCentralWalletSession` transactionally, then call `assertCentralWalletSessionActive` before every use. The local Go verifier predates the canonical shared package and is retained only as a local test fixture; release preflight must reject it as a production auth authority. Until the registry and shared verifier are merged and deployed, `integratedCentral` is false and production Wallet sign-in is fail-closed.
+## AI Gateway
+
+The POST-body stream contract is now implemented in `internal/aigateway/server.go` at source commit `a1cfb21776a5f838427e9a92c006342efd0671ba` and covered by package and race tests.
+
+The local contract:
+
+- exposes only `POST /ai/stream`;
+- rejects every query string on that endpoint;
+- requires `application/json`;
+- rejects unknown fields and extra JSON values;
+- enforces a 2 MiB body limit;
+- validates the 12 supported output-language identifiers;
+- requires explicit `selected_files` context before accepting attachments;
+- bounds context lists, attachment count, type, name, and text size;
+- stores only the original prompt hash in Gateway audit records.
+
+`central-ai-gateway-post.patch` is retained as a historical merge artifact; the checked-in runtime and tests are authoritative. This local implementation is not proof of staging deployment, provider availability, public reachability, or central integration.

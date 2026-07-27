@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "ynx-ai",
   "walletAuth": {
     "status": "not-integrated-central",
     "canonicalPackage": "@ynx-chain/wallet-auth",
-    "canonicalSourceBranch": "origin/codex/ecosystem-wallet-auth",
+    "expectedOwnerBranch": "codex/final-wallet-auth",
     "registryEntry": "wallet-registry-entry.json",
     "vector": "wallet-auth-vector.json",
     "requiredVerifier": "verifyCentralWalletSession",
@@ -12,15 +12,40 @@
     "productionBehaviorUntilIntegrated": "fail-closed"
   },
   "aiGateway": {
-    "status": "not-integrated-central",
+    "status": "tested-local-not-deployed",
+    "runtimeSource": "internal/aigateway/server.go",
+    "sourceCommit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
     "requiredRoute": "POST /ai/stream",
     "requestMediaType": "application/json",
-    "forbiddenTransport": "prompt in URL/query/log",
-    "patch": "central-ai-gateway-post.patch"
+    "forbiddenTransport": "prompt or attachment content in URL/query/log",
+    "strictUnknownFieldRejection": true,
+    "explicitAttachmentContextRequired": true,
+    "bodyLimitBytes": 2097152,
+    "supportedOutputLanguages": [
+      "en",
+      "zh-CN",
+      "zh-TW",
+      "ja",
+      "ko",
+      "es",
+      "fr",
+      "de",
+      "pt",
+      "ru",
+      "ar",
+      "id"
+    ],
+    "tests": [
+      "go test ./internal/aigateway",
+      "go test -race ./internal/aigateway",
+      "go test ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd"
+    ],
+    "historicalPatch": "central-ai-gateway-post.patch"
   },
   "claims": {
     "integratedCentral": false,
     "generationLive": false,
-    "reason": "Neither the canonical AI registry entry nor POST-body Gateway route exists on origin/main, and no provider-backed successful staging output is evidenced."
-  }
+    "reason": "The POST-body Gateway contract is implemented and tested on codex/final-ai, but canonical Wallet Auth is not integrated and no provider-backed staging deployment or public endpoint is evidenced."
+  },
+  "lastUpdated": "2026-07-27"
 }
