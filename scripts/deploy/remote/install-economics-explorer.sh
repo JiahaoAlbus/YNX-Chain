@@ -7,6 +7,7 @@ source_commit="${3:?source commit is required}"
 reserve_mode="${4:?reserve configuration mode is required}"
 release_class="${5:?release class is required}"
 public_reserve_url="${6:?public reserve URL is required}"
+public_yusd_url="${7:?public YUSD URL is required}"
 
 [[ "$release" =~ ^ynx-economics-explorer-[0-9a-f]{12}$ ]] || { echo "invalid Explorer release"; exit 1; }
 [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid source commit"; exit 1; }
@@ -14,6 +15,7 @@ public_reserve_url="${6:?public reserve URL is required}"
 [[ "$release_class" == "central_testnet" || "$release_class" == "public_testnet" ]] || { echo "invalid release class"; exit 1; }
 if [[ "$release_class" == "public_testnet" ]]; then
   [[ "$public_reserve_url" == https://*/api/stable/reserve ]] || { echo "invalid public reserve URL"; exit 1; }
+  [[ "$public_yusd_url" == https://*/api/stable/yusd-sandbox ]] || { echo "invalid public YUSD URL"; exit 1; }
 fi
 [[ -d "$package_dir" && ! -L "$package_dir" ]] || { echo "invalid package directory"; exit 1; }
 
@@ -82,8 +84,9 @@ if [[ "$reserve_mode" == "configure" ]] || ! sudo -n test -f /etc/ynx/ynx-explor
   sudo -n install -m 0600 -o root -g root config/ynx-explorerd.env /etc/ynx/ynx-explorerd.env
 else
   merged_env="$(mktemp)"
-  sudo -n cat /etc/ynx/ynx-explorerd.env | grep -v '^YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=' >"$merged_env" || true
-  grep '^YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=' config/ynx-explorerd.env >>"$merged_env"
+  sudo -n cat /etc/ynx/ynx-explorerd.env |
+    grep -v -E '^(YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS|YNX_YUSD_SANDBOX_URL)=' >"$merged_env" || true
+  grep -E '^(YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS|YNX_YUSD_SANDBOX_URL)=' config/ynx-explorerd.env >>"$merged_env"
   sudo -n install -m 0600 -o root -g root "$merged_env" /etc/ynx/ynx-explorerd.env
   rm -f "$merged_env"
 fi
@@ -91,13 +94,18 @@ if [[ "$reserve_mode" == "configure" ]]; then
   sudo -n install -m 0640 -o root -g ynx config/stable-reserve-attestation.json /etc/ynx/stable-reserve-attestation.json
 fi
 
+sudo -n systemctl is-active --quiet ynx-yusd-sandboxd.service ||
+  { echo "YUSD Sandbox must be active before enabling its public Explorer projection"; exit 1; }
 sudo -n bash -lc 'set -a; source /etc/ynx/ynx-chaind.env; source /etc/ynx/ynx-explorerd.env; set +a; /usr/local/bin/ynx-explorerd --check-config >/dev/null'
 sudo -n systemctl daemon-reload
 sudo -n systemctl restart ynx-explorerd.service
 sudo -n systemctl is-active --quiet ynx-explorerd.service
 
 probe="$(mktemp)"
-cleanup_probe() { rm -f "$probe"; }
+yusd_probe=""
+public_probe=""
+public_yusd_probe=""
+cleanup_probe() { rm -f "$probe" "${yusd_probe:-}" "${public_probe:-}" "${public_yusd_probe:-}"; }
 ready=0
 for attempt in $(seq 1 12); do
   if curl -sS --max-time 15 http://127.0.0.1:6427/health >"$probe" &&
@@ -124,6 +132,16 @@ else
 fi
 grep -Fq "\"sourceCommit\":\"$source_commit\"" "$probe"
 grep -Fq "\"adapterReleaseClass\":\"$release_class\"" "$probe"
+yusd_probe="$(mktemp)"
+curl -fsS --retry 5 --retry-all-errors --retry-delay 2 --max-time 15 \
+  http://127.0.0.1:6427/api/stable/yusd-sandbox >"$yusd_probe"
+grep -Fq '"product":"YUSD Sandbox"' "$yusd_probe"
+grep -Fq '"realityValue":false' "$yusd_probe"
+grep -Fq '"externalReserveAttested":false' "$yusd_probe"
+grep -Fq '"solvent":true' "$yusd_probe"
+grep -Fq '"reconciled":true' "$yusd_probe"
+grep -Fq "\"sourceCommit\":\"$source_commit\"" "$yusd_probe"
+grep -Fq "\"adapterReleaseClass\":\"$release_class\"" "$yusd_probe"
 if [[ "$release_class" == "public_testnet" ]]; then
   grep -Fq '"deployedPublic":true' "$probe"
   public_probe="$(mktemp)"
@@ -139,7 +157,25 @@ if [[ "$release_class" == "public_testnet" ]]; then
     sleep 3
   done
   rm -f "$public_probe"
+  public_probe=""
   [[ "$public_ready" == "1" ]] || { echo "public reserve endpoint did not prove the expected release"; exit 1; }
+  public_yusd_probe="$(mktemp)"
+  public_yusd_ready=0
+  for attempt in $(seq 1 8); do
+    if curl -fsS --max-time 20 "$public_yusd_url" >"$public_yusd_probe" &&
+      grep -Fq "\"sourceCommit\":\"$source_commit\"" "$public_yusd_probe" &&
+      grep -Fq '"adapterReleaseClass":"public_testnet"' "$public_yusd_probe" &&
+      grep -Fq '"deployedPublic":true' "$public_yusd_probe" &&
+      grep -Fq '"product":"YUSD Sandbox"' "$public_yusd_probe" &&
+      grep -Fq '"realityValue":false' "$public_yusd_probe"; then
+      public_yusd_ready=1
+      break
+    fi
+    sleep 3
+  done
+  rm -f "$public_yusd_probe"
+  public_yusd_probe=""
+  [[ "$public_yusd_ready" == "1" ]] || { echo "public YUSD Sandbox endpoint did not prove the expected release"; exit 1; }
 else
   grep -Fq '"deployedStaging":true' "$probe"
   grep -Fq '"deployedPublic":false' "$probe"

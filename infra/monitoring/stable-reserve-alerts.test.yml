@@ -110,3 +110,92 @@ tests:
       - eval_time: 3m
         alertname: YNXStableReservePublicEndpointDown
         exp_alerts: []
+
+  - name: public YUSD Sandbox endpoint failure fires and clears
+    interval: 1m
+    input_series:
+      - series: 'up{job="ynx-economics-monitord",instance="primary"}'
+        values: '1x5'
+      - series: 'ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord",instance="primary"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXYUSDSandboxPublicEndpointDown
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXYUSDSandboxPublicEndpointDown
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: Public YUSD Sandbox endpoint is unreachable or invalid
+              description: The active HTTPS probe cannot verify the public no-real-value YUSD Sandbox route, release truth, and bounded read contract.
+      - eval_time: 3m
+        alertname: YNXYUSDSandboxPublicEndpointDown
+        exp_alerts: []
+
+  - name: YUSD Sandbox solvency failure fires and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord",instance="primary"}'
+        values: '1x5'
+      - series: 'ynx_public_yusd_sandbox_solvent{job="ynx-economics-monitord",instance="primary"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXYUSDSandboxInsolvent
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: YUSD Sandbox reserve is below required backing
+              description: The public Testnet sandbox reports reserve below supply plus pending redemptions. Pause sandbox issuance and preserve redemption evidence.
+      - eval_time: 2m
+        alertname: YNXYUSDSandboxInsolvent
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: YUSD Sandbox reserve is below required backing
+              description: The public Testnet sandbox reports reserve below supply plus pending redemptions. Pause sandbox issuance and preserve redemption evidence.
+      - eval_time: 3m
+        alertname: YNXYUSDSandboxInsolvent
+        exp_alerts: []
+
+  - name: YUSD Sandbox reconciliation failure fires and clears
+    interval: 1m
+    input_series:
+      - series: 'ynx_public_yusd_sandbox_probe_success{job="ynx-economics-monitord",instance="primary"}'
+        values: '1x5'
+      - series: 'ynx_public_yusd_sandbox_reconciled{job="ynx-economics-monitord",instance="primary"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXYUSDSandboxUnreconciled
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: YUSD Sandbox supply is not reconciled
+              description: The public Testnet sandbox ledger reports account supply inconsistent with total supply. Freeze mutations and preserve the integrity-checked state.
+      - eval_time: 2m
+        alertname: YNXYUSDSandboxUnreconciled
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: YUSD Sandbox supply is not reconciled
+              description: The public Testnet sandbox ledger reports account supply inconsistent with total supply. Freeze mutations and preserve the integrity-checked state.
+      - eval_time: 3m
+        alertname: YNXYUSDSandboxUnreconciled
+        exp_alerts: []

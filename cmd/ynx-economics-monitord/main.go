@@ -25,6 +25,7 @@ var (
 func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_ECONOMICS_MONITOR_HTTP_ADDR", "127.0.0.1:6438"), "economics monitor HTTP listen address")
 	reserveURL := flag.String("stable-reserve-url", strings.TrimSpace(os.Getenv("YNX_PUBLIC_STABLE_RESERVE_URL")), "public HTTPS Stable Reserve endpoint")
+	yusdSandboxURL := flag.String("yusd-sandbox-url", strings.TrimSpace(os.Getenv("YNX_PUBLIC_YUSD_SANDBOX_URL")), "public HTTPS YUSD Sandbox endpoint")
 	interval := flag.Duration("interval", durationFromEnv("YNX_ECONOMICS_MONITOR_INTERVAL", 15*time.Second), "public probe interval")
 	timeout := flag.Duration("timeout", durationFromEnv("YNX_ECONOMICS_MONITOR_TIMEOUT", 10*time.Second), "public probe timeout")
 	checkConfig := flag.Bool("check-config", false, "validate monitor configuration without starting the service")
@@ -32,6 +33,7 @@ func main() {
 
 	monitor, err := publicprobe.New(publicprobe.Config{
 		StableReserveURL: *reserveURL,
+		YUSDSandboxURL:   *yusdSandboxURL,
 		Interval:         *interval,
 		Timeout:          *timeout,
 	})
@@ -39,7 +41,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if *checkConfig {
-		fmt.Println("ynx-economics-monitord config check passed; public Stable Reserve probe uses HTTPS and fail-closed release truth")
+		fmt.Println("ynx-economics-monitord config check passed; public Stable Reserve and YUSD Sandbox probes use HTTPS and fail-closed release truth")
 		return
 	}
 

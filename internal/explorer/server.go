@@ -35,6 +35,7 @@ type Server struct {
 	stableReserveIntegration  *economics.StableReserveIntegration
 	stableReserveRelease      economics.IntegrationReleaseStates
 	stableReserveReleaseClass string
+	yusdSandboxProjection     *YUSDSandboxProjection
 }
 
 type streamEvent struct {
@@ -85,6 +86,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/economics/disclosure", s.handleEconomicsDisclosure)
 	s.mux.HandleFunc("GET /api/economics/health", s.handleEconomicsHealth)
 	s.mux.HandleFunc("GET /api/stable/reserve", s.handleStableReserve)
+	s.mux.HandleFunc("GET /api/stable/yusd-sandbox", s.handleYUSDSandbox)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
 	s.mux.HandleFunc("GET /api/blocks/latest", s.handleLatestBlocks)
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)

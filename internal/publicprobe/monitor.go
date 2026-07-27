@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/yusdsandbox"
 )
 
 const maxResponseBytes = 1 << 20
@@ -23,20 +25,36 @@ var sourceCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
 
 type Config struct {
 	StableReserveURL string
+	YUSDSandboxURL   string
 	Interval         time.Duration
 	Timeout          time.Duration
 	AllowHTTP        bool
 }
 
 type Result struct {
-	CheckedAt         time.Time `json:"checkedAt"`
-	RouteAvailable    bool      `json:"routeAvailable"`
-	ProviderAvailable bool      `json:"providerAvailable"`
-	ReserveFailure    bool      `json:"reserveFailure"`
-	HTTPStatus        int       `json:"httpStatus"`
-	SourceCommit      string    `json:"sourceCommit,omitempty"`
-	FailureCodes      []string  `json:"failureCodes,omitempty"`
-	ErrorCode         string    `json:"errorCode,omitempty"`
+	CheckedAt         time.Time         `json:"checkedAt"`
+	RouteAvailable    bool              `json:"routeAvailable"`
+	ProviderAvailable bool              `json:"providerAvailable"`
+	ReserveFailure    bool              `json:"reserveFailure"`
+	HTTPStatus        int               `json:"httpStatus"`
+	SourceCommit      string            `json:"sourceCommit,omitempty"`
+	FailureCodes      []string          `json:"failureCodes,omitempty"`
+	ErrorCode         string            `json:"errorCode,omitempty"`
+	YUSDSandbox       YUSDSandboxResult `json:"yusdSandbox"`
+}
+
+type YUSDSandboxResult struct {
+	RouteAvailable         bool     `json:"routeAvailable"`
+	Solvent                bool     `json:"solvent"`
+	Reconciled             bool     `json:"reconciled"`
+	HTTPStatus             int      `json:"httpStatus"`
+	SourceCommit           string   `json:"sourceCommit,omitempty"`
+	SandboxSourceCommit    string   `json:"sandboxSourceCommit,omitempty"`
+	ReserveUnits           uint64   `json:"reserveUnits"`
+	SupplyUnits            uint64   `json:"supplyUnits"`
+	PendingRedemptionUnits uint64   `json:"pendingRedemptionUnits"`
+	FailureCodes           []string `json:"failureCodes,omitempty"`
+	ErrorCode              string   `json:"errorCode,omitempty"`
 }
 
 type Snapshot struct {
@@ -47,6 +65,7 @@ type Snapshot struct {
 	LastSuccessAt          time.Time `json:"lastSuccessAt,omitempty"`
 	ProbeIntervalSeconds   float64   `json:"probeIntervalSeconds"`
 	StableReservePublicURL string    `json:"stableReservePublicUrl"`
+	YUSDSandboxPublicURL   string    `json:"yusdSandboxPublicUrl,omitempty"`
 }
 
 type Monitor struct {
@@ -69,6 +88,16 @@ type reserveResponse struct {
 	Reserve             json.RawMessage `json:"reserve"`
 }
 
+type yusdSandboxResponse struct {
+	Failure             bool                 `json:"failure"`
+	FailureCodes        []string             `json:"failureCodes"`
+	SourceCommit        string               `json:"sourceCommit"`
+	AdapterReleaseClass string               `json:"adapterReleaseClass"`
+	Release             releaseResponse      `json:"release"`
+	Sandbox             yusdsandbox.Snapshot `json:"sandbox"`
+	SandboxBuild        buildinfo.Info       `json:"sandboxBuild"`
+}
+
 type releaseResponse struct {
 	DeployedPublic bool `json:"deployedPublic"`
 }
@@ -88,11 +117,22 @@ func ValidateConfig(config Config) error {
 	if parsed.Scheme != "https" && !(config.AllowHTTP && parsed.Scheme == "http") {
 		return errors.New("stable reserve URL must use HTTPS")
 	}
+	if strings.TrimSpace(config.YUSDSandboxURL) != "" {
+		yusd, err := url.Parse(strings.TrimSpace(config.YUSDSandboxURL))
+		if err != nil || yusd.Host == "" || yusd.User != nil || yusd.RawQuery != "" || yusd.Fragment != "" ||
+			yusd.Path != "/api/stable/yusd-sandbox" {
+			return errors.New("YUSD Sandbox URL must be an absolute URL ending at /api/stable/yusd-sandbox without credentials, query or fragment")
+		}
+		if yusd.Scheme != parsed.Scheme || yusd.Host != parsed.Host {
+			return errors.New("YUSD Sandbox URL must use the same public HTTPS origin as the Stable Reserve URL")
+		}
+	}
 	return nil
 }
 
 func New(config Config) (*Monitor, error) {
 	config.StableReserveURL = strings.TrimSpace(config.StableReserveURL)
+	config.YUSDSandboxURL = strings.TrimSpace(config.YUSDSandboxURL)
 	if err := ValidateConfig(config); err != nil {
 		return nil, err
 	}
@@ -105,6 +145,10 @@ func New(config Config) (*Monitor, error) {
 			}
 			if request.URL.Scheme != "https" && !(config.AllowHTTP && request.URL.Scheme == "http") {
 				return errors.New("public probe redirect changed to an unsafe scheme")
+			}
+			origin, _ := url.Parse(config.StableReserveURL)
+			if request.URL.Host != origin.Host {
+				return errors.New("public probe redirect changed origin")
 			}
 			return nil
 		},
@@ -128,16 +172,92 @@ func (m *Monitor) Run(ctx context.Context) {
 
 func (m *Monitor) ProbeOnce(ctx context.Context) Result {
 	result := m.probe(ctx)
+	if m.config.YUSDSandboxURL != "" {
+		result.YUSDSandbox = m.probeYUSDSandbox(ctx)
+	}
 	m.mu.Lock()
 	m.result = result
 	m.observed = true
-	if result.RouteAvailable {
+	if result.RouteAvailable && (m.config.YUSDSandboxURL == "" || result.YUSDSandbox.RouteAvailable) {
 		m.consecutiveFailures = 0
 		m.lastSuccessAt = result.CheckedAt
 	} else {
 		m.consecutiveFailures++
 	}
 	m.mu.Unlock()
+	return result
+}
+
+func (m *Monitor) probeYUSDSandbox(ctx context.Context) YUSDSandboxResult {
+	result := YUSDSandboxResult{}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, m.config.YUSDSandboxURL, nil)
+	if err != nil {
+		result.ErrorCode = "request_build_failed"
+		return result
+	}
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("User-Agent", "ynx-economics-monitord/1")
+	response, err := m.client.Do(request)
+	if err != nil {
+		result.ErrorCode = "transport_failed"
+		return result
+	}
+	defer response.Body.Close()
+	result.HTTPStatus = response.StatusCode
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
+	if err != nil {
+		result.ErrorCode = "response_read_failed"
+		return result
+	}
+	if len(body) > maxResponseBytes {
+		result.ErrorCode = "response_too_large"
+		return result
+	}
+	var payload yusdSandboxResponse
+	if err := json.Unmarshal(body, &payload); err != nil {
+		result.ErrorCode = "response_invalid_json"
+		return result
+	}
+	payload.SourceCommit = strings.TrimSpace(payload.SourceCommit)
+	payload.SandboxBuild = buildinfo.Normalize(payload.SandboxBuild)
+	if response.StatusCode != http.StatusOK || payload.AdapterReleaseClass != "public_testnet" ||
+		!payload.Release.DeployedPublic || !sourceCommitPattern.MatchString(payload.SourceCommit) ||
+		!sourceCommitPattern.MatchString(payload.SandboxBuild.Commit) ||
+		!strings.HasPrefix(payload.SandboxBuild.Release, "ynx-yusd-sandbox-") {
+		result.ErrorCode = "release_truth_invalid"
+		return result
+	}
+	sandbox := payload.Sandbox
+	if sandbox.SchemaVersion != 1 || sandbox.Product != "YUSD Sandbox" || sandbox.Network != "YNX Testnet" ||
+		sandbox.Symbol != "YUSD" || sandbox.Decimals != 6 || sandbox.RealityValue ||
+		sandbox.ExternalReserveAttested || sandbox.GuaranteedPeg || sandbox.Failure ||
+		sandbox.AsOf.IsZero() || time.Since(sandbox.AsOf) > time.Minute || sandbox.AsOf.After(time.Now().UTC().Add(time.Minute)) ||
+		(sandbox.ProviderStatus != "available" && sandbox.ProviderStatus != "outage") ||
+		sandbox.ProviderOutage != (sandbox.ProviderStatus == "outage") ||
+		payload.Failure != (len(payload.FailureCodes) != 0) ||
+		sandbox.SupplyUnits > math.MaxUint64-sandbox.PendingRedemptionUnits {
+		result.ErrorCode = "sandbox_truth_invalid"
+		return result
+	}
+	required := sandbox.SupplyUnits + sandbox.PendingRedemptionUnits
+	excess := uint64(0)
+	if sandbox.ReserveUnits >= required {
+		excess = sandbox.ReserveUnits - required
+	}
+	if sandbox.RequiredBackingUnits != required || sandbox.Solvent != (sandbox.ReserveUnits >= required) ||
+		sandbox.ExcessReserveUnits != excess {
+		result.ErrorCode = "sandbox_reconciliation_invalid"
+		return result
+	}
+	result.RouteAvailable = true
+	result.Solvent = sandbox.Solvent
+	result.Reconciled = sandbox.Reconciled
+	result.SourceCommit = payload.SourceCommit
+	result.SandboxSourceCommit = payload.SandboxBuild.Commit
+	result.ReserveUnits = sandbox.ReserveUnits
+	result.SupplyUnits = sandbox.SupplyUnits
+	result.PendingRedemptionUnits = sandbox.PendingRedemptionUnits
+	result.FailureCodes = append([]string(nil), payload.FailureCodes...)
 	return result
 }
 
@@ -212,6 +332,7 @@ func (m *Monitor) Snapshot(now time.Time) Snapshot {
 		LastSuccessAt:          m.lastSuccessAt,
 		ProbeIntervalSeconds:   m.config.Interval.Seconds(),
 		StableReservePublicURL: m.config.StableReserveURL,
+		YUSDSandboxPublicURL:   m.config.YUSDSandboxURL,
 	}
 }
 
@@ -221,7 +342,8 @@ func (m *Monitor) Handler(build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		snapshot := m.Snapshot(time.Now().UTC())
 		status := http.StatusOK
-		if !snapshot.Observed || !snapshot.Fresh || !snapshot.RouteAvailable {
+		if !snapshot.Observed || !snapshot.Fresh || !snapshot.RouteAvailable ||
+			(m.config.YUSDSandboxURL != "" && !snapshot.YUSDSandbox.RouteAvailable) {
 			status = http.StatusServiceUnavailable
 		}
 		writeJSON(w, status, map[string]any{
@@ -262,9 +384,19 @@ func prometheus(snapshot Snapshot, build buildinfo.Info) string {
 	fmt.Fprintf(&output, "# HELP ynx_public_stable_reserve_consecutive_failures Consecutive public route probe failures.\n# TYPE ynx_public_stable_reserve_consecutive_failures gauge\nynx_public_stable_reserve_consecutive_failures %d\n", snapshot.ConsecutiveFailures)
 	fmt.Fprintf(&output, "# HELP ynx_public_stable_reserve_last_probe_timestamp_seconds Last public route probe time.\n# TYPE ynx_public_stable_reserve_last_probe_timestamp_seconds gauge\nynx_public_stable_reserve_last_probe_timestamp_seconds %d\n", lastProbe)
 	fmt.Fprintf(&output, "# HELP ynx_public_stable_reserve_last_success_timestamp_seconds Last successful public route probe time.\n# TYPE ynx_public_stable_reserve_last_success_timestamp_seconds gauge\nynx_public_stable_reserve_last_success_timestamp_seconds %d\n", lastSuccess)
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_probe_success Whether the public Explorer route returned a valid no-real-value YUSD Sandbox contract.\n# TYPE ynx_public_yusd_sandbox_probe_success gauge\nynx_public_yusd_sandbox_probe_success %d\n", boolValue(snapshot.YUSDSandbox.RouteAvailable && snapshot.Fresh))
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_solvent Whether the public YUSD Sandbox reports reserve solvency.\n# TYPE ynx_public_yusd_sandbox_solvent gauge\nynx_public_yusd_sandbox_solvent %d\n", boolValue(snapshot.YUSDSandbox.Solvent && snapshot.Fresh))
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_reconciled Whether the public YUSD Sandbox reports reconciled supply.\n# TYPE ynx_public_yusd_sandbox_reconciled gauge\nynx_public_yusd_sandbox_reconciled %d\n", boolValue(snapshot.YUSDSandbox.Reconciled && snapshot.Fresh))
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_http_status_code Last public YUSD Sandbox HTTP status code.\n# TYPE ynx_public_yusd_sandbox_http_status_code gauge\nynx_public_yusd_sandbox_http_status_code %d\n", snapshot.YUSDSandbox.HTTPStatus)
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_reserve_units Public Testnet sandbox reserve units.\n# TYPE ynx_public_yusd_sandbox_reserve_units gauge\nynx_public_yusd_sandbox_reserve_units %d\n", snapshot.YUSDSandbox.ReserveUnits)
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_supply_units Public Testnet sandbox supply units.\n# TYPE ynx_public_yusd_sandbox_supply_units gauge\nynx_public_yusd_sandbox_supply_units %d\n", snapshot.YUSDSandbox.SupplyUnits)
+	fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_pending_redemption_units Public Testnet sandbox pending redemption units.\n# TYPE ynx_public_yusd_sandbox_pending_redemption_units gauge\nynx_public_yusd_sandbox_pending_redemption_units %d\n", snapshot.YUSDSandbox.PendingRedemptionUnits)
 	fmt.Fprintf(&output, "# HELP ynx_economics_monitor_build_info Build identity for the public economics monitor.\n# TYPE ynx_economics_monitor_build_info gauge\nynx_economics_monitor_build_info{commit=\"%s\",release=\"%s\"} 1\n", prometheusLabel(build.Commit), prometheusLabel(build.Release))
 	if snapshot.SourceCommit != "" {
 		fmt.Fprintf(&output, "# HELP ynx_public_stable_reserve_source_commit_info Public Explorer source commit observed by the probe.\n# TYPE ynx_public_stable_reserve_source_commit_info gauge\nynx_public_stable_reserve_source_commit_info{source_commit=\"%s\"} 1\n", prometheusLabel(snapshot.SourceCommit))
+	}
+	if snapshot.YUSDSandbox.SandboxSourceCommit != "" {
+		fmt.Fprintf(&output, "# HELP ynx_public_yusd_sandbox_source_commit_info Public YUSD Sandbox runtime source commit observed through Explorer.\n# TYPE ynx_public_yusd_sandbox_source_commit_info gauge\nynx_public_yusd_sandbox_source_commit_info{source_commit=\"%s\"} 1\n", prometheusLabel(snapshot.YUSDSandbox.SandboxSourceCommit))
 	}
 	return output.String()
 }

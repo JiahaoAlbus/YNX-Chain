@@ -60,6 +60,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$ldflags" -o 
 cat >"$work/package/config/ynx-explorerd.env" <<EOF
 YNX_STABLE_RESERVE_DEPLOY_ENABLED=${YNX_STABLE_RESERVE_DEPLOY_ENABLED}
 YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=${YNX_ECONOMICS_EXPLORER_RELEASE_CLASS}
+YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490
 EOF
 if [[ "$YNX_STABLE_RESERVE_DEPLOY_ENABLED" == "true" ]]; then
   install -m 0600 "$YNX_STABLE_RESERVE_ATTESTATION_PATH" "$work/package/config/stable-reserve-attestation.json"
@@ -75,8 +76,8 @@ chmod 0600 "$work/package/config/ynx-explorerd.env"
 cat >"$work/package/systemd/ynx-explorerd.service" <<'EOF'
 [Unit]
 Description=YNX Chain testnet explorer
-After=network-online.target ynx-chaind.service ynx-indexerd.service
-Wants=network-online.target ynx-chaind.service ynx-indexerd.service
+After=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
+Wants=network-online.target ynx-chaind.service ynx-indexerd.service ynx-yusd-sandboxd.service
 
 [Service]
 User=ynx
@@ -113,6 +114,7 @@ if [[ "$dry_run" == "1" ]]; then
   test -x "$work/package/bin/ynx-explorerd"
   grep -Fq 'EnvironmentFile=/etc/ynx/ynx-explorerd.env' "$work/package/systemd/ynx-explorerd.service"
   grep -Fq "YNX_STABLE_RESERVE_DEPLOY_ENABLED=$YNX_STABLE_RESERVE_DEPLOY_ENABLED" "$work/package/config/ynx-explorerd.env"
+  grep -Fq 'YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490' "$work/package/config/ynx-explorerd.env"
   echo "scoped Explorer deployment dry-run passed: release=$release reserveConfigured=$YNX_STABLE_RESERVE_DEPLOY_ENABLED archiveSHA256=$archive_hash"
   exit 0
 fi
@@ -121,14 +123,16 @@ remote="${PRIMARY_NODE_USER}@${PRIMARY_NODE_HOST}"
 remote_archive="/tmp/$release.tar.gz"
 remote_dir="/tmp/$release"
 public_reserve_url="-"
+public_yusd_url="-"
 if [[ "$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS" == "public_testnet" ]]; then
   public_reserve_url="https://${EXPLORER_DOMAIN}/api/stable/reserve"
+  public_yusd_url="https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox"
 fi
 ynx_transport_scp economics-explorer-upload "$PRIMARY_NODE_SSH_KEY" "$archive" "$remote" "$remote_archive"
 ynx_transport_ssh economics-explorer-stage "$PRIMARY_NODE_SSH_KEY" "$remote" \
   "set -euo pipefail; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; rm -rf '$remote_dir'; install -d -m 0700 '$remote_dir'; tar -xzf '$remote_archive' -C '$remote_dir'; rm -f '$remote_archive'"
 ynx_transport_ssh economics-explorer-install "$PRIMARY_NODE_SSH_KEY" "$remote" \
-  "bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$reserve_mode' '$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS' '$public_reserve_url'"
+  "bash '$remote_dir/install.sh' '$remote_dir' '$release' '$source_commit' '$reserve_mode' '$YNX_ECONOMICS_EXPLORER_RELEASE_CLASS' '$public_reserve_url' '$public_yusd_url'"
 ynx_transport_ssh economics-explorer-cleanup "$PRIMARY_NODE_SSH_KEY" "$remote" "rm -rf '$remote_dir'"
 
 echo "scoped Explorer Testnet deployment completed: release=$release sourceCommit=$source_commit"

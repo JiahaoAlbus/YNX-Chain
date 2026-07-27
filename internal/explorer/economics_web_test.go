@@ -23,7 +23,7 @@ func TestEconomicsPagesExposeCanonicalAccessibleLocalizedBoundaries(t *testing.T
 			t.Fatalf("%s status=%d type=%s", tc.path, response.Code, response.Header().Get("Content-Type"))
 		}
 		body := response.Body.String()
-		for _, required := range []string{"data-page=\"" + tc.page + "\"", "rel=\"canonical\" href=\"" + tc.canonical + "\"", "property=\"og:image\" content=\"http://localhost/assets/economics-og.png\"", tc.heading, "prefers-reduced-motion:reduce", ":focus-visible", "@media(max-width:520px)", "locale==='ar'?'rtl':'ltr'", "aria-live=\"polite\"", "fetch('/api/economics/disclosure')", "fetch('/api/summary')", "guaranteed", "未启用", "غير نشط", "Tidak aktif"} {
+		for _, required := range []string{"data-page=\"" + tc.page + "\"", "rel=\"canonical\" href=\"" + tc.canonical + "\"", "property=\"og:image\" content=\"http://localhost/assets/economics-og.png\"", tc.heading, "prefers-reduced-motion:reduce", ":focus-visible", "@media(max-width:520px)", "locale==='ar'?'rtl':'ltr'", "aria-live=\"polite\"", "fetch('/api/economics/disclosure')", "fetch('/api/summary')", "fetch('/api/stable/yusd-sandbox')", "id=\"yusdStatus\"", "guaranteed", "未启用", "غير نشط", "Tidak aktif"} {
 			if !strings.Contains(body, required) {
 				t.Fatalf("%s missing %q", tc.path, required)
 			}

@@ -9,9 +9,11 @@ bash -n scripts/deploy/deploy-economics-monitor.sh scripts/deploy/remote/install
 
 for required in \
   YNX_PUBLIC_STABLE_RESERVE_URL \
+  YNX_PUBLIC_YUSD_SANDBOX_URL \
   YNX_ECONOMICS_MONITOR_HTTP_ADDR \
   ynx-economics-monitord.service \
   ynx_public_stable_reserve_probe_success \
+  ynx_public_yusd_sandbox_probe_success \
   scoped\ Economics\ Monitor\ deployment\ verified
 do
   grep -Fq "$required" scripts/deploy/deploy-economics-monitor.sh scripts/deploy/remote/install-economics-monitor.sh \
@@ -20,4 +22,4 @@ do
 done
 
 DEPLOY_DRY_RUN=1 EXPLORER_DOMAIN=explorer.testnet.ynx.invalid bash scripts/deploy/deploy-economics-monitor.sh
-echo "economics-monitor-check passed: fail-closed public probe runtime and scoped deployment are verified"
+echo "economics-monitor-check passed: fail-closed public reserve and YUSD Sandbox probe runtime and scoped deployment are verified"

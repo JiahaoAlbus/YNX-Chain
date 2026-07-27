@@ -35,6 +35,7 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$ldflags" \
 cat >"$work/package/config/ynx-economics-monitord.env" <<EOF
 YNX_ECONOMICS_MONITOR_HTTP_ADDR=127.0.0.1:6438
 YNX_PUBLIC_STABLE_RESERVE_URL=https://${EXPLORER_DOMAIN}/api/stable/reserve
+YNX_PUBLIC_YUSD_SANDBOX_URL=https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox
 YNX_ECONOMICS_MONITOR_INTERVAL=15s
 YNX_ECONOMICS_MONITOR_TIMEOUT=10s
 EOF
@@ -56,6 +57,7 @@ if [[ "$dry_run" == "1" ]]; then
   test -x "$work/package/bin/ynx-economics-monitord"
   grep -Fq 'EnvironmentFile=/etc/ynx/ynx-economics-monitord.env' "$work/package/systemd/ynx-economics-monitord.service"
   grep -Fq "YNX_PUBLIC_STABLE_RESERVE_URL=https://${EXPLORER_DOMAIN}/api/stable/reserve" "$work/package/config/ynx-economics-monitord.env"
+  grep -Fq "YNX_PUBLIC_YUSD_SANDBOX_URL=https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox" "$work/package/config/ynx-economics-monitord.env"
   echo "scoped Economics Monitor deployment dry-run passed: release=$release archiveSHA256=$archive_hash"
   exit 0
 fi

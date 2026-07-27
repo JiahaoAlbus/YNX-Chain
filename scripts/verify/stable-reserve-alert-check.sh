@@ -7,7 +7,7 @@ rules=infra/monitoring/ynx-alerts.yml
 tests=infra/monitoring/stable-reserve-alerts.test.yml
 
 [[ -s "$rules" && -s "$tests" ]] || { echo "stable reserve alert rules or tests are missing"; exit 1; }
-for alert in YNXStableReserveProviderUnavailable YNXStableReserveShortfall YNXStableReserveAttestationExpiring YNXStableReservePublicEndpointDown; do
+for alert in YNXStableReserveProviderUnavailable YNXStableReserveShortfall YNXStableReserveAttestationExpiring YNXStableReservePublicEndpointDown YNXYUSDSandboxPublicEndpointDown YNXYUSDSandboxInsolvent YNXYUSDSandboxUnreconciled; do
   grep -Fq "$alert" "$rules" || { echo "missing stable reserve alert: $alert"; exit 1; }
   grep -Fq "$alert" "$tests" || { echo "missing stable reserve alert test: $alert"; exit 1; }
 done
@@ -25,4 +25,4 @@ else
   exit 1
 fi
 
-echo "stable-reserve-alert-check passed: provider, shortfall, expiry and public endpoint alerts fire and clear"
+echo "stable-reserve-alert-check passed: provider reserve and public YUSD Sandbox endpoint, solvency and reconciliation alerts fire and clear"

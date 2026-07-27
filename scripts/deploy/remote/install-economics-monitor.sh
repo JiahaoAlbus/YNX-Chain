@@ -96,8 +96,12 @@ for attempt in $(seq 1 15); do
     grep -Fq '"service":"ynx-economics-monitord"' "$health" &&
     grep -Fq "\"commit\":\"$source_commit\"" "$health" &&
     grep -Fq '"routeAvailable":true' "$health" &&
+    grep -Fq '"yusdSandbox":{"routeAvailable":true' "$health" &&
     curl -fsS --max-time 5 http://127.0.0.1:6438/metrics >"$metrics" &&
     grep -Fq 'ynx_public_stable_reserve_probe_success 1' "$metrics" &&
+    grep -Fq 'ynx_public_yusd_sandbox_probe_success 1' "$metrics" &&
+    grep -Fq 'ynx_public_yusd_sandbox_solvent 1' "$metrics" &&
+    grep -Fq 'ynx_public_yusd_sandbox_reconciled 1' "$metrics" &&
     grep -Fq "commit=\"$source_commit\"" "$metrics"; then
     ready=1
     break

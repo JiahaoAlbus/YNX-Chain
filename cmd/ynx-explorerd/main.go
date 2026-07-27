@@ -36,6 +36,7 @@ func main() {
 	reserveSourceCommit := flag.String("reserve-source-commit", envOrDefault("YNX_STABLE_RESERVE_SOURCE_COMMIT", strings.TrimSpace(buildCommit)), "full source commit for reserve integration evidence")
 	reserveAdapterReleaseClass := flag.String("reserve-adapter-release-class", envOrDefault("YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS", "local_candidate"), "reserve adapter release class: local_candidate, central_testnet or public_testnet")
 	reserveMaxAge := flag.Duration("reserve-max-age", 24*time.Hour, "maximum accepted reserve attestation age")
+	yusdSandboxURL := flag.String("yusd-sandbox-url", strings.TrimSpace(os.Getenv("YNX_YUSD_SANDBOX_URL")), "loopback YUSD Sandbox origin for public read-only projection")
 	checkConfig := flag.Bool("check-config", false, "validate explorer and reserve configuration without starting the service")
 	flag.Parse()
 
@@ -62,14 +63,23 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	var yusdProjection *explorer.YUSDSandboxProjection
+	if strings.TrimSpace(*yusdSandboxURL) != "" {
+		yusdProjection, err = explorer.NewYUSDSandboxProjection(*yusdSandboxURL, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	if *checkConfig {
-		fmt.Printf("ynx-explorerd config check passed; stable reserve attestation configured=%t adapterReleaseClass=%s\n", reserveIntegration != nil, *reserveAdapterReleaseClass)
+		fmt.Printf("ynx-explorerd config check passed; stable reserve attestation configured=%t YUSD Sandbox projection configured=%t adapterReleaseClass=%s\n", reserveIntegration != nil, yusdProjection != nil, *reserveAdapterReleaseClass)
 		return
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	srv := &http.Server{Addr: *httpAddr, Handler: explorer.NewServerWithBuildAndStableReserveRelease(service, currentBuildInfo(), reserveIntegration, reserveAdapterRelease, *reserveAdapterReleaseClass).Handler(), ReadHeaderTimeout: 5 * time.Second}
+	explorerServer := explorer.NewServerWithBuildAndStableReserveRelease(service, currentBuildInfo(), reserveIntegration, reserveAdapterRelease, *reserveAdapterReleaseClass)
+	explorerServer.SetYUSDSandboxProjection(yusdProjection)
+	srv := &http.Server{Addr: *httpAddr, Handler: explorerServer.Handler(), ReadHeaderTimeout: 5 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
