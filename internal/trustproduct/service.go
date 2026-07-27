@@ -242,13 +242,8 @@ func (s *Service) load() error {
 	if d.Sessions == nil {
 		d.Sessions = map[string]CentralSession{}
 	}
-	for id, session := range d.Sessions {
-		if strings.TrimSpace(id) == "" || session.ID != id || strings.TrimSpace(session.Account) == "" || strings.TrimSpace(session.DeviceID) == "" || session.ExpiresAt.IsZero() {
-			return errors.New("trust store contains an invalid central Wallet session binding")
-		}
-		if err := validateCentralScopes(session.Scopes); err != nil {
-			return fmt.Errorf("trust store contains invalid central Wallet session scopes: %w", err)
-		}
+	if err := validatePersistedCentralSessions(d.Sessions, "trust store"); err != nil {
+		return err
 	}
 	s.data = d
 	if legacy {
