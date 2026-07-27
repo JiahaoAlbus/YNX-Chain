@@ -2,7 +2,7 @@
   "schemaVersion": "ynx.cross-product-test-vectors.v1",
   "productId": "ynx-quant-lab",
   "contractId": "ynx-quant-lab-contract-v1",
-  "sourceCommit": "2ff74fa60d9c539adef1e5549358667193016e84",
+  "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
   "state": "owner-proposal-not-yet-executed-on-shared-testnet",
   "generatedAt": "2026-07-27T00:00:00Z",
   "truthBoundary": "Local injected transports and fixtures validate the Quant boundary only. A vector is testnetVerified only after owner services, authoritative receipts, transaction references, Explorer proof, and retained raw evidence are present.",

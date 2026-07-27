@@ -7,6 +7,19 @@ stop accepting writes, drain or move worker inbox jobs, preserve logs/audit IDs,
 back up state, terminate web/worker/specialized daemons, then core. A restart
 never clears a kill switch or revoked mandate.
 
+For Docker Compose, use an ordered restart because `ynx-quant-web` intentionally
+shares the `ynx-quantd` network namespace to preserve the loopback-only Preview
+write boundary:
+
+```sh
+docker compose -f apps/quant-lab/compose.yaml stop
+docker compose -f apps/quant-lab/compose.yaml up -d
+```
+
+Do not use parallel `docker compose restart` as the operational runbook: the web
+container may attempt to rejoin the core network namespace before the core
+container is running.
+
 ## Backup and restore
 
 ```sh

@@ -3,7 +3,7 @@
   "productId": "ynx-quant-lab",
   "version": "0.2.0-testnet-candidate",
   "releaseClass": "local-testnet-candidate",
-  "sourceCommit": "2ff74fa60d9c539adef1e5549358667193016e84",
+  "sourceCommit": "8b211d08a67abc9e2b3d3f3254bbc87f4293b08e",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
@@ -16,8 +16,9 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifacts": [
-    {"name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip", "platform": "macOS arm64", "minimumOS": "macOS 13.0", "bytes": 7377976, "sha256": "589a2b3db7252c9330b49a95eaf7b8170e9ff2188660d1fb10413cfe7199f056", "signingClass": "adhoc-test-only", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "hosted": false},
-    {"name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip", "platform": "Windows x64", "minimumOS": "unverified", "bytes": 8094601, "sha256": "1330099d4233b4325eb73a6b189c9aaf6ab015bf0b1b7bbe9bfe5beac36fdd7c", "signingClass": "unsigned-cross-compiled", "builtLocal": true, "installedLocal": false, "coldStartVerified": false, "hosted": false}
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip", "platform": "macOS arm64", "minimumOS": "macOS 13.0", "bytes": 7377983, "sha256": "eb44973099a41a4fcaf79fbc636cdaa11c08c9bb3ac4ca79650e26b42dda964f", "signingClass": "adhoc-test-only", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "hosted": false},
+    {"name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip", "platform": "Windows x64", "minimumOS": "unverified", "bytes": 8094598, "sha256": "e6b8c2031b38d7efb1f8b138b9b161851327b82f2a2362d7367ecbbdbdd9ea82", "signingClass": "unsigned-cross-compiled", "builtLocal": true, "installedLocal": false, "coldStartVerified": false, "hosted": false},
+    {"name": "ynx-quant:testnet-verify-8b211d08a67a", "platform": "Linux arm64 OCI image", "minimumOS": "Docker Engine compatible runtime", "bytes": 41667295, "imageId": "sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35", "digestClass": "local-image-id-not-registry-manifest", "signingClass": "local-unsigned-container-candidate", "builtLocal": true, "installedLocal": true, "coldStartVerified": true, "restartVerified": true, "restoreVerified": true, "hosted": false}
   ],
-  "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "Docker image build and install", "Windows host launch and installation", "production desktop signing and notarization", "public deployment and immutable hosted downloads"]
+  "knownBlockingEvidence": ["canonical Gateway and Wallet integration", "real Exchange and DEX Testnet receipts", "registry manifest digest, image signing, immutable hosting, and external container vulnerability scan", "Windows host launch and installation", "production desktop signing and notarization", "public deployment and immutable hosted downloads"]
 }

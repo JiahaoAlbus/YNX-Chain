@@ -5,25 +5,16 @@
 - Branch: `codex/final-quant-lab`
 - Stage: INTEGRATE
 - Goal: Active
-- Last remote checkpoint: `2ff74fa60d9c539adef1e5549358667193016e84`
-- Workspace before this evidence commit: Local SHA = Remote SHA
+- Last protected remote checkpoint: `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`
 
 ## Verified local state
 
-- Quant service split, Web, CLI, SDKs, macOS/Windows candidate builds, local
-  persistence/recovery and security gates exist.
-- Desktop candidates built twice from
-  `2ff74fa60d9c539adef1e5549358667193016e84` produced identical hashes.
-- The macOS candidate passed strict ad-hoc signature verification and fresh
-  extracted cold start; `/version` returned the exact Source Commit, `/health`
-  was ready with `liveFundsEnabled=false`, metrics and frontend responded, and
-  supervisor shutdown released child-service ports.
-- Exchange/DEX Quant-side adapters reject nonterminal, stale, tampered, unbound
-  and inconsistent owner responses and prevent duplicate retry after an unknown
-  outcome.
-- The complete Quant local release gate passes.
-- Standard Integration Contract, Handoff, Test Vectors and Dependency Acceptance
-  remain owner proposals and are machine validated.
+- Integrated Quant release plus container runtime/restart/restore Preflight passed.
+- Linux arm64 local OCI candidate built from pinned base digests and exact Source Commit `8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`.
+- Five Compose services started; core ran as UID/GID 65532 with read-only root filesystem, all capabilities dropped and no-new-privileges.
+- Loopback-only Preview mutation, persistent Kill Switch, ordered stop/start, backup SHA verification, isolated named-volume restore and audit-chain continuity passed.
+- macOS and Windows candidates rebuilt twice reproducibly against the same source; macOS strict ad-hoc signature verification and fresh cold start passed with exact version, health, metrics and frontend evidence.
+- Exchange/DEX adapters remain fail-closed and no live-funds capability is enabled.
 
 ## Truthful incomplete state
 
@@ -33,11 +24,9 @@
 - `downloadHosted=false`
 - `productionSigned=false`
 - `storeReleased=false`
-- no real Exchange order/fill, DEX Vault action, Wallet attestation, shared
-  Testnet receipt, public endpoint or immutable hosted download is claimed.
+- Container evidence is local arm64 only; no registry manifest digest, image signature, immutable hosting, external vulnerability scan or Linux amd64 runtime evidence exists.
+- No real Exchange order/fill, DEX Vault action, Wallet attestation, shared Testnet receipt or public endpoint is claimed.
 
 ## Immediate action
 
-Protect this evidence refresh with Commit/Push and Local=Remote verification,
-then continue Docker build/runtime/restart/restore evidence or record the daemon
-as unavailable without promoting the container status.
+Protect the passing integrated Preflight evidence with Commit/Push and Local=Remote verification, then continue measured local capacity evidence.

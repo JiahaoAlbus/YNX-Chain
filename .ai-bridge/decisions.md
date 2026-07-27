@@ -46,3 +46,19 @@ metadata, and reject any artifact-input change after that commit. Evidence-only
 commits may rebuild the exact candidate; runtime or recipe drift requires a new
 Source Commit and refreshed hashes. This prevents both stale-release acceptance
 and false failures caused by stamping whichever HEAD runs the gate.
+
+## D-008 — Local Preview mutation remains loopback-only in Compose
+
+The web proxy shares the core service network namespace and reaches the API at
+`127.0.0.1`; the host publishes only the web port on loopback. This preserves the
+existing local Preview trust boundary instead of adding a proxy-IP bypass. Because
+the web service joins the core container namespace, the supported restart sequence
+is ordered `compose stop` followed by `compose up -d`, not a parallel restart.
+
+## D-009 — Container evidence is local candidate evidence
+
+The verified arm64 image runs non-root with a read-only root filesystem, dropped
+capabilities and no-new-privileges, and passes restart plus isolated restore.
+Its local image ID is not a registry manifest digest and does not imply signing,
+external vulnerability scanning, immutable hosting, amd64 verification, staging
+or public deployment.

@@ -24,25 +24,34 @@
   source metadata preserved
 - Compose config parse: pass
 - Kubernetes YAML parse: pass; OpenAPI validation unavailable without a cluster
-- Docker build: failed before build because local daemon was not running
+- Docker arm64 candidate: image built from pinned base digests; all five Compose
+  services reached running/healthy state as applicable; core ran as UID/GID 65532
+  with a read-only root filesystem, all capabilities dropped and no-new-privileges;
+  loopback Preview writes, ordered stop/start persistence, backup SHA verification,
+  isolated restore and audit-chain continuity passed
 - macOS arm64 desktop: bundle built twice reproducibly, ad-hoc signature verified,
   then cold-launched from a fresh Applications-layout extraction with API/version,
   health, metrics, frontend and clean shutdown checks; this is test signing, not
   production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 - hostile Origin, oversized JSON and cross-origin WebSocket DAST probes: pass
-- local ZIP structural/credential scan: both candidates pass; external CVE,
-  malware and container scanners unavailable, so those states remain false
+- local ZIP structural/credential scan: both desktop candidates pass; no external
+  CVE, malware or container vulnerability scanner was available, so external
+  scan and production-artifact states remain false
 
-Reproducible desktop artifacts built twice from source commit
-`2ff74fa60d9c539adef1e5549358667193016e84`:
+Reproducible candidates built from source commit
+`8b211d08a67abc9e2b3d3f3254bbc87f4293b08e`:
 
-- macOS arm64 ZIP: 7,377,976 bytes; SHA-256
-  `589a2b3db7252c9330b49a95eaf7b8170e9ff2188660d1fb10413cfe7199f056`;
+- macOS arm64 ZIP: 7,377,983 bytes; SHA-256
+  `eb44973099a41a4fcaf79fbc636cdaa11c08c9bb3ac4ca79650e26b42dda964f`;
   ad-hoc test signature; fresh extracted cold-start verified
-- Windows x64 ZIP: 8,094,601 bytes; SHA-256
-  `1330099d4233b4325eb73a6b189c9aaf6ab015bf0b1b7bbe9bfe5beac36fdd7c`;
+- Windows x64 ZIP: 8,094,598 bytes; SHA-256
+  `e6b8c2031b38d7efb1f8b138b9b161851327b82f2a2362d7367ecbbdbdd9ea82`;
   unsigned cross-compile; no Windows execution evidence
+- Linux arm64 local OCI image: 41,667,295 bytes; local image ID
+  `sha256:70e32c90601dc50c4770d04d40bd684a8bde52848e969afb9e8ddfbbaceb3f35`;
+  unsigned and unhosted; runtime/restart/restore verified locally, but this image ID
+  is not a registry manifest digest
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
@@ -52,6 +61,7 @@ a commit-addressed artifact, hash it, and attach a hosted immutable URL.
 
 CI run URL, staging/public health response, canonical Gateway session, Wallet
 mandate approval/revoke receipt, Exchange order/fill, DEX vault actions,
-Explorer/Finance/Monitor/Trust correlation, container digest, desktop install,
-hosted SDK/download URLs, production signing/notarization, Windows host launch,
-and public uptime evidence.
+Explorer/Finance/Monitor/Trust correlation, registry manifest digest, container
+signing/external vulnerability scan/immutable hosting, hosted SDK/download URLs,
+production desktop signing/notarization, Windows host launch, and public uptime
+evidence.
