@@ -34,15 +34,15 @@ Implemented a fail-closed API Studio as a real Developer runtime surface:
 - `cd apps/developer && npm run build` — passed
 - `cd apps/developer && node --check app.js` — passed
 
-## Immediate checkpoint actions
+## Protected checkpoint
 
-1. Validate all new JSON and record files.
-2. Update repository handoff and release notes.
-3. Re-run targeted tests after record changes.
-4. Review changes.
-5. Commit the FREEZE/evidence checkpoint.
-6. Push `codex/final-developer` and verify Local SHA equals Remote SHA.
-7. Confirm clean worktree.
+- Machine-readable records validated.
+- Repository handoff and release notes updated.
+- Targeted tests and static checks rerun successfully.
+- Runtime commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`.
+- FREEZE record commit: `9ae9f7d29c87991fcbeafc27f6d3e636ab93a43a`.
+- Target branch `origin/codex/final-developer` created and upstream tracking established.
+- Recheck Local SHA equals Remote SHA after this status update is committed.
 
 ## Next autonomous engineering slice
 

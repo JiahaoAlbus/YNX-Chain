@@ -6,8 +6,9 @@
 - Branch: `codex/final-developer`
 - Runtime checkpoint: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
 - Workspace at checkpoint start: clean
-- Current record changes: not yet committed
-- Remote target branch: not yet verified
+- Runtime commit: `3cc6bd3e9de6f88c7637ba1400923ff6cd6ee58d`
+- FREEZE record commit: `9ae9f7d29c87991fcbeafc27f6d3e636ab93a43a`
+- Remote target branch: created and tracked as `origin/codex/final-developer`; final SHA must be rechecked after every later commit
 
 ## Latest verified delivery
 
