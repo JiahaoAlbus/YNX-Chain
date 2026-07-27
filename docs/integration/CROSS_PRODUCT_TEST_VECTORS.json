@@ -273,12 +273,17 @@
     },
     {
       "id": "economics-shared-testnet-acceptance-validator-v1",
-      "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
-      "classification": "local-validator-test-fixture-not-owner-acceptance",
+      "sourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
+      "validatorSourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+      "classification": "local-validator-store-and-cli-test-fixture-not-owner-acceptance",
       "schema": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
+      "storeSource": "internal/economics/shared_testnet_acceptance_store.go",
+      "cli": "cmd/ynx-economics-shared-testnet-acceptance",
       "command": "make economics-shared-testnet-acceptance-check",
       "expected": {
         "schemaVersion": 1,
+        "storeSchemaVersion": 1,
+        "cliSchemaVersion": 1,
         "contractId": "ynx.economics.integration.v1",
         "environment": "ynx-shared-testnet",
         "cosmosChainId": "ynx_6423-1",
@@ -293,6 +298,15 @@
         "ownerSourceCommitModel": "independent-consumer-commit-per-owner",
         "signatureAlgorithm": "ed25519",
         "canonicalAttestationOrderRequired": true,
+        "persistence": {
+          "mode": "0600",
+          "verifiedSummaryOnly": true,
+          "originalOwnerSignaturesPersisted": false,
+          "replayIdempotent": true,
+          "sourceRebindingRejected": true,
+          "systemClockRequired": true,
+          "restoreDrill": true
+        },
         "acceptedEvidenceAttached": false,
         "integratedCentral": false,
         "deployedStaging": false,
@@ -313,7 +327,15 @@
         "missing-installedLocal",
         "release-state-overclaim",
         "payload-tamper",
-        "evidence-tamper"
+        "evidence-tamper",
+        "policy-rebinding",
+        "source-replay",
+        "store-tamper",
+        "insecure-store-mode",
+        "writable-input",
+        "symlink-input",
+        "clock-backdate",
+        "restore-overwrite"
       ],
       "consumerAssertions": {
         "01 Chain Core": [
@@ -332,7 +354,8 @@
         "29 Integration": [
           "pin the exact Economics and five owner source commits before verification",
           "reject missing, reordered, stale, tampered or over-promoted evidence fail closed",
-          "do not treat this local validator fixture as shared-Testnet acceptance"
+          "persist only a verified summary in the 0600 hash-chained Store and reject replay, rebinding, insecure mode and restore overwrite",
+          "do not treat this local validator, Store or CLI fixture as shared-Testnet acceptance"
         ]
       }
     },

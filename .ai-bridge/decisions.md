@@ -10,3 +10,7 @@
 8. A passing shared-Testnet acceptance fixture proves validator behavior only; it is not central owner acceptance or shared-Testnet deployment evidence.
 9. Do not modify the three non-Economics key-permission tests; record their umask-sensitive baseline failure for their owning threads.
 10. Do not request secrets in chat. Stable settlement, Treasury signing and production activation remain external-input boundaries.
+11. Use the process system clock for shared-Testnet proof freshness. Do not expose an operator-controlled acceptance-time flag that could backdate expired evidence.
+12. Persist only the verified acceptance summary, owner source bindings and hashes in the 0600 Store; keep original owner attestations in the operator evidence document.
+13. Treat exact evidence/policy replay as idempotent, but reject policy rebinding, reused Economics source commits, transaction hashes or Store state hashes.
+14. Add the acceptance CLI as the fifth unsigned Testnet binary; do not replace the persisted four-binary Artifact Evidence until a five-binary builder commit exists and direct evidence is regenerated from that exact commit.

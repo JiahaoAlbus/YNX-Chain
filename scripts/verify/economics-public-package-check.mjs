@@ -43,11 +43,27 @@ assert.equal(installation.installation.removalVerified, true);
 assert.equal(installation.releaseTruth.downloadHosted, false);
 assert.equal(installation.releaseTruth.productionSigned, false);
 assert.equal(release.sharedTestnetAcceptance.sourceCommit, release.sharedTestnetAcceptanceSourceCommit);
+assert.equal(release.sharedTestnetAcceptance.validatorSourceCommit, release.sharedTestnetValidatorSourceCommit);
 assert.equal(release.sharedTestnetAcceptance.schemaVersion, 1);
+assert.equal(release.sharedTestnetAcceptance.storeSchemaVersion, 1);
+assert.equal(release.sharedTestnetAcceptance.cliSchemaVersion, 1);
 assert.equal(release.sharedTestnetAcceptance.evidenceClass, "shared-testnet-owner-attestation-validation");
 assert.equal(release.sharedTestnetAcceptance.ownerSourceCommitModel, "independent-consumer-commit-per-owner");
+assert.deepEqual(release.sharedTestnetAcceptance.persistence, {
+  mode: "0600",
+  atomicReplace: true,
+  directorySync: true,
+  unknownFieldsRejected: true,
+  symlinksRejected: true,
+  verifiedSummaryOnly: true,
+  originalOwnerSignaturesPersisted: false,
+  replayIdempotent: true,
+  sourceRebindingRejected: true,
+  systemClockRequired: true,
+  restoreDrill: true,
+});
 assert.deepEqual(release.sharedTestnetAcceptance.requiredOwners, ["01 Chain Core", "12 Explorer", "13 Monitor", "26 Data Fabric", "29 Integration"]);
-for (const requiredPath of [release.sharedTestnetAcceptance.source, release.sharedTestnetAcceptance.schema]) {
+for (const requiredPath of [release.sharedTestnetAcceptance.source, release.sharedTestnetAcceptance.storeSource, release.sharedTestnetAcceptance.cli, release.sharedTestnetAcceptance.schema]) {
   assert.equal(fs.existsSync(path.join(root, requiredPath)), true, `missing shared Testnet acceptance path: ${requiredPath}`);
 }
 for (const key of ["acceptedEvidenceAttached", "integratedCentral", "deployedStaging", "sharedTestnetEvidence", "publicDeployment", "production"]) {
@@ -57,8 +73,10 @@ assert.ok(release.verification.includes("make economics-shared-testnet-acceptanc
 
 const releaseCommit = spawnSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`], { cwd: root });
 assert.equal(releaseCommit.status, 0, "release sourceCommit must identify an existing commit");
-const sharedAcceptanceCommit = spawnSync("git", ["cat-file", "-e", `${release.sharedTestnetAcceptanceSourceCommit}^{commit}`], { cwd: root });
-assert.equal(sharedAcceptanceCommit.status, 0, "shared Testnet acceptance sourceCommit must identify an existing commit");
+for (const sourceCommit of [release.sharedTestnetAcceptanceSourceCommit, release.sharedTestnetValidatorSourceCommit]) {
+  const commit = spawnSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], { cwd: root });
+  assert.equal(commit.status, 0, `shared Testnet acceptance sourceCommit must identify an existing commit: ${sourceCommit}`);
+}
 const metadataCommit = spawnSync("git", ["cat-file", "-e", `${metadata.sourceCommit}^{commit}`], { cwd: root });
 assert.equal(metadataCommit.status, 0, "public metadata sourceCommit must identify an existing commit");
 

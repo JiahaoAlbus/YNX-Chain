@@ -322,11 +322,29 @@
   },
   "sharedTestnetAcceptance": {
     "schemaVersion": 1,
+    "storeSchemaVersion": 1,
+    "cliSchemaVersion": 1,
     "evidenceClass": "shared-testnet-owner-attestation-validation",
-    "sourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
+    "sourceCommit": "4a5f4b774d2fc4afc532b246d6f39f4b44577466",
+    "validatorSourceCommit": "e1271acfb6b0959b1cfd11ce7b9144d66e1edec8",
     "source": "internal/economics/shared_testnet_acceptance.go",
+    "storeSource": "internal/economics/shared_testnet_acceptance_store.go",
+    "cli": "cmd/ynx-economics-shared-testnet-acceptance",
     "schema": "release/integration/ynxt-economics-shared-testnet-evidence.schema.json",
     "verification": "make economics-shared-testnet-acceptance-check",
+    "persistence": {
+      "mode": "0600",
+      "atomicReplace": true,
+      "directorySync": true,
+      "unknownFieldsRejected": true,
+      "symlinksRejected": true,
+      "verifiedSummaryOnly": true,
+      "originalOwnerSignaturesPersisted": false,
+      "replayIdempotent": true,
+      "sourceRebindingRejected": true,
+      "systemClockRequired": true,
+      "restoreDrill": true
+    },
     "environment": "ynx-shared-testnet",
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -367,7 +385,15 @@
       "local-endpoint",
       "release-state-overclaim",
       "payload-tamper",
-      "evidence-tamper"
+      "evidence-tamper",
+      "policy-rebinding",
+      "source-replay",
+      "store-tamper",
+      "insecure-store-mode",
+      "writable-input",
+      "symlink-input",
+      "clock-backdate",
+      "restore-overwrite"
     ],
     "acceptedEvidenceAttached": false,
     "integratedCentral": false,
@@ -412,6 +438,16 @@
     {
       "command": "go run ./cmd/ynx-economics-local-testnet-evidence -store var/economics-integration-store.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -generated-at 2026-08-04T01:00:00Z -height 6423 -nonce 1 -out var/economics-local-testnet-evidence.json -summary",
       "outputSchema": "EconomicsLocalTestnetEvidenceSummary.v1"
+    },
+    {
+      "command": "go run ./cmd/ynx-economics-shared-testnet-acceptance -policy var/economics-shared-testnet-policy.json -evidence var/economics-shared-testnet-evidence.json -state var/economics-shared-testnet-acceptance.json -summary",
+      "outputSchema": "EconomicsSharedTestnetAcceptanceReceipt.v1",
+      "status": "requires-owner-attested-input"
+    },
+    {
+      "command": "go run ./cmd/ynx-economics-shared-testnet-acceptance -restore-from var/economics-shared-testnet-acceptance.backup.json -state var/economics-shared-testnet-acceptance.restored.json -summary",
+      "outputSchema": "EconomicsSharedTestnetAcceptanceStoreSummary.v1",
+      "status": "local-restore-drill"
     }
   ],
   "authAndIntent": {
@@ -463,7 +499,11 @@
     "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_STALE",
     "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_CONFLICT",
     "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_ATTESTATION",
-    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_TAMPERED"
+    "YNX_ECONOMICS_SHARED_TESTNET_EVIDENCE_TAMPERED",
+    "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_INVALID",
+    "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_CONFLICT",
+    "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_IO",
+    "YNX_ECONOMICS_SHARED_TESTNET_ACCEPTANCE_STORE_TAMPERED"
   ],
   "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
@@ -474,6 +514,7 @@
     "candidateIntegrationStoreSchema": 1,
     "candidateLocalTestnetEvidenceSchema": 1,
     "candidateSharedTestnetEvidenceSchema": 1,
+    "candidateSharedTestnetAcceptanceStoreSchema": 1,
     "activationRequires": [
       "29-integration-contract-acceptance",
       "01-chain-core-migration",

@@ -27,6 +27,7 @@ const binaries = [
   ["ynx-economics-integration-store", "./cmd/ynx-economics-integration-store"],
   ["ynx-economics-local-testnet-evidence", "./cmd/ynx-economics-local-testnet-evidence"],
   ["ynx-economics-runtime", "./cmd/ynx-economics-runtime"],
+  ["ynx-economics-shared-testnet-acceptance", "./cmd/ynx-economics-shared-testnet-acceptance"],
   ["ynx-staking-risk-runtime", "./cmd/ynx-staking-risk-runtime"],
 ];
 

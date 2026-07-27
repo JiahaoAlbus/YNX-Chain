@@ -36,7 +36,9 @@ Each owner must return a machine-readable record containing:
 
 `consumerSourceCommit` is independent for each owner. 29 Integration must pin the exact Economics source commit plus the accepted 01/12/13/26/29 consumer commits before validation. Every required owner then signs the same canonical payload hash in canonical owner order using an accepted Ed25519 key. Missing, duplicate, reordered, stale, future-dated, commit-rebound or over-promoted evidence is rejected fail closed by `internal/economics/shared_testnet_acceptance.go`.
 
-An acceptance record that omits a failed vector, changes economic meaning, or claims deployment from local evidence is rejected. A passing local validator fixture is not an acceptance record and does not change any central, staging, shared-Testnet, public or production state.
+After successful validation, 17 Economics persists only the verified summary, source bindings and hashes in the versioned 0600 acceptance Store. Exact replay is idempotent; policy/source rebinding, stale or backdated validation, insecure file modes, symlink inputs, Store tampering and restore overwrite are rejected. Original owner signatures remain in the operator-supplied evidence document and are not copied into the Store.
+
+An acceptance record that omits a failed vector, changes economic meaning, or claims deployment from local evidence is rejected. Passing local validator, Store and CLI fixtures are not acceptance records and do not change any central, staging, shared-Testnet, public or production state.
 
 ## Current blocking inputs
 

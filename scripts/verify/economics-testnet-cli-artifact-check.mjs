@@ -36,6 +36,22 @@ try {
     installed.push(path.basename(file.path));
   }
   installed.sort();
+  assert.deepEqual(installed, [
+    "ynx-economics-integration-store",
+    "ynx-economics-local-testnet-evidence",
+    "ynx-economics-runtime",
+    "ynx-economics-shared-testnet-acceptance",
+    "ynx-staking-risk-runtime",
+  ]);
+
+  const sharedAcceptanceVersion = runJSON(path.join(installedBin, "ynx-economics-shared-testnet-acceptance"), ["-version"]);
+  assert.equal(sharedAcceptanceVersion.cliSchemaVersion, 1);
+  assert.equal(sharedAcceptanceVersion.storeSchemaVersion, 1);
+  assert.equal(sharedAcceptanceVersion.evidenceSchemaVersion, 1);
+  assert.equal(sharedAcceptanceVersion.contractId, "ynx.economics.integration.v1");
+  assert.equal(sharedAcceptanceVersion.releaseClass, "shared-testnet-acceptance-validator");
+  assert.equal(sharedAcceptanceVersion.publicDeployment, false);
+  assert.equal(sharedAcceptanceVersion.production, false);
 
   const economics = runJSON(path.join(installedBin, "ynx-economics-runtime"), [
     "-input",
@@ -135,6 +151,7 @@ try {
       transactionId: localEvidence.transactionId,
       blockHash: localEvidence.blockHash,
       evidenceHash: localEvidence.evidenceHash,
+      sharedAcceptanceVersion,
     },
     releaseTruth: {
       installedLocal: true,

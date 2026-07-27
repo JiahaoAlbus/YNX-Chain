@@ -7,6 +7,7 @@
 - Frozen Integration Bundle source: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
 - Local Testnet evidence runtime source: `f14d002a39cedca18b094e856adc7da888d376da`
 - Shared Testnet acceptance validator source: `e1271acfb6b0959b1cfd11ce7b9144d66e1edec8`
+- Shared Testnet acceptance Store/CLI source: `4a5f4b774d2fc4afc532b246d6f39f4b44577466`
 - Shared Testnet evidence schema: `release/integration/ynxt-economics-shared-testnet-evidence.schema.json`
 - Contract owner: 17 Economics
 - Current phase: INTEGRATE
@@ -17,7 +18,7 @@ The contract freezes economic policy facts and integration boundaries. It does n
 
 The local Testnet evidence runtime adds an executable replacement target for the TESTNET gate. Its transaction, block and receipt are deterministic simulation only; five Explorer proofs and fifteen Monitor proofs remain Store-bound local evidence. All central, shared-Testnet, public and production booleans remain false until direct owner acceptance exists.
 
-The shared Testnet acceptance validator defines the fail-closed replacement boundary for that simulation. It requires one canonical payload, independent consumer source commits from 01/12/13/26/29, canonical-order Ed25519 attestations from every required owner, bounded proof age, exact record counts, committed BFT evidence and non-public staging release truth. Its passing local fixture proves validator behavior only; no owner acceptance record or shared-Testnet transaction is attached yet.
+The shared Testnet acceptance validator defines the fail-closed replacement boundary for that simulation. It requires one canonical payload, independent consumer source commits from 01/12/13/26/29, canonical-order Ed25519 attestations from every required owner, bounded proof age, exact record counts, committed BFT evidence and non-public staging release truth. Verified results can be written only to the versioned 0600 acceptance Store, which uses atomic replacement, a state hash and audit-chain reconciliation; it persists the verified summary and hashes rather than original owner signatures, treats exact replay as idempotent, rejects policy/source rebinding, uses the system clock, and supports a non-overwriting restore drill. Its passing local fixtures prove validator, Store and CLI behavior only; no owner acceptance record or shared-Testnet transaction is attached yet.
 
 ## Owner handoffs
 

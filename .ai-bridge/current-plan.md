@@ -7,17 +7,18 @@
 - Goal: Active
 - Frozen Integration Bundle source: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
 - Local Testnet evidence runtime source: `f14d002a39cedca18b094e856adc7da888d376da`
-- Unsigned CLI artifact source: `175eaec4b04f22bdb5aa2652bb7d69921beb6e06`
-- Shared Testnet acceptance validator source: `e1271acfb6b0959b1cfd11ce7b9144d66e1edec8`
+- Persisted four-binary unsigned CLI artifact source: `175eaec4b04f22bdb5aa2652bb7d69921beb6e06`
+- Shared Testnet validator source: `e1271acfb6b0959b1cfd11ce7b9144d66e1edec8`
+- Shared Testnet Store/CLI source: `4a5f4b774d2fc4afc532b246d6f39f4b44577466`
 
 ## Protected completion
 
-The unsigned Darwin arm64 Testnet CLI package has reproducible double-build, install, cold-start, restart, removal and persisted SHA-256 evidence. It remains unsigned and unhosted.
+The shared Testnet acceptance CLI now uses the system clock, consumes strict operator-supplied policy and owner evidence documents, persists only verified summaries and hashes in an atomic 0600 Store, treats exact replay as idempotent, rejects policy/source rebinding and Store tampering, and supports a non-overwriting restore drill. No owner private key or original signature material is persisted. No real owner acceptance or shared-Testnet transaction is attached.
 
-The shared Testnet acceptance validator now requires exact Economics and independent 01/12/13/26/29 source commits, canonical-order Ed25519 owner attestations, bounded proof age, committed BFT proof fields, exact Store/Data Fabric counts, HTTPS Explorer/Monitor evidence and evidence-bounded release states. Missing, duplicate, reordered, stale, future-dated, rebound, tampered and over-promoted evidence fails closed. No real owner acceptance or shared-Testnet transaction is attached yet.
+The fifth CLI binary has passed transient reproducible double-build, install and cold-start verification. Its packaging script and Contract/Handoff synchronization are the active dirty slice; the persisted Artifact Evidence still truthfully describes the prior four-binary package until this slice is committed.
 
 ## Next slice
 
-Implement a versioned acceptance CLI and 0600 persistence path that load an operator-supplied policy and evidence document, call the validator, persist only verified summaries, reject replay/rebinding/tamper on restart, and support a restore drill. Do not embed owner private keys or fabricate owner evidence.
+Commit and push the five-binary builder, verification contract and release-boundary synchronization. Then regenerate `release/economics-testnet-cli-artifact.json` at that exact source commit, update the package hash and installation evidence, run all artifact/contract/public/release/security gates, commit, push and verify Local SHA equals Remote SHA.
 
-After that, hand the schema and negative vectors to 01 Chain Core, 12 Explorer, 13 Monitor, 26 Data Fabric and 29 Integration for direct signed acceptance records.
+After the artifact checkpoint, continue autonomous work that does not fabricate owner acceptance; direct 01/12/13/26/29 signed evidence remains the TESTNET dependency.
