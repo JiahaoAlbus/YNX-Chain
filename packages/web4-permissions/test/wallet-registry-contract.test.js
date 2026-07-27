@@ -25,6 +25,7 @@ test("implemented platform request builders bind the reviewed registry tuples", 
     "ynx-browser-android": "apps/browser/android/app/src/main/java/com/ynxweb4/browser/MainActivity.java",
     "ynx-browser-ios": "apps/browser/ios/YNXBrowser/BrowserModel.swift",
     "ynx-browser-macos": "apps/browser/native/Sources/YNXBrowserNative/main.swift",
+    "ynx-browser-windows": "apps/browser/windows/YNXBrowser.Windows/WalletRequestBuilder.cs",
     "ynx-search-web": "apps/search/src/contracts.js"
   };
   for (const entry of entries.filter(value => files[value.productClientId])) {
@@ -33,7 +34,11 @@ test("implemented platform request builders bind the reviewed registry tuples", 
   }
 });
 
-test("Windows registry entry remains an integration draft until its request builder exists", async () => {
-  const source = await readFile(new URL("apps/browser/windows/YNXBrowser.Windows/MainWindow.xaml.cs", root), "utf8");
-  assert.equal(source.includes("ynx-browser-windows"), false);
+test("Windows request builder uses a non-exportable CNG P-256 identity and fail-closed callback bindings", async () => {
+  const builder = await readFile(new URL("apps/browser/windows/YNXBrowser.Windows/WalletRequestBuilder.cs", root), "utf8");
+  const window = await readFile(new URL("apps/browser/windows/YNXBrowser.Windows/MainWindow.xaml.cs", root), "utf8");
+  for (const token of ["CngAlgorithm.ECDsaP256", "CngExportPolicies.None", "SignData", "VerifyData", "UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow", "no Product Session was created locally"]) assert.ok(builder.includes(token), `Windows Wallet builder omits ${token}`);
+  assert.ok(window.includes("WalletRequestBuilder.CreateAuthorizationUri"));
+  assert.ok(window.includes("WalletRequestBuilder.ValidateCallback"));
+  assert.doesNotMatch(window, /Windows product-device request construction remains disabled/);
 });
