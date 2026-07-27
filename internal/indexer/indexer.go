@@ -1,9 +1,12 @@
 package indexer
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -83,14 +86,17 @@ type Status struct {
 }
 
 type Store struct {
-	path   string
-	mu     sync.Mutex
-	loaded bool
-	db     Database
+	path            string
+	walPath         string
+	checkpointEvery int
+	mu              sync.Mutex
+	loaded          bool
+	pendingBlocks   int
+	db              Database
 }
 
 func NewStore(path string) *Store {
-	return &Store{path: path}
+	return &Store{path: path, walPath: path + ".wal", checkpointEvery: 250}
 }
 
 type Database struct {
@@ -136,10 +142,14 @@ func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Blo
 	next := cloneDatabase(db)
 	applySourceStatus(&next, sourceURL, status)
 	for _, block := range blocks {
+		indexedAt := time.Now().UTC()
+		if err := s.appendWALLocked(walRecord{Version: 1, SourceURL: sourceURL, Status: status, Block: block, IndexedAt: indexedAt}); err != nil {
+			return Database{}, err
+		}
 		next.Blocks[strconv.FormatUint(block.Height, 10)] = block
 		next.LastIndexedHeight = block.Height
 		next.LastBlockHash = block.Hash
-		next.LastSyncAt = time.Now().UTC()
+		next.LastSyncAt = indexedAt
 		for _, tx := range block.Transactions {
 			next.Transactions[tx.Hash] = tx
 		}
@@ -149,8 +159,17 @@ func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Blo
 		s.loaded = true
 		return next, nil
 	}
-	if err := s.saveLocked(next); err != nil {
-		return Database{}, err
+	s.db = next
+	s.loaded = true
+	s.pendingBlocks += len(blocks)
+	if s.pendingBlocks >= s.checkpointEvery {
+		if err := s.saveLocked(next); err != nil {
+			return Database{}, err
+		}
+		if err := os.Remove(s.walPath); err != nil && !os.IsNotExist(err) {
+			return Database{}, err
+		}
+		s.pendingBlocks = 0
 	}
 	return next, nil
 }
@@ -192,16 +211,13 @@ func (s *Store) loadLocked() (Database, error) {
 		return db, nil
 	}
 	payload, err := os.ReadFile(s.path)
-	if os.IsNotExist(err) {
-		s.db = db
-		s.loaded = true
-		return db, nil
-	}
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return Database{}, err
 	}
-	if err := json.Unmarshal(payload, &db); err != nil {
-		return Database{}, err
+	if err == nil {
+		if err := json.Unmarshal(payload, &db); err != nil {
+			return Database{}, err
+		}
 	}
 	if db.Blocks == nil {
 		db.Blocks = map[string]chain.Block{}
@@ -209,8 +225,13 @@ func (s *Store) loadLocked() (Database, error) {
 	if db.Transactions == nil {
 		db.Transactions = map[string]chain.Transaction{}
 	}
+	pending, err := s.replayWALLocked(&db)
+	if err != nil {
+		return Database{}, err
+	}
 	s.db = db
 	s.loaded = true
+	s.pendingBlocks = pending
 	return db, nil
 }
 
@@ -250,6 +271,106 @@ func cloneDatabase(db Database) Database {
 		next.Transactions[hash] = transaction
 	}
 	return next
+}
+
+type walRecord struct {
+	Version   int         `json:"version"`
+	SourceURL string      `json:"sourceUrl"`
+	Status    Status      `json:"status"`
+	Block     chain.Block `json:"block"`
+	IndexedAt time.Time   `json:"indexedAt"`
+}
+
+func (s *Store) appendWALLocked(record walRecord) error {
+	if strings.TrimSpace(s.path) == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(s.walPath), 0o700); err != nil {
+		return err
+	}
+	payload, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	payload = append(payload, '\n')
+	file, err := os.OpenFile(s.walPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(payload); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
+}
+
+func (s *Store) replayWALLocked(db *Database) (int, error) {
+	file, err := os.Open(s.walPath)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return 0, fmt.Errorf("indexer WAL permissions must be 0600")
+	}
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 64*1024), 8*1024*1024)
+	pending := 0
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		decoder := json.NewDecoder(bytes.NewReader(line))
+		decoder.DisallowUnknownFields()
+		var record walRecord
+		if err := decoder.Decode(&record); err != nil {
+			return 0, fmt.Errorf("indexer WAL record is invalid")
+		}
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			return 0, fmt.Errorf("indexer WAL record is invalid")
+		}
+		if record.Version != 1 || strings.TrimSpace(record.SourceURL) == "" || record.Block.Hash == "" || record.IndexedAt.IsZero() {
+			return 0, fmt.Errorf("indexer WAL record schema is invalid")
+		}
+		key := strconv.FormatUint(record.Block.Height, 10)
+		if existing, ok := db.Blocks[key]; ok {
+			if existing.Hash != record.Block.Hash {
+				return 0, fmt.Errorf("indexer WAL conflicts with checkpoint at height %d", record.Block.Height)
+			}
+			applySourceStatus(db, record.SourceURL, record.Status)
+			continue
+		}
+		if len(db.Blocks) > 0 {
+			if record.Block.Height != db.LastIndexedHeight+1 || record.Block.ParentHash != db.LastBlockHash {
+				return 0, fmt.Errorf("indexer WAL chain is discontinuous at height %d", record.Block.Height)
+			}
+		}
+		if err := validateBlockTransactions(record.Block, db.Transactions); err != nil {
+			return 0, err
+		}
+		applySourceStatus(db, record.SourceURL, record.Status)
+		db.Blocks[key] = record.Block
+		db.LastIndexedHeight = record.Block.Height
+		db.LastBlockHash = record.Block.Hash
+		db.LastSyncAt = record.IndexedAt
+		for _, transaction := range record.Block.Transactions {
+			db.Transactions[transaction.Hash] = transaction
+		}
+		pending++
+	}
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+	return pending, nil
 }
 
 type Indexer struct {

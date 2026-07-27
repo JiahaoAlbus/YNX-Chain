@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -127,6 +128,9 @@ func TestIndexerPersistsBoundedBatchesAndResumesWithoutRewritingEachBlock(t *tes
 	if second.ResumeFromHeight != 102 || second.LastIndexedHeight != 103 || second.NewBlocksThisRun != 2 || second.IndexedBlockCount != 4 {
 		t.Fatalf("unexpected second bounded batch: %+v", second)
 	}
+	if _, err := os.Stat(storePath + ".wal"); err != nil {
+		t.Fatalf("bounded batches must be durable in the WAL before checkpoint: %v", err)
+	}
 
 	restarted, err := New(Config{RPCURL: server.URL, StorePath: storePath, MaxBlocksPerRun: 2})
 	if err != nil {
@@ -138,6 +142,43 @@ func TestIndexerPersistsBoundedBatchesAndResumesWithoutRewritingEachBlock(t *tes
 	}
 	if final.ResumeFromHeight != 104 || final.LastIndexedHeight != 104 || final.NewBlocksThisRun != 1 || final.IndexedBlockCount != 5 {
 		t.Fatalf("unexpected resumed bounded batch: %+v", final)
+	}
+}
+
+func TestStoreCheckpointsWALAtBoundAndRejectsCorruption(t *testing.T) {
+	directory := t.TempDir()
+	storePath := directory + "/checkpoint.json"
+	store := NewStore(storePath)
+	store.checkpointEvery = 2
+	status := Status{Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 1}
+	blocks := []chain.Block{
+		{Height: 0, Hash: blockHash(0), ParentHash: strings.Repeat("0", 64), Time: time.Now().UTC()},
+		{Height: 1, Hash: blockHash(1), ParentHash: blockHash(0), Time: time.Now().UTC()},
+	}
+	if _, err := store.UpsertBlocks("http://127.0.0.1:6420", status, blocks); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(storePath); err != nil {
+		t.Fatalf("checkpoint file missing: %v", err)
+	}
+	if _, err := os.Stat(storePath + ".wal"); !os.IsNotExist(err) {
+		t.Fatalf("checkpointed WAL must be removed, got %v", err)
+	}
+	restarted := NewStore(storePath)
+	db, err := restarted.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if db.LastIndexedHeight != 1 || len(db.Blocks) != 2 {
+		t.Fatalf("checkpoint restart mismatch: %+v", db)
+	}
+
+	corruptPath := directory + "/corrupt.json"
+	if err := os.WriteFile(corruptPath+".wal", []byte("{"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewStore(corruptPath).Load(); err == nil || !strings.Contains(err.Error(), "WAL record is invalid") {
+		t.Fatalf("corrupt WAL did not fail closed: %v", err)
 	}
 }
 
