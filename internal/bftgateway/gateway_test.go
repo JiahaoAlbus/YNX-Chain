@@ -335,6 +335,53 @@ func TestEVMSendRawTransactionMapsCometReplayRejection(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":"eth_sendRawTransaction","params":["0x%x"]}`, payload), -32003)
 }
 
+func TestEVMBlockTransactionLookupsClassifyUpstreamFailures(t *testing.T) {
+	blockTime := time.Date(2026, 7, 12, 1, 2, 3, 0, time.UTC)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/status":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"node_info": map[string]any{"network": "ynx_6423-1"},
+				"sync_info": map[string]any{
+					"earliest_block_hash":   strings.Repeat("E", 64),
+					"earliest_block_height": "11",
+					"earliest_block_time":   blockTime.Add(-6 * time.Second),
+					"latest_block_hash":     strings.Repeat("B", 64),
+					"latest_block_height":   "17",
+					"latest_block_time":     blockTime,
+					"catching_up":           false,
+				},
+			}})
+		case "/validators":
+			validators := make([]map[string]any, 4)
+			for i := range validators {
+				validators[i] = map[string]any{
+					"address": fmt.Sprintf("%040X", i+1), "voting_power": "1", "proposer_priority": "0",
+					"pub_key": map[string]any{"type": "tendermint/PubKeyEd25519", "value": base64.StdEncoding.EncodeToString(make([]byte, 32))},
+				}
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_height": "17", "validators": validators}})
+		case "/block", "/block_by_hash":
+			w.WriteHeader(http.StatusBadGateway)
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "upstream evidence unavailable"}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(gateway.Handler())
+	defer server.Close()
+
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":1,"method":"eth_getBlockTransactionCountByNumber","params":["latest"]}`, -32603)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":2,"method":"eth_getTransactionByBlockHashAndIndex","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","0x0"]}`, -32603)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":3,"method":"eth_getBlockTransactionCountByNumber","params":["0x011"]}`, -32602)
+}
+
 func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T) {
 	validBuild := buildinfo.Info{
 		Commit:    "abcdef123456",

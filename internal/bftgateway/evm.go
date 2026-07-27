@@ -412,73 +412,83 @@ func (g *Gateway) evmCommittedBlockResult(ctx context.Context, method string, ra
 	return evmCommittedBlock(evidence, full, gasUsed), nil
 }
 
-func (g *Gateway) evmCommittedBlockTransactionResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+func (g *Gateway) evmCommittedBlockTransactionResult(ctx context.Context, method string, raw json.RawMessage) (any, int, error) {
 	var params []json.RawMessage
 	if err := json.Unmarshal(raw, &params); err != nil {
-		return nil, errors.New("JSON-RPC params must be an array")
+		return nil, -32602, errors.New("JSON-RPC params must be an array")
 	}
 	countLookup := method == "eth_getBlockTransactionCountByNumber" || method == "eth_getBlockTransactionCountByHash"
 	if countLookup {
 		if len(params) != 1 {
-			return nil, fmt.Errorf("%s requires one block identifier", method)
+			return nil, -32602, fmt.Errorf("%s requires one block identifier", method)
 		}
 	} else if len(params) != 2 {
-		return nil, fmt.Errorf("%s requires a block identifier and transaction index", method)
+		return nil, -32602, fmt.Errorf("%s requires a block identifier and transaction index", method)
 	}
 	byHash := method == "eth_getBlockTransactionCountByHash" || method == "eth_getTransactionByBlockHashAndIndex"
-	evidence, found, err := g.committedEVMBlockTransactionEvidence(ctx, byHash, params[0])
+	evidence, found, code, err := g.committedEVMBlockTransactionEvidence(ctx, byHash, params[0])
 	if err != nil || !found {
-		return nil, err
+		return nil, code, err
 	}
 	if evidence.AppHash == "" || !blockHashPattern.MatchString(evidence.AppHash) {
-		return nil, errors.New("CometBFT block is missing a valid AppHash")
+		return nil, -32603, errors.New("CometBFT block is missing a valid AppHash")
 	}
 	if len(evidence.Block.Transactions) > 0 && (evidence.DataHash == "" || !blockHashPattern.MatchString(evidence.DataHash)) {
-		return nil, errors.New("CometBFT transaction block is missing a valid data hash")
+		return nil, -32603, errors.New("CometBFT transaction block is missing a valid data hash")
 	}
 	if len(evidence.RawTransactions) != len(evidence.Block.Transactions) {
-		return nil, errors.New("CometBFT raw transaction evidence count does not match mapped transactions")
+		return nil, -32603, errors.New("CometBFT raw transaction evidence count does not match mapped transactions")
 	}
 	if countLookup {
-		return hexEVMQuantity(uint64(len(evidence.Block.Transactions))), nil
+		return hexEVMQuantity(uint64(len(evidence.Block.Transactions))), 0, nil
 	}
 	index, err := parseCanonicalEVMQuantity(params[1], "transaction index")
 	if err != nil {
-		return nil, err
+		return nil, -32602, err
 	}
 	if index >= uint64(len(evidence.Block.Transactions)) {
-		return nil, nil
+		return nil, 0, nil
 	}
-	return evmCommittedTransaction(evidence.Block.Transactions[index], uint32(index), evidence.RawTransactions[index]), nil
+	return evmCommittedTransaction(evidence.Block.Transactions[index], uint32(index), evidence.RawTransactions[index]), 0, nil
 }
 
-func (g *Gateway) committedEVMBlockTransactionEvidence(ctx context.Context, byHash bool, raw json.RawMessage) (committedBlockEvidence, bool, error) {
+func (g *Gateway) committedEVMBlockTransactionEvidence(ctx context.Context, byHash bool, raw json.RawMessage) (committedBlockEvidence, bool, int, error) {
 	if byHash {
 		var hash string
 		if err := json.Unmarshal(raw, &hash); err != nil || !transactionHashPattern.MatchString(hash) {
-			return committedBlockEvidence{}, false, errors.New("canonical lowercase block hash is required")
+			return committedBlockEvidence{}, false, -32602, errors.New("canonical lowercase block hash is required")
 		}
-		return g.blockByHash(ctx, hash)
+		evidence, found, err := g.blockByHash(ctx, hash)
+		if err != nil {
+			return committedBlockEvidence{}, false, -32603, err
+		}
+		return evidence, found, 0, nil
+	}
+	if err := validateCommittedBlockLookupTagSyntax(raw); err != nil {
+		return committedBlockEvidence{}, false, -32602, err
 	}
 	status, err := g.status(ctx)
 	if err != nil {
-		return committedBlockEvidence{}, false, err
+		return committedBlockEvidence{}, false, -32603, err
 	}
 	height, found, err := parseCommittedBlockLookupTag(raw, status.EarliestBlockHeight, status.Height)
-	if err != nil || !found {
-		return committedBlockEvidence{}, found, err
+	if err != nil {
+		return committedBlockEvidence{}, false, -32602, err
+	}
+	if !found {
+		return committedBlockEvidence{}, false, 0, nil
 	}
 	evidence, err := g.blockAtHeight(ctx, height)
 	if err != nil {
-		return committedBlockEvidence{}, false, err
+		return committedBlockEvidence{}, false, -32603, err
 	}
 	if height == status.Height && evidence.Block.Hash != status.LatestBlockHash {
-		return committedBlockEvidence{}, false, errors.New("CometBFT latest block evidence differs from status")
+		return committedBlockEvidence{}, false, -32603, errors.New("CometBFT latest block evidence differs from status")
 	}
 	if height == status.EarliestBlockHeight && evidence.Block.Hash != status.EarliestBlockHash {
-		return committedBlockEvidence{}, false, errors.New("CometBFT earliest block evidence differs from status")
+		return committedBlockEvidence{}, false, -32603, errors.New("CometBFT earliest block evidence differs from status")
 	}
-	return evidence, true, nil
+	return evidence, true, 0, nil
 }
 
 func parseCanonicalEVMQuantity(raw json.RawMessage, label string) (uint64, error) {
@@ -551,6 +561,25 @@ func evmCommittedBlock(evidence committedBlockEvidence, full bool, gasUsed uint6
 		result["transactionsRoot"] = "0x" + evidence.DataHash
 	}
 	return result
+}
+
+func validateCommittedBlockLookupTagSyntax(raw json.RawMessage) error {
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return errors.New("block identifier must be a string")
+	}
+	switch value {
+	case "latest", "safe", "finalized", "earliest", "pending":
+		return nil
+	}
+	if !strings.HasPrefix(value, "0x") || len(value) < 3 {
+		return errors.New("invalid canonical block quantity")
+	}
+	height, err := strconv.ParseUint(value[2:], 16, 64)
+	if err != nil || value != hexEVMQuantity(height) {
+		return errors.New("invalid canonical block quantity")
+	}
+	return nil
 }
 
 func parseCommittedBlockLookupTag(raw json.RawMessage, earliest, latest uint64) (uint64, bool, error) {

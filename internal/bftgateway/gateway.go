@@ -1267,10 +1267,11 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "eth_getBlockTransactionCountByNumber", "eth_getBlockTransactionCountByHash", "eth_getTransactionByBlockNumberAndIndex", "eth_getTransactionByBlockHashAndIndex":
+		var code int
 		var err error
-		result, err = g.evmCommittedBlockTransactionResult(r.Context(), request.Method, request.Params)
+		result, code, err = g.evmCommittedBlockTransactionResult(r.Context(), request.Method, request.Params)
 		if err != nil {
-			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
 			return
 		}
 	case "eth_getBalance", "eth_getTransactionCount":
