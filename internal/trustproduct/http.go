@@ -31,6 +31,21 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 		writeJSON(w, 200, v)
 	})
 	mux.HandleFunc("GET /api/transparency", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.Transparency()) })
+	mux.HandleFunc("GET /api/export", func(w http.ResponseWriter, r *http.Request) {
+		actor, err := s.actorFrom(r, scopeEvidenceRead)
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		exported, err := s.ExportSubject(actor)
+		if err != nil {
+			writeErr(w, err)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Disposition", `attachment; filename="ynx-trust-subject-export.json"`)
+		writeJSON(w, http.StatusOK, exported)
+	})
 	mux.HandleFunc("POST /api/actions", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var in Action

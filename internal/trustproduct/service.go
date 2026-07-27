@@ -431,7 +431,7 @@ func validateCentralScopes(scopes []string) error {
 	seen := map[string]bool{}
 	for _, rawScope := range scopes {
 		scope := strings.TrimSpace(rawScope)
-		if scope != rawScope || scope == "" || scope == "*" || strings.Contains(scope, "*") || !allowedCentralScopes[scope] {
+		if scope != rawScope || scope == "" || scope == "*" || strings.Contains(scope, "*") || !isAllowedCentralScope(scope) {
 			return apiError{502, "central Wallet session returned an invalid or widened Trust scope"}
 		}
 		if seen[scope] {

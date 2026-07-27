@@ -165,6 +165,9 @@ func TestCentralSessionScopesAreExactAndRouteEnforced(t *testing.T) {
 	if err := svc.storeCentralSession("read-only-token", CentralSession{ID: "read-only-session", Account: "ynx1reader", DeviceID: "reader-device", Scopes: []string{scopeEvidenceRead}, ExpiresAt: now.Add(time.Hour)}); err != nil {
 		t.Fatal(err)
 	}
+	if err := svc.storeCentralSession("write-only-token", CentralSession{ID: "write-only-session", Account: "ynx1writer", DeviceID: "writer-device", Scopes: []string{scopeEvidenceWrite}, ExpiresAt: now.Add(time.Hour)}); err != nil {
+		t.Fatal(err)
+	}
 	for name, scopes := range map[string][]string{
 		"wildcard":  {"trust:*"},
 		"unknown":   {"trust:admin"},
@@ -195,6 +198,24 @@ func TestCentralSessionScopesAreExactAndRouteEnforced(t *testing.T) {
 	resp := authorized(http.MethodGet, "/api/state", nil)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("read-scoped local state status=%d", resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	resp = authorized(http.MethodGet, "/api/export", nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("read-scoped subject export status=%d", resp.StatusCode)
+	}
+	if got := resp.Header.Get("Content-Disposition"); got != `attachment; filename="ynx-trust-subject-export.json"` {
+		t.Fatalf("subject export content disposition=%q", got)
+	}
+	resp.Body.Close()
+
+	writeOnlyReq, _ := http.NewRequest(http.MethodGet, server.URL+"/api/export", nil)
+	writeOnlyReq.Header.Set("Authorization", "Bearer write-only-token")
+	writeOnlyReq.Header.Set("X-YNX-Device-ID", "writer-device")
+	resp, _ = http.DefaultClient.Do(writeOnlyReq)
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("write-only session accessed subject export: %d", resp.StatusCode)
 	}
 	resp.Body.Close()
 
