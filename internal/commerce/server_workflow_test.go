@@ -105,7 +105,11 @@ func TestHTTPMarketplaceBuyerSellerSettlementAndResolutionLoop(t *testing.T) {
 	var merchant StoreProfile
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores", sellerToken, CreateStoreInput{Name: "Loop Store", Policy: "Returns reviewed with evidence", TrustURL: "https://trust.example/case", IdempotencyKey: "http-store-key-1"}, http.StatusCreated, &merchant)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores/"+merchant.ID+"/activate", sellerToken, map[string]any{}, http.StatusOK, &merchant)
-	requestJSON(t, client, http.MethodPut, server.URL+"/api/seller/stores/"+merchant.ID+"/roles", sellerToken, map[string]any{"Account": supportAccount, "Role": "support"}, http.StatusOK, nil)
+	var supportInvitation struct {
+		Invitation SellerInvitation
+	}
+	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/stores/"+merchant.ID+"/invitations", sellerToken, map[string]any{"Account": supportAccount, "Role": "support", "ExpiresInMinutes": 60}, http.StatusCreated, &supportInvitation)
+	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/invitations/"+supportInvitation.Invitation.ID+"/accept", supportToken, map[string]any{}, http.StatusOK, nil)
 	var product Product
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/products", sellerToken, CreateProductInput{StoreID: merchant.ID, Title: "Field kit", Description: "Verified", Category: "outdoor", Media: []MediaAsset{{URL: "https://media.example/field-kit.jpg", AltText: "Blue field kit", Kind: "image"}}, Variants: []Variant{{Name: "Blue", SKU: "HTTP-BLUE", PriceYNXT: 25, Inventory: 1}}, IdempotencyKey: "http-product-key-1"}, http.StatusCreated, &product)
 	requestJSON(t, client, http.MethodPost, server.URL+"/api/seller/products/"+product.ID+"/publish", sellerToken, map[string]any{}, http.StatusOK, &product)

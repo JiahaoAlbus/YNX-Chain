@@ -61,6 +61,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.mux.HandleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.mux.HandleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
+	s.mux.HandleFunc("GET /api/seller/invitations", s.mySellerInvitations)
+	s.mux.HandleFunc("POST /api/seller/invitations/{invitation}/accept", s.acceptSellerInvitation)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/invitations", s.createSellerInvitation)
+	s.mux.HandleFunc("POST /api/seller/stores/{id}/invitations/{invitation}/cancel", s.cancelSellerInvitation)
 	s.mux.HandleFunc("POST /api/seller/products", s.createProduct)
 	s.mux.HandleFunc("GET /api/seller/products", s.sellerProducts)
 	s.mux.HandleFunc("PUT /api/seller/products/{id}", s.updateProduct)
@@ -516,7 +520,12 @@ func (s *Server) roles(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 200, map[string]any{"roles": v, "revocations": revocations, "events": events, "actorRole": v[sess.Account]})
+	invitations, err := s.store.SellerInvitations(sess.Account, r.PathValue("id"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, 200, map[string]any{"roles": v, "revocations": revocations, "invitations": invitations, "events": events, "actorRole": v[sess.Account]})
 }
 func (s *Server) setRole(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "seller")
@@ -532,6 +541,76 @@ func (s *Server) setRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, map[string]string{"status": "updated"})
+}
+
+func (s *Server) mySellerInvitations(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"invitations": s.store.SellerInvitationsForAccount(sess.Account)})
+}
+
+func (s *Server) createSellerInvitation(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct {
+		Account          string
+		Role             string
+		ExpiresInMinutes int
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	if in.ExpiresInMinutes == 0 {
+		in.ExpiresInMinutes = 24 * 60
+	}
+	if in.ExpiresInMinutes < int(minSellerInvitationTTL/time.Minute) || in.ExpiresInMinutes > int(maxSellerInvitationTTL/time.Minute) {
+		fail(w, http.StatusBadRequest, errors.New("invitation expiry must be between 15 minutes and 7 days"))
+		return
+	}
+	invitation, err := s.store.CreateSellerInvitation(sess.Account, r.PathValue("id"), in.Account, in.Role, time.Duration(in.ExpiresInMinutes)*time.Minute)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusCreated, map[string]any{"status": "pending", "invitation": invitation})
+}
+
+func (s *Server) acceptSellerInvitation(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct{}
+	if !decode(w, r, &in) {
+		return
+	}
+	invitation, err := s.store.AcceptSellerInvitation(sess.Account, r.PathValue("invitation"))
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"status": "accepted", "storeId": invitation.StoreID, "role": invitation.Role, "invitation": invitation})
+}
+
+func (s *Server) cancelSellerInvitation(w http.ResponseWriter, r *http.Request) {
+	sess, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in struct{ Reason string }
+	if !decode(w, r, &in) {
+		return
+	}
+	invitation, err := s.store.CancelSellerInvitation(sess.Account, r.PathValue("id"), r.PathValue("invitation"), in.Reason)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"status": "cancelled", "invitation": invitation})
 }
 
 func validProductAuthorizationRevocationReceipt(receipt ProductAuthorizationRevocationReceipt, revocation SellerRoleRevocation) bool {

@@ -50,9 +50,7 @@ func TestHTTPRoleRevocationConfirmsCentralSessionInvalidation(t *testing.T) {
 	_, owner := actor(t, 101)
 	_, member := actor(t, 102)
 	merchant, _ := setupCatalog(t, store, owner, 1)
-	if err := store.SetSellerRole(owner, merchant.ID, member, SellerRoleSupport); err != nil {
-		t.Fatal(err)
-	}
+	acceptSellerRole(t, store, owner, merchant.ID, member, SellerRoleSupport)
 	auth := &revocationTestAuth{
 		principals: map[string]Principal{"owner-revoke-token-123456": sellerPrincipal(owner), "member-revoke-token-12345": sellerPrincipal(member)},
 		receipt:    ProductAuthorizationRevocationReceipt{Revoked: true, RevocationID: "wallet-revoke-http-001", Account: member, ProductClientID: SellerClientID, BundleID: SellerBundleID, ResourceType: "seller_store", ResourceID: merchant.ID, SessionCount: 3, RevokedAt: time.Now().UTC()},
@@ -79,7 +77,11 @@ func TestHTTPRoleRevocationConfirmsCentralSessionInvalidation(t *testing.T) {
 	if independentStore.ID == "" || independentStore.Owner != member {
 		t.Fatalf("store-scoped revocation blocked unrelated Seller authority: %+v", independentStore)
 	}
-	requestJSON(t, server.Client(), http.MethodPut, server.URL+"/api/seller/stores/"+merchant.ID+"/roles", "owner-revoke-token-123456", map[string]any{"Account": member, "Role": "viewer"}, http.StatusOK, nil)
+	var regrant struct {
+		Invitation SellerInvitation
+	}
+	requestJSON(t, server.Client(), http.MethodPost, server.URL+"/api/seller/stores/"+merchant.ID+"/invitations", "owner-revoke-token-123456", map[string]any{"Account": member, "Role": "viewer", "ExpiresInMinutes": 60}, http.StatusCreated, &regrant)
+	requestJSON(t, server.Client(), http.MethodPost, server.URL+"/api/seller/invitations/"+regrant.Invitation.ID+"/accept", "member-revoke-token-12345", map[string]any{}, http.StatusOK, nil)
 }
 
 func TestHTTPRoleRevocationReportsUnavailableAndBlocksRegrant(t *testing.T) {
@@ -90,9 +92,7 @@ func TestHTTPRoleRevocationReportsUnavailableAndBlocksRegrant(t *testing.T) {
 	_, owner := actor(t, 103)
 	_, member := actor(t, 104)
 	merchant, _ := setupCatalog(t, store, owner, 1)
-	if err := store.SetSellerRole(owner, merchant.ID, member, SellerRoleFinance); err != nil {
-		t.Fatal(err)
-	}
+	acceptSellerRole(t, store, owner, merchant.ID, member, SellerRoleFinance)
 	auth := testAuth{principals: map[string]Principal{"owner-unavailable-token-1": sellerPrincipal(owner), "member-unavailable-token": sellerPrincipal(member)}}
 	server := httptest.NewServer(NewServer(store, ServerConfig{Auth: auth}).Handler())
 	defer server.Close()
@@ -122,9 +122,7 @@ func TestHTTPRoleRevocationRejectsMismatchedCentralReceipt(t *testing.T) {
 	_, member := actor(t, 106)
 	_, wrongAccount := actor(t, 107)
 	merchant, _ := setupCatalog(t, store, owner, 1)
-	if err := store.SetSellerRole(owner, merchant.ID, member, SellerRoleCatalog); err != nil {
-		t.Fatal(err)
-	}
+	acceptSellerRole(t, store, owner, merchant.ID, member, SellerRoleCatalog)
 	auth := &revocationTestAuth{
 		principals: map[string]Principal{"owner-mismatch-token-123": sellerPrincipal(owner)},
 		receipt: ProductAuthorizationRevocationReceipt{

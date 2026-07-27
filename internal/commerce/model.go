@@ -159,12 +159,19 @@ type SellerRoleRevocation struct {
 	RequestedAt, UpdatedAt                        time.Time
 }
 
+type SellerInvitation struct {
+	ID, StoreID, Account, Role, CreatedBy, Status string
+	Reason                                        string
+	CreatedAt, ExpiresAt, UpdatedAt               time.Time
+	AcceptedAt, CancelledAt                       time.Time
+}
+
 type SellerIntegrationEvent struct {
-	ID, EventName, Source, StoreID, Account, Actor string
-	RevocationID, PreviousRole, SessionStatus      string
-	SessionRevocationID                            string
-	SchemaVersion, SessionCount                    int
-	OccurredAt                                     time.Time
+	ID, EventName, Source, StoreID, Account, Actor  string
+	RevocationID, PreviousRole, SessionStatus       string
+	SessionRevocationID, InvitationID, Role, Status string
+	SchemaVersion, SessionCount                     int
+	ExpiresAt, OccurredAt                           time.Time
 }
 
 type Snapshot struct {
@@ -179,6 +186,7 @@ type Snapshot struct {
 	Carts             map[string]Cart
 	SellerRoles       map[string]map[string]string
 	SellerRevocations map[string]SellerRoleRevocation
+	SellerInvitations map[string]SellerInvitation
 	SellerEvents      []SellerIntegrationEvent
 	RequestWindow     map[string][]time.Time
 }

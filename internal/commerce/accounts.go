@@ -6,8 +6,18 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+)
+
+const (
+	sellerInvitationPending   = "pending"
+	sellerInvitationAccepted  = "accepted"
+	sellerInvitationCancelled = "cancelled"
+	sellerInvitationExpired   = "expired"
+	minSellerInvitationTTL    = 15 * time.Minute
+	maxSellerInvitationTTL    = 7 * 24 * time.Hour
 )
 
 func (s *Store) Profile(actor string) BuyerProfile {
@@ -176,6 +186,63 @@ func (s *Store) sellerIntegrationEventLocked(eventName, actor string, revocation
 	})
 }
 
+func effectiveSellerInvitationStatus(invitation SellerInvitation, now time.Time) string {
+	if invitation.Status == sellerInvitationPending && !now.Before(invitation.ExpiresAt) {
+		return sellerInvitationExpired
+	}
+	return invitation.Status
+}
+
+func cloneSellerInvitations(in map[string]SellerInvitation) map[string]SellerInvitation {
+	out := make(map[string]SellerInvitation, len(in))
+	for id, invitation := range in {
+		out[id] = invitation
+	}
+	return out
+}
+
+func (s *Store) sellerRoleUpdateEventLocked(actor, storeID, account, previousRole, role string, occurredAt time.Time) {
+	s.s.SellerEvents = append(s.s.SellerEvents, SellerIntegrationEvent{
+		ID:            newID("seller_event"),
+		EventName:     "ynx.seller.role.updated.v1",
+		Source:        "seller-console",
+		StoreID:       storeID,
+		Account:       account,
+		Actor:         actor,
+		PreviousRole:  previousRole,
+		Role:          role,
+		Status:        "updated",
+		SchemaVersion: 1,
+		OccurredAt:    occurredAt,
+	})
+}
+
+func (s *Store) sellerInvitationEventLocked(eventName, actor string, invitation SellerInvitation) {
+	s.s.SellerEvents = append(s.s.SellerEvents, SellerIntegrationEvent{
+		ID:            newID("seller_event"),
+		EventName:     eventName,
+		Source:        "seller-console",
+		StoreID:       invitation.StoreID,
+		Account:       invitation.Account,
+		Actor:         actor,
+		InvitationID:  invitation.ID,
+		Role:          invitation.Role,
+		Status:        invitation.Status,
+		SchemaVersion: 1,
+		ExpiresAt:     invitation.ExpiresAt,
+		OccurredAt:    invitation.UpdatedAt,
+	})
+}
+
+func (s *Store) expireSellerInvitationLocked(actor string, invitation SellerInvitation, now time.Time) SellerInvitation {
+	invitation.Status = sellerInvitationExpired
+	invitation.UpdatedAt = now
+	s.s.SellerInvitations[invitation.ID] = invitation
+	s.auditLocked(actor, "seller", "seller_team_invitation_expired", "invitation", invitation.ID, "expired", "store_id="+invitation.StoreID+" account="+invitation.Account+" role="+invitation.Role)
+	s.sellerInvitationEventLocked("ynx.seller.team.invitation.expired.v1", actor, invitation)
+	return invitation
+}
+
 func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -193,19 +260,222 @@ func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 		return fmt.Errorf("%w: prior role revocation session invalidation is %s", ErrConflict, revocation.SessionStatus)
 	}
 	previous, hadPrevious := s.s.SellerRoles[storeID][account]
+	if !hadPrevious {
+		return fmt.Errorf("%w: new Seller members must accept a Wallet-bound invitation", ErrConflict)
+	}
 	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	updatedAt := s.now()
 	s.s.SellerRoles[storeID][account] = role
 	s.auditLocked(actor, "seller", "seller_role_set", "store", storeID, "approved", account+":"+role)
+	s.sellerRoleUpdateEventLocked(actor, storeID, account, previous, role, updatedAt)
 	if err := s.persistLocked(); err != nil {
-		if hadPrevious {
-			s.s.SellerRoles[storeID][account] = previous
-		} else {
-			delete(s.s.SellerRoles[storeID], account)
-		}
+		s.s.SellerRoles[storeID][account] = previous
 		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
 		return err
 	}
 	return nil
+}
+
+func (s *Store) CreateSellerInvitation(actor, storeID, account, role string, ttl time.Duration) (SellerInvitation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+		return SellerInvitation{}, err
+	}
+	if !consensus.IsNativeAddress(account) || account == actor {
+		return SellerInvitation{}, errors.New("valid distinct invitation account required")
+	}
+	role = strings.ToLower(strings.TrimSpace(role))
+	if !isAssignableSellerRole(role) {
+		return SellerInvitation{}, errors.New("role must be admin, catalog, inventory, fulfillment, finance, support or viewer")
+	}
+	if ttl < minSellerInvitationTTL || ttl > maxSellerInvitationTTL {
+		return SellerInvitation{}, errors.New("invitation expiry must be between 15 minutes and 7 days")
+	}
+	if _, ok := s.s.SellerRoles[storeID][account]; ok {
+		return SellerInvitation{}, fmt.Errorf("%w: account already has a Seller role", ErrConflict)
+	}
+	if revocation, ok := s.latestSellerRevocationLocked(storeID, account); ok && revocation.SessionStatus != "confirmed" {
+		return SellerInvitation{}, fmt.Errorf("%w: prior role revocation session invalidation is %s", ErrConflict, revocation.SessionStatus)
+	}
+	now := s.now()
+	for _, existing := range s.s.SellerInvitations {
+		if existing.StoreID == storeID && existing.Account == account && effectiveSellerInvitationStatus(existing, now) == sellerInvitationPending {
+			return SellerInvitation{}, fmt.Errorf("%w: active Seller invitation already exists", ErrConflict)
+		}
+	}
+	invitation := SellerInvitation{ID: newID("seller_invitation"), StoreID: storeID, Account: account, Role: role, CreatedBy: actor, Status: sellerInvitationPending, CreatedAt: now, ExpiresAt: now.Add(ttl), UpdatedAt: now}
+	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	s.s.SellerInvitations[invitation.ID] = invitation
+	s.auditLocked(actor, "seller", "seller_team_invitation_created", "invitation", invitation.ID, "pending", "store_id="+storeID+" account="+account+" role="+role)
+	s.sellerInvitationEventLocked("ynx.seller.team.invitation.created.v1", actor, invitation)
+	if err := s.persistLocked(); err != nil {
+		delete(s.s.SellerInvitations, invitation.ID)
+		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+		return SellerInvitation{}, err
+	}
+	return invitation, nil
+}
+
+func (s *Store) SellerInvitations(actor, storeID string) ([]SellerInvitation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerPermissionLocked(storeID, actor, permissionTeamRead); err != nil {
+		return nil, err
+	}
+	now := s.now()
+	out := []SellerInvitation{}
+	for _, invitation := range s.s.SellerInvitations {
+		if invitation.StoreID != storeID {
+			continue
+		}
+		invitation.Status = effectiveSellerInvitationStatus(invitation, now)
+		out = append(out, invitation)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID > out[j].ID
+		}
+		return out[i].CreatedAt.After(out[j].CreatedAt)
+	})
+	return out, nil
+}
+
+func (s *Store) SellerInvitationsForAccount(account string) []SellerInvitation {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.now()
+	out := []SellerInvitation{}
+	for _, invitation := range s.s.SellerInvitations {
+		if invitation.Account != account {
+			continue
+		}
+		invitation.Status = effectiveSellerInvitationStatus(invitation, now)
+		out = append(out, invitation)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].CreatedAt.Equal(out[j].CreatedAt) {
+			return out[i].ID > out[j].ID
+		}
+		return out[i].CreatedAt.After(out[j].CreatedAt)
+	})
+	return out
+}
+
+func (s *Store) AcceptSellerInvitation(actor, invitationID string) (SellerInvitation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	invitation, ok := s.s.SellerInvitations[strings.TrimSpace(invitationID)]
+	if !ok {
+		return SellerInvitation{}, ErrNotFound
+	}
+	if actor != invitation.Account {
+		return SellerInvitation{}, ErrNotFound
+	}
+	now := s.now()
+	if effectiveSellerInvitationStatus(invitation, now) == sellerInvitationExpired {
+		previousInvitations := cloneSellerInvitations(s.s.SellerInvitations)
+		auditLen := len(s.s.Audits)
+		eventLen := len(s.s.SellerEvents)
+		s.expireSellerInvitationLocked(actor, invitation, now)
+		if err := s.persistLocked(); err != nil {
+			s.s.SellerInvitations = previousInvitations
+			s.s.Audits = s.s.Audits[:auditLen]
+			s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+			return SellerInvitation{}, err
+		}
+		return SellerInvitation{}, fmt.Errorf("%w: Seller invitation expired", ErrConflict)
+	}
+	if invitation.Status != sellerInvitationPending {
+		return SellerInvitation{}, fmt.Errorf("%w: Seller invitation is %s", ErrConflict, invitation.Status)
+	}
+	if !isAssignableSellerRole(invitation.Role) {
+		return SellerInvitation{}, fmt.Errorf("%w: invitation role is not assignable", ErrInvalidState)
+	}
+	if _, ok := s.s.Stores[invitation.StoreID]; !ok {
+		return SellerInvitation{}, ErrNotFound
+	}
+	if s.s.SellerRoles[invitation.StoreID] == nil {
+		s.s.SellerRoles[invitation.StoreID] = map[string]string{}
+	}
+	if _, ok := s.s.SellerRoles[invitation.StoreID][actor]; ok {
+		return SellerInvitation{}, fmt.Errorf("%w: account already has a Seller role", ErrConflict)
+	}
+	if revocation, ok := s.latestSellerRevocationLocked(invitation.StoreID, actor); ok && revocation.SessionStatus != "confirmed" {
+		return SellerInvitation{}, fmt.Errorf("%w: prior role revocation session invalidation is %s", ErrConflict, revocation.SessionStatus)
+	}
+	previousInvitation := invitation
+	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	invitation.Status = sellerInvitationAccepted
+	invitation.AcceptedAt = now
+	invitation.UpdatedAt = now
+	s.s.SellerInvitations[invitation.ID] = invitation
+	s.s.SellerRoles[invitation.StoreID][actor] = invitation.Role
+	s.auditLocked(actor, "seller", "seller_team_invitation_accepted", "invitation", invitation.ID, "accepted", "store_id="+invitation.StoreID+" role="+invitation.Role)
+	s.sellerInvitationEventLocked("ynx.seller.team.invitation.accepted.v1", actor, invitation)
+	if err := s.persistLocked(); err != nil {
+		s.s.SellerInvitations[invitation.ID] = previousInvitation
+		delete(s.s.SellerRoles[invitation.StoreID], actor)
+		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+		return SellerInvitation{}, err
+	}
+	return invitation, nil
+}
+
+func (s *Store) CancelSellerInvitation(actor, storeID, invitationID, reason string) (SellerInvitation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+		return SellerInvitation{}, err
+	}
+	reason = strings.TrimSpace(reason)
+	if len(reason) < 8 || len(reason) > 240 || strings.ContainsAny(reason, "\r\n") {
+		return SellerInvitation{}, errors.New("cancellation reason must contain 8 to 240 single-line characters")
+	}
+	invitation, ok := s.s.SellerInvitations[strings.TrimSpace(invitationID)]
+	if !ok || invitation.StoreID != storeID {
+		return SellerInvitation{}, ErrNotFound
+	}
+	now := s.now()
+	if effectiveSellerInvitationStatus(invitation, now) == sellerInvitationExpired {
+		previousInvitations := cloneSellerInvitations(s.s.SellerInvitations)
+		auditLen := len(s.s.Audits)
+		eventLen := len(s.s.SellerEvents)
+		s.expireSellerInvitationLocked(actor, invitation, now)
+		if err := s.persistLocked(); err != nil {
+			s.s.SellerInvitations = previousInvitations
+			s.s.Audits = s.s.Audits[:auditLen]
+			s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+			return SellerInvitation{}, err
+		}
+		return SellerInvitation{}, fmt.Errorf("%w: Seller invitation expired", ErrConflict)
+	}
+	if invitation.Status != sellerInvitationPending {
+		return SellerInvitation{}, fmt.Errorf("%w: Seller invitation is %s", ErrConflict, invitation.Status)
+	}
+	previousInvitation := invitation
+	auditLen := len(s.s.Audits)
+	eventLen := len(s.s.SellerEvents)
+	invitation.Status = sellerInvitationCancelled
+	invitation.Reason = reason
+	invitation.CancelledAt = now
+	invitation.UpdatedAt = now
+	s.s.SellerInvitations[invitation.ID] = invitation
+	s.auditLocked(actor, "seller", "seller_team_invitation_cancelled", "invitation", invitation.ID, "cancelled", "store_id="+storeID+" account="+invitation.Account+" role="+invitation.Role+" reason="+reason)
+	s.sellerInvitationEventLocked("ynx.seller.team.invitation.cancelled.v1", actor, invitation)
+	if err := s.persistLocked(); err != nil {
+		s.s.SellerInvitations[invitation.ID] = previousInvitation
+		s.s.Audits = s.s.Audits[:auditLen]
+		s.s.SellerEvents = s.s.SellerEvents[:eventLen]
+		return SellerInvitation{}, err
+	}
+	return invitation, nil
 }
 
 func (s *Store) RevokeSellerRole(actor, storeID, account, reason string) (SellerRoleRevocation, bool, error) {
