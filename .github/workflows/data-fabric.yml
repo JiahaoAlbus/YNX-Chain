@@ -24,6 +24,7 @@ on:
       - "sdk/datafabric/**"
       - "schemas/data-fabric/**"
       - "integration/**"
+      - "infra/data-fabric/**"
       - "release/**"
       - "scripts/data-fabric/**"
       - "package.json"
