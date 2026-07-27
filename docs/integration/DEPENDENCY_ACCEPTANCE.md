@@ -19,7 +19,7 @@ Acceptance is evidence-based. A local adapter, patch, passing unit test, or docu
 
 - Generation cancellation owner binding: `a427a7558e075696265c14162d853ab23c352625`.
 - Strict Gateway POST-body and stable Provider-error contract: `2678a8b0cf3f9463ec7fc205caab486993bf5f18`.
-- Evidence checkpoint: `6b57d2ba630702f04d6cc1d8ec46fb51cc1df0e8`.
+- Evidence checkpoint: `b066b65aac8c8b197ab9b38659e937e73544daf1`.
 - Product and Gateway package/race tests pass locally.
 - Release check preserves false central, staging, public, hosted, production-signing, store and live-generation states.
 

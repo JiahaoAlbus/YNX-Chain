@@ -6,7 +6,7 @@
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai`
 - Branch: `codex/final-ai`
 - Runtime source commit: `2678a8b0cf3f9463ec7fc205caab486993bf5f18`
-- Evidence checkpoint: `6b57d2ba630702f04d6cc1d8ec46fb51cc1df0e8`
+- Evidence checkpoint: `b066b65aac8c8b197ab9b38659e937e73544daf1`
 - Contract: `release/integration/ynx-ai-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 

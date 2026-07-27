@@ -1,0 +1,13 @@
+{"at":"2026-07-27","phase":"RECOVER","action":"opened exact workspace and branch","result":"/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai on codex/final-ai"}
+{"at":"2026-07-27","phase":"PROTECT","action":"fixed cross-account generation cancellation","result":"committed a427a7558e075696265c14162d853ab23c352625 and pushed"}
+{"at":"2026-07-27","phase":"PROTECT","action":"implemented strict Gateway POST-body stream contract","result":"committed a1cfb21776a5f838427e9a92c006342efd0671ba and pushed"}
+{"at":"2026-07-27","phase":"PROTECT","action":"synchronized release and evidence truth","result":"committed 6b57d2ba630702f04d6cc1d8ec46fb51cc1df0e8 and verified local SHA equals remote SHA"}
+{"at":"2026-07-27","phase":"FREEZE","action":"drafted stable Gateway error envelopes, Provider 429 preservation, Integration Contract, vectors, Handoff and dependency acceptance","result":"dirty slice created; not tested or committed"}
+{"at":"2026-07-27","phase":"FREEZE","action":"ran go test ./internal/aigateway","result":"MCP transport HTTP 502; no Go test result","attempt":1}
+{"at":"2026-07-27","phase":"FREEZE","action":"ran go test ./internal/aigateway","result":"MCP transport HTTP 502; no Go test result","attempt":2}
+{"at":"2026-07-27","phase":"FREEZE","action":"ran go test ./internal/aigateway","result":"MCP transport HTTP 502; no Go test result","attempt":3}
+{"at":"2026-07-27","phase":"FREEZE","action":"resumed previously blocked Gateway verification","result":"go test, race test and cross-package test passed; prior MCP transport blocker resolved"}
+{"at":"2026-07-27","phase":"PROTECT","action":"stabilized Provider error semantics and upstream-body redaction","result":"committed 2678a8b0cf3f9463ec7fc205caab486993bf5f18, pushed and verified upstream equality"}
+{"at":"2026-07-27","phase":"FREEZE","action":"froze machine-readable AI Integration Contract, vectors, dependency acceptance and Handoff","result":"release gate and JSON parsing passed; committed b066b65aac8c8b197ab9b38659e937e73544daf1, pushed and verified upstream equality"}
+{"at":"2026-07-27","phase":"FREEZE","action":"corrected Gateway versus product SSE event ownership","result":"Gateway contract owns metadata/token/done; product generation owns metadata/token/done/error; release gate enforces the distinction"}
+{"at":"2026-07-27","phase":"RECOVER","action":"queried GitHub Actions inventory","result":"TLS handshake timeout; bounded retry remains required and no CI claim was made"}
