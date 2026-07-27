@@ -1,0 +1,1164 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "generatedAt": "2026-07-27T14:51:57.204Z",
+  "controllerSourceCommit": "562888318863435382d839958130246973dc1206",
+  "limits": {
+    "runs": 200,
+    "releases": 100,
+    "artifactPagination": true
+  },
+  "availability": {
+    "runs": false,
+    "releases": true,
+    "artifacts": true
+  },
+  "queryAttempts": {
+    "runs": 2,
+    "releases": 1,
+    "artifacts": 1
+  },
+  "queryErrors": {
+    "runs": "failed to get runs: Get \"https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/runs?per_page=100&exclude_pull_requests=true\": net/http: TLS handshake timeout",
+    "releases": null,
+    "artifacts": null
+  },
+  "summary": {
+    "runs": null,
+    "runsTruncated": null,
+    "successfulRuns": null,
+    "releases": 4,
+    "prereleases": 4,
+    "artifacts": 57,
+    "activeArtifacts": 57
+  },
+  "runs": [],
+  "releases": [
+    {
+      "createdAt": "2026-07-18T19:59:29Z",
+      "isDraft": false,
+      "isImmutable": false,
+      "isLatest": false,
+      "isPrerelease": true,
+      "name": "YNX Browser & Search 0.2.0 Testnet Preview 1",
+      "publishedAt": "2026-07-18T20:16:44Z",
+      "tagName": "ynx-browser-search-v0.2.0-preview.1"
+    },
+    {
+      "createdAt": "2026-07-18T19:55:11Z",
+      "isDraft": false,
+      "isImmutable": false,
+      "isLatest": false,
+      "isPrerelease": true,
+      "name": "YNX Finance 1.2.0 Testnet Preview (test signed)",
+      "publishedAt": "2026-07-18T20:16:05Z",
+      "tagName": "finance-v1.2.0-testnet-preview.1"
+    },
+    {
+      "createdAt": "2026-07-18T16:50:40Z",
+      "isDraft": false,
+      "isImmutable": false,
+      "isLatest": false,
+      "isPrerelease": true,
+      "name": "YNX Mail + Calendar 0.2.0 Testnet Preview (e227c4f)",
+      "publishedAt": "2026-07-18T17:16:57Z",
+      "tagName": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f"
+    },
+    {
+      "createdAt": "2026-07-18T13:33:41Z",
+      "isDraft": false,
+      "isImmutable": false,
+      "isLatest": false,
+      "isPrerelease": true,
+      "name": "YNX Wallet engineering evidence da82c8b",
+      "publishedAt": "2026-07-18T18:28:21Z",
+      "tagName": "wallet-auth-evidence-da82c8b"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 8656663196,
+      "name": "ynx-website-content-be7c9aabdff51ee29e373baf3342d4837735b9cc",
+      "digest": "sha256:7a0d5657b10f5e83fafd4deb4b1bf6a2436cc642dd1c4240f2e3108e8c75b983",
+      "sizeInBytes": 56194,
+      "expired": false,
+      "createdAt": "2026-07-27T14:33:42Z",
+      "expiresAt": "2026-08-26T14:33:41Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "be7c9aabdff51ee29e373baf3342d4837735b9cc",
+      "workflowRunId": 30275656043,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8644078319,
+      "name": "ynx-website-content-9f0c1f269abf017b1380177047688dbb9361a2d2",
+      "digest": "sha256:f0e20fbaf54f2ad37bf5694cc2c96aa1ae9e20ff1856bc0d45817064cc745dc6",
+      "sizeInBytes": 39473,
+      "expired": false,
+      "createdAt": "2026-07-27T06:38:53Z",
+      "expiresAt": "2026-08-26T06:38:52Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+      "workflowRunId": 30243411230,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8643989327,
+      "name": "ynx-website-content-0fd3a650c7430a1336e2d20fd368fdad5f242a3f",
+      "digest": "sha256:355de7c487741c75381e542b86400eb800c28cbd5d359e46892c79dec1aa23b7",
+      "sizeInBytes": 39470,
+      "expired": false,
+      "createdAt": "2026-07-27T06:34:10Z",
+      "expiresAt": "2026-08-26T06:34:10Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "0fd3a650c7430a1336e2d20fd368fdad5f242a3f",
+      "workflowRunId": 30243159450,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8642795170,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:9fa80494ef765968d2594f99d968165aae1d4380f9c6c2ca345d2dd941ec4954",
+      "sizeInBytes": 17065961,
+      "expired": false,
+      "createdAt": "2026-07-27T05:25:22Z",
+      "expiresAt": "2026-10-25T05:15:32Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "98a18815d4ee8f61c42bc0c631907ea526c43ad4",
+      "workflowRunId": 30239251872,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8642058007,
+      "name": "ynx-website-content-562888318863435382d839958130246973dc1206",
+      "digest": "sha256:4dda5896a14170f64b63c6b99bc26ed933ae8bf28e6b3ba88679c8a0197a4855",
+      "sizeInBytes": 39472,
+      "expired": false,
+      "createdAt": "2026-07-27T04:31:50Z",
+      "expiresAt": "2026-08-26T04:31:49Z",
+      "headBranch": "main",
+      "headSha": "562888318863435382d839958130246973dc1206",
+      "workflowRunId": 30237349721,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8642015023,
+      "name": "ynx-website-content-30c036efbf9cd8a010f213ea07e1ad93faf617bd",
+      "digest": "sha256:037af2f790be3b13099c8a67c13b720b2a95ead90cbd0efa92b79a6e645c3d36",
+      "sizeInBytes": 39470,
+      "expired": false,
+      "createdAt": "2026-07-27T04:28:52Z",
+      "expiresAt": "2026-08-26T04:28:49Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+      "workflowRunId": 30237204907,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641999530,
+      "name": "ynx-website-content-3dee634ea695f4a69d3f5dcbecec205c46257e12",
+      "digest": "sha256:aba40e8a60de712884ca8a46770feeb02ed737d7e88a27de1a346fcdd2d6bc0b",
+      "sizeInBytes": 39472,
+      "expired": false,
+      "createdAt": "2026-07-27T04:27:48Z",
+      "expiresAt": "2026-08-26T04:27:47Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "3dee634ea695f4a69d3f5dcbecec205c46257e12",
+      "workflowRunId": 30237157423,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641624192,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:56c0b81aae2e777a59134a1e2e4908c4beebf57a65126959433c564afa568af8",
+      "sizeInBytes": 17065797,
+      "expired": false,
+      "createdAt": "2026-07-27T04:00:27Z",
+      "expiresAt": "2026-10-25T03:52:09Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "c106ca684051c691304098dfa2a1fbf5aa8591f8",
+      "workflowRunId": 30235610347,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641610682,
+      "name": "ynx-website-content-e2a75a9dfb11849f68e005057de1c05280baa102",
+      "digest": "sha256:74a1aede612486155553e5da10eb49ffa62f46ac04bafca0143211408de58159",
+      "sizeInBytes": 39471,
+      "expired": false,
+      "createdAt": "2026-07-27T03:59:16Z",
+      "expiresAt": "2026-08-26T03:59:15Z",
+      "headBranch": "main",
+      "headSha": "e2a75a9dfb11849f68e005057de1c05280baa102",
+      "workflowRunId": 30235885199,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641584056,
+      "name": "ynx-website-content-98850aa38e6e28b807131aa85db4d51c6c20419a",
+      "digest": "sha256:949ea72fe5c75def28309a54cfa073f5e5b0e4a9648a6b9d0ac76b013c29805a",
+      "sizeInBytes": 39471,
+      "expired": false,
+      "createdAt": "2026-07-27T03:56:58Z",
+      "expiresAt": "2026-08-26T03:56:58Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "601d13bd677729ff59819ea70076a7de461328f2",
+      "workflowRunId": 30235801145,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641580665,
+      "name": "ynx-website-content-601d13bd677729ff59819ea70076a7de461328f2",
+      "digest": "sha256:48e9491f9586182819caecaa4fad743acbe1ec44c6901963bb925c892443b880",
+      "sizeInBytes": 39473,
+      "expired": false,
+      "createdAt": "2026-07-27T03:56:40Z",
+      "expiresAt": "2026-08-26T03:56:39Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "601d13bd677729ff59819ea70076a7de461328f2",
+      "workflowRunId": 30235788946,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641391505,
+      "name": "ynx-website-content-b7e1d6980ae381123166d74ded31ddbd6ea26696",
+      "digest": "sha256:ceaf02d38870006a4171939d78ce4a07a747b67c02123d6eb3909f1fadf799c8",
+      "sizeInBytes": 38999,
+      "expired": false,
+      "createdAt": "2026-07-27T03:40:42Z",
+      "expiresAt": "2026-08-26T03:40:42Z",
+      "headBranch": "main",
+      "headSha": "b7e1d6980ae381123166d74ded31ddbd6ea26696",
+      "workflowRunId": 30235162884,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641328248,
+      "name": "ynx-website-content-d1bdf4a77b386d2c2ea0079c1f4f8e4230c04fb6",
+      "digest": "sha256:02bb20378d1cb91a9cc9ea59d5db896dfa159b9504c624efbb6c68ba41a39314",
+      "sizeInBytes": 39001,
+      "expired": false,
+      "createdAt": "2026-07-27T03:35:33Z",
+      "expiresAt": "2026-08-26T03:35:33Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+      "workflowRunId": 30234961228,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641321220,
+      "name": "ynx-website-content-046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+      "digest": "sha256:074158460e065fbe1112f9fdb7872899facef9b060a07cdcd871034686055867",
+      "sizeInBytes": 39002,
+      "expired": false,
+      "createdAt": "2026-07-27T03:35:00Z",
+      "expiresAt": "2026-08-26T03:34:59Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "046bc4f23f78d3c80881f6d2ed7dac88f35bf8a4",
+      "workflowRunId": 30234932354,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8641017306,
+      "name": "ynx-website-content-7a8408b46c8f2c8fd277390772d8a05e78042a51",
+      "digest": "sha256:ac2c1a432e80b1501708f047b25386687ce95fc924cf48d8911579ce5c1a8e1f",
+      "sizeInBytes": 38839,
+      "expired": false,
+      "createdAt": "2026-07-27T03:12:58Z",
+      "expiresAt": "2026-08-26T03:12:58Z",
+      "headBranch": "main",
+      "headSha": "7a8408b46c8f2c8fd277390772d8a05e78042a51",
+      "workflowRunId": 30234060154,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8640999090,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:8bbf00f7fad84d836a430d5be597d95c58934d949c7620145d630bcf9532480f",
+      "sizeInBytes": 17065166,
+      "expired": false,
+      "createdAt": "2026-07-27T03:11:49Z",
+      "expiresAt": "2026-10-25T03:02:58Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "5dd88eca906349bef06e1d7dd5b592a851e48869",
+      "workflowRunId": 30233612577,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8640864583,
+      "name": "ynx-website-content-a0fa26986522be68f227ec2f8ade0c39f812fee0",
+      "digest": "sha256:ee9bee135687cbeb54f35ad134592d924a59212411519b4c80b59db73a2d86e2",
+      "sizeInBytes": 38838,
+      "expired": false,
+      "createdAt": "2026-07-27T03:02:34Z",
+      "expiresAt": "2026-08-26T03:02:33Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "ab209455dc1e0e537da2872505ed0bb2b2256609",
+      "workflowRunId": 30233588805,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8640851325,
+      "name": "ynx-website-content-ab209455dc1e0e537da2872505ed0bb2b2256609",
+      "digest": "sha256:eb0b97a08f01aebc3406f581dea9059a8e4896fb9b17ef616143ea41d8d58a8a",
+      "sizeInBytes": 38840,
+      "expired": false,
+      "createdAt": "2026-07-27T03:01:32Z",
+      "expiresAt": "2026-08-26T03:01:24Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "ab209455dc1e0e537da2872505ed0bb2b2256609",
+      "workflowRunId": 30233543452,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632656652,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:f91c50782488b16f2d078d6783b15d6121286438a0bcc7e5abf86ca58850feba",
+      "sizeInBytes": 17065861,
+      "expired": false,
+      "createdAt": "2026-07-26T13:41:07Z",
+      "expiresAt": "2026-10-24T13:32:03Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "ea6744c9f5028742189eef12492444820966b297",
+      "workflowRunId": 30204232331,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632531281,
+      "name": "ynx-website-content-7fe5507f0c8cb94d9c148b09e23fda28fcec9f98",
+      "digest": "sha256:4e32238701af9bc0734a83c454f0f4f01fb72e0defd83ea5f0069e64d6be7fab",
+      "sizeInBytes": 37522,
+      "expired": false,
+      "createdAt": "2026-07-26T13:28:17Z",
+      "expiresAt": "2026-08-25T13:28:16Z",
+      "headBranch": "main",
+      "headSha": "7fe5507f0c8cb94d9c148b09e23fda28fcec9f98",
+      "workflowRunId": 30204095860,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632476170,
+      "name": "ynx-website-content-8679b3c341e005ce44e9febd0717f7076c388532",
+      "digest": "sha256:13651bf74782e89a53440ecf4196e88a65f5cd5ce3bf5803079451688f0de514",
+      "sizeInBytes": 37525,
+      "expired": false,
+      "createdAt": "2026-07-26T13:22:09Z",
+      "expiresAt": "2026-08-25T13:22:08Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+      "workflowRunId": 30203894120,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632463634,
+      "name": "ynx-website-content-9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+      "digest": "sha256:a589bf26275635c893ae227ea40c2e67c30f1b9aa5779880411aeac1ee19cc33",
+      "sizeInBytes": 37527,
+      "expired": false,
+      "createdAt": "2026-07-26T13:20:50Z",
+      "expiresAt": "2026-08-25T13:20:49Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "9f9efcb84b59fe0b10c8a9233aa6af840f0a96a4",
+      "workflowRunId": 30203849566,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632343480,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:ab6e46003f79ead2a67845ba8b6a14d257d54b9badd2cad940b5bdc97ba00bb1",
+      "sizeInBytes": 17065723,
+      "expired": false,
+      "createdAt": "2026-07-26T13:07:52Z",
+      "expiresAt": "2026-10-24T12:56:33Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "0db917b788c1d40ed93d158736d10e86fbe5c8ce",
+      "workflowRunId": 30203054460,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632083580,
+      "name": "ynx-website-content-03a542d55b37239c8b05e76898db9a3d2715cd93",
+      "digest": "sha256:86d6fe459f941ebb8768ba84385c4121bc25b598a212f8451862ccc851b38def",
+      "sizeInBytes": 37436,
+      "expired": false,
+      "createdAt": "2026-07-26T12:40:35Z",
+      "expiresAt": "2026-08-25T12:40:35Z",
+      "headBranch": "main",
+      "headSha": "03a542d55b37239c8b05e76898db9a3d2715cd93",
+      "workflowRunId": 30202530479,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8632005688,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:f1af6a4a8902a16a43c6ee5a2bda279ed642613d27edaff4b9e6e675c1c4a64a",
+      "sizeInBytes": 17066426,
+      "expired": false,
+      "createdAt": "2026-07-26T12:33:04Z",
+      "expiresAt": "2026-10-24T12:23:26Z",
+      "headBranch": "codex/final-wallet-auth",
+      "headSha": "fcc94641b32989e2684f3e5fe436f408f617745f",
+      "workflowRunId": 30201957908,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8631996869,
+      "name": "ynx-website-content-5b5e6f1f5889509a3007243810fc688c357ec8b8",
+      "digest": "sha256:a1743e675bb74b9d622dd44666684526d4ed8109cab4fde2e26de34ee65ce230",
+      "sizeInBytes": 37429,
+      "expired": false,
+      "createdAt": "2026-07-26T12:32:17Z",
+      "expiresAt": "2026-08-25T12:32:16Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "bfdf23ff995e96fe92107690382bf4ef98ae4cc5",
+      "workflowRunId": 30202247722,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8631933585,
+      "name": "ynx-website-content-97702adce3210898234bac3ab574ec56318e5362",
+      "digest": "sha256:b89591f909254367b0ab67fea54e5979f130a847762ea87faaf8d87c0bd56569",
+      "sizeInBytes": 37426,
+      "expired": false,
+      "createdAt": "2026-07-26T12:26:00Z",
+      "expiresAt": "2026-08-25T12:26:00Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "84ed8607cf4d020b41a601068b624b3da205007a",
+      "workflowRunId": 30202038515,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8631808518,
+      "name": "ynx-website-content-0aa2fdb11c7a289b0d2f8c942ad8e4ff469f5385",
+      "digest": "sha256:44df02dad8670c99d118c021ad371993fe74b4411067f62e3ed7ec41e22376bb",
+      "sizeInBytes": 37431,
+      "expired": false,
+      "createdAt": "2026-07-26T12:12:38Z",
+      "expiresAt": "2026-08-25T12:12:38Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+      "workflowRunId": 30201608455,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8631770003,
+      "name": "ynx-website-content-2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+      "digest": "sha256:541bf755f15e982b267d8047080b4903ed12ee888ce7df6b0667ddf4f620bc2e",
+      "sizeInBytes": 37437,
+      "expired": false,
+      "createdAt": "2026-07-26T12:08:26Z",
+      "expiresAt": "2026-08-25T12:08:25Z",
+      "headBranch": "codex/final-docs-compliance",
+      "headSha": "2b7a8643694425b1fadd954c5c11bfcd5eb33e38",
+      "workflowRunId": 30201474339,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433889081,
+      "name": "ynx-browser-android-testnet-preview",
+      "digest": "sha256:49e35264a892da83e407ee568ca14a461ecec57bbd9bfd69479c5f325ce45e6b",
+      "sizeInBytes": 49516,
+      "expired": false,
+      "createdAt": "2026-07-18T20:21:02Z",
+      "expiresAt": "2026-10-16T19:59:36Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "a90cfef6bff9f32593f4c9644900081fa08ebce7",
+      "workflowRunId": 29658842627,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433769552,
+      "name": "ynx-finance-ios-simulator-evidence",
+      "digest": "sha256:966f72a2e520fef15946c17a8c52edfaf5d93f819abab941e22ff14c9a2c0939",
+      "sizeInBytes": 556564,
+      "expired": false,
+      "createdAt": "2026-07-18T20:07:48Z",
+      "expiresAt": "2026-10-16T19:55:34Z",
+      "headBranch": "codex/ecosystem-finance",
+      "headSha": "63a14500b19ab3b35e29159092973e425837a9c5",
+      "workflowRunId": 29658717254,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433759239,
+      "name": "ynx-developer-testnet-preview-windows-x64-unsigned",
+      "digest": "sha256:df7eda5024ead03aac1808ea2d9727b238e8d487389adaf62b72cfce66730804",
+      "sizeInBytes": 105925589,
+      "expired": false,
+      "createdAt": "2026-07-18T20:06:39Z",
+      "expiresAt": "2026-08-01T20:06:35Z",
+      "headBranch": "codex/ecosystem-developer",
+      "headSha": "23f9adcd4223ce8d61ba5e838a2cffa554ce508a",
+      "workflowRunId": 29659016579,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": true,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433755864,
+      "name": "ynx-finance-android-test-signed",
+      "digest": "sha256:47fd78ef6acaccf1188bdcade72a4d3404cbae599e165f2058568f83b0d5bbea",
+      "sizeInBytes": 33009272,
+      "expired": false,
+      "createdAt": "2026-07-18T20:06:18Z",
+      "expiresAt": "2026-10-16T19:55:34Z",
+      "headBranch": "codex/ecosystem-finance",
+      "headSha": "63a14500b19ab3b35e29159092973e425837a9c5",
+      "workflowRunId": 29658717254,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": true,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433724575,
+      "name": "ynx-browser-ios-simulator-testnet-preview",
+      "digest": "sha256:30c049829520dd4885e9a3a74b16625a6b7664ee7d914da90a391b3ecfca5a69",
+      "sizeInBytes": 1004925,
+      "expired": false,
+      "createdAt": "2026-07-18T20:02:47Z",
+      "expiresAt": "2026-10-16T19:59:36Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "a90cfef6bff9f32593f4c9644900081fa08ebce7",
+      "workflowRunId": 29658842627,
+      "classHints": {
+        "preview": true,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433713987,
+      "name": "ynx-browser-android-testnet-preview",
+      "digest": "sha256:0c3f3449b5034882ee9475f31fe63b5f348152a524bc12d4379e74da13277793",
+      "sizeInBytes": 35732,
+      "expired": false,
+      "createdAt": "2026-07-18T20:01:42Z",
+      "expiresAt": "2026-10-16T19:50:44Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
+      "workflowRunId": 29658565485,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433702645,
+      "name": "ynx-browser-windows-testnet-preview",
+      "digest": "sha256:41e98197df907892f319cac5cf55429cff573e812f686dd9049b8540cac285cb",
+      "sizeInBytes": 6991102,
+      "expired": false,
+      "createdAt": "2026-07-18T20:00:33Z",
+      "expiresAt": "2026-10-16T19:59:36Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "a90cfef6bff9f32593f4c9644900081fa08ebce7",
+      "workflowRunId": 29658842627,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433699247,
+      "name": "ynx-browser-macos-testnet-preview",
+      "digest": "sha256:1d11c65a77de7ad2b007e0ccae16361035da408194d6e0d52bf41d0d20c01a9e",
+      "sizeInBytes": 307237,
+      "expired": false,
+      "createdAt": "2026-07-18T20:00:11Z",
+      "expiresAt": "2026-10-16T19:59:36Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "a90cfef6bff9f32593f4c9644900081fa08ebce7",
+      "workflowRunId": 29658842627,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433663530,
+      "name": "ynx-finance-android-test-signed",
+      "digest": "sha256:113e56ea0edc69622ac12b5ea9c41ea9257d2db3b480380df7c5206de9904534",
+      "sizeInBytes": 33009259,
+      "expired": false,
+      "createdAt": "2026-07-18T19:56:26Z",
+      "expiresAt": "2026-10-16T19:47:20Z",
+      "headBranch": "codex/ecosystem-finance",
+      "headSha": "2e05b8ef68083cb480f5675e78cd762731e632c0",
+      "workflowRunId": 29658458924,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": true,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433629955,
+      "name": "ynx-finance-android-test-signed",
+      "digest": "sha256:95138bb58473f76f5a4d1f7e0e57c320e1bd552ebc94ff7e152d4af2bb3d3817",
+      "sizeInBytes": 33009270,
+      "expired": false,
+      "createdAt": "2026-07-18T19:52:49Z",
+      "expiresAt": "2026-10-16T19:42:05Z",
+      "headBranch": "codex/ecosystem-finance",
+      "headSha": "976a4015d89ee04b1f9dbf7ddff90501c59db5c0",
+      "workflowRunId": 29658291662,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": true,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433623563,
+      "name": "ynx-ai-android-preview-31d3c6b05a47b895f8db1192eff2df763cd4c4c8",
+      "digest": "sha256:7f31cef40a04e9be6a473d0f41a4416375ba3024a459ff31343bf1d129d68929",
+      "sizeInBytes": 31105689,
+      "expired": false,
+      "createdAt": "2026-07-18T19:52:05Z",
+      "expiresAt": "2026-10-16T19:43:37Z",
+      "headBranch": "codex/ecosystem-ai",
+      "headSha": "31d3c6b05a47b895f8db1192eff2df763cd4c4c8",
+      "workflowRunId": 29658337530,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433620584,
+      "name": "ynx-browser-windows-testnet-preview",
+      "digest": "sha256:21056845dc9188366f30950fa12cfd1c80b6a69324d42ea8589aca42e4673c1d",
+      "sizeInBytes": 6991108,
+      "expired": false,
+      "createdAt": "2026-07-18T19:51:45Z",
+      "expiresAt": "2026-10-16T19:50:44Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
+      "workflowRunId": 29658565485,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433616974,
+      "name": "ynx-browser-macos-testnet-preview",
+      "digest": "sha256:105ff03e19cf17ca389e1a350e144ee56fe1e0051e8d66722ab72b5bed139c2f",
+      "sizeInBytes": 307211,
+      "expired": false,
+      "createdAt": "2026-07-18T19:51:21Z",
+      "expiresAt": "2026-10-16T19:50:44Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
+      "workflowRunId": 29658565485,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433562325,
+      "name": "ynx-browser-windows-testnet-preview",
+      "digest": "sha256:e30ee052c6e1d7c989ccd3798c48ec01c9556f1ad2fb2c7e722aa75d1b67b5d8",
+      "sizeInBytes": 6991111,
+      "expired": false,
+      "createdAt": "2026-07-18T19:45:03Z",
+      "expiresAt": "2026-10-16T19:44:08Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "4f7ff210507046491bd5d0c83902bce99a297fb7",
+      "workflowRunId": 29658353279,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433561006,
+      "name": "ynx-browser-macos-testnet-preview",
+      "digest": "sha256:114cc900420bc62c25af7d35367c289d602b41b782d8572d902d1ed4c812f86c",
+      "sizeInBytes": 306943,
+      "expired": false,
+      "createdAt": "2026-07-18T19:44:53Z",
+      "expiresAt": "2026-10-16T19:44:08Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "4f7ff210507046491bd5d0c83902bce99a297fb7",
+      "workflowRunId": 29658353279,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433515311,
+      "name": "ynx-developer-testnet-preview-windows-x64-unsigned",
+      "digest": "sha256:52b2030788665d35dad6bb71c75e2f6504b4ca1ba17e2005e5f4e9ee53e45470",
+      "sizeInBytes": 105925597,
+      "expired": false,
+      "createdAt": "2026-07-18T19:39:43Z",
+      "expiresAt": "2026-08-01T19:39:39Z",
+      "headBranch": "codex/ecosystem-developer",
+      "headSha": "c6b4affc03b3255100516c34483096f445c46753",
+      "workflowRunId": 29658166198,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": true,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433512462,
+      "name": "ynx-video-ios-simulator-evidence-b29745c884a1271bf5b01a0cde47b07653fb7371",
+      "digest": "sha256:b752353615213f059fc6e3bb8fd1251adaff6a83aac54b927633d4feb84626ab",
+      "sizeInBytes": 554533,
+      "expired": false,
+      "createdAt": "2026-07-18T19:39:22Z",
+      "expiresAt": "2026-08-01T19:39:21Z",
+      "headBranch": "codex/ecosystem-video",
+      "headSha": "b29745c884a1271bf5b01a0cde47b07653fb7371",
+      "workflowRunId": 29658077678,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433491434,
+      "name": "ynx-shop-android-unsigned",
+      "digest": "sha256:0d54308b64921492add0d33099df8b53dabcc6a3825c42a24c59c05c848a7dc7",
+      "sizeInBytes": 101464,
+      "expired": false,
+      "createdAt": "2026-07-18T19:36:58Z",
+      "expiresAt": "2026-10-16T19:35:37Z",
+      "headBranch": "codex/ecosystem-shop",
+      "headSha": "ecf787f6f8f515c9de214f78676f59c39e956489",
+      "workflowRunId": 29658088804,
+      "classHints": {
+        "preview": false,
+        "simulator": false,
+        "unsigned": true,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433478896,
+      "name": "ynx-developer-testnet-preview-windows-x64-unsigned",
+      "digest": "sha256:75ace485e9e3e04d8a5dece72014e8f603af4f5e895c1d54065a06bff31fadf1",
+      "sizeInBytes": 105925595,
+      "expired": false,
+      "createdAt": "2026-07-18T19:35:39Z",
+      "expiresAt": "2026-08-01T19:35:35Z",
+      "headBranch": "codex/ecosystem-developer",
+      "headSha": "6e160e91d1c53e49a20530f8558935f0e7329280",
+      "workflowRunId": 29658043848,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": true,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433253800,
+      "name": "ynx-browser-windows-testnet-preview",
+      "digest": "sha256:6010fe02d8bf375dbf69dc434ddd88f17e7a27f77d74c6fae2e4c0bed08efc77",
+      "sizeInBytes": 6991095,
+      "expired": false,
+      "createdAt": "2026-07-18T19:11:14Z",
+      "expiresAt": "2026-10-16T19:10:24Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "0fa749aedb9a3bf1a3349251dd4050aac282010d",
+      "workflowRunId": 29657283175,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433251032,
+      "name": "ynx-browser-macos-testnet-preview",
+      "digest": "sha256:df2dfd9836e197787ce1cb0b0ea73d1b4280aa10ad5eb02e045f597d63f011b8",
+      "sizeInBytes": 364421,
+      "expired": false,
+      "createdAt": "2026-07-18T19:10:57Z",
+      "expiresAt": "2026-10-16T19:10:24Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "0fa749aedb9a3bf1a3349251dd4050aac282010d",
+      "workflowRunId": 29657283175,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8433145182,
+      "name": "ynx-browser-macos-testnet-preview",
+      "digest": "sha256:110637bc21d39845ff511e5099501c9615080356e471079faaa3cc91d9a71670",
+      "sizeInBytes": 309451,
+      "expired": false,
+      "createdAt": "2026-07-18T18:59:04Z",
+      "expiresAt": "2026-10-16T18:58:18Z",
+      "headBranch": "codex/ecosystem-browser-search",
+      "headSha": "a368f2dc3e453d05e14e172ed0493d88de3e3f2b",
+      "workflowRunId": 29656891574,
+      "classHints": {
+        "preview": true,
+        "simulator": false,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8431984301,
+      "name": "YNXCalendar-ios-simulator-proof",
+      "digest": "sha256:3e0dfa6fef5b29be485653f7441904061b7e1ea55ea3beb51f6e5339f19532ba",
+      "sizeInBytes": 453125,
+      "expired": false,
+      "createdAt": "2026-07-18T16:54:23Z",
+      "expiresAt": "2026-10-16T16:50:53Z",
+      "headBranch": "codex/ecosystem-mail-calendar",
+      "headSha": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+      "workflowRunId": 29652770138,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8431976229,
+      "name": "YNXMail-ios-simulator-proof",
+      "digest": "sha256:0b9716d599c79eae2e3821b6b4252fffb4b766462fcdf7575cfafb78a182161a",
+      "sizeInBytes": 545802,
+      "expired": false,
+      "createdAt": "2026-07-18T16:53:30Z",
+      "expiresAt": "2026-10-16T16:50:53Z",
+      "headBranch": "codex/ecosystem-mail-calendar",
+      "headSha": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+      "workflowRunId": 29652770138,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8430231124,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:1a4c052c89409db55468ecf7b43a62e33edcadc26cb343b7abcfc4754d8d4f68",
+      "sizeInBytes": 16981704,
+      "expired": false,
+      "createdAt": "2026-07-18T13:42:53Z",
+      "expiresAt": "2026-10-16T13:33:55Z",
+      "headBranch": "codex/ecosystem-wallet-auth",
+      "headSha": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
+      "workflowRunId": 29646381701,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8430134470,
+      "name": "YNXMail-ios-simulator-proof",
+      "digest": "sha256:0723ab0cd58367eb8492a64ca5499d47a5494d94ab4c0365110839bf3c8750a0",
+      "sizeInBytes": 161504,
+      "expired": false,
+      "createdAt": "2026-07-18T13:32:08Z",
+      "expiresAt": "2026-10-16T13:27:38Z",
+      "headBranch": "codex/ecosystem-mail-calendar",
+      "headSha": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
+      "workflowRunId": 29646181372,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8430124010,
+      "name": "YNXCalendar-ios-simulator-proof",
+      "digest": "sha256:936591ffabb83eb01b233c09aeeab54af11fbd0ae5ab16db4c502035d73dd353",
+      "sizeInBytes": 130542,
+      "expired": false,
+      "createdAt": "2026-07-18T13:31:01Z",
+      "expiresAt": "2026-10-16T13:27:38Z",
+      "headBranch": "codex/ecosystem-mail-calendar",
+      "headSha": "3c2ef1e7984e328756bba8ef95a6ca08259e728d",
+      "workflowRunId": 29646181372,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    },
+    {
+      "id": 8430057686,
+      "name": "ynx-wallet-ios-simulator",
+      "digest": "sha256:572bf387539cc7438e38cf6e0f2aec11fa5342b8d8f20540d2810003fadbe498",
+      "sizeInBytes": 16679209,
+      "expired": false,
+      "createdAt": "2026-07-18T13:23:11Z",
+      "expiresAt": "2026-10-16T13:15:34Z",
+      "headBranch": "codex/ecosystem-wallet-auth",
+      "headSha": "a5be9bd1a3290a8036f2d9486ee22db3ff4af30d",
+      "workflowRunId": 29645821883,
+      "classHints": {
+        "preview": false,
+        "simulator": true,
+        "unsigned": false,
+        "testSigned": false,
+        "productionSigned": false
+      }
+    }
+  ]
+}

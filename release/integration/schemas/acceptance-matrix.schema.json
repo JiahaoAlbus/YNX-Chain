@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/integration/acceptance-matrix.schema.json",
+  "title": "YNX Central Acceptance Matrix",
+  "type": "object",
+  "required": ["schemaVersion", "owner", "generatedAt", "controllerSourceCommit", "repository", "summary", "products"],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "owner": {"const": "29-integration"},
+    "generatedAt": {"type": "string", "format": "date-time"},
+    "controllerSourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "repository": {"type": "object"},
+    "summary": {"type": "object"},
+    "products": {
+      "type": "array",
+      "minItems": 36,
+      "maxItems": 36,
+      "items": {
+        "type": "object",
+        "required": ["id", "product", "branch", "phase", "refs", "worktree", "evidence", "centralAcceptance", "blockers", "nextAction"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^(0[1-9]|[12][0-9]|3[0-6])$"},
+          "product": {"type": "string", "minLength": 1},
+          "branch": {"type": "string", "minLength": 1},
+          "phase": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "dependencies": {"type": "array", "items": {"type": "string"}},
+          "refs": {"type": "object"},
+          "worktree": {"type": "object"},
+          "evidence": {"type": "object"},
+          "centralAcceptance": {
+            "type": "object",
+            "required": ["status", "reason", "acceptedSourceCommit", "acceptedBy", "acceptedAt"],
+            "properties": {
+              "status": {"enum": ["notStarted", "inProgress", "implementedLocal", "testedLocal", "integratedCentral", "testnetVerified", "publicVerified", "externalBlocked", "notApplicable", "verifiedComplete"]},
+              "reason": {"type": "string", "minLength": 1},
+              "acceptedSourceCommit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+              "acceptedBy": {"const": "29-integration"},
+              "acceptedAt": {"type": ["string", "null"], "format": "date-time"}
+            },
+            "additionalProperties": false
+          },
+          "blockers": {"type": "array", "items": {"type": "string"}},
+          "nextAction": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "29",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "slug": "integration",
+  "release": "0.1.0-controller-candidate",
+  "releaseClass": "controller-candidate",
+  "network": "YNX Testnet",
+  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "stateEvidence": {
+    "implementedLocal": [
+      "release/integration/product-registry.json",
+      "release/integration/integration-contract.json",
+      "scripts/ops/refresh-integration-acceptance.mjs",
+      "scripts/ops/refresh-integration-coverage.mjs"
+    ],
+    "testedLocal": [],
+    "installedLocal": [],
+    "integratedCentral": [],
+    "deployedStaging": [],
+    "deployedPublic": [],
+    "downloadHosted": [],
+    "productionSigned": [],
+    "storeReleased": []
+  },
+  "currentPhase": "PROTECT",
+  "lifecycleState": "ACTIVE",
+  "websitePublished": false,
+  "runtimeDeployedPublic": false,
+  "mainnetAccepted": false,
+  "knownBlockers": [
+    "The Security/SRE final branch and registered worktree were not present in the recovered inventory.",
+    "The exact Hardhat development-tooling advisory graph is time-bounded through 2026-08-31 and blocks production release pending Security/SRE review or upstream remediation.",
+    "Phase 0 owner contracts and central negative vectors have not yet been accepted.",
+    "No shared Public Testnet or independent public proof has been accepted by Integration."
+  ]
+}

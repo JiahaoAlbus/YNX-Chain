@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/integration/product-registry.schema.json",
+  "title": "YNX Integration Product Registry",
+  "type": "object",
+  "required": ["schemaVersion", "owner", "authority", "sourceCommit", "releaseStateKeys", "products"],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "owner": {"const": "29-integration"},
+    "authority": {"type": "string", "minLength": 1},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "branchPrefix": {"const": "codex/final-"},
+    "releaseStateKeys": {
+      "type": "array",
+      "minItems": 9,
+      "uniqueItems": true,
+      "items": {"type": "string"}
+    },
+    "products": {
+      "type": "array",
+      "minItems": 36,
+      "maxItems": 36,
+      "items": {
+        "type": "object",
+        "required": ["id", "product", "slug", "branch", "worktreeSlug", "phase", "owner", "dependencies"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^(0[1-9]|[12][0-9]|3[0-6])$"},
+          "product": {"type": "string", "minLength": 1},
+          "slug": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "branch": {"type": "string", "pattern": "^codex/final-[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "worktreeSlug": {"type": "string", "pattern": "^(0[1-9]|[12][0-9]|3[0-6])-[a-z0-9]+(?:-[a-z0-9]+)*$"},
+          "phase": {"enum": ["0", "1", "2", "3", "4", "1/4", "control"]},
+          "owner": {"type": "string", "minLength": 1},
+          "dependencies": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"type": "string", "pattern": "^(0[1-9]|[12][0-9]|3[0-6])$"}
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

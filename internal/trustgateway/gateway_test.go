@@ -45,6 +45,9 @@ func TestGatewayRequiresDedicatedKeys(t *testing.T) {
 	if err := os.WriteFile(unsafe, key.Serialize(), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(unsafe, 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := New(Config{ChainURL: "http://127.0.0.1:6420", APIKey: testAPIKey, UpstreamMode: UpstreamBFT, SignerKeyPath: unsafe, SignerAddress: address}); err == nil || !strings.Contains(err.Error(), "mode-restricted") {
 		t.Fatalf("unsafe BFT Trust signer permissions accepted: %v", err)
 	}

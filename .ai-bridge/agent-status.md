@@ -1,47 +1,66 @@
-# Agent Status
+# YNX 29 Integration Agent Status
 
-## Result
+Updated: 2026-07-27T15:37:46Z  
+Lifecycle: ACTIVE  
+Stage: PROTECT
 
-Completed the 2026-07-25 YNX 18 recovery and authority-layer implementation in
-`codex/final-docs-compliance` without resetting, cleaning, deleting, force-pushing or
-modifying sibling worktrees.
+## Git protection
 
-## Delivered
+- Workspace and branch: exact match.
+- Upstream: `origin/codex/final-integration`.
+- Protected baseline before this implementation slice: `562888318863435382d839958130246973dc1206`.
+- Baseline Local SHA equaled Remote SHA after bounded Push retry.
+- Current worktree: intentionally dirty with the Integration acceptance implementation, security policy and test-fixture repairs.
+- Same-worktree concurrency: not observed.
 
-- Recovered and preserved the pre-existing fact, conflict and endpoint evidence files.
-- Added local schemas, a 12-class authoritative fact index, evidence and supersession
-  records, nine evidence-linked Claims and 12 locale records.
-- Repaired the dangling Mainnet FAQ Claim reference and replaced symbolic `git:HEAD`
-  identities with the exact recovery source commit.
-- Added a fail-closed public disclosure gate and integrated it with the existing
-  documentation compliance check and Makefile.
-- Fixed three validation paths that previously treated missing ripgrep as success.
-- Added the Docs/Compliance Integration Manifest, recovery inventory, current state
-  overlays and a dedicated GitHub Actions workflow.
-- Kept public observations component-specific and explicitly ineligible as independent
-  direct-public proof.
+## Direct acceptance inventory
 
-## Verification
+- Products registered: 36.
+- Local final branches observed: 35.
+- Remote final branches observed in the refreshed refs: 32.
+- Registered final worktrees observed: 35.
+- Clean product worktrees at the latest scan: 7.
+- Dirty product worktrees at the latest scan: 28.
+- Synchronized local/remote branches at the latest scan: 28.
+- Centrally accepted products: 0.
+- Missing Phase 0 owner: product 30 Security/SRE has no observed final branch or registered worktree.
 
-- `make public-disclosure-check` — passed: 29 JSON records, 12 fact classes, 9 release states.
-- `make docs-compliance-check` — passed: 44 named artifacts, 11 indexed JSON records,
-  13 search pages, 43 public documents and the integrated disclosure gate.
-- `make no-placeholder-check` — passed with bounded grep fallback.
-- `make secret-scan` — passed with bounded dependency-aware grep fallback.
-- `make objective-state-check` — passed, including README positioning and strict SSH policy.
-- Docs/Compliance GitHub Actions YAML parsed successfully.
-- `go test ./...` — passed across all Go packages.
+## Recovered test failures and repairs
 
-## Remaining external blockers
+1. A raw `go test ./...` initially failed four unsafe-key-permission tests because the environment uses `umask=0077`; `os.WriteFile(..., 0644)` created `0600`, so the tests never produced an unsafe file. The fixtures now explicitly `chmod 0644` after creation. Runtime permission enforcement was not relaxed.
+2. Three bounded IDE tests initially failed because ignored Hardhat artifacts were absent. `npm ci` restored the exact lockfile, `make contract-tooling-check` compiled five Solidity files and generated selector metadata, and the dependent Go packages then passed.
+3. `npm audit` reports exactly three High nodes from one unfixed advisory: `hardhat@3.9.0 -> adm-zip@0.4.16`, with `@nomicfoundation/hardhat-ethers` affected transitively. Production-only audit reports zero vulnerabilities.
+4. A time-bounded policy now permits only that exact development-tooling graph through 2026-08-31, prohibits runtime/untrusted-archive exposure, fails on drift or expiry, and blocks production release pending product 30 review or an upstream fix.
 
-Central Website/Gateway integration, independent public availability evidence,
-canonical support/privacy/security/status routes, immutable package hosting,
-production signing, Mainnet launch, public StreamBFT activation, named legal review,
-economic review and independent audit remain false, blocked or pending their owners.
-Protected dirty or local-ahead sibling work remains unmerged candidate input.
+## Pre-commit component verification passed
 
-## Review note
+- `make integration-acceptance-check`
+- `make contract-tooling-check`
+- `make integration-npm-audit-policy-check`
+- `make integration-npm-audit-policy-check-test`
+- `go test ./...`
+- `make no-placeholder-check`
+- `make secret-scan`
+- `make static-check`
 
-The final review diff is represented by the committed Git change set. The
-`implementation-diff.patch` file remains empty to avoid a self-referential patch that
-would include its own generated content.
+The combined `make integration-protect-preflight` invocation encountered the MCP transport layer returning HTTP 502 twice. Its component commands were rerun individually and each exited zero. Exact-commit rerun is still required before `testedLocal=true`.
+
+## GitHub evidence
+
+- Releases: 4, all prereleases.
+- Artifacts: 57 active artifacts.
+- Artifact names retain preview, simulator, unsigned, test-signed and production-signed class hints without automatic promotion.
+- The latest Actions query failed closed after two TLS handshake timeouts; its count is recorded as unavailable rather than zero.
+
+## Current blockers
+
+1. Product 30 Security/SRE final branch and worktree are absent.
+2. Several final branches are not yet remotely available or synchronized.
+3. Most product-owner worktrees are currently dirty and cannot be accepted.
+4. Required Phase 0 owner bundles and central negative-vector execution remain incomplete.
+5. The Hardhat advisory has a bounded development-only exception but remains a production-release blocker pending Security/SRE acceptance or upstream remediation.
+6. Shared Public Testnet, restore, rollback and independent public-proof acceptance remain incomplete.
+
+## Exact next action
+
+Review the complete implementation slice, Commit and Push it, verify Local SHA equals Remote SHA, rerun every component at that exact commit, generate source-bound evidence, promote only directly verified local states and create the evidence checkpoint Commit.

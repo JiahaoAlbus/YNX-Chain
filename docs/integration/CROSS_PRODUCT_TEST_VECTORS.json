@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "networkClass": "YNX Testnet",
+  "status": "inProgress",
+  "vectors": [
+    {
+      "id": "CP-001",
+      "flow": "Wallet to Social",
+      "products": ["02", "03", "26", "30"],
+      "happyPath": ["create product session", "approve Social scopes", "resolve canonical account identity", "establish encrypted conversation", "revoke product session"],
+      "negativeCases": ["replayed device challenge", "wrong product", "wrong device", "scope widening", "expired session", "revoked session"],
+      "requiredEvidence": ["wallet session receipt", "Social account binding", "encrypted message receipt", "revoke audit event"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-002",
+      "flow": "Wallet to Pay to Merchant",
+      "products": ["01", "02", "04", "05", "19", "26", "30"],
+      "happyPath": ["create invoice", "approve signed payment intent", "commit Testnet transaction", "settle invoice", "deliver merchant webhook", "reconcile receipt"],
+      "negativeCases": ["tampered invoice", "wrong merchant", "duplicate payment", "stale price", "webhook replay", "expired mandate"],
+      "requiredEvidence": ["signed intent", "transaction hash", "settlement receipt", "webhook delivery audit", "reconciliation record"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-003",
+      "flow": "Shop to Pay to Receipt to Refund to Trust",
+      "products": ["02", "04", "05", "09", "10", "15", "26", "30"],
+      "happyPath": ["create order", "reserve inventory", "settle payment", "issue receipt", "request refund", "complete refund", "submit Trust appeal"],
+      "negativeCases": ["oversold inventory", "wrong seller", "refund replay", "refund above paid amount", "missing evidence", "appeal after expiry"],
+      "requiredEvidence": ["order version", "inventory reservation", "payment receipt", "refund transaction", "Trust case audit"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-004",
+      "flow": "Wallet to Quant to Exchange",
+      "products": ["02", "07", "08", "13", "19", "24", "26", "30"],
+      "happyPath": ["approve strategy mandate", "open no-withdraw exchange session", "produce risk-approved order", "execute order", "record fill", "surface read-only Finance evidence", "revoke mandate"],
+      "negativeCases": ["withdraw attempt", "mandate limit breach", "stale oracle", "order replay", "wrong subaccount", "kill switch active"],
+      "requiredEvidence": ["strategy mandate", "risk decision", "exchange order and fill", "Monitor alert", "Finance read-only record", "revoke audit"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-005",
+      "flow": "Wallet to Quant to DEX Vault",
+      "products": ["01", "02", "08", "13", "19", "21", "24", "26", "27", "30"],
+      "happyPath": ["approve vault mandate", "deposit into user strategy vault", "produce risk-approved swap", "execute bounded swap", "record position and fee", "exit vault"],
+      "negativeCases": ["private key request", "owner change request", "mandate expiry", "slippage breach", "wrong chain", "bridge exposure limit", "kill switch active"],
+      "requiredEvidence": ["vault ownership", "mandate digest", "swap receipt", "slippage proof", "fee calculation", "exit receipt"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-006",
+      "flow": "Finance to Explorer Evidence",
+      "products": ["01", "12", "19", "24", "26", "30"],
+      "happyPath": ["resolve account transaction", "link canonical chain receipt", "render Explorer evidence", "refresh source timestamp"],
+      "negativeCases": ["unknown transaction", "wrong account", "stale indexer", "source disagreement", "private memo disclosure"],
+      "requiredEvidence": ["canonical transaction ID", "Explorer URL", "source and asOf fields", "privacy redaction check"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-007",
+      "flow": "Cloud to Mail Social Docs and Quant",
+      "products": ["02", "03", "08", "20", "25", "26", "30", "35"],
+      "happyPath": ["upload versioned object", "grant product-scoped access", "attach to Mail", "share to Social", "open in Docs", "consume dataset in Quant", "revoke access"],
+      "negativeCases": ["wrong product scope", "revoked share", "expired link", "dataset tamper", "conflicting version", "offline retry duplication"],
+      "requiredEvidence": ["object version", "grant audit", "mail attachment receipt", "social share reference", "docs version", "quant dataset digest", "revoke audit"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-008",
+      "flow": "Resource to Cloud AI Developer and Quant",
+      "products": ["02", "08", "11", "14", "16", "20", "26", "30"],
+      "happyPath": ["request priced resource quote", "approve bounded spend", "allocate compute", "store artifact in Cloud", "use from AI Developer and Quant", "meter usage", "settle bill"],
+      "negativeCases": ["quote expiry", "scope widening", "meter replay", "provider outage", "budget breach", "artifact digest mismatch"],
+      "requiredEvidence": ["quote", "approval", "allocation", "artifact digest", "meter events", "billing ledger settlement"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-009",
+      "flow": "AI to Product Approval",
+      "products": ["02", "14", "15", "26", "30"],
+      "happyPath": ["obtain context consent", "draft action", "show provider model and cost", "preview exact effect", "approve or reject", "record audit"],
+      "negativeCases": ["silent tool call", "approval reuse", "wrong product", "model unavailable", "cost unavailable", "attempted value movement without approval"],
+      "requiredEvidence": ["consent record", "preview digest", "approval decision", "provider truth", "audit event"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-010",
+      "flow": "Governance to Timelock to Canary to Rollback",
+      "products": ["01", "13", "17", "26", "30", "31"],
+      "happyPath": ["submit proposal", "vote", "queue timelock", "execute canary", "observe health", "promote or rollback"],
+      "negativeCases": ["wrong proposal scope", "timelock bypass", "duplicate execution", "failed canary", "rollback replay", "unauthorized emergency action"],
+      "requiredEvidence": ["proposal and vote receipts", "timelock schedule", "canary version", "Monitor health", "rollback receipt"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-011",
+      "flow": "Website to Release Registry to Download and Public Status",
+      "products": ["18", "28", "29", "30"],
+      "happyPath": ["consume accepted public metadata", "render canonical route", "publish release class", "serve immutable artifact", "verify hash and bytes", "show runtime status separately"],
+      "negativeCases": ["stale source commit", "mutable artifact URL", "hash mismatch", "candidate labeled production", "website published mistaken for runtime deployed", "internal path disclosure"],
+      "requiredEvidence": ["Website source commit", "canonical public URL", "artifact URL", "SHA-256", "byte count", "status endpoint proof"],
+      "status": "notStarted"
+    },
+    {
+      "id": "CP-012",
+      "flow": "Capital Safety and User Exit",
+      "products": ["01", "07", "08", "13", "15", "17", "19", "21", "24", "26", "27", "30", "31"],
+      "happyPath": ["collect solvency and reserve evidence", "verify oracle freshness", "measure bridge exposure", "measure withdrawal capacity", "activate user exit", "reconcile final balances"],
+      "negativeCases": ["reserve shortfall", "stale oracle", "bridge cap breach", "withdrawal queue saturation", "insurance depletion", "exit during provider outage"],
+      "requiredEvidence": ["solvency snapshot", "reserve and redemption record", "exposure report", "withdrawal capacity result", "user exit receipt", "incident record"],
+      "status": "notStarted"
+    }
+  ]
+}

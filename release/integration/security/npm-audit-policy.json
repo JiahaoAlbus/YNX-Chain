@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyId": "YNX-INT-NPM-2026-001",
+  "owner": "29-integration",
+  "requiredReviewOwner": "30-security-sre",
+  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "decision": "timeBoundDevelopmentToolingException",
+  "createdAt": "2026-07-27T15:12:00Z",
+  "expiresAt": "2026-08-31T23:59:59Z",
+  "releaseEffect": "blocksProductionReleaseUntilSecuritySreReviewOrUpstreamFix",
+  "advisory": {
+    "id": "GHSA-xcpc-8h2w-3j85",
+    "source": 1123686,
+    "package": "adm-zip",
+    "affectedRange": "<0.6.0",
+    "installedVersion": "0.4.16",
+    "severity": "high",
+    "cvss": 7.5,
+    "title": "Crafted ZIP file triggers excessive memory allocation",
+    "fixAvailable": false
+  },
+  "expectedAuditVulnerabilities": [
+    {
+      "name": "adm-zip",
+      "severity": "high",
+      "direct": false,
+      "via": ["GHSA-xcpc-8h2w-3j85"]
+    },
+    {
+      "name": "hardhat",
+      "severity": "high",
+      "direct": true,
+      "via": ["adm-zip"]
+    },
+    {
+      "name": "@nomicfoundation/hardhat-ethers",
+      "severity": "high",
+      "direct": true,
+      "via": ["hardhat"]
+    }
+  ],
+  "lockedVersions": {
+    "adm-zip": "0.4.16",
+    "hardhat": "3.9.0",
+    "@nomicfoundation/hardhat-ethers": "4.0.13"
+  },
+  "scope": {
+    "productionDependenciesAllowed": false,
+    "runtimeImportAllowed": false,
+    "untrustedArchiveInputAllowed": false,
+    "networkServiceExposure": false,
+    "permittedCommands": [
+      "npm run hardhat:build",
+      "npm run hardhat:deploy:ynx-testnet"
+    ],
+    "permittedEnvironment": "isolated developer or CI build workspace with locked dependencies"
+  },
+  "mandatoryControls": [
+    "npm ci must use package-lock.json",
+    "production-only npm audit must report zero vulnerabilities at high or critical severity",
+    "full npm audit may contain only the exact advisory graph listed in this policy",
+    "Hardhat must not process user-uploaded or otherwise untrusted ZIP archives",
+    "generated artifacts must remain ignored build outputs and must be regenerated from tracked Solidity sources",
+    "contract-tooling-check and full Go tests must pass after dependency installation",
+    "the exception expires automatically and must not be extended without a new evidence record",
+    "Security/SRE must accept, replace or reject this exception before production release"
+  ],
+  "exitConditions": [
+    "Hardhat removes the vulnerable dependency",
+    "a compatible fixed adm-zip release is available and verified",
+    "the contract toolchain is replaced by an audited compiler path",
+    "Security/SRE rejects the exception",
+    "the exception reaches expiresAt"
+  ]
+}

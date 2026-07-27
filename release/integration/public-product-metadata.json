@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "29",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "slug": "integration",
+  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "canonicalRoute": "/integration",
+  "title": "YNX Integration and Founder Control",
+  "metaDescription": "Central acceptance, protocol freeze, dependency order and public-proof control for the YNX Testnet product ecosystem.",
+  "h1": "YNX Integration and Founder Control",
+  "summary": "The Integration controller validates exact product commits and evidence. It does not replace product owners or treat candidate, preview, simulator, unsigned or test-signed outputs as production releases.",
+  "status": {
+    "lifecycle": "ACTIVE",
+    "phase": "PROTECT",
+    "websitePublished": false,
+    "runtimeDeployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetAccepted": false
+  },
+  "features": [
+    "01–36 product and dependency registry",
+    "Exact Git source and owner-evidence validation",
+    "Cross-product happy and fail-closed Testnet vectors",
+    "Release, artifact and public-state separation",
+    "Capital-safety and user-exit acceptance controls"
+  ],
+  "risks": [
+    "Central acceptance remains incomplete while Phase 0 authority bundles or Security/SRE evidence are unavailable.",
+    "A Website page is not evidence that a product runtime is publicly deployed.",
+    "Testnet acceptance does not authorize Mainnet, production signing or store release."
+  ],
+  "faq": [
+    {
+      "question": "Does Integration implement every YNX product?",
+      "answer": "No. Product owners implement their products. Integration accepts only exact, source-bound contracts, tests, artifacts and public evidence."
+    },
+    {
+      "question": "Does a successful preview mean a product is publicly released?",
+      "answer": "No. Preview, simulator, unsigned, test-signed, staging, public runtime, production signing and store release are separate states."
+    },
+    {
+      "question": "Does Testnet acceptance promote Mainnet?",
+      "answer": "No. Mainnet is a separate later gate with independent security, governance, signer, funding and public evidence."
+    }
+  ],
+  "links": {
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Server and Web control plane",
+    "releaseClass": "controller-candidate"
+  }
+}

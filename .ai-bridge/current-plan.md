@@ -1,18 +1,37 @@
-# Restore authoritative docs and disclosure package
+# YNX 29 Integration Current Plan
 
-Updated: 2026-07-25T06:16:49.783Z
-Workspace: [LOCAL_WORKTREE]/18-docs-compliance
-Target agent: Codex (codex)
+Status: ACTIVE  
+Stage: PROTECT  
+Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration`  
+Branch: `codex/final-integration`  
+Protected baseline: `562888318863435382d839958130246973dc1206`
 
-## Plan
+## Current objective
 
-Operate only in [LOCAL_WORKTREE]/18-docs-compliance on codex/final-docs-compliance. Preserve every pre-existing untracked fact/evidence file and all sibling-worktree dirty changes. Build a fail-closed public disclosure authority layer: add release schemas, complete missing evidence and superseded-facts records, repair FAQ/claims/localization references, bind records to exact recovery baseline c8c4ff7263e50afc4c731dac8157aa85e02232dc, add a public-disclosure gate, integrate it with docs-compliance-check, and record the 2026-07-25 recovery inventory. Append—not replace—current recovery findings to DOCS_COMPLIANCE_RECOVERY_AUDIT.md and NEXT_ACTION.md. Add a cross-thread Integration Manifest that treats all sibling dirty work as protected candidate input, never as merged/deployed/public fact. Public endpoint observations must remain component-level, operator-host/proxy-path evidence: www and API/Faucet returned 200 during the bounded scan; root domain, Explorer and EVM timed out; local DNS resolved YNX names into 198.18.0.0/15 and is ineligible as independent proof. Run public disclosure, docs compliance, no-placeholder, secret-scan and objective-state checks. Review with show_changes. Do not reset, clean, delete, force-push, modify sibling worktrees, execute value-moving transactions, or promote Mainnet/BFT/public deployment/legal/audit claims.
+Protect the first founder-control acceptance slice, then advance to exact Phase 0 authority review without promoting any product-owner claim automatically.
 
-## Implementation contract
+## Completed in this slice
 
-- Work from this plan in small, reviewable steps.
-- Keep edits scoped to the requested task and existing project conventions.
-- Run focused verification before handing work back.
-- Update .ai-bridge/agent-status.md with files touched, checks run, results, blockers, and review notes.
-- Save the final review diff to .ai-bridge/implementation-diff.patch when practical.
-- Append notable execution events to .ai-bridge/execution-log.jsonl when the implementation agent supports logging.
+1. Confirmed the exact workspace, branch and tool/write/bash modes; no same-worktree handoff or writer was active.
+2. Created `origin/codex/final-integration`, configured its upstream and verified Local SHA equaled Remote SHA.
+3. Fast-forwarded the branch from the older direct ancestor to the current authoritative `origin/main` baseline and pushed it after one bounded network retry.
+4. Created the unique 01–36 registry, Integration contract, cross-product vectors, dependency gate, acceptance scanner, coverage generator and fail-closed validator.
+5. Generated a direct branch/worktree/evidence matrix with zero centrally accepted products.
+6. Captured GitHub Release and Artifact evidence; Actions availability remains truthfully recorded when the API times out.
+7. Passed syntax, registry self-test, acceptance validation, negative self-tests, placeholder scan, secret scan and static checks.
+
+## Next actions
+
+1. Finish `.ai-bridge` state replacement and review the complete uncommitted slice.
+2. Run focused checks once more, set `testedLocal` only from direct evidence, Commit and Push.
+3. Verify Local SHA equals Remote SHA and the Integration worktree is clean.
+4. Regenerate coverage, matrix and GitHub evidence against the protected commit, then create and push the source-bound evidence checkpoint.
+5. Start Phase 0 owner acceptance in dependency order: 01, 17, 19, 21, 26, 30 and 31.
+
+## Guardrails
+
+- Never modify another product worktree from this thread.
+- Preserve all dirty product-owner worktrees; dirty or moving refs cannot be centrally accepted.
+- Keep Security/SRE-dependent promotion fail-closed while product 30 is absent.
+- Candidate, preview, simulator, unsigned and test-signed evidence remain distinct from public runtime, production signing, store release and Mainnet.
+- A checkpoint is not product completion; the long-term goal remains ACTIVE.

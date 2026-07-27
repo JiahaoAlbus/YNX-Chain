@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "owner": "29-integration",
+  "product": "YNX Integration / Founder Control",
+  "branch": "codex/final-integration",
+  "sourceCommit": "562888318863435382d839958130246973dc1206",
+  "currentPhase": "PROTECT",
+  "phaseOrder": ["RECOVER", "PROTECT", "FREEZE", "INTEGRATE", "TESTNET", "PUBLIC", "EXPAND"],
+  "acceptanceAuthority": {
+    "singleOwner": "29-integration",
+    "rule": "Product-owner claims remain candidate evidence until the exact source commit, tests, artifacts, dependency contracts and negative vectors are accepted by the central controller.",
+    "mainnetSeparation": "Testnet acceptance never promotes a product to Mainnet, production signing or store release."
+  },
+  "releaseStateKeys": [
+    "implementedLocal",
+    "testedLocal",
+    "installedLocal",
+    "integratedCentral",
+    "deployedStaging",
+    "deployedPublic",
+    "downloadHosted",
+    "productionSigned",
+    "storeReleased"
+  ],
+  "coverageStatuses": [
+    "notStarted",
+    "inProgress",
+    "implementedLocal",
+    "testedLocal",
+    "integratedCentral",
+    "testnetVerified",
+    "publicVerified",
+    "externalBlocked",
+    "notApplicable",
+    "verifiedComplete"
+  ],
+  "authoritativeOwners": {
+    "networkIdentityAndConsensus": "01-chain-core",
+    "walletAuthProductRegistryMandates": "02-wallet-auth",
+    "oracleAndMarketData": "19-oracle-market-data",
+    "bridgeAssetLifecycle": "21-bridge",
+    "canonicalEventsAndBillingLedger": "26-data-fabric",
+    "quantEngine": "08-quant-lab",
+    "economicsAndParameterRegistry": "17-tokenomics",
+    "governanceAndTimelock": "31-governance",
+    "securityReleaseBackupAndArtifactPolicy": "30-security-sre",
+    "websitePublicRegistryAndSEO": "28-website",
+    "protocolFreezeMergeOrderSharedTestnetPublicProof": "29-integration"
+  },
+  "requiredOwnerBundle": [
+    ".ai-bridge/full-goal-coverage.json",
+    "product-release.json",
+    "public-product-metadata.json",
+    "release/integration/{product-slug}-contract.json",
+    "docs/integration/INTEGRATION_HANDOFF.md",
+    "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "docs/integration/DEPENDENCY_ACCEPTANCE.md"
+  ],
+  "requiredAcceptanceDimensions": [
+    "exactSourceCommit",
+    "localRemoteShaEquality",
+    "cleanRegisteredWorktree",
+    "ciAndArtifactEvidence",
+    "happyAndFailClosedPaths",
+    "replayTamperWrongScopeExpiryRevoke",
+    "migrationRollbackBackupRestore",
+    "securitySupplyChainAndSecretBoundaries",
+    "observabilitySloCapacityAndUnitEconomics",
+    "twelveLocalesArabicRtlAccessibilityAnd390px",
+    "centralDependencyAcceptance",
+    "sharedTestnetEvidence",
+    "websiteAndRuntimeStateSeparation",
+    "publicProof"
+  ],
+  "conflictPolicy": {
+    "dualAuthorityAllowed": false,
+    "legacyCompatibility": "Only an explicit versioned migration with an expiry and owner may coexist temporarily.",
+    "conflictRecord": "release/conflict-report.json",
+    "failClosed": true
+  },
+  "assetBoundaryPolicy": {
+    "enginePrivateKeyAccess": false,
+    "engineWithdrawalAuthority": false,
+    "userAssets": ["userWallet", "exchangeSubaccount", "dexStrategyVault", "approvedCustodyProvider", "approvedProtocolContract"],
+    "requiredControls": ["leastPrivilege", "limits", "expiry", "nonceDomain", "instantRevoke", "killSwitch", "emergencyExit", "audit", "recovery"]
+  },
+  "aiBoundaryPolicy": {
+    "allowed": ["draft", "explain", "translate", "summarize", "research", "preview", "generatePatch", "simulate", "propose"],
+    "requiresHumanApproval": ["sign", "pay", "trade", "swap", "withdraw", "publish", "send", "delete", "changePermission", "changeRisk", "treasury", "consensusUpgrade"],
+    "requiredEvidence": ["contextConsent", "preview", "approveOrReject", "audit", "providerModelCostState", "truthfulFailure"]
+  }
+}
