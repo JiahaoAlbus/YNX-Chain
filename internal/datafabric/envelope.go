@@ -398,15 +398,25 @@ func (e EventEnvelope) Verify(key []byte) error {
 	}
 	digest := sha256.Sum256(canonical)
 	wantDigest, err := hex.DecodeString(e.Integrity.Digest)
-	if err != nil || !hmac.Equal(wantDigest, digest[:]) {
+	if err != nil {
 		return ErrTampered
+	}
+	if !hmac.Equal(wantDigest, digest[:]) {
+		legacy, legacyErr := e.legacyIntegrityMaterial()
+		if legacyErr != nil {
+			return legacyErr
+		}
+		legacyDigest := sha256.Sum256(legacy)
+		if !hmac.Equal(wantDigest, legacyDigest[:]) {
+			return ErrTampered
+		}
 	}
 	provided, err := hex.DecodeString(e.Integrity.Signature)
 	if err != nil {
 		return ErrTampered
 	}
 	mac := hmac.New(sha256.New, key)
-	_, _ = mac.Write(digest[:])
+	_, _ = mac.Write(wantDigest)
 	if !hmac.Equal(provided, mac.Sum(nil)) {
 		return ErrTampered
 	}
@@ -419,7 +429,34 @@ func (e EventEnvelope) integrityMaterial() ([]byte, error) {
 	copy.Integrity.Signature = ""
 	copy.IntegrityHash = ""
 	copy.Signature = ""
+	payload, err := canonicalizeRawJSON(copy.Payload)
+	if err != nil {
+		return nil, err
+	}
+	copy.Payload = payload
 	return json.Marshal(copy)
+}
+
+func (e EventEnvelope) legacyIntegrityMaterial() ([]byte, error) {
+	copy := e
+	copy.Integrity.Digest = ""
+	copy.Integrity.Signature = ""
+	copy.IntegrityHash = ""
+	copy.Signature = ""
+	return json.Marshal(copy)
+}
+
+func canonicalizeRawJSON(raw json.RawMessage) (json.RawMessage, error) {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	if err := ensureEOF(decoder); err != nil {
+		return nil, err
+	}
+	return json.Marshal(value)
 }
 
 func oneOf(value string, allowed ...string) bool {

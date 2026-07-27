@@ -2,6 +2,9 @@ package datafabric
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -215,6 +218,45 @@ func TestRestoreAuditDetectsTamperedPersistentEvent(t *testing.T) {
 	}
 	if err := tampered.AuditIntegrity(map[string][]byte{"key.datafabric.0001": testKey}); !errors.Is(err, ErrTampered) {
 		t.Fatalf("restore audit did not detect tamper: %v", err)
+	}
+}
+
+func TestEventIntegrityCanonicalizesPayloadObjectOrder(t *testing.T) {
+	event := signedEvent(t, "event.pay.invoice.payload-order.0001", 1)
+	event.Payload = json.RawMessage(`{"z":1,"nested":{"y":2,"b":3},"a":"value"}`)
+	if err := event.Sign("key.datafabric.0001", testKey); err != nil {
+		t.Fatal(err)
+	}
+
+	reordered := event
+	reordered.Payload = json.RawMessage(`{"a":"value","nested":{"b":3,"y":2},"z":1}`)
+	if err := reordered.Verify(testKey); err != nil {
+		t.Fatalf("semantically identical JSON object order invalidated event integrity: %v", err)
+	}
+
+	tampered := reordered
+	tampered.Payload = json.RawMessage(`{"a":"value","nested":{"b":4,"y":2},"z":1}`)
+	if err := tampered.Verify(testKey); !errors.Is(err, ErrTampered) {
+		t.Fatalf("payload value tampering was not rejected: %v", err)
+	}
+}
+
+func TestEventIntegrityAcceptsLegacyPayloadOrderSignature(t *testing.T) {
+	event := signedEvent(t, "event.pay.invoice.legacy-signature.0001", 1)
+	event.Payload = json.RawMessage(`{"z":1,"a":2}`)
+	event.Integrity = Integrity{Algorithm: "hmac-sha256", KeyID: "key.datafabric.0001"}
+	material, err := event.legacyIntegrityMaterial()
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(material)
+	mac := hmac.New(sha256.New, testKey)
+	_, _ = mac.Write(digest[:])
+	event.Integrity.Digest = hex.EncodeToString(digest[:])
+	event.Integrity.Signature = hex.EncodeToString(mac.Sum(nil))
+
+	if err := event.Verify(testKey); err != nil {
+		t.Fatalf("legacy payload-order signature was rejected: %v", err)
 	}
 }
 
