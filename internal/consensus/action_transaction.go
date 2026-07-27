@@ -393,11 +393,17 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	if len(payload) == 0 || len(payload) > MaxSignedActionSize {
 		return "", errors.New("transaction envelope size is invalid")
 	}
+	if IsEthereumTypedEnvelope(payload) {
+		return "", errors.New("typed Ethereum transaction envelopes are not supported")
+	}
+	if IsEthereumLegacyEnvelope(payload) {
+		return EthereumLegacyTransferType, nil
+	}
 	var envelope struct {
 		Type string `json:"type"`
 	}
 	if err := json.Unmarshal(payload, &envelope); err != nil {
-		return "", errors.New("transaction envelope is not JSON")
+		return "", errors.New("transaction envelope is neither canonical JSON nor supported legacy Ethereum RLP")
 	}
 	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType {
 		return "", fmt.Errorf("unsupported transaction envelope type %q", envelope.Type)

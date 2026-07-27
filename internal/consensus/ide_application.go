@@ -228,6 +228,10 @@ func validateIDECommittedState(state CommittedState) error {
 			if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" {
 				return errors.New("committed IDE call receipt has invalid addresses")
 			}
+		} else if receipt.Action == EthereumLegacyTransferType {
+			if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" || receipt.EncodedResult != "0x" || receipt.OpcodeStepCount != 0 || len(receipt.StorageWrites) != 0 || len(receipt.Logs) != 0 {
+				return errors.New("committed Ethereum transfer receipt is outside the bounded value-transfer profile")
+			}
 		} else {
 			return errors.New("committed IDE receipt has unsupported action")
 		}

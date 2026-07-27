@@ -382,6 +382,106 @@ func TestEVMBlockTransactionLookupsClassifyUpstreamFailures(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":3,"method":"eth_getBlockTransactionCountByNumber","params":["0x011"]}`, -32602)
 }
 
+func TestGatewayBroadcastsAndResolvesEthereumLegacyTransferByEthereumHash(t *testing.T) {
+	senderBytes := make([]byte, 32)
+	senderBytes[31] = 41
+	recipientBytes := make([]byte, 32)
+	recipientBytes[31] = 42
+	senderKey := secp256k1.PrivKeyFromBytes(senderBytes)
+	recipient, err := consensus.NativeAddress(secp256k1.PrivKeyFromBytes(recipientBytes).PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, ethereumTx, err := consensus.NewEthereumLegacyTransfer(senderKey, 6423, 0, 2, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cometHash := strings.ToUpper(strings.TrimPrefix(consensus.SignedTransactionHash(payload), "0x"))
+	blockHash := strings.Repeat("B", 64)
+	parentHash := strings.Repeat("A", 64)
+	appHash := strings.Repeat("C", 64)
+	dataHash := strings.Repeat("D", 64)
+	blockTime := time.Date(2026, 7, 27, 8, 45, 0, 0, time.UTC)
+	receipt := consensus.BFTEVMReceipt{
+		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
+		Action: consensus.EthereumLegacyTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 17, AuditHash: strings.Repeat("e", 64),
+	}
+	receiptPayload, _ := json.Marshal(receipt)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/broadcast_tx_commit":
+			if r.URL.Query().Get("tx") != "0x"+fmt.Sprintf("%x", payload) {
+				t.Errorf("unexpected broadcast payload: %s", r.URL.Query().Get("tx"))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"check_tx":  map[string]any{"code": 0, "gas_used": "21000"},
+				"tx_result": map[string]any{"code": 0, "gas_used": "21000"},
+				"hash":      cometHash, "height": "17",
+			}})
+		case "/tx":
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
+		case "/abci_query":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+				"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString(receiptPayload),
+			}}})
+		case "/block":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"block_id": map[string]any{"hash": blockHash},
+				"block": map[string]any{
+					"header": map[string]any{
+						"height": "17", "time": blockTime, "proposer_address": strings.Repeat("1", 40),
+						"app_hash": appHash, "data_hash": dataHash, "last_block_id": map[string]any{"hash": parentHash},
+					},
+					"data": map[string]any{"txs": [][]byte{payload}},
+				},
+			}})
+		case "/block_results":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"height": "17", "txs_results": []map[string]any{{"code": 0, "gas_used": "21000"}},
+			}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	broadcast, err := gateway.broadcastSignedTransaction(context.Background(), payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if broadcast.Transaction.Hash != ethereumTx.Hash || broadcast.CometHash != strings.ToLower(cometHash) || broadcast.Transaction.Nonce != 0 || broadcast.Transaction.Fee != 42_000 {
+		t.Fatalf("Ethereum and Comet transaction identities were conflated: %+v", broadcast)
+	}
+	upstreamTx, mapped, found, err := gateway.committedTransaction(context.Background(), ethereumTx.Hash)
+	if err != nil || !found {
+		t.Fatalf("Ethereum-hash committed lookup failed: mapped=%+v err=%v", mapped, err)
+	}
+	if upstreamTx.Hash != cometHash || !reflect.DeepEqual(upstreamTx.Tx, payload) || mapped.Hash != ethereumTx.Hash || mapped.BlockNum != 17 {
+		t.Fatalf("Ethereum committed evidence mismatch: upstream=%+v mapped=%+v", upstreamTx, mapped)
+	}
+	transactionObject := evmCommittedTransaction(mapped, upstreamTx.Index, upstreamTx.Tx)
+	if transactionObject["hash"] != ethereumTx.Hash || transactionObject["nonce"] != "0x0" || transactionObject["gas"] != "0x5208" || transactionObject["gasPrice"] != "0x2" || transactionObject["value"] != "0x7d" {
+		t.Fatalf("Ethereum transaction object is not truthful: %+v", transactionObject)
+	}
+	receiptObject := evmCommittedReceipt(mapped, upstreamTx.Index, 21_000, 21_000, upstreamTx.Tx)
+	if receiptObject["transactionHash"] != ethereumTx.Hash || receiptObject["effectiveGasPrice"] != "0x2" || receiptObject["gasUsed"] != "0x5208" {
+		t.Fatalf("Ethereum receipt object is not truthful: %+v", receiptObject)
+	}
+	result, code, err := gateway.evmSendRawTransaction(context.Background(), json.RawMessage(fmt.Sprintf(`["0x%x"]`, payload)))
+	if err != nil || code != 0 || result != ethereumTx.Hash {
+		t.Fatalf("eth_sendRawTransaction did not return Ethereum Keccak hash: result=%v code=%d err=%v", result, code, err)
+	}
+	if _, _, err := gateway.evmSendRawTransaction(context.Background(), json.RawMessage(`["0x02c0"]`)); err == nil {
+		t.Fatal("typed Ethereum transaction was accepted")
+	}
+}
+
 func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T) {
 	validBuild := buildinfo.Info{
 		Commit:    "abcdef123456",

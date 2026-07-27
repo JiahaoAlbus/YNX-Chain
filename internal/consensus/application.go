@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 14
+	ApplicationVersion   = 15
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -90,6 +90,22 @@ type executionState struct {
 type transactionExecution struct {
 	typeName string
 	event    abcitypes.Event
+	hash     string
+	gas      int64
+}
+
+func (e transactionExecution) resultHash(payload []byte) string {
+	if e.hash != "" {
+		return e.hash
+	}
+	return SignedTransactionHash(payload)
+}
+
+func (e transactionExecution) gasUsed() int64 {
+	if e.gas > 0 {
+		return e.gas
+	}
+	return 1
 }
 
 func (e *transactionError) Error() string { return e.err.Error() }
@@ -462,7 +478,8 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error()}, nil
 	}
-	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: []byte(SignedTransactionHash(req.Tx)), GasWanted: 1, GasUsed: 1, Info: tx.typeName}, nil
+	gas := tx.gasUsed()
+	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: []byte(tx.resultHash(req.Tx)), GasWanted: gas, GasUsed: gas, Info: tx.typeName}, nil
 }
 
 func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
@@ -527,8 +544,8 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		results[i] = &abcitypes.ExecTxResult{
 			Code:    abcitypes.CodeTypeOK,
-			Data:    []byte(SignedTransactionHash(payload)),
-			GasUsed: 1,
+			Data:    []byte(tx.resultHash(payload)),
+			GasUsed: tx.gasUsed(),
 			Log:     tx.typeName,
 			Events:  events,
 		}
@@ -590,6 +607,9 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 		}
 		return next, execution, nil
 	}
+	if kind == EthereumLegacyTransferType {
+		return a.applyEthereumLegacyTransfer(state, payload, height, blockTime)
+	}
 	tx, err := DecodeSignedTransaction(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
@@ -635,6 +655,73 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	state.accounts = accounts
 	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
+}
+
+func (a *Application) applyEthereumLegacyTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	tx, err := DecodeEthereumLegacyTransaction(payload)
+	if err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	accounts := state.accounts
+	senderIndex, ok := accountIndex(accounts, tx.From)
+	if !ok {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("Ethereum transaction sender account does not exist"))
+	}
+	sender := accounts[senderIndex]
+	if tx.Nonce != sender.Nonce {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, fmt.Errorf("Ethereum transaction nonce %d must equal current account nonce %d", tx.Nonce, sender.Nonce))
+	}
+	if sender.Nonce == math.MaxUint64 {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction sender nonce is exhausted"))
+	}
+	if tx.Value > math.MaxInt64-tx.Fee || sender.Balance < tx.Value+tx.Fee {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for Ethereum value and gas fee"))
+	}
+	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
+	}
+	if _, exists := bftEVMReceiptIndex(state.evmReceipts, tx.Hash); exists {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction hash was already committed"))
+	}
+	accounts, _ = ensureAccount(accounts, tx.To)
+	accounts, _ = ensureAccount(accounts, a.feeRecipient)
+	senderIndex, _ = accountIndex(accounts, tx.From)
+	receiverIndex, _ := accountIndex(accounts, tx.To)
+	feeIndex, _ := accountIndex(accounts, a.feeRecipient)
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Value); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
+	if err := moveTraceableLots(&accounts[senderIndex], &accounts[feeIndex], tx.Fee); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
+	}
+	accounts[senderIndex].Balance -= tx.Value + tx.Fee
+	accounts[senderIndex].Nonce++
+	accounts[senderIndex].ResourceUsage.BandwidthUsed++
+	accounts[receiverIndex].Balance += tx.Value
+	accounts[feeIndex].Balance += tx.Fee
+	state.accounts = accounts
+	state.feeEvents = append(state.feeEvents, newEthereumGasFeeEvent(tx.Hash, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	receipt := BFTEVMReceipt{
+		TxHash: tx.Hash, From: tx.From, To: tx.To, Action: EthereumLegacyTransferType,
+		Status: "success", EncodedResult: "0x", Logs: []BFTEVMLog{}, BlockHeight: height,
+	}
+	receipt.AuditHash = bftEVMReceiptAuditHash(receipt)
+	state.evmReceipts = insertBFTEVMReceipt(state.evmReceipts, receipt)
+	return state, transactionExecution{
+		typeName: EthereumLegacyTransferType,
+		hash:     tx.Hash,
+		gas:      int64(tx.GasLimit),
+		event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{
+			{Key: "sender", Value: tx.From, Index: true},
+			{Key: "recipient", Value: tx.To, Index: true},
+			{Key: "amount", Value: fmt.Sprint(tx.Value), Index: true},
+			{Key: "envelope", Value: "ethereum_legacy_eip155", Index: true},
+			{Key: "ethereum_hash", Value: tx.Hash, Index: true},
+		}},
+	}, nil
 }
 
 func cloneExecutionStateValue(state executionState) executionState {

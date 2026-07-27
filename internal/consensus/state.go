@@ -438,7 +438,9 @@ func (s CommittedState) hasApplicationRecords() bool {
 func validateFeeEvents(events []BFTFeeEvent) error {
 	seen := make(map[string]struct{}, len(events))
 	for _, event := range events {
-		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || event.Source != "ynx-consensus-fixed-fee-v1" || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
+		sourceValid := (event.TransactionType == EthereumLegacyTransferType && event.Source == EthereumLegacyGasFeeSource) ||
+			(event.TransactionType != EthereumLegacyTransferType && event.Source == FixedFeeSource)
+		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || !sourceValid || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
 			return errors.New("committed fee events must be complete and audit-bound")
 		}
 		if event.BurnYNXT+event.ValidatorYNXT+event.ProviderYNXT+event.ProtocolYNXT+event.TreasuryYNXT != event.GrossFeeYNXT {

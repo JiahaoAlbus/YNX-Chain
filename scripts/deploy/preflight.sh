@@ -57,6 +57,7 @@ make consensus-quorum-check
 make consensus-production-package-check
 make bft-gateway-check
 make bft-evm-receipt-check
+make bft-evm-legacy-transfer-check
 make bft-ide-contract-check
 make bft-ai-action-check
 make bft-pay-action-check

@@ -678,6 +678,17 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	if err != nil {
 		return chain.Transaction{}, err
 	}
+	if kind == consensus.EthereumLegacyTransferType {
+		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
+		if err != nil || tx.Verify(6423) != nil {
+			return chain.Transaction{}, errors.New("invalid EIP-155 legacy Ethereum transfer")
+		}
+		return chain.Transaction{
+			Hash: tx.Hash, Type: consensus.EthereumLegacyTransferType, From: tx.From, To: tx.To,
+			Amount: tx.Value, Fee: tx.Fee, Nonce: tx.Nonce, BlockHash: strings.ToLower(blockHash),
+			BlockNum: height, Timestamp: blockTime, Memo: "EIP-155 legacy Ethereum value transfer",
+		}, nil
+	}
 	if kind == consensus.SignedActionType {
 		tx, err := consensus.DecodeSignedApplicationAction(payload)
 		if err != nil || tx.Verify(6423) != nil {
@@ -725,6 +736,44 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	}, nil
 }
 
+func mappedTransactionHash(payload []byte) (string, error) {
+	kind, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return "", err
+	}
+	switch kind {
+	case consensus.EthereumLegacyTransferType:
+		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", err
+		}
+		return tx.Hash, nil
+	case consensus.SignedActionType:
+		tx, err := consensus.DecodeSignedApplicationAction(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", err
+		}
+		return consensus.ApplicationActionHash(payload), nil
+	case consensus.SignedTransactionType:
+		tx, err := consensus.DecodeSignedTransaction(payload)
+		if err != nil {
+			return "", err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", err
+		}
+		return consensus.SignedTransactionHash(payload), nil
+	default:
+		return "", errors.New("unsupported committed transaction envelope")
+	}
+}
+
 func (g *Gateway) transactionAtHeight(ctx context.Context, hash string, height uint64) (chain.Transaction, error) {
 	block, err := g.block(ctx, height)
 	if err != nil {
@@ -745,6 +794,34 @@ type signedTransactionBroadcastError struct {
 
 func (e *signedTransactionBroadcastError) Error() string { return e.Message }
 
+func broadcastTransactionIdentity(payload []byte) (string, int, error) {
+	kind, err := consensus.TransactionEnvelopeType(payload)
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+	if kind == consensus.EthereumLegacyTransferType {
+		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
+		if err != nil {
+			return "", http.StatusBadRequest, err
+		}
+		if err := tx.Verify(6423); err != nil {
+			return "", http.StatusUnprocessableEntity, err
+		}
+		return tx.Hash, http.StatusOK, nil
+	}
+	if kind != consensus.SignedTransactionType {
+		return "", http.StatusBadRequest, errors.New("broadcast endpoint accepts native transfers or bounded legacy Ethereum transfers")
+	}
+	tx, err := consensus.DecodeSignedTransaction(payload)
+	if err != nil {
+		return "", http.StatusBadRequest, err
+	}
+	if err := tx.Verify(6423); err != nil {
+		return "", http.StatusUnprocessableEntity, err
+	}
+	return consensus.SignedTransactionHash(payload), http.StatusOK, nil
+}
+
 func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte) (BroadcastResponse, error) {
 	if len(payload) == 0 {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: "signed transaction payload is required"}
@@ -752,14 +829,11 @@ func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte
 	if len(payload) > consensus.MaxSignedTransactionSize {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusRequestEntityTooLarge, Message: "signed transaction exceeds maximum size"}
 	}
-	tx, err := consensus.DecodeSignedTransaction(payload)
+	externalHash, validationStatus, err := broadcastTransactionIdentity(payload)
 	if err != nil {
-		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadRequest, Message: err.Error()}
+		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: validationStatus, Message: err.Error()}
 	}
-	if err := tx.Verify(6423); err != nil {
-		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: err.Error()}
-	}
-	hash := consensus.SignedTransactionHash(payload)
+	cometHash := consensus.SignedTransactionHash(payload)
 	var upstream cometBroadcast
 	if err := g.client.get(ctx, "/broadcast_tx_commit", url.Values{"tx": {"0x" + fmt.Sprintf("%x", payload)}}, &upstream); err != nil {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
@@ -774,14 +848,14 @@ func (g *Gateway) broadcastSignedTransaction(ctx context.Context, payload []byte
 		}
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusUnprocessableEntity, Message: "CometBFT rejected signed transaction: " + message}
 	}
-	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Result.Hash) {
+	if !strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), upstream.Result.Hash) {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT transaction hash mismatch"}
 	}
 	height, err := strconv.ParseUint(upstream.Result.Height, 10, 64)
 	if err != nil || height == 0 {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: "CometBFT returned an invalid transaction height"}
 	}
-	mapped, err := g.transactionAtHeight(ctx, hash, height)
+	mapped, err := g.transactionAtHeight(ctx, externalHash, height)
 	if err != nil {
 		return BroadcastResponse{}, &signedTransactionBroadcastError{Status: http.StatusBadGateway, Message: err.Error()}
 	}
@@ -797,6 +871,10 @@ func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Requ
 	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeJSON(w, http.StatusRequestEntityTooLarge, map[string]string{"error": "signed transaction exceeds maximum size"})
+		return
+	}
+	if !json.Valid(payload) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "native transaction endpoint requires one canonical JSON envelope"})
 		return
 	}
 	result, err := g.broadcastSignedTransaction(r.Context(), payload)
@@ -818,22 +896,17 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical lowercase transaction hash is required"})
 		return
 	}
-	var upstream cometTxLookup
-	if err := g.client.get(r.Context(), "/tx", url.Values{"hash": {hash}, "prove": {"true"}}, &upstream); err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-		return
-	}
-	if upstream.Error != nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": cometError(upstream.Error)})
-		return
-	}
-	mapped, err := g.mapCometTransaction(r.Context(), upstream.Result)
+	_, mapped, found, err := g.committedTransaction(r.Context(), hash)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
+	if !found {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "transaction not found"})
+		return
+	}
 	if mapped.Hash != hash {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "CometBFT transaction lookup hash mismatch"})
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed transaction lookup hash mismatch"})
 		return
 	}
 	writeJSON(w, http.StatusOK, mapped)
@@ -895,11 +968,15 @@ func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (ch
 	if err != nil || height == 0 {
 		return chain.Transaction{}, errors.New("CometBFT transaction has an invalid height")
 	}
-	hash := consensus.SignedTransactionHash(upstream.Tx)
-	if !strings.EqualFold(strings.TrimPrefix(hash, "0x"), upstream.Hash) {
+	cometHash := consensus.SignedTransactionHash(upstream.Tx)
+	if !strings.EqualFold(strings.TrimPrefix(cometHash, "0x"), upstream.Hash) {
 		return chain.Transaction{}, errors.New("CometBFT transaction payload hash mismatch")
 	}
-	return g.transactionAtHeight(ctx, hash, height)
+	externalHash, err := mappedTransactionHash(upstream.Tx)
+	if err != nil {
+		return chain.Transaction{}, err
+	}
+	return g.transactionAtHeight(ctx, externalHash, height)
 }
 
 func boundedPositiveInt(raw string, fallback, maximum int) (int, bool) {
