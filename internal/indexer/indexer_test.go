@@ -182,6 +182,256 @@ func TestStoreCheckpointsWALAtBoundAndRejectsCorruption(t *testing.T) {
 	}
 }
 
+func TestStoreCheckpointIsPrivateStrictAndValidated(t *testing.T) {
+	directory := t.TempDir()
+	storePath := directory + "/checkpoint.json"
+	txHash := "0x" + strings.Repeat("c", 64)
+	transaction := chain.Transaction{
+		Hash: txHash, Type: "transfer", From: "0x" + strings.Repeat("1", 40), To: "0x" + strings.Repeat("2", 40),
+		Amount: 5, Fee: 1, Nonce: 0, BlockNum: 1, BlockHash: blockHash(1), Timestamp: time.Now().UTC(),
+		LotFlows: []chain.LotFlow{{LotID: "lot-1", Amount: 5, From: "source", To: "destination"}},
+		Logs:     []chain.EVMLog{{Address: "0x" + strings.Repeat("3", 40), Topics: []string{"0x" + strings.Repeat("4", 64)}}},
+	}
+	blocks := []chain.Block{
+		{Height: 0, Hash: blockHash(0), ParentHash: strings.Repeat("0", 64), Time: time.Now().UTC()},
+		{Height: 1, Hash: blockHash(1), ParentHash: blockHash(0), Time: time.Now().UTC(), Transactions: []chain.Transaction{transaction}},
+	}
+	status := Status{
+		Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 1,
+		LatestBlockHash: blockHash(1), EarliestBlockHeight: 0, EarliestBlockHash: blockHash(0),
+	}
+	store := NewStore(storePath)
+	store.checkpointEvery = 2
+	if _, err := store.UpsertBlocks("http://127.0.0.1:6420", status, blocks); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("checkpoint permissions = %o, want 600", info.Mode().Perm())
+	}
+	if _, err := os.Stat(storePath + ".tmp"); !os.IsNotExist(err) {
+		t.Fatalf("atomic checkpoint temp file remains: %v", err)
+	}
+	payload, err := os.ReadFile(storePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("unsafe permissions", func(t *testing.T) {
+		path := directory + "/unsafe.json"
+		if err := os.WriteFile(path, payload, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(path, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewStore(path).Load(); err == nil || !strings.Contains(err.Error(), "permissions must be 0600") {
+			t.Fatalf("unsafe checkpoint permissions did not fail closed: %v", err)
+		}
+	})
+
+	t.Run("unknown field", func(t *testing.T) {
+		var object map[string]any
+		if err := json.Unmarshal(payload, &object); err != nil {
+			t.Fatal(err)
+		}
+		object["unexpected"] = true
+		tampered, err := json.Marshal(object)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := directory + "/unknown.json"
+		if err := os.WriteFile(path, tampered, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewStore(path).Load(); err == nil || !strings.Contains(err.Error(), "checkpoint is invalid") {
+			t.Fatalf("unknown checkpoint field did not fail closed: %v", err)
+		}
+	})
+
+	t.Run("tip mismatch", func(t *testing.T) {
+		var database Database
+		if err := json.Unmarshal(payload, &database); err != nil {
+			t.Fatal(err)
+		}
+		database.LastBlockHash = strings.Repeat("f", 64)
+		tampered, err := json.Marshal(database)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := directory + "/tip.json"
+		if err := os.WriteFile(path, tampered, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewStore(path).Load(); err == nil || !strings.Contains(err.Error(), "tip metadata is inconsistent") {
+			t.Fatalf("checkpoint tip tamper did not fail closed: %v", err)
+		}
+	})
+
+	t.Run("transaction map mismatch", func(t *testing.T) {
+		var database Database
+		if err := json.Unmarshal(payload, &database); err != nil {
+			t.Fatal(err)
+		}
+		delete(database.Transactions, txHash)
+		tampered, err := json.Marshal(database)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := directory + "/transactions.json"
+		if err := os.WriteFile(path, tampered, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewStore(path).Load(); err == nil || !strings.Contains(err.Error(), "transaction map is inconsistent") {
+			t.Fatalf("checkpoint transaction tamper did not fail closed: %v", err)
+		}
+	})
+
+	t.Run("symlink", func(t *testing.T) {
+		path := directory + "/checkpoint-link.json"
+		if err := os.Symlink(storePath, path); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewStore(path).Load(); err == nil || !strings.Contains(err.Error(), "regular file") {
+			t.Fatalf("checkpoint symlink did not fail closed: %v", err)
+		}
+	})
+}
+
+func TestStoreRejectsConflictingDuplicateWAL(t *testing.T) {
+	storePath := t.TempDir() + "/wal-index.json"
+	store := NewStore(storePath)
+	store.checkpointEvery = 100
+	status := Status{
+		Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 0,
+		LatestBlockHash: blockHash(0), EarliestBlockHeight: 0, EarliestBlockHash: blockHash(0),
+	}
+	block := chain.Block{Height: 0, Hash: blockHash(0), ParentHash: strings.Repeat("0", 64), Time: time.Now().UTC()}
+	if _, err := store.UpsertBlock("http://127.0.0.1:6420", status, block); err != nil {
+		t.Fatal(err)
+	}
+	payload, err := os.ReadFile(storePath + ".wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var record walRecord
+	if err := json.Unmarshal([]byte(strings.TrimSpace(string(payload))), &record); err != nil {
+		t.Fatal(err)
+	}
+	record.Block.Validator = "tampered-validator"
+	tampered, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.OpenFile(storePath+".wal", os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Write(append(tampered, '\n')); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewStore(storePath).Load(); err == nil || !strings.Contains(err.Error(), "WAL conflicts") {
+		t.Fatalf("conflicting duplicate WAL record did not fail closed: %v", err)
+	}
+}
+
+func TestStoreAcceptsExactWALRecordAlreadyCheckpointed(t *testing.T) {
+	storePath := t.TempDir() + "/checkpoint-overlap.json"
+	store := NewStore(storePath)
+	store.checkpointEvery = 1
+	status := Status{
+		Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 0,
+		LatestBlockHash: blockHash(0), EarliestBlockHeight: 0, EarliestBlockHash: blockHash(0),
+	}
+	block := chain.Block{Height: 0, Hash: blockHash(0), ParentHash: strings.Repeat("0", 64), Time: time.Now().UTC()}
+	if _, err := store.UpsertBlock("http://127.0.0.1:6420", status, block); err != nil {
+		t.Fatal(err)
+	}
+	record := walRecord{
+		Version: 1, SourceURL: "http://127.0.0.1:6420", Status: status, Block: block, IndexedAt: time.Now().UTC(),
+	}
+	payload, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(storePath+".wal", append(payload, '\n'), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	restarted := NewStore(storePath)
+	db, err := restarted.Load()
+	if err != nil {
+		t.Fatalf("exact WAL/checkpoint overlap must recover: %v", err)
+	}
+	if db.LastIndexedHeight != 0 || db.LastBlockHash != block.Hash || len(db.Blocks) != 1 {
+		t.Fatalf("unexpected recovered checkpoint overlap: %+v", db)
+	}
+}
+
+func TestStoreRejectsInvalidBatchBeforeJournaling(t *testing.T) {
+	storePath := t.TempDir() + "/invalid-batch.json"
+	store := NewStore(storePath)
+	status := Status{Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 102}
+	blocks := []chain.Block{
+		{Height: 100, Hash: blockHash(100), ParentHash: blockHash(99), Time: time.Now().UTC()},
+		{Height: 102, Hash: blockHash(102), ParentHash: blockHash(101), Time: time.Now().UTC()},
+	}
+	if _, err := store.UpsertBlocks("http://127.0.0.1:6420", status, blocks); err == nil || !strings.Contains(err.Error(), "batch is discontinuous") {
+		t.Fatalf("invalid block batch did not fail closed: %v", err)
+	}
+	if _, err := os.Stat(storePath + ".wal"); !os.IsNotExist(err) {
+		t.Fatalf("invalid batch wrote WAL data: %v", err)
+	}
+}
+
+func TestStoreSnapshotsAndInputsAreDeepCloned(t *testing.T) {
+	storePath := t.TempDir() + "/immutable.json"
+	store := NewStore(storePath)
+	hash := "0x" + strings.Repeat("d", 64)
+	transaction := chain.Transaction{
+		Hash: hash, BlockNum: 0, BlockHash: blockHash(0), Timestamp: time.Now().UTC(),
+		LotFlows: []chain.LotFlow{{LotID: "lot-1", Amount: 1}},
+		Logs:     []chain.EVMLog{{Topics: []string{"original-topic"}}},
+	}
+	block := chain.Block{Height: 0, Hash: blockHash(0), ParentHash: strings.Repeat("0", 64), Time: time.Now().UTC(), Transactions: []chain.Transaction{transaction}}
+	status := Status{
+		Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 0,
+		LatestBlockHash: blockHash(0), EarliestBlockHeight: 0, EarliestBlockHash: blockHash(0),
+	}
+	snapshot, err := store.UpsertBlock("http://127.0.0.1:6420", status, block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block.Transactions[0].Logs[0].Topics[0] = "mutated-input"
+	snapshotBlock := snapshot.Blocks["0"]
+	snapshotBlock.Transactions[0].Logs[0].Topics[0] = "mutated-snapshot"
+	snapshotTransaction := snapshot.Transactions[hash]
+	snapshotTransaction.LotFlows[0].LotID = "mutated-lot"
+
+	loaded, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Blocks["0"].Transactions[0].Logs[0].Topics[0] != "original-topic" || loaded.Transactions[hash].LotFlows[0].LotID != "lot-1" {
+		t.Fatalf("store internals were mutated through an input or returned snapshot: %+v", loaded)
+	}
+	loadedBlock := loaded.Blocks["0"]
+	loadedBlock.Transactions[0].Logs[0].Topics[0] = "mutated-load"
+	reloaded, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.Blocks["0"].Transactions[0].Logs[0].Topics[0] != "original-topic" {
+		t.Fatalf("store internals were mutated through Load: %+v", reloaded.Blocks["0"])
+	}
+}
+
 func TestIndexerFailsClosedOnParentDivergence(t *testing.T) {
 	source := newMigrationSource(100, 100, nil)
 	server := httptest.NewServer(source)

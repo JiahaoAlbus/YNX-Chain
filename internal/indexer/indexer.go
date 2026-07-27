@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -119,7 +120,11 @@ type Database struct {
 func (s *Store) Load() (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.loadLocked()
+	db, err := s.loadLocked()
+	if err != nil {
+		return Database{}, err
+	}
+	return cloneDatabase(db), nil
 }
 
 func (s *Store) Save(db Database) error {
@@ -141,23 +146,63 @@ func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Blo
 	}
 	next := cloneDatabase(db)
 	applySourceStatus(&next, sourceURL, status)
+	expectedParent := ""
+	expectedHeight := uint64(0)
+	requireContinuity := len(next.Blocks) > 0
+	if requireContinuity {
+		if next.LastIndexedHeight == ^uint64(0) {
+			return Database{}, fmt.Errorf("stored index height is exhausted; indexer rebuild required")
+		}
+		expectedParent = next.LastBlockHash
+		expectedHeight = next.LastIndexedHeight + 1
+	}
+	validatedTransactions := make(map[string]chain.Transaction, len(next.Transactions)+len(blocks))
+	for hash, transaction := range next.Transactions {
+		validatedTransactions[hash] = transaction
+	}
+	for position, block := range blocks {
+		if block.Hash == "" {
+			return Database{}, fmt.Errorf("indexer block %d has no hash", block.Height)
+		}
+		if requireContinuity {
+			if block.Height != expectedHeight {
+				return Database{}, fmt.Errorf("indexer block batch is discontinuous at height %d", block.Height)
+			}
+			if block.ParentHash != expectedParent {
+				return Database{}, fmt.Errorf("indexer block batch parent mismatch at height %d", block.Height)
+			}
+		}
+		if err := validateBlockTransactions(block, validatedTransactions); err != nil {
+			return Database{}, err
+		}
+		for _, transaction := range block.Transactions {
+			validatedTransactions[transaction.Hash] = transaction
+		}
+		if block.Height == ^uint64(0) && position+1 < len(blocks) {
+			return Database{}, fmt.Errorf("indexer block height is exhausted")
+		}
+		expectedParent = block.Hash
+		expectedHeight = block.Height + 1
+		requireContinuity = true
+	}
 	for _, block := range blocks {
 		indexedAt := time.Now().UTC()
 		if err := s.appendWALLocked(walRecord{Version: 1, SourceURL: sourceURL, Status: status, Block: block, IndexedAt: indexedAt}); err != nil {
 			return Database{}, err
 		}
-		next.Blocks[strconv.FormatUint(block.Height, 10)] = block
-		next.LastIndexedHeight = block.Height
-		next.LastBlockHash = block.Hash
+		storedBlock := cloneBlock(block)
+		next.Blocks[strconv.FormatUint(storedBlock.Height, 10)] = storedBlock
+		next.LastIndexedHeight = storedBlock.Height
+		next.LastBlockHash = storedBlock.Hash
 		next.LastSyncAt = indexedAt
-		for _, tx := range block.Transactions {
-			next.Transactions[tx.Hash] = tx
+		for _, tx := range storedBlock.Transactions {
+			next.Transactions[tx.Hash] = cloneTransaction(tx)
 		}
 	}
 	if len(blocks) == 0 {
 		s.db = next
 		s.loaded = true
-		return next, nil
+		return cloneDatabase(next), nil
 	}
 	s.db = next
 	s.loaded = true
@@ -169,9 +214,12 @@ func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Blo
 		if err := os.Remove(s.walPath); err != nil && !os.IsNotExist(err) {
 			return Database{}, err
 		}
+		if err := syncDirectory(filepath.Dir(s.walPath)); err != nil {
+			return Database{}, err
+		}
 		s.pendingBlocks = 0
 	}
-	return next, nil
+	return cloneDatabase(next), nil
 }
 
 func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, error) {
@@ -185,7 +233,7 @@ func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, e
 	applySourceStatus(&next, sourceURL, status)
 	s.db = next
 	s.loaded = true
-	return next, nil
+	return cloneDatabase(next), nil
 }
 
 func applySourceStatus(db *Database, sourceURL string, status Status) {
@@ -210,13 +258,29 @@ func (s *Store) loadLocked() (Database, error) {
 		s.loaded = true
 		return db, nil
 	}
+	info, err := os.Lstat(s.path)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return Database{}, fmt.Errorf("indexer checkpoint must be a regular file")
+		}
+		if info.Mode().Perm()&0o077 != 0 {
+			return Database{}, fmt.Errorf("indexer checkpoint permissions must be 0600")
+		}
+	} else if !os.IsNotExist(err) {
+		return Database{}, err
+	}
 	payload, err := os.ReadFile(s.path)
 	if err != nil && !os.IsNotExist(err) {
 		return Database{}, err
 	}
 	if err == nil {
-		if err := json.Unmarshal(payload, &db); err != nil {
-			return Database{}, err
+		decoder := json.NewDecoder(bytes.NewReader(payload))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&db); err != nil {
+			return Database{}, fmt.Errorf("indexer checkpoint is invalid")
+		}
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			return Database{}, fmt.Errorf("indexer checkpoint is invalid")
 		}
 	}
 	if db.Blocks == nil {
@@ -224,6 +288,9 @@ func (s *Store) loadLocked() (Database, error) {
 	}
 	if db.Transactions == nil {
 		db.Transactions = map[string]chain.Transaction{}
+	}
+	if err := validateDatabase(db); err != nil {
+		return Database{}, err
 	}
 	pending, err := s.replayWALLocked(&db)
 	if err != nil {
@@ -236,23 +303,19 @@ func (s *Store) loadLocked() (Database, error) {
 }
 
 func (s *Store) saveLocked(db Database) error {
+	if err := validateDatabase(db); err != nil {
+		return err
+	}
 	if strings.TrimSpace(s.path) == "" {
 		s.db = db
 		s.loaded = true
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
 	payload, err := json.MarshalIndent(db, "", "  ")
 	if err != nil {
 		return err
 	}
-	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, payload, 0o600); err != nil {
-		return err
-	}
-	if err := os.Rename(tmp, s.path); err != nil {
+	if err := writeFileAtomic(s.path, payload); err != nil {
 		return err
 	}
 	s.db = db
@@ -260,17 +323,158 @@ func (s *Store) saveLocked(db Database) error {
 	return nil
 }
 
+func writeFileAtomic(path string, payload []byte) error {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.Remove(tmp); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	file, err := os.OpenFile(tmp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	cleanup := true
+	defer func() {
+		_ = file.Close()
+		if cleanup {
+			_ = os.Remove(tmp)
+		}
+	}()
+	if err := file.Chmod(0o600); err != nil {
+		return err
+	}
+	if _, err := file.Write(payload); err != nil {
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	cleanup = false
+	return syncDirectory(directory)
+}
+
+func syncDirectory(path string) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+	return directory.Sync()
+}
+
 func cloneDatabase(db Database) Database {
 	next := db
 	next.Blocks = make(map[string]chain.Block, len(db.Blocks))
 	for height, block := range db.Blocks {
-		next.Blocks[height] = block
+		next.Blocks[height] = cloneBlock(block)
 	}
 	next.Transactions = make(map[string]chain.Transaction, len(db.Transactions))
 	for hash, transaction := range db.Transactions {
-		next.Transactions[hash] = transaction
+		next.Transactions[hash] = cloneTransaction(transaction)
 	}
 	return next
+}
+
+func cloneBlock(block chain.Block) chain.Block {
+	next := block
+	if block.Transactions != nil {
+		next.Transactions = make([]chain.Transaction, len(block.Transactions))
+		for position, transaction := range block.Transactions {
+			next.Transactions[position] = cloneTransaction(transaction)
+		}
+	}
+	return next
+}
+
+func cloneTransaction(transaction chain.Transaction) chain.Transaction {
+	next := transaction
+	if transaction.LotFlows != nil {
+		next.LotFlows = append([]chain.LotFlow(nil), transaction.LotFlows...)
+	}
+	if transaction.Logs != nil {
+		next.Logs = make([]chain.EVMLog, len(transaction.Logs))
+		for position, log := range transaction.Logs {
+			next.Logs[position] = log
+			if log.Topics != nil {
+				next.Logs[position].Topics = append([]string(nil), log.Topics...)
+			}
+		}
+	}
+	return next
+}
+
+func validateDatabase(db Database) error {
+	if db.Version != 2 {
+		return fmt.Errorf("indexer checkpoint version %d is unsupported", db.Version)
+	}
+	if db.Blocks == nil || db.Transactions == nil {
+		return fmt.Errorf("indexer checkpoint maps are missing")
+	}
+	heights := make([]uint64, 0, len(db.Blocks))
+	for rawHeight, block := range db.Blocks {
+		height, err := strconv.ParseUint(rawHeight, 10, 64)
+		if err != nil || strconv.FormatUint(height, 10) != rawHeight || block.Height != height || block.Hash == "" {
+			return fmt.Errorf("indexer checkpoint block key %q is invalid", rawHeight)
+		}
+		heights = append(heights, height)
+	}
+	sort.Slice(heights, func(a, b int) bool { return heights[a] < heights[b] })
+	expectedTransactions := make(map[string]chain.Transaction, len(db.Transactions))
+	var previous chain.Block
+	for position, height := range heights {
+		block := db.Blocks[strconv.FormatUint(height, 10)]
+		if position > 0 {
+			if height != previous.Height+1 || block.ParentHash != previous.Hash {
+				return fmt.Errorf("indexer checkpoint chain is discontinuous at height %d", height)
+			}
+		}
+		if err := validateBlockTransactions(block, expectedTransactions); err != nil {
+			return fmt.Errorf("indexer checkpoint transaction index is invalid: %w", err)
+		}
+		for _, transaction := range block.Transactions {
+			expectedTransactions[transaction.Hash] = transaction
+		}
+		previous = block
+	}
+	if len(heights) == 0 {
+		if db.LastIndexedHeight != 0 || db.LastBlockHash != "" || len(db.Transactions) != 0 {
+			return fmt.Errorf("indexer checkpoint empty-state metadata is inconsistent")
+		}
+		return nil
+	}
+	if db.LastIndexedHeight != previous.Height || db.LastBlockHash != previous.Hash {
+		return fmt.Errorf("indexer checkpoint tip metadata is inconsistent")
+	}
+	if db.LastSourceHeight < db.LastIndexedHeight {
+		return fmt.Errorf("indexer checkpoint source height is below indexed tip")
+	}
+	if db.ChainID != 6423 || db.NativeSymbol != "YNXT" {
+		return fmt.Errorf("indexer checkpoint chain identity is invalid")
+	}
+	if db.SourceEarliestHash != "" {
+		if block, ok := db.Blocks[strconv.FormatUint(db.SourceEarliestHeight, 10)]; ok && block.Hash != db.SourceEarliestHash {
+			return fmt.Errorf("indexer checkpoint source earliest hash is inconsistent")
+		}
+	}
+	if len(expectedTransactions) != len(db.Transactions) {
+		return fmt.Errorf("indexer checkpoint transaction map is inconsistent")
+	}
+	for hash, expected := range expectedTransactions {
+		stored, ok := db.Transactions[hash]
+		if !ok || stored.Hash != hash || !reflect.DeepEqual(stored, expected) {
+			return fmt.Errorf("indexer checkpoint transaction %s is inconsistent", hash)
+		}
+	}
+	return nil
 }
 
 type walRecord struct {
@@ -285,7 +489,21 @@ func (s *Store) appendWALLocked(record walRecord) error {
 	if strings.TrimSpace(s.path) == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(s.walPath), 0o700); err != nil {
+	directory := filepath.Dir(s.walPath)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	created := false
+	if info, err := os.Lstat(s.walPath); err == nil {
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("indexer WAL must be a regular file")
+		}
+		if info.Mode().Perm()&0o077 != 0 {
+			return fmt.Errorf("indexer WAL permissions must be 0600")
+		}
+	} else if os.IsNotExist(err) {
+		created = true
+	} else {
 		return err
 	}
 	payload, err := json.Marshal(record)
@@ -297,6 +515,10 @@ func (s *Store) appendWALLocked(record walRecord) error {
 	if err != nil {
 		return err
 	}
+	if err := file.Chmod(0o600); err != nil {
+		_ = file.Close()
+		return err
+	}
 	if _, err := file.Write(payload); err != nil {
 		_ = file.Close()
 		return err
@@ -305,14 +527,27 @@ func (s *Store) appendWALLocked(record walRecord) error {
 		_ = file.Close()
 		return err
 	}
-	return file.Close()
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if created {
+		return syncDirectory(directory)
+	}
+	return nil
 }
 
 func (s *Store) replayWALLocked(db *Database) (int, error) {
-	file, err := os.Open(s.walPath)
+	linkInfo, err := os.Lstat(s.walPath)
 	if os.IsNotExist(err) {
 		return 0, nil
 	}
+	if err != nil {
+		return 0, err
+	}
+	if !linkInfo.Mode().IsRegular() {
+		return 0, fmt.Errorf("indexer WAL must be a regular file")
+	}
+	file, err := os.Open(s.walPath)
 	if err != nil {
 		return 0, err
 	}
@@ -343,7 +578,7 @@ func (s *Store) replayWALLocked(db *Database) (int, error) {
 		}
 		key := strconv.FormatUint(record.Block.Height, 10)
 		if existing, ok := db.Blocks[key]; ok {
-			if existing.Hash != record.Block.Hash {
+			if !reflect.DeepEqual(existing, record.Block) {
 				return 0, fmt.Errorf("indexer WAL conflicts with checkpoint at height %d", record.Block.Height)
 			}
 			applySourceStatus(db, record.SourceURL, record.Status)
@@ -368,6 +603,9 @@ func (s *Store) replayWALLocked(db *Database) (int, error) {
 		pending++
 	}
 	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+	if err := validateDatabase(*db); err != nil {
 		return 0, err
 	}
 	return pending, nil
