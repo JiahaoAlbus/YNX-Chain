@@ -53,7 +53,10 @@ case "$url" in
     printf '%s\n' '{"ok":true,"service":"ynx-squared","persistence":"atomic-json-mode-0600","nativeIdentity":"ynx1","remoteDeployed":true,"truthfulStatus":"remote-bounded-square-core-no-public-ingress-claim","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6437/health)
-    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","walletBoundary":"p256-product-session-proof","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","upstreams":{"wallet":{"ok":true}},"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6438/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-wallet-gatewayd","remoteDeployed":true,"stateDigest":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","truthfulStatus":"remote-canonical-wallet-gateway"}'
     ;;
   *)
     echo "unexpected URL: $url" >&2
@@ -113,7 +116,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
+  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway wallet_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -204,9 +207,15 @@ check_full_stack_surface() {
   fi
 
   if [[ "${YNX_EXPECT_APP_GATEWAY_SERVICE:-0}" == "1" ]]; then
+    wallet_gateway="$(fetch_with_retry "Wallet Gateway health" "http://127.0.0.1:6438/health")"
+    require_contains "Wallet Gateway health" "$wallet_gateway" '"service":"ynx-wallet-gatewayd"'
+    require_contains "Wallet Gateway health" "$wallet_gateway" '"remoteDeployed":true'
+    require_contains "Wallet Gateway health" "$wallet_gateway" '"truthfulStatus":"remote-canonical-wallet-gateway"'
     app_gateway="$(fetch_with_retry "App Gateway health" "http://127.0.0.1:6437/health")"
     require_contains "App Gateway health" "$app_gateway" '"browserBoundary":"exact-https-origin"'
     require_contains "App Gateway health" "$app_gateway" '"nativeBoundary":"ynx-mobile-v1"'
+    require_contains "App Gateway Wallet boundary" "$app_gateway" '"walletBoundary":"p256-product-session-proof"'
+    require_contains "App Gateway Wallet upstream" "$app_gateway" '"wallet":{"ok":true'
     require_contains "App Gateway ownership proof" "$app_gateway" '"ownershipProof":"ynx1-secp256k1-plus-ed25519-device"'
     require_contains "App Gateway session storage" "$app_gateway" '"sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only"'
     require_contains "App Gateway health" "$app_gateway" '"remoteDeployed":true'

@@ -44,6 +44,7 @@ test("Node host mounts the existing kernel and preserves inventory across restar
   const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-")),statePath=join(directory,"state.json"),registry=approvedRegistry();
   const host=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
   await serve(host,async(base)=>{
+    const health=await fetch(`${base}/health`);assert.equal(health.status,200);assert.equal((await health.json()).truthfulStatus,"canonical-wallet-gateway-local-runtime");
     for(const [id,nonce,challenge] of [["social","social_node_host_nonce_abcdefghijkl","social_node_host_challenge_abcdef"],["wallet","wallet_node_host_nonce_abcdefghijkl","wallet_node_host_challenge_abcdef"]]){
       const response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON(completion(registry,id,nonce,challenge))});
       assert.equal(response.status,200,await response.text());
@@ -56,7 +57,11 @@ test("Node host mounts the existing kernel and preserves inventory across restar
     const response=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":proof(wallet,"/v1/wallet/sessions","node_inventory_proof_abcdefghijkl")},body:"{}"});
     assert.equal(response.status,200);const payload=await response.json();assert.equal(payload.result.connectedApps.length,2);assert.equal(payload.result.account,wallet.account);
   });
-  new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const remote=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW},{remoteDeployed:true});
+  await serve(remote,async(base)=>{
+    const health=await (await fetch(`${base}/health`)).json();
+    assert.equal(health.remoteDeployed,true);assert.equal(health.truthfulStatus,"remote-canonical-wallet-gateway");
+  });
 });
 
 test("Node host rejects noncanonical proof transport and persisted-state tamper",async()=>{
