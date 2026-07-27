@@ -98,7 +98,7 @@ func TestFeeEventRejectsTamperedAllocation(t *testing.T) {
 
 func TestFeeEventSourceIsBoundToTransactionProfile(t *testing.T) {
 	payer := mustNativeAddress(t, deterministicPrivateKey(34))
-	ethereum := newEthereumGasFeeEvent("0xeth", payer, "ynx_validator_primary", 21_000, 2, time.Unix(2, 0))
+	ethereum := newEthereumGasFeeEvent("0xeth", EthereumLegacyTransferType, payer, "ynx_validator_primary", 21_000, 2, time.Unix(2, 0))
 	ethereum.Source = FixedFeeSource
 	ethereum.AuditHash = feeEventAuditHash(ethereum)
 	if err := validateFeeEvents([]BFTFeeEvent{ethereum}); err == nil {

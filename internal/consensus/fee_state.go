@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	FeePolicyVersion           = 1
-	FixedFeeSource             = "ynx-consensus-fixed-fee-v1"
-	EthereumLegacyGasFeeSource = "ethereum-legacy-gas-v1"
+	FeePolicyVersion               = 1
+	FixedFeeSource                 = "ynx-consensus-fixed-fee-v1"
+	EthereumLegacyGasFeeSource     = "ethereum-legacy-gas-v1"
+	EthereumAccessListGasFeeSource = "ethereum-access-list-gas-v1"
 )
 
 // BFTFeeEvent makes the current fixed-fee behavior explicit. BurnYNXT is zero
@@ -39,8 +40,12 @@ func newCurrentFeeEvent(txHash, txType, payer, recipient string, fee, height int
 	return newFeeEvent(txHash, txType, payer, recipient, fee, FixedFeeSource, height, blockTime)
 }
 
-func newEthereumGasFeeEvent(txHash, payer, recipient string, fee, height int64, blockTime time.Time) BFTFeeEvent {
-	return newFeeEvent(txHash, EthereumLegacyTransferType, payer, recipient, fee, EthereumLegacyGasFeeSource, height, blockTime)
+func newEthereumGasFeeEvent(txHash, txType, payer, recipient string, fee, height int64, blockTime time.Time) BFTFeeEvent {
+	source := EthereumLegacyGasFeeSource
+	if txType == EthereumAccessListTransferType {
+		source = EthereumAccessListGasFeeSource
+	}
+	return newFeeEvent(txHash, txType, payer, recipient, fee, source, height, blockTime)
 }
 
 func newFeeEvent(txHash, txType, payer, recipient string, fee int64, source string, height int64, blockTime time.Time) BFTFeeEvent {

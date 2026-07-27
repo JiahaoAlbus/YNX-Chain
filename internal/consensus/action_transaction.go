@@ -393,8 +393,11 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	if len(payload) == 0 || len(payload) > MaxSignedActionSize {
 		return "", errors.New("transaction envelope size is invalid")
 	}
+	if payload[0] == EthereumAccessListType {
+		return EthereumAccessListTransferType, nil
+	}
 	if IsEthereumTypedEnvelope(payload) {
-		return "", errors.New("typed Ethereum transaction envelopes are not supported")
+		return "", errors.New("unsupported typed Ethereum transaction envelope")
 	}
 	if IsEthereumLegacyEnvelope(payload) {
 		return EthereumLegacyTransferType, nil

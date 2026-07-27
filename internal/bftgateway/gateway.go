@@ -678,15 +678,19 @@ func mappedTransaction(payload []byte, height uint64, blockHash string, blockTim
 	if err != nil {
 		return chain.Transaction{}, err
 	}
-	if kind == consensus.EthereumLegacyTransferType {
-		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
-		if err != nil || tx.Verify(6423) != nil {
-			return chain.Transaction{}, errors.New("invalid EIP-155 legacy Ethereum transfer")
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType {
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
+		if err != nil || tx.Verify(6423) != nil || tx.EnvelopeType != kind {
+			return chain.Transaction{}, errors.New("invalid bounded Ethereum value transfer")
+		}
+		memo := "EIP-155 legacy Ethereum value transfer"
+		if kind == consensus.EthereumAccessListTransferType {
+			memo = "EIP-2930 empty-access-list Ethereum value transfer"
 		}
 		return chain.Transaction{
-			Hash: tx.Hash, Type: consensus.EthereumLegacyTransferType, From: tx.From, To: tx.To,
+			Hash: tx.Hash, Type: kind, From: tx.From, To: tx.To,
 			Amount: tx.Value, Fee: tx.Fee, Nonce: tx.Nonce, BlockHash: strings.ToLower(blockHash),
-			BlockNum: height, Timestamp: blockTime, Memo: "EIP-155 legacy Ethereum value transfer",
+			BlockNum: height, Timestamp: blockTime, Memo: memo,
 		}, nil
 	}
 	if kind == consensus.SignedActionType {
@@ -742,13 +746,13 @@ func mappedTransactionHash(payload []byte) (string, error) {
 		return "", err
 	}
 	switch kind {
-	case consensus.EthereumLegacyTransferType:
-		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
+	case consensus.EthereumLegacyTransferType, consensus.EthereumAccessListTransferType:
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
 		if err != nil {
 			return "", err
 		}
-		if err := tx.Verify(6423); err != nil {
-			return "", err
+		if err := tx.Verify(6423); err != nil || tx.EnvelopeType != kind {
+			return "", errors.New("invalid bounded Ethereum value transfer")
 		}
 		return tx.Hash, nil
 	case consensus.SignedActionType:
@@ -799,18 +803,18 @@ func broadcastTransactionIdentity(payload []byte) (string, int, error) {
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}
-	if kind == consensus.EthereumLegacyTransferType {
-		tx, err := consensus.DecodeEthereumLegacyTransaction(payload)
+	if kind == consensus.EthereumLegacyTransferType || kind == consensus.EthereumAccessListTransferType {
+		tx, err := consensus.DecodeEthereumValueTransfer(payload)
 		if err != nil {
 			return "", http.StatusBadRequest, err
 		}
-		if err := tx.Verify(6423); err != nil {
-			return "", http.StatusUnprocessableEntity, err
+		if err := tx.Verify(6423); err != nil || tx.EnvelopeType != kind {
+			return "", http.StatusUnprocessableEntity, errors.New("invalid bounded Ethereum value transfer")
 		}
 		return tx.Hash, http.StatusOK, nil
 	}
 	if kind != consensus.SignedTransactionType {
-		return "", http.StatusBadRequest, errors.New("broadcast endpoint accepts native transfers or bounded legacy Ethereum transfers")
+		return "", http.StatusBadRequest, errors.New("broadcast endpoint accepts native transfers or bounded Ethereum value transfers")
 	}
 	tx, err := consensus.DecodeSignedTransaction(payload)
 	if err != nil {

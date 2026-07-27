@@ -143,6 +143,107 @@ func TestGatewayBroadcastsAndLooksUpBoundedEthereumLegacyTransfer(t *testing.T) 
 	}
 }
 
+func TestGatewayBroadcastsAndLooksUpBoundedEthereumAccessListTransfer(t *testing.T) {
+	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 55))
+	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 56))
+	recipient, err := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, ethereumTx, err := consensus.NewEthereumAccessListTransfer(senderKey, 6423, 0, 2, recipient, 125)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cometHash := consensus.SignedTransactionHash(payload)
+	cometHashUpper := strings.ToUpper(strings.TrimPrefix(cometHash, "0x"))
+	blockHash := strings.Repeat("8", 64)
+	appHash := strings.Repeat("9", 64)
+	dataHash := strings.Repeat("7", 64)
+	blockTime := time.Date(2026, 7, 27, 10, 45, 0, 0, time.UTC)
+	receipt := consensus.BFTEVMReceipt{
+		TxHash: ethereumTx.Hash, From: ethereumTx.From, To: ethereumTx.To,
+		Action: consensus.EthereumAccessListTransferType, Status: "success", EncodedResult: "0x",
+		Logs: []consensus.BFTEVMLog{}, BlockHeight: 18,
+	}
+	receipt.AuditHash = consensus.BFTEVMReceiptAuditHash(receipt)
+	receiptPayload, err := json.Marshal(receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/broadcast_tx_commit":
+			if r.URL.Query().Get("tx") != fmt.Sprintf("0x%x", payload) {
+				t.Errorf("unexpected EIP-2930 broadcast payload: %s", r.URL.RawQuery)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"check_tx": map[string]any{"code": 0}, "tx_result": map[string]any{"code": 0, "gas_used": "21000"},
+				"hash": cometHashUpper, "height": "18",
+			}})
+		case "/tx":
+			_ = json.NewEncoder(w).Encode(map[string]any{"error": map[string]any{"code": -32603, "message": "tx not found"}})
+		case "/abci_query":
+			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+			value := receiptPayload
+			if path == "/evm/logs" {
+				value = []byte("[]")
+			} else if path != "/evm/receipts/"+ethereumTx.Hash {
+				t.Errorf("unexpected EIP-2930 ABCI query path: %s", path)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{
+				"code": 0, "height": "18", "value": base64.StdEncoding.EncodeToString(value),
+			}}})
+		case "/block":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"block_id": map[string]any{"hash": strings.ToUpper(blockHash)},
+				"block": map[string]any{
+					"header": map[string]any{
+						"height": "18", "time": blockTime, "proposer_address": strings.Repeat("6", 40),
+						"app_hash": strings.ToUpper(appHash), "data_hash": strings.ToUpper(dataHash),
+						"last_block_id": map[string]any{"hash": strings.Repeat("5", 64)},
+					},
+					"data": map[string]any{"txs": []string{base64.StdEncoding.EncodeToString(payload)}},
+				},
+			}})
+		case "/block_results":
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"height": "18", "txs_results": []map[string]any{{"code": 0, "log": consensus.EthereumAccessListTransferType, "gas_used": "21000"}},
+			}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer upstream.Close()
+	gateway, err := New(Config{CometRPCURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := gateway.broadcastSignedTransaction(context.Background(), payload)
+	if err != nil || !result.Committed || result.Transaction.Hash != ethereumTx.Hash || result.Transaction.Type != consensus.EthereumAccessListTransferType || result.CometHash != strings.ToLower(cometHashUpper) {
+		t.Fatalf("unexpected EIP-2930 broadcast result: result=%+v err=%v", result, err)
+	}
+	upstreamTx, mapped, found, err := gateway.committedTransaction(context.Background(), ethereumTx.Hash)
+	if err != nil || !found || mapped.Type != consensus.EthereumAccessListTransferType || upstreamTx.Hash != cometHashUpper {
+		t.Fatalf("EIP-2930 dual-hash lookup failed: upstream=%+v mapped=%+v found=%v err=%v", upstreamTx, mapped, found, err)
+	}
+	object := evmCommittedTransaction(mapped, upstreamTx.Index, upstreamTx.Tx)
+	if object["hash"] != ethereumTx.Hash || object["type"] != "0x1" || object["chainId"] != "0x1917" || object["gasPrice"] != "0x2" || object["v"] != hexEVMQuantity(ethereumTx.YParity) || object["yParity"] != hexEVMQuantity(ethereumTx.YParity) {
+		t.Fatalf("unexpected EIP-2930 JSON-RPC transaction object: %+v", object)
+	}
+	if accessList, ok := object["accessList"].([]any); !ok || len(accessList) != 0 {
+		t.Fatalf("EIP-2930 transaction did not expose an empty access list: %+v", object)
+	}
+	receiptObject, err := gateway.evmCommittedResult(context.Background(), "eth_getTransactionReceipt", json.RawMessage(fmt.Sprintf(`[%q]`, ethereumTx.Hash)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mappedReceipt := receiptObject.(map[string]any)
+	if mappedReceipt["transactionHash"] != ethereumTx.Hash || mappedReceipt["type"] != "0x1" || mappedReceipt["effectiveGasPrice"] != "0x2" || mappedReceipt["gasUsed"] != "0x5208" {
+		t.Fatalf("unexpected EIP-2930 JSON-RPC receipt: %+v", mappedReceipt)
+	}
+}
+
 func TestGatewayRejectsTamperedEthereumReceiptAuditEvidence(t *testing.T) {
 	senderKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 53))
 	recipientKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 54))

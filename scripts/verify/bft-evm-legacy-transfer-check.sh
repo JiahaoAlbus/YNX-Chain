@@ -7,10 +7,11 @@ go test ./internal/consensus -run 'TestEthereumLegacyTransferCanonicalEIP155Roun
 go test ./internal/bftgateway -run 'TestGatewayBroadcastsAndResolvesEthereumLegacyTransferByEthereumHash|TestGatewayBroadcastsAndLooksUpBoundedEthereumLegacyTransfer|TestGatewayRejectsTamperedEthereumReceiptAuditEvidence|TestCommittedEthereumLookupDoesNotMaskNonNotFoundCometError|TestGatewayRejectsMalformedWrongChainAndTypedEthereumBroadcasts' -count=1
 
 grep -Fq 'EthereumLegacyTransferType' internal/consensus/ethereum_transaction.go
-grep -Fq 'EthereumTransferGasLimit   = uint64(21_000)' internal/consensus/ethereum_transaction.go
-grep -Fq 'typed Ethereum transaction envelopes are not supported' internal/consensus/action_transaction.go
+grep -Fq 'EthereumTransferGasLimit' internal/consensus/ethereum_transaction.go
+grep -Fq 'unsupported typed Ethereum transaction envelope' internal/consensus/action_transaction.go
 grep -Fq '{Key: "ethereum_hash", Value: tx.Hash, Index: true}' internal/consensus/application.go
-grep -Fq 'ApplicationVersion   = 15' internal/consensus/application.go
+grep -Fq 'ApplicationVersion   = 16' internal/consensus/application.go
+grep -Fq 'DecodeEthereumValueTransfer' internal/bftgateway/evm.go
 grep -Fq 'committedEthereumTransaction' internal/bftgateway/evm.go
 grep -Fq 'consensus.ValidateBFTEVMReceipt(receipt)' internal/bftgateway/evm.go
 grep -Fq 'consensus.ValidateBFTEVMReceipt(ideReceipt)' internal/bftgateway/evm.go

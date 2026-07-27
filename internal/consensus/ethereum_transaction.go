@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	EthereumLegacyTransferType = "ethereum_legacy_transfer"
-	EthereumTransferGasLimit   = uint64(21_000)
+	EthereumLegacyTransferType     = "ethereum_legacy_transfer"
+	EthereumAccessListTransferType = "ethereum_access_list_transfer"
+	EthereumLegacyTransactionType  = byte(0x00)
+	EthereumAccessListType         = byte(0x01)
+	EthereumTransferGasLimit       = uint64(21_000)
 )
 
 // EthereumLegacyTransaction is the bounded Ethereum compatibility envelope
@@ -37,6 +40,48 @@ type EthereumLegacyTransaction struct {
 	From       string
 	Fee        int64
 	Hash       string
+}
+
+// EthereumAccessListTransaction is the bounded EIP-2930 compatibility
+// envelope accepted by Chain Core. Only an empty access list and a simple
+// value transfer are supported; calldata, contract creation and non-empty
+// access lists remain rejected.
+type EthereumAccessListTransaction struct {
+	ChainID    int64
+	Nonce      uint64
+	GasPrice   uint64
+	GasLimit   uint64
+	To         string
+	Value      int64
+	Data       []byte
+	YParity    uint64
+	R          [32]byte
+	S          [32]byte
+	RecoveryID byte
+	From       string
+	Fee        int64
+	Hash       string
+}
+
+// EthereumValueTransfer is the normalized execution view shared by the
+// bounded legacy and EIP-2930 envelopes.
+type EthereumValueTransfer struct {
+	EnvelopeType    string
+	TransactionType byte
+	ChainID         int64
+	Nonce           uint64
+	GasPrice        uint64
+	GasLimit        uint64
+	To              string
+	Value           int64
+	Data            []byte
+	V               uint64
+	R               [32]byte
+	S               [32]byte
+	RecoveryID      byte
+	From            string
+	Fee             int64
+	Hash            string
 }
 
 func IsEthereumLegacyEnvelope(payload []byte) bool {
@@ -119,6 +164,143 @@ func NewEthereumLegacyTransfer(privateKey *secp256k1.PrivateKey, chainID int64, 
 		return nil, EthereumLegacyTransaction{}, err
 	}
 	return payload, decoded, nil
+}
+
+func NewEthereumAccessListTransfer(privateKey *secp256k1.PrivateKey, chainID int64, nonce, gasPrice uint64, to string, value int64) ([]byte, EthereumAccessListTransaction, error) {
+	if privateKey == nil {
+		return nil, EthereumAccessListTransaction{}, errors.New("private key is required")
+	}
+	canonicalTo, err := accountaddress.Normalize(to)
+	if err != nil {
+		return nil, EthereumAccessListTransaction{}, fmt.Errorf("normalize Ethereum recipient: %w", err)
+	}
+	if chainID <= 0 {
+		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum chain ID must be positive")
+	}
+	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/EthereumTransferGasLimit {
+		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
+	}
+	if value <= 0 {
+		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum transfer value must be positive")
+	}
+	toBytes, _ := hex.DecodeString(canonicalTo[2:])
+	unsigned := encodeRLPList(
+		encodeRLPUint(uint64(chainID)),
+		encodeRLPUint(nonce),
+		encodeRLPUint(gasPrice),
+		encodeRLPUint(EthereumTransferGasLimit),
+		encodeRLPBytes(toBytes),
+		encodeRLPUint(uint64(value)),
+		encodeRLPBytes(nil),
+		encodeRLPList(),
+	)
+	digest := legacyKeccak(append([]byte{EthereumAccessListType}, unsigned...))
+	compact := ecdsa.SignCompact(privateKey, digest, true)
+	if len(compact) != 65 || compact[0] < 31 || compact[0] > 34 {
+		return nil, EthereumAccessListTransaction{}, errors.New("unexpected compact secp256k1 signature")
+	}
+	yParity := uint64(compact[0] - 31)
+	if yParity > 1 {
+		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum access-list transfer requires y parity 0 or 1")
+	}
+	signed := encodeRLPList(
+		encodeRLPUint(uint64(chainID)),
+		encodeRLPUint(nonce),
+		encodeRLPUint(gasPrice),
+		encodeRLPUint(EthereumTransferGasLimit),
+		encodeRLPBytes(toBytes),
+		encodeRLPUint(uint64(value)),
+		encodeRLPBytes(nil),
+		encodeRLPList(),
+		encodeRLPUint(yParity),
+		encodeRLPBytes(trimLeadingZeroes(compact[1:33])),
+		encodeRLPBytes(trimLeadingZeroes(compact[33:65])),
+	)
+	payload := append([]byte{EthereumAccessListType}, signed...)
+	decoded, err := DecodeEthereumAccessListTransaction(payload)
+	if err != nil {
+		return nil, EthereumAccessListTransaction{}, err
+	}
+	if err := decoded.Verify(chainID); err != nil {
+		return nil, EthereumAccessListTransaction{}, err
+	}
+	return payload, decoded, nil
+}
+
+func DecodeEthereumValueTransfer(payload []byte) (EthereumValueTransfer, error) {
+	if len(payload) == 0 {
+		return EthereumValueTransfer{}, errors.New("Ethereum transaction payload is empty")
+	}
+	if payload[0] == EthereumAccessListType {
+		tx, err := DecodeEthereumAccessListTransaction(payload)
+		if err != nil {
+			return EthereumValueTransfer{}, err
+		}
+		return tx.ValueTransfer(), nil
+	}
+	tx, err := DecodeEthereumLegacyTransaction(payload)
+	if err != nil {
+		return EthereumValueTransfer{}, err
+	}
+	return tx.ValueTransfer(), nil
+}
+
+func (tx EthereumLegacyTransaction) ValueTransfer() EthereumValueTransfer {
+	return EthereumValueTransfer{
+		EnvelopeType: EthereumLegacyTransferType, TransactionType: EthereumLegacyTransactionType,
+		ChainID: tx.ChainID, Nonce: tx.Nonce, GasPrice: tx.GasPrice, GasLimit: tx.GasLimit,
+		To: tx.To, Value: tx.Value, Data: append([]byte(nil), tx.Data...), V: tx.V,
+		R: tx.R, S: tx.S, RecoveryID: tx.RecoveryID, From: tx.From, Fee: tx.Fee, Hash: tx.Hash,
+	}
+}
+
+func (tx EthereumAccessListTransaction) ValueTransfer() EthereumValueTransfer {
+	return EthereumValueTransfer{
+		EnvelopeType: EthereumAccessListTransferType, TransactionType: EthereumAccessListType,
+		ChainID: tx.ChainID, Nonce: tx.Nonce, GasPrice: tx.GasPrice, GasLimit: tx.GasLimit,
+		To: tx.To, Value: tx.Value, Data: append([]byte(nil), tx.Data...), V: tx.YParity,
+		R: tx.R, S: tx.S, RecoveryID: tx.RecoveryID, From: tx.From, Fee: tx.Fee, Hash: tx.Hash,
+	}
+}
+
+func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
+	if tx.ChainID != expectedChainID {
+		return fmt.Errorf("Ethereum transaction chain ID %d does not match %d", tx.ChainID, expectedChainID)
+	}
+	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType {
+		return errors.New("Ethereum transfer envelope type is unsupported")
+	}
+	if (tx.EnvelopeType == EthereumLegacyTransferType && tx.TransactionType != EthereumLegacyTransactionType) ||
+		(tx.EnvelopeType == EthereumAccessListTransferType && tx.TransactionType != EthereumAccessListType) {
+		return errors.New("Ethereum transfer envelope identity is inconsistent")
+	}
+	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To {
+		return errors.New("Ethereum transfer requires distinct canonical sender and recipient addresses")
+	}
+	if tx.Value <= 0 || tx.Fee <= 0 || tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice == 0 || len(tx.Data) != 0 {
+		return errors.New("Ethereum transfer is outside the bounded value-transfer profile")
+	}
+	if tx.GasPrice > uint64(math.MaxInt64)/tx.GasLimit || tx.Fee != int64(tx.GasPrice*tx.GasLimit) {
+		return errors.New("Ethereum transfer fee does not match the bounded gas profile")
+	}
+	if tx.RecoveryID > 1 {
+		return errors.New("Ethereum transfer recovery ID must be 0 or 1")
+	}
+	var zeroScalar [32]byte
+	if tx.R == zeroScalar || tx.S == zeroScalar {
+		return errors.New("Ethereum transfer signature scalars are required")
+	}
+	if tx.EnvelopeType == EthereumLegacyTransferType {
+		if uint64(tx.ChainID) > (math.MaxUint64-36)/2 || tx.V != uint64(tx.ChainID)*2+35+uint64(tx.RecoveryID) {
+			return errors.New("Ethereum legacy transfer EIP-155 signature metadata is inconsistent")
+		}
+	} else if tx.V != uint64(tx.RecoveryID) {
+		return errors.New("Ethereum access-list transfer y parity is inconsistent")
+	}
+	if tx.Hash == "" {
+		return errors.New("Ethereum transaction hash is required")
+	}
+	return nil
 }
 
 func DecodeEthereumLegacyTransaction(payload []byte) (EthereumLegacyTransaction, error) {
@@ -244,22 +426,131 @@ func DecodeEthereumLegacyTransaction(payload []byte) (EthereumLegacyTransaction,
 }
 
 func (tx EthereumLegacyTransaction) Verify(expectedChainID int64) error {
-	if tx.ChainID != expectedChainID {
-		return fmt.Errorf("Ethereum transaction chain ID %d does not match %d", tx.ChainID, expectedChainID)
-	}
-	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To {
-		return errors.New("Ethereum transfer requires distinct canonical sender and recipient addresses")
-	}
-	if tx.Value <= 0 || tx.Fee <= 0 || tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice == 0 || len(tx.Data) != 0 {
-		return errors.New("Ethereum transfer is outside the bounded value-transfer profile")
-	}
-	if tx.Hash == "" {
-		return errors.New("Ethereum transaction hash is required")
-	}
-	return nil
+	return tx.ValueTransfer().Verify(expectedChainID)
 }
 
-func decodeCanonicalRLPList(payload []byte) ([][]byte, error) {
+func DecodeEthereumAccessListTransaction(payload []byte) (EthereumAccessListTransaction, error) {
+	if len(payload) < 2 || len(payload) > MaxSignedTransactionSize {
+		return EthereumAccessListTransaction{}, fmt.Errorf("Ethereum access-list transaction size must be between 2 and %d bytes", MaxSignedTransactionSize)
+	}
+	if payload[0] != EthereumAccessListType {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum access-list transaction must use type 0x01")
+	}
+	fields, err := decodeCanonicalRLPFields(payload[1:])
+	if err != nil {
+		return EthereumAccessListTransaction{}, fmt.Errorf("decode Ethereum access-list transaction: %w", err)
+	}
+	if len(fields) != 11 {
+		return EthereumAccessListTransaction{}, fmt.Errorf("Ethereum access-list transaction requires 11 fields, got %d", len(fields))
+	}
+	for _, index := range []int{0, 1, 2, 3, 4, 5, 6, 8, 9, 10} {
+		if fields[index].isList {
+			return EthereumAccessListTransaction{}, fmt.Errorf("Ethereum access-list field %d must not be a nested list", index)
+		}
+	}
+	if !fields[7].isList {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum access list must be an RLP list")
+	}
+	if len(fields[7].content) != 0 {
+		return EthereumAccessListTransaction{}, errors.New("non-empty Ethereum access lists are not supported")
+	}
+	chainID, err := decodeRLPUint(fields[0].content, "chain ID")
+	if err != nil || chainID == 0 || chainID > math.MaxInt64 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum access-list transaction chain ID is invalid")
+	}
+	nonce, err := decodeRLPUint(fields[1].content, "nonce")
+	if err != nil {
+		return EthereumAccessListTransaction{}, err
+	}
+	gasPrice, err := decodeRLPUint(fields[2].content, "gas price")
+	if err != nil {
+		return EthereumAccessListTransaction{}, err
+	}
+	gasLimit, err := decodeRLPUint(fields[3].content, "gas limit")
+	if err != nil {
+		return EthereumAccessListTransaction{}, err
+	}
+	if len(fields[4].content) == 0 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum contract creation is not supported")
+	}
+	if len(fields[4].content) != 20 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum transfer recipient must be exactly 20 bytes")
+	}
+	to, err := accountaddress.FromBytes(fields[4].content)
+	if err != nil {
+		return EthereumAccessListTransaction{}, fmt.Errorf("derive Ethereum recipient: %w", err)
+	}
+	value, err := decodeRLPUint(fields[5].content, "value")
+	if err != nil {
+		return EthereumAccessListTransaction{}, err
+	}
+	if value == 0 || value > math.MaxInt64 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum transfer value must fit a positive YNXT amount")
+	}
+	if len(fields[6].content) != 0 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum transfer calldata is not supported")
+	}
+	yParity, err := decodeRLPUint(fields[8].content, "signature y parity")
+	if err != nil || yParity > 1 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum access-list signature y parity must be 0 or 1")
+	}
+	if len(fields[9].content) == 0 || len(fields[9].content) > 32 || len(fields[10].content) == 0 || len(fields[10].content) > 32 {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum signature r and s must be 1 to 32 bytes")
+	}
+	var rScalar, sScalar secp256k1.ModNScalar
+	if rScalar.SetByteSlice(fields[9].content) || rScalar.IsZero() {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum signature r is outside the secp256k1 order")
+	}
+	if sScalar.SetByteSlice(fields[10].content) || sScalar.IsZero() {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum signature s is outside the secp256k1 order")
+	}
+	if sScalar.IsOverHalfOrder() {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum signature is not canonical low-S")
+	}
+	if gasLimit != EthereumTransferGasLimit {
+		return EthereumAccessListTransaction{}, fmt.Errorf("bounded Ethereum transfer gas limit must equal %d", EthereumTransferGasLimit)
+	}
+	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/gasLimit {
+		return EthereumAccessListTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
+	}
+	unsigned := encodeRLPList(
+		encodeRLPUint(chainID), encodeRLPUint(nonce), encodeRLPUint(gasPrice), encodeRLPUint(gasLimit),
+		encodeRLPBytes(fields[4].content), encodeRLPUint(value), encodeRLPBytes(nil), encodeRLPList(),
+	)
+	digest := legacyKeccak(append([]byte{EthereumAccessListType}, unsigned...))
+	compact := make([]byte, 65)
+	compact[0] = 31 + byte(yParity)
+	copy(compact[33-len(fields[9].content):33], fields[9].content)
+	copy(compact[65-len(fields[10].content):], fields[10].content)
+	publicKey, _, err := ecdsa.RecoverCompact(compact, digest)
+	if err != nil {
+		return EthereumAccessListTransaction{}, fmt.Errorf("recover Ethereum sender: %w", err)
+	}
+	from, err := NativeAddress(publicKey.SerializeCompressed())
+	if err != nil {
+		return EthereumAccessListTransaction{}, err
+	}
+	var rValue, sValue [32]byte
+	copy(rValue[len(rValue)-len(fields[9].content):], fields[9].content)
+	copy(sValue[len(sValue)-len(fields[10].content):], fields[10].content)
+	return EthereumAccessListTransaction{
+		ChainID: int64(chainID), Nonce: nonce, GasPrice: gasPrice, GasLimit: gasLimit,
+		To: to, Value: int64(value), Data: []byte{}, YParity: yParity,
+		R: rValue, S: sValue, RecoveryID: byte(yParity), From: from,
+		Fee: int64(gasPrice * gasLimit), Hash: EthereumTransactionHash(payload),
+	}, nil
+}
+
+func (tx EthereumAccessListTransaction) Verify(expectedChainID int64) error {
+	return tx.ValueTransfer().Verify(expectedChainID)
+}
+
+type canonicalRLPField struct {
+	isList  bool
+	content []byte
+}
+
+func decodeCanonicalRLPFields(payload []byte) ([]canonicalRLPField, error) {
 	isList, content, consumed, err := decodeCanonicalRLPItem(payload)
 	if err != nil {
 		return nil, err
@@ -267,19 +558,31 @@ func decodeCanonicalRLPList(payload []byte) ([][]byte, error) {
 	if !isList || consumed != len(payload) {
 		return nil, errors.New("top-level RLP value must be one canonical list")
 	}
-	fields := make([][]byte, 0, 9)
+	fields := make([]canonicalRLPField, 0, 11)
 	for len(content) > 0 {
 		nested, field, used, err := decodeCanonicalRLPItem(content)
 		if err != nil {
 			return nil, err
 		}
-		if nested {
-			return nil, errors.New("Ethereum legacy transaction fields must not be nested lists")
-		}
-		fields = append(fields, append([]byte(nil), field...))
+		fields = append(fields, canonicalRLPField{isList: nested, content: append([]byte(nil), field...)})
 		content = content[used:]
 	}
 	return fields, nil
+}
+
+func decodeCanonicalRLPList(payload []byte) ([][]byte, error) {
+	fields, err := decodeCanonicalRLPFields(payload)
+	if err != nil {
+		return nil, err
+	}
+	values := make([][]byte, 0, len(fields))
+	for _, field := range fields {
+		if field.isList {
+			return nil, errors.New("Ethereum legacy transaction fields must not be nested lists")
+		}
+		values = append(values, field.content)
+	}
+	return values, nil
 }
 
 func decodeCanonicalRLPItem(input []byte) (bool, []byte, int, error) {

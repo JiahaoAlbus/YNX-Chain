@@ -644,7 +644,7 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 	if err := consensus.ValidateBFTEVMReceipt(receipt); err != nil {
 		return cometTx{}, chain.Transaction{}, false, fmt.Errorf("committed Ethereum receipt evidence is invalid: %w", err)
 	}
-	if receipt.TxHash != hash || receipt.Action != consensus.EthereumLegacyTransferType {
+	if receipt.TxHash != hash || (receipt.Action != consensus.EthereumLegacyTransferType && receipt.Action != consensus.EthereumAccessListTransferType) {
 		return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum receipt evidence is invalid")
 	}
 	height := uint64(receipt.BlockHeight)
@@ -664,15 +664,15 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 		return cometTx{}, chain.Transaction{}, false, errors.New("CometBFT Ethereum transaction result evidence is incomplete")
 	}
 	for index, raw := range evidence.RawTransactions {
-		ethereumTx, err := consensus.DecodeEthereumLegacyTransaction(raw)
+		ethereumTx, err := consensus.DecodeEthereumValueTransfer(raw)
 		if err != nil || ethereumTx.Hash != hash {
 			continue
 		}
-		if err := ethereumTx.Verify(6423); err != nil {
-			return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum transaction signature or chain evidence is invalid")
+		if err := ethereumTx.Verify(6423); err != nil || ethereumTx.EnvelopeType != receipt.Action {
+			return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum transaction signature, chain or envelope evidence is invalid")
 		}
 		mapped := evidence.Block.Transactions[index]
-		if mapped.Hash != hash || mapped.Type != consensus.EthereumLegacyTransferType || mapped.From != receipt.From || mapped.To != receipt.To || mapped.BlockNum != height ||
+		if mapped.Hash != hash || mapped.Type != ethereumTx.EnvelopeType || mapped.From != receipt.From || mapped.To != receipt.To || mapped.BlockNum != height ||
 			mapped.Amount != ethereumTx.Value || mapped.Fee != ethereumTx.Fee || mapped.Nonce != ethereumTx.Nonce {
 			return cometTx{}, chain.Transaction{}, false, errors.New("committed Ethereum receipt does not match block transaction evidence")
 		}
@@ -695,15 +695,16 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 	input, gas, gasPrice, txType := "0x", "0x1", "0x1", "0x0"
 	nonce := t.Nonce
 	var raw []byte
-	var ethereumEnvelope *consensus.EthereumLegacyTransaction
+	var ethereumEnvelope *consensus.EthereumValueTransfer
 	if len(raws) > 0 {
 		raw = raws[0]
 	}
-	if ethereumTx, err := consensus.DecodeEthereumLegacyTransaction(raw); err == nil {
+	if ethereumTx, err := consensus.DecodeEthereumValueTransfer(raw); err == nil {
 		ethereumEnvelope = &ethereumTx
 		nonce = ethereumTx.Nonce
 		gas = hexEVMQuantity(ethereumTx.GasLimit)
 		gasPrice = hexEVMQuantity(ethereumTx.GasPrice)
+		txType = hexEVMQuantity(uint64(ethereumTx.TransactionType))
 	} else if action, err := consensus.DecodeSignedApplicationAction(raw); err == nil && action.Action == consensus.ActionIDEContractCall {
 		var payload consensus.IDEContractCallPayload
 		if json.Unmarshal(action.Payload, &payload) == nil {
@@ -725,6 +726,10 @@ func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) 
 		result["v"] = hexEVMQuantity(ethereumEnvelope.V)
 		result["r"] = "0x" + hex.EncodeToString(ethereumEnvelope.R[:])
 		result["s"] = "0x" + hex.EncodeToString(ethereumEnvelope.S[:])
+		if ethereumEnvelope.TransactionType == consensus.EthereumAccessListType {
+			result["accessList"] = []any{}
+			result["yParity"] = hexEVMQuantity(uint64(ethereumEnvelope.RecoveryID))
+		}
 	}
 	return result
 }
@@ -746,10 +751,11 @@ func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeG
 	if t.To == "" {
 		to = nil
 	}
-	effectiveGasPrice := "0x1"
+	effectiveGasPrice, txType := "0x1", "0x0"
 	if len(raws) > 0 {
-		if ethereumTx, err := consensus.DecodeEthereumLegacyTransaction(raws[0]); err == nil {
+		if ethereumTx, err := consensus.DecodeEthereumValueTransfer(raws[0]); err == nil {
 			effectiveGasPrice = hexEVMQuantity(ethereumTx.GasPrice)
+			txType = hexEVMQuantity(uint64(ethereumTx.TransactionType))
 		}
 	}
 	return map[string]any{
@@ -759,7 +765,7 @@ func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeG
 		"blockNumber":      hexEVMQuantity(t.BlockNum),
 		"from":             t.From, "to": to, "contractAddress": nil,
 		"cumulativeGasUsed": hexEVMQuantity(cumulativeGasUsed), "gasUsed": hexEVMQuantity(gasUsed),
-		"effectiveGasPrice": effectiveGasPrice, "status": "0x1", "type": "0x0",
+		"effectiveGasPrice": effectiveGasPrice, "status": "0x1", "type": txType,
 		"logs": []any{}, "logsBloom": "0x" + strings.Repeat("0", 512),
 	}
 }

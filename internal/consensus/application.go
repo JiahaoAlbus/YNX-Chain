@@ -19,7 +19,7 @@ import (
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 15
+	ApplicationVersion   = 16
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -607,8 +607,8 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 		}
 		return next, execution, nil
 	}
-	if kind == EthereumLegacyTransferType {
-		return a.applyEthereumLegacyTransfer(state, payload, height, blockTime)
+	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType {
+		return a.applyEthereumValueTransfer(state, payload, height, blockTime)
 	}
 	tx, err := DecodeSignedTransaction(payload)
 	if err != nil {
@@ -657,8 +657,8 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
 }
 
-func (a *Application) applyEthereumLegacyTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
-	tx, err := DecodeEthereumLegacyTransaction(payload)
+func (a *Application) applyEthereumValueTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	tx, err := DecodeEthereumValueTransfer(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
@@ -703,22 +703,26 @@ func (a *Application) applyEthereumLegacyTransfer(state executionState, payload 
 	accounts[receiverIndex].Balance += tx.Value
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
-	state.feeEvents = append(state.feeEvents, newEthereumGasFeeEvent(tx.Hash, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	state.feeEvents = append(state.feeEvents, newEthereumGasFeeEvent(tx.Hash, tx.EnvelopeType, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	receipt := BFTEVMReceipt{
-		TxHash: tx.Hash, From: tx.From, To: tx.To, Action: EthereumLegacyTransferType,
+		TxHash: tx.Hash, From: tx.From, To: tx.To, Action: tx.EnvelopeType,
 		Status: "success", EncodedResult: "0x", Logs: []BFTEVMLog{}, BlockHeight: height,
 	}
 	receipt.AuditHash = bftEVMReceiptAuditHash(receipt)
 	state.evmReceipts = insertBFTEVMReceipt(state.evmReceipts, receipt)
+	envelope := "ethereum_legacy_eip155"
+	if tx.EnvelopeType == EthereumAccessListTransferType {
+		envelope = "ethereum_access_list_eip2930_empty"
+	}
 	return state, transactionExecution{
-		typeName: EthereumLegacyTransferType,
+		typeName: tx.EnvelopeType,
 		hash:     tx.Hash,
 		gas:      int64(tx.GasLimit),
 		event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{
 			{Key: "sender", Value: tx.From, Index: true},
 			{Key: "recipient", Value: tx.To, Index: true},
 			{Key: "amount", Value: fmt.Sprint(tx.Value), Index: true},
-			{Key: "envelope", Value: "ethereum_legacy_eip155", Index: true},
+			{Key: "envelope", Value: envelope, Index: true},
 			{Key: "ethereum_hash", Value: tx.Hash, Index: true},
 		}},
 	}, nil
