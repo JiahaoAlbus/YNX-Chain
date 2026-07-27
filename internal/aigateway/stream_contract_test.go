@@ -67,6 +67,26 @@ func TestGatewayStreamRejectsLegacyQueryAndUnknownFields(t *testing.T) {
 		t.Fatalf("query-bearing POST status=%d body=%s", queryResp.StatusCode, queryBody)
 	}
 
+	mediaReq, err := http.NewRequest(http.MethodPost, server.URL+"/ai/stream", strings.NewReader(`{"session":"media"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaReq.Header.Set("Content-Type", "text/plain")
+	mediaReq.Header.Set("X-YNX-AI-Key", testAccessKey)
+	mediaResp, err := http.DefaultClient.Do(mediaReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mediaBody, _ := io.ReadAll(mediaResp.Body)
+	_ = mediaResp.Body.Close()
+	var mediaFailure map[string]string
+	if err := json.Unmarshal(mediaBody, &mediaFailure); err != nil {
+		t.Fatal(err)
+	}
+	if mediaResp.StatusCode != http.StatusUnsupportedMediaType || mediaFailure["code"] != "unsupported_media_type" {
+		t.Fatalf("unsupported media status=%d body=%s", mediaResp.StatusCode, mediaBody)
+	}
+
 	unknownReq := newGatewayStreamRequestWithBody(t, server.URL, map[string]any{
 		"session":         "strict-session",
 		"prompt":          "strict prompt",
@@ -85,6 +105,49 @@ func TestGatewayStreamRejectsLegacyQueryAndUnknownFields(t *testing.T) {
 	_ = unknownResp.Body.Close()
 	if unknownResp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("unknown generation field status=%d, want=%d", unknownResp.StatusCode, http.StatusBadRequest)
+	}
+}
+
+func TestGatewayStreamPreservesProvider429WithStableErrorCode(t *testing.T) {
+	chainServer := newChainServer(t)
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"provider":"secret upstream quota detail"}`))
+	}))
+	defer provider.Close()
+	auditPath := t.TempDir() + "/audit.jsonl"
+	service := newTestService(t, chainServer.URL, provider.URL, auditPath, 20)
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+
+	req := newGatewayStreamRequest(t, server.URL, "rate-limited-session", "bounded prompt")
+	req.Header.Set("X-YNX-AI-Key", testAccessKey)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("provider 429 became status=%d body=%s", resp.StatusCode, body)
+	}
+	var failure map[string]string
+	if err := json.Unmarshal(body, &failure); err != nil {
+		t.Fatal(err)
+	}
+	if failure["code"] != "provider_rate_limited" || failure["requestId"] == "" || failure["error"] != "AI provider rate limit exceeded" {
+		t.Fatalf("unexpected provider 429 envelope: %v", failure)
+	}
+	if bytes.Contains(body, []byte("secret upstream quota detail")) {
+		t.Fatalf("gateway leaked upstream provider body: %s", body)
+	}
+	audit, err := os.ReadFile(auditPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(audit, []byte(`"status":429`)) || !bytes.Contains(audit, []byte(`"outcome":"provider_rate_limited"`)) {
+		t.Fatalf("provider 429 audit is not stable: %s", audit)
 	}
 }
 

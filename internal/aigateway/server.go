@@ -2,6 +2,7 @@ package aigateway
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -75,7 +76,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	if mediaType := strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0]); mediaType != "application/json" {
 		s.service.RejectRequest()
-		s.finish(w, r, requestID, "", "", http.StatusUnsupportedMediaType, "invalid_request", "application/json is required")
+		s.finish(w, r, requestID, "", "", http.StatusUnsupportedMediaType, "unsupported_media_type", "application/json is required")
 		return
 	}
 	var input generationInput
@@ -114,9 +115,14 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	s.service.StartRequest()
 	answer, err := s.service.Complete(r.Context(), session, query, requestID)
 	if err != nil {
-		s.service.FinishRequest(http.StatusBadGateway)
-		s.audit(r, requestID, session, promptHash, http.StatusBadGateway, "upstream_error")
-		writeError(w, http.StatusBadGateway, requestID, err.Error())
+		status, code, message := http.StatusBadGateway, "upstream_error", "AI provider is unavailable"
+		var providerError *ProviderHTTPError
+		if errors.As(err, &providerError) && providerError.StatusCode == http.StatusTooManyRequests {
+			status, code, message = http.StatusTooManyRequests, "provider_rate_limited", "AI provider rate limit exceeded"
+		}
+		s.service.FinishRequest(status)
+		s.audit(r, requestID, session, promptHash, status, code)
+		writeError(w, status, requestID, code, message)
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -227,7 +233,7 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.service.FinishRequest(http.StatusBadGateway)
 		s.audit(r, requestID, "", "", http.StatusBadGateway, "upstream_error")
-		writeError(w, http.StatusBadGateway, requestID, err.Error())
+		writeError(w, http.StatusBadGateway, requestID, "upstream_error", "YNX upstream is unavailable")
 		return
 	}
 	defer resp.Body.Close()
@@ -252,7 +258,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) (string, stri
 	if !s.service.Authorized(accessKey) {
 		s.service.RejectRequest()
 		s.audit(r, requestID, "", "", http.StatusUnauthorized, "unauthorized")
-		writeError(w, http.StatusUnauthorized, requestID, "valid AI Gateway API key required")
+		writeError(w, http.StatusUnauthorized, requestID, "unauthorized", "valid AI Gateway API key required")
 		return requestID, "", false
 	}
 	return requestID, strings.TrimSpace(strings.TrimPrefix(accessKey, "Bearer ")), true
@@ -260,7 +266,7 @@ func (s *Server) authorize(w http.ResponseWriter, r *http.Request) (string, stri
 
 func (s *Server) finish(w http.ResponseWriter, r *http.Request, requestID, session, promptHash string, status int, outcome, message string) {
 	s.audit(r, requestID, session, promptHash, status, outcome)
-	writeError(w, status, requestID, message)
+	writeError(w, status, requestID, outcome, message)
 }
 
 func (s *Server) audit(r *http.Request, requestID, session, promptHash string, status int, outcome string) {
@@ -287,9 +293,9 @@ func streamChunks(value string, max int) []string {
 	return chunks
 }
 
-func writeError(w http.ResponseWriter, status int, requestID, message string) {
+func writeError(w http.ResponseWriter, status int, requestID, code, message string) {
 	w.Header().Set("X-Request-ID", requestID)
-	writeJSON(w, status, map[string]string{"error": message, "requestId": requestID})
+	writeJSON(w, status, map[string]string{"code": code, "error": message, "requestId": requestID})
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

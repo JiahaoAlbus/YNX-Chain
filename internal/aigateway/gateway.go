@@ -313,6 +313,14 @@ type providerResponse struct {
 	} `json:"choices"`
 }
 
+type ProviderHTTPError struct {
+	StatusCode int
+}
+
+func (e *ProviderHTTPError) Error() string {
+	return fmt.Sprintf("AI provider returned %d", e.StatusCode)
+}
+
 func (s *Service) Complete(ctx context.Context, session, query, requestID string) (string, error) {
 	status, err := s.chainStatus(ctx)
 	if err != nil {
@@ -343,7 +351,7 @@ func (s *Service) Complete(ctx context.Context, session, query, requestID string
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("AI provider returned %d", resp.StatusCode)
+		return "", &ProviderHTTPError{StatusCode: resp.StatusCode}
 	}
 	var result providerResponse
 	if err := json.NewDecoder(io.LimitReader(resp.Body, maxBodyBytes)).Decode(&result); err != nil {
