@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "1.2.0",
   "contractId": "ynx.search.integration.v1",
   "product": {
     "number": 23,
@@ -7,7 +7,7 @@
     "slug": "search",
     "owner": "23-search"
   },
-  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -98,7 +98,8 @@
   ],
   "schemas": {
     "sourceRegistry": {
-      "version": 3,
+      "version": 4,
+      "dataPolicyVersion": "1.0.0",
       "required": [
         "id",
         "url",
@@ -116,6 +117,9 @@
         "dataRights.storage",
         "dataRights.snippets",
         "dataRights.aiRetrieval",
+        "dataPolicy.version",
+        "dataPolicy.allowedClasses",
+        "dataPolicy.defaultClass",
         "retentionDays",
         "remedies.removalUrl",
         "remedies.correctionUrl",
@@ -124,16 +128,17 @@
         "crawlPolicy.maxRequestsPerMinute",
         "crawlPolicy.backoffSeconds"
       ],
-      "migration": "v2 entries lacking governance fields are disabled and marked source-registry-v3 until reviewed"
+      "migration": "pre-v4 entries lacking explicit reviewed public data classes are disabled and marked source-registry-v4 until reviewed"
     },
     "searchResult": {
-      "version": 2,
+      "version": 3,
       "required": [
         "resultType",
         "title",
         "sourceUrl",
         "sourceLabel",
         "sourceScope",
+        "dataClass",
         "language",
         "freshness.publishedAt",
         "freshness.fetchedAt",
@@ -211,6 +216,8 @@
   "errorCodes": [
     "SEARCH_INVALID_QUERY",
     "SEARCH_SOURCE_GOVERNANCE_REQUIRED",
+    "SEARCH_DATA_CLASS_FORBIDDEN",
+    "SEARCH_SENSITIVE_CONTENT_REJECTED",
     "SEARCH_SOURCE_DISABLED",
     "SEARCH_ROBOTS_BLOCKED",
     "SEARCH_OUTBOUND_DESTINATION_REJECTED",
@@ -225,7 +232,8 @@
     "emptyCorpus": "successful empty result with registered-authorized-sources-only coverage claim",
     "staleSource": "result retains timestamp and stale state; it is never silently freshened",
     "providerUnavailable": "unavailable, never synthetic success",
-    "legacyRegistry": "disabled pending renewed source governance review",
+    "legacyRegistry": "disabled pending renewed Source Registry v4 public data-class review",
+    "dataClassPolicy": "private, internal, unknown, out-of-source-policy, and high-confidence sensitive content fail closed before persistence",
     "outboundPolicy": "fail closed before content fetch and persist failed/backoff status",
     "centralGatewayMissing": "no Product Session or Trust completion is claimed"
   },

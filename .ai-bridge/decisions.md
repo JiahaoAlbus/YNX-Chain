@@ -4,8 +4,9 @@
 
 1. Search coverage remains `registered-authorized-sources-only`; no global coverage
    or neutrality claim is permitted.
-2. Source Registry v3 is the only forward schema. Legacy v2 sources fail closed
-   until renewed governance review; they are not silently upgraded.
+2. Source Registry v4 is the only forward schema. Pre-v4 sources without an
+   explicit reviewed public data policy fail closed; they are not silently
+   classified or re-enabled.
 3. Public source status exposes evidence digests and review dates, never internal
    authorization or override references.
 4. DNS and outbound URL validation runs before robots or content fetch. Any
@@ -21,3 +22,13 @@
 8. The root secret-scan result from this run is not evidence because `rg` was
    unavailable while the script printed success. The dependency-independent
    Search scanner is the accepted local scan.
+9. Search-owned data-policy v1.0.0 accepts only explicit public classes. Private,
+   internal, unknown, out-of-source-policy, and high-confidence sensitive content
+   is rejected before persistence.
+10. Data Fabric still owns canonical ecosystem data-class acceptance. The local
+    allowlist is a tested fail-closed boundary, not central integration proof.
+11. AI routes enforce `aiRetrievalOnly=true` after applying client filters; clients
+    cannot widen the AI context by overriding the flag.
+12. Repository-wide Go failures in unrelated Chain/Trust/Faucet ownership are
+    recorded but will not be fixed from the Search worktree without an accepted
+    cross-product change.

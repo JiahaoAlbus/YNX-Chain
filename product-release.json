@@ -4,13 +4,13 @@
     "number": 23,
     "name": "YNX Search",
     "slug": "search",
-    "version": "0.3.0-ranking-preview",
+    "version": "0.4.0-data-policy-preview",
     "releaseClass": "Testnet Preview",
     "goalStatus": "active",
     "phase": "FREEZE"
   },
   "source": {
-    "commit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+    "commit": "66bc18ea697be99a990143ab0b843652c49931b7",
     "repository": "JiahaoAlbus/YNX-Chain"
   },
   "status": {
@@ -39,7 +39,7 @@
     "commands": [
       {
         "command": "cd apps/search && npm run check",
-        "result": "pass: 19/19 tests, service smoke, product-local secret scan, deterministic feed verification"
+        "result": "pass: 20/20 tests, service smoke including AI data-right override denial, product-local secret scan, deterministic feed verification"
       },
       {
         "command": "cd apps/search && npm run test:e2e",
@@ -48,6 +48,14 @@
       {
         "command": "cd apps/search && npm audit --omit=dev --audit-level=high",
         "result": "pass: zero vulnerabilities"
+      },
+      {
+        "command": "cd packages/web4-permissions && npm test",
+        "result": "pass: 15/15 shared Wallet, AI, index, i18n and registry contract tests"
+      },
+      {
+        "command": "go test ./...",
+        "result": "fail outside Search ownership: Chain/Trust/Faucet key-permission assertions and missing devtools contract artifacts; no Go files changed in this slice"
       }
     ],
     "notes": [
@@ -57,11 +65,12 @@
     ]
   },
   "delivered": [
-    "governed Source Registry v3",
-    "fail-closed v2 registry migration",
+    "governed Source Registry v4 with explicit reviewed public data classes",
+    "fail-closed pre-v4 registry migration",
+    "private, internal, unknown, out-of-policy and sensitive-content ingestion rejection",
     "outbound URL and DNS rebinding protection",
     "robots, timeout, redirect, origin, content type, size, freshness, and backoff boundaries",
-    "AI retrieval data-right enforcement",
+    "AI retrieval data-right enforcement with client-override denial",
     "public authorization-reference redaction",
     "canonical YNX entity registry with explicit YNX-not-Lynx policy",
     "versioned explainable ranking with relevance gate and auditable factors",
@@ -113,6 +122,6 @@
       "item": "approved production source inventory and external search provider access"
     }
   ],
-  "nextAction": "Add explicit public data-class ingestion gates and a version-3 backup/restore drill before central integration.",
+  "nextAction": "Implement and verify the Source Registry v4 backup, integrity-checked restore, rollback, and reindex drill before central integration.",
   "lastUpdated": "2026-07-27"
 }

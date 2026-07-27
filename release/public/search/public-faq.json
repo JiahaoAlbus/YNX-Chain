@@ -3,7 +3,7 @@
   "feedName": "public-faq",
   "version": "1.0.0",
   "asOf": "2026-07-27T00:00:00.000Z",
-  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
   "coverage": "YNX Search public FAQ",
   "items": [
     {
@@ -30,7 +30,7 @@
     {
       "id": "e911979391db1c9e054d01ed",
       "question": "What does YNX Search index?",
-      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets and operator logs are excluded.",
+      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, explicit reviewed public data classes, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets, internal engineering data and operator logs are rejected.",
       "canonicalUrl": "https://ynxweb4.com/search#faq-430037ac6087",
       "source": "ynx-search-public-product-metadata"
     }

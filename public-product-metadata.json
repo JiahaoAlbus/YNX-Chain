@@ -7,8 +7,8 @@
   "metaDescription": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
   "h1": "Search YNX with sources you can verify",
   "status": "Testnet Preview",
-  "releaseVersion": "0.3.0-ranking-preview",
-  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "releaseVersion": "0.4.0-data-policy-preview",
+  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
   "brand": {
     "officialSiteName": "YNX Chain",
     "ecosystemName": "YNX Web4",
@@ -27,8 +27,8 @@
     { "query": "6423", "canonical": "YNX Testnet" }
   ],
   "features": [
-    "reviewed source registry",
-    "source and freshness visibility",
+    "reviewed source registry with explicit public data classes",
+    "source, data class and freshness visibility",
     "bounded lexical retrieval",
     "correction, removal and appeal",
     "citation-bound AI with explicit consent",
@@ -45,7 +45,7 @@
   "faq": [
     {
       "question": "What does YNX Search index?",
-      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets and operator logs are excluded."
+      "answer": "Only sources registered with an owner, authorization, permitted scope, terms, data rights, explicit reviewed public data classes, retention and correction paths. Private messages, mail, files, Wallet sessions, secrets, internal engineering data and operator logs are rejected."
     },
     {
       "question": "Does YNX Search control Google or Bing ranking?",

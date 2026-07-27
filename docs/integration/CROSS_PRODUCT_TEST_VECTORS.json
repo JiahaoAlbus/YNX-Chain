@@ -1,21 +1,42 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "product": "YNX Search",
-  "sourceCommit": "84e0655c7c3c1106eceae72bc11361e242132f48",
+  "sourceCommit": "66bc18ea697be99a990143ab0b843652c49931b7",
   "vectors": [
     {
       "id": "SEARCH-SOURCE-REGISTER-VALID",
       "owners": ["23-search"],
-      "precondition": "operator supplies complete Source Registry v3 governance record",
+      "precondition": "operator supplies complete Source Registry v4 governance and reviewed public data-policy record",
       "action": "POST /api/sources",
-      "expected": "201 and registered source with authorization digest; raw evidence is absent from public status"
+      "expected": "201 and registered source with authorization digest and explicit data policy; raw evidence is absent from public status"
     },
     {
       "id": "SEARCH-SOURCE-GOVERNANCE-MISSING",
       "owners": ["23-search"],
-      "precondition": "source lacks permitted scope, terms, remedies, language, retention, or crawl policy",
+      "precondition": "source lacks permitted scope, terms, remedies, language, retention, crawl policy, or explicit public data policy",
       "action": "attempt registration",
       "expected": "fail closed; no source record and no crawl"
+    },
+    {
+      "id": "SEARCH-DATA-CLASS-PRIVATE",
+      "owners": ["23-search", "26-data-fabric"],
+      "precondition": "registration or document requests a private, secret, operator, Wallet, Mail, Cloud, Social, strategy, or internal class",
+      "action": "register source or index document",
+      "expected": "SEARCH_DATA_CLASS_FORBIDDEN semantics; no source or document persistence"
+    },
+    {
+      "id": "SEARCH-DATA-CLASS-OUTSIDE-SOURCE",
+      "owners": ["23-search", "26-data-fabric"],
+      "precondition": "document class is public but absent from the source reviewed allowlist",
+      "action": "index document",
+      "expected": "fail closed before persistence; source policy remains unchanged"
+    },
+    {
+      "id": "SEARCH-SENSITIVE-CONTENT-REJECT",
+      "owners": ["23-search", "30-security-sre-release"],
+      "precondition": "otherwise public document contains a high-confidence credential, authorization header, internal branch, worktree, environment-file, or private-key pattern",
+      "action": "index document",
+      "expected": "SEARCH_SENSITIVE_CONTENT_REJECTED semantics; no document persistence"
     },
     {
       "id": "SEARCH-SOURCE-DNS-REBIND",
@@ -32,18 +53,18 @@
       "expected": "blocked-by-robots; no document indexed"
     },
     {
-      "id": "SEARCH-SOURCE-LEGACY-V2",
+      "id": "SEARCH-SOURCE-LEGACY-PRE-V4",
       "owners": ["23-search", "29-integration"],
-      "precondition": "database contains v2 source without v3 governance",
+      "precondition": "database contains a pre-v4 source without reviewed explicit public classes",
       "action": "open database",
-      "expected": "source disabled, migrationRequired=source-registry-v3, document excluded from results"
+      "expected": "source disabled, migrationRequired=source-registry-v4, document excluded from Search and AI results"
     },
     {
       "id": "SEARCH-RESULT-TRUTH",
       "owners": ["23-search", "22-browser"],
       "precondition": "indexed reviewed document matches query",
       "action": "GET /api/search",
-      "expected": "result includes sourceUrl, sourceLabel, freshness, score, snippet and indexReceiptDigest; inference=false"
+      "expected": "result includes sourceUrl, sourceLabel, sourceScope, dataClass, freshness, score, snippet and indexReceiptDigest; response includes dataPolicyVersion; inference=false"
     },
     {
       "id": "SEARCH-EMPTY-CORPUS",
@@ -58,6 +79,13 @@
       "precondition": "source is searchable but dataRights.aiRetrieval=false",
       "action": "prepare AI answer",
       "expected": "source is absent from AI context while remaining eligible for ordinary retrieval"
+    },
+    {
+      "id": "SEARCH-AI-RIGHTS-OVERRIDE",
+      "owners": ["23-search", "14-ai"],
+      "precondition": "client sends filters.aiRetrievalOnly=false to an AI route",
+      "action": "POST /api/ai/prepare, /api/ai/answer, or /api/ai/stream",
+      "expected": "server overwrites the client value with true; ineligible sources remain absent"
     },
     {
       "id": "SEARCH-AI-CONSENT-DENY",
