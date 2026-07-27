@@ -14,7 +14,9 @@ SPEC.loader.exec_module(SCANNER)
 
 class ArchiveScannerTest(unittest.TestCase):
     def archive(self, entries):
-        root = pathlib.Path(self.enterContext(tempfile.TemporaryDirectory()))
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = pathlib.Path(temporary.name)
         path = root / "candidate.zip"
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as target:
             for name, content, attributes in entries:

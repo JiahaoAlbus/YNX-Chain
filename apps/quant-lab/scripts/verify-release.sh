@@ -28,7 +28,10 @@ runtime_targets=(
 )
 
 forbidden='TODO|FIXME|Coming soon|example\.com|Fake (Balance|User|Transaction|Price|Revenue|APY|Liquidity|Provider|Health)|hard[- ]coded success|mock provider|BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-'
-if rg -n -i --glob '!**/*_test.go' --glob '!**/*.test.mjs' -e "$forbidden" "${runtime_targets[@]}"; then
+if git grep -n -I -i -E -e "$forbidden" -- \
+  "${runtime_targets[@]}" \
+  ':(exclude)**/*_test.go' \
+  ':(exclude)**/*.test.mjs'; then
   echo "Quant runtime/release prohibited-content gate failed"
   exit 1
 fi
@@ -49,7 +52,20 @@ npm test --prefix apps/quant-lab
 npm run test:browser --prefix apps/quant-lab
 node --test apps/quant-lab/sdk/typescript/index.test.mjs
 
-python_bin=${YNX_PYTHON_BIN:-python3}
+python_bin=${YNX_PYTHON_BIN:-}
+if [[ -z "$python_bin" ]]; then
+  for candidate in /usr/bin/python3 python3; do
+    if command -v "$candidate" >/dev/null 2>&1 && \
+      "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+      python_bin=$candidate
+      break
+    fi
+  done
+fi
+if [[ -z "$python_bin" ]]; then
+  echo "No healthy Python 3.9+ interpreter found; set YNX_PYTHON_BIN explicitly" >&2
+  exit 1
+fi
 PYTHONPATH=apps/quant-lab/sdk/python/src "$python_bin" -m unittest discover \
   -s apps/quant-lab/sdk/python/tests -p 'test_*.py' -v
 "$python_bin" apps/quant-lab/tests/test_archive_scanner.py -v
