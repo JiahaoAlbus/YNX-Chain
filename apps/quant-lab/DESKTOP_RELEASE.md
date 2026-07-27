@@ -14,12 +14,12 @@ remained disabled. Signing class is `adhoc-test-only`. Apple Developer ID,
 notarization, hardened-runtime entitlement review, immutable hosting, and store
 release are false.
 
-The local macOS archive built from source commit
-`c140404cbfaca5f01a2db05af3d9a544652ac8f6` is 7,361,745 bytes with SHA-256
-`8d9d9c16af94ad5156f3c6babfb7b287e9dc6d22ab622340f4138a25b44ee201`.
-The installed cold launch returned this exact commit from `/version`, a ready
-health response with live funds disabled, Prometheus build/risk signals and the
-YNX Quant Lab frontend title.
+The reproducible local macOS archive built from source commit
+`1b7e0f8b15a81e2325fca13e801fd31a192fcdc2` is 7,377,997 bytes with SHA-256
+`4fd07c885f8618f19c9960c86b858d9dafb63deb228d6a91737d4d1c7382267c`.
+A fresh copy installed in the user Applications directory returned this exact
+commit from `/version`, a ready health response with live funds disabled,
+Prometheus build/risk signals and the YNX Quant Lab frontend title.
 
 ## Windows
 
@@ -28,9 +28,9 @@ cross-compiled into an archive. It is `unsigned-cross-compiled`. There is no
 Windows host launch, installation, antivirus/SmartScreen, minimum-version, or
 uninstall evidence, so `installedLocal` applies only to macOS.
 
-The local Windows archive built from the same source commit is 8,095,087 bytes
-with SHA-256
-`f67fad932b6851b22a327faf98217e3070e3cd256e1f9e0495c9e4eb55f58e6b`.
+The reproducible local Windows archive built from the same source commit is
+8,094,616 bytes with SHA-256
+`0e7fda315ed2856b7b0346a2150324721d9252e7e29197424731cd154040a133`.
 
 Desktop currently opens the product in the user's default browser while owning
 the local service lifecycle; it is not represented as an embedded native WebView.
