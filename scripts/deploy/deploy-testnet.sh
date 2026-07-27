@@ -782,7 +782,7 @@ server {
   server_name ${REST_DOMAIN} ${API_DOMAIN} ${IDE_DOMAIN};
   client_max_body_size 2m;
   location /app/ {
-    proxy_pass http://127.0.0.1:6437;
+    proxy_pass http://127.0.0.1:6437/;
     proxy_http_version 1.1;
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
@@ -852,7 +852,7 @@ ${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
 }
 
 ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
-  handle /app/* {
+  handle_path /app/* {
     reverse_proxy 127.0.0.1:6437
   }
   handle_path /indexer/* {
