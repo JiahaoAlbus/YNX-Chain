@@ -7,7 +7,7 @@
   "branch": "codex/final-seller-console",
   "stage": "FREEZE",
   "goalStatus": "active",
-  "lastUpdated": "2026-07-27T06:18:35Z",
+  "lastUpdated": "2026-07-27T14:27:32Z",
   "entries": [
     {
       "id": "SC-RECOVER-001",
@@ -31,15 +31,15 @@
       "requirement": "Use canonical product-bound Wallet/Auth sessions and fail closed on missing or mismatched bindings.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["apps/seller-console/wallet-auth.js", "internal/commerce/auth.go", "internal/commerce/auth_gateway_test.go"],
-      "sourceCommit": "ecf787f",
-      "tests": ["go test ./internal/commerce", "npm test in apps/seller-console"],
+      "evidence": ["apps/seller-console/wallet-auth.js", "internal/commerce/auth.go", "internal/commerce/auth_gateway_test.go", "store-scoped authorization revocation adapter and receipt binding"],
+      "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+      "tests": ["go test ./internal/commerce", "go test -race ./internal/commerce", "npm test in apps/seller-console"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["central Wallet registry deployment"],
+      "blockedBy": ["central Wallet registry deployment", "central Wallet store authorization revocation acceptance"],
       "owner": "10-seller-console with 02-wallet-auth dependency",
-      "nextAction": "Freeze the accepted registry contract and obtain central deployment evidence.",
-      "lastUpdated": "2026-07-27T06:18:35Z"
+      "nextAction": "Run the frozen store-scoped revocation vectors against the deployed canonical Wallet contract.",
+      "lastUpdated": "2026-07-27T14:27:32Z"
     },
     {
       "id": "SC-RBAC-001",
@@ -63,15 +63,15 @@
       "requirement": "Migrate legacy manager roles to canonical admin without accepting manager in new requests.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["Snapshot v3 normalization in internal/commerce/store.go"],
-      "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
-      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "TestSellerRoleCapabilitiesFailClosed"],
+      "evidence": ["Snapshot v5 normalization in internal/commerce/store.go", "v2 manager to admin migration", "revocation and Seller event collection initialization"],
+      "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "TestSellerRoleCapabilitiesFailClosed", "TestSellerRoleRevocationEventsPersistAcrossRestart"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "10-seller-console",
-      "nextAction": "Add rollback-migration documentation and persisted fixture evidence.",
-      "lastUpdated": "2026-07-27T06:18:35Z"
+      "nextAction": "Add explicit downgrade refusal and rollback-migration operator evidence for Snapshot v5.",
+      "lastUpdated": "2026-07-27T14:27:32Z"
     },
     {
       "id": "SC-RBAC-003",
@@ -79,15 +79,15 @@
       "requirement": "Support team invite, role update, revoke and session invalidation.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["role assignment API exists and is owner-only"],
-      "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
-      "tests": ["TestSellerRoleCapabilitiesFailClosed"],
+      "evidence": ["owner-only role assignment and revocation", "immediate local authority removal", "store-scoped Wallet revocation adapter", "transactional audit and Seller Outbox", "regrant blocked until confirmed"],
+      "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+      "tests": ["TestSellerRoleCapabilitiesFailClosed", "TestSellerRoleRevocationBlocksRegrantUntilSessionInvalidationConfirmed", "TestHTTPRoleRevocationConfirmsCentralInvalidationAndIsStoreScoped", "TestHTTPRoleRevocationReportsUnavailableAndBlocksRegrant", "TestHTTPRoleRevocationRejectsMismatchedCentralReceipt", "TestSellerRoleRevocationEventsPersistAcrossRestart"],
       "artifact": null,
       "publicProof": null,
-      "blockedBy": ["central Wallet session-revoke contract acceptance"],
+      "blockedBy": ["central Wallet store authorization revocation acceptance", "team invitation lifecycle not yet implemented"],
       "owner": "10-seller-console with 02-wallet-auth dependency",
-      "nextAction": "Implement role revocation, revoke audit event and Wallet session invalidation adapter.",
-      "lastUpdated": "2026-07-27T06:18:35Z"
+      "nextAction": "Implement the persisted owner-created team invitation lifecycle, then run the central Wallet revoke vectors in shared Testnet.",
+      "lastUpdated": "2026-07-27T14:27:32Z"
     },
     {
       "id": "SC-CATALOG-001",
@@ -271,15 +271,15 @@
       "requirement": "Version state, migrate and roll back safely, export/delete data, apply retention and support service exit.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["Snapshot v3 migration", "atomic persistence and backup restore"],
-      "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
-      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "commerce backup/restore tests"],
+      "evidence": ["Snapshot v5 migration", "atomic persistence", "transactional revocation/audit/Outbox rollback", "restart persistence", "backup restore primitives"],
+      "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+      "tests": ["TestSnapshotV2ManagerMigratesToAdmin", "TestSellerRoleRevocationEventsPersistAcrossRestart", "commerce backup/restore tests"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "10-seller-console",
-      "nextAction": "Add rollback migration, seller export/delete and retention enforcement tests.",
-      "lastUpdated": "2026-07-27T06:18:35Z"
+      "nextAction": "Add downgrade refusal, rollback migration, seller export/delete and retention enforcement tests.",
+      "lastUpdated": "2026-07-27T14:27:32Z"
     },
     {
       "id": "SC-OBS-001",
@@ -335,15 +335,15 @@
       "requirement": "Freeze Wallet, Pay, Trust, Data Fabric, Monitor and Website integration contracts and vectors.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["seller registry v2 patch", "release/integration/seller-console-contract.json", "docs/integration artifacts"],
-      "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
-      "tests": ["local contract JSON review"],
+      "evidence": ["seller registry v2 patch", "store-scoped Wallet revocation contract", "versioned local Seller revocation Outbox", "release/integration/seller-console-contract.json", "docs/integration artifacts"],
+      "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
+      "tests": ["local contract JSON validation", "cross-product revocation negative vectors", "go test ./internal/commerce"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": ["02-wallet-auth acceptance", "04-pay acceptance", "15-trust acceptance", "26-data-fabric acceptance", "29-integration freeze"],
       "owner": "10-seller-console with central owners",
-      "nextAction": "Submit the frozen contract and execute cross-product vectors after owner acceptance.",
-      "lastUpdated": "2026-07-27T06:18:35Z"
+      "nextAction": "Submit the exact revocation and Outbox contracts to Owners 02, 26 and 29, then execute shared vectors after acceptance.",
+      "lastUpdated": "2026-07-27T14:27:32Z"
     },
     {
       "id": "SC-TESTNET-001",

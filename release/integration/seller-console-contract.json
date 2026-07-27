@@ -8,7 +8,7 @@
     "slug": "seller-console",
     "owner": "10-seller-console",
     "sourceBranch": "codex/final-seller-console",
-    "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095"
+    "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b"
   },
   "releaseStatus": {
     "implementedLocal": true,
@@ -42,7 +42,20 @@
       "expired-session",
       "revoked-session",
       "replayed-challenge"
-    ]
+    ],
+    "storeAuthorizationRevocation": {
+      "owner": "02-wallet-auth",
+      "acceptanceState": "pendingAcceptance",
+      "method": "POST",
+      "path": "/v1/product-authorizations/revocations",
+      "resourceType": "seller_store",
+      "requestFields": ["requestId", "account", "productClientId", "bundleId", "resourceType", "resourceId", "reason"],
+      "receiptFields": ["revoked", "revocationId", "requestId", "account", "productClientId", "bundleId", "resourceType", "resourceId", "sessionCount", "revokedAt"],
+      "requiredReceiptBindings": ["requestId", "account", "productClientId", "bundleId", "resourceType", "resourceId"],
+      "localRoleRevocationImmediate": true,
+      "regrantBlockedUntil": "confirmed",
+      "truthfulFailureStates": ["unavailable", "rejected"]
+    }
   },
   "rbac": {
     "schemaVersion": 1,
@@ -84,15 +97,24 @@
       "Inventory cannot edit or publish catalog content.",
       "Fulfillment cannot approve refunds.",
       "Support cannot approve refunds.",
-      "Finance cannot fulfill orders or edit catalog content."
+      "Finance cannot fulfill orders or edit catalog content.",
+      "Only owner may revoke a non-owner role.",
+      "Local Seller authority is removed before central Wallet invalidation is attempted.",
+      "A revoked account cannot be regranted until the store-scoped Wallet invalidation receipt is confirmed.",
+      "Mismatched or unavailable Wallet receipts never become confirmed."
     ],
     "migration": {
       "fromSnapshotVersion": 2,
-      "toSnapshotVersion": 3,
+      "toSnapshotVersion": 5,
+      "steps": [
+        {"snapshotVersion": 3, "change": "manager roles canonicalize to admin"},
+        {"snapshotVersion": 4, "change": "seller role revocation records are initialized"},
+        {"snapshotVersion": 5, "change": "append-only Seller integration events are initialized"}
+      ],
       "legacyRole": "manager",
       "canonicalReplacement": "admin",
       "newRequestsAcceptLegacyRole": false,
-      "rollbackBoundary": "A v3 snapshot must not be written by binaries that do not understand canonical role names."
+      "rollbackBoundary": "Binaries that do not understand Snapshot v5 revocations and Seller integration events must not write a v5 state file."
     }
   },
   "apis": [
@@ -100,8 +122,9 @@
     {"method": "POST", "path": "/api/seller/stores", "authority": "authenticated seller account"},
     {"method": "PUT", "path": "/api/seller/stores/{id}", "authority": "owner"},
     {"method": "POST", "path": "/api/seller/stores/{id}/activate", "authority": "owner"},
-    {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read"},
+    {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read", "returns": ["roles", "revocations", "events", "actorRole"]},
     {"method": "PUT", "path": "/api/seller/stores/{id}/roles", "authority": "owner"},
+    {"method": "POST", "path": "/api/seller/stores/{id}/roles/{account}/revoke", "authority": "owner", "localEffect": "immediate", "centralEffect": "confirmed, unavailable or rejected"},
     {"method": "GET", "path": "/api/seller/products", "authority": "seller.read"},
     {"method": "POST", "path": "/api/seller/products", "authority": "catalog.write"},
     {"method": "PUT", "path": "/api/seller/products/{id}", "authority": "catalog.write"},
@@ -132,6 +155,26 @@
       "sellerConsoleAuthority": "consumer and presentation layer"
     }
   },
+  "localIntegrationOutbox": {
+    "owner": "10-seller-console",
+    "snapshotVersion": 5,
+    "appendOnly": true,
+    "deliveryState": "persistedLocalPendingDataFabricAcceptance",
+    "events": [
+      {
+        "name": "ynx.seller.role.revoked.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "revocationId", "previousRole", "sessionStatus", "schemaVersion", "occurredAt"]
+      },
+      {
+        "name": "ynx.seller.authorization.revocation.updated.v1",
+        "fields": ["id", "source", "storeId", "account", "actor", "revocationId", "previousRole", "sessionStatus", "sessionRevocationId", "sessionCount", "schemaVersion", "occurredAt"]
+      }
+    ],
+    "centralCanonicalOwner": "26-data-fabric",
+    "centralAcceptance": false
+  },
+  "canonicalEventOwner": "26-data-fabric",
+  "canonicalEventStatus": "pendingAcceptance",
   "canonicalEvents": [
     "seller.store.created",
     "seller.store.activated",
@@ -162,7 +205,7 @@
     "mustNotExpose": ["secret", "privateKey", "providerCredential", "localAbsolutePath"]
   },
   "dependencies": [
-    {"owner": "02-wallet-auth", "contract": "Seller product registration, session introspection and revoke", "status": "pendingAcceptance"},
+    {"owner": "02-wallet-auth", "contract": "Seller product registration, session introspection and store-scoped authorization revocation receipt", "status": "pendingAcceptance"},
     {"owner": "04-pay", "contract": "Authoritative settlement and refund evidence", "status": "pendingAcceptance"},
     {"owner": "15-trust-center", "contract": "Dispute and appeal evidence", "status": "pendingAcceptance"},
     {"owner": "26-data-fabric", "contract": "Canonical commerce events and billing ledger", "status": "pendingAcceptance"},
@@ -180,6 +223,7 @@
   ],
   "testCommands": [
     "go test ./internal/commerce",
+    "go test -race ./internal/commerce",
     "npm test (apps/seller-console)",
     "npm run build (apps/seller-console)",
     "npm run smoke (apps/seller-console)"

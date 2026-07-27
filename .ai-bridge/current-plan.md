@@ -1,30 +1,38 @@
 # YNX Seller Console Current Plan
 
-## Current stage
+Stage: `FREEZE`  
+Goal status: `ACTIVE`  
+Runtime source commit: `9e6aea94087d02c76ee9002df8b92b3f7d55df9b`
 
-`FREEZE` — canonical Seller RBAC and central integration boundaries are being frozen before shared Testnet integration.
+## Protected slice
 
-## Protected source checkpoint
+Owner-only Seller role revocation is implemented and pushed. Local authority is removed immediately, central Wallet invalidation is store-scoped and receipt-bound, regrant is blocked until confirmed, and Snapshot v5 persists revocation, Audit, and append-only Seller Outbox evidence transactionally.
 
-Source commit `62d5a1833b9a901a339dc267ef78779ba793a095` contains:
+Local verification passed:
 
-1. Replacement of the legacy broad `manager` role with canonical least-privilege roles.
-2. Snapshot v2 `manager` to Snapshot v3 `admin` migration.
-3. Rejection of legacy and unknown roles for new assignments.
-4. Fail-closed permission checks across catalog, inventory, fulfillment, finance, support and read paths.
-5. Frozen integration contract, test vectors, dependency acceptance, coverage and truthful release status.
-6. Passing targeted Go, Web, build and local HTTP smoke verification.
+- `go test ./internal/commerce`
+- `go test -race ./internal/commerce`
+- `npm test` in `apps/seller-console`
+- `npm run build` in `apps/seller-console`
 
-The independent branch must be pushed and local/remote SHA equality verified before the next source slice begins.
+Repository-wide `go test ./...` remains red only in non-Seller ownership areas recorded in the Integration Handoff. Do not modify those products from this worktree.
 
-## Exact next engineering slice
+## Exact next implementation slice
 
-Implement owner-only role revocation and a Wallet/Auth session-invalidation adapter:
+Complete the remaining local portion of `SC-RBAC-003`: persisted Seller team invitations.
 
-- add an explicit revoke endpoint and owner-only store operation;
-- preserve the owner role and reject self/owner revocation;
-- append immutable audit and canonical event records;
-- call the central Wallet/Auth revoke contract when configured;
-- return a truthful pending/unavailable state when central revoke cannot be confirmed;
-- add negative tests for non-owner revoke, unknown account, repeated revoke and provider outage;
-- update the coverage matrix and integration vectors.
+1. Add an owner-created invitation record bound to store, target native account, canonical assignable role, creator, created time, expiry, status, and one-time acceptance identifier.
+2. Reject owner/self invitations, unknown roles, duplicate active invitations, expired invitations, wrong-account acceptance, replayed acceptance, and acceptance after cancel/revoke.
+3. Acceptance must use the authenticated canonical Wallet account already provided by Seller product sessions; do not add a parallel bearer, password, seed, or browser-held signing secret.
+4. Persist invitation create/cancel/accept Audit and versioned local Outbox events in the same transaction as role assignment.
+5. Bump and test Snapshot migration only if the persisted schema changes; include restart, tamper, rollback-on-persist-failure, Race, API, and UI failure-state tests.
+6. Update the frozen contract, cross-product vectors, coverage matrix, release facts, and handoff to the exact implementation commit.
+7. Commit, push, and verify Local SHA = Remote SHA before selecting the next uncovered requirement.
+
+## External acceptance still required
+
+- Owner 02: Seller registry plus store-scoped authorization-revocation contract.
+- Owner 26: canonical ingestion of the two Seller revocation Outbox events.
+- Owner 29: shared Testnet contract freeze and end-to-end execution.
+
+These dependencies do not block the invitation implementation or other independent Seller work.

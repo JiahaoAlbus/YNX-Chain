@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "ynx-seller-console",
-  "sourceCommit": "62d5a1833b9a901a339dc267ef78779ba793a095",
+  "sourceCommit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
   "vectors": [
     {
       "id": "SC-AUTH-ACCEPT-001",
@@ -17,6 +17,21 @@
       "owner": "02-wallet-auth",
       "mutations": ["wrong product", "wrong bundle", "wrong callback", "wrong device", "scope widening", "scope reordering", "expired session", "revoked session", "replayed challenge"],
       "expected": ["fail closed", "no seller records returned", "no mutation performed"]
+    },
+    {
+      "id": "SC-AUTH-STORE-REVOKE-001",
+      "category": "wallet-auth-revocation",
+      "owner": "02-wallet-auth",
+      "preconditions": ["owner revokes a non-owner Seller role", "resourceType=seller_store", "resourceId equals the Seller store id"],
+      "action": "Submit the exact account, productClientId, bundleId, resource tuple and local revocation request id to the Wallet authorization revocation endpoint.",
+      "expected": ["local Seller role is removed before the central call", "a fully bound receipt records confirmed", "sessionCount and revocationId are persisted", "regrant is allowed only after confirmed"]
+    },
+    {
+      "id": "SC-AUTH-STORE-REVOKE-REJECT-001",
+      "category": "wallet-auth-revocation-negative",
+      "owner": "02-wallet-auth with 10-seller-console adapter validation",
+      "mutations": ["wrong request id", "wrong account", "wrong product", "wrong bundle", "wrong resource type", "wrong store id", "missing revocation id", "negative session count", "zero or future revokedAt", "provider unavailable", "provider rejected"],
+      "expected": ["receipt never becomes confirmed", "local role remains revoked", "regrant remains blocked", "state is unavailable or rejected", "no unrelated Seller authority is revoked"]
     },
     {
       "id": "SC-RBAC-CATALOG-001",
@@ -70,8 +85,8 @@
       "id": "SC-RBAC-LEGACY-001",
       "category": "migration",
       "owner": "10-seller-console",
-      "input": "Snapshot v2 contains role manager.",
-      "expected": ["state migrates to Snapshot v3", "manager is stored as admin", "new role API rejects manager"]
+      "input": "Snapshot v2 contains role manager and no revocation or Seller event collections.",
+      "expected": ["state migrates to Snapshot v5", "manager is stored as admin", "revocation and Seller event collections are initialized", "new role API rejects manager"]
     },
     {
       "id": "SC-PAY-SETTLEMENT-001",
@@ -106,8 +121,8 @@
       "id": "SC-DATA-FABRIC-001",
       "category": "canonical-events",
       "owner": "26-data-fabric",
-      "action": "Consume Seller events with source commit, event id, actor, store, object, status and audit id.",
-      "expected": ["idempotent ingest", "canonical event owner retained", "billing facts not recalculated by Seller Console"]
+      "action": "Consume the persisted ynx.seller.role.revoked.v1 and ynx.seller.authorization.revocation.updated.v1 outbox records with source, schema version, event id, actor, store, account, revocation id and explicit session status.",
+      "expected": ["idempotent ingest", "event fields remain bound to the local revocation record", "unavailable or rejected is never normalized to confirmed", "canonical event owner retained", "billing facts not recalculated by Seller Console"]
     },
     {
       "id": "SC-PROVIDER-OUTAGE-001",
@@ -120,8 +135,8 @@
       "id": "SC-RECOVERY-001",
       "category": "backup-restore",
       "owner": "10-seller-console",
-      "action": "Create HMAC-protected state, create backup, tamper with primary state, restore verified backup and reopen.",
-      "expected": ["tampered state fails closed", "only a verified backup restores", "Snapshot v3 roles and audit records survive"]
+      "action": "Create HMAC-protected state, revoke a Seller role, record a confirmed authorization invalidation, create backup, tamper with primary state, restore the verified backup and reopen.",
+      "expected": ["tampered state fails closed", "only a verified backup restores", "Snapshot v5 roles, revocations, append-only Seller events and audit records survive"]
     }
   ]
 }

@@ -3,7 +3,7 @@
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
   "branch": "codex/final-seller-console",
-  "commit": "62d5a1833b9a901a339dc267ef78779ba793a095",
+  "commit": "9e6aea94087d02c76ee9002df8b92b3f7d55df9b",
   "version": "0.3.0-testnet-preview",
   "goalStatus": "active",
   "stage": "FREEZE",
@@ -27,6 +27,7 @@
   },
   "localEvidence": {
     "goTests": "go test ./internal/commerce",
+    "goRace": "go test -race ./internal/commerce; passed with a non-failing macOS linker LC_DYSYMTAB warning",
     "webTests": "npm test in apps/seller-console",
     "webBuild": "npm run build in apps/seller-console",
     "localSmoke": "npm run smoke in apps/seller-console; /health and /api/capabilities passed against the existing local service on 127.0.0.1:8095",
@@ -39,6 +40,12 @@
     "rolesImplemented": ["owner", "admin", "catalog", "inventory", "fulfillment", "finance", "support", "viewer"],
     "legacyManagerAcceptedForNewAssignments": false,
     "snapshotV2ManagerMigratesTo": "admin",
+    "currentSnapshotVersion": 5,
+    "ownerOnlyRoleRevocationImplemented": true,
+    "storeScopedWalletRevocationAdapterImplemented": true,
+    "storeScopedWalletRevocationAcceptedCentral": false,
+    "sellerRevocationOutboxImplemented": true,
+    "sellerRevocationOutboxAcceptedDataFabric": false,
     "auditImplemented": true,
     "payBoundaryImplemented": true,
     "trustBoundaryImplemented": true,
@@ -67,11 +74,12 @@
   },
   "knownLimitations": [
     "The deployed central Gateway does not yet provide direct evidence that the separate Seller v2 product registration is active, so central integration remains false.",
-    "Role revocation and central Wallet session invalidation are not yet implemented as a complete end-to-end workflow.",
+    "Owner-only local role revocation and the store-scoped Wallet adapter are implemented, but the central revocation contract has not been accepted or verified in a shared environment.",
+    "Seller revocation Outbox records persist locally, but Owner 26 Data Fabric has not accepted or ingested them as canonical events.",
     "The shared Shop Pay merchant and payout configuration is not provisioned; refund approval cannot become refunded without authoritative committed Pay evidence.",
     "Tax and carrier providers are intentionally unavailable; seller shipment entries remain manual and unverified.",
     "Current source has not been deployed or hosted as an immutable release artifact.",
     "Full SLO, capacity, accessibility, security, supply-chain and restore evidence remains incomplete."
   ],
-  "generatedAt": "2026-07-27T06:18:35Z"
+  "generatedAt": "2026-07-27T14:27:32Z"
 }

@@ -1,34 +1,35 @@
 # YNX Seller Console Agent Status
 
-- Product: `10 | YNX Seller Console`
-- Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console`
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console`
 - Branch: `codex/final-seller-console`
 - Stage: `FREEZE`
-- Goal: `Active`
-- Source checkpoint: `62d5a1833b9a901a339dc267ef78779ba793a095`
+- Goal status: `ACTIVE`
+- Runtime source commit: `9e6aea94087d02c76ee9002df8b92b3f7d55df9b`
+- Runtime source pushed: `true`
+- Runtime Local/Remote SHA equal: `true`
+- Central integration: `false`
+- Current-source staging/public deployment: `false`
+- Current-source hosted artifact: `false`
 
-## Completed in this slice
+## Latest protected engineering result
 
-- Canonical eight-role permission model implemented.
-- Snapshot v2 to v3 role migration implemented.
-- Legacy `manager` rejected for new role assignments.
-- Catalog, inventory, fulfillment, finance, support and read paths use fail-closed permissions.
-- Seller role UI updated to canonical roles.
-- Full-goal coverage matrix established.
-- Integration contract, cross-product vectors and dependency acceptance established.
-- Release Record corrected so current-source deployment and hosting are false without evidence.
+Owner-only Seller role revocation, immediate local authority removal, store-scoped Wallet authorization invalidation, strict receipt binding, regrant blocking, Snapshot v5 migration, transactional Audit/Outbox persistence, restart recovery, and Seller UI evidence states are implemented in the runtime source commit above.
 
 ## Verification
 
 - `go test ./internal/commerce`: passed.
-- Seller `npm test`: passed.
-- Seller `npm run build`: passed.
-- Seller `npm run smoke`: `/health` and `/api/capabilities` passed against an existing local service.
+- `go test -race ./internal/commerce`: passed; non-failing macOS linker warning recorded.
+- `npm test` in `apps/seller-console`: passed.
+- `npm run build` in `apps/seller-console`: passed.
+- `go test ./...`: attempted; failed only in non-Seller ownership areas documented in `docs/integration/INTEGRATION_HANDOFF.md`.
 
-## Checkpoint state
+## Current blockers
 
-The immutable tested source checkpoint is `62d5a1833b9a901a339dc267ef78779ba793a095`. Evidence, release and integration records are bound to that source checkpoint in a separate commit. The branch must remain clean and local/remote equality must be verified before the next source slice.
+- Owner 02 has not accepted/deployed the Seller store-scoped authorization-revocation contract.
+- Owner 26 has not accepted the local Seller revocation Outbox events as canonical inputs.
+- Team invitation lifecycle remains locally implementable and incomplete.
+- Shared Testnet, current-source deployment, artifact hosting, security release review, SLO/capacity, and public proof remain incomplete.
 
-## Next action
+## Exact next action
 
-Implement owner-only role revocation with immutable audit evidence and a fail-closed Wallet/Auth session-invalidation adapter, then update the coverage matrix and cross-product vectors.
+Implement the persisted, canonical-Wallet-account-bound Seller team invitation lifecycle defined in `.ai-bridge/current-plan.md`, then repeat the targeted/Race/build gates, bind evidence to the new source commit, push, and verify Local SHA = Remote SHA.
