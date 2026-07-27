@@ -90,6 +90,79 @@ func TestCaseLifecycleRoleSeparationCorrectionExpiryReplayRestart(t *testing.T) 
 	}
 }
 
+func TestSnapshotIntegrityRejectsOfflineTamperAndMigratesLegacyState(t *testing.T) {
+	now := time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "state.json")
+	svc, err := New(Config{StorePath: path, Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	do(t, svc, Actor{"ynx1reporter", "reporter"}, Action{
+		Type:            "submit_case",
+		IdempotencyKey:  "integrity-case",
+		Subject:         "ynx1subject",
+		Purpose:         "verify persisted evidence integrity",
+		RequestScope:    "one case",
+		RequestedAction: "review",
+		Evidence:        evidence(),
+	})
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sealed snapshot
+	if err := json.Unmarshal(raw, &sealed); err != nil {
+		t.Fatal(err)
+	}
+	if sealed.Version != currentSnapshotVersion || !strings.HasPrefix(sealed.Integrity, "sha256:") {
+		t.Fatalf("snapshot was not sealed: version=%d integrity=%q", sealed.Version, sealed.Integrity)
+	}
+	if _, err := New(Config{StorePath: path, Now: func() time.Time { return now }}); err != nil {
+		t.Fatalf("valid sealed snapshot did not restart: %v", err)
+	}
+
+	tampered := strings.Replace(string(raw), "ynx1subject", "ynx1tampered", 1)
+	if tampered == string(raw) {
+		t.Fatal("tamper fixture did not alter persisted state")
+	}
+	if err := os.WriteFile(path, []byte(tampered), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(Config{StorePath: path, Now: func() time.Time { return now }}); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("offline-tampered snapshot was accepted: %v", err)
+	}
+
+	// Version 1 stores are preserved and atomically upgraded once. After the
+	// migration, they receive the same version-2 integrity protection.
+	sealed.Version = 1
+	sealed.Integrity = ""
+	legacyRaw, err := json.MarshalIndent(sealed, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, legacyRaw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(Config{StorePath: path, Now: func() time.Time { return now }}); err != nil {
+		t.Fatalf("legacy snapshot migration failed: %v", err)
+	}
+	migratedRaw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var migrated snapshot
+	if err := json.Unmarshal(migratedRaw, &migrated); err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Version != currentSnapshotVersion || migrated.Integrity == "" {
+		t.Fatalf("legacy snapshot was not integrity-migrated: version=%d integrity=%q", migrated.Version, migrated.Integrity)
+	}
+	if err := verifySnapshotIntegrity(migrated); err != nil {
+		t.Fatalf("migrated snapshot seal is invalid: %v", err)
+	}
+}
+
 func TestLabelExpiryAndEvidenceRequired(t *testing.T) {
 	now := time.Date(2026, 7, 15, 9, 0, 0, 0, time.UTC)
 	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), Now: func() time.Time { return now }})
@@ -155,6 +228,19 @@ func TestHTTPAuthorizationSecurityAndTransparency(t *testing.T) {
 	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), AllowHeaderAuth: true})
 	ts := httptest.NewServer(svc.Handler(http.NotFoundHandler()))
 	defer ts.Close()
+	healthResp, err := http.Get(ts.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var health map[string]any
+	if err := json.NewDecoder(healthResp.Body).Decode(&health); err != nil {
+		healthResp.Body.Close()
+		t.Fatal(err)
+	}
+	healthResp.Body.Close()
+	if healthResp.StatusCode != http.StatusOK || health["stateFormatVersion"] != float64(currentSnapshotVersion) || health["tamperEvidentPersistence"] != true {
+		t.Fatalf("health does not disclose persistence integrity: status=%d body=%+v", healthResp.StatusCode, health)
+	}
 	resp, err := http.Get(ts.URL + "/api/state")
 	if err != nil {
 		t.Fatal(err)

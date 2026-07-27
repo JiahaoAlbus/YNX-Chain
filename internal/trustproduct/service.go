@@ -20,6 +20,8 @@ import (
 
 const maxBody = 1 << 20
 
+const currentSnapshotVersion = 2
+
 type Config struct {
 	StorePath         string
 	AIURL             string
@@ -139,6 +141,7 @@ type AuthorityAudit struct {
 
 type snapshot struct {
 	Version        int                       `json:"version"`
+	Integrity      string                    `json:"integrity,omitempty"`
 	Cases          map[string]Case           `json:"cases"`
 	AI             map[string]AIRecord       `json:"ai"`
 	Audit          []Audit                   `json:"audit"`
@@ -176,7 +179,7 @@ func New(cfg Config) (*Service, error) {
 			return nil, errors.New("central Gateway client ID is required")
 		}
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}}}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: currentSnapshotVersion, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}}}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || !validActor(actor) {
 			return nil, errors.New("Trust session registry contains an invalid token or actor")
@@ -202,8 +205,14 @@ func (s *Service) load() error {
 	if err := json.Unmarshal(b, &d); err != nil {
 		return fmt.Errorf("decode trust store: %w", err)
 	}
-	if d.Version != 1 {
+	legacy := d.Version == 1
+	if !legacy && d.Version != currentSnapshotVersion {
 		return fmt.Errorf("unsupported trust store version %d", d.Version)
+	}
+	if !legacy {
+		if err := verifySnapshotIntegrity(d); err != nil {
+			return fmt.Errorf("verify trust store: %w", err)
+		}
 	}
 	if d.Cases == nil {
 		d.Cases = map[string]Case{}
@@ -218,6 +227,14 @@ func (s *Service) load() error {
 		d.Sessions = map[string]CentralSession{}
 	}
 	s.data = d
+	if legacy {
+		// Version 1 predates the tamper-evident snapshot seal. Migrate it once,
+		// atomically, after successful decoding so every subsequent restart is
+		// integrity checked. No legacy state is silently discarded.
+		if err := s.saveLocked(); err != nil {
+			return fmt.Errorf("migrate trust store integrity: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -225,6 +242,13 @@ func (s *Service) saveLocked() error {
 	if err := os.MkdirAll(filepath.Dir(s.cfg.StorePath), 0o700); err != nil {
 		return err
 	}
+	s.data.Version = currentSnapshotVersion
+	s.data.Integrity = ""
+	integrity, err := snapshotIntegrity(s.data)
+	if err != nil {
+		return err
+	}
+	s.data.Integrity = integrity
 	b, err := json.MarshalIndent(s.data, "", "  ")
 	if err != nil {
 		return err
@@ -233,7 +257,38 @@ func (s *Service) saveLocked() error {
 	if err := os.WriteFile(tmp, b, 0o600); err != nil {
 		return err
 	}
+	if err := os.Chmod(tmp, 0o600); err != nil {
+		return err
+	}
 	return os.Rename(tmp, s.cfg.StorePath)
+}
+
+func snapshotIntegrity(d snapshot) (string, error) {
+	d.Integrity = ""
+	b, err := json.Marshal(d)
+	if err != nil {
+		return "", fmt.Errorf("encode trust snapshot integrity payload: %w", err)
+	}
+	sum := sha256.Sum256(b)
+	return "sha256:" + hex.EncodeToString(sum[:]), nil
+}
+
+func verifySnapshotIntegrity(d snapshot) error {
+	want := strings.TrimSpace(d.Integrity)
+	if len(want) != len("sha256:")+sha256.Size*2 || !strings.HasPrefix(want, "sha256:") {
+		return errors.New("trust snapshot integrity seal is missing or malformed")
+	}
+	if _, err := hex.DecodeString(strings.TrimPrefix(want, "sha256:")); err != nil {
+		return errors.New("trust snapshot integrity seal is malformed")
+	}
+	got, err := snapshotIntegrity(d)
+	if err != nil {
+		return err
+	}
+	if subtle.ConstantTimeCompare([]byte(want), []byte(got)) != 1 {
+		return errors.New("trust snapshot integrity mismatch")
+	}
+	return nil
 }
 
 func (s *Service) nextLocked(prefix string) string {
