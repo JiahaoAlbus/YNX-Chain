@@ -113,19 +113,19 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 	if err != nil {
 		return nil, err
 	}
-	var owner bool
+	var quotaOwner string
 	_ = s.store.read(func(st State) error {
-		if v := st.Videos[videoID]; v != nil {
-			owner = v.Owner == actor
+		if v := st.Videos[videoID]; v != nil && videoAuthorized(st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			quotaOwner = v.Owner
 		}
 		return nil
 	})
-	if !owner {
+	if quotaOwner == "" {
 		return nil, ErrForbidden
 	}
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
-	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+	if used, usageErr := s.usageForOwner(quotaOwner); usageErr != nil {
 		return nil, usageErr
 	} else if used+size > s.cfg.AccountQuotaBytes {
 		return nil, ErrQuota
@@ -252,7 +252,7 @@ func (s *Service) Comments(actor, videoID string) ([]Comment, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+		if !videoAuthorized(st, videoID, actor) && !audienceAvailable(st, v, s.cfg.Now().UTC()) {
 			return ErrForbidden
 		}
 		for _, c := range st.Comments {
@@ -272,7 +272,7 @@ func (s *Service) Video(actor, videoID string) (*Video, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+		if !videoAuthorized(st, videoID, actor) && !audienceAvailable(st, v, s.cfg.Now().UTC()) {
 			return ErrForbidden
 		}
 		copy := *v
@@ -289,8 +289,9 @@ func (s *Service) Channel(actor, channelID string) (ChannelView, error) {
 			return ErrNotFound
 		}
 		out.Channel = *c
+		teamAccess := channelAuthorized(st, channelID, actor)
 		for _, v := range st.Videos {
-			if v.ChannelID == channelID && (v.Owner == actor || (v.Visibility == VisibilityPublic && v.Status == "published" && !activeTakedown(v))) {
+			if v.ChannelID == channelID && (teamAccess || discoverable(st, v, s.cfg.Now().UTC())) {
 				out.Videos = append(out.Videos, *v)
 			}
 		}
@@ -305,55 +306,96 @@ func (s *Service) Channel(actor, channelID string) (ChannelView, error) {
 	return out, err
 }
 
-func (s *Service) Studio(owner string) (StudioSnapshot, error) {
+func (s *Service) Studio(actor string) (StudioSnapshot, error) {
 	var out StudioSnapshot
-	out.Analytics, _ = s.Analytics(owner)
 	err := s.store.read(func(st State) error {
-		owned := map[string]bool{}
-		for _, v := range st.Videos {
-			if v.Owner == owner {
-				out.Videos = append(out.Videos, *v)
-				owned[v.ID] = true
+		channels := actorChannels(st, actor)
+		accessibleVideos := map[string]CreatorRole{}
+		financialOwners := map[string]bool{}
+		for channelID, role := range channels {
+			channel := st.Channels[channelID]
+			if channel == nil {
+				continue
+			}
+			if role == CreatorRoleOwner {
+				financialOwners[channel.Owner] = true
+			}
+			team := TeamSnapshot{ChannelID: channelID, AuthVersion: channel.AuthVersion}
+			team.Members = append(team.Members, TeamMember{ChannelID: channelID, Account: channel.Owner, GrantedBy: channel.Owner, State: "active", Role: CreatorRoleOwner, CreatedAt: channel.CreatedAt, UpdatedAt: channel.CreatedAt})
+			for _, member := range st.TeamMembers {
+				if member.ChannelID == channelID {
+					team.Members = append(team.Members, *member)
+				}
+			}
+			if role == CreatorRoleOwner {
+				for _, invite := range st.TeamInvites {
+					if invite.ChannelID == channelID {
+						team.Invites = append(team.Invites, *invite)
+					}
+				}
+			}
+			sort.Slice(team.Members, func(i, j int) bool { return team.Members[i].Account < team.Members[j].Account })
+			sort.Slice(team.Invites, func(i, j int) bool { return team.Invites[i].CreatedAt.After(team.Invites[j].CreatedAt) })
+			out.Team = append(out.Team, team)
+		}
+		for _, video := range st.Videos {
+			if role, ok := channels[video.ChannelID]; ok {
+				out.Videos = append(out.Videos, *video)
+				accessibleVideos[video.ID] = role
+			}
+		}
+		for _, declaration := range st.Rights {
+			if _, ok := accessibleVideos[declaration.VideoID]; ok {
+				out.Rights = append(out.Rights, *declaration)
 			}
 		}
 		for _, report := range st.Reports {
-			if owned[report.VideoID] {
+			if role, ok := accessibleVideos[report.VideoID]; ok && roleAllowed(role, CreatorRoleEditor, CreatorRoleModerator) {
 				out.Reports = append(out.Reports, *report)
 			}
 		}
-		for _, m := range st.Monetization {
-			if m.Owner == owner {
-				out.Monetization = append(out.Monetization, *m)
+		for videoID, monetization := range st.Monetization {
+			if role, ok := accessibleVideos[videoID]; ok && roleAllowed(role, CreatorRoleFinance) {
+				out.Monetization = append(out.Monetization, *monetization)
 			}
 		}
-		for _, r := range st.Revenue {
-			if r.Owner == owner {
-				out.Revenue = append(out.Revenue, *r)
+		accessibleRevenue := map[string]bool{}
+		for _, revenue := range st.Revenue {
+			if role, ok := accessibleVideos[revenue.VideoID]; ok && roleAllowed(role, CreatorRoleFinance) {
+				out.Revenue = append(out.Revenue, *revenue)
+				accessibleRevenue[revenue.ID] = true
 			}
 		}
-		for _, p := range st.PayoutIntents {
-			if p.Owner == owner {
-				out.PayoutIntents = append(out.PayoutIntents, *p)
+		for _, payout := range st.PayoutIntents {
+			if financialOwners[payout.Owner] {
+				out.PayoutIntents = append(out.PayoutIntents, *payout)
 			}
 		}
-		for _, d := range st.Disputes {
-			if d.Owner == owner {
-				out.Disputes = append(out.Disputes, *d)
+		for _, dispute := range st.Disputes {
+			if accessibleRevenue[dispute.RevenueRecordID] {
+				out.Disputes = append(out.Disputes, *dispute)
 			}
 		}
-		for _, a := range st.Appeals {
-			if a.Appellant == owner {
-				out.Appeals = append(out.Appeals, *a)
+		for _, appeal := range st.Appeals {
+			if role, ok := accessibleVideos[appeal.VideoID]; ok && roleAllowed(role, CreatorRoleEditor, CreatorRoleModerator) {
+				out.Appeals = append(out.Appeals, *appeal)
 			}
 		}
-		for _, j := range st.AIJobs {
-			if j.Owner == owner {
-				out.AIJobs = append(out.AIJobs, *j)
+		for _, job := range st.AIJobs {
+			role, ok := accessibleVideos[job.VideoID]
+			if job.Owner == actor || (ok && roleAllowed(role, CreatorRoleEditor, CreatorRoleUploader)) {
+				out.AIJobs = append(out.AIJobs, *job)
 			}
 		}
 		return nil
 	})
+	if err != nil {
+		return out, err
+	}
+	out.Analytics, err = s.Analytics(actor)
 	sort.Slice(out.Videos, func(i, j int) bool { return out.Videos[i].CreatedAt.After(out.Videos[j].CreatedAt) })
+	sort.Slice(out.Team, func(i, j int) bool { return out.Team[i].ChannelID < out.Team[j].ChannelID })
+	sort.Slice(out.Rights, func(i, j int) bool { return out.Rights[i].CreatedAt.After(out.Rights[j].CreatedAt) })
 	return out, err
 }
 
@@ -370,7 +412,7 @@ func (s *Service) UpdateMetadata(actor, videoID, title, description string) erro
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor {
+		if !videoAuthorized(*st, videoID, actor, CreatorRoleEditor) {
 			return ErrForbidden
 		}
 		v.Title = title
@@ -384,15 +426,16 @@ func (s *Service) UpdateMetadata(actor, videoID, title, description string) erro
 func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*Video, error) {
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
-	var original string
+	var original, quotaOwner string
 	err := s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor {
+		if !videoAuthorized(*st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
 			return ErrForbidden
 		}
+		quotaOwner = v.Owner
 		if v.Status != "failed" {
 			return errors.New("only failed processing can be retried")
 		}
@@ -438,7 +481,7 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		s.failVideo(videoID, "asset_integrity_failed: "+err.Error())
 		return nil, err
 	}
-	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+	if used, usageErr := s.usageForOwner(quotaOwner); usageErr != nil {
 		return nil, usageErr
 	} else if used > s.cfg.AccountQuotaBytes {
 		_ = cleanProcessingOutputs(filepath.Dir(original))
@@ -469,19 +512,19 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 	if !ok {
 		return errors.New("unsupported thumbnail type")
 	}
-	var allowed bool
+	var quotaOwner string
 	_ = s.store.read(func(st State) error {
-		if v := st.Videos[videoID]; v != nil {
-			allowed = v.Owner == actor
+		if v := st.Videos[videoID]; v != nil && videoAuthorized(st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			quotaOwner = v.Owner
 		}
 		return nil
 	})
-	if !allowed {
+	if quotaOwner == "" {
 		return ErrForbidden
 	}
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
-	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+	if used, usageErr := s.usageForOwner(quotaOwner); usageErr != nil {
 		return usageErr
 	} else if used+size > s.cfg.AccountQuotaBytes {
 		return ErrQuota
@@ -584,8 +627,8 @@ func (s *Service) ReviewAppeal(reviewer, appealID string, accepted bool, explana
 	})
 }
 
-func (s *Service) RequestMonetization(owner, videoID string) (*Monetization, error) {
-	a, err := s.Analytics(owner)
+func (s *Service) RequestMonetization(actor, videoID string) (*Monetization, error) {
+	a, err := s.Analytics(actor)
 	if err != nil {
 		return nil, err
 	}
@@ -595,21 +638,24 @@ func (s *Service) RequestMonetization(owner, videoID string) (*Monetization, err
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != owner {
+		if !videoAuthorized(*st, videoID, actor, CreatorRoleFinance) {
 			return ErrForbidden
 		}
 		now := s.cfg.Now().UTC()
-		state, reason := "pending_review", "derived thresholds met; human review required"
+		state, reason := "pending_review", "derived thresholds and verified rights met; human review required"
 		if v.Status != "published" || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || activeTakedown(v) {
 			state = "ineligible"
 			reason = "video must be published and free of an active takedown"
+		} else if rightsErr := rightsActive(*st, v, now, true); rightsErr != nil {
+			state = "ineligible"
+			reason = rightsErr.Error()
 		} else if a.WatchSeconds < s.cfg.MinMonetizationWatchSeconds || a.Subscribers < s.cfg.MinMonetizationSubscribers {
 			state = "ineligible"
 			reason = fmt.Sprintf("requires %d watch seconds and %d subscribers; current %d/%d", s.cfg.MinMonetizationWatchSeconds, s.cfg.MinMonetizationSubscribers, a.WatchSeconds, a.Subscribers)
 		}
-		out = &Monetization{VideoID: videoID, Owner: owner, State: state, Reason: reason, RequestedAt: &now}
+		out = &Monetization{VideoID: videoID, Owner: v.Owner, State: state, Reason: reason, RequestedAt: &now}
 		st.Monetization[videoID] = out
-		s.audit(st, owner, "monetization.request", "video", videoID, state)
+		s.audit(st, actor, "monetization.request", "video", videoID, state)
 		return nil
 	})
 	return out, err
@@ -627,10 +673,15 @@ func (s *Service) ReviewMonetization(reviewer, videoID string, approved bool, re
 			return errors.New("monetization is not pending review")
 		}
 		v := st.Videos[videoID]
-		if approved && (v == nil || v.Status != "published" || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || activeTakedown(v)) {
-			return errors.New("video is no longer eligible for monetization review")
-		}
 		now := s.cfg.Now().UTC()
+		if approved {
+			if v == nil || v.Status != "published" || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || activeTakedown(v) {
+				return errors.New("video is no longer eligible for monetization review")
+			}
+			if err := rightsActive(*st, v, now, true); err != nil {
+				return err
+			}
+		}
 		if approved {
 			m.State = "eligible"
 		} else {
@@ -654,6 +705,12 @@ func (s *Service) RecordRevenue(ctx context.Context, reviewer, videoID, receiptI
 		v := st.Videos[videoID]
 		if v == nil {
 			return ErrNotFound
+		}
+		if monetization := st.Monetization[videoID]; monetization == nil || monetization.State != "eligible" {
+			return errors.New("video is not approved for monetization")
+		}
+		if err := rightsActive(st, v, s.cfg.Now().UTC(), true); err != nil {
+			return err
 		}
 		owner = v.Owner
 		for _, u := range usageIDs {
@@ -682,8 +739,36 @@ func (s *Service) RecordRevenue(ctx context.Context, reviewer, videoID, receiptI
 	if err = s.cfg.Pay.VerifyReceipt(ctx, receiptID, owner, amount); err != nil {
 		return nil, err
 	}
-	rec := &RevenueRecord{ID: id("rev"), VideoID: videoID, Owner: owner, PayReceiptID: receiptID, AmountYNXT: amount, UsageEventIDs: usageIDs, CreatedAt: s.cfg.Now().UTC()}
+	rec := &RevenueRecord{ID: id("rev"), VideoID: videoID, Owner: owner, PayReceiptID: receiptID, AmountYNXT: amount, UsageEventIDs: append([]string(nil), usageIDs...), CreatedAt: s.cfg.Now().UTC()}
 	err = s.store.update(func(st *State) error {
+		video := st.Videos[videoID]
+		if video == nil || video.Owner != owner {
+			return errors.New("revenue owner changed during verification")
+		}
+		if monetization := st.Monetization[videoID]; monetization == nil || monetization.State != "eligible" {
+			return errors.New("video is no longer approved for monetization")
+		}
+		if rightsErr := rightsActive(*st, video, s.cfg.Now().UTC(), true); rightsErr != nil {
+			return rightsErr
+		}
+		for _, existing := range st.Revenue {
+			if existing.PayReceiptID == receiptID {
+				return errors.New("receipt replay")
+			}
+			for _, usedID := range existing.UsageEventIDs {
+				for _, requestedID := range usageIDs {
+					if usedID == requestedID {
+						return errors.New("usage evidence already allocated")
+					}
+				}
+			}
+		}
+		for _, usageID := range usageIDs {
+			event, ok := st.WatchEvents[usageID]
+			if !ok || event.VideoID != videoID {
+				return errors.New("usage evidence mismatch")
+			}
+		}
 		st.Revenue[rec.ID] = rec
 		s.audit(st, reviewer, "revenue.record", "revenue", rec.ID, receiptID)
 		return nil
@@ -697,20 +782,34 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
 	if amount <= 0 {
 		return nil, errors.New("positive payout amount required")
 	}
-	a, err := s.Analytics(owner)
-	if err != nil {
-		return nil, err
-	}
-	var reserved int64
-	_ = s.store.read(func(st State) error {
-		for _, p := range st.PayoutIntents {
-			if p.Owner == owner && p.State != "cancelled" {
-				reserved += p.AmountYNXT
+	var audited, reserved int64
+	err := s.store.read(func(st State) error {
+		ownsChannel := false
+		for _, channel := range st.Channels {
+			if channel.Owner == owner {
+				ownsChannel = true
+				break
+			}
+		}
+		if !ownsChannel {
+			return ErrForbidden
+		}
+		for _, revenue := range st.Revenue {
+			if revenue.Owner == owner {
+				audited += revenue.AmountYNXT
+			}
+		}
+		for _, payout := range st.PayoutIntents {
+			if payout.Owner == owner && payout.State != "cancelled" {
+				reserved += payout.AmountYNXT
 			}
 		}
 		return nil
 	})
-	if a.RevenueYNXT-reserved < amount {
+	if err != nil {
+		return nil, err
+	}
+	if audited-reserved < amount {
 		return nil, errors.New("insufficient audited revenue")
 	}
 	localID := id("payout")
@@ -726,24 +825,29 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
 	})
 	return p, err
 }
-func (s *Service) DisputeRevenue(owner, recordID, reason string) (*Dispute, error) {
+func (s *Service) DisputeRevenue(actor, recordID, reason string) (*Dispute, error) {
 	reason, err := cleanText(reason, 2000)
 	if err != nil {
 		return nil, err
 	}
 	var d *Dispute
 	err = s.store.update(func(st *State) error {
-		r := st.Revenue[recordID]
-		if r == nil {
+		revenue := st.Revenue[recordID]
+		if revenue == nil {
 			return ErrNotFound
 		}
-		if r.Owner != owner {
+		if !videoAuthorized(*st, revenue.VideoID, actor, CreatorRoleFinance) {
 			return ErrForbidden
 		}
+		for _, existing := range st.Disputes {
+			if existing.RevenueRecordID == recordID && existing.State == "submitted" {
+				return errors.New("revenue dispute already submitted")
+			}
+		}
 		now := s.cfg.Now().UTC()
-		d = &Dispute{ID: id("dsp"), Owner: owner, RevenueRecordID: recordID, Reason: reason, State: "submitted", CreatedAt: now, UpdatedAt: now}
+		d = &Dispute{ID: id("dsp"), Owner: revenue.Owner, RevenueRecordID: recordID, Reason: reason, State: "submitted", CreatedAt: now, UpdatedAt: now}
 		st.Disputes[d.ID] = d
-		s.audit(st, owner, "revenue.dispute", "dispute", d.ID, "")
+		s.audit(st, actor, "revenue.dispute", "dispute", d.ID, "")
 		return nil
 	})
 	return d, err
@@ -776,30 +880,30 @@ func expectedSHA256(value string) ([]byte, error) {
 	return decoded, nil
 }
 
-func normalizeRights(in UploadInput, now time.Time, contentSHA256 string) (RightsDeclaration, error) {
+func normalizeRights(in UploadInput, now time.Time, contentSHA256 string) (UploadRightsEvidence, error) {
 	basis := strings.ToLower(strings.TrimSpace(in.RightsBasis))
 	switch basis {
 	case "owned", "licensed", "public-domain":
 	default:
-		return RightsDeclaration{}, errors.New("rights basis must be owned, licensed, or public-domain")
+		return UploadRightsEvidence{}, errors.New("rights basis must be owned, licensed, or public-domain")
 	}
 	source, err := cleanText(in.RightsSource, 256)
 	if err != nil {
-		return RightsDeclaration{}, fmt.Errorf("rights source: %w", err)
+		return UploadRightsEvidence{}, fmt.Errorf("rights source: %w", err)
 	}
 	license, err := cleanText(in.RightsLicense, 160)
 	if err != nil {
-		return RightsDeclaration{}, fmt.Errorf("rights license: %w", err)
+		return UploadRightsEvidence{}, fmt.Errorf("rights license: %w", err)
 	}
 	if len(in.RightsTerritories) == 0 || len(in.RightsTerritories) > 32 {
-		return RightsDeclaration{}, errors.New("rights territories must contain 1..32 entries")
+		return UploadRightsEvidence{}, errors.New("rights territories must contain 1..32 entries")
 	}
 	territories := make([]string, 0, len(in.RightsTerritories))
 	seen := map[string]struct{}{}
 	for _, raw := range in.RightsTerritories {
 		territory := strings.ToUpper(strings.TrimSpace(raw))
 		if territory == "" || len(territory) > 64 {
-			return RightsDeclaration{}, errors.New("rights territory is invalid")
+			return UploadRightsEvidence{}, errors.New("rights territory is invalid")
 		}
 		if _, ok := seen[territory]; ok {
 			continue
@@ -811,7 +915,7 @@ func normalizeRights(in UploadInput, now time.Time, contentSHA256 string) (Right
 	if in.RightsExpiresAt != nil {
 		expires := in.RightsExpiresAt.UTC()
 		if !expires.After(now) {
-			return RightsDeclaration{}, errors.New("rights declaration is already expired")
+			return UploadRightsEvidence{}, errors.New("rights declaration is already expired")
 		}
 		expiresAt = &expires
 	}
@@ -820,12 +924,12 @@ func normalizeRights(in UploadInput, now time.Time, contentSHA256 string) (Right
 		evidence = contentSHA256
 	}
 	if _, err = expectedSHA256(evidence); err != nil {
-		return RightsDeclaration{}, fmt.Errorf("rights evidence hash: %w", err)
+		return UploadRightsEvidence{}, fmt.Errorf("rights evidence hash: %w", err)
 	}
-	return RightsDeclaration{Basis: basis, Source: source, License: license, Territories: territories, ExpiresAt: expiresAt, EvidenceSHA256: evidence}, nil
+	return UploadRightsEvidence{Basis: basis, Source: source, License: license, Territories: territories, ExpiresAt: expiresAt, EvidenceSHA256: evidence}, nil
 }
 
-func rightsAllowPublication(rights *RightsDeclaration, now time.Time) error {
+func rightsAllowPublication(rights *UploadRightsEvidence, now time.Time) error {
 	if rights == nil || rights.Basis == "" || rights.Source == "" || rights.License == "" || len(rights.Territories) == 0 || rights.EvidenceSHA256 == "" {
 		return errors.New("complete rights declaration is required before publication")
 	}
@@ -869,7 +973,7 @@ func (s *Service) EnsureChannel(actor, handle, name string) (*Channel, error) {
 			return err
 		}
 		now := s.cfg.Now().UTC()
-		result = &Channel{ID: id("chn"), Owner: actor, Handle: handle, Name: name, CreatedAt: now}
+		result = &Channel{ID: id("chn"), Owner: actor, Handle: handle, Name: name, CreatedAt: now, AuthVersion: 1}
 		st.Channels[result.ID] = result
 		s.audit(st, actor, "channel.create", "channel", result.ID, "")
 		return nil
@@ -904,20 +1008,22 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	if len(in.Description) > 5000 {
 		return nil, errors.New("description too long")
 	}
+	var channelOwner string
 	err = s.store.read(func(st State) error {
 		c, ok := st.Channels[channelID]
 		if !ok {
 			return ErrNotFound
 		}
-		if c.Owner != actor {
+		if !channelAuthorized(st, channelID, actor, CreatorRoleEditor, CreatorRoleUploader) {
 			return ErrForbidden
 		}
+		channelOwner = c.Owner
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	used, usageErr := s.usageForOwner(actor)
+	used, usageErr := s.usageForOwner(channelOwner)
 	if usageErr != nil {
 		return nil, usageErr
 	}
@@ -968,7 +1074,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, rightsErr
 	}
-	v := &Video{ID: vid, Owner: actor, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
+	v := &Video{ID: vid, Owner: channelOwner, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
 	if err = s.store.update(func(st *State) error {
 		st.Videos[vid] = v
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
@@ -979,7 +1085,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	}
 	if err = s.cfg.Scanner.Scan(ctx, original); err != nil {
 		s.failVideo(vid, "scan_failed: "+err.Error())
-		return v, err
+		return s.snapshotVideo(vid), err
 	}
 	probe, err := s.probeMedia(ctx, original)
 	if err != nil {
@@ -990,7 +1096,7 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	variants, err := s.cfg.Processor.Transcode(ctx, original, objDir)
 	if err != nil {
 		s.failVideo(vid, "transcode_failed: "+err.Error())
-		return v, err
+		return s.snapshotVideo(vid), err
 	}
 	variants = append(variants, MediaVariant{Name: "original-fallback", ObjectKey: vid + "/original", MIME: in.ContentType})
 	variants, err = s.finalizeMediaVariants(v, variants)
@@ -999,12 +1105,12 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.failVideo(vid, "asset_integrity_failed: "+err.Error())
 		return v, err
 	}
-	if used, usageErr := s.usageForOwner(actor); usageErr != nil {
+	if used, usageErr := s.usageForOwner(channelOwner); usageErr != nil {
 		return v, usageErr
 	} else if used > s.cfg.AccountQuotaBytes {
 		_ = cleanProcessingOutputs(objDir)
 		s.failVideo(vid, "processed media exceeds account quota")
-		return v, ErrQuota
+		return s.snapshotVideo(vid), ErrQuota
 	}
 	err = s.store.update(func(st *State) error {
 		x := st.Videos[vid]
@@ -1168,6 +1274,19 @@ func (s *Service) setStatus(videoID, status, failure string) {
 		return nil
 	})
 }
+
+func (s *Service) snapshotVideo(videoID string) *Video {
+	var out *Video
+	_ = s.store.read(func(st State) error {
+		if video := st.Videos[videoID]; video != nil {
+			copy := *video
+			out = &copy
+		}
+		return nil
+	})
+	return out
+}
+
 func (s *Service) failVideo(videoID, failure string) { s.setStatus(videoID, "failed", failure) }
 func activeTakedown(v *Video) bool {
 	return v != nil && v.Takedown != nil && v.Takedown.State == "active"
@@ -1267,7 +1386,7 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor {
+		if !videoAuthorized(*st, videoID, actor, CreatorRoleEditor) {
 			return ErrForbidden
 		}
 		if v.Status != "ready" && v.Status != "published" {
@@ -1279,6 +1398,9 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 		now := s.cfg.Now().UTC()
 		if visibility != VisibilityPrivate {
 			if err := rightsAllowPublication(v.Rights, now); err != nil {
+				return err
+			}
+			if err := rightsActive(*st, v, now, false); err != nil {
 				return err
 			}
 		}
@@ -1296,11 +1418,9 @@ func (s *Service) Search(actor, query string) ([]Video, error) {
 	query = strings.ToLower(strings.TrimSpace(query))
 	out := []Video{}
 	err := s.store.read(func(st State) error {
+		now := s.cfg.Now().UTC()
 		for _, v := range st.Videos {
-			allowed := v.Visibility == VisibilityPublic && v.Status == "published" && !activeTakedown(v)
-			if actor == v.Owner {
-				allowed = true
-			}
+			allowed := discoverable(st, v, now) || channelAuthorized(st, v.ChannelID, actor)
 			if allowed && (query == "" || strings.Contains(strings.ToLower(v.Title+" "+v.Description), query)) {
 				out = append(out, *v)
 			}
@@ -1321,7 +1441,7 @@ func (s *Service) MediaPath(actor, objectKey string) (string, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+		if !videoAuthorized(st, v.ID, actor) && !audienceAvailable(st, v, s.cfg.Now().UTC()) {
 			return ErrForbidden
 		}
 		return nil
@@ -1347,7 +1467,7 @@ func (s *Service) RecordWatch(actor, videoID string, seconds int64, completed bo
 	}
 	return s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
-		if v == nil || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v) {
+		if !audienceAvailable(*st, v, s.cfg.Now().UTC()) {
 			return ErrNotFound
 		}
 		e := WatchEvent{ID: id("watch"), VideoID: videoID, Account: actor, Seconds: seconds, Completed: completed, CreatedAt: s.cfg.Now().UTC()}
@@ -1367,7 +1487,7 @@ func (s *Service) AddComment(actor, videoID, body string) (*Comment, error) {
 	var c *Comment
 	err = s.store.update(func(st *State) error {
 		v := st.Videos[videoID]
-		if v == nil || (v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v) {
+		if !audienceAvailable(*st, v, s.cfg.Now().UTC()) {
 			return ErrNotFound
 		}
 		now := s.cfg.Now().UTC()
@@ -1453,7 +1573,7 @@ func (s *Service) Report(actor, vid, reason, details string) (*Report, error) {
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor && ((v.Visibility != VisibilityPublic && v.Visibility != VisibilityUnlisted) || v.Status != "published" || activeTakedown(v)) {
+		if !videoAuthorized(*st, vid, actor) && !audienceAvailable(*st, v, s.cfg.Now().UTC()) {
 			return ErrForbidden
 		}
 		now := s.cfg.Now().UTC()
@@ -1498,35 +1618,42 @@ func (s *Service) Appeal(actor, reportID, reason string) (*Appeal, error) {
 	})
 	return a, err
 }
-func (s *Service) Analytics(owner string) (Analytics, error) {
+func (s *Service) Analytics(actor string) (Analytics, error) {
 	var a Analytics
 	err := s.store.read(func(st State) error {
-		owned := map[string]bool{}
-		channels := map[string]bool{}
-		for _, v := range st.Videos {
-			if v.Owner == owner {
-				owned[v.ID] = true
+		channels := actorChannels(st, actor)
+		metricChannels := map[string]bool{}
+		videos := map[string]bool{}
+		financialVideos := map[string]bool{}
+		for channelID, role := range channels {
+			if roleAllowed(role, CreatorRoleAnalyst, CreatorRoleFinance) {
+				metricChannels[channelID] = true
 			}
 		}
-		for _, c := range st.Channels {
-			if c.Owner == owner {
-				channels[c.ID] = true
+		for _, video := range st.Videos {
+			if role, ok := channels[video.ChannelID]; ok {
+				if roleAllowed(role, CreatorRoleAnalyst, CreatorRoleFinance) {
+					videos[video.ID] = true
+				}
+				if roleAllowed(role, CreatorRoleFinance) {
+					financialVideos[video.ID] = true
+				}
 			}
 		}
-		for _, e := range st.WatchEvents {
-			if owned[e.VideoID] {
+		for _, event := range st.WatchEvents {
+			if videos[event.VideoID] {
 				a.Views++
-				a.WatchSeconds += e.Seconds
+				a.WatchSeconds += event.Seconds
 			}
 		}
-		for _, x := range st.Subscriptions {
-			if channels[x.ChannelID] {
+		for _, subscription := range st.Subscriptions {
+			if metricChannels[subscription.ChannelID] {
 				a.Subscribers++
 			}
 		}
-		for _, r := range st.Revenue {
-			if r.Owner == owner {
-				a.RevenueYNXT += r.AmountYNXT
+		for _, revenue := range st.Revenue {
+			if financialVideos[revenue.VideoID] {
+				a.RevenueYNXT += revenue.AmountYNXT
 			}
 		}
 		return nil
@@ -1553,8 +1680,8 @@ func (s *Service) PrepareAIInLanguage(actor, videoID, kind string, classes []str
 		if v == nil {
 			return ErrNotFound
 		}
-		if v.Owner != actor {
-			if kind != "search_assistance" || v.Visibility != VisibilityPublic || v.Status != "published" || activeTakedown(v) {
+		if !videoAuthorized(*st, videoID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			if kind != "search_assistance" || !discoverable(*st, v, s.cfg.Now().UTC()) {
 				return ErrForbidden
 			}
 		}

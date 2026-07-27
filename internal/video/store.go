@@ -83,7 +83,6 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 			return nil, err
 		}
 		s.state = loaded
-		normalize(&s.state)
 		if err = s.verifyIntegrity(); err != nil {
 			return nil, err
 		}
@@ -91,6 +90,7 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 		if migrationErr != nil {
 			return nil, migrationErr
 		}
+		normalize(&s.state)
 		if migrated {
 			if err = s.persistLocked(); err != nil {
 				return nil, fmt.Errorf("persist migrated video state: %w", err)
@@ -153,6 +153,15 @@ func normalize(s *State) {
 	if s.Idempotency == nil {
 		s.Idempotency = map[string]IdempotencyRecord{}
 	}
+	if s.TeamInvites == nil {
+		s.TeamInvites = map[string]*TeamInvite{}
+	}
+	if s.TeamMembers == nil {
+		s.TeamMembers = map[string]*TeamMember{}
+	}
+	if s.Rights == nil {
+		s.Rights = map[string]*RightsDeclaration{}
+	}
 }
 func (s *Store) read(fn func(State) error) error {
 	s.mu.RLock()
@@ -162,13 +171,29 @@ func (s *Store) read(fn func(State) error) error {
 func (s *Store) update(fn func(*State) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := fn(&s.state); err != nil {
+	encoded, err := json.Marshal(s.state)
+	if err != nil {
 		return err
 	}
-	if err := validateAuditChain(s.state.Audit); err != nil {
+	var candidate State
+	if err = json.Unmarshal(encoded, &candidate); err != nil {
 		return err
 	}
-	return s.persistLocked()
+	normalize(&candidate)
+	if err = fn(&candidate); err != nil {
+		return err
+	}
+	if err = validateAuditChain(candidate.Audit); err != nil {
+		return err
+	}
+	candidate.Integrity = ""
+	previous := s.state
+	s.state = candidate
+	if err = s.persistLocked(); err != nil {
+		s.state = previous
+		return err
+	}
+	return nil
 }
 
 func (s *Store) persistLocked() error {
@@ -190,14 +215,23 @@ func (s *Store) persistLocked() error {
 	}
 	f, err := os.OpenFile(tmp, os.O_RDWR, 0600)
 	if err != nil {
+		_ = os.Remove(tmp)
 		return err
 	}
 	if err = f.Sync(); err != nil {
-		f.Close()
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return err
 	}
-	f.Close()
-	return os.Rename(tmp, s.statePath)
+	if err = f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err = os.Rename(tmp, s.statePath); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 func migrateState(state *State, target int) (bool, error) {

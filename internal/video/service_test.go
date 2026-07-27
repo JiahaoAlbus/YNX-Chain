@@ -11,6 +11,27 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+)
+
+func mustTestAccount(nibble string) string {
+	account, err := accountaddress.Encode("0x" + strings.Repeat(nibble, 40))
+	if err != nil {
+		panic(err)
+	}
+	return account
+}
+
+var (
+	testOwnerAccount       = mustTestAccount("1")
+	testEditorAccount      = mustTestAccount("2")
+	testAnalystAccount     = mustTestAccount("3")
+	testFinanceAccount     = mustTestAccount("4")
+	testModeratorAccount   = mustTestAccount("5")
+	testAttackerAccount    = mustTestAccount("6")
+	testContributorAccount = mustTestAccount("7")
+	testLateAccount        = mustTestAccount("8")
 )
 
 type testScanner struct{ err error }
@@ -92,7 +113,7 @@ func fixture(t *testing.T, mutate func(*Config)) (*Service, *Channel) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := s.EnsureChannel("ynx1owner", "owner", "Owner channel")
+	c, err := s.EnsureChannel(testOwnerAccount, "owner", "Owner channel")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +124,7 @@ func ownedUploadInput(title, filename, contentType string, data []byte) UploadIn
 	return UploadInput{Title: title, Filename: filename, ContentType: contentType, ExpectedSHA256: hex.EncodeToString(digest[:]), RightsBasis: "owned", RightsSource: "test fixture creator attestation", RightsLicense: "owner-controlled test fixture", RightsTerritories: []string{"WORLDWIDE"}, Size: int64(len(data)), OwnedDeclaration: true, Reader: bytes.NewReader(data)}
 }
 
-func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
+func uploadWithoutRights(t *testing.T, s *Service, c *Channel, title string) *Video {
 	t.Helper()
 	data := testMP4
 	v, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput(title, "owned.mp4", "video/mp4", data))
@@ -111,6 +132,32 @@ func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
 		t.Fatal(err)
 	}
 	return v
+}
+
+func declareTestRights(t *testing.T, s *Service, actor string, v *Video) *RightsDeclaration {
+	t.Helper()
+	declaration, err := s.DeclareRights(actor, v.ID, RightsDeclarationInput{
+		Basis:             "owned",
+		Territories:       []string{"worldwide"},
+		EvidenceSHA256:    strings.Repeat("a", 64),
+		SourceSHA256:      v.SHA256,
+		ContributorSplits: []ContributorSplit{{Account: v.Owner, BasisPoints: 10000}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return declaration
+}
+
+func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
+	t.Helper()
+	v := uploadWithoutRights(t, s, c, title)
+	declareTestRights(t, s, c.Owner, v)
+	fresh, err := s.Video(c.Owner, v.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fresh
 }
 
 func TestUploadPublishMetricsAndRestart(t *testing.T) {
@@ -455,6 +502,9 @@ func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	if err = s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = s.ReviewRights("moderator", v.RightsDeclarationID, true, "ownership evidence verified"); err != nil {
+		t.Fatal(err)
+	}
 	m, err := s.RequestMonetization(c.Owner, v.ID)
 	if err != nil || m.State != "pending_review" {
 		t.Fatalf("eligibility must await review: %+v %v", m, err)
@@ -465,6 +515,16 @@ func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	rec, err := s.RecordRevenue(context.Background(), "moderator", v.ID, "receipt-1", 5, []string{watchID})
 	if err != nil {
 		t.Fatal(err)
+	}
+	acceptRole(t, s, c.Owner, c.ID, testFinanceAccount, CreatorRoleFinance)
+	if _, err = s.CreatePayoutIntent(context.Background(), testFinanceAccount, 5); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("finance role redirected owner payout: %v", err)
+	}
+	if dispute, disputeErr := s.DisputeRevenue(testFinanceAccount, rec.ID, "ledger evidence needs review"); disputeErr != nil || dispute.Owner != c.Owner {
+		t.Fatalf("finance dispute boundary failed: %+v %v", dispute, disputeErr)
+	}
+	if _, err = s.DisputeRevenue(testFinanceAccount, rec.ID, "duplicate dispute"); err == nil {
+		t.Fatal("duplicate active revenue dispute accepted")
 	}
 	p, err := s.CreatePayoutIntent(context.Background(), c.Owner, 5)
 	if err != nil || p.State != "awaiting_wallet_confirmation" {
@@ -482,8 +542,9 @@ func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	if err != nil || job.State != "accepted_suggestion" {
 		t.Fatal(err)
 	}
-	if _, err = s.DisputeRevenue(c.Owner, rec.ID, "amount evidence mismatch"); err != nil {
-		t.Fatal(err)
+	studio, err := s.Studio(c.Owner)
+	if err != nil || len(studio.Disputes) != 1 || studio.Disputes[0].RevenueRecordID != rec.ID {
+		t.Fatalf("owner dispute evidence view failed: %+v %v", studio.Disputes, err)
 	}
 }
 func TestRestartMarksInterruptedWorkRecoverable(t *testing.T) {
@@ -514,7 +575,7 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c, err := s.EnsureChannel("ynx1owner", "ffmpeg-test", "FFmpeg test")
+	c, err := s.EnsureChannel(testOwnerAccount, "ffmpeg-test", "FFmpeg test")
 	if err != nil {
 		t.Fatal(err)
 	}
