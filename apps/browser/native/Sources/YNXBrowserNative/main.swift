@@ -2,12 +2,11 @@ import AppKit
 import WebKit
 import CryptoKit
 import Security
+import YNXBrowserCore
 
 struct TabRecord: Codable { let id: UUID; var url: String; var title: String; let isPrivate: Bool; var crashed: Bool; var group: String? }
 struct VisitRecord: Codable { let url: String; let title: String; let visitedAt: Date }
-struct DownloadRecord: Codable { let filename: String; let source: String; let finishedAt: Date }
 struct PermissionRecord: Codable { let origin: String; let permission: String; let decision: String; let decidedAt: Date }
-struct DownloadContext { let source: String; let isPrivate: Bool; var destinationFilename: String? }
 
 final class TabButton: NSButton { var tabID: UUID? }
 
@@ -21,7 +20,7 @@ final class TabButton: NSButton { var tabID: UUID? }
     private let libraryTitle = NSTextField(labelWithString: "History")
     private let libraryBoundary = NSTextField(wrappingLabelWithString: "History is stored on this Mac. Private tabs never appear here.")
     private var webViews: [UUID: WKWebView] = [:]
-    private var downloadContexts: [ObjectIdentifier: DownloadContext] = [:]
+    private var downloadContexts: [ObjectIdentifier: BrowserDownloadContext] = [:]
     private var tabs: [TabRecord] = []
     private var activeID: UUID?
     private var selectedLibrary = "history"
@@ -55,7 +54,14 @@ final class TabButton: NSButton { var tabID: UUID? }
         applyEvidenceState()
     }
 
-    private func startURL() -> URL { URL(string: searchURL) ?? URL(string: "https://example.com")! }
+    private func startURL() -> URL {
+        guard let value = URL(string: searchURL),
+              let scheme = value.scheme,
+              ["https", "http"].contains(scheme) else {
+            return URL(string: "about:blank")!
+        }
+        return value
+    }
 
     private func buildMenu() {
         let menu = NSMenu()
@@ -182,7 +188,7 @@ final class TabButton: NSButton { var tabID: UUID? }
         let values: [(String,String)]
         switch selectedLibrary {
         case "bookmarks": values = (defaults.array(forKey: "bookmarks") as? [[String:String]] ?? []).prefix(30).map { ($0["title"] ?? "Untitled", $0["url"] ?? "") }
-        case "downloads": values = ((try? JSONDecoder().decode([DownloadRecord].self, from: defaults.data(forKey: "downloads") ?? Data())) ?? []).prefix(30).map { ($0.filename, $0.source) }
+        case "downloads": values = BrowserDownloadPersistence.decodeRecords(from: defaults.data(forKey: BrowserDownloadPersistence.defaultsKey)).prefix(30).map { ($0.filename, $0.source) }
         case "permissions": values = ((try? JSONDecoder().decode([PermissionRecord].self, from: defaults.data(forKey: "permissions") ?? Data())) ?? []).prefix(30).map { ("\($0.permission) · \($0.decision)", $0.origin) }
         default: values = ((try? JSONDecoder().decode([VisitRecord].self, from: defaults.data(forKey: "history") ?? Data())) ?? []).prefix(30).map { ($0.title, $0.url) }
         }
@@ -238,7 +244,7 @@ final class TabButton: NSButton { var tabID: UUID? }
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) { let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;panel.beginSheetModal(for:window){completionHandler($0 == .OK ? panel.urls : nil)} }
     func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
         let tab = index(for: webView).map { tabs[$0] }
-        downloadContexts[ObjectIdentifier(download)] = DownloadContext(
+        downloadContexts[ObjectIdentifier(download)] = BrowserDownloadContext(
             source: navigationResponse.response.url?.absoluteString ?? webView.url?.absoluteString ?? "unknown",
             isPrivate: tab?.isPrivate ?? true,
             destinationFilename: nil
@@ -254,7 +260,7 @@ final class TabButton: NSButton { var tabID: UUID? }
                 completionHandler(nil)
                 return
             }
-            var context = self.downloadContexts[identifier] ?? DownloadContext(source: response.url?.absoluteString ?? "unknown", isPrivate: true, destinationFilename: nil)
+            var context = self.downloadContexts[identifier] ?? BrowserDownloadContext(source: response.url?.absoluteString ?? "unknown", isPrivate: true, destinationFilename: nil)
             context.destinationFilename = destination.lastPathComponent
             self.downloadContexts[identifier] = context
             completionHandler(destination)
@@ -266,14 +272,11 @@ final class TabButton: NSButton { var tabID: UUID? }
             security.stringValue = "Download completed, but no auditable source context was available. No browser record was written."
             return
         }
-        if context.isPrivate {
+        let outcome = BrowserDownloadPersistence.persistFinishedDownload(context: context, defaults: defaults)
+        if outcome == .omittedPrivate {
             security.stringValue = "Private download completed. The selected file remains on disk; no YNX Downloads record was written."
             return
         }
-        let record = DownloadRecord(filename: context.destinationFilename ?? "User-selected file", source: context.source, finishedAt: Date())
-        var values = (try? JSONDecoder().decode([DownloadRecord].self, from: defaults.data(forKey: "downloads") ?? Data())) ?? []
-        values.insert(record, at: 0)
-        if let data = try? JSONEncoder().encode(Array(values.prefix(500))) { defaults.set(data, forKey: "downloads") }
         security.stringValue = "Download completed to the user-selected file."
         refreshLibrary()
     }

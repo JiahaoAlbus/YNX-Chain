@@ -38,6 +38,7 @@ test("iOS is a native WKWebView project with Keychain P-256 identity and private
 
 test("desktop apps expose mature engine, recovery, files, permissions and Wallet/update boundaries", async () => {
   const mac = await read("../native/Sources/YNXBrowserNative/main.swift");
+  const macPersistence = await read("../native/Sources/YNXBrowserCore/DownloadPersistence.swift");
   const windows = await read("../windows/YNXBrowser.Windows/MainWindow.xaml.cs");
   const wallet = await read("../windows/YNXBrowser.Windows/WalletRequestBuilder.cs");
   const readme = await read("../windows/README.md");
@@ -46,8 +47,11 @@ test("desktop apps expose mature engine, recovery, files, permissions and Wallet
     assert.ok(mac.includes(token), `macOS host omits ${token}`);
   }
   assert.match(mac, /downloadContexts\[ObjectIdentifier\(download\)\]/);
-  assert.match(mac, /if context\.isPrivate/);
+  assert.match(mac, /BrowserDownloadPersistence\.persistFinishedDownload\(context: context, defaults: defaults\)/);
   assert.match(mac, /no YNX Downloads record was written/);
+  assert.match(macPersistence, /guard context\.isPrivate == false/);
+  assert.match(macPersistence, /source: context\.source/);
+  assert.match(macPersistence, /defaults\.set\(data, forKey: defaultsKey\)/);
   assert.doesNotMatch(mac, /DownloadRecord\(filename:"User-selected file",source:activeWebView/);
 
   for (const token of ["WebView2", "PermissionRequested", "DownloadStarting", "ClearBrowsingDataAsync", "ProcessFailed", "OnKeyDown", "WalletRequestBuilder.CreateAuthorizationUri", "WalletRequestBuilder.ValidateCallback"]) {

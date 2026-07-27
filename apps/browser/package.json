@@ -6,8 +6,10 @@
   "scripts": {
     "start": "swift run --package-path native YNXBrowserNative",
     "test": "node --test",
+    "test:native": "swift test --package-path native --jobs 1",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm test && npm run smoke && npm run build:macos",
+    "gate:source": "node scripts/source-gates.mjs",
+    "check": "npm test && npm run test:native && npm run smoke && npm run gate:source && npm run build:macos",
     "build:macos": "bash scripts/build-macos-app.sh"
   },
   "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
