@@ -138,6 +138,37 @@ export function buildOracleRelease({rootDir, outputDir, allowDirty = false}) {
   }
 }
 
+export function recordOracleReleaseEvidence({rootDir, outputDir, evidenceDir, manifest}) {
+  const root = path.resolve(rootDir);
+  const output = path.resolve(outputDir);
+  const evidence = path.resolve(evidenceDir);
+  const allowedBase = path.join(root, "release", "evidence");
+  if (evidence !== allowedBase && !evidence.startsWith(`${allowedBase}${path.sep}`)) {
+    throw new Error("Oracle evidence directory must be under release/evidence");
+  }
+  if (manifest.source?.gitCommit?.length !== 40) {
+    throw new Error("Oracle evidence requires a full source commit");
+  }
+  fs.mkdirSync(evidence, {recursive: true, mode: 0o755});
+  const shortCommit = manifest.source.gitCommit.slice(0, 12);
+  const files = [
+    ["oracle-release-manifest.json", `oracle-artifact-manifest-${shortCommit}.json`],
+    [manifest.provenance.file, `oracle-artifact-provenance-${shortCommit}.json`],
+    [manifest.sbom.file, `oracle-artifact-sbom-${shortCommit}.cdx.json`],
+  ];
+  return files.map(([sourceFile, evidenceFile]) => {
+    const source = path.join(output, sourceFile);
+    const destination = path.join(evidence, evidenceFile);
+    fs.copyFileSync(source, destination);
+    const body = fs.readFileSync(destination);
+    return {
+      bytes: body.length,
+      path: path.relative(root, destination).split(path.sep).join("/"),
+      sha256: sha256(body),
+    };
+  });
+}
+
 function buildPlatformArtifact({root, output, work, target, version, sourceCommit, commitTime, toolchain}) {
   const stage = path.join(work, target.id);
   fs.mkdirSync(path.join(stage, "bin"), {recursive: true, mode: 0o755});
@@ -397,6 +428,7 @@ function deterministicURN(seed) {
 
 function parseArguments(argv) {
   let outputDir = "tmp/oracle-release";
+  let evidenceDir = "";
   let allowDirty = false;
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -409,14 +441,24 @@ function parseArguments(argv) {
       index += 1;
       continue;
     }
-    throw new Error("usage: oracle-release.mjs [--output <directory>] [--allow-dirty]");
+    if (argument === "--evidence-dir" && argv[index + 1]) {
+      evidenceDir = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    throw new Error("usage: oracle-release.mjs [--output <directory>] [--evidence-dir <release/evidence directory>] [--allow-dirty]");
   }
-  return {allowDirty, outputDir};
+  return {allowDirty, evidenceDir, outputDir};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const {allowDirty, outputDir} = parseArguments(process.argv.slice(2));
-  const result = buildOracleRelease({rootDir: process.cwd(), outputDir, allowDirty});
+  const {allowDirty, evidenceDir, outputDir} = parseArguments(process.argv.slice(2));
+  const rootDir = process.cwd();
+  const result = buildOracleRelease({rootDir, outputDir, allowDirty});
+  if (evidenceDir) {
+    const evidence = recordOracleReleaseEvidence({rootDir, outputDir: result.outputDir, evidenceDir, manifest: result.manifest});
+    process.stderr.write(`Oracle release evidence recorded: ${evidence.map((entry) => entry.path).join(", ")}\n`);
+  }
   process.stdout.write(result.manifestBody);
   process.stderr.write(`Oracle release artifacts generated at ${result.outputDir}\n`);
 }

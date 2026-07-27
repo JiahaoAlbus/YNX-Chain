@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import {execFileSync, spawn, spawnSync} from "node:child_process";
 import {setTimeout as delay} from "node:timers/promises";
-import {buildOracleRelease} from "../package/oracle-release.mjs";
+import {buildOracleRelease, recordOracleReleaseEvidence} from "../package/oracle-release.mjs";
 import {readDeterministicTarGz, sha256} from "../lib/sdk-release.mjs";
 import {verifyOracleRelease} from "./oracle-release-verify.mjs";
 
@@ -27,6 +27,7 @@ try {
 
   verifySignaturePath({manifestPath, artifactDir: first});
   verifyTamperFailure({sourceDir: first});
+  verifyEvidenceRecording({artifactDir: first, manifest: verified.manifest});
   await verifyPlatformInstallAndColdStart({artifactDir: first, manifest: verified.manifest});
   verifyTypeScriptConsumer({artifactDir: first, manifest: verified.manifest});
   verifyGoConsumer({artifactDir: first, manifest: verified.manifest});
@@ -65,6 +66,23 @@ function verifyTamperFailure({sourceDir}) {
   assert.throws(
     () => verifyOracleRelease({manifestPath: path.join(target, "oracle-release-manifest.json"), artifactDir: target}),
     /byte size mismatch|digest mismatch/,
+  );
+}
+
+function verifyEvidenceRecording({artifactDir, manifest}) {
+  const evidenceRoot = path.join(work, "evidence-root");
+  const evidenceDir = path.join(evidenceRoot, "release", "evidence");
+  const recorded = recordOracleReleaseEvidence({rootDir: evidenceRoot, outputDir: artifactDir, evidenceDir, manifest});
+  assert.equal(recorded.length, 3, "Oracle evidence file count mismatch");
+  for (const descriptor of recorded) {
+    assert.match(descriptor.path, /^release\/evidence\/oracle-artifact-(?:manifest|provenance|sbom)-[a-f0-9]{12}(?:\.cdx)?\.json$/, "Oracle evidence filename mismatch");
+    const body = fs.readFileSync(path.join(evidenceRoot, descriptor.path));
+    assert.equal(body.length, descriptor.bytes, "Oracle evidence byte size mismatch");
+    assert.equal(sha256(body), descriptor.sha256, "Oracle evidence digest mismatch");
+  }
+  assert.throws(
+    () => recordOracleReleaseEvidence({rootDir: evidenceRoot, outputDir: artifactDir, evidenceDir: path.join(work, "outside"), manifest}),
+    /must be under release\/evidence/,
   );
 }
 
