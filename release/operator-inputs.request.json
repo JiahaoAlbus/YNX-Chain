@@ -1,8 +1,22 @@
 {
   "schemaVersion": "1.0.0",
-  "requestStatus": "required-before-public-release",
-  "generatedAt": "2026-07-22",
-  "sourceCommit": "2e3c893c7c97e7bc713af4e9a74438ffd125289f",
+  "requestStatus": "required-before-production-signed-and-reviewed-release",
+  "generatedAt": "2026-07-27",
+  "sourceCommit": "601d13bd677729ff59819ea70076a7de461328f2",
+  "satisfiedByEvidence": [
+    {
+      "capability": "central integration, staging deployment, public deployment and immutable hosted download",
+      "evidence": "release/evidence/website-public-acceptance-2026-07-26.json"
+    },
+    {
+      "capability": "canonical public routes, sitemap, robots and IndexNow submission",
+      "evidence": "https://ynxweb4.com/docs"
+    }
+  ],
+  "notApplicableStates": {
+    "installedLocal": "This documentation package is consumed by the Website build and has no standalone installer.",
+    "storeReleased": "No product store distributes this documentation package."
+  },
   "instructions": {
     "responseChannel": "approved control plane or named owner handoff",
     "neverProvideInChatOrRepository": [
@@ -18,43 +32,69 @@
   },
   "inputs": [
     {
-      "id": "legal-entity-jurisdiction-approval",
-      "ownerClass": "founder-and-qualified-counsel",
-      "required": true,
-      "provide": ["operating entity and jurisdictions", "product/activity classification decisions", "reviewed legal document versions/digests", "required licenses/registrations and prohibited claims", "approval and review-expiry date"]
-    },
-    {
-      "id": "official-public-urls-and-domain-control",
-      "ownerClass": "website-domain-and-operations-owner",
-      "required": true,
-      "provide": ["approved canonical route", "support URL", "privacy URL", "security-report URL", "status URL", "DNS/hosting ownership evidence reference", "Website integration commit and deployment identity"]
-    },
-    {
-      "id": "signer-custody-and-recovery",
+      "id": "production-signing-approval",
       "ownerClass": "security-custody-owner",
-      "requiredFor": ["production signing", "public value-moving services", "validator changes"],
-      "provide": ["secure signer path/reference", "public signer/address manifest", "two-person approval record", "rotation and offline recovery evidence", "artifact signing certificate/public-key chain"],
+      "requiredFor": [
+        "productionSigned"
+      ],
+      "provide": [
+        "approved secure signer reference/path",
+        "public signing certificate or public-key chain",
+        "artifact signing policy and signing-class decision",
+        "two-person approval record",
+        "rotation, revocation and offline recovery evidence"
+      ],
       "prohibited": "Do not provide secret key material."
     },
     {
-      "id": "provider-procurement-and-access",
-      "ownerClass": "procurement-privacy-security-legal",
-      "requiredFor": ["AI", "payments", "card", "custody", "bridge", "oracle/market data", "stablecoin", "storage"],
-      "provide": ["approved provider and product scope", "terms/license/jurisdiction/retention/data-rights review", "rate/size limits and pricing", "outage/fallback decision", "secret-manager credential reference if needed"],
-      "prohibited": "Do not provide complete provider credentials."
+      "id": "search-and-independent-public-proof",
+      "ownerClass": "website-domain-and-search-owner",
+      "requiredFor": [
+        "independentPublicProof",
+        "Search Console verification",
+        "Bing Webmaster Tools verification"
+      ],
+      "provide": [
+        "DNS/domain-control evidence reference",
+        "Search Console property and sitemap submission receipt",
+        "Bing property and sitemap submission receipt",
+        "independent monitor or search-engine fetch evidence with URL and observation time"
+      ],
+      "prohibited": "Do not provide complete provider credentials; provide an approved credential reference only if automation is authorized."
     },
     {
-      "id": "economics-and-funding-decision",
-      "ownerClass": "founder-finance-governance",
-      "requiredFor": ["token distribution", "staking", "fees", "treasury", "burn/buyback", "stablecoin", "liquidity"],
-      "provide": ["approved policy versions and effective dates", "allocation/circulating-supply evidence", "treasury/funding and subsidy budget", "liquidity decision and limits", "reserve/redemption or explicit non-activation decision", "economic/legal/security reviewer approvals"]
+      "id": "named-review-approvals",
+      "ownerClass": "qualified-legal-economic-security-and-audit-reviewers",
+      "requiredFor": [
+        "legalReview",
+        "securityReview",
+        "economicReview",
+        "independentAudit"
+      ],
+      "provide": [
+        "named reviewer and organization",
+        "scope, jurisdiction and reviewed artifact digests",
+        "approval, findings or explicit rejection",
+        "effective date and review expiry",
+        "required remediation and prohibited public claims"
+      ]
     },
     {
-      "id": "brand-assets-and-media-rights",
+      "id": "brand-media-rights-approval",
       "ownerClass": "brand-and-legal-owner",
-      "requiredFor": ["public logo variants", "icons", "screenshots", "press distribution"],
-      "provide": ["source and rights record", "approved asset hashes/bytes/dimensions", "light/dark/icon variants", "screenshot release/route/state/privacy approval", "named brand reviewer"]
+      "requiredFor": [
+        "approved public logo variants",
+        "screenshots",
+        "press distribution"
+      ],
+      "provide": [
+        "asset source and rights record",
+        "approved hashes, bytes and dimensions",
+        "light, dark and icon variant approvals",
+        "screenshot route, state, privacy and release approval",
+        "named brand reviewer"
+      ]
     }
   ],
-  "releaseRule": "Missing input keeps the affected release state false and the capability unavailable; it must never be replaced by fabricated configuration, success, provider health, legal approval, funding, liquidity, signature, URL, or asset."
+  "releaseRule": "Missing input keeps only the affected review, proof, signing or media capability false or unavailable. It must never be replaced by fabricated configuration, provider health, approval, signature or rights evidence."
 }
