@@ -14,7 +14,7 @@ func newState() persistentState {
 	return persistentState{SchemaVersion: 1, Profiles: map[string]Profile{}, Tracks: map[string]Track{}, Playlists: map[string]Playlist{}, Listeners: map[string]ListenerState{}, Usage: map[string]UsageRecord{}, Allocations: map[string]RevenueAllocation{}, Settlements: map[string]SettlementIntent{}, Cases: map[string]Case{}, AIProposals: map[string]AIProposal{}, Idempotency: map[string]string{}, Audit: []AuditEvent{}}
 }
 
-func loadState(path string) (persistentState, bool, error) {
+func loadState(path, mediaDir string) (persistentState, bool, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return newState(), false, nil
@@ -32,6 +32,13 @@ func loadState(path string) (persistentState, bool, error) {
 	expected, err := stateIntegrity(state)
 	if err != nil || expected != state.IntegrityHash {
 		return persistentState{}, false, errors.New("music state integrity verification failed")
+	}
+	for id, track := range state.Tracks {
+		track.AudioFile = filepath.Join(mediaDir, id+".wav")
+		if track.ArtworkSHA256 != "" {
+			track.ArtworkFile = filepath.Join(mediaDir, id+".art")
+		}
+		state.Tracks[id] = track
 	}
 	return state, true, nil
 }

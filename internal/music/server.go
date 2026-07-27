@@ -329,16 +329,7 @@ func (s *Server) openCase(w http.ResponseWriter, r *http.Request, a string) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Idempotency-Key is required for YNX Trust"})
 		return
 	}
-	var v Case
-	var e error
-	if old, ok := s.service.Idempotency("trust", idempotency); ok {
-		v, e = s.service.CaseByID(a, old)
-	} else {
-		v, e = s.service.OpenCase(a, q.Kind, q.TrackID, q.Reason, q.EvidenceRef)
-		if e == nil {
-			e = s.service.ClaimIdempotency(a, "trust", idempotency, v.ID)
-		}
-	}
+	v, e := s.service.OpenCaseIdempotent(a, idempotency, q.Kind, q.TrackID, q.Reason, q.EvidenceRef)
 	if e != nil {
 		resultStatus(w, v, e, http.StatusCreated)
 		return
@@ -380,16 +371,7 @@ func (s *Server) settlement(w http.ResponseWriter, r *http.Request, a string) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "Idempotency-Key is required for YNX Pay"})
 		return
 	}
-	var v SettlementIntent
-	var e error
-	if old, ok := s.service.Idempotency("pay", idempotency); ok {
-		v, e = s.service.SettlementByID(a, old)
-	} else {
-		v, e = s.service.Settlement(a, q.AllocationID, q.PayTo)
-		if e == nil {
-			e = s.service.ClaimIdempotency(a, "pay", idempotency, v.ID)
-		}
-	}
+	v, e := s.service.SettlementIdempotent(a, idempotency, q.AllocationID, q.PayTo)
 	if e != nil {
 		resultStatus(w, v, e, http.StatusCreated)
 		return

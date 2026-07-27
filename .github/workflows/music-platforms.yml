@@ -2,12 +2,24 @@ name: music-platforms
 
 on:
   push:
-    branches: [codex/ecosystem-music]
-    paths: ["apps/music/**", "internal/music/**", ".github/workflows/music-platforms.yml"]
+    branches: [codex/ecosystem-music, codex/final-music]
+    paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
   pull_request:
-    paths: ["apps/music/**", "internal/music/**", ".github/workflows/music-platforms.yml"]
+    paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
 
 jobs:
+  service:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.25"}
+      - run: go test ./internal/music ./apps/music/...
+      - run: go test -race ./internal/music
+      - run: bash apps/music/scripts/smoke.sh
+      - run: node apps/music/scripts/central-contract-audit.mjs
+      - run: node apps/music/scripts/i18n-audit.mjs
+
   android:
     runs-on: ubuntu-latest
     steps:

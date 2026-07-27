@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -103,6 +104,13 @@ func TestPlaybackPositionRecoveryAndUsageIdempotency(t *testing.T) {
 	if len(restarted.Usage(creator)) != 1 {
 		t.Fatalf("usage replay was not idempotent")
 	}
+	mediaPath, mediaType, e := restarted.Media(listener, track.ID, "audio")
+	if e != nil || mediaPath == "" || mediaType != "audio/wav" {
+		t.Fatalf("media path did not recover after restart: path=%q type=%q err=%v", mediaPath, mediaType, e)
+	}
+	if _, e := os.Stat(mediaPath); e != nil {
+		t.Fatalf("recovered media path is unavailable: %v", e)
+	}
 }
 
 func TestRightsExplicitControlAndUploadValidation(t *testing.T) {
@@ -188,6 +196,187 @@ func TestTrustAppealIsAuditedAndOwned(t *testing.T) {
 	}
 	if err := s.VerifyIntegrity(); err != nil {
 		t.Fatalf("appeal audit persistence failed: %v", err)
+	}
+}
+
+func TestTrustCaseIdempotencyIsAtomicScopedAndTamperSafe(t *testing.T) {
+	s := testService(t)
+	creator := testAccount(t, 15)
+	reporter := testAccount(t, 1)
+	track := publishTrack(t, s, creator, false)
+	const key = "trust-case-concurrent-001"
+
+	const workers = 16
+	ids := make(chan string, workers)
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			v, err := s.OpenCaseIdempotent(reporter, key, "report", track.ID, "report duplicated rights evidence", "sha256:report-evidence")
+			if err != nil {
+				errs <- err
+				return
+			}
+			ids <- v.ID
+		}()
+	}
+	wg.Wait()
+	close(ids)
+	close(errs)
+	for err := range errs {
+		t.Fatalf("concurrent idempotent case failed: %v", err)
+	}
+	first := ""
+	for id := range ids {
+		if first == "" {
+			first = id
+		}
+		if id != first {
+			t.Fatalf("same idempotency key created multiple cases: %s and %s", first, id)
+		}
+	}
+	if first == "" {
+		t.Fatal("no case was created")
+	}
+	s.mu.RLock()
+	caseCount := len(s.state.Cases)
+	s.mu.RUnlock()
+	if caseCount != 1 {
+		t.Fatalf("atomic case creation left %d records", caseCount)
+	}
+	if _, err := s.OpenCaseIdempotent(reporter, key, "report", track.ID, "changed request body is rejected", "sha256:report-evidence"); err != ErrConflict {
+		t.Fatalf("changed case replay = %v", err)
+	}
+	other := testAccount(t, 2)
+	scoped, err := s.OpenCaseIdempotent(other, key, "report", track.ID, "independent reporter evidence", "sha256:other-evidence")
+	if err != nil || scoped.ID == first {
+		t.Fatalf("account-scoped idempotency failed: %#v %v", scoped, err)
+	}
+}
+
+func TestSettlementIdempotencyIsAtomicAndTamperSafe(t *testing.T) {
+	s := testService(t)
+	creator := testAccount(t, 3)
+	listener := testAccount(t, 4)
+	track := publishTrack(t, s, creator, false)
+	if _, err := s.UpsertProfile(listener, Profile{DisplayName: "Listener"}); err != nil {
+		t.Fatal(err)
+	}
+	_, usage, err := s.SavePosition(listener, track.ID, "atomic-paid-usage", 1200, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	allocation, err := s.Allocate(creator, "external-revenue-record-atomic", 2500, []string{usage.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const key = "pay-settlement-concurrent-001"
+
+	const workers = 16
+	ids := make(chan string, workers)
+	errs := make(chan error, workers)
+	var wg sync.WaitGroup
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			v, err := s.SettlementIdempotent(creator, key, allocation.ID, creator)
+			if err != nil {
+				errs <- err
+				return
+			}
+			ids <- v.ID
+		}()
+	}
+	wg.Wait()
+	close(ids)
+	close(errs)
+	for err := range errs {
+		t.Fatalf("concurrent idempotent settlement failed: %v", err)
+	}
+	first := ""
+	for id := range ids {
+		if first == "" {
+			first = id
+		}
+		if id != first {
+			t.Fatalf("same idempotency key created multiple settlements: %s and %s", first, id)
+		}
+	}
+	s.mu.RLock()
+	settlementCount := len(s.state.Settlements)
+	s.mu.RUnlock()
+	if first == "" || settlementCount != 1 {
+		t.Fatalf("atomic settlement creation result id=%q count=%d", first, settlementCount)
+	}
+	if _, err := s.SettlementIdempotent(creator, key, allocation.ID, listener); err != ErrConflict {
+		t.Fatalf("changed settlement replay = %v", err)
+	}
+}
+
+func TestAtomicIdempotencyReplaysLegacyGlobalClaims(t *testing.T) {
+	s := testService(t)
+	creator := testAccount(t, 6)
+	listener := testAccount(t, 7)
+	track := publishTrack(t, s, creator, false)
+
+	legacyCase, err := s.OpenCase(creator, "appeal", track.ID, "legacy rights appeal evidence", "sha256:legacy-case")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ClaimIdempotency(creator, "trust", "legacy-trust-1", legacyCase.ID); err != nil {
+		t.Fatal(err)
+	}
+	replayedCase, err := s.OpenCaseIdempotent(creator, "legacy-trust-1", "appeal", track.ID, "legacy rights appeal evidence", "sha256:legacy-case")
+	if err != nil || replayedCase.ID != legacyCase.ID {
+		t.Fatalf("legacy Trust claim did not replay: %#v %v", replayedCase, err)
+	}
+
+	if _, err := s.UpsertProfile(listener, Profile{DisplayName: "Legacy Listener"}); err != nil {
+		t.Fatal(err)
+	}
+	_, usage, err := s.SavePosition(listener, track.ID, "legacy-paid-usage", 1200, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	allocation, err := s.Allocate(creator, "legacy-revenue-source", 1000, []string{usage.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacySettlement, err := s.Settlement(creator, allocation.ID, creator)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ClaimIdempotency(creator, "pay", "legacy-pay-1", legacySettlement.ID); err != nil {
+		t.Fatal(err)
+	}
+	replayedSettlement, err := s.SettlementIdempotent(creator, "legacy-pay-1", allocation.ID, creator)
+	if err != nil || replayedSettlement.ID != legacySettlement.ID {
+		t.Fatalf("legacy Pay claim did not replay: %#v %v", replayedSettlement, err)
+	}
+}
+
+func TestMutationDoesNotLeakIntoMemoryWhenPersistenceFails(t *testing.T) {
+	s := testService(t)
+	actor := testAccount(t, 5)
+	blocker := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blocker, []byte("block"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	s.cfg.StatePath = filepath.Join(blocker, "state.json")
+	if _, err := s.UpsertProfile(actor, Profile{DisplayName: "Must Not Persist"}); err == nil {
+		t.Fatal("mutation unexpectedly succeeded through invalid persistence path")
+	}
+	if _, err := s.Profile(actor); err != ErrNotFound {
+		t.Fatalf("failed mutation leaked into memory: %v", err)
+	}
+	s.mu.RLock()
+	auditCount := len(s.state.Audit)
+	s.mu.RUnlock()
+	if auditCount != 0 {
+		t.Fatalf("failed mutation appended %d audit records", auditCount)
 	}
 }
 

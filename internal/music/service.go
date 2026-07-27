@@ -20,7 +20,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
 )
 
-var safeText = regexp.MustCompile(`^[\pL\pN][\pL\pN .,'&()_\-]{0,119}$`)
+var safeText = regexp.MustCompile(`^[\pL\pN][\pL\pN .,'&()_\-]{0,119}\z`)
+var safeIdempotencyKey = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\z`)
+
+var errIdempotentReplay = fmt.Errorf("music idempotent replay")
 
 type Service struct {
 	cfg   Config
@@ -60,7 +63,7 @@ func New(cfg Config) (*Service, error) {
 	if err := os.MkdirAll(cfg.MediaDir, 0o700); err != nil {
 		return nil, err
 	}
-	state, exists, err := loadState(cfg.StatePath)
+	state, exists, err := loadState(cfg.StatePath, cfg.MediaDir)
 	if err != nil {
 		return nil, err
 	}
@@ -98,23 +101,44 @@ func hashJSON(v any) string {
 func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*persistentState) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	before := s.state
-	if err := fn(&s.state); err != nil {
+	next, err := clonePersistentState(s.state)
+	if err != nil {
+		return err
+	}
+	if err := fn(&next); err != nil {
 		return err
 	}
 	now := s.cfg.Now().UTC()
 	prev := ""
-	if n := len(s.state.Audit); n > 0 {
-		prev = s.state.Audit[n-1].Hash
+	if n := len(next.Audit); n > 0 {
+		prev = next.Audit[n-1].Hash
 	}
-	a := AuditEvent{Sequence: uint64(len(s.state.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
+	a := AuditEvent{Sequence: uint64(len(next.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
 	a.Hash = hashJSON(a)
-	s.state.Audit = append(s.state.Audit, a)
-	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
-		s.state = before
+	next.Audit = append(next.Audit, a)
+	if err := saveState(s.cfg.StatePath, &next); err != nil {
 		return err
 	}
+	s.state = next
 	return nil
+}
+
+func clonePersistentState(state persistentState) (persistentState, error) {
+	raw, err := json.Marshal(state)
+	if err != nil {
+		return persistentState{}, fmt.Errorf("clone music state: %w", err)
+	}
+	var cloned persistentState
+	if err := json.Unmarshal(raw, &cloned); err != nil {
+		return persistentState{}, fmt.Errorf("clone music state: %w", err)
+	}
+	for id, original := range state.Tracks {
+		track := cloned.Tracks[id]
+		track.AudioFile = original.AudioFile
+		track.ArtworkFile = original.ArtworkFile
+		cloned.Tracks[id] = track
+	}
+	return cloned, nil
 }
 
 func (s *Service) Idempotency(namespace, key string) (string, bool) {
@@ -625,6 +649,58 @@ func (s *Service) Settlement(actor, allocationID, payTo string) (SettlementInten
 	return out, err
 }
 
+// SettlementIdempotent atomically creates or replays a settlement intent. The
+// idempotency claim and intent are persisted in the same transaction so two
+// concurrent requests cannot leave duplicate orphan intents behind.
+func (s *Service) SettlementIdempotent(actor, idempotencyKey, allocationID, payTo string) (SettlementIntent, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return SettlementIntent{}, err
+	}
+	payTo, err = normalizeActor(payTo)
+	if err != nil || !safeIdempotencyKey.MatchString(idempotencyKey) || strings.TrimSpace(allocationID) == "" {
+		return SettlementIntent{}, ErrInvalid
+	}
+	key := "pay:" + actor + ":" + idempotencyKey
+	legacyKey := "pay:" + idempotencyKey
+	candidateID := newID("pay")
+	var out SettlementIntent
+	err = s.mutate(actor, "settlement_intent_created", candidateID, map[string]string{"idempotencyKeyHash": hashJSON(idempotencyKey), "payTo": payTo}, func(st *persistentState) error {
+		existingID := st.Idempotency[key]
+		if existingID == "" {
+			existingID = st.Idempotency[legacyKey]
+		}
+		if existingID != "" {
+			existing, ok := st.Settlements[existingID]
+			if !ok || existing.Creator != actor || existing.AllocationID != allocationID || existing.PayTo != payTo {
+				return ErrConflict
+			}
+			out = existing
+			return errIdempotentReplay
+		}
+		a, ok := st.Allocations[allocationID]
+		if !ok {
+			return ErrNotFound
+		}
+		if a.Creator != actor {
+			return ErrUnauthorized
+		}
+		for _, v := range st.Settlements {
+			if v.AllocationID == allocationID {
+				return ErrConflict
+			}
+		}
+		out = SettlementIntent{ID: candidateID, Creator: actor, AllocationID: allocationID, AmountMicros: a.AmountMicros, Currency: a.Currency, PayTo: payTo, Status: "requires_wallet_review", ReviewURI: "ynx-pay://settlement/review", CreatedAt: s.cfg.Now().UTC()}
+		st.Settlements[out.ID] = out
+		st.Idempotency[key] = out.ID
+		return nil
+	})
+	if err == errIdempotentReplay {
+		return out, nil
+	}
+	return out, err
+}
+
 func (s *Service) LinkCentralSettlement(actor, id, centralID, reviewURI string) (SettlementIntent, error) {
 	actor, err := normalizeActor(actor)
 	if err != nil {
@@ -675,6 +751,56 @@ func (s *Service) OpenCase(actor, kind, trackID, reason, evidence string) (Case,
 	c := Case{ID: newID("case"), Kind: kind, TrackID: trackID, OpenedBy: actor, Reason: strings.TrimSpace(reason), EvidenceRef: strings.TrimSpace(evidence), Status: "open", CreatedAt: s.cfg.Now().UTC()}
 	err = s.mutate(actor, "case_opened", c.ID, c, func(st *persistentState) error { st.Cases[c.ID] = c; return nil })
 	return c, err
+}
+
+// OpenCaseIdempotent atomically creates or replays a Trust case. The key is
+// scoped to the authenticated account so independent users may safely use the
+// same client-generated key without observing or colliding with each other.
+func (s *Service) OpenCaseIdempotent(actor, idempotencyKey, kind, trackID, reason, evidence string) (Case, error) {
+	actor, err := normalizeActor(actor)
+	if err != nil {
+		return Case{}, err
+	}
+	reason = strings.TrimSpace(reason)
+	evidence = strings.TrimSpace(evidence)
+	if !safeIdempotencyKey.MatchString(idempotencyKey) || (kind != "report" && kind != "takedown" && kind != "dispute" && kind != "appeal") || len(reason) < 5 {
+		return Case{}, ErrInvalid
+	}
+	key := "trust:" + actor + ":" + idempotencyKey
+	legacyKey := "trust:" + idempotencyKey
+	candidateID := newID("case")
+	var out Case
+	err = s.mutate(actor, "case_opened", candidateID, map[string]string{"kind": kind, "trackId": trackID, "reason": reason, "evidenceRef": evidence, "idempotencyKeyHash": hashJSON(idempotencyKey)}, func(st *persistentState) error {
+		existingID := st.Idempotency[key]
+		if existingID == "" {
+			existingID = st.Idempotency[legacyKey]
+		}
+		if existingID != "" {
+			existing, ok := st.Cases[existingID]
+			if !ok || existing.OpenedBy != actor || existing.Kind != kind || existing.TrackID != trackID || existing.Reason != reason || existing.EvidenceRef != evidence {
+				return ErrConflict
+			}
+			out = existing
+			return errIdempotentReplay
+		}
+		if trackID != "" {
+			track, ok := st.Tracks[trackID]
+			if !ok {
+				return ErrNotFound
+			}
+			if (kind == "takedown" || kind == "appeal") && track.Owner != actor {
+				return ErrUnauthorized
+			}
+		}
+		out = Case{ID: candidateID, Kind: kind, TrackID: trackID, OpenedBy: actor, Reason: reason, EvidenceRef: evidence, Status: "open", CreatedAt: s.cfg.Now().UTC()}
+		st.Cases[out.ID] = out
+		st.Idempotency[key] = out.ID
+		return nil
+	})
+	if err == errIdempotentReplay {
+		return out, nil
+	}
+	return out, err
 }
 
 func (s *Service) LinkCentralCase(actor, id, centralID string) (Case, error) {
