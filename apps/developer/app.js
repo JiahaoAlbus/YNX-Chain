@@ -1,4 +1,5 @@
 import { AIBuildPersistence, AIBuildRun, GROK_BUILD_ACP } from "/client/ai-build.js";
+import { OpenAPIStudio, createConnectorTemplate, listConnectorTemplates } from "/client/api-studio.js";
 import { AICodingAgent } from "/client/ai.js";
 import { YNXChainClient } from "/client/chain-client.js";
 import { CommandAudit, commandPreview } from "/client/commands.js";
@@ -20,8 +21,9 @@ const i18n = new DeveloperI18n();
 const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
 const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
+const apiStudio = new OpenAPIStudio({ defaultOrigin: location.origin, allowedOrigins: [location.origin], credentialBroker: globalThis.ynxCredentialBroker });
 const aiBuildPersistence = new AIBuildPersistence(localStorage);
-const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, saveTimer: null };
+const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, apiPreview: null, apiConnector: "oracle", saveTimer: null };
 
 function toast(message) { const item = $("#toast"); item.textContent = message; item.classList.add("show"); setTimeout(() => item.classList.remove("show"), 2500); }
 function showError(error, target = $("#command-output")) { target.textContent = `[${error.code || "error"}] ${errorMessage(error)}`; toast(errorMessage(error)); }
@@ -40,7 +42,7 @@ async function bootstrap() {
   applyTheme(localStorage.getItem("ynx.developer.theme") || "system");
   document.documentElement.dataset.textSize=localStorage.getItem("ynx.developer.text-size")||"normal";
   try { state.aiBuild = aiBuildPersistence.load(); } catch { aiBuildPersistence.clear(); }
-  configureLanguages(); bindNavigation(); bindActions(); syncResponsiveSurfaces(); addEventListener("resize",syncResponsiveSurfaces);
+  configureLanguages(); configureAPIStudio(); bindNavigation(); bindActions(); syncResponsiveSurfaces(); addEventListener("resize",syncResponsiveSurfaces);
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
   renderAIBuild();
@@ -53,7 +55,96 @@ function configureLanguages() {
   for (const id of ["locale-select","ai-language"]) for (const locale of SUPPORTED_LOCALES) $(`#${id}`).append(new Option(labels[locale],locale));
   $("#locale-select").value=i18n.locale; $("#ai-language").value=localStorage.getItem("ynx.developer.ai-language")||i18n.locale; applyLocale();
 }
-function applyLocale() { document.documentElement.lang=i18n.locale; document.documentElement.dir=i18n.dir; $$('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);}); }
+
+function jsonField(id, label, { optional = false } = {}) {
+  const text = $(`#${id}`).value.trim();
+  if (!text && optional) return undefined;
+  try {
+    const value = JSON.parse(text || "{}");
+    if (value === null || Array.isArray(value) || typeof value !== "object") throw new Error(`${label} must be a JSON object.`);
+    return value;
+  } catch (error) {
+    throw Object.assign(new Error(`${label}: ${errorMessage(error)}`), { code: "api_input_json_invalid" });
+  }
+}
+
+function configureAPIStudio() {
+  const template = $("#api-template");
+  for (const item of listConnectorTemplates()) template.append(new Option(`${item.label} · ${item.owner}`, item.id));
+  template.value = localStorage.getItem("ynx.developer.api-template") || "oracle";
+  loadAPIConnectorTemplate();
+}
+
+function loadAPIConnectorTemplate() {
+  state.apiConnector = $("#api-template").value;
+  localStorage.setItem("ynx.developer.api-template", state.apiConnector);
+  $("#api-spec").value = JSON.stringify(createConnectorTemplate(state.apiConnector), null, 2);
+  $("#api-base-url").value = "/api-sandbox";
+  $("#api-path").value = state.apiConnector === "oracle" ? JSON.stringify({ symbol: "YNXT-USD" }, null, 2) : "{}";
+  $("#api-query").value = state.apiConnector === "search" ? JSON.stringify({ q: "YNX" }, null, 2) : "{}";
+  $("#api-headers").value = "{}";
+  $("#api-body").value = ["walletconnect", "bridge", "card", "storage", "mail", "shipping"].includes(state.apiConnector) ? JSON.stringify({ reviewRequired: true }, null, 2) : "";
+  $("#api-credential-references").value = JSON.stringify({ providerReference: `credential-ref:${state.apiConnector}/testnet` }, null, 2);
+  importAPISpec();
+}
+
+function importAPISpec() {
+  const output = $("#api-output");
+  try {
+    const imported = apiStudio.import($("#api-spec").value);
+    const operations = $("#api-operation"); operations.replaceChildren();
+    for (const item of imported.operations) operations.append(new Option(`${item.method} ${item.path} · ${item.operationId}`, item.operationId));
+    state.apiPreview = null;
+    output.textContent = JSON.stringify({ status: "validated-local", ...imported, credentialBoundary: "reference-only-host-broker", publicConnectivityClaim: false }, null, 2);
+    return imported;
+  } catch (error) { showError(error, output); return null; }
+}
+
+function previewAPIRequest() {
+  const output = $("#api-output");
+  try {
+    state.apiPreview = apiStudio.preview({
+      operationId: $("#api-operation").value,
+      baseURL: $("#api-base-url").value.trim(),
+      path: jsonField("api-path", "Path parameters"),
+      query: jsonField("api-query", "Query parameters"),
+      headers: jsonField("api-headers", "Headers"),
+      body: jsonField("api-body", "Request body", { optional: true }),
+      credentialReferences: jsonField("api-credential-references", "Credential references"),
+    });
+    output.textContent = JSON.stringify(state.apiPreview, null, 2);
+    return state.apiPreview;
+  } catch (error) { state.apiPreview = null; showError(error, output); return null; }
+}
+
+async function sendAPISandboxRequest() {
+  const preview = state.apiPreview || previewAPIRequest();
+  if (!preview) return;
+  const review = node("div");
+  review.append(node("pre", "", JSON.stringify(preview, null, 2)), node("p", "muted compact", "Only the reviewed same-origin or allowlisted sandbox target may be contacted. Secured requests require a host credential broker; browser JavaScript never receives credential values."));
+  if (!await modal({ title: "Approve API sandbox request", content: review, confirm: "Send sandbox request" })) return;
+  try { $("#api-output").textContent = JSON.stringify(await apiStudio.execute(preview, { approved: true }), null, 2); }
+  catch (error) { showError(error, $("#api-output")); }
+}
+
+function simulateAPIRequest() {
+  const preview = state.apiPreview || previewAPIRequest();
+  if (!preview) return;
+  try { $("#api-output").textContent = JSON.stringify(apiStudio.simulate(preview, $("#api-simulation").value), null, 2); }
+  catch (error) { showError(error, $("#api-output")); }
+}
+
+function generateAPIClient() {
+  try { $("#api-output").textContent = apiStudio.generateTypeScriptClient(); }
+  catch (error) { showError(error, $("#api-output")); }
+}
+
+function generateAPIAdapterManifest() {
+  try { $("#api-output").textContent = JSON.stringify(apiStudio.generateAdapterManifest({ connector: state.apiConnector }), null, 2); }
+  catch (error) { showError(error, $("#api-output")); }
+}
+
+function applyLocale() { document.documentElement.lang=i18n.locale; document.documentElement.dir=i18n.dir; document.querySelectorAll('[data-i18n]').forEach((item)=>{item.textContent=i18n.t(item.dataset.i18n);}); }
 function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); }
 function toggleTheme() { const current=localStorage.getItem("ynx.developer.theme")||"system"; applyTheme(current === "system" ? "light" : current === "light" ? "dark" : "system"); toast(`Appearance: ${localStorage.getItem("ynx.developer.theme")}`); }
 function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");toast(large?"Large interface text enabled":"Standard interface text enabled");}
@@ -172,6 +263,7 @@ function bindActions() {
   $("#create-project").onclick = createProject; $("#import-project").onclick = () => $("#file-import").click(); $("#file-import").onchange = importProject; $("#export-project").onclick = exportProject; $("#new-file").onclick = newFile;
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
+  $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
   $("#create-ai-run").onclick=createAIBuildRun; $("#resume-ai-run").onclick=()=>{try{state.aiBuild.resume();saveAIBuild();}catch(error){showError(error,$("#ai-output"));}}; $("#export-ai-audit").onclick=exportAIBuildAudit;

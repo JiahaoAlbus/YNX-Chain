@@ -79,6 +79,17 @@ pre { margin:0; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere; 
 .terminal-boundary span:last-child { color:var(--danger); }
 .rpc-row { display:grid; grid-template-columns:180px 1fr auto; gap:8px; margin-bottom:10px; }
 .rpc-row input { border:1px solid var(--line); border-radius:6px; padding:7px; font:11px ui-monospace,SFMono-Regular,Menlo,monospace; }
+.api-studio { padding-bottom:18px; }
+.api-toolbar,.api-actions { display:flex; align-items:end; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.api-toolbar label,.api-request-fields label,.api-spec { display:grid; gap:4px; color:var(--muted); font-size:var(--micro-size); font-weight:700; }
+.api-toolbar label { min-width:230px; }
+.api-grid { display:grid; grid-template-columns:minmax(300px,1.2fr) minmax(300px,1fr); gap:10px; margin-bottom:10px; }
+.api-spec textarea { min-height:270px; }
+.api-request-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.api-request-fields label:first-child,.api-request-fields label:nth-child(2),.api-request-fields label:last-child { grid-column:1/-1; }
+.api-request-fields textarea { min-height:58px; }
+.api-studio textarea,.api-studio input { width:100%; border:1px solid var(--line); border-radius:6px; padding:7px; color:var(--ink); background:var(--surface); font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; resize:vertical; }
+.api-studio #api-output { min-height:120px; padding:9px; border:1px solid var(--line); border-radius:6px; background:var(--surface-2); }
 .agent { grid-area:agent; min-width:0; border-left:1px solid var(--line); background:var(--surface-2); display:grid; grid-template-rows:52px minmax(0,1fr); }
 .agent-heading { padding:8px 14px; border-bottom:1px solid var(--line); }
 .provider { padding:4px 7px; border-radius:10px; font-size:9px; font-weight:800; }
@@ -145,7 +156,7 @@ dialog::backdrop { background:rgba(17,24,39,.48); backdrop-filter:blur(2px); }
   .workspace { width:100%; min-width:0; min-height:0; grid-template-rows:38px minmax(180px,1fr) minmax(180px,38%); }
   .editor-toolbar { max-width:100vw; overflow:auto; }.run-actions { flex:0 0 auto; }.run-actions #save-state { display:none; }
   .editor-area { grid-template-columns:42px minmax(0,1fr); }.gutter { padding-inline:6px; }#editor { padding-inline:12px; }
-  .panel-tabs { overflow:auto; }.panel-tab { flex:0 0 auto; }.terminal-boundary { display:grid; }.rpc-row { grid-template-columns:1fr; }
+  .panel-tabs { overflow:auto; }.panel-tab { flex:0 0 auto; }.terminal-boundary { display:grid; }.rpc-row,.api-grid { grid-template-columns:1fr; }.api-request-fields { grid-template-columns:1fr; }.api-request-fields label { grid-column:1/-1; }
   .statusbar { gap:10px; }.statusbar span:nth-child(n+3) { display:none; }.stage-track { grid-template-columns:repeat(3,1fr); }
   :root[data-text-size="large"] .app-shell { grid-template-rows:54px 52px minmax(0,1fr) 28px; }
   :root[data-text-size="large"] .agent { grid-template-rows:64px minmax(0,1fr); }

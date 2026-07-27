@@ -94,6 +94,7 @@
           <button class="panel-tab" data-panel="output" data-i18n="output">Output</button>
           <button class="panel-tab" data-panel="terminal" data-i18n="terminal">Terminal</button>
           <button class="panel-tab" data-panel="rpc" data-i18n="rpcTools">RPC Tools</button>
+          <button class="panel-tab" data-panel="api-studio">API Studio</button>
           <button class="panel-tab" data-panel="receipts" data-i18n="receipts">Receipts & logs</button>
           <button class="panel-tab" data-panel="artifacts" data-i18n="artifacts">Artifacts</button>
           <button class="panel-tab" data-panel="audit" data-i18n="audit">Audit</button>
@@ -102,6 +103,35 @@
         <div id="panel-output" class="panel-body"><pre id="command-output">Command output is evidence-backed. Nothing has run.</pre></div>
         <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: preview only</span><span>Unsigned local desktop package: allowlisted executor when installed</span><span>Signed production desktop release: not claimed</span></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
         <div id="panel-rpc" class="panel-body"><div class="rpc-row"><select id="rpc-method" class="select"><option>eth_chainId</option><option>eth_blockNumber</option><option>net_version</option><option>eth_getTransactionReceipt</option><option>eth_getLogs</option></select><input id="rpc-params" value="[]" aria-label="RPC parameters JSON"><button id="run-rpc" class="button primary">Run read-only RPC</button></div><pre id="rpc-output">RPC methods are allowlisted and read-only.</pre></div>
+        <div id="panel-api-studio" class="panel-body api-studio">
+          <div class="api-toolbar">
+            <label>Connector template<select id="api-template" class="select"></select></label>
+            <button id="api-load-template" class="button">Load reviewed template</button>
+            <button id="api-import" class="button primary">Import & validate OpenAPI</button>
+          </div>
+          <div class="api-grid">
+            <label class="api-spec">OpenAPI 3 JSON<textarea id="api-spec" spellcheck="false" aria-label="OpenAPI JSON"></textarea></label>
+            <div class="api-request-fields">
+              <label>Operation<select id="api-operation" class="select"></select></label>
+              <label>Sandbox base URL<input id="api-base-url" value="/api-sandbox" aria-label="Sandbox base URL"></label>
+              <label>Path parameters JSON<textarea id="api-path" spellcheck="false">{}</textarea></label>
+              <label>Query parameters JSON<textarea id="api-query" spellcheck="false">{}</textarea></label>
+              <label>Declared headers JSON<textarea id="api-headers" spellcheck="false">{}</textarea></label>
+              <label>Request body JSON<textarea id="api-body" spellcheck="false"></textarea></label>
+              <label>Credential references JSON<textarea id="api-credential-references" spellcheck="false">{}</textarea></label>
+            </div>
+          </div>
+          <div class="api-actions">
+            <button id="api-preview" class="button primary">Preview request</button>
+            <button id="api-send" class="button">Send approved sandbox request</button>
+            <select id="api-simulation" class="select" aria-label="Failure simulation"><option value="rate-limit">429 rate limit</option><option value="timeout">Timeout</option><option value="server-error">503 provider unavailable</option><option value="network-error">Network failure</option></select>
+            <button id="api-simulate" class="button">Simulate failure</button>
+            <button id="api-generate-client" class="button">Generate TypeScript client</button>
+            <button id="api-generate-manifest" class="button">Generate adapter manifest</button>
+          </div>
+          <p class="muted compact">Credentials remain opaque references handled only by an approved host broker. External OpenAPI references, undeclared headers, inline credentials and unapproved origins fail closed.</p>
+          <pre id="api-output">Load a reviewed connector template or import OpenAPI 3 JSON.</pre>
+        </div>
         <div id="panel-receipts" class="panel-body"><pre id="receipt-output">No authoritative deployment receipt, logs, or source match evidence loaded.</pre></div>
         <div id="panel-artifacts" class="panel-body"><pre id="artifact-output">Artifact Center is empty. Local builds never imply hosted or signed releases.</pre></div>
         <div id="panel-audit" class="panel-body"><pre id="audit-output">Audit timeline is empty.</pre></div>
