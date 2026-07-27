@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "resource-market-integration-v1",
+  "product": {
+    "number": 16,
+    "id": "ynx-resource-market",
+    "clientId": "ynx-resource-market-v1",
+    "name": "YNX Resource Market",
+    "slug": "resource-market",
+    "owner": "16-resource-market",
+    "sourceCommit": "26c189a8999ed4020132bebc4325348c2312fd31"
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeTestnetAsset": "YNXT",
+    "releaseClass": "unreleased-local-candidate"
+  },
+  "authorityBoundaries": {
+    "resourceMarket": "Provider registry, matching, reservation, metering and local lifecycle evidence are owned by product 16.",
+    "walletAuth": "Identity, authorization approval, product session, introspection, expiry and revocation are owned by product 02.",
+    "chainSettlement": "Asset movement, transaction finality and settlement receipt authority are owned by product 01 and accepted only through an explicitly authorized settlement identity.",
+    "billingLedger": "Canonical billing events and economic reconciliation are owned by product 26.",
+    "publicEvidence": "Explorer proof is owned by product 12, Monitor operational evidence by product 13, Trust appeal by product 15, public entry and SEO by product 28, and protocol freeze by product 29.",
+    "assetBoundary": "Resource Market never holds private keys, signs asset transfers, changes asset ownership or treats quote, capacity reservation, service start, usage or webhook status as settlement."
+  },
+  "walletTuple": {
+    "requestingProduct": "resource-market",
+    "productClientId": "ynx-resource-market-v1",
+    "bundleId": "com.ynxweb4.resource",
+    "callback": "ynxresource://wallet-auth/callback",
+    "deviceAlgorithm": "p256-sha256",
+    "maxSessionLifetimeSeconds": 900,
+    "proofHeader": "X-YNX-Product-Session-Proof",
+    "signedPathHeader": "X-YNX-Product-Request-Path",
+    "scopes": [
+      "account:read",
+      "resource:analytics",
+      "resource:capacity:read",
+      "resource:dispute",
+      "resource:history",
+      "resource:intent",
+      "resource:quote"
+    ]
+  },
+  "signedIntent": {
+    "digest": "sha256 lowercase hex, 64 characters",
+    "bindings": [
+      "chainId",
+      "requestingProduct",
+      "productClientId",
+      "bundleId",
+      "callback",
+      "devicePublicKey",
+      "account",
+      "orderedScopes",
+      "purpose",
+      "nonce",
+      "createdAt",
+      "expiresAt",
+      "requestDigest",
+      "approvalDigest"
+    ],
+    "unknownFields": "reject",
+    "scopeWidening": "reject",
+    "replay": "reject and persist proof consumption before forwarding",
+    "revocation": "fail closed"
+  },
+  "api": {
+    "productRoutes": [
+      "GET /health",
+      "GET /version",
+      "GET /status",
+      "GET /metrics",
+      "GET /api/meta",
+      "GET /api/market/state",
+      "GET /api/market/export",
+      "GET /api/market/matches",
+      "POST /api/market/actions",
+      "POST /api/auth/session/challenge",
+      "POST /api/auth/session/complete",
+      "POST /api/auth/revoke"
+    ],
+    "centralRoutes": [
+      "POST /app/session/wallet-v1/challenge",
+      "POST /app/session/wallet-v1/complete",
+      "POST /app/session/wallet-v1/revoke",
+      "/app/resource-market/*"
+    ],
+    "maxBodyBytes": 1048576,
+    "jsonPolicy": "exactly one JSON object, unknown fields rejected",
+    "correlationHeaders": ["X-Request-ID", "X-Trace-ID", "X-Error-ID"]
+  },
+  "stateMachine": {
+    "orderStates": [
+      "accepted",
+      "capacity_reserved",
+      "service_started",
+      "metered_usage",
+      "service_completed",
+      "settlement_pending",
+      "asset_settlement_confirmed",
+      "provider_failed",
+      "refunded",
+      "disputed"
+    ],
+    "preOrderStates": ["quote", "intent"],
+    "terminalStates": ["asset_settlement_confirmed", "provider_failed", "refunded"],
+    "truthRules": [
+      "quote is not an order",
+      "accepted intent is not capacity reservation",
+      "capacity reservation is not service start",
+      "service start or metering is not service completion",
+      "service completion is not asset settlement",
+      "asset settlement requires authoritative transaction evidence and exact signed-meter reconciliation",
+      "one transaction hash may be consumed by at most one receipt until an explicit batch-settlement contract is frozen",
+      "provider failure does not fabricate a refund or settlement"
+    ]
+  },
+  "metering": {
+    "schemaVersion": 5,
+    "signatureAlgorithm": "Ed25519",
+    "requiredBindings": ["orderId", "buyer", "providerId", "resource", "unit", "start", "end", "quantity", "rate", "source"],
+    "workerKeyRules": ["provider-owned", "active", "not expired", "not revoked", "payload exact", "signature verified"],
+    "receiptReconciliation": ["grossCost", "providerNet", "protocolFee", "refund bounded by grossCost"]
+  },
+  "canonicalEvents": [
+    "resource.provider.registered.v1",
+    "resource.provider.verified.v1",
+    "resource.offer.published.v1",
+    "resource.quote.created.v1",
+    "resource.intent.accepted.v1",
+    "resource.capacity.reserved.v1",
+    "resource.service.started.v1",
+    "resource.usage.metered.v1",
+    "resource.service.completed.v1",
+    "resource.settlement.pending.v1",
+    "resource.settlement.confirmed.v1",
+    "resource.provider.failed.v1",
+    "resource.dispute.opened.v1",
+    "resource.dispute.decided.v1",
+    "resource.dispute.appealed.v1",
+    "resource.dispute.finalized.v1"
+  ],
+  "errorCodes": {
+    "RESOURCE_REQUEST_REJECTED": "Generic fail-closed request rejection outside a more specific market action.",
+    "RESOURCE_ROLE_REQUIRED": "The canonical product session lacks the exact operator role.",
+    "RESOURCE_ACTION_REJECTED": "The requested action violates a product invariant or required evidence is absent.",
+    "RESOURCE_CAPACITY_UNAVAILABLE": "Verified unreserved capacity is insufficient or capacity evidence is invalid.",
+    "RESOURCE_STATE_TRANSITION_INVALID": "The requested transition does not match the current authoritative local lifecycle state.",
+    "RESOURCE_PROOF_REJECTED": "A replayed, tampered, expired, revoked or mismatched proof was rejected.",
+    "RESOURCE_SETTLEMENT_STATE_INVALID": "Settlement was requested outside the completed-service and settlement-pending sequence.",
+    "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED": "Authoritative settlement identity, asset, transaction, source or evidence is absent.",
+    "RESOURCE_SETTLEMENT_RECONCILIATION": "Receipt amounts do not exactly reconcile to signed metering.",
+    "RESOURCE_SETTLEMENT_REPLAY": "The transaction hash was already consumed by another receipt."
+  },
+  "healthVersion": {
+    "health": "GET /health returns process-local readiness only and must not claim central, public or settlement health.",
+    "version": "GET /version returns service version, market schema version and release class.",
+    "status": "GET /status returns current-process SLO guardrails with explicit coverage.",
+    "metrics": "GET /metrics returns in-process counters with request and trace correlation."
+  },
+  "migration": {
+    "currentMarketSchemaVersion": 5,
+    "supportedReadVersions": [1, 2, 3, 4, 5],
+    "futureVersion": "reject",
+    "rollback": "restore only an integrity-verified supported schema backup",
+    "oldClient": "unknown JSON fields and legacy Wallet headers are rejected; legacy auth routes return HTTP 410"
+  },
+  "dependencies": [
+    {"product": "01-chain-core", "required": "authoritative transaction finality and settlement receipt", "status": "externalBlocked"},
+    {"product": "02-wallet-auth", "required": "registry, challenge, completion, introspection and revocation", "status": "externalBlocked"},
+    {"product": "12-explorer", "required": "public transaction and receipt proof", "status": "externalBlocked"},
+    {"product": "13-monitor", "required": "provider, settlement, SLO and incident evidence", "status": "externalBlocked"},
+    {"product": "15-trust-center", "required": "dispute and appeal linkage", "status": "implementedLocal"},
+    {"product": "26-data-fabric", "required": "canonical billing and usage ledger events", "status": "externalBlocked"},
+    {"product": "28-website", "required": "public microsite, status, support and SEO entry", "status": "externalBlocked"},
+    {"product": "29-integration", "required": "contract freeze and shared Testnet acceptance", "status": "externalBlocked"},
+    {"product": "30-security-sre-release", "required": "release, artifact, backup and security acceptance", "status": "externalBlocked"}
+  ],
+  "testVectors": {
+    "file": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+    "requiredIds": [
+      "RM-AUTH-WRONG-PRODUCT-001",
+      "RM-AUTH-REPLAY-001",
+      "RM-SETTLEMENT-PREMATURE-001",
+      "RM-SETTLEMENT-RECONCILE-001",
+      "RM-SETTLEMENT-REPLAY-001",
+      "RM-METER-TAMPER-001",
+      "RM-FAILURE-NO-FAKE-REFUND-001"
+    ]
+  },
+  "externalInputs": [
+    "central Wallet/Gateway merge and deployed origin",
+    "authoritative chain settlement endpoint and Testnet funding",
+    "at least two independently operated provider endpoints",
+    "public HTTPS deployment and DNS",
+    "production signing assets and store accounts when applicable",
+    "professional legal review and provider agreements",
+    "external security review"
+  ],
+  "releaseStatus": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

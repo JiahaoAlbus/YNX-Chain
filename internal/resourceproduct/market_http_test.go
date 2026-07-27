@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -32,6 +33,40 @@ func marketPOST(t *testing.T, url, token string, body any) map[string]any {
 		t.Fatalf("status=%d body=%v", resp.StatusCode, out)
 	}
 	return out
+}
+
+func TestMarketErrorCodeContract(t *testing.T) {
+	cases := []struct {
+		action   string
+		err      error
+		expected string
+	}{
+		{"confirm_settlement", errors.New("settlement transaction hash was already consumed by another receipt"), "RESOURCE_SETTLEMENT_REPLAY"},
+		{"confirm_settlement", errors.New("receipt amounts do not reconcile to signed metering"), "RESOURCE_SETTLEMENT_RECONCILIATION"},
+		{"confirm_settlement", errors.New("authoritative settlement evidence and pending order required"), "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED"},
+		{"confirm_settlement", errors.New("wrong order status"), "RESOURCE_SETTLEMENT_STATE_INVALID"},
+		{"verify_provider", errors.New("resource_verifier role required"), "RESOURCE_ROLE_REQUIRED"},
+		{"reserve", errors.New("available capacity required"), "RESOURCE_CAPACITY_UNAVAILABLE"},
+		{"record_usage", errors.New("meter proof replay rejected"), "RESOURCE_PROOF_REJECTED"},
+	}
+	for _, tc := range cases {
+		if got := marketErrorCode(tc.action, tc.err); got != tc.expected {
+			t.Fatalf("action=%s error=%q code=%s want=%s", tc.action, tc.err, got, tc.expected)
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	writeCodedErr(recorder, apiError{422, "duplicate settlement"}, "RESOURCE_SETTLEMENT_REPLAY")
+	if recorder.Code != 422 || recorder.Header().Get("X-Error-ID") == "" {
+		t.Fatalf("coded error status=%d headers=%v", recorder.Code, recorder.Header())
+	}
+	var payload map[string]string
+	if err := json.Unmarshal(recorder.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["code"] != "RESOURCE_SETTLEMENT_REPLAY" || payload["errorId"] == "" {
+		t.Fatalf("coded error payload=%v", payload)
+	}
 }
 
 func TestMarketHTTPProviderOfferQuoteAndScopedState(t *testing.T) {

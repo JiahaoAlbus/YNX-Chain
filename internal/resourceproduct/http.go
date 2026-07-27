@@ -90,13 +90,20 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func writeErr(w http.ResponseWriter, err error) {
+	writeCodedErr(w, err, "RESOURCE_REQUEST_REJECTED")
+}
+
+func writeCodedErr(w http.ResponseWriter, err error, code string) {
 	status := 500
 	if e, ok := err.(apiError); ok {
 		status = e.Status
 	}
+	if strings.TrimSpace(code) == "" {
+		code = "RESOURCE_INTERNAL_ERROR"
+	}
 	errorID := "err_" + newTraceID()
 	w.Header().Set("X-Error-ID", errorID)
-	writeJSON(w, status, map[string]string{"error": err.Error(), "errorId": errorID, "requestId": w.Header().Get("X-Request-ID"), "traceId": w.Header().Get("X-Trace-ID")})
+	writeJSON(w, status, map[string]string{"code": code, "error": err.Error(), "errorId": errorID, "requestId": w.Header().Get("X-Request-ID"), "traceId": w.Header().Get("X-Trace-ID")})
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

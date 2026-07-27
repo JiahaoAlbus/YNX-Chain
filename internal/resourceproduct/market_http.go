@@ -277,14 +277,38 @@ func (s *Service) handleMarketAction(w http.ResponseWriter, r *http.Request) {
 		err = apiError{400, "unknown market action type"}
 	}
 	if err != nil {
-		if _, ok := err.(apiError); ok {
-			writeErr(w, err)
-		} else {
-			writeJSON(w, 422, map[string]string{"error": err.Error()})
+		responseErr := err
+		if _, ok := err.(apiError); !ok {
+			responseErr = apiError{422, err.Error()}
 		}
+		writeCodedErr(w, responseErr, marketErrorCode(in.Type, err))
 		return
 	}
 	writeJSON(w, 200, map[string]any{"result": out})
+}
+
+func marketErrorCode(action string, err error) string {
+	message := strings.ToLower(strings.TrimSpace(err.Error()))
+	switch {
+	case strings.Contains(message, "role required"):
+		return "RESOURCE_ROLE_REQUIRED"
+	case action == "confirm_settlement" && strings.Contains(message, "already consumed"):
+		return "RESOURCE_SETTLEMENT_REPLAY"
+	case action == "confirm_settlement" && strings.Contains(message, "reconcile"):
+		return "RESOURCE_SETTLEMENT_RECONCILIATION"
+	case action == "confirm_settlement" && strings.Contains(message, "authoritative settlement evidence"):
+		return "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED"
+	case action == "settlement_pending" || action == "confirm_settlement":
+		return "RESOURCE_SETTLEMENT_STATE_INVALID"
+	case strings.Contains(message, "replay") || strings.Contains(message, "tamper"):
+		return "RESOURCE_PROOF_REJECTED"
+	case strings.Contains(message, "capacity"):
+		return "RESOURCE_CAPACITY_UNAVAILABLE"
+	case strings.Contains(message, "transition") || strings.Contains(message, "status"):
+		return "RESOURCE_STATE_TRANSITION_INVALID"
+	default:
+		return "RESOURCE_ACTION_REJECTED"
+	}
 }
 
 func parsePositiveInt(v string) (int64, error) {
