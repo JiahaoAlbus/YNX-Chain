@@ -163,18 +163,21 @@ func TestHealthReadinessAndVersionExposeTruthfulDependencyState(t *testing.T) {
 	}
 
 	assertJSONStatus("/health", http.StatusOK, func(body map[string]any) {
-		if body["ok"] != true || body["status"] != "degraded" || body["issuerAvailable"] != false || body["cardCapability"] != "provider_unavailable" {
+		capabilities, ok := body["providerCapabilities"].(map[string]any)
+		if body["ok"] != true || body["status"] != "degraded" || body["issuerAvailable"] != false || body["cardCapability"] != "provider_unavailable" || !ok || capabilities["mode"] != "unavailable" || capabilities["sensitiveDataStorage"] != "forbidden" {
 			t.Fatalf("health fabricated issuer readiness: %+v", body)
 		}
 	})
 	assertJSONStatus("/ready", http.StatusServiceUnavailable, func(body map[string]any) {
-		if body["ready"] != false || body["failureSemantics"] != "fail_closed" || body["sensitiveDataMode"] != "provider_hosted" {
+		capabilities, ok := body["providerCapabilities"].(map[string]any)
+		if body["ready"] != false || body["failureSemantics"] != "fail_closed" || body["sensitiveDataMode"] != "unavailable" || !ok || capabilities["mode"] != "unavailable" {
 			t.Fatalf("readiness did not fail closed: %+v", body)
 		}
 	})
 	assertJSONStatus("/version", http.StatusOK, func(body map[string]any) {
-		build, ok := body["build"].(map[string]any)
-		if !ok || build["commit"] != "card-commit" || body["stateVersion"] != float64(StateVersion) {
+		build, buildOK := body["build"].(map[string]any)
+		capabilities, capabilitiesOK := body["providerCapabilities"].(map[string]any)
+		if !buildOK || build["commit"] != "card-commit" || body["stateVersion"] != float64(StateVersion) || body["providerCapabilitySchema"] != ProviderCapabilitySchema || !capabilitiesOK || capabilities["mode"] != "unavailable" {
 			t.Fatalf("version response incomplete: %+v", body)
 		}
 	})
@@ -189,6 +192,14 @@ func TestHealthReadinessAndVersionExposeTruthfulDependencyState(t *testing.T) {
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("sandbox readiness status = %d", response.StatusCode)
+	}
+	var sandboxReady map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&sandboxReady); err != nil {
+		t.Fatal(err)
+	}
+	capabilities, ok := sandboxReady["providerCapabilities"].(map[string]any)
+	if sandboxReady["ready"] != true || sandboxReady["sensitiveDataMode"] != "safe_metadata_only" || !ok || capabilities["mode"] != "sandbox" || capabilities["network"] != Network {
+		t.Fatalf("sandbox readiness capability contract is incomplete: %+v", sandboxReady)
 	}
 }
 

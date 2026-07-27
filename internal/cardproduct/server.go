@@ -39,7 +39,7 @@ func (s *Server) routes() {
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	available := s.service.ProviderAvailable(r.Context())
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": map[bool]string{true: "healthy", false: "degraded"}[available], "service": "ynx-card-productd", "productId": ProductID, "clientId": ClientID, "bundleId": BundleID, "network": Network, "issuerProvider": s.service.ProviderName(), "issuerAvailable": available, "cardCapability": map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available], "sensitiveData": "provider-hosted-never-persisted", "build": s.build})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": map[bool]string{true: "healthy", false: "degraded"}[available], "service": "ynx-card-productd", "productId": ProductID, "clientId": ClientID, "bundleId": BundleID, "network": Network, "issuerProvider": s.service.ProviderName(), "issuerAvailable": available, "providerCapabilities": s.service.ProviderCapabilities(), "cardCapability": map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available], "sensitiveData": "ynx-never-persists-pan-cvv-pin-track-or-raw-identity", "build": s.build})
 }
 
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
@@ -49,24 +49,27 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusServiceUnavailable
 	}
 	writeJSON(w, status, map[string]any{
-		"ready":             available,
-		"service":           "ynx-card-productd",
-		"issuerProvider":    s.service.ProviderName(),
-		"issuerAvailable":   available,
-		"cardCapability":    map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available],
-		"failureSemantics":  map[bool]string{true: "none", false: "fail_closed"}[available],
-		"sensitiveDataMode": "provider_hosted",
+		"ready":                available,
+		"service":              "ynx-card-productd",
+		"issuerProvider":       s.service.ProviderName(),
+		"issuerAvailable":      available,
+		"providerCapabilities": s.service.ProviderCapabilities(),
+		"cardCapability":       map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available],
+		"failureSemantics":     map[bool]string{true: "none", false: "fail_closed"}[available],
+		"sensitiveDataMode":    s.service.ProviderCapabilities().SecureDisplay,
 	})
 }
 
 func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"service":      "ynx-card-productd",
-		"productId":    ProductID,
-		"clientId":     ClientID,
-		"bundleId":     BundleID,
-		"stateVersion": StateVersion,
-		"build":        s.build,
+		"service":                  "ynx-card-productd",
+		"productId":                ProductID,
+		"clientId":                 ClientID,
+		"bundleId":                 BundleID,
+		"stateVersion":             StateVersion,
+		"providerCapabilitySchema": ProviderCapabilitySchema,
+		"providerCapabilities":     s.service.ProviderCapabilities(),
+		"build":                    s.build,
 	})
 }
 
