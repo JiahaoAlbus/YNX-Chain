@@ -1,11 +1,32 @@
 # YNX Browser evidence index
 
+## Current local checkpoint
+
+Source commit: `88bf8dddf06411ea26749abdd5ea52173b7cd10a`
+
+- Browser tests: 14/14 pass.
+- Browser Smoke: persistent state and exact-origin permission boundary pass.
+- Web4 permissions/Wallet registry tests: 15/15 pass.
+- macOS Swift 6.1 release build: pass for arm64.
+- macOS Testnet Preview packaging: pass with ad-hoc signature.
+- macOS cold start, graceful quit and restart: pass.
+- macOS machine-readable evidence: `macos-release-88bf8dd.json`.
+
 ## Local artifacts
 
 - Android: `dist/android/YNX-Browser-Testnet-Preview-Android.apk` (generated,
-  ignored); API 36, min SDK 28, RSA-3072 public disposable preview key, APK v3.
+  ignored); the prior API 36 preview evidence remains historical until the final
+  branch install/cold-start rerun.
 - macOS: `dist/macos/YNX-Browser-Testnet-Preview-macOS.zip` (generated,
-  ignored); macOS 14+, ad-hoc signed, not notarized.
+  ignored); 103039 bytes; SHA-256
+  `d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506`.
+- macOS executable SHA-256:
+  `279cac226dab8fe06b9f394984a53a900d560008a44ce87a99894804b090eb56`.
+
+The macOS app is an ad-hoc-signed local Testnet Preview. `codesign` verification
+passes, while Gatekeeper rejects it because it is not Developer ID signed or
+notarized. It is not production signed, hosted, installed to a user application
+location, or store released.
 
 ## Platform CI
 
@@ -23,10 +44,13 @@ Hashes, byte counts, signing metadata, screenshots and process/install logs live
 inside each artifact. The final run URL and results are recorded in
 `PLATFORM_EVIDENCE.md` and `product-release.json` after the run completes.
 
-## Contract verification
+## Remaining evidence gates
 
-- Browser tests: 9/9.
-- Browser smoke: persistent state and exact-origin permission boundary.
-- Web4 permissions/Wallet registry tests: 15/15.
-- macOS Swift release build and both preview packaging scripts pass locally.
-- `UI_DESIGN_AUDIT.md` records the manual design/security-state review.
+- Complete one normal and one Private macOS download and prove only the normal
+  record persists with the initiating source and selected filename.
+- Exercise the macOS `ynxbrowser` deep-link callback and rejection states.
+- Run Windows/.NET 8 compile, package, install, protocol registration and
+  Wallet callback replay/tamper/expiry tests.
+- Rerun Android final-branch installation and full iOS Simulator evidence.
+- Obtain central Wallet/Auth acceptance, shared Testnet evidence, hosting,
+  production signing/notarization and public `/browser` proof.

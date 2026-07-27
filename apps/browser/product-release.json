@@ -5,8 +5,8 @@
   "productSlug": "browser",
   "version": "0.2.1-checkpoint",
   "goalStatus": "active",
-  "phase": "PROTECT",
-  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "phase": "FREEZE",
+  "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
   "asOf": "2026-07-27",
   "releaseStates": {
     "implementedLocal": true,
@@ -38,15 +38,6 @@
       "failures": 0,
       "boundary": "All four Browser platform request builders bind the reviewed registry tuples; central Wallet acceptance remains pending"
     },
-    "windowsWalletRequestBuilder": {
-      "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
-      "result": "implemented-and-contract-tested",
-      "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
-    },
-    "diffCheck": {
-      "command": "git diff --check",
-      "result": "pass"
-    },
     "privateDownloadIsolation": {
       "sourceCommit": "06fb7ee7e321743288348feefa3fb76e9f096463",
       "result": "implemented-and-node-gated",
@@ -56,21 +47,47 @@
       "sourceCommit": "91685b728cefefabec9414317f2663d659062edc",
       "result": "tested-local-core",
       "details": "state v2 migration with v1 rollback backup, private-trace filtering, immutable tab privacy/identity, corrupt-primary recovery, explicit backup/restore, export, selective delete and future-version fail-closed behavior"
+    },
+    "windowsWalletRequestBuilder": {
+      "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+      "result": "implemented-and-contract-tested",
+      "details": "non-exportable Windows CNG P-256 identity, signed pending request state, exact single-field callback parsing, nonce/time/chain/client/bundle binding, single-use consumption and no local Product Session"
+    },
+    "macosTestnetPreview": {
+      "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
+      "evidence": "apps/browser/evidence/macos-release-88bf8dd.json",
+      "releaseBuild": "pass",
+      "package": "pass",
+      "coldStart": "pass",
+      "gracefulQuit": "pass",
+      "restart": "pass",
+      "architecture": "arm64",
+      "signingClass": "adhoc",
+      "gatekeeper": "rejected",
+      "zipBytes": 103039,
+      "zipSha256": "d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506",
+      "binarySha256": "279cac226dab8fe06b9f394984a53a900d560008a44ce87a99894804b090eb56",
+      "truthBoundary": "Local ad-hoc-signed Testnet Preview only; not installed, notarized, production signed, hosted or store released"
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "result": "pass"
     }
   },
   "notVerifiedThisCheckpoint": {
-    "macosNativeBuild": {
-      "result": "blocked",
-      "reason": "Swift compiler and package-manager processes hung or exceeded the MCP command window; no current-commit build success is claimed"
-    },
+    "macosPrivateDownloadInteraction": "source-gated but not yet executed with a completed Private and normal download pair",
+    "macosInstall": "app launched from repository dist; no user application-location install is claimed",
     "windowsBuild": {
       "result": "blocked",
       "reason": "dotnet is not installed in the current macOS workspace; no Windows compile, package, install or protocol-registration success is claimed"
     },
     "nativeStateLifecycleUi": "not integrated across all native clients",
-    "platformInstallColdStart": "not rerun",
+    "androidFinalBranchInstallColdStart": "not rerun",
+    "iosFullXcodeSimulator": "not rerun",
     "publicEndpoints": "not verified",
-    "hostedArtifacts": "not verified"
+    "hostedArtifacts": "not verified",
+    "notarization": "not performed",
+    "developerIdSigning": "not performed"
   },
   "previousEvidence": {
     "baselineCommit": "a90cfef",
@@ -79,5 +96,5 @@
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
   "externalInputs": [],
-  "nextAction": "Protect and push the three runtime checkpoints, restore deterministic Swift build execution for macOS, then run Windows CI with .NET 8 to compile/package the CNG Wallet builder and register/test the callback protocol before central Wallet acceptance."
+  "nextAction": "Execute a normal/private macOS download pair against the built Testnet Preview and prove that only the normal record persists; then wire state-v2 export/delete/backup/restore controls into native clients and obtain Windows CI build evidence."
 }
