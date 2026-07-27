@@ -3,7 +3,7 @@
   "product": "YNX Finance",
   "version": "1.2.0",
   "branch": "codex/final-finance",
-  "generatedAt": "2026-07-27T14:39:35Z",
+  "generatedAt": "2026-07-27T15:32:35Z",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": {
@@ -75,6 +75,20 @@
     "activityCoverage": "latest 100 indexed transactions filtered to the authorized Wallet account",
     "payAdapterVersion": "finance-pay-events-v1"
   },
+  "readSourceConsumerBoundary": {
+    "endpoint": "/api/sources",
+    "envelopeVersion": "finance-source-read-envelope-v1",
+    "schema": "release/integration/finance-source-read-envelope.schema.json",
+    "contractStatus": "consumer-proposal",
+    "ownerContractsAccepted": {"exchange": false, "dex": false, "quant": false, "economics": false},
+    "integratedCentral": false,
+    "readOnly": true,
+    "wrongBindingRejected": true,
+    "mutationCapabilitiesRejected": true,
+    "unsafeActionUrlsRejected": true,
+    "pendingSourcesAvailable": false,
+    "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce"
+  },
   "activityCursor": {
     "version": 1,
     "algorithm": "HMAC-SHA-256",
@@ -108,23 +122,24 @@
   "verification": {
     "goTargeted": "passed: go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
     "goRace": "passed: go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
-    "financeSmoke": "passed: npm run smoke --prefix apps/finance; Go server/admin builds and 6/6 product/Wallet contract tests passed",
-    "financeSecurityGate": "passed across 83 product, integration, recovery and operator-template text files",
+    "financeSmoke": "passed: npm run smoke --prefix apps/finance; Go server/admin builds and 8/8 product/Web/Wallet contract tests passed",
+    "financeSecurityGate": "passed across 89 product, integration, recovery and operator-template text files",
     "repositoryPlaceholderGate": "passed with explicit grep fallback because ripgrep is absent",
     "repositorySensitiveMaterialGate": "passed with explicit grep fallback because ripgrep is absent",
-    "contractTests": "passed: 6/6",
+    "readSourceContractTests": "passed: pending-owner state, exact binding, strict provenance, capability allowlist, mutation disguise and unsafe action URL rejection",
+    "contractTests": "passed: 8/8 Finance product/Web/Wallet vectors",
     "walletAuthTests": "passed: 21/21",
     "financeGatewayTests": "passed: 2/2",
-    "mobileCheck": "current run: TypeScript and 6/6 tests passed; bundle-check blocked because expo executable is absent; prior Hermes export evidence remains dated 2026-07-18",
+    "mobileCheck": "current run: TypeScript and 6/6 tests passed, including all 12 source-status translations and distinct Arabic formatting; bundle-check blocked because expo executable is absent; prior Hermes export evidence remains dated 2026-07-18",
     "dependencyAudit": "blocked: latest audit retry returned MCP upstream 502; previous result remains 1 high and 10 moderate advisories",
     "fullGoPreflight": "failed outside Finance ownership: consensus key-permission tests, missing IDE contract artifact, Faucet and Trust signer-permission tests; internal/finance and Finance admin passed",
-    "sourceCommit": "23bcdea565bcfcb7d211512e654f916faf817df3"
+    "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce"
   },
   "knownLimitations": [
     "Central Finance registry, persistent Gateway deployment and installed Wallet approval are not complete.",
     "Authorized remote Pay receipt smoke is blocked on an operator-provided Pay read credential.",
     "Explorer reports indexer lag and Finance truthfully bounds activity to the latest 100 indexed records.",
-    "Exchange, DEX, Quant and full Economics read adapters remain pending their canonical owner contracts and Testnet vectors.",
+    "The Finance consumer envelope and fail-closed UI are tested locally, but Exchange, DEX, Quant and full Economics payload adapters remain unavailable because no canonical owner contract or shared Testnet vector has been accepted.",
     "YNX_FINANCE_CURSOR_SIGNING_KEY must come from shared secret management; rotation intentionally invalidates outstanding pagination cursors.",
     "Finance backups are authenticated but not encrypted; production requires encrypted access-controlled storage, retention approval and an isolated deployed restore drill with measured RTO/RPO.",
     "The mobile dependency audit previously reported 1 high brace-expansion denial-of-service advisory and 10 moderate Expo/tooling advisories; the latest retry returned MCP upstream 502, and production release remains blocked until a lockfile-compatible fix and full retest succeed.",

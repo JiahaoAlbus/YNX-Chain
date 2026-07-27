@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "product": "YNX Finance",
   "contractVersion": "finance-read-v1",
-  "sourceCommit": "b7147cee87275a3d7b0b452aae29bfbd93667dff",
+  "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce",
   "vectors": [
     {
       "id": "FIN-WALLET-PRODUCT-TAMPER",
@@ -117,22 +117,73 @@
       "automatedEvidence": "internal/finance/service and AI tests"
     },
     {
+      "id": "FIN-READ-SOURCE-OWNER-PENDING",
+      "dependencyOwner": "07-exchange / 27-dex / 08-quant-lab / 17-tokenomics / 29-integration",
+      "precondition": "No exact owner payload contract has been frozen and explicitly accepted by Finance.",
+      "request": "GET /api/sources or GET /api/portfolio with a valid Finance session",
+      "expectedStatus": 200,
+      "expectedSourceState": {
+        "ownerContractAccepted": false,
+        "status.available": false,
+        "status.syncStatus": "owner-contract-pending",
+        "action.configured": false
+      },
+      "expectedInvariant": "No balance, position, PnL, APY, supply or fee payload is inferred while the owner contract is pending.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestReadSourcesStayPendingWithoutOwnerContracts and internal/finance/finance_test.go"
+    },
+    {
+      "id": "FIN-READ-SOURCE-WRONG-BINDING",
+      "dependencyOwner": "source owner / 24-finance / 29-integration",
+      "precondition": "An otherwise valid envelope changes the authorized account, network, native asset, owner, owner contract version or payload schema.",
+      "request": "Validate the owner payload through finance-source-read-envelope-v1",
+      "expectedStatus": "rejected",
+      "expectedInvariant": "Finance never exposes evidence whose account, chain, asset, owner or version binding differs from the accepted contract.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
+    },
+    {
+      "id": "FIN-READ-SOURCE-MUTATION-DISGUISE",
+      "dependencyOwner": "source owner / 24-finance",
+      "precondition": "A capability such as exchange.withdraw.execute.read or quant.mandate.write.read ends with read but contains mutation semantics.",
+      "request": "Validate the accepted contract or source envelope",
+      "expectedStatus": "rejected",
+      "expectedInvariant": "A .read suffix cannot grant signing, execution, write, control, approval, pause, revoke or settlement authority.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed and TestAcceptedContractCannotDeclareMutationCapability"
+    },
+    {
+      "id": "FIN-READ-SOURCE-PROVENANCE-TAMPER",
+      "dependencyOwner": "source owner / 24-finance",
+      "precondition": "The envelope contains an unknown field, future asOf time, incomplete provenance, duplicate capability or empty payload.",
+      "request": "Validate the owner payload through finance-source-read-envelope-v1",
+      "expectedStatus": "rejected",
+      "expectedInvariant": "Malformed or ambiguous provenance cannot become an available Finance source.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
+    },
+    {
+      "id": "FIN-READ-SOURCE-UNSAFE-ACTION-URL",
+      "dependencyOwner": "24-finance / source owner",
+      "precondition": "An operator configures HTTP, javascript or credential-bearing owner navigation URL.",
+      "request": "Configure the Finance source action registry",
+      "expectedStatus": "rejected or omitted",
+      "expectedInvariant": "Only reviewed absolute HTTPS navigation is exposed; an action URL never configures a data adapter or marks a source available.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestReadSourcesStayPendingWithoutOwnerContracts and apps/finance/tests/read-sources-web.test.mjs"
+    },
+    {
       "id": "FIN-EXCHANGE-WITHDRAWAL-CAPABILITY",
       "dependencyOwner": "07-exchange",
-      "precondition": "An Exchange integration proposes a credential or method with withdrawal, owner-change or address-management authority.",
+      "precondition": "An Exchange integration proposes a credential or method with withdrawal execution, owner-change or address-management authority.",
       "request": "Dependency acceptance review",
       "expectedStatus": "rejected",
-      "expectedInvariant": "Finance accepts read-only evidence only and never receives execution credentials.",
-      "automatedEvidence": "contract gate required before adapter implementation"
+      "expectedInvariant": "Finance accepts withdrawal records as read evidence only and never receives execution credentials.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestValidateReadSourceEnvelopeFailsClosed"
     },
     {
       "id": "FIN-QUANT-EXECUTION-CAPABILITY",
       "dependencyOwner": "08-quant-lab",
-      "precondition": "A Quant integration attempts deployment, trade, leverage, risk-limit or mandate mutation from Finance.",
+      "precondition": "A Quant integration attempts deployment, trade placement, leverage/risk-limit change or mandate mutation from Finance.",
       "request": "Dependency acceptance review",
       "expectedStatus": "rejected",
-      "expectedInvariant": "Finance renders read-only evidence and deep links to the owner product; it never becomes a Quant Engine or signer.",
-      "automatedEvidence": "contract gate required before adapter implementation"
+      "expectedInvariant": "Finance renders read-only evidence and navigation to the owner product; it never becomes a Quant Engine or signer.",
+      "automatedEvidence": "internal/finance/read_sources_test.go:TestAcceptedContractCannotDeclareMutationCapability"
     }
   ]
 }

@@ -4,7 +4,7 @@
 
 - Product owner: `24-finance`
 - Branch: `codex/final-finance`
-- Protected implementation commit: `23bcdea565bcfcb7d211512e654f916faf817df3`
+- Protected implementation commit: `592195a1a4c5bed434d984482a1e87202de213ce`
 - Contract: `release/integration/finance-contract.json`
 - Product identity: `ynx-finance-v1` / `com.ynxweb4.finance`
 - Network: `ynx_6423-1`; native Testnet asset: `YNXT`
@@ -21,6 +21,8 @@ The Finance activity API remains explicitly bounded to the latest 100 indexed tr
 Pay receipts remain server-to-server and require `X-YNX-Pay-Key`. The key never belongs in the client or repository. A failed or unauthorized Pay response becomes an unavailable source state; it never creates a placeholder receipt or marks an asset event settled.
 
 Finance state recovery is now locally implemented at the protected commit. Backup envelopes are versioned, bounded and HMAC-SHA-256 authenticated; they are not encrypted. Verification rejects wrong keys, tamper, unknown fields, unsupported versions and unsafe paths. Restore is an offline operator action that preserves the current private state with hash/byte evidence, atomically installs and reopens the snapshot, emits a private receipt and rolls back automatically on post-write verification or receipt failure. Security/SRE acceptance, encrypted storage/retention policy, deployed restore drill and measured RTO/RPO remain pending.
+
+Finance now also publishes `finance-source-read-envelope-v1` as a Finance-owned consumer proposal, not as an owner payload contract. `/api/sources` and the portfolio return Exchange, DEX, Quant and Economics as `owner-contract-pending`, unavailable and read-only until Integration freezes one exact owner schema and Finance explicitly accepts its source, owner, network, asset, Wallet account, contract-version, payload-schema and capability bindings. Wrong bindings, future or incomplete provenance, unknown fields, empty payloads, unaccepted capabilities and mutation semantics disguised with a `.read` suffix fail closed. Optional action URLs are HTTPS navigation only and cannot configure an adapter or make a source available. The protected commit does not claim an Exchange, DEX, Quant or Economics payload adapter, central acceptance or shared Testnet data.
 
 ## Required owner inputs
 
@@ -74,7 +76,11 @@ Machine-readable vectors are in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.jso
 - activity cursor tamper, account reuse or stale snapshot;
 - missing/invalid Pay credential;
 - caller-supplied identity that differs from the introspected Wallet account;
-- any Exchange/DEX/Quant adapter that exposes asset execution or withdrawal authority;
+- any pending owner contract represented as available or populated with financial values;
+- wrong source owner, Wallet account, network, native asset, owner contract version or payload schema;
+- unknown fields, future/incomplete provenance, empty payload or unaccepted capabilities;
+- any Exchange/DEX/Quant/Economics capability that exposes mutation authority, including mutation verbs disguised with a `.read` suffix;
+- unsafe or credential-bearing owner action URLs;
 - any source record missing truthful provenance or failure semantics.
 
 ## Release truth

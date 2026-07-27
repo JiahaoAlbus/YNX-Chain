@@ -26,10 +26,10 @@ Missing fields fail closed. Finance must display an unavailable or partial state
 | 02 Wallet/Auth | Product session, introspection, expiry, revoke | Tested locally | No | Exact registry and vector ready; central merge/deployment/installed approval pending. |
 | 12 Explorer | Health, authorized account, latest indexed activity | Tested locally | No | Accepted only as bounded local adapter contract; complete history remains prohibited. |
 | 04 Pay | Owned receipt and dispute evidence | Tested locally | No | Authorized remote smoke pending secret-managed read credential. |
-| 07 Exchange | Subaccounts, positions, orders, fills, fees, funding, PnL | No | No | Await versioned read-only contract and vectors. |
-| 27 DEX | Vault, LP, swaps, fees, IL inputs, redemption | No | No | Await versioned read-only contract and vectors. |
-| 08 Quant Lab | Strategy, mandate, PnL, drawdown, fees, risk and exit | No | No | Await canonical read model; Finance will not implement a Quant Engine. |
-| 17 Economics | Issuance, burn, staking, treasury and service fees | Partial YNXT/staked balance | No | Await public versioned economics evidence API. |
+| 07 Exchange | Subaccounts, positions, orders, fills, fees, funding, PnL | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no Exchange payload is exposed. Await exact versioned read-only owner schema and shared vectors. |
+| 27 DEX | Vault, LP, swaps, fees, IL inputs, redemption | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no DEX payload is exposed. Await exact vault/account binding and shared vectors. |
+| 08 Quant Lab | Strategy, mandate, PnL, drawdown, fees, risk and exit | Finance consumer envelope/pending UI tested | No | Owner contract is not accepted; no Quant payload is exposed and Finance does not implement a Quant Engine. |
+| 17 Economics | Issuance, burn, staking, treasury and service fees | Partial Explorer YNXT/staked evidence plus pending consumer envelope | No | Owner contract is not accepted; no issuance, burn, treasury, reserve, APY or market payload is exposed. |
 | 14 AI | Draft categorization, explanations and budgets | Tested locally | No | Provider staging, quota, cost and retention evidence pending. |
 | 13 Monitor | Source, API, recovery and SLO observability | No | No | Request/error IDs, metrics and trace propagation pending. |
 | 26 Data Fabric | Canonical Finance read/audit events | No | No | Event schema and billing boundary pending. |

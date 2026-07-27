@@ -5,7 +5,7 @@
   "productSlug": "finance",
   "owner": "24-finance",
   "sourceBranch": "codex/final-finance",
-  "sourceCommit": "23bcdea565bcfcb7d211512e654f916faf817df3",
+  "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -45,7 +45,11 @@
       "YNX_AI_GATEWAY_KEY",
       "YNX_FINANCE_ALLOWED_ORIGINS",
       "YNX_FINANCE_WEB_DIR",
-      "YNX_FINANCE_LISTEN"
+      "YNX_FINANCE_LISTEN",
+      "YNX_FINANCE_EXCHANGE_ACTION_URL",
+      "YNX_FINANCE_DEX_ACTION_URL",
+      "YNX_FINANCE_QUANT_ACTION_URL",
+      "YNX_FINANCE_ECONOMICS_ACTION_URL"
     ]
   },
   "operations": {
@@ -118,26 +122,47 @@
     "failureState": "unavailable; no placeholder receipt",
     "remoteAuthorizedSmoke": false
   },
+  "readSourceConsumerBoundary": {
+    "endpoint": "/api/sources",
+    "envelopeVersion": "finance-source-read-envelope-v1",
+    "schema": "release/integration/finance-source-read-envelope.schema.json",
+    "contractStatus": "consumer-proposal",
+    "integratedCentral": false,
+    "readOnly": true,
+    "maximumEnvelopeBytes": 2097152,
+    "requiredBindings": ["sourceId", "owner", "network", "nativeAsset", "authorizedAccount", "ownerContractVersion", "payloadSchema"],
+    "requiredProvenance": ["asOf", "asOfKind", "coverage", "syncStatus"],
+    "failClosed": ["owner contract not accepted", "wrong source owner", "wrong account", "wrong network", "wrong native asset", "wrong owner contract version", "wrong payload schema", "unknown field", "future asOf", "empty payload", "capability not accepted", "mutation capability"],
+    "actionLinks": "Optional reviewed HTTPS navigation only; they do not configure an adapter, grant capability or make a source available."
+  },
   "futureReadDependencies": [
     {
+      "sourceId": "exchange",
       "owner": "07-exchange",
       "capability": "owned subaccounts, positions, orders, fills, fees, funding and PnL",
-      "status": "contract-required"
+      "ownerContractAccepted": false,
+      "status": "owner-contract-pending"
     },
     {
+      "sourceId": "dex",
       "owner": "27-dex",
       "capability": "owned vault, pool, LP, swap, fees, impermanent loss and redemption evidence",
-      "status": "contract-required"
+      "ownerContractAccepted": false,
+      "status": "owner-contract-pending"
     },
     {
+      "sourceId": "quant",
       "owner": "08-quant-lab",
-      "capability": "strategy, mandate, capital, venue, PnL, drawdown, fees, risk, pause and exit evidence",
-      "status": "contract-required"
+      "capability": "strategy, mandate, capital, venue, PnL, drawdown, fees, risk and exit evidence",
+      "ownerContractAccepted": false,
+      "status": "owner-contract-pending"
     },
     {
+      "sourceId": "economics",
       "owner": "17-tokenomics",
-      "capability": "issuance, burn, staking, treasury, service fees and reserve evidence",
-      "status": "contract-required"
+      "capability": "issuance, burn, staking-source, treasury, service fees and reserve evidence",
+      "ownerContractAccepted": false,
+      "status": "owner-contract-pending"
     }
   ],
   "canonicalErrors": [

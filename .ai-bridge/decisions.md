@@ -41,3 +41,19 @@ Version 1 is the first persisted Finance state schema. Unknown fields and unsupp
 ### Security scanners must not fail open
 
 A missing primary text scanner may use a tested fallback, but command-not-found or scanner errors cannot be reported as a clean result. The repository placeholder and sensitive-material gates now distinguish matches, no matches and scanner failures.
+
+### Finance owns the consumer envelope, not owner payloads
+
+`finance-source-read-envelope-v1` binds a frozen owner payload to the exact source, owner, network, native asset, Wallet account, owner contract version, payload schema, provenance and accepted read capabilities. It does not define Exchange, DEX, Quant or Economics business fields and cannot be used to claim central acceptance.
+
+### Pending owner contracts remain unavailable
+
+A configured endpoint or action URL is insufficient. Every cross-product source remains `owner-contract-pending`, unavailable and without financial values until Integration freezes one exact owner contract and Finance explicitly accepts it in code with negative vectors.
+
+### Read evidence and mutation authority are separate
+
+Finance may read records about orders, trades, swaps, withdrawals, transfers, leverage, risk, Treasury or exits when the owner contract authorizes those read records. It rejects capabilities containing explicit signing, execution, write, control, approval, placement, cancellation, pause, revoke, settlement or other mutation semantics, even when the capability name ends with `.read`.
+
+### Cross-product actions are navigation only
+
+Optional owner action URLs must be absolute HTTPS URLs without embedded credentials. They open the owner product and never configure a data adapter, mark a source available or grant Finance signing, trading, withdrawal, strategy, vault or Treasury authority.

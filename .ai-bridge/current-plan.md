@@ -2,35 +2,36 @@
 
 ## Current stage
 
-FREEZE. The authenticated local backup/restore slice is protected at `23bcdea565bcfcb7d211512e654f916faf817df3`; `codex/final-finance` now tracks `origin/codex/final-finance`, and local/remote SHA equality was verified. Central source contracts, installed Wallet approval, staging, public deployment and production signing remain incomplete.
+FREEZE. Authenticated recovery is protected at `23bcdea565bcfcb7d211512e654f916faf817df3`; the fail-closed cross-product consumer boundary is protected at `592195a1a4c5bed434d984482a1e87202de213ce`. `codex/final-finance` tracks `origin/codex/final-finance`, and local/remote SHA equality has been verified. Central Wallet acceptance, owner source contracts, shared Testnet proof, staging, public deployment and production signing remain incomplete.
 
 ## Protected scope
 
-- Explorer health/native-asset validation and explicit source provenance.
+- Explorer health/native-asset validation, bounded activity and explicit provenance.
 - Account/snapshot-bound HMAC-SHA-256 activity cursors.
-- Version-1 strict Finance state validation and private atomic writes.
-- HMAC-SHA-256 authenticated backup envelopes with bounded size and strict schema checks.
-- Offline restore with pre-restore preservation, SHA-256/byte evidence, reopen verification and automatic rollback on post-write failure.
-- Admin backup/verify/restore CLI, recovery runbook, migration compatibility policy and negative tests.
-- Repository placeholder/sensitive-material gates now fail correctly when the primary scanner is unavailable.
+- Version-1 strict Finance state validation, authenticated backup and offline restore.
+- Finance-owned `finance-source-read-envelope-v1` consumer proposal.
+- `/api/sources` plus Web and native pending-source states for Exchange, DEX, Quant and Economics.
+- Strict source/owner/network/asset/Wallet-account/owner-version/payload-schema/capability binding.
+- Fail-closed wrong binding, unknown field, future/incomplete provenance, empty payload, unaccepted capability and mutation-disguise rejection.
+- Optional HTTPS navigation only; action URLs cannot configure an adapter, grant authority or make a source available.
+- Twelve localized native source-status strings, including Arabic on the existing RTL path.
 
-## Verified gates for the protected commit
+## Verified gates for the protected source-contract commit
 
 - `go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
 - `go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1`
-- `npm run smoke --prefix apps/finance`
-- `npm test --prefix apps/finance/gateway`
-- `npm test --prefix packages/wallet-auth`
+- `npm run smoke --prefix apps/finance` — 8/8 product/Web/Wallet vectors plus server/admin builds.
+- `npm run typecheck --prefix apps/finance/mobile`
+- `npm test --prefix apps/finance/mobile` — 6/6, including locale completeness and Arabic formatting.
 - `bash scripts/validate/no-placeholder-check.sh`
 - `bash scripts/validate/secret-scan.sh`
-- Shell syntax checks for modified validation/smoke scripts.
 
-The full repository Go preflight still fails outside Finance ownership because Consensus/IDE artifacts and key-permission tests in Consensus, Faucet and Trust are not healthy on this host. The current mobile check passed TypeScript and 6/6 tests but could not run the bundle step because the local Expo executable is absent. The latest dependency-audit retry returned an upstream 502; the previously recorded 1 high and 10 moderate advisories remain release blockers.
+The first push of `592195a1a4c5bed434d984482a1e87202de213ce` returned a remote 502; the bounded retry succeeded and local SHA equals upstream. The full repository Go preflight remains failed outside Finance ownership because Consensus/IDE artifacts and Consensus/Faucet/Trust permission tests are not healthy on this host. Mobile bundle and dependency audit blockers remain unchanged.
 
 ## Next autonomous runtime slice
 
-Create versioned, fail-closed read adapter contracts and negative vectors for Exchange, DEX, Quant and Economics. Finance must expose truthful unavailable/source-status states and action deep links only; it must not implement execution, signing, custody, a second Quant Engine or fabricated source data. Prefer owner-frozen contracts when present, and record explicit dependency conflicts rather than maintaining competing long-term schemas.
+Implement request IDs, stable public error IDs, structured JSON access/error logs and bounded in-process metrics for API latency/status/source outcomes. Add `/metrics` or an equivalent authenticated/operational endpoint with explicit version and no user financial payloads. Cover request-ID propagation, error correlation, source availability counters and restart behavior without claiming central Monitor integration.
 
 ## Following priority
 
-Implement request/error IDs, structured metrics and source-specific SLO signals; then add bounded local capacity/storage measurements. Deployed restore drill, RTO/RPO, mobile reproducible bundle/audit, central Wallet integration and shared Testnet flows remain required before stage advancement.
+Create `SLO_CAPACITY_PLAN.md` and `UNIT_ECONOMICS.md`, run bounded local latency/concurrency/storage-growth measurements, then hand the exact metrics contract to Monitor/Data Fabric. Separately, each source owner must freeze one exact read payload contract before Finance adds a payload adapter; all four sources remain unavailable until then.
