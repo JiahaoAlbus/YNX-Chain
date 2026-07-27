@@ -5,11 +5,11 @@
 - Phase: TESTNET
 - Workspace: designated YNX 21 worktree verified
 - Branch: `codex/final-bridge`
-- Runtime source commit: `0c628599c6c80cb244ddeb2e92861eb530c4cecb`
+- Verified source commit: `a1c640e00cc06924244834e2f2a77d18849aa834`
 - Upstream: `origin/codex/final-bridge`
-- Local/remote relation: synchronized at the runtime checkpoint before this coordination update
+- Local/remote relation: synchronized at `a1c640e00cc06924244834e2f2a77d18849aa834` before this evidence update
 - Concurrent writer risk: none detected for the 21-bridge worktree
-- Dirty state: `.ai-bridge` recovery package under construction
+- Dirty state: migration evidence generator, evidence record, and coordination updates pending checkpoint commit
 - Public execution: disabled
 - Public read-only deployment: present at `https://rest.ynxweb4.com/app/bridge`
 - Executable YNX route: unavailable
@@ -24,12 +24,14 @@
 - `go build ./cmd/ynx-bridged` — passed
 - `make no-placeholder-check` — passed
 - `make secret-scan` — passed
+- `make bridge-migration-check` — passed with Race detector and machine-readable evidence
+- `make bridge-restore-check` — passed; corruption rejected, local restore to health approximately 13.07 ms, accepted mutation loss 0
 - `make bridge-provider-check` — failed closed after two Circle Sandbox connection timeouts
 
-## Last protected runtime slice
+## Last protected engineering slice
 
-Commit `0c628599c6c80cb244ddeb2e92861eb530c4cecb` makes Bridge startup reject malformed integer and duration environment values instead of silently using defaults. The commit was pushed and local/upstream SHA equality was verified.
+Commit `a1c640e00cc06924244834e2f2a77d18849aa834` adds deterministic v6 backup rollback/forward recovery testing, a migration gate, and current v7 rollback policy. The commit was pushed and is the source bound by `docs/bridge/migration-rollback-evidence.json`.
 
 ## Next action
 
-Validate and commit the coordination package, then correct stale Bridge status records before implementing rollback/forward-recovery evidence.
+Protect the migration evidence update, correct stale Bridge status records, then add Bridge-specific CI and reproducible candidate artifacts.

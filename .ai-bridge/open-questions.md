@@ -4,11 +4,11 @@ These are tracked engineering or external-dependency questions. They are not req
 
 ## Autonomous questions
 
-1. Which existing migration/export primitives provide the safest loss-aware rollback rehearsal for schema v7 without inventing a lossy downgrade path?
-2. Which existing repository CI conventions should the Bridge-specific workflow reuse while preserving Bridge ownership and test scope?
-3. Which Bridge artifact set is appropriate for a server/API product: platform binaries, container image layout, SDK package, source archive, or a combination?
-4. Which stale Bridge evidence records bind historical deployment commits intentionally, and which should be advanced to the current runtime source commit?
-5. Which consumer-owner test vectors can be exercised locally before central shared-Testnet acceptance is available?
+1. Which existing repository CI conventions should the Bridge-specific workflow reuse while preserving Bridge ownership and test scope?
+2. Which Bridge artifact set is appropriate for a server/API product: platform binaries, container image layout, SDK package, source archive, or a combination?
+3. Which stale Bridge evidence records bind historical deployment commits intentionally, and which should be advanced to the current runtime source commit?
+4. Which consumer-owner test vectors can be exercised locally before central shared-Testnet acceptance is available?
+5. Which staging operator can provide a mutation-freeze window and exact pre-migration backup for the remote rollback rehearsal without exposing credentials?
 
 ## External questions
 

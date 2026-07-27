@@ -3,7 +3,7 @@
   "product": "YNX Bridge & Interoperability",
   "productSlug": "ynx-bridge",
   "branch": "codex/final-bridge",
-  "sourceCommit": "0c628599c6c80cb244ddeb2e92861eb530c4cecb",
+  "sourceCommit": "a1c640e00cc06924244834e2f2a77d18849aa834",
   "status": "ACTIVE",
   "currentPhase": "TESTNET",
   "completedPhases": ["RECOVER", "PROTECT", "FREEZE", "INTEGRATE"],
@@ -19,7 +19,7 @@
     "notApplicable",
     "verifiedComplete"
   ],
-  "lastUpdated": "2026-07-27T14:22:23Z",
+  "lastUpdated": "2026-07-27T14:43:56Z",
   "items": [
     {
       "id": "BR-REC-001",
@@ -315,31 +315,31 @@
       "requirement": "Version state, API, schemas, and artifacts with migrations and old-client compatibility.",
       "applicability": "applicable",
       "status": "testedLocal",
-      "evidence": ["internal/bridgegateway/store.go", "docs/bridge/MIGRATION_COMPATIBILITY.md"],
-      "sourceCommit": "0c628599c6c80cb244ddeb2e92861eb530c4cecb",
-      "tests": ["TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification", "TestBridgeV2StateMigratesToCurrentSchema", "TestBridgeV3StateMigratesLifecycleWithHonestCoverage", "TestBridgeV4MigrationPreservesResolvedExposureThroughDispute", "TestBridgeV5ReconciliationReplayMigratesFailClosed", "TestBridgeV6LifecycleMigratesWithoutInventingDestinationAvailability"],
-      "artifact": [],
+      "evidence": ["internal/bridgegateway/store.go", "docs/bridge/MIGRATION_COMPATIBILITY.md", "docs/bridge/migration-rollback-evidence.json"],
+      "sourceCommit": "a1c640e00cc06924244834e2f2a77d18849aa834",
+      "tests": ["TestBridgeV1StateMigratesOnlyAfterLegacyIntegrityVerification", "TestBridgeV2StateMigratesToCurrentSchema", "TestBridgeV3StateMigratesLifecycleWithHonestCoverage", "TestBridgeV4MigrationPreservesResolvedExposureThroughDispute", "TestBridgeV5ReconciliationReplayMigratesFailClosed", "TestBridgeV6LifecycleMigratesWithoutInventingDestinationAvailability", "make bridge-migration-check"],
+      "artifact": ["docs/bridge/migration-rollback-evidence.json"],
       "publicProof": [],
       "blockedBy": [],
       "owner": "YNX 21",
-      "nextAction": "Add rollback-migration rehearsal evidence for the current schema.",
-      "lastUpdated": "2026-07-27T14:22:23Z"
+      "nextAction": "Repeat the same integrity migration gate against the staging backup before the next schema change.",
+      "lastUpdated": "2026-07-27T14:43:56Z"
     },
     {
       "id": "BR-DATA-002",
       "category": "data-migration",
       "requirement": "Prove rollback migration without losing newer lifecycle or reconciliation evidence.",
       "applicability": "applicable",
-      "status": "inProgress",
-      "evidence": ["docs/bridge/MIGRATION_COMPATIBILITY.md"],
-      "sourceCommit": "0c628599c6c80cb244ddeb2e92861eb530c4cecb",
-      "tests": [],
-      "artifact": [],
+      "status": "testedLocal",
+      "evidence": ["docs/bridge/MIGRATION_COMPATIBILITY.md", "docs/bridge/migration-rollback-evidence.json", "internal/bridgegateway/state_machine_test.go"],
+      "sourceCommit": "a1c640e00cc06924244834e2f2a77d18849aa834",
+      "tests": ["TestBridgeV6RollbackBackupForwardRecoversDeterministically", "make bridge-migration-check"],
+      "artifact": ["docs/bridge/migration-rollback-evidence.json"],
       "publicProof": [],
       "blockedBy": [],
       "owner": "YNX 21",
-      "nextAction": "Implement an export-based rollback rehearsal that refuses lossy downgrade and verifies forward recovery.",
-      "lastUpdated": "2026-07-27T14:22:23Z"
+      "nextAction": "Run the exact-backup rollback and deterministic forward recovery against staging under mutation freeze; backwards state conversion remains prohibited.",
+      "lastUpdated": "2026-07-27T14:43:56Z"
     },
     {
       "id": "BR-DATA-003",
@@ -736,10 +736,10 @@
       "tests": [],
       "artifact": [],
       "publicProof": [],
-      "blockedBy": ["remaining autonomous CI, artifact, rollback, metadata, and consumer acceptance work"],
+      "blockedBy": ["remaining autonomous CI, artifact, metadata, and consumer acceptance work"],
       "owner": "YNX 21",
       "nextAction": "Do not create the final request until all still-autonomous items are closed.",
-      "lastUpdated": "2026-07-27T14:22:23Z"
+      "lastUpdated": "2026-07-27T14:43:56Z"
     },
     {
       "id": "BR-FIN-001",
@@ -747,15 +747,15 @@
       "requirement": "Pass complete test, race, build, smoke, migration, rollback, restore, security, capacity, artifact, remote, public, GitHub, and clean-worktree preflight before declaring completion.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["go test ./... passed", "go test -race ./internal/bridgegateway ./cmd/ynx-bridged passed", "go build ./cmd/ynx-bridged passed", "make no-placeholder-check passed", "make secret-scan passed", "make bridge-provider-check failed closed due external timeout"],
-      "sourceCommit": "0c628599c6c80cb244ddeb2e92861eb530c4cecb",
+      "evidence": ["go test ./... passed", "go test -race ./internal/bridgegateway ./cmd/ynx-bridged passed", "go build ./cmd/ynx-bridged passed", "make no-placeholder-check passed", "make secret-scan passed", "make bridge-migration-check passed with machine-readable evidence", "make bridge-restore-check passed with corruption rejection and accepted mutation loss 0", "make bridge-provider-check failed closed due external timeout"],
+      "sourceCommit": "a1c640e00cc06924244834e2f2a77d18849aa834",
       "tests": ["partial preflight on 2026-07-27"],
-      "artifact": [],
+      "artifact": ["docs/bridge/migration-rollback-evidence.json"],
       "publicProof": [],
       "blockedBy": ["remaining local gates", "real route and public execution evidence", "Bridge CI/release artifacts"],
       "owner": "YNX 21 and YNX 30",
-      "nextAction": "Continue with rollback rehearsal, Bridge CI/artifact delivery, metadata truth sync, consumer acceptance, and shared Testnet prerequisites.",
-      "lastUpdated": "2026-07-27T14:22:23Z"
+      "nextAction": "Continue with Bridge CI/artifact delivery, metadata truth sync, consumer acceptance, and shared Testnet prerequisites.",
+      "lastUpdated": "2026-07-27T14:43:56Z"
     }
   ]
 }
