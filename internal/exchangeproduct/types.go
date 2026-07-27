@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 )
@@ -195,13 +196,20 @@ type Withdrawal struct {
 
 type Order struct {
 	ID                  string    `json:"id"`
+	ParentOrderID       string    `json:"parentOrderId,omitempty"`
 	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
 	Market              string    `json:"market"`
 	Side                string    `json:"side"`
 	Type                string    `json:"type"`
+	TimeInForce         string    `json:"timeInForce"`
+	PostOnly            bool      `json:"postOnly"`
 	PriceMicro          int64     `json:"priceMicro"`
 	AmountMicro         int64     `json:"amountMicro"`
 	FilledMicro         int64     `json:"filledMicro"`
+	DisplayAmountMicro  int64     `json:"displayAmountMicro,omitempty"`
+	VisibleUntilMicro   int64     `json:"visibleUntilMicro,omitempty"`
+	PrioritySequence    int64     `json:"prioritySequence,omitempty"`
 	ReservedMicro       int64     `json:"reservedMicro"`
 	Status              string    `json:"status"`
 	RejectReason        string    `json:"rejectReason,omitempty"`
@@ -209,6 +217,138 @@ type Order struct {
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
 	AuthorizationDigest string    `json:"authorizationDigest"`
+}
+
+type OCOGroup struct {
+	ID                      string    `json:"id"`
+	Account                 string    `json:"account"`
+	QuantNonceDomain        string    `json:"quantNonceDomain,omitempty"`
+	Market                  string    `json:"market"`
+	Side                    string    `json:"side"`
+	AmountMicro             int64     `json:"amountMicro"`
+	ReservedMicro           int64     `json:"reservedMicro"`
+	StopConditionalID       string    `json:"stopConditionalId"`
+	TakeProfitConditionalID string    `json:"takeProfitConditionalId"`
+	TriggeredConditionalID  string    `json:"triggeredConditionalId,omitempty"`
+	ActivatedOrderID        string    `json:"activatedOrderId,omitempty"`
+	Status                  string    `json:"status"`
+	RejectReason            string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest     string    `json:"authorizationDigest"`
+	CreatedAt               time.Time `json:"createdAt"`
+	UpdatedAt               time.Time `json:"updatedAt"`
+}
+
+type TWAPOrder struct {
+	ID                  string    `json:"id"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	LimitPriceMicro     int64     `json:"limitPriceMicro"`
+	TotalAmountMicro    int64     `json:"totalAmountMicro"`
+	ScheduledMicro      int64     `json:"scheduledMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Slices              int       `json:"slices"`
+	SlicesExecuted      int       `json:"slicesExecuted"`
+	IntervalSeconds     int64     `json:"intervalSeconds"`
+	NextRunAt           time.Time `json:"nextRunAt"`
+	Status              string    `json:"status"`
+	ChildOrderIDs       []string  `json:"childOrderIds"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type ScaleOrder struct {
+	ID                  string    `json:"id"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	StartPriceMicro     int64     `json:"startPriceMicro"`
+	EndPriceMicro       int64     `json:"endPriceMicro"`
+	TotalAmountMicro    int64     `json:"totalAmountMicro"`
+	FilledMicro         int64     `json:"filledMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Levels              int       `json:"levels"`
+	PostOnly            bool      `json:"postOnly"`
+	ChildOrderIDs       []string  `json:"childOrderIds"`
+	Status              string    `json:"status"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type ConditionalOrder struct {
+	ID                  string    `json:"id"`
+	GroupID             string    `json:"groupId,omitempty"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Kind                string    `json:"kind"`
+	TriggerPriceMicro   int64     `json:"triggerPriceMicro"`
+	TrailOffsetMicro    int64     `json:"trailOffsetMicro,omitempty"`
+	WatermarkMicro      int64     `json:"watermarkMicro,omitempty"`
+	LimitPriceMicro     int64     `json:"limitPriceMicro"`
+	AmountMicro         int64     `json:"amountMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Status              string    `json:"status"`
+	TriggeredByTradeID  string    `json:"triggeredByTradeId,omitempty"`
+	ActivatedOrderID    string    `json:"activatedOrderId,omitempty"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	WalletAuthorized    bool      `json:"walletAuthorized"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type CancelResult struct {
+	Orders            []Order            `json:"orders"`
+	ConditionalOrders []ConditionalOrder `json:"conditionalOrders"`
+	OCOGroups         []OCOGroup         `json:"ocoGroups"`
+	TWAPOrders        []TWAPOrder        `json:"twapOrders"`
+	ScaleOrders       []ScaleOrder       `json:"scaleOrders"`
+	Count             int                `json:"count"`
+}
+
+type DeadManSwitch struct {
+	Account        string    `json:"account"`
+	Market         string    `json:"market"`
+	TimeoutSeconds int64     `json:"timeoutSeconds"`
+	NonceDomain    string    `json:"nonceDomain"`
+	Status         string    `json:"status"`
+	ExpiresAt      time.Time `json:"expiresAt,omitempty"`
+	LastHeartbeat  time.Time `json:"lastHeartbeat,omitempty"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Cancelled      int       `json:"cancelled"`
+}
+
+type ExecutionEvent struct {
+	Sequence      int64           `json:"sequence"`
+	Stream        string          `json:"stream"`
+	Type          string          `json:"type"`
+	Account       string          `json:"account,omitempty"`
+	Market        string          `json:"market"`
+	ObjectType    string          `json:"objectType"`
+	ObjectID      string          `json:"objectId"`
+	PayloadDigest string          `json:"payloadDigest"`
+	Payload       json.RawMessage `json:"payload"`
+	AsOf          time.Time       `json:"asOf"`
+	Source        string          `json:"source"`
+	Version       string          `json:"version"`
+	PreviousHash  string          `json:"previousHash,omitempty"`
+	Hash          string          `json:"hash"`
+}
+
+type StreamSnapshot struct {
+	Sequence int64            `json:"sequence"`
+	Market   string           `json:"market"`
+	Book     OrderBook        `json:"book"`
+	Events   []ExecutionEvent `json:"events"`
+	Source   QuantSource      `json:"source"`
 }
 
 type Trade struct {
