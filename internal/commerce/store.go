@@ -113,12 +113,12 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: 2, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{Version: 3, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() bool {
-	migrated := s.s.Version < 2
-	s.s.Version = 2
+	migrated := s.s.Version < 3
+	s.s.Version = 3
 	if s.s.Stores == nil {
 		s.s.Stores = map[string]StoreProfile{}
 	}
@@ -142,6 +142,20 @@ func (s *Store) normalize() bool {
 	}
 	if s.s.SellerRoles == nil {
 		s.s.SellerRoles = map[string]map[string]string{}
+	}
+	for storeID, roles := range s.s.SellerRoles {
+		if roles == nil {
+			s.s.SellerRoles[storeID] = map[string]string{}
+			migrated = true
+			continue
+		}
+		for account, role := range roles {
+			canonical, ok := canonicalSellerRole(role)
+			if ok && canonical != role {
+				roles[account] = canonical
+				migrated = true
+			}
+		}
 	}
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}

@@ -1,0 +1,5 @@
+{"at":"2026-07-27T06:18:35Z","stage":"RECOVER","action":"verified-workspace","result":"matched","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console","branch":"codex/final-seller-console","head":"ecf787f","dirty":false}
+{"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"canonical-rbac","result":"implementedLocal","roles":["owner","admin","catalog","inventory","fulfillment","finance","support","viewer"],"snapshotVersion":3}
+{"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"targeted-tests","result":"passed","commands":["go test ./internal/commerce","npm test in apps/seller-console","npm run build in apps/seller-console"]}
+{"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"local-http-smoke","result":"passed-local-only","paths":["/health","/api/capabilities"],"boundary":"existing local service; not current-source deployment proof"}
+{"at":"2026-07-27T06:18:35Z","stage":"FREEZE","action":"truthful-release-sync","result":"updated","currentDeployedStaging":false,"currentDownloadHosted":false,"historicalCommit":"38e2f68"}

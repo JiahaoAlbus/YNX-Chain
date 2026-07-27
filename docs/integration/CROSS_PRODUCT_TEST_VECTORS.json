@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-seller-console",
+  "sourceCommit": "pending-checkpoint",
+  "vectors": [
+    {
+      "id": "SC-AUTH-ACCEPT-001",
+      "category": "wallet-auth",
+      "owner": "02-wallet-auth",
+      "preconditions": ["productClientId=ynx-seller-v1", "bundleId=com.ynxweb4.seller-console", "ordered scopes account:read then shop:seller:operate", "approved device binding"],
+      "action": "Verify a valid product session and request seller stores.",
+      "expected": ["session accepted", "only stores with a valid canonical seller role are returned"]
+    },
+    {
+      "id": "SC-AUTH-REJECT-001",
+      "category": "wallet-auth-negative",
+      "owner": "02-wallet-auth",
+      "mutations": ["wrong product", "wrong bundle", "wrong callback", "wrong device", "scope widening", "scope reordering", "expired session", "revoked session", "replayed challenge"],
+      "expected": ["fail closed", "no seller records returned", "no mutation performed"]
+    },
+    {
+      "id": "SC-RBAC-CATALOG-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "catalog",
+      "allowed": ["read seller store", "read catalog", "create product", "update product", "publish product", "unpublish product"],
+      "denied": ["set inventory", "ship order", "resolve return", "approve refund", "read team", "assign role"]
+    },
+    {
+      "id": "SC-RBAC-INVENTORY-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "inventory",
+      "allowed": ["read seller store", "read catalog", "set inventory"],
+      "denied": ["edit catalog", "publish product", "ship order", "approve refund", "assign role"]
+    },
+    {
+      "id": "SC-RBAC-FULFILLMENT-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "fulfillment",
+      "allowed": ["read seller store", "read order", "ship paid order", "mark shipped order delivered"],
+      "denied": ["edit catalog", "set inventory", "resolve return", "approve refund", "assign role"]
+    },
+    {
+      "id": "SC-RBAC-FINANCE-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "finance",
+      "allowed": ["read seller store", "read authoritative settlement evidence", "approve refund request", "bind authoritative Pay refund evidence"],
+      "denied": ["edit catalog", "set inventory", "ship order", "resolve return", "assign role"]
+    },
+    {
+      "id": "SC-RBAC-SUPPORT-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "support",
+      "allowed": ["read seller store", "read order", "approve or reject return request"],
+      "denied": ["edit catalog", "set inventory", "ship order", "approve refund", "read settlement evidence", "assign role"]
+    },
+    {
+      "id": "SC-RBAC-VIEWER-001",
+      "category": "rbac",
+      "owner": "10-seller-console",
+      "role": "viewer",
+      "allowed": ["read seller store", "read catalog", "read settlement evidence", "read team", "read audit"],
+      "denied": ["all seller mutations"]
+    },
+    {
+      "id": "SC-RBAC-LEGACY-001",
+      "category": "migration",
+      "owner": "10-seller-console",
+      "input": "Snapshot v2 contains role manager.",
+      "expected": ["state migrates to Snapshot v3", "manager is stored as admin", "new role API rejects manager"]
+    },
+    {
+      "id": "SC-PAY-SETTLEMENT-001",
+      "category": "pay",
+      "owner": "04-pay",
+      "action": "Attach committed settlement evidence to a payment-pending order.",
+      "requiredMatches": ["invoiceId", "intentId", "merchant", "payoutAddress", "payer", "currency", "amount", "transactionHash", "blockHeight", "confirmedAt", "auditHash"],
+      "expected": ["inventory reservation becomes committed inventory decrement", "order becomes paid", "settlement audit recorded"]
+    },
+    {
+      "id": "SC-PAY-SETTLEMENT-REJECT-001",
+      "category": "pay-negative",
+      "owner": "04-pay",
+      "mutations": ["zero block height", "wrong payer", "wrong amount", "wrong merchant", "wrong payout", "wrong intent", "wrong invoice", "invalid transaction hash", "missing audit hash"],
+      "expected": ["settlement rejected", "order remains payment_pending", "inventory is not decremented"]
+    },
+    {
+      "id": "SC-PAY-REFUND-001",
+      "category": "pay",
+      "owner": "04-pay",
+      "action": "Finance approves a refund and binds authoritative recorded refund evidence.",
+      "expected": ["approval alone remains pending authoritative Pay refund", "valid evidence changes order to refunded", "audit records exact transaction hash"]
+    },
+    {
+      "id": "SC-TRUST-DISPUTE-001",
+      "category": "trust",
+      "owner": "15-trust-center",
+      "action": "Buyer opens a dispute and Seller Console requests a Trust case.",
+      "expected": ["Trust case reference is stored when provider succeeds", "provider failure is shown as unavailable and never as resolved"]
+    },
+    {
+      "id": "SC-DATA-FABRIC-001",
+      "category": "canonical-events",
+      "owner": "26-data-fabric",
+      "action": "Consume Seller events with source commit, event id, actor, store, object, status and audit id.",
+      "expected": ["idempotent ingest", "canonical event owner retained", "billing facts not recalculated by Seller Console"]
+    },
+    {
+      "id": "SC-PROVIDER-OUTAGE-001",
+      "category": "provider-failure",
+      "owner": "10-seller-console",
+      "providers": ["tax", "carrier", "address", "storage", "email"],
+      "expected": ["capability reports unavailable", "no fabricated provider verification", "manual shipment remains seller_entered_unverified", "retry and audit state preserved"]
+    },
+    {
+      "id": "SC-RECOVERY-001",
+      "category": "backup-restore",
+      "owner": "10-seller-console",
+      "action": "Create HMAC-protected state, create backup, tamper with primary state, restore verified backup and reopen.",
+      "expected": ["tampered state fails closed", "only a verified backup restores", "Snapshot v3 roles and audit records survive"]
+    }
+  ]
+}

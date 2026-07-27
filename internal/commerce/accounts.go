@@ -84,7 +84,7 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 	if !ok {
 		return StoreProfile{}, ErrNotFound
 	}
-	if err := s.requireSellerLocked(id, actor, "owner"); err != nil {
+	if err := s.requireSellerLocked(id, actor, SellerRoleOwner); err != nil {
 		return StoreProfile{}, err
 	}
 	if err := validateStoreFields(in.Name, in.Description, in.Policy, in.TrustURL, in.SettlementAccount); err != nil {
@@ -108,7 +108,8 @@ func (s *Store) SellerStores(actor string) []StoreProfile {
 	defer s.mu.Unlock()
 	out := []StoreProfile{}
 	for id := range s.s.SellerRoles {
-		if s.s.SellerRoles[id][actor] != "" {
+		role, ok := s.sellerRoleLocked(id, actor)
+		if ok && sellerRoleAllows(role, permissionSellerRead) {
 			out = append(out, s.s.Stores[id])
 		}
 	}
@@ -129,7 +130,7 @@ func (s *Store) PublicStore(id string) (PublicStore, error) {
 func (s *Store) SellerProducts(actor, storeID string) ([]Product, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "fulfillment", "support", "viewer"); err != nil {
+	if err := s.requireSellerPermissionLocked(storeID, actor, permissionSellerRead); err != nil {
 		return nil, err
 	}
 	out := []Product{}
@@ -144,15 +145,15 @@ func (s *Store) SellerProducts(actor, storeID string) ([]Product, error) {
 func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(storeID, actor, "owner"); err != nil {
+	if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
 		return err
 	}
 	if !consensus.IsNativeAddress(account) || account == actor {
 		return errors.New("valid distinct account required")
 	}
-	allowed := map[string]bool{"manager": true, "fulfillment": true, "support": true, "viewer": true}
-	if !allowed[role] {
-		return errors.New("role must be manager, fulfillment, support or viewer")
+	role = strings.ToLower(strings.TrimSpace(role))
+	if !isAssignableSellerRole(role) {
+		return errors.New("role must be admin, catalog, inventory, fulfillment, finance, support or viewer")
 	}
 	s.s.SellerRoles[storeID][account] = role
 	s.auditLocked(actor, "seller", "seller_role_set", "store", storeID, "approved", account+":"+role)
@@ -161,7 +162,7 @@ func (s *Store) SetSellerRole(actor, storeID, account, role string) error {
 func (s *Store) SellerRoles(actor, storeID string) (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.requireSellerLocked(storeID, actor, "owner", "manager", "viewer"); err != nil {
+	if err := s.requireSellerPermissionLocked(storeID, actor, permissionTeamRead); err != nil {
 		return nil, err
 	}
 	out := map[string]string{}
@@ -175,7 +176,8 @@ func (s *Store) Settlements(actor string) []SettlementEvidence {
 	defer s.mu.Unlock()
 	out := []SettlementEvidence{}
 	for _, o := range s.s.Orders {
-		if s.s.SellerRoles[o.StoreID][actor] != "" && o.Settlement != nil {
+		role, ok := s.sellerRoleLocked(o.StoreID, actor)
+		if ok && sellerRoleAllows(role, permissionFinanceRead) && o.Settlement != nil {
 			out = append(out, *o.Settlement)
 		}
 	}
@@ -187,8 +189,9 @@ func (s *Store) SellerAudit(actor string) ([]AuditEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	owned := map[string]bool{}
-	for storeID, roles := range s.s.SellerRoles {
-		if roles[actor] == "owner" || roles[actor] == "manager" || roles[actor] == "viewer" {
+	for storeID := range s.s.SellerRoles {
+		role, ok := s.sellerRoleLocked(storeID, actor)
+		if ok && sellerRoleAllows(role, permissionAuditRead) {
 			owned[storeID] = true
 		}
 	}

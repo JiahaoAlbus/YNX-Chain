@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-seller-console-integration-v1",
+  "product": {
+    "number": 10,
+    "id": "ynx-seller-console",
+    "name": "YNX Seller Console",
+    "slug": "seller-console",
+    "owner": "10-seller-console",
+    "sourceBranch": "codex/final-seller-console",
+    "sourceCommit": "pending-checkpoint"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "auth": {
+    "owner": "02-wallet-auth",
+    "registrySchemaVersion": 2,
+    "productClientId": "ynx-seller-v1",
+    "requestingProduct": "shop-seller",
+    "bundleId": "com.ynxweb4.seller-console",
+    "callbacks": ["ynxseller://wallet-auth/callback"],
+    "orderedScopes": ["account:read", "shop:seller:operate"],
+    "deviceAlgorithms": ["p256-sha256"],
+    "sessionStorage": "memory-only-browser-token",
+    "requiredNegativeCases": [
+      "missing-session",
+      "wrong-product",
+      "wrong-bundle",
+      "wrong-callback",
+      "wrong-device",
+      "scope-widening",
+      "scope-reordering",
+      "expired-session",
+      "revoked-session",
+      "replayed-challenge"
+    ]
+  },
+  "rbac": {
+    "schemaVersion": 1,
+    "owner": "10-seller-console",
+    "canonicalRoles": [
+      "owner",
+      "admin",
+      "catalog",
+      "inventory",
+      "fulfillment",
+      "finance",
+      "support",
+      "viewer"
+    ],
+    "assignableRoles": [
+      "admin",
+      "catalog",
+      "inventory",
+      "fulfillment",
+      "finance",
+      "support",
+      "viewer"
+    ],
+    "permissions": {
+      "owner": ["seller.read", "catalog.write", "inventory.write", "fulfillment.write", "returns.resolve", "refunds.approve", "finance.read", "team.read", "audit.read", "team.write", "store.activate", "store.policy.write"],
+      "admin": ["seller.read", "catalog.write", "inventory.write", "fulfillment.write", "returns.resolve", "refunds.approve", "finance.read", "team.read", "audit.read"],
+      "catalog": ["seller.read", "catalog.write"],
+      "inventory": ["seller.read", "inventory.write"],
+      "fulfillment": ["seller.read", "fulfillment.write"],
+      "finance": ["seller.read", "finance.read", "refunds.approve"],
+      "support": ["seller.read", "returns.resolve"],
+      "viewer": ["seller.read", "finance.read", "team.read", "audit.read"]
+    },
+    "invariants": [
+      "Only owner may assign roles.",
+      "Owner cannot be assigned through the role API.",
+      "Unknown roles and unknown permissions fail closed.",
+      "Catalog cannot change inventory.",
+      "Inventory cannot edit or publish catalog content.",
+      "Fulfillment cannot approve refunds.",
+      "Support cannot approve refunds.",
+      "Finance cannot fulfill orders or edit catalog content."
+    ],
+    "migration": {
+      "fromSnapshotVersion": 2,
+      "toSnapshotVersion": 3,
+      "legacyRole": "manager",
+      "canonicalReplacement": "admin",
+      "newRequestsAcceptLegacyRole": false,
+      "rollbackBoundary": "A v3 snapshot must not be written by binaries that do not understand canonical role names."
+    }
+  },
+  "apis": [
+    {"method": "GET", "path": "/api/seller/stores", "authority": "valid seller role"},
+    {"method": "POST", "path": "/api/seller/stores", "authority": "authenticated seller account"},
+    {"method": "PUT", "path": "/api/seller/stores/{id}", "authority": "owner"},
+    {"method": "POST", "path": "/api/seller/stores/{id}/activate", "authority": "owner"},
+    {"method": "GET", "path": "/api/seller/stores/{id}/roles", "authority": "team.read"},
+    {"method": "PUT", "path": "/api/seller/stores/{id}/roles", "authority": "owner"},
+    {"method": "GET", "path": "/api/seller/products", "authority": "seller.read"},
+    {"method": "POST", "path": "/api/seller/products", "authority": "catalog.write"},
+    {"method": "PUT", "path": "/api/seller/products/{id}", "authority": "catalog.write"},
+    {"method": "POST", "path": "/api/seller/products/{id}/publish", "authority": "catalog.write"},
+    {"method": "POST", "path": "/api/seller/products/{id}/unpublish", "authority": "catalog.write"},
+    {"method": "POST", "path": "/api/seller/inventory", "authority": "inventory.write"},
+    {"method": "GET", "path": "/api/seller/settlements", "authority": "finance.read"},
+    {"method": "GET", "path": "/api/seller/audit", "authority": "audit.read"},
+    {"method": "POST", "path": "/api/orders/{id}/transition", "authority": "action-specific seller permission"}
+  ],
+  "authoritativeBoundaries": {
+    "payment": {
+      "owner": "04-pay",
+      "paidRequires": ["invoiceId", "intentId", "merchant", "payoutAddress", "payer", "asset", "amount", "transactionHash", "blockHeight", "confirmedAt", "auditHash"],
+      "uiOrWebhookAloneIsAuthoritative": false
+    },
+    "refund": {
+      "owner": "04-pay",
+      "refundedRequires": ["refundId", "intentId", "merchant", "asset", "amount", "transactionHash", "blockHeight", "recordedAt", "requestHash", "auditHash"],
+      "sellerApprovalAloneIsAuthoritative": false
+    },
+    "dispute": {
+      "owner": "15-trust-center",
+      "sellerConsoleAuthority": "request and display evidence only"
+    },
+    "billingLedger": {
+      "owner": "26-data-fabric",
+      "sellerConsoleAuthority": "consumer and presentation layer"
+    }
+  },
+  "canonicalEvents": [
+    "seller.store.created",
+    "seller.store.activated",
+    "seller.role.assigned",
+    "seller.role.revoked",
+    "seller.catalog.created",
+    "seller.catalog.updated",
+    "seller.catalog.published",
+    "seller.catalog.unpublished",
+    "seller.inventory.updated",
+    "seller.order.shipped",
+    "seller.return.resolved",
+    "seller.refund.approved",
+    "seller.settlement.observed"
+  ],
+  "errorCodes": [
+    {"code": "SELLER_UNAUTHORIZED", "http": 403},
+    {"code": "SELLER_SESSION_UNAVAILABLE", "http": 503},
+    {"code": "SELLER_NOT_FOUND", "http": 404},
+    {"code": "SELLER_CONFLICT", "http": 409},
+    {"code": "SELLER_INVALID_STATE", "http": 409},
+    {"code": "SELLER_INVENTORY_CONFLICT", "http": 409},
+    {"code": "SELLER_PROVIDER_UNAVAILABLE", "http": 503}
+  ],
+  "healthAndVersion": {
+    "paths": ["/health", "/version", "/api/capabilities"],
+    "mustExpose": ["service", "version", "commit", "chainId", "dependencyStatus"],
+    "mustNotExpose": ["secret", "privateKey", "providerCredential", "localAbsolutePath"]
+  },
+  "dependencies": [
+    {"owner": "02-wallet-auth", "contract": "Seller product registration, session introspection and revoke", "status": "pendingAcceptance"},
+    {"owner": "04-pay", "contract": "Authoritative settlement and refund evidence", "status": "pendingAcceptance"},
+    {"owner": "15-trust-center", "contract": "Dispute and appeal evidence", "status": "pendingAcceptance"},
+    {"owner": "26-data-fabric", "contract": "Canonical commerce events and billing ledger", "status": "pendingAcceptance"},
+    {"owner": "13-monitor", "contract": "Seller service health, SLO and incident signals", "status": "pendingAcceptance"},
+    {"owner": "28-website", "contract": "Canonical seller-console public route and metadata", "status": "pendingAcceptance"},
+    {"owner": "29-integration", "contract": "Shared Testnet protocol freeze and cross-product proof", "status": "pendingAcceptance"},
+    {"owner": "30-security", "contract": "Release, artifact, backup and security gates", "status": "pendingAcceptance"}
+  ],
+  "externalInputs": [
+    "Central Wallet registry deployment authority",
+    "Authoritative Pay merchant and payout configuration",
+    "Trust endpoint deployment authority",
+    "Provider credentials or agreements for tax and carrier integrations",
+    "Current-source staging deployment and artifact hosting authority"
+  ],
+  "testCommands": [
+    "go test ./internal/commerce",
+    "npm test (apps/seller-console)",
+    "npm run build (apps/seller-console)",
+    "npm run smoke (apps/seller-console)"
+  ]
+}

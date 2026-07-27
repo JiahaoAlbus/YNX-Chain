@@ -12,7 +12,7 @@ import (
 
 const maxBody = 1 << 20
 
-var BuildVersion = "0.2.0-testnet-preview"
+var BuildVersion = "0.3.0-testnet-preview"
 var BuildCommit = "development"
 
 type ServerConfig struct {

@@ -9,4 +9,6 @@ test('seller UI wires operations instead of navigation shells', async () => {
   for (const path of ['/seller/stores', '/seller/products', '/seller/inventory', '/seller/settlements', '/seller/audit', '/roles', '/orders', '/transition', '/ai/jobs']) assert.ok(js.includes(path), path);
   for (const action of ['Publish explicitly', 'shipped', 'return_approved', 'return_rejected', 'refund_approved', 'refund_rejected']) assert.ok(js.includes(action), action);
   for (const workflow of ['catalog_creation', 'fulfillment_triage']) assert.ok(js.includes(workflow), workflow);
+  for (const role of ['admin', 'catalog', 'inventory', 'fulfillment', 'finance', 'support', 'viewer']) assert.ok(html.includes(`<option>${role}</option>`), role);
+  assert.ok(!html.includes('<option>manager</option>'));
 });
