@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -158,7 +159,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 27 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 28 || !slices.Contains(health.Implemented, "evm-committed-zero-base-fee-history") || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status

@@ -19,7 +19,11 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const maxEVMLogBlockRange = uint64(1000)
+const (
+	maxEVMLogBlockRange        = uint64(1000)
+	maxEVMFeeHistoryBlockCount = uint64(1024)
+	evmFeeHistoryUnavailable   = -32004
+)
 
 var (
 	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-f]{40}\z`)
@@ -46,6 +50,108 @@ func evmFeeSuggestionResult(method string, raw json.RawMessage) (string, error) 
 	default:
 		return "", errors.New("unsupported EVM fee suggestion method")
 	}
+}
+
+func (g *Gateway) evmFeeHistory(ctx context.Context, raw json.RawMessage) (any, int, error) {
+	var params []json.RawMessage
+	if err := json.Unmarshal(raw, &params); err != nil {
+		return nil, -32602, errors.New("JSON-RPC params must be an array")
+	}
+	if len(params) != 2 && len(params) != 3 {
+		return nil, -32602, errors.New("eth_feeHistory requires block count, newest block, and optional reward percentiles")
+	}
+	blockCount, err := parseCanonicalEVMQuantity(params[0], "fee history block count")
+	if err != nil {
+		return nil, -32602, err
+	}
+	if blockCount == 0 || blockCount > maxEVMFeeHistoryBlockCount {
+		return nil, -32602, fmt.Errorf("fee history block count must be between 1 and %d", maxEVMFeeHistoryBlockCount)
+	}
+	rewardRequested := false
+	if len(params) == 3 {
+		trimmed := bytes.TrimSpace(params[2])
+		if len(trimmed) == 0 || trimmed[0] != '[' {
+			return nil, -32602, errors.New("reward percentiles must be an array")
+		}
+		var percentiles []float64
+		if err := json.Unmarshal(trimmed, &percentiles); err != nil {
+			return nil, -32602, errors.New("reward percentiles must be an array of numbers")
+		}
+		if len(percentiles) != 0 {
+			return nil, -32602, errors.New("reward percentile history is unavailable for the bounded zero-base-fee compatibility profile")
+		}
+		rewardRequested = true
+	}
+	status, err := g.status(ctx)
+	if err != nil {
+		return nil, -32603, err
+	}
+	newest, found, err := parseCommittedBlockLookupTag(params[1], status.EarliestBlockHeight, status.Height)
+	if err != nil {
+		return nil, -32602, err
+	}
+	if !found {
+		return nil, evmFeeHistoryUnavailable, errors.New("fee history requires a retained committed block")
+	}
+	availableBlocks := newest - status.EarliestBlockHeight + 1
+	if blockCount > availableBlocks {
+		blockCount = availableBlocks
+	}
+	oldest := newest - blockCount + 1
+	baseFees := make([]string, int(blockCount)+1)
+	gasRatios := make([]float64, int(blockCount))
+	var rewards [][]string
+	if rewardRequested {
+		rewards = make([][]string, int(blockCount))
+	}
+	for offset := uint64(0); offset < blockCount; offset++ {
+		height := oldest + offset
+		evidence, err := g.blockAtHeight(ctx, height)
+		if err != nil {
+			return nil, -32603, err
+		}
+		if evidence.AppHash == "" || !blockHashPattern.MatchString(evidence.AppHash) {
+			return nil, -32603, errors.New("fee history block is missing a valid AppHash")
+		}
+		if len(evidence.Block.Transactions) > 0 && (evidence.DataHash == "" || !blockHashPattern.MatchString(evidence.DataHash)) {
+			return nil, -32603, errors.New("fee history transaction block is missing a valid data hash")
+		}
+		if height == status.Height && evidence.Block.Hash != status.LatestBlockHash {
+			return nil, -32603, errors.New("fee history latest block evidence differs from status")
+		}
+		if height == status.EarliestBlockHeight && evidence.Block.Hash != status.EarliestBlockHash {
+			return nil, -32603, errors.New("fee history earliest block evidence differs from status")
+		}
+		gasUsed, err := g.committedBlockGas(ctx, height, len(evidence.Block.Transactions))
+		if err != nil {
+			return nil, -32603, err
+		}
+		gasLimit, hasGasLimit, err := g.committedBlockGasLimit(ctx, height)
+		if err != nil {
+			return nil, -32603, err
+		}
+		if !hasGasLimit {
+			return nil, evmFeeHistoryUnavailable, errors.New("fee history is unavailable because committed consensus block max_gas is not positive")
+		}
+		if gasUsed > gasLimit {
+			return nil, -32603, errors.New("committed block gas used exceeds consensus max_gas")
+		}
+		baseFees[int(offset)] = hexEVMQuantity(consensus.EthereumCompatibilityBaseFeePerGas)
+		gasRatios[int(offset)] = float64(gasUsed) / float64(gasLimit)
+		if rewardRequested {
+			rewards[int(offset)] = []string{}
+		}
+	}
+	baseFees[len(baseFees)-1] = hexEVMQuantity(consensus.EthereumCompatibilityBaseFeePerGas)
+	result := map[string]any{
+		"oldestBlock":   hexEVMQuantity(oldest),
+		"baseFeePerGas": baseFees,
+		"gasUsedRatio":  gasRatios,
+	}
+	if rewardRequested {
+		result["reward"] = rewards
+	}
+	return result, 0, nil
 }
 
 func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {
@@ -553,6 +659,28 @@ func (g *Gateway) committedBlockGas(ctx context.Context, height uint64, transact
 		total += gas
 	}
 	return total, nil
+}
+
+func (g *Gateway) committedBlockGasLimit(ctx context.Context, height uint64) (uint64, bool, error) {
+	var upstream cometConsensusParams
+	if err := g.client.get(ctx, "/consensus_params", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
+		return 0, false, err
+	}
+	if upstream.Error != nil {
+		return 0, false, errors.New(cometError(upstream.Error))
+	}
+	parsedHeight, err := strconv.ParseUint(upstream.Result.BlockHeight, 10, 64)
+	if err != nil || parsedHeight != height {
+		return 0, false, errors.New("CometBFT consensus parameters height does not match fee history block")
+	}
+	maxGas, err := strconv.ParseInt(upstream.Result.ConsensusParams.Block.MaxGas, 10, 64)
+	if err != nil {
+		return 0, false, errors.New("CometBFT consensus max_gas is invalid")
+	}
+	if maxGas <= 0 {
+		return 0, false, nil
+	}
+	return uint64(maxGas), true, nil
 }
 
 func evmCommittedBlock(evidence committedBlockEvidence, full bool, gasUsed uint64) map[string]any {

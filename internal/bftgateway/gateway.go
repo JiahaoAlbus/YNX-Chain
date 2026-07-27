@@ -30,6 +30,7 @@ var implementedCapabilities = []string{
 	"evm-network-version",
 	"evm-block-number",
 	"evm-minimum-gas-price-suggestions",
+	"evm-committed-zero-base-fee-history",
 	"evm-block-by-number-and-hash",
 	"evm-block-transaction-count-and-index-lookup",
 	"evm-account-balance-and-nonce",
@@ -241,6 +242,18 @@ type cometBlockResults struct {
 	Result struct {
 		Height     string          `json:"height"`
 		TxsResults []cometTxResult `json:"txs_results"`
+	} `json:"result"`
+	Error *cometRPCError `json:"error,omitempty"`
+}
+
+type cometConsensusParams struct {
+	Result struct {
+		BlockHeight     string `json:"block_height"`
+		ConsensusParams struct {
+			Block struct {
+				MaxGas string `json:"max_gas"`
+			} `json:"block"`
+		} `json:"consensus_params"`
 	} `json:"result"`
 	Error *cometRPCError `json:"error,omitempty"`
 }
@@ -1353,6 +1366,14 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 		result, err = evmFeeSuggestionResult(request.Method, request.Params)
 		if err != nil {
 			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
+	case "eth_feeHistory":
+		var code int
+		var err error
+		result, code, err = g.evmFeeHistory(r.Context(), request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": code, "message": err.Error()}})
 			return
 		}
 	case "eth_sendRawTransaction":
