@@ -34,13 +34,13 @@
   malware and container scanners unavailable, so those states remain false
 
 Reproducible desktop artifacts built from source commit
-`1b7e0f8b15a81e2325fca13e801fd31a192fcdc2`:
+`89a180911e40d66e47789eab419dff21d93a42d8`:
 
-- macOS arm64 ZIP: 7,377,997 bytes; SHA-256
-  `4fd07c885f8618f19c9960c86b858d9dafb63deb228d6a91737d4d1c7382267c`;
+- macOS arm64 ZIP: 7,377,978 bytes; SHA-256
+  `f29f1c643b265d428a57664cba30ef1182220fba2ebe24925c456fbe61c18042`;
   ad-hoc test signature; fresh installed cold-start verified
-- Windows x64 ZIP: 8,094,616 bytes; SHA-256
-  `0e7fda315ed2856b7b0346a2150324721d9252e7e29197424731cd154040a133`;
+- Windows x64 ZIP: 8,094,601 bytes; SHA-256
+  `2de53945d3bc81989693954f0dba5da2a88710e139f9808d40b19bd2b9400fc0`;
   unsigned cross-compile; no Windows execution evidence
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are

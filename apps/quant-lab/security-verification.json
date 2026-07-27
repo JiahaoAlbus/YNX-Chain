@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "ynx-quant-lab",
   "evidenceDate": "2026-07-27",
-  "artifactSourceCommit": "1b7e0f8b15a81e2325fca13e801fd31a192fcdc2",
+  "artifactSourceCommit": "89a180911e40d66e47789eab419dff21d93a42d8",
   "sourceChecks": {
     "goVetPassed": true,
     "releaseForbiddenContentScanPassed": true,
@@ -21,16 +21,16 @@
     "artifacts": [
       {
         "name": "YNX-Quant-Lab-0.2.0-testnet-macos-arm64.zip",
-        "bytes": 7377997,
-        "sha256": "4fd07c885f8618f19c9960c86b858d9dafb63deb228d6a91737d4d1c7382267c",
+        "bytes": 7377978,
+        "sha256": "f29f1c643b265d428a57664cba30ef1182220fba2ebe24925c456fbe61c18042",
         "entries": 15,
         "uncompressedBytes": 17820849,
         "passed": true
       },
       {
         "name": "YNX-Quant-Lab-0.2.0-testnet-windows-x64.zip",
-        "bytes": 8094616,
-        "sha256": "0e7fda315ed2856b7b0346a2150324721d9252e7e29197424731cd154040a133",
+        "bytes": 8094601,
+        "sha256": "2de53945d3bc81989693954f0dba5da2a88710e139f9808d40b19bd2b9400fc0",
         "entries": 9,
         "uncompressedBytes": 19266485,
         "passed": true
