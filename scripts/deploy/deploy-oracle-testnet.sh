@@ -6,10 +6,12 @@ cd "$(dirname "$0")/../.."
 source scripts/deploy/lib.sh
 ynx_load_env
 
-required=(ORACLE_API_DOMAIN ORACLE_PUBLIC_ORIGIN ORACLE_PROVIDER_REGISTRY ORACLE_PROVIDER_DEPLOYMENT_JSON ORACLE_NONCE_DOMAIN)
+required=(ORACLE_API_DOMAIN ORACLE_PUBLIC_ORIGIN ORACLE_PROVIDER_REGISTRY ORACLE_NONCE_DOMAIN)
 ynx_require_env "${required[@]}"
 ynx_reject_unsafe_env_values "${required[@]}"
 ORACLE_REMOTE_ENV_PATH="${ORACLE_REMOTE_ENV_PATH:-/etc/ynx-oracle/oracle.env}"
+ORACLE_PROVIDER_DEPLOYMENT_JSON="${ORACLE_PROVIDER_DEPLOYMENT_JSON:-}"
+source_mode="${ORACLE_SOURCE_MODE:-authoritative}"
 command -v git >/dev/null
 command -v go >/dev/null
 command -v jq >/dev/null
@@ -35,10 +37,10 @@ command -v tar >/dev/null
   echo "ORACLE_PROVIDER_REGISTRY must be a regular non-symlink file" >&2
   exit 1
 }
-[[ -f "$ORACLE_PROVIDER_DEPLOYMENT_JSON" && ! -L "$ORACLE_PROVIDER_DEPLOYMENT_JSON" ]] || {
-  echo "ORACLE_PROVIDER_DEPLOYMENT_JSON must be a regular non-symlink file" >&2
-  exit 1
-}
+case "$source_mode" in
+  authoritative | limited) ;;
+  *) echo "ORACLE_SOURCE_MODE must be authoritative or limited" >&2; exit 1 ;;
+esac
 
 target_arch="${ORACLE_TARGET_ARCH:-amd64}"
 case "$target_arch" in
@@ -46,48 +48,69 @@ case "$target_arch" in
   *) echo "ORACLE_TARGET_ARCH must be amd64 or arm64" >&2; exit 1 ;;
 esac
 
-jq -e '
-  .schema == "ynx.oracle.v1" and
-  (.providers | type == "array") and
-  ([.providers[] | select(.status == "active")] | length) >= 3 and
-  ([.providers[] | select(.status == "active") | .id] | unique | length) ==
-    ([.providers[] | select(.status == "active")] | length) and
-  ([.providers[] | select(.status == "active") | .reporterId] | unique | length) ==
-    ([.providers[] | select(.status == "active")] | length) and
-  ([.providers[] | select(.status == "active") | .reporterPublicKeyHex] | unique | length) ==
-    ([.providers[] | select(.status == "active")] | length)
-' "$ORACLE_PROVIDER_REGISTRY" >/dev/null || {
-  echo "Provider registry needs at least three independent active reporters" >&2
-  exit 1
-}
-
-jq -e '
-  .schema == "ynx.oracle.testnet-deployment.v1" and
-  (.providers | type == "array") and
-  (.providers | length) >= 3 and
-  ([.providers[].id] | unique | length) == (.providers | length) and
-  all(.providers[];
-    (.id | test("^[a-z0-9][a-z0-9-]{1,62}$")) and
-    (.adapter == "coinbase" or .adapter == "kraken" or .adapter == "bitstamp") and
-    (.symbol | test("^[A-Za-z0-9._/-]{3,32}$")) and
-    (.market | test("^[A-Z0-9]{2,16}/[A-Z0-9_]{2,16}$")) and
-    (.scale | type == "number") and .scale >= 1 and .scale <= 1000000000000 and
-    (.intervalSeconds | type == "number") and .intervalSeconds >= 1 and .intervalSeconds <= 3600 and
-    (.signerPath | test("^/etc/ynx-oracle/signers/[a-z0-9][a-z0-9-]{1,62}\\.key$"))
-  )
-' "$ORACLE_PROVIDER_DEPLOYMENT_JSON" >/dev/null || {
-  echo "Oracle provider deployment manifest is invalid" >&2
-  exit 1
-}
-
-while IFS=$'\t' read -r provider_id market; do
-  jq -e --arg id "$provider_id" --arg market "$market" '
-    any(.providers[]; .id == $id and .status == "active" and (.assetMarketCoverage | index($market) != null))
-  ' "$ORACLE_PROVIDER_REGISTRY" >/dev/null || {
-    echo "Deployment provider is not active or does not cover its market: $provider_id $market" >&2
+if [[ "$source_mode" == "authoritative" ]]; then
+  [[ -f "$ORACLE_PROVIDER_DEPLOYMENT_JSON" && ! -L "$ORACLE_PROVIDER_DEPLOYMENT_JSON" ]] || {
+    echo "ORACLE_PROVIDER_DEPLOYMENT_JSON must be a regular non-symlink file in authoritative mode" >&2
     exit 1
   }
-done < <(jq -r '.providers[] | [.id, .market] | @tsv' "$ORACLE_PROVIDER_DEPLOYMENT_JSON")
+  jq -e '
+    .schema == "ynx.oracle.v1" and
+    (.providers | type == "array") and
+    ([.providers[] | select(.status == "active")] | length) >= 3 and
+    ([.providers[] | select(.status == "active") | .id] | unique | length) ==
+      ([.providers[] | select(.status == "active")] | length) and
+    ([.providers[] | select(.status == "active") | .reporterId] | unique | length) ==
+      ([.providers[] | select(.status == "active")] | length) and
+    ([.providers[] | select(.status == "active") | .reporterPublicKeyHex] | unique | length) ==
+      ([.providers[] | select(.status == "active")] | length)
+  ' "$ORACLE_PROVIDER_REGISTRY" >/dev/null || {
+    echo "Authoritative registry needs at least three independent active reporters" >&2
+    exit 1
+  }
+  jq -e '
+    .schema == "ynx.oracle.testnet-deployment.v1" and
+    (.providers | type == "array") and
+    (.providers | length) >= 3 and
+    ([.providers[].id] | unique | length) == (.providers | length) and
+    all(.providers[];
+      (.id | test("^[a-z0-9][a-z0-9-]{1,62}$")) and
+      (.adapter == "coinbase" or .adapter == "kraken" or .adapter == "bitstamp") and
+      (.symbol | test("^[A-Za-z0-9._/-]{3,32}$")) and
+      (.market | test("^[A-Z0-9]{2,16}/[A-Z0-9_]{2,16}$")) and
+      (.scale | type == "number") and .scale >= 1 and .scale <= 1000000000000 and
+      (.intervalSeconds | type == "number") and .intervalSeconds >= 1 and .intervalSeconds <= 3600 and
+      (.signerPath | test("^/etc/ynx-oracle/signers/[a-z0-9][a-z0-9-]{1,62}\\.key$"))
+    )
+  ' "$ORACLE_PROVIDER_DEPLOYMENT_JSON" >/dev/null || {
+    echo "Oracle provider deployment manifest is invalid" >&2
+    exit 1
+  }
+  while IFS=$'\t' read -r provider_id market; do
+    jq -e --arg id "$provider_id" --arg market "$market" '
+      any(.providers[]; .id == $id and .status == "active" and (.assetMarketCoverage | index($market) != null))
+    ' "$ORACLE_PROVIDER_REGISTRY" >/dev/null || {
+      echo "Deployment provider is not active or does not cover its market: $provider_id $market" >&2
+      exit 1
+    }
+  done < <(jq -r '.providers[] | [.id, .market] | @tsv' "$ORACLE_PROVIDER_DEPLOYMENT_JSON")
+else
+  [[ -z "$ORACLE_PROVIDER_DEPLOYMENT_JSON" ]] || {
+    echo "Limited mode must not configure provider workers or signer paths" >&2
+    exit 1
+  }
+  jq -e '
+    .schema == "ynx.oracle.provider-candidates.v1" and
+    .productionRegistry == false and
+    (.candidates | type == "array") and
+    (.candidates | length) >= 1 and
+    all(.candidates[]; .status != "active" and .ynxMarketCoverage == false) and
+    (.sourceLimitation | type == "string") and
+    (.sourceLimitation | length) >= 20
+  ' "$ORACLE_PROVIDER_REGISTRY" >/dev/null || {
+    echo "Limited mode requires the inactive candidate registry and an explicit source limitation" >&2
+    exit 1
+  }
+fi
 
 if [[ "${PACKAGE_ONLY:-0}" != "1" ]]; then
   deploy_required=(SERVER_HOST SERVER_USER SSH_KEY_PATH)
@@ -112,6 +135,11 @@ cleanup() {
 trap cleanup EXIT
 bundle="$stage/$release"
 mkdir -p "$bundle/bin" "$bundle/config" "$bundle/systemd" "$bundle/caddy"
+deployment_manifest="$ORACLE_PROVIDER_DEPLOYMENT_JSON"
+if [[ "$source_mode" == "limited" ]]; then
+  deployment_manifest="$stage/provider-deployment.json"
+  printf '%s\n' '{"schema":"ynx.oracle.testnet-deployment.v1","providers":[]}' > "$deployment_manifest"
+fi
 
 printf 'building Oracle Testnet binaries for linux/%s\n' "$target_arch"
 GOOS=linux GOARCH="$target_arch" CGO_ENABLED=0 go build -trimpath \
@@ -120,7 +148,7 @@ GOOS=linux GOARCH="$target_arch" CGO_ENABLED=0 go build -trimpath \
 GOOS=linux GOARCH="$target_arch" CGO_ENABLED=0 go build -trimpath \
   -ldflags="-s -w -buildid=" -o "$bundle/bin/ynx-oracle-provider" ./cmd/ynx-oracle-provider
 install -m 0644 "$ORACLE_PROVIDER_REGISTRY" "$bundle/config/providers.json"
-install -m 0644 "$ORACLE_PROVIDER_DEPLOYMENT_JSON" "$bundle/config/provider-deployment.json"
+install -m 0644 "$deployment_manifest" "$bundle/config/provider-deployment.json"
 
 jq -n \
   --arg schema "ynx.oracle.testnet-release.v1" \
@@ -130,7 +158,9 @@ jq -n \
   --arg nonceDomain "$ORACLE_NONCE_DOMAIN" \
   --arg apiDomain "$ORACLE_API_DOMAIN" \
   --arg publicOrigin "$ORACLE_PUBLIC_ORIGIN" \
-  --slurpfile deployment "$ORACLE_PROVIDER_DEPLOYMENT_JSON" \
+  --arg sourceMode "$source_mode" \
+  --slurpfile deployment "$deployment_manifest" \
+  --slurpfile registry "$ORACLE_PROVIDER_REGISTRY" \
   '{
     schema: $schema,
     sourceCommit: $sourceCommit,
@@ -139,7 +169,13 @@ jq -n \
     nonceDomain: $nonceDomain,
     apiDomain: $apiDomain,
     publicOrigin: $publicOrigin,
-    providers: $deployment[0].providers,
+    sourceMode: $sourceMode,
+    providers: (
+      if $sourceMode == "authoritative"
+      then $deployment[0].providers
+      else [$registry[0].candidates[] | {id, status, assetMarketCoverage}]
+      end
+    ),
     containsSecrets: false
   }' > "$bundle/config/release.json"
 
@@ -211,7 +247,7 @@ UMask=0077
 [Install]
 WantedBy=multi-user.target
 EOF
-done < <(jq -r '.providers[] | [.id, .adapter, .symbol, .market, (.scale|tostring), (.intervalSeconds|tostring), .signerPath] | @tsv' "$ORACLE_PROVIDER_DEPLOYMENT_JSON")
+done < <(jq -r '.providers[] | [.id, .adapter, .symbol, .market, (.scale|tostring), (.intervalSeconds|tostring), .signerPath] | @tsv' "$deployment_manifest")
 
 cat > "$bundle/caddy/ynx-oracle.caddy" <<EOF
 $ORACLE_API_DOMAIN {
@@ -253,7 +289,7 @@ remote_release="/opt/ynx-oracle/releases/$release"
 remote_env="$ORACLE_REMOTE_ENV_PATH"
 units_joined="${provider_units[*]}"
 
-ynx_ssh "hostname >/dev/null && command -v systemctl >/dev/null && command -v caddy >/dev/null"
+ynx_ssh "hostname >/dev/null && command -v systemctl >/dev/null && command -v caddy >/dev/null && command -v jq >/dev/null"
 ynx_scp "$tarball" "$remote_tar"
 ynx_ssh "set -e; test \$(stat -c '%a' '$remote_tar') = 600; printf '%s  %s\n' '$tarball_sha' '$remote_tar' | sha256sum -c -"
 ynx_ssh "set -e; id -u ynx-oracle >/dev/null 2>&1 || sudo useradd --system --home /var/lib/ynx-oracle --shell /usr/sbin/nologin ynx-oracle; sudo install -d -o root -g root -m 0755 /opt/ynx-oracle/releases /etc/ynx-oracle; sudo install -d -o ynx-oracle -g ynx-oracle -m 0700 /var/lib/ynx-oracle /var/lib/ynx-oracle/providers"
@@ -261,19 +297,24 @@ ynx_ssh "set -e; sudo test -f '$remote_env'; sudo test ! -L '$remote_env'; sudo 
 
 while IFS= read -r signer_path; do
   ynx_ssh "set -e; sudo test -f '$signer_path'; sudo test ! -L '$signer_path'; sudo test \$(stat -c '%a' '$signer_path') = 600; sudo chown ynx-oracle:ynx-oracle '$signer_path'"
-done < <(jq -r '.providers[].signerPath' "$ORACLE_PROVIDER_DEPLOYMENT_JSON")
+done < <(jq -r '.providers[].signerPath' "$deployment_manifest")
 
 ynx_ssh "set -e; sudo rm -rf '$remote_release'; sudo mkdir -p '$remote_release'; sudo tar -xzf '$remote_tar' --strip-components=1 -C '$remote_release'; cd '$remote_release'; sha256sum -c SHA256SUMS; sudo chown -R root:root '$remote_release'; sudo chmod 0755 '$remote_release/bin/'*"
 ynx_ssh "set -e; previous=\$(readlink -f /opt/ynx-oracle/current 2>/dev/null || true); sudo ln -sfn '$remote_release' /opt/ynx-oracle/current; sudo install -m 0644 '$remote_release/systemd/ynx-oracled.service' /etc/systemd/system/ynx-oracled.service; for unit in $units_joined; do sudo install -m 0644 \"'$remote_release'/systemd/\$unit\" \"/etc/systemd/system/\$unit\"; done; sudo install -d -o root -g root -m 0755 /etc/caddy/conf.d; sudo install -m 0644 '$remote_release/caddy/ynx-oracle.caddy' /etc/caddy/conf.d/ynx-oracle.caddy; sudo grep -Eq '^[[:space:]]*import[[:space:]]+(/etc/caddy/)?conf\\.d/\\*\\.caddy' /etc/caddy/Caddyfile; sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; printf '%s' \"\$previous\" | sudo tee /var/lib/ynx-oracle/previous-release >/dev/null"
 
 ynx_ssh "set -e; sudo bash -lc 'set -a; source \"$remote_env\"; set +a; runuser -u ynx-oracle --preserve-environment -- /opt/ynx-oracle/current/bin/ynx-oracled --state /var/lib/ynx-oracle/state.json --providers /opt/ynx-oracle/current/config/providers.json --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --public-origin \"$ORACLE_PUBLIC_ORIGIN\" --check-config'; while IFS=\$'\\t' read -r id adapter symbol market scale interval signer; do sudo -u ynx-oracle /opt/ynx-oracle/current/bin/ynx-oracle-provider --providers /opt/ynx-oracle/current/config/providers.json --provider-id \"\$id\" --adapter \"\$adapter\" --symbol \"\$symbol\" --market \"\$market\" --scale \"\$scale\" --oracle http://127.0.0.1:6470 --signer \"\$signer\" --sequence-state \"/var/lib/ynx-oracle/providers/\$id.sequence\" --nonce-domain \"$ORACLE_NONCE_DOMAIN\" --interval \"\${interval}s\" --check-config; done < <(jq -r '.providers[] | [.id,.adapter,.symbol,.market,(.scale|tostring),(.intervalSeconds|tostring),.signerPath] | @tsv' /opt/ynx-oracle/current/config/provider-deployment.json)"
-ynx_ssh "set -e; sudo systemctl daemon-reload; sudo systemctl enable ynx-oracled.service $units_joined; sudo systemctl restart ynx-oracled.service; for unit in $units_joined; do sudo systemctl restart \"\$unit\"; done; sudo systemctl reload caddy"
+ynx_ssh "set -e; expected=' $units_joined '; for unit in \$(systemctl list-unit-files --no-legend 'ynx-oracle-provider-*.service' 2>/dev/null | awk '{print \$1}'); do case \"\$expected\" in *\" \$unit \"*) ;; *) sudo systemctl disable --now \"\$unit\" ;; esac; done; sudo systemctl daemon-reload; sudo systemctl enable ynx-oracled.service $units_joined; sudo systemctl restart ynx-oracled.service; for unit in $units_joined; do sudo systemctl restart \"\$unit\"; done; sudo systemctl reload caddy"
 
-if ! bash scripts/verify/oracle-testnet-smoke.sh "https://$ORACLE_API_DOMAIN" "$commit" "$(jq -r '.providers[0].market' "$ORACLE_PROVIDER_DEPLOYMENT_JSON")"; then
+if [[ "$source_mode" == "authoritative" ]]; then
+  test_market="$(jq -r '.providers[0].market' "$deployment_manifest")"
+else
+  test_market="$(jq -r '.candidates[0].assetMarketCoverage[0]' "$ORACLE_PROVIDER_REGISTRY")"
+fi
+if ! bash scripts/verify/oracle-testnet-smoke.sh "https://$ORACLE_API_DOMAIN" "$commit" "$test_market" "$source_mode"; then
   ynx_ssh "set -e; previous=\$(sudo cat /var/lib/ynx-oracle/previous-release); if test -n \"\$previous\" && sudo test -d \"\$previous\"; then sudo ln -sfn \"\$previous\" /opt/ynx-oracle/current; sudo systemctl restart ynx-oracled.service $units_joined; fi"
   echo "Oracle public smoke failed; previous release was restored when available" >&2
   exit 1
 fi
 
 ynx_ssh "rm -f '$remote_tar'; sudo systemctl --no-pager --full status ynx-oracled.service $units_joined"
-printf 'Oracle Testnet deployed: host=%s release=%s commit=%s\n' "$remote" "$release" "$commit"
+printf 'Oracle Testnet deployed: host=%s release=%s commit=%s source_mode=%s\n' "$remote" "$release" "$commit" "$source_mode"

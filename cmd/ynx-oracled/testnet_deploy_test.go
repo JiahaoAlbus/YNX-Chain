@@ -5,6 +5,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -210,5 +215,175 @@ func TestOracleTestnetPackageAndConfigPreflight(t *testing.T) {
 		if !strings.Contains(listing, required) {
 			t.Fatalf("release archive missing %s:\n%s", required, listing)
 		}
+	}
+}
+
+func TestLoadCandidateRegistryIsSourceLimitedAndNeverActive(t *testing.T) {
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve test source path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	candidates, attestors, limitation, err := loadRegistry(filepath.Join(root, "config", "oracle", "provider-candidates.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(candidates) != 3 || len(attestors) != 0 || limitation == "" {
+		t.Fatalf("candidate registry truth incomplete: providers=%d attestors=%d limitation=%q", len(candidates), len(attestors), limitation)
+	}
+	for _, candidate := range candidates {
+		if candidate.Status == "active" || candidate.ReporterID != "" || candidate.ReporterPublicKeyHex != "" || candidate.WeightPPM != 0 {
+			t.Fatalf("candidate was activated or assigned fabricated reporter authority: %+v", candidate)
+		}
+		if err := candidate.Validate(); err != nil {
+			t.Fatalf("candidate invalid: %v", err)
+		}
+	}
+}
+
+func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
+	if testing.Short() {
+		t.Skip("cross-compiling the Testnet release bundle is an integration check")
+	}
+	_, currentFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve test source path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
+	registryPath := filepath.Join(root, "config", "oracle", "provider-candidates.json")
+	candidates, _, limitation, err := loadRegistry(registryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixtureDir := t.TempDir()
+	oracleCheck := exec.Command("go", "run", "./cmd/ynx-oracled",
+		"--state", filepath.Join(fixtureDir, "state.json"),
+		"--providers", registryPath,
+		"--nonce-domain", "ynx-oracle-testnet-v1",
+		"--public-origin", "https://oracle-web.test.ynx.invalid",
+		"--check-config",
+	)
+	oracleCheck.Dir = root
+	oracleCheck.Env = append(os.Environ(), "YNX_ORACLE_STATE_HMAC_KEY_HEX="+strings.Repeat("cd", 32))
+	if output, err := oracleCheck.CombinedOutput(); err != nil {
+		t.Fatalf("limited-source Oracle config preflight failed: %v\n%s", err, output)
+	}
+
+	commitOutput, err := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit := strings.TrimSpace(string(commitOutput))
+	tarball := filepath.Join(root, "tmp", "deploy", "ynx-oracle-"+commit+"-linux-amd64.tar.gz")
+	t.Cleanup(func() { _ = os.Remove(tarball) })
+	packageCommand := exec.Command("bash", filepath.Join(root, "scripts", "deploy", "deploy-oracle-testnet.sh"))
+	packageCommand.Dir = root
+	packageCommand.Env = append(os.Environ(),
+		"PACKAGE_ONLY=1",
+		"ORACLE_SOURCE_MODE=limited",
+		"ORACLE_API_DOMAIN=oracle-api.test.ynx.invalid",
+		"ORACLE_PUBLIC_ORIGIN=https://oracle-web.test.ynx.invalid",
+		"ORACLE_PROVIDER_REGISTRY="+registryPath,
+		"ORACLE_PROVIDER_DEPLOYMENT_JSON=",
+		"ORACLE_NONCE_DOMAIN=ynx-oracle-testnet-v1",
+		"ORACLE_TARGET_ARCH=amd64",
+	)
+	if output, err := packageCommand.CombinedOutput(); err != nil {
+		t.Fatalf("limited-source Testnet package failed: %v\n%s", err, output)
+	}
+	candidateData, err := os.ReadFile(registryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var productionClaim map[string]any
+	if err := json.Unmarshal(candidateData, &productionClaim); err != nil {
+		t.Fatal(err)
+	}
+	productionClaim["productionRegistry"] = true
+	productionClaimPath := filepath.Join(fixtureDir, "false-production-claim.json")
+	productionClaimData, err := json.Marshal(productionClaim)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(productionClaimPath, productionClaimData, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	rejectedPackage := exec.Command("bash", filepath.Join(root, "scripts", "deploy", "deploy-oracle-testnet.sh"))
+	rejectedPackage.Dir = root
+	rejectedPackage.Env = append(os.Environ(),
+		"PACKAGE_ONLY=1",
+		"ORACLE_SOURCE_MODE=limited",
+		"ORACLE_API_DOMAIN=oracle-api.test.ynx.invalid",
+		"ORACLE_PUBLIC_ORIGIN=https://oracle-web.test.ynx.invalid",
+		"ORACLE_PROVIDER_REGISTRY="+productionClaimPath,
+		"ORACLE_PROVIDER_DEPLOYMENT_JSON=",
+		"ORACLE_NONCE_DOMAIN=ynx-oracle-testnet-v1",
+	)
+	if output, err := rejectedPackage.CombinedOutput(); err == nil || !strings.Contains(string(output), "inactive candidate registry") {
+		t.Fatalf("false production candidate registry was not rejected: err=%v\n%s", err, output)
+	}
+	archiveOutput, err := exec.Command("tar", "-tzf", tarball).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(archiveOutput), "/systemd/ynx-oracle-provider-") {
+		t.Fatalf("limited-source bundle contains provider workers:\n%s", archiveOutput)
+	}
+	releasePath := "ynx-oracle-" + commit + "/config/release.json"
+	releaseOutput, err := exec.Command("tar", "-xOzf", tarball, releasePath).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var release struct {
+		SourceMode     string `json:"sourceMode"`
+		ContainsSecret bool   `json:"containsSecrets"`
+	}
+	if err := json.Unmarshal(releaseOutput, &release); err != nil {
+		t.Fatal(err)
+	}
+	if release.SourceMode != "limited" || release.ContainsSecret {
+		t.Fatalf("limited-source release truth mismatch: %+v", release)
+	}
+
+	store, err := oracle.OpenStore(filepath.Join(fixtureDir, "smoke-state.json"), []byte(strings.Repeat("k", 32)), "ynx-oracle-testnet-v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := oracle.NewService(store, candidates, oracle.DefaultPolicy(), time.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.ConfigureSourceLimitation(limitation); err != nil {
+		t.Fatal(err)
+	}
+	originalCommit := oracle.BuildCommit
+	expectedCommit := strings.Repeat("a", 40)
+	oracle.BuildCommit = expectedCommit
+	t.Cleanup(func() { oracle.BuildCommit = originalCommit })
+	server, err := oracle.NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	publicOnly := http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/internal/v1/observations" {
+			http.NotFound(response, request)
+			return
+		}
+		server.ServeHTTP(response, request)
+	})
+	tlsServer := httptest.NewTLSServer(publicOnly)
+	defer tlsServer.Close()
+	certificatePath := filepath.Join(fixtureDir, "testnet-ca.pem")
+	certificate := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: tlsServer.Certificate().Raw})
+	if err := os.WriteFile(certificatePath, certificate, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	smoke := exec.Command("bash", filepath.Join(root, "scripts", "verify", "oracle-testnet-smoke.sh"),
+		tlsServer.URL, expectedCommit, "BTC/USD", "limited",
+	)
+	smoke.Dir = root
+	smoke.Env = append(os.Environ(), "ORACLE_CA_CERT="+certificatePath)
+	if output, err := smoke.CombinedOutput(); err != nil {
+		t.Fatalf("limited-source public smoke failed: %v\n%s", err, output)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -31,6 +32,30 @@ type Service struct {
 	startedAt   time.Time
 	lastGood    map[string]Price
 	rate        map[string]rateBucket
+	sourceLimit string
+}
+
+func (service *Service) ConfigureSourceLimitation(value string) error {
+	value = strings.TrimSpace(value)
+	if value == "" || len(value) > 1024 {
+		return errors.New("source limitation must be non-empty and bounded")
+	}
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	active := 0
+	for _, provider := range service.providers {
+		if provider.Status == "active" {
+			active++
+		}
+	}
+	if active >= service.policy.MinimumSources {
+		return errors.New("source limitation conflicts with sufficient active providers")
+	}
+	if service.sourceLimit != "" {
+		return errors.New("source limitation is already configured")
+	}
+	service.sourceLimit = value
+	return nil
 }
 
 type rateBucket struct {
@@ -202,6 +227,17 @@ func (service *Service) aggregateAndPersist(market string, kind DataType) (Price
 	}
 	service.mu.RUnlock()
 	price, err := Aggregate(now, observations, providers, service.policy)
+	if price.Market == "" {
+		price.Market, price.Type = market, kind
+	}
+	if err != nil {
+		service.mu.RLock()
+		sourceLimit := service.sourceLimit
+		service.mu.RUnlock()
+		if sourceLimit != "" {
+			price.Quality.SourceLimitation = sourceLimit
+		}
+	}
 	if price.Market != "" && price.Type.Valid() && price.LineageHash != "" {
 		if _, persistErr := service.store.AppendAggregate(price); persistErr != nil {
 			return price, fmt.Errorf("%w: aggregate event: %v", ErrPersistence, persistErr)
@@ -432,7 +468,12 @@ func (service *Service) Health() Health {
 	status, limitation := "ok", ""
 	if active < service.policy.MinimumSources {
 		status = "degraded"
-		limitation = "fewer than the policy-required active independent providers"
+		service.mu.RLock()
+		limitation = service.sourceLimit
+		service.mu.RUnlock()
+		if limitation == "" {
+			limitation = "fewer than the policy-required active independent providers"
+		}
 	}
 	lastSuccessfulAggregation := time.Time{}
 	for index := len(state.AggregateEvents) - 1; index >= 0; index-- {

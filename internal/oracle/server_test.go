@@ -265,6 +265,30 @@ func TestHealthTruthfullyReportsSourceLimitation(t *testing.T) {
 	}
 }
 
+func TestHealthPublishesConfiguredSourceLimitation(t *testing.T) {
+	now := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
+	source := reporter(t, "source-a", 1_000_000, now)
+	source.provider.Status = "legal_approval_required"
+	service := testService(t, &now, source)
+	limitation := "No approved provider covers YNXT/YUSD_TEST; authoritative publication remains unavailable."
+	if err := service.ConfigureSourceLimitation(limitation); err != nil {
+		t.Fatal(err)
+	}
+	server, _ := NewServer(service, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	response := httptest.NewRecorder()
+	server.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("health status=%d body=%s", response.Code, response.Body.String())
+	}
+	var health Health
+	if err := json.Unmarshal(response.Body.Bytes(), &health); err != nil {
+		t.Fatal(err)
+	}
+	if health.Status != "degraded" || health.SourceLimitation != limitation || health.ActiveProviderCount != 0 {
+		t.Fatalf("configured source limitation not published: %+v", health)
+	}
+}
+
 func TestTraceCorrelationAndInternalMetricsAreSeparated(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	service := testService(t, &now, reporter(t, "source-a", 1_000_000, now))

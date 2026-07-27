@@ -219,8 +219,7 @@ func (provider Provider) Validate() error {
 		strings.TrimSpace(provider.Jurisdiction) == "" || strings.TrimSpace(provider.Cost) == "" ||
 		strings.TrimSpace(provider.Retention) == "" || strings.TrimSpace(provider.DataRights) == "" ||
 		strings.TrimSpace(provider.Fallback) == "" || strings.TrimSpace(provider.DecommissionPlan) == "" ||
-		provider.Status == "" || !reporterPattern.MatchString(provider.ReporterID) ||
-		provider.WeightPPM <= 0 || provider.WeightPPM > 1_000_000 || provider.UpdatedAt.IsZero() {
+		provider.Status == "" || provider.UpdatedAt.IsZero() {
 		return fmt.Errorf("%w: incomplete provider registry entry", errInvalid)
 	}
 	seenMarkets := map[string]struct{}{}
@@ -232,6 +231,12 @@ func (provider Provider) Validate() error {
 			return fmt.Errorf("%w: duplicate provider market coverage", errInvalid)
 		}
 		seenMarkets[market] = struct{}{}
+	}
+	if provider.Status != "active" && provider.ReporterID == "" && provider.ReporterPublicKeyHex == "" && provider.WeightPPM == 0 {
+		return nil
+	}
+	if !reporterPattern.MatchString(provider.ReporterID) || provider.WeightPPM <= 0 || provider.WeightPPM > 1_000_000 {
+		return fmt.Errorf("%w: reporter authority", errInvalid)
 	}
 	key, err := hex.DecodeString(provider.ReporterPublicKeyHex)
 	if err != nil || len(key) != ed25519.PublicKeySize {

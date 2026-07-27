@@ -26,6 +26,42 @@ type registryFile struct {
 	Attestors []oracle.Attestor `json:"attestors,omitempty"`
 }
 
+type candidateRegistryFile struct {
+	Schema             string                      `json:"schema"`
+	AsOf               time.Time                   `json:"asOf"`
+	ProductionRegistry bool                        `json:"productionRegistry"`
+	Candidates         []candidateRegistryProvider `json:"candidates"`
+	SourceLimitation   string                      `json:"sourceLimitation"`
+}
+
+type candidateRegistryProvider struct {
+	ID                  string     `json:"id"`
+	Provider            string     `json:"provider"`
+	Endpoint            string     `json:"endpoint"`
+	Version             string     `json:"version"`
+	AssetMarketCoverage []string   `json:"assetMarketCoverage"`
+	YNXMarketCoverage   bool       `json:"ynxMarketCoverage"`
+	License             string     `json:"license"`
+	Terms               string     `json:"terms"`
+	PermittedStorage    string     `json:"permittedStorage"`
+	Authentication      string     `json:"authentication"`
+	RateLimit           string     `json:"rateLimit"`
+	Timestamp           string     `json:"timestamp"`
+	Precision           string     `json:"precision"`
+	Timezone            string     `json:"timezone"`
+	Region              string     `json:"region"`
+	Jurisdiction        string     `json:"jurisdiction"`
+	Cost                string     `json:"cost"`
+	Retention           string     `json:"retention"`
+	DataRights          string     `json:"dataRights"`
+	Health              string     `json:"health"`
+	LastSuccess         *time.Time `json:"lastSuccess"`
+	Fallback            string     `json:"fallback"`
+	DecommissionPlan    string     `json:"decommissionPlan"`
+	Status              string     `json:"status"`
+	Adapter             string     `json:"adapter"`
+}
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("oracle terminated", "error", err.Error())
@@ -49,7 +85,7 @@ func run() error {
 	if err != nil || len(key) < 32 {
 		return errors.New("YNX_ORACLE_STATE_HMAC_KEY_HEX must decode to at least 32 bytes")
 	}
-	providers, attestors, err := loadRegistry(*registryPath)
+	providers, attestors, sourceLimitation, err := loadRegistry(*registryPath)
 	if err != nil {
 		return err
 	}
@@ -60,6 +96,11 @@ func run() error {
 	service, err := oracle.NewService(store, providers, oracle.DefaultPolicy(), time.Now)
 	if err != nil {
 		return err
+	}
+	if sourceLimitation != "" {
+		if err := service.ConfigureSourceLimitation(sourceLimitation); err != nil {
+			return err
+		}
 	}
 	if len(attestors) > 0 {
 		if err := service.ConfigureAttestors(attestors); err != nil {
@@ -116,22 +157,77 @@ func run() error {
 	}
 }
 
-func loadRegistry(path string) ([]oracle.Provider, []oracle.Attestor, error) {
+func loadRegistry(path string) ([]oracle.Provider, []oracle.Attestor, string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, nil, fmt.Errorf("read provider registry: %w", err)
+		return nil, nil, "", fmt.Errorf("read provider registry: %w", err)
 	}
-	var registry registryFile
+	var envelope struct {
+		Schema string `json:"schema"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return nil, nil, "", fmt.Errorf("decode provider registry: %w", err)
+	}
+	switch envelope.Schema {
+	case oracle.SchemaVersion:
+		var registry registryFile
+		if err := decodeRegistry(data, &registry); err != nil {
+			return nil, nil, "", err
+		}
+		if len(registry.Providers) == 0 {
+			return nil, nil, "", errors.New("provider registry providers invalid")
+		}
+		return registry.Providers, registry.Attestors, "", nil
+	case "ynx.oracle.provider-candidates.v1":
+		var registry candidateRegistryFile
+		if err := decodeRegistry(data, &registry); err != nil {
+			return nil, nil, "", err
+		}
+		if registry.ProductionRegistry || registry.AsOf.IsZero() || len(registry.Candidates) == 0 || len(registry.SourceLimitation) == 0 {
+			return nil, nil, "", errors.New("provider candidate registry truth fields invalid")
+		}
+		providers := make([]oracle.Provider, 0, len(registry.Candidates))
+		seen := make(map[string]struct{}, len(registry.Candidates))
+		for _, candidate := range registry.Candidates {
+			if candidate.Status == "active" || candidate.YNXMarketCoverage {
+				return nil, nil, "", errors.New("candidate registry cannot activate providers or claim YNX coverage")
+			}
+			provider := oracle.Provider{
+				ID: candidate.ID, Name: candidate.Provider, Endpoint: candidate.Endpoint, APIVersion: candidate.Version,
+				AssetMarketCoverage: candidate.AssetMarketCoverage, License: candidate.License, TermsURL: candidate.Terms,
+				PermittedStorage: candidate.PermittedStorage, Authentication: candidate.Authentication,
+				RateLimit: candidate.RateLimit, TimestampSemantics: candidate.Timestamp, Precision: candidate.Precision,
+				Timezone: candidate.Timezone, Region: candidate.Region, Jurisdiction: candidate.Jurisdiction,
+				Cost: candidate.Cost, Retention: candidate.Retention, DataRights: candidate.DataRights,
+				Fallback: candidate.Fallback, DecommissionPlan: candidate.DecommissionPlan, Status: candidate.Status,
+				UpdatedAt: registry.AsOf,
+			}
+			if candidate.LastSuccess != nil {
+				provider.LastSuccess = candidate.LastSuccess.UTC()
+			}
+			if err := provider.Validate(); err != nil {
+				return nil, nil, "", err
+			}
+			if _, exists := seen[provider.ID]; exists {
+				return nil, nil, "", errors.New("duplicate provider candidate ID")
+			}
+			seen[provider.ID] = struct{}{}
+			providers = append(providers, provider)
+		}
+		return providers, nil, registry.SourceLimitation, nil
+	default:
+		return nil, nil, "", errors.New("provider registry schema invalid")
+	}
+}
+
+func decodeRegistry(data []byte, target any) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&registry); err != nil {
-		return nil, nil, fmt.Errorf("decode provider registry: %w", err)
+	if err := decoder.Decode(target); err != nil {
+		return fmt.Errorf("decode provider registry: %w", err)
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return nil, nil, errors.New("provider registry must contain exactly one JSON value")
+		return errors.New("provider registry must contain exactly one JSON value")
 	}
-	if registry.Schema != oracle.SchemaVersion || len(registry.Providers) == 0 {
-		return nil, nil, errors.New("provider registry schema or providers invalid")
-	}
-	return registry.Providers, registry.Attestors, nil
+	return nil
 }
