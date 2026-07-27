@@ -22,7 +22,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/objects", s.auth(s.list))
 	mux.HandleFunc("POST /api/v1/objects", s.auth(s.create))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
+	mux.HandleFunc("PATCH /api/v1/objects/{id}", s.auth(s.updateObject))
+	mux.HandleFunc("POST /api/v1/objects/{id}/duplicate", s.auth(s.duplicateObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
+	mux.HandleFunc("GET /api/v1/objects/{id}/export", s.auth(s.exportDocument))
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))
 	mux.HandleFunc("GET /api/v1/objects/{id}/versions", s.auth(s.versions))
 	mux.HandleFunc("POST /api/v1/objects/{id}/versions/{version}/restore", s.auth(s.restoreVersion))
@@ -42,6 +45,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/access-requests/{request}/decision", s.auth(s.decideAccess))
 	mux.HandleFunc("GET /api/v1/objects/{id}/comments", s.auth(s.comments))
 	mux.HandleFunc("POST /api/v1/objects/{id}/comments", s.auth(s.addComment))
+	mux.HandleFunc("POST /api/v1/objects/{id}/comments/{thread}/resolution", s.auth(s.resolveComment))
 	mux.HandleFunc("POST /api/v1/objects/{id}/presence", s.auth(s.presence))
 	mux.HandleFunc("GET /api/v1/quota", s.auth(s.quota))
 	mux.HandleFunc("GET /api/v1/audit", s.auth(s.audit))
@@ -81,6 +85,40 @@ func requireScope(w http.ResponseWriter, s Session, scope string) bool {
 	return false
 }
 
+func requireProduct(w http.ResponseWriter, session Session, product string) bool {
+	if session.Product == product {
+		return true
+	}
+	writeError(w, 403, "session product does not allow this action")
+	return false
+}
+
+func (s *Server) authorizeObject(w http.ResponseWriter, session Session, id, genericScope, docsScope string, includeDescendants bool) (Object, bool) {
+	obj, err := s.service.Get(session.Account, id)
+	if err != nil {
+		writeServiceError(w, err)
+		return Object{}, false
+	}
+	containsDocs := obj.Kind == KindDoc
+	if includeDescendants && obj.Kind == KindFolder {
+		containsDocs, err = s.service.ContainsDocument(session.Account, id)
+		if err != nil {
+			writeServiceError(w, err)
+			return Object{}, false
+		}
+	}
+	if containsDocs {
+		if !requireProduct(w, session, "docs") || !requireScope(w, session, docsScope) {
+			return Object{}, false
+		}
+		return obj, true
+	}
+	if !requireScope(w, session, genericScope) {
+		return Object{}, false
+	}
+	return obj, true
+}
+
 func (s *Server) session(w http.ResponseWriter, r *http.Request) {
 	var a WalletAssertion
 	if !decode(w, r, &a, 32<<10) {
@@ -107,7 +145,20 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request, a Session) {
 		return
 	}
 	objects, err := s.service.List(a.Account, ListOptions{ParentID: r.URL.Query().Get("parentId"), Query: r.URL.Query().Get("q"), View: r.URL.Query().Get("view")})
-	writeResult(w, objects, err)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	if a.Product != "docs" {
+		filtered := objects[:0]
+		for _, object := range objects {
+			if object.Kind != KindDoc {
+				filtered = append(filtered, object)
+			}
+		}
+		objects = filtered
+	}
+	writeJSON(w, 200, objects)
 }
 func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "files.write") {
@@ -115,6 +166,9 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	}
 	var req CreateObjectRequest
 	if !decode(w, r, &req, MaxUploadBytes*2) {
+		return
+	}
+	if req.Kind == KindDoc && (!requireProduct(w, a, "docs") || !requireScope(w, a, "docs.edit")) {
 		return
 	}
 	obj, err := s.service.Create(r.Context(), a.Account, req)
@@ -125,14 +179,42 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, obj)
 }
 func (s *Server) get(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	obj, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.read", "docs.read", false)
+	if !ok {
 		return
 	}
-	obj, err := s.service.Get(a.Account, r.PathValue("id"))
+	writeJSON(w, 200, obj)
+}
+func (s *Server) updateObject(w http.ResponseWriter, r *http.Request, a Session) {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
+		return
+	}
+	var req UpdateObjectRequest
+	if !decode(w, r, &req, 4096) {
+		return
+	}
+	obj, err := s.service.UpdateObject(a.Account, r.PathValue("id"), req)
 	writeResult(w, obj, err)
 }
+
+func (s *Server) duplicateObject(w http.ResponseWriter, r *http.Request, a Session) {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
+		return
+	}
+	var req DuplicateObjectRequest
+	if !decode(w, r, &req, 4096) {
+		return
+	}
+	obj, err := s.service.DuplicateObject(a.Account, r.PathValue("id"), req)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	writeJSON(w, 201, obj)
+}
+
 func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.read", "docs.read", false); !ok {
 		return
 	}
 	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
@@ -147,8 +229,28 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 	w.WriteHeader(200)
 	_, _ = w.Write(b)
 }
+func (s *Server) exportDocument(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
+		return
+	}
+	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
+	export, err := s.service.ExportDocument(a.Account, r.PathValue("id"), r.URL.Query().Get("format"), version)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	filename := strings.ReplaceAll(export.Filename, "\"", "")
+	w.Header().Set("Content-Type", export.MIME)
+	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	w.Header().Set("X-Content-SHA256", export.SHA256)
+	w.Header().Set("X-YNX-Source-SHA256", export.SourceHash)
+	w.Header().Set("X-YNX-Document-Version", strconv.Itoa(export.Version))
+	w.WriteHeader(200)
+	_, _ = w.Write(export.Body)
+}
+
 func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session) {
-	if a.Product != "docs" || !requireScope(w, a, "docs.edit") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.edit") {
 		return
 	}
 	var req SaveDocumentRequest
@@ -159,14 +261,14 @@ func (s *Server) saveDocument(w http.ResponseWriter, r *http.Request, a Session)
 	writeResult(w, obj, err)
 }
 func (s *Server) versions(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.read", "docs.read", false); !ok {
 		return
 	}
 	v, err := s.service.Versions(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", false); !ok {
 		return
 	}
 	n, err := strconv.Atoi(r.PathValue("version"))
@@ -178,7 +280,7 @@ func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Sessio
 	writeResult(w, obj, e)
 }
 func (s *Server) star(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", false); !ok {
 		return
 	}
 	var req struct {
@@ -191,14 +293,14 @@ func (s *Server) star(w http.ResponseWriter, r *http.Request, a Session) {
 	writeResult(w, obj, err)
 }
 func (s *Server) trash(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
 		return
 	}
 	obj, err := s.service.SetTrash(a.Account, r.PathValue("id"), true)
 	writeResult(w, obj, err)
 }
 func (s *Server) restore(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.write") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "files.write", "docs.edit", true); !ok {
 		return
 	}
 	obj, err := s.service.SetTrash(a.Account, r.PathValue("id"), false)
@@ -206,14 +308,14 @@ func (s *Server) restore(w http.ResponseWriter, r *http.Request, a Session) {
 }
 
 func (s *Server) grants(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	g, err := s.service.Grants(a.Account, r.PathValue("id"))
 	writeResult(w, g, err)
 }
 func (s *Server) grant(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	var req struct {
@@ -232,14 +334,14 @@ func (s *Server) grant(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, g)
 }
 func (s *Server) revokeGrant(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	g, err := s.service.RevokeGrant(a.Account, r.PathValue("id"), r.PathValue("grant"))
 	writeResult(w, g, err)
 }
 func (s *Server) createLink(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	var req struct {
@@ -257,14 +359,14 @@ func (s *Server) createLink(w http.ResponseWriter, r *http.Request, a Session) {
 	writeJSON(w, 201, map[string]any{"link": l, "token": token})
 }
 func (s *Server) links(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	v, err := s.service.Links(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) revokeLink(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	l, err := s.service.RevokeLink(a.Account, r.PathValue("id"), r.PathValue("link"))
@@ -286,7 +388,16 @@ func (s *Server) resolveLinkContent(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(b)
 }
 func (s *Server) requestAccess(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "files.read") {
+	kind, err := s.service.ObjectKind(r.PathValue("id"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	if kind == KindDoc {
+		if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
+			return
+		}
+	} else if !requireScope(w, a, "files.read") {
 		return
 	}
 	var req struct {
@@ -304,14 +415,19 @@ func (s *Server) requestAccess(w http.ResponseWriter, r *http.Request, a Session
 	writeJSON(w, 201, v)
 }
 func (s *Server) accessRequests(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	if _, ok := s.authorizeObject(w, a, r.PathValue("id"), "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	v, err := s.service.AccessRequests(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) decideAccess(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "permissions.manage") {
+	objectID, err := s.service.AccessRequestObjectID(r.PathValue("request"))
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	if _, ok := s.authorizeObject(w, a, objectID, "permissions.manage", "permissions.manage", true); !ok {
 		return
 	}
 	var req struct {
@@ -325,33 +441,49 @@ func (s *Server) decideAccess(w http.ResponseWriter, r *http.Request, a Session)
 }
 
 func (s *Server) comments(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.read") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
 		return
 	}
 	v, err := s.service.Comments(a.Account, r.PathValue("id"))
 	writeResult(w, v, err)
 }
 func (s *Server) addComment(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.comment") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.comment") {
 		return
 	}
 	var req struct {
-		Version  int      `json:"version"`
-		Body     string   `json:"body"`
-		Mentions []string `json:"mentions"`
+		Version  int            `json:"version"`
+		Body     string         `json:"body"`
+		Mentions []string       `json:"mentions"`
+		ParentID string         `json:"parentId"`
+		Anchor   *CommentAnchor `json:"anchor"`
 	}
 	if !decode(w, r, &req, 32<<10) {
 		return
 	}
-	v, err := s.service.AddComment(a.Account, r.PathValue("id"), req.Version, req.Body, req.Mentions)
+	v, err := s.service.AddCommentThread(a.Account, r.PathValue("id"), req.Version, req.Body, req.Mentions, req.ParentID, req.Anchor)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	writeJSON(w, 201, v)
 }
+func (s *Server) resolveComment(w http.ResponseWriter, r *http.Request, a Session) {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.comment") {
+		return
+	}
+	var req struct {
+		Resolved bool `json:"resolved"`
+	}
+	if !decode(w, r, &req, 1024) {
+		return
+	}
+	comment, err := s.service.ResolveComment(a.Account, r.PathValue("id"), r.PathValue("thread"), req.Resolved)
+	writeResult(w, comment, err)
+}
+
 func (s *Server) presence(w http.ResponseWriter, r *http.Request, a Session) {
-	if !requireScope(w, a, "docs.read") {
+	if !requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read") {
 		return
 	}
 	var req struct {
@@ -371,7 +503,7 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireScope(w, a, "audit.read") {
 		return
 	}
-	v, err := s.service.Audit(a.Account)
+	v, err := s.service.AuditForProduct(a.Account, a.Product)
 	writeResult(w, v, err)
 }
 func (s *Server) aiStatus(w http.ResponseWriter, r *http.Request, a Session) {
@@ -392,6 +524,26 @@ func (s *Server) aiJob(w http.ResponseWriter, r *http.Request, a Session) {
 		Consent     bool     `json:"consent"`
 	}
 	if !decode(w, r, &req, 64<<10) {
+		return
+	}
+	hasDocs, hasOther := false, false
+	for _, objectID := range req.ObjectIDs {
+		object, err := s.service.Get(a.Account, objectID)
+		if err != nil {
+			writeServiceError(w, err)
+			return
+		}
+		if object.Kind == KindDoc {
+			hasDocs = true
+		} else {
+			hasOther = true
+		}
+	}
+	if hasDocs && (!requireProduct(w, a, "docs") || !requireScope(w, a, "docs.read")) {
+		return
+	}
+	if a.Product == "docs" && hasOther {
+		writeError(w, 403, "Docs AI context is limited to selected document versions")
 		return
 	}
 	v, err := s.service.CreateAIJob(r.Context(), a.Account, req.Mode, req.Instruction, req.ObjectIDs, req.Versions, req.Consent)

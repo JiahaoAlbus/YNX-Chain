@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -280,6 +282,277 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 		return Object{}, err
 	}
 	return obj, nil
+}
+
+func (s *Service) isDescendantLocked(candidateID, ancestorID string) bool {
+	for candidateID != "" {
+		if candidateID == ancestorID {
+			return true
+		}
+		candidate, ok := s.state.Objects[candidateID]
+		if !ok {
+			return false
+		}
+		candidateID = candidate.ParentID
+	}
+	return false
+}
+
+func (s *Service) ContainsDocument(actor, id string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	root, err := s.require(actor, id, 1)
+	if err != nil {
+		return false, err
+	}
+	queue := []Object{root}
+	for cursor := 0; cursor < len(queue); cursor++ {
+		current := queue[cursor]
+		if current.Kind == KindDoc && current.TrashedAt == nil {
+			return true, nil
+		}
+		if current.Kind != KindFolder {
+			continue
+		}
+		for _, candidate := range s.state.Objects {
+			if candidate.ParentID == current.ID && candidate.TrashedAt == nil && rank(s.role(actor, candidate)) > 0 {
+				queue = append(queue, candidate)
+			}
+		}
+	}
+	return false, nil
+}
+
+func (s *Service) UpdateObject(actor, id string, req UpdateObjectRequest) (Object, error) {
+	if req.Name == nil && req.ParentID == nil {
+		return Object{}, ErrInvalid
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 2)
+	if err != nil {
+		return Object{}, err
+	}
+	if obj.TrashedAt != nil {
+		return Object{}, ErrInvalid
+	}
+	changed := false
+	details := map[string]any{}
+	if req.Name != nil {
+		if err := validateName(*req.Name); err != nil {
+			return Object{}, err
+		}
+		name := strings.TrimSpace(*req.Name)
+		if name != obj.Name {
+			obj.Name = name
+			changed = true
+			details["name"] = name
+		}
+	}
+	if req.ParentID != nil {
+		if obj.Owner != actor {
+			return Object{}, ErrDenied
+		}
+		parentID := strings.TrimSpace(*req.ParentID)
+		if parentID == id || (obj.Kind == KindFolder && s.isDescendantLocked(parentID, id)) {
+			return Object{}, ErrInvalid
+		}
+		if parentID != "" {
+			parent, err := s.require(actor, parentID, 2)
+			if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil {
+				return Object{}, ErrDenied
+			}
+		}
+		if parentID != obj.ParentID {
+			obj.ParentID = parentID
+			changed = true
+			details["parentId"] = parentID
+		}
+	}
+	if !changed {
+		return Object{}, ErrInvalid
+	}
+	obj.UpdatedAt = s.cfg.Now()
+	s.state.Objects[id] = obj
+	if err := s.persist("object.update", actor, id, details); err != nil {
+		return Object{}, err
+	}
+	return obj, nil
+}
+
+func (s *Service) DuplicateObject(actor, id string, req DuplicateObjectRequest) (Object, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	source, err := s.require(actor, id, 1)
+	if err != nil {
+		return Object{}, err
+	}
+	if source.TrashedAt != nil {
+		return Object{}, ErrInvalid
+	}
+	if req.ParentID != "" {
+		parent, err := s.require(actor, req.ParentID, 2)
+		if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil {
+			return Object{}, ErrDenied
+		}
+	}
+	if source.Kind == KindFolder && s.isDescendantLocked(req.ParentID, source.ID) {
+		return Object{}, ErrInvalid
+	}
+	rootName := strings.TrimSpace(req.Name)
+	if rootName == "" {
+		rootName = source.Name + " copy"
+	}
+	if err := validateName(rootName); err != nil {
+		return Object{}, err
+	}
+
+	ordered := []Object{source}
+	for cursor := 0; cursor < len(ordered); cursor++ {
+		parent := ordered[cursor]
+		children := []Object{}
+		for _, candidate := range s.state.Objects {
+			if candidate.ParentID == parent.ID && candidate.TrashedAt == nil && rank(s.role(actor, candidate)) > 0 {
+				children = append(children, candidate)
+			}
+		}
+		sort.Slice(children, func(i, j int) bool { return children[i].ID < children[j].ID })
+		ordered = append(ordered, children...)
+	}
+
+	ownedHashes := map[string]bool{}
+	for _, object := range s.state.Objects {
+		if object.Owner != actor {
+			continue
+		}
+		for _, version := range s.state.Versions[object.ID] {
+			ownedHashes[version.Hash] = true
+		}
+	}
+	additional := int64(0)
+	copyHashes := map[string]bool{}
+	currentVersions := map[string]Version{}
+	for _, object := range ordered {
+		if object.Kind == KindFolder {
+			continue
+		}
+		found := false
+		for _, version := range s.state.Versions[object.ID] {
+			if version.Number != object.Version {
+				continue
+			}
+			currentVersions[object.ID] = version
+			found = true
+			if !ownedHashes[version.Hash] && !copyHashes[version.Hash] {
+				additional += version.Size
+				copyHashes[version.Hash] = true
+			}
+			break
+		}
+		if !found {
+			return Object{}, ErrInvalid
+		}
+	}
+	if s.usedLocked(actor)+additional > s.cfg.QuotaBytes {
+		return Object{}, errors.New("storage quota exceeded")
+	}
+	before, err := cloneState(s.state)
+	if err != nil {
+		return Object{}, err
+	}
+
+	now := s.cfg.Now()
+	mapped := map[string]string{}
+	var root Object
+	for _, original := range ordered {
+		clone := original
+		clone.ID = newID("obj")
+		clone.Owner = actor
+		clone.Starred = false
+		clone.TrashedAt = nil
+		clone.CreatedAt = now
+		clone.UpdatedAt = now
+		if original.ID == source.ID {
+			clone.ParentID = req.ParentID
+			clone.Name = rootName
+		} else {
+			clone.ParentID = mapped[original.ParentID]
+		}
+		mapped[original.ID] = clone.ID
+		s.state.Objects[clone.ID] = clone
+		if clone.Kind != KindFolder {
+			version := currentVersions[original.ID]
+			s.state.Versions[clone.ID] = []Version{{ObjectID: clone.ID, Number: 1, Hash: version.Hash, Size: version.Size, MIME: version.MIME, BlobPath: version.BlobPath, Author: actor, CreatedAt: now}}
+			clone.Version = 1
+			s.state.Objects[clone.ID] = clone
+		}
+		if original.ID == source.ID {
+			root = clone
+		}
+	}
+	if err := s.persist("object.duplicate", actor, root.ID, map[string]any{"sourceObjectId": source.ID, "copiedObjects": len(ordered), "contentBytesAdded": additional}); err != nil {
+		s.state = before
+		return Object{}, err
+	}
+	return root, nil
+}
+
+func (s *Service) ExportDocument(actor, id, format string, versionNumber int) (DocumentExport, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	obj, err := s.require(actor, id, 1)
+	if err != nil {
+		return DocumentExport{}, err
+	}
+	if obj.Kind != KindDoc || obj.TrashedAt != nil || obj.Encryption.ClientSide {
+		return DocumentExport{}, ErrInvalid
+	}
+	if versionNumber == 0 {
+		versionNumber = obj.Version
+	}
+	var selected *Version
+	for i := range s.state.Versions[id] {
+		if s.state.Versions[id][i].Number == versionNumber {
+			v := s.state.Versions[id][i]
+			selected = &v
+			break
+		}
+	}
+	if selected == nil {
+		return DocumentExport{}, ErrNotFound
+	}
+	source, err := s.cfg.ObjectStore.Get(context.Background(), selected.BlobPath, selected.Hash)
+	if err != nil {
+		return DocumentExport{}, err
+	}
+	format = strings.ToLower(strings.TrimSpace(format))
+	var body []byte
+	var mime, extension string
+	switch format {
+	case "text", "txt":
+		format, mime, extension, body = "text", "text/plain; charset=utf-8", "txt", append([]byte(nil), source...)
+	case "markdown", "md":
+		format, mime, extension, body = "markdown", "text/markdown; charset=utf-8", "md", append([]byte(nil), source...)
+	case "html":
+		mime, extension = "text/html; charset=utf-8", "html"
+		body = []byte(fmt.Sprintf("<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\"><title>%s</title></head><body><article data-ynx-document=\"%s\" data-version=\"%d\"><h1>%s</h1><pre>%s</pre></article></body></html>\n", html.EscapeString(obj.Name), obj.ID, versionNumber, html.EscapeString(obj.Name), html.EscapeString(string(source))))
+	case "json":
+		mime, extension = "application/json; charset=utf-8", "json"
+		body, err = json.MarshalIndent(map[string]any{"schemaVersion": 1, "objectId": obj.ID, "name": obj.Name, "version": versionNumber, "sourceHash": selected.Hash, "content": string(source)}, "", "  ")
+		if err == nil {
+			body = append(body, '\n')
+		}
+	default:
+		return DocumentExport{}, ErrInvalid
+	}
+	if err != nil {
+		return DocumentExport{}, err
+	}
+	export := DocumentExport{ObjectID: obj.ID, Version: versionNumber, Format: format, MIME: mime, Filename: obj.Name + "." + extension, SourceHash: selected.Hash, SHA256: hashBytes(body), Body: body}
+	if err := s.persist("document.export", actor, id, map[string]any{"version": versionNumber, "format": format, "sourceHash": selected.Hash, "exportHash": export.SHA256, "bytes": len(body)}); err != nil {
+		return DocumentExport{}, err
+	}
+	return export, nil
 }
 
 func (s *Service) List(actor string, opt ListOptions) ([]Object, error) {
@@ -567,6 +840,26 @@ func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
 	return Object{}, nil, ErrDenied
 }
 
+func (s *Service) ObjectKind(id string) (ObjectKind, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	object, ok := s.state.Objects[id]
+	if !ok {
+		return "", ErrNotFound
+	}
+	return object.Kind, nil
+}
+
+func (s *Service) AccessRequestObjectID(requestID string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	request, ok := s.state.AccessRequests[requestID]
+	if !ok {
+		return "", ErrNotFound
+	}
+	return request.ObjectID, nil
+}
+
 func (s *Service) RequestAccess(actor, id, role, message string) (AccessRequest, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -628,27 +921,132 @@ func (s *Service) AccessRequests(actor, id string) ([]AccessRequest, error) {
 }
 
 func (s *Service) AddComment(actor, id string, version int, body string, mentions []string) (Comment, error) {
+	return s.AddCommentThread(actor, id, version, body, mentions, "", nil)
+}
+
+func (s *Service) AddCommentThread(actor, id string, version int, body string, mentions []string, parentID string, anchor *CommentAnchor) (Comment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	obj, err := s.require(actor, id, 1)
 	if err != nil {
 		return Comment{}, err
 	}
-	if obj.Kind != KindDoc || version < 1 || version > obj.Version || strings.TrimSpace(body) == "" || len(body) > 2000 || len(mentions) > 20 {
+	if obj.Kind != KindDoc || obj.TrashedAt != nil || version < 1 || version > obj.Version || strings.TrimSpace(body) == "" || len(body) > 2000 || len(mentions) > 20 {
 		return Comment{}, ErrInvalid
 	}
-	for _, m := range mentions {
-		if !validAccount(m) {
+	for _, mention := range mentions {
+		if !validAccount(mention) {
 			return Comment{}, ErrInvalid
 		}
 	}
-	c := Comment{ID: newID("comment"), ObjectID: id, Version: version, Author: actor, Body: strings.TrimSpace(body), Mentions: append([]string(nil), mentions...), CreatedAt: s.cfg.Now()}
-	s.state.Comments[id] = append(s.state.Comments[id], c)
-	if err := s.persist("comment.create", actor, id, map[string]any{"version": version, "mentions": len(mentions)}); err != nil {
+	threadID := ""
+	if parentID != "" {
+		if anchor != nil {
+			return Comment{}, ErrInvalid
+		}
+		for _, existing := range s.state.Comments[id] {
+			if existing.ID == parentID {
+				threadID = existing.ThreadID
+				if threadID == "" {
+					threadID = existing.ID
+				}
+				break
+			}
+		}
+		if threadID == "" {
+			return Comment{}, ErrNotFound
+		}
+		for _, existing := range s.state.Comments[id] {
+			if existing.ID == threadID && existing.ResolvedAt != nil {
+				return Comment{}, ErrInvalid
+			}
+		}
+	}
+	var normalizedAnchor *CommentAnchor
+	if anchor != nil {
+		if anchor.Start < 0 || anchor.End <= anchor.Start || len(anchor.Quote) > 2000 {
+			return Comment{}, ErrInvalid
+		}
+		var selected *Version
+		for i := range s.state.Versions[id] {
+			if s.state.Versions[id][i].Number == version {
+				v := s.state.Versions[id][i]
+				selected = &v
+				break
+			}
+		}
+		if selected == nil {
+			return Comment{}, ErrNotFound
+		}
+		content, err := s.cfg.ObjectStore.Get(context.Background(), selected.BlobPath, selected.Hash)
+		if err != nil {
+			return Comment{}, err
+		}
+		runes := []rune(string(content))
+		if anchor.End > len(runes) {
+			return Comment{}, ErrInvalid
+		}
+		quote := string(runes[anchor.Start:anchor.End])
+		if anchor.Quote != "" && anchor.Quote != quote {
+			return Comment{}, ErrInvalid
+		}
+		normalizedAnchor = &CommentAnchor{Start: anchor.Start, End: anchor.End, Quote: quote}
+	}
+	comment := Comment{ID: newID("comment"), ObjectID: id, Version: version, ThreadID: threadID, ParentID: parentID, Author: actor, Body: strings.TrimSpace(body), Mentions: append([]string(nil), mentions...), Anchor: normalizedAnchor, CreatedAt: s.cfg.Now()}
+	if comment.ThreadID == "" {
+		comment.ThreadID = comment.ID
+	}
+	s.state.Comments[id] = append(s.state.Comments[id], comment)
+	if err := s.persist("comment.create", actor, id, map[string]any{"commentId": comment.ID, "threadId": comment.ThreadID, "parentId": comment.ParentID, "version": version, "mentions": len(mentions), "anchored": comment.Anchor != nil}); err != nil {
 		return Comment{}, err
 	}
-	return c, nil
+	return comment, nil
 }
+
+func (s *Service) ResolveComment(actor, id, threadID string, resolved bool) (Comment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, err := s.require(actor, id, 2); err != nil {
+		return Comment{}, err
+	}
+	comments := s.state.Comments[id]
+	rootIndex := -1
+	for i := range comments {
+		if comments[i].ID == threadID && (comments[i].ThreadID == threadID || comments[i].ThreadID == "") {
+			rootIndex = i
+			break
+		}
+	}
+	if rootIndex < 0 {
+		return Comment{}, ErrNotFound
+	}
+	root := comments[rootIndex]
+	now := s.cfg.Now()
+	if resolved {
+		if root.ResolvedAt != nil {
+			return root, nil
+		}
+		root.ResolvedAt = &now
+		root.ResolvedBy = actor
+	} else {
+		if root.ResolvedAt == nil {
+			return root, nil
+		}
+		root.ResolvedAt = nil
+		root.ResolvedBy = ""
+	}
+	comments[rootIndex] = root
+	s.state.Comments[id] = comments
+	action := "comment.reopen"
+	if resolved {
+		action = "comment.resolve"
+	}
+	if err := s.persist(action, actor, id, map[string]any{"threadId": threadID}); err != nil {
+		return Comment{}, err
+	}
+	return root, nil
+}
+
 func (s *Service) Comments(actor, id string) ([]Comment, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -684,20 +1082,85 @@ func (s *Service) Presence(actor, id, label string) ([]Presence, error) {
 }
 
 func (s *Service) Audit(actor string) ([]AuditEvent, error) {
+	return s.AuditForProduct(actor, "")
+}
+
+func (s *Service) AuditForProduct(actor, product string) ([]AuditEvent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := []AuditEvent{}
-	for i := len(s.state.Audit) - 1; i >= 0 && len(out) < 200; i-- {
-		e := s.state.Audit[i]
-		if e.Actor == actor {
-			out = append(out, e)
-			continue
+	touchesDocument := func(event AuditEvent) bool {
+		ids := []string{}
+		if event.ObjectID != "" {
+			ids = append(ids, event.ObjectID)
 		}
-		if e.ObjectID != "" {
-			if o, ok := s.state.Objects[e.ObjectID]; ok && rank(s.role(actor, o)) >= 3 {
-				out = append(out, e)
+		if contexts, ok := event.Details["contexts"].([]string); ok {
+			for _, contextID := range contexts {
+				ids = append(ids, strings.SplitN(contextID, "@", 2)[0])
 			}
 		}
+		if contexts, ok := event.Details["contexts"].([]any); ok {
+			for _, contextID := range contexts {
+				ids = append(ids, strings.SplitN(fmt.Sprint(contextID), "@", 2)[0])
+			}
+		}
+		if jobID, ok := event.Details["jobId"].(string); ok {
+			if job, exists := s.state.AIJobs[jobID]; exists {
+				ids = append(ids, job.ObjectIDs...)
+			}
+		}
+		for _, id := range ids {
+			root, ok := s.state.Objects[id]
+			if !ok {
+				continue
+			}
+			queue := []Object{root}
+			for cursor := 0; cursor < len(queue); cursor++ {
+				current := queue[cursor]
+				if current.Kind == KindDoc && current.TrashedAt == nil {
+					return true
+				}
+				if current.Kind != KindFolder {
+					continue
+				}
+				for _, candidate := range s.state.Objects {
+					if candidate.ParentID == current.ID && candidate.TrashedAt == nil {
+						queue = append(queue, candidate)
+					}
+				}
+			}
+		}
+		return false
+	}
+
+	out := []AuditEvent{}
+	for i := len(s.state.Audit) - 1; i >= 0 && len(out) < 200; i-- {
+		event := s.state.Audit[i]
+		visible := event.Actor == actor
+		if !visible && event.ObjectID != "" {
+			if object, ok := s.state.Objects[event.ObjectID]; ok && rank(s.role(actor, object)) >= 3 {
+				visible = true
+			}
+		}
+		if !visible {
+			continue
+		}
+		if product != "" {
+			if eventProduct, ok := event.Details["product"].(string); ok && eventProduct != "" {
+				if eventProduct != product {
+					continue
+				}
+				out = append(out, event)
+				continue
+			}
+			documentEvent := touchesDocument(event)
+			if product == "docs" && !documentEvent {
+				continue
+			}
+			if product != "docs" && documentEvent {
+				continue
+			}
+		}
+		out = append(out, event)
 	}
 	return out, nil
 }

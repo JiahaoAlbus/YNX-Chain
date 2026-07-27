@@ -12,6 +12,7 @@ import (
 func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	body := []byte("bounded")
 	hash := hashBytes(body)
+	var trustPayload map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer token" && r.Header.Get("X-YNX-AI-Key") != "token" {
 			w.WriteHeader(401)
@@ -26,6 +27,10 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 		case r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/objects/"):
 			w.Write(body)
 		case r.URL.Path == "/v1/cloud/evidence":
+			if err := json.NewDecoder(r.Body).Decode(&trustPayload); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
 			w.WriteHeader(201)
 		case r.URL.Path == "/ai/stream":
 			w.Header().Set("Content-Type", "text/event-stream")
@@ -54,8 +59,14 @@ func TestRemoteContractsFailClosedAndBindEvidence(t *testing.T) {
 	if err != nil || answer != "grounded" {
 		t.Fatalf("AI %q %v", answer, err)
 	}
-	if err := (RemoteTrustSink{BaseURL: server.URL, Token: "token"}).Record(ctx, TrustEvent{Actor: owner}); err != nil {
+	evidence := TrustEvent{Actor: owner, Action: "document.export", ObjectID: "obj_docs", Hash: hash, Details: map[string]any{"version": 2}}
+	if err := (RemoteTrustSink{BaseURL: server.URL, Token: "token"}).Record(ctx, evidence); err != nil {
 		t.Fatal(err)
+	}
+	for key, want := range map[string]string{"actor": owner, "action": evidence.Action, "objectId": evidence.ObjectID, "hash": hash} {
+		if trustPayload[key] != want {
+			t.Fatalf("trust payload %s = %#v, want %q; payload=%#v", key, trustPayload[key], want, trustPayload)
+		}
 	}
 	if err := validRemote("http://198.51.100.1", "token"); err == nil {
 		t.Fatal("non-loopback HTTP must fail closed")

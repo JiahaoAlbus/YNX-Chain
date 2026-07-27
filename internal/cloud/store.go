@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
+const currentSchemaVersion = 2
+
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: currentSchemaVersion, Objects: map[string]Object{}, Versions: map[string][]Version{}, Grants: map[string]Grant{}, Links: map[string]ShareLink{}, AccessRequests: map[string]AccessRequest{}, Comments: map[string][]Comment{}, Presence: map[string]Presence{}, AIJobs: map[string]AIJob{}, Sessions: map[string]Session{}, Nonces: map[string]time.Time{}, Audit: []AuditEvent{}}
 }
 
 func loadState(path string) (persistentState, error) {
@@ -27,15 +29,49 @@ func loadState(path string) (persistentState, error) {
 	if err := json.Unmarshal(b, &state); err != nil {
 		return persistentState{}, fmt.Errorf("decode cloud state: %w", err)
 	}
-	if state.SchemaVersion != 1 || state.IntegrityHash == "" {
+	if state.SchemaVersion < 1 || state.SchemaVersion > currentSchemaVersion || state.IntegrityHash == "" {
 		return persistentState{}, errors.New("cloud state schema or integrity hash is invalid")
 	}
 	want, err := stateIntegrity(state)
 	if err != nil || want != state.IntegrityHash {
 		return persistentState{}, errors.New("cloud state integrity verification failed")
 	}
+	migrated := state.SchemaVersion != currentSchemaVersion
+	if state.SchemaVersion == 1 {
+		migrateV1ToV2(&state)
+	}
 	normalize(&state)
+	if migrated {
+		if err := saveState(path, &state); err != nil {
+			return persistentState{}, fmt.Errorf("persist cloud state migration: %w", err)
+		}
+	}
 	return state, nil
+}
+
+func migrateV1ToV2(s *persistentState) {
+	for objectID, comments := range s.Comments {
+		for i := range comments {
+			if comments[i].ThreadID == "" {
+				comments[i].ThreadID = comments[i].ID
+			}
+		}
+		s.Comments[objectID] = comments
+	}
+	s.SchemaVersion = currentSchemaVersion
+}
+
+func cloneState(state persistentState) (persistentState, error) {
+	encoded, err := json.Marshal(state)
+	if err != nil {
+		return persistentState{}, fmt.Errorf("encode cloud state snapshot: %w", err)
+	}
+	var clone persistentState
+	if err := json.Unmarshal(encoded, &clone); err != nil {
+		return persistentState{}, fmt.Errorf("decode cloud state snapshot: %w", err)
+	}
+	normalize(&clone)
+	return clone, nil
 }
 
 func normalize(s *persistentState) {

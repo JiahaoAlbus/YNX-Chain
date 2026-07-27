@@ -88,14 +88,24 @@ type AccessRequest struct {
 }
 
 type Comment struct {
-	ID         string     `json:"id"`
-	ObjectID   string     `json:"objectId"`
-	Version    int        `json:"version"`
-	Author     string     `json:"author"`
-	Body       string     `json:"body"`
-	Mentions   []string   `json:"mentions"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	ResolvedAt *time.Time `json:"resolvedAt,omitempty"`
+	ID         string         `json:"id"`
+	ObjectID   string         `json:"objectId"`
+	Version    int            `json:"version"`
+	ThreadID   string         `json:"threadId"`
+	ParentID   string         `json:"parentId,omitempty"`
+	Author     string         `json:"author"`
+	Body       string         `json:"body"`
+	Mentions   []string       `json:"mentions"`
+	Anchor     *CommentAnchor `json:"anchor,omitempty"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	ResolvedBy string         `json:"resolvedBy,omitempty"`
+	ResolvedAt *time.Time     `json:"resolvedAt,omitempty"`
+}
+
+type CommentAnchor struct {
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	Quote string `json:"quote"`
 }
 
 type Presence struct {
@@ -175,6 +185,27 @@ type CreateObjectRequest struct {
 type SaveDocumentRequest struct {
 	BaseVersion int    `json:"baseVersion"`
 	Content     []byte `json:"content"`
+}
+
+type UpdateObjectRequest struct {
+	Name     *string `json:"name,omitempty"`
+	ParentID *string `json:"parentId,omitempty"`
+}
+
+type DuplicateObjectRequest struct {
+	ParentID string `json:"parentId"`
+	Name     string `json:"name,omitempty"`
+}
+
+type DocumentExport struct {
+	ObjectID   string `json:"objectId"`
+	Version    int    `json:"version"`
+	Format     string `json:"format"`
+	MIME       string `json:"mime"`
+	Filename   string `json:"filename"`
+	SourceHash string `json:"sourceHash"`
+	SHA256     string `json:"sha256"`
+	Body       []byte `json:"-"`
 }
 
 type ConflictError struct{ Current Object }
