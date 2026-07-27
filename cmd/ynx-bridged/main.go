@@ -30,13 +30,34 @@ var (
 )
 
 func main() {
+	thresholdDefault, err := envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rateMaxDefault, err := envIntOrDefault("YNX_BRIDGE_RATE_LIMIT_MAX", 5000)
+	if err != nil {
+		log.Fatal(err)
+	}
+	rateWindowDefault, err := envDurationOrDefault("YNX_BRIDGE_RATE_LIMIT_WINDOW", time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+	retentionDefault, err := envDurationOrDefault("YNX_BRIDGE_RETENTION_PERIOD", 7*365*24*time.Hour)
+	if err != nil {
+		log.Fatal(err)
+	}
+	quoteTTLDefault, err := envDurationOrDefault("YNX_BRIDGE_QUOTE_TTL", 5*time.Minute)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	httpAddr := flag.String("http", envOrDefault("YNX_BRIDGE_HTTP_ADDR", "127.0.0.1:6433"), "Bridge coordinator HTTP listen address")
 	statePath := flag.String("state", envOrDefault("YNX_BRIDGE_STATE_PATH", "tmp/bridge/state.json"), "Bridge persistent state path")
-	threshold := flag.Int("threshold", envIntOrDefault("YNX_BRIDGE_RELAYER_THRESHOLD", 2), "required relayer attestations")
-	rateWindow := flag.Duration("rate-window", envDurationOrDefault("YNX_BRIDGE_RATE_LIMIT_WINDOW", time.Minute), "rate limit window")
-	rateMax := flag.Int("rate-max", envIntOrDefault("YNX_BRIDGE_RATE_LIMIT_MAX", 5000), "maximum requests per API key/IP in window")
-	retention := flag.Duration("retention", envDurationOrDefault("YNX_BRIDGE_RETENTION_PERIOD", 7*365*24*time.Hour), "identity retention after last transfer update")
-	quoteTTL := flag.Duration("quote-ttl", envDurationOrDefault("YNX_BRIDGE_QUOTE_TTL", 5*time.Minute), "bridge quote validity period")
+	threshold := flag.Int("threshold", thresholdDefault, "required relayer attestations")
+	rateWindow := flag.Duration("rate-window", rateWindowDefault, "rate limit window")
+	rateMax := flag.Int("rate-max", rateMaxDefault, "maximum requests per API key/IP in window")
+	retention := flag.Duration("retention", retentionDefault, "identity retention after last transfer update")
+	quoteTTL := flag.Duration("quote-ttl", quoteTTLDefault, "bridge quote validity period")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
 
@@ -143,26 +164,26 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
-func envIntOrDefault(key string, fallback int) int {
+func envIntOrDefault(key string, fallback int) (int, error) {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
-		return fallback
+		return fallback, nil
 	}
 	parsed, err := strconv.Atoi(value)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be a valid integer: %w", key, err)
 	}
-	return parsed
+	return parsed, nil
 }
 
-func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
+func envDurationOrDefault(key string, fallback time.Duration) (time.Duration, error) {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
-		return fallback
+		return fallback, nil
 	}
 	parsed, err := time.ParseDuration(value)
 	if err != nil {
-		return fallback
+		return 0, fmt.Errorf("%s must be a valid duration: %w", key, err)
 	}
-	return parsed
+	return parsed, nil
 }
