@@ -83,6 +83,11 @@ jobs:
           make no-placeholder-check
           make secret-scan
 
+      - name: Generate pinned contract test artifacts
+        run: |
+          npm ci
+          make contract-tooling-check
+
       - name: Run Bridge race and repository tests
         run: |
           go test -count=1 -race ./internal/bridgegateway ./cmd/ynx-bridged
