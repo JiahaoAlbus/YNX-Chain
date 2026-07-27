@@ -292,6 +292,8 @@ func marketErrorCode(action string, err error) string {
 	switch {
 	case strings.Contains(message, "role required"):
 		return "RESOURCE_ROLE_REQUIRED"
+	case strings.Contains(message, "self-dealing"):
+		return "RESOURCE_SELF_DEALING_REJECTED"
 	case action == "confirm_settlement" && strings.Contains(message, "already consumed"):
 		return "RESOURCE_SETTLEMENT_REPLAY"
 	case action == "confirm_settlement" && strings.Contains(message, "reconcile"):

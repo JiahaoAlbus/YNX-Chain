@@ -94,6 +94,28 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "RM-MATCH-SELF-DEAL-001",
+      "category": "matching",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "The authenticated buyer wallet is the wallet that owns the selected provider offer.",
+      "action": "Create a fixed-price quote or submit an auction bid for the provider's own capacity.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_SELF_DEALING_REJECTED",
+      "expectedState": "no quote, bid, order, reservation, usage or settlement mutation",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "RM-CAPACITY-OFFER-SCOPE-001",
+      "category": "capacity",
+      "owners": ["16-resource-market", "29-integration"],
+      "precondition": "One provider publishes two offers for the same resource and the first offer is fully reserved while the second retains capacity.",
+      "action": "Request or reserve additional units against the exhausted first offer.",
+      "expectedHttpStatus": 422,
+      "expectedCode": "RESOURCE_CAPACITY_UNAVAILABLE",
+      "expectedState": "the exhausted offer remains unavailable; sibling offer capacity is not borrowed; existing reservations remain unchanged",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "RM-FAILURE-NO-FAKE-REFUND-001",
       "category": "failure-dispute",
       "owners": ["15-trust-center", "16-resource-market", "26-data-fabric"],

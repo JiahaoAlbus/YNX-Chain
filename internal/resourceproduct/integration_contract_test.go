@@ -52,6 +52,7 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 	for _, code := range []string{
 		"RESOURCE_REQUEST_REJECTED",
 		"RESOURCE_ROLE_REQUIRED",
+		"RESOURCE_SELF_DEALING_REJECTED",
 		"RESOURCE_ACTION_REJECTED",
 		"RESOURCE_CAPACITY_UNAVAILABLE",
 		"RESOURCE_STATE_TRANSITION_INVALID",
@@ -108,5 +109,13 @@ func TestResourceIntegrationContractAndVectorsStayAligned(t *testing.T) {
 	meterLimit := errors.New("cumulative metered quantity exceeds ordered units")
 	if got := marketErrorCode("record_usage", meterLimit); got != byID["RM-METER-LIMIT-001"] {
 		t.Fatalf("runtime meter-limit code=%s vector code=%s", got, byID["RM-METER-LIMIT-001"])
+	}
+	selfDealing := errors.New("provider self-dealing quote is prohibited")
+	if got := marketErrorCode("create_quote", selfDealing); got != byID["RM-MATCH-SELF-DEAL-001"] {
+		t.Fatalf("runtime self-dealing code=%s vector code=%s", got, byID["RM-MATCH-SELF-DEAL-001"])
+	}
+	capacity := errors.New("provider-owned accepted order, evidence and available capacity required")
+	if got := marketErrorCode("reserve", capacity); got != byID["RM-CAPACITY-OFFER-SCOPE-001"] {
+		t.Fatalf("runtime capacity code=%s vector code=%s", got, byID["RM-CAPACITY-OFFER-SCOPE-001"])
 	}
 }

@@ -316,6 +316,72 @@ func TestFailClosedTransitionsAndCapacity(t *testing.T) {
 	}
 }
 
+func TestFixedQuoteRejectsProviderSelfDealing(t *testing.T) {
+	now := time.Date(2026, 7, 27, 12, 0, 0, 0, time.UTC)
+	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
+	p := provider(t, e, "self-dealing-provider", "Independent Capacity", "region", 100)
+	offer, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 1, Capacity: 10, MinUnits: 1, MaxUnits: 10, Source: evidence(now, "capacity_proof"), ExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.CreateQuote(p.Wallet, offer.ID, 1, 0); err == nil || !strings.Contains(err.Error(), "self-dealing") {
+		t.Fatalf("provider self-dealing quote was not rejected: %v", err)
+	}
+	if _, err = e.CreateQuote("independent-buyer", offer.ID, 1, 0); err != nil {
+		t.Fatalf("independent buyer quote rejected: %v", err)
+	}
+}
+
+func TestReservationsAreScopedToExactOffer(t *testing.T) {
+	now := time.Date(2026, 7, 27, 12, 30, 0, 0, time.UTC)
+	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
+	p := provider(t, e, "multi-offer-provider", "Multi Offer", "region", 100)
+	small, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "storage", Unit: "gib-hour", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 1, Capacity: 5, MinUnits: 1, MaxUnits: 5, Source: evidence(now, "small_capacity"), ExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	large, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "storage", Unit: "gib-hour", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 2, Capacity: 100, MinUnits: 1, MaxUnits: 100, Source: evidence(now, "large_capacity"), ExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	qSmall, _ := e.CreateQuote("buyer-small", small.ID, 5, 0)
+	oSmall, _ := e.AcceptIntent("buyer-small", qSmall.ID, Digest(qSmall))
+	oSmall, err = e.Reserve(p.Wallet, oSmall.ID, "small-reservation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.CreateQuote("buyer-overflow", small.ID, 1, 0); err == nil {
+		t.Fatal("exhausted offer borrowed capacity from sibling offer")
+	}
+	matches := e.Match("storage", "", 1)
+	if len(matches) != 1 || matches[0].ID != large.ID {
+		t.Fatalf("offer-scoped match leaked exhausted offer: %+v", matches)
+	}
+	qLarge, err := e.CreateQuote("buyer-large", large.ID, 1, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oLarge, _ := e.AcceptIntent("buyer-large", qLarge.ID, Digest(qLarge))
+	if _, err = e.Reserve(p.Wallet, oLarge.ID, "large-reservation"); err != nil {
+		t.Fatalf("independent sibling offer reservation failed: %v", err)
+	}
+	if _, err = e.ReportFailure(p.Wallet, oSmall.ID, "small-worker-failure"); err != nil {
+		t.Fatal(err)
+	}
+	matches = e.Match("storage", "", 5)
+	if len(matches) != 2 {
+		t.Fatalf("released offer capacity did not return: %+v", matches)
+	}
+	providers, offers, _, _, _, _, _ := e.Snapshot()
+	reservedByOffer := map[string]int64{}
+	for _, offer := range offers {
+		reservedByOffer[offer.ID] = offer.ReservedUnits
+	}
+	if reservedByOffer[small.ID] != 0 || reservedByOffer[large.ID] != 1 || len(providers) != 1 || providers[0].Reserved["storage"] != 1 {
+		t.Fatalf("reservation ledgers diverged providers=%+v offers=%+v", providers, offers)
+	}
+}
+
 func TestProviderFailureRetryRefundBondAndAppeal(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
@@ -418,6 +484,50 @@ func TestSchemaV1MigratesWithoutInventingWorkerKeys(t *testing.T) {
 	}
 }
 
+func TestSchemaV5MigratesOfferReservationLedgerAndRejectsTamper(t *testing.T) {
+	now := time.Date(2026, 7, 27, 13, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "v5.json")
+	e, _ := New(path, func() time.Time { return now })
+	p := provider(t, e, "migration-provider", "Migration Provider", "region", 100)
+	offer, _ := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 1, Capacity: 20, MinUnits: 1, MaxUnits: 20, Source: evidence(now, "capacity"), ExpiresAt: now.Add(time.Hour)})
+	quote, _ := e.CreateQuote("migration-buyer", offer.ID, 7, 0)
+	order, _ := e.AcceptIntent("migration-buyer", quote.ID, Digest(quote))
+	if _, err := e.Reserve(p.Wallet, order.ID, "migration-reservation"); err != nil {
+		t.Fatal(err)
+	}
+	legacy := e.data
+	legacy.Version = 5
+	legacyOffer := legacy.Offers[offer.ID]
+	legacyOffer.ReservedUnits = 0
+	legacy.Offers[offer.ID] = legacyOffer
+	if err := productstore.Save(path, legacy); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := New(path, func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	providers, offers, _, orders, _, _, _ := migrated.Snapshot()
+	if migrated.data.Version != SchemaVersion || len(providers) != 1 || len(offers) != 1 || len(orders) != 1 || offers[0].ReservedUnits != 7 || providers[0].Reserved["cpu_compute"] != 7 || orders[0].ReservedUnits != 7 {
+		t.Fatalf("v5 reservation migration failed providers=%+v offers=%+v orders=%+v", providers, offers, orders)
+	}
+	var persisted state
+	if _, err = productstore.Load(path, &persisted); err != nil || persisted.Version != SchemaVersion || persisted.Offers[offer.ID].ReservedUnits != 7 {
+		t.Fatalf("migrated reservation ledger was not persisted: version=%d offer=%+v err=%v", persisted.Version, persisted.Offers[offer.ID], err)
+	}
+	tamperedPath := filepath.Join(t.TempDir(), "tampered-v6.json")
+	tampered := migrated.data
+	tamperedOffer := tampered.Offers[offer.ID]
+	tamperedOffer.ReservedUnits++
+	tampered.Offers[offer.ID] = tamperedOffer
+	if err = productstore.Save(tamperedPath, tampered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = New(tamperedPath, func() time.Time { return now }); err == nil || !strings.Contains(err.Error(), "reservation ledger") {
+		t.Fatalf("semantically tampered v6 ledger did not fail closed: %v", err)
+	}
+}
+
 func TestProviderMaintenanceCapacityAndExitMigration(t *testing.T) {
 	now := time.Date(2026, 7, 22, 12, 0, 0, 0, time.UTC)
 	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
@@ -469,8 +579,15 @@ func TestReverseAndBatchAuctionDeterministicClearing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = e.SubmitAuctionBid("auction-buyer", a.ID, reverseOffer1.ID, 100, 1, evidence(clock, "self_dealing")); err == nil {
-		t.Fatal("buyer self-dealing bid accepted")
+	if _, err = e.SubmitAuctionBid("auction-buyer", a.ID, reverseOffer1.ID, 100, 1, evidence(clock, "wrong_provider_owner")); err == nil {
+		t.Fatal("buyer submitted a bid for another provider's offer")
+	}
+	selfAuction, err := e.CreateAuction(p1.Wallet, "reverse_auction", "gpu_compute", "cn-east", "YNXT-testnet", 100, 10, 500, clock.Add(5*time.Minute), evidence(clock, "self_dealing_demand"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.SubmitAuctionBid(p1.Wallet, selfAuction.ID, reverseOffer1.ID, 100, 1, evidence(clock, "self_dealing")); err == nil || !strings.Contains(err.Error(), "self-dealing") {
+		t.Fatalf("provider self-dealing bid was not rejected with stable reason: %v", err)
 	}
 	b1, err := e.SubmitAuctionBid(p1.Wallet, a.ID, reverseOffer1.ID, 100, 8, evidence(clock, "sealed_bid"))
 	if err != nil {

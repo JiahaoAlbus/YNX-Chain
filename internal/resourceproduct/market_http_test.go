@@ -46,6 +46,7 @@ func TestMarketErrorCodeContract(t *testing.T) {
 		{"confirm_settlement", errors.New("authoritative settlement evidence and pending order required"), "RESOURCE_SETTLEMENT_EVIDENCE_REQUIRED"},
 		{"confirm_settlement", errors.New("wrong order status"), "RESOURCE_SETTLEMENT_STATE_INVALID"},
 		{"verify_provider", errors.New("resource_verifier role required"), "RESOURCE_ROLE_REQUIRED"},
+		{"create_quote", errors.New("provider self-dealing quote is prohibited"), "RESOURCE_SELF_DEALING_REJECTED"},
 		{"reserve", errors.New("available capacity required"), "RESOURCE_CAPACITY_UNAVAILABLE"},
 		{"record_usage", errors.New("meter interval overlaps previously accepted usage"), "RESOURCE_METER_WINDOW_INVALID"},
 		{"record_usage", errors.New("cumulative metered quantity exceeds ordered units"), "RESOURCE_METER_LIMIT"},
@@ -187,7 +188,7 @@ func TestMarketHTTPProviderOfferQuoteAndScopedState(t *testing.T) {
 	defer versionResp.Body.Close()
 	var version map[string]any
 	_ = json.NewDecoder(versionResp.Body).Decode(&version)
-	if version["releaseClass"] != "unreleased-local-candidate" || version["marketSchemaVersion"].(float64) != 5 {
+	if version["releaseClass"] != "unreleased-local-candidate" || version["marketSchemaVersion"].(float64) != 6 {
 		t.Fatalf("version=%v", version)
 	}
 }

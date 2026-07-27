@@ -114,11 +114,13 @@
       "service completion is not asset settlement",
       "asset settlement requires authoritative transaction evidence and exact signed-meter reconciliation",
       "one transaction hash may be consumed by at most one receipt until an explicit batch-settlement contract is frozen",
-      "provider failure does not fabricate a refund or settlement"
+      "provider failure does not fabricate a refund or settlement",
+      "fixed-price and auction procurement reject provider self-dealing",
+      "capacity reservation is scoped to the exact offer referenced by the accepted quote"
     ]
   },
   "metering": {
-    "schemaVersion": 5,
+    "schemaVersion": 6,
     "signatureAlgorithm": "Ed25519",
     "requiredBindings": ["orderId", "buyer", "providerId", "resource", "unit", "start", "end", "quantity", "rate", "source"],
     "workerKeyRules": ["provider-owned", "active", "not expired", "not revoked", "payload exact", "signature verified"],
@@ -146,6 +148,7 @@
   "errorCodes": {
     "RESOURCE_REQUEST_REJECTED": "Generic fail-closed request rejection outside a more specific market action.",
     "RESOURCE_ROLE_REQUIRED": "The canonical product session lacks the exact operator role.",
+    "RESOURCE_SELF_DEALING_REJECTED": "A provider attempted to purchase or bid on its own capacity.",
     "RESOURCE_ACTION_REJECTED": "The requested action violates a product invariant or required evidence is absent.",
     "RESOURCE_CAPACITY_UNAVAILABLE": "Verified unreserved capacity is insufficient or capacity evidence is invalid.",
     "RESOURCE_STATE_TRANSITION_INVALID": "The requested transition does not match the current authoritative local lifecycle state.",
@@ -164,8 +167,8 @@
     "metrics": "GET /metrics returns in-process counters with request and trace correlation."
   },
   "migration": {
-    "currentMarketSchemaVersion": 5,
-    "supportedReadVersions": [1, 2, 3, 4, 5],
+    "currentMarketSchemaVersion": 6,
+    "supportedReadVersions": [1, 2, 3, 4, 5, 6],
     "futureVersion": "reject",
     "rollback": "restore only an integrity-verified supported schema backup",
     "oldClient": "unknown JSON fields and legacy Wallet headers are rejected; legacy auth routes return HTTP 410"
@@ -192,6 +195,8 @@
       "RM-METER-TAMPER-001",
       "RM-METER-OVERLAP-001",
       "RM-METER-LIMIT-001",
+      "RM-MATCH-SELF-DEAL-001",
+      "RM-CAPACITY-OFFER-SCOPE-001",
       "RM-FAILURE-NO-FAKE-REFUND-001"
     ]
   },

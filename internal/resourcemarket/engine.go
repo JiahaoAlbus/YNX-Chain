@@ -16,7 +16,9 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
 )
 
-const SchemaVersion = 5
+const SchemaVersion = 6
+
+const maxInt64Value int64 = 1<<63 - 1
 
 var ResourceUnits = map[string]string{
 	"storage": "gib-hour", "bandwidth_egress": "gib", "cpu_compute": "vcpu-second",
@@ -83,6 +85,7 @@ type Offer struct {
 	Status            string    `json:"status"`
 	UnitPrice         int64     `json:"unitPrice"`
 	Capacity          int64     `json:"capacity"`
+	ReservedUnits     int64     `json:"reservedUnits"`
 	MinUnits          int64     `json:"minUnits"`
 	MaxUnits          int64     `json:"maxUnits"`
 	SLAUptime         float64   `json:"slaUptime"`
@@ -312,16 +315,25 @@ func New(path string, now func() time.Time) (*Engine, error) {
 	}
 	e := &Engine{path: path, now: now, data: emptyState()}
 	var loaded state
-	if _, err := productstore.Load(path, &loaded); err != nil {
+	legacyEnvelope, err := productstore.Load(path, &loaded)
+	if err != nil {
 		return nil, fmt.Errorf("load market store: %w", err)
 	} else if loaded.Version != 0 {
 		if loaded.Version < 1 || loaded.Version > SchemaVersion {
 			return nil, fmt.Errorf("unsupported market schema version %d", loaded.Version)
 		}
-		if loaded.Version < SchemaVersion {
-			loaded.Version = SchemaVersion
-		}
+		loadedVersion := loaded.Version
 		e.data = loaded
+		e.ensureMaps()
+		migrated, err := e.reconcileReservationLedger(loadedVersion)
+		if err != nil {
+			return nil, fmt.Errorf("validate market reservation ledger: %w", err)
+		}
+		if legacyEnvelope || migrated {
+			if err := e.save(); err != nil {
+				return nil, fmt.Errorf("persist market schema migration: %w", err)
+			}
+		}
 	}
 	e.ensureMaps()
 	return e, nil
@@ -379,6 +391,135 @@ func (e *Engine) ensureMaps() {
 		e.data.ErasureRequests = map[string]ErasureRequest{}
 	}
 }
+
+func reservationHoldsCapacity(status string) bool {
+	switch status {
+	case "capacity_reserved", "service_started", "metered_usage", "service_completed", "settlement_pending":
+		return true
+	default:
+		return false
+	}
+}
+
+func equalInt64Ledger(actual, expected map[string]int64) bool {
+	for key, value := range actual {
+		if value != expected[key] {
+			return false
+		}
+	}
+	for key, value := range expected {
+		if value != actual[key] {
+			return false
+		}
+	}
+	return true
+}
+
+// reconcileReservationLedger upgrades pre-v6 snapshots by deriving exact
+// offer-scoped and provider-scoped reservation totals from active orders. Once
+// a snapshot is v6, any mismatch is treated as semantic tampering and startup
+// fails closed rather than silently repairing authoritative capacity state.
+func (e *Engine) reconcileReservationLedger(fromVersion int) (bool, error) {
+	expectedOfferReserved := make(map[string]int64, len(e.data.Offers))
+	expectedProviderCapacity := make(map[string]map[string]int64, len(e.data.Providers))
+	expectedProviderReserved := make(map[string]map[string]int64, len(e.data.Providers))
+	for providerID, provider := range e.data.Providers {
+		if provider.ID != "" && provider.ID != providerID {
+			return false, errors.New("provider ID does not match reservation ledger key")
+		}
+		for _, value := range provider.Capacity {
+			if value < 0 {
+				return false, errors.New("provider capacity ledger cannot be negative")
+			}
+		}
+		for _, value := range provider.Reserved {
+			if value < 0 {
+				return false, errors.New("provider reservation ledger cannot be negative")
+			}
+		}
+		expectedProviderCapacity[providerID] = map[string]int64{}
+		expectedProviderReserved[providerID] = map[string]int64{}
+	}
+	for offerID, offer := range e.data.Offers {
+		if offer.ID != "" && offer.ID != offerID {
+			return false, errors.New("offer ID does not match reservation ledger key")
+		}
+		if offer.Capacity <= 0 || offer.ReservedUnits < 0 {
+			return false, errors.New("offer capacity ledger must be positive and non-negative")
+		}
+		if _, ok := e.data.Providers[offer.ProviderID]; !ok {
+			return false, errors.New("offer reservation ledger references missing provider")
+		}
+		current := expectedProviderCapacity[offer.ProviderID][offer.Resource]
+		if offer.Capacity > maxInt64Value-current {
+			return false, errors.New("provider capacity ledger overflow")
+		}
+		expectedProviderCapacity[offer.ProviderID][offer.Resource] = current + offer.Capacity
+	}
+	for orderID, order := range e.data.Orders {
+		if order.ID != "" && order.ID != orderID {
+			return false, errors.New("order ID does not match reservation ledger key")
+		}
+		if !reservationHoldsCapacity(order.Status) {
+			if fromVersion >= SchemaVersion && order.ReservedUnits != 0 {
+				return false, errors.New("terminal or unreserved order retained capacity")
+			}
+			if fromVersion < SchemaVersion && order.ReservedUnits != 0 {
+				order.ReservedUnits = 0
+				e.data.Orders[orderID] = order
+			}
+			continue
+		}
+		if order.ReservedUnits <= 0 || order.ReservedUnits > order.Units {
+			return false, errors.New("active order has invalid reserved capacity")
+		}
+		quote, quoteOK := e.data.Quotes[order.QuoteID]
+		offer, offerOK := e.data.Offers[quote.OfferID]
+		if !quoteOK || !offerOK || quote.ProviderID != order.ProviderID || offer.ProviderID != order.ProviderID || quote.Resource != order.Resource || offer.Resource != order.Resource || quote.Unit != order.Unit || offer.Unit != order.Unit {
+			return false, errors.New("active order reservation lineage is incomplete or mismatched")
+		}
+		currentOffer := expectedOfferReserved[offer.ID]
+		if currentOffer > offer.Capacity-order.ReservedUnits {
+			return false, errors.New("active orders exceed exact offer capacity")
+		}
+		expectedOfferReserved[offer.ID] = currentOffer + order.ReservedUnits
+		currentProvider := expectedProviderReserved[order.ProviderID][order.Resource]
+		providerCapacity := expectedProviderCapacity[order.ProviderID][order.Resource]
+		if currentProvider > providerCapacity-order.ReservedUnits {
+			return false, errors.New("active orders exceed provider capacity")
+		}
+		expectedProviderReserved[order.ProviderID][order.Resource] = currentProvider + order.ReservedUnits
+	}
+
+	if fromVersion < SchemaVersion {
+		for offerID, offer := range e.data.Offers {
+			offer.ReservedUnits = expectedOfferReserved[offerID]
+			e.data.Offers[offerID] = offer
+		}
+		for providerID, provider := range e.data.Providers {
+			provider.Capacity = expectedProviderCapacity[providerID]
+			provider.Reserved = expectedProviderReserved[providerID]
+			e.data.Providers[providerID] = provider
+		}
+		e.data.Version = SchemaVersion
+		return true, nil
+	}
+	for offerID, offer := range e.data.Offers {
+		if offer.ReservedUnits != expectedOfferReserved[offerID] {
+			return false, errors.New("offer reservation ledger does not match active orders")
+		}
+	}
+	for providerID, provider := range e.data.Providers {
+		if !equalInt64Ledger(provider.Capacity, expectedProviderCapacity[providerID]) {
+			return false, errors.New("provider capacity ledger does not match offers")
+		}
+		if !equalInt64Ledger(provider.Reserved, expectedProviderReserved[providerID]) {
+			return false, errors.New("provider reservation ledger does not match active orders")
+		}
+	}
+	return false, nil
+}
+
 func (e *Engine) next(prefix string) string {
 	e.data.Sequence++
 	return fmt.Sprintf("%s-%08d", prefix, e.data.Sequence)
@@ -456,11 +597,15 @@ func (e *Engine) UpdateCapacity(providerWallet, offerID string, capacity, maxUni
 	defer e.mu.Unlock()
 	o, ok := e.data.Offers[offerID]
 	p := e.data.Providers[o.ProviderID]
-	reserved := p.Reserved[o.Resource]
-	if !ok || p.Wallet != providerWallet || p.Status != "verified" || capacity <= 0 || capacity < reserved || maxUnits < o.MinUnits || maxUnits > capacity || !validSource(source) {
+	if !ok || p.Wallet != providerWallet || p.Status != "verified" || capacity <= 0 || capacity < o.ReservedUnits || maxUnits < o.MinUnits || maxUnits > capacity || !validSource(source) {
 		return Offer{}, errors.New("provider-owned offer, evidenced capacity above reservations, and bounded maximum required")
 	}
-	p.Capacity[o.Resource] += capacity - o.Capacity
+	delta := capacity - o.Capacity
+	currentProviderCapacity := p.Capacity[o.Resource]
+	if (delta > 0 && currentProviderCapacity > maxInt64Value-delta) || (delta < 0 && currentProviderCapacity < -delta) {
+		return Offer{}, errors.New("provider capacity ledger cannot apply offer update")
+	}
+	p.Capacity[o.Resource] = currentProviderCapacity + delta
 	p.UpdatedAt = e.now().UTC()
 	o.Capacity, o.MaxUnits, o.Source, o.UpdatedAt = capacity, maxUnits, source, e.now().UTC()
 	e.data.Providers[p.ID], e.data.Offers[o.ID] = p, o
@@ -630,8 +775,12 @@ func (e *Engine) PublishOffer(actor string, o Offer) (Offer, error) {
 	if o.Pricing != "fixed" && o.Pricing != "reverse_auction" && o.Pricing != "batch_auction" && o.Pricing != "reservation" && o.Pricing != "long_term" {
 		return Offer{}, errors.New("unsupported pricing model")
 	}
+	if p.Capacity[o.Resource] > maxInt64Value-o.Capacity {
+		return Offer{}, errors.New("provider capacity ledger overflow")
+	}
 	o.ID = e.next("offer")
 	o.Status = "active"
+	o.ReservedUnits = 0
 	o.CreatedAt = e.now().UTC()
 	o.UpdatedAt = o.CreatedAt
 	e.data.Offers[o.ID] = o
@@ -651,7 +800,7 @@ func (e *Engine) Match(resource, region string, units int64) []Offer {
 	out := []Offer{}
 	for _, o := range e.data.Offers {
 		p := e.data.Providers[o.ProviderID]
-		if p.Status == "verified" && !p.Maintenance && o.Status == "active" && o.Resource == resource && o.ExpiresAt.After(now) && units >= o.MinUnits && units <= o.MaxUnits && o.Capacity-p.Reserved[resource] >= units && (region == "" || p.Region == region) {
+		if p.Status == "verified" && !p.Maintenance && o.Status == "active" && o.Resource == resource && o.ExpiresAt.After(now) && units >= o.MinUnits && units <= o.MaxUnits && o.Capacity-o.ReservedUnits >= units && (region == "" || p.Region == region) {
 			out = append(out, o)
 		}
 	}
@@ -693,7 +842,10 @@ func (e *Engine) SubmitAuctionBid(providerWallet, auctionID, offerID string, uni
 	a, auctionOK := e.data.Auctions[auctionID]
 	o, offerOK := e.data.Offers[offerID]
 	p := e.data.Providers[o.ProviderID]
-	if !auctionOK || a.Status != "open" || !a.ClosesAt.After(now) || !offerOK || o.Pricing != a.Mode || o.Resource != a.Resource || o.Currency != a.Currency || o.Status != "active" || !o.ExpiresAt.After(a.ClosesAt) || p.Wallet != providerWallet || p.Wallet == a.Buyer || p.Status != "verified" || p.Maintenance || (a.Region != "" && p.Region != a.Region) || units < o.MinUnits || units > o.MaxUnits || units > o.Capacity-p.Reserved[o.Resource] || unitPrice < 0 || unitPrice > o.UnitPrice || unitPrice > a.MaxUnitPrice || !validSource(source) {
+	if auctionOK && offerOK && p.Wallet == providerWallet && p.Wallet == a.Buyer {
+		return AuctionBid{}, errors.New("provider self-dealing auction bid is prohibited")
+	}
+	if !auctionOK || a.Status != "open" || !a.ClosesAt.After(now) || !offerOK || o.Pricing != a.Mode || o.Resource != a.Resource || o.Currency != a.Currency || o.Status != "active" || !o.ExpiresAt.After(a.ClosesAt) || p.Wallet != providerWallet || p.Wallet == a.Buyer || p.Status != "verified" || p.Maintenance || (a.Region != "" && p.Region != a.Region) || units < o.MinUnits || units > o.MaxUnits || units > o.Capacity-o.ReservedUnits || unitPrice < 0 || unitPrice > o.UnitPrice || unitPrice > a.MaxUnitPrice || !validSource(source) {
 		return AuctionBid{}, errors.New("eligible independent provider offer and bounded evidenced bid required")
 	}
 	if a.Mode == "reverse_auction" && units != a.Units {
@@ -726,7 +878,7 @@ func (e *Engine) ClearAuction(operator, auctionID string) (AuctionClearing, erro
 	for _, b := range e.data.AuctionBids {
 		o := e.data.Offers[b.OfferID]
 		p := e.data.Providers[b.ProviderID]
-		if b.AuctionID == a.ID && b.Status == "sealed" && o.Status == "active" && o.ExpiresAt.After(now) && p.Status == "verified" && !p.Maintenance && o.Capacity-p.Reserved[o.Resource] >= b.Units {
+		if b.AuctionID == a.ID && b.Status == "sealed" && o.Status == "active" && o.ExpiresAt.After(now) && p.Status == "verified" && !p.Maintenance && o.Capacity-o.ReservedUnits >= b.Units {
 			bids = append(bids, b)
 		}
 	}
@@ -970,8 +1122,12 @@ func (e *Engine) CreateQuote(buyer, offerID string, units, protocolFee int64) (Q
 	o, ok := e.data.Offers[offerID]
 	now := e.now().UTC()
 	p := e.data.Providers[o.ProviderID]
-	if buyer == "" || !ok || o.Status != "active" || !o.ExpiresAt.After(now) || units < o.MinUnits || units > o.MaxUnits || units > o.Capacity-p.Reserved[o.Resource] || protocolFee < 0 {
+	buyer = strings.TrimSpace(buyer)
+	if buyer == "" || !ok || o.Status != "active" || !o.ExpiresAt.After(now) || units < o.MinUnits || units > o.MaxUnits || units > o.Capacity-o.ReservedUnits || protocolFee < 0 {
 		return Quote{}, errors.New("active available offer and bounded units are required")
+	}
+	if buyer == p.Wallet {
+		return Quote{}, errors.New("provider self-dealing quote is prohibited")
 	}
 	providerCost := o.UnitPrice * units
 	q := Quote{ID: e.next("quote"), Buyer: buyer, OfferID: o.ID, ProviderID: o.ProviderID, Resource: o.Resource, Unit: o.Unit, Currency: o.Currency, Status: "quote", Units: units, UnitPrice: o.UnitPrice, ProviderCost: providerCost, ProtocolFee: protocolFee, GrossCost: providerCost + protocolFee, Source: o.Source, CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute)}
@@ -1004,18 +1160,43 @@ func (e *Engine) Reserve(providerWallet, orderID, evidence string) (Order, error
 	defer e.mu.Unlock()
 	o, ok := e.data.Orders[orderID]
 	p := e.data.Providers[o.ProviderID]
-	if !ok || p.Wallet != providerWallet || o.Status != "accepted" || evidence == "" || p.Capacity[o.Resource]-p.Reserved[o.Resource] < o.Units {
+	q, quoteOK := e.data.Quotes[o.QuoteID]
+	offer, offerOK := e.data.Offers[q.OfferID]
+	if !ok || !quoteOK || !offerOK || p.Wallet != providerWallet || o.Status != "accepted" || q.Status != "accepted" || evidence == "" || q.ProviderID != o.ProviderID || offer.ProviderID != o.ProviderID || q.Resource != o.Resource || offer.Resource != o.Resource || q.Unit != o.Unit || offer.Unit != o.Unit || offer.Capacity-offer.ReservedUnits < o.Units {
 		return Order{}, errors.New("provider-owned accepted order, evidence and available capacity required")
 	}
 	p.Reserved[o.Resource] += o.Units
+	offer.ReservedUnits += o.Units
 	o.ReservedUnits = o.Units
 	o.ReservationEvidence = evidence
 	o.Status = "capacity_reserved"
 	o.UpdatedAt = e.now().UTC()
 	o.AuditIDs = append(o.AuditIDs, e.audit(providerWallet, "capacity_reserve", o.ID, o.Status))
 	e.data.Providers[p.ID] = p
+	e.data.Offers[offer.ID] = offer
 	e.data.Orders[o.ID] = o
 	return o, e.save()
+}
+
+func (e *Engine) releaseReservationLocked(o *Order) error {
+	if o.ReservedUnits <= 0 {
+		return errors.New("active order reservation is missing")
+	}
+	q, quoteOK := e.data.Quotes[o.QuoteID]
+	offer, offerOK := e.data.Offers[q.OfferID]
+	p, providerOK := e.data.Providers[o.ProviderID]
+	if !quoteOK || !offerOK || !providerOK || q.ProviderID != o.ProviderID || offer.ProviderID != o.ProviderID || q.Resource != o.Resource || offer.Resource != o.Resource || q.Unit != o.Unit || offer.Unit != o.Unit {
+		return errors.New("reservation release lineage is incomplete or mismatched")
+	}
+	if offer.ReservedUnits < o.ReservedUnits || p.Reserved[o.Resource] < o.ReservedUnits {
+		return errors.New("reservation release would underflow capacity ledger")
+	}
+	offer.ReservedUnits -= o.ReservedUnits
+	p.Reserved[o.Resource] -= o.ReservedUnits
+	o.ReservedUnits = 0
+	e.data.Offers[offer.ID] = offer
+	e.data.Providers[p.ID] = p
+	return nil
 }
 
 func (e *Engine) StartService(providerWallet, orderID, evidence string) (Order, error) {
@@ -1120,6 +1301,9 @@ func (e *Engine) ConfirmSettlement(authority, orderID string, r Receipt) (Receip
 	if r.GrossCost != gross || r.ProviderNet != net || r.ProtocolFee != fee || r.Refund < 0 || r.Refund > gross {
 		return Receipt{}, errors.New("receipt amounts do not reconcile to signed metering")
 	}
+	if err := e.releaseReservationLocked(&o); err != nil {
+		return Receipt{}, err
+	}
 	r.ID = e.next("receipt")
 	r.OrderID = o.ID
 	r.Status = "asset_settlement_confirmed"
@@ -1130,7 +1314,6 @@ func (e *Engine) ConfirmSettlement(authority, orderID string, r Receipt) (Receip
 	o.AuditIDs = append(o.AuditIDs, e.audit(authority, "settlement_confirm", r.ID, r.Status))
 	e.data.Orders[o.ID] = o
 	p := e.data.Providers[o.ProviderID]
-	p.Reserved[o.Resource] -= o.ReservedUnits
 	p.CompletionRate = (p.CompletionRate*float64(p.FailureCount) + 1) / float64(p.FailureCount+1)
 	e.data.Providers[p.ID] = p
 	return r, e.save()
@@ -1147,13 +1330,10 @@ func (e *Engine) ReportFailure(providerWallet, orderID, evidence string) (Order,
 	if !ok || p.Wallet != providerWallet || evidence == "" || (o.Status != "capacity_reserved" && o.Status != "service_started" && o.Status != "metered_usage") {
 		return Order{}, errors.New("provider-owned active order and failure evidence required")
 	}
-	if o.ReservedUnits > 0 {
-		p.Reserved[o.Resource] -= o.ReservedUnits
-		if p.Reserved[o.Resource] < 0 {
-			p.Reserved[o.Resource] = 0
-		}
-		o.ReservedUnits = 0
+	if err := e.releaseReservationLocked(&o); err != nil {
+		return Order{}, err
 	}
+	p = e.data.Providers[o.ProviderID]
 	p.FailureCount++
 	o.Status = "provider_failed"
 	o.ServiceEvidence = evidence
