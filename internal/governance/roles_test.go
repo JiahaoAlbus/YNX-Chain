@@ -33,6 +33,7 @@ func executedProposal(t *testing.T, s *Service, now time.Time) Proposal {
 	if err != nil {
 		t.Fatal(err)
 	}
+	passTestCanary(t, s, p, strings.Repeat("a", 64))
 	p, err = s.BeginExecution(p.ID, strings.Repeat("a", 64), p.ExecuteAfter)
 	if err != nil {
 		t.Fatal(err)

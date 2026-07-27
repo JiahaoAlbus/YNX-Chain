@@ -229,6 +229,8 @@ type Service struct {
 	delegationNonces  map[string]struct{}
 	timelocks         map[string]*TimelockRecord
 	upgrades          map[string]*UpgradeRecord
+	canaries          map[string]*CanaryRecord
+	canaryNonces      map[string]struct{}
 	emergencies       map[string]*EmergencyAction
 	emergencyNonces   map[string]struct{}
 	roles             map[string]*RoleAssignment
@@ -251,7 +253,7 @@ func NewService(policy Policy) (*Service, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: governance registry startup gate: %v", ErrInvalid, err)
 	}
-	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, timelocks: map[string]*TimelockRecord{}, upgrades: map[string]*UpgradeRecord{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
+	return &Service{policy: policy, registries: registries, proposals: map[string]*Proposal{}, nonces: map[string]struct{}{}, voteNonces: map[string]struct{}{}, delegations: map[string]Delegation{}, delegationHistory: map[string][]Delegation{}, delegationNonces: map[string]struct{}{}, timelocks: map[string]*TimelockRecord{}, upgrades: map[string]*UpgradeRecord{}, canaries: map[string]*CanaryRecord{}, canaryNonces: map[string]struct{}{}, emergencies: map[string]*EmergencyAction{}, emergencyNonces: map[string]struct{}{}, roles: map[string]*RoleAssignment{}, appeals: map[string]*Appeal{}, appealNonces: map[string]struct{}{}, discussions: map[string]*DiscussionEntry{}, discussionNonces: map[string]struct{}{}}, nil
 }
 
 func (s *Service) Create(input ProposalInput, now time.Time) (Proposal, error) {
@@ -522,6 +524,9 @@ func (s *Service) Finalize(id string, now time.Time) (Proposal, error) {
 	if err = s.transitionUpgradeLocked(p, UpgradeTimelocked, "ynx-governance-runtime", "approved upgrade entered the exact-manifest timelock and became eligible for canary evaluation", tallyEvidence, now); err != nil {
 		return Proposal{}, err
 	}
+	if _, err = s.createCanaryLocked(p, tallyEvidence, now); err != nil {
+		return Proposal{}, err
+	}
 	if err = transitionProposal(p, StatusTimelockPending, "ynx-governance-runtime", "approved action was bound to a persistent public timelock record", tallyEvidence, now); err != nil {
 		return Proposal{}, err
 	}
@@ -550,6 +555,10 @@ func (s *Service) BeginExecution(id, manifestHash string, now time.Time) (Propos
 	}
 	if record.Status != TimelockActive || record.ActionHash != p.ActionHash || p.Status != StatusTimelockActive || now.Before(record.EarliestExecution) || now.After(record.GraceEndsAt) || !validHash(manifestHash) {
 		return Proposal{}, ErrNotReady
+	}
+	canary := s.canaries[p.ID]
+	if canary == nil || canary.Status != CanaryPassed || canary.Envelope == nil || !strings.EqualFold(canary.Envelope.ManifestHash, manifestHash) {
+		return Proposal{}, fmt.Errorf("%w: execution requires a passed canary bound to the exact manifest", ErrForbidden)
 	}
 	if (p.Input.Scope == ScopeProtocolUpgrade || p.Input.Scope == ScopeConsensusUpgrade) && !strings.EqualFold(p.Input.UpgradeHash, manifestHash) {
 		return Proposal{}, fmt.Errorf("%w: upgrade manifest mismatch", ErrForbidden)
@@ -734,6 +743,9 @@ func (s *Service) PauseProposal(id, emergencyActionID, actor string, now time.Ti
 			return Proposal{}, err
 		}
 	}
+	if err = s.transitionCanaryLocked(p, CanaryPaused, actor, "active scoped emergency action invalidated and paused this canary authorization", evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	if err = s.transitionUpgradeLocked(p, UpgradeEmergencyPaused, actor, "active scoped emergency action paused this upgrade", evidence, now); err != nil {
 		return Proposal{}, err
 	}
@@ -764,6 +776,9 @@ func (s *Service) CorrectProposal(id, correctionProposalID, actor string, now ti
 		if err := transitionTimelock(record, TimelockCorrected, actor, "verified correction proposal closed the paused timelock without execution", []string{"correction-proposal://" + correction.ID}, now); err != nil {
 			return Proposal{}, err
 		}
+	}
+	if err := s.transitionCanaryLocked(p, CanaryCorrected, actor, "verified correction proposal closed the paused canary without execution", []string{"correction-proposal://" + correction.ID}, now); err != nil {
+		return Proposal{}, err
 	}
 	if err := s.transitionUpgradeLocked(p, UpgradeCorrected, actor, "verified correction proposal closed the paused upgrade without execution", []string{"correction-proposal://" + correction.ID}, now); err != nil {
 		return Proposal{}, err

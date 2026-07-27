@@ -31,6 +31,7 @@ func TestPublicViewsAreDerivedFromCanonicalProposalState(t *testing.T) {
 		t.Fatal("timelocked proposal was reported as submitted execution")
 	}
 	manifest := strings.Repeat("d", 64)
+	passTestCanary(t, s, p, manifest)
 	if p, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter); err != nil {
 		t.Fatal(err)
 	}

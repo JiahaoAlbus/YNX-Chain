@@ -87,6 +87,8 @@ type PublicUpgradeRecord struct {
 	CanaryRequired          bool                `json:"canaryRequired"`
 	CanaryEligible          bool                `json:"canaryEligible"`
 	CanaryStatus            string              `json:"canaryStatus"`
+	CanaryRecordID          string              `json:"canaryRecordId,omitempty"`
+	CanaryAuditHash         string              `json:"canaryAuditHash,omitempty"`
 	VerificationPlan        string              `json:"verificationPlan"`
 	VerificationPlanHash    string              `json:"verificationPlanHash"`
 	ExecutionManifestHash   string              `json:"executionManifestHash,omitempty"`
@@ -222,7 +224,8 @@ func (s *Service) PublicUpgrades() []PublicUpgradeRecord {
 			Release: record.Release, UpgradeHash: record.ManifestHash, Migration: record.Migration, MigrationHash: record.MigrationHash,
 			Rollback: record.Rollback, RollbackPlanHash: record.RollbackPlanHash, CanaryPlan: record.CanaryPlan,
 			CanaryPlanHash: record.CanaryPlanHash, CanaryRequired: record.CanaryRequired, CanaryEligible: record.CanaryEligible,
-			CanaryStatus: record.CanaryStatus, VerificationPlan: record.VerificationPlan, VerificationPlanHash: record.VerificationPlanHash,
+			CanaryStatus: record.CanaryStatus, CanaryRecordID: record.CanaryRecordID, CanaryAuditHash: record.CanaryAuditHash,
+			VerificationPlan: record.VerificationPlan, VerificationPlanHash: record.VerificationPlanHash,
 			ExecutionManifestHash: record.ExecutionManifestHash, ExecutionReceiptAuditID: record.ExecutionReceiptAuditID,
 			RollbackManifestHash: record.RollbackManifestHash, RollbackReceiptAuditID: record.RollbackReceiptAuditID,
 			Transitions: cloneUpgrade(&record).Transitions, Evidence: append([]string(nil), proposal.Input.Evidence...), AuditHash: record.AuditHash,
@@ -283,6 +286,14 @@ func (s *Service) PublicAudit() []PublicAuditRecord {
 		for _, transition := range upgrade.Transitions {
 			out = append(out, PublicAuditRecord{
 				AuditID: transition.AuditHash, RecordType: "upgrade_transition", ProposalID: upgrade.ProposalID,
+				Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At,
+			})
+		}
+	}
+	for _, canary := range s.ListCanaries() {
+		for _, transition := range canary.Transitions {
+			out = append(out, PublicAuditRecord{
+				AuditID: transition.AuditHash, RecordType: "canary_transition", ProposalID: canary.ProposalID,
 				Actor: transition.Actor, Action: string(transition.To), Evidence: append([]string(nil), transition.Evidence...), At: transition.At,
 			})
 		}

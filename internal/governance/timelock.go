@@ -119,6 +119,9 @@ func (s *Service) CancelTimelock(proposalID, actionHash, actor, reason string, e
 	}
 	cancellation := &Cancellation{Actor: actor, Reason: strings.TrimSpace(reason), Evidence: append([]string(nil), evidence...), CancelledAt: now}
 	cancellation.AuditHash = hash(proposal.ID, cancellation.Actor, cancellation.Reason, cancellation.CancelledAt.Format(time.RFC3339Nano), strings.Join(cancellation.Evidence, "|"))
+	if err := s.transitionCanaryLocked(proposal, CanaryCancelled, actor, cancellation.Reason, cancellation.Evidence, now); err != nil {
+		return Proposal{}, err
+	}
 	if err := s.transitionUpgradeLocked(proposal, UpgradeCancelled, actor, cancellation.Reason, cancellation.Evidence, now); err != nil {
 		return Proposal{}, err
 	}
@@ -148,6 +151,9 @@ func (s *Service) expireTimelockLocked(proposal *Proposal, record *TimelockRecor
 		return nil
 	}
 	evidence := []string{"timelock-expired://" + record.ID + "/" + deadline.Format(time.RFC3339Nano)}
+	if err := s.transitionCanaryLocked(proposal, CanaryExpired, "ynx-governance-runtime", "canary and timelock execution window expired without submission", evidence, now); err != nil {
+		return err
+	}
 	if err := s.transitionUpgradeLocked(proposal, UpgradeExpired, "ynx-governance-runtime", "upgrade timelock execution window expired without submission", evidence, now); err != nil {
 		return err
 	}

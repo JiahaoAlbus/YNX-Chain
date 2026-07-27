@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	snapshotVersion                   = "ynx-governance-state/v6"
+	snapshotVersion                   = "ynx-governance-state/v7"
+	legacyUpgradeSnapshotVersion      = "ynx-governance-state/v6"
 	legacyTimelockSnapshotVersion     = "ynx-governance-state/v5"
 	legacyDelegationSnapshotVersion   = "ynx-governance-state/v4"
 	legacySignedVoteSnapshotVersion   = "ynx-governance-state/v3"
@@ -27,9 +28,11 @@ type snapshotPayload struct {
 	Policy           Policy            `json:"policy"`
 	VoteNonces       []string          `json:"voteNonces"`
 	DelegationNonces []string          `json:"delegationNonces"`
+	CanaryNonces     []string          `json:"canaryNonces"`
 	Delegations      []Delegation      `json:"delegations"`
 	Timelocks        []TimelockRecord  `json:"timelocks"`
 	Upgrades         []UpgradeRecord   `json:"upgrades"`
+	Canaries         []CanaryRecord    `json:"canaries"`
 	Proposals        []Proposal        `json:"proposals"`
 	Emergencies      []EmergencyAction `json:"emergencies"`
 	Roles            []RoleAssignment  `json:"roles"`
@@ -51,6 +54,9 @@ func (s *Service) Save(path string, now time.Time) error {
 	for nonce := range s.delegationNonces {
 		payload.DelegationNonces = append(payload.DelegationNonces, nonce)
 	}
+	for nonce := range s.canaryNonces {
+		payload.CanaryNonces = append(payload.CanaryNonces, nonce)
+	}
 	for _, history := range s.delegationHistory {
 		payload.Delegations = append(payload.Delegations, history...)
 	}
@@ -59,6 +65,9 @@ func (s *Service) Save(path string, now time.Time) error {
 	}
 	for _, record := range s.upgrades {
 		payload.Upgrades = append(payload.Upgrades, cloneUpgrade(record))
+	}
+	for _, record := range s.canaries {
+		payload.Canaries = append(payload.Canaries, cloneCanary(record))
 	}
 	for _, p := range s.proposals {
 		payload.Proposals = append(payload.Proposals, clone(p))
@@ -78,6 +87,7 @@ func (s *Service) Save(path string, now time.Time) error {
 	s.mu.RUnlock()
 	sort.Strings(payload.VoteNonces)
 	sort.Strings(payload.DelegationNonces)
+	sort.Strings(payload.CanaryNonces)
 	sort.Slice(payload.Delegations, func(i, j int) bool {
 		if payload.Delegations[i].AppliedAt.Equal(payload.Delegations[j].AppliedAt) {
 			return payload.Delegations[i].ID < payload.Delegations[j].ID
@@ -86,6 +96,7 @@ func (s *Service) Save(path string, now time.Time) error {
 	})
 	sort.Slice(payload.Timelocks, func(i, j int) bool { return payload.Timelocks[i].ID < payload.Timelocks[j].ID })
 	sort.Slice(payload.Upgrades, func(i, j int) bool { return payload.Upgrades[i].ID < payload.Upgrades[j].ID })
+	sort.Slice(payload.Canaries, func(i, j int) bool { return payload.Canaries[i].ID < payload.Canaries[j].ID })
 	sort.Slice(payload.Proposals, func(i, j int) bool { return payload.Proposals[i].ID < payload.Proposals[j].ID })
 	sort.Slice(payload.Emergencies, func(i, j int) bool { return payload.Emergencies[i].ID < payload.Emergencies[j].ID })
 	sort.Slice(payload.Roles, func(i, j int) bool { return payload.Roles[i].ID < payload.Roles[j].ID })
@@ -164,6 +175,9 @@ func Load(path string) (*Service, error) {
 	}
 	if envelope.Payload.Version == legacyTimelockSnapshotVersion {
 		return nil, fmt.Errorf("%w: governance state v5 requires explicit first-class upgrade migration to v6", ErrForbidden)
+	}
+	if envelope.Payload.Version == legacyUpgradeSnapshotVersion {
+		return nil, fmt.Errorf("%w: governance state v6 requires explicit first-class canary migration to v7", ErrForbidden)
 	}
 	if envelope.Payload.Version != snapshotVersion {
 		return nil, fmt.Errorf("%w: unsupported governance snapshot version %q", ErrForbidden, envelope.Payload.Version)
@@ -276,6 +290,59 @@ func Load(path string) (*Service, error) {
 		s.upgrades[record.ProposalID] = &record
 	}
 	if err = validateUpgradeRegistry(s.upgrades, s.proposals); err != nil {
+		return nil, err
+	}
+	storedCanaryNonces := map[string]struct{}{}
+	for _, nonce := range envelope.Payload.CanaryNonces {
+		if !validHash(nonce) {
+			return nil, fmt.Errorf("%w: invalid persisted canary nonce", ErrForbidden)
+		}
+		if _, exists := storedCanaryNonces[nonce]; exists {
+			return nil, ErrReplay
+		}
+		storedCanaryNonces[nonce] = struct{}{}
+	}
+	for i := range envelope.Payload.Canaries {
+		record := envelope.Payload.Canaries[i]
+		proposal, exists := s.proposals[record.ProposalID]
+		if !exists {
+			return nil, fmt.Errorf("%w: canary proposal missing", ErrForbidden)
+		}
+		timelock := s.timelocks[record.ProposalID]
+		if timelock == nil {
+			return nil, fmt.Errorf("%w: canary timelock missing", ErrForbidden)
+		}
+		if _, duplicate := s.canaries[record.ProposalID]; duplicate {
+			return nil, ErrConflict
+		}
+		if err = validateStoredCanary(&record, proposal, timelock, s.policy); err != nil {
+			return nil, err
+		}
+		s.canaries[record.ProposalID] = &record
+		if record.Envelope != nil {
+			nonceID := canaryNonceID(*record.Envelope)
+			if _, duplicate := s.canaryNonces[nonceID]; duplicate {
+				return nil, ErrReplay
+			}
+			s.canaryNonces[nonceID] = struct{}{}
+		}
+		if record.Result != nil {
+			nonceID := canaryResultNonceID(record.Result.Envelope)
+			if _, duplicate := s.canaryNonces[nonceID]; duplicate {
+				return nil, ErrReplay
+			}
+			s.canaryNonces[nonceID] = struct{}{}
+		}
+	}
+	if len(storedCanaryNonces) != len(s.canaryNonces) {
+		return nil, fmt.Errorf("%w: persisted canary nonce registry does not match signed cohort history", ErrForbidden)
+	}
+	for nonce := range s.canaryNonces {
+		if _, exists := storedCanaryNonces[nonce]; !exists {
+			return nil, fmt.Errorf("%w: signed canary nonce missing from persisted registry", ErrForbidden)
+		}
+	}
+	if err = validateCanaryRegistry(s.canaries, s.timelocks, s.upgrades, s.proposals); err != nil {
 		return nil, err
 	}
 	for i := range envelope.Payload.Emergencies {

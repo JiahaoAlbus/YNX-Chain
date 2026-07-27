@@ -55,6 +55,8 @@ type UpgradeRecord struct {
 	CanaryRequired          bool                `json:"canaryRequired"`
 	CanaryEligible          bool                `json:"canaryEligible"`
 	CanaryStatus            string              `json:"canaryStatus"`
+	CanaryRecordID          string              `json:"canaryRecordId,omitempty"`
+	CanaryAuditHash         string              `json:"canaryAuditHash,omitempty"`
 	Status                  UpgradeStatus       `json:"status"`
 	RegisteredAt            time.Time           `json:"registeredAt"`
 	ExecutionManifestHash   string              `json:"executionManifestHash,omitempty"`
@@ -179,7 +181,7 @@ func upgradeAudit(record *UpgradeRecord) string {
 		record.ID, record.ProposalID, record.ProposalType, string(record.Scope), record.ActionHash, record.SourceCommit, record.Release,
 		record.ManifestHash, record.Migration, record.MigrationHash, record.Rollback, record.RollbackPlanHash, record.CanaryPlan,
 		record.CanaryPlanHash, record.VerificationPlan, record.VerificationPlanHash, fmt.Sprint(record.CanaryRequired),
-		fmt.Sprint(record.CanaryEligible), record.CanaryStatus, string(record.Status), record.RegisteredAt.Format(time.RFC3339Nano),
+		fmt.Sprint(record.CanaryEligible), record.CanaryStatus, record.CanaryRecordID, record.CanaryAuditHash, string(record.Status), record.RegisteredAt.Format(time.RFC3339Nano),
 		record.ExecutionManifestHash, record.ExecutionReceiptAuditID, record.RollbackManifestHash, record.RollbackReceiptAuditID,
 	}
 	for _, transition := range record.Transitions {
@@ -233,7 +235,9 @@ func validateStoredUpgrade(record *UpgradeRecord, proposal *Proposal) error {
 	if status != record.Status || record.AuditHash != upgradeAudit(record) {
 		return fmt.Errorf("%w: upgrade audit mismatch", ErrForbidden)
 	}
-	if record.CanaryEligible != proposalReached(proposal, StatusTimelockPending) || (record.CanaryEligible && record.CanaryStatus != "eligible_not_run") || (!record.CanaryEligible && record.CanaryStatus != "not_started") {
+	if record.CanaryEligible != proposalReached(proposal, StatusTimelockPending) ||
+		(record.CanaryEligible && (record.CanaryRecordID == "" || !validHash(record.CanaryAuditHash))) ||
+		(!record.CanaryEligible && (record.CanaryStatus != "not_started" || record.CanaryRecordID != "" || record.CanaryAuditHash != "")) {
 		return fmt.Errorf("%w: upgrade canary eligibility mismatch", ErrForbidden)
 	}
 	switch record.Status {

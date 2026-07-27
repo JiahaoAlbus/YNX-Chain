@@ -58,6 +58,7 @@ func TestCanonicalStateMachineSuccessfulExecutionSequence(t *testing.T) {
 		t.Fatalf("vote passed was confused with execution: status=%s", p.Status)
 	}
 	manifest := strings.Repeat("a", 64)
+	passTestCanary(t, s, p, manifest)
 	if p, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter); err != nil {
 		t.Fatal(err)
 	}
@@ -127,6 +128,7 @@ func TestFailedExecutionRemainsFailedUntilVerifiedRollback(t *testing.T) {
 		t.Fatal(err)
 	}
 	manifest := strings.Repeat("b", 64)
+	passTestCanary(t, s, p, manifest)
 	if p, err = s.BeginExecution(p.ID, manifest, p.ExecuteAfter); err != nil {
 		t.Fatal(err)
 	}

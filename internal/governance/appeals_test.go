@@ -19,6 +19,7 @@ func executeInput(t *testing.T, s *Service, in ProposalInput, now time.Time) Pro
 	p, _ = castTestVote(t, s, p.ID, "validator", "yes", now.Add(4*time.Minute))
 	p, _ = s.Finalize(p.ID, p.VotingEndsAt)
 	manifest := strings.Repeat("a", 64)
+	passTestCanary(t, s, p, manifest)
 	p, _ = s.BeginExecution(p.ID, manifest, p.ExecuteAfter)
 	receipt := NewExecutionReceipt("0x"+strings.Repeat("b", 64), 30, "0x"+strings.Repeat("c", 64), "0x"+strings.Repeat("d", 64), manifest, "verified", p.ExecuteAfter.Add(time.Minute))
 	p, err = s.VerifyExecution(p.ID, receipt, nil, p.ExecuteAfter.Add(time.Minute))

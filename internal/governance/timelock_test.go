@@ -43,6 +43,7 @@ func TestFirstClassTimelockBindsActionHashGraceAndSingleSubmission(t *testing.T)
 	if _, err := service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter.Add(-time.Second)); !errors.Is(err, ErrNotReady) {
 		t.Fatalf("early execution accepted: %v", err)
 	}
+	passTestCanary(t, service, proposal, manifest)
 	submitted, err := service.BeginExecution(proposal.ID, manifest, proposal.ExecuteAfter)
 	if err != nil || submitted.Status != StatusExecutionSubmitted {
 		t.Fatalf("execution submission: %+v %v", submitted, err)

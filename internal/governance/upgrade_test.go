@@ -90,12 +90,13 @@ func TestUpgradeExecutionPersistsExactManifestAndReceipt(t *testing.T) {
 	service := testService(t)
 	proposal := approvedUpgrade(t, service, now)
 	upgrades := service.ListUpgrades()
-	if len(upgrades) != 1 || upgrades[0].Status != UpgradeTimelocked || !upgrades[0].CanaryEligible || upgrades[0].CanaryStatus != "eligible_not_run" {
+	if len(upgrades) != 1 || upgrades[0].Status != UpgradeTimelocked || !upgrades[0].CanaryEligible || upgrades[0].CanaryStatus != string(CanaryEligible) {
 		t.Fatalf("approved upgrade did not become canary-eligible: %+v", upgrades)
 	}
 	if _, err := service.BeginExecution(proposal.ID, strings.Repeat("b", 64), proposal.ExecuteAfter); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("wrong upgrade manifest accepted: %v", err)
 	}
+	passTestCanary(t, service, proposal, strings.Repeat("a", 64))
 	proposal, err := service.BeginExecution(proposal.ID, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +165,7 @@ func TestFailedUpgradePersistsVerifiedRollbackCorrelation(t *testing.T) {
 	now := time.Date(2026, 7, 26, 11, 0, 0, 0, time.UTC)
 	service := testService(t)
 	proposal := approvedUpgrade(t, service, now)
+	passTestCanary(t, service, proposal, strings.Repeat("a", 64))
 	proposal, err := service.BeginExecution(proposal.ID, strings.Repeat("a", 64), proposal.ExecuteAfter)
 	if err != nil {
 		t.Fatal(err)

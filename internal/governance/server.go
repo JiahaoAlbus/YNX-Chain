@@ -64,6 +64,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /timelocks", s.listTimelocks)
 	s.mux.HandleFunc("GET /executions", s.listExecutions)
 	s.mux.HandleFunc("GET /upgrades", s.listUpgrades)
+	s.mux.HandleFunc("GET /canaries", s.listCanaries)
 	s.mux.HandleFunc("GET /emergency-actions", s.listEmergencies)
 	s.mux.HandleFunc("GET /treasury", s.listTreasury)
 	s.mux.HandleFunc("GET /providers", s.listProviders)
@@ -76,6 +77,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /governance/proposals", s.listProposals)
 	s.mux.HandleFunc("GET /governance/proposals/{id}", s.getProposal)
 	s.mux.HandleFunc("GET /governance/proposals/{id}/discussion", s.listDiscussion)
+	s.mux.HandleFunc("GET /governance/canaries", s.listCanaries)
 	s.mux.HandleFunc("POST /governance/proposals/{id}/discussion", s.protected("participant", s.addDiscussion))
 	s.mux.HandleFunc("POST /governance/proposals", s.protected("proposer", s.createProposal))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/deposit", s.protected("depositor", s.deposit))
@@ -89,6 +91,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /governance/proposals/{id}/votes", s.protected("voter", s.vote))
 	s.mux.HandleFunc("POST /governance/delegations", s.protected("delegator", s.applyDelegation))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/finalize", s.protected("technical_council", s.finalize))
+	s.mux.HandleFunc("POST /governance/proposals/{id}/canary/start", s.protected("executor", s.startCanary))
+	s.mux.HandleFunc("POST /governance/proposals/{id}/canary/complete", s.protected("verifier", s.completeCanary))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/execute", s.protected("executor", s.execute))
 	s.mux.HandleFunc("POST /governance/proposals/{id}/verify", s.protected("verifier", s.verify))
 	s.mux.HandleFunc("GET /governance/emergencies", s.listEmergencies)
@@ -161,6 +165,9 @@ func (s *Server) listExecutions(w http.ResponseWriter, _ *http.Request) {
 }
 func (s *Server) listUpgrades(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"upgrades": s.service.PublicUpgrades()}, s.now())
+}
+func (s *Server) listCanaries(w http.ResponseWriter, _ *http.Request) {
+	writeSource(w, http.StatusOK, map[string]any{"canaries": s.service.ListCanaries()}, s.now())
 }
 func (s *Server) listTreasury(w http.ResponseWriter, _ *http.Request) {
 	writeSource(w, http.StatusOK, map[string]any{"proposals": s.service.ProposalsByScope(ScopeTreasury, ScopeGrants), "executionAuthority": string(RoleExecutionOperator)}, s.now())
@@ -432,6 +439,36 @@ func (s *Server) finalize(w http.ResponseWriter, r *http.Request, p Principal) {
 		return
 	}
 	out, err := s.service.Finalize(r.PathValue("id"), s.now())
+	s.mutation(w, http.StatusOK, out, err)
+}
+func (s *Server) startCanary(w http.ResponseWriter, r *http.Request, p Principal) {
+	if !s.authorizedProposal(w, r.PathValue("id"), p) {
+		return
+	}
+	var envelope SignedCanaryEnvelope
+	if !decode(w, r, &envelope) {
+		return
+	}
+	if envelope.ProposalID != r.PathValue("id") || envelope.Operator != p.Account {
+		writeError(w, http.StatusUnauthorized, "signed canary operator or proposal binding mismatch")
+		return
+	}
+	out, err := s.service.StartCanary(envelope, s.now())
+	s.mutation(w, http.StatusCreated, out, err)
+}
+func (s *Server) completeCanary(w http.ResponseWriter, r *http.Request, p Principal) {
+	if !s.authorizedProposal(w, r.PathValue("id"), p) {
+		return
+	}
+	var input SignedCanaryResultEnvelope
+	if !decode(w, r, &input) {
+		return
+	}
+	if input.ProposalID != r.PathValue("id") || input.Verifier != p.Account {
+		writeError(w, http.StatusUnauthorized, "signed canary verifier or proposal binding mismatch")
+		return
+	}
+	out, err := s.service.CompleteCanary(input, s.now())
 	s.mutation(w, http.StatusOK, out, err)
 }
 func (s *Server) execute(w http.ResponseWriter, r *http.Request, p Principal) {
