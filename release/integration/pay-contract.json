@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "6477a42b0b96761a74b676c4f18f2e987b628a3d"
+    "sourceCommit": "a405604714645df1084ed9e06cc7d7b6f9a4d4b0"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -115,7 +115,7 @@
   "tests": [
     "go test ./internal/payproduct/... -count=1",
     "go test -race ./internal/payproduct/... -count=1",
-    "npm run check (apps/pay; 10 tests plus Android/iOS bundle)",
+    "npm run check (apps/pay; 11 tests plus Android/iOS bundle and complete Split consumer flow)",
     "TestSplitPaymentCreatesSignedSharesAndBindsClaimedPayer",
     "TestSplitPaymentValidationFailsClosed"
   ],

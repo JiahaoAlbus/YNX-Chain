@@ -10,6 +10,7 @@
 - Product release records: `apps/pay/product-release.json`, `apps/merchant-console/product-release.json`, `apps/card/product-release.json`.
 - Canonical Wallet/Gateway handoff: `docs/integration/pay-card-wallet-registry.json`.
 - Split Payment runtime and negative tests: `internal/payproduct/split.go`, `internal/payproduct/split_test.go`; `go test ./internal/payproduct/... -count=1` and `go test -race ./internal/payproduct/... -count=1` passed on 2026-07-27.
+- Split consumer flow at `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`: strict Invoice/Split reference parsing, QR/deep links, signed plan display, 12-language and Arabic RTL share UI, secure claim recovery, automatic Wallet-auth resume, child Invoice v4 handoff, 11 client tests and Android/iOS Hermes exports.
 - Canonical Pay contract and cross-product vectors: `release/integration/pay-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`.
 - Full-goal machine coverage: `.ai-bridge/full-goal-coverage.json`.
 

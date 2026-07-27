@@ -5,6 +5,7 @@
 - Branch: `codex/final-pay`
 - Base HEAD at recovery: `27b811cabcf16b663a085652412be01561195629`
 - Split implementation commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
+- Split consumer-flow commit: `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`
 - Current phase: FREEZE
 - Goal status: Active
 
@@ -17,13 +18,14 @@
 - Preserved Invoice v1/v2/v3 signature verification.
 - Added canonical Pay integration contract, handoff, dependency acceptance and cross-product vectors.
 - Added Pay client Invoice v4 and Split parsing, claim API, signature verification, total reconciliation and payer-leak rejection.
+- Added the complete local Split consumer flow: strict lookup, QR/deep links, signed plan display, 12-language/Arabic RTL shares, secure claim recovery, automatic Wallet-auth continuation and child Invoice review.
 - Added full-goal coverage matrix.
 
 ## Verification
 
 - `go test ./internal/payproduct/... -count=1`: PASS
 - `go test -race ./internal/payproduct/... -count=1`: PASS; macOS linker emitted a non-fatal LC_DYSYMTAB warning.
-- `npm run check` in `apps/pay`: PASS; TypeScript, 10/10 tests and Android/iOS Hermes bundles.
+- `npm run check` in `apps/pay`: PASS; TypeScript, 11/11 tests and Android/iOS Hermes bundles.
 - `make pay-api-check`: PASS.
 - `bash internal/payproduct/smoke.sh`: PASS.
 - `go test ./... -count=1`: FAIL outside Pay in unchanged Consensus/Faucet/Trust permission tests and missing IDE contract artifact; Pay package PASS.

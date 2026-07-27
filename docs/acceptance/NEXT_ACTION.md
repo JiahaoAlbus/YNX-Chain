@@ -4,9 +4,9 @@ Current phase: FREEZE → INTEGRATE. Goal status: Active.
 
 ## Immediate checkpoint action
 
-1. Preserve implementation commit `6477a42b0b96761a74b676c4f18f2e987b628a3d`.
-2. Commit the source-bound Release, Contract, Handoff and coverage metadata.
-3. Push `codex/final-pay` and verify the remote branch SHA.
+1. Preserve the full Split consumer-flow commit `a405604714645df1084ed9e06cc7d7b6f9a4d4b0`.
+2. Commit and push its source-bound Release, Contract, Handoff and coverage metadata.
+3. Begin the Quant/service-billing evidence validator and migration/restore drill.
 
 ## Next engineering/integration action
 
