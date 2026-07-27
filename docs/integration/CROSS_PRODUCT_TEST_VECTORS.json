@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "25-mail",
+  "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+  "vectors": [
+    {
+      "id": "MAIL-WALLET-001",
+      "ownerDependencies": ["02-wallet-auth"],
+      "scenario": "canonical product session sign-in",
+      "input": {
+        "productId": "com.ynx.mail",
+        "productClientId": "ynx-mail-v1",
+        "bundleId": "com.ynxweb4.mail",
+        "scope": ["mail:account"],
+        "callback": "ynxmail://wallet-auth/callback"
+      },
+      "expected": "live Wallet Auth v1 session accepted; replay, wrong product, wrong bundle, wrong device, reordered scope and expiry fail closed"
+    },
+    {
+      "id": "MAIL-NATIVE-001",
+      "ownerDependencies": [],
+      "scenario": "two-user native delivery",
+      "input": {
+        "sender": "@alice",
+        "recipient": "@bob",
+        "subject": "Native delivery",
+        "body": "Signed bounded message"
+      },
+      "expected": {
+        "channel": "ynx_native",
+        "state": "delivered",
+        "recipientFolder": "inbox",
+        "senderFolder": "sent",
+        "senderSignatureValid": true
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-001",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "provider accepts an outbound Internet message",
+      "providerResponse": {
+        "status": 200,
+        "messageId": "provider-message-reference"
+      },
+      "expected": {
+        "channel": "internet_provider",
+        "state": "provider_accepted",
+        "delivered": false,
+        "userRead": false,
+        "idempotencyAttempt": 1
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-002",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "verified delivered webhook",
+      "event": "email.delivered",
+      "expected": {
+        "state": "delivered",
+        "meaning": "receiving mail server accepted the message",
+        "userRead": false
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-003",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "opened provider event",
+      "event": "email.opened",
+      "expected": {
+        "providerEventStored": true,
+        "deliveryStateChanged": false,
+        "userRead": false
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-004",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "permanent bounce followed by explicit retry",
+      "event": "email.bounced",
+      "expectedBeforeRetry": {
+        "state": "bounced"
+      },
+      "expectedRetry": {
+        "newIdempotencyAttempt": 2,
+        "priorProviderMessageIdCleared": true,
+        "stateAfterProviderAcceptance": "provider_accepted"
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-005",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "duplicate signed webhook after process restart",
+      "expected": {
+        "duplicate": true,
+        "stateMutationCount": 0,
+        "persistentReplayProtection": true
+      }
+    },
+    {
+      "id": "MAIL-INTERNET-006",
+      "ownerDependencies": ["30-security-sre"],
+      "scenario": "stale or invalid webhook signature",
+      "expected": {
+        "httpStatus": 400,
+        "stateMutationCount": 0,
+        "failClosed": true
+      }
+    },
+    {
+      "id": "MAIL-AI-001",
+      "ownerDependencies": ["14-ai"],
+      "scenario": "approved selected-context reply draft",
+      "expected": {
+        "requiresPreview": true,
+        "requiresApproval": true,
+        "createsDraftOnly": true,
+        "sendsMail": false,
+        "cancellable": true
+      }
+    },
+    {
+      "id": "MAIL-DATA-001",
+      "ownerDependencies": ["26-data-fabric"],
+      "scenario": "canonical provider delivery event export",
+      "expected": {
+        "contains": ["product", "message_id", "provider", "provider_message_id", "state", "occurred_at", "source_commit"],
+        "excludes": ["message_body", "attachment_content", "provider_credential", "raw_webhook"]
+      }
+    }
+  ]
+}

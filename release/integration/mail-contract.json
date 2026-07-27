@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "productNumber": 25,
+  "productSlug": "mail",
+  "productName": "YNX Mail",
+  "owner": "25-mail",
+  "sourceCommit": "13c2c7695c9e814ba54d066b6e3e1a03354b7d57",
+  "branch": "codex/final-mail",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "environment": "testnet-preview"
+  },
+  "wallet": {
+    "productId": "com.ynx.mail",
+    "productClientId": "ynx-mail-v1",
+    "bundleId": "com.ynxweb4.mail",
+    "callback": "ynxmail://wallet-auth/callback",
+    "signInScope": "mail:account",
+    "recoveryScope": "mail:recover",
+    "deviceCrypto": "p256-sha256",
+    "verifierVersion": "wallet-auth-v1",
+    "status": "proposed-central-registration"
+  },
+  "api": {
+    "basePath": "/v1",
+    "health": "GET /v1/health",
+    "versionSource": "health.build",
+    "send": "POST /v1/drafts/{id}/send",
+    "retry": "POST /v1/messages/{id}/retry",
+    "providerWebhook": "POST /v1/providers/resend/webhook",
+    "accountExport": "GET /v1/account/export",
+    "accountDelete": "DELETE /v1/account"
+  },
+  "deliveryChannels": {
+    "ynxNative": {
+      "recipient": "existing @handle",
+      "states": ["delivered", "failed"],
+      "authority": "YNX Mail state"
+    },
+    "internetProvider": {
+      "recipient": "validated Internet mailbox",
+      "states": [
+        "queued",
+        "provider_accepted",
+        "provider_delayed",
+        "delivered",
+        "bounced",
+        "complained",
+        "failed"
+      ],
+      "authority": "verified provider event after local provider submission",
+      "providerAdapter": "resend",
+      "truthRules": [
+        "HTTP success is provider acceptance only",
+        "provider delivered means receiving mail server accepted the message",
+        "opened or clicked never becomes YNX user-read state",
+        "webhook event IDs are persistent replay keys",
+        "older events cannot downgrade newer delivery facts"
+      ]
+    }
+  },
+  "canonicalEvents": [
+    "mail.send.approved",
+    "mail.native.delivered",
+    "mail.internet.submission_failed",
+    "mail.internet.provider_accepted",
+    "mail.internet.provider_delayed",
+    "mail.internet.delivered",
+    "mail.internet.bounced",
+    "mail.internet.complained",
+    "mail.internet.failed",
+    "mail.internet.provider_event_ignored"
+  ],
+  "errorCodes": [
+    "internet_provider_not_configured",
+    "provider_submission_cancelled",
+    "provider_submission_timeout",
+    "provider_rate_limited",
+    "provider_authorization_failed",
+    "provider_submission_failed",
+    "provider_delivery_delayed",
+    "provider_bounced",
+    "recipient_complained",
+    "provider_suppressed",
+    "invalid_webhook"
+  ],
+  "security": {
+    "providerCredentials": "server-side secret manager reference only",
+    "webhookAuthentication": "timestamp-bounded HMAC-SHA256 with constant-time comparison",
+    "replayProtection": "persistent provider event ID",
+    "requestBounds": {
+      "webhookBytes": 262144,
+      "messageBytes": 262144,
+      "attachmentBytes": 10485760,
+      "recipientCount": 20
+    },
+    "stateIntegrity": "versioned HMAC-authenticated atomic envelope",
+    "userReadInference": "forbidden"
+  },
+  "migration": {
+    "stateSchema": 1,
+    "compatibility": "provider_events and delivery metadata are additive; older records normalize with empty provider fields",
+    "rollback": "older binaries ignore additive JSON fields only after an explicit compatibility test; rollback evidence remains required before public deployment"
+  },
+  "dependencies": [
+    {"owner": "02-wallet-auth", "need": "registry entry and live verifier", "status": "blocked-central"},
+    {"owner": "14-ai", "need": "product-session POST streaming route", "status": "blocked-central"},
+    {"owner": "15-trust-center", "need": "abuse and appeal handoff", "status": "local-adapter-present"},
+    {"owner": "20-cloud", "need": "large attachment object references and malware scan", "status": "not-integrated"},
+    {"owner": "26-data-fabric", "need": "canonical delivery and billing events", "status": "contract-proposed"},
+    {"owner": "28-website", "need": "public /mail route and metadata", "status": "not-integrated"},
+    {"owner": "29-integration", "need": "freeze contract and merge order", "status": "pending-acceptance"},
+    {"owner": "30-security-sre", "need": "deployment secrets, public webhook, scans, backup and release", "status": "pending-acceptance"}
+  ],
+  "externalInputs": [
+    "provider account and approved credential reference",
+    "verified sender domain",
+    "DNS SPF DKIM and DMARC evidence",
+    "public HTTPS webhook URL",
+    "provider terms and regional legal approval",
+    "abuse desk and complaint escalation owner"
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

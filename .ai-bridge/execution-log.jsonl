@@ -1,0 +1,5 @@
+{"at":"2026-07-27T08:00:26Z","stage":"RECOVER","action":"workspace_verified","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/25-mail","branch":"codex/final-mail","result":"exact_match_clean_start"}
+{"at":"2026-07-27T08:00:26Z","stage":"INTEGRATE","action":"internet_bridge_implemented","sourceCommit":"13c2c7695c9e814ba54d066b6e3e1a03354b7d57","result":"provider_submission_webhook_truth_replay_retry"}
+{"at":"2026-07-27T08:00:26Z","stage":"INTEGRATE","action":"targeted_verification","tests":["go test ./internal/mail","go test -race ./internal/mail","npm test --prefix apps/mail","npm run build --prefix apps/mail","npm run smoke --prefix apps/mail"],"result":"pass"}
+{"at":"2026-07-27T08:00:26Z","stage":"INTEGRATE","action":"shared_preflight","command":"go test ./...","result":"blocked_outside_mail_ownership","owners":["01-chain-core","11-developer","15-trust-center","30-security-sre"]}
+{"at":"2026-07-27T08:00:26Z","stage":"PROTECT","action":"runtime_checkpoint_pushed","localSha":"13c2c7695c9e814ba54d066b6e3e1a03354b7d57","remoteSha":"13c2c7695c9e814ba54d066b6e3e1a03354b7d57","result":"verified_equal"}
