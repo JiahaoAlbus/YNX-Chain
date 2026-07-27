@@ -60,13 +60,13 @@ requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
 requireValue(stateSource.includes("const CommittedStateVersion = 11"), "runtime committed-state version drift");
 requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V11", CommittedStateVersion)'), "runtime AppHash domain drift");
-requireValue(applicationSource.includes("ApplicationVersion   = 16"), "runtime ABCI application version drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 17"), "runtime ABCI application version drift");
 for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
   requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
 }
 requireValue(snapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "runtime state sync size bound drift");
 requireValue(contract.stateSchema.committedStateVersion === 11, "contract committed-state version drift");
-requireValue(contract.stateSchema.applicationVersion === 16, "contract ABCI application version drift");
+requireValue(contract.stateSchema.applicationVersion === 17, "contract ABCI application version drift");
 requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V11", "contract AppHash domain drift");
 requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
 requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
@@ -77,7 +77,7 @@ requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplet
 for (const route of [...contract.routeClasses.publicRead, ...contract.routeClasses.signedMutation, ...contract.routeClasses.evmCompatibility]) {
   requireRoute(gatewaySource, route);
 }
-requireValue(contract.contractVersion === "1.6.0", "unexpected Chain Core contract version");
+requireValue(contract.contractVersion === "1.7.0", "unexpected Chain Core contract version");
 requireValue(contract.evmRpc.committedOnly === true, "EVM RPC must remain committed-state only");
 requireValue(contract.evmRpc.historicalAccountState === false, "EVM RPC cannot claim historical account state");
 requireValue(contract.evmRpc.historicalContractState === false, "EVM RPC cannot claim historical contract state");
@@ -91,7 +91,7 @@ for (const method of contract.evmRpc.methods) {
 for (const implementation of ["evmSendRawTransaction", "evmCommittedBlockResult", "evmCommittedBlockTransactionResult", "evmCommittedAccountResult", "evmCommittedContractCode", "evmCommittedContractCall", "evmCommittedResult"]) {
   requireValue(evmSource.includes(`func (g *Gateway) ${implementation}`), `runtime EVM implementation missing: ${implementation}`);
 }
-for (const fragment of ["EthereumLegacyTransferType", "EthereumAccessListTransferType", "EthereumTransferGasLimit", "DecodeEthereumLegacyTransaction", "DecodeEthereumAccessListTransaction", "DecodeEthereumValueTransfer", "func (tx EthereumLegacyTransaction) Verify", "func (tx EthereumAccessListTransaction) Verify"]) {
+for (const fragment of ["EthereumLegacyTransferType", "EthereumAccessListTransferType", "EthereumDynamicFeeTransferType", "EthereumTransferGasLimit", "EthereumCompatibilityBaseFeePerGas", "DecodeEthereumLegacyTransaction", "DecodeEthereumAccessListTransaction", "DecodeEthereumDynamicFeeTransaction", "DecodeEthereumValueTransfer", "func (tx EthereumLegacyTransaction) Verify", "func (tx EthereumAccessListTransaction) Verify", "func (tx EthereumDynamicFeeTransaction) Verify", "func (tx EthereumValueTransfer) MaximumGasFee"]) {
   requireValue(ethereumTransactionSource.includes(fragment), `bounded Ethereum transaction runtime evidence missing: ${fragment}`);
 }
 const legacyProfile = contract.evmRpc.ethereumLegacyTransactionProfile;
@@ -102,7 +102,12 @@ const accessListProfile = contract.evmRpc.ethereumAccessListTransactionProfile;
 requireValue(accessListProfile.transactionType === "0x1" && accessListProfile.standard === "EIP-2930" && accessListProfile.chainId === 6423 && accessListProfile.gasLimit === 21000, "bounded EIP-2930 identity or gas profile drift");
 requireValue(accessListProfile.accessList === "empty-only" && accessListProfile.contractCreation === false && accessListProfile.calldata === false && accessListProfile.eip1559Fees === false, "bounded EIP-2930 unsupported feature boundary drift");
 requireValue(accessListProfile.signatureRecovery === true && accessListProfile.yParity === true && accessListProfile.dualHashIdentity === true && accessListProfile.receiptAuditValidation === true, "bounded EIP-2930 evidence profile drift");
-requireValue(evmSource.includes('result["accessList"] = []any{}') && evmSource.includes('result["yParity"]'), "EIP-2930 JSON-RPC transaction mapping missing");
+const dynamicFeeProfile = contract.evmRpc.ethereumDynamicFeeTransactionProfile;
+requireValue(dynamicFeeProfile.transactionType === "0x2" && dynamicFeeProfile.standard === "EIP-1559" && dynamicFeeProfile.chainId === 6423 && dynamicFeeProfile.gasLimit === 21000, "bounded EIP-1559 identity or gas profile drift");
+requireValue(dynamicFeeProfile.accessList === "empty-only" && dynamicFeeProfile.contractCreation === false && dynamicFeeProfile.calldata === false && dynamicFeeProfile.baseFeePerGas === 0 && dynamicFeeProfile.effectiveGasPrice === "maxPriorityFeePerGas", "bounded EIP-1559 compatibility boundary drift");
+requireValue(dynamicFeeProfile.maximumFeeExposureRequired === true && dynamicFeeProfile.maximumAffordabilityCheck === "value-plus-maxFeePerGas-times-gasLimit" && dynamicFeeProfile.finalDebit === "value-plus-effectiveGasPrice-times-gasLimit" && dynamicFeeProfile.dynamicBaseFeeMarket === false && dynamicFeeProfile.burn === false && dynamicFeeProfile.signatureRecovery === true && dynamicFeeProfile.yParity === true && dynamicFeeProfile.dualHashIdentity === true && dynamicFeeProfile.receiptAuditValidation === true, "bounded EIP-1559 evidence profile drift");
+requireValue(evmSource.includes('result["accessList"] = []any{}') && evmSource.includes('result["yParity"]'), "typed Ethereum JSON-RPC transaction mapping missing");
+requireValue(evmSource.includes('result["maxPriorityFeePerGas"]') && evmSource.includes('result["maxFeePerGas"]') && evmSource.includes('"baseFeePerGas"'), "EIP-1559 JSON-RPC fee mapping missing");
 requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(receipt)"), "committed Ethereum receipt audit validation missing");
 requireValue(evmSource.includes("consensus.ValidateBFTEVMReceipt(ideReceipt)"), "JSON-RPC receipt audit validation missing");
 requireValue(contract.evmRpc.rejectionCodes.invalidParams === -32602, "EVM invalid-parameter code drift");
@@ -169,8 +174,14 @@ for (const required of [
   "evm-eip2930-empty-access-list-value-transfer-accept",
   "evm-eip2930-non-empty-access-list-reject",
   "evm-eip2930-calldata-or-contract-creation-reject",
-  "evm-eip2930-wrong-chain-or-eip1559-reject",
+  "evm-eip2930-wrong-chain-or-unsupported-typed-reject",
   "evm-eip2930-replay-reject",
+  "evm-eip1559-zero-base-fee-transfer-accept",
+  "evm-eip1559-invalid-fee-relation-reject",
+  "evm-eip1559-max-fee-affordability-reject",
+  "evm-eip1559-non-empty-access-list-reject",
+  "evm-eip1559-calldata-or-contract-creation-reject",
+  "evm-eip1559-wrong-chain-replay-or-unsupported-type-reject",
   "evm-receipt-audit-tamper-reject",
   "evm-committed-block-evidence-accept",
   "evm-block-transaction-count-index-accept",

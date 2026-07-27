@@ -8,6 +8,7 @@ All paths are repository-relative and refer to the current source commit only af
 | Reproducible medium-usage path | `economics/examples/medium-usage.json` | `go run ./cmd/ynx-economics-sim -input economics/examples/medium-usage.json` |
 | Consensus fee event schema and audit hash | `internal/consensus/fee_state.go` | `go test ./internal/consensus` |
 | Fee persistence, query, reconciliation, tamper rejection | `internal/consensus/transaction_test.go`, `internal/consensus/fee_state_test.go` | `go test ./internal/consensus` |
+| Bounded EIP-155, EIP-2930 and zero-base-fee EIP-1559 value-transfer execution, fee exposure and replay boundaries | `internal/consensus/ethereum_transaction.go`, `internal/consensus/ethereum_transaction_test.go`, `internal/bftgateway/evm.go`, `internal/bftgateway/ethereum_transaction_test.go` | `make bft-evm-legacy-transfer-check`; `make bft-evm-access-list-transfer-check`; `make bft-evm-dynamic-fee-transfer-check` |
 | Gateway source/asOf/version/coverage responses | `internal/bftgateway/economics.go`, `internal/bftgateway/ai_gateway_test.go` | `go test ./internal/bftgateway` |
 | v7/v8/v9/v10 to v11 migration boundaries | `internal/consensus/state.go`, `MIGRATION_COMPATIBILITY.md`, migration tests | `go test ./internal/consensus -run 'MigratesVersion'` |
 | Delegation, unbonding liability, maturity and withdrawal | `internal/consensus/staking_action.go`, `staking_application.go`, `staking_action_test.go` | `go test ./internal/consensus -run Staking` |

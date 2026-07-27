@@ -1,12 +1,11 @@
 # Agent Status
 
-- Workspace and branch match Product 01 exactly: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core` on `codex/final-chain-core`; CodexPro server modes are bash `full`, write `workspace`, tool `full`.
-- The network-interruption Dirty Change was read, protected and completed rather than overwritten. No reset, clean or force push was used.
-- Bounded EIP-155 runtime commit `5469ed2` is pushed. It accepts chain-6423 legacy type `0x0` value transfers with recovered secp256k1 sender, zero-based account nonce, empty calldata, no contract creation and exactly 21000 gas.
-- Receipt evidence hardening commit `328ba67b72844d9c8902dffe3a61fae57be2392a` is pushed. ABCI EVM receipts must pass canonical audit-hash and structural validation and match CometBFT transaction hash, block height, sender, recipient and action evidence.
-- Bounded EIP-2930 runtime commit `6959df920e7108eb32c4f552076bca399312dbc6` is pushed and matches the remote. It accepts only type `0x1`, chain ID 6423, an empty access list, a 20-byte recipient, empty calldata and exactly 21000 gas; y-parity sender recovery, deterministic gas-price fee debit, replay rejection and dual Ethereum/Comet identity are proven.
-- Non-empty access lists, EIP-1559 type `0x2`, contract creation and calldata remain unsupported and fail closed.
-- Release Record, Integration Contract v1.6.0, Handoff, full-goal coverage and 50 unique cross-product vectors are source-bound to runtime baseline `6959df920e71`; committed state remains v11, ABCI application version is 16 and State Sync snapshot format remains 1.
-- Evidence gates passed: integration contract, EIP-2930, EIP-155, EVM receipt, consensus/Gateway race, full command/internal regression, static, objective, placeholder and secret checks.
-- Current source is not the authoritative public runtime. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.
-- Next runtime action after the evidence checkpoint is an exact EIP-1559 type-0x2 compatibility audit; no EIP-1559 support is claimed.
+- Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core`; branch: `codex/final-chain-core`; server modes: bash `full`, write `workspace`, tool `full`.
+- Network-interruption and concurrent Dirty Changes were read, tested and protected. No reset, clean, force push or cross-worktree edit was used.
+- Runtime commit `d6505fb409884e5de578a3a4f92cc0a592ba4fd5` is pushed and matches `origin/codex/final-chain-core`.
+- Chain Core now accepts bounded EIP-1559 type `0x02` value transfers only under the zero-base-fee compatibility profile: chain ID 6423, recovered secp256k1 sender, zero-based nonce, exact 21000 gas, empty access list, empty calldata, no contract creation, `0 < maxPriorityFeePerGas <= maxFeePerGas`, sender affordability for value plus maximum fee exposure, and final debit at effective gas price.
+- JSON-RPC maps truthful `type: 0x2`, `maxPriorityFeePerGas`, `maxFeePerGas`, empty `accessList`, `yParity`, `effectiveGasPrice` and block `baseFeePerGas: 0x0`. Ethereum Keccak and CometBFT SHA-256 identities remain distinct and receipt evidence remains audit-bound.
+- No dynamic base-fee adjustment, burn mechanism, generalized EVM execution, non-empty access list, calldata or contract creation is claimed.
+- Release Record and Integration Contract v1.7.0 are frozen to source `d6505fb40988`; committed state remains v11, ABCI application version is 17 and State Sync snapshot format is 1.
+- Evidence gates passed: 56-vector integration contract, EIP-1559 focused gate, EIP-155 and EIP-2930 regressions, committed receipt gate, consensus/Gateway and Indexer race tests, Indexer recovery gate, full command/internal regression, static, objective-state, placeholder and secret checks.
+- `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.

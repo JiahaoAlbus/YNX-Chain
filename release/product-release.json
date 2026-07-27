@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-27T10:36:39Z",
+  "generatedAt": "2026-07-27T11:15:10Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "6959df920e71",
+    "implementationCommit": "d6505fb40988",
     "committedStateVersion": 11,
-    "contractVersion": "1.6.0",
+    "contractVersion": "1.7.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -64,6 +64,7 @@
     "evm-signed-ynxt-broadcast",
     "evm-eip155-legacy-value-transfer-and-dual-hash-identity",
     "evm-eip2930-empty-access-list-value-transfer-and-dual-hash-identity",
+    "evm-eip1559-zero-base-fee-value-transfer-and-dual-hash-identity",
     "evm-committed-receipt-audit-validation",
     "evm-committed-transaction-receipt-and-logs",
     "evm-committed-bounded-contract-code-call-and-resource-estimate",
@@ -76,7 +77,7 @@
     "The public topology is not four-validator CometBFT voting.",
     "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
     "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
-    "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0 and EIP-2930 type-0x01 value transfers with an empty access list and exactly 21000 gas; non-empty access lists, EIP-1559, contract creation and calldata are not supported.",
+    "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0, EIP-2930 type-0x01 empty-access-list and EIP-1559 type-0x02 zero-base-fee value transfers with exactly 21000 gas; non-empty access lists, contract creation, calldata and a dynamic base-fee market are not supported.",
     "No owner production signer, public BFT cutover approval, or independent public proof is recorded."
   ],
   "evidence": [

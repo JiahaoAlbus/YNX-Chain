@@ -2,11 +2,11 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "6959df920e71",
-  "contractVersion": "1.6.0",
+  "sourceCommit": "d6505fb40988",
+  "contractVersion": "1.7.0",
   "stateSchema": {
     "committedStateVersion": 11,
-    "applicationVersion": 16,
+    "applicationVersion": 17,
     "appHashDomain": "YNX_ABCI_STATE_V11",
     "stateSyncSnapshotFormat": 1,
     "stateSyncSnapshotMaxBytes": 67108864
@@ -76,6 +76,11 @@
       "type": "ethereum_access_list_eip2930_empty_value_transfer",
       "version": 1,
       "source": "internal/consensus/ethereum_transaction.go"
+    },
+    {
+      "type": "ethereum_dynamic_fee_eip1559_zero_base_fee_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
     }
   ],
   "routeClasses": {
@@ -137,7 +142,7 @@
       "eth_getTransactionReceipt",
       "eth_getLogs"
     ],
-    "signedTransactionEnvelope": "YNX canonical transfer/v1, bounded Ethereum legacy EIP-155 type-0, or bounded EIP-2930 type-0x01 empty-access-list value transfer encoded as 0x data",
+    "signedTransactionEnvelope": "YNX canonical transfer/v1, bounded Ethereum legacy EIP-155 type-0, bounded EIP-2930 type-0x01 empty-access-list, or bounded EIP-1559 type-0x02 zero-base-fee value transfer encoded as 0x data",
     "ethereumLegacyTransactionProfile": {
       "transactionType": "0x0",
       "chainId": 6423,
@@ -164,6 +169,27 @@
       "dualHashIdentity": true,
       "receiptAuditValidation": true
     },
+    "ethereumDynamicFeeTransactionProfile": {
+      "transactionType": "0x2",
+      "standard": "EIP-1559",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "accessList": "empty-only",
+      "contractCreation": false,
+      "calldata": false,
+      "baseFeePerGas": 0,
+      "effectiveGasPrice": "maxPriorityFeePerGas",
+      "priorityFeeRule": "0 < maxPriorityFeePerGas <= maxFeePerGas",
+      "maximumFeeExposureRequired": true,
+      "maximumAffordabilityCheck": "value-plus-maxFeePerGas-times-gasLimit",
+      "finalDebit": "value-plus-effectiveGasPrice-times-gasLimit",
+      "dynamicBaseFeeMarket": false,
+      "burn": false,
+      "signatureRecovery": true,
+      "yParity": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
     "committedOnly": true,
     "historicalAccountState": false,
     "historicalContractState": false,
@@ -171,7 +197,7 @@
     "boundedContractRuntimeMode": "pinned-artifact-bounded-evm-subset",
     "boundedCallNonZeroValue": false,
     "boundedCallStateOverrides": false,
-    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v16 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
+    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v17 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
     "stateRootSemantics": "CometBFT AppHash over YNX committed state v11",
     "transactionsRootSemantics": "CometBFT data hash; not an Ethereum MPT",
     "rejectionCodes": {
