@@ -19,6 +19,12 @@ test("server-renders the independent Oracle product route", async () => {
   assert.match(html, /No sample price is shown/);
   assert.match(html, /ynx\.oracle\.v1/);
   assert.match(html, /href="\/manifest\.webmanifest"/);
+  assert.match(html, /data-text-scale="100"/);
+  assert.match(html, /class="skip" href="#content"/);
+  assert.match(html, /id="content" tabindex="-1"/);
+  assert.match(html, /class="endpoint-copy" role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /aria-current="page"/);
+  assert.doesNotMatch(html, /tabindex="[1-9][0-9]*"/i);
   assert.doesNotMatch(html, /Codex|worktree|example\.com|fake price/i);
 });
 
