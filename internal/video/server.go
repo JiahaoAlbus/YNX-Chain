@@ -584,7 +584,17 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, actor string) {
 		return
 	}
 	owned := r.FormValue("owned_content_declaration") == "true"
-	out, err := s.service.Upload(r.Context(), actor, r.FormValue("channel_id"), UploadInput{Title: r.FormValue("title"), Description: r.FormValue("description"), Filename: h.Filename, ContentType: h.Header.Get("Content-Type"), Size: size, OwnedDeclaration: owned, Reader: file})
+	var rightsExpiresAt *time.Time
+	if raw := strings.TrimSpace(r.FormValue("rights_expires_at")); raw != "" {
+		parsed, parseErr := time.Parse(time.RFC3339, raw)
+		if parseErr != nil {
+			problem(w, 400, errors.New("rights_expires_at must be RFC3339"))
+			return
+		}
+		rightsExpiresAt = &parsed
+	}
+	territories := strings.Split(r.FormValue("rights_territories"), ",")
+	out, err := s.service.Upload(r.Context(), actor, r.FormValue("channel_id"), UploadInput{Title: r.FormValue("title"), Description: r.FormValue("description"), Filename: h.Filename, ContentType: h.Header.Get("Content-Type"), ExpectedSHA256: r.FormValue("sha256"), RightsBasis: r.FormValue("rights_basis"), RightsSource: r.FormValue("rights_source"), RightsLicense: r.FormValue("rights_license"), RightsTerritories: territories, RightsExpiresAt: rightsExpiresAt, RightsEvidenceSHA256: r.FormValue("rights_evidence_sha256"), Size: size, OwnedDeclaration: owned, Reader: file})
 	respond(w, out, err)
 }
 func (s *Server) allow(key string) bool {

@@ -3,6 +3,8 @@ package video
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"os"
 	"path/filepath"
@@ -95,10 +97,15 @@ func fixture(t *testing.T, mutate func(*Config)) (*Service, *Channel) {
 	}
 	return s, c
 }
+func ownedUploadInput(title, filename, contentType string, data []byte) UploadInput {
+	digest := sha256.Sum256(data)
+	return UploadInput{Title: title, Filename: filename, ContentType: contentType, ExpectedSHA256: hex.EncodeToString(digest[:]), RightsBasis: "owned", RightsSource: "test fixture creator attestation", RightsLicense: "owner-controlled test fixture", RightsTerritories: []string{"WORLDWIDE"}, Size: int64(len(data)), OwnedDeclaration: true, Reader: bytes.NewReader(data)}
+}
+
 func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
 	t.Helper()
 	data := testMP4
-	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: title, Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(data)), OwnedDeclaration: true, Reader: bytes.NewReader(data)})
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput(title, "owned.mp4", "video/mp4", data))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +142,7 @@ func TestUploadPublishMetricsAndRestart(t *testing.T) {
 }
 func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 	s, c := fixture(t, nil)
-	_, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "x", Filename: "x.mov", ContentType: "video/quicktime", Size: 2, OwnedDeclaration: true, Reader: bytes.NewReader([]byte("xx"))})
+	_, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("x", "x.mov", "video/quicktime", []byte("xx")))
 	if err == nil {
 		t.Fatal("unsupported type accepted")
 	}
@@ -143,7 +150,7 @@ func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 	if err == nil {
 		t.Fatal("missing rights declaration accepted")
 	}
-	_, err = s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "spoofed", Filename: "x.mp4", ContentType: "video/mp4", Size: 12, OwnedDeclaration: true, Reader: bytes.NewReader([]byte("not-an-mp4!"))})
+	_, err = s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("spoofed", "x.mp4", "video/mp4", []byte("not-an-mp4!")))
 	if err == nil {
 		t.Fatal("spoofed MIME accepted")
 	}
@@ -152,9 +159,55 @@ func TestBoundsAuthorizationAndFailClosedProcessing(t *testing.T) {
 		t.Fatalf("authorization not enforced: %v", err)
 	}
 	s3, c3 := fixture(t, func(cfg *Config) { cfg.Scanner = testScanner{err: errors.New("malware signature")} })
-	v3, err := s3.Upload(context.Background(), c3.Owner, c3.ID, UploadInput{Title: "bad", Filename: "bad.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
+	v3, err := s3.Upload(context.Background(), c3.Owner, c3.ID, ownedUploadInput("bad", "bad.mp4", "video/mp4", testMP4))
 	if err == nil || v3.Status != "failed" {
 		t.Fatalf("scan failure did not fail closed: %+v %v", v3, err)
+	}
+}
+
+func TestUploadChecksumAndRightsExpiryFailClosed(t *testing.T) {
+	s, c := fixture(t, nil)
+	badChecksum := ownedUploadInput("checksum", "owned.mp4", "video/mp4", testMP4)
+	badChecksum.ExpectedSHA256 = "0000000000000000000000000000000000000000000000000000000000000000"
+	if _, err := s.Upload(context.Background(), c.Owner, c.ID, badChecksum); err == nil {
+		t.Fatal("mismatched upload checksum accepted")
+	}
+	missingSource := ownedUploadInput("rights", "owned.mp4", "video/mp4", testMP4)
+	missingSource.RightsSource = ""
+	if _, err := s.Upload(context.Background(), c.Owner, c.ID, missingSource); err == nil {
+		t.Fatal("incomplete rights provenance accepted")
+	}
+	future := s.cfg.Now().UTC().Add(time.Hour)
+	expiring := ownedUploadInput("expiring", "owned.mp4", "video/mp4", testMP4)
+	expiring.RightsExpiresAt = &future
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, expiring)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Rights.EvidenceSHA256 != v.SHA256 || len(v.Rights.Territories) != 1 || v.Rights.Territories[0] != "WORLDWIDE" {
+		t.Fatalf("rights evidence was not normalized: %+v", v.Rights)
+	}
+	s.cfg.Now = func() time.Time { return future.Add(time.Second) }
+	if err = s.Publish(c.Owner, v.ID, VisibilityPublic); err == nil {
+		t.Fatal("expired rights declaration allowed public publication")
+	}
+}
+
+func TestLegacyStateWithoutRightsPreservesIntegrityAndFailsClosed(t *testing.T) {
+	s, c := fixture(t, nil)
+	v := upload(t, s, c, "legacy")
+	if err := s.store.update(func(st *State) error {
+		st.Videos[v.ID].Rights = nil
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := NewService(s.cfg)
+	if err != nil {
+		t.Fatalf("legacy state without rights failed integrity verification: %v", err)
+	}
+	if err = restarted.Publish(c.Owner, v.ID, VisibilityPublic); err == nil {
+		t.Fatal("legacy record without rights was published")
 	}
 }
 
@@ -207,7 +260,7 @@ func TestViewerPrivacyDeletionKeepsMinimalAudit(t *testing.T) {
 
 func TestDerivedMediaCannotEscapeAccountQuota(t *testing.T) {
 	s, c := fixture(t, func(cfg *Config) { cfg.AccountQuotaBytes = int64(len(testMP4)) + 4 })
-	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "quota", Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("quota", "owned.mp4", "video/mp4", testMP4))
 	if !errors.Is(err, ErrQuota) || v.Status != "failed" {
 		t.Fatalf("derived output escaped quota: %+v %v", v, err)
 	}
@@ -219,7 +272,7 @@ func TestDerivedMediaCannotEscapeAccountQuota(t *testing.T) {
 
 func TestMetadataAssetsRetryStudioAndAICancel(t *testing.T) {
 	s, c := fixture(t, func(cfg *Config) { cfg.Processor = testProcessor{err: errors.New("worker offline")} })
-	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "Recover", Filename: "owned.mp4", ContentType: "video/mp4", Size: int64(len(testMP4)), OwnedDeclaration: true, Reader: bytes.NewReader(testMP4)})
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Recover", "owned.mp4", "video/mp4", testMP4))
 	if err == nil || v.Status != "failed" {
 		t.Fatalf("processing failure not persisted: %+v %v", v, err)
 	}
@@ -391,7 +444,7 @@ func TestRepositoryOwnedMediaTranscodesWithFFmpeg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v, err := s.Upload(context.Background(), c.Owner, c.ID, UploadInput{Title: "Repository-owned generated clip", Filename: "ynx-owned-test.mp4", ContentType: "video/mp4", Size: int64(len(data)), OwnedDeclaration: true, Reader: bytes.NewReader(data)})
+	v, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Repository-owned generated clip", "ynx-owned-test.mp4", "video/mp4", data))
 	if err != nil {
 		t.Fatal(err)
 	}

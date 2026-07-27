@@ -11,27 +11,37 @@ const (
 )
 
 type Video struct {
-	ID               string         `json:"id"`
-	Owner            string         `json:"owner"`
-	ChannelID        string         `json:"channel_id"`
-	Title            string         `json:"title"`
-	Description      string         `json:"description"`
-	OwnedDeclaration bool           `json:"owned_content_declaration"`
-	Visibility       Visibility     `json:"visibility"`
-	Status           string         `json:"status"`
-	Failure          string         `json:"failure,omitempty"`
-	OriginalName     string         `json:"original_name"`
-	ContentType      string         `json:"content_type"`
-	Bytes            int64          `json:"bytes"`
-	SHA256           string         `json:"sha256"`
-	ObjectKey        string         `json:"object_key"`
-	Variants         []MediaVariant `json:"variants,omitempty"`
-	ThumbnailKey     string         `json:"thumbnail_key,omitempty"`
-	Captions         []CaptionTrack `json:"captions,omitempty"`
-	Takedown         *Takedown      `json:"takedown,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	PublishedAt      *time.Time     `json:"published_at,omitempty"`
+	ID               string             `json:"id"`
+	Owner            string             `json:"owner"`
+	ChannelID        string             `json:"channel_id"`
+	Title            string             `json:"title"`
+	Description      string             `json:"description"`
+	OwnedDeclaration bool               `json:"owned_content_declaration"`
+	Visibility       Visibility         `json:"visibility"`
+	Status           string             `json:"status"`
+	Failure          string             `json:"failure,omitempty"`
+	OriginalName     string             `json:"original_name"`
+	ContentType      string             `json:"content_type"`
+	Bytes            int64              `json:"bytes"`
+	SHA256           string             `json:"sha256"`
+	Rights           *RightsDeclaration `json:"rights,omitempty"`
+	ObjectKey        string             `json:"object_key"`
+	Variants         []MediaVariant     `json:"variants,omitempty"`
+	ThumbnailKey     string             `json:"thumbnail_key,omitempty"`
+	Captions         []CaptionTrack     `json:"captions,omitempty"`
+	Takedown         *Takedown          `json:"takedown,omitempty"`
+	CreatedAt        time.Time          `json:"created_at"`
+	UpdatedAt        time.Time          `json:"updated_at"`
+	PublishedAt      *time.Time         `json:"published_at,omitempty"`
+}
+
+type RightsDeclaration struct {
+	Basis          string     `json:"basis"`
+	Source         string     `json:"source"`
+	License        string     `json:"license"`
+	Territories    []string   `json:"territories"`
+	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
+	EvidenceSHA256 string     `json:"evidence_sha256"`
 }
 
 type MediaVariant struct {

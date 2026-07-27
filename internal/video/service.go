@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -47,6 +48,11 @@ type Service struct {
 }
 type UploadInput struct {
 	Title, Description, Filename, ContentType string
+	ExpectedSHA256                            string
+	RightsBasis, RightsSource, RightsLicense  string
+	RightsTerritories                         []string
+	RightsExpiresAt                           *time.Time
+	RightsEvidenceSHA256                      string
 	Size                                      int64
 	OwnedDeclaration                          bool
 	Reader                                    io.Reader
@@ -742,6 +748,78 @@ func cleanText(v string, max int) (string, error) {
 	}
 	return v, nil
 }
+
+func expectedSHA256(value string) ([]byte, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	if len(value) != sha256.Size*2 {
+		return nil, errors.New("sha256 checksum is required as 64 hex characters")
+	}
+	decoded, err := hex.DecodeString(value)
+	if err != nil || len(decoded) != sha256.Size {
+		return nil, errors.New("sha256 checksum is invalid")
+	}
+	return decoded, nil
+}
+
+func normalizeRights(in UploadInput, now time.Time, contentSHA256 string) (RightsDeclaration, error) {
+	basis := strings.ToLower(strings.TrimSpace(in.RightsBasis))
+	switch basis {
+	case "owned", "licensed", "public-domain":
+	default:
+		return RightsDeclaration{}, errors.New("rights basis must be owned, licensed, or public-domain")
+	}
+	source, err := cleanText(in.RightsSource, 256)
+	if err != nil {
+		return RightsDeclaration{}, fmt.Errorf("rights source: %w", err)
+	}
+	license, err := cleanText(in.RightsLicense, 160)
+	if err != nil {
+		return RightsDeclaration{}, fmt.Errorf("rights license: %w", err)
+	}
+	if len(in.RightsTerritories) == 0 || len(in.RightsTerritories) > 32 {
+		return RightsDeclaration{}, errors.New("rights territories must contain 1..32 entries")
+	}
+	territories := make([]string, 0, len(in.RightsTerritories))
+	seen := map[string]struct{}{}
+	for _, raw := range in.RightsTerritories {
+		territory := strings.ToUpper(strings.TrimSpace(raw))
+		if territory == "" || len(territory) > 64 {
+			return RightsDeclaration{}, errors.New("rights territory is invalid")
+		}
+		if _, ok := seen[territory]; ok {
+			continue
+		}
+		seen[territory] = struct{}{}
+		territories = append(territories, territory)
+	}
+	var expiresAt *time.Time
+	if in.RightsExpiresAt != nil {
+		expires := in.RightsExpiresAt.UTC()
+		if !expires.After(now) {
+			return RightsDeclaration{}, errors.New("rights declaration is already expired")
+		}
+		expiresAt = &expires
+	}
+	evidence := strings.ToLower(strings.TrimSpace(in.RightsEvidenceSHA256))
+	if evidence == "" {
+		evidence = contentSHA256
+	}
+	if _, err = expectedSHA256(evidence); err != nil {
+		return RightsDeclaration{}, fmt.Errorf("rights evidence hash: %w", err)
+	}
+	return RightsDeclaration{Basis: basis, Source: source, License: license, Territories: territories, ExpiresAt: expiresAt, EvidenceSHA256: evidence}, nil
+}
+
+func rightsAllowPublication(rights *RightsDeclaration, now time.Time) error {
+	if rights == nil || rights.Basis == "" || rights.Source == "" || rights.License == "" || len(rights.Territories) == 0 || rights.EvidenceSHA256 == "" {
+		return errors.New("complete rights declaration is required before publication")
+	}
+	if rights.ExpiresAt != nil && !rights.ExpiresAt.After(now) {
+		return errors.New("rights declaration expired before publication")
+	}
+	return nil
+}
+
 func (s *Service) audit(st *State, actor, action, typ, oid, detail string) {
 	payload := sha256.Sum256([]byte(strings.Join([]string{actor, action, typ, oid, detail}, "\n")))
 	previous := ""
@@ -792,6 +870,10 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	defer s.quotaMu.Unlock()
 	if !in.OwnedDeclaration {
 		return nil, errors.New("owned-content declaration is required")
+	}
+	expectedDigest, err := expectedSHA256(in.ExpectedSHA256)
+	if err != nil {
+		return nil, err
 	}
 	if in.Size <= 0 || in.Size > s.cfg.MaxObjectBytes {
 		return nil, errors.New("object size outside configured bound")
@@ -855,12 +937,23 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, errors.New("declared size does not match upload")
 	}
+	actualDigest := h.Sum(nil)
+	if subtle.ConstantTimeCompare(expectedDigest, actualDigest) != 1 {
+		_ = s.cfg.Objects.RemovePrefix(vid)
+		return nil, errors.New("sha256 checksum mismatch")
+	}
 	if err = verifyVideoSignature(original, in.ContentType); err != nil {
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, err
 	}
 	now := s.cfg.Now().UTC()
-	v := &Video{ID: vid, Owner: actor, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: hex.EncodeToString(h.Sum(nil)), ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
+	contentSHA256 := hex.EncodeToString(actualDigest)
+	rights, rightsErr := normalizeRights(in, now, contentSHA256)
+	if rightsErr != nil {
+		_ = s.cfg.Objects.RemovePrefix(vid)
+		return nil, rightsErr
+	}
+	v := &Video{ID: vid, Owner: actor, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
 	if err = s.store.update(func(st *State) error {
 		st.Videos[vid] = v
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
@@ -1007,6 +1100,11 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 			return errors.New("video is taken down")
 		}
 		now := s.cfg.Now().UTC()
+		if visibility != VisibilityPrivate {
+			if err := rightsAllowPublication(v.Rights, now); err != nil {
+				return err
+			}
+		}
 		v.Visibility = visibility
 		v.Status = "published"
 		v.UpdatedAt = now

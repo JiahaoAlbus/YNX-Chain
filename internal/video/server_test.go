@@ -1,9 +1,14 @@
 package video
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
 	"strings"
 	"testing"
 )
@@ -42,6 +47,51 @@ func TestServerAuthStrictParsingAndModeratorBoundary(t *testing.T) {
 	}
 	if w := request(http.MethodPost, "/v1/reports/rpt_missing/moderate", "owner-token", `{"decision":"dismissed","explanation":"reviewed"}`); w.Code != http.StatusForbidden {
 		t.Fatalf("moderator boundary=%d", w.Code)
+	}
+}
+
+func TestUploadRouteRequiresChecksumAndPersistsRights(t *testing.T) {
+	s, channel := fixture(t, nil)
+	digest := sha256.Sum256(testMP4)
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	for key, value := range map[string]string{
+		"channel_id":                channel.ID,
+		"size":                      fmt.Sprint(len(testMP4)),
+		"sha256":                    hex.EncodeToString(digest[:]),
+		"title":                     "Route rights",
+		"owned_content_declaration": "true",
+		"rights_basis":              "licensed",
+		"rights_source":             "licensor agreement 2026-07",
+		"rights_license":            "bounded test license",
+		"rights_territories":        "PT,HK",
+		"rights_evidence_sha256":    hex.EncodeToString(digest[:]),
+	} {
+		if err := writer.WriteField(key, value); err != nil {
+			t.Fatal(err)
+		}
+	}
+	header := textproto.MIMEHeader{}
+	header.Set("Content-Disposition", `form-data; name="media"; filename="owned.mp4"`)
+	header.Set("Content-Type", "video/mp4")
+	part, err := writer.CreatePart(header)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = part.Write(testMP4); err != nil {
+		t.Fatal(err)
+	}
+	if err = writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	r := httptest.NewRequest(http.MethodPost, "/v1/uploads", &body)
+	r.Header.Set("Authorization", "Bearer owner-token")
+	r.Header.Set("Content-Type", writer.FormDataContentType())
+	r.Header.Set("Idempotency-Key", "server-upload-rights-0001")
+	w := httptest.NewRecorder()
+	NewServer(s, StaticTokenAuth{Tokens: map[string]string{"owner-token": channel.Owner}}).Handler().ServeHTTP(w, r)
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"basis":"licensed"`) || !strings.Contains(w.Body.String(), `"territories":["PT","HK"]`) {
+		t.Fatalf("rights-aware upload route failed: %d %s", w.Code, w.Body.String())
 	}
 }
 

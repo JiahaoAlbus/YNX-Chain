@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -62,6 +63,12 @@ func main() {
 	_ = writer.WriteField("title", "Repository-owned transcode smoke")
 	_ = writer.WriteField("description", "Owned test media; no production traffic or revenue.")
 	_ = writer.WriteField("owned_content_declaration", "true")
+	mediaHash := sha256.Sum256(media)
+	_ = writer.WriteField("sha256", hex.EncodeToString(mediaHash[:]))
+	_ = writer.WriteField("rights_basis", "owned")
+	_ = writer.WriteField("rights_source", "repository-owned generated test media")
+	_ = writer.WriteField("rights_license", "YNX test fixture; internal verification only")
+	_ = writer.WriteField("rights_territories", "WORLDWIDE")
 	partHeader := textproto.MIMEHeader{}
 	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="media"; filename="%s"`, filepath.Base(mediaPath)))
 	partHeader.Set("Content-Type", "video/mp4")
