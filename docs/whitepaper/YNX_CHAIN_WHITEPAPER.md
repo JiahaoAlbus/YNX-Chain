@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.2.0-candidate |
-| Effective date | 2026-07-22 |
-| Source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | Initial three-paragraph repository summary |
+| Version | 0.2.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `9f0c1f269abf017b1380177047688dbb9361a2d2` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.2.0-candidate |
 | Review status | Technical draft; independent security, economic, and legal review required |
 
 ## Direct answer
@@ -367,7 +367,9 @@ readiness, and explicit release authorization.
 
 As of the effective date:
 
-- the documentation and public-disclosure package is incomplete and not deployed;
+- the documentation and public-disclosure package is publicly rendered and
+  immutably hosted only as an unsigned candidate; production signing and named
+  reviews remain incomplete;
 - independent public proof for all declared service endpoints is incomplete;
 - product candidates are not automatically integrated into the central release;
 - final token allocation, staking economics, liquid staking, safety module,
@@ -396,6 +398,9 @@ As of the effective date:
 
 ## Change log
 
+- 0.2.1-candidate (2026-07-27): Normalized the complete document metadata tuple
+  and corrected the public-package status to match direct Website and immutable
+  download evidence without promoting production signing or named review.
 - 0.2.0-candidate (2026-07-22): Replaced the initial summary with a bounded
   technical disclosure covering identity, status semantics, consensus, accounts,
   execution, fees, staking, Wallet/Auth, AI, payments, trading, stablecoins,

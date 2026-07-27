@@ -2,13 +2,13 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | 2026-07-22 |
-| Accepted central source | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Economic candidate reviewed | `ff01dcee4c93acfb138dcde91f7605e408b706d5` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `9f0c1f269abf017b1380177047688dbb9361a2d2` |
+| Referenced economics candidate | `ff01dcee4c93acfb138dcde91f7605e408b706d5` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Testnet and simulation disclosure; economic, governance, security, tax, accounting, and legal review required |
 
 ## Direct answer
@@ -306,6 +306,9 @@ evidence exists:
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized version, source, release, review and
+  supersession metadata without promoting the reviewed economics candidate into
+  accepted consensus or Mainnet policy.
 - 0.1.0-candidate (2026-07-22): Established YNXT identity, current supply and fee
   truth, missing allocation, simulation-only issuance and burn defaults, staking
   and service boundaries, capital-claim schema, governance controls, adoption

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "1.0.0",
+  "productNumber": 18,
+  "productSlug": "docs-compliance-brand",
+  "productRelease": "0.2.0-candidate",
+  "sourceCommit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+  "lastUpdated": "2026-07-27",
+  "scope": "Bounded first cohort of highest-authority public documents. Inclusion validates metadata completeness; it does not imply named professional review, production signing or Mainnet status.",
+  "requiredMetadataFields": [
+    "Version",
+    "Effective date",
+    "Source commit",
+    "Product release",
+    "Last reviewed",
+    "Superseded version",
+    "Review status"
+  ],
+  "documents": [
+    {
+      "id": "ynx-chain-whitepaper",
+      "path": "docs/whitepaper/YNX_CHAIN_WHITEPAPER.md",
+      "authorityClass": "technical-whitepaper",
+      "metadata": {
+        "Version": "0.2.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.2.0-candidate",
+        "Review status": "Technical draft; independent security, economic, and legal review required"
+      },
+      "changeLogVersion": "0.2.1-candidate",
+      "publicEvidence": [
+        "release/evidence/website-public-acceptance-2026-07-26.json",
+        "release/product-release.json"
+      ]
+    },
+    {
+      "id": "ynxt-tokenomics",
+      "path": "docs/economics/YNXT_TOKENOMICS.md",
+      "authorityClass": "economics-disclosure",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Testnet and simulation disclosure; economic, governance, security, tax, accounting, and legal review required"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "release/facts/economics.json",
+        "release/facts/claims.json"
+      ]
+    },
+    {
+      "id": "security-privacy-ai-governance",
+      "path": "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+      "authorityClass": "security-privacy-governance",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Security and privacy candidate; named security, privacy and legal review required"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "docs/security/THREAT_MODEL.md",
+        "release/evidence/supply-chain-2026-07-22.json"
+      ]
+    },
+    {
+      "id": "terms-of-use-draft",
+      "path": "docs/legal/TERMS_OF_USE_DRAFT.md",
+      "authorityClass": "legal-draft",
+      "metadata": {
+        "Version": "0.1.1-candidate",
+        "Effective date": "Not effective; draft dated 2026-07-27",
+        "Source commit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "0.1.0-candidate",
+        "Review status": "Draft for qualified counsel; legal entity, jurisdiction, contact and acceptance mechanism not approved"
+      },
+      "changeLogVersion": "0.1.1-candidate",
+      "publicEvidence": [
+        "docs/legal/LEGAL_REVIEW_PACKET.md",
+        "release/facts/compliance.json"
+      ]
+    },
+    {
+      "id": "brand-guide",
+      "path": "docs/public/BRAND_GUIDE.md",
+      "authorityClass": "brand-guidance",
+      "metadata": {
+        "Version": "1.0.1-candidate",
+        "Effective date": "2026-07-27",
+        "Source commit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+        "Product release": "0.2.0-candidate",
+        "Last reviewed": "2026-07-27",
+        "Superseded version": "1.0.0-candidate",
+        "Review status": "Public design and naming handoff; asset/legal review pending"
+      },
+      "changeLogVersion": "1.0.1-candidate",
+      "publicEvidence": [
+        "release/facts/brand.json",
+        "release/evidence/website-public-acceptance-2026-07-26.json"
+      ]
+    }
+  ]
+}

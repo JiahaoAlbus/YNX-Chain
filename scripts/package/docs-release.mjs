@@ -11,6 +11,11 @@ import { createDeterministicZip } from "../lib/deterministic-zip.mjs";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const publicInputs = [
   "docs/public",
+  "docs/whitepaper/YNX_CHAIN_WHITEPAPER.md",
+  "docs/economics/YNXT_TOKENOMICS.md",
+  "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+  "docs/legal/TERMS_OF_USE_DRAFT.md",
+  "release/document-metadata-inventory.json",
   "release/public-product-metadata.json",
   "release/structured-data-suggestions.json",
   "release/facts/brand.json",

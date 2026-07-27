@@ -12,6 +12,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const requiredBundleInputs = [
   "docs/public/PUBLIC_BRAND_FACTS.md",
   "docs/public/FAQ.md",
+  "docs/whitepaper/YNX_CHAIN_WHITEPAPER.md",
+  "docs/economics/YNXT_TOKENOMICS.md",
+  "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+  "docs/legal/TERMS_OF_USE_DRAFT.md",
+  "release/document-metadata-inventory.json",
   "release/public-product-metadata.json",
   "release/facts/release-status.json",
   "release/evidence/website-public-acceptance-2026-07-26.json",

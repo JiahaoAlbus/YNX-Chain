@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 1.0.0-candidate |
-| Effective date | 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 1.0.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `9f0c1f269abf017b1380177047688dbb9361a2d2` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 1.0.0-candidate |
 | Review status | Public design and naming handoff; asset/legal review pending |
 
 ## Brand architecture
@@ -132,6 +132,8 @@ not expose personal data, secrets, internal endpoints or unverified success.
 
 ## Change log
 
+- 1.0.1-candidate (2026-07-27): Normalized the complete document metadata tuple;
+  asset-rights and legal review remain pending and no final media approval is implied.
 - 1.0.0-candidate (2026-07-22): Established brand architecture, color and layout,
   logo/icon, voice, state, accessibility, localization, imagery, naming and asset
   release rules.

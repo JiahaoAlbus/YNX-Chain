@@ -46,6 +46,7 @@ const required = [
   "release/schemas/public-record.schema.json",
   "release/schemas/authoritative-facts.schema.json",
   "release/schemas/claims-matrix.schema.json",
+  "release/document-metadata-inventory.json",
   "release/recovery-inventory-2026-07-25.json",
   "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md",
   "scripts/verify/public-disclosure-gate.mjs",
@@ -54,7 +55,8 @@ const required = [
   "docs/integration/INTEGRATION_HANDOFF.md",
   "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-  "scripts/verify/full-goal-coverage-gate.mjs"
+  "scripts/verify/full-goal-coverage-gate.mjs",
+  "scripts/verify/document-metadata-gate.mjs"
 ];
 
 const jsonFiles = [
@@ -69,6 +71,7 @@ const jsonFiles = [
   "release/sbom-npm.cdx.json",
   "release/go-module-inventory.json",
   "release/facts/authoritative-facts.json",
+  "release/document-metadata-inventory.json",
   "release/recovery-inventory-2026-07-25.json",
   ".ai-bridge/full-goal-coverage.json",
   "release/integration/docs-compliance-brand-contract.json",
@@ -206,8 +209,16 @@ if (coverageGate.status !== 0) {
   failures.push(`full goal coverage gate failed:\n${(coverageGate.stderr || coverageGate.stdout || "no output").trim()}`);
 }
 
+const metadataGate = spawnSync(process.execPath, ["scripts/verify/document-metadata-gate.mjs"], {
+  cwd: process.cwd(),
+  encoding: "utf8"
+});
+if (metadataGate.status !== 0) {
+  failures.push(`document metadata gate failed:\n${(metadataGate.stderr || metadataGate.stdout || "no output").trim()}`);
+}
+
 if (failures.length > 0) {
   process.stderr.write(`${failures.join("\n")}\n`);
   process.exit(1);
 }
-process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, ${stateKeys.length} evidence-bound release states, the public disclosure gate, and the full goal coverage gate\n`);
+process.stdout.write(`docs compliance check passed: ${required.length} named artifacts, ${jsonFiles.length} JSON records, ${expectedSearch.length} search pages, ${publicFiles.length} public documents, ${stateKeys.length} evidence-bound release states, the public disclosure gate, the full goal coverage gate, and the document metadata gate\n`);

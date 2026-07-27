@@ -1,8 +1,14 @@
 # Security, Privacy, and AI Governance
 
-Version: 0.1.0-candidate  
-Last reviewed: 2026-07-22  
-Source commit: `719e1018267ed5a53e6fae5211c5fd8a1503c35c`
+| Metadata | Value |
+| --- | --- |
+| Version | 0.1.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `9f0c1f269abf017b1380177047688dbb9361a2d2` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
+| Review status | Security and privacy candidate; named security, privacy and legal review required |
 
 ## AI authority
 
@@ -36,4 +42,7 @@ Local AI permission/action records and explicit approval behavior exist in the c
 
 ## Change log
 
-- 0.1.0-candidate: unified authority, consent, privacy, provider, audit and failure requirements.
+- 0.1.1-candidate (2026-07-27): Added the complete version, effective-date,
+  source, release, review and supersession tuple without changing runtime claims.
+- 0.1.0-candidate (2026-07-22): Unified authority, consent, privacy, provider,
+  audit and failure requirements.

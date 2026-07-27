@@ -2,12 +2,12 @@
 
 | Metadata | Value |
 | --- | --- |
-| Version | 0.1.0-candidate |
-| Effective date | Not effective; draft dated 2026-07-22 |
-| Evidence source commit | `719e1018267ed5a53e6fae5211c5fd8a1503c35c` |
-| Product release | YNX Testnet documentation candidate |
-| Last reviewed | 2026-07-22 |
-| Superseded version | None |
+| Version | 0.1.1-candidate |
+| Effective date | Not effective; draft dated 2026-07-27 |
+| Source commit | `9f0c1f269abf017b1380177047688dbb9361a2d2` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 0.1.0-candidate |
 | Review status | Draft for qualified counsel; legal entity, jurisdiction, contact and acceptance mechanism not approved |
 
 ## Important notice
@@ -167,5 +167,7 @@ ownership exist.
 
 ## Change log
 
+- 0.1.1-candidate (2026-07-27): Normalized the complete document metadata tuple;
+  the draft remains non-effective and still requires qualified counsel approval.
 - 0.1.0-candidate (2026-07-22): Initial jurisdiction-neutral Testnet draft and
   explicit legal/entity/product acceptance gaps.
