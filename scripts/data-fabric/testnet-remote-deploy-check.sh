@@ -7,6 +7,7 @@ trap 'rm -rf "$tmp"' EXIT
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-data-fabric-${commit}"
 operator_env="$tmp/operator.env"
+expected_package="$tmp/expected-package"
 
 node - configs/data-fabric.env.example "$operator_env" "$commit" "$release" <<'NODE'
 const fs = require("fs");
@@ -31,6 +32,8 @@ const body = fs.readFileSync(source, "utf8").split("\n").map((line) => {
 fs.writeFileSync(target, body, {mode: 0o600});
 NODE
 
+scripts/data-fabric/package-public-testnet-release.sh "$expected_package" >/dev/null
+expected_archive_sha="$(jq -er '.artifact.sha256' "$expected_package/${release}-release-index.json")"
 output="$(
   DEPLOY_DRY_RUN=1 \
   YNX_DATA_FABRIC_TESTNET_HOST=192.0.2.10 \
@@ -42,9 +45,14 @@ output="$(
 )"
 for required in \
   "DRY RUN scp" \
+  "${release}-linux-amd64.tar.gz" \
+  "${release}-release-index.json" \
+  "--strip-components=1" \
+  "public-testnet-release-index.json" \
   "remote-install-testnet-release.sh" \
-  "deployment command completed release=$release commit=$commit"; do
-  grep -F "$required" <<<"$output" >/dev/null || { echo "remote deploy dry-run is missing $required" >&2; exit 1; }
+  "deployment command completed release=$release commit=$commit" \
+  "archiveSha256=$expected_archive_sha"; do
+  grep -F -- "$required" <<<"$output" >/dev/null || { echo "remote deploy dry-run is missing $required" >&2; exit 1; }
 done
 
 node - "$operator_env" "$tmp/bad.env" <<'NODE'
