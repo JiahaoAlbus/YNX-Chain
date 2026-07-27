@@ -1051,8 +1051,17 @@ func (e *Engine) ConfirmSettlement(authority, orderID string, r Receipt) (Receip
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	o, ok := e.data.Orders[orderID]
+	authority = strings.TrimSpace(authority)
+	r.TransactionHash = strings.ToLower(strings.TrimSpace(r.TransactionHash))
+	r.Evidence = strings.TrimSpace(r.Evidence)
+	r.Asset = strings.TrimSpace(r.Asset)
 	if !ok || authority == "" || o.Status != "settlement_pending" || r.TransactionHash == "" || r.Evidence == "" || r.Asset == "" || !validSource(r.Source) {
 		return Receipt{}, errors.New("authoritative settlement evidence and pending order required")
+	}
+	for _, existing := range e.data.Receipts {
+		if strings.EqualFold(strings.TrimSpace(existing.TransactionHash), r.TransactionHash) {
+			return Receipt{}, errors.New("settlement transaction hash was already consumed by another receipt")
+		}
 	}
 	var gross, net, fee int64
 	for _, id := range o.MeterIDs {

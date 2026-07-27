@@ -143,6 +143,74 @@ func TestTwoProviderQuoteMeterSettlementAndRecovery(t *testing.T) {
 	}
 }
 
+func TestSettlementReceiptRejectsTransactionReplayAndNormalizesReference(t *testing.T) {
+	now := time.Date(2026, 7, 27, 9, 0, 0, 0, time.UTC)
+	e, err := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := provider(t, e, "provider", "Provider", "region", 100)
+	offer, err := e.PublishOffer(p.Wallet, Offer{ProviderID: p.ID, Resource: "cpu_compute", Unit: "vcpu-second", Pricing: "fixed", Currency: "YNXT-testnet", UnitPrice: 2, Capacity: 100, MinUnits: 1, MaxUnits: 100, Source: evidence(now, "capacity_proof"), ExpiresAt: now.Add(time.Hour)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pendingOrder := func(buyer, keyID string) (Order, Meter) {
+		t.Helper()
+		quote, createErr := e.CreateQuote(buyer, offer.ID, 10, 0)
+		if createErr != nil {
+			t.Fatal(createErr)
+		}
+		order, acceptErr := e.AcceptIntent(buyer, quote.ID, Digest(map[string]string{"quoteId": quote.ID, "buyer": buyer}))
+		if acceptErr != nil {
+			t.Fatal(acceptErr)
+		}
+		order, acceptErr = e.Reserve(p.Wallet, order.ID, "reservation-proof")
+		if acceptErr != nil {
+			t.Fatal(acceptErr)
+		}
+		order, acceptErr = e.StartService(p.Wallet, order.ID, "service-start-proof")
+		if acceptErr != nil {
+			t.Fatal(acceptErr)
+		}
+		meterSource := evidence(now.Add(10*time.Second), "signed_meter")
+		integrity := signedMeter(t, e, p, order, quote, now, now.Add(10*time.Second), 10, meterSource, keyID)
+		meter, meterErr := e.RecordUsage(p.Wallet, order.ID, now, now.Add(10*time.Second), 10, integrity, meterSource)
+		if meterErr != nil {
+			t.Fatal(meterErr)
+		}
+		order, meterErr = e.CompleteService(p.Wallet, order.ID, "completion-proof")
+		if meterErr != nil {
+			t.Fatal(meterErr)
+		}
+		order, meterErr = e.MarkSettlementPending(buyer, order.ID)
+		if meterErr != nil {
+			t.Fatal(meterErr)
+		}
+		return order, meter
+	}
+
+	first, firstMeter := pendingOrder("buyer-a", "worker-a")
+	if _, err = e.ConfirmSettlement("   ", first.ID, Receipt{Asset: "YNXT-testnet", TransactionHash: "0xabc", Evidence: "proof-a", GrossCost: firstMeter.GrossCost, ProviderNet: firstMeter.ProviderNet, ProtocolFee: firstMeter.ProtocolFee, Source: evidence(now, "chain_receipt")}); err == nil {
+		t.Fatal("blank settlement authority accepted")
+	}
+	firstReceipt, err := e.ConfirmSettlement("chain-receipt-indexer", first.ID, Receipt{Asset: " YNXT-testnet ", TransactionHash: " 0xAbC ", Evidence: " proof-a ", GrossCost: firstMeter.GrossCost, ProviderNet: firstMeter.ProviderNet, ProtocolFee: firstMeter.ProtocolFee, Source: evidence(now, "chain_receipt")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if firstReceipt.TransactionHash != "0xabc" || firstReceipt.Asset != "YNXT-testnet" || firstReceipt.Evidence != "proof-a" {
+		t.Fatalf("settlement reference was not normalized: %+v", firstReceipt)
+	}
+
+	second, secondMeter := pendingOrder("buyer-b", "worker-b")
+	if _, err = e.ConfirmSettlement("chain-receipt-indexer", second.ID, Receipt{Asset: "YNXT-testnet", TransactionHash: "0xABC", Evidence: "proof-b", GrossCost: secondMeter.GrossCost, ProviderNet: secondMeter.ProviderNet, ProtocolFee: secondMeter.ProtocolFee, Source: evidence(now, "chain_receipt")}); err == nil || !strings.Contains(err.Error(), "already consumed") {
+		t.Fatalf("replayed settlement transaction was not rejected: %v", err)
+	}
+	if _, err = e.ConfirmSettlement("chain-receipt-indexer", second.ID, Receipt{Asset: "YNXT-testnet", TransactionHash: "0xdef", Evidence: "proof-b", GrossCost: secondMeter.GrossCost, ProviderNet: secondMeter.ProviderNet, ProtocolFee: secondMeter.ProtocolFee, Source: evidence(now, "chain_receipt")}); err != nil {
+		t.Fatalf("fresh settlement transaction rejected: %v", err)
+	}
+}
+
 func TestFailClosedTransitionsAndCapacity(t *testing.T) {
 	now := time.Now().UTC()
 	e, _ := New(filepath.Join(t.TempDir(), "market.json"), func() time.Time { return now })
