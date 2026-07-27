@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `677b61c68f08cf56a58dc590d243bd61c9095a7e`.
+Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `73cd827adb2711589a7f2af2411d4ae12c3add79`; the deployed Provider health observation is verified to refresh every 60 seconds and fail closed after 120 seconds without a successful observation.
 
 ## Evidence-backed state
 
