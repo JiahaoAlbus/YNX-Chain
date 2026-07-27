@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "remote-testnet-coordinator-installation",
-  "observedAt": "2026-07-26T13:39:18Z",
-  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
-  "release": "ynx-bridge-f4d1a191d45e",
+  "observedAt": "2026-07-26T14:01:39Z",
+  "sourceCommit": "677b61c68f08cf56a58dc590d243bd61c9095a7e",
+  "release": "ynx-bridge-677b61c68f08",
   "targetRole": "primary-testnet",
   "deploymentState": {
     "integratedCentral": true,
@@ -13,12 +13,12 @@
     "userAssetMovementEnabled": false
   },
   "package": {
-    "sha256": "5125123d3ccf579d86c791bb58a3634239a04979117ae2ac7fd85fa6068be455",
+    "sha256": "04bbbe54ce192341fa57804d881b1af5860e1a65f6c880be660f13c88842c13f",
     "checksumsVerifiedRemote": true
   },
   "artifacts": {
-    "ynxBridgedSha256": "8fb27647eeb6b7a05f78ca0d6363d452fb2e90a8df0f83981ac9aa1f1d96d439",
-    "ynxAppGatewaydSha256": "741775ee314fe72e11a9a18bc6caf936ce72eb7b88c3dd52a72aa63005adfaa2"
+    "ynxBridgedSha256": "7c0183cd4a56e7963b699dbf3f7b016b3ab7825e905feebd674dab442f0b0cce",
+    "ynxAppGatewaydSha256": "b8296bcf025739414045eb8139bdbb7812dc65451577da96d8322cf9e170515d"
   },
   "installation": {
     "bridgeServiceActive": true,
@@ -33,17 +33,29 @@
     "service": "ynx-bridged",
     "schemaVersion": 7,
     "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-    "buildCommit": "f4d1a191d45e",
-    "buildRelease": "ynx-bridge-f4d1a191d45e",
+    "buildCommit": "677b61c68f08",
+    "buildRelease": "ynx-bridge-677b61c68f08",
     "coordinatorState": "available-local-coordinator",
-    "externalBridgeState": "unavailable",
-    "providerConnection": "not-connected",
-    "availableProviderCount": 0,
+    "externalBridgeState": "provider-api-connected-route-execution-unavailable",
+    "providerConnection": "connected-live-provider-api-route-execution-disabled",
+    "availableProviderCount": 1,
     "contractStatus": "unavailable-no-verified-contract-deployment",
-    "routeCount": 1,
+    "routeCount": 2,
     "allRoutesExecutable": false,
     "allProviderRoutesAvailable": false,
     "allAssetsExternalExecutionEnabled": false
+  },
+  "providerProbe": {
+    "provider": "Circle CCTP V2",
+    "environment": "Sandbox",
+    "sourceRoute": "ethereum-sepolia-domain-0",
+    "destinationRoute": "base-sepolia-domain-6",
+    "health": "connected-live-fee-api",
+    "lastSuccess": "2026-07-26T14:01:12.971698463Z",
+    "agreementApproved": false,
+    "operationalReviewApproved": false,
+    "routeAvailable": false,
+    "ynxRouteAvailable": false
   },
   "appGateway": {
     "remoteDeployed": true,

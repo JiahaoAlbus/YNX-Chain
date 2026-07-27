@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-07-26T12:35:24Z",
+  "asOf": "2026-07-27T02:54:42Z",
   "provider": "Circle",
   "product": "CCTP",
   "classification": "official-stablecoin-transfer-candidate",
@@ -18,11 +18,21 @@
   "deployedPublic": false,
   "providerAPIProbe": {
     "testedRemote": true,
+    "deployedStaging": true,
+    "publicReadVerified": true,
+    "sourceCommit": "677b61c68f08cf56a58dc590d243bd61c9095a7e",
+    "release": "ynx-bridge-677b61c68f08",
     "environment": "Circle CCTP V2 Sandbox",
     "endpoint": "https://iris-api-sandbox.circle.com/v2/burn/USDC/fees/0/6",
     "sourceDomain": 0,
     "destinationDomain": 6,
     "result": "valid-fast-and-finalized-fee-tiers",
+    "connection": "connected-live-provider-api-route-execution-disabled",
+    "lastSuccess": "2026-07-26T14:01:12.971698463Z",
+    "supportedExternalRouteContractsVerified": true,
+    "agreementApproved": false,
+    "operationalReviewApproved": false,
+    "routeAvailable": false,
     "ynxRouteEvidence": false
   },
   "operationalReview": {

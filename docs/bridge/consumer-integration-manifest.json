@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "product": "YNX Bridge",
   "owner": "21-bridge",
-  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
+  "sourceCommit": "677b61c68f08cf56a58dc590d243bd61c9095a7e",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "canonicalRoute": "/bridge",
@@ -11,23 +11,24 @@
     "evmChainId": 6423,
     "nativeSymbol": "YNXT"
   },
-  "currentIntegrationState": "testnet-app-gateway-integrated-route-execution-disabled",
+  "currentIntegrationState": "testnet-app-gateway-and-circle-provider-probe-integrated-route-execution-disabled",
   "runtimeTruth": {
     "liveBridge": false,
     "externalSubmissionEnabled": false,
-    "providerStatus": "unavailable-no-verified-provider-connection",
+    "providerStatus": "connected-live-provider-api-route-execution-disabled",
+    "providerAPIConnected": true,
     "contractStatus": "unavailable-no-verified-contract-deployment",
     "deployedPublic": false
   },
   "publicRead": {
-    "health": {"method":"GET","path":"/health","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
-    "version": {"method":"GET","path":"/version","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
-    "stateMachine": {"method":"GET","path":"/bridge/state-machine","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":false},
-    "transparency": {"method":"GET","path":"/bridge/transparency","source":"ynx-bridge-coordinator","authentication":"none","deployedPublic":false},
-    "routes": {"method":"GET","path":"/bridge/routes","source":"ynx-bridge-route-registry","authentication":"none","quotesExecutable":false,"deployedPublic":false},
-    "providers": {"method":"GET","path":"/bridge/providers","source":"ynx-bridge-provider-registry","authentication":"none","credentialsConfigured":false,"agreementApproved":false,"contractsConfigured":false,"routeAvailable":false,"deployedPublic":false},
-    "assets": {"method":"GET","path":"/bridge/assets","source":"ynx-bridge-asset-registry","authentication":"none","contractMetadataVerified":false,"externalExecutionEnabled":false,"deployedPublic":false},
-    "status": {"method":"GET","path":"/bridge/status","source":"ynx-bridge-status","authentication":"none","externalBridgeAvailable":false,"providerConnected":false,"supportConfigured":false,"deployedPublic":false}
+    "health": {"method":"GET","path":"/health","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":true},
+    "version": {"method":"GET","path":"/version","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":true},
+    "stateMachine": {"method":"GET","path":"/bridge/state-machine","source":"ynx-bridge-runtime","authentication":"none","deployedPublic":true},
+    "transparency": {"method":"GET","path":"/bridge/transparency","source":"ynx-bridge-coordinator","authentication":"none","deployedPublic":true},
+    "routes": {"method":"GET","path":"/bridge/routes","source":"ynx-bridge-route-registry","authentication":"none","quotesExecutable":false,"deployedPublic":true},
+    "providers": {"method":"GET","path":"/bridge/providers","source":"ynx-bridge-provider-registry","authentication":"none","credentialsConfigured":false,"supportedExternalProviderAPIConnected":true,"agreementApproved":false,"contractsConfigured":false,"routeAvailable":false,"deployedPublic":true},
+    "assets": {"method":"GET","path":"/bridge/assets","source":"ynx-bridge-asset-registry","authentication":"none","contractMetadataVerified":false,"supportedExternalRouteContractMetadataVerified":true,"externalExecutionEnabled":false,"deployedPublic":true},
+    "status": {"method":"GET","path":"/bridge/status","source":"ynx-bridge-status","authentication":"none","externalBridgeAvailable":false,"providerConnected":false,"providerAPIConnected":true,"supportConfigured":false,"deployedPublic":true}
   },
   "protectedRuntime": {
     "proofVerification": {"method":"POST","path":"/bridge/transfers/{id}/proof-verification","authentication":"bridge-service-key","idempotencyRequired":true,"browserAccessible":false},

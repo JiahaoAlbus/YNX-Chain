@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "public-testnet-read-only-surface",
-  "observedAt": "2026-07-26T13:39:18Z",
-  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
-  "release": "ynx-bridge-f4d1a191d45e",
+  "observedAt": "2026-07-27T02:54:42Z",
+  "sourceCommit": "677b61c68f08cf56a58dc590d243bd61c9095a7e",
+  "release": "ynx-bridge-677b61c68f08",
   "observerRole": "independent-testnet-node",
   "baseUrl": "https://rest.ynxweb4.com/app/bridge",
   "tlsVerified": true,
@@ -27,8 +27,19 @@
     "transferRouteHttpStatus": 404,
     "directBridgePortPubliclyReachable": false
   },
+  "providerObservation": {
+    "provider": "Circle CCTP V2",
+    "connection": "connected-live-provider-api-route-execution-disabled",
+    "availableProviderCount": 1,
+    "lastSuccess": "2026-07-26T14:01:12.971698463Z",
+    "supportedExternalRoute": "ethereum-sepolia-domain-0-to-base-sepolia-domain-6",
+    "agreementApproved": false,
+    "operationalReviewApproved": false,
+    "routeAvailable": false,
+    "ynxRouteAvailable": false
+  },
   "runtimeTruth": {
-    "buildCommit": "f4d1a191d45e",
+    "buildCommit": "677b61c68f08",
     "externalSubmissionEnabled": false,
     "userAssetMovementEnabled": false,
     "liveBridge": false,

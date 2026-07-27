@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-26. Runtime and public read-only Testnet evidence source commit: `f4d1a191d45e11b4e55e75242dcebbc414ba7579`.
+Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `677b61c68f08cf56a58dc590d243bd61c9095a7e`.
 
 ## Evidence-backed state
 
@@ -22,7 +22,7 @@ Status date: 2026-07-26. Runtime and public read-only Testnet evidence source co
 | Machine-readable fail-closed Provider Registry with incomplete-incident-history marker | true | true | false | false | false | false |
 | Digest-bound, expiring, fail-closed Quote Runtime with explicit unavailable provider terms | true | true | false | false | false | false |
 | Product Session-bound Wallet Review Runtime through the local App Gateway patch | true | true | false | false | false | false |
-| Official Circle CCTP V2 fee adapter and supported-domain Sandbox probe, with YNX route kept unavailable | true | true | false | false | false | false |
+| Official Circle CCTP V2 fee adapter and supported-domain Sandbox probe, with YNX route kept unavailable | true | true | false | true | true | true |
 | Remote Testnet coordinator and canonical App Gateway upstream, with execution disabled | true | true | false | true | true | false |
 | Public TLS read-only health, version, status, routes, providers, assets, transparency, and state-machine surface | true | true | false | true | true | true |
 | Fail-closed token allowlist and asset/contract disclosure | true | true | false | false | false | false |
@@ -61,4 +61,4 @@ The API check launches the compiled daemon and exercises public fail-closed rout
 
 ## Missing completion evidence
 
-Remote Testnet installation evidence is recorded in `testnet-deployment-evidence.json`, and independent-node HTTPS proof for the complete public read-only surface is recorded in `public-read-evidence.json`. The coordinator and canonical App Gateway upstream are active, while every route, provider, contract, and asset-execution boundary remains fail closed. The official Circle CCTP V2 Sandbox fee API was reached for supported domains 0 to 6; this is Provider API evidence, not YNX route support. No YNX source-chain transaction hash, destination transaction hash, verified YNX Bridge contract, issuer attestation for YNX, independent security review, funded YNX route, or public Testnet deposit/withdrawal exists. Those states remain false.
+Remote Testnet installation evidence is recorded in `testnet-deployment-evidence.json`, and independent-node HTTPS proof for the complete public read-only surface is recorded in `public-read-evidence.json`. The coordinator and canonical App Gateway upstream are active. The deployed Circle CCTP V2 Sandbox probe reached supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 and is publicly observable, while agreement approval, route availability, quote execution, external submission, and every asset-execution boundary remain false. This is supported external-route Provider API evidence, not YNX route support. No YNX source-chain transaction hash, destination transaction hash, verified YNX Bridge contract, issuer attestation for YNX, independent security review, funded YNX route, or public Testnet deposit/withdrawal exists. Those states remain false.

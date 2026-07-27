@@ -3,7 +3,7 @@
   "contractId": "ynx.bridge.integration.v1",
   "owner": "21-bridge",
   "product": "YNX Bridge",
-  "sourceCommit": "f4d1a191d45e11b4e55e75242dcebbc414ba7579",
+  "sourceCommit": "677b61c68f08cf56a58dc590d243bd61c9095a7e",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "releaseClass": "remote-testnet-coordinator-candidate",

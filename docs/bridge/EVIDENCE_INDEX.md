@@ -1,6 +1,6 @@
 # Bridge Evidence Index
 
-- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet source commit `f4d1a191d45e11b4e55e75242dcebbc414ba7579`
+- Runtime source: `internal/bridgegateway`, `cmd/ynx-bridged`, `internal/appgateway`, `cmd/ynx-app-gatewayd`; deployed Testnet source commit `677b61c68f08cf56a58dc590d243bd61c9095a7e`
 - Remote Testnet coordinator, artifact, permission, App Gateway, and fail-closed runtime proof: `docs/bridge/testnet-deployment-evidence.json`
 - Independent-node public TLS read-only surface and mutation-boundary proof: `docs/bridge/public-read-evidence.json`
 - Quote Runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/gateway_test.go`, `scripts/verify/bridge-api-check.sh`
@@ -8,7 +8,7 @@
 - Process-level verifier: `scripts/verify/bridge-api-check.sh`
 - Unit, migration, proof-tamper, availability, and HTTP vectors: `internal/bridgegateway/gateway_test.go`, `internal/bridgegateway/state_machine_test.go`
 - Provider Registry runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/provider_registry_test.go`, `sdk/bridge/index.test.mjs`
-- Circle CCTP V2 Provider Runtime and remote supported-domain gate: `internal/bridgegateway/provider_runtime.go`, `internal/bridgegateway/provider_runtime_test.go`, `scripts/verify/bridge-provider-check.sh`
+- Circle CCTP V2 Provider Runtime, remote supported-domain probe, and independent public observation: `internal/bridgegateway/provider_runtime.go`, `internal/bridgegateway/provider_runtime_test.go`, `scripts/verify/bridge-provider-check.sh`, `docs/bridge/public-read-evidence.json`
 - Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
 - Central handoff: `docs/integration/INTEGRATION_HANDOFF.md`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
