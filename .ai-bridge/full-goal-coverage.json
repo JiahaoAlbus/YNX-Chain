@@ -190,8 +190,8 @@
     {
       "id": "YNX18-P08", "category": "document-versioning", "requirement": "Give public documents version, effective date, source commit, product release, last review, change log and supersession identity.",
       "applicability": "applicable", "applicabilityReason": "The goal requires versioned and supersedable public documents.", "status": "inProgress",
-      "evidence": ["release/facts/superseded-facts.json", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"], "sourceCommit": "3dee634ea695f4a69d3f5dcbecec205c46257e12", "tests": ["scripts/verify/docs-compliance-check.mjs"], "artifact": [], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
-      "blockedBy": ["Legacy documents still require metadata normalization."], "owner": "YNX 18", "nextAction": "Add a bounded metadata inventory and normalize high-authority documents first.", "lastUpdated": "2026-07-27"
+      "evidence": ["release/document-metadata-inventory.json", "release/evidence/document-metadata-2026-07-27.json", "release/facts/superseded-facts.json", "docs/public/search/WHAT_IS_YNX_CHAIN.md", "docs/coordination/DOCS_COMPLIANCE_INTEGRATION_MANIFEST.md"], "sourceCommit": "be7c9aabdff51ee29e373baf3342d4837735b9cc", "tests": ["scripts/verify/document-metadata-gate.mjs", "scripts/verify/docs-compliance-check.mjs", "scripts/verify/docs-release-package-check.mjs"], "artifact": ["release/document-metadata-inventory.json"], "publicProof": ["https://ynxweb4.com/what-is-ynx-chain"],
+      "blockedBy": ["The remaining second-cohort public documents still require metadata normalization; named professional reviews remain external."], "owner": "YNX 18", "nextAction": "Expand the inventory to StreamBFT, fee-market, treasury, stablecoin, solvency, privacy and AUP documents, then request Website acceptance for the be7c9aa package only after exact artifact evidence exists.", "lastUpdated": "2026-07-27"
     }
   ]
 }

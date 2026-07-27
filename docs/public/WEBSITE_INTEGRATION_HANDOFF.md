@@ -1,8 +1,14 @@
 # YNX Chain Website Integration Handoff
 
-Version: 1.1.0-candidate
-Last reviewed: 2026-07-27
-Source commit: `ab209455dc1e0e537da2872505ed0bb2b2256609`
+| Metadata | Value |
+| --- | --- |
+| Version | 1.1.1-candidate |
+| Effective date | 2026-07-27 |
+| Source commit | `be7c9aabdff51ee29e373baf3342d4837735b9cc` |
+| Product release | 0.2.0-candidate |
+| Last reviewed | 2026-07-27 |
+| Superseded version | 1.1.0-candidate |
+| Review status | Website integration handoff; the be7c9aa package is locally verified but not yet Website-accepted or hosted |
 
 ## Canonical identity
 
@@ -70,6 +76,20 @@ bytes, SHA-256, hosted-download state and unsigned status. Screenshots remain
 unapproved until their source release, route, viewport, state, rights, hash and privacy
 review are recorded.
 
+## Next website-content candidate
+
+Source `be7c9aabdff51ee29e373baf3342d4837735b9cc` adds a machine-readable
+high-authority document metadata inventory and includes the normalized technical
+whitepaper, YNXT tokenomics, security/privacy/AI governance, Terms draft and Brand
+Guide in the deterministic website-content package. The locally verified archive is
+`ynx-website-content-be7c9aabdff5.zip`, 190,008 bytes, SHA-256
+`afd3aca6e91f03199821c033e5294cce18eb6f22aa0307450e2c7b2d2540b5aa`.
+
+This candidate is not yet Website-accepted, publicly hosted or production signed.
+The currently hosted archive and release booleans remain governed by
+`release/product-release.json` and the prior Website acceptance evidence until YNX 28
+returns exact source, deployment and artifact proof for this candidate.
+
 ## Integration acceptance evidence
 
 Current Website acceptance and direct public observations are recorded in
@@ -77,3 +97,11 @@ Current Website acceptance and direct public observations are recorded in
 return the Website source identity, deployment identity, route-to-source manifest,
 rendered metadata/JSON-LD, discovery results, accessibility and link checks, public URL
 responses and artifact hashes. No release boolean may change without direct proof.
+
+## Change log
+
+- 1.1.1-candidate (2026-07-27): Normalized the complete metadata tuple and recorded
+  the locally verified `be7c9aa` content candidate without promoting Website
+  acceptance, hosted-download or signing states.
+- 1.1.0-candidate (2026-07-27): Recorded current Website routes, public release
+  states, hosted unsigned artifact and integration acceptance boundaries.

@@ -36,3 +36,10 @@
     independent public proof remains false. These are distinct evidence classes.
 13. Document metadata normalization is the next autonomous priority because it can be
     completed without external credentials and prevents stale version/source claims.
+14. `release/document-metadata-inventory.json` is the bounded authority for the complete
+    public-document metadata tuple. The gate compares rendered Markdown metadata and
+    change-log identity exactly; prose-only version labels are insufficient.
+15. The `be7c9aa` website-content archive is a locally verified candidate only. Its
+    byte count and digest may be handed to Website, but existing hosted-download and
+    public-release facts cannot be rebound until YNX 28 returns exact acceptance and
+    artifact evidence.

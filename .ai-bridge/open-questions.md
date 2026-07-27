@@ -19,10 +19,12 @@
 
 ## Autonomous next question
 
-Which high-authority public documents still lack the complete metadata tuple of
-version, effective date, source commit, product release, last review, change log and
-supersession identity? YNX 18 can inventory and normalize these without waiting for an
-external owner, while keeping substantive claims evidence-bound.
+Which next-cohort high-authority documents should be normalized after the technical
+whitepaper, YNXT tokenomics, security/privacy/AI governance, Terms draft, Brand Guide and
+Website handoff? The current priority order is StreamBFT, execution/local fee markets,
+treasury/revenue/burn, stablecoin reserve/redemption, proof of solvency, Privacy Notice
+and AUP. YNX 18 can normalize these without external credentials while preserving all
+substantive claims and review limitations.
 
 Until each external owner answers with direct evidence, the corresponding release
 state or public claim remains false, blocked or candidate-only.

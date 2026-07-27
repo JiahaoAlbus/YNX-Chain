@@ -10,6 +10,7 @@ const allowedAuthorityClasses = new Set([
   "security-privacy-governance",
   "legal-draft",
   "brand-guidance",
+  "website-integration-handoff",
 ]);
 
 function normalize(value) {

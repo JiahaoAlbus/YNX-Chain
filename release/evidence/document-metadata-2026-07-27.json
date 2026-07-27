@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX18-DOCUMENT-METADATA-2026-07-27",
+  "productNumber": 18,
+  "productSlug": "docs-compliance-brand",
+  "evidenceClass": "local-tested-candidate",
+  "sourceCommit": "be7c9aabdff51ee29e373baf3342d4837735b9cc",
+  "recordedAt": "2026-07-27T22:40:00+08:00",
+  "scope": "High-authority public-document metadata normalization and deterministic website-content packaging.",
+  "documentsValidated": 5,
+  "requiredMetadataFields": 7,
+  "tests": [
+    {
+      "command": "make document-metadata-check",
+      "result": "passed",
+      "detail": "Five documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
+    },
+    {
+      "command": "make docs-compliance-check",
+      "result": "passed",
+      "detail": "52 named artifacts, 16 JSON records, 13 search pages, 43 public documents, nine release states and all three authority gates passed."
+    },
+    {
+      "command": "make public-disclosure-check",
+      "result": "passed",
+      "detail": "30 JSON records, 12 authoritative fact classes and nine release states passed."
+    },
+    {
+      "command": "make no-placeholder-check",
+      "result": "passed",
+      "detail": "No disallowed deployment filler was found; bounded recursive grep fallback was used because ripgrep was unavailable."
+    },
+    {
+      "command": "make secret-scan",
+      "result": "passed",
+      "detail": "Credential-pattern scan passed using the bounded recursive grep fallback."
+    },
+    {
+      "command": "make static-check",
+      "result": "passed",
+      "detail": "Go vet, Shell syntax and JavaScript syntax checks passed."
+    },
+    {
+      "command": "go test ./...",
+      "result": "passed",
+      "detail": "All Go packages passed or contained no test files."
+    },
+    {
+      "command": "node ./scripts/verify/docs-release-package-check.mjs tmp/packages/docs-release",
+      "result": "passed",
+      "detail": "The committed-source candidate archive passed source-commit, byte-count, SHA-256, manifest completeness and required-input verification."
+    }
+  ],
+  "artifact": {
+    "name": "ynx-website-content-be7c9aabdff5.zip",
+    "bytes": 190008,
+    "sha256": "afd3aca6e91f03199821c033e5294cce18eb6f22aa0307450e2c7b2d2540b5aa",
+    "productionSigned": false,
+    "downloadHosted": false,
+    "websiteAccepted": false
+  },
+  "git": {
+    "branch": "codex/final-docs-compliance",
+    "remote": "origin/codex/final-docs-compliance",
+    "localRemoteEqual": true,
+    "ahead": 0,
+    "behind": 0
+  },
+  "limitations": [
+    "The locally verified be7c9aa artifact is not the currently hosted public archive.",
+    "Website acceptance, public hosting and production signing require separate direct evidence.",
+    "Named legal, economic, security, privacy and asset-rights reviews remain external."
+  ]
+}
