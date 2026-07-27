@@ -4,8 +4,11 @@
   "type": "module",
   "private": true,
   "files": ["src", "README.md", "LICENSE"],
-  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
-  "scripts": { "test": "node --test", "check": "node --check src/index.js" },
+  "exports": {
+    ".": { "types": "./src/index.d.ts", "import": "./src/index.js" },
+    "./stable-vault": { "types": "./src/stable-vault.d.ts", "import": "./src/stable-vault.js" }
+  },
+  "scripts": { "test": "node --test", "check": "node --check src/index.js && node --check src/stable-vault.js" },
   "engines": { "node": ">=20" },
   "license": "MIT"
 }

@@ -120,6 +120,10 @@ var vaultMethods = map[string]string{
 	strings.ToLower(functionSelector("swapExactOutput(uint256,uint256,uint256,address[],uint256)")):               "swapExactOutput",
 	strings.ToLower(functionSelector("addLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)")):    "addLiquidity",
 	strings.ToLower(functionSelector("removeLiquidity(uint256,address,address,uint256,uint256,uint256,uint256)")): "removeLiquidity",
+	strings.ToLower(functionSelector("stableSwapExactInput(uint256,address,address,uint256,uint256,uint256)")):    "stableSwapExactInput",
+	strings.ToLower(functionSelector("stableSwapExactOutput(uint256,address,address,uint256,uint256,uint256)")):   "stableSwapExactOutput",
+	strings.ToLower(functionSelector("stableAddLiquidity(uint256,address,uint256,uint256,uint256,uint256)")):      "stableAddLiquidity",
+	strings.ToLower(functionSelector("stableRemoveLiquidity(uint256,address,uint256,uint256,uint256,uint256)")):   "stableRemoveLiquidity",
 }
 
 func NewEVMPoller(store *Store, cfg EVMPollerConfig) (*EVMPoller, error) {

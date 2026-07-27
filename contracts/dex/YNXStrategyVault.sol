@@ -27,6 +27,20 @@ interface IYNXVaultRouter {
         external returns (uint256, uint256);
 }
 
+interface IYNXVaultStablePool {
+    function poolKind() external view returns (string memory);
+    function factory() external view returns (address);
+    function token0() external view returns (address);
+    function token1() external view returns (address);
+    function getAmountOutFor(address tokenIn, uint256 amountIn) external view returns (uint256);
+    function getAmountInFor(address tokenIn, uint256 amountOut) external view returns (uint256);
+    function executeSwap(address tokenIn, uint256 minAmountOut, address to, uint256 deadline)
+        external returns (uint256);
+    function mint(address to, uint256 deadline) external returns (uint256);
+    function burn(address to, uint256 amount0Min, uint256 amount1Min, uint256 deadline)
+        external returns (uint256, uint256);
+}
+
 /// @notice Owner-selected oracle. Values share one 18-decimal accounting unit.
 interface IYNXVaultOracle {
     function valueOf(address token, uint256 amount)
@@ -38,6 +52,7 @@ interface IYNXVaultOracle {
 contract YNXStrategyVault {
     uint256 public constant BPS = 10_000;
     uint256 public constant MAX_ASSETS = 32;
+    bytes32 public constant STABLE_POOL_KIND_HASH = keccak256("ynx-stableswap-v1");
     uint256 public constant DAY = 1 days;
 
     struct Mandate {
@@ -67,6 +82,7 @@ contract YNXStrategyVault {
     Mandate private activeMandate;
     mapping(address => bool) public allowedAsset;
     mapping(address => bool) public allowedPool;
+    mapping(address => bool) public allowedStablePool;
     address[] private assets;
 
     uint256 public actionNonce;
@@ -83,6 +99,9 @@ contract YNXStrategyVault {
 
     event AssetAllowed(address indexed asset);
     event PoolPermission(address indexed pool, bool allowed);
+    event StablePoolPermission(
+        address indexed pool, address indexed stableFactory, address indexed token0, address token1, bool allowed
+    );
     event MandateConfigured(uint256 indexed version, bytes32 mandateHash, uint256 expiresAt);
     event Deposited(address indexed token, uint256 amount, uint256 vaultValue);
     event Withdrawn(address indexed token, uint256 amount, address indexed recipient, bool emergency);
@@ -164,6 +183,22 @@ contract YNXStrategyVault {
         if (allowed && !allowedAsset[pool]) _addAsset(pool);
         allowedPool[pool] = allowed;
         emit PoolPermission(pool, allowed);
+    }
+
+    function setStablePoolAllowed(address pool, bool allowed) external onlyOwner {
+        if (revoked || killed) revert MandateRevoked();
+        if (pool.code.length == 0) revert InvalidPool();
+        if (keccak256(bytes(IYNXVaultStablePool(pool).poolKind())) != STABLE_POOL_KIND_HASH) revert InvalidPool();
+        address token0 = IYNXVaultStablePool(pool).token0();
+        address token1 = IYNXVaultStablePool(pool).token1();
+        address stableFactory = IYNXVaultStablePool(pool).factory();
+        if (
+            token0 == address(0) || token0 >= token1 || stableFactory.code.length == 0
+                || !allowedAsset[token0] || !allowedAsset[token1]
+        ) revert InvalidPool();
+        if (allowed && !allowedAsset[pool]) _addAsset(pool);
+        allowedStablePool[pool] = allowed;
+        emit StablePoolPermission(pool, stableFactory, token0, token1, allowed);
     }
 
     function configureMandate(Mandate calldata next) external onlyOwner nonReentrant {
@@ -332,6 +367,85 @@ contract YNXStrategyVault {
         _postAction(this.removeLiquidity.selector, beforeValue);
     }
 
+    function stableSwapExactInput(
+        uint256 expectedNonce,
+        address pool,
+        address tokenIn,
+        uint256 amountIn,
+        uint256 amountOutMin,
+        uint256 deadline
+    ) external onlyEngine nonReentrant returns (uint256 amountOut) {
+        uint256 beforeValue = _preAction(expectedNonce, deadline);
+        address tokenOut = _stableCounterAsset(pool, tokenIn);
+        uint256 quotedOut = IYNXVaultStablePool(pool).getAmountOutFor(tokenIn, amountIn);
+        if (amountOutMin < quotedOut * (BPS - activeMandate.maxSlippageBps) / BPS) revert SlippageExceeded();
+        _enforceTradeRisk(tokenIn, amountIn, tokenOut, quotedOut);
+        _transferExactToPool(tokenIn, pool, amountIn);
+        amountOut = IYNXVaultStablePool(pool).executeSwap(tokenIn, amountOutMin, address(this), deadline);
+        if (amountOut < amountOutMin) revert MinimumNotMet();
+        _postAction(this.stableSwapExactInput.selector, beforeValue);
+    }
+
+    function stableSwapExactOutput(
+        uint256 expectedNonce,
+        address pool,
+        address tokenIn,
+        uint256 amountOut,
+        uint256 amountInMax,
+        uint256 deadline
+    ) external onlyEngine nonReentrant returns (uint256 amountIn) {
+        uint256 beforeValue = _preAction(expectedNonce, deadline);
+        address tokenOut = _stableCounterAsset(pool, tokenIn);
+        amountIn = IYNXVaultStablePool(pool).getAmountInFor(tokenIn, amountOut);
+        if (amountInMax > amountIn * (BPS + activeMandate.maxSlippageBps) / BPS + 1) revert SlippageExceeded();
+        if (amountIn > amountInMax) revert MinimumNotMet();
+        _enforceTradeRisk(tokenIn, amountIn, tokenOut, amountOut);
+        _transferExactToPool(tokenIn, pool, amountIn);
+        uint256 delivered = IYNXVaultStablePool(pool).executeSwap(tokenIn, amountOut, address(this), deadline);
+        if (delivered < amountOut) revert MinimumNotMet();
+        _postAction(this.stableSwapExactOutput.selector, beforeValue);
+    }
+
+    function stableAddLiquidity(
+        uint256 expectedNonce,
+        address pool,
+        uint256 amount0,
+        uint256 amount1,
+        uint256 minLiquidity,
+        uint256 deadline
+    ) external onlyEngine nonReentrant returns (uint256 liquidity) {
+        uint256 beforeValue = _preAction(expectedNonce, deadline);
+        (address token0, address token1) = _validateStablePool(pool);
+        uint256 tradeValue = _value(token0, amount0) + _value(token1, amount1);
+        if (tradeValue == 0 || tradeValue > activeMandate.maxTradeValue) revert CapitalExceeded();
+        _transferExactToPool(token0, pool, amount0);
+        _transferExactToPool(token1, pool, amount1);
+        liquidity = IYNXVaultStablePool(pool).mint(address(this), deadline);
+        if (liquidity < minLiquidity || _value(pool, liquidity) < tradeValue * (BPS - activeMandate.maxSlippageBps) / BPS) {
+            revert SlippageExceeded();
+        }
+        _postAction(this.stableAddLiquidity.selector, beforeValue);
+    }
+
+    function stableRemoveLiquidity(
+        uint256 expectedNonce,
+        address pool,
+        uint256 liquidity,
+        uint256 amount0Min,
+        uint256 amount1Min,
+        uint256 deadline
+    ) external onlyEngine nonReentrant returns (uint256 amount0, uint256 amount1) {
+        uint256 beforeValue = _preAction(expectedNonce, deadline);
+        (address token0, address token1) = _validateStablePool(pool);
+        uint256 inputValue = _value(pool, liquidity);
+        if (inputValue == 0 || inputValue > activeMandate.maxTradeValue) revert CapitalExceeded();
+        _transferExactToPool(pool, pool, liquidity);
+        (amount0, amount1) = IYNXVaultStablePool(pool).burn(address(this), amount0Min, amount1Min, deadline);
+        uint256 outputValue = _value(token0, amount0) + _value(token1, amount1);
+        if (outputValue < inputValue * (BPS - activeMandate.maxSlippageBps) / BPS) revert SlippageExceeded();
+        _postAction(this.stableRemoveLiquidity.selector, beforeValue);
+    }
+
     function portfolioValue() public view returns (uint256 total) {
         for (uint256 i; i < assets.length; ++i) {
             address token = assets[i];
@@ -397,6 +511,23 @@ contract YNXStrategyVault {
         if (pool == address(0) || !allowedPool[pool]) revert InvalidPool();
     }
 
+    function _validateStablePool(address pool) private view returns (address token0, address token1) {
+        if (!allowedStablePool[pool] || !allowedAsset[pool]) revert InvalidPool();
+        if (keccak256(bytes(IYNXVaultStablePool(pool).poolKind())) != STABLE_POOL_KIND_HASH) revert InvalidPool();
+        token0 = IYNXVaultStablePool(pool).token0();
+        token1 = IYNXVaultStablePool(pool).token1();
+        if (token0 == address(0) || token0 >= token1 || !allowedAsset[token0] || !allowedAsset[token1]) {
+            revert InvalidPool();
+        }
+    }
+
+    function _stableCounterAsset(address pool, address tokenIn) private view returns (address tokenOut) {
+        (address token0, address token1) = _validateStablePool(pool);
+        if (tokenIn == token0) return token1;
+        if (tokenIn == token1) return token0;
+        revert InvalidRoute();
+    }
+
     function _value(address token, uint256 amount) private view returns (uint256 value) {
         uint64 updatedAt;
         uint16 deviation;
@@ -424,6 +555,13 @@ contract YNXStrategyVault {
     function _clearApproval(address token, address spender) private {
         _safeApprove(token, spender, 0);
         if (IYNXVaultERC20(token).allowance(address(this), spender) != 0) revert ApprovalNotCleared();
+    }
+
+    function _transferExactToPool(address token, address pool, uint256 amount) private {
+        if (amount == 0) revert InvalidAsset();
+        uint256 beforeBalance = IYNXVaultERC20(token).balanceOf(pool);
+        _safeTransfer(token, pool, amount);
+        if (IYNXVaultERC20(token).balanceOf(pool) - beforeBalance != amount) revert TransferFailed();
     }
 
     function _safeApprove(address token, address spender, uint256 amount) private {
