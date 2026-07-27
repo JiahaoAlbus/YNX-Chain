@@ -3,7 +3,7 @@
   "productId": "ynx-dex",
   "artifactType": "web-pwa-upload-bundle",
   "version": "0.1.0-testnet-preview.1",
-  "sourceBaseCommit": "575e7406885dc662d6b4aa3004fd172738bd5ba1",
+  "sourceBaseCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
   "mainnet": false,
   "audited": false,
   "productionLiquidity": false,
@@ -14,8 +14,8 @@
   "productionSigned": false,
   "storeReleased": false,
   "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-  "sha256": "3ffb23550a1ba7f8957e8d994daa88853cfa536774ea085f221bf5ac1c423644",
-  "sizeBytes": 330580,
+  "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
+  "sizeBytes": 331755,
   "contentFileCount": 9,
   "content": [
     {
@@ -66,6 +66,6 @@
   ],
   "verification": {
     "command": "shasum -a 256 release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
-    "expectedSha256": "3ffb23550a1ba7f8957e8d994daa88853cfa536774ea085f221bf5ac1c423644"
+    "expectedSha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669"
   }
 }

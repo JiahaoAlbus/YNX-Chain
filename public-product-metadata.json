@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "productName": "YNX DEX",
+  "aliases": ["YNX Decentralized Exchange", "YNX Pools", "YNX FairFlow"],
+  "canonicalRoute": "/dex",
+  "title": "YNX DEX — Non-custodial Pools and Verifiable Execution",
+  "metaDescription": "Explore YNX DEX pools, routes and user-owned strategy vault controls. The current release is an unaudited Testnet preview candidate and is not a public deployment.",
+  "h1": "Non-custodial liquidity, bounded by user approval",
+  "summary": "YNX DEX is an independent non-custodial exchange product with constant-product and StableSwap pool candidates, verifiable FairFlow intents, LP protection controls and user-owned Strategy Vault execution boundaries.",
+  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "version": "0.1.0-testnet-preview.1",
+  "status": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "websitePublished": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "audited": false,
+    "mainnet": false
+  },
+  "componentStatus": {
+    "constantProductPools": "tested-local",
+    "stableSwapPools": "tested-local",
+    "strategyVault": "tested-local",
+    "stableVaultRouting": "tested-local",
+    "executionAdapter": "tested-local",
+    "fairFlow": "tested-local",
+    "lpProtection": "tested-local",
+    "concentratedLiquidity": "not-started",
+    "weightedPool": "not-started",
+    "liquidityBootstrapping": "not-started"
+  },
+  "features": [
+    "Non-custodial constant-product and two-asset StableSwap pool candidates",
+    "Exact-input and exact-output route quoting",
+    "User-owned Strategy Vault with bounded engine mandates",
+    "Direct StableSwap swap and liquidity actions without standing pool approvals",
+    "FairFlow intent and solver competition candidate",
+    "Dynamic LP protection and depeg circuit-breaker candidate",
+    "Source-labelled Indexer API and JavaScript SDK",
+    "Independent Web/PWA preview surface"
+  ],
+  "riskDisclosures": [
+    "Unaudited software; no independent smart-contract audit is complete.",
+    "No verified YNX Testnet deployment, reviewed liquidity or public transaction proof exists.",
+    "No public runtime, hosted download or production-signed artifact exists.",
+    "StableSwap requires reviewed assets and Oracle/depeg policy before deployment.",
+    "FairFlow and LP protection remain local candidates with additional public-network and adversarial requirements.",
+    "Cryptographic approvals and transaction submission remain unavailable until canonical Wallet and Gateway integration is accepted.",
+    "No yield, APY, price, profit, volume, liquidity or revenue guarantee is made."
+  ],
+  "faq": [
+    {
+      "question": "Does YNX DEX hold user funds?",
+      "answer": "No. The design is non-custodial. Assets remain in the user wallet, an explicitly approved protocol pool, or the user-owned Strategy Vault. The DEX front end and execution adapter do not receive private keys or unrestricted withdrawal authority."
+    },
+    {
+      "question": "Is YNX DEX live on Mainnet?",
+      "answer": "No. This package is an unaudited local Testnet preview candidate. Mainnet, public deployment, verified liquidity and public transaction evidence are all false."
+    },
+    {
+      "question": "What is a Strategy Vault?",
+      "answer": "A user-owned vault that permits only reviewed tokens, pools, methods and limits for a limited engine session. The owner can pause, revoke, kill, withdraw or use emergency exit."
+    },
+    {
+      "question": "Can the Quant Engine move funds anywhere?",
+      "answer": "No. The adapter creates typed requests only. Vault contracts reject arbitrary transfers, owner changes, unlimited approvals and actions outside the mandate."
+    },
+    {
+      "question": "Does YNX DEX promise APY or best price?",
+      "answer": "No. Quotes and execution proofs must be source-labelled and time-bounded. The product does not publish fake APY, guarantee profit or hide spread."
+    }
+  ],
+  "brand": {
+    "primaryColor": "#002FA7",
+    "backgroundColor": "#FFFFFF",
+    "logo": null,
+    "icon": null,
+    "logoStatus": "external-input-required"
+  },
+  "screenshots": [
+    {
+      "id": "desktop-light",
+      "file": "docs/evidence/dex/ui/desktop-light-1440x900.png",
+      "classification": "local-real-runtime-empty-index",
+      "publiclyHosted": false
+    },
+    {
+      "id": "mobile-arabic-dark",
+      "file": "docs/evidence/dex/ui/mobile-arabic-dark-390x844.png",
+      "classification": "local-real-runtime-empty-index",
+      "publiclyHosted": false
+    },
+    {
+      "id": "wallet-unavailable",
+      "file": "docs/evidence/dex/ui/wallet-central-unavailable-1440x900.png",
+      "classification": "local-real-runtime-fail-closed-state",
+      "publiclyHosted": false
+    }
+  ],
+  "artifacts": [
+    {
+      "type": "web-pwa-upload-bundle",
+      "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
+      "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
+      "bytes": 331755,
+      "signingClass": "unsigned-local-build",
+      "hosted": false,
+      "installed": false,
+      "coldStartVerified": false
+    },
+    {
+      "type": "javascript-sdk-package",
+      "file": "ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
+      "sha256": "fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5",
+      "bytes": 21765,
+      "signingClass": "unsigned-local-package",
+      "hosted": false,
+      "installed": false,
+      "coldStartVerified": false
+    }
+  ],
+  "urls": {
+    "product": null,
+    "runtime": null,
+    "download": null,
+    "support": null,
+    "privacy": null,
+    "security": null,
+    "status": null
+  },
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Modern web browser",
+    "isAccessibleForFree": true,
+    "releaseNotes": "Unaudited Testnet preview candidate; not publicly deployed."
+  },
+  "websiteIntegration": {
+    "owner": "YNX Website",
+    "consumeOnlyAfterIntegrationFreeze": true,
+    "mustKeepWebsiteAndRuntimeStatusSeparate": true,
+    "externalInputs": [
+      "public product URL",
+      "public runtime URL",
+      "immutable artifact URLs",
+      "logo and icon assets",
+      "support URL",
+      "privacy URL",
+      "security URL",
+      "status URL"
+    ]
+  },
+  "generatedAt": "2026-07-27T14:58:32.000Z"
+}

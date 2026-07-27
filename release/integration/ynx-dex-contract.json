@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-dex-integration-v1",
+  "productId": "ynx-dex",
+  "owner": "YNX 27",
+  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "releaseVersion": "0.1.0-testnet-preview.1",
+  "network": {
+    "name": "YNX Testnet",
+    "chainId": 6423,
+    "deploymentStatus": "not-deployed",
+    "mainnet": false
+  },
+  "authority": {
+    "walletOwner": "YNX 02",
+    "oracleOwner": "YNX 19",
+    "quantOwner": "YNX 08",
+    "dataFabricOwner": "YNX 26",
+    "explorerOwner": "YNX 12",
+    "monitorOwner": "YNX 13",
+    "trustOwner": "YNX 15",
+    "financeOwner": "YNX 24",
+    "integrationOwner": "YNX 29",
+    "securityReleaseOwner": "YNX 30",
+    "websiteOwner": "YNX 28"
+  },
+  "walletTuple": {
+    "productClientId": "ynx-dex-web-v1",
+    "requestingProduct": "dex",
+    "bundleId": "com.ynxweb4.dex.web",
+    "deviceAlgorithm": "p256-sha256",
+    "integrationStatus": "candidate-not-in-central-registry"
+  },
+  "authScopes": [
+    "account:read",
+    "dex:fairflow:intent",
+    "dex:positions:read",
+    "dex:transaction:request",
+    "dex:vault:execute"
+  ],
+  "scopeRules": {
+    "vaultExecution": "An approval must contain exactly dex:vault:execute and bind chain, product client, vault, engine, nonce domain, action nonce, request digest, asOf and expiry.",
+    "transactionRequest": "The PWA may request a reviewed transaction but cannot sign or submit without canonical Wallet approval.",
+    "fairFlowIntent": "Intent creation requires an exact signed intent preview and canonical Wallet approval; solver execution cannot widen user limits."
+  },
+  "signedIntent": {
+    "requiredFields": [
+      "chainId",
+      "productClientId",
+      "vaultOrOwner",
+      "method",
+      "argsDigest",
+      "nonceDomain",
+      "actionNonce",
+      "deadline",
+      "scope"
+    ],
+    "replayBoundary": "chainId + productClientId + vaultOrOwner + nonceDomain + actionNonce + argsDigest",
+    "automaticExecution": false
+  },
+  "runtimeApis": [
+    {
+      "surface": "javascript-sdk",
+      "module": "@ynx-chain/dex-sdk",
+      "capabilities": ["pool and position state", "CPMM and StableSwap quotes", "typed Vault requests", "FairFlow intents", "LP protection snapshots", "indexed reconciliation"],
+      "status": "tested-local"
+    },
+    {
+      "surface": "javascript-sdk",
+      "module": "@ynx-chain/dex-sdk/stable-vault",
+      "capabilities": ["direct StableSwap exact-input", "direct StableSwap exact-output", "StableSwap add liquidity", "StableSwap remove liquidity", "canonical approval submission", "indexed reconciliation"],
+      "status": "tested-local"
+    },
+    {
+      "surface": "indexer-api",
+      "version": "v5-state-cursor",
+      "capabilities": ["confirmed pools", "reserves", "positions", "Vault actions", "FairFlow stages", "LP protection", "source metadata", "health", "version"],
+      "status": "tested-local-not-deployed"
+    }
+  ],
+  "contractFamilies": [
+    {
+      "id": "cpmm-v1",
+      "contracts": ["YNXDexFactory", "YNXDexPool", "YNXDexRouter", "YNXDexQuoter"],
+      "status": "tested-local"
+    },
+    {
+      "id": "stableswap-v1",
+      "contracts": ["YNXStableFactory", "YNXStablePool", "YNXDexRouter", "YNXDexQuoter"],
+      "poolKind": "ynx-stableswap-v1",
+      "status": "tested-local"
+    },
+    {
+      "id": "strategy-vault-v1",
+      "contracts": ["YNXStrategyVault"],
+      "status": "tested-local"
+    },
+    {
+      "id": "fairflow-v1",
+      "contracts": ["YNXFairFlow"],
+      "status": "tested-local"
+    },
+    {
+      "id": "lp-protection-v1",
+      "contracts": ["YNXLPProtection", "YNXProtectedDexFactory"],
+      "status": "tested-local"
+    }
+  ],
+  "vaultMethods": [
+    "swapExactInput",
+    "swapExactOutput",
+    "addLiquidity",
+    "removeLiquidity",
+    "stableSwapExactInput",
+    "stableSwapExactOutput",
+    "stableAddLiquidity",
+    "stableRemoveLiquidity",
+    "pause",
+    "revoke",
+    "kill",
+    "emergencyExit"
+  ],
+  "canonicalEvents": [
+    "PoolCreated",
+    "Swap",
+    "Mint",
+    "Burn",
+    "ProtocolFeeUpdated",
+    "MandateConfigured",
+    "PoolPermission",
+    "StablePoolPermission",
+    "ActionExecuted",
+    "Paused",
+    "Revoked",
+    "Killed",
+    "EmergencyExit",
+    "IntentCreated",
+    "IntentCancelled",
+    "BatchCommitted",
+    "BatchRevealed",
+    "BatchSettled",
+    "SolverSlashed",
+    "ProtectionConfigured",
+    "ProtectionObserved"
+  ],
+  "errorCodes": [
+    "UNAUTHORIZED",
+    "MANDATE_REVOKED",
+    "VAULT_PAUSED",
+    "INVALID_POOL",
+    "INVALID_ROUTE",
+    "INVALID_ASSET",
+    "NONCE_MISMATCH",
+    "DEADLINE_EXPIRED",
+    "CAPITAL_EXCEEDED",
+    "SLIPPAGE_EXCEEDED",
+    "IMPACT_EXCEEDED",
+    "ORACLE_STALE",
+    "DEPEG_DETECTED",
+    "TRANSFER_FAILED",
+    "APPROVAL_NOT_CLEARED",
+    "APPROVAL_SCOPE",
+    "APPROVAL_MISMATCH",
+    "APPROVAL_EXPIRED",
+    "RECEIPT_MISMATCH",
+    "SOURCE_STALE",
+    "SOURCE_UNAVAILABLE"
+  ],
+  "sourceMetadata": {
+    "required": ["source", "asOf", "version", "failure"],
+    "conditional": ["confidence", "coverage", "provider", "blockNumber", "blockHash", "transactionHash", "logIndex"],
+    "authorityRule": "Third-party data cannot become authoritative Wallet identity, chain settlement, balance, permission, receipt or Trust state."
+  },
+  "healthVersion": {
+    "requiredEndpoints": ["health", "ready", "version"],
+    "publicStatus": "not-deployed",
+    "monitorAcceptance": "pending"
+  },
+  "migration": {
+    "stateSchemaVersion": 5,
+    "cursorSchemaVersion": 5,
+    "forwardMigration": "tested-local",
+    "rollbackMigration": "incomplete",
+    "restoreDrill": "incomplete",
+    "oldClientCompatibility": "partially-tested-local"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "artifacts": {
+    "manifest": {
+      "file": "release/dex/artifact-manifest.json",
+      "sha256": "80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e",
+      "bytes": 6162
+    },
+    "pwa": {
+      "file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz",
+      "sha256": "dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669",
+      "bytes": 331755,
+      "signingClass": "unsigned-local-build"
+    },
+    "sdk": {
+      "file": "ynx-chain-dex-sdk-0.1.0-testnet-preview.1.tgz",
+      "sha256": "fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5",
+      "bytes": 21765,
+      "signingClass": "unsigned-local-package"
+    }
+  },
+  "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "handoff": "docs/integration/INTEGRATION_HANDOFF.md",
+  "externalInputs": [
+    "canonical Wallet registry acceptance",
+    "canonical Gateway introspection endpoint",
+    "reviewed Oracle contract and policy",
+    "canonical Testnet token and treasury addresses",
+    "secure signer and funded Testnet deployer",
+    "central integration window",
+    "independent audit",
+    "immutable artifact host and signing policy",
+    "public support, privacy, security and status URLs"
+  ],
+  "generatedAt": "2026-07-27T14:58:32.000Z"
+}

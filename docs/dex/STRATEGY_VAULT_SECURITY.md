@@ -4,17 +4,17 @@
 
 ## Authority
 
-- Owner: add an asset, allow or deny a factory pool, configure the mandate, deposit, withdraw, pause, resume, revoke, kill and emergency-exit.
-- Engine: call only typed exact-input, exact-output, add-liquidity and remove-liquidity methods. Every output recipient is the vault. The engine may pause but cannot resume, withdraw, change policy, change owner or transfer assets elsewhere.
+- Owner: add an asset, allow or deny a constant-product Factory pool, allow or deny an exact `ynx-stableswap-v1` pool, configure the mandate, deposit, withdraw, pause, resume, revoke, kill and emergency-exit.
+- Engine: call only typed constant-product or direct StableSwap exact-input, exact-output, add-liquidity and remove-liquidity methods. Every output recipient is the vault. The engine may pause but cannot resume, withdraw, change policy, change owner or transfer assets elsewhere.
 - Anyone else: read state and events only.
 
 The nonce domain binds the chain ID, vault, owner and engine. Every successful engine action consumes exactly one monotonically increasing nonce. Reverts do not consume a nonce. Revoke and kill are terminal for the deployed vault; the user must deploy a new vault to establish a new authority boundary.
 
 ## Fail-closed mandate
 
-Engine actions require an active, unexpired mandate and enforce maximum vault value, maximum action value, gas price, minimum interval, slippage, oracle-relative impact, daily loss, drawdown, oracle age and depeg divergence. Every route token and every factory-resolved pool must be explicitly allowed. Deadlines cannot outlive the mandate.
+Engine actions require an active, unexpired mandate and enforce maximum vault value, maximum action value, gas price, minimum interval, slippage, oracle-relative impact, daily loss, drawdown, oracle age and depeg divergence. Every route token and every constant-product Factory pool must be explicitly allowed. Every StableSwap pool must separately match the exact `ynx-stableswap-v1` pool kind, expose code-backed Factory and token metadata, and be owner-approved. Deadlines cannot outlive the mandate.
 
-Token and LP approvals start at zero, are set to the exact action bound and are cleared to zero after success. Fee-on-transfer deposits are rejected by balance-delta equality. Router proceeds and LP positions stay in the vault. Oracle failure, staleness or excessive divergence rejects engine activity, but owner withdrawal and emergency exit do not depend on the oracle.
+Constant-product token and LP approvals start at zero, are set to the exact action bound and are cleared to zero after success. StableSwap actions grant no standing pool approval: the Vault transfers the exact token or LP amount to the approved pool and verifies the pool balance delta before execution. Fee-on-transfer deposits are rejected by balance-delta equality, so taxed assets cannot enter a successful mandate deposit. Router or pool proceeds and all LP positions stay in the vault. Oracle failure, staleness or excessive divergence rejects engine activity, but owner withdrawal and emergency exit do not depend on the oracle.
 
 ## Fee invariant
 
@@ -37,4 +37,4 @@ For `constant-product-v1`, LP fees are embedded in pool reserves. There is no se
 
 ## Direct test evidence
 
-`npm run dex:vault:test` covers unauthorized calls, nonce replay, exact approval cleanup, assets remaining in the vault, exact-input/output, add/remove liquidity, pause/resume, stale oracle, depeg, frequency, capital, gas, expiry, daily loss, terminal revoke and oracle-independent emergency exit. It also runs 32 deterministic stateful vectors and reports the maximum observed local swap gas without extrapolating production capacity.
+`npm run dex:vault:test` covers unauthorized calls, nonce replay, exact approval cleanup, constant-product and direct StableSwap exact-input/output, add/remove liquidity, wrong pool-kind rejection, Stable LP custody, taxed-token ingress rejection, assets remaining in the vault, pause/resume, stale oracle, depeg, frequency, capital, gas, expiry, daily loss, terminal revoke and oracle-independent emergency exit. It also runs 32 deterministic constant-product stateful vectors and reports the maximum observed local swap gas without extrapolating production capacity. `npm test --prefix sdk/dex` separately covers exact `dex:vault:execute` approval, transport suppression on scope mismatch and indexed StableSwap action reconciliation.

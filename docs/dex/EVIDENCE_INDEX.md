@@ -1,6 +1,8 @@
 # YNX DEX evidence index
 
-The final-objective requirement matrix and 2026-07-22 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. It distinguishes the recovered constant-product candidate from the incomplete expanded DEX objective.
+The final-objective requirement matrix and 2026-07-22 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. The current machine-readable full objective matrix is `.ai-bridge/full-goal-coverage.json`. Both distinguish locally tested components from the incomplete expanded DEX objective.
+
+Current runtime/source commit: `4d9f9c807efb2529836a1324b17c697e91a23421`.
 
 ## Source and tests
 
@@ -12,8 +14,9 @@ The final-objective requirement matrix and 2026-07-22 revalidation record are in
 - LP Protection contract and economic boundary: `docs/dex/LP_PROTECTION_SECURITY.md`, `scripts/dex/lp-protection-test.mjs`
 - StableSwap contract and economic boundary: `docs/dex/STABLESWAP_SECURITY.md`, `scripts/dex/stable-test.mjs`
 - SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
+- Direct StableSwap Vault SDK approval/submission/reconciliation tests: `sdk/dex/test/stable-vault.test.mjs`
 - Indexer recovery/security tests, including typed Stable pools, FairFlow and LP Protection persistence/API/migration: `internal/dex/store_test.go`
-- Confirmed EVM polling/reorg, typed Stable discovery/fee attribution, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`
+- Confirmed EVM polling/reorg, typed Stable discovery/fee attribution, direct StableSwap Vault selectors, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`, `internal/dex/stable_vault_methods_test.go`
 - State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
 - Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
 - Desktop/mobile/offline E2E: `apps/dex/e2e/dex.spec.ts`
@@ -43,10 +46,14 @@ The first five images are local real-runtime captures against an empty persisten
 - Timestamped public RPC identity/block observation: `docs/evidence/dex/testnet/rpc-probe.json`
 - Upload-ready PWA bundle: `release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz`
 - Bundle and per-file SHA-256 manifest: `release/dex/web-pwa-artifact.json`
-- SDK and contract-source/build aggregate manifest: `release/dex/artifact-manifest.json`
+- SDK and contract-source/build aggregate manifest: `release/dex/artifact-manifest.json`, SHA-256 `80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e`, 6162 bytes
+- PWA upload bundle: SHA-256 `dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669`, 331755 bytes
+- JavaScript SDK package: SHA-256 `fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5`, 21765 bytes
+- Integration freeze contract and vectors: `release/integration/ynx-dex-contract.json`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Website/SEO handoff: `public-product-metadata.json`
 
-The RPC observation explicitly records `dexDeploymentObserved=false`. The artifact manifest explicitly records unsigned, unhosted and undeployed status.
+The RPC observation explicitly records `dexDeploymentObserved=false`. The artifact manifest explicitly records unsigned, unhosted and undeployed status. The current artifacts bind to source commit `4d9f9c807efb2529836a1324b17c697e91a23421`.
 
 ## Missing evidence
 
-Testnet contract/bytecode verification, populated owner-reviewed token list, pool/liquidity creation, Wallet swap, Wallet add/remove LP, Explorer transaction proofs, real-node Indexer/frontend consistency, migration rollback, staging/public URL, remote smoke, immutable hosted artifact, production signature, store acceptance and independent audit are absent.
+Testnet contract/bytecode verification, populated owner-reviewed token list, pool/liquidity creation, Wallet swap, Wallet add/remove LP, Quant template receipts, profit/loss and fee attribution, Explorer/Finance/Monitor/Trust proofs, real-node Indexer/frontend consistency, migration rollback, full backup/restore drill, concentrated liquidity, weighted pool, liquidity bootstrapping, complete 12-language/a11y evidence, measured capacity/unit economics, staging/public URL, remote smoke, immutable hosted artifact, production signature and independent audit are absent.
