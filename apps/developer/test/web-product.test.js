@@ -51,7 +51,9 @@ test("localized UI and native desktop sources preserve language, permission and 
 test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
   const packageScript=await read("scripts/package-local-macos.sh"), verify=await read("scripts/verify-local-macos-package.sh"), source=await read("desktop/macos/main.m");
   assert.match(packageScript,/desktop\/macos\/main\.m/); assert.match(packageScript,/Resources\/runtime\/node/); assert.match(packageScript,/codesign --force --deep --sign -/);
+  assert.match(packageScript,/Refusing to package tracked Developer changes/); assert.match(packageScript,/build-provenance\.json/); assert.match(packageScript,/sbom\.cdx\.json/); assert.match(packageScript,/sourceDirty: false/);
   assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/);
+  assert.match(verify,/provenance sourceCommit mismatch|provenance \$\{key\} mismatch/); assert.match(verify,/sbomSha256/); assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(source,/\[_server waitUntilExit\]/);
 });
 

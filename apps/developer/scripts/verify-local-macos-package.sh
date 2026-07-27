@@ -13,6 +13,37 @@ trap cleanup EXIT
 app="$work/YNX Developer Testnet Preview.app"
 [[ -x "$app/Contents/MacOS/YNXDeveloper" ]]
 [[ -x "$app/Contents/Resources/runtime/node" ]]
+[[ -f "$app/Contents/Resources/build-provenance.json" ]]
+[[ -f "$app/Contents/Resources/sbom.cdx.json" ]]
+expected_source_commit="${YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT:-$(/usr/bin/git rev-parse HEAD)}"
+expected_source_tree="${YNX_DEVELOPER_EXPECTED_SOURCE_TREE:-$(/usr/bin/git rev-parse "$expected_source_commit^{tree}")}"
+expected_runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
+node -e '
+const crypto = require("crypto");
+const fs = require("fs");
+const [provenancePath, sbomPath, expectedCommit, expectedTree, expectedRuntime] = process.argv.slice(1);
+const provenance = JSON.parse(fs.readFileSync(provenancePath, "utf8"));
+const sbom = fs.readFileSync(sbomPath);
+const sbomSha256 = crypto.createHash("sha256").update(sbom).digest("hex");
+const expected = {
+  schemaVersion: 1,
+  productId: "ynx-developer-v1",
+  artifactClass: "unsigned-testnet-preview",
+  platform: "macos-arm64",
+  signingClass: "adhoc-no-team-id",
+  sourceCommit: expectedCommit,
+  sourceTree: expectedTree,
+  runtimeCheckpoint: expectedRuntime,
+  sourceDirty: false,
+  sbomPath: "Contents/Resources/sbom.cdx.json",
+  sbomSha256
+};
+for (const [key, value] of Object.entries(expected)) {
+  if (provenance[key] !== value) throw new Error(`provenance ${key} mismatch: ${provenance[key]} != ${value}`);
+}
+JSON.parse(sbom.toString("utf8"));
+console.log(`Embedded provenance verified for source ${provenance.sourceCommit} and SBOM ${sbomSha256}.`);
+' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint"
 if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "Archive unexpectedly restored quarantine metadata." >&2; exit 1; fi
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
