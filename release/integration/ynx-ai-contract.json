@@ -1,0 +1,326 @@
+{
+  "schemaVersion": "ynx.ai.integration.v1",
+  "contractVersion": "1.0.0",
+  "product": {
+    "number": 14,
+    "id": "ynx-ai",
+    "name": "YNX AI",
+    "owner": "14-ai",
+    "branch": "codex/final-ai",
+    "runtimeSourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
+    "evidenceCheckpointCommit": "6b57d2ba630702f04d6cc1d8ec46fb51cc1df0e8"
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT",
+    "environment": "testnet"
+  },
+  "walletAuth": {
+    "owner": "02-wallet-auth",
+    "registrySchemaVersion": 2,
+    "productClientId": "ynx-ai-v1",
+    "requestingProduct": "ai",
+    "bundleId": "com.ynxweb4.ai",
+    "callbacks": [
+      "ynxai://wallet-auth/callback"
+    ],
+    "deviceAlgorithms": [
+      "p256-sha256"
+    ],
+    "orderedScopes": [
+      "ai:actions",
+      "ai:attachments",
+      "ai:conversations",
+      "ai:data-control",
+      "ai:generate",
+      "ai:permissions"
+    ],
+    "maxSessionSeconds": 300,
+    "requiredVerifier": "verifyCentralWalletSession",
+    "requiredActiveGuard": "assertCentralWalletSessionActive",
+    "failClosedUntilAccepted": true,
+    "localFixtureAuthIsProductionAuthority": false
+  },
+  "generationGateway": {
+    "owner": "14-ai",
+    "route": "POST /ai/stream",
+    "requestMediaType": "application/json",
+    "responseMediaType": "text/event-stream",
+    "maxBodyBytes": 2097152,
+    "queryParametersAllowed": false,
+    "unknownFieldsAllowed": false,
+    "request": {
+      "required": [
+        "session",
+        "prompt",
+        "outputLanguage",
+        "includedContext",
+        "excludedContext",
+        "attachments",
+        "continueFrom"
+      ],
+      "maxSessionCharacters": 128,
+      "maxPromptCharacters": 8000,
+      "maxContextEntries": 8,
+      "maxAttachments": 8,
+      "maxAttachmentNameCharacters": 160,
+      "maxAttachmentTextBytes": 262144,
+      "maxContinueFromCharacters": 120,
+      "allowedAttachmentMediaTypes": [
+        "text/plain",
+        "text/markdown",
+        "application/json"
+      ],
+      "allowedContextTypes": [
+        "conversation",
+        "selected_chain_records",
+        "selected_files",
+        "selected_trust_records"
+      ],
+      "attachmentContextRequirement": "selected_files must be explicitly included",
+      "supportedOutputLanguages": [
+        "en",
+        "zh-CN",
+        "zh-TW",
+        "ja",
+        "ko",
+        "es",
+        "fr",
+        "de",
+        "pt",
+        "ru",
+        "ar",
+        "id"
+      ]
+    },
+    "events": [
+      {
+        "name": "metadata",
+        "requiredFields": [
+          "requestId",
+          "sessionId"
+        ]
+      },
+      {
+        "name": "token",
+        "requiredFields": [
+          "text"
+        ]
+      },
+      {
+        "name": "done",
+        "requiredFields": [
+          "requestId"
+        ]
+      }
+    ],
+    "audit": {
+      "rawPromptStored": false,
+      "rawAttachmentStored": false,
+      "originalPromptHashStored": true,
+      "requestIdStored": true
+    },
+    "errorEnvelope": {
+      "fields": [
+        "code",
+        "error",
+        "requestId"
+      ],
+      "providerBodyExposed": false
+    }
+  },
+  "productGenerationStream": {
+    "route": "POST /api/conversations/{id}/generate",
+    "responseMediaType": "text/event-stream",
+    "events": [
+      {
+        "name": "metadata",
+        "requiredFields": [
+          "generationId",
+          "provider",
+          "model",
+          "actualUsageReported"
+        ]
+      },
+      {
+        "name": "token",
+        "requiredFields": [
+          "text"
+        ]
+      },
+      {
+        "name": "done",
+        "requiredFields": [
+          "generationId",
+          "messageId",
+          "cost"
+        ]
+      },
+      {
+        "name": "error",
+        "requiredFields": [
+          "generationId",
+          "error",
+          "retryable"
+        ]
+      }
+    ],
+    "providerFailureCreatesAssistantMessage": false
+  },
+  "generationCancellation": {
+    "route": "POST /api/generations/{generationId}/cancel",
+    "requiredScope": "ai:generate",
+    "ownerBinding": "Wallet account",
+    "wrongAccountStatus": 404,
+    "activeOwnerStatus": 202,
+    "existenceDisclosureToOtherAccounts": false
+  },
+  "toolApproval": {
+    "adviceOnly": true,
+    "states": [
+      "proposed",
+      "approved_not_executed",
+      "rejected",
+      "expired"
+    ],
+    "walletReviewStillRequiredForChainAction": true,
+    "aiMayExecuteExternalAction": false,
+    "forbiddenActions": [
+      "sign",
+      "pay",
+      "refund",
+      "trade",
+      "swap",
+      "withdraw",
+      "issue-card",
+      "freeze-card",
+      "publish",
+      "send",
+      "delete-external-data",
+      "change-permission",
+      "change-risk",
+      "mint",
+      "burn",
+      "treasury-execution",
+      "governance-execution",
+      "consensus-change",
+      "rollback"
+    ]
+  },
+  "canonicalErrors": [
+    {
+      "code": "invalid_request",
+      "httpStatus": 400,
+      "retryable": false
+    },
+    {
+      "code": "unsupported_media_type",
+      "httpStatus": 415,
+      "retryable": false
+    },
+    {
+      "code": "unauthorized",
+      "httpStatus": 401,
+      "retryable": false
+    },
+    {
+      "code": "rate_limited",
+      "httpStatus": 429,
+      "retryable": true
+    },
+    {
+      "code": "provider_rate_limited",
+      "httpStatus": 429,
+      "retryable": true
+    },
+    {
+      "code": "upstream_error",
+      "httpStatus": 502,
+      "retryable": true
+    },
+    {
+      "code": "generation_not_active",
+      "httpStatus": 404,
+      "retryable": false
+    }
+  ],
+  "healthAndVersion": {
+    "gatewayHealth": "GET /health",
+    "gatewayMetrics": "GET /metrics",
+    "productHealth": "GET /healthz",
+    "productMetadata": "GET /api/meta",
+    "requiredTruth": [
+      "build commit",
+      "release",
+      "provider configured",
+      "upstream status",
+      "model",
+      "rate limit",
+      "request counters"
+    ]
+  },
+  "dependencies": [
+    {
+      "owner": "02-wallet-auth",
+      "requirement": "canonical registry entry, session verifier, active-session guard",
+      "status": "pending-owner-acceptance"
+    },
+    {
+      "owner": "13-monitor",
+      "requirement": "gateway/product metrics, alerts and incident evidence",
+      "status": "pending-contract"
+    },
+    {
+      "owner": "15-trust-center",
+      "requirement": "appeal and correction linkage",
+      "status": "local-adapter-only"
+    },
+    {
+      "owner": "26-data-fabric",
+      "requirement": "canonical usage and billing receipt events",
+      "status": "pending-contract"
+    },
+    {
+      "owner": "28-website",
+      "requirement": "canonical /ai route, support/privacy/security/status and artifact links",
+      "status": "pending-public-handoff"
+    },
+    {
+      "owner": "29-integration",
+      "requirement": "protocol acceptance, shared Testnet and cross-product proof",
+      "status": "pending-acceptance"
+    },
+    {
+      "owner": "30-security-sre",
+      "requirement": "staging deployment, secrets, signing, scans, provenance, backup and rollback",
+      "status": "pending-deployment"
+    }
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "generationLive": false
+  },
+  "migration": {
+    "from": "GET /ai/stream?session={session}&q={prompt}",
+    "to": "POST /ai/stream with exact JSON body",
+    "legacyAccepted": false,
+    "rollbackSafety": "Rollback may disable generation, but must never restore prompt-in-query transport."
+  },
+  "externalInputs": [
+    "canonical Wallet owner acceptance",
+    "provider credential and quota through secure deployment",
+    "staging/public deployment authority",
+    "Xcode runner and signing assets",
+    "domain/artifact hosting authority"
+  ],
+  "lastUpdated": "2026-07-27"
+}

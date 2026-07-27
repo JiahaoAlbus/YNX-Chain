@@ -23,7 +23,7 @@
         "go test -race ./internal/aigateway",
         "go test ./internal/aigateway ./internal/aiproduct ./cmd/ynx-ai-gatewayd"
       ],
-      "sourceCommit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
+      "sourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
       "centralClaim": false
     },
     {

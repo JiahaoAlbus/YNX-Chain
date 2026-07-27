@@ -14,12 +14,19 @@
   "aiGateway": {
     "status": "tested-local-not-deployed",
     "runtimeSource": "internal/aigateway/server.go",
-    "sourceCommit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
+    "sourceCommit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
     "requiredRoute": "POST /ai/stream",
     "requestMediaType": "application/json",
     "forbiddenTransport": "prompt or attachment content in URL/query/log",
     "strictUnknownFieldRejection": true,
     "explicitAttachmentContextRequired": true,
+    "stableErrorEnvelope": [
+      "code",
+      "error",
+      "requestId"
+    ],
+    "provider429Code": "provider_rate_limited",
+    "providerBodyExposed": false,
     "bodyLimitBytes": 2097152,
     "supportedOutputLanguages": [
       "en",

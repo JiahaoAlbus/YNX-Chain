@@ -2,7 +2,7 @@
   "productId": "ynx-ai",
   "name": "YNX AI",
   "branch": "codex/final-ai",
-  "commit": "a1cfb21776a5f838427e9a92c006342efd0671ba",
+  "commit": "2678a8b0cf3f9463ec7fc205caab486993bf5f18",
   "version": "1.0.0-testnet-preview",
   "surfaces": [
     "web",
@@ -54,7 +54,7 @@
   },
   "centralIntegration": {
     "walletAuth": "not integrated; exact schema-v2 entry/vector/patch supplied under apps/ai/integration; production local-auth routes fail closed by default",
-    "aiGateway": "POST JSON-body stream contract implemented and race-tested at a1cfb21776a5f838427e9a92c006342efd0671ba; not deployed or centrally accepted",
+    "aiGateway": "POST JSON-body stream contract and stable Provider error semantics implemented and race-tested at 2678a8b0cf3f9463ec7fc205caab486993bf5f18; not deployed or centrally accepted",
     "provider": "no provider-backed successful staging output evidenced; generationLive=false"
   },
   "knownLimitations": [

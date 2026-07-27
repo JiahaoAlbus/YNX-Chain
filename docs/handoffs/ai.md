@@ -192,11 +192,12 @@ emulator with no fatal/runtime script error.
    a real cross-App Wallet approval can succeed. This branch does not bypass the
    registry or fabricate approval.
 2. **Central Gateway deployment:** source commit
-   `a1cfb21776a5f838427e9a92c006342efd0671ba` implements and race-tests the
+   `2678a8b0cf3f9463ec7fc205caab486993bf5f18` implements and race-tests the
    strict `POST /ai/stream` JSON contract in `internal/aigateway`. It rejects
    query strings, unknown fields, implicit attachment context and oversized
-   bodies, and audits only the original prompt hash. This is local implementation
-   evidence, not staging deployment or provider-backed central proof; the owner
+   bodies, audits only the original prompt hash, returns stable machine-readable
+   errors, preserves Provider 429, and redacts upstream bodies. This is local
+   implementation evidence, not staging deployment or provider-backed central proof; the owner
    must deploy that commit and run the remote vectors before `integratedCentral`
    or `generationLive` can become true.
 3. **Provider metadata:** add authenticated provider catalog/capabilities, quota,
