@@ -22,6 +22,7 @@ type Config struct {
 	PayAPIKey        string
 	BridgeURL        string
 	BridgeAPIKey     string
+	WalletURL        string
 	AllowedOrigins   []string
 	MaxBodyBytes     int64
 	MaxResponseBytes int64
@@ -42,6 +43,7 @@ type Gateway struct {
 	squareURL *url.URL
 	payURL    *url.URL
 	bridgeURL *url.URL
+	walletURL *url.URL
 	origins   map[string]struct{}
 	mu        sync.Mutex
 	visitors  map[string]visitor
@@ -77,6 +79,7 @@ func New(cfg Config) (*Gateway, error) {
 	squareURL, _ := url.Parse(cfg.SquareURL)
 	payURL, _ := url.Parse(cfg.PayURL)
 	bridgeURL, _ := url.Parse(cfg.BridgeURL)
+	walletURL, _ := url.Parse(cfg.WalletURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
 	for _, origin := range cfg.AllowedOrigins {
 		origins[strings.TrimSpace(origin)] = struct{}{}
@@ -91,7 +94,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, bridgeURL: bridgeURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, payURL: payURL, bridgeURL: bridgeURL, walletURL: walletURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -111,6 +114,9 @@ func ValidateConfig(cfg Config) error {
 		return err
 	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_BRIDGE_URL", cfg.BridgeURL); err != nil {
+		return err
+	}
+	if err := validateLoopbackURL("YNX_APP_GATEWAY_WALLET_URL", cfg.WalletURL); err != nil {
 		return err
 	}
 	if len(strings.TrimSpace(cfg.ChatAPIKey)) < 16 {
@@ -249,6 +255,8 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 		return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
 	case "bridge":
 		return g.bridgeURL, g.cfg.BridgeAPIKey, "X-YNX-Bridge-Gateway-Key", true
+	case "wallet":
+		return g.walletURL, "", "", true
 	default:
 		return nil, "", "", false
 	}

@@ -33,6 +33,7 @@ type Health struct {
 	BrowserBoundary string                    `json:"browserBoundary"`
 	NativeBoundary  string                    `json:"nativeBoundary"`
 	NativeProducts  []string                  `json:"nativeProducts"`
+	WalletBoundary  string                    `json:"walletBoundary"`
 	OwnershipProof  string                    `json:"ownershipProof"`
 	SessionStorage  string                    `json:"sessionStorage"`
 	ActiveSessions  int                       `json:"activeSessions"`
@@ -55,6 +56,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/health", s.health)
 	mux.HandleFunc("/app/health", s.appHealth)
 	mux.HandleFunc("/app/", s.app)
+	mux.HandleFunc("/v1/wallet/", s.wallet)
 	return securityHeaders(mux)
 }
 
@@ -77,7 +79,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay", "bridge"} {
+	for _, service := range []string{"chat", "square", "pay", "bridge", "wallet"} {
 		base, _, _, _ := s.gateway.upstream(service)
 		request, _ := http.NewRequestWithContext(r.Context(), http.MethodGet, base.String()+"/health", nil)
 		response, err := s.client.Do(request)
@@ -105,12 +107,92 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	if s.gateway.cfg.RemoteDeployed {
 		status = "remote-first-party-app-gateway"
 	}
-	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: "explicit-product-client-bindings", NativeProducts: []string{nativeMobileClient, nativeSocialClient, nativeWalletClient}, OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: "explicit-product-client-bindings", NativeProducts: []string{nativeMobileClient, nativeSocialClient, nativeWalletClient}, WalletBoundary: "p256-product-session-proof", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
 	}
 	writeJSON(w, code, health)
+}
+
+func (s *Server) wallet(w http.ResponseWriter, r *http.Request) {
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin != "" && !s.gateway.OriginAllowed(origin) {
+		writeError(w, http.StatusForbidden, "origin is not allowed")
+		return
+	}
+	if origin != "" {
+		setCORS(w, origin)
+	}
+	if r.Method == http.MethodOptions {
+		s.walletPreflight(w, r)
+		return
+	}
+	if !s.gateway.Allow(r.RemoteAddr) {
+		writeError(w, http.StatusTooManyRequests, "app gateway rate limit exceeded")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "unable to read canonical Wallet request")
+		return
+	}
+	if int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, "canonical Wallet request exceeds gateway policy")
+		return
+	}
+	upstreamURL := *s.gateway.walletURL
+	upstreamURL.Path = r.URL.Path
+	upstreamURL.RawPath = r.URL.RawPath
+	upstreamURL.RawQuery = r.URL.RawQuery
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "unable to construct canonical Wallet request")
+		return
+	}
+	for _, header := range []string{"Accept", "Content-Type", "X-YNX-Product-Session-Proof"} {
+		if value := strings.TrimSpace(r.Header.Get(header)); value != "" {
+			request.Header.Set(header, value)
+		}
+	}
+	response, err := s.client.Do(request)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "canonical Wallet Gateway unavailable")
+		return
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, s.gateway.cfg.MaxResponseBytes+1))
+	if err != nil || int64(len(responseBody)) > s.gateway.cfg.MaxResponseBytes {
+		writeError(w, http.StatusBadGateway, "canonical Wallet response exceeds gateway policy")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	if contentType := response.Header.Get("Content-Type"); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(responseBody)
+}
+
+func (s *Server) walletPreflight(w http.ResponseWriter, r *http.Request) {
+	if strings.ToUpper(strings.TrimSpace(r.Header.Get("Access-Control-Request-Method"))) != http.MethodPost {
+		writeError(w, http.StatusForbidden, "canonical Wallet preflight method is not allowed")
+		return
+	}
+	for _, raw := range strings.Split(r.Header.Get("Access-Control-Request-Headers"), ",") {
+		header := http.CanonicalHeaderKey(strings.TrimSpace(raw))
+		if header == "" {
+			continue
+		}
+		switch header {
+		case "Accept", "Content-Type", "X-Ynx-Product-Session-Proof":
+		default:
+			writeError(w, http.StatusForbidden, fmt.Sprintf("canonical Wallet preflight header %s is not allowed", header))
+			return
+		}
+	}
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-YNX-Product-Session-Proof")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) app(w http.ResponseWriter, r *http.Request) {

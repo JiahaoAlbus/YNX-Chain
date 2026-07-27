@@ -31,6 +31,7 @@ common_gateway_env=(
   YNX_APP_GATEWAY_PAY_API_KEY="$pay_key"
   YNX_APP_GATEWAY_BRIDGE_URL=http://127.0.0.1:17433
   YNX_APP_GATEWAY_BRIDGE_API_KEY="$bridge_key"
+  YNX_APP_GATEWAY_WALLET_URL=http://127.0.0.1:17439
   YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynxweb4.com,https://ynxweb4.com
   YNX_APP_GATEWAY_MAX_BODY_BYTES=131072
   YNX_APP_GATEWAY_MAX_RESPONSE_BYTES=1048576
@@ -51,6 +52,8 @@ node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","
 pids+=("$!")
 node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-bridged",remoteDeployed:false,truthfulStatus:"local-coordinator-only-no-external-submission"}))}).listen(17433,"127.0.0.1")' >"$tmp/bridge.log" 2>&1 &
 pids+=("$!")
+node -e 'require("http").createServer((req,res)=>{res.setHeader("content-type","application/json");res.end(JSON.stringify({ok:true,service:"ynx-wallet-gatewayd",remoteDeployed:false,truthfulStatus:"local-canonical-wallet-gateway"}))}).listen(17439,"127.0.0.1")' >"$tmp/wallet.log" 2>&1 &
+pids+=("$!")
 env "${common_gateway_env[@]}" YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:17437 "$tmp/ynx-app-gatewayd" >"$tmp/gateway.log" 2>&1 &
 pids+=("$!")
 
@@ -62,7 +65,7 @@ done
 node - "$tmp/health.json" <<'NODE'
 const fs = require("fs");
 const health = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "explicit-product-client-bindings" || health.nativeProducts?.join(",") !== "ynx-mobile-v1,ynx-social-v1,ynx-wallet-v1" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok || !health.upstreams?.bridge?.ok) {
+if (!health.ok || health.service !== "ynx-app-gatewayd" || health.remoteDeployed !== false || health.browserBoundary !== "exact-https-origin" || health.nativeBoundary !== "explicit-product-client-bindings" || health.nativeProducts?.join(",") !== "ynx-mobile-v1,ynx-social-v1,ynx-wallet-v1" || health.walletBoundary !== "p256-product-session-proof" || health.ownershipProof !== "ynx1-secp256k1-plus-ed25519-device" || !health.sessionStorage?.includes("token-hashes-only") || health.truthfulStatus !== "local-first-party-app-gateway-not-remote-deployed" || !health.upstreams?.chat?.ok || !health.upstreams?.square?.ok || !health.upstreams?.pay?.ok || !health.upstreams?.bridge?.ok || !health.upstreams?.wallet?.ok) {
   throw new Error(`bad app gateway health: ${JSON.stringify(health)}`);
 }
 NODE

@@ -31,6 +31,7 @@ type observedRequest struct {
 	Product    string
 	Scope      string
 	ExpiresAt  string
+	Proof      string
 	Cookie     string
 	Auth       string
 	Body       string
@@ -61,6 +62,7 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 		DeviceID: r.Header.Get("X-YNX-Device-ID"), SessionID: r.Header.Get("X-YNX-App-Session-ID"),
 		Account: r.Header.Get("X-YNX-App-Session-Account"), Product: r.Header.Get("X-YNX-App-Product"),
 		Scope: r.Header.Get("X-YNX-App-Scope"), ExpiresAt: r.Header.Get("X-YNX-App-Session-Expires-At"),
+		Proof:  r.Header.Get("X-YNX-Product-Session-Proof"),
 		Cookie: r.Header.Get("Cookie"), Auth: r.Header.Get("Authorization"), Body: string(body),
 	})
 	u.mu.Unlock()
@@ -72,6 +74,53 @@ func (u *upstreamRecorder) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Upstream-Secret", "must-not-pass")
 	w.WriteHeader(http.StatusCreated)
 	_, _ = io.WriteString(w, `{"ok":true}`)
+}
+
+func TestGatewayMountsCanonicalWalletWithoutLegacySessionOrCredentialForwarding(t *testing.T) {
+	_, chatServer := startUpstream(t, "chat", "X-YNX-Chat-Key", testChatKey)
+	_, squareServer := startUpstream(t, "square", "X-YNX-Square-Key", testSquareKey)
+	wallet, walletServer := startUpstream(t, "wallet", "", "")
+	cfg := testConfig(t, chatServer.URL, squareServer.URL, 20)
+	cfg.WalletURL = walletServer.URL
+	gateway, err := New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(gateway).Handler())
+	defer server.Close()
+
+	preflight, _ := http.NewRequest(http.MethodOptions, server.URL+"/v1/wallet/sessions", nil)
+	preflight.Header.Set("Origin", testOrigin)
+	preflight.Header.Set("Access-Control-Request-Method", "POST")
+	preflight.Header.Set("Access-Control-Request-Headers", "Content-Type, X-YNX-Product-Session-Proof")
+	preflightResponse, err := http.DefaultClient.Do(preflight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preflightResponse.Body.Close()
+	if preflightResponse.StatusCode != http.StatusNoContent || !strings.Contains(preflightResponse.Header.Get("Access-Control-Allow-Headers"), "X-YNX-Product-Session-Proof") {
+		t.Fatalf("Wallet preflight failed: %d %v", preflightResponse.StatusCode, preflightResponse.Header)
+	}
+
+	request, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/wallet/sessions", strings.NewReader(`{}`))
+	request.Header.Set("Origin", testOrigin)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof", "canonical-proof-base64url")
+	request.Header.Set("X-YNX-App-Session", "legacy-session-must-not-pass")
+	request.Header.Set("Cookie", "wallet=must-not-pass")
+	request.Header.Set("Authorization", "Bearer must-not-pass")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusCreated || response.Header.Get("X-Upstream-Secret") != "" || response.Header.Get("Access-Control-Allow-Origin") != testOrigin {
+		t.Fatalf("canonical Wallet response mismatch: status=%d headers=%v", response.StatusCode, response.Header)
+	}
+	requests := wallet.snapshot()
+	if len(requests) != 1 || requests[0].Method != http.MethodPost || requests[0].URI != "/v1/wallet/sessions" || requests[0].Proof != "canonical-proof-base64url" || requests[0].Body != `{}` || requests[0].Cookie != "" || requests[0].Auth != "" {
+		t.Fatalf("unsafe canonical Wallet proxy request: %+v", requests)
+	}
 }
 
 func TestGatewayProxiesAllowedRoutesWithoutLeakingCredentials(t *testing.T) {
@@ -329,7 +378,7 @@ func TestGatewayRateLimitResponseLimitAndHealth(t *testing.T) {
 		t.Fatal(err)
 	}
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != "explicit-product-client-bindings" || strings.Join(health.NativeProducts, ",") != "ynx-mobile-v1,ynx-social-v1,ynx-wallet-v1" || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 4 || !health.Upstreams["pay"].OK || !health.Upstreams["bridge"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
+	if response.StatusCode != http.StatusOK || !health.OK || health.RemoteDeployed || health.BrowserBoundary != "exact-https-origin" || health.NativeBoundary != "explicit-product-client-bindings" || strings.Join(health.NativeProducts, ",") != "ynx-mobile-v1,ynx-social-v1,ynx-wallet-v1" || health.WalletBoundary != "p256-product-session-proof" || health.OwnershipProof != "ynx1-secp256k1-plus-ed25519-device" || health.SessionStorage == "" || len(health.Upstreams) != 5 || !health.Upstreams["pay"].OK || !health.Upstreams["bridge"].OK || !health.Upstreams["wallet"].OK || health.TruthfulStatus != "local-first-party-app-gateway-not-remote-deployed" {
 		t.Fatalf("health: %+v", health)
 	}
 
@@ -363,6 +412,7 @@ func TestValidateConfigFailClosed(t *testing.T) {
 	for name, mutate := range map[string]func(*Config){
 		"remote chat upstream":   func(c *Config) { c.ChatURL = "https://chat.example" },
 		"remote bridge upstream": func(c *Config) { c.BridgeURL = "https://bridge.example" },
+		"remote wallet upstream": func(c *Config) { c.WalletURL = "https://wallet.example" },
 		"short key":              func(c *Config) { c.SquareAPIKey = "short" },
 		"short bridge key":       func(c *Config) { c.BridgeAPIKey = "short" },
 		"wildcard origin":        func(c *Config) { c.AllowedOrigins = []string{"*"} },
@@ -385,7 +435,8 @@ func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
 	t.Helper()
 	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
 	_, bridgeServer := startUpstream(t, "bridge", "X-YNX-Bridge-Gateway-Key", testBridgeKey)
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, BridgeURL: bridgeServer.URL, BridgeAPIKey: testBridgeKey, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	_, walletServer := startUpstream(t, "wallet", "", "")
+	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, BridgeURL: bridgeServer.URL, BridgeAPIKey: testBridgeKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
 }
 
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {
