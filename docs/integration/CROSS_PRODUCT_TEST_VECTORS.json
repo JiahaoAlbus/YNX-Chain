@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-shop",
+  "sourceCommit": "ef97eadea90e2b6f4f24225c52e6093b5d5de567",
+  "contract": "release/integration/ynx-shop-contract.json",
+  "vectors": [
+    {
+      "id": "wallet-positive-buyer-session",
+      "owners": ["09-shop", "02-wallet-auth", "29-integration"],
+      "preconditions": ["Shop registry v2 entry deployed", "fresh device P-256 key", "ordered scopes exactly match registry"],
+      "steps": ["create authorization request", "approve in Wallet", "complete device challenge", "issue product session", "introspect session", "GET /api/profile"],
+      "expected": ["session account and device binding match", "profile request succeeds", "audit contains request and session identifiers"]
+    },
+    {
+      "id": "wallet-negative-cross-product-token",
+      "owners": ["09-shop", "02-wallet-auth"],
+      "mutation": "use Seller or another product bearer against Shop buyer API",
+      "expectedHttp": 403,
+      "expected": "fail closed without profile, order or cart data"
+    },
+    {
+      "id": "wallet-negative-scope-reorder",
+      "owners": ["09-shop", "02-wallet-auth"],
+      "mutation": "reorder or widen account:read, shop:orders:write, shop:profile:write",
+      "expectedHttp": 403,
+      "expected": "request digest or introspection binding mismatch"
+    },
+    {
+      "id": "wallet-negative-replay-revoke-expiry",
+      "owners": ["09-shop", "02-wallet-auth"],
+      "mutations": ["replay challenge completion", "reuse callback", "use expired session", "use revoked device/session"],
+      "expectedHttp": 401,
+      "expected": "no product operation executes and replay record remains auditable"
+    },
+    {
+      "id": "order-positive-reserve-pay-fulfill-refund",
+      "owners": ["09-shop", "04-pay", "15-trust-center", "26-data-fabric", "29-integration"],
+      "preconditions": ["authenticated buyer", "inventory available", "Shop Pay merchant configured", "shared Testnet funded"],
+      "steps": ["create order", "verify inventory reservation", "create Pay handoff", "commit matching Testnet payment", "confirm authoritative settlement", "ship", "confirm delivery", "request return/refund", "commit authoritative refund"],
+      "expected": ["no oversell", "paid only after exact settlement match", "refund only after exact refund evidence", "events preserve one order ID and audit chain"]
+    },
+    {
+      "id": "order-negative-fake-payment",
+      "owners": ["09-shop", "04-pay"],
+      "mutations": ["HTTP 200 without chain receipt", "webhook-only paid notice", "wrong merchant", "wrong payout", "wrong amount", "wrong payer", "wrong invoice", "wrong intent digest", "uncommitted transaction"],
+      "expected": "order remains payment_pending and evidence mismatch is audited"
+    },
+    {
+      "id": "order-negative-concurrent-oversell",
+      "owners": ["09-shop"],
+      "preconditions": ["one inventory unit", "two authenticated buyers"],
+      "steps": ["submit concurrent idempotent checkout requests"],
+      "expected": ["at most one reservation succeeds", "inventory never becomes negative", "retry returns the original result or a conflict"]
+    },
+    {
+      "id": "privacy-positive-export-delete",
+      "owners": ["09-shop"],
+      "preconditions": ["buyer profile, address, cart, AI job and terminal order exist"],
+      "steps": ["GET /api/privacy/export", "verify schemaVersion=1", "POST /api/privacy/delete with exact confirmation", "restart service", "query as former buyer and seller"],
+      "expected": ["profile, address, cart and AI job absent", "buyer no longer owns retained order", "seller sees pseudonymized terminal order", "public-chain settlement evidence unchanged", "deletion receipt and audit exist"]
+    },
+    {
+      "id": "privacy-negative-active-workflow",
+      "owners": ["09-shop"],
+      "preconditions": ["buyer has payment_pending, paid, shipped, delivered, return, refund or dispute workflow"],
+      "steps": ["POST /api/privacy/delete with exact confirmation"],
+      "expectedHttp": 409,
+      "expected": ["no personal data is deleted", "response identifies invalid state without exposing other users"]
+    },
+    {
+      "id": "privacy-negative-confirmation-role",
+      "owners": ["09-shop", "02-wallet-auth"],
+      "mutations": ["wrong confirmation", "Seller role", "other buyer account", "expired session"],
+      "expected": "deletion is rejected and target buyer data remains unchanged"
+    },
+    {
+      "id": "trust-boundary-negative-asset-control",
+      "owners": ["09-shop", "15-trust-center"],
+      "mutation": "Trust response attempts payment, refund, freeze, seizure, blacklist or YNXT transfer",
+      "expected": "Shop ignores/rejects unsupported fields and no asset state changes"
+    },
+    {
+      "id": "release-truth-current-vs-staging",
+      "owners": ["09-shop", "28-website", "29-integration", "30-security-sre"],
+      "steps": ["compare /version commit with release record", "compare artifact hash/bytes/source", "check current contract release booleans"],
+      "expected": ["38e2f68 staging is not labelled as ef97ead", "current source remains not deployed/hosted until direct evidence exists"]
+    }
+  ]
+}

@@ -1,14 +1,34 @@
 # YNX Shop and Seller Console handoff
 
-Updated: 2026-07-18
+Updated: 2026-07-27
 
-Branch: `codex/ecosystem-shop`
+Current branch: `codex/final-shop`
 
-Release source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
+Current protected source: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+
+Prior Staging/artifact source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
 
 Minimum preserved baseline: `ef0456a6111ed9bc59fcd6c34d9a8739713e0865`
 
-## Current truth matrix
+## 2026-07-27 current checkpoint
+
+Current source adds authenticated buyer data export and deletion across Commerce API, Web/PWA, Android source and iOS source. Deletion fails closed while any order is non-terminal; terminal orders are pseudonymized while authoritative public-chain settlement and integrity evidence remains unchanged. The current source also repairs false-green Placeholder and Secret gates by using a bounded Node scanner when ripgrep is absent.
+
+Current-source local verification passes for Commerce race tests, buyer Web tests/build, native static contracts, scanner unit tests, Placeholder scan and Secret scan. Android compilation is blocked on this host by the absent Android SDK path. iOS compilation is blocked because only Command Line Tools, not full Xcode, is active. The full repository Go suite currently has unrelated shared baseline failures in three macOS permission assertions and two missing generated-contract consumers; Commerce itself passes.
+
+The machine-readable source of truth is now:
+
+- `apps/shop/product-release.json`
+- `apps/shop/public-product-metadata.json`
+- `.ai-bridge/full-goal-coverage.json`
+- `release/integration/ynx-shop-contract.json`
+- `docs/integration/INTEGRATION_HANDOFF.md`
+- `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+
+Existing Staging and hosted artifacts remain valid historical evidence for source `38e2f68`; they do not contain the current privacy or validation changes and must not be described as current-source deployment evidence.
+
+## Preserved 2026-07-18 truth matrix
 
 | Product | Local implementation/tests | Installed | Central | Staging | Public/store |
 | --- | --- | --- | --- | --- | --- |

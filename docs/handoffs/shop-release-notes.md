@@ -1,5 +1,23 @@
 # YNX Shop 0.2.0 Testnet Preview release notes
 
+## 2026-07-27 current-source checkpoint
+
+Current source: `ef97eadea90e2b6f4f24225c52e6093b5d5de567`
+
+- Added buyer data export and deletion to Commerce API, Web/PWA, Android source and iOS source.
+- Deletion requires the exact phrase `DELETE_MY_SHOP_DATA` and refuses to run while any order is active.
+- Terminal orders retain only pseudonymized commerce records plus unchanged authoritative public-chain settlement and integrity evidence.
+- Added bounded Node fallbacks for Placeholder and Secret scanning so missing ripgrep cannot produce a false success.
+- Commerce race tests, buyer Web tests/build, native static verification, scanner tests and both scans pass locally.
+- Current Android build is blocked by missing Android SDK configuration; current iOS build is blocked by the absence of full Xcode and Simulator.
+- Current source is not centrally integrated, staged, hosted, production signed or store released. Existing Staging and downloads remain evidence for the prior source below.
+
+Integration contract: `release/integration/ynx-shop-contract.json`
+
+Coverage matrix: `.ai-bridge/full-goal-coverage.json`
+
+## Preserved 2026-07-18 preview
+
 Release source: `38e2f68deb91d5f26e5aeec2318e260cd0742115`
 
 Release date: 2026-07-18

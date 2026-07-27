@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-shop-integration-v1",
+  "product": {
+    "number": "09",
+    "id": "ynx-shop",
+    "name": "YNX Shop",
+    "owner": "09-shop",
+    "sourceCommit": "ef97eadea90e2b6f4f24225c52e6093b5d5de567"
+  },
+  "status": "candidate-for-29-integration-freeze",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT",
+    "environment": "testnet"
+  },
+  "walletAuth": {
+    "owner": "02-wallet-auth",
+    "registryEntry": "internal/commerce/integration/shop-registry-v2.json",
+    "schemaVersion": 2,
+    "productClientId": "ynx-shop-v1",
+    "requestingProduct": "shop",
+    "bundleId": "com.ynxweb4.shop",
+    "callbacks": ["ynxshop://wallet-auth/callback"],
+    "orderedScopes": ["account:read", "shop:orders:write", "shop:profile:write"],
+    "deviceAlgorithms": ["p256-sha256"],
+    "requiredBindings": ["network", "productClientId", "bundleId", "callback", "devicePublicKey", "account", "orderedScopes", "purpose", "nonce", "createdAt", "expiresAt", "requestDigest", "approvalDigest", "sessionBinding"],
+    "negativeRequirements": ["unknown field rejection", "scope widening rejection", "scope reordering rejection", "callback replacement rejection", "wrong device rejection", "wrong product rejection", "wrong bundle rejection", "future timestamp rejection", "replay rejection", "expired session rejection", "revoked session rejection"],
+    "centralDeploymentVerified": false
+  },
+  "httpApi": {
+    "basePath": "/api",
+    "authentication": "Bearer product session issued and introspected by canonical Wallet/App Gateway",
+    "public": [
+      {"method": "GET", "path": "/capabilities"},
+      {"method": "GET", "path": "/products"},
+      {"method": "GET", "path": "/stores/{storeId}"}
+    ],
+    "buyer": [
+      {"method": "GET", "path": "/profile", "scope": "account:read"},
+      {"method": "PUT", "path": "/profile", "scope": "shop:profile:write"},
+      {"method": "GET", "path": "/cart", "scope": "account:read"},
+      {"method": "PUT", "path": "/cart", "scope": "shop:orders:write"},
+      {"method": "GET", "path": "/orders", "scope": "account:read"},
+      {"method": "POST", "path": "/orders", "scope": "shop:orders:write", "idempotencyRequired": true},
+      {"method": "POST", "path": "/orders/{orderId}/pay-handoff", "scope": "shop:orders:write", "idempotencyRequired": true},
+      {"method": "POST", "path": "/orders/{orderId}/confirm-payment", "scope": "shop:orders:write"},
+      {"method": "POST", "path": "/orders/{orderId}/transition", "scope": "shop:orders:write", "idempotencyRequired": true},
+      {"method": "GET", "path": "/privacy/export", "scope": "account:read"},
+      {"method": "POST", "path": "/privacy/delete", "scope": "shop:profile:write", "exactConfirmation": "DELETE_MY_SHOP_DATA"}
+    ]
+  },
+  "privacy": {
+    "exportSchemaVersion": 1,
+    "deletionPrecondition": "all buyer orders must be in a terminal state",
+    "deleted": ["buyer profile", "saved addresses", "cart", "buyer AI jobs", "buyer-scoped idempotency records", "buyer rate windows"],
+    "pseudonymized": ["terminal order buyer identifiers", "order delivery address", "buyer-authored resolution text", "review body", "Trust evidence and appeal URLs", "buyer timeline actors", "buyer audit identity"],
+    "retained": ["authoritative public-chain payer address", "transaction hash", "settlement and refund evidence", "order state timeline", "integrity audit"],
+    "activeWorkflowFailure": "HTTP 409; deletion is not performed"
+  },
+  "pay": {
+    "owner": "04-pay",
+    "authority": ["invoice creation", "committed paid evidence", "committed refund evidence"],
+    "requiredSettlementMatch": ["chainId", "transactionHash", "blockHeight", "payer", "payee", "asset", "amount", "invoiceId", "intentDigest", "merchantId", "payoutAddress", "auditHash", "committedAt"],
+    "quoteIsSettlement": false,
+    "webhookIsSettlement": false,
+    "merchantConfigured": false
+  },
+  "trust": {
+    "owner": "15-trust-center",
+    "allowed": ["bounded dispute evidence", "case status", "public evidence URL", "appeal URL"],
+    "forbidden": ["payment", "refund execution", "asset freeze", "asset seizure", "blacklist", "YNXT transfer"]
+  },
+  "dataFabric": {
+    "owner": "26-data-fabric",
+    "eventVersion": 1,
+    "candidateEvents": [
+      "shop.order.created",
+      "shop.inventory.reserved",
+      "shop.order.payment_pending",
+      "shop.order.paid",
+      "shop.order.shipped",
+      "shop.order.delivered",
+      "shop.order.return_requested",
+      "shop.order.refund_requested",
+      "shop.order.refunded",
+      "shop.order.disputed",
+      "shop.privacy.exported",
+      "shop.privacy.deleted"
+    ],
+    "freezeStatus": "not-yet-accepted-by-26-or-29",
+    "requiredEnvelope": ["eventId", "eventType", "eventVersion", "occurredAt", "sourceProduct", "sourceCommit", "accountPseudonym", "objectId", "requestId", "auditId", "payloadHash"]
+  },
+  "errors": {
+    "currentTransport": {"contentType": "application/json", "body": {"error": "string"}},
+    "httpSemantics": {
+      "400": "invalid request or missing exact confirmation",
+      "401": "missing or invalid product session",
+      "403": "wrong role, product, bundle or scope",
+      "404": "product, store or order not found",
+      "409": "invalid state, replay, idempotency conflict or active workflow prevents deletion",
+      "429": "rate limited",
+      "503": "Wallet, Pay, Trust, AI or provider dependency unavailable"
+    },
+    "structuredErrorCodeStatus": "not-yet-frozen"
+  },
+  "healthVersion": {
+    "paths": ["/health", "/version"],
+    "requiredFields": ["status", "version", "commit", "startedAt", "integrityProtected", "dependencies"],
+    "currentSourceDeployed": false
+  },
+  "migration": {
+    "persistenceSchemaVersion": "not-yet-explicit",
+    "forwardMigration": "required",
+    "rollbackMigration": "required",
+    "oldClientVectors": "required",
+    "status": "in-progress"
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "note": "Existing staging and hosted artifacts belong to source 38e2f68, not this contract source commit."
+  },
+  "externalInputs": [
+    {"owner": "02-wallet-auth", "input": "merge and deploy Shop Wallet registry entry"},
+    {"owner": "04-pay", "input": "Shop Testnet merchant ID and payout address through the approved operator path"},
+    {"owner": "29-integration", "input": "shared Testnet execution window and contract acceptance"},
+    {"owner": "30-security-sre", "input": "current-source deployment and immutable artifact hosting"}
+  ]
+}

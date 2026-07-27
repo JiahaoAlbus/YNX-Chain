@@ -1,0 +1,8 @@
+{"date":"2026-07-27","sequence":1,"stage":"RECOVER","event":"workspace_verified","workspace":"/Users/huangjiahao/Desktop/YNX Final Worktrees/09-shop","branch":"codex/final-shop","dirty":false}
+{"date":"2026-07-27","sequence":2,"stage":"RECOVER","event":"existing_state_read","evidence":["docs/handoffs/shop.md","docs/handoffs/shop-evidence-index.md","apps/shop/product-release.json"],"result":"existing Shop, Seller, Commerce, native, staging and artifact work preserved"}
+{"date":"2026-07-27","sequence":3,"stage":"PROTECT","event":"privacy_slice_tested","tests":{"commerceRace":"pass","webTest":"pass","webBuild":"pass","nativeStatic":"pass","androidBuild":"blocked-sdk-location","iosBuild":"blocked-full-xcode"}}
+{"date":"2026-07-27","sequence":4,"stage":"PROTECT","event":"commit_pushed","commit":"4cd59fcb11e11d221defa88d20ac0d50b7663b99","title":"buyer data export and deletion"}
+{"date":"2026-07-27","sequence":5,"stage":"PROTECT","event":"validation_false_green_fixed","tests":{"scannerUnit":"pass","placeholderScan":"pass","secretScan":"pass","shellSyntax":"pass"}}
+{"date":"2026-07-27","sequence":6,"stage":"PROTECT","event":"commit_pushed","commit":"77d047076537fffb4290d9389516c73f3a4cbede","title":"fail closed without scan dependencies"}
+{"date":"2026-07-27","sequence":7,"stage":"PROTECT","event":"commit_pushed","commit":"ef97eadea90e2b6f4f24225c52e6093b5d5de567","title":"secret scan Node fallback"}
+{"date":"2026-07-27","sequence":8,"stage":"FREEZE","event":"coverage_matrix_created","path":".ai-bridge/full-goal-coverage.json","goal":"active"}

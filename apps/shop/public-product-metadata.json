@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-shop",
+  "officialName": "YNX Shop",
+  "alternateNames": ["YNX Web4 Shop", "YNX Marketplace"],
+  "owner": "09-shop",
+  "sourceCommit": "ef97eadea90e2b6f4f24225c52e6093b5d5de567",
+  "canonicalRoute": "/shop",
+  "canonicalUrl": "https://ynxweb4.com/shop",
+  "stagingUrl": "https://web4.ynxweb4.com/shop-staging/",
+  "title": "YNX Shop — Web4 Commerce on YNX Testnet",
+  "metaDescription": "Explore products, reserve inventory, review orders and prepare Wallet-approved YNX Testnet payments with transparent settlement, returns, disputes and buyer data controls.",
+  "h1": "Web4 commerce with verifiable order and settlement boundaries",
+  "directAnswer": "YNX Shop is the buyer-facing commerce product in the YNX Web4 ecosystem. It manages catalog, cart, inventory reservation and order workflows, while canonical Wallet, Pay and Trust services remain the authorities for identity, settlement and dispute evidence.",
+  "status": {
+    "environment": "testnet-preview",
+    "currentSourceImplementedLocal": true,
+    "currentSourceTestedLocal": true,
+    "currentSourceIntegratedCentral": false,
+    "currentSourceDeployedStaging": false,
+    "currentSourceDeployedPublic": false,
+    "existingStagingSourceCommit": "38e2f68deb91d5f26e5aeec2318e260cd0742115",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "features": [
+    "Product discovery, categories and filters",
+    "Variants, media and explicit inventory availability",
+    "Wallet-scoped buyer profile and persistent cart",
+    "Atomic inventory reservation and idempotent checkout",
+    "Order, fulfillment, delivery, return, refund and dispute states",
+    "Pay handoff with committed-settlement verification boundary",
+    "Trust evidence and appeal links without asset-control authority",
+    "Buyer data export and deletion with terminal-order retention rules",
+    "Web/PWA plus Android and iOS source surfaces",
+    "Twelve-locale framework with Arabic RTL support"
+  ],
+  "risksAndLimitations": [
+    "YNXT and all Shop flows are Testnet-only and have no represented real-world monetary value.",
+    "The current central Wallet Gateway has not yet deployed the Shop product registry entry, so authenticated public flows remain unavailable rather than simulated.",
+    "A Shop-specific Pay merchant and payout address are not configured, so real Testnet payment and refund evidence is not yet complete.",
+    "Current privacy and validation changes are not deployed on the existing Staging service.",
+    "Tax and carrier integrations are unavailable; manual shipment status is not provider-verified.",
+    "Android and iOS current-source build/install evidence requires platform build hosts.",
+    "Production signing and app-store release have not occurred."
+  ],
+  "privacy": {
+    "export": "Authenticated buyers can export profile, cart, order, AI and buyer-audit data from current local source.",
+    "deletion": "Deletion requires an exact confirmation and refuses to run while an order is active. Terminal orders are pseudonymized; authoritative public-chain settlement evidence and integrity records are retained.",
+    "currentPublicAvailability": false
+  },
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "securityUrl": "https://ynxweb4.com/security",
+  "statusUrl": "https://ynxweb4.com/status",
+  "documentationUrl": "https://ynxweb4.com/docs/shop",
+  "downloadUrl": "https://ynxweb4.com/downloads/shop",
+  "faq": [
+    {
+      "question": "Is YNX Shop a production marketplace?",
+      "answer": "No. The current product is a YNX Testnet preview. Production deployment, signing, provider agreements and store release are not complete."
+    },
+    {
+      "question": "Does YNX Shop hold Wallet keys or decide payment finality?",
+      "answer": "No. Wallet/Auth owns identity and product sessions, and Pay owns authoritative payment and refund evidence. Shop fails closed when those dependencies are unavailable."
+    },
+    {
+      "question": "How does Shop prevent overselling?",
+      "answer": "Checkout uses persistent atomic inventory reservations, reservation expiry, idempotency and concurrency tests so one unit cannot be committed to multiple successful orders."
+    },
+    {
+      "question": "Can a buyer export or delete Shop data?",
+      "answer": "Current local source supports buyer export and deletion. Deletion removes profile, addresses, cart and AI records, pseudonymizes terminal orders and retains public-chain settlement and integrity evidence. This source is not yet deployed publicly."
+    },
+    {
+      "question": "Are shipping and tax results provider verified?",
+      "answer": "Not yet. Tax and carrier integrations are explicitly unavailable, and manual shipment states are labelled separately from provider-verified tracking."
+    }
+  ],
+  "structuredDataSuggestions": [
+    "SoftwareApplication",
+    "WebApplication",
+    "FAQPage",
+    "BreadcrumbList"
+  ],
+  "websiteHandoff": {
+    "owner": "28-website",
+    "required": ["SSR or SSG canonical page", "JSON-LD", "sitemap", "hreflang", "Open Graph", "support/privacy/security/status links", "current release evidence"],
+    "claimRule": "Do not describe current source as centrally integrated, publicly deployed, production signed or store released until direct evidence updates the release record."
+  },
+  "lastReviewed": "2026-07-27"
+}
