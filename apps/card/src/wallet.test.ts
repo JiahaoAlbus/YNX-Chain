@@ -1,0 +1,8 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {signAuthorization,createCallbackURL,requestDigest}from"@ynx-chain/wallet-auth";
+import{BUNDLE_ID,CALLBACK,CLIENT_ID,PRODUCT_ID,SCOPES,createAuthorization,verifiedApproval,walletDeepLink}from"./wallet";
+
+const random={secret:new Uint8Array(32).fill(7),nonce:new Uint8Array(32).fill(9)};
+test("Card uses exact canonical Wallet registry identity",async()=>{const now=new Date("2026-07-18T06:00:00.000Z"),pending=await createAuthorization(now,random);assert.equal(pending.request.requestingProduct,PRODUCT_ID);assert.equal(pending.request.productClientId,CLIENT_ID);assert.equal(pending.request.bundleId,BUNDLE_ID);assert.equal(pending.request.callback,CALLBACK);assert.deepEqual(pending.request.scopes,[...SCOPES]);assert.match(walletDeepLink(pending),/^ynxwallet:\/\/authorize\?request=/);assert.equal(requestDigest(pending.request).length,64)});
+test("canonical Wallet callback verifies every Card binding",async()=>{const now=new Date("2026-07-18T06:00:00.000Z"),pending=await createAuthorization(now,random);const response=signAuthorization(pending.request,{accountSecret:"1".padStart(64,"0"),issuedAt:"2026-07-18T06:00:01.000Z"});const callback=createCallbackURL(response);const verified=verifiedApproval(callback,pending,new Date("2026-07-18T06:00:02.000Z"));assert.equal(verified.productClientId,CLIENT_ID);assert.equal(verified.bundleId,BUNDLE_ID);assert.equal(verified.requestDigest,requestDigest(pending.request));assert.throws(()=>verifiedApproval(callback.replace("ynxcard:","ynxpay:"),pending,now),/Callback|callback/)});
