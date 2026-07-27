@@ -29,6 +29,7 @@ var implementedCapabilities = []string{
 	"evm-chain-id",
 	"evm-network-version",
 	"evm-block-number",
+	"evm-minimum-gas-price-suggestions",
 	"evm-block-by-number-and-hash",
 	"evm-block-transaction-count-and-index-lookup",
 	"evm-account-balance-and-nonce",
@@ -1318,6 +1319,13 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result = fmt.Sprintf("0x%x", status.Height)
+	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+		var err error
+		result, err = evmFeeSuggestionResult(request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
 	case "eth_sendRawTransaction":
 		var code int
 		var err error

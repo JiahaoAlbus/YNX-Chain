@@ -1,6 +1,7 @@
 package bftgateway
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -21,9 +22,31 @@ import (
 const maxEVMLogBlockRange = uint64(1000)
 
 var (
-	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-f]{40}$`)
-	evmTopicPattern   = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
+	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-f]{40}\z`)
+	evmTopicPattern   = regexp.MustCompile(`^0x[0-9a-f]{64}\z`)
 )
+
+func evmFeeSuggestionResult(method string, raw json.RawMessage) (string, error) {
+	if len(raw) > 0 {
+		trimmed := bytes.TrimSpace(raw)
+		if len(trimmed) == 0 || trimmed[0] != '[' {
+			return "", errors.New("JSON-RPC params must be an array")
+		}
+		var params []json.RawMessage
+		if err := json.Unmarshal(trimmed, &params); err != nil {
+			return "", errors.New("JSON-RPC params must be an array")
+		}
+		if len(params) != 0 {
+			return "", fmt.Errorf("%s does not accept parameters", method)
+		}
+	}
+	switch method {
+	case "eth_gasPrice", "eth_maxPriorityFeePerGas":
+		return hexEVMQuantity(consensus.EthereumMinimumGasPrice), nil
+	default:
+		return "", errors.New("unsupported EVM fee suggestion method")
+	}
+}
 
 func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 	var params []json.RawMessage

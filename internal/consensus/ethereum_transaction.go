@@ -22,6 +22,7 @@ const (
 	EthereumDynamicFeeType             = byte(0x02)
 	EthereumTransferGasLimit           = uint64(21_000)
 	EthereumCompatibilityBaseFeePerGas = uint64(0)
+	EthereumMinimumGasPrice            = uint64(1)
 )
 
 // EthereumLegacyTransaction is the bounded Ethereum compatibility envelope
@@ -146,7 +147,7 @@ func NewEthereumLegacyTransfer(privateKey *secp256k1.PrivateKey, chainID int64, 
 	if chainID <= 0 || uint64(chainID) > (math.MaxUint64-36)/2 {
 		return nil, EthereumLegacyTransaction{}, errors.New("Ethereum chain ID is outside the bounded EIP-155 range")
 	}
-	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/EthereumTransferGasLimit {
+	if gasPrice < EthereumMinimumGasPrice || gasPrice > uint64(math.MaxInt64)/EthereumTransferGasLimit {
 		return nil, EthereumLegacyTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
 	}
 	if value <= 0 {
@@ -206,7 +207,7 @@ func NewEthereumAccessListTransfer(privateKey *secp256k1.PrivateKey, chainID int
 	if chainID <= 0 {
 		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum chain ID must be positive")
 	}
-	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/EthereumTransferGasLimit {
+	if gasPrice < EthereumMinimumGasPrice || gasPrice > uint64(math.MaxInt64)/EthereumTransferGasLimit {
 		return nil, EthereumAccessListTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
 	}
 	if value <= 0 {
@@ -267,7 +268,7 @@ func NewEthereumDynamicFeeTransfer(privateKey *secp256k1.PrivateKey, chainID int
 	if chainID <= 0 {
 		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum chain ID must be positive")
 	}
-	if maxPriorityFeePerGas == 0 || maxPriorityFeePerGas > maxFeePerGas {
+	if maxPriorityFeePerGas < EthereumMinimumGasPrice || maxPriorityFeePerGas > maxFeePerGas {
 		return nil, EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee requires 0 < maxPriorityFeePerGas <= maxFeePerGas")
 	}
 	if maxFeePerGas > uint64(math.MaxInt64)/EthereumTransferGasLimit {
@@ -391,14 +392,14 @@ func (tx EthereumValueTransfer) Verify(expectedChainID int64) error {
 	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To {
 		return errors.New("Ethereum transfer requires distinct canonical sender and recipient addresses")
 	}
-	if tx.Value <= 0 || tx.Fee <= 0 || tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice == 0 || len(tx.Data) != 0 {
+	if tx.Value <= 0 || tx.Fee <= 0 || tx.GasLimit != EthereumTransferGasLimit || tx.GasPrice < EthereumMinimumGasPrice || len(tx.Data) != 0 {
 		return errors.New("Ethereum transfer is outside the bounded value-transfer profile")
 	}
 	if tx.GasPrice > uint64(math.MaxInt64)/tx.GasLimit || tx.Fee != int64(tx.GasPrice*tx.GasLimit) {
 		return errors.New("Ethereum transfer fee does not match the bounded gas profile")
 	}
 	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
-		if tx.BaseFeePerGas != EthereumCompatibilityBaseFeePerGas || tx.MaxPriorityFeePerGas == 0 || tx.MaxPriorityFeePerGas > tx.MaxFeePerGas || tx.GasPrice != tx.MaxPriorityFeePerGas || tx.MaxFeePerGas > uint64(math.MaxInt64)/tx.GasLimit {
+		if tx.BaseFeePerGas != EthereumCompatibilityBaseFeePerGas || tx.MaxPriorityFeePerGas < EthereumMinimumGasPrice || tx.MaxPriorityFeePerGas > tx.MaxFeePerGas || tx.GasPrice != tx.MaxPriorityFeePerGas || tx.MaxFeePerGas > uint64(math.MaxInt64)/tx.GasLimit {
 			return errors.New("Ethereum dynamic-fee transfer does not match the zero-base-fee compatibility profile")
 		}
 	} else if tx.MaxPriorityFeePerGas != 0 || tx.MaxFeePerGas != 0 || tx.BaseFeePerGas != 0 {
@@ -429,7 +430,7 @@ func (tx EthereumValueTransfer) MaximumGasFee() (int64, error) {
 	if tx.EnvelopeType == EthereumDynamicFeeTransferType {
 		price = tx.MaxFeePerGas
 	}
-	if tx.GasLimit == 0 || price == 0 || price > uint64(math.MaxInt64)/tx.GasLimit {
+	if tx.GasLimit == 0 || price < EthereumMinimumGasPrice || price > uint64(math.MaxInt64)/tx.GasLimit {
 		return 0, errors.New("Ethereum maximum gas fee exceeds the bounded YNXT amount")
 	}
 	return int64(price * tx.GasLimit), nil
@@ -512,7 +513,7 @@ func DecodeEthereumLegacyTransaction(payload []byte) (EthereumLegacyTransaction,
 	if gasLimit != EthereumTransferGasLimit {
 		return EthereumLegacyTransaction{}, fmt.Errorf("bounded Ethereum transfer gas limit must equal %d", EthereumTransferGasLimit)
 	}
-	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/gasLimit {
+	if gasPrice < EthereumMinimumGasPrice || gasPrice > uint64(math.MaxInt64)/gasLimit {
 		return EthereumLegacyTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
 	}
 	unsigned := encodeRLPList(
@@ -642,7 +643,7 @@ func DecodeEthereumAccessListTransaction(payload []byte) (EthereumAccessListTran
 	if gasLimit != EthereumTransferGasLimit {
 		return EthereumAccessListTransaction{}, fmt.Errorf("bounded Ethereum transfer gas limit must equal %d", EthereumTransferGasLimit)
 	}
-	if gasPrice == 0 || gasPrice > uint64(math.MaxInt64)/gasLimit {
+	if gasPrice < EthereumMinimumGasPrice || gasPrice > uint64(math.MaxInt64)/gasLimit {
 		return EthereumAccessListTransaction{}, errors.New("Ethereum gas price produces an invalid bounded fee")
 	}
 	unsigned := encodeRLPList(
@@ -718,7 +719,7 @@ func DecodeEthereumDynamicFeeTransaction(payload []byte) (EthereumDynamicFeeTran
 	if err != nil {
 		return EthereumDynamicFeeTransaction{}, err
 	}
-	if maxPriorityFeePerGas == 0 || maxPriorityFeePerGas > maxFeePerGas {
+	if maxPriorityFeePerGas < EthereumMinimumGasPrice || maxPriorityFeePerGas > maxFeePerGas {
 		return EthereumDynamicFeeTransaction{}, errors.New("Ethereum dynamic fee requires 0 < maxPriorityFeePerGas <= maxFeePerGas")
 	}
 	gasLimit, err := decodeRLPUint(fields[4].content, "gas limit")
