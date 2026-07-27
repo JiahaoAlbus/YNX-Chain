@@ -1,12 +1,20 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-07-22T14:15:00Z",
-  "canonicalEnvelope": "schemas/data-fabric/event-envelope-v1.schema.json",
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-27T14:27:27Z",
+  "canonicalEnvelope": "schemas/data-fabric/event-envelope-v2.schema.json",
+  "compatibleEnvelopes": [
+    "schemas/data-fabric/event-envelope-v1.schema.json",
+    "schemas/data-fabric/event-envelope-v2.schema.json"
+  ],
+  "schemaRegistry": "schemas/data-fabric/schema-registry-v2.json",
   "canonicalJournal": "schemas/data-fabric/journal-entry-v1.schema.json",
   "canonicalIntrospectionRequest": "schemas/data-fabric/canonical-introspection-request-v1.schema.json",
   "canonicalIntrospectionResponse": "schemas/data-fabric/canonical-introspection-response-v1.schema.json",
   "handoff": "integration/DATA_FABRIC_HANDOFF.md",
   "integrationPolicy": {
+    "currentEnvelopeVersion": "2.0",
+    "acceptedEnvelopeVersions": ["1.0", "2.0"],
+    "migration": "v1-remains-readable-during-the-v2-producer-migration-window",
     "unknownField": "reject",
     "invalidVersion": "reject-and-dead-letter",
     "duplicate": "acknowledge-without-reapplying-effect",
@@ -36,7 +44,7 @@
   ],
   "contracts": [
     {"product": "wallet", "aggregate": "session", "eventTypes": ["wallet.session.opened", "wallet.session.revoked", "wallet.session.expired"], "saga": "wallet-session-revoke", "authority": "canonical-wallet-auth", "integratedCentral": false},
-    {"product": "pay", "aggregate": "invoice", "eventTypes": ["pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued", "pay.refund.completed"], "saga": "pay-invoice-receipt-refund", "authority": "ynx-pay", "integratedCentral": false},
+    {"product": "pay", "aggregate": "invoice", "eventTypes": ["pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued", "pay.refund.completed"], "saga": "pay-invoice-receipt-refund", "authority": "ynx-pay", "implementedLocal": true, "testedLocal": true, "integrationEvidence": ["internal/datafabricpay/bridge_test.go", "internal/datafabricpayledger/processor_test.go", "internal/bftgateway/pay_test.go"], "integratedCentral": false},
     {"product": "shop", "aggregate": "order", "eventTypes": ["shop.order.created", "shop.inventory.reserved", "shop.payment.captured", "shop.fulfillment.completed"], "saga": "shop-order-inventory-payment-fulfillment", "authority": "ynx-shop", "integratedCentral": false},
     {"product": "merchant", "aggregate": "settlement", "eventTypes": ["merchant.webhook.accepted", "merchant.reconciliation.completed", "merchant.settlement.completed"], "saga": "merchant-webhook-reconciliation-settlement", "authority": "ynx-merchant", "integratedCentral": false},
     {"product": "exchange", "aggregate": "order", "eventTypes": ["exchange.order.accepted", "exchange.fill.recorded", "exchange.funding.applied", "exchange.fee.posted"], "saga": "exchange-order-fill-funding-fee", "authority": "ynx-exchange", "integratedCentral": false},
