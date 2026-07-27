@@ -9,6 +9,9 @@
 - Environment, secret and disallowed-placeholder scans: passing at `c20beda`.
 - Product release records: `apps/pay/product-release.json`, `apps/merchant-console/product-release.json`, `apps/card/product-release.json`.
 - Canonical Wallet/Gateway handoff: `docs/integration/pay-card-wallet-registry.json`.
+- Split Payment runtime and negative tests: `internal/payproduct/split.go`, `internal/payproduct/split_test.go`; `go test ./internal/payproduct/... -count=1` and `go test -race ./internal/payproduct/... -count=1` passed on 2026-07-27.
+- Canonical Pay contract and cross-product vectors: `release/integration/pay-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`.
+- Full-goal machine coverage: `.ai-bridge/full-goal-coverage.json`.
 
 ## Historical-only evidence
 

@@ -1,59 +1,39 @@
-# Next Action
+# YNX Pay next action
 
-Highest-priority bounded delivery (2026-07-15):
+Current phase: FREEZE → INTEGRATE. Goal status: Active.
 
-Current single action: deploy the persistent Social handle and product-scoped Gateway release, then build and install separate test-only YNX Social and YNX Wallet Android Release packages. Prove that Social uses username/QR discovery and has no Wallet/Pay/Network navigation, while Wallet has no Feed/Chat navigation.
+## Immediate checkpoint action
 
-Why this is next:
+1. Validate all Pay JSON contracts and release records.
+2. Run Pay API, smoke, placeholder and secret checks.
+3. Review the complete diff.
+4. Commit the Split Payment and contract checkpoint on `codex/final-pay`.
+5. Replace `WORKTREE_PENDING_COMMIT` with the exact commit SHA in a follow-up source-bound metadata commit if necessary.
+6. Push and verify the remote branch SHA.
 
-- The user rejected the mixed super-App architecture. The current integration binary is now explicitly internal-only.
-- Unique Social handles, public resolution, Chat profile display, separate package identities, and Gateway route isolation are implemented and locally tested.
-- Remote Square/Gateway still run release `09598d2cbcd7`, so the new Social package cannot yet complete a product-bound ownership session or resolve handles remotely.
-- Installed proof is required before either standalone package can be described as usable. Production signing, stores, and complete benchmark parity remain later gates.
+## Next engineering/integration action
 
-Files to touch:
+`29-integration` must freeze `release/integration/pay-contract.json` against the accepted Wallet/Auth and App Gateway source commits, then run `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
 
-- `internal/square`, `cmd/ynx-squared`
-- `internal/appgateway`, `cmd/ynx-app-gatewayd`
-- `apps/mobile`
-- `scripts/package/mobile-android-release.sh`
-- `scripts/verify/mobile-product-split-check.sh`
-- API and acceptance documentation only after matching evidence exists
+After the central routes are deployed, regenerate fresh evidence for:
 
-Required implementation and verification:
+- Faucet → Wallet/Smart Account;
+- Invoice → Wallet approval → committed YNXT receipt;
+- two independent Wallet accounts claiming and paying Split shares;
+- sponsored UserOperation and exhausted-budget failure;
+- authoritative refund;
+- Trust-linked dispute;
+- webhook failure, backoff, dead letter and audited replay;
+- Explorer and Monitor evidence.
 
-- Preserve existing Square state, audit integrity, profiles, notifications, posts, comments, reactions, follows, reports, and rollback evidence during scoped deployment.
-- Deploy exact source-built Square and Gateway binaries with existing server-only credentials and no authoritative-chain restart.
-- Verify exact remote build IDs, public handle route behavior, private-route denial, product client binding, healthy Chat/Square/Pay upstreams, and zero leaked sessions.
-- Build externally test-signed Social and Wallet APK/AAB artifacts with exact provenance and no production-signing claim.
-- Install both new package IDs on the connected Pixel without deleting the internal package or unrelated phone data.
-- Verify Social and Wallet foreground identity, navigation separation, embedded Hermes, no fatal log, and truthful unavailable/locked states.
+## Pay-owned autonomous gaps after this checkpoint
 
-Validation commands:
+- Quant high-water-mark billing evidence validator;
+- fixture-based forward/rollback migration and timed restore drill;
+- dependency-aware health/version, metrics and traces;
+- repeatable p50/p95/p99 capacity and unit-economics measurement;
+- current Android/iOS install/cold-launch proof;
+- 12-locale, Arabic RTL, accessibility, dark mode and 390px acceptance;
+- source-bound SBOM, provenance and hosted artifact evidence.
 
-- `go test ./...`
-- `make square-api-check`
-- `make app-gateway-check`
-- `make app-account-ownership-check`
-- `make mobile-check`
-- `make mobile-product-split-check`
-- `make test`
-- `make no-placeholder-check`
-- `make secret-scan`
-- `make env-check`
-- `GOMAXPROCS=2 make preflight`
-- `make objective-state-check`
-
-Completion standard:
-
-- Remote Square/Gateway exact release and scoped backup are verified without state loss.
-- Separate Social and Wallet test-only Release packages are installed and render their own product workflows on Pixel.
-- Social account discovery accepts `@handle`/Social QR and never asks the user for a wallet address.
-- No mainnet, production signing, store acceptance, exchange listing, stablecoin support, wallet default support, partnership, benchmark parity, or independent proof is inferred.
-
-Explicitly not doing:
-
-- Do not restore the mixed super-App as the consumer architecture.
-- Do not create empty Exchange, Shop, AI, Monitor, Browser, Bank, desktop, groups, media, or moments screens.
-- Do not expand bounded EVM/IDE except to preserve passing tests.
-- Do not modify or replace the long-term goal file.
+Do not set central, staging, public, hosted, production-signed or store release states true without direct evidence.

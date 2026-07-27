@@ -35,6 +35,7 @@ type fakePay struct {
 	settlementErr error
 	intentCalls   int
 	invoiceCalls  int
+	now           func() time.Time
 }
 type blockingAI struct{ started chan struct{} }
 type fixedAI struct{}
@@ -51,7 +52,8 @@ func (fixedAI) Complete(context.Context, string, string) (string, string, string
 
 func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string) (chain.PayIntent, error) {
 	f.mu.Lock()
-	f.intent = chain.PayIntent{ID: "0123456789abcdef01234567", Merchant: m, PayoutAddress: p, Amount: a, Currency: NativeAsset, Status: "created", CreatedAt: time.Now().UTC(), IdempotencyKey: k}
+	now := f.currentTime()
+	f.intent = chain.PayIntent{ID: "0123456789abcdef01234567", Merchant: m, PayoutAddress: p, Amount: a, Currency: NativeAsset, Status: "created", CreatedAt: now, IdempotencyKey: k}
 	f.intentCalls++
 	intent := f.intent
 	f.mu.Unlock()
@@ -60,10 +62,18 @@ func (f *fakePay) CreateIntent(_ context.Context, m, p string, a int64, k string
 func (f *fakePay) CreateInvoice(_ context.Context, intent string, h int64, k string) (chain.Invoice, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	now := f.currentTime()
 	f.invoiceCalls++
-	f.invoice = chain.Invoice{ID: "abcdef0123456789abcdef01", IntentID: intent, Merchant: f.invoice.Merchant, PayoutAddress: f.invoice.PayoutAddress, Amount: f.invoice.Amount, Currency: NativeAsset, Status: "issued", CreatedAt: time.Now().UTC(), DueAt: time.Now().UTC().Add(time.Duration(h) * time.Hour), IdempotencyKey: k}
+	f.invoice = chain.Invoice{ID: "abcdef0123456789abcdef01", IntentID: intent, Merchant: f.invoice.Merchant, PayoutAddress: f.invoice.PayoutAddress, Amount: f.invoice.Amount, Currency: NativeAsset, Status: "issued", CreatedAt: now, DueAt: now.Add(time.Duration(h) * time.Hour), IdempotencyKey: k}
 	return f.invoice, nil
 }
+func (f *fakePay) currentTime() time.Time {
+	if f.now != nil {
+		return f.now().UTC()
+	}
+	return time.Now().UTC()
+}
+
 func (f *fakePay) Invoice(_ context.Context, id string) (chain.Invoice, error) { return f.invoice, nil }
 func (f *fakePay) Settle(_ context.Context, id, payer, tx, key string) (chain.PaySettlement, error) {
 	f.mu.Lock()
