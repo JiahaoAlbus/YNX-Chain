@@ -38,7 +38,7 @@ do
 done
 
 for required in \
-  'sequence=singapore,silicon-valley,seoul,primary' \
+  'sequence=primary,singapore,silicon-valley,seoul' \
   'SILICON_VALLEY_PRIVATE_HOST:-10.77.42.3' \
   'SEOUL_PRIVATE_HOST:-10.77.42.4' \
   'ProxyCommand=ssh'
