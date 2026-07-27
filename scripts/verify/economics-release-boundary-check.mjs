@@ -12,11 +12,14 @@ assert.equal(integration.schemaVersion, 1);
 assert.equal(request.schemaVersion, 1);
 assert.equal(contract.schemaVersion, 1);
 assert.equal(integration.sourceCommit, request.sourceCommit);
-assert.equal(integration.sourceCommit, release.sourceCommit);
 assert.equal(integration.sourceCommit, metadata.sourceCommit);
 assert.equal(integration.sourceCommit, contract.sourceCommit);
+assert.equal(release.sourceCommit, contract.localTestnetEvidence.sourceCommit);
+assert.equal(release.localTestnetEvidence.sourceCommit, release.sourceCommit);
 assert.match(integration.sourceCommit, /^[0-9a-f]{40}$/);
+assert.match(release.sourceCommit, /^[0-9a-f]{40}$/);
 execFileSync("git", ["cat-file", "-e", `${integration.sourceCommit}^{commit}`]);
+execFileSync("git", ["cat-file", "-e", `${release.sourceCommit}^{commit}`]);
 for (const key of ["installedLocal", "integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
   assert.equal(integration.states[key], false, `${key} cannot be promoted without direct evidence`);
 }

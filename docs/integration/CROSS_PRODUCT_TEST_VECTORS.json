@@ -229,6 +229,49 @@
       }
     },
     {
+      "id": "economics-local-testnet-evidence-v1",
+      "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+      "storeSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+      "command": "make economics-local-testnet-evidence-check",
+      "expected": {
+        "schemaVersion": 1,
+        "evidenceClass": "local-testnet-simulation",
+        "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
+        "blockHeight": 6423,
+        "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+        "receiptStatus": "simulated-committed",
+        "finality": "local-deterministic-simulation",
+        "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+        "explorerProofs": 5,
+        "monitorProofs": 15,
+        "fileMode": "0600",
+        "integratedCentral": false,
+        "sharedTestnet": false,
+        "publicDeployment": false,
+        "production": false
+      },
+      "consumerAssertions": {
+        "01 Chain Core": [
+          "replace the simulated block and receipt only with accepted shared-Testnet finality evidence",
+          "reject evidence whose accepted bundle or Store state hash does not match"
+        ],
+        "12 Explorer": [
+          "verify all five source-bound projection audit hashes",
+          "keep candidate and local simulation labels until direct public evidence exists"
+        ],
+        "13 Monitor": [
+          "verify all fifteen source-bound checks and alert on any proof mismatch"
+        ],
+        "26 Data Fabric": [
+          "accept only Store-bound canonical records and preserve burn versus revenue classification"
+        ],
+        "29 Integration": [
+          "do not promote local simulation to shared Testnet, public deployment or production",
+          "replace this fixture with direct cross-owner evidence at the TESTNET gate"
+        ]
+      }
+    },
+    {
       "id": "release-truth-boundary-v1",
       "source": "release/integration/ynxt-economics-contract.json#releaseStates",
       "expected": {

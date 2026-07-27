@@ -108,6 +108,25 @@ assert.equal(contract.integrationStore.acceptedByDataFabric, false);
 assert.equal(contract.integrationStore.sharedTestnetEvidence, false);
 assert.equal(contract.integrationStore.publicDeployment, false);
 assert.equal(contract.integrationStore.production, false);
+assert.equal(contract.localTestnetEvidence.schemaVersion, 1);
+assert.equal(contract.localTestnetEvidence.evidenceClass, "local-testnet-simulation");
+assert.equal(contract.localTestnetEvidence.sourceCommit, "f14d002a39cedca18b094e856adc7da888d376da");
+assert.equal(contract.localTestnetEvidence.fixture.transactionId, "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70");
+assert.equal(contract.localTestnetEvidence.fixture.blockHeight, 6423);
+assert.equal(contract.localTestnetEvidence.fixture.blockHash, "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a");
+assert.equal(contract.localTestnetEvidence.fixture.receiptStatus, "simulated-committed");
+assert.equal(contract.localTestnetEvidence.fixture.finality, "local-deterministic-simulation");
+assert.equal(contract.localTestnetEvidence.fixture.evidenceHash, "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348");
+assert.equal(contract.localTestnetEvidence.fixture.explorerProofs, 5);
+assert.equal(contract.localTestnetEvidence.fixture.monitorProofs, 15);
+assert.equal(contract.localTestnetEvidence.acceptedByDataFabric, false);
+assert.equal(contract.localTestnetEvidence.acceptedByExplorer, false);
+assert.equal(contract.localTestnetEvidence.acceptedByMonitor, false);
+assert.equal(contract.localTestnetEvidence.sharedTestnetEvidence, false);
+assert.equal(contract.localTestnetEvidence.publicDeployment, false);
+assert.equal(contract.localTestnetEvidence.production, false);
+const localEvidenceCommit = spawnSync("git", ["cat-file", "-e", `${contract.localTestnetEvidence.sourceCommit}^{commit}`], { cwd: root });
+assert.equal(localEvidenceCommit.status, 0, "local Testnet evidence sourceCommit must identify an existing commit");
 
 const eventTypes = contract.canonicalEvents.map((event) => event.type);
 assert.equal(new Set(eventTypes).size, eventTypes.length, "canonical event types must be unique");
@@ -134,6 +153,9 @@ for (const requiredPath of [
   "internal/economics/integration_store.go",
   "cmd/ynx-economics-integration-store/main.go",
   "scripts/verify/economics-integration-store-check.mjs",
+  "internal/economics/local_testnet_evidence.go",
+  "cmd/ynx-economics-local-testnet-evidence/main.go",
+  "scripts/verify/economics-local-testnet-evidence-check.mjs",
   "evidence/economics/integration-bundle-72591ce.json",
   "evidence/economics/integration-store-72591ce.json",
 ]) {
@@ -226,6 +248,26 @@ assert.equal(storeVector.expected.centralAcceptance, false);
 assert.equal(storeVector.expected.sharedTestnet, false);
 assert.equal(storeVector.expected.publicDeployment, false);
 assert.equal(storeVector.expected.production, false);
+
+const localEvidenceVector = vectorById.get("economics-local-testnet-evidence-v1");
+assert.ok(localEvidenceVector);
+assert.equal(localEvidenceVector.sourceCommit, contract.localTestnetEvidence.sourceCommit);
+assert.equal(localEvidenceVector.storeSourceCommit, contract.sourceCommit);
+assert.equal(localEvidenceVector.expected.schemaVersion, contract.localTestnetEvidence.schemaVersion);
+assert.equal(localEvidenceVector.expected.evidenceClass, contract.localTestnetEvidence.evidenceClass);
+assert.equal(localEvidenceVector.expected.transactionId, contract.localTestnetEvidence.fixture.transactionId);
+assert.equal(localEvidenceVector.expected.blockHeight, contract.localTestnetEvidence.fixture.blockHeight);
+assert.equal(localEvidenceVector.expected.blockHash, contract.localTestnetEvidence.fixture.blockHash);
+assert.equal(localEvidenceVector.expected.receiptStatus, contract.localTestnetEvidence.fixture.receiptStatus);
+assert.equal(localEvidenceVector.expected.finality, contract.localTestnetEvidence.fixture.finality);
+assert.equal(localEvidenceVector.expected.evidenceHash, contract.localTestnetEvidence.fixture.evidenceHash);
+assert.equal(localEvidenceVector.expected.explorerProofs, contract.localTestnetEvidence.fixture.explorerProofs);
+assert.equal(localEvidenceVector.expected.monitorProofs, contract.localTestnetEvidence.fixture.monitorProofs);
+assert.equal(localEvidenceVector.expected.fileMode, "0600");
+assert.equal(localEvidenceVector.expected.integratedCentral, false);
+assert.equal(localEvidenceVector.expected.sharedTestnet, false);
+assert.equal(localEvidenceVector.expected.publicDeployment, false);
+assert.equal(localEvidenceVector.expected.production, false);
 
 const feeVector = vectorById.get("fee-burn-revenue-separation-v1");
 assert.ok(feeVector);

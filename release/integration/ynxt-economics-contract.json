@@ -296,6 +296,30 @@
     "publicDeployment": false,
     "production": false
   },
+  "localTestnetEvidence": {
+    "schemaVersion": 1,
+    "evidenceClass": "local-testnet-simulation",
+    "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+    "source": "internal/economics/local_testnet_evidence.go",
+    "cli": "cmd/ynx-economics-local-testnet-evidence",
+    "verification": "scripts/verify/economics-local-testnet-evidence-check.mjs",
+    "fixture": {
+      "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
+      "blockHeight": 6423,
+      "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+      "receiptStatus": "simulated-committed",
+      "finality": "local-deterministic-simulation",
+      "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+      "explorerProofs": 5,
+      "monitorProofs": 15
+    },
+    "acceptedByDataFabric": false,
+    "acceptedByExplorer": false,
+    "acceptedByMonitor": false,
+    "sharedTestnetEvidence": false,
+    "publicDeployment": false,
+    "production": false
+  },
   "apis": [
     {
       "method": "GET",
@@ -328,6 +352,10 @@
     {
       "command": "go run ./cmd/ynx-economics-integration-store -state var/economics-integration-store.json -economics-input economics/examples/runtime-replay.json -staking-input economics/examples/staking-risk-runtime-replay.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -ingested-at 2026-08-04T00:00:00Z -summary",
       "outputSchema": "EconomicsIntegrationStoreSummary.v1"
+    },
+    {
+      "command": "go run ./cmd/ynx-economics-local-testnet-evidence -store var/economics-integration-store.json -source-commit 72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9 -generated-at 2026-08-04T01:00:00Z -height 6423 -nonce 1 -out var/economics-local-testnet-evidence.json -summary",
+      "outputSchema": "EconomicsLocalTestnetEvidenceSummary.v1"
     }
   ],
   "authAndIntent": {
@@ -370,7 +398,11 @@
     "YNX_ECONOMICS_INTEGRATION_STORE_CONFLICT",
     "YNX_ECONOMICS_INTEGRATION_STORE_INVALID_TIME",
     "YNX_ECONOMICS_INTEGRATION_STORE_IO",
-    "YNX_ECONOMICS_INTEGRATION_STORE_TAMPERED"
+    "YNX_ECONOMICS_INTEGRATION_STORE_TAMPERED",
+    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_INVALID",
+    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_CONFLICT",
+    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_TAMPERED",
+    "YNX_ECONOMICS_LOCAL_TESTNET_EVIDENCE_IO"
   ],
   "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "migration": {
@@ -379,6 +411,7 @@
     "candidateStakingRiskSchema": 1,
     "candidateIntegrationSchema": 1,
     "candidateIntegrationStoreSchema": 1,
+    "candidateLocalTestnetEvidenceSchema": 1,
     "activationRequires": [
       "29-integration-contract-acceptance",
       "01-chain-core-migration",

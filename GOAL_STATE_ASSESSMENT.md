@@ -1,49 +1,37 @@
-# YNX 17 Economics Long-term Goal Assessment
+# YNX 17 Economics Goal State Assessment
 
-## Decision
+## Verdict
 
-**Goal state: ACTIVE.**
+The long-term goal remains **Active**. The product is in **INTEGRATE** and has not passed the real shared-Testnet, public, artifact-hosting, signing or external-review gates.
 
-Local economics, staking-risk, canonical integration and durable consumer-store code is implemented and tested, but the long-term goal is not complete. Central owner acceptance, shared-Testnet execution, provider/custodian evidence, public deployment and production controls remain unproven and therefore remain false.
+## Directly supported state
 
-## Stage assessment
+- Core economic invariants, governed issuance candidate, fee and burn accounting, staking-risk runtime, Treasury constraints, liquid-staking candidate, isolated service security pools, YUSD sandbox and macro stress are implemented and locally tested.
+- The YUSD sandbox and economics monitor have real YNX Testnet evidence from their recorded source commits.
+- The frozen canonical Integration Bundle and durable Store remain reproducible from `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`.
+- The new local Testnet evidence runtime is implemented and tested at `f14d002a39cedca18b094e856adc7da888d376da`.
+- The machine-readable full goal coverage matrix is `.ai-bridge/full-goal-coverage.json`.
 
-| Phase | State | Direct evidence and boundary |
-| --- | --- | --- |
-| RECOVER | complete for the current protected history | Correct worktree/branch, status, local/remote SHA, recent commits, reflog and Actions were inspected without destructive recovery |
-| PROTECT | complete through `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9` | Runtime, adapter, summary and durable Store code slices were committed, pushed and verified local=remote |
-| FREEZE | complete for contract version 1 | Single contract, owner map, event names, error codes, release truth and deterministic vectors are enforced by executable checks |
-| INTEGRATE | active | Local canonical envelope, Billing Ledger, Explorer projection, Monitor adapter and durable idempotent Store exist; owner acceptance and central deployment do not |
-| TESTNET | not complete | No shared-Testnet transaction, block, receipt, accepted Data Fabric record, Explorer proof or Monitor proof exists for candidate economics transitions |
-| PUBLIC | not complete | No approved public domain, hosted artifact, public URL, browser evidence or production signing exists |
-| EXPAND | blocked by prior gates | Additional candidate expansion must not outrun central integration and Testnet evidence |
+## New local evidence gate
 
-## Locally implemented and tested
+The runtime produces deterministic source-bound transaction, block, receipt, API, Explorer and Monitor proof objects. The gate proves local integrity and recovery only. It does not prove Chain Core acceptance, Data Fabric central ingestion, Explorer or Monitor central consumption, shared-Testnet integration, public deployment or production activation.
 
-- Deterministic governed economic runtime for issuance, burn, fee split and supply reconciliation.
-- Governed staking risk runtime for slash, jail and recovery with threshold signatures and timelock.
-- Delegation, unbonding and withdrawal branch-local lifecycle.
-- Candidate fee market, liquid staking, Safety Module/service pools, Treasury stress, YUSD sandbox and macro stress.
-- Local Explorer economics routes and disclosure package.
-- Canonical integration bundle for source `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9` with 5 envelopes, 18 Billing Ledger entries, 5 Explorer projections, 15 Monitor checks and bundle hash `sha256:0044010db3d8ea653fe5d7f15374919be14b5f28385f6a33d471c06a74882449`.
-- Durable integration Store with semantic deduplication, source-commit rebinding rejection, cumulative record reconciliation, atomic 0600 persistence, audit history, restart recovery and fresh-path restore.
-- Store State `sha256:c4673098638660439cc69a5bbef21239e034c92a18d4b77c46ca9398022b41ed`.
-- Rehashed payload, ledger, projection, persisted-state, permission and release-state tampering rejection.
+## Remaining autonomous work
 
-## Still not proven
+- Build and verify versioned unsigned Testnet CLI/server artifacts.
+- Extend adversarial and migration vectors for the local evidence schema.
+- Keep Integration Contract, Handoff, Test Vectors, Evidence and Release truth synchronized.
+- Implement real adapters when accepted owner contracts become available.
+- Repeat capacity and restore evidence against a representative shared-Testnet environment.
 
-- Candidate issuance, burn or staking-risk transitions in accepted Chain Core state.
-- Data Fabric acceptance and central Billing Ledger reconciliation.
-- Wallet review/session/revoke flow for staking or capital mutations.
-- Shared-Testnet transaction, block, receipt, Explorer and Monitor evidence.
-- Real stable settlement provider, reserve custody, attestation or redemption rail.
-- Treasury multisig, secure signer and governed transfer execution.
-- Audited liquid-staking or service-security-pool contracts.
-- Accepted Quant performance-fee integration.
-- Public deployment, hosted artifacts, signing, store release or Mainnet readiness.
+## External or cross-owner gates
 
-## Release truth
+Required gates include 01 Chain Core finality and migration acceptance; 02 Wallet/Auth review semantics; 12 Explorer and 13 Monitor proof consumption; 19 Oracle and 21 Bridge inputs; 26 Data Fabric ingest receipt; 28 Website public deployment; 29 Integration protocol freeze; 30 Security/SRE release evidence; 31 Governance activation authority; official stable settlement provider, custody, reserve attestation and legal approval; and secure Treasury participants and public addresses.
 
-Only `implementedLocal` and `testedLocal` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false.
+## Git recovery state
 
-The next implementation priority is a local Testnet evidence harness that binds candidate transactions, blocks, receipts, API responses and consumer proofs to the accepted Store without representing those artifacts as shared-Testnet or public evidence. External inputs block only the exact operations that require them; they do not justify stopping independent engineering work.
+The implementation commit `f14d002a39cedca18b094e856adc7da888d376da` is protected locally. Three push attempts failed with external HTTP 502. A verified Git bundle exists with SHA-256 `88fa6ff30259db166b697d5d2d1773cd3642c957d0c9f5260f642cd019c65246`. Local and remote SHA equality is not yet proven.
+
+## Completion rule
+
+Do not mark the product complete until every applicable matrix item is `verifiedComplete` or genuinely `externalBlocked`, all autonomous work is exhausted, final preflight passes, real shared-Testnet and public evidence exists where applicable, Local SHA equals Remote SHA, and the worktree is clean.

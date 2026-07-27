@@ -1,11 +1,21 @@
 {
   "schemaVersion": 1,
-  "releaseId": "ynxt-economics-local-candidate-2026-07-25",
+  "releaseId": "ynxt-economics-local-testnet-evidence-2026-07-27",
   "product": "YNXT Economics",
-  "asOf": "2026-07-25T05:00:00Z",
-  "sourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
-  "releaseClass": "local_testnet_integration_candidate",
-  "routes": ["/ynxt", "/economics", "/api/economics/disclosure", "/assets/economics-og.png"],
+  "asOf": "2026-07-27T06:33:12Z",
+  "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+  "publicMetadataSourceCommit": "72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9",
+  "releaseClass": "local_testnet_evidence_candidate",
+  "goalState": "active",
+  "currentPhase": "INTEGRATE",
+  "nextPhase": "TESTNET",
+  "routes": [
+    "/ynxt",
+    "/economics",
+    "/api/economics/disclosure",
+    "/api/economics/testnet-evidence/local",
+    "/assets/economics-og.png"
+  ],
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -21,15 +31,33 @@
     "make economics-integration-contract-check",
     "make economics-integration-adapter-check",
     "make economics-integration-store-check",
+    "make economics-local-testnet-evidence-check",
     "make staking-risk-runtime-check",
     "make economics-local-candidate-check",
     "make economics-public-ui-check",
     "make macro-stress-check",
-    "go test ./...",
     "make no-placeholder-check",
     "make static-check",
     "make secret-scan"
   ],
+  "localTestnetEvidence": {
+    "schemaVersion": 1,
+    "evidenceClass": "local-testnet-simulation",
+    "sourceCommit": "f14d002a39cedca18b094e856adc7da888d376da",
+    "source": "internal/economics/local_testnet_evidence.go",
+    "cli": "cmd/ynx-economics-local-testnet-evidence",
+    "verification": "scripts/verify/economics-local-testnet-evidence-check.mjs",
+    "fixture": {
+      "transactionId": "econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70",
+      "blockHash": "sha256:cb1eebecdd4708636da415bd9a79d67ef6eec519d1b5cb8358d7363ab750ed4a",
+      "evidenceHash": "sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348",
+      "explorerProofs": 5,
+      "monitorProofs": 15
+    },
+    "sharedTestnet": false,
+    "publicDeployment": false,
+    "production": false
+  },
   "artifacts": [
     {
       "kind": "social_preview",
@@ -58,12 +86,14 @@
     "central Website integration and SSR/SSG",
     "approved public domain and canonical absolute URLs",
     "public screenshots and browser/device accessibility evidence",
-    "staging/public deployment and monitor evidence",
+    "shared-Testnet acceptance of economics transaction, block, receipt, Data Fabric, Explorer and Monitor proofs",
     "support, privacy, security and status URLs",
     "accepted Chain Core migration and Governance activation for dynamic issuance, burn and staking risk",
     "Data Fabric, Explorer and Monitor consumption of canonical economics and staking-risk events",
     "contract audits and governed candidate activation",
     "unresolved High vulnerability in development-only Hardhat adm-zip chain",
-    "external DAST, hosted CI provenance and artifact signing"
+    "external DAST, hosted CI provenance and artifact signing",
+    "remote Git push returned HTTP 502 on three attempts; verified recovery bundle exists",
+    "full go test is blocked by three existing umask-sensitive key-permission tests outside Economics ownership"
   ]
 }

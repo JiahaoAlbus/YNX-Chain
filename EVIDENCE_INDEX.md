@@ -69,5 +69,8 @@ All paths are repository-relative and refer to the current source commit only af
 | Requirement-by-requirement completion decision | `DELIVERY_COMPLETION_AUDIT.md` | Confirm partial/missing evidence remains false |
 | One-time secure operator input request | `release/operator-inputs.request.json` | Confirm no secret material is requested |
 | Recovery and cross-thread ownership | `RECOVERY_AUDIT.md` | Git worktree and status inspection described in the audit |
+| Deterministic local Testnet transaction, block, receipt and API evidence | `internal/economics/local_testnet_evidence.go`, `cmd/ynx-economics-local-testnet-evidence/main.go` | `make economics-local-testnet-evidence-check` |
+| Source-bound five-Explorer and fifteen-Monitor proof set with tamper rejection | `internal/economics/local_testnet_evidence_test.go`, `scripts/verify/economics-local-testnet-evidence-check.mjs` | Match transaction `econ-local-tx-abbeda604c4fae1d357982ad6bb1011e3d134fa437eb0c52e91464d41704aa70` and evidence `sha256:ed2ac4a7dc035a3dddaa021e09763526d74cd72cc3a3ea77faee45ce8fa91348` |
+| Full goal coverage and recovery checkpoint | `.ai-bridge/full-goal-coverage.json`, `release/recovery/ynxt-economics-f14d002.manifest.json` | Parse JSON; verify the recovery bundle SHA-256 and keep shared/public/production states false |
 
-Generated artifacts, remote URLs, transaction hashes, installation proof, deployment proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.
+Generated artifacts, remote URLs, installation proof, public deployment proof, production signing proof, and public screenshots are absent unless added here with an exact source commit. Their absence must keep corresponding release booleans false.

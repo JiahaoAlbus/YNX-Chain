@@ -4,13 +4,16 @@
 
 - Contract: `release/integration/ynxt-economics-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
-- Source commit: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
+- Frozen Integration Bundle source: `72591ce6ab9eb4ae7878fcf6369c9aac37e7fba9`
+- Local Testnet evidence runtime source: `f14d002a39cedca18b094e856adc7da888d376da`
 - Contract owner: 17 Economics
 - Current phase: INTEGRATE
 - Next gate: TESTNET
 - Long-term goal status: Active
 
 The contract freezes economic policy facts and integration boundaries. It does not activate consensus issuance, burn, slashing, Treasury execution, liquid staking, stablecoin custody, or any public deployment.
+
+The local Testnet evidence runtime adds an executable replacement target for the TESTNET gate. Its transaction, block and receipt are deterministic simulation only; five Explorer proofs and fifteen Monitor proofs remain Store-bound local evidence. All central, shared-Testnet, public and production booleans remain false until direct owner acceptance exists.
 
 ## Owner handoffs
 
@@ -57,9 +60,10 @@ A consumer must reject an unsupported version, missing audit hash, non-sequentia
 make economics-integration-contract-check
 make economics-integration-adapter-check
 make economics-integration-store-check
+make economics-local-testnet-evidence-check
 make staking-risk-runtime-check
 make economics-local-candidate-check
-go test ./...
+go test ./... # currently blocked by three existing umask-sensitive permission fixtures outside Economics ownership
 ```
 
 The first accepted central integration must additionally execute the vectors in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json` against the shared Testnet and attach block, transaction, receipt, API, Explorer and Monitor evidence to the exact source commit.
