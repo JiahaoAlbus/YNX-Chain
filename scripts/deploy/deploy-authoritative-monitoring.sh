@@ -101,22 +101,25 @@ for attempt in $(seq 1 12); do
       const targets=d?.data?.activeTargets||[];
       const chain=targets.filter(x=>x.labels?.job==="ynx-chaind").map(x=>x.labels.instance).sort();
       const explorer=targets.filter(x=>x.labels?.job==="ynx-explorerd");
+      const monitor=targets.filter(x=>x.labels?.job==="ynx-economics-monitord");
       const expected=["10.77.42.2:6420","10.77.42.3:6420","10.77.42.4:6420","127.0.0.1:6420"].sort();
       if(JSON.stringify(chain)!==JSON.stringify(expected)||explorer.length!==1||
-         explorer[0].labels?.instance!=="127.0.0.1:6427"||explorer[0].health!=="up")process.exit(1);
+         explorer[0].labels?.instance!=="127.0.0.1:6427"||explorer[0].health!=="up"||
+         monitor.length!==1||monitor[0].labels?.instance!=="127.0.0.1:6438"||monitor[0].health!=="up")process.exit(1);
     ' "$target_evidence"; then
     node -e '
       const d=JSON.parse(process.argv[1]);
       const targets=d.data.activeTargets;
       const chain=targets.filter(x=>x.labels.job==="ynx-chaind");
       const explorer=targets.find(x=>x.labels.job==="ynx-explorerd");
-      console.log(JSON.stringify({chainTargets:chain.length,chainUp:chain.filter(x=>x.health==="up").length,explorerTarget:explorer.labels.instance,explorerHealth:explorer.health}));
+      const monitor=targets.find(x=>x.labels.job==="ynx-economics-monitord");
+      console.log(JSON.stringify({chainTargets:chain.length,chainUp:chain.filter(x=>x.health==="up").length,explorerTarget:explorer.labels.instance,explorerHealth:explorer.health,monitorTarget:monitor.labels.instance,monitorHealth:monitor.health}));
     ' "$target_evidence"
-    echo "authoritative monitoring deployed: four exact Chain targets are monitored and the primary Explorer target is up"
+    echo "authoritative monitoring deployed: four exact Chain targets are monitored and Explorer/Economics Monitor targets are up"
     exit 0
   fi
   sleep 5
 done
 
-echo "authoritative monitoring failed to load four exact Chain targets and one healthy Explorer target" >&2
+echo "authoritative monitoring failed to load four exact Chain targets and healthy Explorer/Economics Monitor targets" >&2
 exit 1

@@ -54,6 +54,7 @@ grep -Fq "YNXEconomicsDisclosureStale" infra/monitoring/ynx-alerts.yml
 grep -Fq "YNXStableReserveProviderUnavailable" infra/monitoring/ynx-alerts.yml
 grep -Fq "YNXStableReserveShortfall" infra/monitoring/ynx-alerts.yml
 grep -Fq "YNXStableReserveAttestationExpiring" infra/monitoring/ynx-alerts.yml
+grep -Fq "YNXStableReservePublicEndpointDown" infra/monitoring/ynx-alerts.yml
 grep -Fq "Economics Disclosure Latency" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx-faucetd:6428" infra/monitoring/prometheus.yml
 grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml

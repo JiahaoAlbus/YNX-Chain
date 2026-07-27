@@ -85,3 +85,28 @@ tests:
       - eval_time: 2m
         alertname: YNXStableReserveAttestationExpiring
         exp_alerts: []
+
+  - name: public reserve endpoint failure fires and clears
+    interval: 1m
+    input_series:
+      - series: 'up{job="ynx-economics-monitord",instance="primary"}'
+        values: '1x5'
+      - series: 'ynx_public_stable_reserve_probe_success{job="ynx-economics-monitord",instance="primary"}'
+        values: '0x2 1x2'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXStableReservePublicEndpointDown
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXStableReservePublicEndpointDown
+        exp_alerts:
+          - exp_labels:
+              instance: primary
+              job: ynx-economics-monitord
+              severity: critical
+            exp_annotations:
+              summary: Public YUSD reserve endpoint is unreachable or invalid
+              description: The active HTTPS probe cannot verify the public Testnet reserve route and its release truth. Provider availability is monitored separately.
+      - eval_time: 3m
+        alertname: YNXStableReservePublicEndpointDown
+        exp_alerts: []

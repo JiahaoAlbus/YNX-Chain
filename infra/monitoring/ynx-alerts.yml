@@ -137,6 +137,14 @@ groups:
         annotations:
           summary: YUSD reserve attestation expires within one hour
           description: Obtain and verify the next provider-signed reserve attestation before the current evidence expires.
+      - alert: YNXStableReservePublicEndpointDown
+        expr: up{job="ynx-economics-monitord"} == 0 or ynx_public_stable_reserve_probe_success{job="ynx-economics-monitord"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Public YUSD reserve endpoint is unreachable or invalid
+          description: The active HTTPS probe cannot verify the public Testnet reserve route and its release truth. Provider availability is monitored separately.
       - alert: YNXFaucetDown
         expr: up{job="ynx-faucetd"} == 0
         for: 2m
