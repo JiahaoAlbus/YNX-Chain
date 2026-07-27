@@ -4,7 +4,7 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/final-pay`
-- Source commit: `WORKTREE_PENDING_COMMIT`
+- Source commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 

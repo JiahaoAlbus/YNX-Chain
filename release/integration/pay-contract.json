@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "WORKTREE_PENDING_COMMIT"
+    "sourceCommit": "6477a42b0b96761a74b676c4f18f2e987b628a3d"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",

@@ -4,12 +4,9 @@ Current phase: FREEZE → INTEGRATE. Goal status: Active.
 
 ## Immediate checkpoint action
 
-1. Validate all Pay JSON contracts and release records.
-2. Run Pay API, smoke, placeholder and secret checks.
-3. Review the complete diff.
-4. Commit the Split Payment and contract checkpoint on `codex/final-pay`.
-5. Replace `WORKTREE_PENDING_COMMIT` with the exact commit SHA in a follow-up source-bound metadata commit if necessary.
-6. Push and verify the remote branch SHA.
+1. Preserve implementation commit `6477a42b0b96761a74b676c4f18f2e987b628a3d`.
+2. Commit the source-bound Release, Contract, Handoff and coverage metadata.
+3. Push `codex/final-pay` and verify the remote branch SHA.
 
 ## Next engineering/integration action
 

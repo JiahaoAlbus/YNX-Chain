@@ -4,6 +4,7 @@
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay`
 - Branch: `codex/final-pay`
 - Base HEAD at recovery: `27b811cabcf16b663a085652412be01561195629`
+- Split implementation commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
 - Current phase: FREEZE
 - Goal status: Active
 

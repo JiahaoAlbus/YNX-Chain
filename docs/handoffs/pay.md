@@ -4,7 +4,7 @@
 
 - Branch: `codex/final-pay`
 - Recovery base HEAD: `27b811cabcf16b663a085652412be01561195629`
-- Current checkpoint commit: `WORKTREE_PENDING_COMMIT`
+- Current checkpoint commit: `6477a42b0b96761a74b676c4f18f2e987b628a3d`
 - Earlier preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
 - Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
   `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
