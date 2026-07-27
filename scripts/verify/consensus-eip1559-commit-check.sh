@@ -11,6 +11,7 @@ base_p2p="${YNX_CONSENSUS_EIP1559_P2P_PORT:-32656}"
 base_rpc="${YNX_CONSENSUS_EIP1559_RPC_PORT:-32757}"
 base_abci="${YNX_CONSENSUS_EIP1559_ABCI_PORT:-32858}"
 gateway_port="${YNX_CONSENSUS_EIP1559_GATEWAY_PORT:-32920}"
+consensus_max_gas="${YNX_CONSENSUS_EIP1559_MAX_GAS:-0}"
 fixture_balance=200000
 recipient="0x1111111111111111111111111111111111111111"
 declare -a homes abci_listens state_paths rpc_ports app_pids node_pids
@@ -66,6 +67,11 @@ trap 'cleanup $?' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+if ! [[ "$consensus_max_gas" =~ ^[0-9]+$ ]]; then
+  echo "YNX_CONSENSUS_EIP1559_MAX_GAS must be zero or a positive integer" >&2
+  exit 1
+fi
+
 for offset in 0 1 2 3; do
   for port in "$((base_p2p + offset))" "$((base_rpc + offset))" "$((base_abci + offset))"; do
     if lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | grep -q .; then
@@ -90,6 +96,7 @@ comet_bin="$(go tool -n cometbft)"
   -ephemeral \
   -local-fixture \
   -fixture-balance "$fixture_balance" \
+  -consensus-max-gas "$consensus_max_gas" \
   -output "$network" \
   -base-p2p-port "$base_p2p" \
   -base-rpc-port "$base_rpc" \
@@ -343,6 +350,27 @@ let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{
  if(Number(response.result.height)!==Number(process.argv[1])||results.length!==1||Number(results[0].code)!==0||Number(results[0].gas_used)!==21000) throw new Error(`invalid Comet execution evidence: ${s}`);
 });' "$tx_height"
 
+fee_history_verified=false
+fee_history_ratio=""
+if [[ "$consensus_max_gas" -gt 0 ]]; then
+  consensus_params="$(rpc_json 0 "/consensus_params?height=$tx_height")"
+  printf '%s' "$consensus_params" | node -e '
+let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{
+  const response=JSON.parse(s), result=response.result;
+  if(response.error||!result||Number(result.block_height)!==Number(process.argv[1])||Number(result.consensus_params.block.max_gas)!==Number(process.argv[2])) throw new Error(`unexpected positive max_gas evidence: ${s}`);
+});' "$tx_height" "$consensus_max_gas"
+  fee_history_result="$(gateway_rpc eth_feeHistory "[\"0x1\",\"$block_number_hex\",[]]")"
+  fee_history_ratio="$(printf '%s' "$fee_history_result" | node -e '
+let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{
+  const response=JSON.parse(s), history=response.result, expected=21000/Number(process.argv[1]);
+  if(response.error||!history||history.oldestBlock!==process.argv[2]||!Array.isArray(history.baseFeePerGas)||history.baseFeePerGas.length!==2||history.baseFeePerGas.some(value=>value!=="0x0")) throw new Error(`unexpected fee history base-fee evidence: ${s}`);
+  if(!Array.isArray(history.gasUsedRatio)||history.gasUsedRatio.length!==1||Math.abs(Number(history.gasUsedRatio[0])-expected)>1e-12) throw new Error(`unexpected fee history gas ratio: ${s}`);
+  if(!Array.isArray(history.reward)||history.reward.length!==1||!Array.isArray(history.reward[0])||history.reward[0].length!==0) throw new Error(`unexpected fee history reward evidence: ${s}`);
+  console.log(history.gasUsedRatio[0]);
+});' "$consensus_max_gas" "$block_number_hex")"
+  fee_history_verified=true
+fi
+
 comet_tx_result="$(rpc_json 0 "/tx?hash=$comet_hash")"
 printf '%s' "$comet_tx_result" | node -e '
 let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{
@@ -387,10 +415,10 @@ let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{
 
 source_commit="$(git rev-parse --short=12 HEAD)"
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-node - "$evidence_path" "$source_commit" "$generated_at" "$ethereum_hash" "$comet_hash" "$sender" "$recipient" "$tx_height" "$block_hash" "$state_height" "$state_block_hash" "$state_app_hash" <<'NODE'
+node - "$evidence_path" "$source_commit" "$generated_at" "$ethereum_hash" "$comet_hash" "$sender" "$recipient" "$tx_height" "$block_hash" "$state_height" "$state_block_hash" "$state_app_hash" "$consensus_max_gas" "$fee_history_verified" "$fee_history_ratio" <<'NODE'
 const fs = require("fs");
 const path = require("path");
-const [evidencePath, sourceCommit, generatedAt, ethereumHash, cometHash, sender, recipient, txHeight, blockHash, stateHeight, stateBlockHash, stateAppHash] = process.argv.slice(2);
+const [evidencePath, sourceCommit, generatedAt, ethereumHash, cometHash, sender, recipient, txHeight, blockHash, stateHeight, stateBlockHash, stateAppHash, consensusMaxGas, feeHistoryVerified, feeHistoryRatio] = process.argv.slice(2);
 const report = {
   schema: "ynx-consensus-eip1559-commit-evidence/v1",
   generatedAt,
@@ -427,6 +455,7 @@ const report = {
     stateHeight: Number(stateHeight),
     stateBlockHash,
     appHash: stateAppHash,
+    maxGas: Number(consensusMaxGas),
     senderBalance: 157875,
     senderNonce: 1,
     recipientBalance: 125,
@@ -443,6 +472,8 @@ const report = {
     blockByHashValidated: true,
     blockTransactionIndexValidated: true,
     gatewayAccountBalanceAndNonceValidated: true,
+    committedFeeHistoryValidated: feeHistoryVerified === "true",
+    feeHistoryGasUsedRatio: feeHistoryRatio === "" ? null : Number(feeHistoryRatio),
     replayRejected: true,
     wrongChainRejected: true
   }
