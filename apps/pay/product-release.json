@@ -3,8 +3,8 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "commit": "8118cea0404030f6818a4769cc847f8716f60490",
-  "version": "1.3.0",
+  "commit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
+  "version": "1.4.0",
   "releaseClass": "local-candidate",
   "phase": "FREEZE",
   "goalStatus": "active",
@@ -20,7 +20,8 @@
     "sponsorship": "testedLocal-provider-unconfigured",
     "stableSettlement": "externalBlocked",
     "bridgeEntry": "testedLocal-provider-unconfigured",
-    "quantServiceBilling": "testedLocal-external-verifier-unaccepted"
+    "quantServiceBilling": "testedLocal-external-verifier-unaccepted",
+    "storeBackupRestore": "testedLocal-offline"
   },
   "contracts": {
     "canonical": "release/integration/pay-contract.json",
@@ -28,6 +29,7 @@
     "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
     "quantBilling": "docs/integration/pay-quant-billing.json",
+    "storeRecovery": "docs/integration/pay-store-recovery.json",
     "coverage": ".ai-bridge/full-goal-coverage.json"
   },
   "implementedLocal": true,
@@ -57,13 +59,19 @@
     {
       "command": "go test ./internal/payproduct/... -count=1",
       "result": "pass",
-      "verifiedAt": "2026-07-27"
+      "verifiedAt": "2026-07-27",
+      "details": "Fixture migration, immutable backup, verified restore, rollback, corrupt-destination quarantine, wrong-key/corruption/future-version rejection and fail-closed CLI parsing passed."
     },
     {
       "command": "go test -race ./internal/payproduct/... -count=1",
       "result": "pass",
       "verifiedAt": "2026-07-27",
       "warning": "non-fatal macOS linker LC_DYSYMTAB warning"
+    },
+    {
+      "command": "go vet ./internal/payproduct/...",
+      "result": "pass",
+      "verifiedAt": "2026-07-27"
     },
     {
       "command": "npm run check",
@@ -103,8 +111,8 @@
     "No current source-bound Android/iOS install and cold-launch evidence.",
     "No public service URL, hosted immutable artifact, production signature or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
-    "Full migration/restore drill, deployed observability and capacity/unit-economics measurements remain incomplete.",
+    "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO, remote backup retention, deployed observability and capacity/unit-economics measurements remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-07-27T15:15:02+01:00"
+  "generatedAt": "2026-07-27T15:49:17+01:00"
 }

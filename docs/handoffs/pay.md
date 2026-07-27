@@ -4,7 +4,7 @@
 
 - Branch: `codex/final-pay`
 - Recovery base HEAD: `27b811cabcf16b663a085652412be01561195629`
-- Current checkpoint commit: `8118cea0404030f6818a4769cc847f8716f60490`
+- Current checkpoint commit: `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1`
 - Earlier preserved baseline: `ffb528b4971b5849ffb151a018263daf5c0e2cb0`
 - Canonical Wallet dependency: `@ynx-chain/wallet-auth@1.0.0`, vendored from
   `efe827f467107e23482289a5b1f69ac9ff83e694`; tarball SHA-256
@@ -80,6 +80,12 @@ Quant billing no longer accepts a frontend-calculated or manager-declared PnL. A
 
 The resulting merchant-signed Invoice v5 binds `serviceBillId`, `serviceEvidenceDigest` and `expectedPayerHash`. Raw payer accounts remain private; public Quant bills retain the external and Invoice-domain payer hashes, evidence signature/digest and complete fee breakdown. Authoritative settlement from a different payer fails closed. The Pay app independently verifies the accepted public key, evidence SHA-256 digest, Ed25519 signature, every calculation and the Invoice v5 binding before it enables Wallet review, and presents the fee breakdown in all 12 supported locales including Arabic RTL. Without an accepted verifier key, the capability is explicitly unavailable.
 
+## Store recovery checkpoint on 2026-07-27
+
+Source commit `2303ceeed6ff8e7a8606b87a2e7155702e4e27b1` adds strict future snapshot-version rejection, exact-byte store decoding and fsync-backed atomic persistence. The `ynx-pay-store` operator CLI verifies snapshots, creates new immutable `0600` backups, and performs offline restore from one validated source read. A valid current destination is preserved as a verified hash-addressed rollback artifact; a corrupt destination is preserved byte-for-byte as quarantine evidence and is never described as rollback-valid.
+
+Fixture tests migrate missing recurring/Split/Quant maps, discard removed product-local Wallet challenges/sessions, normalize legacy failed webhooks to dead letters, preserve Invoice v1 compatibility, execute rollback, and reject corrupt sources, wrong keys, future versions, live-store backup targets and existing backup paths. The local drill does not claim production-volume RTO/RPO, remote retention/replication or Windows directory-fsync parity.
+
 Canonical integration files are now:
 
 - `release/integration/pay-contract.json`
@@ -87,6 +93,7 @@ Canonical integration files are now:
 - `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 - `docs/integration/pay-quant-billing.json`
+- `docs/integration/pay-store-recovery.json`
 - `.ai-bridge/full-goal-coverage.json`
 
 ## Verification completed on 2026-07-27
@@ -100,6 +107,8 @@ Canonical integration files are now:
   and Android/iOS Hermes bundles exported with Invoice v4/v5, strict Split/Quant
   reference parsing, secure Split recovery, external Quant signature/digest/math
   verification and 12-language fee review.
+- Store migration, immutable backup, verified restore/rollback, corrupt-destination quarantine, corrupt/wrong-key/future-version rejection and operator CLI fail-closed tests passed.
+- `go vet ./internal/payproduct/...`: passed.
 - `make pay-api-check` and `bash internal/payproduct/smoke.sh`: passed.
 - `go test ./... -count=1` is not fully green because unchanged
   Consensus/Faucet/Trust permission tests fail in this host environment and

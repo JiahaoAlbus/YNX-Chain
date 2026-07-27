@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/final-pay",
-    "sourceCommit": "8118cea0404030f6818a4769cc847f8716f60490"
+    "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -126,11 +126,16 @@
   },
   "migration": {
     "snapshotVersion": 1,
+    "futureSnapshotVersion": "reject",
+    "missingRecurringDraftsField": "normalize to empty map",
     "missingSplitPaymentsField": "normalize to empty map",
     "missingQuantBillsField": "normalize to empty map",
+    "legacyWalletChallengesAndSessions": "drop; establish a fresh canonical Gateway session",
+    "legacyFailedWebhook": "normalize to dead_letter",
     "invoiceV1V2V3Verification": "preserved",
     "invoiceV4Writer": "Split local implementation",
-    "invoiceV5Writer": "Quant service-billing local implementation"
+    "invoiceV5Writer": "Quant service-billing local implementation",
+    "backupRestoreContract": "docs/integration/pay-store-recovery.json"
   },
   "tests": [
     "go test ./internal/payproduct/... -count=1",
@@ -141,7 +146,13 @@
     "TestQuantBillingUsesSignedExternalHighWaterMarkEvidence",
     "TestQuantBillingRejectsTamperStaleAndUnapprovedEvidence",
     "TestQuantBillingExcludesDepositsFromPerformanceProfit",
-    "TestQuantBillingHTTPRoleAndPublicRedaction"
+    "TestQuantBillingHTTPRoleAndPublicRedaction",
+    "TestStoreFixtureMigrationBackupRestoreAndRollback",
+    "TestStoreRestoreRejectsCorruptionWrongKeyAndFutureVersionWithoutMutation",
+    "TestDecodeKeyDoesNotDowngradeShortHexToBase64",
+    "go vet ./internal/payproduct/...",
+    "make pay-api-check",
+    "bash internal/payproduct/smoke.sh"
   ],
   "releaseStatus": {
     "implementedLocal": true,
