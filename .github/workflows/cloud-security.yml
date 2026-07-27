@@ -7,6 +7,9 @@ on:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'infra/docker/cloud-compose.yml'
+      - 'infra/docker/ynx-cloudd.Dockerfile'
+      - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/cloud-security.yml'
@@ -15,6 +18,9 @@ on:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'infra/docker/cloud-compose.yml'
+      - 'infra/docker/ynx-cloudd.Dockerfile'
+      - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/cloud-security.yml'
@@ -47,5 +53,36 @@ jobs:
         run: |
           npm --prefix apps/cloud test
           npm --prefix apps/cloud run check
+      - name: Build and cold-start least-privilege Cloud container
+        run: |
+          set -eu
+          cleanup() {
+            docker rm -f ynx-cloudd-ci >/dev/null 2>&1 || true
+            docker volume rm ynx-cloud-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker build -f infra/docker/ynx-cloudd.Dockerfile -t ynx-cloudd:ci .
+          docker run -d --name ynx-cloudd-ci \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=16m \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            -v ynx-cloud-ci:/var/lib/ynx-cloud \
+            -p 127.0.0.1:18092:8092 \
+            -e YNX_RELEASE_COMMIT="$GITHUB_SHA" \
+            -e YNX_RELEASE_VERSION=ci-test \
+            ynx-cloudd:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18092/health/live >/tmp/ynx-cloud-health.json; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs ynx-cloudd-ci
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$(docker inspect --format '{{.Config.User}}' ynx-cloudd-ci)" = "10001:10001"
+          grep -q '"service":"ynx-cloudd"' /tmp/ynx-cloud-health.json
       - name: Canonical auth, API, migration, backup, and restore DAST smoke
         run: bash apps/cloud/scripts/smoke.sh
