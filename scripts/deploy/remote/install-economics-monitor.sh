@@ -15,6 +15,15 @@ test -x bin/ynx-economics-monitord
 test -f config/ynx-economics-monitord.env
 test -f systemd/ynx-economics-monitord.service
 
+service_was_active=0
+service_was_enabled=0
+if sudo -n systemctl is-active --quiet ynx-economics-monitord.service; then
+  service_was_active=1
+fi
+if sudo -n systemctl is-enabled --quiet ynx-economics-monitord.service; then
+  service_was_enabled=1
+fi
+
 backup="/var/backups/ynx-chain/$release"
 sudo -n rm -rf "$backup"
 sudo -n install -d -m 0700 -o root -g root "$backup"
@@ -55,7 +64,12 @@ rollback() {
     restore_path /etc/systemd/system/ynx-economics-monitord.service
     restore_path /etc/ynx/ynx-economics-monitord.env
     sudo -n systemctl daemon-reload
-    if sudo -n test -x /usr/local/bin/ynx-economics-monitord; then
+    if [[ "$service_was_enabled" == "1" ]]; then
+      sudo -n systemctl enable ynx-economics-monitord.service
+    else
+      sudo -n systemctl disable ynx-economics-monitord.service
+    fi
+    if [[ "$service_was_active" == "1" ]]; then
       sudo -n systemctl restart ynx-economics-monitord.service
     fi
     echo "scoped Economics Monitor deployment failed; previous binary and configuration restored" >&2
@@ -84,7 +98,7 @@ for attempt in $(seq 1 15); do
     grep -Fq '"routeAvailable":true' "$health" &&
     curl -fsS --max-time 5 http://127.0.0.1:6438/metrics >"$metrics" &&
     grep -Fq 'ynx_public_stable_reserve_probe_success 1' "$metrics" &&
-    grep -Fq "commit=\\\"$source_commit\\\"" "$metrics"; then
+    grep -Fq "commit=\"$source_commit\"" "$metrics"; then
     ready=1
     break
   fi
