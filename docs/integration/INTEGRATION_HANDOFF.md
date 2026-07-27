@@ -4,7 +4,7 @@
 
 Product 20 owns Cloud control-plane runtime, object metadata, versioned storage lifecycle, object-provider abstraction, Cloud client/SDK behavior, retention/export/delete controls and Cloud evidence. It does not own Wallet identity, AI provider execution, Trust adjudication, Resource Market settlement, Data Fabric canonical-event acceptance, shared Testnet deployment or public website routing.
 
-Authoritative machine-readable contract: `release/integration/cloud-contract.json` at source commit `d11c382da10ab0629c7d322c83c9ddef24925328`.
+Authoritative machine-readable contract: `release/integration/cloud-contract.json`, describing supply-chain source `76f5c92cee7f5105f9e84059d0ae8fed75337e2c`; the lifecycle Runtime remains pinned separately to `d11c382da10ab0629c7d322c83c9ddef24925328`.
 
 ## Acceptance request
 
@@ -22,4 +22,4 @@ Central registrations remain disabled. Without an accepted central verifier, `yn
 
 ## Current checkpoint
 
-The least-privilege Docker/Server delivery was implemented in commit `6e101f9`; owner-and-product scoped content-addressed deduplication in `7759586`; and schema-v7 versioned hot/cold/archive lifecycle in `d11c382`. Fresh Cloud, Race, Vet, Web/SDK, static, security, canonical API, migration, backup and restore gates passed. GitHub Actions run `30275578270` succeeded for exact SHA `d11c382da10ab0629c7d322c83c9ddef24925328`, including the least-privilege image build/cold-start. Provider-side opaque-scope/lifecycle enforcement, CDN/replication, image scan, physical legacy-blob migration, central Wallet acceptance, staging and public evidence remain pending and must fail closed.
+The least-privilege Docker/Server delivery was implemented in commit `6e101f9`; owner-and-product scoped content-addressed deduplication in `7759586`; schema-v7 versioned hot/cold/archive lifecycle in `d11c382`; and the exact-image Critical/High vulnerability gate in `76f5c92`. Fresh Cloud, Race, Vet, Web/SDK, static, security, canonical API, migration, backup and restore gates passed. GitHub Actions run `30279314603` succeeded for exact SHA `76f5c92cee7f5105f9e84059d0ae8fed75337e2c`, including least-privilege image build/cold-start, Trivy 0.70.0 OS/library scanning with zero configured-scope Critical/High findings, JSON report Artifact `8658138768`, and DAST recovery smoke. The report is time- and scope-bound; provider-side opaque-scope/lifecycle enforcement, CDN/replication, physical legacy-blob migration, immutable image publication, reproducibility/provenance, production signing, central Wallet acceptance, staging and public evidence remain pending and must fail closed.

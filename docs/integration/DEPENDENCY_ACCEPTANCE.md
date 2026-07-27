@@ -8,6 +8,6 @@
 | 16 Resource Market | Verified capacity, usage, lifecycle, SLA, exit and migration | Provider abstraction, storage lifecycle contract and metering exist | pending | Provider contract and settlement/lifecycle vector accepted |
 | 26 Data Fabric | Canonical event and billing-ledger envelopes | Cloud event list includes requested/completed/failed lifecycle facts | pending | Schema acceptance and replay test |
 | 29 Integration | Shared Testnet sequencing and public proof | Local end-to-end smoke and provider-failure lifecycle retry pass | pending | Wallet, provider and deployment gates available |
-| 30 Security/SRE | Container, lifecycle retry/idempotency, scan, backup, restore and release controls | Exact-SHA GitHub Actions image build/cold-start and recovery gate passed in run `30275578270` | pending image scan/remote | Green image scan/provenance plus provider and cross-region recovery drill |
+| 30 Security/SRE | Container, lifecycle retry/idempotency, scan, backup, restore and release controls | Exact-SHA image build/cold-start, Trivy 0.70.0 Critical/High gate, retained JSON Artifact `8658138768`, and recovery DAST passed in run `30279314603`; configured-scope findings were zero | pending publication/provenance/remote | Immutable image publication, reproducible provenance/signing, provider recovery and cross-region restore drill |
 
 All unresolved dependencies fail closed. No pending dependency is treated as integrated, deployed, durable, production-signed or publicly verified.

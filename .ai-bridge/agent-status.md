@@ -4,14 +4,18 @@
 - Workspace: `/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud`
 - Branch: `codex/final-cloud`
 - Phase: EXPAND; central INTEGRATE acceptance remains pending
-- Runtime source HEAD: `d11c382da10ab0629c7d322c83c9ddef24925328`
-- Remote observed runtime HEAD: `d11c382da10ab0629c7d322c83c9ddef24925328`
-- Push: successful; Local/Remote runtime SHA matched
+- Runtime source commit: `d11c382da10ab0629c7d322c83c9ddef24925328`
+- Last verified supply-chain source: `76f5c92cee7f5105f9e84059d0ae8fed75337e2c`
+- Remote proof for that source: branch contained the same SHA and GitHub Actions run `30279314603` succeeded
+- Push state before this evidence checkpoint: Local/Remote SHA matched
 - Runtime slice: schema-v7 versioned hot/cold/archive lifecycle with exact Account/Product binding, provider-result evidence, retryable pending/failed truth, dedup copy-on-write, archive restore-required reads, export history and deletion/erasure barriers
 - Compatibility: v1-v7 startup migration remains fail closed; legacy metadata-only objects remain versionless rather than receiving invented storage state
 - Tests: Go Cloud, Race, Vet, binary build, 9 Node tests, static/a11y/product-boundary checks, security gate, canonical API smoke and backup/restore smoke passed
-- CI: GitHub Actions run `30275578270` succeeded for exact SHA, including least-privilege Docker image build/cold-start and DAST recovery smoke
-- Local Docker image build: environment-blocked because the local Docker daemon was not running; exact CI image build/cold-start evidence exists
-- Current installedLocal: false; the installed Android debug preview is pinned to `db9bc224df52e05018264fc284fb23f18033424a`, not the current runtime SHA, and current iOS install evidence is absent
+- Lifecycle CI: GitHub Actions run `30275578270` succeeded for exact runtime SHA, including least-privilege Docker image build/cold-start and DAST recovery smoke
+- Evidence CI: GitHub Actions run `30278300256` succeeded for evidence commit `415678bd667ac71b35f9190be9d73d49d7001d70`
+- Image-scan CI: GitHub Actions run `30279314603` succeeded for exact source `76f5c92cee7f5105f9e84059d0ae8fed75337e2c`; Trivy 0.70.0 reported zero Critical and zero High OS/library findings in the configured scope
+- Image-scan artifact: ID `8658138768`, report SHA-256 `a4dedb64da62978c03264526d74767b83cdbf835a69a38f2274618864c96a97b`, expires `2026-08-26T15:19:02Z`
+- Local Docker image build: environment-blocked because the local Docker daemon was not running; exact CI image build/cold-start/scan evidence exists
+- Current installedLocal: false; the installed Android debug preview is pinned to `db9bc224df52e05018264fc284fb23f18033424a`, not the current release source, and current iOS install evidence is absent
 - Whole-repository regression: Cloud packages passed; unrelated BFT/Consensus IDE tests remain blocked by a missing generated Devtools contract artifact outside Product 20 ownership
-- Goal: ACTIVE; queue/worker scale, CDN/replication, provider lifecycle proof, central integration, production object storage, staging/public deployment, hosted artifacts and production signing remain unproven
+- Goal: ACTIVE; queue/worker scale, CDN/replication, provider lifecycle proof, immutable hosted images, reproducible provenance, central integration, production object storage, staging/public deployment, hosted artifacts and production signing remain unproven

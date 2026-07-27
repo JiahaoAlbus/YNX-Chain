@@ -3,7 +3,8 @@
   "productNumber": 20,
   "productId": "cloud",
   "owner": "20-cloud",
-  "sourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
+  "sourceCommit": "76f5c92cee7f5105f9e84059d0ae8fed75337e2c",
+  "runtimeSourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423
@@ -86,7 +87,7 @@
     {"owner": "16-resource-market", "status": "capacity-contract-pending"},
     {"owner": "26-data-fabric", "status": "canonical-event-acceptance-pending"},
     {"owner": "29-integration", "status": "shared-testnet-acceptance-pending"},
-    {"owner": "30-security-sre", "status": "container-ci-passed-image-scan-and-release-review-pending"}
+    {"owner": "30-security-sre", "status": "container-ci-and-critical-high-scan-passed-publication-provenance-release-review-pending"}
   ],
   "releaseStates": {
     "implementedLocal": true,
@@ -102,5 +103,6 @@
   "migration": "apps/cloud/MIGRATION_COMPATIBILITY.md",
   "testVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "runtimeEvidence": "apps/cloud/evidence/LIFECYCLE_d11c382.json",
+  "containerScanEvidence": "apps/cloud/evidence/CONTAINER_SCAN_76f5c92.json",
   "externalInputs": "apps/cloud/release/operator-inputs.request.json"
 }

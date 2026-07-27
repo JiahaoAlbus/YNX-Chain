@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
+  "sourceCommit": "76f5c92cee7f5105f9e84059d0ae8fed75337e2c",
+  "runtimeSourceCommit": "d11c382da10ab0629c7d322c83c9ddef24925328",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -15,17 +16,18 @@
     "storeReleased": false
   },
   "stateNotes": {
-    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, owner-and-product scoped content-addressed deduplication, schema-v7 versioned hot/cold/archive lifecycle with Account/Product binding, provider-result evidence, retry, dedup copy-on-write, archive restore-required reads and unresolved-transition deletion barriers, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, product-data erasure, 12-locale clients, user-exit mode, persistent telemetry/readiness/traces, zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, least-privilege Docker/Server delivery candidate, and deterministic security/supply-chain gate exist at sourceCommit. This does not claim production durability, provider-side lifecycle/scope enforcement, CDN/replication, provider backup/replica sanitization, hosted monitoring, external penetration testing, production signing, or public release.",
-    "testedLocal": "Go Cloud, Race, Vet and binary build; 9 Web/SDK tests; static/accessibility/product-boundary/security gates; canonical Wallet/API smoke; schema-v7 migration; and backup/restore pass. GitHub Actions run 30275578270 succeeded for the exact sourceCommit, including the least-privilege image build/cold-start and DAST recovery smoke. Unrelated repository BFT/Consensus IDE tests require an absent generated Devtools artifact and are not used as Cloud evidence.",
-    "installedLocal": "False for the current sourceCommit: the Android Testnet Preview APK recorded in evidence/ARTIFACT_MANIFEST.json was installed and cold-launched with adb, but that artifact is independently pinned to source commit db9bc224df52e05018264fc284fb23f18033424a and has not been rebuilt from d11c382da10ab0629c7d322c83c9ddef24925328. iOS local installation is also not claimed.",
+    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, owner-and-product scoped content-addressed deduplication, schema-v7 versioned hot/cold/archive lifecycle with Account/Product binding, provider-result evidence, retry, dedup copy-on-write, archive restore-required reads and unresolved-transition deletion barriers, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, product-data erasure, 12-locale clients, user-exit mode, persistent telemetry/readiness/traces, zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, least-privilege Docker/Server delivery candidate, and deterministic security/supply-chain gates exist. This does not claim production durability, provider-side lifecycle/scope enforcement, CDN/replication, provider backup/replica sanitization, hosted monitoring, external penetration testing, production signing, or public release.",
+    "testedLocal": "Go Cloud, Race, Vet and binary build; 9 Web/SDK tests; static/accessibility/product-boundary/security gates; canonical Wallet/API smoke; schema-v7 migration; and backup/restore pass. GitHub Actions run 30279314603 succeeded for the exact sourceCommit, including least-privilege image build/cold-start, a Trivy 0.70.0 Critical/High OS/library gate with zero configured-scope findings, report artifact preservation, and DAST recovery smoke. The scan report is time-, database-, severity- and scanner-scoped. Unrelated repository BFT/Consensus IDE tests require an absent generated Devtools artifact and are not used as Cloud evidence.",
+    "installedLocal": "False for the current sourceCommit: the Android Testnet Preview APK recorded in evidence/ARTIFACT_MANIFEST.json was installed and cold-launched with adb, but that artifact is independently pinned to source commit db9bc224df52e05018264fc284fb23f18033424a and has not been rebuilt from 76f5c92cee7f5105f9e84059d0ae8fed75337e2c. iOS local installation is also not claimed.",
     "integratedCentral": "False: central Wallet registrations remain disabled and pending review.",
     "deployedStaging": "False: no staging endpoint or remote provider smoke evidence exists.",
     "deployedPublic": "False: no public endpoint or public verification exists.",
-    "downloadHosted": "False: the APK is local and has no immutable hosted URL.",
-    "productionSigned": "False: the Android APK uses a debug certificate and no production signing evidence exists.",
+    "downloadHosted": "False: the APK is local and the CI vulnerability report is an expiring workflow artifact, not an immutable hosted product download or container image.",
+    "productionSigned": "False: the Android APK uses a debug certificate and no production image or application signing evidence exists.",
     "storeReleased": "False: no app-store release evidence exists."
   },
   "artifacts": ["evidence/ARTIFACT_MANIFEST.json"],
   "evidenceIndex": "evidence/EVIDENCE_INDEX.md",
-  "runtimeEvidence": "evidence/LIFECYCLE_d11c382.json"
+  "runtimeEvidence": "evidence/LIFECYCLE_d11c382.json",
+  "containerScanEvidence": "evidence/CONTAINER_SCAN_76f5c92.json"
 }

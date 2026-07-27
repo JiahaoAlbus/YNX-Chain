@@ -14,3 +14,5 @@
 - A shared deduplicated blob must use copy-on-write before one logical version changes storage class.
 - `pending` and `failed` lifecycle transitions are unresolved provider truth and block permanent deletion or product erasure until a provider-bound retry completes.
 - Migration never invents lifecycle history for legacy metadata-only objects; material objects with missing current versions remain invalid and fail closed.
+- The exact CI container must fail on any configured Critical or High OS/library vulnerability, including unfixed findings; a JSON report is retained even when the scan fails.
+- A zero-finding Trivy report is time-, database-, severity- and scanner-scoped evidence. It is not immutable hosting, continuous registry monitoring, reproducibility, provenance, signing or a claim that Medium/Low/future vulnerabilities do not exist.
