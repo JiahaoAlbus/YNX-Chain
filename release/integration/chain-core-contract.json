@@ -2,8 +2,8 @@
   "schema": "ynx-integration-contract/v1",
   "product": "chain-core",
   "owner": "01-chain-core",
-  "sourceCommit": "05b7d3cd3ffc",
-  "contractVersion": "1.3.0",
+  "sourceCommit": "bf08b68a1835",
+  "contractVersion": "1.4.0",
   "stateSchema": {
     "committedStateVersion": 11,
     "applicationVersion": 14,
@@ -113,6 +113,10 @@
       "eth_blockNumber",
       "eth_getBlockByNumber",
       "eth_getBlockByHash",
+      "eth_getBlockTransactionCountByNumber",
+      "eth_getBlockTransactionCountByHash",
+      "eth_getTransactionByBlockNumberAndIndex",
+      "eth_getTransactionByBlockHashAndIndex",
       "eth_getBalance",
       "eth_getTransactionCount",
       "eth_getCode",
@@ -208,6 +212,19 @@
       "checksumBound": true,
       "archiveEntriesValidated": true,
       "rollbackReplayToCurrentAppHash": true,
+      "remoteDrillComplete": false
+    },
+    "indexerPersistence": {
+      "schemaVersion": 2,
+      "checkpointPermissions": "0600",
+      "strictUnknownFieldRejection": true,
+      "blockAndTransactionInvariantValidation": true,
+      "writeAheadLogFsync": true,
+      "checkpointAtomicRenameAndDirectoryFsync": true,
+      "symlinkAndNonRegularFileRejection": true,
+      "checkpointWalOverlapRecovery": true,
+      "deepCloneSnapshotBoundary": true,
+      "testedLocal": true,
       "remoteDrillComplete": false
     }
   },

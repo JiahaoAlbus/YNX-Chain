@@ -1,25 +1,27 @@
 # Current Plan
 
-Phase: `TESTNET` execution compatibility.
+Phase: `TESTNET` execution and evidence compatibility.
 
-Completed and pushed baselines:
+Protected baselines:
 
 - Integration contract and cross-product vectors: `8eb801f`.
-- Four-validator Block Hash/AppHash, 3/4 precommit, fault recovery and replay proof: `f03c93e`.
+- Four-validator Block Hash/AppHash, 3/4 precommit, stop/recovery and replay proof: `f03c93e`.
 - ABCI v14 State Sync snapshot runtime and tests: `913f207`.
-- Stopped-validator backup, full data deletion, restore to an earlier height and rollback replay to current AppHash: `74fc8dc`.
-- Machine release and integration records bound to the recovery baseline: `597ae52`.
+- Backup, restore and rollback replay to current AppHash: `74fc8dc`.
+- Committed EVM block-transaction count and transaction-by-block-index lookups: `7b59af3`.
+- Durable Indexer checkpoint/WAL validation, atomic persistence and tamper rejection: `bf08b68`.
 
 Current recoverable slice:
 
-1. Add standard committed-block transaction count lookups by block number and block hash.
-2. Add committed transaction lookup by block number/hash plus canonical transaction index.
-3. Bind all results to validated CometBFT block, AppHash, DataHash and raw transaction evidence; return `null` for pending, unavailable blocks and out-of-range indexes; reject malformed quantities and hashes.
-4. Run focused gateway, race, receipt gate, static and scanner checks.
-5. Commit and push only the EVM slice and handoff files. Preserve unrelated concurrent `internal/indexer/indexer.go` dirty work without staging, overwriting or discarding it.
+1. Keep Release Record, Integration Contract, Handoff, Project State and the full-goal coverage matrix bound to implementation baseline `bf08b68a1835`.
+2. Validate all machine JSON and objective-state gates.
+3. Keep `integratedCentral`, staging, public, hosted, production-signed and store states false.
+4. Commit and push the metadata/coverage/security-gate slice separately from runtime changes.
 
-Next slice after push:
+Next runtime slice after push:
 
-- Freeze machine-readable EVM RPC vectors against the implementation SHA.
-- Continue standard Ethereum raw transaction envelope compatibility without claiming native Ethereum RLP support until it is implemented and proven.
-- Keep public deployment, production signing and public BFT cutover false until direct remote evidence exists.
+1. Freeze machine-readable EVM block-transaction lookup vectors in `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`.
+2. Cover success, missing/pending block, out-of-range index, malformed quantity/hash, wrong parameter count and upstream evidence failure.
+3. Bind the vectors to `scripts/verify/bft-evm-receipt-check.sh` and current Gateway tests.
+4. Continue standard Ethereum raw transaction envelope compatibility only after the frozen vector slice; do not claim native Ethereum RLP or EIP-1559 transaction support before implementation and proof.
+5. Preserve CometBFT as the safety baseline and keep public deployment/BFT cutover false until remote direct evidence exists.

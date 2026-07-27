@@ -1,5 +1,17 @@
 # Project State
 
+## 2026-07-27 final-worktree TESTNET checkpoint
+
+- State snapshot baseline commit: `bf08b68a1835a0c9bca5a867c32f504ff14f8381` for the current locally tested Chain Core runtime. The later metadata-only checkpoint must not be interpreted as a different deployed runtime.
+- Last pushed commit before this metadata slice: `bf08b68a1835a0c9bca5a867c32f504ff14f8381`; local and `origin/codex/final-chain-core` matched and the worktree was clean.
+- Chain repo state: `/Users/huangjiahao/Desktop/YNX Final Worktrees/01-chain-core`, branch `codex/final-chain-core`, remote `https://github.com/JiahaoAlbus/YNX-Chain.git`.
+- Website repo state: owned by the separate Website thread; no Website Worktree was modified by this checkpoint.
+- Remote deployment state: the authoritative public baseline remains older than current source; `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned` and `storeReleased` remain false for the current source.
+- Current runtime slices: `7b59af3` added committed EVM block-transaction count and transaction-by-block-index lookups; `bf08b68` added strict Indexer checkpoint/WAL validation, private regular-file boundaries, fsync-bound atomic persistence, tamper rejection, overlap-crash recovery and deep-cloned snapshots.
+- Current evidence state: `release/product-release.json`, `release/integration/chain-core-contract.json`, `docs/integration/INTEGRATION_HANDOFF.md`, `docs/acceptance/NEXT_ACTION.md` and `.ai-bridge/full-goal-coverage.json` are synchronized to the implementation baseline without changing unsupported public or production booleans.
+- Current blockers: accepted central Wallet/Auth Product Session and scope freeze; canonical Oracle/Data Fabric integration; current-source remote deployment authority and infrastructure; Faucet funding; public Explorer/Monitor proof; hosted and production-signed artifacts; independent security/custody review.
+- Largest real gap: complete the remaining machine-readable EVM vectors and shared Exchange/DEX Testnet flows, then deploy current source follower-first and collect remote recovery, cross-region and independent public evidence.
+
 ## 2026-07-16 transaction continuity and ecosystem worktree audit
 
 - A Singapore direct-origin read-only check used the committed Exchange

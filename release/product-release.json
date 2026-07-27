@@ -1,6 +1,6 @@
 {
   "schema": "ynx-product-release/v1",
-  "generatedAt": "2026-07-25T07:18:00Z",
+  "generatedAt": "2026-07-27T09:45:00Z",
   "product": {
     "id": "chain-core",
     "name": "YNX Chain Core",
@@ -9,9 +9,9 @@
     "canonicalRoute": "/chain"
   },
   "source": {
-    "implementationCommit": "05b7d3cd3ffc",
+    "implementationCommit": "bf08b68a1835",
     "committedStateVersion": 11,
-    "contractVersion": "1.3.0",
+    "contractVersion": "1.4.0",
     "releaseRecordVersion": 1
   },
   "network": {
@@ -59,12 +59,14 @@
     "validator-backup-restore-rollback",
     "cometbft-candidate-package",
     "evm-network-and-block-rpc",
+    "evm-block-transaction-count-and-index-lookup",
     "evm-account-balance-and-nonce-rpc",
     "evm-signed-ynxt-broadcast",
     "evm-committed-transaction-receipt-and-logs",
     "evm-committed-bounded-contract-code-call-and-resource-estimate",
     "sponsored-user-operation-bundler-end-to-end",
-    "strategy-vault-lifecycle-and-emergency-exit-guardrails"
+    "strategy-vault-lifecycle-and-emergency-exit-guardrails",
+    "indexer-durable-checkpoint-wal-and-tamper-rejection"
   ],
   "currentSourceBoundaries": [
     "Current source is not deployed on the authoritative public runtime.",
@@ -77,6 +79,7 @@
     "FEATURE_COMPLETION_EVIDENCE.md",
     "CURRENT_RECOVERY_AUDIT.md",
     "release/recovery-evidence.json",
+    ".ai-bridge/full-goal-coverage.json",
     "release/integration/chain-core-contract.json",
     "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
   ]

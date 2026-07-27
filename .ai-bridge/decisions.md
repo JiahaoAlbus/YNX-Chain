@@ -10,4 +10,8 @@
 - Local backup/rollback evidence may use disposable validator keys, but no local drill may set remote or public recovery status true.
 - EVM block transaction count and transaction-by-block-index methods are committed-state read compatibility backed by CometBFT evidence; they do not imply Ethereum execution equivalence.
 - `eth_sendRawTransaction` currently accepts the canonical signed YNX native JSON envelope encoded as hex, not standard Ethereum RLP or EIP-1559 envelopes; release records must not claim native Ethereum raw transaction compatibility until implemented and proven.
-- Unrelated concurrent dirty work in `internal/indexer/indexer.go` is protected and excluded from the EVM slice staging and commit.
+- Unrelated concurrent dirty work in `internal/indexer/indexer.go` was protected and excluded from the EVM slice staging and commit; it was reviewed, tested and committed separately as `bf08b68`.
+- Indexer checkpoint and WAL files are local authority state and must fail closed on unsafe permissions, non-regular files, unknown fields, trailing data, block/transaction invariant mismatch, conflicting duplicate WAL records or caller-visible mutable aliases.
+- Exact checkpoint/WAL overlap after an atomic checkpoint but before WAL deletion is a valid recovery window and must not be rejected when the block record is identical.
+- Objective-state security scanning must not silently disappear when `rg` is absent; the portable `grep` fallback is part of the gate.
+- Machine release, integration and coverage records bind to the latest runtime implementation commit, while a later documentation-only commit must not be misrepresented as a different deployed runtime.

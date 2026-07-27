@@ -51,8 +51,19 @@ grep -q "Transparency Report" docs/acceptance/FEATURE_COMPLETION_TRACKER.md
 
 node ./scripts/verify/readme-positioning-check.mjs
 
-if rg -n "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify --glob '!scripts/verify/objective-state-check.sh' >/tmp/ynx-strict-ssh-policy.txt; then
-  cat /tmp/ynx-strict-ssh-policy.txt
+strict_ssh_report="$(mktemp)"
+trap 'rm -f "$strict_ssh_report"' EXIT
+
+if command -v rg >/dev/null 2>&1; then
+  rg -n "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify \
+    --glob '!scripts/verify/objective-state-check.sh' >"$strict_ssh_report" || true
+else
+  grep -RIn --include='*.sh' --exclude='objective-state-check.sh' \
+    "StrictHostKeyChecking=accept-new" scripts/deploy scripts/ops scripts/verify >"$strict_ssh_report" || true
+fi
+
+if test -s "$strict_ssh_report"; then
+  cat "$strict_ssh_report"
   echo "strict ssh policy failed: deployment, ops, and verification scripts must not auto-accept new host keys"
   exit 1
 fi
