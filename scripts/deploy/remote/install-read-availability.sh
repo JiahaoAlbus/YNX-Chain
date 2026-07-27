@@ -45,6 +45,10 @@ rollback() {
   rm -f "${status_file:-}" "${identity_file:-}"
   if [[ "$status" != "0" && "$deployment_complete" == "0" ]]; then
     set +e
+    if ! sudo -n grep -a -Fq "$source_commit" /usr/local/bin/ynx-chaind; then
+      echo "read availability deployment on $role was superseded; rollback skipped to preserve the newer binary" >&2
+      exit "$status"
+    fi
     sudo -n install -m 0755 -o root -g root "$backup/ynx-chaind" /usr/local/bin/ynx-chaind
     sudo -n cp -p "$backup/ynx-chaind.env" /etc/ynx/ynx-chaind.env
     if [[ "$mode" == "primary" ]]; then

@@ -146,9 +146,6 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		if err := validateResourceSponsorSnapshot(candidate); err != nil {
 			return ReplicationApplyResult{}, fmt.Errorf("validate final replication Resource sponsor state: %w", err)
 		}
-		if err := validateReplicationBlockHistory(candidate, d.cfg); err != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("validate final replication block history: %w", err)
-		}
 		d.applySnapshotLocked(candidate)
 		d.validatorPeers = localPeers
 		d.validatorPeerSyncs = localPeerSyncs

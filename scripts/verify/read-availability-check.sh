@@ -30,6 +30,7 @@ done
 for required in \
   '/var/backups/ynx-chain/$release-$role' \
   'previous binaries restored' \
+  'rollback skipped to preserve the newer binary' \
   'YNX_REPLICATION_INTERVAL=%s' \
   'bounded replication did not become fresh' \
   'http://127.0.0.1:6420/blocks/$probe_height' \
