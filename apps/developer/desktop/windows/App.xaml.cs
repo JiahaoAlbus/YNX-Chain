@@ -28,7 +28,20 @@ public partial class App : Application
             var runtime = Path.Combine(resources, "runtime", "node.exe");
             var server = Path.Combine(resources, "server.mjs");
             var web = Path.Combine(resources, "web", "index.html");
-            if (!File.Exists(runtime) || !File.Exists(server) || !File.Exists(web)) return 2;
+            var provenance = Path.Combine(resources, "build-provenance.json");
+            var sbom = Path.Combine(resources, "sbom.cdx.json");
+            if (!File.Exists(runtime) || !File.Exists(server) || !File.Exists(web) || !File.Exists(provenance) || !File.Exists(sbom)) return 2;
+
+            using var provenanceDocument = JsonDocument.Parse(File.ReadAllText(provenance));
+            using var sbomDocument = JsonDocument.Parse(File.ReadAllText(sbom));
+            var provenanceRoot = provenanceDocument.RootElement;
+            if (provenanceRoot.GetProperty("productId").GetString() != "ynx-developer-v1" ||
+                provenanceRoot.GetProperty("platform").GetString() != "windows-x64" ||
+                provenanceRoot.GetProperty("signingClass").GetString() != "unsigned-no-authenticode" ||
+                provenanceRoot.GetProperty("sourceDirty").GetBoolean()) return 2;
+            var sourceCommit = provenanceRoot.GetProperty("sourceCommit").GetString();
+            var runtimeCheckpoint = provenanceRoot.GetProperty("runtimeCheckpoint").GetString();
+            if (string.IsNullOrWhiteSpace(sourceCommit) || string.IsNullOrWhiteSpace(runtimeCheckpoint)) return 2;
 
             var start = new ProcessStartInfo(runtime) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
             start.ArgumentList.Add("--version");
@@ -43,7 +56,9 @@ public partial class App : Application
                 product = "YNX Developer Testnet Preview",
                 runtime = version,
                 resourcesVerified = true,
-                signingClass = "unsigned",
+                signingClass = "unsigned-no-authenticode",
+                sourceCommit,
+                runtimeCheckpoint,
                 generatedAt = DateTimeOffset.UtcNow
             }));
             return 0;
