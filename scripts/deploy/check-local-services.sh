@@ -55,7 +55,7 @@ case "$url" in
   http://127.0.0.1:6437/health)
     printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
-  http://127.0.0.1:6438/health)
+  http://127.0.0.1:6439/health)
     printf '%s\n' '{"ok":true,"service":"ynx-wallet-gatewayd","registryVersion":2,"adapterStateVersion":2,"persistence":"atomic-local-state","truthfulStatus":"canonical-wallet-auth-local-runtime","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   *)
@@ -219,7 +219,7 @@ check_full_stack_surface() {
   fi
 
   if [[ "${YNX_EXPECT_WALLET_GATEWAY_SERVICE:-0}" == "1" ]]; then
-    wallet_gateway="$(fetch_with_retry "canonical Wallet Gateway health" "http://127.0.0.1:6438/health")"
+    wallet_gateway="$(fetch_with_retry "canonical Wallet Gateway health" "http://127.0.0.1:6439/health")"
     require_contains "canonical Wallet Gateway health" "$wallet_gateway" '"service":"ynx-wallet-gatewayd"'
     require_contains "canonical Wallet Gateway registry" "$wallet_gateway" '"registryVersion":2'
     require_contains "canonical Wallet Gateway adapter" "$wallet_gateway" '"adapterStateVersion":2'

@@ -11,7 +11,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const statePath = process.env.YNX_WALLET_GATEWAY_STATE_PATH ?? "/var/lib/ynx-chain/wallet-gateway/state.json";
 const registryPath = process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH
   ?? resolve(repositoryRoot, "packages/wallet-auth/central-registry.json");
-const { host, port } = parseAddress(process.env.YNX_WALLET_GATEWAY_HTTP_ADDR ?? "127.0.0.1:6438");
+const { host, port } = parseAddress(process.env.YNX_WALLET_GATEWAY_HTTP_ADDR ?? "127.0.0.1:6439");
 
 mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
 const runtime = createWalletGatewayServer({

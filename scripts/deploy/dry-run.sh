@@ -114,7 +114,7 @@ YNX_SQUARE_HTTP_ADDR=127.0.0.1:6436
 YNX_APP_GATEWAY_DEPLOY_ENABLED=true
 YNX_APP_GATEWAY_HTTP_ADDR=127.0.0.1:6437
 YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true
-YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6438
+YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6439
 YNX_APP_GATEWAY_ALLOWED_ORIGINS=https://www.ynx.test,https://ynx.test
 EMAIL_PROVIDER=dry-run-mail
 EMAIL_API_KEY=dry-run-email-key
@@ -184,7 +184,7 @@ grep -Fq "YNX_APP_GATEWAY_CHAIN_ID=6423" "$release_dir/config/ynx-app-gatewayd.e
 grep -Fq "YNX_APP_GATEWAY_CHALLENGE_TTL=5m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded challenge TTL"; exit 1; }
 grep -Fq "YNX_APP_GATEWAY_SESSION_TTL=30m" "$release_dir/config/ynx-app-gatewayd.env" || { echo "App Gateway env missing bounded session TTL"; exit 1; }
 grep -Fq "YNX_WALLET_GATEWAY_DEPLOY_ENABLED=true" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing independent deploy gate"; exit 1; }
-grep -Fq "YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6438" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing listen address"; exit 1; }
+grep -Fq "YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1:6439" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing listen address"; exit 1; }
 grep -Fq "YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing state path"; exit 1; }
 grep -Fq "wallet-gateway/packages/wallet-auth/central-registry.json" "$release_dir/config/ynx-wallet-gatewayd.env" || { echo "canonical Wallet Gateway env missing immutable registry"; exit 1; }
 app_gateway_origins="$(set -a; source "$release_dir/config/ynx-app-gatewayd.env"; printf '%s' "$YNX_APP_GATEWAY_ALLOWED_ORIGINS")"
@@ -273,7 +273,7 @@ grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { 
 grep -Fq "server_name resource.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Resource Gateway domain block"; exit 1; }
 grep -Fq "server_name rest.ynx.test api.ynx.test ide.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing REST/API domain server block"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6437;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing App Gateway route"; exit 1; }
-grep -Fq "proxy_pass http://127.0.0.1:6438;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing canonical Wallet Gateway route"; exit 1; }
+grep -Fq "proxy_pass http://127.0.0.1:6439;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing canonical Wallet Gateway route"; exit 1; }
 grep -Fq "handle /v1/wallet/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing canonical Wallet Gateway route"; exit 1; }
 grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing App Gateway route"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
