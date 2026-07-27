@@ -60,34 +60,36 @@ type CatalogItem struct {
 }
 
 type Invoice struct {
-	Version            int                 `json:"version"`
-	ID                 string              `json:"id"`
-	CentralID          string              `json:"centralInvoiceId"`
-	IntentID           string              `json:"intentId"`
-	MerchantID         string              `json:"merchantId"`
-	MerchantName       string              `json:"merchantName"`
-	PayoutAddress      string              `json:"payoutAddress"`
-	CatalogItemID      string              `json:"catalogItemId,omitempty"`
-	Description        string              `json:"description,omitempty"`
-	BaseAmount         int64               `json:"baseAmount,omitempty"`
-	TipAmount          int64               `json:"tipAmount,omitempty"`
-	SplitPaymentID     string              `json:"splitPaymentId,omitempty"`
-	SplitShareID       string              `json:"splitShareId,omitempty"`
-	ExpectedPayer      string              `json:"expectedPayer,omitempty"`
-	ExpectedPayerHash  string              `json:"expectedPayerHash,omitempty"`
-	Amount             int64               `json:"amount"`
-	Asset              string              `json:"asset"`
-	Network            string              `json:"network"`
-	Fee                int64               `json:"fee"`
-	FeeBreakdown       FeeBreakdown        `json:"feeBreakdown"`
-	Status             string              `json:"status"`
-	ExpiresAt          time.Time           `json:"expiresAt"`
-	CreatedAt          time.Time           `json:"createdAt"`
-	Signature          string              `json:"signature"`
-	SignatureKeyID     string              `json:"signatureKeyId"`
-	SigningPublicKey   string              `json:"signingPublicKey"`
-	SignatureAlgorithm string              `json:"signatureAlgorithm"`
-	Settlement         *SettlementEvidence `json:"settlement,omitempty"`
+	Version               int                 `json:"version"`
+	ID                    string              `json:"id"`
+	CentralID             string              `json:"centralInvoiceId"`
+	IntentID              string              `json:"intentId"`
+	MerchantID            string              `json:"merchantId"`
+	MerchantName          string              `json:"merchantName"`
+	PayoutAddress         string              `json:"payoutAddress"`
+	CatalogItemID         string              `json:"catalogItemId,omitempty"`
+	Description           string              `json:"description,omitempty"`
+	BaseAmount            int64               `json:"baseAmount,omitempty"`
+	TipAmount             int64               `json:"tipAmount,omitempty"`
+	SplitPaymentID        string              `json:"splitPaymentId,omitempty"`
+	SplitShareID          string              `json:"splitShareId,omitempty"`
+	ServiceBillID         string              `json:"serviceBillId,omitempty"`
+	ServiceEvidenceDigest string              `json:"serviceEvidenceDigest,omitempty"`
+	ExpectedPayer         string              `json:"expectedPayer,omitempty"`
+	ExpectedPayerHash     string              `json:"expectedPayerHash,omitempty"`
+	Amount                int64               `json:"amount"`
+	Asset                 string              `json:"asset"`
+	Network               string              `json:"network"`
+	Fee                   int64               `json:"fee"`
+	FeeBreakdown          FeeBreakdown        `json:"feeBreakdown"`
+	Status                string              `json:"status"`
+	ExpiresAt             time.Time           `json:"expiresAt"`
+	CreatedAt             time.Time           `json:"createdAt"`
+	Signature             string              `json:"signature"`
+	SignatureKeyID        string              `json:"signatureKeyId"`
+	SigningPublicKey      string              `json:"signingPublicKey"`
+	SignatureAlgorithm    string              `json:"signatureAlgorithm"`
+	Settlement            *SettlementEvidence `json:"settlement,omitempty"`
 }
 
 type FeeBreakdown struct {
@@ -322,6 +324,7 @@ type Snapshot struct {
 	RouteQuotes     map[string]PaymentRouteQuote      `json:"routeQuotes"`
 	RecurringDrafts map[string]RecurringDraft         `json:"recurringDrafts"`
 	SplitPayments   map[string]SplitPayment           `json:"splitPayments"`
+	QuantBills      map[string]QuantBill              `json:"quantBills"`
 	Audit           []AuditEntry                      `json:"audit"`
 }
 
