@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,10 +27,11 @@ func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_INDEXER_HTTP_ADDR", "127.0.0.1:6426"), "indexer HTTP listen address")
 	storePath := flag.String("db", envOrDefault("YNX_INDEXER_DB_PATH", "tmp/indexer/indexer-db.json"), "local index database path")
 	pollInterval := flag.Duration("poll-interval", envDurationOrDefault("YNX_INDEXER_POLL_INTERVAL", 2*time.Second), "RPC polling interval")
+	maxBlocksPerRun := flag.Uint64("max-blocks-per-run", envUint64OrDefault("YNX_INDEXER_MAX_BLOCKS_PER_RUN", 250), "maximum blocks persisted per sync cycle")
 	once := flag.Bool("once", false, "run one sync cycle and exit")
 	flag.Parse()
 
-	idx, err := indexer.New(indexer.Config{RPCURL: *rpcURL, StorePath: *storePath})
+	idx, err := indexer.New(indexer.Config{RPCURL: *rpcURL, StorePath: *storePath, MaxBlocksPerRun: *maxBlocksPerRun})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -82,6 +84,18 @@ func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	parsed, err := time.ParseDuration(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envUint64OrDefault(key string, fallback uint64) uint64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return fallback
 	}

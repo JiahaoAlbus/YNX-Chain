@@ -17,8 +17,9 @@ import (
 )
 
 type Config struct {
-	RPCURL    string
-	StorePath string
+	RPCURL          string
+	StorePath       string
+	MaxBlocksPerRun uint64
 }
 
 type Client struct {
@@ -82,8 +83,10 @@ type Status struct {
 }
 
 type Store struct {
-	path string
-	mu   sync.Mutex
+	path   string
+	mu     sync.Mutex
+	loaded bool
+	db     Database
 }
 
 func NewStore(path string) *Store {
@@ -116,34 +119,40 @@ func (s *Store) Load() (Database, error) {
 func (s *Store) Save(db Database) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.saveLocked(db)
+	return s.saveLocked(cloneDatabase(db))
 }
 
 func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) (Database, error) {
+	return s.UpsertBlocks(sourceURL, status, []chain.Block{block})
+}
+
+func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Block) (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	db, err := s.loadLocked()
 	if err != nil {
 		return Database{}, err
 	}
-	if db.Blocks == nil {
-		db.Blocks = map[string]chain.Block{}
+	next := cloneDatabase(db)
+	applySourceStatus(&next, sourceURL, status)
+	for _, block := range blocks {
+		next.Blocks[strconv.FormatUint(block.Height, 10)] = block
+		next.LastIndexedHeight = block.Height
+		next.LastBlockHash = block.Hash
+		next.LastSyncAt = time.Now().UTC()
+		for _, tx := range block.Transactions {
+			next.Transactions[tx.Hash] = tx
+		}
 	}
-	if db.Transactions == nil {
-		db.Transactions = map[string]chain.Transaction{}
+	if len(blocks) == 0 {
+		s.db = next
+		s.loaded = true
+		return next, nil
 	}
-	applySourceStatus(&db, sourceURL, status)
-	db.Blocks[strconv.FormatUint(block.Height, 10)] = block
-	db.LastIndexedHeight = block.Height
-	db.LastBlockHash = block.Hash
-	db.LastSyncAt = time.Now().UTC()
-	for _, tx := range block.Transactions {
-		db.Transactions[tx.Hash] = tx
-	}
-	if err := s.saveLocked(db); err != nil {
+	if err := s.saveLocked(next); err != nil {
 		return Database{}, err
 	}
-	return db, nil
+	return next, nil
 }
 
 func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, error) {
@@ -153,11 +162,11 @@ func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, e
 	if err != nil {
 		return Database{}, err
 	}
-	applySourceStatus(&db, sourceURL, status)
-	if err := s.saveLocked(db); err != nil {
-		return Database{}, err
-	}
-	return db, nil
+	next := db
+	applySourceStatus(&next, sourceURL, status)
+	s.db = next
+	s.loaded = true
+	return next, nil
 }
 
 func applySourceStatus(db *Database, sourceURL string, status Status) {
@@ -173,12 +182,19 @@ func applySourceStatus(db *Database, sourceURL string, status Status) {
 }
 
 func (s *Store) loadLocked() (Database, error) {
+	if s.loaded {
+		return s.db, nil
+	}
 	db := Database{Version: 2, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}
 	if strings.TrimSpace(s.path) == "" {
+		s.db = db
+		s.loaded = true
 		return db, nil
 	}
 	payload, err := os.ReadFile(s.path)
 	if os.IsNotExist(err) {
+		s.db = db
+		s.loaded = true
 		return db, nil
 	}
 	if err != nil {
@@ -193,11 +209,15 @@ func (s *Store) loadLocked() (Database, error) {
 	if db.Transactions == nil {
 		db.Transactions = map[string]chain.Transaction{}
 	}
+	s.db = db
+	s.loaded = true
 	return db, nil
 }
 
 func (s *Store) saveLocked(db Database) error {
 	if strings.TrimSpace(s.path) == "" {
+		s.db = db
+		s.loaded = true
 		return nil
 	}
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
@@ -211,13 +231,32 @@ func (s *Store) saveLocked(db Database) error {
 	if err := os.WriteFile(tmp, payload, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path)
+	if err := os.Rename(tmp, s.path); err != nil {
+		return err
+	}
+	s.db = db
+	s.loaded = true
+	return nil
+}
+
+func cloneDatabase(db Database) Database {
+	next := db
+	next.Blocks = make(map[string]chain.Block, len(db.Blocks))
+	for height, block := range db.Blocks {
+		next.Blocks[height] = block
+	}
+	next.Transactions = make(map[string]chain.Transaction, len(db.Transactions))
+	for hash, transaction := range db.Transactions {
+		next.Transactions[hash] = transaction
+	}
+	return next
 }
 
 type Indexer struct {
-	cfg    Config
-	client *Client
-	store  *Store
+	cfg      Config
+	client   *Client
+	store    *Store
+	syncLock sync.Mutex
 }
 
 func New(cfg Config) (*Indexer, error) {
@@ -226,6 +265,12 @@ func New(cfg Config) (*Indexer, error) {
 	}
 	if strings.TrimSpace(cfg.StorePath) == "" {
 		return nil, fmt.Errorf("indexer store path is required")
+	}
+	if cfg.MaxBlocksPerRun == 0 {
+		cfg.MaxBlocksPerRun = 250
+	}
+	if cfg.MaxBlocksPerRun > 10_000 {
+		return nil, fmt.Errorf("indexer max blocks per run must not exceed 10000")
 	}
 	return &Indexer{cfg: cfg, client: NewClient(cfg.RPCURL), store: NewStore(cfg.StorePath)}, nil
 }
@@ -247,6 +292,8 @@ type SyncResult struct {
 }
 
 func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
+	i.syncLock.Lock()
+	defer i.syncLock.Unlock()
 	status, err := i.client.Status(ctx)
 	if err != nil {
 		return SyncResult{}, err
@@ -292,11 +339,20 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		result.IndexedTxCount = len(db.Transactions)
 		return result, nil
 	}
+	end := status.Height
+	if remaining := end - start + 1; remaining > i.cfg.MaxBlocksPerRun {
+		end = start + i.cfg.MaxBlocksPerRun - 1
+	}
 	expectedParent := ""
 	if len(db.Blocks) > 0 {
 		expectedParent = db.LastBlockHash
 	}
-	for height := start; height <= status.Height; height++ {
+	validatedTransactions := make(map[string]chain.Transaction, len(db.Transactions))
+	for hash, transaction := range db.Transactions {
+		validatedTransactions[hash] = transaction
+	}
+	blocks := make([]chain.Block, 0, end-start+1)
+	for height := start; height <= end; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
 			return SyncResult{}, err
@@ -313,15 +369,19 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		if expectedParent != "" && block.ParentHash != expectedParent {
 			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
 		}
-		if err := validateBlockTransactions(block, db.Transactions); err != nil {
+		if err := validateBlockTransactions(block, validatedTransactions); err != nil {
 			return SyncResult{}, err
 		}
-		db, err = i.store.UpsertBlock(i.cfg.RPCURL, status, block)
-		if err != nil {
-			return SyncResult{}, err
+		for _, transaction := range block.Transactions {
+			validatedTransactions[transaction.Hash] = transaction
 		}
+		blocks = append(blocks, block)
 		result.NewBlocksThisRun++
 		expectedParent = block.Hash
+	}
+	db, err = i.store.UpsertBlocks(i.cfg.RPCURL, status, blocks)
+	if err != nil {
+		return SyncResult{}, err
 	}
 	result.LastIndexedHeight = db.LastIndexedHeight
 	result.IndexedBlockCount = len(db.Blocks)

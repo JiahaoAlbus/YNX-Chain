@@ -103,6 +103,44 @@ func TestIndexerBootstrapsAtMigrationHeightAndResumesWithFaucetTransaction(t *te
 	}
 }
 
+func TestIndexerPersistsBoundedBatchesAndResumesWithoutRewritingEachBlock(t *testing.T) {
+	source := newMigrationSource(100, 104, nil)
+	server := httptest.NewServer(source)
+	defer server.Close()
+	storePath := t.TempDir() + "/bounded-index.json"
+	idx, err := New(Config{RPCURL: server.URL, StorePath: storePath, MaxBlocksPerRun: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := idx.SyncOnce(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.ResumeFromHeight != 100 || first.LastIndexedHeight != 101 || first.NewBlocksThisRun != 2 || first.IndexedBlockCount != 2 {
+		t.Fatalf("unexpected first bounded batch: %+v", first)
+	}
+	second, err := idx.SyncOnce(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.ResumeFromHeight != 102 || second.LastIndexedHeight != 103 || second.NewBlocksThisRun != 2 || second.IndexedBlockCount != 4 {
+		t.Fatalf("unexpected second bounded batch: %+v", second)
+	}
+
+	restarted, err := New(Config{RPCURL: server.URL, StorePath: storePath, MaxBlocksPerRun: 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	final, err := restarted.SyncOnce(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if final.ResumeFromHeight != 104 || final.LastIndexedHeight != 104 || final.NewBlocksThisRun != 1 || final.IndexedBlockCount != 5 {
+		t.Fatalf("unexpected resumed bounded batch: %+v", final)
+	}
+}
+
 func TestIndexerFailsClosedOnParentDivergence(t *testing.T) {
 	source := newMigrationSource(100, 100, nil)
 	server := httptest.NewServer(source)
