@@ -471,6 +471,7 @@ economics-local-testnet-evidence-check:
 
 economics-shared-testnet-acceptance-check:
 	go test -race ./internal/economics -run SharedTestnet -count=1
+	go test -race ./cmd/ynx-economics-shared-testnet-acceptance -count=1
 
 economics-testnet-cli-artifact-check:
 	node ./scripts/verify/economics-testnet-cli-artifact-check.mjs
