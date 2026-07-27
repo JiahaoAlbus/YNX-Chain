@@ -25,22 +25,23 @@
 - Compose config parse: pass
 - Kubernetes YAML parse: pass; OpenAPI validation unavailable without a cluster
 - Docker build: failed before build because local daemon was not running
-- macOS arm64 desktop: bundle built, ad-hoc signature verified, installed in the
-  user Applications directory, then cold-launched with API/version and frontend
-  checks; this is test signing, not production signing or notarization
+- macOS arm64 desktop: bundle built twice reproducibly, ad-hoc signature verified,
+  then cold-launched from a fresh Applications-layout extraction with API/version,
+  health, metrics, frontend and clean shutdown checks; this is test signing, not
+  production signing or notarization
 - Windows x64 desktop: cross-compiled and archived only; not launched or installed
 - hostile Origin, oversized JSON and cross-origin WebSocket DAST probes: pass
 - local ZIP structural/credential scan: both candidates pass; external CVE,
   malware and container scanners unavailable, so those states remain false
 
-Reproducible desktop artifacts built from source commit
-`89a180911e40d66e47789eab419dff21d93a42d8`:
+Reproducible desktop artifacts built twice from source commit
+`2ff74fa60d9c539adef1e5549358667193016e84`:
 
-- macOS arm64 ZIP: 7,377,978 bytes; SHA-256
-  `f29f1c643b265d428a57664cba30ef1182220fba2ebe24925c456fbe61c18042`;
-  ad-hoc test signature; fresh installed cold-start verified
+- macOS arm64 ZIP: 7,377,976 bytes; SHA-256
+  `589a2b3db7252c9330b49a95eaf7b8170e9ff2188660d1fb10413cfe7199f056`;
+  ad-hoc test signature; fresh extracted cold-start verified
 - Windows x64 ZIP: 8,094,601 bytes; SHA-256
-  `2de53945d3bc81989693954f0dba5da2a88710e139f9808d40b19bd2b9400fc0`;
+  `1330099d4233b4325eb73a6b189c9aaf6ab015bf0b1b7bbe9bfe5beac36fdd7c`;
   unsigned cross-compile; no Windows execution evidence
 
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are

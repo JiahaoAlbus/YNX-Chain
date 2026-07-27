@@ -38,3 +38,11 @@ The integration validator compares contract release booleans with
 `product-release.json`, checks unique coverage/vector IDs and required fields,
 requires all vectors to remain pending, and rejects central/Testnet/public
 promotion without direct evidence.
+
+## D-007 — Artifact verification is bound to an explicit release source
+
+Desktop builds resolve a declared full Source Commit, disable implicit Go VCS
+metadata, and reject any artifact-input change after that commit. Evidence-only
+commits may rebuild the exact candidate; runtime or recipe drift requires a new
+Source Commit and refreshed hashes. This prevents both stale-release acceptance
+and false failures caused by stamping whichever HEAD runs the gate.

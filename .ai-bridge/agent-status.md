@@ -5,22 +5,25 @@
 - Branch: `codex/final-quant-lab`
 - Stage: INTEGRATE
 - Goal: Active
-- Last remote checkpoint: `5a626ac3967a7beac51535575eb8dc9311d6927c`
-- Workspace at last checkpoint: clean and Local SHA = Remote SHA
+- Last remote checkpoint: `2ff74fa60d9c539adef1e5549358667193016e84`
+- Workspace before this evidence commit: Local SHA = Remote SHA
 
 ## Verified local state
 
 - Quant service split, Web, CLI, SDKs, macOS/Windows candidate builds, local
   persistence/recovery and security gates exist.
-- macOS candidate built from `89a180911e40d66e47789eab419dff21d93a42d8`
-  was installed and cold-started; `/health` was ready with
-  `liveFundsEnabled=false`.
+- Desktop candidates built twice from
+  `2ff74fa60d9c539adef1e5549358667193016e84` produced identical hashes.
+- The macOS candidate passed strict ad-hoc signature verification and fresh
+  extracted cold start; `/version` returned the exact Source Commit, `/health`
+  was ready with `liveFundsEnabled=false`, metrics and frontend responded, and
+  supervisor shutdown released child-service ports.
 - Exchange/DEX Quant-side adapters reject nonterminal, stale, tampered, unbound
   and inconsistent owner responses and prevent duplicate retry after an unknown
   outcome.
-- The full release gate passed after the runtime and artifact updates.
+- The complete Quant local release gate passes.
 - Standard Integration Contract, Handoff, Test Vectors and Dependency Acceptance
-  are present as owner proposals and are machine validated.
+  remain owner proposals and are machine validated.
 
 ## Truthful incomplete state
 
@@ -35,6 +38,6 @@
 
 ## Immediate action
 
-Run full preflight, review changes, commit/push the integration package, verify
-Local SHA = Remote SHA, then continue Docker/capacity/recovery work that does not
-require another product owner.
+Protect this evidence refresh with Commit/Push and Local=Remote verification,
+then continue Docker build/runtime/restart/restore evidence or record the daemon
+as unavailable without promoting the container status.

@@ -8,8 +8,8 @@
   "contractOwner": "08-quant-lab",
   "contractState": "owner-proposal-integration-pending",
   "integrationFreezeOwner": "29-integration",
-  "sourceCommit": "89a180911e40d66e47789eab419dff21d93a42d8",
-  "evidenceCommit": "5a626ac3967a7beac51535575eb8dc9311d6927c",
+  "sourceCommit": "2ff74fa60d9c539adef1e5549358667193016e84",
+  "evidenceCommit": "2ff74fa60d9c539adef1e5549358667193016e84",
   "generatedAt": "2026-07-27T00:00:00Z",
   "network": {
     "environment": "YNX Testnet only",
