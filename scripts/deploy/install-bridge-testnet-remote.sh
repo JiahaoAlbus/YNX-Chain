@@ -115,6 +115,7 @@ backup_if_present /usr/local/bin/ynx-app-gatewayd ynx-app-gatewayd
 backup_if_present /etc/ynx/ynx-bridged.env ynx-bridged.env
 backup_if_present /etc/ynx/ynx-app-gatewayd.env ynx-app-gatewayd.env
 backup_if_present /etc/systemd/system/ynx-bridged.service ynx-bridged.service
+backup_if_present /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf bridge-resilience.conf
 
 rollback_required=1
 rollback() {
@@ -127,6 +128,12 @@ rollback() {
     if [[ -f "$backup_dir/ynx-bridged" ]]; then install -m 0755 "$backup_dir/ynx-bridged" /usr/local/bin/ynx-bridged; fi
     if [[ -f "$backup_dir/ynx-bridged.env" ]]; then install -m 0600 "$backup_dir/ynx-bridged.env" /etc/ynx/ynx-bridged.env; fi
     if [[ -f "$backup_dir/ynx-bridged.service" ]]; then install -m 0644 "$backup_dir/ynx-bridged.service" /etc/systemd/system/ynx-bridged.service; fi
+    if [[ -f "$backup_dir/bridge-resilience.conf" ]]; then
+      install -d -m 0755 /etc/systemd/system/ynx-app-gatewayd.service.d
+      install -m 0644 "$backup_dir/bridge-resilience.conf" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
+    else
+      rm -f /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
+    fi
     systemctl daemon-reload || true
     systemctl restart ynx-app-gatewayd || true
     if [[ -f "$backup_dir/ynx-bridged.service" ]]; then systemctl restart ynx-bridged || true; else systemctl disable --now ynx-bridged || true; fi
@@ -140,6 +147,8 @@ install -m 0755 "$release_dir/bin/ynx-app-gatewayd" /usr/local/bin/ynx-app-gatew
 install -m 0600 "$bridge_env_stage" /etc/ynx/ynx-bridged.env
 install -m 0600 "$app_env_stage" /etc/ynx/ynx-app-gatewayd.env
 install -m 0644 "$release_dir/systemd/ynx-bridged.service" /etc/systemd/system/ynx-bridged.service
+install -d -m 0755 /etc/systemd/system/ynx-app-gatewayd.service.d
+install -m 0644 "$release_dir/systemd/ynx-app-gatewayd-bridge-resilience.conf" /etc/systemd/system/ynx-app-gatewayd.service.d/bridge-resilience.conf
 rm -f "$bridge_env_stage" "$app_env_stage"
 
 systemctl daemon-reload

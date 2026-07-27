@@ -53,16 +53,25 @@ ReadWritePaths=/var/lib/ynx-chain/bridge
 [Install]
 WantedBy=multi-user.target
 EOF
+cat >"$work/$release/systemd/ynx-app-gatewayd-bridge-resilience.conf" <<'EOF'
+[Unit]
+# Wallet remains observable but cannot restart the shared App Gateway and
+# interrupt an otherwise healthy fail-closed Bridge read surface.
+Requires=
+Wants=ynx-wallet-gatewayd.service
+After=ynx-wallet-gatewayd.service ynx-bridged.service
+EOF
 
 (
   cd "$work/$release"
-  sha256sum bin/ynx-bridged bin/ynx-app-gatewayd systemd/ynx-bridged.service scripts/check-local-services.sh scripts/install-bridge-testnet-remote.sh >SHA256SUMS
+  sha256sum bin/ynx-bridged bin/ynx-app-gatewayd systemd/ynx-bridged.service systemd/ynx-app-gatewayd-bridge-resilience.conf scripts/check-local-services.sh scripts/install-bridge-testnet-remote.sh >SHA256SUMS
 )
 tarball="$work/$release.tar.gz"
 tar -C "$work" -czf "$tarball" "$release"
 tar_sha="$(sha256sum "$tarball" | awk '{print $1}')"
 tar -tzf "$tarball" | grep -Fq "$release/bin/ynx-bridged"
 tar -tzf "$tarball" | grep -Fq "$release/bin/ynx-app-gatewayd"
+tar -tzf "$tarball" | grep -Fq "$release/systemd/ynx-app-gatewayd-bridge-resilience.conf"
 tar -tzf "$tarball" | grep -Fq "$release/scripts/install-bridge-testnet-remote.sh"
 
 printf 'bridgeTestnetPackage=passed\nrelease=%s\ncommit=%s\nsha256=%s\n' "$release" "$commit" "$tar_sha"
