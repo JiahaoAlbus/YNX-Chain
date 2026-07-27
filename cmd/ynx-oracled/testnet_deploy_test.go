@@ -207,6 +207,7 @@ func TestOracleTestnetPackageAndConfigPreflight(t *testing.T) {
 		"/bin/ynx-oracle-provider",
 		"/config/providers.json",
 		"/config/release.json",
+		"/scripts/oracle-testnet-smoke.sh",
 		"/systemd/ynx-oracled.service",
 		"/systemd/ynx-oracle-provider-coinbase-exchange.service",
 		"/caddy/ynx-oracle.caddy",
@@ -320,6 +321,18 @@ func TestLimitedSourceTestnetPackageAndPublicSmoke(t *testing.T) {
 	for _, required := range []string{"current.next", "current.previous", "candidate=", "previous="} {
 		if !strings.Contains(string(dryRunOutput), required) {
 			t.Fatalf("limited-source deployment rollback guard missing %q:\n%s", required, dryRunOutput)
+		}
+	}
+	if !strings.Contains(string(dryRunOutput), "smoke_execution=local") {
+		t.Fatalf("limited-source deployment smoke execution truth missing:\n%s", dryRunOutput)
+	}
+	deployScript, err := os.ReadFile(filepath.Join(root, "scripts", "deploy", "deploy-oracle-testnet.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"ORACLE_SMOKE_EXECUTION", "local | remote", "remote_smoke_command", "ORACLE_RESOLVE_IP=%q", "/scripts/oracle-testnet-smoke.sh"} {
+		if !strings.Contains(string(deployScript), required) {
+			t.Fatalf("remote deployment smoke support missing %q", required)
 		}
 	}
 	candidateData, err := os.ReadFile(registryPath)

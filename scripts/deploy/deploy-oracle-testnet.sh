@@ -12,6 +12,7 @@ ynx_reject_unsafe_env_values "${required[@]}"
 ORACLE_REMOTE_ENV_PATH="${ORACLE_REMOTE_ENV_PATH:-/etc/ynx-oracle/oracle.env}"
 ORACLE_PROVIDER_DEPLOYMENT_JSON="${ORACLE_PROVIDER_DEPLOYMENT_JSON:-}"
 source_mode="${ORACLE_SOURCE_MODE:-authoritative}"
+smoke_execution="${ORACLE_SMOKE_EXECUTION:-local}"
 command -v git >/dev/null
 command -v go >/dev/null
 command -v jq >/dev/null
@@ -40,6 +41,10 @@ command -v tar >/dev/null
 case "$source_mode" in
   authoritative | limited) ;;
   *) echo "ORACLE_SOURCE_MODE must be authoritative or limited" >&2; exit 1 ;;
+esac
+case "$smoke_execution" in
+  local | remote) ;;
+  *) echo "ORACLE_SMOKE_EXECUTION must be local or remote" >&2; exit 1 ;;
 esac
 
 target_arch="${ORACLE_TARGET_ARCH:-amd64}"
@@ -134,7 +139,7 @@ cleanup() {
 }
 trap cleanup EXIT
 bundle="$stage/$release"
-mkdir -p "$bundle/bin" "$bundle/config" "$bundle/systemd" "$bundle/caddy"
+mkdir -p "$bundle/bin" "$bundle/config" "$bundle/systemd" "$bundle/caddy" "$bundle/scripts"
 deployment_manifest="$ORACLE_PROVIDER_DEPLOYMENT_JSON"
 if [[ "$source_mode" == "limited" ]]; then
   deployment_manifest="$stage/provider-deployment.json"
@@ -149,6 +154,7 @@ GOOS=linux GOARCH="$target_arch" CGO_ENABLED=0 go build -trimpath \
   -ldflags="-s -w -buildid=" -o "$bundle/bin/ynx-oracle-provider" ./cmd/ynx-oracle-provider
 install -m 0644 "$ORACLE_PROVIDER_REGISTRY" "$bundle/config/providers.json"
 install -m 0644 "$deployment_manifest" "$bundle/config/provider-deployment.json"
+install -m 0755 scripts/verify/oracle-testnet-smoke.sh "$bundle/scripts/oracle-testnet-smoke.sh"
 
 jq -n \
   --arg schema "ynx.oracle.testnet-release.v1" \
@@ -311,7 +317,7 @@ ynx_ssh "set -e; expected=' $units_joined '; for unit in \$(systemctl list-unit-
 
 if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
   ynx_ssh "$rollback_command"
-  printf 'Oracle Testnet deployment dry run passed: release=%s source_mode=%s\n' "$release" "$source_mode"
+  printf 'Oracle Testnet deployment dry run passed: release=%s source_mode=%s smoke_execution=%s\n' "$release" "$source_mode" "$smoke_execution"
   exit 0
 fi
 
@@ -320,7 +326,18 @@ if [[ "$source_mode" == "authoritative" ]]; then
 else
   test_market="$(jq -r '.candidates[0].assetMarketCoverage[0]' "$ORACLE_PROVIDER_REGISTRY")"
 fi
-if ! bash scripts/verify/oracle-testnet-smoke.sh "https://$ORACLE_API_DOMAIN" "$commit" "$test_market" "$source_mode"; then
+smoke_passed=0
+if [[ "$smoke_execution" == "remote" ]]; then
+  printf -v remote_smoke_command 'NO_PROXY=%q ORACLE_RESOLVE_IP=%q bash %q %q %q %q %q' \
+    '*' '127.0.0.1' "$remote_release/scripts/oracle-testnet-smoke.sh" \
+    "https://$ORACLE_API_DOMAIN" "$commit" "$test_market" "$source_mode"
+  if ynx_ssh "$remote_smoke_command"; then
+    smoke_passed=1
+  fi
+elif bash scripts/verify/oracle-testnet-smoke.sh "https://$ORACLE_API_DOMAIN" "$commit" "$test_market" "$source_mode"; then
+  smoke_passed=1
+fi
+if [[ "$smoke_passed" != "1" ]]; then
   ynx_ssh "$rollback_command"
   echo "Oracle public smoke failed; previous release was restored when available" >&2
   exit 1
