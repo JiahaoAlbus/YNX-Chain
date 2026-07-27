@@ -33,13 +33,15 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 	s := &Store{root: root, statePath: filepath.Join(root, "state.json"), integrityKey: append([]byte(nil), integrityKey...), state: emptyState()}
 	b, err := os.ReadFile(s.statePath)
 	if err == nil {
-		if err = json.Unmarshal(b, &s.state); err != nil {
+		var decoded State
+		if err = json.Unmarshal(b, &decoded); err != nil {
 			return nil, err
 		}
-		normalize(&s.state)
+		s.state = decoded
 		if err = s.verifyIntegrity(); err != nil {
 			return nil, err
 		}
+		normalize(&s.state)
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -48,6 +50,9 @@ func OpenStore(root string, integrityKey []byte) (*Store, error) {
 
 func emptyState() State { s := State{}; normalize(&s); return s }
 func normalize(s *State) {
+	if s.SchemaVersion < 2 {
+		s.SchemaVersion = 2
+	}
 	if s.Videos == nil {
 		s.Videos = map[string]*Video{}
 	}
@@ -93,6 +98,15 @@ func normalize(s *State) {
 	if s.Idempotency == nil {
 		s.Idempotency = map[string]IdempotencyRecord{}
 	}
+	if s.TeamInvites == nil {
+		s.TeamInvites = map[string]*TeamInvite{}
+	}
+	if s.TeamMembers == nil {
+		s.TeamMembers = map[string]*TeamMember{}
+	}
+	if s.Rights == nil {
+		s.Rights = map[string]*RightsDeclaration{}
+	}
 }
 func (s *Store) read(fn func(State) error) error {
 	s.mu.RLock()
@@ -102,21 +116,30 @@ func (s *Store) read(fn func(State) error) error {
 func (s *Store) update(fn func(*State) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := fn(&s.state); err != nil {
+	encoded, err := json.Marshal(s.state)
+	if err != nil {
 		return err
 	}
-	if err := validateAuditChain(s.state.Audit); err != nil {
+	var candidate State
+	if err = json.Unmarshal(encoded, &candidate); err != nil {
 		return err
 	}
-	s.state.Integrity = ""
-	canonical, err := json.Marshal(s.state)
+	normalize(&candidate)
+	if err = fn(&candidate); err != nil {
+		return err
+	}
+	if err = validateAuditChain(candidate.Audit); err != nil {
+		return err
+	}
+	candidate.Integrity = ""
+	canonical, err := json.Marshal(candidate)
 	if err != nil {
 		return err
 	}
 	mac := hmac.New(sha256.New, s.integrityKey)
 	_, _ = mac.Write(canonical)
-	s.state.Integrity = hex.EncodeToString(mac.Sum(nil))
-	b, err := json.MarshalIndent(s.state, "", "  ")
+	candidate.Integrity = hex.EncodeToString(mac.Sum(nil))
+	b, err := json.MarshalIndent(candidate, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -126,14 +149,24 @@ func (s *Store) update(fn func(*State) error) error {
 	}
 	f, err := os.OpenFile(tmp, os.O_RDWR, 0600)
 	if err != nil {
+		_ = os.Remove(tmp)
 		return err
 	}
 	if err = f.Sync(); err != nil {
-		f.Close()
+		_ = f.Close()
+		_ = os.Remove(tmp)
 		return err
 	}
-	f.Close()
-	return os.Rename(tmp, s.statePath)
+	if err = f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err = os.Rename(tmp, s.statePath); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	s.state = candidate
+	return nil
 }
 
 func (s *Store) verifyIntegrity() error {

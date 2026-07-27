@@ -11,27 +11,28 @@ const (
 )
 
 type Video struct {
-	ID               string         `json:"id"`
-	Owner            string         `json:"owner"`
-	ChannelID        string         `json:"channel_id"`
-	Title            string         `json:"title"`
-	Description      string         `json:"description"`
-	OwnedDeclaration bool           `json:"owned_content_declaration"`
-	Visibility       Visibility     `json:"visibility"`
-	Status           string         `json:"status"`
-	Failure          string         `json:"failure,omitempty"`
-	OriginalName     string         `json:"original_name"`
-	ContentType      string         `json:"content_type"`
-	Bytes            int64          `json:"bytes"`
-	SHA256           string         `json:"sha256"`
-	ObjectKey        string         `json:"object_key"`
-	Variants         []MediaVariant `json:"variants,omitempty"`
-	ThumbnailKey     string         `json:"thumbnail_key,omitempty"`
-	Captions         []CaptionTrack `json:"captions,omitempty"`
-	Takedown         *Takedown      `json:"takedown,omitempty"`
-	CreatedAt        time.Time      `json:"created_at"`
-	UpdatedAt        time.Time      `json:"updated_at"`
-	PublishedAt      *time.Time     `json:"published_at,omitempty"`
+	ID                  string         `json:"id"`
+	Owner               string         `json:"owner"`
+	ChannelID           string         `json:"channel_id"`
+	Title               string         `json:"title"`
+	Description         string         `json:"description"`
+	OwnedDeclaration    bool           `json:"owned_content_declaration"`
+	Visibility          Visibility     `json:"visibility"`
+	Status              string         `json:"status"`
+	Failure             string         `json:"failure,omitempty"`
+	OriginalName        string         `json:"original_name"`
+	ContentType         string         `json:"content_type"`
+	Bytes               int64          `json:"bytes"`
+	SHA256              string         `json:"sha256"`
+	ObjectKey           string         `json:"object_key"`
+	Variants            []MediaVariant `json:"variants,omitempty"`
+	ThumbnailKey        string         `json:"thumbnail_key,omitempty"`
+	Captions            []CaptionTrack `json:"captions,omitempty"`
+	Takedown            *Takedown      `json:"takedown,omitempty"`
+	RightsDeclarationID string         `json:"rights_declaration_id,omitempty"`
+	CreatedAt           time.Time      `json:"created_at"`
+	UpdatedAt           time.Time      `json:"updated_at"`
+	PublishedAt         *time.Time     `json:"published_at,omitempty"`
 }
 
 type MediaVariant struct {
@@ -58,7 +59,77 @@ type Takedown struct {
 type Channel struct {
 	ID, Owner, Handle, Name, Description string
 	CreatedAt                            time.Time
+	AuthVersion                          uint64 `json:"auth_version,omitempty"`
 }
+
+type CreatorRole string
+
+const (
+	CreatorRoleOwner     CreatorRole = "owner"
+	CreatorRoleEditor    CreatorRole = "editor"
+	CreatorRoleUploader  CreatorRole = "uploader"
+	CreatorRoleAnalyst   CreatorRole = "analyst"
+	CreatorRoleFinance   CreatorRole = "finance"
+	CreatorRoleModerator CreatorRole = "moderator"
+	CreatorRoleViewer    CreatorRole = "viewer"
+)
+
+type TeamInvite struct {
+	ID         string      `json:"id"`
+	ChannelID  string      `json:"channel_id"`
+	Account    string      `json:"account"`
+	InvitedBy  string      `json:"invited_by"`
+	State      string      `json:"state"`
+	Role       CreatorRole `json:"role"`
+	CreatedAt  time.Time   `json:"created_at"`
+	ExpiresAt  time.Time   `json:"expires_at"`
+	AcceptedAt *time.Time  `json:"accepted_at,omitempty"`
+	RevokedAt  *time.Time  `json:"revoked_at,omitempty"`
+}
+
+type TeamMember struct {
+	ChannelID string      `json:"channel_id"`
+	Account   string      `json:"account"`
+	GrantedBy string      `json:"granted_by"`
+	State     string      `json:"state"`
+	Role      CreatorRole `json:"role"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
+	RevokedAt *time.Time  `json:"revoked_at,omitempty"`
+}
+
+type TeamSnapshot struct {
+	ChannelID   string       `json:"channel_id"`
+	AuthVersion uint64       `json:"auth_version"`
+	Members     []TeamMember `json:"members"`
+	Invites     []TeamInvite `json:"invites,omitempty"`
+}
+
+type ContributorSplit struct {
+	Account     string `json:"account"`
+	BasisPoints int64  `json:"basis_points"`
+}
+
+type RightsDeclaration struct {
+	ID                string             `json:"id"`
+	VideoID           string             `json:"video_id"`
+	DeclaredBy        string             `json:"declared_by"`
+	Basis             string             `json:"basis"`
+	LicenseReference  string             `json:"license_reference,omitempty"`
+	Territories       []string           `json:"territories"`
+	StartsAt          *time.Time         `json:"starts_at,omitempty"`
+	EndsAt            *time.Time         `json:"ends_at,omitempty"`
+	Exclusive         bool               `json:"exclusive"`
+	ContributorSplits []ContributorSplit `json:"contributor_splits"`
+	EvidenceSHA256    string             `json:"evidence_sha256"`
+	SourceSHA256      string             `json:"source_sha256"`
+	State             string             `json:"state"`
+	Reviewer          string             `json:"reviewer,omitempty"`
+	ReviewReason      string             `json:"review_reason,omitempty"`
+	CreatedAt         time.Time          `json:"created_at"`
+	UpdatedAt         time.Time          `json:"updated_at"`
+}
+
 type ChannelView struct {
 	Channel     Channel `json:"channel"`
 	Videos      []Video `json:"videos"`
@@ -134,15 +205,17 @@ type IdempotencyRecord struct {
 }
 
 type StudioSnapshot struct {
-	Videos        []Video         `json:"videos"`
-	Analytics     Analytics       `json:"analytics"`
-	Reports       []Report        `json:"reports"`
-	Monetization  []Monetization  `json:"monetization"`
-	Revenue       []RevenueRecord `json:"revenue"`
-	PayoutIntents []PayoutIntent  `json:"payout_intents"`
-	Disputes      []Dispute       `json:"disputes"`
-	Appeals       []Appeal        `json:"appeals"`
-	AIJobs        []AIJob         `json:"ai_jobs"`
+	Videos        []Video             `json:"videos"`
+	Analytics     Analytics           `json:"analytics"`
+	Reports       []Report            `json:"reports"`
+	Monetization  []Monetization      `json:"monetization"`
+	Revenue       []RevenueRecord     `json:"revenue"`
+	PayoutIntents []PayoutIntent      `json:"payout_intents"`
+	Disputes      []Dispute           `json:"disputes"`
+	Appeals       []Appeal            `json:"appeals"`
+	AIJobs        []AIJob             `json:"ai_jobs"`
+	Team          []TeamSnapshot      `json:"team"`
+	Rights        []RightsDeclaration `json:"rights"`
 }
 
 type AuditEvent struct {
@@ -160,23 +233,27 @@ type GatewayNonce struct {
 }
 
 type State struct {
-	Videos        map[string]*Video            `json:"videos"`
-	Channels      map[string]*Channel          `json:"channels"`
-	Subscriptions map[string]Subscription      `json:"subscriptions"`
-	Playlists     map[string]*Playlist         `json:"playlists"`
-	Comments      map[string]*Comment          `json:"comments"`
-	WatchEvents   map[string]WatchEvent        `json:"watch_events"`
-	Reports       map[string]*Report           `json:"reports"`
-	Appeals       map[string]*Appeal           `json:"appeals"`
-	Monetization  map[string]*Monetization     `json:"monetization"`
-	PayoutIntents map[string]*PayoutIntent     `json:"payout_intents"`
-	Revenue       map[string]*RevenueRecord    `json:"revenue"`
-	Disputes      map[string]*Dispute          `json:"disputes"`
-	AIJobs        map[string]*AIJob            `json:"ai_jobs"`
-	Audit         []AuditEvent                 `json:"audit"`
-	GatewayNonces map[string]GatewayNonce      `json:"gateway_nonces"`
-	Idempotency   map[string]IdempotencyRecord `json:"idempotency"`
-	Integrity     string                       `json:"integrity,omitempty"`
+	SchemaVersion uint64                        `json:"schema_version,omitempty"`
+	Videos        map[string]*Video             `json:"videos"`
+	Channels      map[string]*Channel           `json:"channels"`
+	Subscriptions map[string]Subscription       `json:"subscriptions"`
+	Playlists     map[string]*Playlist          `json:"playlists"`
+	Comments      map[string]*Comment           `json:"comments"`
+	WatchEvents   map[string]WatchEvent         `json:"watch_events"`
+	Reports       map[string]*Report            `json:"reports"`
+	Appeals       map[string]*Appeal            `json:"appeals"`
+	Monetization  map[string]*Monetization      `json:"monetization"`
+	PayoutIntents map[string]*PayoutIntent      `json:"payout_intents"`
+	Revenue       map[string]*RevenueRecord     `json:"revenue"`
+	Disputes      map[string]*Dispute           `json:"disputes"`
+	AIJobs        map[string]*AIJob             `json:"ai_jobs"`
+	Audit         []AuditEvent                  `json:"audit"`
+	GatewayNonces map[string]GatewayNonce       `json:"gateway_nonces"`
+	Idempotency   map[string]IdempotencyRecord  `json:"idempotency"`
+	TeamInvites   map[string]*TeamInvite        `json:"team_invites,omitempty"`
+	TeamMembers   map[string]*TeamMember        `json:"team_members,omitempty"`
+	Rights        map[string]*RightsDeclaration `json:"rights,omitempty"`
+	Integrity     string                        `json:"integrity,omitempty"`
 }
 
 type Analytics struct {

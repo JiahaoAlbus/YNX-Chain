@@ -1,6 +1,7 @@
 package video
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -158,5 +159,83 @@ func TestWriteIdempotencyReplaysAfterRestartAndRejectsMutation(t *testing.T) {
 	changed := request(NewServer(restarted, auth).Handler(), `{"body":"changed payload"}`)
 	if changed.Code != http.StatusConflict {
 		t.Fatalf("changed request reused key: %d %s", changed.Code, changed.Body.String())
+	}
+}
+
+func TestCreatorTeamAndRightsHTTPBoundaries(t *testing.T) {
+	s, channel := fixture(t, nil)
+	video := uploadWithoutRights(t, s, channel, "HTTP rights")
+	auth := StaticTokenAuth{
+		Tokens: map[string]string{
+			"owner-session":     channel.Owner,
+			"editor-session":    testEditorAccount,
+			"moderator-session": testModeratorAccount,
+		},
+		Moderators: map[string]bool{testModeratorAccount: true},
+	}
+	handler := NewServer(s, auth).Handler()
+	counter := 0
+	request := func(method, path, session, body string) *httptest.ResponseRecorder {
+		counter++
+		r := httptest.NewRequest(method, path, strings.NewReader(body))
+		if session != "" {
+			r.Header.Set("Authorization", "Bearer "+session)
+		}
+		if body != "" {
+			r.Header.Set("Content-Type", "application/json")
+		}
+		if method != http.MethodGet && method != http.MethodHead {
+			r.Header.Set("Idempotency-Key", fmt.Sprintf("creator-http-%04d", counter))
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		return w
+	}
+
+	inviteResponse := request(http.MethodPost, "/v1/channels/"+channel.ID+"/team/invites", "owner-session", fmt.Sprintf(`{"account":"%s","role":"editor"}`, testEditorAccount))
+	if inviteResponse.Code != http.StatusOK {
+		t.Fatalf("invite route failed: %d %s", inviteResponse.Code, inviteResponse.Body.String())
+	}
+	if strings.Contains(inviteResponse.Body.String(), `"Account"`) || !strings.Contains(inviteResponse.Body.String(), `"account"`) {
+		t.Fatalf("team API did not use canonical snake_case JSON: %s", inviteResponse.Body.String())
+	}
+	var invite TeamInvite
+	if err := json.Unmarshal(inviteResponse.Body.Bytes(), &invite); err != nil || invite.ID == "" {
+		t.Fatalf("invite response invalid: %+v %v", invite, err)
+	}
+	if response := request(http.MethodPost, "/v1/team/invites/"+invite.ID+"/accept", "editor-session", ""); response.Code != http.StatusOK {
+		t.Fatalf("accept route failed: %d %s", response.Code, response.Body.String())
+	}
+	teamResponse := request(http.MethodGet, "/v1/channels/"+channel.ID+"/team", "editor-session", "")
+	if teamResponse.Code != http.StatusOK || !strings.Contains(teamResponse.Body.String(), testEditorAccount) || strings.Contains(teamResponse.Body.String(), invite.ID) {
+		t.Fatalf("member team view leaked invite or omitted member: %d %s", teamResponse.Code, teamResponse.Body.String())
+	}
+
+	rightsBody := fmt.Sprintf(`{"basis":"owned","territories":["worldwide"],"evidence_sha256":"%s","source_sha256":"%s","contributor_splits":[{"account":"%s","basis_points":10000}]}`, strings.Repeat("f", 64), video.SHA256, channel.Owner)
+	rightsResponse := request(http.MethodPost, "/v1/videos/"+video.ID+"/rights", "editor-session", rightsBody)
+	if rightsResponse.Code != http.StatusOK {
+		t.Fatalf("rights route failed: %d %s", rightsResponse.Code, rightsResponse.Body.String())
+	}
+	if strings.Contains(rightsResponse.Body.String(), `"VideoID"`) || !strings.Contains(rightsResponse.Body.String(), `"video_id"`) {
+		t.Fatalf("rights API did not use canonical snake_case JSON: %s", rightsResponse.Body.String())
+	}
+	var declaration RightsDeclaration
+	if err := json.Unmarshal(rightsResponse.Body.Bytes(), &declaration); err != nil || declaration.ID == "" {
+		t.Fatalf("rights response invalid: %+v %v", declaration, err)
+	}
+	if response := request(http.MethodPost, "/v1/rights/"+declaration.ID+"/review", "owner-session", `{"accepted":true,"reason":"owner cannot self-verify"}`); response.Code != http.StatusForbidden {
+		t.Fatalf("owner bypassed independent rights review: %d %s", response.Code, response.Body.String())
+	}
+	if response := request(http.MethodPost, "/v1/rights/"+declaration.ID+"/review", "moderator-session", `{"accepted":true,"reason":"evidence verified"}`); response.Code != http.StatusOK {
+		t.Fatalf("moderator rights review failed: %d %s", response.Code, response.Body.String())
+	}
+	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/publish", "editor-session", `{"visibility":"public"}`); response.Code != http.StatusOK {
+		t.Fatalf("editor publish route failed: %d %s", response.Code, response.Body.String())
+	}
+	if response := request(http.MethodDelete, "/v1/channels/"+channel.ID+"/team/"+testEditorAccount, "owner-session", ""); response.Code != http.StatusOK {
+		t.Fatalf("revoke route failed: %d %s", response.Code, response.Body.String())
+	}
+	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/metadata", "editor-session", `{"title":"revoked","description":""}`); response.Code != http.StatusForbidden {
+		t.Fatalf("revoked editor retained HTTP authority: %d %s", response.Code, response.Body.String())
 	}
 }
