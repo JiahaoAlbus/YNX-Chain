@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "ynx-cross-product-test-vectors/1",
+  "productId": "ynx-music",
+  "sourceCommit": "74716a19d95fc191b54102adc02000a91fafec24",
+  "contractVersion": "music-contract-v1",
+  "vectors": [
+    {
+      "id": "MUSIC-WALLET-001",
+      "category": "wallet-positive",
+      "owner": "YNX Wallet / Auth",
+      "precondition": "Accepted ynx-music-v1 registry entry and active device-bound session",
+      "action": "Introspect a music.library request with the exact product, bundle, device key and scope",
+      "expected": {"httpStatus":200,"active":true,"accountBound":true}
+    },
+    {
+      "id": "MUSIC-WALLET-002",
+      "category": "wrong-product",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Replace productClientId with another product",
+      "expected": {"httpStatus":401,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-WALLET-003",
+      "category": "wrong-bundle",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Replace bundleId with a non-Music bundle",
+      "expected": {"httpStatus":401,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-WALLET-004",
+      "category": "wrong-device",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Use an unrelated compressed P-256 public key",
+      "expected": {"httpStatus":401,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-WALLET-005",
+      "category": "scope-widening",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Use a music.profile session for music.creator",
+      "expected": {"httpStatus":401,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-WALLET-006",
+      "category": "expiry-revoke",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Expire or revoke the product session before API access",
+      "expected": {"httpStatus":401,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-WALLET-007",
+      "category": "completion-replay",
+      "owner": "YNX Music",
+      "mutation": "Submit the same Gateway completion twice",
+      "expected": {"firstHttpStatus":200,"secondHttpStatus":409,"errorContains":"replay"}
+    },
+    {
+      "id": "MUSIC-WALLET-008",
+      "category": "approval-tamper",
+      "owner": "YNX Wallet / Auth",
+      "mutation": "Change callback, product, bundle, scope or device key after Wallet approval",
+      "expected": {"httpStatus":400,"failClosed":true}
+    },
+    {
+      "id": "MUSIC-TRUST-001",
+      "category": "idempotent-replay",
+      "owner": "YNX Music / Trust",
+      "action": "Submit the same account, Idempotency-Key and case body concurrently sixteen times",
+      "expected": {"uniqueCaseCount":1,"allResponsesSameId":true,"raceFree":true}
+    },
+    {
+      "id": "MUSIC-TRUST-002",
+      "category": "idempotency-tamper",
+      "owner": "YNX Music / Trust",
+      "mutation": "Reuse a Trust key with a changed reason or evidence reference",
+      "expected": {"httpStatus":409,"newCaseCreated":false}
+    },
+    {
+      "id": "MUSIC-TRUST-003",
+      "category": "account-scope",
+      "owner": "YNX Music / Trust",
+      "action": "Two different authenticated accounts use the same client key",
+      "expected": {"separateCases":true,"crossAccountDisclosure":false}
+    },
+    {
+      "id": "MUSIC-TRUST-004",
+      "category": "ownership",
+      "owner": "YNX Music / Trust",
+      "mutation": "A non-owner submits takedown or appeal for another creator track",
+      "expected": {"httpStatus":401,"stateChanged":false}
+    },
+    {
+      "id": "MUSIC-PAY-001",
+      "category": "idempotent-replay",
+      "owner": "YNX Music / Pay",
+      "action": "Submit the same account, Idempotency-Key, allocation and payee concurrently sixteen times",
+      "expected": {"uniqueSettlementCount":1,"allResponsesSameId":true,"status":"requires_wallet_review"}
+    },
+    {
+      "id": "MUSIC-PAY-002",
+      "category": "idempotency-tamper",
+      "owner": "YNX Music / Pay",
+      "mutation": "Reuse a Pay key with a changed payTo or allocation",
+      "expected": {"httpStatus":409,"newSettlementCreated":false}
+    },
+    {
+      "id": "MUSIC-PAY-003",
+      "category": "duplicate-allocation",
+      "owner": "YNX Music / Pay",
+      "mutation": "Create a second settlement for an allocation under a new key",
+      "expected": {"httpStatus":409,"paidFinality":false}
+    },
+    {
+      "id": "MUSIC-PAY-004",
+      "category": "receipt-boundary",
+      "owner": "YNX Pay / Data Fabric",
+      "mutation": "Return a status beyond requires_wallet_review without a signed Pay receipt and canonical ledger event",
+      "expected": {"accepted":false,"creatorBalanceChanged":false,"paidFinality":false}
+    },
+    {
+      "id": "MUSIC-MEDIA-001",
+      "category": "range-playback",
+      "owner": "YNX Music",
+      "action": "Request bytes 0-31 for an authorized published track",
+      "expected": {"httpStatus":206,"acceptRanges":"bytes","contentRangePresent":true}
+    },
+    {
+      "id": "MUSIC-MEDIA-002",
+      "category": "authorization",
+      "owner": "YNX Music / Wallet Auth",
+      "mutation": "Request track media without an active music.playback session",
+      "expected": {"httpStatus":401,"mediaBytesReturned":false}
+    },
+    {
+      "id": "MUSIC-MEDIA-003",
+      "category": "private-draft",
+      "owner": "YNX Music",
+      "mutation": "A listener searches or requests another creator's private draft",
+      "expected": {"listed":false,"httpStatus":404}
+    },
+    {
+      "id": "MUSIC-RIGHTS-001",
+      "category": "missing-rights",
+      "owner": "YNX Music",
+      "mutation": "Upload media without owned/licensed basis, evidence reference, provenance or territories",
+      "expected": {"httpStatus":400,"draftCreated":false}
+    },
+    {
+      "id": "MUSIC-RIGHTS-002",
+      "category": "public-catalog-truth",
+      "owner": "YNX Music",
+      "action": "Start a fresh service with no operator-supplied lawful media",
+      "expected": {"catalogCount":0,"commercialCatalogClaim":false}
+    },
+    {
+      "id": "MUSIC-AI-001",
+      "category": "consent-context",
+      "owner": "YNX Music / AI",
+      "mutation": "Request an AI playlist without explicit permission or with unowned track IDs",
+      "expected": {"httpStatus":400,"providerCalled":false}
+    },
+    {
+      "id": "MUSIC-AI-002",
+      "category": "human-review",
+      "owner": "YNX Music / AI",
+      "action": "Create a bounded proposal, then approve or reject it",
+      "expected": {"automaticPublish":false,"automaticPayment":false,"auditedReview":true}
+    },
+    {
+      "id": "MUSIC-AI-003",
+      "category": "provider-outage",
+      "owner": "YNX Music / AI",
+      "mutation": "AI gateway is unreachable or emits malformed events",
+      "expected": {"successClaimed":false,"existingLibraryChanged":false,"recoverableError":true}
+    },
+    {
+      "id": "MUSIC-STATE-001",
+      "category": "tamper",
+      "owner": "YNX Music",
+      "mutation": "Modify persisted JSON without updating the integrity hash",
+      "expected": {"startupFailsClosed":true,"healthOk":false}
+    },
+    {
+      "id": "MUSIC-STATE-002",
+      "category": "failed-save",
+      "owner": "YNX Music",
+      "mutation": "Make the state path unwritable during a mutation",
+      "expected": {"errorReturned":true,"memoryStateUnchanged":true,"auditUnchanged":true}
+    },
+    {
+      "id": "MUSIC-STATE-003",
+      "category": "restart",
+      "owner": "YNX Music",
+      "action": "Restart after upload, playback progress and usage recording",
+      "expected": {"stateRecovered":true,"privateMediaPathRecovered":true,"mediaStillAuthorized":true}
+    },
+    {
+      "id": "MUSIC-I18N-001",
+      "category": "locale-coverage",
+      "owner": "YNX Music",
+      "action": "Audit all committed locales against the English keyset",
+      "expected": {"locales":12,"missingKeys":0,"arabicRTL":true}
+    }
+  ]
+}

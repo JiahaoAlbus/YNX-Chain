@@ -40,17 +40,31 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - run: xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusic -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -derivedDataPath "$RUNNER_TEMP/YNXMusicDerived" CODE_SIGNING_ALLOWED=NO build
-      - run: |
-          xcrun simctl boot 'iPhone 16 Pro' || true
-          xcrun simctl bootstatus 'iPhone 16 Pro' -b
-          xcrun simctl install booted "$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
-          xcrun simctl launch booted com.ynxweb4.music
+      - name: Create available iOS Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_id="$(xcrun simctl list -j runtimes | python3 -c 'import json,sys; runtimes=[r for r in json.load(sys.stdin)["runtimes"] if r.get("isAvailable") and r.get("identifier", "").startswith("com.apple.CoreSimulator.SimRuntime.iOS-")]; runtimes.sort(key=lambda r: tuple(int(p) for p in r.get("version", "0").split("."))); assert runtimes, "no available iOS Simulator runtime"; print(runtimes[-1]["identifier"])')"
+          device_type_id="$(xcrun simctl list -j devicetypes | python3 -c 'import json,sys; types=json.load(sys.stdin)["devicetypes"]; preferred=["iPhone 16 Pro", "iPhone 16", "iPhone 15 Pro", "iPhone 15", "iPhone 14 Pro"]; match=next((t for name in preferred for t in types if t.get("name")==name), None); assert match, "no supported iPhone Simulator device type"; print(match["identifier"])')"
+          simulator_udid="$(xcrun simctl create 'YNX Music CI' "$device_type_id" "$runtime_id")"
+          echo "SIMULATOR_UDID=$simulator_udid" >> "$GITHUB_ENV"
+          echo "IOS_RUNTIME_ID=$runtime_id" >> "$GITHUB_ENV"
+          echo "IOS_DEVICE_TYPE_ID=$device_type_id" >> "$GITHUB_ENV"
+      - name: Build iOS Simulator app
+        run: xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusic -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" -derivedDataPath "$RUNNER_TEMP/YNXMusicDerived" CODE_SIGNING_ALLOWED=NO build
+      - name: Install, cold start, reject tampered callback and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun simctl boot "$SIMULATOR_UDID"
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          xcrun simctl install "$SIMULATOR_UDID" "$RUNNER_TEMP/YNXMusicDerived/Build/Products/Debug-iphonesimulator/YNXMusic.app"
+          xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
           sleep 5
-          xcrun simctl openurl booted 'ynxmusic://auth/callback?unexpected=tamper'
-          xcrun simctl io booted screenshot "$RUNNER_TEMP/ynx-music-ios.png"
-          xcrun simctl terminate booted com.ynxweb4.music
-          xcrun simctl launch booted com.ynxweb4.music
+          xcrun simctl openurl "$SIMULATOR_UDID" 'ynxmusic://auth/callback?unexpected=tamper'
+          xcrun simctl io "$SIMULATOR_UDID" screenshot "$RUNNER_TEMP/ynx-music-ios.png"
+          xcrun simctl terminate "$SIMULATOR_UDID" com.ynxweb4.music
+          xcrun simctl launch "$SIMULATOR_UDID" com.ynxweb4.music
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-music-ios-simulator-evidence
