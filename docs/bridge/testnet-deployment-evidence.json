@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "evidenceType": "remote-testnet-coordinator-installation",
-  "observedAt": "2026-07-27T03:16:44Z",
+  "observedAt": "2026-07-27T03:26:43Z",
   "sourceCommit": "73cd827adb2711589a7f2af2411d4ae12c3add79",
   "release": "ynx-bridge-73cd827adb27",
   "targetRole": "primary-testnet",
@@ -51,7 +51,7 @@
     "sourceRoute": "ethereum-sepolia-domain-0",
     "destinationRoute": "base-sepolia-domain-6",
     "health": "connected-live-fee-api",
-    "lastSuccess": "2026-07-27T03:15:41.078622146Z",
+    "lastSuccess": "2026-07-27T03:26:41.127640931Z",
     "connectivityProbeIntervalSeconds": 60,
     "connectivityStaleAfterSeconds": 120,
     "periodicRefresh": {
@@ -59,6 +59,22 @@
       "firstSuccess": "2026-07-27T03:10:40.810022255Z",
       "secondSuccess": "2026-07-27T03:11:41.068658818Z",
       "advanceSeconds": 60.258636
+    },
+    "outageRecoveryDrill": {
+      "verified": true,
+      "outageMethod": "temporary-service-account-egress-denial",
+      "blockedAt": "2026-07-27T03:25:38Z",
+      "outageObservedAt": "2026-07-27T03:25:48Z",
+      "unblockedAt": "2026-07-27T03:26:08Z",
+      "recoveredAt": "2026-07-27T03:26:43Z",
+      "outageConnection": "configured-provider-api-unavailable",
+      "outageAvailableProviderCount": 0,
+      "outageFailureStatus": "provider-connectivity-probe-unavailable",
+      "automaticRecovery": true,
+      "serviceRestarted": false,
+      "routeStayedUnavailable": true,
+      "externalSubmissionStayedDisabled": true,
+      "outageRuleRemoved": true
     },
     "agreementApproved": false,
     "operationalReviewApproved": false,

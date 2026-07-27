@@ -8,7 +8,7 @@
 - Process-level verifier: `scripts/verify/bridge-api-check.sh`
 - Unit, migration, proof-tamper, availability, and HTTP vectors: `internal/bridgegateway/gateway_test.go`, `internal/bridgegateway/state_machine_test.go`
 - Provider Registry runtime and fail-closed vectors: `internal/bridgegateway/service.go`, `internal/bridgegateway/provider_registry_test.go`, `sdk/bridge/index.test.mjs`
-- Circle CCTP V2 Provider Runtime, remote supported-domain probe, and independent public observation: `internal/bridgegateway/provider_runtime.go`, `internal/bridgegateway/provider_runtime_test.go`, `scripts/verify/bridge-provider-check.sh`, `docs/bridge/public-read-evidence.json`
+- Circle CCTP V2 Provider Runtime, remote supported-domain probe, fail-closed outage drill, automatic recovery, and independent public observation: `internal/bridgegateway/provider_runtime.go`, `internal/bridgegateway/provider_runtime_test.go`, `scripts/verify/bridge-provider-check.sh`, `docs/bridge/testnet-deployment-evidence.json`, `docs/bridge/public-read-evidence.json`
 - Frozen Integration Contract: `release/integration/ynx-bridge-contract.json`
 - Central handoff: `docs/integration/INTEGRATION_HANDOFF.md`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
