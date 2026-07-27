@@ -39,43 +39,98 @@ func NewUpstreams(explorerURL, payURL, payAPIKey, disputeBase string) (*Upstream
 }
 
 func (u *Upstreams) Portfolio(ctx context.Context, account string, classifications map[string]Classification) Portfolio {
-	portfolio := Portfolio{Account: account, Network: ChainID, Symbol: "YNXT", Activity: []Activity{}, PayReceipts: []PayReceipt{}, ReadOnly: true, AsOf: time.Now().UTC(), ExplorerStatus: SourceStatus{Source: u.ExplorerURL, Coverage: "account balance plus latest 100 indexed transactions filtered to the authorized account"}, PayStatus: SourceStatus{Source: u.PayURL, Coverage: "Pay events returned by the configured authorized Pay API, filtered to the authorized account"}}
-	var accountDetail struct {
-		Account chain.Account `json:"account"`
+	observedAt := time.Now().UTC()
+	portfolio := Portfolio{
+		Account:     account,
+		Network:     ChainID,
+		Symbol:      "YNXT",
+		Activity:    []Activity{},
+		PayReceipts: []PayReceipt{},
+		ReadOnly:    true,
+		AsOf:        observedAt,
+		ExplorerStatus: SourceStatus{
+			Source:     u.ExplorerURL,
+			Coverage:   "account balance plus latest 100 indexed transactions filtered to the authorized account",
+			SyncStatus: "unavailable",
+		},
+		PayStatus: SourceStatus{
+			Source:     u.PayURL,
+			Version:    "finance-pay-events-v1",
+			Coverage:   "Pay events returned by the configured authorized Pay API, filtered to the authorized account",
+			SyncStatus: "unavailable",
+		},
 	}
-	if err := u.get(ctx, u.ExplorerURL+"/api/accounts/"+url.PathEscape(account), "", &accountDetail); err != nil {
-		portfolio.ExplorerStatus.Error = err.Error()
-	} else if accountDetail.Account.Address == "" {
-		portfolio.ExplorerStatus.Error = "Explorer returned no account evidence"
-	} else if !sameAccount(accountDetail.Account.Address, account) {
-		portfolio.ExplorerStatus.Error = "Explorer returned evidence for a different account"
+	var health struct {
+		OK             bool      `json:"ok"`
+		RPCHeight      uint64    `json:"rpcHeight"`
+		IndexedHeight  uint64    `json:"indexedHeight"`
+		SyncLagBlocks  uint64    `json:"syncLagBlocks"`
+		NativeSymbol   string    `json:"nativeSymbol"`
+		TruthfulStatus string    `json:"truthfulStatus"`
+		LastCheckedAt  time.Time `json:"lastCheckedAt"`
+		Build          struct {
+			Commit  string `json:"commit"`
+			Release string `json:"release"`
+		} `json:"build"`
+	}
+	if err := u.get(ctx, u.ExplorerURL+"/health", "", &health); err != nil {
+		portfolio.ExplorerStatus.Error = "Explorer health unavailable: " + err.Error()
+	} else if !health.OK || health.NativeSymbol != "YNXT" {
+		portfolio.ExplorerStatus.Error = "Explorer health failed network or native-asset validation"
 	} else {
-		portfolio.BalanceYNXT = accountDetail.Account.Balance
-		portfolio.StakedYNXT = accountDetail.Account.Staked
-		var txPayload struct {
-			Transactions []chain.Transaction `json:"transactions"`
-		}
-		if err := u.get(ctx, u.ExplorerURL+"/api/txs?limit=100", "", &txPayload); err != nil {
-			portfolio.ExplorerStatus.Error = "account loaded but activity unavailable: " + err.Error()
+		asOf := health.LastCheckedAt
+		if asOf.IsZero() {
+			asOf = observedAt
+			portfolio.ExplorerStatus.AsOfKind = "finance-response-observed-at"
 		} else {
-			for _, tx := range txPayload.Transactions {
-				if tx.From != account && tx.To != account {
-					continue
-				}
-				direction := "incoming"
-				if tx.From == account {
-					direction = "outgoing"
-				}
-				activity := Activity{ID: tx.Hash, Type: tx.Type, Direction: direction, From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, Timestamp: tx.Timestamp, Block: tx.BlockNum, Source: "ynx-explorerd:indexed-transaction"}
-				if c, ok := classifications[tx.Hash]; ok {
-					activity.Category = c.CategoryID
-				}
-				portfolio.Activity = append(portfolio.Activity, activity)
+			portfolio.ExplorerStatus.AsOfKind = "explorer-last-checked-at"
+		}
+		portfolio.ExplorerStatus.AsOf = &asOf
+		portfolio.ExplorerStatus.Version = firstNonEmpty(health.Build.Release, health.Build.Commit, "explorer-health-v1")
+		portfolio.ExplorerStatus.SyncStatus = firstNonEmpty(health.TruthfulStatus, "health-validated")
+		portfolio.ExplorerStatus.RPCHeight = health.RPCHeight
+		portfolio.ExplorerStatus.IndexedHeight = health.IndexedHeight
+		portfolio.ExplorerStatus.SyncLagBlocks = health.SyncLagBlocks
+
+		var accountDetail struct {
+			Account chain.Account `json:"account"`
+		}
+		if err := u.get(ctx, u.ExplorerURL+"/api/accounts/"+url.PathEscape(account), "", &accountDetail); err != nil {
+			portfolio.ExplorerStatus.Error = err.Error()
+		} else if accountDetail.Account.Address == "" {
+			portfolio.ExplorerStatus.Error = "Explorer returned no account evidence"
+		} else if !sameAccount(accountDetail.Account.Address, account) {
+			portfolio.ExplorerStatus.Error = "Explorer returned evidence for a different account"
+		} else {
+			portfolio.BalanceYNXT = accountDetail.Account.Balance
+			portfolio.StakedYNXT = accountDetail.Account.Staked
+			var txPayload struct {
+				Transactions []chain.Transaction `json:"transactions"`
 			}
-			portfolio.ExplorerStatus.Available = true
+			if err := u.get(ctx, u.ExplorerURL+"/api/txs?limit=100", "", &txPayload); err != nil {
+				portfolio.ExplorerStatus.SyncStatus = "partial-account-only"
+				portfolio.ExplorerStatus.Error = "account loaded but activity unavailable: " + err.Error()
+			} else {
+				for _, tx := range txPayload.Transactions {
+					if tx.From != account && tx.To != account {
+						continue
+					}
+					direction := "incoming"
+					if tx.From == account {
+						direction = "outgoing"
+					}
+					activity := Activity{ID: tx.Hash, Type: tx.Type, Direction: direction, From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, Timestamp: tx.Timestamp, Block: tx.BlockNum, Source: "ynx-explorerd:indexed-transaction"}
+					if c, ok := classifications[tx.Hash]; ok {
+						activity.Category = c.CategoryID
+					}
+					portfolio.Activity = append(portfolio.Activity, activity)
+				}
+				portfolio.ExplorerStatus.Available = true
+			}
 		}
 	}
 	if u.PayURL == "" {
+		portfolio.PayStatus.SyncStatus = "not-configured"
 		portfolio.PayStatus.Error = "Pay receipt source is not configured"
 		return portfolio
 	}
@@ -93,6 +148,10 @@ func (u *Upstreams) Portfolio(ctx context.Context, account string, classificatio
 		}
 		portfolio.PayReceipts = append(portfolio.PayReceipts, u.receipt(event))
 	}
+	payAsOf := observedAt
+	portfolio.PayStatus.AsOf = &payAsOf
+	portfolio.PayStatus.AsOfKind = "finance-response-observed-at"
+	portfolio.PayStatus.SyncStatus = "authorized-response"
 	portfolio.PayStatus.Available = true
 	return portfolio
 }
@@ -148,6 +207,15 @@ func sameAccount(left, right string) bool {
 	}
 	r, err := accountaddress.Normalize(right)
 	return err == nil && l == r
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func firstString(m map[string]any, keys ...string) string {

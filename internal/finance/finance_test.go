@@ -13,6 +13,7 @@ import (
 )
 
 const testAccount = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+const testCursorKey = "finance-test-cursor-signing-key-000000000001"
 
 type fakeAI struct{ result map[string]any }
 
@@ -40,12 +41,15 @@ func TestCentralSessionFailsClosedOnProductTamper(t *testing.T) {
 }
 
 func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
+	txTime := time.Date(2026, 7, 18, 12, 0, 0, 0, time.UTC)
 	explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case r.URL.Path == "/health":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "rpcHeight": 120, "indexedHeight": 118, "syncLagBlocks": 2, "nativeSymbol": "YNXT", "truthfulStatus": "indexed-with-reported-lag", "lastCheckedAt": txTime, "build": map[string]any{"commit": "finance-explorer-fixture", "release": "ynx-explorer-test-v1"}})
 		case strings.HasPrefix(r.URL.Path, "/api/accounts/"):
 			_ = json.NewEncoder(w).Encode(map[string]any{"account": map[string]any{"address": testAccount, "balance": 420, "staked": 20, "nonce": 2, "resourceUsage": map[string]any{}, "lots": map[string]any{}}})
 		case r.URL.Path == "/api/txs":
-			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []map[string]any{{"hash": "tx-owned", "type": "transfer", "from": testAccount, "to": "ynx1recipient", "amount": 40, "fee": 1, "blockNumber": 9, "timestamp": time.Now().UTC().Add(-time.Hour)}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []map[string]any{{"hash": "tx-owned", "type": "transfer", "from": testAccount, "to": "ynx1recipient", "amount": 40, "fee": 1, "blockNumber": 9, "timestamp": txTime}, {"hash": "tx-owned-2", "type": "transfer", "from": "ynx1sender", "to": testAccount, "amount": 15, "fee": 0, "blockNumber": 8, "timestamp": txTime.Add(-time.Hour)}}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -67,7 +71,10 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	upstreams, _ := NewUpstreams(explorer.URL, pay.URL, "pay-secret", "https://support.example/disputes")
 	service := &Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
 	auth, session := testAuthenticator(t, "central-token-main")
-	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}})
+	if _, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: "too-short"}); err == nil || !strings.Contains(err.Error(), "cursor signing key") {
+		t.Fatalf("short cursor key was not rejected: %v", err)
+	}
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,8 +84,16 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	var overview map[string]any
 	requestJSON(t, ts.URL+"/api/overview", http.MethodGet, nil, session.Token, "", 200, &overview)
 	p := overview["portfolio"].(map[string]any)
-	if p["balanceYnxt"].(float64) != 420 || len(p["activity"].([]any)) != 1 || len(p["payReceipts"].([]any)) != 1 || p["readOnly"] != true {
+	if p["balanceYnxt"].(float64) != 420 || len(p["activity"].([]any)) != 2 || len(p["payReceipts"].([]any)) != 1 || p["readOnly"] != true {
 		t.Fatalf("unexpected real-data overview: %#v", p)
+	}
+	explorerStatus := p["explorerStatus"].(map[string]any)
+	if explorerStatus["version"] != "ynx-explorer-test-v1" || explorerStatus["syncStatus"] != "indexed-with-reported-lag" || explorerStatus["syncLagBlocks"].(float64) != 2 || explorerStatus["asOf"] == "" {
+		t.Fatalf("Explorer provenance and sync evidence are incomplete: %#v", explorerStatus)
+	}
+	payStatus := p["payStatus"].(map[string]any)
+	if payStatus["version"] != "finance-pay-events-v1" || payStatus["syncStatus"] != "authorized-response" || payStatus["asOf"] == "" {
+		t.Fatalf("Pay provenance and sync evidence are incomplete: %#v", payStatus)
 	}
 	var category Category
 	requestJSON(t, ts.URL+"/api/categories", http.MethodPost, map[string]any{"name": "Essentials", "color": "#002FA7", "idempotencyKey": "category-test-key-0001"}, session.Token, "https://finance.example", 201, &category)
@@ -96,9 +111,21 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	var page map[string]any
 	requestJSON(t, ts.URL+"/api/activity?limit=1", http.MethodGet, nil, session.Token, "", 200, &page)
-	if page["completeHistory"] != false || page["coverage"] == "" || len(page["items"].([]any)) != 1 {
-		t.Fatalf("activity page lacks truthful coverage: %#v", page)
+	cursor, _ := page["nextCursor"].(string)
+	if page["completeHistory"] != false || page["coverage"] == "" || len(page["items"].([]any)) != 1 || cursor == "" {
+		t.Fatalf("activity page lacks truthful signed-cursor coverage: %#v", page)
 	}
+	var nextPage map[string]any
+	requestJSON(t, ts.URL+"/api/activity?limit=1&cursor="+cursor, http.MethodGet, nil, session.Token, "", 200, &nextPage)
+	if len(nextPage["items"].([]any)) != 1 || nextPage["nextCursor"] != "" {
+		t.Fatalf("signed cursor did not return the next bounded page: %#v", nextPage)
+	}
+	tamperedSuffix := "A"
+	if strings.HasSuffix(cursor, tamperedSuffix) {
+		tamperedSuffix = "B"
+	}
+	tampered := cursor[:len(cursor)-1] + tamperedSuffix
+	requestJSON(t, ts.URL+"/api/activity?limit=1&cursor="+tampered, http.MethodGet, nil, session.Token, "", 400, &map[string]any{})
 	var monthly map[string]any
 	requestJSON(t, ts.URL+"/api/monthly-review", http.MethodGet, nil, session.Token, "", 200, &monthly)
 	if monthly["symbol"] != "YNXT" || monthly["legal"] == "" {
@@ -163,7 +190,7 @@ func TestUnavailableSourcesStayUnavailableAndOriginFailsClosed(t *testing.T) {
 	up, _ := NewUpstreams(explorer.URL, "", "", "")
 	service := &Service{Store: store, Upstreams: up, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
 	auth, session := testAuthenticator(t, "central-token-unavailable")
-	server, _ := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}})
+	server, _ := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey})
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
 	var p Portfolio

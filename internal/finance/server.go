@@ -1,6 +1,8 @@
 package finance
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/csv"
 	"encoding/json"
@@ -9,6 +11,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,17 +19,19 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	AllowedOrigins []string
-	WebDir         string
+	AllowedOrigins   []string
+	WebDir           string
+	CursorSigningKey string
 }
 
 type Server struct {
-	service *Service
-	auth    *Authenticator
-	cfg     ServerConfig
-	mux     *http.ServeMux
-	rateMu  sync.Mutex
-	rate    map[string][]time.Time
+	service   *Service
+	auth      *Authenticator
+	cfg       ServerConfig
+	mux       *http.ServeMux
+	rateMu    sync.Mutex
+	rate      map[string][]time.Time
+	cursorKey []byte
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -36,7 +41,10 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if err := validateSupportLinks(service.Support); err != nil {
 		return nil, err
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}}
+	if len(cfg.CursorSigningKey) < 32 {
+		return nil, errors.New("finance cursor signing key must contain at least 32 characters")
+	}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey)}
 	s.routes()
 	return s, nil
 }
@@ -177,14 +185,9 @@ func (s *Server) activityPage(w http.ResponseWriter, r *http.Request, session Se
 	}
 	offset := 0
 	if raw := r.URL.Query().Get("cursor"); raw != "" {
-		decoded, err := base64.RawURLEncoding.DecodeString(raw)
+		parsed, err := s.decodeActivityCursor(raw, session.Account, p.Activity)
 		if err != nil {
-			writeError(w, 400, "invalid_cursor", "cursor is invalid")
-			return
-		}
-		parsed, err := strconv.Atoi(string(decoded))
-		if err != nil || parsed < 0 {
-			writeError(w, 400, "invalid_cursor", "cursor is invalid")
+			writeError(w, 400, "invalid_cursor", "cursor is invalid, stale, or belongs to another account")
 			return
 		}
 		offset = parsed
@@ -198,10 +201,64 @@ func (s *Server) activityPage(w http.ResponseWriter, r *http.Request, session Se
 	}
 	next := ""
 	if end < len(p.Activity) {
-		next = base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(end)))
+		next = s.encodeActivityCursor(session.Account, end, p.Activity)
 	}
 	writeJSON(w, 200, map[string]any{"items": p.Activity[offset:end], "nextCursor": next, "coverage": p.ExplorerStatus.Coverage, "completeHistory": false, "sourceStatus": p.ExplorerStatus, "asOf": p.AsOf})
 }
+
+type activityCursor struct {
+	Version  int    `json:"v"`
+	Account  string `json:"account"`
+	Offset   int    `json:"offset"`
+	Snapshot string `json:"snapshot"`
+}
+
+func (s *Server) encodeActivityCursor(account string, offset int, activity []Activity) string {
+	payload, _ := json.Marshal(activityCursor{Version: 1, Account: account, Offset: offset, Snapshot: activitySnapshot(activity)})
+	mac := hmac.New(sha256.New, s.cursorKey)
+	_, _ = mac.Write(payload)
+	return base64.RawURLEncoding.EncodeToString(payload) + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func (s *Server) decodeActivityCursor(raw, account string, activity []Activity) (int, error) {
+	parts := strings.Split(raw, ".")
+	if len(parts) != 2 {
+		return 0, errors.New("cursor format is invalid")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return 0, err
+	}
+	signature, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return 0, err
+	}
+	mac := hmac.New(sha256.New, s.cursorKey)
+	_, _ = mac.Write(payload)
+	if !hmac.Equal(signature, mac.Sum(nil)) {
+		return 0, errors.New("cursor signature is invalid")
+	}
+	var cursor activityCursor
+	if err := json.Unmarshal(payload, &cursor); err != nil {
+		return 0, err
+	}
+	if cursor.Version != 1 || cursor.Account != account || cursor.Offset < 0 || cursor.Snapshot != activitySnapshot(activity) {
+		return 0, errors.New("cursor binding is invalid")
+	}
+	return cursor.Offset, nil
+}
+
+func activitySnapshot(activity []Activity) string {
+	hash := sha256.New()
+	for _, item := range activity {
+		_, _ = hash.Write([]byte(item.ID))
+		_, _ = hash.Write([]byte{0})
+		_, _ = hash.Write([]byte(item.Timestamp.UTC().Format(time.RFC3339Nano)))
+		_, _ = hash.Write([]byte{0})
+	}
+	return base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
+}
+
 func (s *Server) profile(w http.ResponseWriter, _ *http.Request, session Session) {
 	writeJSON(w, http.StatusOK, s.service.Store.Account(session.Account))
 }

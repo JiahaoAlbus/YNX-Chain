@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Finance",
+  "contractVersion": "finance-read-v1",
+  "sourceCommit": null,
+  "vectors": [
+    {
+      "id": "FIN-WALLET-PRODUCT-TAMPER",
+      "dependencyOwner": "02-wallet-auth",
+      "precondition": "Central introspection returns a session whose bundle or product differs from the Finance registry tuple.",
+      "request": "GET /api/portfolio with the tampered session",
+      "expectedStatus": 401,
+      "expectedCode": "session_rejected",
+      "expectedInvariant": "No upstream source is queried and no account data is returned.",
+      "automatedEvidence": "internal/finance/finance_test.go:TestCentralSessionFailsClosedOnProductTamper"
+    },
+    {
+      "id": "FIN-EXPLORER-HEALTH-UNAVAILABLE",
+      "dependencyOwner": "12-explorer",
+      "precondition": "Explorer /health is unavailable or non-2xx.",
+      "request": "GET /api/portfolio with a valid Finance session",
+      "expectedStatus": 200,
+      "expectedSourceState": {
+        "explorerStatus.available": false,
+        "explorerStatus.syncStatus": "unavailable",
+        "balanceYnxt": 0,
+        "activity": []
+      },
+      "expectedInvariant": "Unavailable Explorer evidence never becomes a fake zero-balance claim or synthetic activity.",
+      "automatedEvidence": "internal/finance/finance_test.go:TestUnavailableSourcesStayUnavailableAndOriginFailsClosed"
+    },
+    {
+      "id": "FIN-EXPLORER-NATIVE-MISMATCH",
+      "dependencyOwner": "12-explorer",
+      "precondition": "Explorer /health reports ok=true but a native symbol other than YNXT.",
+      "request": "Build Portfolio for the authorized account",
+      "expectedSourceState": {
+        "explorerStatus.available": false,
+        "explorerStatus.error": "Explorer health failed network or native-asset validation"
+      },
+      "expectedInvariant": "Finance does not accept balances or activity from a source with mismatched asset identity.",
+      "automatedEvidence": "required follow-up unit vector"
+    },
+    {
+      "id": "FIN-EXPLORER-ACCOUNT-MISMATCH",
+      "dependencyOwner": "12-explorer",
+      "precondition": "Explorer account response address differs from the normalized Wallet-authorized account.",
+      "request": "Build Portfolio for the authorized account",
+      "expectedSourceState": {
+        "explorerStatus.available": false,
+        "explorerStatus.error": "Explorer returned evidence for a different account"
+      },
+      "expectedInvariant": "Caller input or upstream substitution cannot switch portfolio identity.",
+      "automatedEvidence": "required follow-up unit vector"
+    },
+    {
+      "id": "FIN-ACTIVITY-CURSOR-TAMPER",
+      "dependencyOwner": "24-finance",
+      "precondition": "A valid activity cursor has one encoded character changed.",
+      "request": "GET /api/activity?cursor={tampered}",
+      "expectedStatus": 400,
+      "expectedCode": "invalid_cursor",
+      "expectedInvariant": "No page is returned from a cursor without a valid HMAC-SHA-256 signature.",
+      "automatedEvidence": "internal/finance/finance_test.go:TestOverviewPersistenceExportAndAIReview"
+    },
+    {
+      "id": "FIN-ACTIVITY-CURSOR-WRONG-ACCOUNT",
+      "dependencyOwner": "24-finance",
+      "precondition": "A valid cursor issued to Wallet account A is presented with a valid session for account B.",
+      "request": "GET /api/activity?cursor={accountA-cursor}",
+      "expectedStatus": 400,
+      "expectedCode": "invalid_cursor",
+      "expectedInvariant": "Cursor payload and current Wallet account must match exactly.",
+      "automatedEvidence": "required follow-up unit vector"
+    },
+    {
+      "id": "FIN-ACTIVITY-CURSOR-STALE-SNAPSHOT",
+      "dependencyOwner": "24-finance / 12-explorer",
+      "precondition": "The activity IDs or timestamps change after a cursor is issued.",
+      "request": "GET /api/activity?cursor={old-snapshot-cursor}",
+      "expectedStatus": 400,
+      "expectedCode": "invalid_cursor",
+      "expectedInvariant": "Pagination restarts rather than mixing records from different source snapshots.",
+      "automatedEvidence": "required follow-up unit vector"
+    },
+    {
+      "id": "FIN-PAY-CREDENTIAL-MISSING",
+      "dependencyOwner": "04-pay",
+      "precondition": "Pay URL is not configured or the server-side read key is unavailable.",
+      "request": "GET /api/portfolio with a valid Finance session",
+      "expectedStatus": 200,
+      "expectedSourceState": {
+        "payStatus.available": false,
+        "payStatus.syncStatus": "not-configured",
+        "payReceipts": []
+      },
+      "expectedInvariant": "Finance never inserts a placeholder receipt or claims settlement.",
+      "automatedEvidence": "internal/finance/upstream.go and remote unauthorized smoke"
+    },
+    {
+      "id": "FIN-PAY-UNOWNED-EVENT",
+      "dependencyOwner": "04-pay",
+      "precondition": "Pay returns a valid event whose payer, merchant, buyer, seller, signer, from, to and account fields do not match the Wallet account.",
+      "request": "Build Portfolio for the authorized account",
+      "expectedStatus": 200,
+      "expectedInvariant": "The event is omitted from payReceipts.",
+      "automatedEvidence": "internal/finance/finance_test.go:TestOverviewPersistenceExportAndAIReview"
+    },
+    {
+      "id": "FIN-AI-WITHOUT-CONSENT",
+      "dependencyOwner": "14-ai / 24-finance",
+      "precondition": "AI draft request lacks explicit consent or requests records not owned by the Wallet account.",
+      "request": "POST /api/ai/jobs",
+      "expectedStatus": 503,
+      "expectedCode": "ai_unavailable",
+      "expectedInvariant": "No private source context is sent and no financial action occurs.",
+      "automatedEvidence": "internal/finance/service and AI tests"
+    },
+    {
+      "id": "FIN-EXCHANGE-WITHDRAWAL-CAPABILITY",
+      "dependencyOwner": "07-exchange",
+      "precondition": "An Exchange integration proposes a credential or method with withdrawal, owner-change or address-management authority.",
+      "request": "Dependency acceptance review",
+      "expectedStatus": "rejected",
+      "expectedInvariant": "Finance accepts read-only evidence only and never receives execution credentials.",
+      "automatedEvidence": "contract gate required before adapter implementation"
+    },
+    {
+      "id": "FIN-QUANT-EXECUTION-CAPABILITY",
+      "dependencyOwner": "08-quant-lab",
+      "precondition": "A Quant integration attempts deployment, trade, leverage, risk-limit or mandate mutation from Finance.",
+      "request": "Dependency acceptance review",
+      "expectedStatus": "rejected",
+      "expectedInvariant": "Finance renders read-only evidence and deep links to the owner product; it never becomes a Quant Engine or signer.",
+      "automatedEvidence": "contract gate required before adapter implementation"
+    }
+  ]
+}

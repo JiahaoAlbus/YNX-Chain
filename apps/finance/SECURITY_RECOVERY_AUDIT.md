@@ -25,7 +25,7 @@ Reviewed 2026-07-18 for the 1.2.0 Testnet candidate.
 
 ## Dependency and release findings
 
-- Finance Go, shared Wallet, gateway and mobile tests pass. `npm audit --omit=dev` reports 10 moderate advisories through Expo CLI/config/xcode tooling, including an old transitive `uuid`; no high or critical advisories were reported. The available automated fix incorrectly proposes the incompatible Expo 46 downgrade, so it was not applied. Upgrade/retest with an upstream Expo fix before production release.
+- Finance Go, shared Wallet, gateway and mobile checks pass. On 2026-07-27, `npm audit --omit=dev --prefix apps/finance/mobile` reported 11 advisories: 1 high `brace-expansion` denial-of-service advisory and 10 moderate Expo CLI/config/xcode/`uuid` advisories. A non-force `npm audit fix` was attempted but failed on a local `node_modules` rename conflict; three bounded package-lock-only retries then failed with MCP upstream 502. `--force` was not used because it proposes an incompatible Expo 46 downgrade. The high advisory remains an explicit release blocker until a lockfile-compatible fix is applied and the complete mobile check is rerun.
 - Expo Modules JSI 57.0.3 has a Swift 6.2 overload ambiguity in its JavaScript Date range guard. The pinned, fail-closed postinstall compatibility patch changes only `abs(milliseconds)` to the equivalent typed `milliseconds.magnitude`; it aborts installation if upstream source changes and must be removed once Expo publishes the correction.
 - Android proof is locally test-signed. iOS production signing, device install, TestFlight/App Store and Play Console are not claimed.
 - Remote Pay receipt access was not tested with a real credential; the 401 result demonstrates failure closure, not receipt integration success.

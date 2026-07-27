@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Branch: `codex/ecosystem-finance`
+- Branch: `codex/final-finance`
 - Version: `1.2.0`
 - Native identity: `com.ynxweb4.finance`
 - Scheme/callback: `ynxfinance`, `ynxfinance://wallet-auth/callback`
@@ -55,8 +55,18 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 - Android light/dark screenshots were visually inspected. A shared System UI ANR dialog was excluded from accepted evidence and is not attributed to Finance.
 - Web signed-out companion was inspected in the in-app Browser at 1440×900 and 390×844. The product boundary, no-fallback Wallet state and responsive layout passed.
 - Local `/health` returned version 1.2.0, `custody:none`, `portfolio:read-only`; CSP, Permissions Policy, no-referrer and nosniff headers were present.
-- `npm audit --omit=dev` reports 10 moderate Expo/tooling advisories, no high/critical. The incompatible automated Expo downgrade was not applied; see the security audit.
+- `npm audit --omit=dev --prefix apps/finance/mobile` now reports 11 advisories: 1 high `brace-expansion` denial-of-service advisory and 10 moderate Expo/tooling advisories. Non-force repair was attempted but not completed because of a local rename conflict followed by bounded MCP 502 failures; `--force` was not used because it proposes an incompatible Expo 46 downgrade. See the security audit.
 - `git diff --check` and workflow YAML parsing passed.
+
+## 2026-07-27 source-truth and cursor checkpoint
+
+- Finance now validates Explorer `/health` and the `YNXT` native identity before accepting account evidence.
+- Portfolio source status now includes source version, `asOf`, timestamp semantics, coverage, sync state, RPC/indexed heights, lag and explicit errors.
+- Activity pagination now uses HMAC-SHA-256 cursors bound to the Wallet account, offset and current activity snapshot; tamper, wrong-account reuse and stale snapshots fail closed.
+- `YNX_FINANCE_CURSOR_SIGNING_KEY` is required at startup and rejects values shorter than 32 characters. It is an operator secret, not a Wallet or provider credential.
+- `go test -count=1 ./internal/finance ./apps/finance/cmd/server` passed, and `npm run smoke --prefix apps/finance` passed all Finance Go, security, product-contract and build checks.
+- Full `go test ./...` was also attempted and failed only outside Finance ownership: consensus/Faucet/Trust key-permission tests and missing IDE contract artifacts. `internal/finance` passed in that run; these failures are recorded for their owners rather than modified here.
+- The authoritative Finance integration contract, handoff, dependency acceptance and cross-product negative vectors now live under `release/integration/` and `docs/integration/`.
 
 ## Exact release state
 

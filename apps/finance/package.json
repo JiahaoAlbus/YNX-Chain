@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "security": "node scripts/security-check.mjs",
     "smoke": "bash scripts/smoke.sh"
   }
 }

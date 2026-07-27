@@ -158,8 +158,15 @@ type Portfolio struct {
 }
 
 type SourceStatus struct {
-	Available bool   `json:"available"`
-	Source    string `json:"source"`
-	Coverage  string `json:"coverage,omitempty"`
-	Error     string `json:"error,omitempty"`
+	Available     bool       `json:"available"`
+	Source        string     `json:"source"`
+	Version       string     `json:"version,omitempty"`
+	AsOf          *time.Time `json:"asOf,omitempty"`
+	AsOfKind      string     `json:"asOfKind,omitempty"`
+	Coverage      string     `json:"coverage,omitempty"`
+	SyncStatus    string     `json:"syncStatus"`
+	RPCHeight     uint64     `json:"rpcHeight,omitempty"`
+	IndexedHeight uint64     `json:"indexedHeight,omitempty"`
+	SyncLagBlocks uint64     `json:"syncLagBlocks,omitempty"`
+	Error         string     `json:"error,omitempty"`
 }

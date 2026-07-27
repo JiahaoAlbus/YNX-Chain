@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "finance-read-v1",
+  "product": "YNX Finance",
+  "productSlug": "finance",
+  "owner": "24-finance",
+  "sourceBranch": "codex/final-finance",
+  "sourceCommit": null,
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "wallet": {
+    "productClientId": "ynx-finance-v1",
+    "requestingProduct": "finance",
+    "bundleId": "com.ynxweb4.finance",
+    "callback": "ynxfinance://wallet-auth/callback",
+    "requiredScopes": ["finance.portfolio.read"],
+    "optionalScopes": ["finance.ai.draft", "finance.pay.read", "finance.profile.write"],
+    "canonicalManifest": "apps/finance/integration/wallet-auth/integration-manifest.json",
+    "canonicalVector": "apps/finance/integration/wallet-auth/test-vector.json",
+    "centralIntegration": false
+  },
+  "runtime": {
+    "health": "/health",
+    "version": "1.2.0",
+    "custody": "none",
+    "portfolioMode": "read-only",
+    "assetActions": "forbidden",
+    "requiredEnvironment": [
+      "YNX_FINANCE_STATE_PATH",
+      "YNX_EXPLORER_URL",
+      "YNX_FINANCE_DISPUTE_URL",
+      "YNX_FINANCE_WALLET_GATEWAY_URL",
+      "YNX_FINANCE_INTERNAL_KEY",
+      "YNX_FINANCE_CURSOR_SIGNING_KEY",
+      "YNX_FINANCE_HELP_URL",
+      "YNX_FINANCE_PRIVACY_URL"
+    ],
+    "optionalEnvironment": [
+      "YNX_PAY_URL",
+      "YNX_PAY_API_KEY",
+      "YNX_AI_GATEWAY_URL",
+      "YNX_AI_GATEWAY_KEY",
+      "YNX_FINANCE_ALLOWED_ORIGINS",
+      "YNX_FINANCE_WEB_DIR",
+      "YNX_FINANCE_LISTEN"
+    ]
+  },
+  "sourceStatus": {
+    "schema": {
+      "available": "boolean",
+      "source": "absolute URL or canonical source identifier",
+      "version": "release, commit, or adapter schema version",
+      "asOf": "RFC3339 timestamp when available",
+      "asOfKind": "source timestamp semantics",
+      "coverage": "explicit bounded coverage statement",
+      "syncStatus": "truthful source synchronization state",
+      "rpcHeight": "optional unsigned integer",
+      "indexedHeight": "optional unsigned integer",
+      "syncLagBlocks": "optional unsigned integer",
+      "error": "explicit failure reason"
+    },
+    "consumerRule": "A consumer must not infer completeness, freshness, fiat value, market value, revenue, APY or investment performance from an available flag alone."
+  },
+  "explorerAdapter": {
+    "owner": "12-explorer",
+    "healthRequired": true,
+    "healthRoute": "/health",
+    "requiredHealthFacts": ["ok", "nativeSymbol", "truthfulStatus"],
+    "acceptedNativeSymbol": "YNXT",
+    "accountRoute": "/api/accounts/{authorizedAccount}",
+    "activityRoute": "/api/txs?limit=100",
+    "coverage": "latest 100 indexed transactions filtered to the authorized Wallet account",
+    "completeHistory": false,
+    "failClosed": [
+      "health unavailable",
+      "ok is false",
+      "native symbol mismatch",
+      "account mismatch",
+      "invalid response",
+      "transaction source unavailable"
+    ]
+  },
+  "activityCursor": {
+    "version": 1,
+    "algorithm": "HMAC-SHA-256",
+    "opaque": true,
+    "bindings": ["walletAccount", "offset", "activitySnapshot"],
+    "activitySnapshotInputs": ["activity.id", "activity.timestamp"],
+    "keyMinimumCharacters": 32,
+    "keySource": "operator secret manager",
+    "rotationEffect": "Outstanding cursors are intentionally invalidated and clients restart pagination.",
+    "rejections": ["tamper", "wrong account", "stale snapshot", "unsupported version", "negative offset"]
+  },
+  "payAdapter": {
+    "owner": "04-pay",
+    "route": "/pay/events?limit=200",
+    "authentication": "X-YNX-Pay-Key supplied server-side only",
+    "adapterVersion": "finance-pay-events-v1",
+    "ownershipFilter": ["account", "signer", "payer", "buyer", "merchant", "seller", "from", "to"],
+    "failureState": "unavailable; no placeholder receipt",
+    "remoteAuthorizedSmoke": false
+  },
+  "futureReadDependencies": [
+    {
+      "owner": "07-exchange",
+      "capability": "owned subaccounts, positions, orders, fills, fees, funding and PnL",
+      "status": "contract-required"
+    },
+    {
+      "owner": "27-dex",
+      "capability": "owned vault, pool, LP, swap, fees, impermanent loss and redemption evidence",
+      "status": "contract-required"
+    },
+    {
+      "owner": "08-quant-lab",
+      "capability": "strategy, mandate, capital, venue, PnL, drawdown, fees, risk, pause and exit evidence",
+      "status": "contract-required"
+    },
+    {
+      "owner": "17-tokenomics",
+      "capability": "issuance, burn, staking, treasury, service fees and reserve evidence",
+      "status": "contract-required"
+    }
+  ],
+  "canonicalErrors": [
+    "session_rejected",
+    "origin_not_allowed",
+    "rate_limited",
+    "source_unavailable",
+    "invalid_cursor",
+    "invalid_limit",
+    "classification_rejected",
+    "persistence_failed",
+    "ai_unavailable"
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": {
+      "android": true,
+      "ios": false
+    },
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
