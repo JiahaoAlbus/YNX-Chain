@@ -84,5 +84,26 @@ jobs:
           done
           test "$(docker inspect --format '{{.Config.User}}' ynx-cloudd-ci)" = "10001:10001"
           grep -q '"service":"ynx-cloudd"' /tmp/ynx-cloud-health.json
+      - name: Scan exact Cloud image for Critical and High vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ynx-cloudd:ci
+          scan-type: image
+          scanners: vuln
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          format: json
+          output: trivy-ynx-cloud.json
+          exit-code: '1'
+          version: v0.70.0
+      - name: Preserve Cloud image vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ynx-cloud-trivy-${{ github.sha }}
+          path: trivy-ynx-cloud.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Canonical auth, API, migration, backup, and restore DAST smoke
         run: bash apps/cloud/scripts/smoke.sh
