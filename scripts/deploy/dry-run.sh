@@ -263,6 +263,8 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-app-gatewayd.s
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./wallet-auth/scripts/ynx-wallet-gatewayd.mjs" || { echo "release tarball missing Wallet Gateway runtime"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-wallet-gatewayd.env" || { echo "release tarball missing Wallet Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-wallet-gatewayd.service" || { echo "release tarball missing Wallet Gateway systemd unit"; exit 1; }
+[[ "$(stat -f '%Lp' "$release_dir/wallet-auth/src/gateway-http.js" 2>/dev/null || stat -c '%a' "$release_dir/wallet-auth/src/gateway-http.js")" == "644" ]] || { echo "Wallet Gateway runtime source is not world-readable"; exit 1; }
+[[ "$(stat -f '%Lp' "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs" 2>/dev/null || stat -c '%a' "$release_dir/wallet-auth/scripts/ynx-wallet-gatewayd.mjs")" == "755" ]] || { echo "Wallet Gateway launcher is not executable"; exit 1; }
 grep -Fq "server_name ai.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated AI Gateway domain block"; exit 1; }
 grep -Fq "server_name pay.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Pay Gateway domain block"; exit 1; }
 grep -Fq "server_name trust.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing dedicated Trust Gateway domain block"; exit 1; }

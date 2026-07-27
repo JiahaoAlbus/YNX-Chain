@@ -141,6 +141,9 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldfl
 cp -R packages/wallet-auth/src "$work/wallet-auth/src"
 cp -R packages/wallet-auth/scripts "$work/wallet-auth/scripts"
 cp packages/wallet-auth/central-registry.json packages/wallet-auth/package.json "$work/wallet-auth/"
+find "$work/wallet-auth" -type d -exec chmod 0755 {} +
+find "$work/wallet-auth" -type f -exec chmod 0644 {} +
+chmod 0755 "$work/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
 cat > "$work/config/release.env" <<EOF
 YNX_RELEASE_COMMIT=${commit}
 YNX_RELEASE_NAME=${release}
