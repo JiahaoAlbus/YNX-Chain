@@ -22,8 +22,13 @@ runtime_paths=(
   configs/data-fabric-event-keys.example.json
   infra/data-fabric/systemd
   scripts/data-fabric/build-testnet-release.sh
+  scripts/data-fabric/deploy-testnet.sh
   scripts/data-fabric/install-testnet-release.sh
+  scripts/data-fabric/remote-install-testnet-release.sh
   scripts/data-fabric/testnet-release-check.sh
+  scripts/data-fabric/testnet-deployment-check.sh
+  scripts/data-fabric/testnet-remote-deploy-check.sh
+  scripts/data-fabric/verify-testnet-deployment.sh
   scripts/data-fabric/write-testnet-release-manifest.mjs
   scripts/data-fabric/verify-testnet-release.mjs
   docs/data-fabric
@@ -61,3 +66,5 @@ fi
 
 git diff --check
 bash scripts/data-fabric/testnet-release-check.sh
+bash scripts/data-fabric/testnet-deployment-check.sh
+bash scripts/data-fabric/testnet-remote-deploy-check.sh

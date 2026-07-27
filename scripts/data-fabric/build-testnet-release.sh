@@ -31,6 +31,8 @@ for unit in infra/data-fabric/systemd/*.service; do
   install -m 0644 "$unit" "$stage/systemd/$(basename "$unit")"
 done
 install -m 0755 scripts/data-fabric/install-testnet-release.sh "$stage/scripts/install-testnet-release.sh"
+install -m 0755 scripts/data-fabric/remote-install-testnet-release.sh "$stage/scripts/remote-install-testnet-release.sh"
+install -m 0755 scripts/data-fabric/verify-testnet-deployment.sh "$stage/scripts/verify-testnet-deployment.sh"
 
 node scripts/data-fabric/write-testnet-release-manifest.mjs "$stage" "$commit" "$release" "$build_time"
 node scripts/data-fabric/verify-testnet-release.mjs "$stage" "$commit" "$release" >&2

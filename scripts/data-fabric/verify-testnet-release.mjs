@@ -15,7 +15,7 @@ if (manifest.schema !== "ynx-data-fabric-testnet-release/v1" || manifest.product
 if (manifest.commit !== expectedCommit || manifest.release !== expectedRelease) fail("release is not bound to the expected commit");
 if (manifest.target?.os !== "linux" || manifest.target?.architecture !== "amd64" || manifest.target?.channel !== "testnet") fail("release target is invalid");
 if (manifest.sourceMode !== "bft" || manifest.signing?.class !== "unsigned-testnet-build" || manifest.signing?.productionSigned !== false) fail("release truth is invalid");
-if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== 10) fail("release artifact inventory is incomplete");
+if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length !== 12) fail("release artifact inventory is incomplete");
 
 for (const artifact of manifest.artifacts) {
   if (!artifact || typeof artifact.path !== "string" || artifact.path.includes("..") || path.isAbsolute(artifact.path)) fail("artifact path is invalid");
@@ -45,6 +45,10 @@ for (const unitName of ["ynx-data-fabricd.service", "ynx-data-fabric-worker.serv
 const installer = fs.readFileSync(path.join(releaseDir, "scripts/install-testnet-release.sh"), "utf8");
 for (const required of ["migrate-postgres", "sha256sum -c", "YNX_PAY_DATA_FABRIC_SOURCE_MODE", "YNX_PAY_DATA_FABRIC_UPSTREAM_KEY_FILE"]) {
   if (!installer.includes(required)) fail(`installer is missing ${required}`);
+}
+const remoteInstaller = fs.readFileSync(path.join(releaseDir, "scripts/remote-install-testnet-release.sh"), "utf8");
+for (const required of ["previous-install.tar.gz", "rollback", "verify-testnet-deployment.sh", "ynx-bft-gateway-candidate.service"]) {
+  if (!remoteInstaller.includes(required)) fail(`remote installer is missing ${required}`);
 }
 
 process.stdout.write(`${JSON.stringify({status: "verified", commit: expectedCommit, release: expectedRelease, artifacts: manifest.artifacts.length})}\n`);

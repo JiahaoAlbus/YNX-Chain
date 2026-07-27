@@ -28,7 +28,7 @@ release="$(jq -er '.release' "$manifest")"
 [[ "$(jq -er '[.target.os, .target.architecture, .target.channel] | join("/")' "$manifest")" == "linux/amd64/testnet" ]] || { echo "release target is invalid" >&2; exit 1; }
 [[ "$(jq -er '.sourceMode' "$manifest")" == "bft" ]] || { echo "release source mode is not BFT" >&2; exit 1; }
 [[ "$(jq -r '.signing.productionSigned' "$manifest")" == "false" ]] || { echo "Testnet package signing truth is invalid" >&2; exit 1; }
-[[ "$(jq -er '.artifacts | length' "$manifest")" == "10" ]] || { echo "release artifact inventory is incomplete" >&2; exit 1; }
+[[ "$(jq -er '.artifacts | length' "$manifest")" == "12" ]] || { echo "release artifact inventory is incomplete" >&2; exit 1; }
 
 required_artifacts=(
   bin/ynx-data-fabricctl
@@ -38,6 +38,8 @@ required_artifacts=(
   config/data-fabric.env
   config/event-keys.json
   scripts/install-testnet-release.sh
+  scripts/remote-install-testnet-release.sh
+  scripts/verify-testnet-deployment.sh
   systemd/ynx-data-fabricd.service
   systemd/ynx-data-fabric-worker.service
   systemd/ynx-pay-data-fabric-bridge.service
@@ -120,7 +122,7 @@ for command in ynx-data-fabricctl ynx-data-fabricd ynx-data-fabric-worker ynx-pa
   install -m 0755 -o root -g root "$release_dir/bin/$command" "/usr/local/bin/$command"
 done
 install -m 0640 -o root -g ynx-data-fabric "$operator_env" /etc/ynx-data-fabric/data-fabric.env
-install -m 0640 -o root -g ynx-data-fabric "$event_keys" /etc/ynx-data-fabric/event-keys.json
+install -m 0600 -o ynx-data-fabric -g ynx-data-fabric "$event_keys" /etc/ynx-data-fabric/event-keys.json
 for unit in "$release_dir"/systemd/*.service; do
   install -m 0644 -o root -g root "$unit" "/etc/systemd/system/$(basename "$unit")"
 done

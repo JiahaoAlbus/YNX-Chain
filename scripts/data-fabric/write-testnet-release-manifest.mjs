@@ -16,6 +16,8 @@ const required = [
   ["config/data-fabric.env", "operator-config-template"],
   ["config/event-keys.json", "operator-config-template"],
   ["scripts/install-testnet-release.sh", "installer"],
+  ["scripts/remote-install-testnet-release.sh", "remote-installer"],
+  ["scripts/verify-testnet-deployment.sh", "deployment-verifier"],
   ["systemd/ynx-data-fabricd.service", "systemd-unit"],
   ["systemd/ynx-data-fabric-worker.service", "systemd-unit"],
   ["systemd/ynx-pay-data-fabric-bridge.service", "systemd-unit"],
