@@ -26,6 +26,8 @@ func NewServer(service *Service, build buildinfo.Info) *Server {
 func (s *Server) Handler() http.Handler { return securityHeaders(s.mux) }
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /ready", s.ready)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/account/state", s.protected(s.state))
 	s.mux.HandleFunc("POST /v1/card/applications", s.protected(s.apply))
 	s.mux.HandleFunc("POST /v1/cards/{id}/actions", s.protected(s.action))
@@ -37,7 +39,35 @@ func (s *Server) routes() {
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	available := s.service.ProviderAvailable(r.Context())
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-card-productd", "productId": ProductID, "clientId": ClientID, "bundleId": BundleID, "network": Network, "issuerProvider": s.service.ProviderName(), "issuerAvailable": available, "cardCapability": map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available], "sensitiveData": "provider-hosted-never-persisted", "build": s.build})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "status": map[bool]string{true: "healthy", false: "degraded"}[available], "service": "ynx-card-productd", "productId": ProductID, "clientId": ClientID, "bundleId": BundleID, "network": Network, "issuerProvider": s.service.ProviderName(), "issuerAvailable": available, "cardCapability": map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available], "sensitiveData": "provider-hosted-never-persisted", "build": s.build})
+}
+
+func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
+	available := s.service.ProviderAvailable(r.Context())
+	status := http.StatusOK
+	if !available {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{
+		"ready":             available,
+		"service":           "ynx-card-productd",
+		"issuerProvider":    s.service.ProviderName(),
+		"issuerAvailable":   available,
+		"cardCapability":    map[bool]string{true: "sandbox_testnet_only", false: "provider_unavailable"}[available],
+		"failureSemantics":  map[bool]string{true: "none", false: "fail_closed"}[available],
+		"sensitiveDataMode": "provider_hosted",
+	})
+}
+
+func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":      "ynx-card-productd",
+		"productId":    ProductID,
+		"clientId":     ClientID,
+		"bundleId":     BundleID,
+		"stateVersion": StateVersion,
+		"build":        s.build,
+	})
 }
 
 type protectedHandler func(http.ResponseWriter, *http.Request, GatewayAssertion, []byte)

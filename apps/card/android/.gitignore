@@ -17,3 +17,8 @@ app/src/main/java/inline/
 
 # Bundle artifacts
 *.jsbundle
+
+# Signing material is local/operator-controlled and must never enter Git.
+*.keystore
+*.jks
+keystore.properties

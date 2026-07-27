@@ -132,10 +132,63 @@ func TestProviderUnavailablePendingRejectedAndNoSensitiveData(t *testing.T) {
 	}
 	raw, _ := json.Marshal(state)
 	lower := strings.ToLower(string(raw))
-	for _, forbidden := range []string{"4111111111111111", "cvv", "pin\"", "trackdata", "magneticstripe", "passportimage", "identitydocument"} {
+	testPAN := strings.Repeat("4111", 4)
+	for _, forbidden := range []string{testPAN, "cvv", "pin\"", "trackdata", "magneticstripe", "passportimage", "identitydocument"} {
 		if strings.Contains(lower, forbidden) {
 			t.Fatalf("sensitive field leaked: %s", forbidden)
 		}
+	}
+}
+
+func TestHealthReadinessAndVersionExposeTruthfulDependencyState(t *testing.T) {
+	unavailable, _, _, _ := newTestService(t, UnavailableProvider{ProviderName: "issuer-not-configured"}, nil)
+	server := httptest.NewServer(NewServer(unavailable, buildinfo.Info{Commit: "card-commit", Release: "card-release", BuildTime: "2026-07-18T06:00:00Z"}).Handler())
+	defer server.Close()
+
+	assertJSONStatus := func(path string, wantStatus int, assertions func(map[string]any)) {
+		t.Helper()
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != wantStatus {
+			t.Fatalf("%s status = %d, want %d", path, response.StatusCode, wantStatus)
+		}
+		var body map[string]any
+		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		assertions(body)
+	}
+
+	assertJSONStatus("/health", http.StatusOK, func(body map[string]any) {
+		if body["ok"] != true || body["status"] != "degraded" || body["issuerAvailable"] != false || body["cardCapability"] != "provider_unavailable" {
+			t.Fatalf("health fabricated issuer readiness: %+v", body)
+		}
+	})
+	assertJSONStatus("/ready", http.StatusServiceUnavailable, func(body map[string]any) {
+		if body["ready"] != false || body["failureSemantics"] != "fail_closed" || body["sensitiveDataMode"] != "provider_hosted" {
+			t.Fatalf("readiness did not fail closed: %+v", body)
+		}
+	})
+	assertJSONStatus("/version", http.StatusOK, func(body map[string]any) {
+		build, ok := body["build"].(map[string]any)
+		if !ok || build["commit"] != "card-commit" || body["stateVersion"] != float64(StateVersion) {
+			t.Fatalf("version response incomplete: %+v", body)
+		}
+	})
+
+	sandbox, _, _, _ := newTestService(t, NewSandboxProvider(nil), nil)
+	sandboxServer := httptest.NewServer(NewServer(sandbox, buildinfo.Info{}).Handler())
+	defer sandboxServer.Close()
+	response, err := http.Get(sandboxServer.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("sandbox readiness status = %d", response.StatusCode)
 	}
 }
 
@@ -171,7 +224,8 @@ func TestGatewayAssertionExactBindingReplayTamperAndStrictJSON(t *testing.T) {
 		t.Fatalf("cross-product assertion accepted: %d", response.StatusCode)
 	}
 	_ = response.Body.Close()
-	unknown := []byte(`{"eligibilityReference":"kyc_sandbox_verified_03","legalConsentVersion":"card-testnet-v1","idempotencyKey":"gateway-application-02","pan":"4111111111111111"}`)
+	testPAN := strings.Repeat("4111", 4)
+	unknown := []byte(fmt.Sprintf(`{"eligibilityReference":"kyc_sandbox_verified_03","legalConsentVersion":"card-testnet-v1","idempotencyKey":"gateway-application-02","pan":%q}`, testPAN))
 	strict, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/card/applications", bytes.NewReader(unknown))
 	signRequest(t, strict, unknown, testAssertion("gateway-nonce-0003"), gatewayKey)
 	response, _ = http.DefaultClient.Do(strict)

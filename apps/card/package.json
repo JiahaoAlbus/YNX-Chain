@@ -5,10 +5,11 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "security-check": "node scripts/security-check.mjs",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
-    "check": "npm run typecheck && npm test && npm run bundle-check"
+    "check": "npm run security-check && npm run typecheck && npm test && npm run bundle-check"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
