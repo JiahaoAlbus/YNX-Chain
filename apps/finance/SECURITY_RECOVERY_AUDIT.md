@@ -21,7 +21,9 @@ Reviewed 2026-07-18 for the 1.2.0 Testnet candidate.
 
 - The native app preserves locale, theme, pending Wallet request, device key, session and last accepted overview in platform secure storage; cached evidence is always marked offline/not live.
 - Import accepts only `ynx-finance-export-v1` planning records and cannot overwrite Explorer/Pay evidence.
-- The UI exposes retry, reauthorize, revoke/logout, export/import and data deletion paths. A production operator must back up, restore-test and monitor the Finance state volume; no deployment evidence exists yet.
+- The local state runtime now supports strict version-1 reopen plus mode-`0600`, atomic HMAC-SHA-256-authenticated backup, verification and offline restore. It rejects wrong/short keys, tampering, unknown fields, unsupported versions, unsafe same-file paths and oversized envelopes before live-state replacement.
+- Restore preserves the previous raw state, records its SHA-256 and bytes, atomically installs and reopens the verified snapshot, writes a private receipt and rolls back automatically if post-write verification or receipt persistence fails.
+- The UI exposes retry, reauthorize, revoke/logout, export/import and data deletion paths. A production operator must still approve retention, encrypted backup storage, RTO/RPO, remote restore drills and monitoring; no deployed restore evidence exists yet.
 
 ## Dependency and release findings
 

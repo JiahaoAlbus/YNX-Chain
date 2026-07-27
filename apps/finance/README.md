@@ -30,10 +30,23 @@ npm start --prefix apps/finance/gateway
 
 The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. `YNX_FINANCE_CURSOR_SIGNING_KEY` is mandatory, must contain at least 32 high-entropy characters, must be supplied through the operator secret manager and must not reuse a Wallet, Pay or provider credential. Production needs TLS ingress, persistent Gateway replay/revocation storage, cursor-key rotation with a controlled pagination restart, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
 
+## Backup and recovery
+
+`YNX_FINANCE_BACKUP_AUTH_KEY` is a separate operator-managed high-entropy secret of at least 32 bytes. The admin tool creates mode-`0600` HMAC-SHA-256-authenticated backup envelopes, verifies them without changing live state and restores only after the exact destructive-operation confirmation. Restore is an offline operation: stop every Finance writer first. The envelope is authenticated but not encrypted, so it belongs only on encrypted, access-controlled storage.
+
+```bash
+export YNX_FINANCE_BACKUP_AUTH_KEY='<injected by secret manager>'
+go run ./apps/finance/cmd/admin backup --state ./var/finance/state.json --output ./var/finance/backups/state.json
+go run ./apps/finance/cmd/admin verify --backup ./var/finance/backups/state.json
+go run ./apps/finance/cmd/admin restore --state ./var/finance/recovery-drill/state.json --backup ./var/finance/backups/state.json --confirm 'RESTORE FINANCE STATE'
+```
+
+See `OPERATIONS.md` and `MIGRATION_COMPATIBILITY.md` before any restore or schema change.
+
 ## Verify
 
 ```bash
-go test ./internal/finance ./apps/finance/cmd/server
+go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin
 npm test --prefix packages/wallet-auth
 npm test --prefix apps/finance/gateway
 npm test --prefix apps/finance
