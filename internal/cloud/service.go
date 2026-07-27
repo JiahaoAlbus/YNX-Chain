@@ -193,6 +193,17 @@ func (s *Service) persist(action, actor, objectID string, details map[string]any
 	return nil
 }
 
+func objectStorageScope(actor, product string) string {
+	return hashBytes([]byte("YNX_CLOUD_OBJECT_SCOPE_V1\x00" + product + "\x00" + actor))
+}
+
+func (s *Service) putObjectBlob(ctx context.Context, actor, product, hash string, body []byte) (string, error) {
+	if scoped, ok := s.cfg.ObjectStore.(ScopedObjectStore); ok {
+		return scoped.PutScoped(ctx, objectStorageScope(actor, product), hash, body)
+	}
+	return s.cfg.ObjectStore.Put(ctx, hash, body)
+}
+
 func (s *Service) role(actor string, obj Object) string {
 	if actor == obj.Owner {
 		return "owner"
@@ -339,7 +350,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
-		path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
+		path, err := s.putObjectBlob(ctx, actor, req.Product, h, req.Content)
 		if err != nil {
 			return Object{}, err
 		}
@@ -347,7 +358,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		obj.Size = int64(len(req.Content))
 		obj.Version = 1
 		obj.ScanStatus = "accepted"
-		if s.usedLocked(actor)+s.additionalLocked(actor, h, obj.Size) > s.cfg.QuotaBytes {
+		if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, obj.Size) > s.cfg.QuotaBytes {
 			return Object{}, errors.New("storage quota exceeded")
 		}
 		s.settleStorageLocked(actor, obj.Product)
@@ -422,7 +433,7 @@ func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number
 	if u.Status != "active" {
 		return MultipartPart{}, ErrInvalid
 	}
-	ref, err := s.cfg.ObjectStore.Put(ctx, claimedHash, body)
+	ref, err := s.putObjectBlob(ctx, actor, u.Product, claimedHash, body)
 	if err != nil {
 		return MultipartPart{}, err
 	}
@@ -575,7 +586,7 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 		}
 	}
 	s.mu.Unlock()
-	plan, err := provider.Presign(ctx, DirectUploadRequest{Hash: expectedHash, Size: expectedSize, MIME: req.MIME})
+	plan, err := provider.Presign(ctx, DirectUploadRequest{Scope: objectStorageScope(actor, req.Product), Hash: expectedHash, Size: expectedSize, MIME: req.MIME})
 	if err != nil {
 		return DirectUpload{}, DirectUploadPlan{}, err
 	}
@@ -657,7 +668,7 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 			return Object{}, ErrDenied
 		}
 	}
-	if s.usedLocked(actor)+s.additionalLocked(actor, u.ExpectedHash, u.ExpectedSize) > s.cfg.QuotaBytes {
+	if s.usedLocked(actor)+s.additionalLocked(actor, u.Product, u.ExpectedHash, u.ExpectedSize) > s.cfg.QuotaBytes {
 		reset()
 		return Object{}, errors.New("storage quota exceeded")
 	}
@@ -742,11 +753,11 @@ func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDo
 		return Object{}, err
 	}
 	h := hashBytes(req.Content)
-	path, err := s.cfg.ObjectStore.Put(ctx, h, req.Content)
+	path, err := s.putObjectBlob(ctx, actor, obj.Product, h, req.Content)
 	if err != nil {
 		return Object{}, err
 	}
-	if s.usedLocked(actor)+s.additionalLocked(actor, h, int64(len(req.Content))) > s.cfg.QuotaBytes {
+	if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, int64(len(req.Content))) > s.cfg.QuotaBytes {
 		return Object{}, errors.New("storage quota exceeded")
 	}
 	now := s.cfg.Now()
@@ -1080,13 +1091,14 @@ func (s *Service) DeleteObject(actor, id string) error {
 	remaining := map[string]bool{}
 	for _, versions := range s.state.Versions {
 		for _, v := range versions {
-			remaining[v.Hash] = true
+			remaining[v.Hash+"\x00"+v.BlobPath] = true
 		}
 	}
 	unique := map[string]Version{}
 	for _, v := range removedVersions {
-		if !remaining[v.Hash] {
-			unique[v.Hash+"\x00"+v.BlobPath] = v
+		key := v.Hash + "\x00" + v.BlobPath
+		if !remaining[key] {
+			unique[key] = v
 		}
 	}
 	pending := 0
@@ -1898,8 +1910,9 @@ func (s *Service) usedLocked(actor string) int64 {
 			continue
 		}
 		for _, version := range s.state.Versions[object.ID] {
-			if !seen[version.Hash] {
-				seen[version.Hash] = true
+			key := object.Product + "\x00" + version.Hash
+			if !seen[key] {
+				seen[key] = true
 				total += version.Size
 			}
 		}
@@ -1907,9 +1920,9 @@ func (s *Service) usedLocked(actor string) int64 {
 	return total
 }
 
-func (s *Service) additionalLocked(actor, hash string, size int64) int64 {
+func (s *Service) additionalLocked(actor, product, hash string, size int64) int64 {
 	for _, object := range s.state.Objects {
-		if object.Owner != actor {
+		if object.Owner != actor || object.Product != product {
 			continue
 		}
 		for _, version := range s.state.Versions[object.ID] {

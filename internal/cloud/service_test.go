@@ -556,7 +556,7 @@ func TestProductDataErasureIsComprehensiveIsolatedAndTruthful(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if receipt.Status != "logical-erasure-complete-provider-deletion-pending" || receipt.PendingBlobs != 1 || receipt.OwnerHash != hashBytes([]byte(owner)) || receipt.OwnerHash == owner || receipt.Retained["sharedContentReferences"] == "" {
+	if receipt.Status != "logical-erasure-complete-provider-deletion-pending" || receipt.PendingBlobs != 2 || receipt.OwnerHash != hashBytes([]byte(owner)) || receipt.OwnerHash == owner || receipt.Retained["sharedContentReferences"] != "" {
 		t.Fatalf("erasure receipt: %#v", receipt)
 	}
 	encoded, _ := json.Marshal(receipt)
@@ -607,7 +607,7 @@ func TestProductDataErasureIsComprehensiveIsolatedAndTruthful(t *testing.T) {
 		t.Fatalf("receipt lookup: %#v %v", receipts, err)
 	}
 	deletions, err := s.BlobDeletions(owner, "cloud")
-	if err != nil || len(deletions) != 1 || deletions[0].Status != "pending" {
+	if err != nil || len(deletions) != 2 || deletions[0].Status != "pending" || deletions[1].Status != "pending" {
 		t.Fatalf("provider deletion truth: %#v %v", deletions, err)
 	}
 	restarted, err := New(s.cfg)
@@ -615,7 +615,7 @@ func TestProductDataErasureIsComprehensiveIsolatedAndTruthful(t *testing.T) {
 		t.Fatal(err)
 	}
 	receipts, err = restarted.DataErasureReceipts(owner, "cloud")
-	if err != nil || len(receipts) != 1 || receipts[0].PendingBlobs != 1 {
+	if err != nil || len(receipts) != 1 || receipts[0].PendingBlobs != 2 {
 		t.Fatalf("persistent erasure receipt: %#v %v", receipts, err)
 	}
 }

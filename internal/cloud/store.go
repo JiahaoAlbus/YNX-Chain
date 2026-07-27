@@ -456,6 +456,20 @@ func saveState(path string, s *persistentState) error {
 }
 
 func writeBlob(root, hash string, content []byte) (string, error) {
+	return writeBlobInRoot(root, hash, content)
+}
+
+func writeScopedBlob(root, scope, hash string, content []byte) (string, error) {
+	return writeBlobInRoot(filepath.Join(root, "scoped", scope), hash, content)
+}
+
+func writeBlobInRoot(root, hash string, content []byte) (string, error) {
+	if len(hash) != 64 || hash != strings.ToLower(hash) {
+		return "", ErrInvalid
+	}
+	if _, err := hex.DecodeString(hash); err != nil {
+		return "", ErrInvalid
+	}
 	dir := filepath.Join(root, hash[:2])
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
@@ -483,6 +497,34 @@ func writeBlob(root, hash string, content []byte) (string, error) {
 		return "", err
 	}
 	return path, f.Close()
+}
+
+func validLocalBlobRef(root, ref, hash string) (string, error) {
+	if len(hash) != 64 || hash != strings.ToLower(hash) {
+		return "", ErrInvalid
+	}
+	if _, err := hex.DecodeString(hash); err != nil {
+		return "", ErrInvalid
+	}
+	clean, err := filepath.Abs(ref)
+	if err != nil {
+		return "", err
+	}
+	base, err := filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
+	rel, err := filepath.Rel(base, clean)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return "", ErrDenied
+	}
+	parts := strings.Split(filepath.Clean(rel), string(filepath.Separator))
+	legacy := len(parts) == 2 && parts[0] == hash[:2] && parts[1] == hash
+	scoped := len(parts) == 4 && parts[0] == "scoped" && validObjectScope(parts[1]) && parts[2] == hash[:2] && parts[3] == hash
+	if !legacy && !scoped {
+		return "", ErrDenied
+	}
+	return clean, nil
 }
 
 func readBlob(path, expected string) ([]byte, error) {

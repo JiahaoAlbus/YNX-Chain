@@ -128,9 +128,10 @@ type DirectUpload struct {
 }
 
 type DirectUploadRequest struct {
-	Hash string `json:"hash"`
-	Size int64  `json:"size"`
-	MIME string `json:"mime"`
+	Scope string `json:"scope"`
+	Hash  string `json:"hash"`
+	Size  int64  `json:"size"`
+	MIME  string `json:"mime"`
 }
 type DirectUploadPlan struct {
 	Method    string            `json:"method"`

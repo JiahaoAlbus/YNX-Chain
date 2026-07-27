@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -21,6 +21,14 @@ type ObjectStore interface {
 	Get(context.Context, string, string) ([]byte, error)
 	Delete(context.Context, string, string) error
 	Boundary() string
+}
+
+// ScopedObjectStore provides content-addressed deduplication only inside an
+// opaque owner+product namespace. This prevents cross-product and cross-owner
+// existence, quota, retention, and erasure coupling while keeping legacy
+// ObjectStore implementations readable during migration.
+type ScopedObjectStore interface {
+	PutScoped(context.Context, string, string, []byte) (string, error)
 }
 
 type DirectUploadStore interface {
@@ -33,17 +41,18 @@ type LocalObjectStore struct{ Root string }
 func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (string, error) {
 	return writeBlob(s.Root, hash, body)
 }
+func (s LocalObjectStore) PutScoped(_ context.Context, scope, hash string, body []byte) (string, error) {
+	if !validObjectScope(scope) {
+		return "", ErrInvalid
+	}
+	return writeScopedBlob(s.Root, scope, hash, body)
+}
 func (s LocalObjectStore) Get(_ context.Context, ref, hash string) ([]byte, error) {
 	return readBlob(ref, hash)
 }
 func (s LocalObjectStore) Delete(_ context.Context, ref, hash string) error {
-	want := filepath.Join(s.Root, hash[:2], hash)
-	clean, err := filepath.Abs(ref)
+	clean, err := validLocalBlobRef(s.Root, ref, hash)
 	if err != nil {
-		return err
-	}
-	expected, err := filepath.Abs(want)
-	if err != nil || clean != expected {
 		return errors.New("object delete reference is outside content-addressed root")
 	}
 	if _, err := readBlob(clean, hash); errors.Is(err, os.ErrNotExist) {
@@ -67,12 +76,24 @@ func (s RemoteObjectStore) client() *http.Client {
 	return &http.Client{Timeout: 20 * time.Second}
 }
 func (s RemoteObjectStore) Put(ctx context.Context, hash string, body []byte) (string, error) {
+	return s.put(ctx, "", hash, body)
+}
+func (s RemoteObjectStore) PutScoped(ctx context.Context, scope, hash string, body []byte) (string, error) {
+	if !validObjectScope(scope) {
+		return "", ErrInvalid
+	}
+	return s.put(ctx, scope, hash, body)
+}
+func (s RemoteObjectStore) put(ctx context.Context, scope, hash string, body []byte) (string, error) {
 	if err := validRemote(s.BaseURL, s.Token); err != nil {
 		return "", err
 	}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPut, strings.TrimRight(s.BaseURL, "/")+"/objects/"+hash, bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer "+s.Token)
 	req.Header.Set("Content-Type", "application/octet-stream")
+	if scope != "" {
+		req.Header.Set("X-YNX-Object-Scope", scope)
+	}
 	resp, err := s.client().Do(req)
 	if err != nil {
 		return "", err
@@ -139,6 +160,9 @@ func (s RemoteObjectStore) Delete(ctx context.Context, ref, hash string) error {
 func (s RemoteObjectStore) Presign(ctx context.Context, in DirectUploadRequest) (DirectUploadPlan, error) {
 	if err := validRemote(s.BaseURL, s.Token); err != nil {
 		return DirectUploadPlan{}, err
+	}
+	if in.Scope != "" && !validObjectScope(in.Scope) {
+		return DirectUploadPlan{}, ErrInvalid
 	}
 	payload, _ := json.Marshal(in)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.BaseURL, "/")+"/uploads/presign", bytes.NewReader(payload))
@@ -217,6 +241,14 @@ func validatedUploadOrigin(raw string) (string, error) {
 }
 func (s RemoteObjectStore) Boundary() string {
 	return "remote-contract-requires-operator-durability-evidence"
+}
+
+func validObjectScope(scope string) bool {
+	if len(scope) != 64 || scope != strings.ToLower(scope) {
+		return false
+	}
+	_, err := hex.DecodeString(scope)
+	return err == nil
 }
 
 type RemoteWalletVerifier struct {
