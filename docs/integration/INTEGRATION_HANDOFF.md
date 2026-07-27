@@ -2,7 +2,7 @@
 
 Status: remote Testnet coordinator, canonical App Gateway integration, public read-only ingress, and supported external-route Provider API probe deployed; approved YNX provider route, YNX contracts, and funded transfer execution are not complete.
 
-Deployed Testnet source commit: `73cd827adb2711589a7f2af2411d4ae12c3add79`
+Deployed Testnet source commit: `3e0907e1bad8595a90149c2778ec50b2e7cb520a`
 
 Integration contract: `release/integration/ynx-bridge-contract.json`  
 Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
@@ -23,7 +23,7 @@ The current implemented proof verifier revalidates domain-separated threshold-re
 
 ## Current fail-closed status
 
-The remote Testnet coordinator and canonical App Gateway upstream are directly verified active for release `ynx-bridge-73cd827adb27`. Public TLS read-only health, version, status, route, provider, asset, transparency, and state-machine paths are verified through `https://rest.ynxweb4.com/app/bridge`; the coordinator itself remains loopback-only and no public mutation route exists. The deployed Circle CCTP V2 Sandbox probe is connected for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route and refreshes its successful observation every 60 seconds. A real service-account egress outage was independently observed through the public surface to fail closed with zero available Providers; removing the outage restored Provider connectivity automatically without restarting the service. Agreement and operational review approval, route availability, quote execution, external submission, and user asset movement remained false throughout. YNX is not listed in the inspected official references, so no verified YNX provider connection, verified YNX source/destination contracts, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review exists.
+The remote Testnet coordinator and canonical App Gateway upstream are directly verified active for release `ynx-bridge-3e0907e1bad8`. Public TLS read-only health, version, status, route, provider, asset, transparency, and state-machine paths are verified through `https://rest.ynxweb4.com/app/bridge`; the coordinator itself remains loopback-only and no public mutation route exists. The deployed Circle CCTP V2 Sandbox probe is connected for the supported Ethereum Sepolia domain 0 to Base Sepolia domain 6 route and refreshes its successful observation every 60 seconds. A real service-account egress outage was independently observed through the public surface to fail closed with zero available Providers; removing the outage restored Provider connectivity automatically. Eight integrity-linked outage and recovery events were then verified through the public Provider Registry and retained with identical identifiers and state-file SHA-256 across a coordinator restart. Runtime metrics expose active outage state and incident totals, while Monitor delivery remains explicitly undeployed. Agreement and operational review approval, route availability, quote execution, external submission, and user asset movement remained false throughout. YNX is not listed in the inspected official references, so no verified YNX provider connection, verified YNX source/destination contracts, official YNX stablecoin route, public Testnet deposit, public Testnet withdrawal, or independent security review exists.
 
 ## Owner actions
 

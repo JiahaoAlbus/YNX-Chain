@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "evidenceType": "remote-testnet-coordinator-installation",
-  "observedAt": "2026-07-27T03:26:43Z",
-  "sourceCommit": "73cd827adb2711589a7f2af2411d4ae12c3add79",
-  "release": "ynx-bridge-73cd827adb27",
+  "observedAt": "2026-07-27T03:58:28Z",
+  "sourceCommit": "3e0907e1bad8595a90149c2778ec50b2e7cb520a",
+  "release": "ynx-bridge-3e0907e1bad8",
   "targetRole": "primary-testnet",
   "deploymentState": {
     "integratedCentral": true,
@@ -13,12 +13,12 @@
     "userAssetMovementEnabled": false
   },
   "package": {
-    "sha256": "532512a0e48c91d61db7740d91dd80e53a095d97f5bd39d6041b53c3b0117f0e",
+    "sha256": "f87fab7716244da34b45ade5725f03fa30b2108d84278a0b56e892bb924b86cc",
     "checksumsVerifiedRemote": true
   },
   "artifacts": {
-    "ynxBridgedSha256": "1319b97fb55c6e2a81db298572e358e41227405700aec4e28c4825dbca2fc335",
-    "ynxAppGatewaydSha256": "49f4d7922067578fa08381f1d86156fc67e28ea33bfa17c1cb1ea3004dd14297"
+    "ynxBridgedSha256": "47ef17350c529972c09c6c7fda19c4bfc20c7484246d4ea552748ff47b81defc",
+    "ynxAppGatewaydSha256": "88eccaa60d13e1e8922b81058ad598a5b983b2ddeae93e2750cf9d629dceb015"
   },
   "installation": {
     "bridgeServiceActive": true,
@@ -33,8 +33,8 @@
     "service": "ynx-bridged",
     "schemaVersion": 7,
     "stateMachineVersion": "ynx.bridge.lifecycle.v1",
-    "buildCommit": "73cd827adb27",
-    "buildRelease": "ynx-bridge-73cd827adb27",
+    "buildCommit": "3e0907e1bad8",
+    "buildRelease": "ynx-bridge-3e0907e1bad8",
     "coordinatorState": "available-local-coordinator",
     "externalBridgeState": "provider-api-connected-route-execution-unavailable",
     "providerConnection": "connected-live-provider-api-route-execution-disabled",
@@ -51,7 +51,7 @@
     "sourceRoute": "ethereum-sepolia-domain-0",
     "destinationRoute": "base-sepolia-domain-6",
     "health": "connected-live-fee-api",
-    "lastSuccess": "2026-07-27T03:26:41.127640931Z",
+    "lastSuccess": "2026-07-27T03:57:52.852648651Z",
     "connectivityProbeIntervalSeconds": 60,
     "connectivityStaleAfterSeconds": 120,
     "periodicRefresh": {
@@ -75,6 +75,33 @@
       "routeStayedUnavailable": true,
       "externalSubmissionStayedDisabled": true,
       "outageRuleRemoved": true
+    },
+    "incidentPersistence": {
+      "verified": true,
+      "source": "integrity-sealed-bridge-audit",
+      "incidentHistoryComplete": false,
+      "incidentCount": 8,
+      "outageCount": 4,
+      "recoveryCount": 4,
+      "publicOutageObserved": true,
+      "observerRole": "independent-testnet-node",
+      "outageEvent": {
+        "id": "provider_incident_771369729d33a13651ab17ae",
+        "occurredAt": "2026-07-27T03:50:01.441930155Z",
+        "evidence": "bridge-audit:sha256:d6b2694c08b1665ecbe747b5d8d3074c95bc3816e00e76a979f56095aef61598"
+      },
+      "recoveryEvent": {
+        "id": "provider_incident_fb279b956f545a577595cb37",
+        "occurredAt": "2026-07-27T03:50:56.707289603Z",
+        "evidence": "bridge-audit:sha256:1dded936cec5b0640927b8ca4381ef5c49284bae23b1093487baf475e8ec9ea1"
+      },
+      "restartVerified": true,
+      "stateSha256BeforeRestart": "5b3a712575f99d2fc44d57d26ae5546b3ea123478358737f2800e4cad0a8d214",
+      "stateSha256AfterRestart": "5b3a712575f99d2fc44d57d26ae5546b3ea123478358737f2800e4cad0a8d214",
+      "stateMode": "0600",
+      "incidentIdsUnchangedAfterRestart": true,
+      "routeStayedUnavailable": true,
+      "externalSubmissionStayedDisabled": true
     },
     "agreementApproved": false,
     "operationalReviewApproved": false,

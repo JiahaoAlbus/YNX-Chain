@@ -1,6 +1,6 @@
 # Bridge Feature Completion Evidence
 
-Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `73cd827adb2711589a7f2af2411d4ae12c3add79`; the deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, and automatically recover without a service restart.
+Status date: 2026-07-27. Runtime and public read-only Testnet evidence source commit: `3e0907e1bad8595a90149c2778ec50b2e7cb520a`; the deployed Provider health observation is verified to refresh every 60 seconds, fail closed on a real egress outage, automatically recover, persist eight integrity-linked incident events, and preserve their identifiers across a service restart.
 
 ## Evidence-backed state
 
@@ -19,7 +19,7 @@ Status date: 2026-07-27. Runtime and public read-only Testnet evidence source co
 | Public transparency and reconciliation record | true | true | false | false | false | false |
 | Exact persisted reconciliation replay and v1-v6 migration into schema v7 | true | true | false | false | false | false |
 | Fail-closed route catalog and route execution disclosure | true | true | false | false | false | false |
-| Machine-readable fail-closed Provider Registry with incomplete-incident-history marker | true | true | false | false | false | false |
+| Machine-readable fail-closed Provider Registry with persisted integrity-linked incident history and explicit incomplete-history marker | true | true | true | true | false | false |
 | Digest-bound, expiring, fail-closed Quote Runtime with explicit unavailable provider terms | true | true | false | false | false | false |
 | Product Session-bound Wallet Review Runtime through the local App Gateway patch | true | true | false | false | false | false |
 | Official Circle CCTP V2 fee adapter, supported-domain Sandbox probe, fail-closed outage detection, and automatic recovery, with YNX route kept unavailable | true | true | false | true | true | true |

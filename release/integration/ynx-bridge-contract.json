@@ -3,7 +3,7 @@
   "contractId": "ynx.bridge.integration.v1",
   "owner": "21-bridge",
   "product": "YNX Bridge",
-  "sourceCommit": "73cd827adb2711589a7f2af2411d4ae12c3add79",
+  "sourceCommit": "3e0907e1bad8595a90149c2778ec50b2e7cb520a",
   "runtimeSchemaVersion": 7,
   "stateMachineVersion": "ynx.bridge.lifecycle.v1",
   "releaseClass": "remote-testnet-coordinator-candidate",
@@ -120,6 +120,13 @@
     {"class":"rate_limited","httpStatus":429,"retry":"bounded-backoff"},
     {"class":"unavailable","httpStatus":503,"retry":"bounded-backoff-or-recovery"}
   ],
+  "monitorSignals": {
+    "providerOutageActive": "ynx_bridge_provider_outage_active",
+    "providerIncidentsTotal": "ynx_bridge_provider_incidents_total",
+    "incidentHistorySource": "provider-registry-incidentHistory",
+    "incidentHistoryComplete": false,
+    "monitorDeliveryDeployed": false
+  },
   "dependencies": [
     {"owner":"01-chain-core","contract":"source and destination chain finality evidence","accepted":false},
     {"owner":"02-wallet-auth","contract":"wallet review tuple, signed intent, product session, revoke","accepted":false},
