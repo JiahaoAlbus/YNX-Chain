@@ -8,9 +8,9 @@ Branch: codex/final-docs-compliance
 
 PUBLIC. The accepted documentation authority bundle remains centrally integrated,
 publicly rendered and immutably hosted as an unsigned candidate. Source
-`be7c9aabdff51ee29e373baf3342d4837735b9cc` creates a newer locally verified
-website-content candidate; it is not yet Website-accepted, hosted or production signed.
-The long-term goal remains Active.
+`3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a` creates a newer locally and CI-verified
+website-content candidate; it is not yet Website-accepted, publicly hosted or production
+signed. The long-term goal remains Active.
 
 ## Completed slice
 
@@ -22,12 +22,15 @@ The long-term goal remains Active.
   while preserving unsigned-candidate and named-review limitations.
 - Added the first five normalized documents and metadata inventory to the deterministic
   website-content package and required them in package verification. The normalized
-  Website handoff enters the next package generated from this follow-up commit.
-- Built and verified `ynx-website-content-be7c9aabdff5.zip` from committed source:
-  190,008 bytes, SHA-256
-  `afd3aca6e91f03199821c033e5294cce18eb6f22aa0307450e2c7b2d2540b5aa`.
-- Pushed implementation commit `be7c9aabdff51ee29e373baf3342d4837735b9cc` and
-  verified local and remote SHA equality with Ahead/Behind 0/0.
+  Website handoff is included in the verified `3dd06bf` package.
+- Built and verified the six-document candidate
+  `ynx-website-content-3dd06bfc272a.zip`: 192,324 bytes, SHA-256
+  `5eff155c7ce495449f656df3d0567dc23f772b17e53b7d6c7bb0f0f4c50c470d`.
+- GitHub Actions run `30277299345` passed for exact source `3dd06bf` and retained
+  unexpired artifact `8657308310`; this CI artifact is not the public hosted download.
+- Pushed commits `be7c9aabdff51ee29e373baf3342d4837735b9cc` and
+  `3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a`, then verified local and remote SHA
+  equality with Ahead/Behind 0/0.
 
 ## Next autonomous slice
 

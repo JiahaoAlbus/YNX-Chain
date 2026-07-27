@@ -39,7 +39,7 @@
 14. `release/document-metadata-inventory.json` is the bounded authority for the complete
     public-document metadata tuple. The gate compares rendered Markdown metadata and
     change-log identity exactly; prose-only version labels are insufficient.
-15. The `be7c9aa` website-content archive is a locally verified candidate only. Its
-    byte count and digest may be handed to Website, but existing hosted-download and
-    public-release facts cannot be rebound until YNX 28 returns exact acceptance and
-    artifact evidence.
+15. The `3dd06bf` website-content archive is a locally and CI-verified candidate only.
+    Its inner-package digest and GitHub Actions artifact digest are separate evidence
+    values. Existing hosted-download and public-release facts cannot be rebound until
+    YNX 28 returns exact acceptance, deployment and public artifact evidence.

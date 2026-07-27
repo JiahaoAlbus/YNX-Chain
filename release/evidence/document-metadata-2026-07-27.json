@@ -4,21 +4,21 @@
   "productNumber": 18,
   "productSlug": "docs-compliance-brand",
   "evidenceClass": "local-tested-candidate",
-  "sourceCommit": "be7c9aabdff51ee29e373baf3342d4837735b9cc",
-  "recordedAt": "2026-07-27T22:40:00+08:00",
-  "scope": "High-authority public-document metadata normalization and deterministic website-content packaging.",
-  "documentsValidated": 5,
+  "sourceCommit": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
+  "recordedAt": "2026-07-27T22:55:00+08:00",
+  "scope": "High-authority public-document metadata normalization, Website handoff normalization and deterministic website-content packaging.",
+  "documentsValidated": 6,
   "requiredMetadataFields": 7,
   "tests": [
     {
       "command": "make document-metadata-check",
       "result": "passed",
-      "detail": "Five documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
+      "detail": "Six documents matched all seven metadata fields; duplicate-path, invalid-commit, metadata-mismatch and missing-change-log mutations were rejected."
     },
     {
       "command": "make docs-compliance-check",
       "result": "passed",
-      "detail": "52 named artifacts, 16 JSON records, 13 search pages, 43 public documents, nine release states and all three authority gates passed."
+      "detail": "53 named artifacts, 17 JSON records, 13 search pages, 43 public documents, nine release states and all three authority gates passed."
     },
     {
       "command": "make public-disclosure-check",
@@ -52,12 +52,23 @@
     }
   ],
   "artifact": {
-    "name": "ynx-website-content-be7c9aabdff5.zip",
-    "bytes": 190008,
-    "sha256": "afd3aca6e91f03199821c033e5294cce18eb6f22aa0307450e2c7b2d2540b5aa",
+    "name": "ynx-website-content-3dd06bfc272a.zip",
+    "bytes": 192324,
+    "sha256": "5eff155c7ce495449f656df3d0567dc23f772b17e53b7d6c7bb0f0f4c50c470d",
     "productionSigned": false,
     "downloadHosted": false,
     "websiteAccepted": false
+  },
+  "continuousIntegration": {
+    "workflow": "docs-compliance",
+    "runId": 30277299345,
+    "result": "success",
+    "headSha": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
+    "artifactId": 8657308310,
+    "artifactName": "ynx-website-content-3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
+    "artifactBytes": 56649,
+    "artifactDigest": "sha256:e4d899578eade2b572a2f1974b284e67f7dce42462a0c697823d622e74be3670",
+    "expired": false
   },
   "git": {
     "branch": "codex/final-docs-compliance",
@@ -67,7 +78,7 @@
     "behind": 0
   },
   "limitations": [
-    "The locally verified be7c9aa artifact is not the currently hosted public archive.",
+    "The locally and CI-verified 3dd06bf artifact is not the currently hosted public archive.",
     "Website acceptance, public hosting and production signing require separate direct evidence.",
     "Named legal, economic, security, privacy and asset-rights reviews remain external."
   ]

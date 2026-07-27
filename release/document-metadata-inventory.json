@@ -3,7 +3,7 @@
   "productNumber": 18,
   "productSlug": "docs-compliance-brand",
   "productRelease": "0.2.0-candidate",
-  "sourceCommit": "9f0c1f269abf017b1380177047688dbb9361a2d2",
+  "sourceCommit": "3dd06bfc272acaca5bf3a263b8d7647a0fd98b3a",
   "lastUpdated": "2026-07-27",
   "scope": "Bounded current cohort of highest-authority public documents. Inclusion validates metadata completeness; it does not imply named professional review, Website acceptance, production signing or Mainnet status.",
   "requiredMetadataFields": [
