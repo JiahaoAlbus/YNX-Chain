@@ -214,18 +214,69 @@ final class TabButton: NSButton { var tabID: UUID? }
     @objc private func aiPageAction() { guard let tab = activeID.flatMap({ id in tabs.first(where: { $0.id == id }) }) else { return }; if tab.isPrivate { showBoundary(title: "AI unavailable in Private", message: "Private page content is never sent to an AI provider."); return }; let configured = environment["YNX_AI_GATEWAY_URL"] != nil && environment["YNX_AI_GATEWAY_CLIENT_TOKEN"] != nil; let alert = NSAlert(); alert.messageText = "Review page context for AI"; alert.informativeText = "Action: summarize selected page\nProvider: \(configured ? "YNX AI Gateway" : "unavailable")\nModel: default\nContext: current page text and URL only\nExcluded: history, other tabs, Wallet identity and private data\nCost: provider-dependent, maximum 50,000 page characters\n\nGeneration requires permission, supports cancellation, and must be reviewed before use."; alert.addButton(withTitle: configured ? "Allow page context" : "Provider unavailable"); alert.addButton(withTitle: "Cancel"); if !configured { alert.buttons[0].isEnabled = false }; _ = alert.runModal() }
     @objc private func startWalletSignIn() {
         do {
-            let issued = Date(), expires = issued.addingTimeInterval(300), nonce = randomToken(32), key = try devicePublicKey()
-            let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let request: [String:Any] = ["version":"1","nonce":nonce,"chainId":"ynx_6423-1","requestingProduct":"browser","productClientId":"ynx-browser-macos","bundleId":"com.ynxweb4.browser.macos","productDeviceAlgorithm":"p256-sha256","productDeviceKey":key,"callback":"ynxbrowser://com.ynxweb4.browser.macos/auth/callback","scopes":["account:read","browser:wallet-request"],"purpose":"Sign in to YNX Browser","issuedAt":formatter.string(from:issued),"expiresAt":formatter.string(from:expires)]
+            let issued = Date()
+            let expires = issued.addingTimeInterval(300)
+            let nonce = try randomToken(32)
+            let signingKey = try deviceSigningKey()
+            let publicKey = try devicePublicKey(signingKey)
+            let bindings = BrowserWalletCallbackBindings.macOS
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let request: [String: Any] = [
+                "version": "1",
+                "nonce": nonce,
+                "chainId": bindings.chainId,
+                "requestingProduct": bindings.requestingProduct,
+                "productClientId": bindings.productClientId,
+                "bundleId": bindings.bundleId,
+                "productDeviceAlgorithm": bindings.productDeviceAlgorithm,
+                "productDeviceKey": publicKey,
+                "callback": bindings.callback,
+                "scopes": bindings.orderedScopes,
+                "purpose": "Sign in to YNX Browser",
+                "issuedAt": formatter.string(from: issued),
+                "expiresAt": formatter.string(from: expires)
+            ]
             let data = try JSONSerialization.data(withJSONObject: request)
-            var components = URLComponents(); components.scheme = "ynxwallet"; components.host = "authorize"; components.queryItems = [URLQueryItem(name:"request", value:data.base64URLEncodedString())]
-            guard let link = components.url else { throw NSError(domain:"YNXBrowser",code:1,userInfo:[NSLocalizedDescriptionKey:"Wallet link creation failed"]) }
-            defaults.set(nonce, forKey:"walletPendingNonce"); defaults.set(expires.timeIntervalSince1970, forKey:"walletPendingExpiry")
-            if !NSWorkspace.shared.open(link) { security.stringValue = "YNX Wallet is unavailable. No session was created." }
-        } catch { security.stringValue = "Wallet request failed: \(error.localizedDescription). No session was created." }
+            var components = URLComponents()
+            components.scheme = "ynxwallet"
+            components.host = "authorize"
+            components.queryItems = [URLQueryItem(name: "request", value: data.base64URLEncodedString())]
+            guard let link = components.url else {
+                throw NSError(domain: "YNXBrowser", code: 1, userInfo: [NSLocalizedDescriptionKey: "Wallet link creation failed"])
+            }
+            try BrowserWalletCallbackPolicy.persistPending(
+                nonce: nonce,
+                expiresAt: expires,
+                defaults: defaults,
+                signingKey: signingKey,
+                bindings: bindings
+            )
+            if !NSWorkspace.shared.open(link) {
+                BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+                security.stringValue = "YNX Wallet is unavailable. No session was created."
+            }
+        } catch {
+            BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+            security.stringValue = "Wallet request failed. No session was created."
+        }
     }
     @objc private func showAbout() { showBoundary(title: "YNX Browser · Testnet Preview", message: "Engine: Apple WebKit (WKWebView)\nSearch: registered authorized sources only\nPrivacy: no claim of perfect privacy\nSigning: the browser never signs; YNX Wallet performs final review.") }
-    @objc private func clearData() { let alert=NSAlert();alert.messageText="Clear browsing data?";alert.informativeText="Cookies, cache, history, permissions and recovery state are cleared. Bookmarks and downloaded files remain.";alert.addButton(withTitle:"Clear");alert.addButton(withTitle:"Cancel");guard alert.runModal() == .alertFirstButtonReturn else{return};WKWebsiteDataStore.default().removeData(ofTypes:WKWebsiteDataStore.allWebsiteDataTypes(),modifiedSince:.distantPast){};defaults.removeObject(forKey:"history");defaults.removeObject(forKey:"permissions");defaults.removeObject(forKey:"tabs");security.stringValue="Local browsing data cleared. Bookmarks and downloaded files remain.";refreshLibrary() }
+    @objc private func clearData() {
+        let alert = NSAlert()
+        alert.messageText = "Clear browsing data?"
+        alert.informativeText = "Cookies, cache, history, permissions, recovery state and any pending Wallet review are cleared. Bookmarks and downloaded files remain."
+        alert.addButton(withTitle: "Clear")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        WKWebsiteDataStore.default().removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {}
+        defaults.removeObject(forKey: "history")
+        defaults.removeObject(forKey: "permissions")
+        defaults.removeObject(forKey: "tabs")
+        BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
+        security.stringValue = "Local browsing data and pending Wallet review cleared. Bookmarks and downloaded files remain."
+        refreshLibrary()
+    }
     @objc private func checkUpdates() { showBoundary(title:"Signed update boundary",message:"No signed update feed is configured. Web pages and AI output cannot replace this app. Install only a signed and notarized application bundle from the reviewed release channel.") }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
@@ -287,10 +338,74 @@ final class TabButton: NSButton { var tabID: UUID? }
     private func showBoundary(title: String, message: String) { let alert=NSAlert();alert.messageText=title;alert.informativeText=message;alert.alertStyle = .informational;alert.addButton(withTitle:"Close");alert.runModal() }
 
     private func applyEvidenceState() { guard let state = environment["YNX_BROWSER_EVIDENCE_STATE"] else { return }; if state == "private" { privateTabAction() }; if state == "crash", let id=activeID, let i=tabs.firstIndex(where:{$0.id==id}){tabs[i].crashed=true;refreshChrome();security.stringValue="Web content process crashed · session recovery preserved · press Reload to continue"}; if state == "permissions" { showPermissions() }; if state == "downloads" { showDownloads() } }
-    func application(_ application: NSApplication, open urls: [URL]) { guard let value = urls.first else { return }; if value.scheme == "ynxbrowser", value.host == "com.ynxweb4.browser.macos", value.path == "/auth/callback" { handleWalletCallback(value) } else if value.scheme == "ynxbrowser", let components = URLComponents(url: value, resolvingAgainstBaseURL: false), let target = components.queryItems?.first(where: { $0.name == "url" })?.value { navigate(target) } else if ["http", "https"].contains(value.scheme) { activeWebView()?.load(URLRequest(url: value)) } }
-    private func handleWalletCallback(_ url: URL) { do { guard let encoded=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="response"})?.value,let data=Data(base64URLEncoded:encoded),let response=try JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw NSError(domain:"YNXBrowser",code:2,userInfo:[NSLocalizedDescriptionKey:"malformed callback"])};guard defaults.double(forKey:"walletPendingExpiry")>Date().timeIntervalSince1970,response["nonce"] as? String==defaults.string(forKey:"walletPendingNonce"),response["chainId"] as? String=="ynx_6423-1",response["productClientId"] as? String=="ynx-browser-macos",response["bundleId"] as? String=="com.ynxweb4.browser.macos" else{throw NSError(domain:"YNXBrowser",code:3,userInfo:[NSLocalizedDescriptionKey:"replay, expiry or product binding mismatch"])};defaults.removeObject(forKey:"walletPendingNonce");defaults.removeObject(forKey:"walletPendingExpiry");security.stringValue="Wallet response received. Central Gateway signature and device challenge verification are required; no local session was created."}catch{security.stringValue="Wallet callback rejected: \(error.localizedDescription)"} }
-    private func randomToken(_ count:Int)->String{var bytes=[UInt8](repeating:0,count:count);_ = SecRandomCopyBytes(kSecRandomDefault,count,&bytes);return Data(bytes).base64URLEncodedString()}
-    private func devicePublicKey() throws -> String { let service="com.ynxweb4.browser.macos",account="wallet-product-device-p256",query:[String:Any]=[kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccount as String:account,kSecReturnData as String:true];var item:CFTypeRef?;let key:P256.Signing.PrivateKey;if SecItemCopyMatching(query as CFDictionary,&item)==errSecSuccess,let data=item as? Data{key=try P256.Signing.PrivateKey(rawRepresentation:data)}else{key=P256.Signing.PrivateKey();let add:[String:Any]=[kSecClass as String:kSecClassGenericPassword,kSecAttrService as String:service,kSecAttrAccount as String:account,kSecAttrAccessible as String:kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,kSecValueData as String:key.rawRepresentation];SecItemDelete(query as CFDictionary);guard SecItemAdd(add as CFDictionary,nil)==errSecSuccess else{throw NSError(domain:"YNXBrowser",code:4,userInfo:[NSLocalizedDescriptionKey:"device key storage failed"])} };guard let compact=key.publicKey.compactRepresentation else{throw NSError(domain:"YNXBrowser",code:5,userInfo:[NSLocalizedDescriptionKey:"device key encoding failed"])};return compact.base64URLEncodedString() }
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let value = urls.first else { return }
+        if value.scheme?.lowercased() == BrowserWalletCallbackBindings.macOS.scheme {
+            handleWalletCallback(value)
+            return
+        }
+        if let scheme = value.scheme?.lowercased(), ["http", "https"].contains(scheme) {
+            activeWebView()?.load(URLRequest(url: value))
+            return
+        }
+        security.stringValue = "External link rejected [BR-DEEPLINK-SCHEME]. Only HTTPS/HTTP navigation and the exact Wallet callback route are accepted."
+    }
+    private func handleWalletCallback(_ url: URL) {
+        do {
+            let key = try deviceSigningKey()
+            security.stringValue = try BrowserWalletCallbackPolicy.validateAndConsume(
+                url: url,
+                defaults: defaults,
+                verificationKey: key.publicKey,
+                bindings: .macOS
+            )
+        } catch let error as BrowserWalletCallbackError {
+            security.stringValue = "Wallet callback rejected [\(error.code)]: \(error.localizedDescription). No session was created."
+        } catch {
+            security.stringValue = "Wallet callback rejected [BR-WALLET-CALLBACK-INTERNAL]. No session was created."
+        }
+    }
+    private func randomToken(_ count: Int) throws -> String {
+        var bytes = [UInt8](repeating: 0, count: count)
+        guard SecRandomCopyBytes(kSecRandomDefault, count, &bytes) == errSecSuccess else {
+            throw NSError(domain: "YNXBrowser", code: 6, userInfo: [NSLocalizedDescriptionKey: "secure random generation failed"])
+        }
+        return Data(bytes).base64URLEncodedString()
+    }
+    private func deviceSigningKey() throws -> P256.Signing.PrivateKey {
+        let service = "com.ynxweb4.browser.macos"
+        let account = "wallet-product-device-p256"
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true
+        ]
+        var item: CFTypeRef?
+        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+           let data = item as? Data {
+            return try P256.Signing.PrivateKey(rawRepresentation: data)
+        }
+        let key = P256.Signing.PrivateKey()
+        let add: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            kSecValueData as String: key.rawRepresentation
+        ]
+        SecItemDelete(query as CFDictionary)
+        guard SecItemAdd(add as CFDictionary, nil) == errSecSuccess else {
+            throw NSError(domain: "YNXBrowser", code: 4, userInfo: [NSLocalizedDescriptionKey: "device key storage failed"])
+        }
+        return key
+    }
+    private func devicePublicKey(_ key: P256.Signing.PrivateKey) throws -> String {
+        guard let compact = key.publicKey.compactRepresentation else {
+            throw NSError(domain: "YNXBrowser", code: 5, userInfo: [NSLocalizedDescriptionKey: "device key encoding failed"])
+        }
+        return compact.base64URLEncodedString()
+    }
     func applicationWillTerminate(_ notification: Notification) { tabs.removeAll(where: { $0.isPrivate }); persistTabs() }
 }
 
