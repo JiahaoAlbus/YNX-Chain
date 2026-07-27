@@ -8,3 +8,5 @@ These questions do not block current autonomous Mail engineering.
 4. Will 20 Cloud expose malware-scan verdicts synchronously or through a canonical asynchronous event?
 5. What suppression retention period and complaint escalation SLA will Compliance/SRE approve?
 6. Which current-source platform artifacts must be public before 28 Website may mark `/mail` download-ready?
+7. Which exact prior Mail commit will 29 Integration freeze as the rollback compatibility target: the immediate prior current-source checkpoint or the historical hosted preview?
+8. Will 30 Security/SRE make the shared scanners fail closed when `rg` is absent, or pin the scanner binary in the release environment?

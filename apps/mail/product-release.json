@@ -2,7 +2,7 @@
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
   "branch": "codex/final-mail",
-  "commit": "02352ff97e4c5de1ba115b18c41bc740ba7e7191",
+  "commit": "0e087bc1fe7f71732d28dab1a6c7414e28d424ce",
   "version": "0.3.0-testnet-preview-source",
   "surfaces": [
     "android-native",
@@ -44,12 +44,30 @@
   "integrationContract": "release/integration/mail-contract.json",
   "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
   "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "publicProductMetadata": "apps/mail/public-product-metadata.json",
   "runtimeEvidence": {
     "mailRace": "go test -race ./internal/mail: pass",
-    "mailWeb": "npm test --prefix apps/mail: 6/6 pass",
+    "mailVet": "go vet ./internal/mail: pass",
+    "mailWeb": "npm test --prefix apps/mail: 8/8 pass",
     "mailBuild": "npm run build --prefix apps/mail: pass",
     "mailSmoke": "npm run smoke --prefix apps/mail: pass",
-    "fullRepositoryPreflight": "blocked outside Mail ownership by pre-existing consensus key-permission failures and missing Developer contract artifact"
+    "fullRepositoryPreflight": "Mail passes; blocked outside Mail ownership by Consensus key-permission failures, missing Developer contract artifact, Faucet key-permission failure and Trust signer-permission failure",
+    "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
+  },
+  "backupRestore": {
+    "format": "ynx-mail-backup-v1",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "sourceCommit": "0e087bc1fe7f71732d28dab1a6c7414e28d424ce",
+    "directoryMode": "0700",
+    "fileMode": "0600",
+    "sameByteValidationAndInstall": true,
+    "noReplaceDestination": true,
+    "providerRecoveryStatePreserved": true,
+    "legacyStateForwardLoadVerified": true,
+    "oldBinaryRollbackVerified": false,
+    "encryptedBoundaryRequired": true,
+    "evidence": "apps/mail/MIGRATION_COMPATIBILITY.md"
   },
   "internetBridge": {
     "providerAdapter": "resend",
@@ -82,7 +100,9 @@
     "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
     "No production signing, persistent staging Web/API, public product URL or store release.",
     "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
+    "The self-contained backup includes the state HMAC key and sender identity key and therefore requires an approved encrypted operator backup boundary; it is not a hostile-storage authenticity proof.",
+    "Legacy state forward loading is verified, but an explicit rollback export and old-binary drill remain incomplete.",
     "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-07-27T08:22:02Z"
+  "generatedAt": "2026-07-27T14:40:02Z"
 }

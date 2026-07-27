@@ -5,6 +5,20 @@ import test from "node:test";
 const release = JSON.parse(
   readFileSync(new URL("../product-release.json", import.meta.url), "utf8"),
 );
+const publicMetadata = JSON.parse(
+  readFileSync(new URL("../public-product-metadata.json", import.meta.url), "utf8"),
+);
+const packageManifest = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+const androidBuild = readFileSync(
+  new URL("../native/android/app/build.gradle", import.meta.url),
+  "utf8",
+);
+const iosProject = readFileSync(
+  new URL("../native/ios/YNXMail.xcodeproj/project.pbxproj", import.meta.url),
+  "utf8",
+);
 
 test("Mail release record exposes every acceptance state and evidence field", () => {
   for (const key of [
@@ -34,4 +48,37 @@ test("Mail release record exposes every acceptance state and evidence field", ()
   }
   if (!release.deployedStaging && !release.deployedPublic)
     assert.deepEqual(release.healthUrls, []);
+});
+
+test("Mail release identity stays aligned across every build surface", () => {
+  const expectedVersion = `${packageManifest.version}-testnet-preview-source`;
+  assert.equal(release.version, expectedVersion);
+  assert.match(
+    packageManifest.scripts.build,
+    /main\.buildRelease=ynx-mail-\$\{npm_package_version\}-testnet-preview-source/,
+  );
+  assert.match(androidBuild, /versionCode 2/);
+  assert.match(androidBuild, /versionName '0\.3\.0-test'/);
+  assert.equal((iosProject.match(/CURRENT_PROJECT_VERSION = 2;/g) ?? []).length, 2);
+  assert.equal((iosProject.match(/MARKETING_VERSION = 0\.3\.0;/g) ?? []).length, 2);
+});
+
+test("Mail public metadata is complete without overstating release status", () => {
+  assert.equal(publicMetadata.productId, release.productId);
+  assert.equal(publicMetadata.runtimeSourceCommit, release.commit);
+  assert.equal(publicMetadata.canonicalRoute, "/mail");
+  assert.equal(publicMetadata.canonicalUrl, null);
+  assert.equal(publicMetadata.publicStatus.implementedLocal, true);
+  assert.equal(publicMetadata.publicStatus.testedLocal, true);
+  for (const key of ["websitePublished", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"])
+    assert.equal(publicMetadata.publicStatus[key], false, `${key} must remain false without direct evidence`);
+  assert.deepEqual(publicMetadata.assets.screenshots, []);
+  assert.deepEqual(publicMetadata.assets.artifactManifest, []);
+  for (const key of ["supportUrl", "privacyUrl", "securityUrl", "statusUrl"])
+    assert.equal(publicMetadata.links[key], null, `${key} must remain null without a public URL`);
+  assert.ok(publicMetadata.faq.length >= 4);
+  const serialized = JSON.stringify(publicMetadata);
+  assert.doesNotMatch(serialized, /\/Users\//);
+  assert.doesNotMatch(serialized, /codex\//);
+  assert.doesNotMatch(serialized, /example\.com/i);
 });

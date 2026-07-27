@@ -3,7 +3,7 @@
 Version: 1.0.0  
 Product: 25｜YNX Mail  
 Branch: `codex/final-mail`  
-Runtime source commit: `02352ff97e4c5de1ba115b18c41bc740ba7e7191`  
+Runtime source commit: `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`  
 Current stage: FREEZE → INTEGRATE  
 Goal status: Active
 
@@ -43,6 +43,12 @@ configuration and locally observed submission/webhook evidence.
 - Webhook request bodies are capped at 256 KiB.
 - Existing native delivery, Wallet replay protection, AI approval/cancel,
   account export/delete and state-tamper rejection remain intact.
+- `ynx-mail-backup-v1` preserves provider recovery state and the Mail sender
+  identity inside a mode-restricted encrypted operator boundary. Restore uses
+  the exact validated bytes, rejects unsafe layout or key inconsistency and
+  reserves the destination with no-replace semantics.
+- Legacy version-1 state without provider recovery maps loads and normalizes;
+  rollback by a prior binary is not yet verified.
 
 ## Verification
 
@@ -50,7 +56,8 @@ configuration and locally observed submission/webhook evidence.
 |---|---|
 | `go test ./internal/mail` | Pass |
 | `go test -race ./internal/mail` | Pass |
-| `npm test --prefix apps/mail` | Pass, 6/6 |
+| `go vet ./internal/mail` | Pass |
+| `npm test --prefix apps/mail` | Pass, 8/8 |
 | `npm run build --prefix apps/mail` | Pass |
 | `npm run smoke --prefix apps/mail` | Pass |
 | `gofmt -d` on changed Go files | Clean |
@@ -65,11 +72,19 @@ The repository-wide failures were:
 
 These failures are outside the 25-mail ownership boundary and were not modified.
 
+The shared placeholder and secret scan scripts are not recorded as passing on
+this host: both attempted to call an unavailable `rg` binary, printed success
+and exited 0. Mail performed a separate credential-marker search over its
+runtime slice, but the shared gate still requires a fail-closed Security/SRE
+repair before Release acceptance.
+
 ## Integration artifacts
 
 - Contract: `release/integration/mail-contract.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Migration and recovery compatibility: `apps/mail/MIGRATION_COMPATIBILITY.md`
+- Public product metadata: `apps/mail/public-product-metadata.json`
 - Current release record: `apps/mail/product-release.json`
 - Goal coverage: `.ai-bridge/full-goal-coverage.json`
 
@@ -105,10 +120,10 @@ source only and must not be represented as containing this Internet Bridge.
 
 ## Exact next engineering actions
 
-1. Add migration/rollback and backup/restore drills for provider events,
-   suppressions, dead letters and health evidence.
-2. Emit canonical delivery events through a Data Fabric adapter with no body,
+1. Emit canonical delivery events through a Data Fabric adapter with no body,
    attachment content, mailbox plaintext, credential or raw webhook leakage.
+2. Add a versioned rollback export and execute an old-binary compatibility drill
+   against the prior accepted Mail runtime.
 3. Define a centrally authorized operator review/unsuppression path and Monitor
    alerts without granting Mail arbitrary Trust or provider administration.
 4. Rebuild and reinstall current-source desktop, Android and iOS artifacts before

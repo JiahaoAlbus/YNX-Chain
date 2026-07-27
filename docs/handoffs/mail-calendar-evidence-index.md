@@ -6,8 +6,9 @@ staging deployment, production signing or store release.
 | Requirement | Evidence | State |
 | --- | --- | --- |
 | Mail domain | `go test -race ./internal/mail`; auth-cookie, draft/send/retry, attachment, Trust, export/delete, tamper/recovery and AI adapter coverage | pass-local |
+| Mail backup/restore current source | `0e087bc1fe7f71732d28dab1a6c7414e28d424ce`; `TestBackupRestorePreservesProviderRecoveryAndSenderIdentity`, tamper/layout/key negative tests, no-replace concurrency and legacy-state forward-load | pass-local; prior-binary rollback not verified |
 | Calendar domain | `go test -race ./internal/calendar`; preview/approve/revert, RSVP/share, DST/recurrence/conflict/reminder, export/delete, tamper/recovery and AI adapter coverage | pass-local |
-| Product contracts | `npm test --prefix apps/{mail,calendar}`; 6/6 each including exact release schema and 12 native locales | pass-local |
+| Product contracts | `npm test --prefix apps/mail`: 8/8; `npm test --prefix apps/calendar`: 6/6; exact release schema and 12 native locales | pass-local |
 | Browser runtime | real ephemeral services, HttpOnly cookies, zero page errors; desktop light/dark, mobile, tablet, RTL, large text, loading/failure/empty/success and Calendar day/week/month | pass-local, screenshots inspected |
 | Android package/build | Gradle `:app:assembleDebug`; APK SHA-256 and bytes match GitHub asset digests | pass-local, debug/test signed |
 | Android install/restart/deep link | dedicated API 36 emulator-5560; both apps installed together, cold-launched, stopped/restarted and exact callbacks resolved independently | pass-local |
