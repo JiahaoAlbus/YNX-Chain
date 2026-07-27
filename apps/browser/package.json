@@ -9,8 +9,9 @@
     "test:native": "swift test --package-path native --jobs 1",
     "smoke": "node scripts/smoke.mjs",
     "gate:source": "node scripts/source-gates.mjs",
-    "check": "npm test && npm run test:native && npm run smoke && npm run gate:source && npm run build:macos",
-    "build:macos": "bash scripts/build-macos-app.sh"
+    "check": "npm test && npm run test:native && npm run smoke && npm run gate:source && npm run verify:macos-reproducible",
+    "build:macos": "bash scripts/build-macos-app.sh",
+    "verify:macos-reproducible": "bash scripts/verify-macos-reproducible.sh"
   },
   "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
 }
