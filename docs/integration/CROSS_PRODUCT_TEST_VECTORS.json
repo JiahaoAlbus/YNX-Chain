@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "ynx.browser.cross-product-vectors.v1",
+  "product": "browser",
+  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "asOf": "2026-07-27",
+  "status": "candidate",
+  "fixtures": {
+    "walletRegistry": "packages/web4-permissions/integration/browser-search-wallet-registry-v2.json",
+    "existingBrowserSignerVectors": "testdata/browser-signer-vectors.json"
+  },
+  "vectors": [
+    {
+      "id": "BR-WALLET-ANDROID-ACCEPT",
+      "owner": "02-wallet-auth",
+      "kind": "positive",
+      "input": {
+        "chainId": "ynx_6423-1",
+        "requestingProduct": "browser",
+        "productClientId": "ynx-browser-android",
+        "bundleId": "com.ynxweb4.browser",
+        "callback": "ynxbrowser://com.ynxweb4.browser/auth/callback",
+        "orderedScopes": ["account:read", "browser:wallet-request"],
+        "deviceAlgorithm": "p256-sha256",
+        "expirySecondsAtMost": 300
+      },
+      "expected": "Browser displays exact review and hands off to Wallet without signing or creating a Product Session.",
+      "status": "implementedLocal"
+    },
+    {
+      "id": "BR-WALLET-MACOS-ACCEPT",
+      "owner": "02-wallet-auth",
+      "kind": "positive",
+      "input": {
+        "chainId": "ynx_6423-1",
+        "requestingProduct": "browser",
+        "productClientId": "ynx-browser-macos",
+        "bundleId": "com.ynxweb4.browser.macos",
+        "callback": "ynxbrowser://com.ynxweb4.browser.macos/auth/callback",
+        "orderedScopes": ["account:read", "browser:wallet-request"],
+        "deviceAlgorithm": "p256-sha256",
+        "expirySecondsAtMost": 300
+      },
+      "expected": "Exact tuple is accepted for Wallet review; Browser never signs.",
+      "status": "implementedLocal"
+    },
+    {
+      "id": "BR-WALLET-WINDOWS-ACCEPT",
+      "owner": "02-wallet-auth",
+      "kind": "positive",
+      "input": {
+        "chainId": "ynx_6423-1",
+        "requestingProduct": "browser",
+        "productClientId": "ynx-browser-windows",
+        "bundleId": "com.ynxweb4.browser.windows",
+        "callback": "ynxbrowser://com.ynxweb4.browser.windows/auth/callback",
+        "orderedScopes": ["account:read", "browser:wallet-request"],
+        "deviceAlgorithm": "p256-sha256",
+        "deviceKeyBoundary": "Windows CNG ECDSA P-256, non-exportable private key",
+        "pendingStateBoundary": "signed by the device key and consumed after one valid callback",
+        "expirySecondsAtMost": 300
+      },
+      "expected": "Windows opens exact Wallet review, accepts only the exact callback envelope, and creates no local Product Session.",
+      "status": "implemented-and-contract-tested",
+      "blockedBy": "Windows compile/package/install and protocol registration"
+    },
+    {
+      "id": "BR-WALLET-WINDOWS-PENDING-TAMPER",
+      "owner": "22-browser",
+      "kind": "negative",
+      "mutation": "Modify persisted nonce, expiry, chain, client, bundle, callback, ordered scopes or signature before callback processing.",
+      "expected": "CNG signature verification fails closed; no response is accepted and no Product Session is created.",
+      "status": "source-gated",
+      "blockedBy": "Installed Windows interaction evidence"
+    },
+    {
+      "id": "BR-WALLET-CALLBACK-SUBSTITUTION",
+      "owner": "02-wallet-auth",
+      "kind": "negative",
+      "mutation": "Replace the registered callback with any other origin, scheme, bundle or path.",
+      "expected": "Fail closed before Wallet approval; no session, signature, redirect or audit claim of success.",
+      "status": "historicallyTested"
+    },
+    {
+      "id": "BR-WALLET-SCOPE-WIDENING",
+      "owner": "02-wallet-auth",
+      "kind": "negative",
+      "mutation": "Add, remove or reorder scopes relative to the registered ordered pair.",
+      "expected": "Fail closed and display a user-safe scope-binding error.",
+      "status": "historicallyTested"
+    },
+    {
+      "id": "BR-WALLET-REPLAY-EXPIRY",
+      "owner": "02-wallet-auth",
+      "kind": "negative",
+      "mutation": "Reuse the nonce/request ID or deliver the response after expiry.",
+      "expected": "Reject replay/expired response and create no local or central session.",
+      "status": "historicallyTested"
+    },
+    {
+      "id": "BR-PRIVATE-HISTORY",
+      "owner": "22-browser",
+      "kind": "negative",
+      "steps": ["Open a Private tab", "Navigate", "Close Private session", "Restart Browser"],
+      "expected": "No Private tab, visit, permission decision, AI context or crash-recovery entry persists.",
+      "status": "testedLocal"
+    },
+    {
+      "id": "BR-PRIVATE-DOWNLOAD-METADATA",
+      "owner": "22-browser",
+      "kind": "negative",
+      "steps": ["Start a download in a Private macOS tab", "Choose a destination", "Complete or fail the download", "Open YNX Downloads library"],
+      "expected": "The operating-system file may remain, but no YNX Downloads record is written. Source metadata is not taken from another active tab.",
+      "status": "implemented-and-node-gated",
+      "blockedBy": "Current-commit Swift native build and interaction evidence"
+    },
+    {
+      "id": "BR-DOWNLOAD-CONTEXT-MISSING",
+      "owner": "22-browser",
+      "kind": "negative",
+      "mutation": "Deliver a download completion without the initiating Browser download context.",
+      "expected": "Fail closed: write no Browser download record and state that auditable source context was unavailable.",
+      "status": "implementedLocal"
+    },
+    {
+      "id": "BR-PERMISSION-EXACT-ORIGIN",
+      "owner": "22-browser",
+      "kind": "negative",
+      "steps": ["Deny a permission for origin A", "Request the same permission from origin B", "Open Private mode and decide again"],
+      "expected": "A and B are isolated; Private decision is not persisted; malformed or unsupported requests deny.",
+      "status": "testedLocal"
+    },
+    {
+      "id": "BR-AI-PRIVATE-REJECT",
+      "owner": "14-ai",
+      "kind": "negative",
+      "steps": ["Open Private page", "Request Browser AI summary"],
+      "expected": "Reject before provider invocation; no private page text, URL, Wallet identity or history enters AI context.",
+      "status": "implementedLocal"
+    },
+    {
+      "id": "BR-THREAT-LIST-MATCH",
+      "owner": "30-security-sre-release",
+      "kind": "negative",
+      "steps": ["Configure an exact blocked origin", "Navigate to that origin"],
+      "expected": "Navigation stops and UI states provider/list source and that protection is not a safety guarantee.",
+      "status": "testedLocal"
+    },
+    {
+      "id": "BR-SHARED-TESTNET-FLOW",
+      "owner": "29-integration",
+      "kind": "endToEnd",
+      "steps": [
+        "Open reviewed YNX Search new tab",
+        "Open official Wallet request",
+        "Review Pay invoice",
+        "Review Quant mandate",
+        "Open DEX and Explorer evidence",
+        "Revoke Product Session in Wallet",
+        "Attempt reuse in Browser"
+      ],
+      "expected": "Every surface preserves source/version/asOf/failure state; Browser signs nothing; revoked session fails closed; direct Testnet evidence is recorded.",
+      "status": "notStarted",
+      "blockedBy": ["Accepted central contracts", "Shared Testnet endpoints", "Installed final-branch clients"]
+    }
+  ]
+}
