@@ -28,6 +28,8 @@ done
 for required in \
   'YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=public_testnet' \
   'YNX_PUBLIC_STABLE_RESERVE_URL=https://${EXPLORER_DOMAIN}/api/stable/reserve' \
+  'YNX_YUSD_SANDBOX_URL=http://127.0.0.1:6490' \
+  'YNX_PUBLIC_YUSD_SANDBOX_URL=https://${EXPLORER_DOMAIN}/api/stable/yusd-sandbox' \
   'ynx-economics-monitord --check-config' \
   'systemctl restart ynx-economics-monitord'
 do

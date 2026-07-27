@@ -34,6 +34,7 @@ const required = [
   "bin/ynx-indexerd",
   "bin/ynx-explorerd",
   "bin/ynx-economics-monitord",
+  "bin/ynx-yusd-sandboxd",
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",
@@ -49,7 +50,9 @@ const required = [
   "config/ynx-chatd.env",
   "config/ynx-squared.env",
   "config/ynx-app-gatewayd.env",
+  "config/ynx-explorerd.env",
   "config/ynx-economics-monitord.env",
+  "config/ynx-yusd-sandboxd.env",
   "config/ynx-chaind-primary.env",
   "config/ynx-chaind-singapore.env",
   "config/ynx-chaind-silicon-valley.env",
@@ -63,6 +66,8 @@ const required = [
   "systemd/ynx-squared.service",
   "systemd/ynx-app-gatewayd.service",
   "systemd/ynx-economics-monitord.service",
+  "systemd/ynx-yusd-sandboxd.service",
+  "scripts/install-yusd-env.sh",
   "nginx/ynx-chain.conf",
 ];
 

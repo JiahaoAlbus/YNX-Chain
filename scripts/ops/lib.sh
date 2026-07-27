@@ -56,7 +56,7 @@ ynx_ops_copy() {
 ynx_ops_services_for_kind() {
   local kind="$1"
   if [[ "$kind" == "full" ]]; then
-    printf 'ynx-chaind ynx-indexerd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced'
+    printf 'ynx-chaind ynx-indexerd ynx-yusd-sandboxd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced'
   else
     printf 'ynx-chaind'
   fi

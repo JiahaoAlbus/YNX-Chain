@@ -25,6 +25,9 @@ case "$url" in
   http://127.0.0.1:6427/health)
     printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6427/api/stable/yusd-sandbox)
+    printf '%s\n' '{"sourceCommit":"abc123def456","adapterReleaseClass":"public_testnet","release":{"deployedPublic":true},"sandbox":{"product":"YUSD Sandbox","realityValue":false,"externalReserveAttested":false,"solvent":true,"reconciled":true},"sandboxBuild":{"commit":"abc123def456","release":"ynx-chain-abc123def456"}}'
+    ;;
   http://127.0.0.1:6428/health)
     printf '%s\n' '{"ok":true,"chainId":"6423","nativeSymbol":"YNXT","upstreamOk":true,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
@@ -56,7 +59,13 @@ case "$url" in
     printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
   http://127.0.0.1:6438/health)
-    printf '%s\n' '{"ok":true,"service":"ynx-economics-monitord","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"},"probe":{"routeAvailable":true,"providerAvailable":false,"httpStatus":503,"sourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","failureCodes":["YNX_STABLE_RESERVE_UNAVAILABLE"]}}'
+    printf '%s\n' '{"ok":true,"service":"ynx-economics-monitord","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"},"probe":{"routeAvailable":true,"providerAvailable":false,"httpStatus":503,"sourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","failureCodes":["YNX_STABLE_RESERVE_UNAVAILABLE"]},"yusdSandbox":{"routeAvailable":true,"solvent":true,"reconciled":true,"httpStatus":200,"sourceCommit":"abc123def456","failureCodes":[]}}'
+    ;;
+  http://127.0.0.1:6490/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-yusd-sandboxd","testnetOnly":true,"realityValue":false,"externalReserveAttested":false,"externalExecutionEnabled":false,"productionReady":false,"providerStatus":"available","paused":false,"build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
+  http://127.0.0.1:6490/yusd/snapshot)
+    printf '%s\n' '{"schemaVersion":1,"product":"YUSD Sandbox","network":"YNX Testnet","symbol":"YUSD","reserveUnits":4600000,"supplyUnits":600000,"pendingRedemptionUnits":0,"solvent":true,"reconciled":true,"realityValue":false,"externalReserveAttested":false,"failure":false}'
     ;;
   *)
     echo "unexpected URL: $url" >&2
@@ -116,7 +125,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer economics_monitor faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
+  local indexer explorer yusd_health yusd_snapshot yusd_projection economics_monitor faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -129,10 +138,39 @@ check_full_stack_surface() {
   require_contains "explorer health build commit" "$explorer" "$expected_commit"
   require_contains "explorer health release" "$explorer" "$expected_release"
 
+  yusd_health="$(fetch_with_retry "YUSD Sandbox health" "http://127.0.0.1:6490/health")"
+  require_contains "YUSD Sandbox health" "$yusd_health" '"testnetOnly":true'
+  require_contains "YUSD Sandbox reality truth" "$yusd_health" '"realityValue":false'
+  require_contains "YUSD Sandbox reserve truth" "$yusd_health" '"externalReserveAttested":false'
+  require_contains "YUSD Sandbox execution truth" "$yusd_health" '"externalExecutionEnabled":false'
+  require_contains "YUSD Sandbox production truth" "$yusd_health" '"productionReady":false'
+  require_contains "YUSD Sandbox health build commit" "$yusd_health" "$expected_commit"
+  require_contains "YUSD Sandbox health release" "$yusd_health" "$expected_release"
+
+  yusd_snapshot="$(fetch_with_retry "YUSD Sandbox snapshot" "http://127.0.0.1:6490/yusd/snapshot")"
+  require_contains "YUSD Sandbox snapshot product" "$yusd_snapshot" '"product":"YUSD Sandbox"'
+  require_contains "YUSD Sandbox snapshot network" "$yusd_snapshot" '"network":"YNX Testnet"'
+  require_contains "YUSD Sandbox snapshot solvency" "$yusd_snapshot" '"solvent":true'
+  require_contains "YUSD Sandbox snapshot reconciliation" "$yusd_snapshot" '"reconciled":true'
+  require_contains "YUSD Sandbox snapshot reality truth" "$yusd_snapshot" '"realityValue":false'
+  require_contains "YUSD Sandbox snapshot reserve truth" "$yusd_snapshot" '"externalReserveAttested":false'
+
+  yusd_projection="$(fetch_with_retry "Explorer YUSD Sandbox projection" "http://127.0.0.1:6427/api/stable/yusd-sandbox")"
+  require_contains "Explorer YUSD source commit" "$yusd_projection" "$expected_commit"
+  require_contains "Explorer YUSD release class" "$yusd_projection" '"adapterReleaseClass":"public_testnet"'
+  require_contains "Explorer YUSD public deployment truth" "$yusd_projection" '"deployedPublic":true'
+  require_contains "Explorer YUSD product" "$yusd_projection" '"product":"YUSD Sandbox"'
+  require_contains "Explorer YUSD reality truth" "$yusd_projection" '"realityValue":false'
+  require_contains "Explorer YUSD solvency" "$yusd_projection" '"solvent":true'
+  require_contains "Explorer YUSD reconciliation" "$yusd_projection" '"reconciled":true'
+
   economics_monitor="$(fetch_with_retry "Economics Monitor health" "http://127.0.0.1:6438/health")"
   require_contains "Economics Monitor health" "$economics_monitor" '"routeAvailable":true'
   require_contains "Economics Monitor provider truth" "$economics_monitor" '"providerAvailable":'
   require_contains "Economics Monitor HTTP truth" "$economics_monitor" '"httpStatus":'
+  require_contains "Economics Monitor YUSD route" "$economics_monitor" '"yusdSandbox":{"routeAvailable":true'
+  require_contains "Economics Monitor YUSD solvency" "$economics_monitor" '"solvent":true'
+  require_contains "Economics Monitor YUSD reconciliation" "$economics_monitor" '"reconciled":true'
   require_contains "Economics Monitor health build commit" "$economics_monitor" "$expected_commit"
   require_contains "Economics Monitor health release" "$economics_monitor" "$expected_release"
 
