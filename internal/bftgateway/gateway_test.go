@@ -158,7 +158,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 
 	var health Health
 	getJSON(t, server.URL+"/health", &health)
-	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 25 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
+	if !health.OK || health.PublicCutoverReady || health.ValidatorCount != 4 || health.Height != 17 || len(health.Implemented) != 26 || len(health.Missing) != 0 || health.Build.Commit != "abc123" || health.MigrationHeight != 16 || health.MigrationBlockHash != strings.ToLower(migrationHash) {
 		t.Fatalf("unexpected health: %+v", health)
 	}
 	var status Status
@@ -242,6 +242,19 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":19,"method":"eth_getBlockByNumber","params":["pending",false]}`, nil)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":20,"method":"eth_getBlockByNumber","params":["0x12",false]}`, nil)
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":21,"method":"eth_getBlockByHash","params":["0x0000000000000000000000000000000000000000000000000000000000000000",false]}`, nil)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":28,"method":"eth_getBlockTransactionCountByNumber","params":["latest"]}`, "0x1")
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":29,"method":"eth_getBlockTransactionCountByHash","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}`, "0x1")
+	byNumber := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":30,"method":"eth_getTransactionByBlockNumberAndIndex","params":["0x11","0x0"]}`)
+	if byNumber["hash"] != txHash || byNumber["transactionIndex"] != "0x0" || byNumber["blockNumber"] != "0x11" {
+		t.Fatalf("unexpected block-number transaction lookup: %+v", byNumber)
+	}
+	byHash := assertRPCObject(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":31,"method":"eth_getTransactionByBlockHashAndIndex","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","0x0"]}`)
+	if byHash["hash"] != txHash || byHash["transactionIndex"] != "0x0" || byHash["blockHash"] != "0x"+strings.Repeat("b", 64) {
+		t.Fatalf("unexpected block-hash transaction lookup: %+v", byHash)
+	}
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":32,"method":"eth_getBlockTransactionCountByNumber","params":["pending"]}`, nil)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":33,"method":"eth_getTransactionByBlockNumberAndIndex","params":["latest","0x1"]}`, nil)
+	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":34,"method":"eth_getBlockTransactionCountByHash","params":["0x0000000000000000000000000000000000000000000000000000000000000000"]}`, nil)
 	transaction := assertRPCObject(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":3,"method":"eth_getTransactionByHash","params":[%q]}`, txHash))
 	if transaction["hash"] != txHash || transaction["transactionIndex"] != "0x0" || transaction["blockNumber"] != "0x11" || transaction["input"] != "0x" {
 		t.Fatalf("unexpected committed EVM transaction: %+v", transaction)
@@ -261,6 +274,10 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":22,"method":"eth_getBlockByNumber","params":["0x011",false]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":23,"method":"eth_getBlockByHash","params":["0xBAD",false]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":24,"method":"eth_getBlockByNumber","params":["latest","false"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":35,"method":"eth_getBlockTransactionCountByNumber","params":["0x011"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":36,"method":"eth_getBlockTransactionCountByHash","params":["0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":37,"method":"eth_getTransactionByBlockNumberAndIndex","params":["latest","0x00"]}`, -32602)
+	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":38,"method":"eth_getTransactionByBlockHashAndIndex","params":["0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":26,"method":"eth_sendRawTransaction","params":["0x0"]}`, -32602)
 	assertRPCError(t, server.URL+"/evm", fmt.Sprintf(`{"jsonrpc":"2.0","id":27,"method":"eth_sendRawTransaction","params":["0x%x"]}`, wrongChainPayload), -32003)
 	resp, err = http.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":3,"method":"eth_getStorageAt","params":[]}`))

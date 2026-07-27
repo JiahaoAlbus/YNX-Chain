@@ -30,6 +30,7 @@ var implementedCapabilities = []string{
 	"evm-network-version",
 	"evm-block-number",
 	"evm-block-by-number-and-hash",
+	"evm-block-transaction-count-and-index-lookup",
 	"evm-account-balance-and-nonce",
 	"evm-signed-raw-transaction-broadcast",
 	"evm-bounded-contract-code-call-and-gas",
@@ -1261,6 +1262,13 @@ func (g *Gateway) handleEVM(w http.ResponseWriter, r *http.Request) {
 	case "eth_getBlockByNumber", "eth_getBlockByHash":
 		var err error
 		result, err = g.evmCommittedBlockResult(r.Context(), request.Method, request.Params)
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
+			return
+		}
+	case "eth_getBlockTransactionCountByNumber", "eth_getBlockTransactionCountByHash", "eth_getTransactionByBlockNumberAndIndex", "eth_getTransactionByBlockHashAndIndex":
+		var err error
+		result, err = g.evmCommittedBlockTransactionResult(r.Context(), request.Method, request.Params)
 		if err != nil {
 			writeJSON(w, http.StatusOK, map[string]any{"jsonrpc": "2.0", "id": request.ID, "error": map[string]any{"code": -32602, "message": err.Error()}})
 			return
