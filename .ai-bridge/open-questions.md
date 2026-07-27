@@ -9,7 +9,7 @@ These are integration or environment questions, not requests for secrets.
 3. Which reviewed YNX Search endpoint and authorized source inventory should become the final new-tab target?
 4. Which threat-data provider or operator policy is approved for production, including license, privacy, retention, rate limits, stale status and outage fallback?
 5. Which Windows CI runner will provide .NET 8, WebView2, MSIX packaging, callback protocol registration, install/cold-start and signing-class evidence?
-6. What is the deterministic macOS Swift build recovery path for the current host after the local compiler/package-manager hang?
+6. Which deterministic native evidence path should exercise macOS normal/private download persistence and deep-link callback rejection without weakening the real UI behavior?
 7. Which retention periods apply to history, bookmarks, downloads metadata, local audit, backups and exported files?
 8. What is the approved service-exit UX for exporting data, revoking Wallet sessions and deleting Browser-local state?
 9. Which central endpoints are ready for the shared Search → Wallet → Pay/Quant/DEX → Explorer Testnet flow?

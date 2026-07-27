@@ -14,3 +14,4 @@ Updated: 2026-07-27
 10. **Source gates are not binary evidence.** macOS and Windows release states stay unverified until their native builds, installs and interaction drills run.
 11. **Local audit names are noncanonical.** Product 26 owns canonical event definitions; product 29 freezes the integration version.
 12. **No dual registry.** The existing v2 registry candidate remains the one local tuple source until Wallet/Auth accepts it or provides an explicit migration.
+13. **Ad-hoc signing is preview evidence only.** A passing `codesign` check plus Gatekeeper rejection proves the local bundle's integrity class and simultaneously forbids any production-signed, notarized, hosted or store-release claim.

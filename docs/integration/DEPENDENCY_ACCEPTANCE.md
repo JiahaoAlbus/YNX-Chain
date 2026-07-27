@@ -27,4 +27,4 @@ Status: candidate; no central acceptance is implied
 
 ## Current local blocker
 
-The macOS privacy fix, state-v2 lifecycle and Windows Wallet request builder are committed. Browser tests pass 14/14, Wallet/permission contracts pass 15/15, and Smoke passes. The current-commit Swift package build could not be revalidated because Swift compiler/package-manager processes hung, while Windows compilation could not start because `dotnet` is not installed. These are verification blockers, not evidence of build success or source failure.
+The macOS privacy fix, state-v2 lifecycle and Windows Wallet request builder are committed. Browser tests pass 14/14, Wallet/permission contracts pass 15/15, and Smoke passes. The macOS arm64 Release Build, ad-hoc Testnet Preview package, cold start, graceful quit and restart are now verified at `88bf8dd`; Gatekeeper rejection correctly preserves the non-production boundary. Windows compilation still cannot start because `dotnet` is not installed, and macOS Private-download/deep-link interactions remain open.

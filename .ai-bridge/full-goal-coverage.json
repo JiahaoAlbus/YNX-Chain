@@ -9,8 +9,8 @@
     "owner": "22-browser"
   },
   "goalStatus": "active",
-  "phase": "PROTECT",
-  "sourceCommit": "0515ff50b22547840c6554b29c4af3cd17484800",
+  "phase": "FREEZE",
+  "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
   "lastUpdated": "2026-07-27",
   "allowedStatuses": [
     "notStarted",
@@ -286,15 +286,15 @@
       "category": "platform",
       "requirement": "macOS WKWebView build, install, cold start, restart, deep link and package integrity evidence.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["prior release build at a90cfef", "current privacy fix at 06fb7ee"],
-      "sourceCommit": "06fb7ee7e321743288348feefa3fb76e9f096463",
-      "tests": ["Node source gate 9/9 pass"],
-      "artifact": null,
+      "status": "testedLocal",
+      "evidence": ["Swift 6.1 release build", "ad-hoc-signed arm64 app bundle", "ZIP and binary SHA-256", "cold start", "graceful quit", "restart", "Gatekeeper rejection recorded as a non-production boundary"],
+      "sourceCommit": "88bf8dddf06411ea26749abdd5ea52173b7cd10a",
+      "tests": ["swift build -c release --package-path native --jobs 1: pass", "npm run build:macos: pass", "open/quit/restart process checks: pass", "cd apps/browser && npm test: 14/14 pass"],
+      "artifact": "apps/browser/evidence/macos-release-88bf8dd.json",
       "publicProof": null,
-      "blockedBy": ["Swift compiler/package manager hung during current-commit verification"],
+      "blockedBy": ["user application-location install not performed", "private-download interaction evidence", "deep-link callback interaction evidence", "Developer ID signing/notarization", "hosted artifact"],
       "owner": "22-browser",
-      "nextAction": "Repair deterministic Swift build environment and rerun package/install/cold-start evidence.",
+      "nextAction": "Execute normal/private download and deep-link callback interactions on the built app, then wire native data lifecycle controls and obtain notarized/hosted evidence only when external signing and hosting inputs exist.",
       "lastUpdated": "2026-07-27"
     },
     {

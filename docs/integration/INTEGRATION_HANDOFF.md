@@ -5,7 +5,7 @@ Browser source commit: `0515ff50b22547840c6554b29c4af3cd17484800`
 Branch: `codex/final-browser`  
 As of: 2026-07-27  
 Goal: Active  
-Phase: PROTECT moving toward FREEZE
+Phase: FREEZE
 
 ## Product ownership
 
@@ -50,10 +50,13 @@ Windows source and cross-platform contracts are tested, but compile/package/prot
 | `cd apps/browser && npm test` | Pass: 14/14 | Covers platform source gates, private-download metadata, state migration, tamper resistance, backup/restore, export/delete and Windows Wallet source boundary |
 | `cd packages/web4-permissions && npm test` | Pass: 15/15 | Covers all four exact Browser tuples, callback/scope/chain/replay rejection and the non-exportable Windows CNG builder boundary |
 | `git diff --check` before runtime commits | Pass | No whitespace/patch-format errors |
-| macOS Swift package build at current commit | Not verified | Swift compiler/package-manager processes hung or exceeded the MCP command window; no current-commit build pass is claimed |
+| macOS Swift release build at `88bf8dd` | Pass | Swift 6.1 arm64 build completed and linked `YNXBrowserNative` in 41.70 seconds |
+| macOS Testnet Preview package | Pass | ad-hoc-signed app and ZIP created; ZIP SHA-256 `d41826d277f10a96ef3c5621a3c514689d9a450f094da36c8c87fce8c1efc506`, 103039 bytes |
+| macOS cold start / quit / restart | Pass | Packaged app started twice, exposed `YNXBrowserNative`, and exited cleanly after each run |
+| macOS signing boundary | Truthfully non-production | `codesign` verification passed as `adhoc`; Gatekeeper rejected it; no Developer ID, notarization, hosting or store claim is made |
 | Windows WPF build at current commit | Blocked before compile | `dotnet` is absent from this macOS workspace; no Windows build/package/install claim is made |
-| Platform install/cold-start | Not rerun | Historical evidence remains historical and is not automatically attributed to this commit |
-| Public deployment/artifacts/signing | Not verified | All release-state booleans remain false except `implementedLocal` |
+| Other platform install/cold-start | Not rerun | Historical evidence remains historical and is not automatically attributed to this commit |
+| Public deployment/artifacts/signing | Not verified | Public, hosted, production-signed and store states remain false |
 
 ## Candidate contract
 
@@ -77,11 +80,11 @@ The contract is a Browser-owned candidate. It is not a central protocol freeze. 
 
 ## Exact next Browser action
 
-Protect and push `06fb7ee`, `91685b7` and `0515ff5`, then restore deterministic Swift execution and build the macOS host at `0515ff50b22547840c6554b29c4af3cd17484800`. In parallel, run Windows CI with .NET 8 to compile/package the CNG Wallet builder, register the `ynxbrowser` callback protocol and execute replay/tamper/expiry tests. After installed evidence exists, submit the four tuples to Wallet/Auth for central acceptance.
+Execute one normal download and one Private download against the built macOS Testnet Preview, then prove that only the normal source/filename record persists. Next, wire state-v2 export/delete/backup/restore controls into native clients. In parallel, run Windows CI with .NET 8 to compile/package the CNG Wallet builder, register the `ynxbrowser` callback protocol and execute replay/tamper/expiry tests before central Wallet/Auth acceptance.
 
 ## Blockers
 
-- Swift compiler/package-manager execution is currently non-deterministic in this workspace session.
+- macOS Private-download and deep-link interactions are not yet captured, despite successful build/package/cold-start evidence.
 - Central contracts and shared Testnet endpoints are not yet accepted in this branch.
 - Windows build, full Xcode/simulator, production signing, notarization, store release, hosted downloads and public `/browser` proof remain unverified.
 
