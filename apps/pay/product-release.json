@@ -3,7 +3,7 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/final-pay",
-  "commit": "WORKTREE_PENDING_COMMIT",
+  "commit": "6477a42b0b96761a74b676c4f18f2e987b628a3d",
   "version": "1.1.0",
   "releaseClass": "local-candidate",
   "phase": "FREEZE",
