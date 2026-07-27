@@ -55,6 +55,9 @@ case "$url" in
   http://127.0.0.1:6437/health)
     printf '%s\n' '{"ok":true,"service":"ynx-app-gatewayd","browserBoundary":"exact-https-origin","nativeBoundary":"ynx-mobile-v1","ownershipProof":"ynx1-secp256k1-plus-ed25519-device","sessionStorage":"integrity-checked-atomic-mode-0600-token-hashes-only","remoteDeployed":true,"truthfulStatus":"remote-first-party-app-gateway","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
     ;;
+  http://127.0.0.1:6438/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-economics-monitord","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"},"probe":{"routeAvailable":true,"providerAvailable":false,"httpStatus":503,"sourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","failureCodes":["YNX_STABLE_RESERVE_UNAVAILABLE"]}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -113,7 +116,7 @@ check_chain_surface() {
 }
 
 check_full_stack_surface() {
-  local indexer explorer faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
+  local indexer explorer economics_monitor faucet ai_gateway pay_gateway trust_gateway resource_gateway bridge_gateway stablecoin_gateway chat_gateway square_gateway app_gateway
   indexer="$(fetch_with_retry "indexer health" "http://127.0.0.1:6426/health")"
   require_contains "indexer health" "$indexer" "$expected_chain_id"
   require_contains "indexer health" "$indexer" "YNXT"
@@ -125,6 +128,13 @@ check_full_stack_surface() {
   require_contains "explorer health" "$explorer" "YNXT"
   require_contains "explorer health build commit" "$explorer" "$expected_commit"
   require_contains "explorer health release" "$explorer" "$expected_release"
+
+  economics_monitor="$(fetch_with_retry "Economics Monitor health" "http://127.0.0.1:6438/health")"
+  require_contains "Economics Monitor health" "$economics_monitor" '"routeAvailable":true'
+  require_contains "Economics Monitor provider truth" "$economics_monitor" '"providerAvailable":'
+  require_contains "Economics Monitor HTTP truth" "$economics_monitor" '"httpStatus":'
+  require_contains "Economics Monitor health build commit" "$economics_monitor" "$expected_commit"
+  require_contains "Economics Monitor health release" "$economics_monitor" "$expected_release"
 
   faucet="$(fetch_with_retry "faucet health" "http://127.0.0.1:6428/health")"
   require_contains "faucet health" "$faucet" "$expected_chain_id"

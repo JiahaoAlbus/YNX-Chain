@@ -168,8 +168,10 @@ grep -Fq "YNX_STABLECOIN_DEPLOY_ENABLED=true" "$release_dir/config/ynx-stablecoi
 grep -Fq "YNX_STABLECOIN_API_KEY=" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing API key"; exit 1; }
 grep -Fq "YNX_STABLECOIN_STATE_PATH=/var/lib/ynx-chain/stablecoin/state.json" "$release_dir/config/ynx-stablecoind.env" || { echo "Stablecoin env missing persistent state path"; exit 1; }
 grep -Fq "YNX_STABLE_RESERVE_DEPLOY_ENABLED=false" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env must preserve the disabled stable reserve gate"; exit 1; }
-grep -Fq "YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=central_testnet" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env missing central Testnet release truth"; exit 1; }
+grep -Fq "YNX_STABLE_RESERVE_ADAPTER_RELEASE_CLASS=public_testnet" "$release_dir/config/ynx-explorerd.env" || { echo "Explorer env missing public Testnet release truth"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-explorerd.env" "$release_dir/systemd/ynx-explorerd.service" || { echo "Explorer service missing isolated reserve environment"; exit 1; }
+grep -Fq "YNX_ECONOMICS_MONITOR_HTTP_ADDR=127.0.0.1:6438" "$release_dir/config/ynx-economics-monitord.env" || { echo "Economics Monitor env missing loopback listener"; exit 1; }
+grep -Fq "YNX_PUBLIC_STABLE_RESERVE_URL=https://explorer.ynx.test/api/stable/reserve" "$release_dir/config/ynx-economics-monitord.env" || { echo "Economics Monitor env missing public reserve URL"; exit 1; }
 grep -Fq "YNX_CHAT_DEPLOY_ENABLED=true" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing deploy gate"; exit 1; }
 grep -Fq "YNX_CHAT_API_KEY=" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing API key"; exit 1; }
 grep -Fq "YNX_CHAT_STATE_PATH=/var/lib/ynx-chain/chat/state.json" "$release_dir/config/ynx-chatd.env" || { echo "Chat env missing persistent state path"; exit 1; }
@@ -227,7 +229,7 @@ grep -Fq "YNX_RELEASE_COMMIT=${commit}" "$release_dir/config/release.env" || { e
 grep -Fq "YNX_RELEASE_NAME=${release}" "$release_dir/config/release.env" || { echo "release env missing name"; exit 1; }
 grep -a -Fq "$commit" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release commit"; exit 1; }
 grep -a -Fq "$release" "$release_dir/bin/ynx-chaind" || { echo "ynx-chaind binary missing release name"; exit 1; }
-for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd; do
+for binary in ynx-indexerd ynx-explorerd ynx-economics-monitord ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced ynx-bridged ynx-stablecoind ynx-chatd ynx-squared ynx-app-gatewayd; do
   grep -a -Fq "$commit" "$release_dir/bin/$binary" || { echo "$binary binary missing release commit"; exit 1; }
   grep -a -Fq "$release" "$release_dir/bin/$binary" || { echo "$binary binary missing release name"; exit 1; }
 done
@@ -238,6 +240,9 @@ tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/release-manifest.js
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./caddy/ynx-chain.caddy" || { echo "release tarball missing Caddy ingress snippet"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/install-caddy-ingress.sh" || { echo "release tarball missing Caddy ingress install script"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./scripts/check-local-services.sh" || { echo "release tarball missing local service check script"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-economics-monitord" || { echo "release tarball missing Economics Monitor binary"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-economics-monitord.env" || { echo "release tarball missing Economics Monitor env"; exit 1; }
+tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./systemd/ynx-economics-monitord.service" || { echo "release tarball missing Economics Monitor systemd unit"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-ai-gatewayd" || { echo "release tarball missing AI Gateway binary"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./config/ynx-ai-gatewayd.env" || { echo "release tarball missing AI Gateway env"; exit 1; }
 tar -tzf "tmp/deploy/${release}.tar.gz" | grep -Fq "./bin/ynx-payd" || { echo "release tarball missing Pay Gateway binary"; exit 1; }
@@ -406,6 +411,9 @@ grep -Fq "EnvironmentFile=/etc/ynx/ynx-trustd.env" "$release_dir/systemd/ynx-tru
 grep -Fq "ExecStart=/usr/local/bin/ynx-trustd" "$release_dir/systemd/ynx-trustd.service" || { echo "Trust Gateway service missing executable"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-resourced.env" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-resourced" "$release_dir/systemd/ynx-resourced.service" || { echo "Resource Gateway service missing executable"; exit 1; }
+grep -Fq "EnvironmentFile=/etc/ynx/ynx-economics-monitord.env" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing env file"; exit 1; }
+grep -Fq "ExecStart=/usr/local/bin/ynx-economics-monitord" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing executable"; exit 1; }
+grep -Fq "ProtectSystem=strict" "$release_dir/systemd/ynx-economics-monitord.service" || { echo "Economics Monitor service missing strict filesystem protection"; exit 1; }
 grep -Fq "EnvironmentFile=/etc/ynx/ynx-bridged.env" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing secret env file"; exit 1; }
 grep -Fq "ExecStart=/usr/local/bin/ynx-bridged" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing executable"; exit 1; }
 grep -Fq "ReadWritePaths=/var/lib/ynx-chain/bridge" "$release_dir/systemd/ynx-bridged.service" || { echo "Bridge coordinator service missing bounded state path"; exit 1; }
@@ -430,6 +438,7 @@ grep -Fq "YNX_EXPECT_BRIDGE_SERVICE=1" "$dry_run_out" || { echo "dry-run output 
 grep -Fq "ynx-bridged\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Bridge config check"; exit 1; }
 grep -Fq "YNX_EXPECT_STABLECOIN_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Stablecoin health expectation"; exit 1; }
 grep -Fq "ynx-stablecoind\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Stablecoin config check"; exit 1; }
+grep -Fq "ynx-economics-monitord\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Economics Monitor config check"; exit 1; }
 grep -Fq "YNX_EXPECT_CHAT_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Chat health expectation"; exit 1; }
 grep -Fq "ynx-chatd\\ --check-config" "$dry_run_out" || { echo "dry-run output missing Chat config check"; exit 1; }
 grep -Fq "YNX_EXPECT_SQUARE_SERVICE=1" "$dry_run_out" || { echo "dry-run output missing Square health expectation"; exit 1; }

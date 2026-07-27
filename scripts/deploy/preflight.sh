@@ -22,6 +22,7 @@ make authoritative-monitoring-check
 make replication-alert-check
 make stable-reserve-alert-check
 make economics-monitor-check
+make economics-monitor-lifecycle-check
 go test ./cmd/... ./internal/...
 make faucet-check
 make indexer-check

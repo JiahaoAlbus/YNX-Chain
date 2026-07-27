@@ -24,6 +24,7 @@ const binaries = [
   "bin/ynx-chaind",
   "bin/ynx-indexerd",
   "bin/ynx-explorerd",
+  "bin/ynx-economics-monitord",
   "bin/ynx-faucetd",
   "bin/ynx-ai-gatewayd",
   "bin/ynx-payd",
@@ -53,6 +54,7 @@ const serviceFiles = [
   "config/ynx-chatd.env",
   "config/ynx-squared.env",
   "config/ynx-app-gatewayd.env",
+  "config/ynx-economics-monitord.env",
   "systemd/ynx-chaind.service",
   "systemd/ynx-indexerd.service",
   "systemd/ynx-explorerd.service",
@@ -66,6 +68,7 @@ const serviceFiles = [
   "systemd/ynx-chatd.service",
   "systemd/ynx-squared.service",
   "systemd/ynx-app-gatewayd.service",
+  "systemd/ynx-economics-monitord.service",
   "nginx/ynx-chain.conf",
 ].map((file) => fileEntry(file, "service-config"));
 
