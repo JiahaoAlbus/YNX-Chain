@@ -13,13 +13,14 @@ const targets = [
   resolve(repositoryRoot, 'internal/indexer'),
   resolve(repositoryRoot, 'cmd/ynx-explorerd'),
   resolve(repositoryRoot, 'cmd/ynx-indexerd'),
+  resolve(repositoryRoot, 'scripts/verify/indexer-cursor-restart-check.sh'),
   resolve(repositoryRoot, 'docs/integration'),
   resolve(repositoryRoot, 'release/integration'),
   resolve(repositoryRoot, 'product-release.json')
 ];
 
 const textExtensions = new Set([
-  '', '.css', '.go', '.html', '.js', '.json', '.md', '.mjs', '.ts', '.tsx', '.webmanifest'
+  '', '.css', '.go', '.html', '.js', '.json', '.md', '.mjs', '.sh', '.ts', '.tsx', '.webmanifest'
 ]);
 const ignoredNames = new Set(['node_modules', 'dist', 'test-results', 'screenshots']);
 const checks = [
