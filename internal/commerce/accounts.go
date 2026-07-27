@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -73,6 +74,154 @@ func (s *Store) SaveCart(actor string, items []CartItem) (Cart, error) {
 		return Cart{}, err
 	}
 	return c, nil
+}
+
+func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	profile := s.s.BuyerProfiles[actor]
+	profile.Account = actor
+	cart := s.s.Carts[actor]
+	cart.Buyer = actor
+
+	orders := make([]Order, 0)
+	for _, order := range s.s.Orders {
+		if order.Buyer == actor {
+			orders = append(orders, order)
+		}
+	}
+	sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAt.After(orders[j].CreatedAt) })
+
+	jobs := make([]AIJob, 0)
+	for _, job := range s.s.AIJobs {
+		if job.Actor == actor {
+			jobs = append(jobs, job)
+		}
+	}
+	sort.Slice(jobs, func(i, j int) bool { return jobs[i].CreatedAt.After(jobs[j].CreatedAt) })
+
+	audits := make([]AuditEvent, 0)
+	for _, event := range s.s.Audits {
+		if event.Role == "buyer" && event.Actor == actor {
+			audits = append(audits, event)
+		}
+	}
+	sort.Slice(audits, func(i, j int) bool { return audits[i].At.After(audits[j].At) })
+
+	return BuyerDataExport{
+		SchemaVersion:   1,
+		ExportedAt:      s.now(),
+		Account:         actor,
+		Profile:         profile,
+		Cart:            cart,
+		Orders:          orders,
+		AIJobs:          jobs,
+		AuditEvents:     audits,
+		RetentionNotice: "Profile, saved addresses, cart, AI jobs, and buyer-scoped request records can be deleted. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
+	}
+}
+
+func terminalForPrivacyDeletion(status string) bool {
+	switch status {
+	case "cancelled", "expired", "refunded", "return_rejected", "refund_rejected":
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Store) DeleteBuyerData(actor string) (BuyerDataDeletionReceipt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, order := range s.s.Orders {
+		if order.Buyer == actor && !terminalForPrivacyDeletion(order.Status) {
+			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: order %s is %s and must reach a terminal state before personal data deletion", ErrInvalidState, order.ID, order.Status)
+		}
+	}
+
+	now := s.now()
+	receipt := BuyerDataDeletionReceipt{
+		ReceiptID:       newID("privacy-delete"),
+		DeletedAt:       now,
+		RetainedRecords: []string{"pseudonymized finalized orders", "authoritative public-chain payer addresses and transaction hashes", "settlement and refund evidence", "order timeline and integrity audit"},
+	}
+	if _, ok := s.s.BuyerProfiles[actor]; ok {
+		delete(s.s.BuyerProfiles, actor)
+		receipt.ProfileDeleted = true
+	}
+	if _, ok := s.s.Carts[actor]; ok {
+		delete(s.s.Carts, actor)
+		receipt.CartDeleted = true
+	}
+
+	pseudonym := newID("deleted-buyer")
+	for id, order := range s.s.Orders {
+		if order.Buyer != actor {
+			continue
+		}
+		order.Buyer = pseudonym
+		order.Address = Address{}
+		if order.Resolution != nil {
+			resolution := *order.Resolution
+			resolution.Reason = ""
+			resolution.Explanation = ""
+			order.Resolution = &resolution
+		}
+		if order.Review != nil {
+			review := *order.Review
+			review.Body = ""
+			order.Review = &review
+		}
+		if order.TrustCase != nil {
+			trustCase := *order.TrustCase
+			trustCase.EvidenceURL = ""
+			trustCase.AppealURL = ""
+			order.TrustCase = &trustCase
+		}
+		for i := range order.Timeline {
+			if order.Timeline[i].Actor == actor {
+				order.Timeline[i].Actor = pseudonym
+			}
+		}
+		order.UpdatedAt = now
+		s.s.Orders[id] = order
+		receipt.OrdersPseudonymized++
+	}
+
+	for id, job := range s.s.AIJobs {
+		if job.Actor == actor {
+			delete(s.s.AIJobs, id)
+			receipt.AIJobsDeleted++
+		}
+	}
+	for key, record := range s.s.Idempotency {
+		if record.Actor == actor && (strings.HasPrefix(record.Route, "order.") || strings.HasPrefix(record.Route, "ai.")) {
+			delete(s.s.Idempotency, key)
+			receipt.IdempotencyDeleted++
+		}
+	}
+	for key := range s.s.RequestWindow {
+		if strings.HasPrefix(key, actor+"\x00") {
+			delete(s.s.RequestWindow, key)
+			receipt.RateWindowsDeleted++
+		}
+	}
+	for i := range s.s.Audits {
+		if s.s.Audits[i].Role == "buyer" && s.s.Audits[i].Actor == actor {
+			s.s.Audits[i].Actor = pseudonym
+			receipt.AuditEventsPseudonymized++
+		}
+		if (s.s.Audits[i].ObjectType == "profile" || s.s.Audits[i].ObjectType == "cart") && s.s.Audits[i].ObjectID == actor {
+			s.s.Audits[i].ObjectID = pseudonym
+		}
+	}
+	s.auditLocked("privacy-service", "system", "buyer_data_deleted", "privacy_receipt", receipt.ReceiptID, "completed", fmt.Sprintf("profile=%t cart=%t orders=%d aiJobs=%d", receipt.ProfileDeleted, receipt.CartDeleted, receipt.OrdersPseudonymized, receipt.AIJobsDeleted))
+	if err := s.persistLocked(); err != nil {
+		return BuyerDataDeletionReceipt{}, err
+	}
+	return receipt, nil
 }
 
 type StoreUpdate struct{ Name, Description, Policy, TrustURL, SettlementAccount string }

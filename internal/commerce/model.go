@@ -24,6 +24,31 @@ type BuyerProfile struct {
 	UpdatedAt            time.Time
 }
 
+type BuyerDataExport struct {
+	SchemaVersion   int          `json:"schemaVersion"`
+	ExportedAt      time.Time    `json:"exportedAt"`
+	Account         string       `json:"account"`
+	Profile         BuyerProfile `json:"profile"`
+	Cart            Cart         `json:"cart"`
+	Orders          []Order      `json:"orders"`
+	AIJobs          []AIJob      `json:"aiJobs"`
+	AuditEvents     []AuditEvent `json:"auditEvents"`
+	RetentionNotice string       `json:"retentionNotice"`
+}
+
+type BuyerDataDeletionReceipt struct {
+	ReceiptID                string    `json:"receiptId"`
+	DeletedAt                time.Time `json:"deletedAt"`
+	ProfileDeleted           bool      `json:"profileDeleted"`
+	CartDeleted              bool      `json:"cartDeleted"`
+	AIJobsDeleted            int       `json:"aiJobsDeleted"`
+	IdempotencyDeleted       int       `json:"idempotencyDeleted"`
+	RateWindowsDeleted       int       `json:"rateWindowsDeleted"`
+	OrdersPseudonymized      int       `json:"ordersPseudonymized"`
+	AuditEventsPseudonymized int       `json:"auditEventsPseudonymized"`
+	RetainedRecords          []string  `json:"retainedRecords"`
+}
+
 type Cart struct {
 	Buyer     string
 	Items     []CartItem
