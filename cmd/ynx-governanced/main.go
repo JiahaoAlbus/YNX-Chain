@@ -33,11 +33,11 @@ func main() {
 		fmt.Println("ynx-governanced config check passed; loopback-only, pinned genesis roles, mode-0600 gateway assertion key; deployment not implied")
 		return
 	}
-	service, auth, err := governance.OpenRuntime(cfg, time.Now().UTC())
+	service, auth, executionOwner, err := governance.OpenIntegratedRuntime(cfg, time.Now().UTC(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	serverHandler, err := governance.NewServer(service, auth, cfg.StatePath, time.Now)
+	serverHandler, err := governance.NewServerWithExecutionOwner(service, auth, executionOwner, cfg.StatePath, time.Now)
 	if err != nil {
 		log.Fatal(err)
 	}

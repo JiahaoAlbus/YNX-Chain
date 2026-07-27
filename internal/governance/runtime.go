@@ -6,11 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
 type RuntimePolicyConfig struct {
@@ -34,12 +37,20 @@ type RuntimePolicyConfig struct {
 }
 
 type RuntimeConfig struct {
-	SchemaVersion  string                `json:"schemaVersion"`
-	HTTPAddress    string                `json:"httpAddress"`
-	StatePath      string                `json:"statePath"`
-	GatewayKeyPath string                `json:"gatewayKeyPath"`
-	Policy         RuntimePolicyConfig   `json:"policy"`
-	GenesisRoles   []RoleAssignmentInput `json:"genesisRoles"`
+	SchemaVersion  string                  `json:"schemaVersion"`
+	HTTPAddress    string                  `json:"httpAddress"`
+	StatePath      string                  `json:"statePath"`
+	GatewayKeyPath string                  `json:"gatewayKeyPath"`
+	Policy         RuntimePolicyConfig     `json:"policy"`
+	GenesisRoles   []RoleAssignmentInput   `json:"genesisRoles"`
+	ChainCore      *RuntimeChainCoreConfig `json:"chainCore,omitempty"`
+}
+
+type RuntimeChainCoreConfig struct {
+	RPCURL          string `json:"rpcUrl"`
+	ChainID         int64  `json:"chainId"`
+	ExecutionSigner string `json:"executionSigner"`
+	RequestTimeout  string `json:"requestTimeout"`
 }
 
 func LoadRuntimeConfig(path string) (RuntimeConfig, error) {
@@ -91,8 +102,16 @@ func ValidateRuntimeConfig(cfg RuntimeConfig) (Policy, []byte, error) {
 	if cfg.SchemaVersion == "ynx-governanced-config/v2" {
 		return Policy{}, nil, fmt.Errorf("%w: governance runtime config v2 requires explicit timelock-grace migration to v3", ErrForbidden)
 	}
-	if cfg.SchemaVersion != "ynx-governanced-config/v3" {
+	if cfg.SchemaVersion != "ynx-governanced-config/v3" && cfg.SchemaVersion != "ynx-governanced-config/v4" {
 		return Policy{}, nil, fmt.Errorf("%w: unsupported runtime config version", ErrInvalid)
+	}
+	if cfg.SchemaVersion == "ynx-governanced-config/v3" && cfg.ChainCore != nil {
+		return Policy{}, nil, fmt.Errorf("%w: Chain Core execution config requires runtime config v4", ErrForbidden)
+	}
+	if cfg.SchemaVersion == "ynx-governanced-config/v4" {
+		if _, err := validateRuntimeChainCoreConfig(cfg.ChainCore); err != nil {
+			return Policy{}, nil, err
+		}
 	}
 	host, _, err := net.SplitHostPort(cfg.HTTPAddress)
 	if err != nil {
@@ -136,6 +155,20 @@ func ValidateRuntimeConfig(cfg RuntimeConfig) (Policy, []byte, error) {
 	return policy, key, nil
 }
 
+func validateRuntimeChainCoreConfig(cfg *RuntimeChainCoreConfig) (time.Duration, error) {
+	if cfg == nil || cfg.ChainID <= 0 || !consensus.IsNativeAddress(strings.TrimSpace(cfg.ExecutionSigner)) {
+		return 0, fmt.Errorf("%w: runtime config v4 requires numeric Chain Core ID and canonical execution signer", ErrInvalid)
+	}
+	if _, err := validateCometRPCURL(cfg.RPCURL); err != nil {
+		return 0, err
+	}
+	timeout, err := time.ParseDuration(cfg.RequestTimeout)
+	if err != nil || timeout < time.Second || timeout > 30*time.Second {
+		return 0, fmt.Errorf("%w: Chain Core request timeout must be between 1s and 30s", ErrInvalid)
+	}
+	return timeout, nil
+}
+
 func OpenRuntime(cfg RuntimeConfig, now time.Time) (*Service, *GatewayAssertionAuthenticator, error) {
 	policy, key, err := ValidateRuntimeConfig(cfg)
 	if err != nil {
@@ -169,4 +202,27 @@ func OpenRuntime(cfg RuntimeConfig, now time.Time) (*Service, *GatewayAssertionA
 		return nil, nil, err
 	}
 	return service, auth, nil
+}
+
+func OpenIntegratedRuntime(cfg RuntimeConfig, now time.Time, httpClient *http.Client) (*Service, *GatewayAssertionAuthenticator, ChainExecutionOwner, error) {
+	service, auth, err := OpenRuntime(cfg, now)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if cfg.ChainCore == nil {
+		return service, auth, nil, nil
+	}
+	timeout, err := validateRuntimeChainCoreConfig(cfg.ChainCore)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	client, err := NewCometChainExecutionClient(cfg.ChainCore.RPCURL, cfg.ChainCore.ChainID, timeout, httpClient)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	owner, err := NewCanonicalChainExecutionAdapter(cfg.ChainCore.ChainID, cfg.ChainCore.ExecutionSigner, client)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return service, auth, owner, nil
 }
